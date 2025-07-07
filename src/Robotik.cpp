@@ -1,330 +1,364 @@
 #include "Robotik/Robotik.hpp"
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
-namespace robotik {
-
-//------------------------------------------------------------------------------
-// Implémentation de Node
-//------------------------------------------------------------------------------
-
-Node::Node(const std::string& name)
-    : name(name), isDirty(true)
+namespace robotik
 {
-    localTransform = Transform::Identity();
-    worldTransform = Transform::Identity();
+
+// ----------------------------------------------------------------------------
+Node::Node(const std::string& p_name) : m_name(p_name)
+{
+    m_local_transform = Transform::Identity();
+    m_world_transform = Transform::Identity();
 }
 
-void Node::addChild(std::shared_ptr<Node> child)
+// ----------------------------------------------------------------------------
+void Node::addChild(std::shared_ptr<Node> p_child)
 {
-    children.push_back(child);
-    child->parent = std::weak_ptr<Node>(shared_from_this());
-    child->markDirty();
+    m_children.push_back(p_child);
+    p_child->m_parent = std::weak_ptr<Node>(shared_from_this());
+    p_child->markDirty();
 }
 
-void Node::removeChild(const std::string& childName)
+// ----------------------------------------------------------------------------
+void Node::removeChild(const std::string& p_child_name)
 {
-    auto it = std::find_if(children.begin(), children.end(),
-                         [&childName](const std::shared_ptr<Node>& child)
-                         {
-                             return child->getName() == childName;
-                         });
+    auto it = std::find_if(m_children.begin(),
+                           m_children.end(),
+                           [&p_child_name](const std::shared_ptr<Node>& p_child)
+                           { return p_child->getName() == p_child_name; });
 
-    if (it != children.end())
+    if (it != m_children.end())
     {
-        children.erase(it);
+        m_children.erase(it);
     }
 }
 
-std::shared_ptr<Node> Node::getChild(const std::string& childName)
+// ----------------------------------------------------------------------------
+std::shared_ptr<Node> Node::getChild(const std::string& p_child_name)
 {
-    auto it = std::find_if(children.begin(), children.end(),
-                         [&childName](const std::shared_ptr<Node>& child)
-                         {
-                             return child->getName() == childName;
-                         });
+    auto it = std::find_if(m_children.begin(),
+                           m_children.end(),
+                           [&p_child_name](const std::shared_ptr<Node>& p_child)
+                           { return p_child->getName() == p_child_name; });
 
-    if (it != children.end())
+    if (it != m_children.end())
     {
         return *it;
     }
     return nullptr;
 }
 
-void Node::setLocalTransform(const Transform& transform)
+// ----------------------------------------------------------------------------
+void Node::setLocalTransform(const Transform& p_transform)
 {
-    localTransform = transform;
+    m_local_transform = p_transform;
     markDirty();
 }
 
+// ----------------------------------------------------------------------------
 const Transform& Node::getLocalTransform() const
 {
-    return localTransform;
+    return m_local_transform;
 }
 
+// ----------------------------------------------------------------------------
 const Transform& Node::getWorldTransform()
 {
-    if (isDirty)
+    if (m_is_dirty)
     {
         updateWorldTransform();
     }
-    return worldTransform;
+    return m_world_transform;
 }
 
+// ----------------------------------------------------------------------------
 void Node::updateWorldTransform()
 {
-    if (auto parentNode = parent.lock())
+    if (auto parentNode = m_parent.lock())
     {
-        worldTransform = parentNode->getWorldTransform() * localTransform;
+        m_world_transform = parentNode->getWorldTransform() * m_local_transform;
     }
     else
     {
-        worldTransform = localTransform;
+        m_world_transform = m_local_transform;
     }
 
-    isDirty = false;
+    m_is_dirty = false;
 
-    // Mettre à jour les transformations des enfants
-    for (auto& child : children)
+    // Update the transformations of the children
+    for (auto const& child : m_children)
     {
         child->updateWorldTransform();
     }
 }
 
+// ----------------------------------------------------------------------------
 void Node::markDirty()
 {
-    isDirty = true;
-    for (auto& child : children)
+    m_is_dirty = true;
+    for (auto const& child : m_children)
     {
         child->markDirty();
     }
 }
 
+// ----------------------------------------------------------------------------
 const std::string& Node::getName() const
 {
-    return name;
+    return m_name;
 }
 
-//------------------------------------------------------------------------------
-// Implémentation de Joint
-//------------------------------------------------------------------------------
-
-Joint::Joint(const std::string& name, JointType type, const Eigen::Vector3d& axis)
-    : name(name), type(type), value(0.0), min(-M_PI), max(M_PI), axis(axis.normalized())
-{}
-
-void Joint::setValue(double val)
+// ----------------------------------------------------------------------------
+Joint::Joint(const std::string& p_name,
+             JointType p_type,
+             const Eigen::Vector3d& p_axis)
+    : m_name(p_name),
+      m_type(p_type),
+      m_value(0.0),
+      m_min(-M_PI),
+      m_max(M_PI),
+      m_axis(p_axis.normalized())
 {
-    // Appliquer les limites
-    if (val < min) val = min;
-    if (val > max) val = max;
+}
 
-    value = val;
+// ----------------------------------------------------------------------------
+void Joint::setValue(double p_value)
+{
+    // Apply the limits
+    if (p_value < m_min)
+        p_value = m_min;
+    if (p_value > m_max)
+        p_value = m_max;
 
-    // Mettre à jour la transformation du nœud
-    if (node)
+    m_value = p_value;
+
+    // Update the transformation of the node
+    if (m_node)
     {
         updateNodeTransform();
     }
 }
 
+// ----------------------------------------------------------------------------
 double Joint::getValue() const
 {
-    return value;
+    return m_value;
 }
 
-void Joint::setLimits(double minVal, double maxVal)
+// ----------------------------------------------------------------------------
+void Joint::setLimits(double p_min, double p_max)
 {
-    min = minVal;
-    max = maxVal;
+    m_min = p_min;
+    m_max = p_max;
 }
 
+// ----------------------------------------------------------------------------
 Transform Joint::getTransform() const
 {
     Transform transform = Transform::Identity();
 
-    switch (type)
+    switch (m_type)
     {
         case JointType::REVOLUTE:
         {
-            // Créer la matrice de rotation autour de l'axe
-            Eigen::AngleAxisd rotation(value, axis);
+            // Create the rotation matrix around the axis
+            Eigen::AngleAxisd rotation(m_value, m_axis);
             transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
             break;
         }
         case JointType::PRISMATIC:
         {
-            // Translation le long de l'axe
-            transform.block<3, 1>(0, 3) = axis * value;
+            // Translation along the axis
+            transform.block<3, 1>(0, 3) = m_axis * m_value;
             break;
         }
         case JointType::FIXED:
-            // Pas de transformation pour les joints fixes
+            // No transformation for fixed joints
             break;
     }
 
     return transform;
 }
 
+// ----------------------------------------------------------------------------
 void Joint::updateNodeTransform()
 {
-    node->setLocalTransform(getTransform());
+    m_node->setLocalTransform(getTransform());
 }
 
+// ----------------------------------------------------------------------------
 JointType Joint::getType() const
 {
-    return type;
+    return m_type;
 }
 
-const Eigen::Vector3d& Joint::getAxis() cons
- {
-    return axis;
-}
-
-void Joint::setNode(std::shared_ptr<Node> n)
+// ----------------------------------------------------------------------------
+const Eigen::Vector3d& Joint::getAxis() const
 {
-    node = n;
+    return m_axis;
+}
+
+// ----------------------------------------------------------------------------
+void Joint::setNode(std::shared_ptr<Node> p_node)
+{
+    m_node = p_node;
     updateNodeTransform();
 }
 
-std::shared_ptr<Node> Joint::getNode()
+// ----------------------------------------------------------------------------
+std::shared_ptr<Node> Joint::getNode() const
 {
-    return node;
+    return m_node;
 }
 
-//------------------------------------------------------------------------------
-// Implémentation de RobotArm
-//------------------------------------------------------------------------------
-
-RobotArm::RobotArm(const std::string& name)
-    : name(name)
-{}
-
-void RobotArm::setRootNode(std::shared_ptr<Node> root)
+// ----------------------------------------------------------------------------
+const std::string& Joint::getName() const
 {
-    rootNode = root;
+    return m_name;
 }
 
-void RobotArm::addJoint(std::shared_ptr<Joint> joint)
+// ----------------------------------------------------------------------------
+RobotArm::RobotArm(const std::string& p_name) : m_name(p_name) {}
+
+// ----------------------------------------------------------------------------
+void RobotArm::setRootNode(std::shared_ptr<Node> p_root)
 {
-    joints.push_back(joint);
-    jointMap[joint->getName()] = joint;
+    m_root_node = p_root;
 }
 
-void RobotArm::setEndEffector(std::shared_ptr<Node> node)
+// ----------------------------------------------------------------------------
+void RobotArm::addJoint(std::shared_ptr<Joint> p_joint)
 {
-    endEffector = node;
+    m_joints.push_back(p_joint);
+    m_joint_map[p_joint->getName()] = p_joint;
 }
 
-Transform RobotArm::forwardKinematics()
+// ----------------------------------------------------------------------------
+void RobotArm::setEndEffector(std::shared_ptr<Node> p_node)
 {
-    if (!endEffector)
+    m_end_effector = p_node;
+}
+
+// ----------------------------------------------------------------------------
+Transform RobotArm::forwardKinematics() const
+{
+    if (!m_end_effector)
     {
         throw std::runtime_error("End effector not set");
     }
 
-    // S'assurer que toutes les transformations sont à jour
-    rootNode->updateWorldTransform();
+    // Ensure that all transformations are up to date
+    m_root_node->updateWorldTransform();
 
-    return endEffector->getWorldTransform();
+    return m_end_effector->getWorldTransform();
 }
 
-Pose RobotArm::getEndEffectorPose()
+// ----------------------------------------------------------------------------
+Pose RobotArm::getEndEffectorPose() const
 {
     Transform transform = forwardKinematics();
-    return Utils::transformToPose(transform);
+    return utils::transformToPose(transform);
 }
 
-bool RobotArm::inverseKinematics(const Pose& targetPose, std::vector<double>& solution)
+// ----------------------------------------------------------------------------
+bool RobotArm::inverseKinematics(const Pose& p_target_pose,
+                                 std::vector<double>& p_solution)
 {
-    // Implémentation de la cinématique inverse par la méthode de Jacobienne inverse
-    const int maxIterations = 100;
-    const double epsilon = 1e-6;
-    const double damping = 0.1;  // Facteur d'amortissement pour la stabilité
+    // Implementation of the inverse kinematics by the Jacobian method
+    // inverse
+    const int maxIterations =
+        500; // Increased iterations for better convergence
+    const double epsilon =
+        1e-4; // More reasonable tolerance for robotics applications
+    const double damping = 0.01; // Reduced damping for better convergence
 
-    // Initialiser avec les valeurs actuelles
-    solution = getJointValues();
-
-    Transform targetTransform = Utils::poseToTransform(targetPose);
+    // Initialize with the current values
+    p_solution = getJointValues();
 
     for (int iter = 0; iter < maxIterations; ++iter)
     {
-        // Position actuelle de l'effecteur
-        Transform currentTransform = forwardKinematics();
-        Pose currentPose = Utils::transformToPose(currentTransform);
+        // Current position of the end effector
+        Transform current_transform = forwardKinematics();
+        Pose current_pose = utils::transformToPose(current_transform);
 
-        // Différence de position/orientation
-        Pose error = targetPose - currentPose;
+        // Difference of position/orientation
+        Pose error = p_target_pose - current_pose;
 
-        // Si l'erreur est suffisamment petite, on considère la solution comme trouvée
+        // If the error is small enough, we consider the solution as found
         if (error.norm() < epsilon)
         {
             return true;
         }
 
-        // Calculer la jacobienne
+        // Calculate the Jacobian
         Jacobian J = calculateJacobian();
 
-        // Calculer la pseudo-inverse amortie (méthode de Levenberg-Marquardt)
+        // Calculate the damped pseudo-inverse (Levenberg-Marquardt method)
         Eigen::MatrixXd JtJ = J.transpose() * J;
-        Eigen::MatrixXd damped = JtJ + damping * Eigen::MatrixXd::Identity(JtJ.rows(), JtJ.cols());
-        Eigen::MatrixXd invJtJ = damped.inverse();
-        Eigen::MatrixXd Jpinv = invJtJ * J.transpose();
+        Eigen::MatrixXd damped =
+            JtJ + damping * Eigen::MatrixXd::Identity(JtJ.rows(),
+                                                      JtJ.cols()); // NOLINT
+        Eigen::MatrixXd inv_JtJ = damped.inverse();
+        Eigen::MatrixXd Jpinv = inv_JtJ * J.transpose();
 
-        // Calculer l'incrément des angles articulaires
+        // Calculate the increment of the joint angles
         Eigen::VectorXd dTheta = Jpinv * error;
 
-        // Mettre à jour les angles
-        for (size_t i = 0; i < joints.size(); ++i)
+        // Update the angles
+        for (size_t i = 0; i < m_joints.size(); ++i)
         {
-            solution[i] += dTheta(i);
+            p_solution[i] += dTheta(i);
         }
 
-        // Appliquer les nouvelles valeurs
-        setJointValues(solution);
+        // Apply the new values
+        setJointValues(p_solution);
     }
 
-    // Si on arrive ici, c'est qu'on n'a pas trouvé de solution
+    // If we arrive here, it means we haven't found a solution
     return false;
 }
 
-Jacobian RobotArm::calculateJacobian()
+// ----------------------------------------------------------------------------
+Jacobian RobotArm::calculateJacobian() const
 {
-    const int numJoints = joints.size();
-    Jacobian J(6, numJoints);
+    const size_t num_joints = m_joints.size();
+    Jacobian J(6, num_joints);
 
-    // Position de l'effecteur
-    Transform endEffectorTransform = endEffector->getWorldTransform();
-    Eigen::Vector3d endPos = endEffectorTransform.block<3, 1>(0, 3);
+    // Position of the end effector
+    Transform end_effector_transform = m_end_effector->getWorldTransform();
+    Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
-    for (int i = 0; i < numJoints; ++i)
+    for (size_t i = 0; i < num_joints; ++i)
     {
-        auto joint = joints[i];
-        auto jointNode = joint->getNode();
+        auto joint = m_joints[i];
+        auto joint_node = joint->getNode();
 
-        // Transformation du joint dans l'espace global
-        Transform jointTransform = jointNode->getWorldTransform();
+        // Transformation of the joint in the global space
+        Transform joint_transform = joint_node->getWorldTransform();
 
-        // Position du joint
-        Eigen::Vector3d jointPos = jointTransform.block<3, 1>(0, 3);
+        // Position of the joint
+        Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
 
-        // Orientation de l'axe du joint dans l'espace global
-        Eigen::Vector3d jointAxis = jointTransform.block<3, 3>(0, 0) * joint->getAxis();
+        // Orientation of the joint axis in the global space
+        Eigen::Vector3d joint_axis =
+            joint_transform.block<3, 3>(0, 0) * joint->getAxis();
 
         if (joint->getType() == JointType::REVOLUTE)
         {
-            // Contribution à la vélocité linéaire: cross(axis, (end - joint))
-            Eigen::Vector3d r = endPos - jointPos;
-            Eigen::Vector3d v = jointAxis.cross(r);
+            // Contribution to linear velocity: cross(axis, (end - joint))
+            Eigen::Vector3d r = end_pos - joint_pos;
+            Eigen::Vector3d v = joint_axis.cross(r);
 
-            // Remplir la jacobienne
+            // Fill the Jacobian
             J.block<3, 1>(0, i) = v;
-            J.block<3, 1>(3, i) = jointAxis;
+            J.block<3, 1>(3, i) = joint_axis;
         }
         else if (joint->getType() == JointType::PRISMATIC)
         {
-            // Contribution à la vélocité linéaire: axis
-            J.block<3, 1>(0, i) = jointAxis;
+            // Contribution to linear velocity: axis
+            J.block<3, 1>(0, i) = joint_axis;
             J.block<3, 1>(3, i) = Eigen::Vector3d::Zero();
         }
     }
@@ -332,22 +366,24 @@ Jacobian RobotArm::calculateJacobian()
     return J;
 }
 
-std::shared_ptr<Joint> RobotArm::getJoint(const std::string& name)
+// ----------------------------------------------------------------------------
+std::shared_ptr<Joint> RobotArm::getJoint(const std::string& p_name) const
 {
-    auto it = jointMap.find(name);
-    if (it != jointMap.end())
+    auto it = m_joint_map.find(p_name);
+    if (it != m_joint_map.end())
     {
         return it->second;
     }
     return nullptr;
 }
 
-std::vector<double> RobotArm::getJointValues()
+// ----------------------------------------------------------------------------
+std::vector<double> RobotArm::getJointValues() const
 {
     std::vector<double> values;
-    values.reserve(joints.size());
+    values.reserve(m_joints.size());
 
-    for (const auto& joint : joints)
+    for (const auto& joint : m_joints)
     {
         values.push_back(joint->getValue());
     }
@@ -355,101 +391,115 @@ std::vector<double> RobotArm::getJointValues()
     return values;
 }
 
-void RobotArm::setJointValues(const std::vector<double>& values)
+// ----------------------------------------------------------------------------
+void RobotArm::setJointValues(const std::vector<double>& p_values)
 {
-    if (values.size() != joints.size())
+    if (p_values.size() != m_joints.size())
     {
-        throw std::invalid_argument("Number of values doesn't match number of joints");
+        throw std::invalid_argument(
+            "Number of values doesn't match number of joints");
     }
 
-    for (size_t i = 0; i < joints.size(); ++i)
+    for (size_t i = 0; i < m_joints.size(); ++i)
     {
-        joints[i]->setValue(values[i]);
+        m_joints[i]->setValue(p_values[i]);
     }
 
-    // Mettre à jour toutes les transformations
-    rootNode->updateWorldTransform();
+    // Update all transformations
+    m_root_node->updateWorldTransform();
 }
 
-//------------------------------------------------------------------------------
-// Implémentation des fonctions utilitaires
-//------------------------------------------------------------------------------
-
-namespace utils {
-
-Eigen::Matrix3d eulerToRotation(double rx, double ry, double rz)
+namespace utils
 {
-    Eigen::AngleAxisd rollAngle(rx, Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitchAngle(ry, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd yawAngle(rz, Eigen::Vector3d::UnitZ());
 
-    return yawAngle.toRotationMatrix() * pitchAngle.toRotationMatrix() * rollAngle.toRotationMatrix();
-}
-
-Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& rot)
+// ----------------------------------------------------------------------------
+Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz)
 {
-    return rot.eulerAngles(2, 1, 0).reverse();
+    Eigen::AngleAxisd rollAngle(p_rx, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitchAngle(p_ry, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yawAngle(p_rz, Eigen::Vector3d::UnitZ());
+
+    return yawAngle.toRotationMatrix() * pitchAngle.toRotationMatrix() *
+           rollAngle.toRotationMatrix();
 }
 
-Transform createTransform(const Eigen::Vector3d& translation, const Eigen::Matrix3d& rotation)
+// ----------------------------------------------------------------------------
+Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& p_rot)
+{
+    return p_rot.eulerAngles(2, 1, 0).reverse();
+}
+
+// ----------------------------------------------------------------------------
+Transform createTransform(const Eigen::Vector3d& p_translation,
+                          const Eigen::Matrix3d& p_rotation)
 {
     Transform transform = Transform::Identity();
-    transform.block<3, 3>(0, 0) = rotation;
-    transform.block<3, 1>(0, 3) = translation;
+    transform.block<3, 3>(0, 0) = p_rotation;
+    transform.block<3, 1>(0, 3) = p_translation;
     return transform;
 }
 
-Transform createTransform(const Eigen::Vector3d& translation, double rx, double ry, double rz)
+// ----------------------------------------------------------------------------
+Transform createTransform(const Eigen::Vector3d& p_translation,
+                          double p_rx,
+                          double p_ry,
+                          double p_rz)
 {
-    return createTransform(translation, eulerToRotation(rx, ry, rz));
+    return createTransform(p_translation, eulerToRotation(p_rx, p_ry, p_rz));
 }
 
-Eigen::Vector3d getTranslation(const Transform& transform)
+// ----------------------------------------------------------------------------
+Eigen::Vector3d getTranslation(const Transform& p_transform)
 {
-    return transform.block<3, 1>(0, 3);
+    return p_transform.block<3, 1>(0, 3);
 }
 
-Eigen::Matrix3d getRotation(const Transform& transform)
+// ----------------------------------------------------------------------------
+Eigen::Matrix3d getRotation(const Transform& p_transform)
 {
-    return transform.block<3, 3>(0, 0);
+    return p_transform.block<3, 3>(0, 0);
 }
 
-Pose transformToPose(const Transform& transform)
+// ----------------------------------------------------------------------------
+Pose transformToPose(const Transform& p_transform)
 {
     Pose pose;
-    pose.segment<3>(0) = getTranslation(transform);
-    pose.segment<3>(3) = rotationToEuler(getRotation(transform));
+    pose.segment<3>(0) = getTranslation(p_transform);
+    pose.segment<3>(3) = rotationToEuler(getRotation(p_transform));
     return pose;
 }
 
-Transform poseToTransform(const Pose& pose)
+// ----------------------------------------------------------------------------
+Transform poseToTransform(const Pose& p_pose)
 {
-    return createTransform(pose.segment<3>(0), pose(3), pose(4), pose(5));
+    return createTransform(
+        p_pose.segment<3>(0), p_pose(3), p_pose(4), p_pose(5));
 }
 
-Transform dhTransform(double a, double alpha, double d, double theta)
+// ----------------------------------------------------------------------------
+Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta)
 {
     Transform transform = Transform::Identity();
 
-    double cosTheta = cos(theta);
-    double sinTheta = sin(theta);
-    double cosAlpha = cos(alpha);
-    double sinAlpha = sin(alpha);
+    double cos_theta = cos(p_theta);
+    double sin_theta = sin(p_theta);
+    double cos_alpha = cos(p_alpha);
+    double sin_alpha = sin(p_alpha);
 
-    transform(0, 0) = cosTheta;
-    transform(0, 1) = -sinTheta * cosAlpha;
-    transform(0, 2) = sinTheta * sinAlpha;
-    transform(0, 3) = a * cosTheta;
+    transform(0, 0) = cos_theta;
+    transform(0, 1) = -sin_theta * cos_alpha;
+    transform(0, 2) = sin_theta * sin_alpha;
+    transform(0, 3) = p_a * cos_theta;
 
-    transform(1, 0) = sinTheta;
-    transform(1, 1) = cosTheta * cosAlpha;
-    transform(1, 2) = -cosTheta * sinAlpha;
-    transform(1, 3) = a * sinTheta;
+    transform(1, 0) = sin_theta;
+    transform(1, 1) = cos_theta * cos_alpha;
+    transform(1, 2) = -cos_theta * sin_alpha;
+    transform(1, 3) = p_a * sin_theta;
 
     transform(2, 0) = 0;
-    transform(2, 1) = sinAlpha;
-    transform(2, 2) = cosAlpha;
-    transform(2, 3) = d;
+    transform(2, 1) = sin_alpha;
+    transform(2, 2) = cos_alpha;
+    transform(2, 3) = p_d;
 
     return transform;
 }

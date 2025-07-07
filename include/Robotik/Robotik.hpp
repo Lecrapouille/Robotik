@@ -1,138 +1,164 @@
 #pragma once
 
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <memory>
 #include <Eigen/Dense>
 
-namespace robotik {
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-// Représentation d'une transformation homogène 4x4
+namespace robotik
+{
+
+//! \brief Representation of a homogeneous transformation 4x4
 using Transform = Eigen::Matrix4d;
-// Vecteur 6D pour représenter une position/orientation (x,y,z,rx,ry,rz)
+//! \brief Vector 6D to represent a position/orientation (x,y,z,rx,ry,rz)
 using Pose = Eigen::Matrix<double, 6, 1>;
-// Jacobienne
+//! \brief Jacobian
 using Jacobian = Eigen::MatrixXd;
 
-// Classe pour les différents types de joints
-enum class JointType {
-    REVOLUTE,   // Joint rotatif
-    PRISMATIC,  // Joint prismatique (linéaire)
-    FIXED       // Joint fixe (pas de mouvement)
+// *********************************************************************************
+//! \brief Class for the different types of joints.
+// *********************************************************************************
+enum class JointType
+{
+    REVOLUTE,  // Revolute joint
+    PRISMATIC, // Prismatic joint
+    FIXED      // Fixed joint (no movement)
 };
 
-// Classe représentant un nœud dans le graphe de scène
-class Node
+// *********************************************************************************
+//! \brief Class representing a node in the scene graph.
+// *********************************************************************************
+class Node: public std::enable_shared_from_this<Node>
 {
-private:
-    std::string name;
-    Transform localTransform;
-    Transform worldTransform;
-    std::vector<std::shared_ptr<Node>> children;
-    std::weak_ptr<Node> parent;
-    bool isDirty;
-
 public:
-    Node(const std::string& name);
 
-    // Gestion de la hiérarchie
-    void addChild(std::shared_ptr<Node> child);
-    void removeChild(const std::string& childName);
-    std::shared_ptr<Node> getChild(const std::string& childName);
+    explicit Node(const std::string& p_name);
 
-    // Gestion des transformations
-    void setLocalTransform(const Transform& transform);
+    // Hierarchy management
+    void addChild(std::shared_ptr<Node> p_child);
+    void removeChild(const std::string& p_child_name);
+    std::shared_ptr<Node> getChild(const std::string& p_child_name);
+
+    // Transformation management
+    void setLocalTransform(const Transform& p_transform);
     const Transform& getLocalTransform() const;
     const Transform& getWorldTransform();
 
-    // Mise à jour des transformations
+    // Update transformations
     void updateWorldTransform();
     void markDirty();
 
     const std::string& getName() const;
+
+private:
+
+    std::string m_name;
+    Transform m_local_transform;
+    Transform m_world_transform;
+    std::vector<std::shared_ptr<Node>> m_children;
+    std::weak_ptr<Node> m_parent;
+    bool m_is_dirty = true;
 };
 
-// Classe représentant un joint robotique
+// *********************************************************************************
+//! \brief Class representing a robotic joint.
+// *********************************************************************************
 class Joint
 {
-private:
-    std::string name;
-    JointType type;
-    double value;
-    double min;
-    double max;
-    Eigen::Vector3d axis;
-    std::shared_ptr<Node> node;
-
 public:
-    Joint(const std::string& name, JointType type, const Eigen::Vector3d& axis);
 
-    void setValue(double val);
+    Joint(const std::string& p_name,
+          JointType p_type,
+          const Eigen::Vector3d& p_axis);
+
+    void setValue(double p_value);
     double getValue() const;
-    void setLimits(double minVal, double maxVal);
+    void setLimits(double p_min, double p_max);
 
     Transform getTransform() const;
     void updateNodeTransform();
 
     JointType getType() const;
     const Eigen::Vector3d& getAxis() const;
-    void setNode(std::shared_ptr<Node> node);
-    std::shared_ptr<Node> getNode();
+    void setNode(std::shared_ptr<Node> p_node);
+    std::shared_ptr<Node> getNode() const;
+    const std::string& getName() const;
+
+private:
+
+    std::string m_name;
+    JointType m_type;
+    double m_value;
+    double m_min;
+    double m_max;
+    Eigen::Vector3d m_axis;
+    std::shared_ptr<Node> m_node;
 };
 
-// Classe pour un bras robotique complet
+// *********************************************************************************
+//! \brief Class representing a complete robotic arm.
+// *********************************************************************************
 class RobotArm
 {
-private:
-    std::string name;
-    std::shared_ptr<Node> rootNode;
-    std::vector<std::shared_ptr<Joint>> joints;
-    std::unordered_map<std::string, std::shared_ptr<Joint>> jointMap;
-    std::shared_ptr<Node> endEffector;
-
 public:
-    RobotArm(const std::string& name);
 
-    // Configuration du robot
-    void setRootNode(std::shared_ptr<Node> root);
-    void addJoint(std::shared_ptr<Joint> joint);
-    void setEndEffector(std::shared_ptr<Node> node);
+    explicit RobotArm(const std::string& p_name);
 
-    // Cinématique directe
-    Transform forwardKinematics();
-    Pose getEndEffectorPose();
+    // Robot configuration
+    void setRootNode(std::shared_ptr<Node> p_root);
+    void addJoint(std::shared_ptr<Joint> p_joint);
+    void setEndEffector(std::shared_ptr<Node> p_node);
 
-    // Cinématique inverse
-    bool inverseKinematics(const Pose& targetPose, std::vector<double>& solution);
+    // Forward kinematics
+    Transform forwardKinematics() const;
+    Pose getEndEffectorPose() const;
 
-    // Calcul de la jacobienne
-    Jacobian calculateJacobian();
+    // Inverse kinematics
+    bool inverseKinematics(const Pose& targetPose,
+                           std::vector<double>& solution);
 
-    // Accès aux joints
-    std::shared_ptr<Joint> getJoint(const std::string& name);
-    std::vector<double> getJointValues();
-    void setJointValues(const std::vector<double>& values);
+    // Jacobian calculation
+    Jacobian calculateJacobian() const;
+
+    // Access to joints
+    std::shared_ptr<Joint> getJoint(const std::string& p_name) const;
+    std::vector<double> getJointValues() const;
+    void setJointValues(const std::vector<double>& p_values);
+
+private:
+
+    std::string m_name;
+    std::shared_ptr<Node> m_root_node;
+    std::vector<std::shared_ptr<Joint>> m_joints;
+    std::unordered_map<std::string, std::shared_ptr<Joint>> m_joint_map;
+    std::shared_ptr<Node> m_end_effector;
 };
 
-// Fonctions utilitaires pour les conversions
+//  Utility functions for conversions.
 namespace utils
 {
-    // Conversion entre matrices de rotation et représentations d'angle
-    Eigen::Matrix3d eulerToRotation(double rx, double ry, double rz);
-    Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& rot);
 
-    // Conversions pour transformations homogènes
-    Transform createTransform(const Eigen::Vector3d& translation, const Eigen::Matrix3d& rotation);
-    Transform createTransform(const Eigen::Vector3d& translation, double rx, double ry, double rz);
+// Conversion between rotation matrices and angle representations.
+Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz);
+Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& p_rot);
 
-    // Extraction de données des transformations
-    Eigen::Vector3d getTranslation(const Transform& transform);
-    Eigen::Matrix3d getRotation(const Transform& transform);
-    Pose transformToPose(const Transform& transform);
-    Transform poseToTransform(const Pose& pose);
+// Conversions for homogeneous transformations
+Transform createTransform(const Eigen::Vector3d& p_translation,
+                          const Eigen::Matrix3d& p_rotation);
+Transform createTransform(const Eigen::Vector3d& p_translation,
+                          double p_rx,
+                          double p_ry,
+                          double p_rz);
 
-    // Conversion DH (Denavit-Hartenberg)
-    Transform dhTransform(double a, double alpha, double d, double theta);
+// Extraction of data from transformations
+Eigen::Vector3d getTranslation(const Transform& p_transform);
+Eigen::Matrix3d getRotation(const Transform& p_transform);
+Pose transformToPose(const Transform& p_transform);
+Transform poseToTransform(const Pose& p_pose);
+
+// DH (Denavit-Hartenberg) conversion
+Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta);
 } // namespace utils
 } // namespace robotik
