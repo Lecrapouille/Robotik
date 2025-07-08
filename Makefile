@@ -60,6 +60,11 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set units library
+#
+INCLUDES += $(P)/external/units/include
+
+###############################################################################
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile

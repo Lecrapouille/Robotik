@@ -1,5 +1,7 @@
 #pragma once
 
+#include "units.h"
+
 #include <Eigen/Dense>
 
 #include <memory>
@@ -9,6 +11,8 @@
 
 namespace robotik
 {
+using namespace units::literals;
+using Radian = units::angle::radian_t;
 
 // ----------------------------------------------------------------------------
 //! \brief Homogeneous transformation matrix (4x4) for 3D spatial
@@ -77,6 +81,8 @@ class Node
 {
 public:
 
+    using Ptr = std::unique_ptr<Node>;
+
     // ------------------------------------------------------------------------
     //! \brief Constructor. Initializes the node with a name and transformation
     //! to identity matrix.
@@ -85,17 +91,29 @@ public:
     explicit Node(const std::string& p_name);
 
     // ------------------------------------------------------------------------
+    //! \brief Create a new node.
+    //! \tparam T Type of the child node should inherit from Node.
+    //! \param p_args Arguments for the child node constructor.
+    //! \return Pointer to the new node.
+    // ------------------------------------------------------------------------
+    template <typename T, typename... Args>
+    static std::unique_ptr<T> create(Args&&... p_args)
+    {
+        static_assert(std::is_base_of<Node, T>::value,
+                      "T must inherit from Node");
+        return std::make_unique<T>(std::forward<Args>(p_args)...);
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Create and store a new child node.
     //! \tparam T Type of the child node should inherit from Node.
     //! \param p_args Arguments for the child node constructor.
     //! \return Reference to the added child node.
     // ------------------------------------------------------------------------
     template <typename T, typename... Args>
-    T& addChild(Args&&... p_args)
+    T& createChild(Args&&... p_args)
     {
-        static_assert(std::is_base_of_v<Node, T>, "T must inherit from Node");
-
-        auto child = std::make_unique<T>(std::forward<Args>(p_args)...);
+        auto child = Node::create<T>(std::forward<Args>(p_args)...);
         T& child_ref = *child;
 
         m_children.push_back(std::move(child));
@@ -106,17 +124,37 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Add a child node created outside of this class.
+    //! \param p_child Pointer to the child node.
+    // ------------------------------------------------------------------------
+    void addChild(Node::Ptr p_child)
+    {
+        m_children.push_back(std::move(p_child));
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Get the children of the node.
     //! \return Vector of child nodes.
     // ------------------------------------------------------------------------
-    const std::vector<std::unique_ptr<Node>>& getChildren() const;
+    inline const std::vector<std::unique_ptr<Node>>& getChildren() const
+    {
+        return m_children;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get a node by name. This method is recursive and will search
+    //! through the entire subtree rooted at this node.
+    //! \param p_name Name of the node.
+    //! \return Pointer to the node, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Node* getNode(const std::string& p_name);
 
     // ------------------------------------------------------------------------
     //! \brief Set the local transform of the node.
     //!
-    //! The local transform defines the position and orientation of this node
-    //! relative to its parent in the hierarchy. In the context of robotics,
-    //! this typically corresponds to:
+    //! The local transform defines the position and orientation of this
+    //! node relative to its parent in the hierarchy. In the context of
+    //! robotics, this typically corresponds to:
     //! - For a link: its position/orientation relative to the parent joint
     //! - For a joint: the transformation it applies (rotation/translation)
     //!
@@ -132,8 +170,8 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Get the local transform of the node.
     //!
-    //! The local transform describes the position and orientation of this node
-    //! relative to its parent in the hierarchy. This transformation is
+    //! The local transform describes the position and orientation of this
+    //! node relative to its parent in the hierarchy. This transformation is
     //! expressed in the parent's coordinate frame.
     //!
     //! In robotics, this transformation represents:
@@ -148,10 +186,10 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Get the world transform of the node.
     //!
-    //! The world transform describes the absolute position and orientation of
-    //! this node in the global/base coordinate frame. This transformation is
-    //! calculated by multiplying all local transforms from the root to this
-    //! node.
+    //! The world transform describes the absolute position and orientation
+    //! of this node in the global/base coordinate frame. This
+    //! transformation is calculated by multiplying all local transforms
+    //! from the root to this node.
     //!
     //! In robotics, this transformation represents:
     //! - Position/orientation of a link in the robot's workspace
@@ -179,25 +217,30 @@ public:
     //! - The robot's configuration is modified
     //! - The direct kinematics is recalculated
     //!
-    //! The algorithm uses a cache system ("dirty flag") to avoid unnecessary
-    //! recalculations and optimize performance.
+    //! The algorithm uses a cache system ("dirty flag") to avoid
+    //! unnecessary recalculations and optimize performance.
     // ------------------------------------------------------------------------
     void updateWorldTransform();
-
-    // ------------------------------------------------------------------------
-    //! \brief Mark the node as dirty.
-    //!
-    //! Marks the node as dirty, indicating that its world transform needs to be
-    //! recalculated. This is used to optimize performance by avoiding
-    //! unnecessary recalculations.
-    // ------------------------------------------------------------------------
-    void markDirty();
 
     // ------------------------------------------------------------------------
     //! \brief Get the name of the node.
     //! \return Name of the node.
     // ------------------------------------------------------------------------
-    const std::string& getName() const;
+    inline const std::string& getName() const
+    {
+        return m_name;
+    }
+
+protected:
+
+    // ------------------------------------------------------------------------
+    //! \brief Mark the node as dirty.
+    //!
+    //! Marks the node as dirty, indicating that its world transform needs
+    //! to be recalculated. This is used to optimize performance by avoiding
+    //! unnecessary recalculations.
+    // ------------------------------------------------------------------------
+    void markDirty();
 
 private:
 
@@ -213,12 +256,15 @@ private:
 //! \brief Class representing a robotic joint.
 //!
 //! In robotics, a joint is a mechanical connection between two rigid bodies
-//! (links) that allows controlled motion between them. Joints are the actuated
-//! components that give robots their ability to move and manipulate objects.
+//! (links) that allows controlled motion between them. Joints are the
+//! actuated components that give robots their ability to move and
+//! manipulate objects.
 //!
 //! Physical characteristics:
-//! - REVOLUTE joints: Allow rotation around a fixed axis (like elbow, shoulder)
-//!   * Typical range: -π to +π radians (or limited by mechanical constraints)
+//! - REVOLUTE joints: Allow rotation around a fixed axis (like elbow,
+//! shoulder)
+//!   * Typical range: -π to +π radians (or limited by mechanical
+//!   constraints)
 //!   * Examples: Robot arm joints, wheel steering mechanisms
 //!
 //! - PRISMATIC joints: Allow linear translation along a fixed axis (like
@@ -242,6 +288,8 @@ private:
 class Joint
 {
 public:
+
+    using Ptr = std::unique_ptr<Joint>;
 
     // ------------------------------------------------------------------------
     //! \brief Enumeration for the different types of robotic joints.
@@ -267,7 +315,7 @@ public:
     //! - Examples: Tool mounting, sensor brackets, structural connections
     //! - Purpose: Maintain fixed spatial relationships between components
     // ------------------------------------------------------------------------
-    enum class JointType
+    enum class Type
     {
         REVOLUTE,  // Revolute joint - rotation around axis
         PRISMATIC, // Prismatic joint - translation along axis
@@ -275,36 +323,257 @@ public:
     };
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor.
-    //! \param p_name Name of the joint.
-    //! \param p_type Type of the joint.
-    //! \param p_axis Axis of the joint.
+    //! \brief Constructor for robotic joint initialization.
+    //!
+    //! PHYSICS: Joint initialization establishes the kinematic and dynamic
+    //! properties of a mechanical connection between two rigid bodies in a
+    //! robotic system. The joint parameters define how motion is transmitted
+    //! through the kinematic chain.
+    //!
+    //! For REVOLUTE joints:
+    //! - Axis defines the instantaneous axis of rotation (Rodrigues' theorem)
+    //! - Angular displacement follows θ(t) = θ₀ + ω*t for constant velocity
+    //! - Kinetic energy: KE = ½*I*ω² where I is moment of inertia
+    //! - Torque-angle relationship: τ = I*α (α = angular acceleration)
+    //!
+    //! For PRISMATIC joints:
+    //! - Axis defines the direction of linear translation
+    //! - Linear displacement follows x(t) = x₀ + v*t for constant velocity
+    //! - Kinetic energy: KE = ½*m*v² where m is mass
+    //! - Force-displacement relationship: F = m*a (a = linear acceleration)
+    //!
+    //! The axis vector must be normalized as it represents a pure direction
+    //! in 3D space. The joint's configuration space is one-dimensional for
+    //! both revolute and prismatic joints.
+    //!
+    //! \param p_name Unique identifier for the joint in the kinematic chain
+    //! \param p_type Mechanical type defining the motion constraint
+    //! \param p_axis Normalized 3D vector defining the motion axis
     // ------------------------------------------------------------------------
     Joint(const std::string& p_name,
-          JointType p_type,
+          Type p_type,
           const Eigen::Vector3d& p_axis);
 
-    void setValue(double p_value);
-    double getValue() const;
-    void setLimits(double p_min, double p_max);
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint's configuration value.
+    //!
+    //! PHYSICS: This method updates the joint's generalized coordinate,
+    //! which represents the current state in the joint's configuration space.
+    //!
+    //! For REVOLUTE joints:
+    //! - Value represents angular displacement θ from reference position
+    //! - Units: radians (SI base unit for plane angles)
+    //! - Range: typically [-π, π] or limited by mechanical constraints
+    //! - Physical meaning: rotation angle about the joint axis
+    //! - Transformation: T = Rot(axis, θ) using Rodrigues' rotation formula
+    //!
+    //! For PRISMATIC joints:
+    //! - Value represents linear displacement d from reference position
+    //! - Units: meters (SI base unit for length)
+    //! - Range: [0, d_max] limited by actuator stroke length
+    //! - Physical meaning: translation distance along the joint axis
+    //! - Transformation: T = Trans(axis * d)
+    //!
+    //! The joint value directly affects the local transformation matrix
+    //! that propagates through the kinematic chain during forward kinematics.
+    //!
+    //! \param p_value New joint configuration value in appropriate units
+    // ------------------------------------------------------------------------
+    void setValue(Radian p_value);
 
+    // ------------------------------------------------------------------------
+    //! \brief Get the current joint configuration value.
+    //!
+    //! PHYSICS: Returns the current generalized coordinate representing
+    //! the joint's position in its configuration space.
+    //!
+    //! For REVOLUTE joints:
+    //! - Returns angular position θ relative to reference configuration
+    //! - Represents accumulated rotation about the joint axis
+    //! - Used in forward kinematics: T = T_ref * Rot(axis, θ)
+    //!
+    //! For PRISMATIC joints:
+    //! - Returns linear position d relative to reference configuration
+    //! - Represents extension/retraction along the joint axis
+    //! - Used in forward kinematics: T = T_ref * Trans(axis * d)
+    //!
+    //! This value is fundamental for:
+    //! - Forward kinematics computation
+    //! - Inverse kinematics solutions
+    //! - Jacobian matrix calculation
+    //! - Motion planning and control
+    //!
+    //! \return Current joint configuration value
+    // ------------------------------------------------------------------------
+    inline Radian getValue() const
+    {
+        return m_value;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set joint motion limits for safety and mechanical constraints.
+    //!
+    //! PHYSICS: Joint limits represent physical and safety constraints that
+    //! prevent damage to the robotic system and ensure safe operation.
+    //!
+    //! MECHANICAL LIMITS:
+    //! - Hard stops: Physical barriers preventing further motion
+    //! - Actuator limits: Maximum torque/force output capabilities
+    //! - Structural limits: Material stress and fatigue considerations
+    //!
+    //! For REVOLUTE joints:
+    //! - Angular limits prevent over-rotation and cable wrapping
+    //! - Common ranges: [-π, π] for continuous rotation
+    //! - Limited ranges: [-π/2, π/2] for elbow-like joints
+    //! - Singularity avoidance: Limits may prevent kinematic singularities
+    //!
+    //! For PRISMATIC joints:
+    //! - Linear limits prevent over-extension and collision
+    //! - Stroke limits: [0, L_max] where L_max is actuator stroke
+    //! - Workspace limits: Physical boundaries of the robot's reach
+    //!
+    //! SAFETY CONSIDERATIONS:
+    //! - Soft limits: Programming boundaries with safety margins
+    //! - Hard limits: Hardware switches and mechanical stops
+    //! - Velocity limits: Maximum safe motion speeds
+    //! - Acceleration limits: Maximum safe motion accelerations
+    //!
+    //! \param p_min Minimum allowed joint value
+    //! \param p_max Maximum allowed joint value
+    // ------------------------------------------------------------------------
+    inline void setLimits(Radian p_min, Radian p_max)
+    {
+        m_min = p_min;
+        m_max = p_max;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Compute the joint's local transformation matrix.
+    //!
+    //! PHYSICS: This method computes the 4x4 homogeneous transformation
+    //! matrix that represents the spatial relationship between the joint's
+    //! parent and child coordinate frames.
+    //!
+    //! MATHEMATICAL FOUNDATION:
+    //! The transformation encodes both rotation and translation:
+    //! T = [R  t]  where R is 3x3 rotation matrix, t is 3x1 translation
+    //!     [0  1]
+    //!
+    //! For REVOLUTE joints:
+    //! - R = Rot(axis, θ) using Rodrigues' rotation formula
+    //! - R = I + sin(θ)*[axis]× + (1-cos(θ))*[axis]×²
+    //! - Where [axis]× is the skew-symmetric matrix of the axis vector
+    //! - Translation t = 0 (pure rotation about axis)
+    //!
+    //! For PRISMATIC joints:
+    //! - R = I (identity matrix, no rotation)
+    //! - Translation t = d * axis (linear displacement along axis)
+    //!
+    //! KINEMATIC CHAIN PROPAGATION:
+    //! The joint transformation is multiplied with parent transformations
+    //! to compute the forward kinematics: T_world = T_parent * T_joint
+    //!
+    //! \return 4x4 homogeneous transformation matrix
+    // ------------------------------------------------------------------------
     Transform getTransform() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Update the associated node's transformation.
+    //!
+    //! PHYSICS: This method propagates the joint's motion through the
+    //! kinematic chain by updating the spatial transformation of the
+    //! associated scene graph node.
+    //!
+    //! KINEMATIC CHAIN DYNAMICS:
+    //! When a joint moves, it affects the position and orientation of all
+    //! downstream links in the kinematic chain. This propagation follows
+    //! the composition of transformations:
+    //!
+    //! T_end = T_base * T_joint1 * T_joint2 * ... * T_jointN
+    //!
+    //! The update process:
+    //! 1. Compute joint's local transformation T_joint
+    //! 2. Set node's local transform to T_joint
+    //! 3. Mark node as dirty for world transform recalculation
+    //! 4. Trigger cascading updates through child nodes
+    //!
+    //! This mechanism ensures that:
+    //! - Forward kinematics remains consistent
+    //! - All dependent coordinate frames are updated
+    //! - Performance is optimized through dirty flagging
+    //!
+    //! Called automatically when joint value changes via setValue()
+    // ------------------------------------------------------------------------
     void updateNodeTransform();
 
-    JointType getType() const;
-    const Eigen::Vector3d& getAxis() const;
-    void setNode(Node* p_node);
-    Node* getNode() const;
-    const std::string& getName() const;
+    // ------------------------------------------------------------------------
+    //! \brief Get the mechanical type of the joint.
+    //! \return The mechanical type of the joint
+    // ------------------------------------------------------------------------
+    inline Joint::Type getType() const
+    {
+        return m_type;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's motion axis vector.
+    //! \return Constant reference to the normalized motion axis vector
+    //!
+    //! For REVOLUTE joints:
+    //! - Axis represents the instantaneous rotation axis
+    //! - Right-hand rule: Positive angles follow right-hand convention
+    //! - Screw axis: Defines helical motion if combined with translation
+    //! - Angular velocity: ω = θ̇ * axis (where θ̇ is joint velocity)
+    //!
+    //! For PRISMATIC joints:
+    //! - Axis represents the translation direction
+    //! - Unit direction: Positive values move in +axis direction
+    //! - Linear velocity: v = ḋ * axis (where ḋ is joint velocity)
+    // ------------------------------------------------------------------------
+    inline const Eigen::Vector3d& getAxis() const
+    {
+        return m_axis;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Associate a scene graph node with this joint.
+    //! \param p_node Reference to the scene graph node to associate
+    // ------------------------------------------------------------------------
+    void setNode(Node& p_node);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the scene graph node associated with this joint.
+    //! \return Pointer to the associated scene graph node, or nullptr.
+    // ------------------------------------------------------------------------
+    inline Node* getNode() const
+    {
+        return m_node;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's unique identifier name.
+    //! \return Constant reference to the joint's name string
+    // ------------------------------------------------------------------------
+    inline const std::string& getName() const
+    {
+        return m_name;
+    }
 
 private:
 
+    //! \brief Joint identifier in kinematic chain
     std::string m_name;
-    JointType m_type;
-    double m_value;
-    double m_min;
-    double m_max;
+    //! \brief Mechanical constraint type (revolute/prismatic/fixed)
+    Joint::Type m_type;
+    //! \brief Current joint configuration value
+    Radian m_value;
+    //! \brief Minimum allowable joint value (safety limit)
+    Radian m_min;
+    //! \brief Maximum allowable joint value (safety limit)
+    Radian m_max;
+    //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
+    //! \brief Associated scene graph node for transform propagation
     Node* m_node = nullptr;
 };
 
@@ -312,9 +581,9 @@ private:
 //! \brief Class representing a complete robotic arm.
 //!
 //! This class encapsulates an entire robotic manipulator system, combining
-//! the kinematic chain (joints and links) with high-level control and analysis
-//! capabilities. It serves as the main interface for robot control and
-//! simulation.
+//! the kinematic chain (joints and links) with high-level control and
+//! analysis capabilities. It serves as the main interface for robot control
+//! and simulation.
 //!
 //! Key components:
 //! - Kinematic chain: Hierarchical structure of joints and links
@@ -335,42 +604,174 @@ private:
 //!
 //! 3. JACOBIAN COMPUTATION: Relationship between joint velocities and
 //! end-effector velocity
-//!    * Essential for: Velocity control, force control, singularity analysis
+//!    * Essential for: Velocity control, force control, singularity
+//!    analysis
 //!    * J = ∂pose/∂joints (6×n matrix for n joints)
 //!
 //! 4. CONFIGURATION MANAGEMENT: Set/get joint positions, enforce limits
 //!    * Essential for: Robot control, safety, trajectory execution
 //!
-//! This class bridges the gap between low-level joint control and high-level
-//! task planning, providing the mathematical foundation for robot manipulation.
+//! This class bridges the gap between low-level joint control and
+//! high-level task planning, providing the mathematical foundation for
+//! robot manipulation.
 // *********************************************************************************
 class RobotArm
 {
 public:
 
-    explicit RobotArm(const std::string& p_name);
+    // ------------------------------------------------------------------------
+    //! \brief Constructor. Perform no action, just set the name.
+    //! \param p_name Name of the robot arm.
+    // ------------------------------------------------------------------------
+    explicit RobotArm(const std::string& p_name) : m_name(p_name) {}
 
-    // Robot configuration
-    void setRootNode(std::unique_ptr<Node> p_root);
-    void addJoint(std::unique_ptr<Joint> p_joint);
-    void setEndEffector(Node* p_node);
+    // ------------------------------------------------------------------------
+    //! \brief Set or replace the root node of the robot arm with a new one.
+    //! \param p_root Pointer to the root node.
+    // ------------------------------------------------------------------------
+    void setRootNode(Node::Ptr p_root);
 
-    // Forward kinematics
+    // ------------------------------------------------------------------------
+    //! \brief Get the root node of the robot arm.
+    //! \return Pointer to the root node.
+    // ------------------------------------------------------------------------
+    Node* getRootNode() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find and return a node by its name.
+    //! \param p_name Name of the node.
+    //! \return Pointer to the node, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Node* getNode(const std::string& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Define the given node as the end effector of the robot arm.
+    //! \param p_node Pointer to the end effector node.
+    // ------------------------------------------------------------------------
+    void setEndEffector(Node& p_node);
+
+    // ------------------------------------------------------------------------
+    //! \brief Add a joint to the robot arm.
+    //! \param p_joint Pointer to the joint.
+    // ------------------------------------------------------------------------
+    void addJoint(Joint::Ptr p_joint);
+
+    // ------------------------------------------------------------------------
+    //! \brief Find and return a joint by its name.
+    //! \param p_name Name of the joint.
+    //! \return Pointer to the joint, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Joint* getJoint(const std::string& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint values of the robot arm.
+    //!
+    //! PHYSICS: Returns the current configuration of all joints in the
+    //! kinematic chain. This vector represents the robot's pose in joint
+    //! space, where each element corresponds to a joint's generalized
+    //! coordinate.
+    //!
+    //! For a serial manipulator with n joints:
+    //! - Joint space: Q = [q₁, q₂, ..., qₙ]
+    //! - Each qᵢ represents the i-th joint's angular position (revolute)
+    //!   or linear position (prismatic)
+    //! - The configuration space is typically n-dimensional
+    //!
+    //! This joint configuration uniquely determines:
+    //! - End-effector position and orientation (via forward kinematics)
+    //! - Robot's workspace accessibility
+    //! - Potential singularities and joint limits
+    //!
+    //! \return Vector of joint configuration values in order
+    // ------------------------------------------------------------------------
+    std::vector<Radian> getJointValues() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint values of the robot arm.
+    //!
+    //! PHYSICS: Updates the entire robot configuration by setting all joint
+    //! values simultaneously. This method effectively moves the robot to a
+    //! new pose in joint space.
+    //!
+    //! KINEMATIC IMPLICATIONS:
+    //! - Each joint value update propagates through the kinematic chain
+    //! - Forward kinematics is automatically updated
+    //! - End-effector pose changes according to the new configuration
+    //!
+    //! SAFETY CONSIDERATIONS:
+    //! - Joint limits are enforced for each joint
+    //! - Collision detection should be performed before execution
+    //! - Velocity and acceleration limits should be respected
+    //!
+    //! TYPICAL USE CASES:
+    //! - Executing inverse kinematics solutions
+    //! - Moving to predefined robot configurations
+    //! - Trajectory point execution
+    //! - Manual joint control
+    //!
+    //! \param p_values Vector of joint configuration values
+    // ------------------------------------------------------------------------
+    void setJointValues(const std::vector<Radian>& p_values);
+
+    // ------------------------------------------------------------------------
+    //! \brief Compute the forward kinematics of the robot arm.
+    //! \return The transformation matrix from the root to the end effector.
+    // ------------------------------------------------------------------------
     Transform forwardKinematics() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the pose of the end effector.
+    //! \return The pose of the end effector.
+    // ------------------------------------------------------------------------
     Pose getEndEffectorPose() const;
 
-    // Inverse kinematics
+    // ------------------------------------------------------------------------
+    //! \brief Compute the inverse kinematics of the robot arm by the Jacobian
+    //! method.
+    //!
+    //! PHYSICS: Inverse kinematics solves for the joint configuration that
+    //! achieves a desired end-effector pose. This is mathematically complex
+    //! as it involves solving a system of nonlinear equations.
+    //!
+    //! MATHEMATICAL FORMULATION:
+    //! Given target pose P_target, find joint values Q such that:
+    //! P_target = f(Q) where f is the forward kinematics function
+    //!
+    //! SOLUTION CHALLENGES:
+    //! - Multiple solutions: A given pose may have several valid joint configs
+    //! - No solutions: Target pose may be outside robot's workspace
+    //! - Infinite solutions: At kinematic singularities
+    //! - Numerical stability: Iterative methods may not converge
+    //!
+    //! COMMON ALGORITHMS:
+    //! - Jacobian-based methods (Newton-Raphson, Levenberg-Marquardt)
+    //! - Geometric methods (for specific robot geometries)
+    //! - Optimization-based approaches
+    //!
+    //! WORKSPACE CONSTRAINTS:
+    //! - Reachable workspace: All poses that can be achieved
+    //! - Dexterous workspace: Poses achievable with arbitrary orientations
+    //! - Joint limits, singularities, and obstacles affect solvability
+    //!
+    //! \param targetPose Desired 6D pose of the end-effector [x,y,z,rx,ry,rz].
+    //! \param solution Output vector containing the joint configuration.
+    //! \param p_max_iterations Maximum number of iterations.
+    //! \param p_epsilon Tolerance for convergence.
+    //! \param p_damping Damping factor.
+    //!
+    //! \return True if a valid solution is found, false otherwise.
+    // ------------------------------------------------------------------------
     bool inverseKinematics(const Pose& targetPose,
-                           std::vector<double>& solution);
+                           std::vector<Radian>& solution,
+                           size_t const p_max_iterations = 500,
+                           double const p_epsilon = 1e-4,
+                           double const p_damping = 0.01);
 
-    // Jacobian calculation
+    // ------------------------------------------------------------------------
+    //! \brief Compute the Jacobian matrix of the robot arm.
+    //! \return The Jacobian matrix.
+    // ------------------------------------------------------------------------
     Jacobian calculateJacobian() const;
-
-    // Access to joints
-    Joint* getJoint(const std::string& p_name) const;
-    std::vector<double> getJointValues() const;
-    void setJointValues(const std::vector<double>& p_values);
-    Node* getRootNode() const;
 
 private:
 
@@ -385,17 +786,105 @@ private:
 namespace utils
 {
 
-// Conversion between rotation matrices and angle representations.
-Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz);
+// ------------------------------------------------------------------------
+//! \brief Convert Euler angles to rotation matrix.
+//!
+//! PHYSICS: Euler angles represent a sequence of rotations about coordinate
+//! axes. This function implements the ZYX (yaw-pitch-roll) convention,
+//! which is common in robotics.
+//!
+//! MATHEMATICAL FOUNDATION:
+//! R = R_z(yaw) * R_y(pitch) * R_x(roll)
+//! Where each R_i(θ) is a rotation matrix about axis i by angle θ
+//!
+//! ROTATION SEQUENCE:
+//! 1. Roll (rx): Rotation about X-axis (bank angle)
+//! 2. Pitch (ry): Rotation about Y-axis (elevation angle)
+//! 3. Yaw (rz): Rotation about Z-axis (azimuth angle)
+//!
+//! GIMBAL LOCK WARNING:
+//! This representation suffers from gimbal lock when pitch = ±π/2
+//! For critical applications, consider using quaternions instead.
+//!
+//! \param p_rx Roll angle around X-axis (radians)
+//! \param p_ry Pitch angle around Y-axis (radians)
+//! \param p_rz Yaw angle around Z-axis (radians)
+//! \return 3x3 rotation matrix
+// ------------------------------------------------------------------------
+Eigen::Matrix3d eulerToRotation(Radian p_rx, Radian p_ry, Radian p_rz);
+
+// ------------------------------------------------------------------------
+//! \brief Extract Euler angles from rotation matrix.
+//!
+//! PHYSICS: Decomposes a 3x3 rotation matrix into three sequential
+//! rotations about coordinate axes using ZYX convention.
+//!
+//! MATHEMATICAL PROCESS:
+//! Given rotation matrix R, extract angles such that:
+//! R = R_z(yaw) * R_y(pitch) * R_x(roll)
+//!
+//! SINGULARITY HANDLING:
+//! - At gimbal lock (pitch = ±π/2), roll and yaw become interdependent
+//! - Solution: Set roll to zero and compute yaw accordingly
+//! - This ensures unique representation but may not preserve original angles
+//!
+//! ANGLE RANGES:
+//! - Roll: [-π, π]
+//! - Pitch: [-π/2, π/2]
+//! - Yaw: [-π, π]
+//!
+//! \param p_rot 3x3 rotation matrix (must be orthogonal)
+//! \return Vector containing [roll, pitch, yaw] angles
+// ------------------------------------------------------------------------
 Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& p_rot);
 
-// Conversions for homogeneous transformations
+// ------------------------------------------------------------------------
+//! \brief Create homogeneous transformation from translation and rotation.
+//!
+//! PHYSICS: Combines separate translation and rotation into a single
+//! 4x4 homogeneous transformation matrix for efficient computation.
+//!
+//! MATHEMATICAL STRUCTURE:
+//! T = [R  t]  where R is 3x3 rotation matrix, t is 3x1 translation
+//!     [0  1]
+//!
+//! GEOMETRIC INTERPRETATION:
+//! - First applies rotation R to a point
+//! - Then adds translation t
+//! - Composition: T(p) = R*p + t
+//!
+//! \param p_translation 3D translation vector [x, y, z]
+//! \param p_rotation 3x3 rotation matrix
+//! \return 4x4 homogeneous transformation matrix
+// ------------------------------------------------------------------------
 Transform createTransform(const Eigen::Vector3d& p_translation,
                           const Eigen::Matrix3d& p_rotation);
+
+// ------------------------------------------------------------------------
+//! \brief Create homogeneous transformation from translation and Euler angles.
+//!
+//! PHYSICS: Convenience function that combines translation with rotation
+//! specified as Euler angles using ZYX convention.
+//!
+//! PROCESS:
+//! 1. Convert Euler angles to rotation matrix
+//! 2. Combine with translation into homogeneous form
+//!
+//! APPLICATIONS:
+//! - Robot link transformations
+//! - Camera pose specification
+//! - Object placement in 3D space
+//!
+//! \param p_translation 3D translation vector [x, y, z]
+//! \param p_rx Roll angle around X-axis (radians)
+//! \param p_ry Pitch angle around Y-axis (radians)
+//! \param p_rz Yaw angle around Z-axis (radians)
+//! \return 4x4 homogeneous transformation matrix
+// ------------------------------------------------------------------------
 Transform createTransform(const Eigen::Vector3d& p_translation,
-                          double p_rx,
-                          double p_ry,
-                          double p_rz);
+                          Radian p_rx,
+                          Radian p_ry,
+                          Radian p_rz);
 
 // Extraction of data from transformations
 Eigen::Vector3d getTranslation(const Transform& p_transform);
@@ -403,8 +892,42 @@ Eigen::Matrix3d getRotation(const Transform& p_transform);
 Pose transformToPose(const Transform& p_transform);
 Transform poseToTransform(const Pose& p_pose);
 
-// DH (Denavit-Hartenberg) conversion
-Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta);
+// ------------------------------------------------------------------------
+//! \brief Create transformation matrix using Denavit-Hartenberg parameters.
+//!
+//! PHYSICS: The Denavit-Hartenberg (DH) convention is a systematic method
+//! for describing the geometry of serial robotic manipulators. It provides
+//! a standardized way to represent the relationship between consecutive
+//! joint coordinate frames.
+//!
+//! DH PARAMETERS:
+//! - a (link length): Distance between joint axes along common normal
+//! - α (link twist): Angle between joint axes about common normal
+//! - d (link offset): Distance between common normals along joint axis
+//! - θ (joint angle): Angle between common normals about joint axis
+//!
+//! TRANSFORMATION SEQUENCE:
+//! 1. Rotate about Z-axis by θ (joint angle)
+//! 2. Translate along Z-axis by d (link offset)
+//! 3. Translate along X-axis by a (link length)
+//! 4. Rotate about X-axis by α (link twist)
+//!
+//! MATHEMATICAL FORMULA:
+//! T = Rot_z(θ) * Trans_z(d) * Trans_x(a) * Rot_x(α)
+//!
+//! APPLICATIONS:
+//! - Forward kinematics computation
+//! - Robot modeling and simulation
+//! - Kinematic calibration
+//! - Workspace analysis
+//!
+//! \param p_a Link length parameter (meters)
+//! \param p_alpha Link twist parameter (radians)
+//! \param p_d Link offset parameter (meters)
+//! \param p_theta Joint angle parameter (radians)
+//! \return 4x4 homogeneous transformation matrix
+// ------------------------------------------------------------------------
+Transform dhTransform(double p_a, Radian p_alpha, double p_d, Radian p_theta);
 
 } // namespace utils
 

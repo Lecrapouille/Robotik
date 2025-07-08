@@ -75,17 +75,17 @@ int main()
 
     // Create the joints
     auto joint1 = std::make_shared<Joint>(
-        "joint1", JointType::REVOLUTE, Eigen::Vector3d::UnitZ());
+        "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitZ());
     auto joint2 = std::make_shared<Joint>(
-        "joint2", JointType::REVOLUTE, Eigen::Vector3d::UnitY());
+        "joint2", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitY());
     auto joint3 = std::make_shared<Joint>(
-        "joint3", JointType::REVOLUTE, Eigen::Vector3d::UnitY());
+        "joint3", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitY());
     auto joint4 = std::make_shared<Joint>(
-        "joint4", JointType::REVOLUTE, Eigen::Vector3d::UnitX());
+        "joint4", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitX());
     auto joint5 = std::make_shared<Joint>(
-        "joint5", JointType::REVOLUTE, Eigen::Vector3d::UnitY());
+        "joint5", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitY());
     auto joint6 = std::make_shared<Joint>(
-        "joint6", JointType::REVOLUTE, Eigen::Vector3d::UnitZ());
+        "joint6", Joint::Type::REVOLUTE, Eigen::Vector3d::UnitZ());
 
     // Associate the joints to the joint nodes (not the link nodes)
     joint1->setNode(joint1_node);

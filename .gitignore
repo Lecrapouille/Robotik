@@ -1,5 +1,7 @@
 build/
 .cache/
+doc/code-coverage/*
+external/*/
 
 # Prerequisites
 *.d
