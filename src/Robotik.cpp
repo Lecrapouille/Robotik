@@ -14,38 +14,16 @@ Node::Node(const std::string& p_name) : m_name(p_name)
 }
 
 // ----------------------------------------------------------------------------
-void Node::addChild(std::shared_ptr<Node> p_child)
-{
-    m_children.push_back(p_child);
-    p_child->m_parent = std::weak_ptr<Node>(shared_from_this());
-    p_child->markDirty();
-}
-
-// ----------------------------------------------------------------------------
-void Node::removeChild(const std::string& p_child_name)
+Node* Node::getChild(const std::string& p_child_name)
 {
     auto it = std::find_if(m_children.begin(),
                            m_children.end(),
-                           [&p_child_name](const std::shared_ptr<Node>& p_child)
+                           [&p_child_name](const std::unique_ptr<Node>& p_child)
                            { return p_child->getName() == p_child_name; });
 
     if (it != m_children.end())
     {
-        m_children.erase(it);
-    }
-}
-
-// ----------------------------------------------------------------------------
-std::shared_ptr<Node> Node::getChild(const std::string& p_child_name)
-{
-    auto it = std::find_if(m_children.begin(),
-                           m_children.end(),
-                           [&p_child_name](const std::shared_ptr<Node>& p_child)
-                           { return p_child->getName() == p_child_name; });
-
-    if (it != m_children.end())
-    {
-        return *it;
+        return it->get();
     }
     return nullptr;
 }
@@ -76,9 +54,9 @@ const Transform& Node::getWorldTransform()
 // ----------------------------------------------------------------------------
 void Node::updateWorldTransform()
 {
-    if (auto parentNode = m_parent.lock())
+    if (m_parent)
     {
-        m_world_transform = parentNode->getWorldTransform() * m_local_transform;
+        m_world_transform = m_parent->getWorldTransform() * m_local_transform;
     }
     else
     {
@@ -108,6 +86,12 @@ void Node::markDirty()
 const std::string& Node::getName() const
 {
     return m_name;
+}
+
+// ----------------------------------------------------------------------------
+const std::vector<std::unique_ptr<Node>>& Node::getChildren() const
+{
+    return m_children;
 }
 
 // ----------------------------------------------------------------------------
@@ -201,14 +185,14 @@ const Eigen::Vector3d& Joint::getAxis() const
 }
 
 // ----------------------------------------------------------------------------
-void Joint::setNode(std::shared_ptr<Node> p_node)
+void Joint::setNode(Node* p_node)
 {
     m_node = p_node;
     updateNodeTransform();
 }
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Node> Joint::getNode() const
+Node* Joint::getNode() const
 {
     return m_node;
 }
@@ -223,20 +207,20 @@ const std::string& Joint::getName() const
 RobotArm::RobotArm(const std::string& p_name) : m_name(p_name) {}
 
 // ----------------------------------------------------------------------------
-void RobotArm::setRootNode(std::shared_ptr<Node> p_root)
+void RobotArm::setRootNode(std::unique_ptr<Node> p_root)
 {
-    m_root_node = p_root;
+    m_root_node = std::move(p_root);
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::addJoint(std::shared_ptr<Joint> p_joint)
+void RobotArm::addJoint(std::unique_ptr<Joint> p_joint)
 {
-    m_joints.push_back(p_joint);
-    m_joint_map[p_joint->getName()] = p_joint;
+    m_joint_map[p_joint->getName()] = p_joint.get();
+    m_joints.push_back(std::move(p_joint));
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setEndEffector(std::shared_ptr<Node> p_node)
+void RobotArm::setEndEffector(Node* p_node)
 {
     m_end_effector = p_node;
 }
@@ -332,7 +316,7 @@ Jacobian RobotArm::calculateJacobian() const
 
     for (size_t i = 0; i < num_joints; ++i)
     {
-        auto joint = m_joints[i];
+        auto joint = m_joints[i].get();
         auto joint_node = joint->getNode();
 
         // Transformation of the joint in the global space
@@ -367,7 +351,7 @@ Jacobian RobotArm::calculateJacobian() const
 }
 
 // ----------------------------------------------------------------------------
-std::shared_ptr<Joint> RobotArm::getJoint(const std::string& p_name) const
+Joint* RobotArm::getJoint(const std::string& p_name) const
 {
     auto it = m_joint_map.find(p_name);
     if (it != m_joint_map.end())
@@ -407,6 +391,12 @@ void RobotArm::setJointValues(const std::vector<double>& p_values)
 
     // Update all transformations
     m_root_node->updateWorldTransform();
+}
+
+// ----------------------------------------------------------------------------
+Node* RobotArm::getRootNode() const
+{
+    return m_root_node.get();
 }
 
 namespace utils

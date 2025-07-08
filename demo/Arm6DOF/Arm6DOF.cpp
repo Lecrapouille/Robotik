@@ -1,6 +1,10 @@
+#include "Robotik/RobotViewer.hpp"
 #include "Robotik/Robotik.hpp"
+#include <chrono>
+#include <cmath>
 #include <iomanip>
 #include <iostream>
+#include <thread>
 
 using namespace robotik;
 
@@ -173,8 +177,8 @@ int main()
     std::cout << "Initial error norm: " << error.norm() << std::endl;
 
     // Solve the inverse kinematics
-    if (std::vector<double> solution;
-        robot->inverseKinematics(targetPose, solution))
+    std::vector<double> solution;
+    if (robot->inverseKinematics(targetPose, solution))
     {
         std::cout << "Inverse kinematics succeeded!" << std::endl;
         std::cout << "Joint values: ";
@@ -193,6 +197,147 @@ int main()
         std::cerr << "Inverse kinematics failed" << std::endl;
         return EXIT_FAILURE;
     }
+
+    std::cout << "\n=== Initializing OpenGL Viewer ===" << std::endl;
+
+    // Create the OpenGL viewer
+    RobotViewer viewer(1200, 800, "6DOF Robot Arm - Interactive Viewer");
+
+    if (!viewer.initialize())
+    {
+        std::cerr << "Failed to initialize OpenGL viewer!" << std::endl;
+        std::cerr << "Running without visualization..." << std::endl;
+        return EXIT_SUCCESS;
+    }
+
+    std::cout << "Checking if window should close immediately: "
+              << viewer.shouldClose() << std::endl;
+
+    std::cout << "OpenGL viewer initialized successfully!" << std::endl;
+    std::cout << "\nControls:" << std::endl;
+    std::cout << "  - Mouse: Rotate camera around robot" << std::endl;
+    std::cout << "  - Mouse wheel: Zoom in/out" << std::endl;
+    std::cout << "  - W/S: Move camera closer/farther" << std::endl;
+    std::cout << "  - 1-6: Select joint to control" << std::endl;
+    std::cout << "  - +/-: Increase/decrease selected joint angle" << std::endl;
+    std::cout << "  - R: Reset to home position" << std::endl;
+    std::cout << "  - A: Toggle automatic animation" << std::endl;
+    std::cout << "  - F: Toggle coordinate frames display" << std::endl;
+    std::cout << "  - ESC: Exit" << std::endl;
+
+    // Animation and control variables
+    std::vector<double> joint_values = solution; // Start from IK solution
+    int selected_joint = 0;
+    bool auto_animation = false;
+    float time = 0.0f;
+    bool show_frames = true;
+
+    viewer.setShowCoordinateFrames(show_frames);
+
+    std::cout << "Starting main interaction loop..." << std::endl;
+
+    // Main interaction loop
+    int frame_count = 0;
+    while (!viewer.shouldClose())
+    {
+        frame_count++;
+        if (frame_count % 60 == 0)
+        {
+            std::cout << "Frame " << frame_count << std::endl;
+        }
+
+        viewer.pollEvents();
+
+        // Handle keyboard input
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_1) == GLFW_PRESS)
+            selected_joint = 0;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_2) == GLFW_PRESS)
+            selected_joint = 1;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_3) == GLFW_PRESS)
+            selected_joint = 2;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_4) == GLFW_PRESS)
+            selected_joint = 3;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_5) == GLFW_PRESS)
+            selected_joint = 4;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_6) == GLFW_PRESS)
+            selected_joint = 5;
+
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_KP_ADD) == GLFW_PRESS ||
+            glfwGetKey(viewer.getWindow(), GLFW_KEY_EQUAL) == GLFW_PRESS)
+        {
+            joint_values[selected_joint] += 0.02f;
+            auto_animation = false;
+        }
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_KP_SUBTRACT) ==
+                GLFW_PRESS ||
+            glfwGetKey(viewer.getWindow(), GLFW_KEY_MINUS) == GLFW_PRESS)
+        {
+            joint_values[selected_joint] -= 0.02f;
+            auto_animation = false;
+        }
+
+        static bool r_pressed = false;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_R) == GLFW_PRESS &&
+            !r_pressed)
+        {
+            joint_values = { 0, 0, 0, 0, 0, 0 };
+            auto_animation = false;
+            r_pressed = true;
+        }
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_R) == GLFW_RELEASE)
+        {
+            r_pressed = false;
+        }
+
+        static bool a_pressed = false;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_A) == GLFW_PRESS &&
+            !a_pressed)
+        {
+            auto_animation = !auto_animation;
+            a_pressed = true;
+        }
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_A) == GLFW_RELEASE)
+        {
+            a_pressed = false;
+        }
+
+        static bool f_pressed = false;
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_F) == GLFW_PRESS &&
+            !f_pressed)
+        {
+            show_frames = !show_frames;
+            viewer.setShowCoordinateFrames(show_frames);
+            f_pressed = true;
+        }
+        if (glfwGetKey(viewer.getWindow(), GLFW_KEY_F) == GLFW_RELEASE)
+        {
+            f_pressed = false;
+        }
+
+        // Automatic animation
+        if (auto_animation)
+        {
+            time += 0.016f;
+            joint_values[0] = std::sin(time * 0.5f) * M_PI / 4;
+            joint_values[1] = std::sin(time * 0.3f) * M_PI / 6;
+            joint_values[2] = std::sin(time * 0.7f) * M_PI / 8;
+            joint_values[3] = std::sin(time * 0.9f) * M_PI / 3;
+            joint_values[4] = std::sin(time * 0.4f) * M_PI / 6;
+            joint_values[5] = std::sin(time * 1.1f) * M_PI / 4;
+        }
+
+        // Update robot configuration
+        robot->setJointValues(joint_values);
+
+        // Render the robot
+        viewer.render(robot);
+        viewer.swapBuffers();
+
+        // Small delay to control frame rate
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 FPS
+    }
+
+    std::cout << "Cleaning up OpenGL viewer..." << std::endl;
 
     return EXIT_SUCCESS;
 }

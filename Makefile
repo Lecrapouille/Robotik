@@ -67,8 +67,8 @@ include $(M)/rules/Makefile
 ###############################################################################
 # Post-build rules
 #
-post-build: build-demo
+#post-build: build-demo
 
-.PHONY: build-demo
-build-demo: $(TARGET_STATIC_LIB_NAME)
-	$(Q)$(MAKE) --no-print-directory --directory=demo/Arm6DOF all
+#.PHONY: build-demo
+#build-demo: $(TARGET_STATIC_LIB_NAME)
+#	$(Q)$(MAKE) --no-print-directory --directory=demo/Arm6DOF all

@@ -1,0 +1,257 @@
+#include "Robotik/Robotik.hpp"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+using namespace robotik;
+
+class RobotArmTest: public ::testing::Test
+{
+protected:
+
+    void SetUp() override
+    {
+        // Create a simple 2-DOF arm for testing
+        robot_arm = std::make_shared<RobotArm>("test_arm");
+
+        // Create nodes
+        root_node = std::make_shared<Node>("root");
+        joint1_node = std::make_shared<Node>("joint1");
+        joint2_node = std::make_shared<Node>("joint2");
+        end_effector_node = std::make_shared<Node>("end_effector");
+
+        // Create joints
+        joint1 = std::make_shared<Joint>(
+            "joint1", JointType::REVOLUTE, Eigen::Vector3d(0, 0, 1));
+        joint2 = std::make_shared<Joint>(
+            "joint2", JointType::REVOLUTE, Eigen::Vector3d(0, 0, 1));
+
+        // Set up the kinematic chain
+        setupKinematicChain();
+    }
+
+    void setupKinematicChain()
+    {
+        // Set up hierarchy
+        root_node->addChild(joint1_node);
+        joint1_node->addChild(joint2_node);
+        joint2_node->addChild(end_effector_node);
+
+        // Associate joints with nodes
+        joint1->setNode(joint1_node);
+        joint2->setNode(joint2_node);
+
+        // Set up initial transforms (simple arm with 1 unit links)
+        Transform joint1_transform = Transform::Identity();
+        joint1_transform(2, 3) = 1.0; // 1 unit up
+        joint1_node->setLocalTransform(joint1_transform);
+
+        Transform joint2_transform = Transform::Identity();
+        joint2_transform(0, 3) = 1.0; // 1 unit forward
+        joint2_node->setLocalTransform(joint2_transform);
+
+        Transform end_effector_transform = Transform::Identity();
+        end_effector_transform(0, 3) = 1.0; // 1 unit forward
+        end_effector_node->setLocalTransform(end_effector_transform);
+
+        // Configure robot arm
+        robot_arm->setRootNode(root_node);
+        robot_arm->addJoint(joint1);
+        robot_arm->addJoint(joint2);
+        robot_arm->setEndEffector(end_effector_node);
+    }
+
+    std::shared_ptr<RobotArm> robot_arm;
+    std::shared_ptr<Node> root_node;
+    std::shared_ptr<Node> joint1_node;
+    std::shared_ptr<Node> joint2_node;
+    std::shared_ptr<Node> end_effector_node;
+    std::shared_ptr<Joint> joint1;
+    std::shared_ptr<Joint> joint2;
+};
+
+// Test RobotArm creation and basic properties
+TEST_F(RobotArmTest, Creation)
+{
+    auto arm = std::make_shared<RobotArm>("test");
+    // Basic creation test - should not crash
+    EXPECT_NO_THROW(arm->getJointValues());
+}
+
+// Test adding joints
+TEST_F(RobotArmTest, AddJoint)
+{
+    auto arm = std::make_shared<RobotArm>("test");
+    auto joint = std::make_shared<Joint>(
+        "test_joint", JointType::REVOLUTE, Eigen::Vector3d(0, 0, 1));
+
+    arm->addJoint(joint);
+
+    EXPECT_EQ(arm->getJoint("test_joint"), joint);
+}
+
+// Test getting joint by name
+TEST_F(RobotArmTest, GetJoint)
+{
+    EXPECT_EQ(robot_arm->getJoint("joint1"), joint1);
+    EXPECT_EQ(robot_arm->getJoint("joint2"), joint2);
+    EXPECT_EQ(robot_arm->getJoint("nonexistent"), nullptr);
+}
+
+// Test setting and getting joint values
+TEST_F(RobotArmTest, JointValues)
+{
+    std::vector<double> values = { M_PI / 4, M_PI / 2 };
+    robot_arm->setJointValues(values);
+
+    std::vector<double> retrieved_values = robot_arm->getJointValues();
+
+    EXPECT_EQ(retrieved_values.size(), 2);
+    EXPECT_DOUBLE_EQ(retrieved_values[0], M_PI / 4);
+    EXPECT_DOUBLE_EQ(retrieved_values[1], M_PI / 2);
+}
+
+// Test forward kinematics
+TEST_F(RobotArmTest, ForwardKinematics)
+{
+    // Test with zero joint values
+    std::vector<double> zero_values = { 0.0, 0.0 };
+    robot_arm->setJointValues(zero_values);
+
+    Transform fk_result = robot_arm->forwardKinematics();
+
+    // With zero joint values, the end effector should be at (2, 0, 1)
+    Eigen::Vector3d expected_position(2.0, 0.0, 1.0);
+    Eigen::Vector3d actual_position = fk_result.block<3, 1>(0, 3);
+
+    EXPECT_TRUE(actual_position.isApprox(expected_position, 1e-10));
+
+    // Test with different joint values
+    std::vector<double> test_values = { M_PI / 2, 0.0 };
+    robot_arm->setJointValues(test_values);
+
+    Transform fk_result2 = robot_arm->forwardKinematics();
+
+    // With first joint at 90 degrees, the end effector should be at (0, 2, 1)
+    Eigen::Vector3d expected_position2(0.0, 2.0, 1.0);
+    Eigen::Vector3d actual_position2 = fk_result2.block<3, 1>(0, 3);
+
+    EXPECT_TRUE(actual_position2.isApprox(expected_position2, 1e-10));
+}
+
+// Test end effector pose
+TEST_F(RobotArmTest, EndEffectorPose)
+{
+    std::vector<double> values = { 0.0, 0.0 };
+    robot_arm->setJointValues(values);
+
+    Pose pose = robot_arm->getEndEffectorPose();
+
+    // Check position components
+    EXPECT_DOUBLE_EQ(pose(0), 2.0); // x
+    EXPECT_DOUBLE_EQ(pose(1), 0.0); // y
+    EXPECT_DOUBLE_EQ(pose(2), 1.0); // z
+
+    // Check orientation components (should be close to zero for identity
+    // rotation)
+    EXPECT_NEAR(pose(3), 0.0, 1e-10); // rx
+    EXPECT_NEAR(pose(4), 0.0, 1e-10); // ry
+    EXPECT_NEAR(pose(5), 0.0, 1e-10); // rz
+}
+
+// Test Jacobian calculation
+TEST_F(RobotArmTest, JacobianCalculation)
+{
+    std::vector<double> values = { 0.0, 0.0 };
+    robot_arm->setJointValues(values);
+
+    Jacobian jacobian = robot_arm->calculateJacobian();
+
+    // For a 2-DOF arm, Jacobian should be 6x2
+    EXPECT_EQ(jacobian.rows(), 6);
+    EXPECT_EQ(jacobian.cols(), 2);
+
+    // Check that Jacobian is not zero (has some values)
+    EXPECT_GT(jacobian.norm(), 0.0);
+}
+
+// Test inverse kinematics
+TEST_F(RobotArmTest, InverseKinematics)
+{
+    // Test with a reachable target
+    Pose target_pose;
+    target_pose << 1.0, 1.0, 1.0, 0.0, 0.0,
+        0.0; // Position (1,1,1), no rotation
+
+    std::vector<double> solution;
+    bool success = robot_arm->inverseKinematics(target_pose, solution);
+
+    // The exact success depends on the implementation, but it should not crash
+    EXPECT_NO_THROW(robot_arm->inverseKinematics(target_pose, solution));
+
+    if (success)
+    {
+        EXPECT_EQ(solution.size(), 2);
+        // If solution found, verify it by forward kinematics
+        robot_arm->setJointValues(solution);
+        Transform fk_result = robot_arm->forwardKinematics();
+        Eigen::Vector3d actual_position = fk_result.block<3, 1>(0, 3);
+        Eigen::Vector3d target_position = target_pose.head<3>();
+
+        // Position should be close to target
+        EXPECT_TRUE(actual_position.isApprox(target_position, 1e-3));
+    }
+}
+
+// Test root node access
+TEST_F(RobotArmTest, RootNode)
+{
+    EXPECT_EQ(robot_arm->getRootNode(), root_node);
+}
+
+// Test edge cases
+TEST_F(RobotArmTest, EdgeCases)
+{
+    // Test with empty joint values
+    std::vector<double> empty_values;
+    EXPECT_NO_THROW(robot_arm->setJointValues(empty_values));
+
+    // Test with mismatched joint values size
+    std::vector<double> wrong_size_values = { 1.0, 2.0, 3.0 };
+    EXPECT_NO_THROW(robot_arm->setJointValues(wrong_size_values));
+
+    // Test unreachable target for inverse kinematics
+    Pose unreachable_pose;
+    unreachable_pose << 100.0, 100.0, 100.0, 0.0, 0.0, 0.0;
+
+    std::vector<double> solution;
+    bool success = robot_arm->inverseKinematics(unreachable_pose, solution);
+
+    // Should handle gracefully (either find solution or return false)
+    EXPECT_NO_THROW(robot_arm->inverseKinematics(unreachable_pose, solution));
+}
+
+// Test complex kinematic chain
+TEST_F(RobotArmTest, ComplexKinematics)
+{
+    // Test with multiple joint configurations
+    std::vector<std::vector<double>> test_configurations = {
+        { 0.0, 0.0 },
+        { M_PI / 4, M_PI / 4 },
+        { M_PI / 2, -M_PI / 2 },
+        { -M_PI / 3, M_PI / 3 }
+    };
+
+    for (const auto& config : test_configurations)
+    {
+        robot_arm->setJointValues(config);
+
+        // Forward kinematics should not crash
+        EXPECT_NO_THROW(robot_arm->forwardKinematics());
+
+        // Jacobian calculation should not crash
+        EXPECT_NO_THROW(robot_arm->calculateJacobian());
+
+        // End effector pose should not crash
+        EXPECT_NO_THROW(robot_arm->getEndEffectorPose());
+    }
+}
