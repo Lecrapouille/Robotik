@@ -1,4 +1,5 @@
 #include "Robotik/Robotik.hpp"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -11,10 +12,10 @@ protected:
     void SetUp() override
     {
         // Setup test data
-        root_node = std::make_unique<Node>("root");
+        root_node = Node::create<Node>("root");
     }
 
-    std::unique_ptr<Node> root_node;
+    Node::Ptr root_node;
 };
 
 // Test Node creation and basic properties
@@ -25,52 +26,39 @@ TEST_F(NodeTest, Creation)
 }
 
 // Test adding children
-TEST_F(NodeTest, AddChild)
+TEST_F(NodeTest, CreateChild)
 {
-    Node& child1 = root_node->addChild<Node>("child1");
-    Node& child2 = root_node->addChild<Node>("child2");
+    Node& child1 = root_node->createChild<Node>("child1");
+    Node& child2 = root_node->createChild<Node>("child2");
 
     EXPECT_EQ(root_node->getChildren().size(), 2);
-    EXPECT_EQ(root_node->getChild("child1"), &child1);
-    EXPECT_EQ(root_node->getChild("child2"), &child2);
+    EXPECT_EQ(root_node->getNode("child1"), &child1);
+    EXPECT_EQ(root_node->getNode("child2"), &child2);
     EXPECT_EQ(child1.getName(), "child1");
     EXPECT_EQ(child2.getName(), "child2");
-}
-
-// Test removing children
-TEST_F(NodeTest, RemoveChild)
-{
-    Node& child1 = root_node->addChild<Node>("child1");
-    Node& child2 = root_node->addChild<Node>("child2");
-
-    root_node->removeChild("child1");
-
-    EXPECT_EQ(root_node->getChildren().size(), 1);
-    EXPECT_EQ(root_node->getChild("child2"), &child2);
-    EXPECT_EQ(root_node->getChild("child1"), nullptr);
 }
 
 // Test hierarchical structure
 TEST_F(NodeTest, Hierarchy)
 {
-    Node& child1 = root_node->addChild<Node>("child1");
-    Node& grandchild = child1.addChild<Node>("grandchild");
+    Node& child1 = root_node->createChild<Node>("child1");
+    Node& grandchild = child1.createChild<Node>("grandchild");
 
     EXPECT_EQ(root_node->getChildren().size(), 1);
     EXPECT_EQ(child1.getChildren().size(), 1);
-    EXPECT_EQ(child1.getChild("grandchild"), &grandchild);
+    EXPECT_EQ(child1.getNode("grandchild"), &grandchild);
 }
 
 // Test local transformations
 TEST_F(NodeTest, LocalTransform)
 {
-    Transform identity = Transform::Identity();
+    Transform identity = Eigen::Matrix4d::Identity();
 
     // Test initial identity transform
     EXPECT_TRUE(root_node->getLocalTransform().isApprox(identity));
 
     // Test setting a new transform
-    Transform test_transform = Transform::Identity();
+    Transform test_transform = Eigen::Matrix4d::Identity();
     test_transform(0, 3) = 1.0; // Translation in x
     test_transform(1, 3) = 2.0; // Translation in y
     test_transform(2, 3) = 3.0; // Translation in z
@@ -82,14 +70,14 @@ TEST_F(NodeTest, LocalTransform)
 // Test world transformations
 TEST_F(NodeTest, WorldTransform)
 {
-    Transform parent_transform = Transform::Identity();
+    Transform parent_transform = Eigen::Matrix4d::Identity();
     parent_transform(0, 3) = 1.0; // Translation in x
 
-    Transform child_transform = Transform::Identity();
+    Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 2.0; // Translation in y
 
     root_node->setLocalTransform(parent_transform);
-    Node& child1 = root_node->addChild<Node>("child1");
+    Node& child1 = root_node->createChild<Node>("child1");
     child1.setLocalTransform(child_transform);
 
     // Update world transforms
@@ -103,12 +91,9 @@ TEST_F(NodeTest, WorldTransform)
 // Test dirty flag mechanism
 TEST_F(NodeTest, DirtyFlag)
 {
-    Node& child1 = root_node->addChild<Node>("child1");
+    root_node->createChild<Node>("child1");
 
-    // Mark dirty and check that transforms are updated
-    root_node->markDirty();
-
-    Transform new_transform = Transform::Identity();
+    Transform new_transform = Eigen::Matrix4d::Identity();
     new_transform(0, 3) = 5.0;
 
     root_node->setLocalTransform(new_transform);
@@ -120,14 +105,11 @@ TEST_F(NodeTest, DirtyFlag)
 // Test edge cases
 TEST_F(NodeTest, EdgeCases)
 {
-    // Test getting non-existent child
-    EXPECT_EQ(root_node->getChild("nonexistent"), nullptr);
-
-    // Test removing non-existent child (should not crash)
-    EXPECT_NO_THROW(root_node->removeChild("nonexistent"));
+    // Test getting non-existent node
+    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
 }
 
-// Test template addChild with derived types
+// Test template createChild with derived types
 class DerivedNode: public Node
 {
 public:
@@ -145,11 +127,45 @@ private:
     int m_value;
 };
 
-TEST_F(NodeTest, TemplateAddChild)
+TEST_F(NodeTest, TemplateCreateChild)
 {
-    DerivedNode& derived = root_node->addChild<DerivedNode>("derived", 42);
+    DerivedNode& derived = root_node->createChild<DerivedNode>("derived", 42);
 
     EXPECT_EQ(derived.getName(), "derived");
     EXPECT_EQ(derived.getValue(), 42);
-    EXPECT_EQ(root_node->getChild("derived"), &derived);
+    EXPECT_EQ(root_node->getNode("derived"), &derived);
+}
+
+// Test addChild with existing node
+TEST_F(NodeTest, AddExistingChild)
+{
+    auto child_node = Node::create<Node>("external_child");
+    Node* child_ptr = child_node.get();
+
+    root_node->addChild(std::move(child_node));
+
+    EXPECT_EQ(root_node->getChildren().size(), 1);
+    EXPECT_EQ(root_node->getNode("external_child"), child_ptr);
+}
+
+// Test recursive node search
+TEST_F(NodeTest, RecursiveNodeSearch)
+{
+    Node& child1 = root_node->createChild<Node>("child1");
+    Node& child2 = root_node->createChild<Node>("child2");
+    Node& grandchild = child1.createChild<Node>("grandchild");
+    Node& great_grandchild = grandchild.createChild<Node>("great_grandchild");
+
+    // Test that getNode searches recursively through the entire subtree
+    EXPECT_EQ(root_node->getNode("child1"), &child1);
+    EXPECT_EQ(root_node->getNode("child2"), &child2);
+    EXPECT_EQ(root_node->getNode("grandchild"), &grandchild);
+    EXPECT_EQ(root_node->getNode("great_grandchild"), &great_grandchild);
+
+    // Test search from child node
+    EXPECT_EQ(child1.getNode("grandchild"), &grandchild);
+    EXPECT_EQ(child1.getNode("great_grandchild"), &great_grandchild);
+
+    // Test that child can't find sibling
+    EXPECT_EQ(child1.getNode("child2"), nullptr);
 }

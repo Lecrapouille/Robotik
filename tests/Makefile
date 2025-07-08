@@ -22,6 +22,11 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set units library
+#
+INCLUDES += $(P)/external/units/include
+
+###############################################################################
 # GTest and GMock
 #
 PKG_LIBS += gtest gmock
@@ -29,10 +34,10 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES := $(call rwildcard,$(P)/src,*.cpp) \
-    $(call rwildcard,$(P)/tests,*.cpp)
-INCLUDES := $(P)/include
-VPATH := $(P)/src
+SRC_FILES += $(call rwildcard,$(P)/src,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
+INCLUDES += $(P)/include
+VPATH += $(P)/src
 
 ###################################################
 # Generic Makefile rules
