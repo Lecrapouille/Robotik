@@ -1,0 +1,922 @@
+#include "Robotik/RobotViewer.hpp"
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+
+namespace robotik
+{
+
+// ----------------------------------------------------------------------------
+// Camera Implementation
+// ----------------------------------------------------------------------------
+
+Camera::Camera()
+    : m_position(Eigen::Vector3f(1.5f, 1.5f, 1.0f)),
+      m_target(
+          Eigen::Vector3f(0.0f, 0.0f, 0.25f)), // Robot center is around z=0.25
+      m_up(Eigen::Vector3f(0.0f, 0.0f, 1.0f)),
+      m_yaw(-45.0f),
+      m_pitch(-15.0f),
+      m_distance(2.0f),
+      m_sensitivity(0.1f),
+      m_speed(2.5f),
+      m_first_mouse(true),
+      m_last_x(0.0f),
+      m_last_y(0.0f)
+{
+    updateVectors();
+}
+
+void Camera::setPosition(const Eigen::Vector3f& position)
+{
+    m_position = position;
+}
+
+void Camera::setTarget(const Eigen::Vector3f& target)
+{
+    m_target = target;
+}
+
+void Camera::setUpVector(const Eigen::Vector3f& up)
+{
+    m_up = up;
+}
+
+Eigen::Matrix4f Camera::getViewMatrix() const
+{
+    Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
+
+    Eigen::Vector3f f = (m_target - m_position).normalized();
+    Eigen::Vector3f s = f.cross(m_up).normalized();
+    Eigen::Vector3f u = s.cross(f);
+
+    view(0, 0) = s.x();
+    view(1, 0) = s.y();
+    view(2, 0) = s.z();
+    view(0, 1) = u.x();
+    view(1, 1) = u.y();
+    view(2, 1) = u.z();
+    view(0, 2) = -f.x();
+    view(1, 2) = -f.y();
+    view(2, 2) = -f.z();
+    view(3, 0) = -s.dot(m_position);
+    view(3, 1) = -u.dot(m_position);
+    view(3, 2) = f.dot(m_position);
+
+    return view;
+}
+
+Eigen::Matrix4f Camera::getProjectionMatrix(float aspect_ratio) const
+{
+    float fov = 45.0f * M_PI / 180.0f;
+    float near_plane = 0.1f;
+    float far_plane = 100.0f;
+
+    Eigen::Matrix4f projection = Eigen::Matrix4f::Zero();
+
+    float tan_half_fov = std::tan(fov / 2.0f);
+
+    projection(0, 0) = 1.0f / (aspect_ratio * tan_half_fov);
+    projection(1, 1) = 1.0f / tan_half_fov;
+    projection(2, 2) = -(far_plane + near_plane) / (far_plane - near_plane);
+    projection(2, 3) = -1.0f;
+    projection(3, 2) =
+        -(2.0f * far_plane * near_plane) / (far_plane - near_plane);
+
+    return projection;
+}
+
+void Camera::processInput(GLFWwindow* window, float deltaTime)
+{
+    float velocity = m_speed * deltaTime;
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        m_distance -= velocity;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        m_distance += velocity;
+
+    m_distance = std::max(0.1f, m_distance);
+    updateVectors();
+}
+
+void Camera::processMouse(double xpos, double ypos)
+{
+    if (m_first_mouse)
+    {
+        m_last_x = xpos;
+        m_last_y = ypos;
+        m_first_mouse = false;
+    }
+
+    float xoffset = xpos - m_last_x;
+    float yoffset = m_last_y - ypos;
+
+    m_last_x = xpos;
+    m_last_y = ypos;
+
+    xoffset *= m_sensitivity;
+    yoffset *= m_sensitivity;
+
+    m_yaw += xoffset;
+    m_pitch += yoffset;
+
+    m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
+
+    updateVectors();
+}
+
+void Camera::processScroll(double yoffset)
+{
+    m_distance -= yoffset * 0.5f;
+    m_distance = std::max(0.1f, m_distance);
+    updateVectors();
+}
+
+void Camera::updateVectors()
+{
+    float pitch_rad = m_pitch * M_PI / 180.0f;
+    float yaw_rad = m_yaw * M_PI / 180.0f;
+
+    Eigen::Vector3f direction;
+    direction.x() = std::cos(yaw_rad) * std::cos(pitch_rad);
+    direction.y() = std::sin(yaw_rad) * std::cos(pitch_rad);
+    direction.z() = std::sin(pitch_rad);
+
+    m_position = m_target - direction * m_distance;
+}
+
+// ----------------------------------------------------------------------------
+// Mesh Implementation
+// ----------------------------------------------------------------------------
+
+Mesh::Mesh()
+    : m_VAO(0), m_VBO(0), m_EBO(0), m_index_count(0), m_initialized(false)
+{
+}
+
+Mesh::~Mesh()
+{
+    cleanup();
+}
+
+void Mesh::loadData(const std::vector<Vertex>& vertices,
+                    const std::vector<unsigned int>& indices)
+{
+    m_index_count = indices.size();
+
+    glGenVertexArrays(1, &m_VAO);
+    glGenBuffers(1, &m_VBO);
+    glGenBuffers(1, &m_EBO);
+
+    glBindVertexArray(m_VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferData(GL_ARRAY_BUFFER,
+                 vertices.size() * sizeof(Vertex),
+                 vertices.data(),
+                 GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 indices.size() * sizeof(unsigned int),
+                 indices.data(),
+                 GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Normal attribute
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(Vertex),
+                          (void*)offsetof(Vertex, normal));
+    glEnableVertexAttribArray(1);
+
+    // Color attribute
+    glVertexAttribPointer(2,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(Vertex),
+                          (void*)offsetof(Vertex, color));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(0);
+
+    m_initialized = true;
+}
+
+void Mesh::render() const
+{
+    if (!m_initialized)
+        return;
+
+    glBindVertexArray(m_VAO);
+    glDrawElements(GL_TRIANGLES, m_index_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+void Mesh::renderLines() const
+{
+    if (!m_initialized)
+        return;
+
+    glBindVertexArray(m_VAO);
+    glDrawElements(GL_LINES, m_index_count, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+}
+
+void Mesh::cleanup()
+{
+    if (m_initialized)
+    {
+        glDeleteVertexArrays(1, &m_VAO);
+        glDeleteBuffers(1, &m_VBO);
+        glDeleteBuffers(1, &m_EBO);
+        m_initialized = false;
+    }
+}
+
+// ----------------------------------------------------------------------------
+// ShaderProgram Implementation
+// ----------------------------------------------------------------------------
+
+ShaderProgram::ShaderProgram() : m_program(0) {}
+
+ShaderProgram::~ShaderProgram()
+{
+    cleanup();
+}
+
+bool ShaderProgram::loadShaders(const std::string& vertex_source,
+                                const std::string& fragment_source)
+{
+    GLuint vertex_shader = compileShader(vertex_source, GL_VERTEX_SHADER);
+    if (vertex_shader == 0)
+        return false;
+
+    GLuint fragment_shader = compileShader(fragment_source, GL_FRAGMENT_SHADER);
+    if (fragment_shader == 0)
+    {
+        glDeleteShader(vertex_shader);
+        return false;
+    }
+
+    bool success = linkProgram(vertex_shader, fragment_shader);
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    return success;
+}
+
+void ShaderProgram::use() const
+{
+    glUseProgram(m_program);
+}
+
+void ShaderProgram::setUniform(const std::string& name,
+                               const Eigen::Matrix4f& matrix) const
+{
+    GLint location = glGetUniformLocation(m_program, name.c_str());
+    if (location != -1)
+    {
+        glUniformMatrix4fv(location, 1, GL_FALSE, matrix.data());
+    }
+}
+
+void ShaderProgram::setUniform(const std::string& name,
+                               const Eigen::Vector3f& vector) const
+{
+    GLint location = glGetUniformLocation(m_program, name.c_str());
+    if (location != -1)
+    {
+        glUniform3fv(location, 1, vector.data());
+    }
+}
+
+void ShaderProgram::setUniform(const std::string& name, float value) const
+{
+    GLint location = glGetUniformLocation(m_program, name.c_str());
+    if (location != -1)
+    {
+        glUniform1f(location, value);
+    }
+}
+
+void ShaderProgram::cleanup()
+{
+    if (m_program != 0)
+    {
+        glDeleteProgram(m_program);
+        m_program = 0;
+    }
+}
+
+GLuint ShaderProgram::compileShader(const std::string& source, GLenum type)
+{
+    GLuint shader = glCreateShader(type);
+    const char* source_cstr = source.c_str();
+    glShaderSource(shader, 1, &source_cstr, nullptr);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        GLchar info_log[512];
+        glGetShaderInfoLog(shader, 512, nullptr, info_log);
+        std::cerr << "Shader compilation error: " << info_log << std::endl;
+        glDeleteShader(shader);
+        return 0;
+    }
+
+    return shader;
+}
+
+bool ShaderProgram::linkProgram(GLuint vertex_shader, GLuint fragment_shader)
+{
+    m_program = glCreateProgram();
+    glAttachShader(m_program, vertex_shader);
+    glAttachShader(m_program, fragment_shader);
+    glLinkProgram(m_program);
+
+    GLint success;
+    glGetProgramiv(m_program, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        GLchar info_log[512];
+        glGetProgramInfoLog(m_program, 512, nullptr, info_log);
+        std::cerr << "Shader linking error: " << info_log << std::endl;
+        glDeleteProgram(m_program);
+        m_program = 0;
+        return false;
+    }
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+// RobotViewer Implementation
+// ----------------------------------------------------------------------------
+
+RobotViewer::RobotViewer(int width, int height, const std::string& title)
+    : m_window(nullptr),
+      m_width(width),
+      m_height(height),
+      m_title(title),
+      m_show_joints(true),
+      m_show_links(true),
+      m_show_frames(true),
+      m_joint_radius(0.05f), // Make joints bigger
+      m_link_radius(0.03f),  // Make links bigger
+      m_last_frame_time(0.0f),
+      m_delta_time(0.0f)
+{
+}
+
+RobotViewer::~RobotViewer()
+{
+    cleanup();
+}
+
+bool RobotViewer::initialize()
+{
+    // Initialize GLFW
+    if (!glfwInit())
+    {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
+        return false;
+    }
+
+    // Set OpenGL version to 3.3 Core
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // Create window
+    m_window =
+        glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
+    if (!m_window)
+    {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return false;
+    }
+
+    glfwMakeContextCurrent(m_window);
+
+    // Set user pointer for callbacks
+    glfwSetWindowUserPointer(m_window, this);
+
+    // Set callbacks
+    glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
+    glfwSetCursorPosCallback(m_window, mouseCallback);
+    glfwSetScrollCallback(m_window, scrollCallback);
+
+    // Initialize GLEW
+    if (glewInit() != GLEW_OK)
+    {
+        std::cerr << "Failed to initialize GLEW" << std::endl;
+        return false;
+    }
+
+    // Configure OpenGL
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+    // Load shaders
+    if (!m_shader_program.loadShaders(getDefaultVertexShader(),
+                                      getDefaultFragmentShader()))
+    {
+        std::cerr << "Failed to load shaders" << std::endl;
+        return false;
+    }
+
+    // Generate meshes
+    generateSphereMesh(1.0f, 20, 20);
+    generateCylinderMesh(1.0f, 1.0f, 20);
+    generateAxisMesh(1.0f);
+
+    return true;
+}
+
+void RobotViewer::cleanup()
+{
+    m_shader_program.cleanup();
+    m_sphere_mesh.cleanup();
+    m_cylinder_mesh.cleanup();
+    m_axis_mesh.cleanup();
+
+    if (m_window)
+    {
+        glfwDestroyWindow(m_window);
+        m_window = nullptr;
+    }
+
+    glfwTerminate();
+}
+
+void RobotViewer::render(std::shared_ptr<RobotArm> robot)
+{
+    // Calculate delta time
+    float current_time = glfwGetTime();
+    m_delta_time = current_time - m_last_frame_time;
+    m_last_frame_time = current_time;
+
+    // Process input
+    processInput();
+
+    // Clear screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Use shader program
+    m_shader_program.use();
+
+    // Set view and projection matrices
+    float aspect_ratio = (float)m_width / (float)m_height;
+    Eigen::Matrix4f view = m_camera.getViewMatrix();
+    Eigen::Matrix4f projection = m_camera.getProjectionMatrix(aspect_ratio);
+
+    m_shader_program.setUniform("view", view);
+    m_shader_program.setUniform("projection", projection);
+
+    // Render robot
+    if (robot)
+    {
+        renderRobot(robot);
+    }
+}
+
+bool RobotViewer::shouldClose() const
+{
+    return glfwWindowShouldClose(m_window);
+}
+
+void RobotViewer::pollEvents()
+{
+    glfwPollEvents();
+}
+
+void RobotViewer::swapBuffers()
+{
+    glfwSwapBuffers(m_window);
+}
+
+void RobotViewer::generateSphereMesh(float radius, int stacks, int slices)
+{
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
+    for (int i = 0; i <= stacks; ++i)
+    {
+        float stack_angle = M_PI / 2 - i * M_PI / stacks;
+        float xy = radius * std::cosf(stack_angle);
+        float z = radius * std::sinf(stack_angle);
+
+        for (int j = 0; j <= slices; ++j)
+        {
+            float slice_angle = j * 2 * M_PI / slices;
+
+            float x = xy * std::cosf(slice_angle);
+            float y = xy * std::sinf(slice_angle);
+
+            Vertex vertex;
+            vertex.position[0] = x;
+            vertex.position[1] = y;
+            vertex.position[2] = z;
+            vertex.normal[0] = x / radius;
+            vertex.normal[1] = y / radius;
+            vertex.normal[2] = z / radius;
+            vertex.color[0] = 0.8f;
+            vertex.color[1] = 0.3f;
+            vertex.color[2] = 0.3f;
+
+            vertices.push_back(vertex);
+        }
+    }
+
+    for (int i = 0; i < stacks; ++i)
+    {
+        int k1 = i * (slices + 1);
+        int k2 = k1 + slices + 1;
+
+        for (int j = 0; j < slices; ++j, ++k1, ++k2)
+        {
+            if (i != 0)
+            {
+                indices.push_back(k1);
+                indices.push_back(k2);
+                indices.push_back(k1 + 1);
+            }
+
+            if (i != (stacks - 1))
+            {
+                indices.push_back(k1 + 1);
+                indices.push_back(k2);
+                indices.push_back(k2 + 1);
+            }
+        }
+    }
+
+    m_sphere_mesh.loadData(vertices, indices);
+}
+
+void RobotViewer::generateCylinderMesh(float radius, float height, int slices)
+{
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
+    // Generate side vertices
+    for (int i = 0; i <= slices; ++i)
+    {
+        float angle = i * 2 * M_PI / slices;
+        float x = radius * std::cosf(angle);
+        float y = radius * std::sinf(angle);
+
+        // Bottom vertex
+        Vertex bottom_vertex;
+        bottom_vertex.position[0] = x;
+        bottom_vertex.position[1] = y;
+        bottom_vertex.position[2] = 0.0f;
+        bottom_vertex.normal[0] = x / radius;
+        bottom_vertex.normal[1] = y / radius;
+        bottom_vertex.normal[2] = 0.0f;
+        bottom_vertex.color[0] = 0.3f;
+        bottom_vertex.color[1] = 0.8f;
+        bottom_vertex.color[2] = 0.3f;
+
+        // Top vertex
+        Vertex top_vertex;
+        top_vertex.position[0] = x;
+        top_vertex.position[1] = y;
+        top_vertex.position[2] = height;
+        top_vertex.normal[0] = x / radius;
+        top_vertex.normal[1] = y / radius;
+        top_vertex.normal[2] = 0.0f;
+        top_vertex.color[0] = 0.3f;
+        top_vertex.color[1] = 0.8f;
+        top_vertex.color[2] = 0.3f;
+
+        vertices.push_back(bottom_vertex);
+        vertices.push_back(top_vertex);
+    }
+
+    // Generate side indices
+    for (int i = 0; i < slices; ++i)
+    {
+        int next = (i + 1) % (slices + 1);
+
+        // First triangle
+        indices.push_back(i * 2);
+        indices.push_back(next * 2);
+        indices.push_back(i * 2 + 1);
+
+        // Second triangle
+        indices.push_back(i * 2 + 1);
+        indices.push_back(next * 2);
+        indices.push_back(next * 2 + 1);
+    }
+
+    m_cylinder_mesh.loadData(vertices, indices);
+}
+
+void RobotViewer::generateAxisMesh(float length)
+{
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+
+    // X axis (red)
+    Vertex x_origin, x_end;
+    x_origin.position[0] = 0.0f;
+    x_origin.position[1] = 0.0f;
+    x_origin.position[2] = 0.0f;
+    x_origin.normal[0] = 1.0f;
+    x_origin.normal[1] = 0.0f;
+    x_origin.normal[2] = 0.0f;
+    x_origin.color[0] = 1.0f;
+    x_origin.color[1] = 0.0f;
+    x_origin.color[2] = 0.0f;
+
+    x_end.position[0] = length;
+    x_end.position[1] = 0.0f;
+    x_end.position[2] = 0.0f;
+    x_end.normal[0] = 1.0f;
+    x_end.normal[1] = 0.0f;
+    x_end.normal[2] = 0.0f;
+    x_end.color[0] = 1.0f;
+    x_end.color[1] = 0.0f;
+    x_end.color[2] = 0.0f;
+
+    // Y axis (green)
+    Vertex y_origin, y_end;
+    y_origin.position[0] = 0.0f;
+    y_origin.position[1] = 0.0f;
+    y_origin.position[2] = 0.0f;
+    y_origin.normal[0] = 0.0f;
+    y_origin.normal[1] = 1.0f;
+    y_origin.normal[2] = 0.0f;
+    y_origin.color[0] = 0.0f;
+    y_origin.color[1] = 1.0f;
+    y_origin.color[2] = 0.0f;
+
+    y_end.position[0] = 0.0f;
+    y_end.position[1] = length;
+    y_end.position[2] = 0.0f;
+    y_end.normal[0] = 0.0f;
+    y_end.normal[1] = 1.0f;
+    y_end.normal[2] = 0.0f;
+    y_end.color[0] = 0.0f;
+    y_end.color[1] = 1.0f;
+    y_end.color[2] = 0.0f;
+
+    // Z axis (blue)
+    Vertex z_origin, z_end;
+    z_origin.position[0] = 0.0f;
+    z_origin.position[1] = 0.0f;
+    z_origin.position[2] = 0.0f;
+    z_origin.normal[0] = 0.0f;
+    z_origin.normal[1] = 0.0f;
+    z_origin.normal[2] = 1.0f;
+    z_origin.color[0] = 0.0f;
+    z_origin.color[1] = 0.0f;
+    z_origin.color[2] = 1.0f;
+
+    z_end.position[0] = 0.0f;
+    z_end.position[1] = 0.0f;
+    z_end.position[2] = length;
+    z_end.normal[0] = 0.0f;
+    z_end.normal[1] = 0.0f;
+    z_end.normal[2] = 1.0f;
+    z_end.color[0] = 0.0f;
+    z_end.color[1] = 0.0f;
+    z_end.color[2] = 1.0f;
+
+    vertices.push_back(x_origin);
+    vertices.push_back(x_end);
+    vertices.push_back(y_origin);
+    vertices.push_back(y_end);
+    vertices.push_back(z_origin);
+    vertices.push_back(z_end);
+
+    indices = { 0, 1, 2, 3, 4, 5 };
+
+    m_axis_mesh.loadData(vertices, indices);
+}
+
+void RobotViewer::renderRobot(std::shared_ptr<RobotArm> robot)
+{
+    Eigen::Matrix4f identity = Eigen::Matrix4f::Identity();
+
+    // Render coordinate frame at origin
+    if (m_show_frames)
+    {
+        renderAxis(identity);
+    }
+
+    // Render robot structure
+    if (auto root = robot->getRootNode())
+    {
+        renderNode(root, identity);
+    }
+}
+
+void RobotViewer::renderNode(std::shared_ptr<Node> node,
+                             const Eigen::Matrix4f& parent_transform)
+{
+    if (!node)
+        return;
+
+    Eigen::Matrix4f node_transform =
+        parent_transform * eigenToGLMatrix(node->getWorldTransform());
+
+    // Render coordinate frame
+    if (m_show_frames)
+    {
+        renderAxis(node_transform);
+    }
+
+    // Check if this node has an associated joint
+    bool is_joint = false;
+
+    // For now, we'll render all nodes as joints (spheres)
+    if (m_show_joints)
+    {
+        renderSphere(node_transform, Eigen::Vector3f(0.8f, 0.3f, 0.3f));
+    }
+
+    // Render children
+    for (const auto& child : node->getChildren())
+    {
+        renderNode(child, node_transform);
+    }
+}
+
+void RobotViewer::renderSphere(const Eigen::Matrix4f& transform,
+                               const Eigen::Vector3f& color)
+{
+    Eigen::Matrix4f scaled_transform = transform;
+    scaled_transform.block<3, 3>(0, 0) *= m_joint_radius;
+
+    m_shader_program.setUniform("model", scaled_transform);
+    m_shader_program.setUniform("objectColor", color);
+
+    m_sphere_mesh.render();
+}
+
+void RobotViewer::renderCylinder(const Eigen::Matrix4f& transform,
+                                 const Eigen::Vector3f& color)
+{
+    Eigen::Matrix4f scaled_transform = transform;
+    scaled_transform.block<3, 3>(0, 0) *= m_link_radius;
+
+    m_shader_program.setUniform("model", scaled_transform);
+    m_shader_program.setUniform("objectColor", color);
+
+    m_cylinder_mesh.render();
+}
+
+void RobotViewer::renderAxis(const Eigen::Matrix4f& transform)
+{
+    Eigen::Matrix4f scaled_transform = transform;
+    scaled_transform.block<3, 3>(0, 0) *= 0.2f; // Make axes bigger
+
+    m_shader_program.setUniform("model", scaled_transform);
+
+    glLineWidth(4.0f);
+    m_axis_mesh.renderLines(); // Use renderLines for axis
+    glLineWidth(1.0f);
+}
+
+Eigen::Matrix4f RobotViewer::eigenToGLMatrix(const Transform& transform) const
+{
+    Eigen::Matrix4f gl_matrix;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            gl_matrix(i, j) = static_cast<float>(transform(i, j));
+        }
+    }
+    return gl_matrix;
+}
+
+std::string RobotViewer::getDefaultVertexShader() const
+{
+    return R"(
+        #version 330 core
+        layout (location = 0) in vec3 aPos;
+        layout (location = 1) in vec3 aNormal;
+        layout (location = 2) in vec3 aColor;
+
+        uniform mat4 model;
+        uniform mat4 view;
+        uniform mat4 projection;
+
+        out vec3 FragPos;
+        out vec3 Normal;
+        out vec3 Color;
+
+        void main()
+        {
+            FragPos = vec3(model * vec4(aPos, 1.0));
+            Normal = mat3(transpose(inverse(model))) * aNormal;
+            Color = aColor;
+
+            gl_Position = projection * view * vec4(FragPos, 1.0);
+        }
+    )";
+}
+
+std::string RobotViewer::getDefaultFragmentShader() const
+{
+    return R"(
+        #version 330 core
+        out vec4 FragColor;
+
+        in vec3 FragPos;
+        in vec3 Normal;
+        in vec3 Color;
+
+        uniform vec3 objectColor;
+        uniform vec3 lightColor;
+        uniform vec3 lightPos;
+        uniform vec3 viewPos;
+
+        void main()
+        {
+            // Use vertex color if no uniform color is set
+            vec3 color = Color;
+            if (length(objectColor) > 0.1)
+                color = objectColor;
+
+            // Simple lighting
+            vec3 lightColor = vec3(1.0, 1.0, 1.0);
+            vec3 lightPos = vec3(2.0, 2.0, 2.0);
+
+            // Ambient
+            float ambientStrength = 0.3;
+            vec3 ambient = ambientStrength * lightColor;
+
+            // Diffuse
+            vec3 norm = normalize(Normal);
+            vec3 lightDir = normalize(lightPos - FragPos);
+            float diff = max(dot(norm, lightDir), 0.0);
+            vec3 diffuse = diff * lightColor;
+
+            vec3 result = (ambient + diffuse) * color;
+            FragColor = vec4(result, 1.0);
+        }
+    )";
+}
+
+void RobotViewer::processInput()
+{
+    m_camera.processInput(m_window, m_delta_time);
+
+    if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(m_window, true);
+}
+
+// Static callbacks
+void RobotViewer::framebufferSizeCallback(GLFWwindow* window,
+                                          int width,
+                                          int height)
+{
+    glViewport(0, 0, width, height);
+
+    RobotViewer* viewer =
+        static_cast<RobotViewer*>(glfwGetWindowUserPointer(window));
+    if (viewer)
+    {
+        viewer->m_width = width;
+        viewer->m_height = height;
+    }
+}
+
+void RobotViewer::mouseCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    RobotViewer* viewer =
+        static_cast<RobotViewer*>(glfwGetWindowUserPointer(window));
+    if (viewer)
+    {
+        viewer->m_camera.processMouse(xpos, ypos);
+    }
+}
+
+void RobotViewer::scrollCallback(GLFWwindow* window,
+                                 double xoffset,
+                                 double yoffset)
+{
+    RobotViewer* viewer =
+        static_cast<RobotViewer*>(glfwGetWindowUserPointer(window));
+    if (viewer)
+    {
+        viewer->m_camera.processScroll(yoffset);
+    }
+}
+
+} // namespace robotik

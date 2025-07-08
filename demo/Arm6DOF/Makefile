@@ -46,9 +46,9 @@ INCLUDES := $(P)/include src
 INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
 
 ###############################################################################
-# Set Eigen3 library
+# Set libraries (Eigen3 and OpenGL for visualization)
 #
-PKG_LIBS += eigen3
+PKG_LIBS += eigen3 glfw3 glew gl
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
