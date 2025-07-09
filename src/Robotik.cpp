@@ -48,12 +48,6 @@ void Node::setLocalTransform(const Transform& p_transform)
 }
 
 // ----------------------------------------------------------------------------
-const Transform& Node::getLocalTransform() const
-{
-    return m_local_transform;
-}
-
-// ----------------------------------------------------------------------------
 const Transform& Node::getWorldTransform()
 {
     if (m_is_dirty)
@@ -98,7 +92,7 @@ void Node::markDirty()
 Joint::Joint(const std::string& p_name,
              Joint::Type p_type,
              const Eigen::Vector3d& p_axis)
-    : m_name(p_name),
+    : Node(p_name),
       m_type(p_type),
       m_value(0.0),
       m_min(-M_PI),
@@ -108,21 +102,17 @@ Joint::Joint(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-void Joint::setValue(Radian p_value)
+void Joint::setValue(double p_value)
 {
     // Apply the limits
     if (p_value < m_min)
         p_value = m_min;
     if (p_value > m_max)
         p_value = m_max;
-
     m_value = p_value;
 
     // Update the transformation of the node
-    if (m_node)
-    {
-        updateNodeTransform();
-    }
+    updateNodeTransform();
 }
 
 // ----------------------------------------------------------------------------
@@ -135,14 +125,14 @@ Transform Joint::getTransform() const
         case Joint::Type::REVOLUTE:
         {
             // Create the rotation matrix around the axis
-            Eigen::AngleAxisd rotation(m_value.to<double>(), m_axis);
+            Eigen::AngleAxisd rotation(m_value, m_axis);
             transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
             break;
         }
         case Joint::Type::PRISMATIC:
         {
             // Translation along the axis
-            transform.block<3, 1>(0, 3) = m_axis * m_value.to<double>();
+            transform.block<3, 1>(0, 3) = m_axis * m_value;
             break;
         }
         case Joint::Type::FIXED:
@@ -156,14 +146,7 @@ Transform Joint::getTransform() const
 // ----------------------------------------------------------------------------
 void Joint::updateNodeTransform()
 {
-    m_node->setLocalTransform(getTransform());
-}
-
-// ----------------------------------------------------------------------------
-void Joint::setNode(Node& p_node)
-{
-    m_node = &p_node;
-    updateNodeTransform();
+    setLocalTransform(getTransform());
 }
 
 // ----------------------------------------------------------------------------
@@ -188,11 +171,6 @@ void RobotArm::setEndEffector(Node& p_node)
 // ----------------------------------------------------------------------------
 Transform RobotArm::forwardKinematics() const
 {
-    if (!m_end_effector)
-    {
-        throw std::runtime_error("End effector not set");
-    }
-
     // Ensure that all transformations are up to date
     m_root_node->updateWorldTransform();
 
@@ -208,7 +186,7 @@ Pose RobotArm::getEndEffectorPose() const
 
 // ----------------------------------------------------------------------------
 bool RobotArm::inverseKinematics(const Pose& p_target_pose,
-                                 std::vector<Radian>& p_solution,
+                                 std::vector<double>& p_solution,
                                  size_t const p_max_iterations,
                                  double const p_epsilon,
                                  double const p_damping)
@@ -248,7 +226,7 @@ bool RobotArm::inverseKinematics(const Pose& p_target_pose,
         // Update the angles
         for (size_t i = 0; i < m_joints.size(); ++i)
         {
-            p_solution[i] += Radian(dTheta(i));
+            p_solution[i] += double(dTheta(i));
         }
 
         // Apply the new values
@@ -272,10 +250,9 @@ Jacobian RobotArm::calculateJacobian() const
     for (size_t i = 0; i < num_joints; ++i)
     {
         auto joint = m_joints[i].get();
-        auto joint_node = joint->getNode();
 
         // Transformation of the joint in the global space
-        Transform joint_transform = joint_node->getWorldTransform();
+        Transform joint_transform = joint->getWorldTransform();
 
         // Position of the joint
         Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
@@ -316,9 +293,9 @@ Joint* RobotArm::getJoint(const std::string& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<Radian> RobotArm::getJointValues() const
+std::vector<double> RobotArm::getJointValues() const
 {
-    std::vector<Radian> values;
+    std::vector<double> values;
     values.reserve(m_joints.size());
 
     for (const auto& joint : m_joints)
@@ -330,7 +307,7 @@ std::vector<Radian> RobotArm::getJointValues() const
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setJointValues(const std::vector<Radian>& p_values)
+void RobotArm::setJointValues(const std::vector<double>& p_values)
 {
     if (p_values.size() != m_joints.size())
     {
@@ -366,13 +343,12 @@ Node* RobotArm::getNode(const std::string& p_name) const
 
 namespace utils
 {
-
 // ----------------------------------------------------------------------------
-Eigen::Matrix3d eulerToRotation(Radian p_rx, Radian p_ry, Radian p_rz)
+Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz)
 {
-    Eigen::AngleAxisd roll_angle(p_rx.to<double>(), Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitch_angle(p_ry.to<double>(), Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd yaw_angle(p_rz.to<double>(), Eigen::Vector3d::UnitZ());
+    Eigen::AngleAxisd roll_angle(p_rx, Eigen::Vector3d::UnitX());
+    Eigen::AngleAxisd pitch_angle(p_ry, Eigen::Vector3d::UnitY());
+    Eigen::AngleAxisd yaw_angle(p_rz, Eigen::Vector3d::UnitZ());
 
     return yaw_angle.toRotationMatrix() * pitch_angle.toRotationMatrix() *
            roll_angle.toRotationMatrix();
@@ -396,9 +372,9 @@ Transform createTransform(const Eigen::Vector3d& p_translation,
 
 // ----------------------------------------------------------------------------
 Transform createTransform(const Eigen::Vector3d& p_translation,
-                          Radian p_rx,
-                          Radian p_ry,
-                          Radian p_rz)
+                          double p_rx,
+                          double p_ry,
+                          double p_rz)
 {
     return createTransform(p_translation, eulerToRotation(p_rx, p_ry, p_rz));
 }
@@ -428,20 +404,20 @@ Pose transformToPose(const Transform& p_transform)
 Transform poseToTransform(const Pose& p_pose)
 {
     return createTransform(p_pose.segment<3>(0),
-                           Radian(p_pose(3)),
-                           Radian(p_pose(4)),
-                           Radian(p_pose(5)));
+                           double(p_pose(3)),
+                           double(p_pose(4)),
+                           double(p_pose(5)));
 }
 
 // ----------------------------------------------------------------------------
-Transform dhTransform(double p_a, Radian p_alpha, double p_d, Radian p_theta)
+Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta)
 {
     Transform transform = Transform::Identity();
 
-    double cos_theta = std::cos(p_theta.to<double>());
-    double sin_theta = std::sin(p_theta.to<double>());
-    double cos_alpha = std::cos(p_alpha.to<double>());
-    double sin_alpha = std::sin(p_alpha.to<double>());
+    double cos_theta = std::cos(p_theta);
+    double sin_theta = std::sin(p_theta);
+    double cos_alpha = std::cos(p_alpha);
+    double sin_alpha = std::sin(p_alpha);
 
     transform(0, 0) = cos_theta;
     transform(0, 1) = -sin_theta * cos_alpha;
