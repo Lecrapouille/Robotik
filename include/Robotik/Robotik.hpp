@@ -1,6 +1,6 @@
 #pragma once
 
-#include "units.h"
+// #include "units.h"
 
 #include <Eigen/Dense>
 
@@ -11,8 +11,9 @@
 
 namespace robotik
 {
-using namespace units::literals;
-using Radian = units::angle::radian_t;
+// using namespace units::literals;
+// using Radian = units::angle::double_t;
+// using Meter = units::length::meter_t;
 
 // ----------------------------------------------------------------------------
 //! \brief Homogeneous transformation matrix (4x4) for 3D spatial
@@ -181,7 +182,10 @@ public:
     //!
     //! \return Constant reference to the local transformation matrix 4x4
     // ------------------------------------------------------------------------
-    const Transform& getLocalTransform() const;
+    inline const Transform& getLocalTransform() const
+    {
+        return m_local_transform;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Get the world transform of the node.
@@ -285,7 +289,7 @@ private:
 //! based on its current value and type, enabling forward kinematics
 //! computation.
 // *********************************************************************************
-class Joint
+class Joint: public Node
 {
 public:
 
@@ -379,7 +383,7 @@ public:
     //!
     //! \param p_value New joint configuration value in appropriate units
     // ------------------------------------------------------------------------
-    void setValue(Radian p_value);
+    void setValue(double p_value);
 
     // ------------------------------------------------------------------------
     //! \brief Get the current joint configuration value.
@@ -405,7 +409,7 @@ public:
     //!
     //! \return Current joint configuration value
     // ------------------------------------------------------------------------
-    inline Radian getValue() const
+    inline double getValue() const
     {
         return m_value;
     }
@@ -441,7 +445,7 @@ public:
     //! \param p_min Minimum allowed joint value
     //! \param p_max Maximum allowed joint value
     // ------------------------------------------------------------------------
-    inline void setLimits(Radian p_min, Radian p_max)
+    inline void setLimits(double p_min, double p_max)
     {
         m_min = p_min;
         m_max = p_max;
@@ -535,46 +539,18 @@ public:
         return m_axis;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Associate a scene graph node with this joint.
-    //! \param p_node Reference to the scene graph node to associate
-    // ------------------------------------------------------------------------
-    void setNode(Node& p_node);
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the scene graph node associated with this joint.
-    //! \return Pointer to the associated scene graph node, or nullptr.
-    // ------------------------------------------------------------------------
-    inline Node* getNode() const
-    {
-        return m_node;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the joint's unique identifier name.
-    //! \return Constant reference to the joint's name string
-    // ------------------------------------------------------------------------
-    inline const std::string& getName() const
-    {
-        return m_name;
-    }
-
 private:
 
-    //! \brief Joint identifier in kinematic chain
-    std::string m_name;
     //! \brief Mechanical constraint type (revolute/prismatic/fixed)
     Joint::Type m_type;
     //! \brief Current joint configuration value
-    Radian m_value;
+    double m_value;
     //! \brief Minimum allowable joint value (safety limit)
-    Radian m_min;
+    double m_min;
     //! \brief Maximum allowable joint value (safety limit)
-    Radian m_max;
+    double m_max;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
-    //! \brief Associated scene graph node for transform propagation
-    Node* m_node = nullptr;
 };
 
 // *********************************************************************************
@@ -684,7 +660,7 @@ public:
     //!
     //! \return Vector of joint configuration values in order
     // ------------------------------------------------------------------------
-    std::vector<Radian> getJointValues() const;
+    std::vector<double> getJointValues() const;
 
     // ------------------------------------------------------------------------
     //! \brief Set the joint values of the robot arm.
@@ -711,23 +687,29 @@ public:
     //!
     //! \param p_values Vector of joint configuration values
     // ------------------------------------------------------------------------
-    void setJointValues(const std::vector<Radian>& p_values);
+    void setJointValues(const std::vector<double>& p_values);
 
     // ------------------------------------------------------------------------
     //! \brief Compute the forward kinematics of the robot arm.
+    //! \note Call setEndEffector(Node&) before calling this method.
     //! \return The transformation matrix from the root to the end effector.
+    //! \throw std::runtime_error if the end effector is not set.
     // ------------------------------------------------------------------------
     Transform forwardKinematics() const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the pose of the end effector.
+    //! \note Call setEndEffector(Node&) before calling this method.
     //! \return The pose of the end effector.
+    //! \throw std::runtime_error if the end effector is not set.
     // ------------------------------------------------------------------------
     Pose getEndEffectorPose() const;
 
     // ------------------------------------------------------------------------
     //! \brief Compute the inverse kinematics of the robot arm by the Jacobian
     //! method.
+    //! \note Call setEndEffector(Node&) before calling this method.
+    //! \throw std::runtime_error if the end effector is not set.
     //!
     //! PHYSICS: Inverse kinematics solves for the joint configuration that
     //! achieves a desired end-effector pose. This is mathematically complex
@@ -753,7 +735,8 @@ public:
     //! - Dexterous workspace: Poses achievable with arbitrary orientations
     //! - Joint limits, singularities, and obstacles affect solvability
     //!
-    //! \param targetPose Desired 6D pose of the end-effector [x,y,z,rx,ry,rz].
+    //! \param p_target_pose Desired 6D pose of the end-effector
+    //! [x,y,z,rx,ry,rz].
     //! \param solution Output vector containing the joint configuration.
     //! \param p_max_iterations Maximum number of iterations.
     //! \param p_epsilon Tolerance for convergence.
@@ -761,14 +744,15 @@ public:
     //!
     //! \return True if a valid solution is found, false otherwise.
     // ------------------------------------------------------------------------
-    bool inverseKinematics(const Pose& targetPose,
-                           std::vector<Radian>& solution,
+    bool inverseKinematics(const Pose& p_target_pose,
+                           std::vector<double>& solution,
                            size_t const p_max_iterations = 500,
                            double const p_epsilon = 1e-4,
                            double const p_damping = 0.01);
 
     // ------------------------------------------------------------------------
     //! \brief Compute the Jacobian matrix of the robot arm.
+    //! \note Call setEndEffector(Node&) before calling this method.
     //! \return The Jacobian matrix.
     // ------------------------------------------------------------------------
     Jacobian calculateJacobian() const;
@@ -806,12 +790,12 @@ namespace utils
 //! This representation suffers from gimbal lock when pitch = ±π/2
 //! For critical applications, consider using quaternions instead.
 //!
-//! \param p_rx Roll angle around X-axis (radians)
-//! \param p_ry Pitch angle around Y-axis (radians)
-//! \param p_rz Yaw angle around Z-axis (radians)
+//! \param p_rx Roll angle around X-axis (doubles)
+//! \param p_ry Pitch angle around Y-axis (doubles)
+//! \param p_rz Yaw angle around Z-axis (doubles)
 //! \return 3x3 rotation matrix
 // ------------------------------------------------------------------------
-Eigen::Matrix3d eulerToRotation(Radian p_rx, Radian p_ry, Radian p_rz);
+Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz);
 
 // ------------------------------------------------------------------------
 //! \brief Extract Euler angles from rotation matrix.
@@ -876,15 +860,15 @@ Transform createTransform(const Eigen::Vector3d& p_translation,
 //! - Object placement in 3D space
 //!
 //! \param p_translation 3D translation vector [x, y, z]
-//! \param p_rx Roll angle around X-axis (radians)
-//! \param p_ry Pitch angle around Y-axis (radians)
-//! \param p_rz Yaw angle around Z-axis (radians)
+//! \param p_rx Roll angle around X-axis (doubles)
+//! \param p_ry Pitch angle around Y-axis (doubles)
+//! \param p_rz Yaw angle around Z-axis (doubles)
 //! \return 4x4 homogeneous transformation matrix
 // ------------------------------------------------------------------------
 Transform createTransform(const Eigen::Vector3d& p_translation,
-                          Radian p_rx,
-                          Radian p_ry,
-                          Radian p_rz);
+                          double p_rx,
+                          double p_ry,
+                          double p_rz);
 
 // Extraction of data from transformations
 Eigen::Vector3d getTranslation(const Transform& p_transform);
@@ -922,12 +906,12 @@ Transform poseToTransform(const Pose& p_pose);
 //! - Workspace analysis
 //!
 //! \param p_a Link length parameter (meters)
-//! \param p_alpha Link twist parameter (radians)
+//! \param p_alpha Link twist parameter (doubles)
 //! \param p_d Link offset parameter (meters)
-//! \param p_theta Joint angle parameter (radians)
+//! \param p_theta Joint angle parameter (doubles)
 //! \return 4x4 homogeneous transformation matrix
 // ------------------------------------------------------------------------
-Transform dhTransform(double p_a, Radian p_alpha, double p_d, Radian p_theta);
+Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta);
 
 } // namespace utils
 
