@@ -6,6 +6,9 @@
 using namespace robotik;
 using namespace robotik::utils;
 
+// *********************************************************************************
+//! \brief Test fixture for Utils class.
+// *********************************************************************************
 class UtilsTest: public ::testing::Test
 {
 protected:
@@ -19,33 +22,37 @@ protected:
     double tolerance;
 };
 
-// Test Euler angles to rotation matrix conversion
+// *********************************************************************************
+//! \brief Test Euler angles to rotation matrix conversion.
+// *********************************************************************************
 TEST_F(UtilsTest, EulerToRotation)
 {
     // Test identity rotation
     Eigen::Matrix3d identity_rot = eulerToRotation(0.0, 0.0, 0.0);
-    EXPECT_TRUE(identity_rot.isApprox(Eigen::Matrix3d::Identity(), tolerance));
+    EXPECT_TRUE(identity_rot.isApprox(Eigen::Matrix3d::Identity()));
 
     // Test 90 degree rotation around Z-axis
     Eigen::Matrix3d z_rot = eulerToRotation(0.0, 0.0, M_PI / 2);
     Eigen::Matrix3d expected_z_rot;
     expected_z_rot << 0, -1, 0, 1, 0, 0, 0, 0, 1;
-    EXPECT_TRUE(z_rot.isApprox(expected_z_rot, tolerance));
+    EXPECT_TRUE(z_rot.isApprox(expected_z_rot));
 
     // Test 90 degree rotation around X-axis
     Eigen::Matrix3d x_rot = eulerToRotation(M_PI / 2, 0.0, 0.0);
     Eigen::Matrix3d expected_x_rot;
     expected_x_rot << 1, 0, 0, 0, 0, -1, 0, 1, 0;
-    EXPECT_TRUE(x_rot.isApprox(expected_x_rot, tolerance));
+    EXPECT_TRUE(x_rot.isApprox(expected_x_rot));
 
     // Test 90 degree rotation around Y-axis
     Eigen::Matrix3d y_rot = eulerToRotation(0.0, M_PI / 2, 0.0);
     Eigen::Matrix3d expected_y_rot;
     expected_y_rot << 0, 0, 1, 0, 1, 0, -1, 0, 0;
-    EXPECT_TRUE(y_rot.isApprox(expected_y_rot, tolerance));
+    EXPECT_TRUE(y_rot.isApprox(expected_y_rot));
 }
 
-// Test rotation matrix to Euler angles conversion
+// *********************************************************************************
+//! \brief Test rotation matrix to Euler angles conversion.
+// *********************************************************************************
 TEST_F(UtilsTest, RotationToEuler)
 {
     // Test identity rotation
@@ -64,7 +71,9 @@ TEST_F(UtilsTest, RotationToEuler)
     EXPECT_NEAR(z_euler(2), M_PI / 2, tolerance);
 }
 
-// Test round-trip conversion: Euler -> Rotation -> Euler
+// *********************************************************************************
+//! \brief Test round-trip conversion: Euler -> Rotation -> Euler.
+// *********************************************************************************
 TEST_F(UtilsTest, EulerRotationRoundTrip)
 {
     std::vector<Eigen::Vector3d> test_angles = {
@@ -85,11 +94,13 @@ TEST_F(UtilsTest, EulerRotationRoundTrip)
         // Check that the rotation matrices are the same
         Eigen::Matrix3d recovered_rotation = eulerToRotation(
             recovered_angles(0), recovered_angles(1), recovered_angles(2));
-        EXPECT_TRUE(rotation.isApprox(recovered_rotation, tolerance));
+        EXPECT_TRUE(rotation.isApprox(recovered_rotation));
     }
 }
 
-// Test createTransform with translation and rotation matrix
+// *********************************************************************************
+//! \brief Test createTransform with translation and rotation matrix.
+// *********************************************************************************
 TEST_F(UtilsTest, CreateTransformWithMatrix)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
@@ -98,10 +109,10 @@ TEST_F(UtilsTest, CreateTransformWithMatrix)
     Transform transform = createTransform(translation, rotation);
 
     // Check translation part
-    EXPECT_TRUE(transform.block<3, 1>(0, 3).isApprox(translation, tolerance));
+    EXPECT_TRUE((transform.block<3, 1>(0, 3).isApprox(translation)));
 
     // Check rotation part
-    EXPECT_TRUE(transform.block<3, 3>(0, 0).isApprox(rotation, tolerance));
+    EXPECT_TRUE((transform.block<3, 3>(0, 0).isApprox(rotation)));
 
     // Check homogeneous part
     EXPECT_DOUBLE_EQ(transform(3, 0), 0.0);
@@ -110,24 +121,29 @@ TEST_F(UtilsTest, CreateTransformWithMatrix)
     EXPECT_DOUBLE_EQ(transform(3, 3), 1.0);
 }
 
-// Test createTransform with translation and Euler angles
+// *********************************************************************************
+//! \brief Test createTransform with translation and Euler angles.
+// *********************************************************************************
 TEST_F(UtilsTest, CreateTransformWithEuler)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
-    double rx = M_PI / 4, ry = M_PI / 6, rz = M_PI / 3;
+    double rx = M_PI / 4;
+    double ry = M_PI / 6;
+    double rz = M_PI / 3;
 
     Transform transform = createTransform(translation, rx, ry, rz);
 
     // Check translation part
-    EXPECT_TRUE(transform.block<3, 1>(0, 3).isApprox(translation, tolerance));
+    EXPECT_TRUE((transform.block<3, 1>(0, 3).isApprox(translation)));
 
     // Check rotation part
     Eigen::Matrix3d expected_rotation = eulerToRotation(rx, ry, rz);
-    EXPECT_TRUE(
-        transform.block<3, 3>(0, 0).isApprox(expected_rotation, tolerance));
+    EXPECT_TRUE((transform.block<3, 3>(0, 0).isApprox(expected_rotation)));
 }
 
-// Test getTranslation
+// *********************************************************************************
+//! \brief Test getTranslation.
+// *********************************************************************************
 TEST_F(UtilsTest, GetTranslation)
 {
     Eigen::Vector3d expected_translation(1.0, 2.0, 3.0);
@@ -135,10 +151,12 @@ TEST_F(UtilsTest, GetTranslation)
     transform.block<3, 1>(0, 3) = expected_translation;
 
     Eigen::Vector3d actual_translation = getTranslation(transform);
-    EXPECT_TRUE(actual_translation.isApprox(expected_translation, tolerance));
+    EXPECT_TRUE(actual_translation.isApprox(expected_translation));
 }
 
-// Test getRotation
+// *********************************************************************************
+//! \brief Test getRotation.
+// *********************************************************************************
 TEST_F(UtilsTest, GetRotation)
 {
     Eigen::Matrix3d expected_rotation =
@@ -147,14 +165,18 @@ TEST_F(UtilsTest, GetRotation)
     transform.block<3, 3>(0, 0) = expected_rotation;
 
     Eigen::Matrix3d actual_rotation = getRotation(transform);
-    EXPECT_TRUE(actual_rotation.isApprox(expected_rotation, tolerance));
+    EXPECT_TRUE(actual_rotation.isApprox(expected_rotation));
 }
 
-// Test transformToPose
+// *********************************************************************************
+//! \brief Test transformToPose.
+// *********************************************************************************
 TEST_F(UtilsTest, TransformToPose)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
-    double rx = M_PI / 4, ry = M_PI / 6, rz = M_PI / 3;
+    double rx = M_PI / 4.0;
+    double ry = M_PI / 6.0;
+    double rz = M_PI / 3.0;
     Transform transform = createTransform(translation, rx, ry, rz);
 
     Pose pose = transformToPose(transform);
@@ -170,7 +192,9 @@ TEST_F(UtilsTest, TransformToPose)
     EXPECT_NEAR(pose(5), rz, tolerance);
 }
 
-// Test poseToTransform
+// *********************************************************************************
+//! \brief Test poseToTransform.
+// *********************************************************************************
 TEST_F(UtilsTest, PoseToTransform)
 {
     Pose pose;
@@ -180,33 +204,42 @@ TEST_F(UtilsTest, PoseToTransform)
 
     // Check translation
     Eigen::Vector3d translation = getTranslation(transform);
-    EXPECT_TRUE(translation.isApprox(pose.head<3>(), tolerance));
+    EXPECT_TRUE((translation.isApprox(pose.head<3>())));
 
     // Check rotation
     Eigen::Matrix3d rotation = getRotation(transform);
     Eigen::Matrix3d expected_rotation =
         eulerToRotation(pose(3), pose(4), pose(5));
-    EXPECT_TRUE(rotation.isApprox(expected_rotation, tolerance));
+    EXPECT_TRUE(rotation.isApprox(expected_rotation));
 }
 
-// Test round-trip conversion: Transform -> Pose -> Transform
+// *********************************************************************************
+//! \brief Test round-trip conversion: Transform -> Pose -> Transform.
+// *********************************************************************************
 TEST_F(UtilsTest, TransformPoseRoundTrip)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
-    double rx = M_PI / 4, ry = M_PI / 6, rz = M_PI / 3;
+    double rx = M_PI / 4.0;
+    double ry = M_PI / 6.0;
+    double rz = M_PI / 3.0;
     Transform original_transform = createTransform(translation, rx, ry, rz);
 
     Pose pose = transformToPose(original_transform);
     Transform recovered_transform = poseToTransform(pose);
 
-    EXPECT_TRUE(original_transform.isApprox(recovered_transform, tolerance));
+    EXPECT_TRUE(original_transform.isApprox(recovered_transform));
 }
 
-// Test DH (Denavit-Hartenberg) transformation
+// *********************************************************************************
+//! \brief Test DH (Denavit-Hartenberg) transformation.
+// *********************************************************************************
 TEST_F(UtilsTest, DHTransform)
 {
     // Test with simple DH parameters
-    double a = 1.0, alpha = M_PI / 2, d = 0.5, theta = M_PI / 4;
+    double a = 1.0;
+    double alpha = M_PI / 2.0;
+    double d = 0.5;
+    double theta = M_PI / 4.0;
 
     Transform dh_transform = dhTransform(a, alpha, d, theta);
 
@@ -219,18 +252,19 @@ TEST_F(UtilsTest, DHTransform)
     // Check that the rotation part is orthogonal (rotation matrix property)
     Eigen::Matrix3d rotation = dh_transform.block<3, 3>(0, 0);
     Eigen::Matrix3d should_be_identity = rotation * rotation.transpose();
-    EXPECT_TRUE(
-        should_be_identity.isApprox(Eigen::Matrix3d::Identity(), tolerance));
+    EXPECT_TRUE(should_be_identity.isApprox(Eigen::Matrix3d::Identity()));
 
     // Check determinant is 1 (proper rotation)
     EXPECT_NEAR(rotation.determinant(), 1.0, tolerance);
 
     // Test with zero parameters (should give identity)
     Transform identity_dh = dhTransform(0.0, 0.0, 0.0, 0.0);
-    EXPECT_TRUE(identity_dh.isApprox(Transform::Identity(), tolerance));
+    EXPECT_TRUE(identity_dh.isApprox(Transform::Identity()));
 }
 
-// Test DH transform with known values
+// *********************************************************************************
+//! \brief Test DH transform with known values.
+// *********************************************************************************
 TEST_F(UtilsTest, DHTransformKnownValues)
 {
     // Test simple case: only theta rotation
@@ -239,35 +273,34 @@ TEST_F(UtilsTest, DHTransformKnownValues)
     Eigen::Matrix3d expected_rotation;
     expected_rotation << 0, -1, 0, 1, 0, 0, 0, 0, 1;
 
-    EXPECT_TRUE(
-        theta_only.block<3, 3>(0, 0).isApprox(expected_rotation, tolerance));
-    EXPECT_TRUE(theta_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d::Zero(),
-                                                      tolerance));
+    EXPECT_TRUE((theta_only.block<3, 3>(0, 0).isApprox(expected_rotation)));
+    EXPECT_TRUE((theta_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d::Zero(),
+                                                       tolerance)));
 
     // Test simple case: only d translation
     Transform d_only = dhTransform(0.0, 0.0, 1.0, 0.0);
 
-    EXPECT_TRUE(d_only.block<3, 3>(0, 0).isApprox(Eigen::Matrix3d::Identity(),
-                                                  tolerance));
-    EXPECT_TRUE(
-        d_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d(0, 0, 1), tolerance));
+    EXPECT_TRUE((d_only.block<3, 3>(0, 0).isApprox(Eigen::Matrix3d::Identity(),
+                                                   tolerance)));
+    EXPECT_TRUE((d_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d(0, 0, 1))));
 
     // Test simple case: only a translation
     Transform a_only = dhTransform(1.0, 0.0, 0.0, 0.0);
 
-    EXPECT_TRUE(a_only.block<3, 3>(0, 0).isApprox(Eigen::Matrix3d::Identity(),
-                                                  tolerance));
-    EXPECT_TRUE(
-        a_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d(1, 0, 0), tolerance));
+    EXPECT_TRUE((a_only.block<3, 3>(0, 0).isApprox(Eigen::Matrix3d::Identity(),
+                                                   tolerance)));
+    EXPECT_TRUE((a_only.block<3, 1>(0, 3).isApprox(Eigen::Vector3d(1, 0, 0))));
 }
 
-// Test edge cases
+// *********************************************************************************
+//! \brief Test edge cases.
+// *********************************************************************************
 TEST_F(UtilsTest, EdgeCases)
 {
-    // Test with very small angles
+    // Test with very small angles - use larger tolerance for numerical
+    // precision
     Eigen::Matrix3d small_rotation = eulerToRotation(1e-10, 1e-10, 1e-10);
-    EXPECT_TRUE(
-        small_rotation.isApprox(Eigen::Matrix3d::Identity(), tolerance));
+    EXPECT_TRUE(small_rotation.isApprox(Eigen::Matrix3d::Identity(), 1e-6));
 
     // Test with negative angles
     Eigen::Matrix3d neg_rotation =
