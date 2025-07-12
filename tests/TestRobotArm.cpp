@@ -1,7 +1,7 @@
+#include "main.hpp"
+
 #include "Robotik/Robotik.hpp"
 #include <cmath>
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 using namespace robotik;
 
