@@ -6,6 +6,16 @@
 using namespace robotik;
 
 // *********************************************************************************
+//! \brief End effector node. For this current implementation, a node is enough.
+// *********************************************************************************
+class EndEffector: public Node
+{
+public:
+
+    using Node::Node;
+};
+
+// *********************************************************************************
 //! \brief Test fixture for RobotArm class.
 // *********************************************************************************
 class RobotArmTest: public ::testing::Test
@@ -18,19 +28,15 @@ protected:
         robot_arm = std::make_unique<RobotArm>("test_arm");
 
         // Create root node first
-        auto root = Node::create<Node>("root");
+        root = Node::create<Joint>(
+            "root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
 
         // Create joints directly as child nodes with proper transforms
-        Joint& joint1_ref = root->createChild<Joint>(
-            "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-        Joint& joint2_ref = joint1_ref.createChild<Joint>(
-            "joint2", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-        Node& end_effector_ref = joint2_ref.createChild<Node>("end_effector");
-
-        // Store references for later use
-        joint1 = &joint1_ref;
-        joint2 = &joint2_ref;
-        end_effector = &end_effector_ref;
+        joint1 = &(root->createChild<Joint>(
+            "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1)));
+        joint2 = &(joint1->createChild<Joint>(
+            "joint2", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1)));
+        end_effector = &(joint2->createChild<EndEffector>("end_effector"));
 
         // Set up initial transforms (simple arm with 1 unit links)
         Transform joint1_transform = Eigen::Matrix4d::Identity();
@@ -45,65 +51,27 @@ protected:
         end_effector_transform(0, 3) = 1.0; // 1 unit forward
         end_effector->setLocalTransform(end_effector_transform);
 
-        // Configure robot arm with the same joints from the hierarchy
-        robot_arm->setRootNode(std::move(root));
-
-        // Create separate joint instances for the robot arm that match the
-        // hierarchy
-        auto joint1_copy = Joint::create<Joint>(
-            "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-        auto joint2_copy = Joint::create<Joint>(
-            "joint2", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-
-        // Store pointers to these joints for testing
-        joint1_copy_ptr = joint1_copy.get();
-        joint2_copy_ptr = joint2_copy.get();
-
-        robot_arm->addJoint(std::move(joint1_copy));
-        robot_arm->addJoint(std::move(joint2_copy));
-        robot_arm->setEndEffector(*end_effector);
+        // Set up the robot arm, base frame and end effector
+        robot_arm->setupRobot(std::move(root), *end_effector);
     }
 
     std::unique_ptr<RobotArm> robot_arm;
+    Joint::Ptr root;
     Joint* joint1;
     Joint* joint2;
-    Node* end_effector;
-    Joint* joint1_copy_ptr;
-    Joint* joint2_copy_ptr;
+    EndEffector* end_effector;
 };
-
-// *********************************************************************************
-//! \brief Test RobotArm creation and basic properties.
-// *********************************************************************************
-TEST_F(RobotArmTest, Creation)
-{
-    auto arm = std::make_unique<RobotArm>("test");
-    // Basic creation test - should not crash
-    EXPECT_NO_THROW(arm->getJointValues());
-}
-
-// *********************************************************************************
-//! \brief Test adding joints.
-// *********************************************************************************
-TEST_F(RobotArmTest, AddJoint)
-{
-    auto arm = std::make_unique<RobotArm>("test");
-    auto joint = Joint::create<Joint>(
-        "test_joint", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-
-    Joint* joint_ptr = joint.get();
-    arm->addJoint(std::move(joint));
-
-    EXPECT_EQ(arm->getJoint("test_joint"), joint_ptr);
-}
 
 // *********************************************************************************
 //! \brief Test getting joint by name.
 // *********************************************************************************
 TEST_F(RobotArmTest, GetJoint)
 {
-    EXPECT_EQ(robot_arm->getJoint("joint1"), joint1_copy_ptr);
-    EXPECT_EQ(robot_arm->getJoint("joint2"), joint2_copy_ptr);
+    EXPECT_EQ(robot_arm->getJoint("root"), root.get());
+    EXPECT_EQ(robot_arm->getJoint("joint1"), joint1);
+    EXPECT_EQ(robot_arm->getJoint("joint2"), joint2);
+    EXPECT_EQ(robot_arm->getJoint("end_effector"),
+              nullptr); // end_effector is not a joint
     EXPECT_EQ(robot_arm->getJoint("nonexistent"), nullptr);
 }
 
@@ -112,7 +80,7 @@ TEST_F(RobotArmTest, GetJoint)
 // *********************************************************************************
 TEST_F(RobotArmTest, JointValues)
 {
-    std::vector<double> values = { M_PI / 4, M_PI / 2 };
+    std::vector<double> values = { M_PI / 4.0, M_PI / 2.0 };
     robot_arm->setJointValues(values);
 
     std::vector<double> retrieved_values = robot_arm->getJointValues();
@@ -212,10 +180,9 @@ TEST_F(RobotArmTest, JacobianCalculation)
 // *********************************************************************************
 TEST_F(RobotArmTest, InverseKinematics)
 {
-    // Test with a reachable target
+    // Test with a reachable target: Position (1,1,1), no rotation
     Pose target_pose;
-    target_pose << 1.0, 1.0, 1.0, 0.0, 0.0,
-        0.0; // Position (1,1,1), no rotation
+    target_pose << 1.0, 1.0, 1.0, 0.0, 0.0, 0.0;
 
     std::vector<double> solution;
     bool success = robot_arm->inverseKinematics(target_pose, solution);
@@ -225,8 +192,8 @@ TEST_F(RobotArmTest, InverseKinematics)
 
     if (success)
     {
-        EXPECT_EQ(solution.size(), 2);
         // If solution found, verify it by forward kinematics
+        EXPECT_EQ(solution.size(), 2);
         robot_arm->setJointValues(solution);
         Transform fk_result = robot_arm->forwardKinematics();
         Eigen::Vector3d actual_position = fk_result.block<3, 1>(0, 3);
@@ -242,9 +209,9 @@ TEST_F(RobotArmTest, InverseKinematics)
 // *********************************************************************************
 TEST_F(RobotArmTest, RootNode)
 {
-    Node* root = robot_arm->getRootNode();
-    EXPECT_NE(root, nullptr);
-    EXPECT_EQ(root->getName(), "root");
+    const Node* found_root = robot_arm->getRootNode();
+    EXPECT_NE(found_root, nullptr);
+    EXPECT_EQ(found_root->getName(), "root");
 }
 
 // *********************************************************************************
@@ -259,6 +226,11 @@ TEST_F(RobotArmTest, NodeSearch)
     EXPECT_NE(found_joint1, nullptr);
     EXPECT_NE(found_joint2, nullptr);
     EXPECT_NE(found_end_effector, nullptr);
+
+    // Verify they are the correct nodes
+    EXPECT_EQ(found_joint1, joint1);
+    EXPECT_EQ(found_joint2, joint2);
+    EXPECT_EQ(found_end_effector, end_effector);
 
     // Test non-existent node
     Node* not_found = robot_arm->getNode("nonexistent");
@@ -292,9 +264,9 @@ TEST_F(RobotArmTest, ComplexKinematics)
     // Test with multiple joint configurations
     std::vector<std::vector<double>> test_configurations = {
         { 0.0, 0.0 },
-        { M_PI / 4, M_PI / 4 },
-        { M_PI / 2, -M_PI / 2 },
-        { -M_PI / 3, M_PI / 3 }
+        { M_PI / 4.0, M_PI / 4.0 },
+        { M_PI / 2.0, -M_PI / 2.0 },
+        { -M_PI / 3.0, M_PI / 3.0 }
     };
 
     for (const auto& config : test_configurations)
@@ -335,51 +307,16 @@ TEST_F(RobotArmTest, ComplexKinematics)
 // *********************************************************************************
 TEST_F(RobotArmTest, JointLimits)
 {
-    // Set joint limits
-    Joint* joint1_ptr = robot_arm->getJoint("joint1");
-    Joint* joint2_ptr = robot_arm->getJoint("joint2");
+    // Set joint limits using direct pointers
+    EXPECT_TRUE(joint1 && joint2);
+    joint1->setLimits(-M_PI / 2.0, M_PI / 2.0);
+    joint2->setLimits(-M_PI / 4.0, M_PI / 4.0);
 
-    if (joint1_ptr && joint2_ptr)
-    {
-        joint1_ptr->setLimits(-M_PI / 2, M_PI / 2);
-        joint2_ptr->setLimits(-M_PI / 4, M_PI / 4);
+    // Test that values are clamped to limits
+    std::vector<double> excessive_values = { M_PI, M_PI };
+    robot_arm->setJointValues(excessive_values);
 
-        // Test that values are clamped to limits
-        std::vector<double> excessive_values = { M_PI, M_PI };
-        robot_arm->setJointValues(excessive_values);
-
-        std::vector<double> actual_values = robot_arm->getJointValues();
-        EXPECT_LE(actual_values[0], M_PI / 2);
-        EXPECT_LE(actual_values[1], M_PI / 4);
-    }
-}
-
-// *********************************************************************************
-//! \brief Test robot arm with different joint types.
-// *********************************************************************************
-TEST_F(RobotArmTest, MixedJointTypes)
-{
-    // Create a new arm with mixed joint types
-    auto mixed_arm = std::make_unique<RobotArm>("mixed_arm");
-    auto root = Node::create<Node>("root");
-
-    // Create prismatic and revolute joints
-    Joint& prismatic_joint = root->createChild<Joint>(
-        "prismatic", Joint::Type::PRISMATIC, Eigen::Vector3d(0, 0, 1));
-    Joint& revolute_joint = prismatic_joint.createChild<Joint>(
-        "revolute", Joint::Type::REVOLUTE, Eigen::Vector3d(1, 0, 0));
-    Node& end_eff = revolute_joint.createChild<Node>("end_effector");
-
-    mixed_arm->setRootNode(std::move(root));
-    mixed_arm->addJoint(Joint::create<Joint>(
-        "p_joint", Joint::Type::PRISMATIC, Eigen::Vector3d(0, 0, 1)));
-    mixed_arm->addJoint(Joint::create<Joint>(
-        "r_joint", Joint::Type::REVOLUTE, Eigen::Vector3d(1, 0, 0)));
-    mixed_arm->setEndEffector(end_eff);
-
-    // Test that it works with mixed joint types
-    std::vector<double> values = { 0.5, M_PI / 4 }; // Translation and rotation
-    EXPECT_NO_THROW(mixed_arm->setJointValues(values));
-    EXPECT_NO_THROW(mixed_arm->forwardKinematics());
-    EXPECT_NO_THROW(mixed_arm->calculateJacobian());
+    std::vector<double> actual_values = robot_arm->getJointValues();
+    EXPECT_LE(actual_values[0], M_PI / 2.0);
+    EXPECT_LE(actual_values[1], M_PI / 4.0);
 }

@@ -15,7 +15,6 @@ protected:
 
     void SetUp() override
     {
-        // Setup test data
         root_node = Node::create<Node>("root");
     }
 
@@ -42,11 +41,17 @@ TEST_F(NodeTest, GetName)
 {
     EXPECT_EQ(root_node->getName(), "root");
 
-    Node& child = root_node->createChild<Node>("test_child");
+    // Test getting non-existent node
+    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
+
+    // Test with empty name search
+    EXPECT_EQ(root_node->getNode(""), nullptr);
+
+    Node const& child = root_node->createChild<Node>("test_child");
     EXPECT_EQ(child.getName(), "test_child");
 
     // Test with empty name
-    Node& empty_child = root_node->createChild<Node>("");
+    Node const& empty_child = root_node->createChild<Node>("");
     EXPECT_EQ(empty_child.getName(), "");
 }
 
@@ -55,9 +60,11 @@ TEST_F(NodeTest, GetName)
 // *********************************************************************************
 TEST_F(NodeTest, CreateChildAndParenthood)
 {
+    // Create two children
     Node& child1 = root_node->createChild<Node>("child1");
     Node& child2 = root_node->createChild<Node>("child2");
 
+    // Test that the children are found from the root node
     EXPECT_EQ(root_node->getChildren().size(), 2);
     EXPECT_EQ(root_node->getNode("child1"), &child1);
     EXPECT_EQ(root_node->getNode("child2"), &child2);
@@ -79,6 +86,16 @@ TEST_F(NodeTest, CreateChildAndParenthood)
     // Child should have combined transform
     Transform expected_world = parent_transform * child_transform;
     EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_world));
+
+    // Compare with explicit matrix:
+    // 1 0 0 5
+    // 0 1 0 3
+    // 0 0 1 0
+    // 0 0 0 1
+    Transform expected_matrix = Eigen::Matrix4d::Identity();
+    expected_matrix(0, 3) = 5.0; // Translation in x from parent
+    expected_matrix(1, 3) = 3.0; // Translation in y from child
+    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
@@ -86,18 +103,34 @@ TEST_F(NodeTest, CreateChildAndParenthood)
 // *********************************************************************************
 TEST_F(NodeTest, ComplexHierarchy)
 {
+    // Create a hierarchy of nodes
     Node& child1 = root_node->createChild<Node>("child1");
-    Node& child2 = root_node->createChild<Node>("child2");
+    Node const& child2 = root_node->createChild<Node>("child2");
     Node& grandchild1 = child1.createChild<Node>("grandchild1");
-    Node& grandchild2 = child1.createChild<Node>("grandchild2");
-    Node& great_grandchild = grandchild1.createChild<Node>("great_grandchild");
+    Node const& grandchild2 = child1.createChild<Node>("grandchild2");
+    Node const& great_grandchild =
+        grandchild1.createChild<Node>("great_grandchild");
 
+    // Test that the children are found from the parent nodes
     EXPECT_EQ(root_node->getChildren().size(), 2);
     EXPECT_EQ(child1.getChildren().size(), 2);
     EXPECT_EQ(child2.getChildren().size(), 0);
     EXPECT_EQ(grandchild1.getChildren().size(), 1);
     EXPECT_EQ(grandchild2.getChildren().size(), 0);
     EXPECT_EQ(great_grandchild.getChildren().size(), 0);
+
+    // Test that the nodes are found from the root node
+    EXPECT_EQ(root_node->getNode("child1"), &child1);
+    EXPECT_EQ(root_node->getNode("child2"), &child2);
+    EXPECT_EQ(child1.getNode("grandchild1"), &grandchild1);
+    EXPECT_EQ(child1.getNode("grandchild2"), &grandchild2);
+    EXPECT_EQ(grandchild1.getNode("great_grandchild"), &great_grandchild);
+
+    // Test getting non-existent node
+    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
+
+    // Test with empty name search
+    EXPECT_EQ(root_node->getNode(""), nullptr);
 }
 
 // *********************************************************************************
@@ -138,6 +171,17 @@ TEST_F(NodeTest, ComplexTransformationPropagation)
     EXPECT_TRUE(level1.getWorldTransform().isApprox(expected_level1));
     EXPECT_TRUE(level2.getWorldTransform().isApprox(expected_level2));
     EXPECT_TRUE(level3.getWorldTransform().isApprox(expected_level3));
+
+    // Compare with explicit matrix:
+    // 1 0 0 5
+    // 0 1 0 2
+    // 0 0 1 3
+    // 0 0 0 1
+    Transform expected_matrix = Eigen::Matrix4d::Identity();
+    expected_matrix(0, 3) = 5.0; // Translation in x from root and level3
+    expected_matrix(1, 3) = 2.0; // Translation in y from level1
+    expected_matrix(2, 3) = 3.0; // Translation in z from level2
+    EXPECT_TRUE(level3.getWorldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
@@ -163,6 +207,87 @@ TEST_F(NodeTest, LocalTransformWithRotation)
 
     root_node->setLocalTransform(rotation_transform);
     EXPECT_TRUE(root_node->getLocalTransform().isApprox(rotation_transform));
+}
+
+// *********************************************************************************
+//! \brief Test parent node with two rotations and world transform propagation.
+// *********************************************************************************
+TEST_F(NodeTest, ParentWithTwoRotationsAndWorldTransform)
+{
+    // Create child nodes
+    Node& child1 = root_node->createChild<Node>("child1");
+    Node& child2 = root_node->createChild<Node>("child2");
+
+    // Create parent transform with two rotations
+    Transform parent_transform = Eigen::Matrix4d::Identity();
+
+    // First rotation: 45 degrees around Z axis
+    double angle1 = M_PI / 4.0;
+    Transform rotation1 = Eigen::Matrix4d::Identity();
+    rotation1(0, 0) = cos(angle1);
+    rotation1(0, 1) = -sin(angle1);
+    rotation1(1, 0) = sin(angle1);
+    rotation1(1, 1) = cos(angle1);
+
+    // Second rotation: 30 degrees around X axis
+    double angle2 = M_PI / 6.0;
+    Transform rotation2 = Eigen::Matrix4d::Identity();
+    rotation2(1, 1) = cos(angle2);
+    rotation2(1, 2) = -sin(angle2);
+    rotation2(2, 1) = sin(angle2);
+    rotation2(2, 2) = cos(angle2);
+
+    // Combine rotations and add translation
+    parent_transform = rotation1 * rotation2;
+    parent_transform(0, 3) = 5.0; // Translation in x
+    parent_transform(1, 3) = 3.0; // Translation in y
+    parent_transform(2, 3) = 2.0; // Translation in z
+
+    // Set parent transform
+    root_node->setLocalTransform(parent_transform);
+
+    // Set child transforms
+    Transform child1_transform = Eigen::Matrix4d::Identity();
+    child1_transform(0, 3) = 1.0; // Translation in x
+    child1.setLocalTransform(child1_transform);
+
+    Transform child2_transform = Eigen::Matrix4d::Identity();
+    child2_transform(1, 3) = 2.0; // Translation in y
+    child2.setLocalTransform(child2_transform);
+
+    // Update world transforms
+    root_node->updateWorldTransform();
+
+    // Verify world transforms
+    Transform expected_child1_world = parent_transform * child1_transform;
+    Transform expected_child2_world = parent_transform * child2_transform;
+
+    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_child1_world));
+    EXPECT_TRUE(child2.getWorldTransform().isApprox(expected_child2_world));
+
+    // Verify parent world transform equals its local transform (since it's the
+    // root)
+    EXPECT_TRUE(root_node->getWorldTransform().isApprox(parent_transform));
+
+    // Verify against explicit matrix values
+    Transform expected_matrix = Eigen::Matrix4d::Identity();
+    expected_matrix(0, 0) = 0.707107;
+    expected_matrix(0, 1) = -0.612372;
+    expected_matrix(0, 2) = 0.353553;
+    expected_matrix(0, 3) = 5;
+    expected_matrix(1, 0) = 0.707107;
+    expected_matrix(1, 1) = 0.612372;
+    expected_matrix(1, 2) = -0.353553;
+    expected_matrix(1, 3) = 3;
+    expected_matrix(2, 0) = 0;
+    expected_matrix(2, 1) = 0.5;
+    expected_matrix(2, 2) = 0.866025;
+    expected_matrix(2, 3) = 2;
+    expected_matrix(3, 0) = 0;
+    expected_matrix(3, 1) = 0;
+    expected_matrix(3, 2) = 0;
+    expected_matrix(3, 3) = 1;
+    EXPECT_TRUE(root_node->getWorldTransform().isApprox(expected_matrix, 1e-5));
 }
 
 // *********************************************************************************
@@ -256,30 +381,16 @@ TEST_F(NodeTest, WorldTransformCaching)
 }
 
 // *********************************************************************************
-//! \brief Test edge cases and error conditions.
+//! \brief Test multiple children with same name.
 // *********************************************************************************
-TEST_F(NodeTest, EdgeCases)
+TEST_F(NodeTest, MultipleChildrenWithSameName)
 {
-    // Test getting non-existent node
-    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
-
-    // Test with empty name search
-    EXPECT_EQ(root_node->getNode(""), nullptr);
-
-    // Create child with empty name and try to find it
-    Node& empty_child = root_node->createChild<Node>("");
-    EXPECT_EQ(root_node->getNode(""), &empty_child);
-
-    // Test searching in empty hierarchy
-    auto empty_node = Node::create<Node>("empty");
-    EXPECT_EQ(empty_node->getNode("anything"), nullptr);
-
     // Test multiple children with same name (should return first found)
-    Node& child1 = root_node->createChild<Node>("duplicate");
-    Node& child2 = root_node->createChild<Node>("duplicate");
+    Node const& child1 = root_node->createChild<Node>("duplicate");
+    Node const& child2 = root_node->createChild<Node>("duplicate");
 
     // Should return the first one found
-    Node* found = root_node->getNode("duplicate");
+    Node const* found = root_node->getNode("duplicate");
     EXPECT_TRUE(found == &child1 || found == &child2);
 }
 
