@@ -5,9 +5,22 @@
 #include <Eigen/Dense>
 
 #include <memory>
+#include <stdexcept>
 #include <string>
-#include <unordered_map>
 #include <vector>
+
+// ****************************************************************************
+//! \brief Base exception class for all Robotik library exceptions.
+// ****************************************************************************
+class RobotikException: public std::runtime_error
+{
+public:
+
+    explicit RobotikException(const std::string& message)
+        : std::runtime_error("Robotik: " + message)
+    {
+    }
+};
 
 namespace robotik
 {
@@ -55,25 +68,25 @@ using Jacobian = Eigen::MatrixXd;
 // ****************************************************************************
 //! \brief Class representing a node in the scene graph.
 //!
-//! In robotics, a scene graph is a hierarchical data structure that represents
-//! the spatial relationships between different components of a robot. Each node
-//! in this graph represents a physical or logical component that has:
-//! - A position and orientation in 3D space (transform)
-//! - A relationship to a parent component (inheritance of transforms)
-//! - Potentially multiple child components
+//! A scene graph is a hierarchical data structure that represents the spatial
+//! relationships between its different components. Each node in this graph
+//! represents a physical or logical component that has:
+//! - A position and orientation in 3D space (transform).
+//! - A relationship to a parent component (inheritance of transforms).
+//! - Potentially multiple child components.
 //!
 //! Physical representation in robotics:
-//! - Robot links (rigid bodies connecting joints)
-//! - Joint frames (coordinate systems at joint locations)
-//! - Tool frames (end-effector coordinate systems)
-//! - Sensor mounts (camera, lidar attachment points)
-//! - Collision geometries (for path planning)
+//! - Robot links (rigid bodies connecting joints).
+//! - Joint frames (coordinate systems at joint locations).
+//! - Tool frames (end-effector coordinate systems).
+//! - Sensor mounts (camera, lidar attachment points).
+//! - Collision geometries (for path planning).
 //!
 //! The scene graph enables:
-//! - Forward kinematics calculation (computing end-effector pose)
-//! - Coordinate frame transformations between robot components
-//! - Hierarchical motion propagation (parent motion affects all children)
-//! - Efficient spatial queries and collision detection
+//! - Forward kinematics calculation (computing end-effector pose).
+//! - Coordinate frame transformations between robot components.
+//! - Hierarchical motion propagation (parent motion affects all children).
+//! - Efficient spatial queries and collision detection.
 //!
 //! Example robot hierarchy:
 //! Base -> Shoulder -> Upper_Arm -> Elbow -> Forearm -> Wrist -> End_Effector
@@ -89,7 +102,12 @@ public:
     //! to identity matrix.
     //! \param p_name Name of the node.
     // ------------------------------------------------------------------------
-    explicit Node(const std::string& p_name);
+    explicit Node(const std::string_view& p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Virtual destructor to ensure proper cleanup of derived classes.
+    // ------------------------------------------------------------------------
+    virtual ~Node() = default;
 
     // ------------------------------------------------------------------------
     //! \brief Create a new node.
@@ -148,7 +166,43 @@ public:
     //! \param p_name Name of the node.
     //! \return Pointer to the node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node* getNode(const std::string& p_name);
+    Node* getNode(const std::string_view& p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the node tree recursively and apply a function to each
+    //! node.
+    //!
+    //! This method performs a depth-first traversal of the node tree starting
+    //! from this node. It applies the provided function to each node in the
+    //! tree, including the current node and all its descendants.
+    //!
+    //! The traversal order is:
+    //! 1. Apply function to current node
+    //! 2. Recursively traverse all children
+    //!
+    //! This is useful for operations that need to be applied to all nodes
+    //! in a subtree, such as:
+    //! - Collecting all joints in a robot arm
+    //! - Updating properties of all nodes
+    //! - Searching for specific node types
+    //!
+    //! \tparam Function Type of the function to apply (lambda, function
+    //! pointer, etc.)
+    //! \param p_function Function to apply to each node. Should accept Node&
+    //! parameter.
+    // ------------------------------------------------------------------------
+    template <typename Function>
+    void traverse(Function&& p_function)
+    {
+        // Apply the function to the current node
+        p_function(*this);
+
+        // Recursively traverse all children
+        for (const auto& child : m_children)
+        {
+            child->traverse(std::forward<Function>(p_function));
+        }
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Set the local transform of the node.
@@ -354,7 +408,7 @@ public:
     //! \param p_type Mechanical type defining the motion constraint
     //! \param p_axis Normalized 3D vector defining the motion axis
     // ------------------------------------------------------------------------
-    Joint(const std::string& p_name,
+    Joint(const std::string_view& p_name,
           Type p_type,
           const Eigen::Vector3d& p_axis);
 
@@ -508,7 +562,7 @@ public:
     //!
     //! Called automatically when joint value changes via setValue()
     // ------------------------------------------------------------------------
-    void updateNodeTransform();
+    void updateLocalTransform();
 
     // ------------------------------------------------------------------------
     //! \brief Get the mechanical type of the joint.
@@ -599,26 +653,16 @@ public:
     //! \brief Constructor. Perform no action, just set the name.
     //! \param p_name Name of the robot arm.
     // ------------------------------------------------------------------------
-    explicit RobotArm(const std::string& p_name) : m_name(p_name) {}
+    explicit RobotArm(const std::string_view& p_name) : m_name(p_name) {}
 
     // ------------------------------------------------------------------------
-    //! \brief Set or replace the root node of the robot arm with a new one.
-    //! \param p_root Pointer to the root node.
+    //! \brief Setup the robot arm with a new root node and end effector.
+    //! \tparam T Type of the root node. Must be a subclass of Node.
+    //! \param p_root Unique pointer to the root node.
+    //! \param p_end_effector Reference to the end effector node.
+    //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    void setRootNode(Node::Ptr p_root);
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the root node of the robot arm.
-    //! \return Pointer to the root node.
-    // ------------------------------------------------------------------------
-    Node* getRootNode() const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Find and return a node by its name.
-    //! \param p_name Name of the node.
-    //! \return Pointer to the node, or nullptr if not found.
-    // ------------------------------------------------------------------------
-    Node* getNode(const std::string& p_name) const;
+    void setupRobot(Node::Ptr p_root, Node& p_end_effector);
 
     // ------------------------------------------------------------------------
     //! \brief Define the given node as the end effector of the robot arm.
@@ -627,17 +671,34 @@ public:
     void setEndEffector(Node& p_node);
 
     // ------------------------------------------------------------------------
-    //! \brief Add a joint to the robot arm.
-    //! \param p_joint Pointer to the joint.
+    //! \brief Define the given node as the end effector of the robot arm.
+    //! \param p_name Name of the end effector node.
     // ------------------------------------------------------------------------
-    void addJoint(Joint::Ptr p_joint);
+    Node* setEndEffector(std::string_view p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get a const pointer to the root node of the robot arm.
+    //! \note The root node is the base frame of the robot arm. We return a
+    //! const pointer to it to avoid modifying the scene graph that will make
+    //! this class not aware of the changes and not able to update its cache.
+    //! If you need to modify the root node, use the setRootNode() method.
+    //! \return Pointer to the root node.
+    // ------------------------------------------------------------------------
+    Node const* getRootNode() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find and return a node by its name.
+    //! \param p_name Name of the node.
+    //! \return Pointer to the node, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Node* getNode(const std::string_view& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Find and return a joint by its name.
     //! \param p_name Name of the joint.
     //! \return Pointer to the joint, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Joint* getJoint(const std::string& p_name) const;
+    Joint* getJoint(const std::string_view& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint values of the robot arm.
@@ -663,31 +724,52 @@ public:
     std::vector<double> getJointValues() const;
 
     // ------------------------------------------------------------------------
-    //! \brief Set the joint values of the robot arm.
+    //! \brief Get the names of the actuable joints in the order they appear
+    //! in the joint values vector.
     //!
-    //! PHYSICS: Updates the entire robot configuration by setting all joint
-    //! values simultaneously. This method effectively moves the robot to a
-    //! new pose in joint space.
+    //! This method provides a mapping between joint indices and joint names,
+    //! allowing you to know which joint corresponds to which index in the
+    //! joint values vector returned by getJointValues().
     //!
-    //! KINEMATIC IMPLICATIONS:
-    //! - Each joint value update propagates through the kinematic chain
-    //! - Forward kinematics is automatically updated
-    //! - End-effector pose changes according to the new configuration
-    //!
-    //! SAFETY CONSIDERATIONS:
-    //! - Joint limits are enforced for each joint
-    //! - Collision detection should be performed before execution
-    //! - Velocity and acceleration limits should be respected
-    //!
-    //! TYPICAL USE CASES:
-    //! - Executing inverse kinematics solutions
-    //! - Moving to predefined robot configurations
-    //! - Trajectory point execution
-    //! - Manual joint control
-    //!
-    //! \param p_values Vector of joint configuration values
+    //! \return Vector of joint names in the same order as joint values
     // ------------------------------------------------------------------------
-    void setJointValues(const std::vector<double>& p_values);
+    std::vector<std::string> getJointNames() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set joint values for all actuable joints in order.
+    //!
+    //! This method provides a convenient way to set joint values using a simple
+    //! vector of doubles, where each value corresponds to the joint in the same
+    //! order as returned by getJointNames().
+    //!
+    //! \param p_values Vector of joint values to set
+    //! \return True if successful, false if wrong number of values
+    //! \throw std::invalid_argument if the number of values doesn't match the
+    //! number of joints
+    // ------------------------------------------------------------------------
+    bool setJointValues(const std::vector<double>& p_values);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get joint values by specifying joint names in desired order.
+    //!
+    //! This method allows you to retrieve joint values for specific joints
+    //! in a custom order, providing more control over the joint configuration.
+    //!
+    //! \param p_joint_names Vector of joint names in the desired order
+    //! \return Vector of joint values in the same order as the names
+    //! \throw std::invalid_argument if any joint name is not found
+    // ------------------------------------------------------------------------
+    std::vector<double>
+    getJointValuesByName(const std::vector<std::string>& p_joint_names) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set joint values by specifying joint names and their values.
+    //! \param p_joint_names Vector of joint names.
+    //! \param p_values Vector of joint values in the same order as names.
+    //! \return True if the joint values were set successfully.
+    // ------------------------------------------------------------------------
+    bool setJointValuesByName(const std::vector<std::string>& p_joint_names,
+                              const std::vector<double>& p_values);
 
     // ------------------------------------------------------------------------
     //! \brief Compute the forward kinematics of the robot arm.
@@ -757,12 +839,27 @@ public:
     // ------------------------------------------------------------------------
     Jacobian calculateJacobian() const;
 
+protected:
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if the robot arm is setup correctly.
+    //! \throw std::runtime_error if the robot arm is not setup correctly.
+    // ------------------------------------------------------------------------
+    void checkRobotSetupValidity() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Cache the list of joints in the robot arm. Shall be called
+    //! each time the scene graph is modified.
+    //! \note This method is called automatically when needed, but can be
+    //! called explicitly to force cache update.
+    // ------------------------------------------------------------------------
+    void cacheListOfJoints();
+
 private:
 
     std::string m_name;
-    std::unique_ptr<Node> m_root_node;
-    std::vector<std::unique_ptr<Joint>> m_joints;
-    std::unordered_map<std::string, Joint*> m_joint_map;
+    Node::Ptr m_root_node;
+    std::vector<Joint*> m_joints;
     Node* m_end_effector = nullptr;
 };
 

@@ -7,14 +7,14 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Node::Node(const std::string& p_name) : m_name(p_name)
+Node::Node(const std::string_view& p_name) : m_name(p_name)
 {
     m_local_transform = Transform::Identity();
     m_world_transform = Transform::Identity();
 }
 
 // ----------------------------------------------------------------------------
-Node* Node::getNode(const std::string& p_name)
+Node* Node::getNode(const std::string_view& p_name)
 {
     // Check if any direct child has the name
     auto it = std::find_if(m_children.begin(),
@@ -89,7 +89,7 @@ void Node::markDirty()
 }
 
 // ----------------------------------------------------------------------------
-Joint::Joint(const std::string& p_name,
+Joint::Joint(const std::string_view& p_name,
              Joint::Type p_type,
              const Eigen::Vector3d& p_axis)
     : Node(p_name),
@@ -112,7 +112,7 @@ void Joint::setValue(double p_value)
     m_value = p_value;
 
     // Update the transformation of the node
-    updateNodeTransform();
+    updateLocalTransform();
 }
 
 // ----------------------------------------------------------------------------
@@ -144,22 +144,42 @@ Transform Joint::getTransform() const
 }
 
 // ----------------------------------------------------------------------------
-void Joint::updateNodeTransform()
+void Joint::updateLocalTransform()
 {
     setLocalTransform(getTransform());
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setRootNode(Node::Ptr p_root)
+void RobotArm::setupRobot(Node::Ptr p_root, Node& p_end_effector)
 {
     m_root_node = std::move(p_root);
+
+    setEndEffector(p_end_effector);
+    cacheListOfJoints();
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::addJoint(Joint::Ptr p_joint)
+void RobotArm::cacheListOfJoints()
 {
-    m_joint_map[p_joint->getName()] = p_joint.get();
-    m_joints.push_back(std::move(p_joint));
+    m_joints.clear();
+    if (m_root_node == nullptr)
+    {
+        return;
+    }
+
+    m_root_node->traverse(
+        [this](Node& p_node)
+        {
+            if (auto joint = dynamic_cast<Joint*>(&p_node))
+            {
+                // Only cache actuable joints (REVOLUTE and PRISMATIC)
+                if (joint->getType() == Joint::Type::REVOLUTE ||
+                    joint->getType() == Joint::Type::PRISMATIC)
+                {
+                    m_joints.push_back(joint);
+                }
+            }
+        });
 }
 
 // ----------------------------------------------------------------------------
@@ -169,8 +189,37 @@ void RobotArm::setEndEffector(Node& p_node)
 }
 
 // ----------------------------------------------------------------------------
+Node* RobotArm::setEndEffector(std::string_view p_name)
+{
+    m_end_effector = getNode(p_name);
+    return m_end_effector;
+}
+
+// ----------------------------------------------------------------------------
+void RobotArm::checkRobotSetupValidity() const
+{
+    if (m_root_node == nullptr)
+    {
+        throw RobotikException("Root node not set. Call setupRobot() first.");
+    }
+
+    if (m_end_effector == nullptr)
+    {
+        throw RobotikException(
+            "End effector not set. Call setupRobot() first.");
+    }
+
+    if (m_joints.empty())
+    {
+        throw RobotikException("No joints found. Call setupRobot() first.");
+    }
+}
+
+// ----------------------------------------------------------------------------
 Transform RobotArm::forwardKinematics() const
 {
+    checkRobotSetupValidity();
+
     // Ensure that all transformations are up to date
     m_root_node->updateWorldTransform();
 
@@ -180,6 +229,8 @@ Transform RobotArm::forwardKinematics() const
 // ----------------------------------------------------------------------------
 Pose RobotArm::getEndEffectorPose() const
 {
+    checkRobotSetupValidity();
+
     Transform transform = forwardKinematics();
     return utils::transformToPose(transform);
 }
@@ -191,6 +242,8 @@ bool RobotArm::inverseKinematics(const Pose& p_target_pose,
                                  double const p_epsilon,
                                  double const p_damping)
 {
+    checkRobotSetupValidity();
+
     // Initialize with the current values
     p_solution = getJointValues();
 
@@ -240,6 +293,8 @@ bool RobotArm::inverseKinematics(const Pose& p_target_pose,
 // ----------------------------------------------------------------------------
 Jacobian RobotArm::calculateJacobian() const
 {
+    checkRobotSetupValidity();
+
     const size_t num_joints = m_joints.size();
     Jacobian J(6, num_joints);
 
@@ -249,19 +304,19 @@ Jacobian RobotArm::calculateJacobian() const
 
     for (size_t i = 0; i < num_joints; ++i)
     {
-        auto joint = m_joints[i].get();
+        auto& joint = *m_joints[i];
 
         // Transformation of the joint in the global space
-        Transform joint_transform = joint->getWorldTransform();
+        Transform joint_transform = joint.getWorldTransform();
 
         // Position of the joint
         Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
 
         // Orientation of the joint axis in the global space
         Eigen::Vector3d joint_axis =
-            joint_transform.block<3, 3>(0, 0) * joint->getAxis();
+            joint_transform.block<3, 3>(0, 0) * joint.getAxis();
 
-        if (joint->getType() == Joint::Type::REVOLUTE)
+        if (joint.getType() == Joint::Type::REVOLUTE)
         {
             // Contribution to linear velocity: cross(axis, (end - joint))
             Eigen::Vector3d r = end_pos - joint_pos;
@@ -271,7 +326,7 @@ Jacobian RobotArm::calculateJacobian() const
             J.block<3, 1>(0, i) = v;
             J.block<3, 1>(3, i) = joint_axis;
         }
-        else if (joint->getType() == Joint::Type::PRISMATIC)
+        else if (joint.getType() == Joint::Type::PRISMATIC)
         {
             // Contribution to linear velocity: axis
             J.block<3, 1>(0, i) = joint_axis;
@@ -283,11 +338,14 @@ Jacobian RobotArm::calculateJacobian() const
 }
 
 // ----------------------------------------------------------------------------
-Joint* RobotArm::getJoint(const std::string& p_name) const
+Joint* RobotArm::getJoint(const std::string_view& p_name) const
 {
-    if (auto it = m_joint_map.find(p_name); it != m_joint_map.end())
+    for (const auto& joint : m_joints)
     {
-        return it->second;
+        if (joint->getName() == p_name)
+        {
+            return joint;
+        }
     }
     return nullptr;
 }
@@ -307,12 +365,77 @@ std::vector<double> RobotArm::getJointValues() const
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setJointValues(const std::vector<double>& p_values)
+std::vector<std::string> RobotArm::getJointNames() const
+{
+    std::vector<std::string> names;
+    names.reserve(m_joints.size());
+
+    for (const auto& joint : m_joints)
+    {
+        names.push_back(joint->getName());
+    }
+
+    return names;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<double> RobotArm::getJointValuesByName(
+    const std::vector<std::string>& p_joint_names) const
+{
+    std::vector<double> values;
+    values.reserve(p_joint_names.size());
+
+    for (const auto& name : p_joint_names)
+    {
+        if (Joint const* joint = getJoint(name); joint == nullptr)
+        {
+            throw RobotikException("Joint with name '" + name + "' not found");
+        }
+        else
+        {
+            values.push_back(joint->getValue());
+        }
+    }
+
+    return values;
+}
+
+// ----------------------------------------------------------------------------
+bool RobotArm::setJointValuesByName(
+    const std::vector<std::string>& p_joint_names,
+    const std::vector<double>& p_values)
+{
+    if ((m_root_node == nullptr) || (p_joint_names.size() != p_values.size()))
+    {
+        return false;
+    }
+
+    for (size_t i = 0; i < p_joint_names.size(); ++i)
+    {
+        Joint* joint = getJoint(p_joint_names[i]);
+        if (joint == nullptr)
+        {
+            throw RobotikException("Joint with name '" + p_joint_names[i] +
+                                   "' not found");
+        }
+        joint->setValue(p_values[i]);
+    }
+
+    // Update all transformations
+    m_root_node->updateWorldTransform();
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+bool RobotArm::setJointValues(const std::vector<double>& p_values)
 {
     if (p_values.size() != m_joints.size())
     {
-        throw std::invalid_argument(
-            "Number of values doesn't match number of joints");
+        throw RobotikException("Number of joint values (" +
+                               std::to_string(p_values.size()) +
+                               ") does not match number of joints (" +
+                               std::to_string(m_joints.size()) + ")");
     }
 
     for (size_t i = 0; i < m_joints.size(); ++i)
@@ -321,17 +444,22 @@ void RobotArm::setJointValues(const std::vector<double>& p_values)
     }
 
     // Update all transformations
-    m_root_node->updateWorldTransform();
+    if (m_root_node)
+    {
+        m_root_node->updateWorldTransform();
+    }
+
+    return true;
 }
 
 // ----------------------------------------------------------------------------
-Node* RobotArm::getRootNode() const
+const Node* RobotArm::getRootNode() const
 {
     return m_root_node.get();
 }
 
 // ----------------------------------------------------------------------------
-Node* RobotArm::getNode(const std::string& p_name) const
+Node* RobotArm::getNode(const std::string_view& p_name) const
 {
     if (!m_root_node)
     {

@@ -17,17 +17,16 @@ protected:
         // Setup test data
         axis = Eigen::Vector3d(0, 0, 1); // Z-axis
         revolute_joint =
-            std::make_unique<Joint>("revolute", Joint::Type::REVOLUTE, axis);
+            Node::create<Joint>("revolute", Joint::Type::REVOLUTE, axis);
         prismatic_joint =
-            std::make_unique<Joint>("prismatic", Joint::Type::PRISMATIC, axis);
-        fixed_joint =
-            std::make_unique<Joint>("fixed", Joint::Type::FIXED, axis);
+            Node::create<Joint>("prismatic", Joint::Type::PRISMATIC, axis);
+        fixed_joint = Node::create<Joint>("fixed", Joint::Type::FIXED, axis);
     }
 
     Eigen::Vector3d axis;
-    std::unique_ptr<Joint> revolute_joint;
-    std::unique_ptr<Joint> prismatic_joint;
-    std::unique_ptr<Joint> fixed_joint;
+    Joint::Ptr revolute_joint;
+    Joint::Ptr prismatic_joint;
+    Joint::Ptr fixed_joint;
 };
 
 // *********************************************************************************
@@ -58,8 +57,8 @@ TEST_F(JointTest, AxisNormalization)
 {
     // Test that axis is normalized during construction
     Eigen::Vector3d unnormalized_axis(2, 0, 0);
-    auto joint = std::make_unique<Joint>(
-        "test", Joint::Type::REVOLUTE, unnormalized_axis);
+    auto joint =
+        Node::create<Joint>("test", Joint::Type::REVOLUTE, unnormalized_axis);
 
     Eigen::Vector3d expected_normalized = unnormalized_axis.normalized();
     EXPECT_TRUE(joint->getAxis().isApprox(expected_normalized));
@@ -71,8 +70,8 @@ TEST_F(JointTest, AxisNormalization)
 // *********************************************************************************
 TEST_F(JointTest, SetGetValue)
 {
-    revolute_joint->setValue(M_PI / 4);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 4);
+    revolute_joint->setValue(M_PI / 4.0);
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 4.0);
 
     prismatic_joint->setValue(0.5);
     EXPECT_DOUBLE_EQ(prismatic_joint->getValue(), 0.5);
@@ -258,10 +257,10 @@ TEST_F(JointTest, FixedTransform)
 // *********************************************************************************
 TEST_F(JointTest, NodeTransformUpdate)
 {
-    revolute_joint->setValue(M_PI / 4);
+    revolute_joint->setValue(M_PI / 4.0);
 
     // Update node transform
-    revolute_joint->updateNodeTransform();
+    revolute_joint->updateLocalTransform();
 
     // Check that node's local transform has been updated
     Transform expected_transform = revolute_joint->getTransform();
@@ -275,11 +274,11 @@ TEST_F(JointTest, NodeTransformUpdate)
 TEST_F(JointTest, AutomaticTransformUpdate)
 {
     // Set initial value
-    revolute_joint->setValue(M_PI / 6);
+    revolute_joint->setValue(M_PI / 6.0);
     Transform initial_transform = revolute_joint->getLocalTransform();
 
     // Change value - should automatically update local transform
-    revolute_joint->setValue(M_PI / 3);
+    revolute_joint->setValue(M_PI / 3.0);
     Transform updated_transform = revolute_joint->getLocalTransform();
 
     // Transforms should be different
@@ -298,8 +297,8 @@ TEST_F(JointTest, RevoluteAxes)
     // Test X-axis rotation
     Eigen::Vector3d x_axis(1, 0, 0);
     auto x_joint =
-        std::make_unique<Joint>("x_joint", Joint::Type::REVOLUTE, x_axis);
-    x_joint->setValue(M_PI / 2);
+        Node::create<Joint>("x_joint", Joint::Type::REVOLUTE, x_axis);
+    x_joint->setValue(M_PI / 2.0);
 
     Transform x_transform = x_joint->getTransform();
     Eigen::Matrix3d x_rotation = x_transform.block<3, 3>(0, 0);
@@ -312,8 +311,8 @@ TEST_F(JointTest, RevoluteAxes)
     // Test Y-axis rotation
     Eigen::Vector3d y_axis(0, 1, 0);
     auto y_joint =
-        std::make_unique<Joint>("y_joint", Joint::Type::REVOLUTE, y_axis);
-    y_joint->setValue(M_PI / 2);
+        Node::create<Joint>("y_joint", Joint::Type::REVOLUTE, y_axis);
+    y_joint->setValue(M_PI / 2.0);
 
     Transform y_transform = y_joint->getTransform();
     Eigen::Matrix3d y_rotation = y_transform.block<3, 3>(0, 0);
@@ -332,8 +331,8 @@ TEST_F(JointTest, PrismaticAxes)
     // Test X-axis translation
     Eigen::Vector3d x_axis(1, 0, 0);
     auto x_joint =
-        std::make_unique<Joint>("x_joint", Joint::Type::PRISMATIC, x_axis);
-    x_joint->setValue(0.5);
+        Node::create<Joint>("x_joint", Joint::Type::PRISMATIC, x_axis);
+    x_joint->setValue(0.5); // 0.5 meters
 
     Transform x_transform = x_joint->getTransform();
     Eigen::Vector3d x_translation = x_transform.block<3, 1>(0, 3);
@@ -343,8 +342,8 @@ TEST_F(JointTest, PrismaticAxes)
     // Test Y-axis translation
     Eigen::Vector3d y_axis(0, 1, 0);
     auto y_joint =
-        std::make_unique<Joint>("y_joint", Joint::Type::PRISMATIC, y_axis);
-    y_joint->setValue(0.3);
+        Node::create<Joint>("y_joint", Joint::Type::PRISMATIC, y_axis);
+    y_joint->setValue(0.3); // 0.3 meters
 
     Transform y_transform = y_joint->getTransform();
     Eigen::Vector3d y_translation = y_transform.block<3, 1>(0, 3);
@@ -359,14 +358,14 @@ TEST_F(JointTest, ArbitraryAxisRotation)
 {
     // Test with arbitrary axis
     Eigen::Vector3d arbitrary_axis(1, 1, 1);
-    auto joint = std::make_unique<Joint>(
-        "arbitrary", Joint::Type::REVOLUTE, arbitrary_axis);
+    auto joint =
+        Node::create<Joint>("arbitrary", Joint::Type::REVOLUTE, arbitrary_axis);
 
     // Verify axis is normalized
     EXPECT_TRUE(joint->getAxis().isApprox(arbitrary_axis.normalized()));
 
     // Test rotation around arbitrary axis
-    joint->setValue(M_PI / 4);
+    joint->setValue(M_PI / 4.0);
     Transform transform = joint->getTransform();
 
     // Verify it's a valid rotation matrix
@@ -383,7 +382,7 @@ TEST_F(JointTest, ArbitraryAxisRotation)
 TEST_F(JointTest, JointHierarchy)
 {
     // Create parent joint
-    auto parent_joint = std::make_unique<Joint>(
+    auto parent_joint = Node::create<Joint>(
         "parent", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
     Joint* parent_ptr = parent_joint.get();
 
@@ -393,8 +392,8 @@ TEST_F(JointTest, JointHierarchy)
         "child", Joint::Type::REVOLUTE, Eigen::Vector3d(1, 0, 0));
 
     // Set joint values
-    parent_ptr->setValue(M_PI / 2); // 90 degrees around Z
-    child_joint.setValue(M_PI / 4); // 45 degrees around X
+    parent_ptr->setValue(M_PI / 2.0); // 90 degrees around Z
+    child_joint.setValue(M_PI / 4.0); // 45 degrees around X
 
     // Update transforms
     parent_ptr->updateWorldTransform();
@@ -420,8 +419,8 @@ TEST_F(JointTest, EdgeCases)
     EXPECT_TRUE(identity_transform.isApprox(Eigen::Matrix4d::Identity()));
 
     // Test negative values
-    revolute_joint->setValue(-M_PI / 4);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4);
+    revolute_joint->setValue(-M_PI / 4.0);
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4.0);
 
     // Test very small values
     revolute_joint->setValue(1e-10);
@@ -445,26 +444,26 @@ TEST_F(JointTest, EdgeCases)
 TEST_F(JointTest, ExtensiveLimitsTest)
 {
     // Test symmetric limits
-    revolute_joint->setLimits(-M_PI / 2, M_PI / 2);
+    revolute_joint->setLimits(-M_PI / 2.0, M_PI / 2.0);
 
-    revolute_joint->setValue(M_PI / 3);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 3);
+    revolute_joint->setValue(M_PI / 3.0);
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 3.0);
 
     revolute_joint->setValue(M_PI); // Should be clamped to max
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2);
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2.0);
 
     // Test asymmetric limits
-    revolute_joint->setLimits(-M_PI / 4, 3 * M_PI / 4);
+    revolute_joint->setLimits(-M_PI / 4.0, 3 * M_PI / 4.0);
 
-    revolute_joint->setValue(M_PI / 2);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2);
+    revolute_joint->setValue(M_PI / 2.0);
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2.0);
 
-    revolute_joint->setValue(-M_PI / 2); // Should be clamped to min
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4);
+    revolute_joint->setValue(-M_PI / 2.0); // Should be clamped to min
+    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4.0);
 
     // Test inverted limits (min > max) - should work but behavior may be
     // undefined
-    revolute_joint->setLimits(M_PI / 2, -M_PI / 2);
+    revolute_joint->setLimits(M_PI / 2.0, -M_PI / 2.0);
     revolute_joint->setValue(0.0);
     // Behavior depends on implementation
 }
@@ -478,7 +477,7 @@ TEST_F(JointTest, PerformanceTest)
 
     for (int i = 0; i < num_iterations; ++i)
     {
-        double angle = 2.0 * M_PI * i / num_iterations;
+        double angle = 2.0 * M_PI * i / double(num_iterations);
         revolute_joint->setValue(angle);
 
         // Ensure transform is computed correctly each time
@@ -498,11 +497,11 @@ TEST_F(JointTest, JointNaming)
 
     // Test joint with empty name
     auto empty_named_joint =
-        std::make_unique<Joint>("", Joint::Type::REVOLUTE, axis);
+        Node::create<Joint>("", Joint::Type::REVOLUTE, axis);
     EXPECT_EQ(empty_named_joint->getName(), "");
 
     // Test joint with special characters in name
     auto special_joint =
-        std::make_unique<Joint>("joint_01-test", Joint::Type::REVOLUTE, axis);
+        Node::create<Joint>("joint_01-test", Joint::Type::REVOLUTE, axis);
     EXPECT_EQ(special_joint->getName(), "joint_01-test");
 }
