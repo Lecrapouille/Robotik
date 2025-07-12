@@ -7,6 +7,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // ****************************************************************************
@@ -64,6 +65,49 @@ using Pose = Eigen::Matrix<double, 6, 1>;
 //! kinematics
 // ----------------------------------------------------------------------------
 using Jacobian = Eigen::MatrixXd;
+
+// ****************************************************************************
+//! \brief Geometry data for collision detection and visualization.
+// ****************************************************************************
+struct Geometry
+{
+    enum Type
+    {
+        BOX,
+        CYLINDER,
+        SPHERE,
+        MESH
+    };
+
+    explicit Geometry(Type t = BOX) : type(t) {}
+
+    //! \brief Type of geometry (box, cylinder, sphere, mesh).
+    Type type;
+    //! \brief Parameters of the geometry (dimensions for box, radius for
+    //! cylinder, radius for sphere).
+    std::vector<double> parameters;
+    //! \brief Path to the mesh file (if type is MESH).
+    std::string mesh_path;
+};
+
+// ****************************************************************************
+//! \brief Inertial properties of a robotic link.
+// ****************************************************************************
+struct Inertial
+{
+    Inertial()
+    {
+        center_of_mass = Eigen::Vector3d::Zero();
+        inertia_matrix = Eigen::Matrix3d::Identity();
+    }
+
+    //! \brief Mass of the object (kg).
+    double mass = 0.0;
+    //! \brief Center of mass of the object (m).
+    Eigen::Vector3d center_of_mass;
+    //! \brief Inertia matrix of the object.
+    Eigen::Matrix3d inertia_matrix;
+};
 
 // ****************************************************************************
 //! \brief Class representing a node in the scene graph.
@@ -607,6 +651,42 @@ private:
     Eigen::Vector3d m_axis;
 };
 
+// ****************************************************************************
+//! \brief Class representing a robotic link.
+//!
+//! A link is a rigid body component of a robot that connects two joints.
+//! In robotics, links are the structural elements that provide the physical
+//! framework of the robot and carry the payload.
+//!
+//! Physical characteristics:
+//! - Geometry: Visual and collision shapes for rendering and collision
+//! detection
+//! - Inertial: Mass properties for dynamic simulation
+//! - Joints: Connection points to other links via joints
+//!
+//! Each link is connected to other links through joints:
+//! - Parent joint: The joint that connects this link to its parent
+//! - Child joint: The joint that connects this link to its child
+//!
+//! The link serves as the physical structure between two joints in the
+//! kinematic chain, providing the mechanical connection and housing
+//! sensors, actuators, or other components.
+// ****************************************************************************
+struct Link
+{
+    // ------------------------------------------------------------------------
+    //! \brief Constructor for robotic link.
+    //! \param p_name Name of the link.
+    // ------------------------------------------------------------------------
+    explicit Link(const std::string_view& p_name) : name(p_name) {}
+
+    std::string name;
+    Geometry geometry;
+    Inertial inertial;
+    Joint* parent_joint = nullptr;
+    Joint* child_joint = nullptr;
+};
+
 // *********************************************************************************
 //! \brief Class representing a complete robotic arm.
 //!
@@ -699,6 +779,20 @@ public:
     //! \return Pointer to the joint, or nullptr if not found.
     // ------------------------------------------------------------------------
     Joint* getJoint(const std::string_view& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Add a link to the robot arm.
+    //! \param p_name Name of the link.
+    //! \param p_link Unique pointer to the link.
+    // ------------------------------------------------------------------------
+    void addLink(const std::string_view& p_name, std::unique_ptr<Link> p_link);
+
+    // ------------------------------------------------------------------------
+    //! \brief Find and return a link by its name.
+    //! \param p_name Name of the link.
+    //! \return Pointer to the link, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Link* getLink(const std::string_view& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint values of the robot arm.
@@ -859,8 +953,9 @@ private:
 
     std::string m_name;
     Node::Ptr m_root_node;
-    std::vector<Joint*> m_joints;
     Node* m_end_effector = nullptr;
+    std::vector<Joint*> m_joints;
+    std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
 };
 
 //  Utility functions for conversions.

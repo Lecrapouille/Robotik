@@ -22,9 +22,14 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set TinyXML2 library
+#
+SRC_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
+
+###############################################################################
 # Set units library
 #
-INCLUDES += $(P)/external/units/include
+INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # GTest and GMock

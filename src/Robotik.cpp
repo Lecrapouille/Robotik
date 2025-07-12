@@ -469,6 +469,24 @@ Node* RobotArm::getNode(const std::string_view& p_name) const
     return m_root_node->getNode(p_name);
 }
 
+// ----------------------------------------------------------------------------
+void RobotArm::addLink(const std::string_view& p_name,
+                       std::unique_ptr<Link> p_link)
+{
+    m_links[std::string(p_name)] = std::move(p_link);
+}
+
+// ----------------------------------------------------------------------------
+Link* RobotArm::getLink(const std::string_view& p_name) const
+{
+    auto it = m_links.find(std::string(p_name));
+    if (it != m_links.end())
+    {
+        return it->second.get();
+    }
+    return nullptr;
+}
+
 namespace utils
 {
 // ----------------------------------------------------------------------------
@@ -566,4 +584,5 @@ Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta)
 }
 
 } // namespace utils
+
 } // namespace robotik
