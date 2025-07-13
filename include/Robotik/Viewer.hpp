@@ -216,8 +216,8 @@ private:
     unsigned int m_grid_vbo = 0;
 
     // Camera
-    Eigen::Vector3f m_camera_pos = Eigen::Vector3f(0.0f, 5.0f, 10.0f);
-    Eigen::Vector3f m_camera_target = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
+    Eigen::Vector3f m_camera_pos = Eigen::Vector3f(8.0f, 3.0f, 8.0f);
+    Eigen::Vector3f m_camera_target = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
     Eigen::Vector3f m_camera_up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
     float m_fov = 45.0f;
     float m_aspect_ratio = 1.0f;
