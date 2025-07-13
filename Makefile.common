@@ -1,4 +1,4 @@
 PROJECT_NAME := Robotik
 PROJECT_VERSION := 0.1.0
-COMPILATION_MODE := release
+COMPILATION_MODE := debug
 CXX_STANDARD := --std=c++17

@@ -71,7 +71,7 @@ using Jacobian = Eigen::MatrixXd;
 // ****************************************************************************
 struct Geometry
 {
-    enum Type
+    enum class Type
     {
         BOX,
         CYLINDER,
@@ -79,7 +79,7 @@ struct Geometry
         MESH
     };
 
-    explicit Geometry(Type t = BOX) : type(t) {}
+    explicit Geometry(Type t = Type::BOX) : type(t) {}
 
     //! \brief Type of geometry (box, cylinder, sphere, mesh).
     Type type;
@@ -181,7 +181,7 @@ public:
 
         m_children.push_back(std::move(child));
         child_ref.m_parent = this;
-        child_ref.markDirty();
+        child_ref.updateWorldTransform();
 
         return child_ref;
     }
@@ -242,7 +242,20 @@ public:
         p_function(*this);
 
         // Recursively traverse all children
-        for (const auto& child : m_children)
+        for (auto const& child : m_children)
+        {
+            child->traverse(std::forward<Function>(p_function));
+        }
+    }
+
+    template <typename Function>
+    void traverse(Function&& p_function) const
+    {
+        // Apply the function to the current node
+        p_function(*this);
+
+        // Recursively traverse all children
+        for (auto const& child : m_children)
         {
             child->traverse(std::forward<Function>(p_function));
         }
@@ -301,7 +314,7 @@ public:
     //! The world transform = T_base * T_joint1 * ... * T_jointN * T_local
     //! where each T_jointX is
     // ------------------------------------------------------------------------
-    const Transform& getWorldTransform();
+    const Transform& getWorldTransform() const;
 
     // ------------------------------------------------------------------------
     //! \brief Update the world transform of the node.
@@ -325,6 +338,14 @@ public:
     void updateWorldTransform();
 
     // ------------------------------------------------------------------------
+    //! \brief Update the world transform of the node (const version).
+    //!
+    //! This is the const version of updateWorldTransform, which does nothing
+    //! since const methods cannot modify the object state.
+    // ------------------------------------------------------------------------
+    void updateWorldTransform() const;
+
+    // ------------------------------------------------------------------------
     //! \brief Get the name of the node.
     //! \return Name of the node.
     // ------------------------------------------------------------------------
@@ -335,15 +356,6 @@ public:
 
 protected:
 
-    // ------------------------------------------------------------------------
-    //! \brief Mark the node as dirty.
-    //!
-    //! Marks the node as dirty, indicating that its world transform needs
-    //! to be recalculated. This is used to optimize performance by avoiding
-    //! unnecessary recalculations.
-    // ------------------------------------------------------------------------
-    void markDirty();
-
 private:
 
     std::string m_name;
@@ -351,7 +363,6 @@ private:
     Transform m_world_transform;
     std::vector<std::unique_ptr<Node>> m_children;
     Node* m_parent = nullptr;
-    bool m_is_dirty = true;
 };
 
 // *********************************************************************************
@@ -793,6 +804,41 @@ public:
     //! \return Pointer to the link, or nullptr if not found.
     // ------------------------------------------------------------------------
     Link* getLink(const std::string_view& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the links of the robot arm.
+    //! \param p_function Function to apply to each link.
+    // ------------------------------------------------------------------------
+    template <typename Function>
+    void traverseLinks(Function&& p_function) const
+    {
+        for (auto const& [_, link] : m_links)
+        {
+            p_function(*link.get());
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the nodes of the robot arm.
+    //! \param p_function Function to apply to each node.
+    // ------------------------------------------------------------------------
+    template <typename Function>
+    void traverseNodes(Function&& p_function)
+    {
+        if (m_root_node)
+        {
+            m_root_node->traverse(std::forward<Function>(p_function));
+        }
+    }
+
+    template <typename Function>
+    void traverseNodes(Function&& p_function) const
+    {
+        if (m_root_node)
+        {
+            m_root_node->traverse(std::forward<Function>(p_function));
+        }
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint values of the robot arm.

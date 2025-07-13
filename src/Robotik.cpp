@@ -1,7 +1,6 @@
 #include "Robotik/Robotik.hpp"
 #include <algorithm>
 #include <cmath>
-#include <stdexcept>
 
 namespace robotik
 {
@@ -44,16 +43,12 @@ Node* Node::getNode(const std::string_view& p_name)
 void Node::setLocalTransform(const Transform& p_transform)
 {
     m_local_transform = p_transform;
-    markDirty();
+    updateWorldTransform();
 }
 
 // ----------------------------------------------------------------------------
-const Transform& Node::getWorldTransform()
+const Transform& Node::getWorldTransform() const
 {
-    if (m_is_dirty)
-    {
-        updateWorldTransform();
-    }
     return m_world_transform;
 }
 
@@ -69,22 +64,10 @@ void Node::updateWorldTransform()
         m_world_transform = m_local_transform;
     }
 
-    m_is_dirty = false;
-
     // Update the transformations of the children
     for (auto const& child : m_children)
     {
         child->updateWorldTransform();
-    }
-}
-
-// ----------------------------------------------------------------------------
-void Node::markDirty()
-{
-    m_is_dirty = true;
-    for (auto const& child : m_children)
-    {
-        child->markDirty();
     }
 }
 
@@ -453,7 +436,7 @@ bool RobotArm::setJointValues(const std::vector<double>& p_values)
 }
 
 // ----------------------------------------------------------------------------
-const Node* RobotArm::getRootNode() const
+Node const* RobotArm::getRootNode() const
 {
     return m_root_node.get();
 }

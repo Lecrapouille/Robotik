@@ -288,7 +288,7 @@ Geometry URDFParser::parseGeometry(const std::string& p_xml) const
     // Check for different geometry types
     if (auto boxElement = geometryElement->FirstChildElement("box"))
     {
-        geom.type = Geometry::BOX;
+        geom.type = Geometry::Type::BOX;
         const char* sizeAttr = boxElement->Attribute("size");
         if (sizeAttr)
         {
@@ -299,7 +299,7 @@ Geometry URDFParser::parseGeometry(const std::string& p_xml) const
     else if (auto cylinderElement =
                  geometryElement->FirstChildElement("cylinder"))
     {
-        geom.type = Geometry::CYLINDER;
+        geom.type = Geometry::Type::CYLINDER;
         double radius = 0.1, length = 0.2;
         cylinderElement->QueryDoubleAttribute("radius", &radius);
         cylinderElement->QueryDoubleAttribute("length", &length);
@@ -307,14 +307,14 @@ Geometry URDFParser::parseGeometry(const std::string& p_xml) const
     }
     else if (auto sphereElement = geometryElement->FirstChildElement("sphere"))
     {
-        geom.type = Geometry::SPHERE;
+        geom.type = Geometry::Type::SPHERE;
         double radius = 0.1;
         sphereElement->QueryDoubleAttribute("radius", &radius);
         geom.parameters = { radius };
     }
     else if (auto meshElement = geometryElement->FirstChildElement("mesh"))
     {
-        geom.type = Geometry::MESH;
+        geom.type = Geometry::Type::MESH;
         const char* filename = meshElement->Attribute("filename");
         if (filename)
         {
