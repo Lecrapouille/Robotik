@@ -1,5 +1,5 @@
 ###############################################################################
-## Robotik: A basic logger.
+## Robotik: A robot library.
 ## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
 ##
 ## This file is part of Robotik.
@@ -21,70 +21,38 @@
 ###############################################################################
 # Location of the project directory and Makefiles
 #
-P := .
+P := ../..
 M := $(P)/.makefile
 
 ###############################################################################
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := $(PROJECT_NAME)
-TARGET_DESCRIPTION := A robot library
+TARGET_NAME := viewer-demo
+TARGET_DESCRIPTION := Demo of Viewer usage
 include $(M)/project/Makefile
 
 ###############################################################################
 # Inform Makefile where to find header files
 #
-INCLUDES += $(P)/include $(P)/src
-
-###############################################################################
-# Inform Makefile where to find *.cpp files
-#
-VPATH += $(P)/src
-
-###############################################################################
-# Project defines
-#
-DEFINES +=
+INCLUDES += $(P)/include
+VPATH += $(P)/demos/ViewerDemo
 
 ###############################################################################
 # Make the list of files to compile
 #
-LIB_FILES := $(wildcard $(P)/src/*.cpp)
+SRC_FILES += ViewerDemo.cpp
+INCLUDES := $(P)/include src
+INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
 
 ###############################################################################
-# Set Eigen3 library
+# Set libraries (Eigen3 and OpenGL for visualization)
 #
-PKG_LIBS += eigen3
+PKG_LIBS += eigen3 glfw3 glew gl
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
-
-###############################################################################
-# Set OpenGL libraries (for Viewer)
-#
-PKG_LIBS += glfw3
-USER_LIBS += -lGL -lGLU -lGLEW
-
-###############################################################################
-# Set TinyXML2 library
-#
-LIB_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
-
-###############################################################################
-# Set units library
-#
-INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile
-
-###############################################################################
-# Post-build rules
-#
-post-build: build-demo
-
-.PHONY: build-demo
-build-demo: $(TARGET_STATIC_LIB_NAME)
-	$(Q)$(MAKE) --no-print-directory --directory=demos/ViewerDemo all
