@@ -71,6 +71,9 @@ bool Viewer::initialize()
         return false;
     }
 
+    // Initialize camera matrices with default values
+    updateCamera();
+
     return true;
 }
 
@@ -394,15 +397,13 @@ void Viewer::renderGrid() const
                        GL_FALSE,
                        model.data());
 
-    Eigen::Vector3f grid_color(0.3f, 0.3f, 0.3f);
+    Eigen::Vector3f grid_color(0.7f, 0.7f, 0.7f);
     glUniform3fv(
         glGetUniformLocation(m_shader_program, "color"), 1, grid_color.data());
 
     glBindVertexArray(m_grid_vao);
-    glDrawArrays(
-        GL_LINES,
-        0,
-        328); // 41 lines * 2 vertices * 2 directions * 2 = 328 vertices
+    glDrawArrays(GL_LINES, 0,
+                 164); // 41 lines * 4 vertices = 164 vertices
 }
 
 // ----------------------------------------------------------------------------
