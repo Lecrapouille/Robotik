@@ -480,17 +480,33 @@ void Viewer::renderRobot() const
 // ----------------------------------------------------------------------------
 void Viewer::updateCamera()
 {
-    // Update view matrix
-    m_view_matrix = Eigen::Matrix4f::Identity();
-    Eigen::Vector3f z = (m_camera_pos - m_camera_target).normalized();
-    Eigen::Vector3f x = m_camera_up.cross(z).normalized();
-    Eigen::Vector3f y = z.cross(x);
+    // Standard lookAt matrix construction
+    Eigen::Vector3f f = (m_camera_target - m_camera_pos).normalized();
+    Eigen::Vector3f s = f.cross(m_camera_up).normalized();
+    Eigen::Vector3f u = s.cross(f);
 
-    m_view_matrix.block<3, 1>(0, 0) = x;
-    m_view_matrix.block<3, 1>(0, 1) = y;
-    m_view_matrix.block<3, 1>(0, 2) = z;
-    m_view_matrix.block<3, 1>(0, 3) =
-        -m_view_matrix.block<3, 3>(0, 0) * m_camera_pos;
+    m_view_matrix = Eigen::Matrix4f::Identity();
+
+    // Fill the view matrix in column-major order (OpenGL standard)
+    m_view_matrix(0, 0) = s.x();
+    m_view_matrix(1, 0) = u.x();
+    m_view_matrix(2, 0) = -f.x();
+    m_view_matrix(3, 0) = 0.0f;
+
+    m_view_matrix(0, 1) = s.y();
+    m_view_matrix(1, 1) = u.y();
+    m_view_matrix(2, 1) = -f.y();
+    m_view_matrix(3, 1) = 0.0f;
+
+    m_view_matrix(0, 2) = s.z();
+    m_view_matrix(1, 2) = u.z();
+    m_view_matrix(2, 2) = -f.z();
+    m_view_matrix(3, 2) = 0.0f;
+
+    m_view_matrix(0, 3) = -s.dot(m_camera_pos);
+    m_view_matrix(1, 3) = -u.dot(m_camera_pos);
+    m_view_matrix(2, 3) = f.dot(m_camera_pos);
+    m_view_matrix(3, 3) = 1.0f;
 
     // Update projection matrix
     float tan_half_fov = std::tan(m_fov * 0.5f * float(M_PI) / 180.0f);
