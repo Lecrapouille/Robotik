@@ -441,7 +441,6 @@ void Viewer::renderSphere(const Transform& p_transform,
 // ----------------------------------------------------------------------------
 void Viewer::renderRobot() const
 {
-    std::cout << "Rendering robot: " << std::endl;
     if (!m_robot)
     {
         return;
@@ -451,8 +450,6 @@ void Viewer::renderRobot() const
     m_robot->traverseNodes(
         [this](Node& node)
         {
-            std::cout << "  " << node.getName() << std::endl;
-
             // Get the world transform
             Transform world_transform = node.getWorldTransform();
 

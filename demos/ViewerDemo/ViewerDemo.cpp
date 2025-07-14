@@ -1,8 +1,11 @@
 #include "Robotik/Robotik.hpp"
 #include "Robotik/Viewer.hpp"
 
+#include <chrono>
 #include <iostream>
+#include <thread>
 
+// ----------------------------------------------------------------------------
 static std::unique_ptr<robotik::RobotArm> createRobot()
 {
     // Create a simple robot arm
@@ -42,6 +45,34 @@ static std::unique_ptr<robotik::RobotArm> createRobot()
     return robot;
 }
 
+// ----------------------------------------------------------------------------
+static void animate(robotik::RobotArm& p_robot)
+{
+    // Update animation time (slower for more visible animation)
+    float animation_time = static_cast<float>(glfwGetTime()) * 0.5f;
+
+    // Get current joint values
+    std::vector<double> joint_values = p_robot.getJointValues();
+
+    // Animate each joint with different frequencies and amplitudes
+    for (size_t i = 0; i < joint_values.size(); ++i)
+    {
+        // Different frequency for each joint to create varied motion
+        float frequency = 0.8f + static_cast<float>(i) * 0.3f;
+        float amplitude = 0.8f; // Increased amplitude for more visible motion
+
+        // Sinusoidal motion with phase offset for each joint
+        float phase = static_cast<float>(i) * 1.5f;
+        joint_values[i] =
+            double(amplitude * std::sin(frequency * animation_time + phase));
+    }
+
+    // Apply the new joint values to the robot (this updates transforms
+    // automatically)
+    p_robot.setJointValues(joint_values);
+}
+
+// ----------------------------------------------------------------------------
 int main()
 {
     auto robot = createRobot();
@@ -72,17 +103,14 @@ int main()
         // Process input
         viewer.processInput();
 
+        // Animate the robot
+        animate(*robot);
+
         // Render the scene
         viewer.render();
 
-        // Simple animation
-        static double time = 0.0;
-        time += 0.016; // ~60 FPS
-
-        joint_values[0] = std::sin(time) * 0.5;
-        joint_values[1] = std::cos(time * 0.7) * 0.3;
-        joint_values[2] = std::sin(time * 1.2) * 0.4;
-        robot->setJointValues(joint_values);
+        // Small delay to control frame rate (~60 FPS)
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     std::cout << "Viewer closed successfully" << std::endl;
