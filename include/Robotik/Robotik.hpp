@@ -810,6 +810,19 @@ public:
     //! \param p_function Function to apply to each link.
     // ------------------------------------------------------------------------
     template <typename Function>
+    void traverseLinks(Function&& p_function)
+    {
+        for (auto const& [_, link] : m_links)
+        {
+            p_function(*link.get());
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Const traverse the links of the robot arm.
+    //! \param p_function Function to apply to each link.
+    // ------------------------------------------------------------------------
+    template <typename Function>
     void traverseLinks(Function&& p_function) const
     {
         for (auto const& [_, link] : m_links)
@@ -831,6 +844,10 @@ public:
         }
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Const traverse the nodes of the robot arm.
+    //! \param p_function Function to apply to each node.
+    // ------------------------------------------------------------------------
     template <typename Function>
     void traverseNodes(Function&& p_function) const
     {
