@@ -354,8 +354,6 @@ public:
         return m_name;
     }
 
-protected:
-
 private:
 
     std::string m_name;

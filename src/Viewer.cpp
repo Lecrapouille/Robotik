@@ -54,6 +54,12 @@ Viewer::~Viewer()
 }
 
 // ----------------------------------------------------------------------------
+bool Viewer::shouldClose() const
+{
+    return glfwWindowShouldClose(m_window);
+}
+
+// ----------------------------------------------------------------------------
 bool Viewer::initialize()
 {
     if (!initializeGL())
@@ -135,135 +141,6 @@ bool Viewer::initializeShaders()
     {
         return false;
     }
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-bool Viewer::initializeGeometry()
-{
-    // Create box geometry
-    float box_vertices[] = {
-        // positions          // normals
-        -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f, 0.0f,
-        0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,
-        -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
-        0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,
-        0.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f,
-        -0.5f, -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f,
-        -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  -1.0f,
-        0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  0.5f,
-        -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-        0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,
-        -1.0f, 0.0f,  0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f,
-        0.5f,  0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
-        -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
-        1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,
-        0.5f,  0.0f,  1.0f,  0.0f
-    };
-
-    unsigned int box_indices[] = {
-        0,  1,  2,  2,  3,  0,  // front
-        4,  5,  6,  6,  7,  4,  // back
-        8,  9,  10, 10, 11, 8,  // left
-        12, 13, 14, 14, 15, 12, // right
-        16, 17, 18, 18, 19, 16, // bottom
-        20, 21, 22, 22, 23, 20  // top
-    };
-
-    glGenVertexArrays(1, &m_box_vao);
-    glGenBuffers(1, &m_box_vbo);
-    glGenBuffers(1, &m_box_ebo);
-
-    glBindVertexArray(m_box_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_box_vbo);
-    glBufferData(
-        GL_ARRAY_BUFFER, sizeof(box_vertices), box_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_box_ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 sizeof(box_indices),
-                 box_indices,
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(
-        0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,
-                          3,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          6 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Create grid geometry
-    std::vector<float> grid_vertices;
-    const int grid_size = 20;
-    const float grid_spacing = 1.0f;
-
-    for (int i = -grid_size; i <= grid_size; ++i)
-    {
-        // Lines parallel to X axis
-        grid_vertices.push_back(-grid_size * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(float(i) * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(1.0f);
-        grid_vertices.push_back(0.0f);
-
-        grid_vertices.push_back(grid_size * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(float(i) * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(1.0f);
-        grid_vertices.push_back(0.0f);
-
-        // Lines parallel to Z axis
-        grid_vertices.push_back(float(i) * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(-grid_size * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(1.0f);
-        grid_vertices.push_back(0.0f);
-
-        grid_vertices.push_back(float(i) * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(grid_size * grid_spacing);
-        grid_vertices.push_back(0.0f);
-        grid_vertices.push_back(1.0f);
-        grid_vertices.push_back(0.0f);
-    }
-
-    glGenVertexArrays(1, &m_grid_vao);
-    glGenBuffers(1, &m_grid_vbo);
-
-    glBindVertexArray(m_grid_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_grid_vbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 grid_vertices.size() * sizeof(float),
-                 grid_vertices.data(),
-                 GL_STATIC_DRAW);
-
-    glVertexAttribPointer(
-        0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1,
-                          3,
-                          GL_FLOAT,
-                          GL_FALSE,
-                          6 * sizeof(float),
-                          (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Create simple cylinder (approximated with box for simplicity)
-    m_cylinder_vao = m_box_vao; // Reuse box VAO for now
-    m_cylinder_vbo = m_box_vbo;
-    m_cylinder_ebo = m_box_ebo;
-
-    // Create simple sphere (approximated with box for simplicity)
-    m_sphere_vao = m_box_vao; // Reuse box VAO for now
-    m_sphere_vbo = m_box_vbo;
-    m_sphere_ebo = m_box_ebo;
-
     return true;
 }
 
@@ -389,6 +266,18 @@ void Viewer::render()
 }
 
 // ----------------------------------------------------------------------------
+bool Viewer::initializeGeometry()
+{
+    // Initialize all geometry types using the dedicated functions
+    initializeBox();
+    initializeGrid();
+    initializeCylinder();
+    initializeSphere();
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
 void Viewer::renderGrid() const
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
@@ -426,16 +315,155 @@ void Viewer::renderBox(const Transform& p_transform,
 void Viewer::renderCylinder(const Transform& p_transform,
                             const Eigen::Vector3f& p_color) const
 {
-    // For simplicity, render as box for now
-    renderBox(p_transform, p_color);
+    Eigen::Matrix4f model = p_transform.cast<float>();
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
+                       1,
+                       GL_FALSE,
+                       model.data());
+    glUniform3fv(
+        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+
+    glBindVertexArray(m_cylinder_vao);
+    glDrawElements(GL_TRIANGLES,
+                   GLsizei(m_cylinder_index_count),
+                   GL_UNSIGNED_INT,
+                   nullptr);
 }
 
 // ----------------------------------------------------------------------------
 void Viewer::renderSphere(const Transform& p_transform,
                           const Eigen::Vector3f& p_color) const
 {
-    // For simplicity, render as box for now
-    renderBox(p_transform, p_color);
+    Eigen::Matrix4f model = p_transform.cast<float>();
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
+                       1,
+                       GL_FALSE,
+                       model.data());
+    glUniform3fv(
+        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+
+    glBindVertexArray(m_sphere_vao);
+    glDrawElements(
+        GL_TRIANGLES, GLsizei(m_sphere_index_count), GL_UNSIGNED_INT, nullptr);
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::renderJoint(Joint const& joint,
+                         const Transform& world_transform) const
+{
+    // Render joint as a small sphere (RED)
+    Transform joint_transform = world_transform;
+
+    // Scale down the joint representation
+    joint_transform.block<3, 3>(0, 0) *= 0.05;
+
+    switch (joint.getType())
+    {
+        case Joint::Type::REVOLUTE:
+        {
+            renderBox(joint_transform,
+                      Eigen::Vector3f(1.0f, 0.0f, 0.0f)); // Red for joints
+            break;
+        }
+        case Joint::Type::PRISMATIC:
+        {
+            renderCylinder(joint_transform,
+                           Eigen::Vector3f(0.0f, 1.0f, 0.0f)); // Green for
+            break;
+        }
+        case Joint::Type::FIXED:
+        default:
+        {
+            break;
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::renderLink(Link const& link,
+                        const Transform& world_transform) const
+{
+    Transform link_transform = world_transform;
+
+    // Check if link has geometry information
+    if (!link.geometry.parameters.empty())
+    {
+        // Use geometry type and parameters for rendering
+        switch (link.geometry.type)
+        {
+            case Geometry::Type::BOX:
+            {
+                // Scale based on geometry parameters (width, height, depth)
+                if (link.geometry.parameters.size() >= 3)
+                {
+                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
+                    scale(0, 0) = link.geometry.parameters[0];
+                    scale(1, 1) = link.geometry.parameters[1];
+                    scale(2, 2) = link.geometry.parameters[2];
+                    link_transform.block<3, 3>(0, 0) =
+                        link_transform.block<3, 3>(0, 0) * scale;
+                }
+                renderBox(link_transform,
+                          Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                break;
+            }
+            case Geometry::Type::CYLINDER:
+            {
+                // Scale based on geometry parameters (radius, height)
+                if (link.geometry.parameters.size() >= 2)
+                {
+                    double radius = link.geometry.parameters[0];
+                    double height = link.geometry.parameters[1];
+                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
+                    scale(0, 0) = radius * 2;
+                    scale(1, 1) = height;
+                    scale(2, 2) = radius * 2;
+                    link_transform.block<3, 3>(0, 0) =
+                        link_transform.block<3, 3>(0, 0) * scale;
+                }
+                renderCylinder(
+                    link_transform,
+                    Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                break;
+            }
+            case Geometry::Type::SPHERE:
+            {
+                // Scale based on geometry parameters (radius)
+                if (link.geometry.parameters.size() >= 1)
+                {
+                    double radius = link.geometry.parameters[0];
+                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
+                    scale(0, 0) = radius * 2;
+                    scale(1, 1) = radius * 2;
+                    scale(2, 2) = radius * 2;
+                    link_transform.block<3, 3>(0, 0) =
+                        link_transform.block<3, 3>(0, 0) * scale;
+                }
+                renderSphere(
+                    link_transform,
+                    Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                break;
+            }
+            case Geometry::Type::MESH:
+            {
+                // TODO: Implement mesh rendering
+                break;
+            }
+            default:
+                // Default to box for unknown geometry
+                link_transform.block<3, 3>(0, 0) *= 0.1;
+                renderBox(link_transform,
+                          Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                break;
+        }
+    }
+    else
+    {
+        // No geometry information, render as default box
+        link_transform.block<3, 3>(0, 0) *= 0.1;
+        renderBox(link_transform,
+                  Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -454,22 +482,22 @@ void Viewer::renderRobot() const
             Transform world_transform = node.getWorldTransform();
 
             // Render based on node type
-            if (dynamic_cast<Joint*>(&node))
+            if (auto joint = dynamic_cast<Joint*>(&node))
             {
-                // Render joint as a small sphere
-                Transform joint_transform = world_transform;
-                // Scale down the joint representation
-                joint_transform.block<3, 3>(0, 0) *= 0.05;
-                renderSphere(joint_transform,
-                             Eigen::Vector3f(1.0f, 0.0f, 0.0f));
+                renderJoint(*joint, world_transform);
+            }
+            else if (auto link = dynamic_cast<Link*>(&node))
+            {
+                renderLink(*link, world_transform);
             }
             else
             {
-                // Render link as a box
-                Transform link_transform = world_transform;
-                // Scale the link to be more visible
-                link_transform.block<3, 3>(0, 0) *= 0.1;
-                renderBox(link_transform, Eigen::Vector3f(0.2f, 0.6f, 0.8f));
+                // Fallback for unknown node types
+                Transform node_transform = world_transform;
+                node_transform.block<3, 3>(0, 0) *= 0.1;
+                renderBox(
+                    node_transform,
+                    Eigen::Vector3f(0.5f, 0.5f, 0.5f)); // Gray for unknown
             }
         });
 }
@@ -515,6 +543,358 @@ void Viewer::updateCamera()
     m_projection_matrix(2, 3) =
         -2.0f * m_far_plane * m_near_plane / (m_far_plane - m_near_plane);
     m_projection_matrix(3, 2) = -1.0f;
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::generateBox(std::vector<float>& vertices,
+                         std::vector<unsigned int>& indices) const
+{
+    vertices.clear();
+    indices.clear();
+
+    // Box vertices with positions and normals
+    float box_vertices[] = {
+        // positions          // normals
+        -0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.5f,  -0.5f, -0.5f, 0.0f,
+        0.0f,  -1.0f, 0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, 0.5f,
+        -0.5f, 0.0f,  0.0f,  -1.0f, -0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,
+        0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.5f,  0.5f,  0.5f,  0.0f,
+        0.0f,  1.0f,  -0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  -0.5f, -0.5f,
+        -0.5f, -1.0f, 0.0f,  0.0f,  -0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f,
+        -0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  -0.5f, -0.5f, 0.5f,  -1.0f,
+        0.0f,  0.0f,  0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  0.5f,
+        -0.5f, 1.0f,  0.0f,  0.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+        0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  -0.5f, -0.5f, -0.5f, 0.0f,
+        -1.0f, 0.0f,  0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.5f,  -0.5f,
+        0.5f,  0.0f,  -1.0f, 0.0f,  -0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,
+        -0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.5f,  0.5f,  -0.5f, 0.0f,
+        1.0f,  0.0f,  0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  -0.5f, 0.5f,
+        0.5f,  0.0f,  1.0f,  0.0f
+    };
+
+    // Copy vertices data
+    vertices.assign(box_vertices,
+                    box_vertices + sizeof(box_vertices) / sizeof(float));
+
+    // Box indices
+    unsigned int box_indices[] = {
+        0,  1,  2,  2,  3,  0,  // front
+        4,  5,  6,  6,  7,  4,  // back
+        8,  9,  10, 10, 11, 8,  // left
+        12, 13, 14, 14, 15, 12, // right
+        16, 17, 18, 18, 19, 16, // bottom
+        20, 21, 22, 22, 23, 20  // top
+    };
+
+    // Copy indices data
+    indices.assign(box_indices,
+                   box_indices + sizeof(box_indices) / sizeof(unsigned int));
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::generateCylinder(std::vector<float>& vertices,
+                              std::vector<unsigned int>& indices,
+                              float radius,
+                              float height,
+                              size_t segments) const
+{
+    vertices.clear();
+    indices.clear();
+
+    // Generate vertices
+    // Bottom center
+    vertices.insert(vertices.end(),
+                    { 0.0f, -height / 2, 0.0f, 0.0f, -1.0f, 0.0f });
+    // Top center
+    vertices.insert(vertices.end(),
+                    { 0.0f, height / 2, 0.0f, 0.0f, 1.0f, 0.0f });
+
+    // Bottom and top circles
+    for (size_t i = 0; i <= segments; ++i)
+    {
+        float angle = 2.0f * M_PIf * float(i) / float(segments);
+        float x = radius * std::cos(angle);
+        float z = radius * std::sin(angle);
+
+        // Bottom circle vertex
+        vertices.insert(vertices.end(),
+                        { x, -height / 2, z, 0.0f, -1.0f, 0.0f });
+        // Top circle vertex
+        vertices.insert(vertices.end(), { x, height / 2, z, 0.0f, 1.0f, 0.0f });
+
+        // Side vertices with side normals
+        float nx = std::cos(angle);
+        float nz = std::sin(angle);
+        vertices.insert(vertices.end(), { x, -height / 2, z, nx, 0.0f, nz });
+        vertices.insert(vertices.end(), { x, height / 2, z, nx, 0.0f, nz });
+    }
+
+    // Generate indices
+    // Bottom cap
+    for (size_t i = 0; i < segments; ++i)
+    {
+        indices.insert(
+            indices.end(),
+            { 0u,
+              static_cast<unsigned int>(2 + i * 2),
+              static_cast<unsigned int>(2 + ((i + 1) % segments) * 2) });
+    }
+
+    // Top cap
+    for (size_t i = 0; i < segments; ++i)
+    {
+        indices.insert(
+            indices.end(),
+            { 1u,
+              static_cast<unsigned int>(3 + ((i + 1) % segments) * 2),
+              static_cast<unsigned int>(3 + i * 2) });
+    }
+
+    // Side faces
+    size_t side_offset = 2 + segments * 2 * 2;
+    for (size_t i = 0; i < segments; ++i)
+    {
+        size_t curr = side_offset + i * 2;
+        size_t next = side_offset + ((i + 1) % segments) * 2;
+
+        // Two triangles per side face
+        indices.insert(indices.end(),
+                       { static_cast<unsigned int>(curr),
+                         static_cast<unsigned int>(next),
+                         static_cast<unsigned int>(curr + 1) });
+        indices.insert(indices.end(),
+                       { static_cast<unsigned int>(next),
+                         static_cast<unsigned int>(next + 1),
+                         static_cast<unsigned int>(curr + 1) });
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::generateSphere(std::vector<float>& vertices,
+                            std::vector<unsigned int>& indices,
+                            float radius,
+                            size_t latitude_segments,
+                            size_t longitude_segments) const
+{
+    vertices.clear();
+    indices.clear();
+
+    // Generate vertices
+    for (size_t lat = 0; lat <= latitude_segments; ++lat)
+    {
+        float theta = M_PIf * float(lat) / float(latitude_segments);
+        float sin_theta = std::sin(theta);
+        float cos_theta = std::cos(theta);
+
+        for (size_t lon = 0; lon <= longitude_segments; ++lon)
+        {
+            float phi = 2.0f * M_PIf * float(lon) / float(longitude_segments);
+            float sin_phi = std::sin(phi);
+            float cos_phi = std::cos(phi);
+
+            float x = sin_theta * cos_phi;
+            float y = cos_theta;
+            float z = sin_theta * sin_phi;
+
+            // Position
+            vertices.push_back(radius * x);
+            vertices.push_back(radius * y);
+            vertices.push_back(radius * z);
+
+            // Normal (same as normalized position for sphere)
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+        }
+    }
+
+    // Generate indices
+    for (size_t lat = 0; lat < latitude_segments; ++lat)
+    {
+        for (size_t lon = 0; lon < longitude_segments; ++lon)
+        {
+            size_t first = lat * (longitude_segments + 1) + lon;
+            size_t second = first + longitude_segments + 1;
+
+            // Two triangles per quad
+            indices.insert(indices.end(),
+                           { static_cast<unsigned int>(first),
+                             static_cast<unsigned int>(second),
+                             static_cast<unsigned int>(first + 1) });
+            indices.insert(indices.end(),
+                           { static_cast<unsigned int>(second),
+                             static_cast<unsigned int>(second + 1),
+                             static_cast<unsigned int>(first + 1) });
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::initializeBox()
+{
+    std::vector<float> box_vertices;
+    std::vector<unsigned int> box_indices;
+    generateBox(box_vertices, box_indices);
+
+    glGenVertexArrays(1, &m_box_vao);
+    glGenBuffers(1, &m_box_vbo);
+    glGenBuffers(1, &m_box_ebo);
+
+    glBindVertexArray(m_box_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_box_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 box_vertices.size() * sizeof(float),
+                 box_vertices.data(),
+                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_box_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 box_indices.size() * sizeof(unsigned int),
+                 box_indices.data(),
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          6 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::initializeCylinder()
+{
+    std::vector<float> cylinder_vertices;
+    std::vector<unsigned int> cylinder_indices;
+    generateCylinder(cylinder_vertices, cylinder_indices, 1.0f, 2.0f, 16);
+
+    glGenVertexArrays(1, &m_cylinder_vao);
+    glGenBuffers(1, &m_cylinder_vbo);
+    glGenBuffers(1, &m_cylinder_ebo);
+
+    glBindVertexArray(m_cylinder_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_cylinder_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 cylinder_vertices.size() * sizeof(float),
+                 cylinder_vertices.data(),
+                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 cylinder_indices.size() * sizeof(unsigned int),
+                 cylinder_indices.data(),
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          6 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    m_cylinder_index_count = cylinder_indices.size();
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::initializeSphere()
+{
+    std::vector<float> sphere_vertices;
+    std::vector<unsigned int> sphere_indices;
+    generateSphere(sphere_vertices, sphere_indices, 1.0f, 16, 16);
+
+    glGenVertexArrays(1, &m_sphere_vao);
+    glGenBuffers(1, &m_sphere_vbo);
+    glGenBuffers(1, &m_sphere_ebo);
+
+    glBindVertexArray(m_sphere_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 sphere_vertices.size() * sizeof(float),
+                 sphere_vertices.data(),
+                 GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere_ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 sphere_indices.size() * sizeof(unsigned int),
+                 sphere_indices.data(),
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          6 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    m_sphere_index_count = sphere_indices.size();
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::initializeGrid()
+{
+    std::vector<float> grid_vertices;
+    const int grid_size = 20;
+    const float grid_spacing = 1.0f;
+
+    for (int i = -grid_size; i <= grid_size; ++i)
+    {
+        // Lines parallel to X axis
+        grid_vertices.push_back(-grid_size * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(float(i) * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(1.0f);
+        grid_vertices.push_back(0.0f);
+
+        grid_vertices.push_back(grid_size * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(float(i) * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(1.0f);
+        grid_vertices.push_back(0.0f);
+
+        // Lines parallel to Z axis
+        grid_vertices.push_back(float(i) * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(-grid_size * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(1.0f);
+        grid_vertices.push_back(0.0f);
+
+        grid_vertices.push_back(float(i) * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(grid_size * grid_spacing);
+        grid_vertices.push_back(0.0f);
+        grid_vertices.push_back(1.0f);
+        grid_vertices.push_back(0.0f);
+    }
+
+    glGenVertexArrays(1, &m_grid_vao);
+    glGenBuffers(1, &m_grid_vbo);
+
+    glBindVertexArray(m_grid_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_grid_vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 grid_vertices.size() * sizeof(float),
+                 grid_vertices.data(),
+                 GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          6 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 }
 
 // ----------------------------------------------------------------------------
@@ -581,12 +961,6 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
             (m_camera_pos - m_camera_target).normalized();
         m_camera_pos = m_camera_target + direction * (m_far_plane * 0.8f);
     }
-}
-
-// ----------------------------------------------------------------------------
-bool Viewer::shouldClose() const
-{
-    return glfwWindowShouldClose(m_window);
 }
 
 // ----------------------------------------------------------------------------
