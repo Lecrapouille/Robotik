@@ -91,17 +91,54 @@ int main()
     std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
     robot->setJointValues(joint_values);
 
-    // Set camera view
+    // Get base position for camera target
     auto base_position = robotik::utils::getTranslation(
         robot->getRootNode()->getWorldTransform());
-    viewer.setCameraView(robotik::Viewer::CameraViewType::ISOMETRIC,
-                         base_position);
+
+    // Set initial camera view
+    viewer.setCameraView(robotik::Viewer::CameraViewType::SIDE, base_position);
 
     // Main render loop
     while (!viewer.shouldClose())
     {
-        // Process input
-        viewer.processInput();
+        // Process input with camera controls
+        viewer.processInput(
+            [&viewer, &base_position](int key, int action)
+            {
+                if (action == GLFW_PRESS)
+                {
+                    switch (key)
+                    {
+                        case GLFW_KEY_1:
+                            viewer.setCameraView(
+                                robotik::Viewer::CameraViewType::PERSPECTIVE,
+                                base_position);
+                            break;
+                        case GLFW_KEY_2:
+                            viewer.setCameraView(
+                                robotik::Viewer::CameraViewType::TOP,
+                                base_position);
+                            break;
+                        case GLFW_KEY_3:
+                            viewer.setCameraView(
+                                robotik::Viewer::CameraViewType::FRONT,
+                                base_position);
+                            break;
+                        case GLFW_KEY_4:
+                            viewer.setCameraView(
+                                robotik::Viewer::CameraViewType::SIDE,
+                                base_position);
+                            break;
+                        case GLFW_KEY_5:
+                            viewer.setCameraView(
+                                robotik::Viewer::CameraViewType::ISOMETRIC,
+                                base_position);
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            });
 
         // Animate the robot
         animate(*robot);

@@ -4,6 +4,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <functional>
 
 namespace robotik
 {
@@ -91,7 +92,7 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Process input events
     // ------------------------------------------------------------------------
-    void processInput();
+    void processInput(std::function<void(int, int)> key_callback = nullptr);
 
     // ------------------------------------------------------------------------
     //! \brief Get the GLFW window

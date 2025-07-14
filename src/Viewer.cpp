@@ -351,29 +351,32 @@ void Viewer::renderSphere(const Transform& p_transform,
 void Viewer::renderJoint(Joint const& joint,
                          const Transform& world_transform) const
 {
-    // Render joint as a small sphere (RED)
     Transform joint_transform = world_transform;
-
-    // Scale down the joint representation
-    joint_transform.block<3, 3>(0, 0) *= 0.05;
 
     switch (joint.getType())
     {
         case Joint::Type::REVOLUTE:
         {
-            renderBox(joint_transform,
-                      Eigen::Vector3f(1.0f, 0.0f, 0.0f)); // Red for joints
+            // Render revolute joint as a cylinder (RED)
+            joint_transform.block<3, 3>(0, 0) *= 0.05;
+            renderCylinder(
+                joint_transform,
+                Eigen::Vector3f(1.0f, 0.0f, 0.0f)); // Red for revolute joints
             break;
         }
         case Joint::Type::PRISMATIC:
         {
-            renderCylinder(joint_transform,
-                           Eigen::Vector3f(0.0f, 1.0f, 0.0f)); // Green for
+            // Render prismatic joint as a box (GREEN)
+            joint_transform.block<3, 3>(0, 0) *= 0.05;
+            renderBox(joint_transform,
+                      Eigen::Vector3f(
+                          0.0f, 1.0f, 0.0f)); // Green for prismatic joints
             break;
         }
         case Joint::Type::FIXED:
         default:
         {
+            // Don't render fixed joints
             break;
         }
     }
@@ -918,19 +921,19 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
             m_camera_up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
             break;
         case CameraViewType::TOP:
-            camera_distance = 10.0f;
+            camera_distance = 5.0f;
             m_camera_pos =
                 p_camera_target + Eigen::Vector3f(0.0f, camera_distance, 0.0f);
             m_camera_up = Eigen::Vector3f(0.0f, 0.0f, -1.0f);
             break;
         case CameraViewType::FRONT:
-            camera_distance = 10.0f;
+            camera_distance = 5.0f;
             m_camera_pos =
                 p_camera_target + Eigen::Vector3f(0.0f, 0.0f, camera_distance);
             m_camera_up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
             break;
         case CameraViewType::SIDE:
-            camera_distance = 10.0f;
+            camera_distance = 5.0f;
             m_camera_pos =
                 p_camera_target + Eigen::Vector3f(camera_distance, 0.0f, 0.0f);
             m_camera_up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
@@ -964,9 +967,24 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::processInput()
+void Viewer::processInput(std::function<void(int, int)> key_callback)
 {
     glfwPollEvents();
+
+    if (key_callback)
+    {
+        // Check for camera view keys
+        if (glfwGetKey(m_window, GLFW_KEY_1) == GLFW_PRESS)
+            key_callback(GLFW_KEY_1, GLFW_PRESS);
+        if (glfwGetKey(m_window, GLFW_KEY_2) == GLFW_PRESS)
+            key_callback(GLFW_KEY_2, GLFW_PRESS);
+        if (glfwGetKey(m_window, GLFW_KEY_3) == GLFW_PRESS)
+            key_callback(GLFW_KEY_3, GLFW_PRESS);
+        if (glfwGetKey(m_window, GLFW_KEY_4) == GLFW_PRESS)
+            key_callback(GLFW_KEY_4, GLFW_PRESS);
+        if (glfwGetKey(m_window, GLFW_KEY_5) == GLFW_PRESS)
+            key_callback(GLFW_KEY_5, GLFW_PRESS);
+    }
 }
 
 } // namespace robotik
