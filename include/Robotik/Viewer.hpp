@@ -117,12 +117,6 @@ private:
     bool initializeShaders();
 
     // ------------------------------------------------------------------------
-    //! \brief Initialize geometry buffers
-    //! \return true if successful
-    // ------------------------------------------------------------------------
-    bool initializeGeometry();
-
-    // ------------------------------------------------------------------------
     //! \brief Compile shader
     //! \param p_source Shader source code
     //! \param p_type Shader type
@@ -140,6 +134,81 @@ private:
     unsigned int
     createShaderProgram(const std::string& p_vertex_source,
                         const std::string& p_fragment_source) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Update camera matrices
+    // ------------------------------------------------------------------------
+    void updateCamera();
+
+    // ------------------------------------------------------------------------
+    //! \brief Setup camera for specific view
+    //! \param p_view_type Camera view
+    //! \param p_camera_target Camera target position
+    // ------------------------------------------------------------------------
+    void setupCameraView(CameraViewType p_view_type,
+                         const Eigen::Vector3f& p_camera_target);
+
+    // ------------------------------------------------------------------------
+    //! \brief Initialize geometry buffers
+    //! \return true if successful
+    // ------------------------------------------------------------------------
+    bool initializeGeometry();
+
+    // ------------------------------------------------------------------------
+    //! \brief Generate box geometry vertices and indices
+    //! \param vertices Output vector for vertex data
+    //! \param indices Output vector for index data
+    // ------------------------------------------------------------------------
+    void generateBox(std::vector<float>& vertices,
+                     std::vector<unsigned int>& indices) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Initialize box geometry buffers
+    // ------------------------------------------------------------------------
+    void initializeBox();
+
+    // ------------------------------------------------------------------------
+    //! \brief Initialize cylinder geometry buffers
+    // ------------------------------------------------------------------------
+    void initializeCylinder();
+
+    // ------------------------------------------------------------------------
+    //! \brief Initialize sphere geometry buffers
+    // ------------------------------------------------------------------------
+    void initializeSphere();
+
+    // ------------------------------------------------------------------------
+    //! \brief Initialize grid geometry buffers
+    // ------------------------------------------------------------------------
+    void initializeGrid();
+
+    // ------------------------------------------------------------------------
+    //! \brief Generate cylinder geometry vertices and indices
+    //! \param vertices Output vector for vertex data
+    //! \param indices Output vector for index data
+    //! \param radius Cylinder radius
+    //! \param height Cylinder height
+    //! \param segments Number of segments around cylinder
+    // ------------------------------------------------------------------------
+    void generateCylinder(std::vector<float>& vertices,
+                          std::vector<unsigned int>& indices,
+                          float radius,
+                          float height,
+                          size_t segments) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Generate sphere geometry vertices and indices
+    //! \param vertices Output vector for vertex data
+    //! \param indices Output vector for index data
+    //! \param radius Sphere radius
+    //! \param latitude_segments Number of latitude segments
+    //! \param longitude_segments Number of longitude segments
+    // ------------------------------------------------------------------------
+    void generateSphere(std::vector<float>& vertices,
+                        std::vector<unsigned int>& indices,
+                        float radius,
+                        size_t latitude_segments,
+                        size_t longitude_segments) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render grid
@@ -179,17 +248,19 @@ private:
     void renderRobot() const;
 
     // ------------------------------------------------------------------------
-    //! \brief Update camera matrices
+    //! \brief Render a joint node
+    //! \param joint Pointer to the joint to render
+    //! \param world_transform World transformation matrix
     // ------------------------------------------------------------------------
-    void updateCamera();
+    void renderJoint(Joint const& joint,
+                     const Transform& world_transform) const;
 
     // ------------------------------------------------------------------------
-    //! \brief Setup camera for specific view
-    //! \param p_view_type Camera view
-    //! \param p_camera_target Camera target position
+    //! \brief Render a link node
+    //! \param link Pointer to the link to render
+    //! \param world_transform World transformation matrix
     // ------------------------------------------------------------------------
-    void setupCameraView(CameraViewType p_view_type,
-                         const Eigen::Vector3f& p_camera_target);
+    void renderLink(Link const& link, const Transform& world_transform) const;
 
 private:
 
@@ -214,6 +285,10 @@ private:
     unsigned int m_sphere_ebo = 0;
     unsigned int m_grid_vao = 0;
     unsigned int m_grid_vbo = 0;
+
+    // Index counts for geometry
+    size_t m_cylinder_index_count = 0;
+    size_t m_sphere_index_count = 0;
 
     // Camera
     Eigen::Vector3f m_camera_pos = Eigen::Vector3f(8.0f, 3.0f, 8.0f);
