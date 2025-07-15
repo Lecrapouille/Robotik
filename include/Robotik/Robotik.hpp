@@ -79,7 +79,9 @@ struct Geometry
         MESH
     };
 
-    explicit Geometry(Type t = Type::BOX) : type(t) {}
+    explicit Geometry(Type t = Type::BOX) : type(t), color(0.5, 0.5, 0.5, 1.0)
+    {
+    }
 
     //! \brief Type of geometry (box, cylinder, sphere, mesh).
     Type type;
@@ -88,6 +90,10 @@ struct Geometry
     std::vector<double> parameters;
     //! \brief Path to the mesh file (if type is MESH).
     std::string mesh_path;
+    //! \brief Color of the geometry (RGBA values).
+    Eigen::Vector4d color;
+    //! \brief Visual origin transformation (xyz and rpy).
+    robotik::Transform visual_origin = robotik::Transform::Identity();
 };
 
 // ****************************************************************************
