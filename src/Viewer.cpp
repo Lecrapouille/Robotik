@@ -17,10 +17,19 @@ uniform mat4 projection;
 uniform vec3 color;
 
 out vec3 FragColor;
+out vec3 Normal;
+out vec3 FragPos;
 
 void main()
 {
     gl_Position = projection * view * model * vec4(aPos, 1.0);
+
+    // Transform normal to world space
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+
+    // Fragment position in world space
+    FragPos = vec3(model * vec4(aPos, 1.0));
+
     FragColor = color;
 }
 )";
@@ -28,11 +37,31 @@ void main()
 const std::string Viewer::s_fragment_shader_source = R"(
 #version 330 core
 in vec3 FragColor;
+in vec3 Normal;
+in vec3 FragPos;
+
 out vec4 outColor;
 
 void main()
 {
-    outColor = vec4(FragColor, 1.0);
+    // Simple directional light
+    vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
+    vec3 lightColor = vec3(1.0, 1.0, 1.0);
+
+    // Normalize the normal
+    vec3 norm = normalize(Normal);
+
+    // Ambient lighting
+    float ambientStrength = 0.3;
+    vec3 ambient = ambientStrength * lightColor;
+
+    // Diffuse lighting
+    float diff = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse = diff * lightColor;
+
+    // Combine lighting
+    vec3 result = (ambient + diffuse) * FragColor;
+    outColor = vec4(result, 1.0);
 }
 )";
 
