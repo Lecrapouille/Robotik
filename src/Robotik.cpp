@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cmath>
 
+#include <iostream>
+
 namespace robotik
 {
 
@@ -276,6 +278,7 @@ bool RobotArm::inverseKinematics(const Pose& p_target_pose,
 // ----------------------------------------------------------------------------
 Jacobian RobotArm::calculateJacobian() const
 {
+    std::cout << "calculateJacobian" << std::endl;
     checkRobotSetupValidity();
 
     const size_t num_joints = m_joints.size();
@@ -288,9 +291,11 @@ Jacobian RobotArm::calculateJacobian() const
     for (size_t i = 0; i < num_joints; ++i)
     {
         auto& joint = *m_joints[i];
+        std::cout << "  Joint: " << joint.getName() << std::endl;
 
         // Transformation of the joint in the global space
         Transform joint_transform = joint.getWorldTransform();
+        std::cout << "  Joint transform: " << joint_transform << std::endl;
 
         // Position of the joint
         Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
