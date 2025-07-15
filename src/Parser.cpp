@@ -68,6 +68,41 @@ void URDFParser::parseLinks(tinyxml2::XMLElement* p_robot_element)
                 geometry_element->Accept(&printer);
                 link->geometry = parseGeometry(printer.CStr());
             }
+
+            // Parse visual origin if present
+            if (auto origin_element =
+                    visual_element->FirstChildElement("origin"))
+            {
+                const char* xyz = origin_element->Attribute("xyz");
+                const char* rpy = origin_element->Attribute("rpy");
+                if (xyz && rpy)
+                {
+                    link->geometry.visual_origin = parseOrigin(xyz, rpy);
+                }
+                else if (xyz)
+                {
+                    link->geometry.visual_origin = parseOrigin(xyz, "0 0 0");
+                }
+                else if (rpy)
+                {
+                    link->geometry.visual_origin = parseOrigin("0 0 0", rpy);
+                }
+            }
+
+            // Parse material color if present
+            if (auto material_element =
+                    visual_element->FirstChildElement("material"))
+            {
+                if (auto color_element =
+                        material_element->FirstChildElement("color"))
+                {
+                    const char* rgba = color_element->Attribute("rgba");
+                    if (rgba)
+                    {
+                        link->geometry.color = parseVector4(rgba);
+                    }
+                }
+            }
         }
 
         // Parse inertial properties if present

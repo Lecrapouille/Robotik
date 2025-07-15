@@ -386,7 +386,11 @@ void Viewer::renderJoint(Joint const& joint,
 void Viewer::renderLink(Link const& link,
                         const Transform& world_transform) const
 {
-    Transform link_transform = world_transform;
+    // Apply visual origin transformation
+    Transform link_transform = world_transform * link.geometry.visual_origin;
+
+    // Get color from geometry (RGB only, ignore alpha)
+    Eigen::Vector3f color = link.geometry.color.head<3>().cast<float>();
 
     // Check if link has geometry information
     if (!link.geometry.parameters.empty())
@@ -406,8 +410,7 @@ void Viewer::renderLink(Link const& link,
                     link_transform.block<3, 3>(0, 0) =
                         link_transform.block<3, 3>(0, 0) * scale;
                 }
-                renderBox(link_transform,
-                          Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                renderBox(link_transform, color);
                 break;
             }
             case Geometry::Type::CYLINDER:
@@ -424,9 +427,7 @@ void Viewer::renderLink(Link const& link,
                     link_transform.block<3, 3>(0, 0) =
                         link_transform.block<3, 3>(0, 0) * scale;
                 }
-                renderCylinder(
-                    link_transform,
-                    Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                renderCylinder(link_transform, color);
                 break;
             }
             case Geometry::Type::SPHERE:
@@ -442,9 +443,7 @@ void Viewer::renderLink(Link const& link,
                     link_transform.block<3, 3>(0, 0) =
                         link_transform.block<3, 3>(0, 0) * scale;
                 }
-                renderSphere(
-                    link_transform,
-                    Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                renderSphere(link_transform, color);
                 break;
             }
             case Geometry::Type::MESH:
@@ -455,8 +454,7 @@ void Viewer::renderLink(Link const& link,
             default:
                 // Default to box for unknown geometry
                 link_transform.block<3, 3>(0, 0) *= 0.1;
-                renderBox(link_transform,
-                          Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+                renderBox(link_transform, color);
                 break;
         }
     }
@@ -464,8 +462,7 @@ void Viewer::renderLink(Link const& link,
     {
         // No geometry information, render as default box
         link_transform.block<3, 3>(0, 0) *= 0.1;
-        renderBox(link_transform,
-                  Eigen::Vector3f(0.0f, 0.0f, 1.0f)); // Blue for links
+        renderBox(link_transform, color);
     }
 }
 
