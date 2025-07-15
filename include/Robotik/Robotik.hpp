@@ -460,10 +460,16 @@ public:
     //! \param p_name Unique identifier for the joint in the kinematic chain
     //! \param p_type Mechanical type defining the motion constraint
     //! \param p_axis Normalized 3D vector defining the motion axis
+    //! \param p_origin_xyz Origin translation from parent link frame (default:
+    //! 0,0,0)
+    //! \param p_origin_rpy Origin rotation from parent link frame (default:
+    //! 0,0,0)
     // ------------------------------------------------------------------------
     Joint(const std::string_view& p_name,
           Type p_type,
-          const Eigen::Vector3d& p_axis);
+          const Eigen::Vector3d& p_axis,
+          const Eigen::Vector3d& p_origin_xyz = Eigen::Vector3d::Zero(),
+          const Eigen::Vector3d& p_origin_rpy = Eigen::Vector3d::Zero());
 
     // ------------------------------------------------------------------------
     //! \brief Set the joint's configuration value.
@@ -646,6 +652,24 @@ public:
         return m_axis;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's origin translation.
+    //! \return Constant reference to the origin translation vector
+    // ------------------------------------------------------------------------
+    inline const Eigen::Vector3d& getOriginXYZ() const
+    {
+        return m_origin_xyz;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's origin rotation.
+    //! \return Constant reference to the origin rotation vector (RPY)
+    // ------------------------------------------------------------------------
+    inline const Eigen::Vector3d& getOriginRPY() const
+    {
+        return m_origin_rpy;
+    }
+
 private:
 
     //! \brief Mechanical constraint type (revolute/prismatic/fixed)
@@ -658,6 +682,12 @@ private:
     double m_max;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
+    //! \brief Origin translation from parent link frame (XYZ)
+    Eigen::Vector3d m_origin_xyz;
+    //! \brief Origin rotation from parent link frame (RPY)
+    Eigen::Vector3d m_origin_rpy;
+    //! \brief Cached origin transformation matrix with origin XYZ and RPY.
+    Transform m_origin_transform;
 };
 
 // ****************************************************************************
