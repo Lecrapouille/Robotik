@@ -39,7 +39,8 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES += $(call rwildcard,$(P)/src,*.cpp)
+SRC_FILES += $(P)/src/Parser.cpp
+SRC_FILES += $(P)/src/Robotik.cpp
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 INCLUDES += $(P)/include
 VPATH += $(P)/src

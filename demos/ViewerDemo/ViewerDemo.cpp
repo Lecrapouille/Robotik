@@ -1,7 +1,7 @@
+#include "Robotik/Parser.hpp"
 #include "Robotik/Robotik.hpp"
 #include "Robotik/Viewer.hpp"
 
-#include <chrono>
 #include <iostream>
 #include <thread>
 
@@ -75,7 +75,14 @@ static void animate(robotik::RobotArm& p_robot)
 // ----------------------------------------------------------------------------
 int main()
 {
-    auto robot = createRobot();
+    // auto robot = createRobot();
+    robotik::URDFParser parser;
+    auto robot = parser.load("/home/qq/MyGitHub/Robotik/data/scara_robot.urdf");
+    if (!robot)
+    {
+        std::cerr << "Failed to load robot: " << parser.getError() << std::endl;
+        return EXIT_FAILURE;
+    }
 
     robotik::Viewer viewer(1024, 768, "Robotik Viewer Demo");
     if (!viewer.initialize())
@@ -88,8 +95,8 @@ int main()
     viewer.setRobot(*robot);
 
     // Set initial joint values
-    std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
-    robot->setJointValues(joint_values);
+    // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
+    // robot->setJointValues(joint_values);
 
     // Get base position for camera target
     auto base_position = robotik::utils::getTranslation(
