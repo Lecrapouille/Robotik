@@ -102,23 +102,9 @@ void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
             }
         }
 
-        // Create the joint
-        auto joint = std::make_unique<Joint>(name, type, axis);
-
-        // Parse limits
-        if (auto limit_element = joint_element->FirstChildElement("limit"))
-        {
-            double lower = 0, upper = 0;
-            if (limit_element->QueryDoubleAttribute("lower", &lower) ==
-                    tinyxml2::XML_SUCCESS &&
-                limit_element->QueryDoubleAttribute("upper", &upper) ==
-                    tinyxml2::XML_SUCCESS)
-            {
-                joint->setLimits(lower, upper);
-            }
-        }
-
         // Parse origin
+        Eigen::Vector3d origin_xyz = Eigen::Vector3d::Zero();
+        Eigen::Vector3d origin_rpy = Eigen::Vector3d::Zero();
         if (auto origin_element = joint_element->FirstChildElement("origin"))
         {
             std::string xyz = "0 0 0";
@@ -135,8 +121,25 @@ void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
                 rpy = rpy_attr;
             }
 
-            Transform origin = parseOrigin(xyz, rpy);
-            joint->setLocalTransform(origin);
+            origin_xyz = parseVector3(xyz);
+            origin_rpy = parseVector3(rpy);
+        }
+
+        // Create the joint with origin parameters
+        auto joint =
+            std::make_unique<Joint>(name, type, axis, origin_xyz, origin_rpy);
+
+        // Parse limits
+        if (auto limit_element = joint_element->FirstChildElement("limit"))
+        {
+            double lower = 0, upper = 0;
+            if (limit_element->QueryDoubleAttribute("lower", &lower) ==
+                    tinyxml2::XML_SUCCESS &&
+                limit_element->QueryDoubleAttribute("upper", &upper) ==
+                    tinyxml2::XML_SUCCESS)
+            {
+                joint->setLimits(lower, upper);
+            }
         }
 
         // Parse parent and child links

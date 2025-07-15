@@ -76,14 +76,29 @@ void Node::updateWorldTransform()
 // ----------------------------------------------------------------------------
 Joint::Joint(const std::string_view& p_name,
              Joint::Type p_type,
-             const Eigen::Vector3d& p_axis)
+             const Eigen::Vector3d& p_axis,
+             const Eigen::Vector3d& p_origin_xyz,
+             const Eigen::Vector3d& p_origin_rpy)
     : Node(p_name),
       m_type(p_type),
       m_value(0.0),
       m_min(-M_PI),
       m_max(M_PI),
-      m_axis(p_axis.normalized())
+      m_axis(p_axis.normalized()),
+      m_origin_xyz(p_origin_xyz),
+      m_origin_rpy(p_origin_rpy)
 {
+    // Pre-compute origin transformation matrix (this never changes)
+    m_origin_transform = Eigen::Matrix4d::Identity();
+    m_origin_transform.block<3, 1>(0, 3) = m_origin_xyz;
+
+    // Apply RPY rotation
+    Eigen::Matrix3d rotation =
+        (Eigen::AngleAxisd(m_origin_rpy.z(), Eigen::Vector3d::UnitZ()) *
+         Eigen::AngleAxisd(m_origin_rpy.y(), Eigen::Vector3d::UnitY()) *
+         Eigen::AngleAxisd(m_origin_rpy.x(), Eigen::Vector3d::UnitX()))
+            .toRotationMatrix();
+    m_origin_transform.block<3, 3>(0, 0) = rotation;
 }
 
 // ----------------------------------------------------------------------------
@@ -103,21 +118,23 @@ void Joint::setValue(double p_value)
 // ----------------------------------------------------------------------------
 Transform Joint::getTransform() const
 {
-    Transform transform = Transform::Identity();
+    // Apply joint-specific transformation
+    Eigen::Matrix4d joint_transform = Eigen::Matrix4d::Identity();
 
     switch (m_type)
     {
         case Joint::Type::REVOLUTE:
         {
             // Create the rotation matrix around the axis
-            Eigen::AngleAxisd rotation(m_value, m_axis);
-            transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
+            Eigen::AngleAxisd joint_rotation(m_value, m_axis);
+            joint_transform.block<3, 3>(0, 0) =
+                joint_rotation.toRotationMatrix();
             break;
         }
         case Joint::Type::PRISMATIC:
         {
             // Translation along the axis
-            transform.block<3, 1>(0, 3) = m_axis * m_value;
+            joint_transform.block<3, 1>(0, 3) = m_axis * m_value;
             break;
         }
         case Joint::Type::FIXED:
@@ -125,7 +142,8 @@ Transform Joint::getTransform() const
             break;
     }
 
-    return transform;
+    // Combine cached origin transformation with joint transformation
+    return m_origin_transform * joint_transform;
 }
 
 // ----------------------------------------------------------------------------
@@ -290,7 +308,7 @@ Jacobian RobotArm::calculateJacobian() const
 
     for (size_t i = 0; i < num_joints; ++i)
     {
-        auto& joint = *m_joints[i];
+        auto const& joint = *m_joints[i];
         std::cout << "  Joint: " << joint.getName() << std::endl;
 
         // Transformation of the joint in the global space
@@ -467,8 +485,7 @@ void RobotArm::addLink(const std::string_view& p_name,
 // ----------------------------------------------------------------------------
 Link* RobotArm::getLink(const std::string_view& p_name) const
 {
-    auto it = m_links.find(std::string(p_name));
-    if (it != m_links.end())
+    if (auto it = m_links.find(std::string(p_name)); it != m_links.end())
     {
         return it->second.get();
     }
