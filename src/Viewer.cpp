@@ -489,18 +489,23 @@ void Viewer::renderRobot() const
             {
                 renderJoint(*joint, world_transform);
             }
-            else if (auto link = dynamic_cast<Link*>(&node))
-            {
-                renderLink(*link, world_transform);
-            }
             else
             {
-                // Fallback for unknown node types
-                Transform node_transform = world_transform;
-                node_transform.block<3, 3>(0, 0) *= 0.1;
-                renderBox(
-                    node_transform,
-                    Eigen::Vector3f(0.5f, 0.5f, 0.5f)); // Gray for unknown
+                // Try to find a corresponding Link object
+                Link const* link = m_robot->getLink(node.getName());
+                if (link)
+                {
+                    renderLink(*link, world_transform);
+                }
+                else
+                {
+                    // Fallback for unknown node types
+                    Transform node_transform = world_transform;
+                    node_transform.block<3, 3>(0, 0) *= 0.1;
+                    renderBox(
+                        node_transform,
+                        Eigen::Vector3f(0.5f, 0.5f, 0.5f)); // Gray for unknown
+                }
             }
         });
 }
@@ -624,6 +629,14 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
                         { x, -height / 2, z, 0.0f, -1.0f, 0.0f });
         // Top circle vertex
         vertices.insert(vertices.end(), { x, height / 2, z, 0.0f, 1.0f, 0.0f });
+    }
+
+    // Side vertices with side normals
+    for (size_t i = 0; i <= segments; ++i)
+    {
+        float angle = 2.0f * M_PIf * float(i) / float(segments);
+        float x = radius * std::cos(angle);
+        float z = radius * std::sin(angle);
 
         // Side vertices with side normals
         float nx = std::cos(angle);
@@ -640,7 +653,7 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
             indices.end(),
             { 0u,
               static_cast<unsigned int>(2 + i * 2),
-              static_cast<unsigned int>(2 + ((i + 1) % segments) * 2) });
+              static_cast<unsigned int>(2 + ((i + 1) % (segments + 1)) * 2) });
     }
 
     // Top cap
@@ -649,16 +662,16 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
         indices.insert(
             indices.end(),
             { 1u,
-              static_cast<unsigned int>(3 + ((i + 1) % segments) * 2),
+              static_cast<unsigned int>(3 + ((i + 1) % (segments + 1)) * 2),
               static_cast<unsigned int>(3 + i * 2) });
     }
 
     // Side faces
-    size_t side_offset = 2 + segments * 2 * 2;
+    size_t side_offset = 2 + (segments + 1) * 2;
     for (size_t i = 0; i < segments; ++i)
     {
         size_t curr = side_offset + i * 2;
-        size_t next = side_offset + ((i + 1) % segments) * 2;
+        size_t next = side_offset + ((i + 1) % (segments + 1)) * 2;
 
         // Two triangles per side face
         indices.insert(indices.end(),
