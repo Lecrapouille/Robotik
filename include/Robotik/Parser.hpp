@@ -40,6 +40,31 @@ private:
     void parseLinks(tinyxml2::XMLElement* p_robot_element);
     void parseJoints(tinyxml2::XMLElement* p_robot_element);
 
+    // Parse specific elements
+    void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
+                               Link& p_link);
+    void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
+                                 Link& p_link);
+    void parseMaterial(tinyxml2::XMLElement* p_visual_element,
+                       Geometry& p_geometry);
+    void parseLimits(tinyxml2::XMLElement* p_joint_element, Joint& p_joint);
+    void parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
+                               Joint& p_joint);
+
+    // Parse specific attributes and transforms
+    Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element);
+    std::pair<Eigen::Vector3d, Eigen::Vector3d>
+    parseOriginTransform(tinyxml2::XMLElement* p_element);
+    Transform parseOriginFromElement(tinyxml2::XMLElement* p_element);
+    Geometry parseGeometryFromElement(tinyxml2::XMLElement* p_geometry_element);
+
+    // Utility methods for XML parsing
+    std::string getRequiredAttribute(tinyxml2::XMLElement* p_element,
+                                     const char* p_attr_name);
+    std::string getAttributeOrDefault(tinyxml2::XMLElement* p_element,
+                                      const char* p_attr_name,
+                                      const std::string& p_default);
+
     // ------------------------------------------------------------------------
     //! \brief Find root and end effector links:
     //!  - The root link is the one that has no parent joint.
@@ -58,7 +83,7 @@ private:
                           const std::string& p_rpy) const;
     Geometry parseGeometry(const std::string& p_xml) const;
     Inertial parseInertial(const std::string& p_xml) const;
-    Joint::Type parseJointType(const std::string_view& p_str_type) const;
+    Joint::Type parseJointType(const std::string& p_str_type) const;
 
 private:
 

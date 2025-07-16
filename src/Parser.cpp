@@ -52,63 +52,12 @@ void URDFParser::parseLinks(tinyxml2::XMLElement* p_robot_element)
          link_element;
          link_element = link_element->NextSiblingElement("link"))
     {
-        std::string name = link_element->Attribute("name");
+        std::string name = getRequiredAttribute(link_element, "name");
         auto link = std::make_unique<Link>(name);
 
-        // Parse visual geometry if present
-        if (auto visual_element = link_element->FirstChildElement("visual"))
-        {
-            if (auto geometry_element =
-                    visual_element->FirstChildElement("geometry"))
-            {
-                tinyxml2::XMLPrinter printer;
-                geometry_element->Accept(&printer);
-                link->geometry = parseGeometry(printer.CStr());
-            }
-
-            // Parse visual origin if present
-            if (auto origin_element =
-                    visual_element->FirstChildElement("origin"))
-            {
-                const char* xyz = origin_element->Attribute("xyz");
-                const char* rpy = origin_element->Attribute("rpy");
-                if (xyz && rpy)
-                {
-                    link->geometry.visual_origin = parseOrigin(xyz, rpy);
-                }
-                else if (xyz)
-                {
-                    link->geometry.visual_origin = parseOrigin(xyz, "0 0 0");
-                }
-                else if (rpy)
-                {
-                    link->geometry.visual_origin = parseOrigin("0 0 0", rpy);
-                }
-            }
-
-            // Parse material color if present
-            if (auto material_element =
-                    visual_element->FirstChildElement("material"))
-            {
-                if (auto color_element =
-                        material_element->FirstChildElement("color"))
-                {
-                    const char* rgba = color_element->Attribute("rgba");
-                    if (rgba)
-                    {
-                        link->geometry.color = parseVector4(rgba);
-                    }
-                }
-            }
-        }
-
-        // Parse inertial properties if present
-        if (auto inertial_element = link_element->FirstChildElement("inertial"))
-        {
-            tinyxml2::XMLPrinter printer;
-            inertial_element->Accept(&printer);
-            link->inertial = parseInertial(printer.CStr());
-        }
+        // Parse visual and inertial properties
+        parseVisualProperties(link_element, *link);
+        parseInertialProperties(link_element, *link);
 
         m_links[name] = std::move(link);
     }
@@ -121,82 +70,183 @@ void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
          joint_element;
          joint_element = joint_element->NextSiblingElement("joint"))
     {
-        std::string name = joint_element->Attribute("name");
-        Joint::Type type = parseJointType(joint_element->Attribute("type"));
+        std::string name = getRequiredAttribute(joint_element, "name");
+        Joint::Type type =
+            parseJointType(getRequiredAttribute(joint_element, "type"));
 
-        // Parse axis
-        Eigen::Vector3d axis = Eigen::Vector3d::UnitZ();
-        if (auto axis_element = joint_element->FirstChildElement("axis"))
-        {
-            if (const char* xyz_attr = axis_element->Attribute("xyz"); xyz_attr)
-            {
-                axis = parseVector3(xyz_attr);
-            }
-        }
-
-        // Parse origin
-        Eigen::Vector3d origin_xyz = Eigen::Vector3d::Zero();
-        Eigen::Vector3d origin_rpy = Eigen::Vector3d::Zero();
-        if (auto origin_element = joint_element->FirstChildElement("origin"))
-        {
-            std::string xyz = "0 0 0";
-            std::string rpy = "0 0 0";
-
-            if (const char* xyz_attr = origin_element->Attribute("xyz");
-                xyz_attr)
-            {
-                xyz = xyz_attr;
-            }
-            if (const char* rpy_attr = origin_element->Attribute("rpy");
-                rpy_attr)
-            {
-                rpy = rpy_attr;
-            }
-
-            origin_xyz = parseVector3(xyz);
-            origin_rpy = parseVector3(rpy);
-        }
-
-        // Create the joint with origin parameters
+        // Parse axis, origin, and create joint
+        Eigen::Vector3d axis = parseAxis(joint_element);
+        auto [origin_xyz, origin_rpy] = parseOriginTransform(joint_element);
         auto joint =
             std::make_unique<Joint>(name, type, axis, origin_xyz, origin_rpy);
 
-        // Parse limits
-        if (auto limit_element = joint_element->FirstChildElement("limit"))
-        {
-            double lower = 0, upper = 0;
-            if (limit_element->QueryDoubleAttribute("lower", &lower) ==
-                    tinyxml2::XML_SUCCESS &&
-                limit_element->QueryDoubleAttribute("upper", &upper) ==
-                    tinyxml2::XML_SUCCESS)
-            {
-                joint->setLimits(lower, upper);
-            }
-        }
-
-        // Parse parent and child links
-        auto parent_element = joint_element->FirstChildElement("parent");
-        auto child_element = joint_element->FirstChildElement("child");
-        if (parent_element && child_element)
-        {
-            const char* parent_name = parent_element->Attribute("link");
-            const char* child_name = child_element->Attribute("link");
-
-            if (parent_name && child_name)
-            {
-                auto parent_it = m_links.find(parent_name);
-                auto child_it = m_links.find(child_name);
-
-                if (parent_it != m_links.end() && child_it != m_links.end())
-                {
-                    parent_it->second->child_joint = joint.get();
-                    child_it->second->parent_joint = joint.get();
-                }
-            }
-        }
+        // Parse limits and link relationships
+        parseLimits(joint_element, *joint);
+        parseParentChildLinks(joint_element, *joint);
 
         m_joints[name] = std::move(joint);
     }
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
+                                       Link& p_link)
+{
+    auto visual_element = p_link_element->FirstChildElement("visual");
+    if (!visual_element)
+        return;
+
+    // Parse geometry
+    if (auto geometry_element = visual_element->FirstChildElement("geometry"))
+    {
+        p_link.geometry = parseGeometryFromElement(geometry_element);
+    }
+
+    // Parse visual origin
+    p_link.geometry.visual_origin = parseOriginFromElement(visual_element);
+
+    // Parse material
+    parseMaterial(visual_element, p_link.geometry);
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseInertialProperties(tinyxml2::XMLElement* p_link_element,
+                                         Link& p_link)
+{
+    auto inertial_element = p_link_element->FirstChildElement("inertial");
+    if (!inertial_element)
+        return;
+
+    tinyxml2::XMLPrinter printer;
+    inertial_element->Accept(&printer);
+    p_link.inertial = parseInertial(printer.CStr());
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseMaterial(tinyxml2::XMLElement* p_visual_element,
+                               Geometry& p_geometry)
+{
+    auto material_element = p_visual_element->FirstChildElement("material");
+    if (!material_element)
+        return;
+
+    auto color_element = material_element->FirstChildElement("color");
+    if (!color_element)
+        return;
+
+    const char* rgba = color_element->Attribute("rgba");
+    if (rgba)
+    {
+        p_geometry.color = parseVector4(rgba);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseLimits(tinyxml2::XMLElement* p_joint_element,
+                             Joint& p_joint)
+{
+    auto limit_element = p_joint_element->FirstChildElement("limit");
+    if (!limit_element)
+        return;
+
+    double lower = 0, upper = 0;
+    if (limit_element->QueryDoubleAttribute("lower", &lower) ==
+            tinyxml2::XML_SUCCESS &&
+        limit_element->QueryDoubleAttribute("upper", &upper) ==
+            tinyxml2::XML_SUCCESS)
+    {
+        p_joint.setLimits(lower, upper);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
+                                       Joint& p_joint)
+{
+    auto parent_element = p_joint_element->FirstChildElement("parent");
+    auto child_element = p_joint_element->FirstChildElement("child");
+
+    if (!parent_element || !child_element)
+        return;
+
+    const char* parent_name = parent_element->Attribute("link");
+    const char* child_name = child_element->Attribute("link");
+
+    if (!parent_name || !child_name)
+        return;
+
+    auto parent_it = m_links.find(parent_name);
+    auto child_it = m_links.find(child_name);
+
+    if (parent_it != m_links.end() && child_it != m_links.end())
+    {
+        parent_it->second->child_joint = &p_joint;
+        child_it->second->parent_joint = &p_joint;
+    }
+}
+
+// ----------------------------------------------------------------------------
+Eigen::Vector3d URDFParser::parseAxis(tinyxml2::XMLElement* p_joint_element)
+{
+    auto axis_element = p_joint_element->FirstChildElement("axis");
+    if (!axis_element)
+        return Eigen::Vector3d::UnitZ();
+
+    const char* xyz_attr = axis_element->Attribute("xyz");
+    return xyz_attr ? parseVector3(xyz_attr) : Eigen::Vector3d::UnitZ();
+}
+
+// ----------------------------------------------------------------------------
+std::pair<Eigen::Vector3d, Eigen::Vector3d>
+URDFParser::parseOriginTransform(tinyxml2::XMLElement* p_element)
+{
+    auto origin_element = p_element->FirstChildElement("origin");
+    if (!origin_element)
+        return { Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero() };
+
+    std::string xyz = getAttributeOrDefault(origin_element, "xyz", "0 0 0");
+    std::string rpy = getAttributeOrDefault(origin_element, "rpy", "0 0 0");
+
+    return { parseVector3(xyz), parseVector3(rpy) };
+}
+
+// ----------------------------------------------------------------------------
+Transform URDFParser::parseOriginFromElement(tinyxml2::XMLElement* p_element)
+{
+    auto origin_element = p_element->FirstChildElement("origin");
+    if (!origin_element)
+        return Transform::Identity();
+
+    std::string xyz = getAttributeOrDefault(origin_element, "xyz", "0 0 0");
+    std::string rpy = getAttributeOrDefault(origin_element, "rpy", "0 0 0");
+
+    return parseOrigin(xyz, rpy);
+}
+
+// ----------------------------------------------------------------------------
+Geometry
+URDFParser::parseGeometryFromElement(tinyxml2::XMLElement* p_geometry_element)
+{
+    tinyxml2::XMLPrinter printer;
+    p_geometry_element->Accept(&printer);
+    return parseGeometry(printer.CStr());
+}
+
+// ----------------------------------------------------------------------------
+std::string URDFParser::getRequiredAttribute(tinyxml2::XMLElement* p_element,
+                                             const char* p_attr_name)
+{
+    const char* attr = p_element->Attribute(p_attr_name);
+    return attr ? std::string(attr) : std::string();
+}
+
+// ----------------------------------------------------------------------------
+std::string URDFParser::getAttributeOrDefault(tinyxml2::XMLElement* p_element,
+                                              const char* p_attr_name,
+                                              const std::string& p_default)
+{
+    const char* attr = p_element->Attribute(p_attr_name);
+    return attr ? std::string(attr) : p_default;
 }
 
 // ----------------------------------------------------------------------------
@@ -411,7 +461,7 @@ Inertial URDFParser::parseInertial(const std::string& p_xml) const
 }
 
 // ----------------------------------------------------------------------------
-Joint::Type URDFParser::parseJointType(const std::string_view& p_str_type) const
+Joint::Type URDFParser::parseJointType(const std::string& p_str_type) const
 {
     if (p_str_type == "revolute")
         return Joint::Type::REVOLUTE;
