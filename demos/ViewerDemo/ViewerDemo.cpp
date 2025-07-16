@@ -3,10 +3,16 @@
 #include "Robotik/Viewer.hpp"
 
 #include <iostream>
+#include <optional>
+#include <string>
 #include <thread>
 
 // ----------------------------------------------------------------------------
-static std::unique_ptr<robotik::RobotArm> createRobot()
+//! \brief Create a simple robot arm. Called if no URDF file is provided in the
+//! command line.
+//! \return A unique pointer to the robot arm.
+// ----------------------------------------------------------------------------
+static std::unique_ptr<robotik::RobotArm> create_simple_robot()
 {
     // Create a simple robot arm
     auto robot = std::make_unique<robotik::RobotArm>("SimpleArm");
@@ -46,6 +52,9 @@ static std::unique_ptr<robotik::RobotArm> createRobot()
 }
 
 // ----------------------------------------------------------------------------
+//! \brief Animate the robot.
+//! \param p_robot The robot to animate.
+// ----------------------------------------------------------------------------
 static void animate(robotik::RobotArm& p_robot)
 {
     // Update animation time (slower for more visible animation)
@@ -73,26 +82,125 @@ static void animate(robotik::RobotArm& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-int main()
+//! \brief Display the usage of the program.
+//! \param p_program_name The name of the program.
+// ----------------------------------------------------------------------------
+static void display_usage(const std::string& p_program_name)
 {
-    // auto robot = createRobot();
-    robotik::URDFParser parser;
-    auto robot = parser.load("/home/qq/MyGitHub/Robotik/data/scara_robot.urdf");
+    std::cout << "Usage: " << p_program_name << " [OPTIONS] [urdf_file]"
+              << std::endl;
+    std::cout << std::endl;
+    std::cout << "Options:" << std::endl;
+    std::cout << "  -h, --help     Display this help message and exit"
+              << std::endl;
+    std::cout << std::endl;
+    std::cout << "Arguments:" << std::endl;
+    std::cout << "  urdf_file      Path to the URDF file to load" << std::endl;
+    std::cout
+        << "                 If not provided, a simple robot will be created"
+        << std::endl;
+    std::cout << std::endl;
+    std::cout << "Examples:" << std::endl;
+    std::cout << "  " << p_program_name
+              << "                    # Create simple robot" << std::endl;
+    std::cout << "  " << p_program_name
+              << " robot.urdf         # Load robot from URDF file" << std::endl;
+    std::cout << "  " << p_program_name
+              << " --help             # Show this help message" << std::endl;
+}
+
+// ----------------------------------------------------------------------------
+//! \brief Parse the command line arguments.
+//! \param argc The number of command line arguments.
+//! \param argv The command line arguments.
+//! \return A unique pointer to the robot arm.
+// ----------------------------------------------------------------------------
+static std::unique_ptr<robotik::RobotArm> parse_command_line(int argc,
+                                                             char* argv[])
+{
+    // Check for help option
+    for (int i = 1; i < argc; ++i)
+    {
+        std::string arg = argv[i];
+        if (arg == "--help" || arg == "-h")
+        {
+            display_usage(argv[0]);
+            return nullptr;
+        }
+    }
+
+    // Check if a URDF file was provided as command line argument
+    if (argc > 1)
+    {
+        std::string urdf_file = argv[1];
+        robotik::URDFParser parser;
+        auto robot = parser.load(urdf_file);
+        if (!robot)
+        {
+            std::cerr << "Failed to load robot from '" << urdf_file
+                      << "': " << parser.getError() << std::endl;
+            return nullptr;
+        }
+        std::cout << "Loaded robot from: " << urdf_file << std::endl;
+        return robot;
+    }
+    else
+    {
+        // No URDF file provided, create a simple robot
+        auto robot = create_simple_robot();
+        std::cout << "Created simple robot arm (no URDF file specified)"
+                  << std::endl;
+        return robot;
+    }
+}
+
+// ----------------------------------------------------------------------------
+//! \brief Handle keyboard input for camera controls.
+//! \param p_key The key that was pressed.
+//! \param p_action The action (press/release).
+//! \return The selected camera view type, or std::nullopt if no view change.
+// ----------------------------------------------------------------------------
+static std::optional<robotik::Viewer::CameraViewType>
+handle_camera_input(int p_key, int p_action)
+{
+    if (p_action == GLFW_PRESS)
+    {
+        switch (p_key)
+        {
+            case GLFW_KEY_1:
+                return robotik::Viewer::CameraViewType::PERSPECTIVE;
+            case GLFW_KEY_2:
+                return robotik::Viewer::CameraViewType::TOP;
+            case GLFW_KEY_3:
+                return robotik::Viewer::CameraViewType::FRONT;
+            case GLFW_KEY_4:
+                return robotik::Viewer::CameraViewType::SIDE;
+            case GLFW_KEY_5:
+                return robotik::Viewer::CameraViewType::ISOMETRIC;
+            default:
+                return std::nullopt;
+        }
+    }
+    return std::nullopt;
+}
+
+// ----------------------------------------------------------------------------
+int main(int argc, char* argv[])
+{
+    // Parse the command line arguments and create the robot given by the user.
+    auto robot = parse_command_line(argc, argv);
     if (!robot)
     {
-        std::cerr << "Failed to load robot: " << parser.getError() << std::endl;
         return EXIT_FAILURE;
     }
 
+    // Initialize the viewer.
     robotik::Viewer viewer(1024, 768, "Robotik Viewer Demo");
     if (!viewer.initialize())
     {
         std::cerr << "Failed to initialize viewer" << std::endl;
         return EXIT_FAILURE;
     }
-
-    // Set the robot to visualize
-    viewer.setRobot(*robot);
 
     // Set initial joint values
     // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
@@ -112,38 +220,10 @@ int main()
         viewer.processInput(
             [&viewer, &base_position](int key, int action)
             {
-                if (action == GLFW_PRESS)
+                auto camera_view = handle_camera_input(key, action);
+                if (camera_view.has_value())
                 {
-                    switch (key)
-                    {
-                        case GLFW_KEY_1:
-                            viewer.setCameraView(
-                                robotik::Viewer::CameraViewType::PERSPECTIVE,
-                                base_position);
-                            break;
-                        case GLFW_KEY_2:
-                            viewer.setCameraView(
-                                robotik::Viewer::CameraViewType::TOP,
-                                base_position);
-                            break;
-                        case GLFW_KEY_3:
-                            viewer.setCameraView(
-                                robotik::Viewer::CameraViewType::FRONT,
-                                base_position);
-                            break;
-                        case GLFW_KEY_4:
-                            viewer.setCameraView(
-                                robotik::Viewer::CameraViewType::SIDE,
-                                base_position);
-                            break;
-                        case GLFW_KEY_5:
-                            viewer.setCameraView(
-                                robotik::Viewer::CameraViewType::ISOMETRIC,
-                                base_position);
-                            break;
-                        default:
-                            break;
-                    }
+                    viewer.setCameraView(camera_view.value(), base_position);
                 }
             });
 
@@ -151,13 +231,12 @@ int main()
         animate(*robot);
 
         // Render the scene
-        viewer.render();
+        viewer.render(*robot);
 
         // Small delay to control frame rate (~60 FPS)
         std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
 
     std::cout << "Viewer closed successfully" << std::endl;
-
     return EXIT_SUCCESS;
 }

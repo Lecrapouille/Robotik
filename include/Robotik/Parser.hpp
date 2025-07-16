@@ -18,8 +18,18 @@ class URDFParser
 {
 public:
 
-    URDFParser();
+    // ------------------------------------------------------------------------
+    //! \brief Load a robot from a URDF file.
+    //! \param p_filename The path to the URDF file.
+    //! \return A unique pointer to the robot.
+    // ------------------------------------------------------------------------
     std::unique_ptr<RobotArm> load(const std::string& p_filename);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the error message if the load() method failed.
+    //! \return The error message if the load() method failed, else an empty
+    //! string.
+    // ------------------------------------------------------------------------
     inline std::string getError() const
     {
         return m_error;
