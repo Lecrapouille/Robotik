@@ -781,6 +781,15 @@ public:
     explicit RobotArm(const std::string_view& p_name) : m_name(p_name) {}
 
     // ------------------------------------------------------------------------
+    //! \brief Get the name of the robot arm.
+    //! \return The name of the robot arm.
+    // ------------------------------------------------------------------------
+    inline std::string getName() const
+    {
+        return m_name;
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Setup the robot arm with a new root node and end effector.
     //! \tparam T Type of the root node. Must be a subclass of Node.
     //! \param p_root Unique pointer to the root node.

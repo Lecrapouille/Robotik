@@ -65,6 +65,9 @@ void main()
 }
 )";
 
+static const Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
+static const Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
+
 // ----------------------------------------------------------------------------
 Viewer::Viewer(int p_width, int p_height, const std::string& p_title)
     : m_width(p_width), m_height(p_height), m_title(p_title)
@@ -105,9 +108,6 @@ bool Viewer::initialize()
     {
         return false;
     }
-
-    // Initialize camera matrices with default values
-    updateCamera();
 
     return true;
 }
@@ -241,12 +241,6 @@ Viewer::createShaderProgram(const std::string& p_vertexSource,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::setRobot(const RobotArm& p_robot)
-{
-    m_robot = &p_robot;
-}
-
-// ----------------------------------------------------------------------------
 void Viewer::setCameraView(CameraViewType p_view,
                            const Eigen::Vector3f& p_camera_target)
 {
@@ -263,7 +257,7 @@ void Viewer::setCameraView(CameraViewType p_view,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::render()
+void Viewer::render(RobotArm const& p_robot)
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -286,10 +280,7 @@ void Viewer::render()
     renderGrid();
 
     // Render robot if set
-    if (m_robot)
-    {
-        renderRobot();
-    }
+    renderRobot(p_robot);
 
     glfwSwapBuffers(m_window);
 }
@@ -297,7 +288,6 @@ void Viewer::render()
 // ----------------------------------------------------------------------------
 bool Viewer::initializeGeometry()
 {
-    // Initialize all geometry types using the dedicated functions
     initializeBox();
     initializeGrid();
     initializeCylinder();
@@ -377,29 +367,33 @@ void Viewer::renderSphere(const Transform& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderJoint(Joint const& joint,
-                         const Transform& world_transform) const
+void Viewer::renderJoint(Joint const& p_joint,
+                         const Transform& p_world_transform) const
 {
-    Transform joint_transform = world_transform;
+    // Scale the joint to 5% of the link
+    double scaling = 0.05;
 
-    switch (joint.getType())
+    // Create scaling transformation
+    Transform scale_transform = Transform::Identity();
+    scale_transform(0, 0) = scaling;
+    scale_transform(1, 1) = scaling;
+    scale_transform(2, 2) = scaling;
+
+    // Apply scaling correctly: base_transform * scale
+    Transform joint_transform = p_world_transform * scale_transform;
+
+    switch (p_joint.getType())
     {
         case Joint::Type::REVOLUTE:
         {
-            // Render revolute joint as a cylinder (RED)
-            joint_transform.block<3, 3>(0, 0) *= 0.05;
-            renderCylinder(
-                joint_transform,
-                Eigen::Vector3f(1.0f, 0.0f, 0.0f)); // Red for revolute joints
+            // Render revolute joint as a cylinder in red color
+            renderCylinder(joint_transform, red_color);
             break;
         }
         case Joint::Type::PRISMATIC:
         {
-            // Render prismatic joint as a box (GREEN)
-            joint_transform.block<3, 3>(0, 0) *= 0.05;
-            renderBox(joint_transform,
-                      Eigen::Vector3f(
-                          0.0f, 1.0f, 0.0f)); // Green for prismatic joints
+            // Render prismatic joint as a box in green color
+            renderBox(joint_transform, green_color);
             break;
         }
         case Joint::Type::FIXED:
@@ -412,128 +406,153 @@ void Viewer::renderJoint(Joint const& joint,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderLink(Link const& link,
-                        const Transform& world_transform) const
+void Viewer::renderLink(Link const& p_link,
+                        const Transform& p_world_transform) const
 {
-    // Apply visual origin transformation
-    Transform link_transform = world_transform * link.geometry.visual_origin;
-
     // Get color from geometry (RGB only, ignore alpha)
-    Eigen::Vector3f color = link.geometry.color.head<3>().cast<float>();
+    Eigen::Vector3f color = p_link.geometry.color.head<3>().cast<float>();
 
-    // Check if link has geometry information
-    if (!link.geometry.parameters.empty())
+    // Use geometry type and parameters for rendering
+    switch (p_link.geometry.type)
     {
-        // Use geometry type and parameters for rendering
-        switch (link.geometry.type)
+        case Geometry::Type::BOX:
         {
-            case Geometry::Type::BOX:
+            // Scale based on geometry parameters (width, height, depth)
+            if (p_link.geometry.parameters.size() >= 3)
             {
-                // Scale based on geometry parameters (width, height, depth)
-                if (link.geometry.parameters.size() >= 3)
-                {
-                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
-                    scale(0, 0) = link.geometry.parameters[0];
-                    scale(1, 1) = link.geometry.parameters[1];
-                    scale(2, 2) = link.geometry.parameters[2];
-                    link_transform.block<3, 3>(0, 0) =
-                        link_transform.block<3, 3>(0, 0) * scale;
-                }
+                double width = p_link.geometry.parameters[0];
+                double height = p_link.geometry.parameters[1];
+                double depth = p_link.geometry.parameters[2];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = width;
+                scale_transform(1, 1) = height;
+                scale_transform(2, 2) = depth;
+
+                // Apply scaling correctly: base_transform * scale
+                Transform link_transform = p_world_transform * scale_transform;
                 renderBox(link_transform, color);
-                break;
             }
-            case Geometry::Type::CYLINDER:
+            else
             {
-                // Scale based on geometry parameters (radius, height)
-                if (link.geometry.parameters.size() >= 2)
-                {
-                    double radius = link.geometry.parameters[0];
-                    double height = link.geometry.parameters[1];
-                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
-                    scale(0, 0) = radius * 2;
-                    scale(1, 1) = height;
-                    scale(2, 2) = radius * 2;
-                    link_transform.block<3, 3>(0, 0) =
-                        link_transform.block<3, 3>(0, 0) * scale;
-                }
-                renderCylinder(link_transform, color);
-                break;
+                renderBox(p_world_transform, color);
             }
-            case Geometry::Type::SPHERE:
-            {
-                // Scale based on geometry parameters (radius)
-                if (link.geometry.parameters.size() >= 1)
-                {
-                    double radius = link.geometry.parameters[0];
-                    Eigen::Matrix3d scale = Eigen::Matrix3d::Identity();
-                    scale(0, 0) = radius * 2;
-                    scale(1, 1) = radius * 2;
-                    scale(2, 2) = radius * 2;
-                    link_transform.block<3, 3>(0, 0) =
-                        link_transform.block<3, 3>(0, 0) * scale;
-                }
-                renderSphere(link_transform, color);
-                break;
-            }
-            case Geometry::Type::MESH:
-            {
-                // TODO: Implement mesh rendering
-                break;
-            }
-            default:
-                // Default to box for unknown geometry
-                link_transform.block<3, 3>(0, 0) *= 0.1;
-                renderBox(link_transform, color);
-                break;
+            break;
         }
-    }
-    else
-    {
-        // No geometry information, render as default box
-        link_transform.block<3, 3>(0, 0) *= 0.1;
-        renderBox(link_transform, color);
+        case Geometry::Type::CYLINDER:
+        {
+            // Scale based on geometry parameters (radius, height)
+            if (p_link.geometry.parameters.size() >= 2)
+            {
+                double radius = p_link.geometry.parameters[0];
+                double height = p_link.geometry.parameters[1];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = radius * 2.0;
+                scale_transform(1, 1) = height;
+                scale_transform(2, 2) = radius * 2.0;
+
+                // Apply scaling correctly: base_transform * scale
+                Transform link_transform = p_world_transform * scale_transform;
+                renderCylinder(link_transform, color);
+            }
+            else
+            {
+                renderCylinder(p_world_transform, color);
+            }
+            break;
+        }
+        case Geometry::Type::SPHERE:
+        {
+            // Scale based on geometry parameters (radius)
+            if (p_link.geometry.parameters.size() >= 1)
+            {
+                double radius = p_link.geometry.parameters[0];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = radius * 2;
+                scale_transform(1, 1) = radius * 2;
+                scale_transform(2, 2) = radius * 2;
+
+                // Apply scaling correctly: base_transform * scale
+                Transform link_transform = p_world_transform * scale_transform;
+                renderSphere(link_transform, color);
+            }
+            else
+            {
+                renderSphere(p_world_transform, color);
+            }
+            break;
+        }
+        case Geometry::Type::MESH:
+        {
+            // TODO: Implement mesh rendering
+            break;
+        }
+        default:
+        {
+            // Default to box for unknown geometry
+            // Create scaling transformation
+            Transform scale_transform = Transform::Identity();
+            scale_transform(0, 0) = 0.1;
+            scale_transform(1, 1) = 0.1;
+            scale_transform(2, 2) = 0.1;
+
+            // Apply scaling correctly: base_transform * scale
+            Transform link_transform = p_world_transform * scale_transform;
+            renderBox(link_transform, color);
+            break;
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderRobot() const
+void Viewer::renderRobot(RobotArm const& p_robot) const
 {
-    if (!m_robot)
-    {
-        return;
-    }
-
     // Traverse the robot tree and render each node
-    m_robot->traverseNodes(
-        [this](Node& node)
+    p_robot.traverseNodes(
+        [this](Node const& node)
         {
-            // Get the world transform
             Transform world_transform = node.getWorldTransform();
-
-            // Render based on node type
-            if (auto joint = dynamic_cast<Joint*>(&node))
+            if (auto joint = dynamic_cast<Joint const*>(&node))
             {
                 renderJoint(*joint, world_transform);
             }
+        });
+
+    // Traverse the links and render them
+    p_robot.traverseLinks(
+        [this](Link const& link)
+        {
+            Transform world_transform;
+
+            if (link.parent_joint)
+            {
+                // Get the world transform of the parent joint and apply visual
+                // origin
+                world_transform = link.parent_joint->getWorldTransform() *
+                                  link.geometry.visual_origin;
+            }
             else
             {
-                // Try to find a corresponding Link object
-                Link const* link = m_robot->getLink(node.getName());
-                if (link)
-                {
-                    renderLink(*link, world_transform);
-                }
-                else
-                {
-                    // Fallback for unknown node types
-                    Transform node_transform = world_transform;
-                    node_transform.block<3, 3>(0, 0) *= 0.1;
-                    renderBox(
-                        node_transform,
-                        Eigen::Vector3f(0.5f, 0.5f, 0.5f)); // Gray for unknown
-                }
+                // Base link without parent joint - use visual origin directly
+                world_transform = link.geometry.visual_origin;
             }
+
+            renderLink(link, world_transform);
         });
+
+#if 0
+    // Traverse the robot tree and render each axis
+    p_robot.traverseNodes([this](Node const& node)
+                          { renderAxes(node.getWorldTransform(), 0.2); });
+
+    // Render world axes at origin
+    renderAxes(p_robot.getRootNode()->getWorldTransform(), 0.5);
+#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -1006,7 +1025,87 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::processInput(std::function<void(int, int)> key_callback)
+void Viewer::renderAxes(const Transform& p_transform, double p_scale) const
+{
+    const double radius = 0.02 * p_scale; // Thin cylinder radius
+    const double height = p_scale;        // Axis length
+
+    // X axis (red) - cylinder along X direction
+    {
+        // Create scaling transformation (cylinder default: radius in XZ, height
+        // in Y)
+        Transform scale_transform = Transform::Identity();
+        scale_transform(0, 0) = radius;
+        scale_transform(1, 1) = height;
+        scale_transform(2, 2) = radius;
+
+        // Create rotation to align cylinder with X axis (rotate 90° around Z)
+        Transform rotation_transform = Transform::Identity();
+        rotation_transform.block<3, 3>(0, 0) =
+            Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d::UnitZ())
+                .toRotationMatrix();
+
+        // Create translation to position cylinder at half its length along X
+        Transform translation_transform = Transform::Identity();
+        translation_transform(0, 3) = height * 0.5;
+
+        // Combine: base * translation * rotation * scale
+        Transform x_transform = p_transform * translation_transform *
+                                rotation_transform * scale_transform;
+
+        renderCylinder(x_transform, red_color);
+    }
+
+    // Y axis (green) - cylinder along Y direction
+    {
+        // Create scaling transformation
+        Transform scale_transform = Transform::Identity();
+        scale_transform(0, 0) = radius;
+        scale_transform(1, 1) = height;
+        scale_transform(2, 2) = radius;
+
+        // No rotation needed, cylinder is already aligned with Y axis
+
+        // Create translation to position cylinder at half its length along Y
+        Transform translation_transform = Transform::Identity();
+        translation_transform(1, 3) = height * 0.5;
+
+        // Combine: base * translation * scale
+        Transform y_transform =
+            p_transform * translation_transform * scale_transform;
+
+        renderCylinder(y_transform, green_color);
+    }
+
+    // Z axis (blue) - cylinder along Z direction
+    {
+        // Create scaling transformation
+        Transform scale_transform = Transform::Identity();
+        scale_transform(0, 0) = radius;
+        scale_transform(1, 1) = height;
+        scale_transform(2, 2) = radius;
+
+        // Create rotation to align cylinder with Z axis (rotate 90° around X)
+        Transform rotation_transform = Transform::Identity();
+        rotation_transform.block<3, 3>(0, 0) =
+            Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d::UnitX())
+                .toRotationMatrix();
+
+        // Create translation to position cylinder at half its length along Z
+        Transform translation_transform = Transform::Identity();
+        translation_transform(2, 3) = height * 0.5;
+
+        // Combine: base * translation * rotation * scale
+        Transform z_transform = p_transform * translation_transform *
+                                rotation_transform * scale_transform;
+
+        Eigen::Vector3f blue_color(0.0f, 0.0f, 1.0f);
+        renderCylinder(z_transform, blue_color);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void Viewer::processInput(std::function<void(int, int)> const& key_callback)
 {
     glfwPollEvents();
 

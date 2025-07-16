@@ -10,12 +10,6 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-URDFParser::URDFParser()
-{
-    m_robot = std::make_unique<RobotArm>("URDF_Robot");
-}
-
-// ----------------------------------------------------------------------------
 std::unique_ptr<RobotArm> URDFParser::load(const std::string& p_filename)
 {
     if (std::ifstream file(p_filename); !file)
@@ -38,6 +32,9 @@ std::unique_ptr<RobotArm> URDFParser::load(const std::string& p_filename)
         m_error = "No <robot> element found in URDF";
         return nullptr;
     }
+
+    // Parse robot name
+    m_robot = std::make_unique<RobotArm>(robot_element->Attribute("name"));
 
     parseLinks(robot_element);
     parseJoints(robot_element);
