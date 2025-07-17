@@ -257,7 +257,7 @@ void Viewer::setCameraView(CameraViewType p_view,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::render(RobotArm const& p_robot)
+void Viewer::render(Robot const& p_robot)
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -510,7 +510,7 @@ void Viewer::renderLink(Link const& p_link,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderRobot(RobotArm const& p_robot) const
+void Viewer::renderRobot(Robot const& p_robot) const
 {
     // Traverse the robot tree and render each node
     p_robot.traverseNodes(

@@ -33,7 +33,7 @@ void printTransform(const Transform& transform, const std::string& name)
 int main()
 {
     // Create the robot arm
-    auto robot = std::make_shared<RobotArm>("6DOF_Robot");
+    auto robot = std::make_shared<Robot>("6DOF_Robot");
 
     // Create the nodes of the scene graph
     // We need separate nodes for geometry offsets and joint rotations

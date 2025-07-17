@@ -63,7 +63,7 @@ make run
 int main()
 {
     // Créer un robot arm
-    robotik::RobotArm robot("MonRobot");
+    robotik::Robot robot("MonRobot");
 
     // Configurer la structure du robot...
 

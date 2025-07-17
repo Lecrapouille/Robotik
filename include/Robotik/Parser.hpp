@@ -23,7 +23,7 @@ public:
     //! \param p_filename The path to the URDF file.
     //! \return A unique pointer to the robot.
     // ------------------------------------------------------------------------
-    std::unique_ptr<RobotArm> load(const std::string& p_filename);
+    std::unique_ptr<Robot> load(const std::string& p_filename);
 
     // ------------------------------------------------------------------------
     //! \brief Get the error message if the load() method failed.
@@ -42,28 +42,30 @@ private:
 
     // Parse specific elements
     void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
-                               Link& p_link);
+                               Link& p_link) const;
     void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                 Link& p_link);
+                                 Link& p_link) const;
     void parseMaterial(tinyxml2::XMLElement* p_visual_element,
-                       Geometry& p_geometry);
-    void parseLimits(tinyxml2::XMLElement* p_joint_element, Joint& p_joint);
+                       Geometry& p_geometry) const;
+    void parseLimits(tinyxml2::XMLElement* p_joint_element,
+                     Joint& p_joint) const;
     void parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
-                               Joint& p_joint);
+                               Joint& p_joint) const;
 
     // Parse specific attributes and transforms
-    Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element);
+    Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element) const;
     std::pair<Eigen::Vector3d, Eigen::Vector3d>
-    parseOriginTransform(tinyxml2::XMLElement* p_element);
-    Transform parseOriginFromElement(tinyxml2::XMLElement* p_element);
-    Geometry parseGeometryFromElement(tinyxml2::XMLElement* p_geometry_element);
+    parseOriginTransform(tinyxml2::XMLElement* p_element) const;
+    Transform parseOriginFromElement(tinyxml2::XMLElement* p_element) const;
+    Geometry parseGeometryFromElement(
+        tinyxml2::XMLElement const* p_geometry_element) const;
 
     // Utility methods for XML parsing
-    std::string getRequiredAttribute(tinyxml2::XMLElement* p_element,
-                                     const char* p_attr_name);
-    std::string getAttributeOrDefault(tinyxml2::XMLElement* p_element,
+    std::string getRequiredAttribute(tinyxml2::XMLElement const* p_element,
+                                     const char* p_attr_name) const;
+    std::string getAttributeOrDefault(tinyxml2::XMLElement const* p_element,
                                       const char* p_attr_name,
-                                      const std::string& p_default);
+                                      const std::string& p_default) const;
 
     // ------------------------------------------------------------------------
     //! \brief Find root and end effector links:
@@ -72,7 +74,7 @@ private:
     //! We assume that the robot has only one root link and one end effector
     //! link. If this is not the case, the robot will not be setup correctly.
     // ------------------------------------------------------------------------
-    std::pair<Link*, Link const*> findRootAndEndEffector();
+    std::pair<Link*, Link const*> findRootAndEndEffector() const;
     void buildSceneGraph(Node* p_node, Link* p_link);
     bool setRootAndEndEffector();
     void setRobotLinks();
@@ -83,11 +85,11 @@ private:
                           const std::string& p_rpy) const;
     Geometry parseGeometry(const std::string& p_xml) const;
     Inertial parseInertial(const std::string& p_xml) const;
-    Joint::Type parseJointType(const std::string& p_str_type) const;
+    Joint::Type parseJointType(const std::string_view& p_str_type) const;
 
 private:
 
-    std::unique_ptr<RobotArm> m_robot;
+    std::unique_ptr<Robot> m_robot;
     std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
     std::unordered_map<std::string, std::unique_ptr<Joint>> m_joints;
     std::string m_error;

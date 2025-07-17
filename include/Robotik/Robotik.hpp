@@ -770,7 +770,7 @@ struct Link
 //! high-level task planning, providing the mathematical foundation for
 //! robot manipulation.
 // *********************************************************************************
-class RobotArm
+class Robot
 {
 public:
 
@@ -778,7 +778,7 @@ public:
     //! \brief Constructor. Perform no action, just set the name.
     //! \param p_name Name of the robot arm.
     // ------------------------------------------------------------------------
-    explicit RobotArm(const std::string_view& p_name) : m_name(p_name) {}
+    explicit Robot(const std::string_view& p_name) : m_name(p_name) {}
 
     // ------------------------------------------------------------------------
     //! \brief Get the name of the robot arm.

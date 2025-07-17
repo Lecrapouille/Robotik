@@ -117,7 +117,7 @@ Ce démo peut être étendu pour :
 ## Architecture
 
 Le code combine :
-- **Robotik::RobotArm** : Modèle cinématique
+- **Robotik::Robot** : Modèle cinématique
 - **Robotik::RobotViewer** : Visualisation OpenGL
 - **Robotik::Camera** : Contrôle de caméra 3D
 - **GLFW** : Gestion des fenêtres
