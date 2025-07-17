@@ -1,3 +1,4 @@
+#include "Robotik/Debug.hpp"
 #include "Robotik/Parser.hpp"
 #include "Robotik/Robotik.hpp"
 #include "Robotik/Viewer.hpp"
@@ -11,11 +12,12 @@
 //! \brief Create a simple robot arm. Called if no URDF file is provided in the
 //! command line.
 //! \return A unique pointer to the robot arm.
+//! \fixme missing links
 // ----------------------------------------------------------------------------
-static std::unique_ptr<robotik::RobotArm> create_simple_robot()
+static std::unique_ptr<robotik::Robot> create_simple_robot()
 {
     // Create a simple robot arm
-    auto robot = std::make_unique<robotik::RobotArm>("SimpleArm");
+    auto robot = std::make_unique<robotik::Robot>("SimpleArm");
 
     // Create root node (base)
     auto base = robotik::Node::create<robotik::Node>("base");
@@ -55,7 +57,7 @@ static std::unique_ptr<robotik::RobotArm> create_simple_robot()
 //! \brief Animate the robot.
 //! \param p_robot The robot to animate.
 // ----------------------------------------------------------------------------
-static void animate(robotik::RobotArm& p_robot)
+static void animate(robotik::Robot& p_robot)
 {
     // Update animation time (slower for more visible animation)
     float animation_time = static_cast<float>(glfwGetTime()) * 0.5f;
@@ -115,8 +117,8 @@ static void display_usage(const std::string& p_program_name)
 //! \param argv The command line arguments.
 //! \return A unique pointer to the robot arm.
 // ----------------------------------------------------------------------------
-static std::unique_ptr<robotik::RobotArm> parse_command_line(int argc,
-                                                             char* argv[])
+static std::unique_ptr<robotik::Robot> parse_command_line(int argc,
+                                                          char* argv[])
 {
     // Check for help option
     for (int i = 1; i < argc; ++i)
@@ -205,6 +207,8 @@ int main(int argc, char* argv[])
     // Set initial joint values
     // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
     // robot->setJointValues(joint_values);
+
+    robotik::debug::printRobot(*robot);
 
     // Get base position for camera target
     auto base_position = robotik::utils::getTranslation(

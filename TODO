@@ -4,7 +4,7 @@
 - listes de joints: les fixed aussi ?
 - gerer multiple organes terminaux
 - KO viewer (?) pattern visiter visit(node, render) ==> Node::paint(Render& r) { r.paintRectangle(); }
-- RobotArm: il faudrait mettre tout a const sur les joints et links mais KO pour end effector.
+- Robot: il faudrait mettre tout a const sur les joints et links mais KO pour end effector.
 - Ou bien quand on fait un getNode non const il faudrait mettre un markDirty().
 
 - KO Jacobian: je pense que les axis des links ne sont pas pris en compte.

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot name="simple_prismatic_robot">
+
+  <!-- Base Link (fixed platform) -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.1"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- End Effector Link (moving part) -->
+  <link name="end_effector_link">
+    <visual>
+      <geometry>
+        <box size="0.15 0.15 0.2"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Prismatic Joint (translates along Z-axis) -->
+  <joint name="prismatic_joint" type="prismatic">
+    <parent link="base_link"/>
+    <child link="end_effector_link"/>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="0" upper="0.5" effort="1000" velocity="0.1"/>
+  </joint>
+
+</robot>

@@ -1,6 +1,6 @@
-# Robotik
+# RobotIK
 
-Une bibliothèque robotique moderne en C++ pour la simulation et la visualisation de bras robotiques.
+Bibliothèque robotique en C++ pour la manipulation et la visualisation de bras robotiques.
 
 ## Fonctionnalités
 
@@ -13,33 +13,40 @@ Une bibliothèque robotique moderne en C++ pour la simulation et la visualisatio
 ## Prérequis
 
 ### Installation de base
+
 ```bash
 sudo apt-get install libeigen3-dev
 ```
 
 ### Pour le visualiseur OpenGL
+
 ```bash
 sudo apt-get install libgl1-mesa-dev libglew-dev libglfw3-dev
 ```
 
-## Exemples
+## Compilation
 
-### 1. Bras robotique 6DOF (Console)
 ```bash
-cd demo/Arm6DOF
-make
-./Arm6DOF
+git clone https://github.com/Lecrapouille/Robotik --recurse
+cd Robotik
+make -j8
+# Optional:
+make tests -j8
+sudo make install
 ```
 
-### 2. Visualiseur OpenGL 3D (Nouveau!)
+Un dossier `build` a du être créé, il contient les libraries créées ainsi que les demos.
+
+## Visualiseur
+
+Permet de charger un nouveau robot depuis un fichier URDF, de le visualiser et de le contrôler.
+
 ```bash
-cd demo/RobotViewer
-make install-deps  # Installer les dépendances OpenGL
-make               # Compiler
-./RobotViewerDemo  # Exécuter
+./build/viewer-demo
 ```
 
-**Contrôles du visualiseur :**
+**Contrôles du visualiseur :** (en cours)
+
 - Souris : Rotation de la caméra
 - Molette : Zoom
 - W/S : Rapprocher/éloigner
@@ -50,12 +57,13 @@ make               # Compiler
 ```
 Robotik/
 ├── include/Robotik/
-│   ├── Robotik.hpp      # API principale
-│   └── RobotViewer.hpp  # Visualiseur OpenGL
+│   ├── Robotik.hpp      # API principale du robot
+│   ├── Parser.hpp       # Classe créant un robot via un fichier URDF
+│   └── Viewer.hpp       # Visualiseur de robot en OpenGL
 ├── src/
 │   ├── Robotik.cpp      # Implémentation robotique
-│   └── RobotViewer.cpp  # Implémentation OpenGL
+│   ├── Parser.cpp       # Implémentation du parseur URDF
+│   └── Viewer.cpp       # Implémentation OpenGL
 └── demo/
-    ├── Arm6DOF/         # Exemple console
     └── RobotViewer/     # Exemple OpenGL
 ```

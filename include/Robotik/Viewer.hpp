@@ -76,7 +76,7 @@ public:
     //! \brief Render the scene.
     //! \param p_robot Robot arm to render.
     // ------------------------------------------------------------------------
-    void render(RobotArm const& p_robot);
+    void render(Robot const& p_robot);
 
     // ------------------------------------------------------------------------
     //! \brief Check if window should close.
@@ -248,7 +248,7 @@ private:
     //! \brief Render robot arm.
     //! \param p_robot Robot arm to render.
     // ------------------------------------------------------------------------
-    void renderRobot(RobotArm const& p_robot) const;
+    void renderRobot(Robot const& p_robot) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render a joint node.

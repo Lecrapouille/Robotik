@@ -153,7 +153,7 @@ void Joint::updateLocalTransform()
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setupRobot(Node::Ptr p_root, Node& p_end_effector)
+void Robot::setupRobot(Node::Ptr p_root, Node& p_end_effector)
 {
     m_root_node = std::move(p_root);
 
@@ -162,7 +162,7 @@ void RobotArm::setupRobot(Node::Ptr p_root, Node& p_end_effector)
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::cacheListOfJoints()
+void Robot::cacheListOfJoints()
 {
     m_joints.clear();
     if (m_root_node == nullptr)
@@ -186,20 +186,20 @@ void RobotArm::cacheListOfJoints()
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::setEndEffector(Node& p_node)
+void Robot::setEndEffector(Node& p_node)
 {
     m_end_effector = &p_node;
 }
 
 // ----------------------------------------------------------------------------
-Node* RobotArm::setEndEffector(std::string_view p_name)
+Node* Robot::setEndEffector(std::string_view p_name)
 {
     m_end_effector = getNode(p_name);
     return m_end_effector;
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::checkRobotSetupValidity() const
+void Robot::checkRobotSetupValidity() const
 {
     if (m_root_node == nullptr)
     {
@@ -219,7 +219,7 @@ void RobotArm::checkRobotSetupValidity() const
 }
 
 // ----------------------------------------------------------------------------
-Transform RobotArm::forwardKinematics() const
+Transform Robot::forwardKinematics() const
 {
     checkRobotSetupValidity();
 
@@ -230,7 +230,7 @@ Transform RobotArm::forwardKinematics() const
 }
 
 // ----------------------------------------------------------------------------
-Pose RobotArm::getEndEffectorPose() const
+Pose Robot::getEndEffectorPose() const
 {
     checkRobotSetupValidity();
 
@@ -239,11 +239,11 @@ Pose RobotArm::getEndEffectorPose() const
 }
 
 // ----------------------------------------------------------------------------
-bool RobotArm::inverseKinematics(const Pose& p_target_pose,
-                                 std::vector<double>& p_solution,
-                                 size_t const p_max_iterations,
-                                 double const p_epsilon,
-                                 double const p_damping)
+bool Robot::inverseKinematics(const Pose& p_target_pose,
+                              std::vector<double>& p_solution,
+                              size_t const p_max_iterations,
+                              double const p_epsilon,
+                              double const p_damping)
 {
     checkRobotSetupValidity();
 
@@ -294,7 +294,7 @@ bool RobotArm::inverseKinematics(const Pose& p_target_pose,
 }
 
 // ----------------------------------------------------------------------------
-Jacobian RobotArm::calculateJacobian() const
+Jacobian Robot::calculateJacobian() const
 {
     std::cout << "calculateJacobian" << std::endl;
     checkRobotSetupValidity();
@@ -344,7 +344,7 @@ Jacobian RobotArm::calculateJacobian() const
 }
 
 // ----------------------------------------------------------------------------
-Joint* RobotArm::getJoint(const std::string_view& p_name) const
+Joint* Robot::getJoint(const std::string_view& p_name) const
 {
     for (const auto& joint : m_joints)
     {
@@ -357,7 +357,7 @@ Joint* RobotArm::getJoint(const std::string_view& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<double> RobotArm::getJointValues() const
+std::vector<double> Robot::getJointValues() const
 {
     std::vector<double> values;
     values.reserve(m_joints.size());
@@ -371,7 +371,7 @@ std::vector<double> RobotArm::getJointValues() const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::string> RobotArm::getJointNames() const
+std::vector<std::string> Robot::getJointNames() const
 {
     std::vector<std::string> names;
     names.reserve(m_joints.size());
@@ -385,8 +385,8 @@ std::vector<std::string> RobotArm::getJointNames() const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<double> RobotArm::getJointValuesByName(
-    const std::vector<std::string>& p_joint_names) const
+std::vector<double>
+Robot::getJointValuesByName(const std::vector<std::string>& p_joint_names) const
 {
     std::vector<double> values;
     values.reserve(p_joint_names.size());
@@ -407,9 +407,8 @@ std::vector<double> RobotArm::getJointValuesByName(
 }
 
 // ----------------------------------------------------------------------------
-bool RobotArm::setJointValuesByName(
-    const std::vector<std::string>& p_joint_names,
-    const std::vector<double>& p_values)
+bool Robot::setJointValuesByName(const std::vector<std::string>& p_joint_names,
+                                 const std::vector<double>& p_values)
 {
     if ((m_root_node == nullptr) || (p_joint_names.size() != p_values.size()))
     {
@@ -434,7 +433,7 @@ bool RobotArm::setJointValuesByName(
 }
 
 // ----------------------------------------------------------------------------
-bool RobotArm::setJointValues(const std::vector<double>& p_values)
+bool Robot::setJointValues(const std::vector<double>& p_values)
 {
     if (p_values.size() != m_joints.size())
     {
@@ -459,13 +458,13 @@ bool RobotArm::setJointValues(const std::vector<double>& p_values)
 }
 
 // ----------------------------------------------------------------------------
-Node const* RobotArm::getRootNode() const
+Node const* Robot::getRootNode() const
 {
     return m_root_node.get();
 }
 
 // ----------------------------------------------------------------------------
-Node* RobotArm::getNode(const std::string_view& p_name) const
+Node* Robot::getNode(const std::string_view& p_name) const
 {
     if (!m_root_node)
     {
@@ -476,14 +475,14 @@ Node* RobotArm::getNode(const std::string_view& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-void RobotArm::addLink(const std::string_view& p_name,
-                       std::unique_ptr<Link> p_link)
+void Robot::addLink(const std::string_view& p_name,
+                    std::unique_ptr<Link> p_link)
 {
     m_links[std::string(p_name)] = std::move(p_link);
 }
 
 // ----------------------------------------------------------------------------
-Link* RobotArm::getLink(const std::string_view& p_name) const
+Link* Robot::getLink(const std::string_view& p_name) const
 {
     if (auto it = m_links.find(std::string(p_name)); it != m_links.end())
     {
