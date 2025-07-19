@@ -1,6 +1,6 @@
 #include "Robotik/Debug.hpp"
 #include "Robotik/Parser.hpp"
-#include "Robotik/Robotik.hpp"
+#include "Robotik/Robot.hpp"
 #include "Robotik/Viewer.hpp"
 
 #include <iostream>
@@ -28,7 +28,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
     joint1.setLimits(-M_PI, M_PI);
 
     auto& link1 = base->createChild<robotik::Node>("link1");
-    link1.setLocalTransform(
+    link1.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
 
     auto& joint2 = link1.createChild<robotik::Joint>(
@@ -36,7 +36,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
     joint2.setLimits(-M_PI, M_PI);
 
     auto& link2 = link1.createChild<robotik::Node>("link2");
-    link2.setLocalTransform(
+    link2.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
 
     auto& joint3 = link2.createChild<robotik::Joint>(
@@ -44,7 +44,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
     joint3.setLimits(-M_PI, M_PI);
 
     auto& endEffector = link2.createChild<robotik::Node>("end_effector");
-    endEffector.setLocalTransform(
+    endEffector.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.3), 0, 0, 0));
 
     // Setup the robot
@@ -211,8 +211,8 @@ int main(int argc, char* argv[])
     robotik::debug::printRobot(*robot);
 
     // Get base position for camera target
-    auto base_position = robotik::utils::getTranslation(
-        robot->getRootNode()->getWorldTransform());
+    auto base_position =
+        robotik::utils::getTranslation(robot->getRootNode()->worldTransform());
 
     // Set initial camera view
     viewer.setCameraView(robotik::Viewer::CameraViewType::SIDE, base_position);

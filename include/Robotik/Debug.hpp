@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Robotik/Robotik.hpp"
+#include "Robotik/Robot.hpp"
 
 namespace robotik::debug
 {
@@ -11,6 +11,11 @@ namespace robotik::debug
 void printRobot(const Robot& p_robot);
 
 // ****************************************************************************
+//! \brief Print a node with its transformation matrices.
+// ****************************************************************************
+void printNode(const Node& p_node, size_t p_depth);
+
+// ****************************************************************************
 //! \brief Print the joint to the console.
 // ****************************************************************************
 void printJoint(const Joint& p_joint);
@@ -19,4 +24,15 @@ void printJoint(const Joint& p_joint);
 //! \brief Print the link to the console.
 // ****************************************************************************
 void printLink(const Link& p_link);
+
+// ****************************************************************************
+//! \brief Print a transformation matrix with proper formatting.
+// ****************************************************************************
+void printTransform(const Transform& p_transform, const std::string& p_indent);
+
+// ****************************************************************************
+//! \brief Get string representation of joint type.
+// ****************************************************************************
+std::string getJointTypeString(Joint::Type p_type);
+
 } // namespace robotik::debug

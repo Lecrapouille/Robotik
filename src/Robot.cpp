@@ -1,4 +1,4 @@
-#include "Robotik/Robotik.hpp"
+#include "Robotik/Robot.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -6,72 +6,6 @@
 
 namespace robotik
 {
-
-// ----------------------------------------------------------------------------
-Node::Node(const std::string_view& p_name) : m_name(p_name)
-{
-    m_local_transform = Transform::Identity();
-    m_world_transform = Transform::Identity();
-}
-
-// ----------------------------------------------------------------------------
-Node* Node::getNode(const std::string_view& p_name)
-{
-    // Check if any direct child has the name
-    auto it = std::find_if(m_children.begin(),
-                           m_children.end(),
-                           [&p_name](const std::unique_ptr<Node>& p_node)
-                           { return p_node->getName() == p_name; });
-
-    if (it != m_children.end())
-    {
-        return it->get();
-    }
-
-    // If not found in direct children, search recursively
-    for (const auto& child : m_children)
-    {
-        Node* result = child->getNode(p_name);
-        if (result != nullptr)
-        {
-            return result;
-        }
-    }
-
-    return nullptr;
-}
-
-// ----------------------------------------------------------------------------
-void Node::setLocalTransform(const Transform& p_transform)
-{
-    m_local_transform = p_transform;
-    updateWorldTransform();
-}
-
-// ----------------------------------------------------------------------------
-const Transform& Node::getWorldTransform() const
-{
-    return m_world_transform;
-}
-
-// ----------------------------------------------------------------------------
-void Node::updateWorldTransform()
-{
-    if (m_parent)
-    {
-        m_world_transform = m_parent->getWorldTransform() * m_local_transform;
-    }
-    else
-    {
-        m_world_transform = m_local_transform;
-    }
-
-    // Update the transformations of the children
-    for (auto const& child : m_children)
-    {
-        child->updateWorldTransform();
-    }
-}
 
 // ----------------------------------------------------------------------------
 Joint::Joint(const std::string_view& p_name,
@@ -149,11 +83,11 @@ Transform Joint::getTransform() const
 // ----------------------------------------------------------------------------
 void Joint::updateLocalTransform()
 {
-    setLocalTransform(getTransform());
+    localTransform(getTransform());
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setupRobot(Node::Ptr p_root, Node& p_end_effector)
+void Robot::setupRobot(Node::Ptr p_root, Joint& p_end_effector)
 {
     m_root_node = std::move(p_root);
 
@@ -186,15 +120,15 @@ void Robot::cacheListOfJoints()
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setEndEffector(Node& p_node)
+void Robot::setEndEffector(Joint& p_node)
 {
     m_end_effector = &p_node;
 }
 
 // ----------------------------------------------------------------------------
-Node* Robot::setEndEffector(std::string_view p_name)
+Joint* Robot::setEndEffector(std::string_view p_name)
 {
-    m_end_effector = getNode(p_name);
+    m_end_effector = getJoint(p_name);
     return m_end_effector;
 }
 
@@ -224,9 +158,9 @@ Transform Robot::forwardKinematics() const
     checkRobotSetupValidity();
 
     // Ensure that all transformations are up to date
-    m_root_node->updateWorldTransform();
+    m_root_node->update();
 
-    return m_end_effector->getWorldTransform();
+    return m_end_effector->worldTransform();
 }
 
 // ----------------------------------------------------------------------------
@@ -303,16 +237,16 @@ Jacobian Robot::calculateJacobian() const
     Jacobian J(6, num_joints);
 
     // Position of the end effector
-    Transform end_effector_transform = m_end_effector->getWorldTransform();
+    Transform end_effector_transform = m_end_effector->worldTransform();
     Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
     for (size_t i = 0; i < num_joints; ++i)
     {
         auto const& joint = *m_joints[i];
-        std::cout << "  Joint: " << joint.getName() << std::endl;
+        std::cout << "  Joint: " << joint.name() << std::endl;
 
         // Transformation of the joint in the global space
-        Transform joint_transform = joint.getWorldTransform();
+        Transform joint_transform = joint.worldTransform();
         std::cout << "  Joint transform: " << joint_transform << std::endl;
 
         // Position of the joint
@@ -348,7 +282,7 @@ Joint* Robot::getJoint(const std::string_view& p_name) const
 {
     for (const auto& joint : m_joints)
     {
-        if (joint->getName() == p_name)
+        if (joint->name() == p_name)
         {
             return joint;
         }
@@ -378,7 +312,7 @@ std::vector<std::string> Robot::getJointNames() const
 
     for (const auto& joint : m_joints)
     {
-        names.push_back(joint->getName());
+        names.push_back(joint->name());
     }
 
     return names;
@@ -427,7 +361,7 @@ bool Robot::setJointValuesByName(const std::vector<std::string>& p_joint_names,
     }
 
     // Update all transformations
-    m_root_node->updateWorldTransform();
+    m_root_node->update();
 
     return true;
 }
@@ -451,7 +385,7 @@ bool Robot::setJointValues(const std::vector<double>& p_values)
     // Update all transformations
     if (m_root_node)
     {
-        m_root_node->updateWorldTransform();
+        m_root_node->update();
     }
 
     return true;
@@ -464,14 +398,14 @@ Node const* Robot::getRootNode() const
 }
 
 // ----------------------------------------------------------------------------
-Node* Robot::getNode(const std::string_view& p_name) const
+Node* Robot::node(const std::string_view& p_name) const
 {
     if (!m_root_node)
     {
         return nullptr;
     }
 
-    return m_root_node->getNode(p_name);
+    return m_root_node->node(p_name);
 }
 
 // ----------------------------------------------------------------------------

@@ -32,6 +32,12 @@ SRC_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
 INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
+# Set OpenGL libraries (for Viewer)
+#
+PKG_LIBS += glfw3
+USER_LIBS += -lGL -lGLU -lGLEW
+
+###############################################################################
 # GTest and GMock
 #
 PKG_LIBS += gtest gmock
@@ -39,8 +45,8 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES += $(P)/src/Parser.cpp
-SRC_FILES += $(P)/src/Robotik.cpp
+//SRC_FILES += $(call rwildcard,$(P)/src,*.cpp)
+SRC_FILES += $(P)/src/Node.cpp
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 INCLUDES += $(P)/include
 VPATH += $(P)/src

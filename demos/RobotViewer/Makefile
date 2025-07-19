@@ -28,7 +28,7 @@ M := $(P)/.makefile
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := viewer-demo
+TARGET_NAME := RobotViewer
 TARGET_DESCRIPTION := Demo of Viewer usage
 include $(M)/project/Makefile
 
@@ -36,12 +36,12 @@ include $(M)/project/Makefile
 # Inform Makefile where to find header files
 #
 INCLUDES += $(P)/include
-VPATH += $(P)/demos/ViewerDemo
+VPATH += $(P)/demos/RobotViewer
 
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES += ViewerDemo.cpp
+SRC_FILES += RobotViewer.cpp
 INCLUDES := $(P)/include src
 INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
 

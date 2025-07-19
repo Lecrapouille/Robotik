@@ -73,7 +73,7 @@ bool URDFParser::setRootAndEndEffector()
     auto root_node = Node::create<Node>(root_link->name);
     buildSceneGraph(root_node.get(), root_link);
 
-    auto end_effector_node = root_node->getNode(end_effector_link->name);
+    auto end_effector_node = root_node->node(end_effector_link->name);
     if (!end_effector_node)
     {
         m_error = "No end effector node found in URDF";
@@ -92,7 +92,7 @@ void URDFParser::buildSceneGraph(Node* p_node, Link* p_link)
         return;
 
     // Find the joint in the joints map and transfer ownership
-    auto joint_it = m_joints.find(child_joint->getName());
+    auto joint_it = m_joints.find(child_joint->name());
     if (joint_it == m_joints.end())
         return;
 
@@ -114,6 +114,7 @@ void URDFParser::buildSceneGraph(Node* p_node, Link* p_link)
 }
 
 // ----------------------------------------------------------------------------
+// ALGO KO: ce n'est pas la racine. Il faut placer les links dans le scene graph
 std::pair<Link*, Link const*> URDFParser::findRootAndEndEffector() const
 {
     std::pair<Link*, Link const*> result(nullptr, nullptr);

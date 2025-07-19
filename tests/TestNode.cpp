@@ -1,6 +1,6 @@
 #include "main.hpp"
 
-#include "Robotik/Robotik.hpp"
+#include "Robotik/Node.hpp"
 #include <cmath>
 
 using namespace robotik;
@@ -14,10 +14,10 @@ protected:
 
     void SetUp() override
     {
-        root_node = Node::create<Node>("root");
+        root = Node::create<Node>("root");
     }
 
-    Node::Ptr root_node;
+    Node::Ptr root;
 };
 
 // *********************************************************************************
@@ -25,33 +25,33 @@ protected:
 // *********************************************************************************
 TEST_F(NodeTest, Creation)
 {
-    EXPECT_EQ(root_node->getName(), "root");
-    EXPECT_TRUE(root_node->getChildren().empty());
-    EXPECT_TRUE(
-        root_node->getLocalTransform().isApprox(Eigen::Matrix4d::Identity()));
-    EXPECT_TRUE(
-        root_node->getWorldTransform().isApprox(Eigen::Matrix4d::Identity()));
+    EXPECT_EQ(root->name(), "root");
+    EXPECT_TRUE(root->children().empty());
+    EXPECT_TRUE(root->localTransform().isApprox(Eigen::Matrix4d::Identity()));
+    EXPECT_TRUE(root->worldTransform().isApprox(Eigen::Matrix4d::Identity()));
 }
 
 // *********************************************************************************
-//! \brief Test getName() method.
+//! \brief Test name() method.
 // *********************************************************************************
 TEST_F(NodeTest, GetName)
 {
-    EXPECT_EQ(root_node->getName(), "root");
+    EXPECT_EQ(root->name(), "root");
 
     // Test getting non-existent node
-    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(*root, ""), nullptr);
 
-    // Test with empty name search
-    EXPECT_EQ(root_node->getNode(""), nullptr);
-
-    Node const& child = root_node->createChild<Node>("test_child");
-    EXPECT_EQ(child.getName(), "test_child");
+    Node const& child = root->createChild<Node>("test_child");
+    EXPECT_EQ(child.name(), "test_child");
+    EXPECT_EQ(Node::find(*root, "test_child"), &child);
+    EXPECT_EQ(root->child("test_child"), &child);
 
     // Test with empty name
-    Node const& empty_child = root_node->createChild<Node>("");
-    EXPECT_EQ(empty_child.getName(), "");
+    Node const& empty_child = root->createChild<Node>("");
+    EXPECT_EQ(empty_child.name(), "");
+    EXPECT_EQ(Node::find(*root, ""), &empty_child);
+    EXPECT_EQ(root->child(""), &empty_child);
 }
 
 // *********************************************************************************
@@ -60,31 +60,31 @@ TEST_F(NodeTest, GetName)
 TEST_F(NodeTest, CreateChildAndParenthood)
 {
     // Create two children
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node& child2 = root_node->createChild<Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
+
+    // Test that the children have the correct name
+    EXPECT_EQ(child1.name(), "child1");
+    EXPECT_EQ(child2.name(), "child2");
 
     // Test that the children are found from the root node
-    EXPECT_EQ(root_node->getChildren().size(), 2);
-    EXPECT_EQ(root_node->getNode("child1"), &child1);
-    EXPECT_EQ(root_node->getNode("child2"), &child2);
-    EXPECT_EQ(child1.getName(), "child1");
-    EXPECT_EQ(child2.getName(), "child2");
+    EXPECT_EQ(root->children().size(), 2);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(root->child("child1"), &child1);
+    EXPECT_EQ(root->child("child2"), &child2);
 
     // Verify parent-child relationships through world transform updates
     Transform parent_transform = Eigen::Matrix4d::Identity();
     parent_transform(0, 3) = 5.0; // Translation in x
-    root_node->setLocalTransform(parent_transform);
+    root->localTransform(parent_transform);
 
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 3.0; // Translation in y
-    child1.setLocalTransform(child_transform);
+    child1.localTransform(child_transform);
 
     // Update world transforms
-    root_node->updateWorldTransform();
-
-    // Child should have combined transform
-    Transform expected_world = parent_transform * child_transform;
-    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_world));
+    // root->update();
 
     // Compare with explicit matrix:
     // 1 0 0 5
@@ -94,7 +94,7 @@ TEST_F(NodeTest, CreateChildAndParenthood)
     Transform expected_matrix = Eigen::Matrix4d::Identity();
     expected_matrix(0, 3) = 5.0; // Translation in x from parent
     expected_matrix(1, 3) = 3.0; // Translation in y from child
-    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_matrix));
+    EXPECT_TRUE(child1.worldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
@@ -103,33 +103,33 @@ TEST_F(NodeTest, CreateChildAndParenthood)
 TEST_F(NodeTest, ComplexHierarchy)
 {
     // Create a hierarchy of nodes
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node const& child2 = root_node->createChild<Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node const& child2 = root->createChild<Node>("child2");
     Node& grandchild1 = child1.createChild<Node>("grandchild1");
     Node const& grandchild2 = child1.createChild<Node>("grandchild2");
     Node const& great_grandchild =
         grandchild1.createChild<Node>("great_grandchild");
 
     // Test that the children are found from the parent nodes
-    EXPECT_EQ(root_node->getChildren().size(), 2);
-    EXPECT_EQ(child1.getChildren().size(), 2);
-    EXPECT_EQ(child2.getChildren().size(), 0);
-    EXPECT_EQ(grandchild1.getChildren().size(), 1);
-    EXPECT_EQ(grandchild2.getChildren().size(), 0);
-    EXPECT_EQ(great_grandchild.getChildren().size(), 0);
+    EXPECT_EQ(root->children().size(), 2);
+    EXPECT_EQ(child1.children().size(), 2);
+    EXPECT_EQ(child2.children().size(), 0);
+    EXPECT_EQ(grandchild1.children().size(), 1);
+    EXPECT_EQ(grandchild2.children().size(), 0);
+    EXPECT_EQ(great_grandchild.children().size(), 0);
 
     // Test that the nodes are found from the root node
-    EXPECT_EQ(root_node->getNode("child1"), &child1);
-    EXPECT_EQ(root_node->getNode("child2"), &child2);
-    EXPECT_EQ(child1.getNode("grandchild1"), &grandchild1);
-    EXPECT_EQ(child1.getNode("grandchild2"), &grandchild2);
-    EXPECT_EQ(grandchild1.getNode("great_grandchild"), &great_grandchild);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
 
     // Test getting non-existent node
-    EXPECT_EQ(root_node->getNode("nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
 
     // Test with empty name search
-    EXPECT_EQ(root_node->getNode(""), nullptr);
+    EXPECT_EQ(Node::find(*root, ""), nullptr);
 }
 
 // *********************************************************************************
@@ -138,49 +138,55 @@ TEST_F(NodeTest, ComplexHierarchy)
 TEST_F(NodeTest, ComplexTransformationPropagation)
 {
     // Create a 3-level hierarchy
-    Node& level1 = root_node->createChild<Node>("level1");
+    Node& level1 = root->createChild<Node>("level1");
     Node& level2 = level1.createChild<Node>("level2");
     Node& level3 = level2.createChild<Node>("level3");
 
     // Set transforms for each level
     Transform root_transform = Eigen::Matrix4d::Identity();
     root_transform(0, 3) = 1.0; // Translation in x
-    root_node->setLocalTransform(root_transform);
+    root->localTransform(root_transform);
 
     Transform level1_transform = Eigen::Matrix4d::Identity();
     level1_transform(1, 3) = 2.0; // Translation in y
-    level1.setLocalTransform(level1_transform);
+    level1.localTransform(level1_transform);
 
     Transform level2_transform = Eigen::Matrix4d::Identity();
     level2_transform(2, 3) = 3.0; // Translation in z
-    level2.setLocalTransform(level2_transform);
+    level2.localTransform(level2_transform);
 
     Transform level3_transform = Eigen::Matrix4d::Identity();
     level3_transform(0, 3) = 4.0; // Another translation in x
-    level3.setLocalTransform(level3_transform);
+    level3.localTransform(level3_transform);
 
     // Update world transforms
-    root_node->updateWorldTransform();
+    // root->update();
 
-    // Verify cumulative transforms
-    Transform expected_level1 = root_transform * level1_transform;
-    Transform expected_level2 = expected_level1 * level2_transform;
-    Transform expected_level3 = expected_level2 * level3_transform;
+    // Compare with explicit matrix:
+    // 1 0 0 1
+    // 0 1 0 2
+    // 0 0 1 0
+    // 0 0 0 1
+    Transform expected_matrix = Eigen::Matrix4d::Identity();
+    expected_matrix(0, 3) = 1.0; // Translation in x from root
+    expected_matrix(1, 3) = 2.0; // Translation in y from level1
+    EXPECT_TRUE(level1.worldTransform().isApprox(expected_matrix));
 
-    EXPECT_TRUE(level1.getWorldTransform().isApprox(expected_level1));
-    EXPECT_TRUE(level2.getWorldTransform().isApprox(expected_level2));
-    EXPECT_TRUE(level3.getWorldTransform().isApprox(expected_level3));
+    // Compare with explicit matrix:
+    // 1 0 0 1
+    // 0 1 0 2
+    // 0 0 1 3
+    // 0 0 0 1
+    expected_matrix(2, 3) = 3.0; // Translation in z from level2
+    EXPECT_TRUE(level2.worldTransform().isApprox(expected_matrix));
 
     // Compare with explicit matrix:
     // 1 0 0 5
     // 0 1 0 2
     // 0 0 1 3
     // 0 0 0 1
-    Transform expected_matrix = Eigen::Matrix4d::Identity();
     expected_matrix(0, 3) = 5.0; // Translation in x from root and level3
-    expected_matrix(1, 3) = 2.0; // Translation in y from level1
-    expected_matrix(2, 3) = 3.0; // Translation in z from level2
-    EXPECT_TRUE(level3.getWorldTransform().isApprox(expected_matrix));
+    EXPECT_TRUE(level3.worldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
@@ -189,23 +195,44 @@ TEST_F(NodeTest, ComplexTransformationPropagation)
 TEST_F(NodeTest, LocalTransformWithRotation)
 {
     Transform identity = Eigen::Matrix4d::Identity();
-    EXPECT_TRUE(root_node->getLocalTransform().isApprox(identity));
+    EXPECT_TRUE(root->localTransform().isApprox(identity));
 
-    // Create a rotation around Z axis (90 degrees)
+    // Set a rotation around Z axis (90 degrees) + translation on root node
     Transform rotation_transform = Eigen::Matrix4d::Identity();
-    double angle = M_PI / 2.0;
-    rotation_transform(0, 0) = cos(angle);
-    rotation_transform(0, 1) = -sin(angle);
-    rotation_transform(1, 0) = sin(angle);
-    rotation_transform(1, 1) = cos(angle);
-
-    // Add translation
+    Eigen::AngleAxisd rotation(M_PI / 2.0, Eigen::Vector3d::UnitZ());
+    rotation_transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
     rotation_transform(0, 3) = 1.0;
     rotation_transform(1, 3) = 2.0;
     rotation_transform(2, 3) = 3.0;
+    root->localTransform(rotation_transform);
+    EXPECT_TRUE(root->localTransform().isApprox(rotation_transform));
 
-    root_node->setLocalTransform(rotation_transform);
-    EXPECT_TRUE(root_node->getLocalTransform().isApprox(rotation_transform));
+    // Create child node
+    Node& level1 = root->createChild<Node>("level1");
+
+    // Compare with explicit matrix:
+    // 0 -1  0  1
+    // 1  0  0  2
+    // 0  0  1  3
+    // 0  0  0  1
+    Transform expected_matrix;
+    expected_matrix << 0, -1, 0, 1, 1, 0, 0, 2, 0, 0, 1, 3, 0, 0, 0, 1;
+    EXPECT_TRUE(level1.worldTransform().isApprox(expected_matrix));
+
+    // Create a rotation around Z axis (90 degrees)
+    rotation_transform = Eigen::Matrix4d::Identity();
+    Eigen::AngleAxisd rotation2(M_PI / 2.0, Eigen::Vector3d::UnitZ());
+    rotation_transform.block<3, 3>(0, 0) = rotation2.toRotationMatrix();
+    level1.localTransform(rotation_transform);
+    Node const& level2 = level1.createChild<Node>("level2");
+
+    // Compare with explicit matrix:
+    // -1  0  0  1
+    //  0 -1  0  2
+    //  0  0  1  3
+    //  0  0  0  1
+    expected_matrix << -1, 0, 0, 1, 0, -1, 0, 2, 0, 0, 1, 3, 0, 0, 0, 1;
+    EXPECT_TRUE(level2.worldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
@@ -214,8 +241,8 @@ TEST_F(NodeTest, LocalTransformWithRotation)
 TEST_F(NodeTest, ParentWithTwoRotationsAndWorldTransform)
 {
     // Create child nodes
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node& child2 = root_node->createChild<Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
 
     // Create parent transform with two rotations
     Transform parent_transform = Eigen::Matrix4d::Identity();
@@ -243,50 +270,40 @@ TEST_F(NodeTest, ParentWithTwoRotationsAndWorldTransform)
     parent_transform(2, 3) = 2.0; // Translation in z
 
     // Set parent transform
-    root_node->setLocalTransform(parent_transform);
+    root->localTransform(parent_transform);
 
     // Set child transforms
     Transform child1_transform = Eigen::Matrix4d::Identity();
     child1_transform(0, 3) = 1.0; // Translation in x
-    child1.setLocalTransform(child1_transform);
+    child1.localTransform(child1_transform);
 
     Transform child2_transform = Eigen::Matrix4d::Identity();
     child2_transform(1, 3) = 2.0; // Translation in y
-    child2.setLocalTransform(child2_transform);
+    child2.localTransform(child2_transform);
 
     // Update world transforms
-    root_node->updateWorldTransform();
+    // root->update();
 
     // Verify world transforms
     Transform expected_child1_world = parent_transform * child1_transform;
     Transform expected_child2_world = parent_transform * child2_transform;
 
-    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_child1_world));
-    EXPECT_TRUE(child2.getWorldTransform().isApprox(expected_child2_world));
+    EXPECT_TRUE(child1.worldTransform().isApprox(expected_child1_world));
+    EXPECT_TRUE(child2.worldTransform().isApprox(expected_child2_world));
 
     // Verify parent world transform equals its local transform (since it's the
     // root)
-    EXPECT_TRUE(root_node->getWorldTransform().isApprox(parent_transform));
+    EXPECT_TRUE(root->worldTransform().isApprox(parent_transform));
 
-    // Verify against explicit matrix values
-    Transform expected_matrix = Eigen::Matrix4d::Identity();
-    expected_matrix(0, 0) = 0.707107;
-    expected_matrix(0, 1) = -0.612372;
-    expected_matrix(0, 2) = 0.353553;
-    expected_matrix(0, 3) = 5;
-    expected_matrix(1, 0) = 0.707107;
-    expected_matrix(1, 1) = 0.612372;
-    expected_matrix(1, 2) = -0.353553;
-    expected_matrix(1, 3) = 3;
-    expected_matrix(2, 0) = 0;
-    expected_matrix(2, 1) = 0.5;
-    expected_matrix(2, 2) = 0.866025;
-    expected_matrix(2, 3) = 2;
-    expected_matrix(3, 0) = 0;
-    expected_matrix(3, 1) = 0;
-    expected_matrix(3, 2) = 0;
-    expected_matrix(3, 3) = 1;
-    EXPECT_TRUE(root_node->getWorldTransform().isApprox(expected_matrix, 1e-5));
+    // Verify against expected matrix:
+    // 0.707107 -0.612372 0.353553 5
+    // 0.707107 0.612372 -0.353553 3
+    // 0 0.5 0.866025 2
+    // 0 0 0 1
+    Transform expected_matrix;
+    expected_matrix << 0.707107, -0.612372, 0.353553, 5, 0.707107, 0.612372,
+        -0.353553, 3, 0, 0.5, 0.866025, 2, 0, 0, 0, 1;
+    EXPECT_TRUE(root->worldTransform().isApprox(expected_matrix, 1e-5));
 }
 
 // *********************************************************************************
@@ -296,65 +313,81 @@ TEST_F(NodeTest, WorldTransformMultipleChildren)
 {
     Transform parent_transform = Eigen::Matrix4d::Identity();
     parent_transform(0, 3) = 1.0; // Translation in x
-    root_node->setLocalTransform(parent_transform);
+    root->localTransform(parent_transform);
 
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node& child2 = root_node->createChild<Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
 
     Transform child1_transform = Eigen::Matrix4d::Identity();
     child1_transform(1, 3) = 2.0; // Translation in y
-    child1.setLocalTransform(child1_transform);
+    child1.localTransform(child1_transform);
 
     Transform child2_transform = Eigen::Matrix4d::Identity();
     child2_transform(2, 3) = 3.0; // Translation in z
-    child2.setLocalTransform(child2_transform);
+    child2.localTransform(child2_transform);
 
     // Update world transforms
-    root_node->updateWorldTransform();
+    // root->update();
 
     // Both children should have parent transform applied
     Transform expected_child1 = parent_transform * child1_transform;
     Transform expected_child2 = parent_transform * child2_transform;
+    EXPECT_TRUE(child1.worldTransform().isApprox(expected_child1));
+    EXPECT_TRUE(child2.worldTransform().isApprox(expected_child2));
 
-    EXPECT_TRUE(child1.getWorldTransform().isApprox(expected_child1));
-    EXPECT_TRUE(child2.getWorldTransform().isApprox(expected_child2));
+    // Verify against expected matrix:
+    // 1 0 0 1
+    // 0 1 0 2
+    // 0 0 1 0
+    // 0 0 0 1
+    Transform expected_matrix;
+    expected_matrix << 1, 0, 0, 1, 0, 1, 0, 2, 0, 0, 1, 0, 0, 0, 0, 1;
+    EXPECT_TRUE(child1.worldTransform().isApprox(expected_matrix));
+
+    // Verify against expected matrix:
+    // 1 0 0 1
+    // 0 1 0 0
+    // 0 0 1 3
+    // 0 0 0 1
+    expected_matrix << 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 3, 0, 0, 0, 1;
+    EXPECT_TRUE(child2.worldTransform().isApprox(expected_matrix));
 }
 
 // *********************************************************************************
-//! \brief Test dirty flag mechanism comprehensively.
+//! \brief Test transform again.
 // *********************************************************************************
 TEST_F(NodeTest, DirtyFlagMechanism)
 {
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node& grandchild = child1.createChild<Node>("grandchild");
+    Node& child1 = root->createChild<Node>("child1");
+    Node const& grandchild = child1.createChild<Node>("grandchild");
 
     // Set initial transforms
     Transform root_transform = Eigen::Matrix4d::Identity();
     root_transform(0, 3) = 1.0;
-    root_node->setLocalTransform(root_transform);
+    root->localTransform(root_transform);
 
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 2.0;
-    child1.setLocalTransform(child_transform);
+    child1.localTransform(child_transform);
 
-    // Update world transforms - this should clear dirty flags
-    root_node->updateWorldTransform();
+    // Update world transforms
+    // root->update();
 
     // Store initial world transforms
-    Transform initial_child_world = child1.getWorldTransform();
-    Transform initial_grandchild_world = grandchild.getWorldTransform();
+    Transform initial_child_world = child1.worldTransform();
+    Transform initial_grandchild_world = grandchild.worldTransform();
 
     // Change root transform - should mark all descendants as dirty
     root_transform(0, 3) = 5.0;
-    root_node->setLocalTransform(root_transform);
+    root->localTransform(root_transform);
 
     // Update world transforms again
-    root_node->updateWorldTransform();
+    // root->update();
 
     // World transforms should be different now
-    EXPECT_FALSE(child1.getWorldTransform().isApprox(initial_child_world));
+    EXPECT_FALSE(child1.worldTransform().isApprox(initial_child_world));
     EXPECT_FALSE(
-        grandchild.getWorldTransform().isApprox(initial_grandchild_world));
+        grandchild.worldTransform().isApprox(initial_grandchild_world));
 }
 
 // *********************************************************************************
@@ -362,17 +395,17 @@ TEST_F(NodeTest, DirtyFlagMechanism)
 // *********************************************************************************
 TEST_F(NodeTest, WorldTransformCaching)
 {
-    Node& child = root_node->createChild<Node>("child");
+    Node const& child = root->createChild<Node>("child");
 
     Transform test_transform = Eigen::Matrix4d::Identity();
     test_transform(0, 3) = 1.0;
-    root_node->setLocalTransform(test_transform);
+    root->localTransform(test_transform);
 
     // First call should compute world transform
-    const Transform& world1 = child.getWorldTransform();
+    const Transform& world1 = child.worldTransform();
 
     // Second call should return cached result (same reference)
-    const Transform& world2 = child.getWorldTransform();
+    const Transform& world2 = child.worldTransform();
 
     // Should be the same object in memory
     EXPECT_EQ(&world1, &world2);
@@ -385,11 +418,15 @@ TEST_F(NodeTest, WorldTransformCaching)
 TEST_F(NodeTest, MultipleChildrenWithSameName)
 {
     // Test multiple children with same name (should return first found)
-    Node const& child1 = root_node->createChild<Node>("duplicate");
-    Node const& child2 = root_node->createChild<Node>("duplicate");
+    Node const& child1 = root->createChild<Node>("duplicate");
+    Node const& child2 = root->createChild<Node>("duplicate");
+
+    // Test that there are two children
+    EXPECT_EQ(root->children().size(), 2);
+    EXPECT_NE(&child1, &child2);
 
     // Should return the first one found
-    Node const* found = root_node->getNode("duplicate");
+    Node const* found = Node::find(*root, "duplicate");
     EXPECT_TRUE(found == &child1 || found == &child2);
 }
 
@@ -400,16 +437,17 @@ class DerivedNode: public Node
 {
 public:
 
-    DerivedNode(const std::string& name, int value) : Node(name), m_value(value)
+    DerivedNode(const std::string& p_name, int p_value)
+        : Node(p_name), m_value(p_value)
     {
     }
 
-    int getValue() const
+    int value() const
     {
         return m_value;
     }
 
-    void setValue(int value)
+    void value(int value)
     {
         m_value = value;
     }
@@ -424,19 +462,19 @@ private:
 // *********************************************************************************
 TEST_F(NodeTest, TemplateCreateChildDerived)
 {
-    DerivedNode& derived = root_node->createChild<DerivedNode>("derived", 42);
+    DerivedNode& derived = root->createChild<DerivedNode>("derived", 42);
 
-    EXPECT_EQ(derived.getName(), "derived");
-    EXPECT_EQ(derived.getValue(), 42);
-    EXPECT_EQ(root_node->getNode("derived"), &derived);
+    EXPECT_EQ(derived.name(), "derived");
+    EXPECT_EQ(derived.value(), 42);
+    EXPECT_EQ(Node::find(*root, "derived"), &derived);
 
     // Test that derived functionality works
-    derived.setValue(100);
-    EXPECT_EQ(derived.getValue(), 100);
+    derived.value(100);
+    EXPECT_EQ(derived.value(), 100);
 
     // Test that it's properly integrated in hierarchy
-    EXPECT_EQ(root_node->getChildren().size(), 1);
-    EXPECT_EQ(root_node->getChildren()[0].get(), &derived);
+    EXPECT_EQ(root->children().size(), 1);
+    EXPECT_EQ(root->children()[0].get(), &derived);
 }
 
 // *********************************************************************************
@@ -451,30 +489,38 @@ TEST_F(NodeTest, AddExistingChildBasic)
     // Set a transform on the child before adding
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(0, 3) = 5.0;
-    child_node->setLocalTransform(child_transform);
-
-    root_node->addChild(std::move(child_node));
-
-    EXPECT_EQ(root_node->getChildren().size(), 1);
-    EXPECT_EQ(root_node->getNode("external_child"), child_ptr);
+    child_node->localTransform(child_transform);
 
     // Verify the child's transform is preserved
-    EXPECT_TRUE(child_ptr->getLocalTransform().isApprox(child_transform));
+    EXPECT_TRUE(child_ptr->localTransform().isApprox(child_transform));
+    EXPECT_TRUE(child_ptr->worldTransform().isApprox(child_transform));
 
-    // NOTE: addChild() doesn't automatically set parent-child relationship
-    // so the child's world transform will be its local transform only
-    EXPECT_TRUE(child_ptr->getWorldTransform().isApprox(child_transform));
+    // Add child to root
+    Transform root_transform = Eigen::Matrix4d::Identity();
+    root_transform(0, 3) = 10.0;
+    root->localTransform(root_transform);
+    root->addChild(std::move(child_node));
 
-    // Set parent transform - this won't affect the child's world transform
-    // because addChild() doesn't set the parent relationship
-    Transform parent_transform = Eigen::Matrix4d::Identity();
-    parent_transform(1, 3) = 3.0;
-    root_node->setLocalTransform(parent_transform);
+    // Verify the child is added to the root
+    EXPECT_EQ(root->children().size(), 1);
+    EXPECT_EQ(Node::find(*root, "external_child"), child_ptr);
 
-    root_node->updateWorldTransform();
+    // Verify the child's transform is preserved
+    Transform expected_transform = Eigen::Matrix4d::Identity();
+    expected_transform(0, 3) = 15.0;
+    EXPECT_TRUE(child_ptr->localTransform().isApprox(child_transform));
+    EXPECT_TRUE(child_ptr->worldTransform().isApprox(expected_transform));
 
-    // Child's world transform should still be just its local transform
-    EXPECT_TRUE(child_ptr->getWorldTransform().isApprox(child_transform));
+    // Change the root transform
+    root_transform = Eigen::Matrix4d::Identity();
+    root_transform(1, 3) = 3.0;
+    root->localTransform(root_transform);
+
+    // Check applied transforms
+    EXPECT_TRUE(child_ptr->localTransform().isApprox(child_transform));
+    expected_transform(0, 3) = 5.0;
+    expected_transform(1, 3) = 3.0;
+    EXPECT_TRUE(child_ptr->worldTransform().isApprox(expected_transform));
 }
 
 // *********************************************************************************
@@ -482,33 +528,33 @@ TEST_F(NodeTest, AddExistingChildBasic)
 // *********************************************************************************
 TEST_F(NodeTest, RecursiveNodeSearchComplex)
 {
-    Node& child1 = root_node->createChild<Node>("child1");
-    Node& child2 = root_node->createChild<Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
     Node& grandchild1 = child1.createChild<Node>("grandchild1");
     Node& grandchild2 = child1.createChild<Node>("grandchild2");
     Node& great_grandchild = grandchild1.createChild<Node>("great_grandchild");
 
     // Test that getNode searches recursively through the entire subtree
-    EXPECT_EQ(root_node->getNode("child1"), &child1);
-    EXPECT_EQ(root_node->getNode("child2"), &child2);
-    EXPECT_EQ(root_node->getNode("grandchild1"), &grandchild1);
-    EXPECT_EQ(root_node->getNode("grandchild2"), &grandchild2);
-    EXPECT_EQ(root_node->getNode("great_grandchild"), &great_grandchild);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
 
     // Test search from child node
-    EXPECT_EQ(child1.getNode("grandchild1"), &grandchild1);
-    EXPECT_EQ(child1.getNode("grandchild2"), &grandchild2);
-    EXPECT_EQ(child1.getNode("great_grandchild"), &great_grandchild);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(child1, "great_grandchild"), &great_grandchild);
 
     // Test that child can't find sibling
-    EXPECT_EQ(child1.getNode("child2"), nullptr);
+    EXPECT_EQ(Node::find(child1, "child2"), nullptr);
 
     // Test that grandchild can't find uncle
-    EXPECT_EQ(grandchild1.getNode("child2"), nullptr);
+    EXPECT_EQ(Node::find(grandchild1, "child2"), nullptr);
 
     // Test search from grandchild
-    EXPECT_EQ(grandchild1.getNode("great_grandchild"), &great_grandchild);
-    EXPECT_EQ(grandchild2.getNode("great_grandchild"), nullptr);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
+    EXPECT_EQ(Node::find(grandchild2, "great_grandchild"), nullptr);
 }
 
 // *********************************************************************************
@@ -524,14 +570,14 @@ TEST_F(NodeTest, MultipleAddChildCalls)
     Node* child2_ptr = child2.get();
     Node* child3_ptr = child3.get();
 
-    root_node->addChild(std::move(child1));
-    root_node->addChild(std::move(child2));
-    root_node->addChild(std::move(child3));
+    root->addChild(std::move(child1));
+    root->addChild(std::move(child2));
+    root->addChild(std::move(child3));
 
-    EXPECT_EQ(root_node->getChildren().size(), 3);
-    EXPECT_EQ(root_node->getNode("child1"), child1_ptr);
-    EXPECT_EQ(root_node->getNode("child2"), child2_ptr);
-    EXPECT_EQ(root_node->getNode("child3"), child3_ptr);
+    EXPECT_EQ(root->children().size(), 3);
+    EXPECT_EQ(Node::find(*root, "child1"), child1_ptr);
+    EXPECT_EQ(Node::find(*root, "child2"), child2_ptr);
+    EXPECT_EQ(Node::find(*root, "child3"), child3_ptr);
 }
 
 // *********************************************************************************
@@ -540,20 +586,20 @@ TEST_F(NodeTest, MultipleAddChildCalls)
 TEST_F(NodeTest, MixedChildCreation)
 {
     // Create child using createChild
-    Node& created_child = root_node->createChild<Node>("created");
+    Node& created_child = root->createChild<Node>("created");
 
     // Add child using addChild
     auto added_child = Node::create<Node>("added");
     Node* added_ptr = added_child.get();
-    root_node->addChild(std::move(added_child));
+    root->addChild(std::move(added_child));
 
     // Create another child using createChild
-    Node& created_child2 = root_node->createChild<Node>("created2");
+    Node& created_child2 = root->createChild<Node>("created2");
 
-    EXPECT_EQ(root_node->getChildren().size(), 3);
-    EXPECT_EQ(root_node->getNode("created"), &created_child);
-    EXPECT_EQ(root_node->getNode("added"), added_ptr);
-    EXPECT_EQ(root_node->getNode("created2"), &created_child2);
+    EXPECT_EQ(root->children().size(), 3);
+    EXPECT_EQ(Node::find(*root, "created"), &created_child);
+    EXPECT_EQ(Node::find(*root, "added"), added_ptr);
+    EXPECT_EQ(Node::find(*root, "created2"), &created_child2);
 }
 
 // *********************************************************************************
@@ -564,28 +610,28 @@ TEST_F(NodeTest, CreateChildVsAddChildBehavior)
     // Set a parent transform
     Transform parent_transform = Eigen::Matrix4d::Identity();
     parent_transform(0, 3) = 10.0; // Translation in x
-    root_node->setLocalTransform(parent_transform);
+    root->localTransform(parent_transform);
 
     // Create child using createChild (should inherit parent transforms)
-    Node& created_child = root_node->createChild<Node>("created");
+    Node& created_child = root->createChild<Node>("created");
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 5.0; // Translation in y
-    created_child.setLocalTransform(child_transform);
+    created_child.localTransform(child_transform);
 
     // Add child using addChild (should NOT inherit parent transforms)
     auto added_child = Node::create<Node>("added");
-    Node* added_ptr = added_child.get();
-    added_child->setLocalTransform(child_transform); // Same local transform
-    root_node->addChild(std::move(added_child));
+    Node const* added_ptr = added_child.get();
+    added_child->localTransform(child_transform); // Same local transform
+    root->addChild(std::move(added_child));
 
     // Update world transforms
-    root_node->updateWorldTransform();
+    // root->update();
 
     // Created child should have combined transform (parent + local)
     Transform expected_created_world = parent_transform * child_transform;
     EXPECT_TRUE(
-        created_child.getWorldTransform().isApprox(expected_created_world));
+        created_child.worldTransform().isApprox(expected_created_world));
 
-    // Added child should have only its local transform (no parent relationship)
-    EXPECT_TRUE(added_ptr->getWorldTransform().isApprox(child_transform));
+    // Added child should have combined transform (parent + local)
+    EXPECT_TRUE(added_ptr->worldTransform().isApprox(expected_created_world));
 }

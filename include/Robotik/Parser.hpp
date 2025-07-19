@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Robotik/Robotik.hpp"
+#include "Robotik/Robot.hpp"
 
 // Forward declarations
 namespace tinyxml2
