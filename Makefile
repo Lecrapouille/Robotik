@@ -83,8 +83,8 @@ include $(M)/rules/Makefile
 ###############################################################################
 # Post-build rules
 #
-post-build: build-demo
+post-build: build-robot-viewer
 
-.PHONY: build-demo
-build-demo: $(TARGET_STATIC_LIB_NAME)
-	$(Q)$(MAKE) --no-print-directory --directory=demos/ViewerDemo all
+.PHONY: build-robot-viewer
+build-robot-viewer: $(TARGET_STATIC_LIB_NAME)
+	$(Q)$(MAKE) --no-print-directory --directory=demos/RobotViewer all

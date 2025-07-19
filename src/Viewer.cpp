@@ -516,7 +516,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
     p_robot.traverseNodes(
         [this](Node const& node)
         {
-            Transform world_transform = node.getWorldTransform();
+            Transform world_transform = node.worldTransform();
             if (auto joint = dynamic_cast<Joint const*>(&node))
             {
                 renderJoint(*joint, world_transform);
@@ -533,7 +533,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
             {
                 // Get the world transform of the parent joint and apply visual
                 // origin
-                world_transform = link.parent_joint->getWorldTransform() *
+                world_transform = link.parent_joint->worldTransform() *
                                   link.geometry.visual_origin;
             }
             else
@@ -548,10 +548,10 @@ void Viewer::renderRobot(Robot const& p_robot) const
 #if 0
     // Traverse the robot tree and render each axis
     p_robot.traverseNodes([this](Node const& node)
-                          { renderAxes(node.getWorldTransform(), 0.2); });
+                          { renderAxes(node.worldTransform(), 0.2); });
 
     // Render world axes at origin
-    renderAxes(p_robot.getRootNode()->getWorldTransform(), 0.5);
+    renderAxes(p_robot.getRootNode()->worldTransform(), 0.5);
 #endif
 }
 

@@ -1,5 +1,5 @@
+#include "Robotik/Robot.hpp"
 #include "Robotik/RobotViewer.hpp"
-#include "Robotik/Robotik.hpp"
 #include <chrono>
 #include <cmath>
 #include <iomanip>
@@ -71,7 +71,7 @@ int main()
     Transform gripperOffset = Transform::Identity();
     gripperOffset.block<3, 1>(0, 3) =
         Eigen::Vector3d(0, 0, 0.1); // 10cm d'offset
-    gripper->setLocalTransform(gripperOffset);
+    gripper->localTransform(gripperOffset);
 
     // Create the joints
     auto joint1 = std::make_shared<Joint>(
@@ -130,12 +130,12 @@ int main()
         utils::createTransform(Eigen::Vector3d(0, 0, 0.1), M_PI / 2, 0, 0);
 
     // Apply the geometric offsets to the link nodes
-    link1->setLocalTransform(link1Offset);
-    link2->setLocalTransform(link2Offset);
-    link3->setLocalTransform(link3Offset);
-    link4->setLocalTransform(link4Offset);
-    link5->setLocalTransform(link5Offset);
-    link6->setLocalTransform(link6Offset);
+    link1->localTransform(link1Offset);
+    link2->localTransform(link2Offset);
+    link3->localTransform(link3Offset);
+    link4->localTransform(link4Offset);
+    link5->localTransform(link5Offset);
+    link6->localTransform(link6Offset);
 
     // Test of forward kinematics
     std::cout << "=== Test of forward kinematics ===" << std::endl;

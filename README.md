@@ -1,30 +1,30 @@
 # RobotIK
 
-Bibliothèque robotique en C++ pour la manipulation et la visualisation de bras robotiques.
+C++ robotics library for manipulation and visualization of robotic arms.
 
-## Fonctionnalités
+## Features
 
-- **Cinématique directe et inverse** : Calcul des positions et orientations
-- **Graphe de scène** : Représentation hiérarchique des robots
-- **Jacobien** : Calcul pour le contrôle en vitesse
-- **Visualisation OpenGL** : Rendu 3D temps réel avec contrôles interactifs
-- **Support multi-joints** : Joints rotatifs, prismatiques et fixes
+- **Forward and inverse kinematics** : Position and orientation calculations
+- **Scene graph** : Hierarchical representation of robots
+- **Jacobian** : Calculation for velocity control
+- **OpenGL visualization** : Real-time 3D rendering with interactive controls
+- **Multi-joint support** : Rotary, prismatic and fixed joints
 
-## Prérequis
+## Prerequisites
 
-### Installation de base
+### Basic installation
 
 ```bash
 sudo apt-get install libeigen3-dev
 ```
 
-### Pour le visualiseur OpenGL
+### For OpenGL viewer
 
 ```bash
 sudo apt-get install libgl1-mesa-dev libglew-dev libglfw3-dev
 ```
 
-## Compilation
+## Compilation
 
 ```bash
 git clone https://github.com/Lecrapouille/Robotik --recurse
@@ -35,35 +35,69 @@ make tests -j8
 sudo make install
 ```
 
-Un dossier `build` a du être créé, il contient les libraries créées ainsi que les demos.
+A `build` folder should have been created, it contains the created libraries as well as the demos.
 
-## Visualiseur
+## Viewer
 
-Permet de charger un nouveau robot depuis un fichier URDF, de le visualiser et de le contrôler.
+Allows loading a new robot from a URDF file, visualizing it and controlling it.
 
 ```bash
-./build/viewer-demo
+./build/viewer-demo <path/to/your/robot/file.urdf>
 ```
 
-**Contrôles du visualiseur :** (en cours)
+The application expected to have a URDF file to load. This project contains some files in the [data](data) folder.
 
-- Souris : Rotation de la caméra
-- Molette : Zoom
-- W/S : Rapprocher/éloigner
-- ESC : Quitter
+**Viewer controls:** (in progress)
 
-## Structure du projet
+- Mouse : Camera rotation
+- Scroll wheel : Zoom
+- W/S : Move closer/farther
+- ESC : Quit
 
-```
+## Project structure
+
+```bash
 Robotik/
 ├── include/Robotik/
-│   ├── Robotik.hpp      # API principale du robot
-│   ├── Parser.hpp       # Classe créant un robot via un fichier URDF
-│   └── Viewer.hpp       # Visualiseur de robot en OpenGL
+│   ├── Robot.hpp        # Main robot API
+│   ├── Parser.hpp       # Class creating a robot from a URDF file
+│   └── Viewer.hpp       # OpenGL robot viewer
 ├── src/
-│   ├── Robotik.cpp      # Implémentation robotique
-│   ├── Parser.cpp       # Implémentation du parseur URDF
-│   └── Viewer.cpp       # Implémentation OpenGL
-└── demo/
-    └── RobotViewer/     # Exemple OpenGL
+│   ├── Robotik.cpp      # Robotics implementation
+│   ├── Parser.cpp       # URDF parser implementation
+│   └── Viewer.cpp       # OpenGL implementation
+└── demos/
+    └── RobotViewer/     # OpenGL example
+```
+
+## API
+
+Namespace is `robotik`.
+
+### Quick Robot Creation
+
+You need the class `URDFParser` just the time to create a new `std::unique_ptr<Robot>`. You can use it as a local variable.
+
+```cpp
+std::string urdf_file = "xxxx.urdf";
+robotik::URDFParser parser;
+
+auto robot = parser.load(urdf_file);
+if (!robot)
+{
+    std::cerr << "Failed to load robot from '" << urdf_file
+                << "': " << parser.getError() << std::endl;
+    return nullptr;
+}
+```
+
+### Forward kinematic
+
+(work in progress API)
+- Par nom de joints
+- Utiliser les contraintes.
+
+```cpp
+std::vector<double> joint_values = p_robot->getJointValues();
+robot->setJointValues(joint_values);
 ```

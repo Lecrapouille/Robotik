@@ -1,8 +1,6 @@
 #pragma once
 
-// #include "units.h"
-
-#include <Eigen/Dense>
+#include "Node.hpp"
 
 #include <memory>
 #include <stdexcept>
@@ -10,61 +8,8 @@
 #include <unordered_map>
 #include <vector>
 
-// ****************************************************************************
-//! \brief Base exception class for all Robotik library exceptions.
-// ****************************************************************************
-class RobotikException: public std::runtime_error
-{
-public:
-
-    explicit RobotikException(const std::string& message)
-        : std::runtime_error("Robotik: " + message)
-    {
-    }
-};
-
 namespace robotik
 {
-// using namespace units::literals;
-// using Radian = units::angle::double_t;
-// using Meter = units::length::meter_t;
-
-// ----------------------------------------------------------------------------
-//! \brief Homogeneous transformation matrix (4x4) for 3D spatial
-//! transformations.
-//!
-//! This 4x4 matrix encodes both rotation and translation in a single
-//! representation: [R t] where R is 3x3 rotation matrix, t is 3x1 translation
-//! vector [0 1] bottom row is always [0 0 0 1] for homogeneous coordinates
-//!
-//! Used for: Forward kinematics, coordinate frame transformations, pose
-//! composition.
-// ----------------------------------------------------------------------------
-using Transform = Eigen::Matrix4d;
-
-// ----------------------------------------------------------------------------
-//! \brief 6D pose vector representing position and orientation
-//! (x,y,z,rx,ry,rz).
-//!
-//! This compact representation combines:
-//! - Position: [x,y,z] - 3D coordinates in meters
-//! - Orientation: [rx,ry,rz] - Euler angles in radians (roll, pitch, yaw)
-//!
-//! Used for: End-effector targets, trajectory waypoints, inverse kinematics
-//! goals.
-// ----------------------------------------------------------------------------
-using Pose = Eigen::Matrix<double, 6, 1>;
-
-// ----------------------------------------------------------------------------
-//! \brief Jacobian matrix relating joint velocities to end-effector velocity.
-//!
-//! This matrix (typically 6×n for n joints) provides the linear relationship:
-//! end_effector_velocity = J * joint_velocities
-//!
-//! Used for: Velocity control, force control, singularity analysis, inverse
-//! kinematics
-// ----------------------------------------------------------------------------
-using Jacobian = Eigen::MatrixXd;
 
 // ****************************************************************************
 //! \brief Geometry data for collision detection and visualization.
@@ -78,10 +23,6 @@ struct Geometry
         SPHERE,
         MESH
     };
-
-    explicit Geometry(Type t = Type::BOX) : type(t), color(0.5, 0.5, 0.5, 1.0)
-    {
-    }
 
     //! \brief Type of geometry (box, cylinder, sphere, mesh).
     Type type;
@@ -113,260 +54,6 @@ struct Inertial
     Eigen::Vector3d center_of_mass;
     //! \brief Inertia matrix of the object.
     Eigen::Matrix3d inertia_matrix;
-};
-
-// ****************************************************************************
-//! \brief Class representing a node in the scene graph.
-//!
-//! A scene graph is a hierarchical data structure that represents the spatial
-//! relationships between its different components. Each node in this graph
-//! represents a physical or logical component that has:
-//! - A position and orientation in 3D space (transform).
-//! - A relationship to a parent component (inheritance of transforms).
-//! - Potentially multiple child components.
-//!
-//! Physical representation in robotics:
-//! - Robot links (rigid bodies connecting joints).
-//! - Joint frames (coordinate systems at joint locations).
-//! - Tool frames (end-effector coordinate systems).
-//! - Sensor mounts (camera, lidar attachment points).
-//! - Collision geometries (for path planning).
-//!
-//! The scene graph enables:
-//! - Forward kinematics calculation (computing end-effector pose).
-//! - Coordinate frame transformations between robot components.
-//! - Hierarchical motion propagation (parent motion affects all children).
-//! - Efficient spatial queries and collision detection.
-//!
-//! Example robot hierarchy:
-//! Base -> Shoulder -> Upper_Arm -> Elbow -> Forearm -> Wrist -> End_Effector
-// ****************************************************************************
-class Node
-{
-public:
-
-    using Ptr = std::unique_ptr<Node>;
-
-    // ------------------------------------------------------------------------
-    //! \brief Constructor. Initializes the node with a name and transformation
-    //! to identity matrix.
-    //! \param p_name Name of the node.
-    // ------------------------------------------------------------------------
-    explicit Node(const std::string_view& p_name);
-
-    // ------------------------------------------------------------------------
-    //! \brief Virtual destructor to ensure proper cleanup of derived classes.
-    // ------------------------------------------------------------------------
-    virtual ~Node() = default;
-
-    // ------------------------------------------------------------------------
-    //! \brief Create a new node.
-    //! \tparam T Type of the child node should inherit from Node.
-    //! \param p_args Arguments for the child node constructor.
-    //! \return Pointer to the new node.
-    // ------------------------------------------------------------------------
-    template <typename T, typename... Args>
-    static std::unique_ptr<T> create(Args&&... p_args)
-    {
-        static_assert(std::is_base_of<Node, T>::value,
-                      "T must inherit from Node");
-        return std::make_unique<T>(std::forward<Args>(p_args)...);
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Create and store a new child node.
-    //! \tparam T Type of the child node should inherit from Node.
-    //! \param p_args Arguments for the child node constructor.
-    //! \return Reference to the added child node.
-    // ------------------------------------------------------------------------
-    template <typename T, typename... Args>
-    T& createChild(Args&&... p_args)
-    {
-        auto child = Node::create<T>(std::forward<Args>(p_args)...);
-        T& child_ref = *child;
-
-        m_children.push_back(std::move(child));
-        child_ref.m_parent = this;
-        child_ref.updateWorldTransform();
-
-        return child_ref;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Add a child node created outside of this class.
-    //! \param p_child Pointer to the child node.
-    // ------------------------------------------------------------------------
-    void addChild(Node::Ptr p_child)
-    {
-        m_children.push_back(std::move(p_child));
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the children of the node.
-    //! \return Vector of child nodes.
-    // ------------------------------------------------------------------------
-    inline const std::vector<std::unique_ptr<Node>>& getChildren() const
-    {
-        return m_children;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get a node by name. This method is recursive and will search
-    //! through the entire subtree rooted at this node.
-    //! \param p_name Name of the node.
-    //! \return Pointer to the node, or nullptr if not found.
-    // ------------------------------------------------------------------------
-    Node* getNode(const std::string_view& p_name);
-
-    // ------------------------------------------------------------------------
-    //! \brief Traverse the node tree recursively and apply a function to each
-    //! node.
-    //!
-    //! This method performs a depth-first traversal of the node tree starting
-    //! from this node. It applies the provided function to each node in the
-    //! tree, including the current node and all its descendants.
-    //!
-    //! The traversal order is:
-    //! 1. Apply function to current node
-    //! 2. Recursively traverse all children
-    //!
-    //! This is useful for operations that need to be applied to all nodes
-    //! in a subtree, such as:
-    //! - Collecting all joints in a robot arm
-    //! - Updating properties of all nodes
-    //! - Searching for specific node types
-    //!
-    //! \tparam Function Type of the function to apply (lambda, function
-    //! pointer, etc.)
-    //! \param p_function Function to apply to each node. Should accept Node&
-    //! parameter.
-    // ------------------------------------------------------------------------
-    template <typename Function>
-    void traverse(Function&& p_function)
-    {
-        // Apply the function to the current node
-        p_function(*this);
-
-        // Recursively traverse all children
-        for (auto const& child : m_children)
-        {
-            child->traverse(std::forward<Function>(p_function));
-        }
-    }
-
-    template <typename Function>
-    void traverse(Function&& p_function) const
-    {
-        // Apply the function to the current node
-        p_function(*this);
-
-        // Recursively traverse all children
-        for (auto const& child : m_children)
-        {
-            child->traverse(std::forward<Function>(p_function));
-        }
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set the local transform of the node.
-    //!
-    //! The local transform defines the position and orientation of this
-    //! node relative to its parent in the hierarchy. In the context of
-    //! robotics, this typically corresponds to:
-    //! - For a link: its position/orientation relative to the parent joint
-    //! - For a joint: the transformation it applies (rotation/translation)
-    //!
-    //! This 4x4 homogeneous matrix encodes:
-    //! - Translation (first 3 elements of the 4th column)
-    //! - Rotation (3x3 upper left submatrix)
-    //! - Scale factor (typically 1 in robotics)
-    //!
-    //! \param p_transform Local homogeneous transformation matrix 4x4
-    // ------------------------------------------------------------------------
-    void setLocalTransform(const Transform& p_transform);
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the local transform of the node.
-    //!
-    //! The local transform describes the position and orientation of this
-    //! node relative to its parent in the hierarchy. This transformation is
-    //! expressed in the parent's coordinate frame.
-    //!
-    //! In robotics, this transformation represents:
-    //! - The geometric offset between two consecutive links
-    //! - The transformation applied by a joint (rotation or translation)
-    //! - The physical dimensions of the robot's links
-    //!
-    //! \return Constant reference to the local transformation matrix 4x4
-    // ------------------------------------------------------------------------
-    inline const Transform& getLocalTransform() const
-    {
-        return m_local_transform;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the world transform of the node.
-    //!
-    //! The world transform describes the absolute position and orientation
-    //! of this node in the global/base coordinate frame. This
-    //! transformation is calculated by multiplying all local transforms
-    //! from the root to this node.
-    //!
-    //! In robotics, this transformation represents:
-    //! - Position/orientation of a link in the robot's workspace
-    //! - End-effector pose relative to the robot's base
-    //! - Absolute configuration of any part of the robot
-    //!
-    //! The world transform = T_base * T_joint1 * ... * T_jointN * T_local
-    //! where each T_jointX is
-    // ------------------------------------------------------------------------
-    const Transform& getWorldTransform() const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Update the world transform of the node.
-    //!
-    //! Updates the world transform of this node and all its children
-    //! recursively. This method implements the propagation of transforms in
-    //! the robot's kinematic chain.
-    //!
-    //! The calculation follows the formula:
-    //! - If root node: T_world = T_local
-    //! - Otherwise: T_world = T_world_parent * T_local
-    //!
-    //! In robotics, this update is necessary when:
-    //! - A joint changes value (angle or position)
-    //! - The robot's configuration is modified
-    //! - The direct kinematics is recalculated
-    //!
-    //! The algorithm uses a cache system ("dirty flag") to avoid
-    //! unnecessary recalculations and optimize performance.
-    // ------------------------------------------------------------------------
-    void updateWorldTransform();
-
-    // ------------------------------------------------------------------------
-    //! \brief Update the world transform of the node (const version).
-    //!
-    //! This is the const version of updateWorldTransform, which does nothing
-    //! since const methods cannot modify the object state.
-    // ------------------------------------------------------------------------
-    void updateWorldTransform() const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the name of the node.
-    //! \return Name of the node.
-    // ------------------------------------------------------------------------
-    inline const std::string& getName() const
-    {
-        return m_name;
-    }
-
-private:
-
-    std::string m_name;
-    Transform m_local_transform;
-    Transform m_world_transform;
-    std::vector<std::unique_ptr<Node>> m_children;
-    Node* m_parent = nullptr;
 };
 
 // *********************************************************************************
@@ -784,7 +471,7 @@ public:
     //! \brief Get the name of the robot arm.
     //! \return The name of the robot arm.
     // ------------------------------------------------------------------------
-    inline std::string getName() const
+    inline std::string name() const
     {
         return m_name;
     }
@@ -796,19 +483,28 @@ public:
     //! \param p_end_effector Reference to the end effector node.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    void setupRobot(Node::Ptr p_root, Node& p_end_effector);
+    void setupRobot(Node::Ptr p_root, Joint& p_end_effector);
 
     // ------------------------------------------------------------------------
     //! \brief Define the given node as the end effector of the robot arm.
     //! \param p_node Pointer to the end effector node.
     // ------------------------------------------------------------------------
-    void setEndEffector(Node& p_node);
+    void setEndEffector(Joint& p_node);
 
     // ------------------------------------------------------------------------
     //! \brief Define the given node as the end effector of the robot arm.
     //! \param p_name Name of the end effector node.
     // ------------------------------------------------------------------------
-    Node* setEndEffector(std::string_view p_name);
+    Joint* setEndEffector(std::string_view p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the end effector node of the robot arm.
+    //! \return Pointer to the end effector node.
+    // ------------------------------------------------------------------------
+    Joint* getEndEffector() const
+    {
+        return m_end_effector;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Get a const pointer to the root node of the robot arm.
@@ -825,7 +521,7 @@ public:
     //! \param p_name Name of the node.
     //! \return Pointer to the node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node* getNode(const std::string_view& p_name) const;
+    Node* node(const std::string_view& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Find and return a joint by its name.
@@ -893,6 +589,36 @@ public:
     // ------------------------------------------------------------------------
     template <typename Function>
     void traverseNodes(Function&& p_function) const
+    {
+        if (m_root_node)
+        {
+            m_root_node->traverse(std::forward<Function>(p_function));
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the nodes of the robot arm with hierarchical
+    //! information.
+    //! \param p_function Function to apply to each node. Should accept Node&
+    //! and size_t depth parameters.
+    // ------------------------------------------------------------------------
+    template <typename Function>
+    void traverseNodesHierarchical(Function&& p_function)
+    {
+        if (m_root_node)
+        {
+            m_root_node->traverse(std::forward<Function>(p_function));
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Const traverse the nodes of the robot arm with hierarchical
+    //! information.
+    //! \param p_function Function to apply to each node. Should accept Node&
+    //! and size_t depth parameters.
+    // ------------------------------------------------------------------------
+    template <typename Function>
+    void traverseNodesHierarchical(Function&& p_function) const
     {
         if (m_root_node)
         {
@@ -1059,7 +785,7 @@ private:
 
     std::string m_name;
     Node::Ptr m_root_node;
-    Node* m_end_effector = nullptr;
+    Joint* m_end_effector = nullptr;
     std::vector<Joint*> m_joints;
     std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
 };
