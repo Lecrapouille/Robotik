@@ -27,8 +27,8 @@ struct Geometry
     std::string mesh_path;
     //! \brief Color of the geometry (RGBA values).
     Eigen::Vector4d color;
-    //! \brief Visual origin transformation (xyz and rpy).
-    robotik::Transform visual_origin = robotik::Transform::Identity();
+    //! \brief Origin transformation (xyz and rpy).
+    robotik::Transform origin = robotik::Transform::Identity();
 };
 
 } // namespace robotik

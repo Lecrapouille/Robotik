@@ -7,45 +7,6 @@
 namespace robotik
 {
 
-#if 0
-// FIXME: a virer
-// ****************************************************************************
-//! \brief Class representing a robotic link.
-//!
-//! A link is a rigid body component of a robot that connects two joints.
-//! In robotics, links are the structural elements that provide the physical
-//! framework of the robot and carry the payload.
-//!
-//! Physical characteristics:
-//! - Geometry: Visual and collision shapes for rendering and collision
-//! detection
-//! - Inertial: Mass properties for dynamic simulation
-//! - Joints: Connection points to other links via joints
-//!
-//! Each link is connected to other links through joints:
-//! - Parent joint: The joint that connects this link to its parent
-//! - Child joint: The joint that connects this link to its child
-//!
-//! The link serves as the physical structure between two joints in the
-//! kinematic chain, providing the mechanical connection and housing
-//! sensors, actuators, or other components.
-// ****************************************************************************
-struct Link
-{
-    // ------------------------------------------------------------------------
-    //! \brief Constructor for robotic link.
-    //! \param p_name Name of the link.
-    // ------------------------------------------------------------------------
-    explicit Link(std::string_view const& p_name) : name(p_name) {}
-
-    std::string name;
-    Geometry geometry;
-    Inertial inertial;
-    Joint* parent_joint = nullptr;
-    Joint* child_joint = nullptr;
-};
-#endif
-
 // *********************************************************************************
 //! \brief Class representing a robotic joint.
 //!
@@ -308,6 +269,24 @@ public:
         return m_axis;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Set the geometry of the joint.
+    //! \param p_geometry The geometry to set
+    // ------------------------------------------------------------------------
+    inline void setGeometry(const Geometry& p_geometry)
+    {
+        m_geometry = p_geometry;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the inertial properties of the joint.
+    //! \param p_inertial The inertial properties to set
+    // ------------------------------------------------------------------------
+    inline void setInertial(const Inertial& p_inertial)
+    {
+        m_inertial = p_inertial;
+    }
+
 private:
 
     // ------------------------------------------------------------------------
@@ -354,6 +333,10 @@ private:
     double m_max;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
+    //! \brief Geometry of the link connected to the joint
+    Geometry m_geometry;
+    //! \brief Inertial properties of the joint
+    Inertial m_inertial;
     //! \brief Cached joint transformation matrix.
     // FIXME Transform m_joint_transform;
 };

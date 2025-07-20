@@ -3,6 +3,8 @@
 #include "Robotik/Robot.hpp"
 #include "Robotik/Viewer.hpp"
 
+#include "Robotik/private/Conversions.hpp"
+
 #include <iostream>
 #include <optional>
 #include <string>
@@ -208,11 +210,11 @@ int main(int argc, char* argv[])
     // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
     // robot->setJointValues(joint_values);
 
-    robotik::debug::printRobot(*robot);
+    robotik::debug::printSceneGraph(*robot);
 
     // Get base position for camera target
     auto base_position =
-        robotik::utils::getTranslation(robot->getRootNode()->worldTransform());
+        robotik::utils::getTranslation(robot->root().worldTransform());
 
     // Set initial camera view
     viewer.setCameraView(robotik::Viewer::CameraViewType::SIDE, base_position);

@@ -10,3 +10,13 @@
 - KO Jacobian: je pense que les axis des links ne sont pas pris en compte.
 
 Online viewer: http://urdf.robotsfan.com/
+
+Revoir la hierarchie des joints: Fixed n'a pas a avoir de setValue()
+Node <--- Fixed <-- prismatic
+Repenser les S.I. mettre Radian pour revolute et Meter pour prismatic
+
+CONFUSION ENTRE localtransform entre le joint_transform et l'origin.
+
+Mettre le scene graphe comme un behavior tree: composite, decorator, leaf:
+- decorator entre local et joint
+- leaf: capteur ?

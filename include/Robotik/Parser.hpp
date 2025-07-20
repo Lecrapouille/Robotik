@@ -37,10 +37,21 @@ public:
 
 private:
 
+    struct Link
+    {
+        explicit Link(std::string_view const& p_name) : name(p_name) {}
+
+        std::string name;
+        Geometry geometry;
+        Inertial inertial;
+        Joint* parent_joint = nullptr;
+        std::vector<Joint*> child_joints;
+    };
+
+    std::string findRootLinkName() const;
+
     void parseLinks(tinyxml2::XMLElement* p_robot_element);
     void parseJoints(tinyxml2::XMLElement* p_robot_element);
-
-    // Parse specific elements
     void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
                                Link& p_link) const;
     void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
@@ -51,34 +62,17 @@ private:
                      Joint& p_joint) const;
     void parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
                                Joint& p_joint) const;
-
-    // Parse specific attributes and transforms
     Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element) const;
     std::pair<Eigen::Vector3d, Eigen::Vector3d>
     parseOriginTransform(tinyxml2::XMLElement* p_element) const;
     Transform parseOriginFromElement(tinyxml2::XMLElement* p_element) const;
     Geometry parseGeometryFromElement(
         tinyxml2::XMLElement const* p_geometry_element) const;
-
-    // Utility methods for XML parsing
     std::string getRequiredAttribute(tinyxml2::XMLElement const* p_element,
                                      const char* p_attr_name) const;
     std::string getAttributeOrDefault(tinyxml2::XMLElement const* p_element,
                                       const char* p_attr_name,
                                       const std::string& p_default) const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Find root and end effector links:
-    //!  - The root link is the one that has no parent joint.
-    //!  - The end effector link is the one that has no child joint.
-    //! We assume that the robot has only one root link and one end effector
-    //! link. If this is not the case, the robot will not be setup correctly.
-    // ------------------------------------------------------------------------
-    std::pair<Link*, Link const*> findRootAndEndEffector() const;
-    void buildSceneGraph(Node* p_node, Link* p_link);
-    bool setRootAndEndEffector();
-    void setRobotLinks();
-
     Eigen::Vector3d parseVector3(const std::string& p_str) const;
     Eigen::Vector4d parseVector4(const std::string& p_str) const;
     Transform parseOrigin(const std::string& p_xyz,
@@ -87,10 +81,14 @@ private:
     Inertial parseInertial(const std::string& p_xml) const;
     Joint::Type parseJointType(std::string_view const& p_str_type) const;
 
+    // Scene graph building methods
+    bool buildSceneGraph();
+    std::unique_ptr<Joint> buildJointTree(Joint* current_joint);
+
 private:
 
     std::unique_ptr<Robot> m_robot;
-    std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
+    std::unordered_map<std::string, std::unique_ptr<URDFParser::Link>> m_links;
     std::unordered_map<std::string, std::unique_ptr<Joint>> m_joints;
     std::string m_error;
 };
