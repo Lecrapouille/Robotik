@@ -21,14 +21,9 @@ void printSceneGraph(const Robot& p_robot);
 void printNode(Node const& p_node, size_t p_depth);
 
 // ****************************************************************************
-//! \brief Print a node in scene graph format with decomposed transformations.
-// ****************************************************************************
-void printSceneNode(Node const& p_node, size_t p_depth, bool p_isLast);
-
-// ****************************************************************************
 //! \brief Print a node in simplified scene graph format.
 // ****************************************************************************
-void printSceneNodeSimple(Node const& p_node, bool p_isLast);
+void printSceneNodeSimple(Node const& p_node, bool p_isLast, size_t p_depth);
 
 // ****************************************************************************
 //! \brief Print the joint to the console.
