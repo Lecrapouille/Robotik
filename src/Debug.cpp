@@ -43,7 +43,7 @@ void printSceneGraph(const Robot& p_robot)
         for (size_t i = 0; i < children.size(); ++i)
         {
             bool isLast = (i == children.size() - 1);
-            printSceneNodeSimple(*children[i], isLast);
+            printSceneNodeSimple(*children[i], isLast, 0);
         }
     }
     else
@@ -53,7 +53,7 @@ void printSceneGraph(const Robot& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-void printSceneNodeSimple(Node const& p_node, bool p_isLast)
+void printSceneNodeSimple(Node const& p_node, bool p_isLast, size_t p_depth)
 {
     // Print tree connector
     std::string connector = p_isLast ? "└── " : "├── ";
@@ -85,11 +85,23 @@ void printSceneNodeSimple(Node const& p_node, bool p_isLast)
             {
                 jointName = jointName.substr(0, jointName.length() - 6);
             }
-            std::string jointVar = "θ_" + jointName;
-            std::cout << indent
-                      << "├── T_joint:      rotate(axis = " << joint->axis().x()
-                      << " " << joint->axis().y() << " " << joint->axis().z()
-                      << ", θ = " << jointVar << ")   ← variable" << std::endl;
+
+            if (joint->type() == Joint::Type::PRISMATIC)
+            {
+                std::string jointVar = "d_" + jointName;
+                std::cout << indent << "├── T_joint:      translate(axis = "
+                          << joint->axis().x() << " " << joint->axis().y()
+                          << " " << joint->axis().z() << ", d = " << jointVar
+                          << ")   ← variable" << std::endl;
+            }
+            else // REVOLUTE
+            {
+                std::string jointVar = "θ_" + jointName;
+                std::cout << indent << "├── T_joint:      rotate(axis = "
+                          << joint->axis().x() << " " << joint->axis().y()
+                          << " " << joint->axis().z() << ", θ = " << jointVar
+                          << ")   ← variable" << std::endl;
+            }
         }
 
         // Print child link if exists
@@ -103,89 +115,50 @@ void printSceneNodeSimple(Node const& p_node, bool p_isLast)
                 std::cout << " × T_joint";
             }
             std::cout << ")" << std::endl;
+
+            // Recursively print the children of the child link (next joints in
+            // the kinematic chain)
+            const auto& grandchildren = child.children();
+            if (!grandchildren.empty())
+            {
+                // Add spacing for readability between joints
+                if (!p_isLast)
+                {
+                    std::cout << "│" << std::endl;
+                }
+                else
+                {
+                    std::cout << std::endl;
+                }
+
+                // Print the child joint(s) with appropriate indentation
+                for (size_t i = 0; i < grandchildren.size(); ++i)
+                {
+                    bool isChildLast = (i == grandchildren.size() - 1);
+                    printSceneNodeSimple(
+                        *grandchildren[i], isChildLast, p_depth + 1);
+                }
+            }
         }
 
-        // Add empty line between joints for readability
-        if (!p_isLast)
+        // Add empty line between joints for readability at the same level
+        else if (!p_isLast)
         {
             std::cout << "│" << std::endl;
         }
     }
-}
-
-// ----------------------------------------------------------------------------
-void printSceneNode(Node const& p_node, size_t p_depth, bool p_isLast)
-{
-    // Create indentation based on depth
-    std::string indent(p_depth * 3, ' ');
-
-    // Print tree connector
-    if (p_depth > 0)
-    {
-        if (p_isLast)
-        {
-            std::cout << indent.substr(0, indent.length() - 3) << "└── ";
-        }
-        else
-        {
-            std::cout << indent.substr(0, indent.length() - 3) << "├── ";
-        }
-    }
-
-    // Print node name and type
-    if (auto joint = dynamic_cast<Joint const*>(&p_node))
-    {
-        std::cout << p_node.name()
-                  << " (type: " << jointTypeStringCompact(joint->type()) << ")"
-                  << std::endl;
-
-        // Print joint-specific information
-        std::string jointIndent = indent + (p_isLast ? "    " : "│   ");
-
-        // Print T_origin
-        std::cout << jointIndent << "├── T_origin:     "
-                  << formatTransform(p_node.localTransform()) << std::endl;
-
-        // Print T_joint
-        if (joint->type() == Joint::Type::FIXED)
-        {
-            std::cout << jointIndent
-                      << "├── T_joint:      identity (fixed joint)"
-                      << std::endl;
-        }
-        else
-        {
-            std::string jointVar = "θ_" + p_node.name();
-            std::cout << jointIndent
-                      << "├── T_joint:      rotate(axis = " << joint->axis().x()
-                      << " " << joint->axis().y() << " " << joint->axis().z()
-                      << ", θ = " << jointVar << ")   ← variable" << std::endl;
-        }
-
-        // Print child link if exists
-        if (!p_node.children().empty())
-        {
-            const Node& child = *p_node.children()[0];
-            std::cout << jointIndent << "└── [" << child.name()
-                      << "]  (T_world = T_base × T_origin";
-            if (joint->type() != Joint::Type::FIXED)
-            {
-                std::cout << " × T_joint";
-            }
-            std::cout << ")" << std::endl;
-        }
-    }
     else
     {
-        std::cout << p_node.name() << " (Node)" << std::endl;
-    }
+        // Handle regular nodes (links without being joints)
+        std::cout << connector << "[" << p_node.name() << "]" << std::endl;
 
-    // Recursively print children
-    const auto& children = p_node.children();
-    for (size_t i = 0; i < children.size(); ++i)
-    {
-        bool isLast = (i == children.size() - 1);
-        printSceneNode(*children[i], p_depth + 1, isLast);
+        // Recursively print children
+        const auto& children = p_node.children();
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            bool isChildLast = (i == children.size() - 1);
+            printSceneNodeSimple(*children[i], isChildLast, p_depth + 1);
+        }
     }
 }
 
