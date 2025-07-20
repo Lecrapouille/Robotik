@@ -1,4 +1,5 @@
 #include "Robotik/Viewer.hpp"
+
 #include <cmath>
 #include <iostream>
 
@@ -410,19 +411,19 @@ void Viewer::renderLink(Link const& p_link,
                         Transform const& p_world_transform) const
 {
     // Get color from geometry (RGB only, ignore alpha)
-    Eigen::Vector3f color = p_link.geometry.color.head<3>().cast<float>();
+    Eigen::Vector3f color = p_link.geometry().color.head<3>().cast<float>();
 
     // Use geometry type and parameters for rendering
-    switch (p_link.geometry.type)
+    switch (p_link.geometry().type)
     {
         case Geometry::Type::BOX:
         {
             // Scale based on geometry parameters (width, height, depth)
-            if (p_link.geometry.parameters.size() >= 3)
+            if (p_link.geometry().parameters.size() >= 3)
             {
-                double width = p_link.geometry.parameters[0];
-                double height = p_link.geometry.parameters[1];
-                double depth = p_link.geometry.parameters[2];
+                double width = p_link.geometry().parameters[0];
+                double height = p_link.geometry().parameters[1];
+                double depth = p_link.geometry().parameters[2];
 
                 // Create scaling transformation
                 Transform scale_transform = Transform::Identity();
@@ -443,10 +444,10 @@ void Viewer::renderLink(Link const& p_link,
         case Geometry::Type::CYLINDER:
         {
             // Scale based on geometry parameters (radius, height)
-            if (p_link.geometry.parameters.size() >= 2)
+            if (p_link.geometry().parameters.size() >= 2)
             {
-                double radius = p_link.geometry.parameters[0];
-                double height = p_link.geometry.parameters[1];
+                double radius = p_link.geometry().parameters[0];
+                double height = p_link.geometry().parameters[1];
 
                 // Create scaling transformation
                 Transform scale_transform = Transform::Identity();
@@ -467,9 +468,9 @@ void Viewer::renderLink(Link const& p_link,
         case Geometry::Type::SPHERE:
         {
             // Scale based on geometry parameters (radius)
-            if (p_link.geometry.parameters.size() >= 1)
+            if (p_link.geometry().parameters.size() >= 1)
             {
-                double radius = p_link.geometry.parameters[0];
+                double radius = p_link.geometry().parameters[0];
 
                 // Create scaling transformation
                 Transform scale_transform = Transform::Identity();
@@ -512,8 +513,11 @@ void Viewer::renderLink(Link const& p_link,
 // ----------------------------------------------------------------------------
 void Viewer::renderRobot(Robot const& p_robot) const
 {
+    if (!p_robot.hasRoot())
+        return;
+
     // Traverse the robot tree and render each node
-    p_robot.traverseNodes(
+    p_robot.root().traverse(
         [this](Node const& node, size_t /*p_depth*/)
         {
             Transform world_transform = node.worldTransform();
@@ -521,37 +525,19 @@ void Viewer::renderRobot(Robot const& p_robot) const
             {
                 renderJoint(*joint, world_transform);
             }
-        });
-
-    // Traverse the links and render them
-    p_robot.traverseLinks(
-        [this](Link const& link)
-        {
-            Transform world_transform;
-
-            if (link.parent_joint)
+            else if (auto link = dynamic_cast<Link const*>(&node))
             {
-                // Get the world transform of the parent joint and apply visual
-                // origin
-                world_transform = link.parent_joint->worldTransform() *
-                                  link.geometry.visual_origin;
+                renderLink(*link, world_transform);
             }
-            else
-            {
-                // Base link without parent joint - use visual origin directly
-                world_transform = link.geometry.visual_origin;
-            }
-
-            renderLink(link, world_transform);
         });
 
 #if 0
     // Traverse the robot tree and render each axis
-    p_robot.traverseNodes([this](Node const& node)
+    p_robot.root().traverse([this](Node const& node)
                           { renderAxes(node.worldTransform(), 0.2); });
 
     // Render world axes at origin
-    renderAxes(p_robot.getRootNode()->worldTransform(), 0.5);
+    renderAxes(p_robot.root().worldTransform(), 0.5);
 #endif
 }
 

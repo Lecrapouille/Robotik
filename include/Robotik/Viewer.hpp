@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Robot.hpp"
+#include "Robotik/private/Link.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
