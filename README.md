@@ -98,6 +98,6 @@ if (!robot)
 - Utiliser les contraintes.
 
 ```cpp
-std::vector<double> joint_values = p_robot->getJointValues();
+std::vector<double> joint_values = p_robot->jointValues();
 robot->setJointValues(joint_values);
 ```

@@ -1,7 +1,9 @@
-#include "Robotik/Robotik.hpp"
-#include <cmath>
+#include "Robotik/private/Conversions.hpp"
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <cmath>
 
 using namespace robotik;
 using namespace robotik::utils;

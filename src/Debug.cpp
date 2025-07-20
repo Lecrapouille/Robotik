@@ -13,10 +13,10 @@ void printRobot(const Robot& p_robot)
     std::cout << "Hierarchy with transformation matrices:" << std::endl;
     std::cout << std::endl;
 
-    if (p_robot.getRootNode())
+    if (p_robot.hasRoot())
     {
-        p_robot.getRootNode()->traverse([](Node const& p_node, size_t p_depth)
-                                        { printNode(p_node, p_depth); });
+        p_robot.root().traverse([](Node const& p_node, size_t p_depth)
+                                { printNode(p_node, p_depth); });
     }
     else
     {
@@ -25,7 +25,7 @@ void printRobot(const Robot& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-void printNode(const Node& p_node, size_t p_depth)
+void printNode(Node const& p_node, size_t p_depth)
 {
     // Create indentation based on depth
     std::string indent(p_depth * 2, ' ');
@@ -36,10 +36,21 @@ void printNode(const Node& p_node, size_t p_depth)
     // Check if it's a joint and print joint-specific info
     if (auto joint = dynamic_cast<Joint const*>(&p_node))
     {
-        std::cout << " (Joint - " << getJointTypeString(joint->getType())
-                  << ")";
-        std::cout << " [Value: " << std::fixed << std::setprecision(3)
-                  << joint->getValue() << "]";
+        std::cout << " (Joint - " << jointTypeString(joint->type()) << ")";
+        std::cout << " [Position: " << std::fixed << std::setprecision(3)
+                  << joint->position() << "]";
+        switch (joint->type())
+        {
+            case Joint::Type::REVOLUTE:
+                std::cout << " [rad]";
+                break;
+            case Joint::Type::PRISMATIC:
+                std::cout << " [m]";
+                break;
+            case Joint::Type::FIXED:
+            default:
+                break;
+        }
     }
     else
     {
@@ -66,13 +77,13 @@ void printJoint(const Joint& p_joint)
 }
 
 // ----------------------------------------------------------------------------
-void printLink(const Link& p_link)
-{
-    std::cout << "Link: " << p_link.name << std::endl;
-}
+// void printLink(const Link& p_link)
+//{
+//    std::cout << "Link: " << p_link.name << std::endl;
+//}
 
 // ----------------------------------------------------------------------------
-void printTransform(const Transform& p_transform, const std::string& p_indent)
+void printTransform(Transform const& p_transform, const std::string& p_indent)
 {
     std::cout << std::fixed << std::setprecision(4);
 
@@ -90,7 +101,7 @@ void printTransform(const Transform& p_transform, const std::string& p_indent)
 }
 
 // ----------------------------------------------------------------------------
-std::string getJointTypeString(Joint::Type p_type)
+std::string jointTypeString(Joint::Type p_type)
 {
     switch (p_type)
     {

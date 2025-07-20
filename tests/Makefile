@@ -34,8 +34,7 @@ INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 ###############################################################################
 # Set OpenGL libraries (for Viewer)
 #
-PKG_LIBS += glfw3
-USER_LIBS += -lGL -lGLU -lGLEW
+PKG_LIBS += glfw3 glew
 
 ###############################################################################
 # GTest and GMock
@@ -45,8 +44,12 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-//SRC_FILES += $(call rwildcard,$(P)/src,*.cpp)
+# SRC_FILES += $(call rwildcard,$(P)/src,*.cpp)
+SRC_FILES += $(P)/src/Joint.cpp
 SRC_FILES += $(P)/src/Node.cpp
+SRC_FILES += $(P)/src/Robot.cpp
+SRC_FILES += $(P)/src/Conversions.cpp
+SRC_FILES += $(P)/src/Debug.cpp
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 INCLUDES += $(P)/include
 VPATH += $(P)/src

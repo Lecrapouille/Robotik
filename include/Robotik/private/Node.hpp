@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Robotik/Types.hpp"
+#include "Robotik/private/Types.hpp"
 
 #include <memory>
 #include <string_view>
@@ -47,7 +47,7 @@ public:
     //! to identity matrix.
     //! \param p_name Name of the node.
     // ------------------------------------------------------------------------
-    explicit Node(const std::string_view& p_name);
+    explicit Node(std::string_view const& p_name);
 
     // ------------------------------------------------------------------------
     //! \brief Virtual destructor to ensure proper cleanup of derived classes.
@@ -95,7 +95,7 @@ public:
     {
         m_children.push_back(std::move(p_child));
         m_children.back()->m_parent = this;
-        m_children.back()->update();
+        m_children.back()->updateWorldTransforms();
     }
 
     // ------------------------------------------------------------------------
@@ -121,14 +121,14 @@ public:
     //! \param p_name Name of the child node.
     //! \return Pointer to the child node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node const* child(const std::string_view& p_name) const;
+    Node const* child(std::string_view const& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Get a child node by name.
     //! \param p_name Name of the child node.
     //! \return Pointer to the child node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node* child(const std::string_view& p_name)
+    Node* child(std::string_view const& p_name)
     {
         return const_cast<Node*>(static_cast<Node const*>(this)->child(p_name));
     }
@@ -140,7 +140,16 @@ public:
     //! \param p_name Name of the node.
     //! \return Pointer to the node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    static Node* find(Node& p_root, const std::string_view& p_name);
+    static Node const* find(Node const& p_root, std::string_view const& p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get a node by name. This method is recursive and will search
+    //! through the entire subtree rooted at this node.
+    //! \param p_root Root node to start the search from.
+    //! \param p_name Name of the node.
+    //! \return Pointer to the node, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    static Node* find(Node& p_root, std::string_view const& p_name);
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree recursively and apply a function to each
@@ -194,9 +203,28 @@ public:
     template <typename Function>
     void traverse(Function&& p_function, size_t p_depth = 0)
     {
-        static_cast<Node const*>(this)->traverse(
-            std::forward<Function>(p_function), p_depth);
+        // Apply the function to the current node
+        p_function(*this, p_depth);
+
+        // Recursively traverse all children
+        for (auto const& child : m_children)
+        {
+            child->traverse(std::forward<Function>(p_function), p_depth + 1);
+        }
     }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the local transform of the node.
+    //! \note This method is used when parsing a URDF file.
+    //!
+    //! This method sets the local transform of the node using a translation
+    //! and RPY (roll-pitch-yaw) rotation.
+    //!
+    //! \param p_origin_xyz Translation vector (x, y, z)
+    //! \param p_origin_rpy RPY rotation (roll, pitch, yaw) in radians
+    // ------------------------------------------------------------------------
+    void localTransform(const Eigen::Vector3d& p_origin_xyz,
+                        const Eigen::Vector3d& p_origin_rpy);
 
     // ------------------------------------------------------------------------
     //! \brief Set the local transform of the node.
@@ -214,7 +242,20 @@ public:
     //!
     //! \param p_transform Local homogeneous transformation matrix 4x4
     // ------------------------------------------------------------------------
-    void localTransform(const Transform& p_transform);
+    void localTransform(Transform const& p_transform);
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint transform of the node.
+    // ------------------------------------------------------------------------
+    void jointTransform(Transform const& p_transform);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint transform of the node.
+    // ------------------------------------------------------------------------
+    Transform const& jointTransform() const
+    {
+        return m_joint_transform;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Get the local transform of the node.
@@ -230,9 +271,9 @@ public:
     //!
     //! \return Constant reference to the local transformation matrix 4x4
     // ------------------------------------------------------------------------
-    inline Transform const& localTransform() const
+    inline Transform /*const&*/ localTransform() const
     {
-        return m_local_transform;
+        return m_local_transform * m_joint_transform; // FIXME: A ameliorer
     }
 
     // ------------------------------------------------------------------------
@@ -286,12 +327,13 @@ protected:
     //! The algorithm uses a cache system ("dirty flag") to avoid
     //! unnecessary recalculations and optimize performance.
     // ------------------------------------------------------------------------
-    void update();
+    void updateWorldTransforms();
 
-private:
+protected:
 
     std::string m_name;
     Transform m_local_transform;
+    Transform m_joint_transform;
     Transform m_world_transform;
     std::vector<std::unique_ptr<Node>> m_children;
     Node* m_parent = nullptr;

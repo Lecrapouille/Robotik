@@ -1,6 +1,6 @@
 #include "main.hpp"
 
-#include "Robotik/Node.hpp"
+#include "Robotik/private/Node.hpp"
 #include <cmath>
 
 using namespace robotik;
@@ -402,10 +402,10 @@ TEST_F(NodeTest, WorldTransformCaching)
     root->localTransform(test_transform);
 
     // First call should compute world transform
-    const Transform& world1 = child.worldTransform();
+    Transform const& world1 = child.worldTransform();
 
     // Second call should return cached result (same reference)
-    const Transform& world2 = child.worldTransform();
+    Transform const& world2 = child.worldTransform();
 
     // Should be the same object in memory
     EXPECT_EQ(&world1, &world2);

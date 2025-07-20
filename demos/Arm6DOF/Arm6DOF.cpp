@@ -8,7 +8,7 @@
 
 using namespace robotik;
 
-void printTransform(const Transform& transform, const std::string& name)
+void printTransform(Transform const& transform, const std::string& name)
 {
     std::cout << "=== " << name << " ===" << std::endl;
     Eigen::IOFormat format(4, 0, ", ", "\n", "  ");
@@ -96,12 +96,12 @@ int main()
     joint6->setNode(joint6_node);
 
     // Configure the limits of the joints (in radians)
-    joint1->setLimits(-M_PI, M_PI);         // ±180°
-    joint2->setLimits(-M_PI / 2, M_PI / 2); // ±90°
-    joint3->setLimits(-M_PI / 2, M_PI / 2); // ±90°
-    joint4->setLimits(-M_PI, M_PI);         // ±180°
-    joint5->setLimits(-M_PI / 2, M_PI / 2); // ±90°
-    joint6->setLimits(-M_PI, M_PI);         // ±180°
+    joint1->limits(-M_PI, M_PI);         // ±180°
+    joint2->limits(-M_PI / 2, M_PI / 2); // ±90°
+    joint3->limits(-M_PI / 2, M_PI / 2); // ±90°
+    joint4->limits(-M_PI, M_PI);         // ±180°
+    joint5->limits(-M_PI / 2, M_PI / 2); // ±90°
+    joint6->limits(-M_PI, M_PI);         // ±180°
 
     // Configure the robot arm
     robot->setRootNode(base);
@@ -111,7 +111,7 @@ int main()
     robot->addJoint(joint4);
     robot->addJoint(joint5);
     robot->addJoint(joint6);
-    robot->setEndEffector(gripper);
+    robot->endEffector(gripper);
 
     // Define the geometric offsets between the joints
     // In a real robot, these values would come from the CAD model or the DH
@@ -167,7 +167,7 @@ int main()
         { M_PI / 4, M_PI / 6, -M_PI / 6, M_PI / 4, M_PI / 3, -M_PI / 4 });
 
     // Print initial pose
-    Pose currentPose = robot->getEndEffectorPose();
+    Pose currentPose = robot->endEffectorPose();
     std::cout << "Initial pose: [" << currentPose.segment<3>(0).transpose()
               << "], [" << currentPose.segment<3>(3).transpose() << "]"
               << std::endl;

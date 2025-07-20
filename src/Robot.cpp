@@ -1,97 +1,21 @@
 #include "Robotik/Robot.hpp"
-#include <algorithm>
+#include "Robotik/private/Conversions.hpp"
+#include "Robotik/private/Exception.hpp"
+
 #include <cmath>
-
-#include <iostream>
-
 namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Joint::Joint(const std::string_view& p_name,
-             Joint::Type p_type,
-             const Eigen::Vector3d& p_axis,
-             const Eigen::Vector3d& p_origin_xyz,
-             const Eigen::Vector3d& p_origin_rpy)
-    : Node(p_name),
-      m_type(p_type),
-      m_value(0.0),
-      m_min(-M_PI),
-      m_max(M_PI),
-      m_axis(p_axis.normalized()),
-      m_origin_xyz(p_origin_xyz),
-      m_origin_rpy(p_origin_rpy)
+Robot::Robot(std::string_view const& p_name, Node::Ptr p_root) : m_name(p_name)
 {
-    // Pre-compute origin transformation matrix (this never changes)
-    m_origin_transform = Eigen::Matrix4d::Identity();
-    m_origin_transform.block<3, 1>(0, 3) = m_origin_xyz;
-
-    // Apply RPY rotation
-    Eigen::Matrix3d rotation =
-        (Eigen::AngleAxisd(m_origin_rpy.z(), Eigen::Vector3d::UnitZ()) *
-         Eigen::AngleAxisd(m_origin_rpy.y(), Eigen::Vector3d::UnitY()) *
-         Eigen::AngleAxisd(m_origin_rpy.x(), Eigen::Vector3d::UnitX()))
-            .toRotationMatrix();
-    m_origin_transform.block<3, 3>(0, 0) = rotation;
+    root(std::move(p_root));
 }
 
 // ----------------------------------------------------------------------------
-void Joint::setValue(double p_value)
-{
-    // Apply the limits
-    if (p_value < m_min)
-        p_value = m_min;
-    if (p_value > m_max)
-        p_value = m_max;
-    m_value = p_value;
-
-    // Update the transformation of the node
-    updateLocalTransform();
-}
-
-// ----------------------------------------------------------------------------
-Transform Joint::getTransform() const
-{
-    // Apply joint-specific transformation
-    Eigen::Matrix4d joint_transform = Eigen::Matrix4d::Identity();
-
-    switch (m_type)
-    {
-        case Joint::Type::REVOLUTE:
-        {
-            // Create the rotation matrix around the axis
-            Eigen::AngleAxisd joint_rotation(m_value, m_axis);
-            joint_transform.block<3, 3>(0, 0) =
-                joint_rotation.toRotationMatrix();
-            break;
-        }
-        case Joint::Type::PRISMATIC:
-        {
-            // Translation along the axis
-            joint_transform.block<3, 1>(0, 3) = m_axis * m_value;
-            break;
-        }
-        case Joint::Type::FIXED:
-            // No transformation for fixed joints
-            break;
-    }
-
-    // Combine cached origin transformation with joint transformation
-    return m_origin_transform * joint_transform;
-}
-
-// ----------------------------------------------------------------------------
-void Joint::updateLocalTransform()
-{
-    localTransform(getTransform());
-}
-
-// ----------------------------------------------------------------------------
-void Robot::setupRobot(Node::Ptr p_root, Joint& p_end_effector)
+void Robot::root(Node::Ptr p_root)
 {
     m_root_node = std::move(p_root);
-
-    setEndEffector(p_end_effector);
     cacheListOfJoints();
 }
 
@@ -105,13 +29,13 @@ void Robot::cacheListOfJoints()
     }
 
     m_root_node->traverse(
-        [this](Node& p_node)
+        [this](Node& p_node, size_t /*p_depth*/)
         {
             if (auto joint = dynamic_cast<Joint*>(&p_node))
             {
                 // Only cache actuable joints (REVOLUTE and PRISMATIC)
-                if (joint->getType() == Joint::Type::REVOLUTE ||
-                    joint->getType() == Joint::Type::PRISMATIC)
+                if (joint->type() == Joint::Type::REVOLUTE ||
+                    joint->type() == Joint::Type::PRISMATIC)
                 {
                     m_joints.push_back(joint);
                 }
@@ -120,74 +44,19 @@ void Robot::cacheListOfJoints()
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setEndEffector(Joint& p_node)
+std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
+                                             Node const& p_end_effector,
+                                             size_t const p_max_iterations,
+                                             double const p_epsilon,
+                                             double const p_damping)
 {
-    m_end_effector = &p_node;
-}
-
-// ----------------------------------------------------------------------------
-Joint* Robot::setEndEffector(std::string_view p_name)
-{
-    m_end_effector = getJoint(p_name);
-    return m_end_effector;
-}
-
-// ----------------------------------------------------------------------------
-void Robot::checkRobotSetupValidity() const
-{
-    if (m_root_node == nullptr)
-    {
-        throw RobotikException("Root node not set. Call setupRobot() first.");
-    }
-
-    if (m_end_effector == nullptr)
-    {
-        throw RobotikException(
-            "End effector not set. Call setupRobot() first.");
-    }
-
-    if (m_joints.empty())
-    {
-        throw RobotikException("No joints found. Call setupRobot() first.");
-    }
-}
-
-// ----------------------------------------------------------------------------
-Transform Robot::forwardKinematics() const
-{
-    checkRobotSetupValidity();
-
-    // Ensure that all transformations are up to date
-    m_root_node->update();
-
-    return m_end_effector->worldTransform();
-}
-
-// ----------------------------------------------------------------------------
-Pose Robot::getEndEffectorPose() const
-{
-    checkRobotSetupValidity();
-
-    Transform transform = forwardKinematics();
-    return utils::transformToPose(transform);
-}
-
-// ----------------------------------------------------------------------------
-bool Robot::inverseKinematics(const Pose& p_target_pose,
-                              std::vector<double>& p_solution,
-                              size_t const p_max_iterations,
-                              double const p_epsilon,
-                              double const p_damping)
-{
-    checkRobotSetupValidity();
-
     // Initialize with the current values
-    p_solution = getJointValues();
+    std::vector<double> solution = jointValues();
 
     for (size_t iter = 0; iter < p_max_iterations; ++iter)
     {
         // Current position of the end effector
-        Transform current_transform = forwardKinematics();
+        Transform current_transform = p_end_effector.worldTransform();
         Pose current_pose = utils::transformToPose(current_transform);
 
         // Difference of position/orientation
@@ -196,11 +65,11 @@ bool Robot::inverseKinematics(const Pose& p_target_pose,
         // If the error is small enough, we consider the solution as found
         if (error.norm() < p_epsilon)
         {
-            return true;
+            return solution;
         }
 
         // Calculate the Jacobian
-        Jacobian J = calculateJacobian();
+        Jacobian J = calculateJacobian(p_end_effector);
 
         // Calculate the damped pseudo-inverse (Levenberg-Marquardt method)
         Eigen::MatrixXd JtJ = J.transpose() * J;
@@ -216,47 +85,42 @@ bool Robot::inverseKinematics(const Pose& p_target_pose,
         // Update the angles
         for (size_t i = 0; i < m_joints.size(); ++i)
         {
-            p_solution[i] += double(dTheta(i));
+            solution[i] += double(dTheta(i));
         }
 
         // Apply the new values
-        setJointValues(p_solution);
+        setJointValues(solution);
     }
 
     // If we arrive here, it means we haven't found a solution
-    return false;
+    return {};
 }
 
 // ----------------------------------------------------------------------------
-Jacobian Robot::calculateJacobian() const
+Jacobian Robot::calculateJacobian(Node const& p_end_effector) const
 {
-    std::cout << "calculateJacobian" << std::endl;
-    checkRobotSetupValidity();
-
     const size_t num_joints = m_joints.size();
     Jacobian J(6, num_joints);
 
     // Position of the end effector
-    Transform end_effector_transform = m_end_effector->worldTransform();
+    Transform end_effector_transform = p_end_effector.worldTransform();
     Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
     for (size_t i = 0; i < num_joints; ++i)
     {
         auto const& joint = *m_joints[i];
-        std::cout << "  Joint: " << joint.name() << std::endl;
 
         // Transformation of the joint in the global space
         Transform joint_transform = joint.worldTransform();
-        std::cout << "  Joint transform: " << joint_transform << std::endl;
 
         // Position of the joint
         Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
 
         // Orientation of the joint axis in the global space
         Eigen::Vector3d joint_axis =
-            joint_transform.block<3, 3>(0, 0) * joint.getAxis();
+            joint_transform.block<3, 3>(0, 0) * joint.axis();
 
-        if (joint.getType() == Joint::Type::REVOLUTE)
+        if (joint.type() == Joint::Type::REVOLUTE)
         {
             // Contribution to linear velocity: cross(axis, (end - joint))
             Eigen::Vector3d r = end_pos - joint_pos;
@@ -266,7 +130,7 @@ Jacobian Robot::calculateJacobian() const
             J.block<3, 1>(0, i) = v;
             J.block<3, 1>(3, i) = joint_axis;
         }
-        else if (joint.getType() == Joint::Type::PRISMATIC)
+        else if (joint.type() == Joint::Type::PRISMATIC)
         {
             // Contribution to linear velocity: axis
             J.block<3, 1>(0, i) = joint_axis;
@@ -278,34 +142,21 @@ Jacobian Robot::calculateJacobian() const
 }
 
 // ----------------------------------------------------------------------------
-Joint* Robot::getJoint(const std::string_view& p_name) const
-{
-    for (const auto& joint : m_joints)
-    {
-        if (joint->name() == p_name)
-        {
-            return joint;
-        }
-    }
-    return nullptr;
-}
-
-// ----------------------------------------------------------------------------
-std::vector<double> Robot::getJointValues() const
+std::vector<double> Robot::jointValues() const
 {
     std::vector<double> values;
     values.reserve(m_joints.size());
 
     for (const auto& joint : m_joints)
     {
-        values.push_back(joint->getValue());
+        values.push_back(joint->position());
     }
 
     return values;
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::string> Robot::getJointNames() const
+std::vector<std::string> Robot::jointNames() const
 {
     std::vector<std::string> names;
     names.reserve(m_joints.size());
@@ -319,208 +170,22 @@ std::vector<std::string> Robot::getJointNames() const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<double>
-Robot::getJointValuesByName(const std::vector<std::string>& p_joint_names) const
+bool Robot::setJointValues(std::vector<double> const& p_values)
 {
-    std::vector<double> values;
-    values.reserve(p_joint_names.size());
-
-    for (const auto& name : p_joint_names)
-    {
-        if (Joint const* joint = getJoint(name); joint == nullptr)
-        {
-            throw RobotikException("Joint with name '" + name + "' not found");
-        }
-        else
-        {
-            values.push_back(joint->getValue());
-        }
-    }
-
-    return values;
-}
-
-// ----------------------------------------------------------------------------
-bool Robot::setJointValuesByName(const std::vector<std::string>& p_joint_names,
-                                 const std::vector<double>& p_values)
-{
-    if ((m_root_node == nullptr) || (p_joint_names.size() != p_values.size()))
+    if (p_values.size() != m_joints.size())
     {
         return false;
     }
 
-    for (size_t i = 0; i < p_joint_names.size(); ++i)
-    {
-        Joint* joint = getJoint(p_joint_names[i]);
-        if (joint == nullptr)
-        {
-            throw RobotikException("Joint with name '" + p_joint_names[i] +
-                                   "' not found");
-        }
-        joint->setValue(p_values[i]);
-    }
-
-    // Update all transformations
-    m_root_node->update();
-
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-bool Robot::setJointValues(const std::vector<double>& p_values)
-{
-    if (p_values.size() != m_joints.size())
-    {
-        throw RobotikException("Number of joint values (" +
-                               std::to_string(p_values.size()) +
-                               ") does not match number of joints (" +
-                               std::to_string(m_joints.size()) + ")");
-    }
-
+    // FIXME: to be optimized: each children node will be updated.
+    // Could be optimized to prevent updating and just call the root to be
+    // updated.
     for (size_t i = 0; i < m_joints.size(); ++i)
     {
-        m_joints[i]->setValue(p_values[i]);
-    }
-
-    // Update all transformations
-    if (m_root_node)
-    {
-        m_root_node->update();
+        m_joints[i]->position(p_values[i]);
     }
 
     return true;
 }
-
-// ----------------------------------------------------------------------------
-Node const* Robot::getRootNode() const
-{
-    return m_root_node.get();
-}
-
-// ----------------------------------------------------------------------------
-Node* Robot::node(const std::string_view& p_name) const
-{
-    if (!m_root_node)
-    {
-        return nullptr;
-    }
-
-    return m_root_node->node(p_name);
-}
-
-// ----------------------------------------------------------------------------
-void Robot::addLink(const std::string_view& p_name,
-                    std::unique_ptr<Link> p_link)
-{
-    m_links[std::string(p_name)] = std::move(p_link);
-}
-
-// ----------------------------------------------------------------------------
-Link* Robot::getLink(const std::string_view& p_name) const
-{
-    if (auto it = m_links.find(std::string(p_name)); it != m_links.end())
-    {
-        return it->second.get();
-    }
-    return nullptr;
-}
-
-namespace utils
-{
-// ----------------------------------------------------------------------------
-Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz)
-{
-    Eigen::AngleAxisd roll_angle(p_rx, Eigen::Vector3d::UnitX());
-    Eigen::AngleAxisd pitch_angle(p_ry, Eigen::Vector3d::UnitY());
-    Eigen::AngleAxisd yaw_angle(p_rz, Eigen::Vector3d::UnitZ());
-
-    return yaw_angle.toRotationMatrix() * pitch_angle.toRotationMatrix() *
-           roll_angle.toRotationMatrix();
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& p_rot)
-{
-    return p_rot.eulerAngles(2, 1, 0).reverse();
-}
-
-// ----------------------------------------------------------------------------
-Transform createTransform(const Eigen::Vector3d& p_translation,
-                          const Eigen::Matrix3d& p_rotation)
-{
-    Transform transform = Transform::Identity();
-    transform.block<3, 3>(0, 0) = p_rotation;
-    transform.block<3, 1>(0, 3) = p_translation;
-    return transform;
-}
-
-// ----------------------------------------------------------------------------
-Transform createTransform(const Eigen::Vector3d& p_translation,
-                          double p_rx,
-                          double p_ry,
-                          double p_rz)
-{
-    return createTransform(p_translation, eulerToRotation(p_rx, p_ry, p_rz));
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Vector3d getTranslation(const Transform& p_transform)
-{
-    return p_transform.block<3, 1>(0, 3);
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Matrix3d getRotation(const Transform& p_transform)
-{
-    return p_transform.block<3, 3>(0, 0);
-}
-
-// ----------------------------------------------------------------------------
-Pose transformToPose(const Transform& p_transform)
-{
-    Pose pose;
-    pose.segment<3>(0) = getTranslation(p_transform);
-    pose.segment<3>(3) = rotationToEuler(getRotation(p_transform));
-    return pose;
-}
-
-// ----------------------------------------------------------------------------
-Transform poseToTransform(const Pose& p_pose)
-{
-    return createTransform(p_pose.segment<3>(0),
-                           double(p_pose(3)),
-                           double(p_pose(4)),
-                           double(p_pose(5)));
-}
-
-// ----------------------------------------------------------------------------
-Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta)
-{
-    Transform transform = Transform::Identity();
-
-    double cos_theta = std::cos(p_theta);
-    double sin_theta = std::sin(p_theta);
-    double cos_alpha = std::cos(p_alpha);
-    double sin_alpha = std::sin(p_alpha);
-
-    transform(0, 0) = cos_theta;
-    transform(0, 1) = -sin_theta * cos_alpha;
-    transform(0, 2) = sin_theta * sin_alpha;
-    transform(0, 3) = p_a * cos_theta;
-
-    transform(1, 0) = sin_theta;
-    transform(1, 1) = cos_theta * cos_alpha;
-    transform(1, 2) = -cos_theta * sin_alpha;
-    transform(1, 3) = p_a * sin_theta;
-
-    transform(2, 0) = 0;
-    transform(2, 1) = sin_alpha;
-    transform(2, 2) = cos_alpha;
-    transform(2, 3) = p_d;
-
-    return transform;
-}
-
-} // namespace utils
 
 } // namespace robotik
