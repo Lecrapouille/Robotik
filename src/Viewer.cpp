@@ -315,7 +315,7 @@ void Viewer::renderGrid() const
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderBox(const Transform& p_transform,
+void Viewer::renderBox(Transform const& p_transform,
                        const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = p_transform.cast<float>();
@@ -331,7 +331,7 @@ void Viewer::renderBox(const Transform& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderCylinder(const Transform& p_transform,
+void Viewer::renderCylinder(Transform const& p_transform,
                             const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = p_transform.cast<float>();
@@ -350,7 +350,7 @@ void Viewer::renderCylinder(const Transform& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderSphere(const Transform& p_transform,
+void Viewer::renderSphere(Transform const& p_transform,
                           const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = p_transform.cast<float>();
@@ -368,7 +368,7 @@ void Viewer::renderSphere(const Transform& p_transform,
 
 // ----------------------------------------------------------------------------
 void Viewer::renderJoint(Joint const& p_joint,
-                         const Transform& p_world_transform) const
+                         Transform const& p_world_transform) const
 {
     // Scale the joint to 5% of the link
     double scaling = 0.05;
@@ -382,7 +382,7 @@ void Viewer::renderJoint(Joint const& p_joint,
     // Apply scaling correctly: base_transform * scale
     Transform joint_transform = p_world_transform * scale_transform;
 
-    switch (p_joint.getType())
+    switch (p_joint.type())
     {
         case Joint::Type::REVOLUTE:
         {
@@ -407,7 +407,7 @@ void Viewer::renderJoint(Joint const& p_joint,
 
 // ----------------------------------------------------------------------------
 void Viewer::renderLink(Link const& p_link,
-                        const Transform& p_world_transform) const
+                        Transform const& p_world_transform) const
 {
     // Get color from geometry (RGB only, ignore alpha)
     Eigen::Vector3f color = p_link.geometry.color.head<3>().cast<float>();
@@ -514,7 +514,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
 {
     // Traverse the robot tree and render each node
     p_robot.traverseNodes(
-        [this](Node const& node)
+        [this](Node const& node, size_t /*p_depth*/)
         {
             Transform world_transform = node.worldTransform();
             if (auto joint = dynamic_cast<Joint const*>(&node))
@@ -1025,7 +1025,7 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderAxes(const Transform& p_transform, double p_scale) const
+void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
 {
     const double radius = 0.02 * p_scale; // Thin cylinder radius
     const double height = p_scale;        // Axis length

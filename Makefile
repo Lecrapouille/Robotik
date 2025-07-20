@@ -62,8 +62,7 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ###############################################################################
 # Set OpenGL libraries (for Viewer)
 #
-PKG_LIBS += glfw3
-USER_LIBS += -lGL -lGLU -lGLEW
+PKG_LIBS += glfw3 glew
 
 ###############################################################################
 # Set TinyXML2 library

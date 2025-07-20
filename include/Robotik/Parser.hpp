@@ -85,7 +85,7 @@ private:
                           const std::string& p_rpy) const;
     Geometry parseGeometry(const std::string& p_xml) const;
     Inertial parseInertial(const std::string& p_xml) const;
-    Joint::Type parseJointType(const std::string_view& p_str_type) const;
+    Joint::Type parseJointType(std::string_view const& p_str_type) const;
 
 private:
 

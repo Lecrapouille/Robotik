@@ -25,7 +25,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
     // Create joints and links
     auto& joint1 = base->createChild<robotik::Joint>(
         "joint1", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-    joint1.setLimits(-M_PI, M_PI);
+    joint1.limits(-M_PI, M_PI);
 
     auto& link1 = base->createChild<robotik::Node>("link1");
     link1.localTransform(
@@ -33,7 +33,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
 
     auto& joint2 = link1.createChild<robotik::Joint>(
         "joint2", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
-    joint2.setLimits(-M_PI, M_PI);
+    joint2.limits(-M_PI, M_PI);
 
     auto& link2 = link1.createChild<robotik::Node>("link2");
     link2.localTransform(
@@ -41,14 +41,14 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
 
     auto& joint3 = link2.createChild<robotik::Joint>(
         "joint3", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
-    joint3.setLimits(-M_PI, M_PI);
+    joint3.limits(-M_PI, M_PI);
 
     auto& endEffector = link2.createChild<robotik::Node>("end_effector");
     endEffector.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.3), 0, 0, 0));
 
     // Setup the robot
-    robot->setupRobot(std::move(base), endEffector);
+    // FIXME robot->setupRobot(std::move(base), endEffector);
 
     return robot;
 }
@@ -63,7 +63,7 @@ static void animate(robotik::Robot& p_robot)
     float animation_time = static_cast<float>(glfwGetTime()) * 0.5f;
 
     // Get current joint values
-    std::vector<double> joint_values = p_robot.getJointValues();
+    std::vector<double> joint_values = p_robot.jointValues();
 
     // Animate each joint with different frequencies and amplitudes
     for (size_t i = 0; i < joint_values.size(); ++i)

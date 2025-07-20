@@ -73,14 +73,14 @@ bool URDFParser::setRootAndEndEffector()
     auto root_node = Node::create<Node>(root_link->name);
     buildSceneGraph(root_node.get(), root_link);
 
-    auto end_effector_node = root_node->node(end_effector_link->name);
+    auto end_effector_node = Node::find(*root_node, end_effector_link->name);
     if (!end_effector_node)
     {
         m_error = "No end effector node found in URDF";
         return false;
     }
 
-    m_robot->setupRobot(std::move(root_node), *end_effector_node);
+    // FIXME m_robot->setupRobot(std::move(root_node), *end_effector_node);
     return true;
 }
 
@@ -336,8 +336,9 @@ void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
         // Parse axis, origin, and create joint
         Eigen::Vector3d axis = parseAxis(joint_element);
         auto [origin_xyz, origin_rpy] = parseOriginTransform(joint_element);
-        auto joint =
-            std::make_unique<Joint>(name, type, axis, origin_xyz, origin_rpy);
+        auto joint = std::make_unique<Joint>(
+            name, type, axis); // FIXME ca doit etre dans le transform du noeud
+                               // parent origin_xyz, origin_rpy);
 
         // Parse limits and link relationships
         parseLimits(joint_element, *joint);
@@ -361,7 +362,7 @@ void URDFParser::parseLimits(tinyxml2::XMLElement* p_joint_element,
         limit_element->QueryDoubleAttribute("upper", &upper) ==
             tinyxml2::XML_SUCCESS)
     {
-        p_joint.setLimits(lower, upper);
+        p_joint.limits(lower, upper);
     }
 }
 
@@ -479,7 +480,7 @@ Transform URDFParser::parseOrigin(const std::string& p_xyz,
 }
 
 // ----------------------------------------------------------------------------
-Joint::Type URDFParser::parseJointType(const std::string_view& p_str_type) const
+Joint::Type URDFParser::parseJointType(std::string_view const& p_str_type) const
 {
     if (p_str_type == "revolute")
         return Joint::Type::REVOLUTE;

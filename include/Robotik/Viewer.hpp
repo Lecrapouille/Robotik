@@ -222,7 +222,7 @@ private:
     //! \param p_transform Transformation matrix.
     //! \param p_color Color.
     // ------------------------------------------------------------------------
-    void renderBox(const Transform& p_transform,
+    void renderBox(Transform const& p_transform,
                    const Eigen::Vector3f& p_color =
                        Eigen::Vector3f(0.8f, 0.8f, 0.8f)) const;
 
@@ -231,7 +231,7 @@ private:
     //! \param p_transform Transformation matrix.
     //! \param p_color Color.
     // ------------------------------------------------------------------------
-    void renderCylinder(const Transform& p_transform,
+    void renderCylinder(Transform const& p_transform,
                         const Eigen::Vector3f& p_color =
                             Eigen::Vector3f(0.8f, 0.8f, 0.8f)) const;
 
@@ -240,7 +240,7 @@ private:
     //! \param p_transform Transformation matrix.
     //! \param p_color Color.
     // ------------------------------------------------------------------------
-    void renderSphere(const Transform& p_transform,
+    void renderSphere(Transform const& p_transform,
                       const Eigen::Vector3f& p_color =
                           Eigen::Vector3f(0.8f, 0.8f, 0.8f)) const;
 
@@ -256,7 +256,7 @@ private:
     //! \param p_world_transform World transformation matrix.
     // ------------------------------------------------------------------------
     void renderJoint(Joint const& p_joint,
-                     const Transform& p_world_transform) const;
+                     Transform const& p_world_transform) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render a link node.
@@ -264,14 +264,14 @@ private:
     //! \param p_world_transform World transformation matrix.
     // ------------------------------------------------------------------------
     void renderLink(Link const& p_link,
-                    const Transform& p_world_transform) const;
+                    Transform const& p_world_transform) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render coordinate axes (XYZ) in RGB colors.
     //! \param p_transform Transformation matrix for the axes origin.
     //! \param p_scale Scale factor for the axes length (default: 1.0).
     // ------------------------------------------------------------------------
-    void renderAxes(const Transform& p_transform, double p_scale = 1.0) const;
+    void renderAxes(Transform const& p_transform, double p_scale = 1.0) const;
 
 private:
 

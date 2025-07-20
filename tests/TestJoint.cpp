@@ -1,12 +1,12 @@
 #include "main.hpp"
 
-#include "Robotik/Robotik.hpp"
+#include "Robotik/private/Joint.hpp"
 #include <cmath>
 
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for Joint class.
+//! \brief Test fixture for different types of joints.
 // *********************************************************************************
 class JointTest: public ::testing::Test
 {
@@ -14,19 +14,17 @@ protected:
 
     void SetUp() override
     {
-        // Setup test data
         axis = Eigen::Vector3d(0, 0, 1); // Z-axis
-        revolute_joint =
-            Node::create<Joint>("revolute", Joint::Type::REVOLUTE, axis);
-        prismatic_joint =
+        revolute = Node::create<Joint>("revolute", Joint::Type::REVOLUTE, axis);
+        prismatic =
             Node::create<Joint>("prismatic", Joint::Type::PRISMATIC, axis);
-        fixed_joint = Node::create<Joint>("fixed", Joint::Type::FIXED, axis);
+        fixed = Node::create<Joint>("fixed", Joint::Type::FIXED, axis);
     }
 
     Eigen::Vector3d axis;
-    Joint::Ptr revolute_joint;
-    Joint::Ptr prismatic_joint;
-    Joint::Ptr fixed_joint;
+    Joint::Ptr revolute;
+    Joint::Ptr prismatic;
+    Joint::Ptr fixed;
 };
 
 // *********************************************************************************
@@ -34,20 +32,26 @@ protected:
 // *********************************************************************************
 TEST_F(JointTest, Creation)
 {
-    EXPECT_EQ(revolute_joint->getName(), "revolute");
-    EXPECT_EQ(revolute_joint->getType(), Joint::Type::REVOLUTE);
-    EXPECT_TRUE(revolute_joint->getAxis().isApprox(axis));
-    EXPECT_EQ(revolute_joint->getValue(), 0.0);
+    EXPECT_EQ(revolute->name(), "revolute");
+    EXPECT_EQ(revolute->type(), Joint::Type::REVOLUTE);
+    EXPECT_TRUE(revolute->axis().isApprox(axis));
+    EXPECT_EQ(revolute->position(), 0.0);
+    EXPECT_EQ(revolute->limits().first, -M_PI);
+    EXPECT_EQ(revolute->limits().second, M_PI);
 
-    EXPECT_EQ(prismatic_joint->getName(), "prismatic");
-    EXPECT_EQ(prismatic_joint->getType(), Joint::Type::PRISMATIC);
-    EXPECT_TRUE(prismatic_joint->getAxis().isApprox(axis));
-    EXPECT_EQ(prismatic_joint->getValue(), 0.0);
+    EXPECT_EQ(prismatic->name(), "prismatic");
+    EXPECT_EQ(prismatic->type(), Joint::Type::PRISMATIC);
+    EXPECT_TRUE(prismatic->axis().isApprox(axis));
+    EXPECT_EQ(prismatic->position(), 0.0);
+    EXPECT_EQ(prismatic->limits().first, -1.0);
+    EXPECT_EQ(prismatic->limits().second, 1.0);
 
-    EXPECT_EQ(fixed_joint->getName(), "fixed");
-    EXPECT_EQ(fixed_joint->getType(), Joint::Type::FIXED);
-    EXPECT_TRUE(fixed_joint->getAxis().isApprox(axis));
-    EXPECT_EQ(fixed_joint->getValue(), 0.0);
+    EXPECT_EQ(fixed->name(), "fixed");
+    EXPECT_EQ(fixed->type(), Joint::Type::FIXED);
+    EXPECT_TRUE(fixed->axis().isApprox(axis));
+    EXPECT_DOUBLE_EQ(fixed->position(), 0.0);
+    EXPECT_DOUBLE_EQ(fixed->limits().first, 0.0);
+    EXPECT_DOUBLE_EQ(fixed->limits().second, 0.0);
 }
 
 // *********************************************************************************
@@ -61,8 +65,8 @@ TEST_F(JointTest, AxisNormalization)
         Node::create<Joint>("test", Joint::Type::REVOLUTE, unnormalized_axis);
 
     Eigen::Vector3d expected_normalized = unnormalized_axis.normalized();
-    EXPECT_TRUE(joint->getAxis().isApprox(expected_normalized));
-    EXPECT_DOUBLE_EQ(joint->getAxis().norm(), 1.0);
+    EXPECT_TRUE(joint->axis().isApprox(expected_normalized));
+    EXPECT_DOUBLE_EQ(joint->axis().norm(), 1.0);
 }
 
 // *********************************************************************************
@@ -70,21 +74,17 @@ TEST_F(JointTest, AxisNormalization)
 // *********************************************************************************
 TEST_F(JointTest, SetGetValue)
 {
-    revolute_joint->setValue(M_PI / 4.0);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 4.0);
+    revolute->position(M_PI / 4.0);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 4.0);
 
-    prismatic_joint->setValue(0.5);
-    EXPECT_DOUBLE_EQ(prismatic_joint->getValue(), 0.5);
+    prismatic->position(0.5);
+    EXPECT_DOUBLE_EQ(prismatic->position(), 0.5);
 
-    // Fixed joint also applies limits by default, so 100.0 will be clamped to
-    // M_PI
-    fixed_joint->setValue(100.0);
-    EXPECT_DOUBLE_EQ(fixed_joint->getValue(),
-                     M_PI); // Should be clamped to max limit
+    fixed->position(100.0);
+    EXPECT_DOUBLE_EQ(fixed->position(), 0.0);
 
-    // Test with value within limits
-    fixed_joint->setValue(1.0);
-    EXPECT_DOUBLE_EQ(fixed_joint->getValue(), 1.0);
+    fixed->position(1.0);
+    EXPECT_DOUBLE_EQ(fixed->position(), 0.0);
 }
 
 // *********************************************************************************
@@ -92,25 +92,25 @@ TEST_F(JointTest, SetGetValue)
 // *********************************************************************************
 TEST_F(JointTest, Limits)
 {
-    revolute_joint->setLimits(-M_PI, M_PI);
+    revolute->limits(-M_PI, M_PI);
 
     // Test setting value within limits
-    revolute_joint->setValue(M_PI / 2);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2);
+    revolute->position(M_PI / 2);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 2);
 
     // Test setting value at limits
-    revolute_joint->setValue(M_PI);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI);
+    revolute->position(M_PI);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI);
 
-    revolute_joint->setValue(-M_PI);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI);
+    revolute->position(-M_PI);
+    EXPECT_DOUBLE_EQ(revolute->position(), -M_PI);
 
     // Test setting value beyond limits (should be clamped)
-    revolute_joint->setValue(2 * M_PI);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI);
+    revolute->position(2 * M_PI);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI);
 
-    revolute_joint->setValue(-2 * M_PI);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI);
+    revolute->position(-2 * M_PI);
+    EXPECT_DOUBLE_EQ(revolute->position(), -M_PI);
 }
 
 // *********************************************************************************
@@ -119,96 +119,79 @@ TEST_F(JointTest, Limits)
 // *********************************************************************************
 TEST_F(JointTest, LimitsBehavior)
 {
-    // Test that limits are enforced during setValue
-    revolute_joint->setLimits(-M_PI / 2, M_PI / 2);
+    // Test that limits are enforced during value
+    revolute->limits(-M_PI / 2, M_PI / 2);
 
     // Test value within limits
-    revolute_joint->setValue(M_PI / 4);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 4);
+    revolute->position(M_PI / 4);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 4);
 
     // Test value at limits
-    revolute_joint->setValue(M_PI / 2);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2);
+    revolute->position(M_PI / 2);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 2);
 
-    revolute_joint->setValue(-M_PI / 2);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 2);
+    revolute->position(-M_PI / 2);
+    EXPECT_DOUBLE_EQ(revolute->position(), -M_PI / 2);
 
     // Test prismatic joint limits
-    prismatic_joint->setLimits(0.0, 1.0);
+    prismatic->limits(0.0, 1.0);
 
-    prismatic_joint->setValue(0.5);
-    EXPECT_DOUBLE_EQ(prismatic_joint->getValue(), 0.5);
+    prismatic->position(0.5);
+    EXPECT_DOUBLE_EQ(prismatic->position(), 0.5);
 
-    prismatic_joint->setValue(1.0);
-    EXPECT_DOUBLE_EQ(prismatic_joint->getValue(), 1.0);
-}
-
-// *********************************************************************************
-//! \brief Test revolute joint transformations.
-// *********************************************************************************
-TEST_F(JointTest, RevoluteTransform)
-{
-    revolute_joint->setValue(M_PI / 2); // 90 degrees
-
-    Transform transform = revolute_joint->getTransform();
-
-    // Check that it's a rotation around Z-axis
-    Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
-    Eigen::Vector3d translation = transform.block<3, 1>(0, 3);
-
-    // For 90 degrees around Z-axis, we should get specific rotation matrix
-    Eigen::Matrix3d expected_rotation;
-    expected_rotation << 0, -1, 0, 1, 0, 0, 0, 0, 1;
-
-    EXPECT_TRUE(rotation.isApprox(expected_rotation, 1e-10));
-    EXPECT_TRUE(translation.isApprox(Eigen::Vector3d::Zero()));
+    prismatic->position(1.0);
+    EXPECT_DOUBLE_EQ(prismatic->position(), 1.0);
 }
 
 // *********************************************************************************
 //! \brief Test revolute joint with zero rotation.
 // *********************************************************************************
-TEST_F(JointTest, RevoluteTransformZero)
+TEST_F(JointTest, RevoluteTransform0Degrees)
 {
-    revolute_joint->setValue(0.0);
-
-    Transform transform = revolute_joint->getTransform();
+    // 0 degrees around it axis (Z-axis)
+    revolute->position(0.0);
+    Transform transform = revolute->localTransform();
 
     // Should be identity matrix for zero rotation
     EXPECT_TRUE(transform.isApprox(Eigen::Matrix4d::Identity()));
 }
 
 // *********************************************************************************
-//! \brief Test revolute joint with negative rotation.
+//! \brief Test revolute joint transformations.
 // *********************************************************************************
-TEST_F(JointTest, RevoluteTransformNegative)
+TEST_F(JointTest, RevoluteTransform90Degrees)
 {
-    revolute_joint->setValue(-M_PI / 2); // -90 degrees
+    // 90 degrees around it axis (Z-axis)
+    revolute->position(M_PI / 2);
+    Transform transform = revolute->localTransform();
 
-    Transform transform = revolute_joint->getTransform();
-    Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
-
-    // For -90 degrees around Z-axis
-    Eigen::Matrix3d expected_rotation;
-    expected_rotation << 0, 1, 0, -1, 0, 0, 0, 0, 1;
-
-    EXPECT_TRUE(rotation.isApprox(expected_rotation, 1e-10));
-}
-
-// *********************************************************************************
-//! \brief Test prismatic joint transformations.
-// *********************************************************************************
-TEST_F(JointTest, PrismaticTransform)
-{
-    prismatic_joint->setValue(0.5);
-
-    Transform transform = prismatic_joint->getTransform();
-
-    // Check that it's a translation along Z-axis
+    // Check that it's a rotation around Z-axis, and no translation
     Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
     Eigen::Vector3d translation = transform.block<3, 1>(0, 3);
 
-    EXPECT_TRUE(rotation.isApprox(Eigen::Matrix3d::Identity()));
-    EXPECT_TRUE(translation.isApprox(Eigen::Vector3d(0, 0, 0.5)));
+    Eigen::Matrix3d expected_rotation;
+    expected_rotation << 0, -1, 0, 1, 0, 0, 0, 0, 1;
+    EXPECT_TRUE(rotation.isApprox(expected_rotation));
+    EXPECT_TRUE(translation.isApprox(Eigen::Vector3d::Zero()));
+}
+
+// *********************************************************************************
+//! \brief Test revolute joint with negative rotation.
+// *********************************************************************************
+TEST_F(JointTest, RevoluteTransformNegative90Degrees)
+{
+    // -90 degrees around it axis (Z-axis)
+    revolute->position(-M_PI / 2);
+    Transform transform = revolute->localTransform();
+
+    // Check that it's a rotation around Z-axis, and no translation
+    Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
+    Eigen::Vector3d translation = transform.block<3, 1>(0, 3);
+
+    Eigen::Matrix3d expected_rotation;
+    expected_rotation << 0, 1, 0, -1, 0, 0, 0, 0, 1;
+    EXPECT_TRUE(rotation.isApprox(expected_rotation));
+    EXPECT_TRUE(translation.isApprox(Eigen::Vector3d::Zero()));
 }
 
 // *********************************************************************************
@@ -216,12 +199,28 @@ TEST_F(JointTest, PrismaticTransform)
 // *********************************************************************************
 TEST_F(JointTest, PrismaticTransformZero)
 {
-    prismatic_joint->setValue(0.0);
-
-    Transform transform = prismatic_joint->getTransform();
+    // 0 meters along it axis (Z-axis)
+    prismatic->position(0.0);
+    Transform transform = prismatic->localTransform();
 
     // Should be identity matrix for zero translation
     EXPECT_TRUE(transform.isApprox(Eigen::Matrix4d::Identity()));
+}
+
+// *********************************************************************************
+//! \brief Test prismatic joint transformations.
+// *********************************************************************************
+TEST_F(JointTest, PrismaticTransform)
+{
+    // 0.5 meters along it axis (Z-axis)
+    prismatic->position(0.5);
+    Transform transform = prismatic->localTransform();
+
+    // Check that it's a translation along Z-axis, and no rotation
+    Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
+    Eigen::Vector3d translation = transform.block<3, 1>(0, 3);
+    EXPECT_TRUE(rotation.isApprox(Eigen::Matrix3d::Identity()));
+    EXPECT_TRUE(translation.isApprox(Eigen::Vector3d(0, 0, 0.5)));
 }
 
 // *********************************************************************************
@@ -229,12 +228,13 @@ TEST_F(JointTest, PrismaticTransformZero)
 // *********************************************************************************
 TEST_F(JointTest, PrismaticTransformNegative)
 {
-    prismatic_joint->setValue(-0.3);
+    // -0.3 meters along it axis (Z-axis)
+    prismatic->position(-0.3);
+    Transform transform = prismatic->localTransform();
 
-    Transform transform = prismatic_joint->getTransform();
+    // Check that it's a translation along Z-axis, and no rotation
     Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
     Eigen::Vector3d translation = transform.block<3, 1>(0, 3);
-
     EXPECT_TRUE(rotation.isApprox(Eigen::Matrix3d::Identity()));
     EXPECT_TRUE(translation.isApprox(Eigen::Vector3d(0, 0, -0.3)));
 }
@@ -244,28 +244,12 @@ TEST_F(JointTest, PrismaticTransformNegative)
 // *********************************************************************************
 TEST_F(JointTest, FixedTransform)
 {
-    fixed_joint->setValue(100.0); // Value should be ignored
-
-    Transform transform = fixed_joint->getTransform();
+    // 100 meters along it axis (Z-axis)
+    fixed->position(100.0);
+    Transform transform = fixed->localTransform();
 
     // Fixed joint should always return identity transform
     EXPECT_TRUE(transform.isApprox(Eigen::Matrix4d::Identity()));
-}
-
-// *********************************************************************************
-//! \brief Test node transform update.
-// *********************************************************************************
-TEST_F(JointTest, NodeTransformUpdate)
-{
-    revolute_joint->setValue(M_PI / 4.0);
-
-    // Update node transform
-    revolute_joint->updateLocalTransform();
-
-    // Check that node's local transform has been updated
-    Transform expected_transform = revolute_joint->getTransform();
-    EXPECT_TRUE(
-        revolute_joint->getLocalTransform().isApprox(expected_transform));
 }
 
 // *********************************************************************************
@@ -274,19 +258,20 @@ TEST_F(JointTest, NodeTransformUpdate)
 TEST_F(JointTest, AutomaticTransformUpdate)
 {
     // Set initial value
-    revolute_joint->setValue(M_PI / 6.0);
-    Transform initial_transform = revolute_joint->getLocalTransform();
+    revolute->position(M_PI / 6.0);
+    Transform initial_transform = revolute->localTransform();
 
     // Change value - should automatically update local transform
-    revolute_joint->setValue(M_PI / 3.0);
-    Transform updated_transform = revolute_joint->getLocalTransform();
+    revolute->position(M_PI / 3.0);
+    Transform updated_transform = revolute->localTransform();
 
     // Transforms should be different
     EXPECT_FALSE(initial_transform.isApprox(updated_transform));
 
-    // Updated transform should match expected
-    Transform expected_transform = revolute_joint->getTransform();
-    EXPECT_TRUE(updated_transform.isApprox(expected_transform));
+    // Check that it's a rotation around Z-axis, and no translation
+    Eigen::Matrix3d expected_rotation;
+    expected_rotation << 0, 1, 0, -1, 0, 0, 0, 0, 1;
+    EXPECT_TRUE(expected_rotation.isApprox(expected_rotation));
 }
 
 // *********************************************************************************
@@ -298,29 +283,28 @@ TEST_F(JointTest, RevoluteAxes)
     Eigen::Vector3d x_axis(1, 0, 0);
     auto x_joint =
         Node::create<Joint>("x_joint", Joint::Type::REVOLUTE, x_axis);
-    x_joint->setValue(M_PI / 2.0);
+    x_joint->position(M_PI / 2.0);
 
-    Transform x_transform = x_joint->getTransform();
+    // Check that it's a rotation around X-axis, and no translation
+    Transform x_transform = x_joint->localTransform();
     Eigen::Matrix3d x_rotation = x_transform.block<3, 3>(0, 0);
-
     Eigen::Matrix3d expected_x_rotation;
     expected_x_rotation << 1, 0, 0, 0, 0, -1, 0, 1, 0;
-
-    EXPECT_TRUE(x_rotation.isApprox(expected_x_rotation, 1e-10));
+    EXPECT_TRUE(x_rotation.isApprox(expected_x_rotation));
 
     // Test Y-axis rotation
     Eigen::Vector3d y_axis(0, 1, 0);
     auto y_joint =
         Node::create<Joint>("y_joint", Joint::Type::REVOLUTE, y_axis);
-    y_joint->setValue(M_PI / 2.0);
+    y_joint->position(M_PI / 2.0);
 
-    Transform y_transform = y_joint->getTransform();
+    // Check that it's a rotation around Y-axis, and no translation
+    Transform y_transform = y_joint->localTransform();
     Eigen::Matrix3d y_rotation = y_transform.block<3, 3>(0, 0);
 
     Eigen::Matrix3d expected_y_rotation;
     expected_y_rotation << 0, 0, 1, 0, 1, 0, -1, 0, 0;
-
-    EXPECT_TRUE(y_rotation.isApprox(expected_y_rotation, 1e-10));
+    EXPECT_TRUE(y_rotation.isApprox(expected_y_rotation));
 }
 
 // *********************************************************************************
@@ -332,22 +316,22 @@ TEST_F(JointTest, PrismaticAxes)
     Eigen::Vector3d x_axis(1, 0, 0);
     auto x_joint =
         Node::create<Joint>("x_joint", Joint::Type::PRISMATIC, x_axis);
-    x_joint->setValue(0.5); // 0.5 meters
+    x_joint->position(0.5); // 0.5 meters
 
-    Transform x_transform = x_joint->getTransform();
+    // Check that it's a translation along X-axis, and no rotation
+    Transform x_transform = x_joint->localTransform();
     Eigen::Vector3d x_translation = x_transform.block<3, 1>(0, 3);
-
     EXPECT_TRUE(x_translation.isApprox(Eigen::Vector3d(0.5, 0, 0)));
 
     // Test Y-axis translation
     Eigen::Vector3d y_axis(0, 1, 0);
     auto y_joint =
         Node::create<Joint>("y_joint", Joint::Type::PRISMATIC, y_axis);
-    y_joint->setValue(0.3); // 0.3 meters
+    y_joint->position(0.3); // 0.3 meters
 
-    Transform y_transform = y_joint->getTransform();
+    // Check that it's a translation along Y-axis, and no rotation
+    Transform y_transform = y_joint->localTransform();
     Eigen::Vector3d y_translation = y_transform.block<3, 1>(0, 3);
-
     EXPECT_TRUE(y_translation.isApprox(Eigen::Vector3d(0, 0.3, 0)));
 }
 
@@ -362,18 +346,19 @@ TEST_F(JointTest, ArbitraryAxisRotation)
         Node::create<Joint>("arbitrary", Joint::Type::REVOLUTE, arbitrary_axis);
 
     // Verify axis is normalized
-    EXPECT_TRUE(joint->getAxis().isApprox(arbitrary_axis.normalized()));
+    EXPECT_TRUE(joint->axis().isApprox(arbitrary_axis.normalized()));
 
     // Test rotation around arbitrary axis
-    joint->setValue(M_PI / 4.0);
-    Transform transform = joint->getTransform();
+    joint->position(M_PI / 4.0);
 
-    // Verify it's a valid rotation matrix
+    // Check that it's a rotation around arbitrary axis, and no translation
+    Transform transform = joint->localTransform();
     Eigen::Matrix3d rotation = transform.block<3, 3>(0, 0);
-    EXPECT_TRUE((rotation.determinant() >
-                 0.99)); // Should be close to 1 for rotation matrix
+
+    // Should be close to 1 for rotation matrix
+    EXPECT_TRUE((rotation.determinant() > 0.99));
     EXPECT_TRUE((rotation * rotation.transpose())
-                    .isApprox(Eigen::Matrix3d::Identity(), 1e-10));
+                    .isApprox(Eigen::Matrix3d::Identity()));
 }
 
 // *********************************************************************************
@@ -392,20 +377,16 @@ TEST_F(JointTest, JointHierarchy)
         "child", Joint::Type::REVOLUTE, Eigen::Vector3d(1, 0, 0));
 
     // Set joint values
-    parent_ptr->setValue(M_PI / 2.0); // 90 degrees around Z
-    child_joint.setValue(M_PI / 4.0); // 45 degrees around X
-
-    // Update transforms
-    parent_ptr->updateWorldTransform();
+    parent_ptr->position(M_PI / 2.0); // 90 degrees around Z
+    child_joint.position(M_PI / 4.0); // 45 degrees around X
 
     // Check that child's world transform is composition of parent and child
-    Transform expected_parent_world = parent_ptr->getTransform();
+    Transform expected_parent_world = parent_ptr->localTransform();
     Transform expected_child_world =
-        expected_parent_world * child_joint.getTransform();
+        expected_parent_world * child_joint.localTransform();
 
-    EXPECT_TRUE(
-        parent_ptr->getWorldTransform().isApprox(expected_parent_world));
-    EXPECT_TRUE(child_joint.getWorldTransform().isApprox(expected_child_world));
+    EXPECT_TRUE(parent_ptr->worldTransform().isApprox(expected_parent_world));
+    EXPECT_TRUE(child_joint.worldTransform().isApprox(expected_child_world));
 }
 
 // *********************************************************************************
@@ -414,28 +395,29 @@ TEST_F(JointTest, JointHierarchy)
 TEST_F(JointTest, EdgeCases)
 {
     // Test zero value
-    revolute_joint->setValue(0.0);
-    Transform identity_transform = revolute_joint->getTransform();
+    revolute->position(0.0);
+
+    Transform identity_transform = revolute->localTransform();
     EXPECT_TRUE(identity_transform.isApprox(Eigen::Matrix4d::Identity()));
 
     // Test negative values
-    revolute_joint->setValue(-M_PI / 4.0);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4.0);
+    revolute->position(-M_PI / 4.0);
+    EXPECT_DOUBLE_EQ(revolute->position(), -M_PI / 4.0);
 
     // Test very small values
-    revolute_joint->setValue(1e-10);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), 1e-10);
+    revolute->position(1e-10);
+    EXPECT_DOUBLE_EQ(revolute->position(), 1e-10);
 
-    // Test very large values (should be clamped)
-    revolute_joint->setValue(100.0);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(),
-                     M_PI); // Should be clamped to max limit
+    // Test very large values (should be clamped).
+    // Check that it's clamped to max limit.
+    revolute->position(100.0);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI);
 
     // Test prismatic joint with zero axis component (should still work due to
-    // normalization)
+    // normalization).
+    // Check this should not crash but behavior is undefined - in practice avoid
+    // zero vectors
     Eigen::Vector3d zero_axis(0, 0, 0);
-    // This should not crash but behavior is undefined - in practice avoid zero
-    // vectors
 }
 
 // *********************************************************************************
@@ -444,27 +426,27 @@ TEST_F(JointTest, EdgeCases)
 TEST_F(JointTest, ExtensiveLimitsTest)
 {
     // Test symmetric limits
-    revolute_joint->setLimits(-M_PI / 2.0, M_PI / 2.0);
+    revolute->limits(-M_PI / 2.0, M_PI / 2.0);
 
-    revolute_joint->setValue(M_PI / 3.0);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 3.0);
+    revolute->position(M_PI / 3.0);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 3.0);
 
-    revolute_joint->setValue(M_PI); // Should be clamped to max
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2.0);
+    revolute->position(M_PI); // Should be clamped to max
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 2.0);
 
     // Test asymmetric limits
-    revolute_joint->setLimits(-M_PI / 4.0, 3 * M_PI / 4.0);
+    revolute->limits(-M_PI / 4.0, 3 * M_PI / 4.0);
 
-    revolute_joint->setValue(M_PI / 2.0);
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), M_PI / 2.0);
+    revolute->position(M_PI / 2.0);
+    EXPECT_DOUBLE_EQ(revolute->position(), M_PI / 2.0);
 
-    revolute_joint->setValue(-M_PI / 2.0); // Should be clamped to min
-    EXPECT_DOUBLE_EQ(revolute_joint->getValue(), -M_PI / 4.0);
+    revolute->position(-M_PI / 2.0); // Should be clamped to min
+    EXPECT_DOUBLE_EQ(revolute->position(), -M_PI / 4.0);
 
     // Test inverted limits (min > max) - should work but behavior may be
     // undefined
-    revolute_joint->setLimits(M_PI / 2.0, -M_PI / 2.0);
-    revolute_joint->setValue(0.0);
+    revolute->limits(M_PI / 2.0, -M_PI / 2.0);
+    revolute->position(0.0);
     // Behavior depends on implementation
 }
 
@@ -478,10 +460,9 @@ TEST_F(JointTest, PerformanceTest)
     for (int i = 0; i < num_iterations; ++i)
     {
         double angle = 2.0 * M_PI * i / double(num_iterations);
-        revolute_joint->setValue(angle);
+        revolute->position(angle);
 
-        // Ensure transform is computed correctly each time
-        Transform transform = revolute_joint->getTransform();
+        Transform transform = revolute->localTransform();
         EXPECT_TRUE((transform.block<3, 3>(0, 0).determinant() > 0.99));
     }
 }
@@ -491,17 +472,17 @@ TEST_F(JointTest, PerformanceTest)
 // *********************************************************************************
 TEST_F(JointTest, JointNaming)
 {
-    EXPECT_EQ(revolute_joint->getName(), "revolute");
-    EXPECT_EQ(prismatic_joint->getName(), "prismatic");
-    EXPECT_EQ(fixed_joint->getName(), "fixed");
+    EXPECT_EQ(revolute->name(), "revolute");
+    EXPECT_EQ(prismatic->name(), "prismatic");
+    EXPECT_EQ(fixed->name(), "fixed");
 
     // Test joint with empty name
     auto empty_named_joint =
         Node::create<Joint>("", Joint::Type::REVOLUTE, axis);
-    EXPECT_EQ(empty_named_joint->getName(), "");
+    EXPECT_EQ(empty_named_joint->name(), "");
 
     // Test joint with special characters in name
     auto special_joint =
         Node::create<Joint>("joint_01-test", Joint::Type::REVOLUTE, axis);
-    EXPECT_EQ(special_joint->getName(), "joint_01-test");
+    EXPECT_EQ(special_joint->name(), "joint_01-test");
 }
