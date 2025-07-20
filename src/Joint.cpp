@@ -13,6 +13,7 @@ Joint::Joint(std::string_view const& p_name,
 {
     switch (p_type)
     {
+        case Joint::Type::CONTINUOUS:
         case Joint::Type::REVOLUTE:
             m_min = -M_PI;
             m_max = M_PI;
@@ -39,12 +40,15 @@ void Joint::position(double p_position)
     if (m_type == Joint::Type::FIXED)
         return;
 
-    if (p_position < m_min)
-        p_position = m_min;
-    if (p_position > m_max)
-        p_position = m_max;
-    m_position = p_position;
+    if (m_type != Joint::Type::CONTINUOUS)
+    {
+        if (p_position < m_min)
+            p_position = m_min;
+        if (p_position > m_max)
+            p_position = m_max;
+    }
 
+    m_position = p_position;
     jointTransform(computeJointTransform(m_type, m_position, m_axis));
 }
 
@@ -57,6 +61,7 @@ Transform Joint::computeJointTransform(Joint::Type p_type,
 
     switch (p_type)
     {
+        case Joint::Type::CONTINUOUS:
         case Joint::Type::REVOLUTE:
         {
             // Create the rotation matrix around the axis

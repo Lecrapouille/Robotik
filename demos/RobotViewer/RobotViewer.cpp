@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
     // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
     // robot->setJointValues(joint_values);
 
-    robotik::debug::printSceneGraph(*robot);
+    robotik::debug::printRobot(*robot);
 
     // Get base position for camera target
     auto base_position =
