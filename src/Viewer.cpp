@@ -385,6 +385,7 @@ void Viewer::renderJoint(Joint const& p_joint,
 
     switch (p_joint.type())
     {
+        case Joint::Type::CONTINUOUS:
         case Joint::Type::REVOLUTE:
         {
             // Render revolute joint as a cylinder in red color

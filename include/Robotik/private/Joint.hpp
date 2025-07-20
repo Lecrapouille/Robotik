@@ -72,9 +72,10 @@ public:
     // ------------------------------------------------------------------------
     enum class Type
     {
-        REVOLUTE,  // Revolute joint - rotation around axis
-        PRISMATIC, // Prismatic joint - translation along axis
-        FIXED      // Fixed joint - no movement, rigid connection
+        REVOLUTE,   // Revolute joint - rotation around axis
+        PRISMATIC,  // Prismatic joint - translation along axis
+        CONTINUOUS, // Continuous joint - rotation around axis
+        FIXED       // Fixed joint - no movement, rigid connection
     };
 
     // ------------------------------------------------------------------------

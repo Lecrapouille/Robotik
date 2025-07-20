@@ -7,109 +7,101 @@
 namespace robotik::debug
 {
 
+static void printNode(Node const& p_node, bool p_isLast, size_t p_depth);
+static std::string printJointType(Joint::Type p_type);
+static std::string printTransform(const Transform& p_transform);
+static std::string printGeometryType(Geometry::Type p_type);
+
 // ----------------------------------------------------------------------------
 void printRobot(const Robot& p_robot)
 {
-    std::cout << "=== Robot: " << p_robot.name() << " ===" << std::endl;
-    std::cout << "Hierarchy with transformation matrices:" << std::endl;
-    std::cout << std::endl;
-
-    if (p_robot.hasRoot())
-    {
-        p_robot.root().traverse([](Node const& p_node, size_t p_depth)
-                                { printNode(p_node, p_depth); });
-    }
-    else
+    std::cout << "Robot: " << p_robot.name() << std::endl;
+    if (!p_robot.hasRoot())
     {
         std::cout << "  No root node found!" << std::endl;
+        return;
     }
+
+    // Print root node
+    printNode(p_robot.root(), true, 0);
+
+#if 0
+    std::cout << "[" << root.name() << "]" << std::endl;
+
+    // Print children with proper tree structure
+    const auto& children = root.children();
+    for (size_t i = 0; i < children.size(); ++i)
+    {
+        bool isLast = (i == children.size() - 1);
+        printNode(*children[i], isLast, 0);
+    }
+#endif
 }
 
 // ----------------------------------------------------------------------------
-void printSceneGraph(const Robot& p_robot)
-{
-    std::cout << "=== Scene Graph: " << p_robot.name() << " ===" << std::endl;
-    std::cout << std::endl;
-
-    if (p_robot.hasRoot())
-    {
-        // Print root node
-        const Node& root = p_robot.root();
-        std::cout << "[" << root.name() << "] (T_world = Identity)"
-                  << std::endl;
-
-        // Print children with proper tree structure
-        const auto& children = root.children();
-        for (size_t i = 0; i < children.size(); ++i)
-        {
-            bool isLast = (i == children.size() - 1);
-            printSceneNodeSimple(*children[i], isLast, 0);
-        }
-    }
-    else
-    {
-        std::cout << "  No root node found!" << std::endl;
-    }
-}
-
-// ----------------------------------------------------------------------------
-void printSceneNodeSimple(Node const& p_node, bool p_isLast, size_t p_depth)
+static void printNode(Node const& p_node, bool p_isLast, size_t p_depth)
 {
     // Create base indentation for current depth
-    std::string baseIndent;
+    std::string base_indent;
     for (size_t i = 0; i < p_depth; ++i)
     {
-        baseIndent += "    ";
+        base_indent += "    ";
     }
 
     // Print tree connector
     std::string connector = p_isLast ? "└── " : "├── ";
-    std::string jointIndent = baseIndent + (p_isLast ? "    " : "│   ");
+    std::string joint_indent = base_indent + (p_isLast ? "    " : "│   ");
 
     // Print node name and type
     if (auto joint = dynamic_cast<Joint const*>(&p_node))
     {
-        std::cout << baseIndent << connector << p_node.name()
-                  << " (type: " << jointTypeStringCompact(joint->type()) << ")"
-                  << std::endl;
+        std::cout << base_indent << connector << p_node.name() << " ("
+                  << printJointType(joint->type()) << ")" << std::endl;
 
         // Print T_origin
-        std::cout << jointIndent << "├── T_origin:     "
-                  << formatTransform(p_node.localTransform()) << std::endl;
+        std::cout << joint_indent << "├── T_origin:     "
+                  << printTransform(p_node.localTransform()) << std::endl;
 
         // Print T_joint
         if (joint->type() == Joint::Type::FIXED)
         {
-            std::cout << jointIndent
+            std::cout << joint_indent
                       << "├── T_joint:      identity (fixed joint)"
                       << std::endl;
         }
         else
         {
-            std::string jointName = p_node.name();
-            // Remove "_joint" suffix if present for cleaner variable name
-            if (jointName.length() >= 6 &&
-                jointName.substr(jointName.length() - 6) == "_joint")
-            {
-                jointName = jointName.substr(0, jointName.length() - 6);
-            }
-
+            // FIXME deplacer rotate(axis = 0 0 1, θ ∈ [-3.14159, 3.14159]) a
+            // cote de (type:) Afficher la valeur de l'angle
             if (joint->type() == Joint::Type::PRISMATIC)
             {
-                std::string jointVar = "d_" + jointName;
-                std::cout << jointIndent
+                std::cout << joint_indent
                           << "├── T_joint:      translate(axis = "
                           << joint->axis().x() << " " << joint->axis().y()
-                          << " " << joint->axis().z() << ", d = " << jointVar
-                          << ")   ← variable" << std::endl;
+                          << " " << joint->axis().z() << ", d ∈ ["
+                          << joint->limits().first << ", "
+                          << joint->limits().second << "]"
+                          << ")" << std::endl;
             }
-            else // REVOLUTE
+            else if (joint->type() == Joint::Type::CONTINUOUS)
             {
-                std::string jointVar = "θ_" + jointName;
-                std::cout << jointIndent << "├── T_joint:      rotate(axis = "
+                std::cout << joint_indent << "├── T_joint:      rotate(axis = "
                           << joint->axis().x() << " " << joint->axis().y()
-                          << " " << joint->axis().z() << ", θ = " << jointVar
-                          << ")   ← variable" << std::endl;
+                          << " " << joint->axis().z() << ")" << std::endl;
+            }
+            else if (joint->type() == Joint::Type::REVOLUTE)
+            {
+                std::cout << joint_indent << "├── T_joint:      rotate(axis = "
+                          << joint->axis().x() << " " << joint->axis().y()
+                          << " " << joint->axis().z() << ", θ ∈ ["
+                          << joint->limits().first << ", "
+                          << joint->limits().second << "]"
+                          << ")" << std::endl;
+            }
+            else
+            {
+                std::cout << joint_indent << "├── T_joint:      unknown"
+                          << std::endl;
             }
         }
 
@@ -119,27 +111,22 @@ void printSceneNodeSimple(Node const& p_node, bool p_isLast, size_t p_depth)
             const Node& child = *p_node.children()[0];
 
             // Check if this link has child joints (continue the chain)
-            const auto& grandchildren = child.children();
-            bool hasChildJoints = !grandchildren.empty();
+            const auto& grand_children = child.children();
+            bool has_child_joints = !grand_children.empty();
 
-            std::string linkConnector = hasChildJoints ? "├── " : "└── ";
-            std::cout << jointIndent << linkConnector << "[" << child.name()
-                      << "]  (T_world = T_base × T_origin";
-            if (joint->type() != Joint::Type::FIXED)
-            {
-                std::cout << " × T_joint";
-            }
-            std::cout << ")" << std::endl;
+            std::string link_connector = has_child_joints ? "├── " : "└── ";
+            std::cout << joint_indent << link_connector << "[" << child.name()
+                      << "] " // << printGeometryType(child.geometry().type())
+                      << std::endl;
 
             // Recursively print the children of the child link (next joints in
             // the kinematic chain)
-            if (hasChildJoints)
+            if (has_child_joints)
             {
-                for (size_t i = 0; i < grandchildren.size(); ++i)
+                for (size_t i = 0; i < grand_children.size(); ++i)
                 {
-                    bool isChildLast = (i == grandchildren.size() - 1);
-                    printSceneNodeSimple(
-                        *grandchildren[i], isChildLast, p_depth + 1);
+                    bool is_child_last = (i == grand_children.size() - 1);
+                    printNode(*grand_children[i], is_child_last, p_depth + 1);
                 }
             }
         }
@@ -154,117 +141,45 @@ void printSceneNodeSimple(Node const& p_node, bool p_isLast, size_t p_depth)
     else
     {
         // Handle regular nodes (links without being joints)
-        std::cout << baseIndent << connector << "[" << p_node.name() << "]"
+        std::cout << base_indent << connector << "[" << p_node.name() << "]"
                   << std::endl;
 
         // Recursively print children
         const auto& children = p_node.children();
         for (size_t i = 0; i < children.size(); ++i)
         {
-            bool isChildLast = (i == children.size() - 1);
-            printSceneNodeSimple(*children[i], isChildLast, p_depth + 1);
+            bool is_child_last = (i == children.size() - 1);
+            printNode(*children[i], is_child_last, p_depth + 1);
         }
     }
 }
 
 // ----------------------------------------------------------------------------
-void printNode(Node const& p_node, size_t p_depth)
-{
-    // Create indentation based on depth
-    std::string indent(p_depth * 2, ' ');
-
-    // Print node name and type
-    std::cout << indent << "└─ " << p_node.name();
-
-    // Check if it's a joint and print joint-specific info
-    if (auto joint = dynamic_cast<Joint const*>(&p_node))
-    {
-        std::cout << " (Joint - " << jointTypeString(joint->type()) << ")";
-        std::cout << " [Position: " << std::fixed << std::setprecision(3)
-                  << joint->position() << "]";
-        switch (joint->type())
-        {
-            case Joint::Type::REVOLUTE:
-                std::cout << " [rad]";
-                break;
-            case Joint::Type::PRISMATIC:
-                std::cout << " [m]";
-                break;
-            case Joint::Type::FIXED:
-            default:
-                break;
-        }
-    }
-    else
-    {
-        std::cout << " (Node)";
-    }
-
-    std::cout << std::endl;
-
-    // Print local transformation matrix
-    std::cout << indent << "   Local Transform:" << std::endl;
-    printTransform(p_node.localTransform(), indent + "   ");
-
-    // Print world transformation matrix
-    std::cout << indent << "   World Transform:" << std::endl;
-    printTransform(p_node.worldTransform(), indent + "   ");
-
-    std::cout << std::endl;
-}
-
-// ----------------------------------------------------------------------------
-void printJoint(const Joint& p_joint)
-{
-    std::cout << "Joint: " << p_joint.name() << std::endl;
-}
-
-// ----------------------------------------------------------------------------
-// void printLink(const Link& p_link)
-//{
-//    std::cout << "Link: " << p_link.name << std::endl;
-//}
-
-// ----------------------------------------------------------------------------
-void printTransform(Transform const& p_transform, const std::string& p_indent)
-{
-    std::cout << std::fixed << std::setprecision(4);
-
-    for (int i = 0; i < 4; ++i)
-    {
-        std::cout << p_indent;
-        for (int j = 0; j < 4; ++j)
-        {
-            std::cout << std::setw(10) << p_transform(i, j);
-            if (j < 3)
-                std::cout << " ";
-        }
-        std::cout << std::endl;
-    }
-}
-
-// ----------------------------------------------------------------------------
-std::string jointTypeString(Joint::Type p_type)
+static std::string printGeometryType(Geometry::Type p_type)
 {
     switch (p_type)
     {
-        case Joint::Type::REVOLUTE:
-            return "REVOLUTE";
-        case Joint::Type::PRISMATIC:
-            return "PRISMATIC";
-        case Joint::Type::FIXED:
-            return "FIXED";
+        case Geometry::Type::BOX:
+            return "box";
+        case Geometry::Type::CYLINDER:
+            return "cylinder";
+        case Geometry::Type::SPHERE:
+            return "sphere";
+        case Geometry::Type::MESH:
+            return "mesh";
         default:
-            return "UNKNOWN";
+            return "unknown";
     }
 }
 
 // ----------------------------------------------------------------------------
-std::string jointTypeStringCompact(Joint::Type p_type)
+static std::string printJointType(Joint::Type p_type)
 {
     switch (p_type)
     {
         case Joint::Type::REVOLUTE:
+            return "revolute";
+        case Joint::Type::CONTINUOUS:
             return "continuous";
         case Joint::Type::PRISMATIC:
             return "prismatic";
@@ -276,7 +191,7 @@ std::string jointTypeStringCompact(Joint::Type p_type)
 }
 
 // ----------------------------------------------------------------------------
-std::string formatTransform(const Transform& p_transform)
+static std::string printTransform(const Transform& p_transform)
 {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(4);
