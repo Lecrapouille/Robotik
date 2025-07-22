@@ -314,6 +314,7 @@ private:
     // Matrices
     Eigen::Matrix4f m_view_matrix;
     Eigen::Matrix4f m_projection_matrix;
+    Eigen::Matrix4f m_urdf_to_opengl_matrix;
 
     // Shader sources
     static const std::string s_vertex_shader_source;
