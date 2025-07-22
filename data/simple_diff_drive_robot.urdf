@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot name="simple_diff_drive_robot">
 
-  <!-- Châssis principal -->
+  <!-- Main chassis -->
   <link name="base_link">
     <visual>
       <geometry>
@@ -22,43 +22,29 @@
     </inertial>
   </link>
 
-  <!-- Roue gauche -->
+  <!-- Left wheel -->
   <link name="left_wheel">
     <visual>
       <geometry>
-        <cylinder length="0.05" radius="0.05"/>
+        <cylinder length="0.05" radius="0.1"/>
       </geometry>
-      <material name="black">
+      <material name="white">
         <color rgba="0 0 0 1"/>
       </material>
     </visual>
   </link>
 
-  <joint name="left_wheel_joint" type="continuous">
-    <parent link="base_link"/>
-    <child link="left_wheel"/>
-    <origin xyz="-0.15 0.15 0.025" rpy="0 1.5708 0"/>
-    <axis xyz="0 0 1"/>
-  </joint>
-
-  <!-- Roue droite -->
+  <!-- Right wheel -->
   <link name="right_wheel">
     <visual>
       <geometry>
-        <cylinder length="0.05" radius="0.05"/>
+        <cylinder length="0.05" radius="0.10"/>
       </geometry>
       <material name="black"/>
     </visual>
   </link>
 
-  <joint name="right_wheel_joint" type="continuous">
-    <parent link="base_link"/>
-    <child link="right_wheel"/>
-    <origin xyz="-0.15 -0.15 0.025" rpy="0 1.5708 0"/>
-    <axis xyz="0 0 1"/>
-  </joint>
-
-  <!-- Petite roue arrière (caster) -->
+  <!-- Small rear wheel (caster) -->
   <link name="caster_wheel">
     <visual>
       <geometry>
@@ -68,10 +54,24 @@
     </visual>
   </link>
 
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="-0.15 0.15 0.025" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="-0.15 -0.15 0.025" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
   <joint name="caster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="caster_wheel"/>
-    <origin xyz="0.15 0 0.01" rpy="0 0 0"/>
+    <origin xyz="0.15 0 -0.05" rpy="0 0 0"/>
   </joint>
 
 </robot>

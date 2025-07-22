@@ -27,19 +27,6 @@
     </visual>
   </link>
 
-  <!-- End Effector Link -->
-  <link name="end_effector_link">
-    <visual>
-      <geometry>
-        <cylinder radius="0.02" length="0.1"/>
-      </geometry>
-      <origin xyz="0 0 0.05" rpy="0 0 0"/>
-      <material name="red">
-        <color rgba="1 0 0 1"/>
-      </material>
-    </visual>
-  </link>
-
   <!-- Revolute Joint (rotates around Z-axis) -->
   <joint name="revolute_joint" type="revolute">
     <parent link="base_link"/>
@@ -47,13 +34,6 @@
     <origin xyz="0 0 0.05" rpy="0 0 0"/>
     <axis xyz="0 0 1"/>
     <limit lower="-3.14159" upper="3.14159" effort="1000" velocity="1.0"/>
-  </joint>
-
-  <!-- Fixed Joint to end effector -->
-  <joint name="end_effector_joint" type="fixed">
-    <parent link="arm_link"/>
-    <child link="end_effector_link"/>
-    <origin xyz="0.2 0 0" rpy="0 0 0"/>
   </joint>
 
 </robot>
