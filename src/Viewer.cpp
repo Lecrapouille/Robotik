@@ -74,6 +74,19 @@ Viewer::Viewer(int p_width, int p_height, const std::string& p_title)
     : m_width(p_width), m_height(p_height), m_title(p_title)
 {
     m_aspect_ratio = static_cast<float>(p_width) / static_cast<float>(p_height);
+
+    // Initialize URDF to OpenGL coordinate system conversion matrix
+    // URDF: X=forward, Y=left, Z=up
+    // OpenGL: X=right, Y=up, Z=toward viewer
+    // Transformation matrix:
+    //   OpenGL_X = -URDF_Y  (left becomes right by negation)
+    //   OpenGL_Y = URDF_Z   (up remains up)
+    //   OpenGL_Z = -URDF_X  (forward becomes toward viewer by negation)
+    m_urdf_to_opengl_matrix = Eigen::Matrix4f::Zero();
+    m_urdf_to_opengl_matrix(0, 1) = -1.0f; // OpenGL_X = -URDF_Y
+    m_urdf_to_opengl_matrix(1, 2) = 1.0f;  // OpenGL_Y = URDF_Z
+    m_urdf_to_opengl_matrix(2, 0) = -1.0f; // OpenGL_Z = -URDF_X
+    m_urdf_to_opengl_matrix(3, 3) = 1.0f;  // Homogeneous coordinate
 }
 
 // ----------------------------------------------------------------------------
@@ -319,7 +332,7 @@ void Viewer::renderGrid() const
 void Viewer::renderBox(Transform const& p_transform,
                        const Eigen::Vector3f& p_color) const
 {
-    Eigen::Matrix4f model = p_transform.cast<float>();
+    Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
                        1,
                        GL_FALSE,
@@ -335,7 +348,7 @@ void Viewer::renderBox(Transform const& p_transform,
 void Viewer::renderCylinder(Transform const& p_transform,
                             const Eigen::Vector3f& p_color) const
 {
-    Eigen::Matrix4f model = p_transform.cast<float>();
+    Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
                        1,
                        GL_FALSE,
@@ -354,7 +367,7 @@ void Viewer::renderCylinder(Transform const& p_transform,
 void Viewer::renderSphere(Transform const& p_transform,
                           const Eigen::Vector3f& p_color) const
 {
-    Eigen::Matrix4f model = p_transform.cast<float>();
+    Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
                        1,
                        GL_FALSE,
@@ -372,7 +385,7 @@ void Viewer::renderJoint(Joint const& p_joint,
                          Transform const& p_world_transform) const
 {
     // Scale the joint to 5% of the link
-    double scaling = 0.05;
+    double scaling = 0.025;
 
     // Create scaling transformation
     Transform scale_transform = Transform::Identity();
@@ -414,6 +427,9 @@ void Viewer::renderLink(Link const& p_link,
     // Get color from geometry (RGB only, ignore alpha)
     Eigen::Vector3f color = p_link.geometry().color.head<3>().cast<float>();
 
+    // Apply geometry origin transformation
+    Transform geometry_transform = p_world_transform * p_link.geometry().origin;
+
     // Use geometry type and parameters for rendering
     switch (p_link.geometry().type)
     {
@@ -432,13 +448,13 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(1, 1) = height;
                 scale_transform(2, 2) = depth;
 
-                // Apply scaling correctly: base_transform * scale
-                Transform link_transform = p_world_transform * scale_transform;
+                // Apply scaling correctly: geometry_transform * scale
+                Transform link_transform = geometry_transform * scale_transform;
                 renderBox(link_transform, color);
             }
             else
             {
-                renderBox(p_world_transform, color);
+                renderBox(geometry_transform, color);
             }
             break;
         }
@@ -451,18 +467,19 @@ void Viewer::renderLink(Link const& p_link,
                 double height = p_link.geometry().parameters[1];
 
                 // Create scaling transformation
+                // Base cylinder is radius 1, height 2, oriented along Z-axis.
                 Transform scale_transform = Transform::Identity();
-                scale_transform(0, 0) = radius * 2.0;
-                scale_transform(1, 1) = height;
-                scale_transform(2, 2) = radius * 2.0;
+                scale_transform(0, 0) = radius;
+                scale_transform(1, 1) = radius;
+                scale_transform(2, 2) = height / 2.0;
 
-                // Apply scaling correctly: base_transform * scale
-                Transform link_transform = p_world_transform * scale_transform;
+                // Apply scaling correctly: geometry_transform * scale
+                Transform link_transform = geometry_transform * scale_transform;
                 renderCylinder(link_transform, color);
             }
             else
             {
-                renderCylinder(p_world_transform, color);
+                renderCylinder(geometry_transform, color);
             }
             break;
         }
@@ -474,18 +491,19 @@ void Viewer::renderLink(Link const& p_link,
                 double radius = p_link.geometry().parameters[0];
 
                 // Create scaling transformation
+                // Base sphere is radius 1
                 Transform scale_transform = Transform::Identity();
-                scale_transform(0, 0) = radius * 2;
-                scale_transform(1, 1) = radius * 2;
-                scale_transform(2, 2) = radius * 2;
+                scale_transform(0, 0) = radius;
+                scale_transform(1, 1) = radius;
+                scale_transform(2, 2) = radius;
 
-                // Apply scaling correctly: base_transform * scale
-                Transform link_transform = p_world_transform * scale_transform;
+                // Apply scaling correctly: geometry_transform * scale
+                Transform link_transform = geometry_transform * scale_transform;
                 renderSphere(link_transform, color);
             }
             else
             {
-                renderSphere(p_world_transform, color);
+                renderSphere(geometry_transform, color);
             }
             break;
         }
@@ -503,8 +521,8 @@ void Viewer::renderLink(Link const& p_link,
             scale_transform(1, 1) = 0.1;
             scale_transform(2, 2) = 0.1;
 
-            // Apply scaling correctly: base_transform * scale
-            Transform link_transform = p_world_transform * scale_transform;
+            // Apply scaling correctly: geometry_transform * scale
+            Transform link_transform = geometry_transform * scale_transform;
             renderBox(link_transform, color);
             break;
         }
@@ -532,14 +550,12 @@ void Viewer::renderRobot(Robot const& p_robot) const
             }
         });
 
-#if 0
     // Traverse the robot tree and render each axis
-    p_robot.root().traverse([this](Node const& node)
-                          { renderAxes(node.worldTransform(), 0.2); });
+    p_robot.root().traverse([this](Node const& node, size_t /*p_depth*/)
+                            { renderAxes(node.worldTransform(), 0.2); });
 
     // Render world axes at origin
     renderAxes(p_robot.root().worldTransform(), 0.5);
-#endif
 }
 
 // ----------------------------------------------------------------------------
@@ -642,25 +658,25 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
     indices.clear();
 
     // Generate vertices
-    // Bottom center
+    // Bottom center (at z = -height/2)
     vertices.insert(vertices.end(),
-                    { 0.0f, -height / 2, 0.0f, 0.0f, -1.0f, 0.0f });
-    // Top center
+                    { 0.0f, 0.0f, -height / 2, 0.0f, 0.0f, -1.0f });
+    // Top center (at z = height/2)
     vertices.insert(vertices.end(),
-                    { 0.0f, height / 2, 0.0f, 0.0f, 1.0f, 0.0f });
+                    { 0.0f, 0.0f, height / 2, 0.0f, 0.0f, 1.0f });
 
     // Bottom and top circles
     for (size_t i = 0; i <= segments; ++i)
     {
         float angle = 2.0f * M_PIf * float(i) / float(segments);
         float x = radius * std::cos(angle);
-        float z = radius * std::sin(angle);
+        float y = radius * std::sin(angle);
 
         // Bottom circle vertex
         vertices.insert(vertices.end(),
-                        { x, -height / 2, z, 0.0f, -1.0f, 0.0f });
+                        { x, y, -height / 2, 0.0f, 0.0f, -1.0f });
         // Top circle vertex
-        vertices.insert(vertices.end(), { x, height / 2, z, 0.0f, 1.0f, 0.0f });
+        vertices.insert(vertices.end(), { x, y, height / 2, 0.0f, 0.0f, 1.0f });
     }
 
     // Side vertices with side normals
@@ -668,13 +684,13 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
     {
         float angle = 2.0f * M_PIf * float(i) / float(segments);
         float x = radius * std::cos(angle);
-        float z = radius * std::sin(angle);
+        float y = radius * std::sin(angle);
 
         // Side vertices with side normals
         float nx = std::cos(angle);
-        float nz = std::sin(angle);
-        vertices.insert(vertices.end(), { x, -height / 2, z, nx, 0.0f, nz });
-        vertices.insert(vertices.end(), { x, height / 2, z, nx, 0.0f, nz });
+        float ny = std::sin(angle);
+        vertices.insert(vertices.end(), { x, y, -height / 2, nx, ny, 0.0f });
+        vertices.insert(vertices.end(), { x, y, height / 2, nx, ny, 0.0f });
     }
 
     // Generate indices
@@ -1019,17 +1035,17 @@ void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
 
     // X axis (red) - cylinder along X direction
     {
-        // Create scaling transformation (cylinder default: radius in XZ, height
-        // in Y)
+        // Create scaling transformation (cylinder default: radius in XY, height
+        // in Z)
         Transform scale_transform = Transform::Identity();
         scale_transform(0, 0) = radius;
-        scale_transform(1, 1) = height;
-        scale_transform(2, 2) = radius;
+        scale_transform(1, 1) = radius;
+        scale_transform(2, 2) = height / 2.0; // Base cylinder has height 2
 
-        // Create rotation to align cylinder with X axis (rotate 90° around Z)
+        // Create rotation to align cylinder with X axis (rotate 90° around Y)
         Transform rotation_transform = Transform::Identity();
         rotation_transform.block<3, 3>(0, 0) =
-            Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d::UnitZ())
+            Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d::UnitY())
                 .toRotationMatrix();
 
         // Create translation to position cylinder at half its length along X
@@ -1048,18 +1064,22 @@ void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
         // Create scaling transformation
         Transform scale_transform = Transform::Identity();
         scale_transform(0, 0) = radius;
-        scale_transform(1, 1) = height;
-        scale_transform(2, 2) = radius;
+        scale_transform(1, 1) = radius;
+        scale_transform(2, 2) = height / 2.0; // Base cylinder has height 2
 
-        // No rotation needed, cylinder is already aligned with Y axis
+        // Create rotation to align cylinder with Y axis (rotate -90° around X)
+        Transform rotation_transform = Transform::Identity();
+        rotation_transform.block<3, 3>(0, 0) =
+            Eigen::AngleAxisd(-M_PI / 2, Eigen::Vector3d::UnitX())
+                .toRotationMatrix();
 
         // Create translation to position cylinder at half its length along Y
         Transform translation_transform = Transform::Identity();
         translation_transform(1, 3) = height * 0.5;
 
-        // Combine: base * translation * scale
-        Transform y_transform =
-            p_transform * translation_transform * scale_transform;
+        // Combine: base * translation * rotation * scale
+        Transform y_transform = p_transform * translation_transform *
+                                rotation_transform * scale_transform;
 
         renderCylinder(y_transform, green_color);
     }
@@ -1069,22 +1089,18 @@ void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
         // Create scaling transformation
         Transform scale_transform = Transform::Identity();
         scale_transform(0, 0) = radius;
-        scale_transform(1, 1) = height;
-        scale_transform(2, 2) = radius;
+        scale_transform(1, 1) = radius;
+        scale_transform(2, 2) = height / 2.0; // Base cylinder has height 2
 
-        // Create rotation to align cylinder with Z axis (rotate 90° around X)
-        Transform rotation_transform = Transform::Identity();
-        rotation_transform.block<3, 3>(0, 0) =
-            Eigen::AngleAxisd(M_PI / 2, Eigen::Vector3d::UnitX())
-                .toRotationMatrix();
+        // No rotation needed, cylinder is already aligned with Z axis
 
         // Create translation to position cylinder at half its length along Z
         Transform translation_transform = Transform::Identity();
         translation_transform(2, 3) = height * 0.5;
 
-        // Combine: base * translation * rotation * scale
-        Transform z_transform = p_transform * translation_transform *
-                                rotation_transform * scale_transform;
+        // Combine: base * translation * scale
+        Transform z_transform =
+            p_transform * translation_transform * scale_transform;
 
         Eigen::Vector3f blue_color(0.0f, 0.0f, 1.0f);
         renderCylinder(z_transform, blue_color);
