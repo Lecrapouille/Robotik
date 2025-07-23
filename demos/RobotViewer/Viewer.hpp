@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Robot.hpp"
-#include "Robotik/private/Link.hpp"
+#include "Robotik/Robot.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -99,6 +98,15 @@ public:
     GLFWwindow* getWindow() const
     {
         return m_window;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the error message.
+    //! \return Error message.
+    // ------------------------------------------------------------------------
+    std::string error() const
+    {
+        return m_error_message;
     }
 
 private:
@@ -319,6 +327,9 @@ private:
     // Shader sources
     static const std::string s_vertex_shader_source;
     static const std::string s_fragment_shader_source;
+
+    // Error message
+    mutable std::string m_error_message;
 };
 
 } // namespace robotik

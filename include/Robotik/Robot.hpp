@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Robotik/private/Joint.hpp"
+#include "Robotik/private/Link.hpp"
 
 #include <string>
 #include <vector>
