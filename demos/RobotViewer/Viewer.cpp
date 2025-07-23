@@ -1,7 +1,6 @@
-#include "Robotik/Viewer.hpp"
+#include "Viewer.hpp"
 
 #include <cmath>
-#include <iostream>
 
 namespace robotik
 {
@@ -131,7 +130,7 @@ bool Viewer::initializeGL()
 {
     if (!glfwInit())
     {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
+        m_error_message = "Failed to initialize GLFW";
         return false;
     }
 
@@ -145,7 +144,7 @@ bool Viewer::initializeGL()
         glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
     if (!m_window)
     {
-        std::cerr << "Failed to create GLFW window" << std::endl;
+        m_error_message = "Failed to create GLFW window";
         glfwTerminate();
         return false;
     }
@@ -156,7 +155,7 @@ bool Viewer::initializeGL()
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK)
     {
-        std::cerr << "Failed to initialize GLEW" << std::endl;
+        m_error_message = "Failed to initialize GLEW";
         glfwTerminate();
         return false;
     }
@@ -164,7 +163,7 @@ bool Viewer::initializeGL()
     // Make sure OpenGL version 3.3 API is available
     if (!GLEW_VERSION_3_3)
     {
-        std::cerr << "OpenGL 3.3 not supported" << std::endl;
+        m_error_message = "OpenGL 3.3 not supported";
         glfwTerminate();
         return false;
     }
@@ -200,9 +199,15 @@ unsigned int Viewer::compileShader(const std::string& p_source,
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
-        char info_log[512];
-        glGetShaderInfoLog(shader, 512, nullptr, info_log);
-        std::cerr << "Shader compilation error: " << info_log << std::endl;
+        // Get the length of the info log
+        int info_log_length;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &info_log_length);
+
+        // Allocate buffer with exact size
+        std::string info_log(info_log_length, '\0');
+        glGetShaderInfoLog(shader, info_log_length, nullptr, &info_log[0]);
+
+        m_error_message = std::string("Shader compilation error: ") + info_log;
         glDeleteShader(shader);
         return 0;
     }
@@ -239,9 +244,15 @@ Viewer::createShaderProgram(const std::string& p_vertexSource,
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success)
     {
-        char info_log[512];
-        glGetProgramInfoLog(program, 512, nullptr, info_log);
-        std::cerr << "Program linking error: " << info_log << std::endl;
+        // Get the length of the info log
+        int info_log_length;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &info_log_length);
+
+        // Allocate buffer with exact size
+        std::string info_log(info_log_length, '\0');
+        glGetProgramInfoLog(program, info_log_length, nullptr, &info_log[0]);
+
+        m_error_message = "Program linking error: " + info_log;
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
         glDeleteProgram(program);

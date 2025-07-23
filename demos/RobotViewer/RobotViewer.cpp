@@ -1,9 +1,8 @@
 #include "Robotik/Debug.hpp"
 #include "Robotik/Parser.hpp"
-#include "Robotik/Robot.hpp"
-#include "Robotik/Viewer.hpp"
-
 #include "Robotik/private/Conversions.hpp"
+
+#include "Viewer.hpp"
 
 #include <iostream>
 #include <optional>
@@ -152,8 +151,6 @@ static std::unique_ptr<robotik::Robot> parse_command_line(int argc,
     {
         // No URDF file provided, create a simple robot
         auto robot = create_simple_robot();
-        std::cout << "Created simple robot arm (no URDF file specified)"
-                  << std::endl;
         return robot;
     }
 }
@@ -202,7 +199,8 @@ int main(int argc, char* argv[])
     robotik::Viewer viewer(1024, 768, "Robotik Viewer Demo");
     if (!viewer.initialize())
     {
-        std::cerr << "Failed to initialize viewer" << std::endl;
+        std::cerr << "Failed to initialize viewer: " << viewer.error()
+                  << std::endl;
         return EXIT_FAILURE;
     }
 
