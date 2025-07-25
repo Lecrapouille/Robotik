@@ -1,6 +1,6 @@
-#include "Robotik/private/Node.hpp"
+#include "Robotik/private/SceneNode.hpp"
 
-namespace robotik
+namespace robotik::scene
 {
 
 // ----------------------------------------------------------------------------
@@ -136,4 +136,4 @@ void Node::updateWorldTransforms()
     }
 }
 
-} // namespace robotik
+} // namespace robotik::scene

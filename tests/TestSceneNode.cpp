@@ -1,29 +1,29 @@
 #include "main.hpp"
 
-#include "Robotik/private/Node.hpp"
+#include "Robotik/private/SceneNode.hpp"
 #include <cmath>
 
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for Node class.
+//! \brief Test fixture for scene::Node class.
 // *********************************************************************************
-class NodeTest: public ::testing::Test
+class SceneNodeTest: public ::testing::Test
 {
 protected:
 
     void SetUp() override
     {
-        root = Node::create<Node>("root");
+        root = scene::Node::create<scene::Node>("root");
     }
 
-    Node::Ptr root;
+    scene::Node::Ptr root;
 };
 
 // *********************************************************************************
-//! \brief Test Node creation and basic properties.
+//! \brief Test scene::Node creation and basic properties.
 // *********************************************************************************
-TEST_F(NodeTest, Creation)
+TEST_F(SceneNodeTest, Creation)
 {
     EXPECT_EQ(root->name(), "root");
     EXPECT_TRUE(root->children().empty());
@@ -34,34 +34,34 @@ TEST_F(NodeTest, Creation)
 // *********************************************************************************
 //! \brief Test name() method.
 // *********************************************************************************
-TEST_F(NodeTest, GetName)
+TEST_F(SceneNodeTest, GetName)
 {
     EXPECT_EQ(root->name(), "root");
 
     // Test getting non-existent node
-    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
-    EXPECT_EQ(Node::find(*root, ""), nullptr);
+    EXPECT_EQ(scene::Node::find(*root, "nonexistent"), nullptr);
+    EXPECT_EQ(scene::Node::find(*root, ""), nullptr);
 
-    Node const& child = root->createChild<Node>("test_child");
+    scene::Node const& child = root->createChild<scene::Node>("test_child");
     EXPECT_EQ(child.name(), "test_child");
-    EXPECT_EQ(Node::find(*root, "test_child"), &child);
+    EXPECT_EQ(scene::Node::find(*root, "test_child"), &child);
     EXPECT_EQ(root->child("test_child"), &child);
 
     // Test with empty name
-    Node const& empty_child = root->createChild<Node>("");
+    scene::Node const& empty_child = root->createChild<scene::Node>("");
     EXPECT_EQ(empty_child.name(), "");
-    EXPECT_EQ(Node::find(*root, ""), &empty_child);
+    EXPECT_EQ(scene::Node::find(*root, ""), &empty_child);
     EXPECT_EQ(root->child(""), &empty_child);
 }
 
 // *********************************************************************************
 //! \brief Test adding children and parent-child relationships.
 // *********************************************************************************
-TEST_F(NodeTest, CreateChildAndParenthood)
+TEST_F(SceneNodeTest, CreateChildAndParenthood)
 {
     // Create two children
-    Node& child1 = root->createChild<Node>("child1");
-    Node& child2 = root->createChild<Node>("child2");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node& child2 = root->createChild<scene::Node>("child2");
 
     // Test that the children have the correct name
     EXPECT_EQ(child1.name(), "child1");
@@ -69,8 +69,8 @@ TEST_F(NodeTest, CreateChildAndParenthood)
 
     // Test that the children are found from the root node
     EXPECT_EQ(root->children().size(), 2);
-    EXPECT_EQ(Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(scene::Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(scene::Node::find(*root, "child2"), &child2);
     EXPECT_EQ(root->child("child1"), &child1);
     EXPECT_EQ(root->child("child2"), &child2);
 
@@ -100,15 +100,16 @@ TEST_F(NodeTest, CreateChildAndParenthood)
 // *********************************************************************************
 //! \brief Test hierarchical structure with multiple levels.
 // *********************************************************************************
-TEST_F(NodeTest, ComplexHierarchy)
+TEST_F(SceneNodeTest, ComplexHierarchy)
 {
     // Create a hierarchy of nodes
-    Node& child1 = root->createChild<Node>("child1");
-    Node const& child2 = root->createChild<Node>("child2");
-    Node& grandchild1 = child1.createChild<Node>("grandchild1");
-    Node const& grandchild2 = child1.createChild<Node>("grandchild2");
-    Node const& great_grandchild =
-        grandchild1.createChild<Node>("great_grandchild");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node const& child2 = root->createChild<scene::Node>("child2");
+    scene::Node& grandchild1 = child1.createChild<scene::Node>("grandchild1");
+    scene::Node const& grandchild2 =
+        child1.createChild<scene::Node>("grandchild2");
+    scene::Node const& great_grandchild =
+        grandchild1.createChild<scene::Node>("great_grandchild");
 
     // Test that the children are found from the parent nodes
     EXPECT_EQ(root->children().size(), 2);
@@ -119,28 +120,29 @@ TEST_F(NodeTest, ComplexHierarchy)
     EXPECT_EQ(great_grandchild.children().size(), 0);
 
     // Test that the nodes are found from the root node
-    EXPECT_EQ(Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(Node::find(*root, "child2"), &child2);
-    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
+    EXPECT_EQ(scene::Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(scene::Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(scene::Node::find(grandchild1, "great_grandchild"),
+              &great_grandchild);
 
     // Test getting non-existent node
-    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
+    EXPECT_EQ(scene::Node::find(*root, "nonexistent"), nullptr);
 
     // Test with empty name search
-    EXPECT_EQ(Node::find(*root, ""), nullptr);
+    EXPECT_EQ(scene::Node::find(*root, ""), nullptr);
 }
 
 // *********************************************************************************
 //! \brief Test complex transformation propagation through hierarchy.
 // *********************************************************************************
-TEST_F(NodeTest, ComplexTransformationPropagation)
+TEST_F(SceneNodeTest, ComplexTransformationPropagation)
 {
     // Create a 3-level hierarchy
-    Node& level1 = root->createChild<Node>("level1");
-    Node& level2 = level1.createChild<Node>("level2");
-    Node& level3 = level2.createChild<Node>("level3");
+    scene::Node& level1 = root->createChild<scene::Node>("level1");
+    scene::Node& level2 = level1.createChild<scene::Node>("level2");
+    scene::Node& level3 = level2.createChild<scene::Node>("level3");
 
     // Set transforms for each level
     Transform root_transform = Eigen::Matrix4d::Identity();
@@ -192,7 +194,7 @@ TEST_F(NodeTest, ComplexTransformationPropagation)
 // *********************************************************************************
 //! \brief Test local transformations with rotations.
 // *********************************************************************************
-TEST_F(NodeTest, LocalTransformWithRotation)
+TEST_F(SceneNodeTest, LocalTransformWithRotation)
 {
     Transform identity = Eigen::Matrix4d::Identity();
     EXPECT_TRUE(root->localTransform().isApprox(identity));
@@ -208,7 +210,7 @@ TEST_F(NodeTest, LocalTransformWithRotation)
     EXPECT_TRUE(root->localTransform().isApprox(rotation_transform));
 
     // Create child node
-    Node& level1 = root->createChild<Node>("level1");
+    scene::Node& level1 = root->createChild<scene::Node>("level1");
 
     // Compare with explicit matrix:
     // 0 -1  0  1
@@ -224,7 +226,7 @@ TEST_F(NodeTest, LocalTransformWithRotation)
     Eigen::AngleAxisd rotation2(M_PI / 2.0, Eigen::Vector3d::UnitZ());
     rotation_transform.block<3, 3>(0, 0) = rotation2.toRotationMatrix();
     level1.localTransform(rotation_transform);
-    Node const& level2 = level1.createChild<Node>("level2");
+    scene::Node const& level2 = level1.createChild<scene::Node>("level2");
 
     // Compare with explicit matrix:
     // -1  0  0  1
@@ -238,11 +240,11 @@ TEST_F(NodeTest, LocalTransformWithRotation)
 // *********************************************************************************
 //! \brief Test parent node with two rotations and world transform propagation.
 // *********************************************************************************
-TEST_F(NodeTest, ParentWithTwoRotationsAndWorldTransform)
+TEST_F(SceneNodeTest, ParentWithTwoRotationsAndWorldTransform)
 {
     // Create child nodes
-    Node& child1 = root->createChild<Node>("child1");
-    Node& child2 = root->createChild<Node>("child2");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node& child2 = root->createChild<scene::Node>("child2");
 
     // Create parent transform with two rotations
     Transform parent_transform = Eigen::Matrix4d::Identity();
@@ -309,14 +311,14 @@ TEST_F(NodeTest, ParentWithTwoRotationsAndWorldTransform)
 // *********************************************************************************
 //! \brief Test world transformations with multiple children.
 // *********************************************************************************
-TEST_F(NodeTest, WorldTransformMultipleChildren)
+TEST_F(SceneNodeTest, WorldTransformMultipleChildren)
 {
     Transform parent_transform = Eigen::Matrix4d::Identity();
     parent_transform(0, 3) = 1.0; // Translation in x
     root->localTransform(parent_transform);
 
-    Node& child1 = root->createChild<Node>("child1");
-    Node& child2 = root->createChild<Node>("child2");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node& child2 = root->createChild<scene::Node>("child2");
 
     Transform child1_transform = Eigen::Matrix4d::Identity();
     child1_transform(1, 3) = 2.0; // Translation in y
@@ -356,10 +358,11 @@ TEST_F(NodeTest, WorldTransformMultipleChildren)
 // *********************************************************************************
 //! \brief Test transform again.
 // *********************************************************************************
-TEST_F(NodeTest, DirtyFlagMechanism)
+TEST_F(SceneNodeTest, DirtyFlagMechanism)
 {
-    Node& child1 = root->createChild<Node>("child1");
-    Node const& grandchild = child1.createChild<Node>("grandchild");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node const& grandchild =
+        child1.createChild<scene::Node>("grandchild");
 
     // Set initial transforms
     Transform root_transform = Eigen::Matrix4d::Identity();
@@ -393,9 +396,9 @@ TEST_F(NodeTest, DirtyFlagMechanism)
 // *********************************************************************************
 //! \brief Test performance of world transform caching.
 // *********************************************************************************
-TEST_F(NodeTest, WorldTransformCaching)
+TEST_F(SceneNodeTest, WorldTransformCaching)
 {
-    Node const& child = root->createChild<Node>("child");
+    scene::Node const& child = root->createChild<scene::Node>("child");
 
     Transform test_transform = Eigen::Matrix4d::Identity();
     test_transform(0, 3) = 1.0;
@@ -415,30 +418,30 @@ TEST_F(NodeTest, WorldTransformCaching)
 // *********************************************************************************
 //! \brief Test multiple children with same name.
 // *********************************************************************************
-TEST_F(NodeTest, MultipleChildrenWithSameName)
+TEST_F(SceneNodeTest, MultipleChildrenWithSameName)
 {
     // Test multiple children with same name (should return first found)
-    Node const& child1 = root->createChild<Node>("duplicate");
-    Node const& child2 = root->createChild<Node>("duplicate");
+    scene::Node const& child1 = root->createChild<scene::Node>("duplicate");
+    scene::Node const& child2 = root->createChild<scene::Node>("duplicate");
 
     // Test that there are two children
     EXPECT_EQ(root->children().size(), 2);
     EXPECT_NE(&child1, &child2);
 
     // Should return the first one found
-    Node const* found = Node::find(*root, "duplicate");
+    scene::Node const* found = scene::Node::find(*root, "duplicate");
     EXPECT_TRUE(found == &child1 || found == &child2);
 }
 
 // *********************************************************************************
 //! \brief Test template createChild with derived types.
 // *********************************************************************************
-class DerivedNode: public Node
+class DerivedNode: public scene::Node
 {
 public:
 
     DerivedNode(const std::string& p_name, int p_value)
-        : Node(p_name), m_value(p_value)
+        : scene::Node(p_name), m_value(p_value)
     {
     }
 
@@ -460,13 +463,13 @@ private:
 // *********************************************************************************
 //! \brief Test template createChild with derived types.
 // *********************************************************************************
-TEST_F(NodeTest, TemplateCreateChildDerived)
+TEST_F(SceneNodeTest, TemplateCreateChildDerived)
 {
     DerivedNode& derived = root->createChild<DerivedNode>("derived", 42);
 
     EXPECT_EQ(derived.name(), "derived");
     EXPECT_EQ(derived.value(), 42);
-    EXPECT_EQ(Node::find(*root, "derived"), &derived);
+    EXPECT_EQ(scene::Node::find(*root, "derived"), &derived);
 
     // Test that derived functionality works
     derived.value(100);
@@ -481,10 +484,10 @@ TEST_F(NodeTest, TemplateCreateChildDerived)
 //! \brief Test addChild with existing node (without automatic parent-child
 //! relationship).
 // *********************************************************************************
-TEST_F(NodeTest, AddExistingChildBasic)
+TEST_F(SceneNodeTest, AddExistingChildBasic)
 {
-    auto child_node = Node::create<Node>("external_child");
-    Node* child_ptr = child_node.get();
+    auto child_node = scene::Node::create<scene::Node>("external_child");
+    scene::Node* child_ptr = child_node.get();
 
     // Set a transform on the child before adding
     Transform child_transform = Eigen::Matrix4d::Identity();
@@ -503,7 +506,7 @@ TEST_F(NodeTest, AddExistingChildBasic)
 
     // Verify the child is added to the root
     EXPECT_EQ(root->children().size(), 1);
-    EXPECT_EQ(Node::find(*root, "external_child"), child_ptr);
+    EXPECT_EQ(scene::Node::find(*root, "external_child"), child_ptr);
 
     // Verify the child's transform is preserved
     Transform expected_transform = Eigen::Matrix4d::Identity();
@@ -526,86 +529,90 @@ TEST_F(NodeTest, AddExistingChildBasic)
 // *********************************************************************************
 //! \brief Test recursive node search with complex hierarchy.
 // *********************************************************************************
-TEST_F(NodeTest, RecursiveNodeSearchComplex)
+TEST_F(SceneNodeTest, RecursiveNodeSearchComplex)
 {
-    Node& child1 = root->createChild<Node>("child1");
-    Node& child2 = root->createChild<Node>("child2");
-    Node& grandchild1 = child1.createChild<Node>("grandchild1");
-    Node& grandchild2 = child1.createChild<Node>("grandchild2");
-    Node& great_grandchild = grandchild1.createChild<Node>("great_grandchild");
+    scene::Node& child1 = root->createChild<scene::Node>("child1");
+    scene::Node& child2 = root->createChild<scene::Node>("child2");
+    scene::Node& grandchild1 = child1.createChild<scene::Node>("grandchild1");
+    scene::Node& grandchild2 = child1.createChild<scene::Node>("grandchild2");
+    scene::Node& great_grandchild =
+        grandchild1.createChild<scene::Node>("great_grandchild");
 
-    // Test that getNode searches recursively through the entire subtree
-    EXPECT_EQ(Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(Node::find(*root, "child2"), &child2);
-    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
+    // Test that getNode searches recursively through the entire
+    // subtree
+    EXPECT_EQ(scene::Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(scene::Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(scene::Node::find(grandchild1, "great_grandchild"),
+              &great_grandchild);
 
     // Test search from child node
-    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(Node::find(child1, "great_grandchild"), &great_grandchild);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(scene::Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(scene::Node::find(child1, "great_grandchild"), &great_grandchild);
 
     // Test that child can't find sibling
-    EXPECT_EQ(Node::find(child1, "child2"), nullptr);
+    EXPECT_EQ(scene::Node::find(child1, "child2"), nullptr);
 
     // Test that grandchild can't find uncle
-    EXPECT_EQ(Node::find(grandchild1, "child2"), nullptr);
+    EXPECT_EQ(scene::Node::find(grandchild1, "child2"), nullptr);
 
     // Test search from grandchild
-    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
-    EXPECT_EQ(Node::find(grandchild2, "great_grandchild"), nullptr);
+    EXPECT_EQ(scene::Node::find(grandchild1, "great_grandchild"),
+              &great_grandchild);
+    EXPECT_EQ(scene::Node::find(grandchild2, "great_grandchild"), nullptr);
 }
 
 // *********************************************************************************
 //! \brief Test multiple addChild calls.
 // *********************************************************************************
-TEST_F(NodeTest, MultipleAddChildCalls)
+TEST_F(SceneNodeTest, MultipleAddChildCalls)
 {
-    auto child1 = Node::create<Node>("child1");
-    auto child2 = Node::create<Node>("child2");
-    auto child3 = Node::create<Node>("child3");
+    auto child1 = scene::Node::create<scene::Node>("child1");
+    auto child2 = scene::Node::create<scene::Node>("child2");
+    auto child3 = scene::Node::create<scene::Node>("child3");
 
-    Node* child1_ptr = child1.get();
-    Node* child2_ptr = child2.get();
-    Node* child3_ptr = child3.get();
+    scene::Node* child1_ptr = child1.get();
+    scene::Node* child2_ptr = child2.get();
+    scene::Node* child3_ptr = child3.get();
 
     root->addChild(std::move(child1));
     root->addChild(std::move(child2));
     root->addChild(std::move(child3));
 
     EXPECT_EQ(root->children().size(), 3);
-    EXPECT_EQ(Node::find(*root, "child1"), child1_ptr);
-    EXPECT_EQ(Node::find(*root, "child2"), child2_ptr);
-    EXPECT_EQ(Node::find(*root, "child3"), child3_ptr);
+    EXPECT_EQ(scene::Node::find(*root, "child1"), child1_ptr);
+    EXPECT_EQ(scene::Node::find(*root, "child2"), child2_ptr);
+    EXPECT_EQ(scene::Node::find(*root, "child3"), child3_ptr);
 }
 
 // *********************************************************************************
 //! \brief Test mixing createChild and addChild.
 // *********************************************************************************
-TEST_F(NodeTest, MixedChildCreation)
+TEST_F(SceneNodeTest, MixedChildCreation)
 {
     // Create child using createChild
-    Node& created_child = root->createChild<Node>("created");
+    scene::Node& created_child = root->createChild<scene::Node>("created");
 
     // Add child using addChild
-    auto added_child = Node::create<Node>("added");
-    Node* added_ptr = added_child.get();
+    auto added_child = scene::Node::create<scene::Node>("added");
+    scene::Node* added_ptr = added_child.get();
     root->addChild(std::move(added_child));
 
     // Create another child using createChild
-    Node& created_child2 = root->createChild<Node>("created2");
+    scene::Node& created_child2 = root->createChild<scene::Node>("created2");
 
     EXPECT_EQ(root->children().size(), 3);
-    EXPECT_EQ(Node::find(*root, "created"), &created_child);
-    EXPECT_EQ(Node::find(*root, "added"), added_ptr);
-    EXPECT_EQ(Node::find(*root, "created2"), &created_child2);
+    EXPECT_EQ(scene::Node::find(*root, "created"), &created_child);
+    EXPECT_EQ(scene::Node::find(*root, "added"), added_ptr);
+    EXPECT_EQ(scene::Node::find(*root, "created2"), &created_child2);
 }
 
 // *********************************************************************************
 //! \brief Test difference between createChild and addChild behavior.
 // *********************************************************************************
-TEST_F(NodeTest, CreateChildVsAddChildBehavior)
+TEST_F(SceneNodeTest, CreateChildVsAddChildBehavior)
 {
     // Set a parent transform
     Transform parent_transform = Eigen::Matrix4d::Identity();
@@ -613,14 +620,14 @@ TEST_F(NodeTest, CreateChildVsAddChildBehavior)
     root->localTransform(parent_transform);
 
     // Create child using createChild (should inherit parent transforms)
-    Node& created_child = root->createChild<Node>("created");
+    scene::Node& created_child = root->createChild<scene::Node>("created");
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 5.0; // Translation in y
     created_child.localTransform(child_transform);
 
     // Add child using addChild (should NOT inherit parent transforms)
-    auto added_child = Node::create<Node>("added");
-    Node const* added_ptr = added_child.get();
+    auto added_child = scene::Node::create<scene::Node>("added");
+    scene::Node const* added_ptr = added_child.get();
     added_child->localTransform(child_transform); // Same local transform
     root->addChild(std::move(added_child));
 

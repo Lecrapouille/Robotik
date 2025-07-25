@@ -10,10 +10,11 @@ using namespace robotik;
 // *********************************************************************************
 //! \brief End effector node. For this current implementation, a node is enough.
 // *********************************************************************************
-class EndEffector: public Node
+class EndEffector: public scene::Node
 {
 public:
 
+    using Node = scene::Node;
     using Node::Node;
 };
 
@@ -30,7 +31,7 @@ protected:
         robot_arm = std::make_unique<Robot>("test_arm");
 
         // Create the scene graph
-        Joint::Ptr r = Node::create<Joint>(
+        Joint::Ptr r = scene::Node::create<Joint>(
             "root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
         joint1 = &(r->createChild<Joint>(
             "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1)));
@@ -66,22 +67,23 @@ protected:
 // *********************************************************************************
 //! \brief Test root node access.
 // *********************************************************************************
-TEST_F(RobotTest, RootNode)
+TEST_F(RobotTest, RootSceneNode)
 {
-    Node const& found_root = robot_arm->root();
+    scene::Node const& found_root = robot_arm->root();
     EXPECT_EQ(found_root.name(), "root");
 }
 
 // *********************************************************************************
 //! \brief Test getting nodes by name.
 // *********************************************************************************
-TEST_F(RobotTest, NodeSearch)
+TEST_F(RobotTest, SceneNodeSearch)
 {
-    EXPECT_EQ(Node::find(robot_arm->root(), "root"), root);
-    EXPECT_EQ(Node::find(robot_arm->root(), "joint1"), joint1);
-    EXPECT_EQ(Node::find(robot_arm->root(), "joint2"), joint2);
-    EXPECT_EQ(Node::find(robot_arm->root(), "end_effector"), end_effector);
-    EXPECT_EQ(Node::find(robot_arm->root(), "nonexistent"), nullptr);
+    EXPECT_EQ(scene::Node::find(robot_arm->root(), "root"), root);
+    EXPECT_EQ(scene::Node::find(robot_arm->root(), "joint1"), joint1);
+    EXPECT_EQ(scene::Node::find(robot_arm->root(), "joint2"), joint2);
+    EXPECT_EQ(scene::Node::find(robot_arm->root(), "end_effector"),
+              end_effector);
+    EXPECT_EQ(scene::Node::find(robot_arm->root(), "nonexistent"), nullptr);
 }
 
 // *********************************************************************************

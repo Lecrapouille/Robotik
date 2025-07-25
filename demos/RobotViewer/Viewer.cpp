@@ -548,7 +548,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
 
     // Traverse the robot tree and render each node
     p_robot.root().traverse(
-        [this](Node const& node, size_t /*p_depth*/)
+        [this](scene::Node const& node, size_t /*p_depth*/)
         {
             Transform world_transform = node.worldTransform();
             if (auto joint = dynamic_cast<Joint const*>(&node))
@@ -562,7 +562,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
         });
 
     // Traverse the robot tree and render each axis
-    p_robot.root().traverse([this](Node const& node, size_t /*p_depth*/)
+    p_robot.root().traverse([this](scene::Node const& node, size_t /*p_depth*/)
                             { renderAxes(node.worldTransform(), 0.2); });
 
     // Render world axes at origin

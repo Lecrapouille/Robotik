@@ -7,13 +7,14 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Robot::Robot(std::string_view const& p_name, Node::Ptr p_root) : m_name(p_name)
+Robot::Robot(std::string_view const& p_name, scene::Node::Ptr p_root)
+    : m_name(p_name)
 {
     root(std::move(p_root));
 }
 
 // ----------------------------------------------------------------------------
-void Robot::root(Node::Ptr p_root)
+void Robot::root(scene::Node::Ptr p_root)
 {
     m_root_node = std::move(p_root);
     cacheListOfJoints();
@@ -29,7 +30,7 @@ void Robot::cacheListOfJoints()
     }
 
     m_root_node->traverse(
-        [this](Node& p_node, size_t /*p_depth*/)
+        [this](scene::Node& p_node, size_t /*p_depth*/)
         {
             if (auto joint = dynamic_cast<Joint*>(&p_node))
             {
@@ -45,7 +46,7 @@ void Robot::cacheListOfJoints()
 
 // ----------------------------------------------------------------------------
 std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
-                                             Node const& p_end_effector,
+                                             scene::Node const& p_end_effector,
                                              size_t const p_max_iterations,
                                              double const p_epsilon,
                                              double const p_damping)
@@ -97,7 +98,7 @@ std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
 }
 
 // ----------------------------------------------------------------------------
-Jacobian Robot::calculateJacobian(Node const& p_end_effector) const
+Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
 {
     const size_t num_joints = m_joints.size();
     Jacobian J(6, num_joints);

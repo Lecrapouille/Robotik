@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <fstream>
 #include <memory>
-#include <set>
 #include <sstream>
 #include <unordered_map>
 
@@ -81,7 +80,7 @@ void URDFParser::parseLinks(tinyxml2::XMLElement* p_robot_element)
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                         Link& p_link) const
+                                         URDFParser::Link& p_link) const
 {
     auto inertial_element = p_link_element->FirstChildElement("inertial");
     if (!inertial_element)
@@ -144,7 +143,7 @@ Inertial URDFParser::parseInertial(const std::string& p_xml) const
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
-                                       Link& p_link) const
+                                       URDFParser::Link& p_link) const
 {
     auto visual_element = p_link_element->FirstChildElement("visual");
     if (!visual_element)
@@ -412,20 +411,6 @@ Eigen::Vector4d URDFParser::parseVector4(const std::string& p_str) const
 }
 
 // ----------------------------------------------------------------------------
-std::string URDFParser::findRootLinkName() const
-{
-    // Find the link that has no parent joint
-    for (const auto& [name, link] : m_links)
-    {
-        if (link->parent_joint == nullptr)
-        {
-            return name;
-        }
-    }
-    return {};
-}
-
-// ----------------------------------------------------------------------------
 bool URDFParser::buildSceneGraph()
 {
     // Find the root link (link with no parent joint)
@@ -451,7 +436,7 @@ bool URDFParser::buildSceneGraph()
                                         root_link_it->second->inertial);
 
     // Build the joint tree starting from the root link
-    for (Joint* child_joint : root_link_it->second->child_joints)
+    for (Joint const* child_joint : root_link_it->second->child_joints)
     {
         auto joint_tree = buildJointTree(child_joint);
         if (joint_tree)
@@ -467,7 +452,20 @@ bool URDFParser::buildSceneGraph()
 }
 
 // ----------------------------------------------------------------------------
-std::unique_ptr<Joint> URDFParser::buildJointTree(Joint* current_joint)
+std::string URDFParser::findRootLinkName() const
+{
+    for (const auto& [name, link] : m_links)
+    {
+        if (link->parent_joint == nullptr)
+        {
+            return name;
+        }
+    }
+    return {};
+}
+
+// ----------------------------------------------------------------------------
+std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* current_joint)
 {
     if (!current_joint)
         return nullptr;
@@ -494,11 +492,11 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint* current_joint)
 
     // Find the child link for this joint
     std::string child_link_name;
-    for (const auto& link_pair : m_links)
+    for (const auto& [name, link] : m_links)
     {
-        if (link_pair.second->parent_joint == current_joint)
+        if (link->parent_joint == current_joint)
         {
-            child_link_name = link_pair.first;
+            child_link_name = name;
             break;
         }
     }
@@ -515,7 +513,7 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint* current_joint)
                 child_link_it->second->inertial);
 
             // Recursively build the subtree for the child joints
-            for (Joint* child_joint : child_link_it->second->child_joints)
+            for (Joint const* child_joint : child_link_it->second->child_joints)
             {
                 auto child_joint_tree = buildJointTree(child_joint);
                 if (child_joint_tree)

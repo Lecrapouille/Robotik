@@ -12,7 +12,7 @@ namespace robotik::debug
 {
 
 // ----------------------------------------------------------------------------
-static std::string getNodeName(const Node& p_node, bool p_detailed)
+static std::string getNodeName(const scene::Node& p_node, bool p_detailed)
 {
     if (auto joint = dynamic_cast<const Joint*>(&p_node))
     {
@@ -73,7 +73,6 @@ static std::string printTransform(const Transform& p_transform)
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(4);
 
-    // Extraire xyz et rpy
     Eigen::Vector3d xyz = robotik::utils::getTranslation(p_transform);
     Eigen::Matrix3d rot = robotik::utils::getRotation(p_transform);
     Eigen::Vector3d rpy = robotik::utils::rotationToEuler(rot);
@@ -90,30 +89,10 @@ static std::string printGeometryDetails(const Geometry& p_geometry)
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(4);
 
-    // Print geometry type
     switch (p_geometry.type)
     {
         case Geometry::Type::BOX:
             oss << "box";
-            break;
-        case Geometry::Type::CYLINDER:
-            oss << "cylinder";
-            break;
-        case Geometry::Type::SPHERE:
-            oss << "sphere";
-            break;
-        case Geometry::Type::MESH:
-            oss << "mesh";
-            break;
-        default:
-            oss << "unknown";
-            break;
-    }
-
-    // Add parameters based on geometry type
-    switch (p_geometry.type)
-    {
-        case Geometry::Type::BOX:
             if (p_geometry.parameters.size() >= 3)
             {
                 oss << "(x=" << p_geometry.parameters[0]
@@ -122,6 +101,7 @@ static std::string printGeometryDetails(const Geometry& p_geometry)
             }
             break;
         case Geometry::Type::CYLINDER:
+            oss << "cylinder";
             if (p_geometry.parameters.size() >= 2)
             {
                 oss << "(r=" << p_geometry.parameters[0]
@@ -129,12 +109,14 @@ static std::string printGeometryDetails(const Geometry& p_geometry)
             }
             break;
         case Geometry::Type::SPHERE:
+            oss << "sphere";
             if (p_geometry.parameters.size() >= 1)
             {
                 oss << "(r=" << p_geometry.parameters[0] << ")";
             }
             break;
         case Geometry::Type::MESH:
+            oss << "mesh";
             if (!p_geometry.mesh_path.empty())
             {
                 oss << "(" << p_geometry.mesh_path << ")";
@@ -144,7 +126,6 @@ static std::string printGeometryDetails(const Geometry& p_geometry)
             break;
     }
 
-    // Add color information
     oss << " color(" << p_geometry.color.x() << ", " << p_geometry.color.y()
         << ", " << p_geometry.color.z() << ")";
 
@@ -199,7 +180,7 @@ static void printLinkDetails(const Link* p_link,
 }
 
 // ----------------------------------------------------------------------------
-static void printNodeRecursive(const Node& p_node,
+static void printNodeRecursive(const scene::Node& p_node,
                                size_t p_depth,
                                std::vector<bool>& p_is_last_at_depth,
                                bool p_detailed)
