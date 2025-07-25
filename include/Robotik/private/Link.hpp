@@ -2,12 +2,12 @@
 
 #include "Robotik/private/Geometry.hpp"
 #include "Robotik/private/Inertial.hpp"
-#include "Robotik/private/Node.hpp"
+#include "Robotik/private/SceneNode.hpp"
 
 namespace robotik
 {
 
-class Link: public Node
+class Link: public scene::Node
 {
 public:
 

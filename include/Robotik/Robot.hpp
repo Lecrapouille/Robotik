@@ -62,14 +62,14 @@ public:
     //! \param p_name Name of the robot arm.
     //! \param p_end_effector Reference to the end effector node.
     // ------------------------------------------------------------------------
-    Robot(std::string_view const& p_name, Node::Ptr p_root);
+    Robot(std::string_view const& p_name, scene::Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
     //! \brief Set and replace the root node of the robot arm.
     //! \param p_root Unique pointer to the root node.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    void root(Node::Ptr p_root);
+    void root(scene::Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
     //! \brief Get the root node of the robot arm.
@@ -77,7 +77,7 @@ public:
     //! is not set. Call hasRoot() to check if the root node is set.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    inline Node const& root() const
+    inline scene::Node const& root() const
     {
         return *m_root_node.get();
     }
@@ -195,7 +195,7 @@ public:
     //! vector otherwise.
     // ------------------------------------------------------------------------
     std::vector<double> inverseKinematics(Pose const& p_target_pose,
-                                          Node const& p_end_effector,
+                                          scene::Node const& p_end_effector,
                                           size_t const p_max_iterations = 500,
                                           double const p_epsilon = 1e-4,
                                           double const p_damping = 0.01);
@@ -205,7 +205,7 @@ public:
     //! \param p_end_effector Reference to the end effector node.
     //! \return The Jacobian matrix.
     // ------------------------------------------------------------------------
-    Jacobian calculateJacobian(Node const& p_end_effector) const;
+    Jacobian calculateJacobian(scene::Node const& p_end_effector) const;
 
 protected:
 
@@ -226,7 +226,7 @@ protected:
 private:
 
     std::string m_name;
-    Node::Ptr m_root_node;
+    scene::Node::Ptr m_root_node;
     std::vector<Joint*> m_joints;
     // std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
 };

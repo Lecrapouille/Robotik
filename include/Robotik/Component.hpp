@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Robotik/private/Node.hpp"
+#include "Robotik/private/SceneNode.hpp"
 
 namespace robotik
 {
@@ -8,7 +8,7 @@ namespace robotik
 // ****************************************************************************
 //! \brief Base class for all robot components.
 // ****************************************************************************
-class RobotComponent: public Node
+class RobotComponent: public scene::Node
 {
 public:
 

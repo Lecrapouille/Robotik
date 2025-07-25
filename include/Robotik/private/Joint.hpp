@@ -2,7 +2,7 @@
 
 #include "Robotik/private/Geometry.hpp"
 #include "Robotik/private/Inertial.hpp"
-#include "Robotik/private/Node.hpp"
+#include "Robotik/private/SceneNode.hpp"
 
 namespace robotik
 {
@@ -40,7 +40,7 @@ namespace robotik
 //! based on its current value and type, enabling forward kinematics
 //! computation.
 // *********************************************************************************
-class Joint: public Node
+class Joint: public scene::Node
 {
 public:
 

@@ -6,11 +6,11 @@
 #include <string_view>
 #include <vector>
 
-namespace robotik
+namespace robotik::scene
 {
 
 // ****************************************************************************
-//! \brief Class representing a node in the scene graph.
+//! \brief Class representing a scene graph node.
 //!
 //! A scene graph is a hierarchical data structure that represents the spatial
 //! relationships between its different components. Each node in this graph
@@ -69,8 +69,10 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Create and store a new child node of type T derived from Node.
-    //! \tparam T Type of the child node to create (must inherit from Node).
+    //! \brief Create and store a new child node of type T derived from
+    //! Node.
+    //! \tparam T Type of the child node to create (must inherit from
+    //! Node).
     //! \param p_args Arguments passed to the constructor.
     //! \return Reference to the added child node.
     // ------------------------------------------------------------------------
@@ -159,8 +161,8 @@ public:
     //! methods cannot modify the object state.
     //! \tparam Function Type of the function to apply (lambda, function
     //! pointer, etc.)
-    //! \param p_function Function to apply to each node. Should accept Node&
-    //! parameter.
+    //! \param p_function Function to apply to each node. Should accept
+    //! Node& parameter.
     //! \param p_depth Depth of the node in the tree.
     // ------------------------------------------------------------------------
     template <typename Function>
@@ -196,8 +198,8 @@ public:
     //!
     //! \tparam Function Type of the function to apply (lambda, function
     //! pointer, etc.)
-    //! \param p_function Function to apply to each node. Should accept Node&
-    //! parameter.
+    //! \param p_function Function to apply to each node. Should accept
+    //! Node& parameter.
     //! \param p_depth Depth of the node in the tree.
     // ------------------------------------------------------------------------
     template <typename Function>
@@ -339,4 +341,4 @@ protected:
     Node* m_parent = nullptr;
 };
 
-} // namespace robotik
+} // namespace robotik::scene

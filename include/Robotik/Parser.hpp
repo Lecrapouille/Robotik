@@ -37,6 +37,12 @@ public:
 
 private:
 
+    // ------------------------------------------------------------------------
+    //! \brief Parsed data for a link.*
+    //! \note This is a private class used internally by the URDFParser class.
+    //! Do not confuse with robotik::Link which is the definitive class used by
+    //! the robot.
+    // ------------------------------------------------------------------------
     struct Link
     {
         explicit Link(std::string_view const& p_name) : name(p_name) {}
@@ -48,14 +54,28 @@ private:
         std::vector<Joint*> child_joints;
     };
 
+    // ------------------------------------------------------------------------
+    //! \brief Find the link that has no parent joint.
+    //! \return The name of the root link.
+    // ------------------------------------------------------------------------
     std::string findRootLinkName() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Scene graph building methods.
+    // ------------------------------------------------------------------------
+    bool buildSceneGraph();
+
+    // ------------------------------------------------------------------------
+    std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
+
+    // XML Parsing methods
 
     void parseLinks(tinyxml2::XMLElement* p_robot_element);
     void parseJoints(tinyxml2::XMLElement* p_robot_element);
     void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
-                               Link& p_link) const;
+                               URDFParser::Link& p_link) const;
     void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                 Link& p_link) const;
+                                 URDFParser::Link& p_link) const;
     void parseMaterial(tinyxml2::XMLElement* p_visual_element,
                        Geometry& p_geometry) const;
     void parseLimits(tinyxml2::XMLElement* p_joint_element,
@@ -80,10 +100,6 @@ private:
     Geometry parseGeometry(const std::string& p_xml) const;
     Inertial parseInertial(const std::string& p_xml) const;
     Joint::Type parseJointType(std::string_view const& p_str_type) const;
-
-    // Scene graph building methods
-    bool buildSceneGraph();
-    std::unique_ptr<Joint> buildJointTree(Joint* current_joint);
 
 private:
 

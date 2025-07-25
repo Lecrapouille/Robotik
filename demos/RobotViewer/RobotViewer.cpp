@@ -21,14 +21,14 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
     auto robot = std::make_unique<robotik::Robot>("SimpleArm");
 
     // Create root node (base)
-    auto base = robotik::Node::create<robotik::Node>("base");
+    auto base = robotik::scene::Node::create<robotik::scene::Node>("base");
 
     // Create joints and links
     auto& joint1 = base->createChild<robotik::Joint>(
         "joint1", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
     joint1.limits(-M_PI, M_PI);
 
-    auto& link1 = base->createChild<robotik::Node>("link1");
+    auto& link1 = base->createChild<robotik::scene::Node>("link1");
     link1.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
 
@@ -36,7 +36,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
         "joint2", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
     joint2.limits(-M_PI, M_PI);
 
-    auto& link2 = link1.createChild<robotik::Node>("link2");
+    auto& link2 = link1.createChild<robotik::scene::Node>("link2");
     link2.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
 
@@ -44,7 +44,7 @@ static std::unique_ptr<robotik::Robot> create_simple_robot()
         "joint3", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
     joint3.limits(-M_PI, M_PI);
 
-    auto& endEffector = link2.createChild<robotik::Node>("end_effector");
+    auto& endEffector = link2.createChild<robotik::scene::Node>("end_effector");
     endEffector.localTransform(
         robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.3), 0, 0, 0));
 
