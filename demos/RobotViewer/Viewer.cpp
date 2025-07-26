@@ -438,6 +438,10 @@ void Viewer::renderLink(Link const& p_link,
     Geometry const& geometry = p_link.geometry();
     std::vector<double> const& parameters = geometry.parameters();
 
+    // Appliquer la transformation locale de la géométrie (origine URDF)
+    Transform geometry_world_transform =
+        p_world_transform * geometry.localTransform();
+
     // Use geometry type and parameters for rendering
     switch (geometry.type())
     {
@@ -455,13 +459,14 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = width;
                 scale_transform(1, 1) = height;
                 scale_transform(2, 2) = depth;
-                Transform link_transform = p_world_transform * scale_transform;
+                Transform final_transform =
+                    geometry_world_transform * scale_transform;
 
-                renderBox(link_transform, geometry.color);
+                renderBox(final_transform, geometry.color);
             }
             else
             {
-                renderBox(p_world_transform, geometry.color);
+                renderBox(geometry_world_transform, geometry.color);
             }
             break;
         }
@@ -479,13 +484,14 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = height / 2.0;
-                Transform link_transform = p_world_transform * scale_transform;
+                Transform final_transform =
+                    geometry_world_transform * scale_transform;
 
-                renderCylinder(link_transform, geometry.color);
+                renderCylinder(final_transform, geometry.color);
             }
             else
             {
-                renderCylinder(p_world_transform, geometry.color);
+                renderCylinder(geometry_world_transform, geometry.color);
             }
             break;
         }
@@ -502,13 +508,14 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = radius;
-                Transform link_transform = p_world_transform * scale_transform;
+                Transform final_transform =
+                    geometry_world_transform * scale_transform;
 
-                renderSphere(link_transform, geometry.color);
+                renderSphere(final_transform, geometry.color);
             }
             else
             {
-                renderSphere(p_world_transform, geometry.color);
+                renderSphere(geometry_world_transform, geometry.color);
             }
             break;
         }
