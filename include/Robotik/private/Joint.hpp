@@ -261,9 +261,9 @@ public:
     //! - Angular velocity: ω = θ̇ * axis (where θ̇ is joint velocity)
     //!
     //! For PRISMATIC joints:
-    //! - Axis represents the translation direction
-    //! - Unit direction: Positive values move in +axis direction
-    //! - Linear velocity: v = ḋ * axis (where ḋ is joint velocity)
+    //! - Axis represents the translation direction.
+    //! - Unit direction: Positive values move in +axis direction.
+    //! - Linear velocity: v = ḋ * axis (where ḋ is joint velocity).
     // ------------------------------------------------------------------------
     inline const Eigen::Vector3d& axis() const
     {
@@ -271,22 +271,21 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set the geometry of the joint.
-    //! \param p_geometry The geometry to set
-    // ------------------------------------------------------------------------
-    inline void setGeometry(const Geometry& p_geometry)
-    {
-        m_geometry = p_geometry;
-    }
-
-    // ------------------------------------------------------------------------
     //! \brief Set the inertial properties of the joint.
-    //! \param p_inertial The inertial properties to set
+    //! \param p_inertial The inertial properties to set.
     // ------------------------------------------------------------------------
     inline void setInertial(const Inertial& p_inertial)
     {
         m_inertial = p_inertial;
     }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's debug string.
+    //! \param p_detailed Whether to include detailed information.
+    //! \return The joint's debug string.
+    // ------------------------------------------------------------------------
+    // std::string printName(bool p_detailed) const;
+    // std::string printDetails();
 
 private:
 
@@ -334,8 +333,6 @@ private:
     double m_max;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
-    //! \brief Geometry of the link connected to the joint
-    Geometry m_geometry;
     //! \brief Inertial properties of the joint
     Inertial m_inertial;
     //! \brief Cached joint transformation matrix.

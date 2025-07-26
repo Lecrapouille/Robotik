@@ -1,5 +1,6 @@
 #include "Robotik/Parser.hpp"
 #include "Robotik/private/Conversions.hpp"
+#include "Robotik/private/Geometry.hpp"
 #include "Robotik/private/Link.hpp"
 
 #include <tinyxml2/tinyxml2.h>
@@ -70,8 +71,9 @@ void URDFParser::parseLinks(tinyxml2::XMLElement* p_robot_element)
         std::string name = getRequiredAttribute(link_element, "name");
         auto link = std::make_unique<URDFParser::Link>(name);
 
-        // Parse visual and inertial properties
+        // Parse visual and collision properties
         parseVisualProperties(link_element, *link);
+        parseCollisionProperties(link_element, *link);
         parseInertialProperties(link_element, *link);
 
         m_links[name] = std::move(link);
@@ -152,82 +154,100 @@ void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
     // Parse geometry
     if (auto geometry_element = visual_element->FirstChildElement("geometry"))
     {
-        p_link.geometry = parseGeometryFromElement(geometry_element);
+        tinyxml2::XMLPrinter printer;
+        geometry_element->Accept(&printer);
+        p_link.geometry = parseGeometry(printer.CStr());
     }
 
-    // Parse visual origin
-    p_link.geometry.origin = parseOriginFromElement(visual_element);
+    // Parse visual origin - store for later use when creating scene graph
+    p_link.visual_origin = parseOriginFromElement(visual_element);
 
     // Parse material
-    parseMaterial(visual_element, p_link.geometry);
+    parseMaterial(visual_element, p_link);
 }
 
 // ----------------------------------------------------------------------------
-Geometry URDFParser::parseGeometryFromElement(
-    tinyxml2::XMLElement const* p_geometry_element) const
+void URDFParser::parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
+                                          URDFParser::Link& p_link) const
 {
-    tinyxml2::XMLPrinter printer;
-    p_geometry_element->Accept(&printer);
-    return parseGeometry(printer.CStr());
+    auto collision_element = p_link_element->FirstChildElement("collision");
+    if (!collision_element)
+        return;
+
+    // Parse geometry
+    if (auto geometry_element =
+            collision_element->FirstChildElement("geometry"))
+    {
+        tinyxml2::XMLPrinter printer;
+        geometry_element->Accept(&printer);
+        p_link.collision = parseGeometry(printer.CStr());
+    }
+
+    // Parse collision origin (if different from visual origin)
+    // For now, we'll use the same origin as visual, but this could be extended
+    // if collision origin needs to be different
 }
 
 // ----------------------------------------------------------------------------
-Geometry URDFParser::parseGeometry(const std::string& p_xml) const
+std::optional<Geometry>
+URDFParser::parseGeometry(const std::string& p_xml) const
 {
-    Geometry geom;
+    // Default geometry values
+    Geometry::Type geom_type = Geometry::Type::BOX;
+    std::vector<double> parameters{ 1.0, 1.0, 1.0 };
+    std::string mesh_path = "";
 
     tinyxml2::XMLDocument doc;
     if (doc.Parse(p_xml.c_str()) != tinyxml2::XML_SUCCESS)
     {
-        // If parsing fails, return default geometry
-        return geom;
+        return std::nullopt;
     }
 
     // Look for geometry elements
     auto geometryElement = doc.FirstChildElement("geometry");
     if (!geometryElement)
     {
-        return geom;
+        return std::nullopt;
     }
 
     // Check for different geometry types
     if (auto boxElement = geometryElement->FirstChildElement("box"))
     {
-        geom.type = Geometry::Type::BOX;
+        geom_type = Geometry::Type::BOX;
         const char* sizeAttr = boxElement->Attribute("size");
         if (sizeAttr)
         {
             Eigen::Vector3d size = parseVector3(sizeAttr);
-            geom.parameters = { size.x(), size.y(), size.z() };
+            parameters = { size.x(), size.y(), size.z() };
         }
     }
     else if (auto cylinderElement =
                  geometryElement->FirstChildElement("cylinder"))
     {
-        geom.type = Geometry::Type::CYLINDER;
+        geom_type = Geometry::Type::CYLINDER;
         double radius = 0.1, length = 0.2;
         cylinderElement->QueryDoubleAttribute("radius", &radius);
         cylinderElement->QueryDoubleAttribute("length", &length);
-        geom.parameters = { radius, length };
+        parameters = { radius, length };
     }
     else if (auto sphereElement = geometryElement->FirstChildElement("sphere"))
     {
-        geom.type = Geometry::Type::SPHERE;
+        geom_type = Geometry::Type::SPHERE;
         double radius = 0.1;
         sphereElement->QueryDoubleAttribute("radius", &radius);
-        geom.parameters = { radius };
+        parameters = { radius };
     }
     else if (auto meshElement = geometryElement->FirstChildElement("mesh"))
     {
-        geom.type = Geometry::Type::MESH;
+        geom_type = Geometry::Type::MESH;
         const char* filename = meshElement->Attribute("filename");
         if (filename)
         {
-            geom.mesh_path = filename;
+            mesh_path = filename;
         }
     }
 
-    return geom;
+    return Geometry("parsed_geom", geom_type, std::move(parameters), mesh_path);
 }
 
 // ----------------------------------------------------------------------------
@@ -250,7 +270,7 @@ URDFParser::parseOriginFromElement(tinyxml2::XMLElement* p_element) const
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseMaterial(tinyxml2::XMLElement* p_visual_element,
-                               Geometry& p_geometry) const
+                               URDFParser::Link& p_link) const
 {
     auto material_element = p_visual_element->FirstChildElement("material");
     if (!material_element)
@@ -263,7 +283,8 @@ void URDFParser::parseMaterial(tinyxml2::XMLElement* p_visual_element,
     const char* rgba = color_element->Attribute("rgba");
     if (rgba)
     {
-        p_geometry.color = parseVector4(rgba);
+        // Convert RGBA to RGB
+        p_link.color = parseVector4(rgba).head<3>().cast<float>();
     }
 }
 
@@ -411,6 +432,92 @@ Eigen::Vector4d URDFParser::parseVector4(const std::string& p_str) const
 }
 
 // ----------------------------------------------------------------------------
+std::unique_ptr<Geometry>
+URDFParser::createGeometryFromURDFData(std::optional<Geometry> const& p_geom,
+                                       std::string_view p_name_suffix,
+                                       Eigen::Vector3f const& p_color,
+                                       Transform const& p_visual_origin) const
+{
+    if (!p_geom)
+    {
+        return nullptr;
+    }
+
+    const auto& geom = *p_geom; // Déréférence l'optional
+    std::unique_ptr<Geometry> geometry_node;
+    std::string name = std::string(geom.name()) + std::string(p_name_suffix);
+
+    switch (geom.type())
+    {
+        case Geometry::Type::BOX:
+            geometry_node = std::make_unique<robotik::Box>(
+                name, std::vector<double>(geom.parameters()));
+            break;
+        case Geometry::Type::CYLINDER:
+            geometry_node = std::make_unique<robotik::Cylinder>(
+                name, std::vector<double>(geom.parameters()));
+            break;
+        case Geometry::Type::SPHERE:
+            geometry_node = std::make_unique<robotik::Sphere>(
+                name, std::vector<double>(geom.parameters()));
+            break;
+        case Geometry::Type::MESH:
+            geometry_node =
+                std::make_unique<robotik::Mesh>(name, geom.meshPath());
+            break;
+        default:
+            // Fallback to box with unit dimensions
+            geometry_node = std::make_unique<robotik::Box>(
+                name, std::vector<double>{ 1.0, 1.0, 1.0 });
+            break;
+    }
+
+    if (geometry_node)
+    {
+        // Assigner la couleur
+        geometry_node->color = p_color;
+
+        // Appliquer la transformation visuelle origin
+        // Cette transformation positionne la géométrie par rapport au frame du
+        // link
+        geometry_node->localTransform(p_visual_origin);
+    }
+
+    return geometry_node;
+}
+
+// ----------------------------------------------------------------------------
+std::unique_ptr<robotik::Link>
+URDFParser::createLinkFromURDFData(const URDFParser::Link& p_urdf_link) const
+{
+    if (p_urdf_link.geometry && p_urdf_link.collision)
+    {
+        return std::make_unique<robotik::Link>(
+            p_urdf_link.name,
+            createGeometryFromURDFData(p_urdf_link.geometry,
+                                       "_visual",
+                                       p_urdf_link.color,
+                                       p_urdf_link.visual_origin),
+            createGeometryFromURDFData(p_urdf_link.collision,
+                                       "_collision",
+                                       p_urdf_link.color,
+                                       Transform::Identity()));
+    }
+    else if (p_urdf_link.geometry)
+    {
+        return std::make_unique<robotik::Link>(
+            p_urdf_link.name,
+            createGeometryFromURDFData(p_urdf_link.geometry,
+                                       "_visual",
+                                       p_urdf_link.color,
+                                       p_urdf_link.visual_origin));
+    }
+
+    // Geometry is missing
+    return nullptr;
+}
+
+// ----------------------------------------------------------------------------
 bool URDFParser::buildSceneGraph()
 {
     // Find the root link (link with no parent joint)
@@ -430,10 +537,12 @@ bool URDFParser::buildSceneGraph()
     }
 
     // Create the root link node
-    auto root_link_node =
-        std::make_unique<robotik::Link>(root_link_it->second->name,
-                                        root_link_it->second->geometry,
-                                        root_link_it->second->inertial);
+    auto root_link_node = createLinkFromURDFData(*root_link_it->second);
+    if (!root_link_node)
+    {
+        m_error = "Failed to create root link node";
+        return false;
+    }
 
     // Build the joint tree starting from the root link
     for (Joint const* child_joint : root_link_it->second->child_joints)
@@ -507,10 +616,13 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* current_joint)
         if (child_link_it != m_links.end())
         {
             // Create the child link node
-            auto child_link_node = std::make_unique<robotik::Link>(
-                child_link_it->second->name,
-                child_link_it->second->geometry,
-                child_link_it->second->inertial);
+            auto child_link_node =
+                createLinkFromURDFData(*child_link_it->second);
+            if (!child_link_node)
+            {
+                m_error = "Failed to create child link node";
+                return nullptr;
+            }
 
             // Recursively build the subtree for the child joints
             for (Joint const* child_joint : child_link_it->second->child_joints)

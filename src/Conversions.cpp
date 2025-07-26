@@ -1,4 +1,5 @@
 #include "Robotik/private/Conversions.hpp"
+#include <iomanip>
 
 namespace robotik::utils
 {
@@ -95,6 +96,22 @@ Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta)
     transform(2, 3) = p_d;
 
     return transform;
+}
+
+// ----------------------------------------------------------------------------
+std::string printTransform(const Transform& p_transform, int p_precision)
+{
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(p_precision);
+
+    Eigen::Vector3d xyz = robotik::utils::getTranslation(p_transform);
+    Eigen::Matrix3d rot = robotik::utils::getRotation(p_transform);
+    Eigen::Vector3d rpy = robotik::utils::rotationToEuler(rot);
+
+    oss << "xyz = (" << xyz.x() << ", " << xyz.y() << ", " << xyz.z() << ")";
+    oss << ", rpy = (" << rpy.x() << ", " << rpy.y() << ", " << rpy.z() << ")";
+
+    return oss.str();
 }
 
 } // namespace robotik::utils

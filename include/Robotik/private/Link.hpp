@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Robotik/private/Geometry.hpp"
-#include "Robotik/private/Inertial.hpp"
 #include "Robotik/private/SceneNode.hpp"
 
 namespace robotik
@@ -13,24 +12,54 @@ public:
 
     using Ptr = std::unique_ptr<Link>;
 
-    Link(std::string_view const& p_name,
-         Geometry const& p_geometry,
-         Inertial const& p_inertial);
-
-    inline Geometry const& geometry() const
+    // ------------------------------------------------------------------------
+    //! \brief Constructor.
+    //! \param p_name The name of the link.
+    //! \param p_visual The visual geometry of the link.
+    // ------------------------------------------------------------------------
+    explicit Link(std::string_view const& p_name, Geometry::Ptr p_visual)
+        : scene::Node(p_name)
     {
-        return m_geometry;
+        scene::Node::addChild(std::move(p_visual));
     }
 
-    inline Inertial const& inertial() const
+    // ------------------------------------------------------------------------
+    //! \brief Constructor.
+    //! \param p_name The name of the link.
+    //! \param p_visual The visual geometry of the link.
+    //! \param p_collision The collision geometry of the link.
+    // ------------------------------------------------------------------------
+    explicit Link(std::string_view const& p_name,
+                  Geometry::Ptr p_visual,
+                  Geometry::Ptr p_collision)
+        : scene::Node(p_name)
     {
-        return m_inertial;
+        scene::Node::addChild(std::move(p_visual));
+        scene::Node::addChild(std::move(p_collision));
     }
 
-private:
+    // ------------------------------------------------------------------------
+    //! \brief Get the visual geometry (first geometry child found).
+    //! \return The visual geometry or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Geometry const& geometry() const;
 
-    Geometry m_geometry;
-    Inertial m_inertial;
+    // ------------------------------------------------------------------------
+    //! \brief Get the collision geometry (second geometry child found or same
+    //! as visual if only one).
+    //! \return The collision geometry or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Geometry const& collision() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the link's debug string.
+    //! \param p_detailed has no effect.
+    //! \return The link's debug string
+    // ------------------------------------------------------------------------
+    // std::string debug(bool /*p_detailed*/) const override
+    //{
+    //    return "[" + name() + "]";
+    //}
 };
 
 } // namespace robotik

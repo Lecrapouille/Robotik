@@ -10,51 +10,6 @@
 #include <thread>
 
 // ----------------------------------------------------------------------------
-//! \brief Create a simple robot arm. Called if no URDF file is provided in the
-//! command line.
-//! \return A unique pointer to the robot arm.
-//! \fixme missing links
-// ----------------------------------------------------------------------------
-static std::unique_ptr<robotik::Robot> create_simple_robot()
-{
-    // Create a simple robot arm
-    auto robot = std::make_unique<robotik::Robot>("SimpleArm");
-
-    // Create root node (base)
-    auto base = robotik::scene::Node::create<robotik::scene::Node>("base");
-
-    // Create joints and links
-    auto& joint1 = base->createChild<robotik::Joint>(
-        "joint1", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
-    joint1.limits(-M_PI, M_PI);
-
-    auto& link1 = base->createChild<robotik::scene::Node>("link1");
-    link1.localTransform(
-        robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
-
-    auto& joint2 = link1.createChild<robotik::Joint>(
-        "joint2", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
-    joint2.limits(-M_PI, M_PI);
-
-    auto& link2 = link1.createChild<robotik::scene::Node>("link2");
-    link2.localTransform(
-        robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.5), 0, 0, 0));
-
-    auto& joint3 = link2.createChild<robotik::Joint>(
-        "joint3", robotik::Joint::Type::REVOLUTE, Eigen::Vector3d(0, 1, 0));
-    joint3.limits(-M_PI, M_PI);
-
-    auto& endEffector = link2.createChild<robotik::scene::Node>("end_effector");
-    endEffector.localTransform(
-        robotik::utils::createTransform(Eigen::Vector3d(0, 0, 0.3), 0, 0, 0));
-
-    // Setup the robot
-    // FIXME robot->setupRobot(std::move(base), endEffector);
-
-    return robot;
-}
-
-// ----------------------------------------------------------------------------
 //! \brief Animate the robot.
 //! \param p_robot The robot to animate.
 // ----------------------------------------------------------------------------
@@ -150,8 +105,9 @@ static std::unique_ptr<robotik::Robot> parse_command_line(int argc,
     else
     {
         // No URDF file provided, create a simple robot
-        auto robot = create_simple_robot();
-        return robot;
+        // auto robot = create_simple_robot();
+        // return robot;
+        return nullptr;
     }
 }
 
@@ -208,7 +164,7 @@ int main(int argc, char* argv[])
     // std::vector<double> joint_values = { 0.0, 0.5, -0.3 };
     // robot->setJointValues(joint_values);
 
-    robotik::debug::printRobot(*robot, true);
+    robotik::debug::printRobot(*robot, false);
 
     // Get base position for camera target
     auto base_position =
