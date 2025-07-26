@@ -274,6 +274,8 @@ private:
     // ------------------------------------------------------------------------
     void renderLink(Link const& p_link,
                     Transform const& p_world_transform) const;
+    void renderGeometry(Geometry const& p_geometry,
+                        Transform const& p_world_transform) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render coordinate axes (XYZ) in RGB colors.

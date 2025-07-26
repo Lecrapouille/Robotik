@@ -438,10 +438,6 @@ void Viewer::renderLink(Link const& p_link,
     Geometry const& geometry = p_link.geometry();
     std::vector<double> const& parameters = geometry.parameters();
 
-    // Appliquer la transformation locale de la géométrie (origine URDF)
-    Transform geometry_world_transform =
-        p_world_transform * geometry.localTransform();
-
     // Use geometry type and parameters for rendering
     switch (geometry.type())
     {
@@ -459,14 +455,13 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = width;
                 scale_transform(1, 1) = height;
                 scale_transform(2, 2) = depth;
-                Transform final_transform =
-                    geometry_world_transform * scale_transform;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                renderBox(final_transform, geometry.color);
+                renderBox(link_transform, geometry.color);
             }
             else
             {
-                renderBox(geometry_world_transform, geometry.color);
+                renderBox(p_world_transform, geometry.color);
             }
             break;
         }
@@ -484,14 +479,13 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = height / 2.0;
-                Transform final_transform =
-                    geometry_world_transform * scale_transform;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                renderCylinder(final_transform, geometry.color);
+                renderCylinder(link_transform, geometry.color);
             }
             else
             {
-                renderCylinder(geometry_world_transform, geometry.color);
+                renderCylinder(p_world_transform, geometry.color);
             }
             break;
         }
@@ -508,14 +502,13 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = radius;
-                Transform final_transform =
-                    geometry_world_transform * scale_transform;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                renderSphere(final_transform, geometry.color);
+                renderSphere(link_transform, geometry.color);
             }
             else
             {
-                renderSphere(geometry_world_transform, geometry.color);
+                renderSphere(p_world_transform, geometry.color);
             }
             break;
         }
@@ -544,9 +537,9 @@ void Viewer::renderRobot(Robot const& p_robot) const
             {
                 renderJoint(*joint, world_transform);
             }
-            else if (auto link = dynamic_cast<Link const*>(&node))
+            else if (auto geometry = dynamic_cast<Geometry const*>(&node))
             {
-                renderLink(*link, world_transform);
+                renderGeometry(*geometry, world_transform);
             }
         });
 
@@ -1128,4 +1121,95 @@ void Viewer::processInput(std::function<void(int, int)> const& key_callback)
     }
 }
 
+// ----------------------------------------------------------------------------
+void Viewer::renderGeometry(Geometry const& p_geometry,
+                            Transform const& p_world_transform) const
+{
+    std::vector<double> const& parameters = p_geometry.parameters();
+
+    // Le p_world_transform inclut déjà l'origine de la géométrie
+    // grâce au scene graph, plus besoin de calculer manuellement
+
+    switch (p_geometry.type())
+    {
+        case Geometry::Type::BOX:
+        {
+            // Scale based on geometry parameters (width, height, depth)
+            if (parameters.size() >= 3)
+            {
+                double width = parameters[0];
+                double height = parameters[1];
+                double depth = parameters[2];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = width;
+                scale_transform(1, 1) = height;
+                scale_transform(2, 2) = depth;
+                Transform final_transform = p_world_transform * scale_transform;
+
+                renderBox(final_transform, p_geometry.color);
+            }
+            else
+            {
+                renderBox(p_world_transform, p_geometry.color);
+            }
+            break;
+        }
+        case Geometry::Type::CYLINDER:
+        {
+            // Scale based on geometry parameters (radius, height)
+            if (parameters.size() >= 2)
+            {
+                double radius = parameters[0];
+                double height = parameters[1];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = radius;
+                scale_transform(1, 1) = radius;
+                scale_transform(2, 2) = height / 2.0;
+                Transform final_transform = p_world_transform * scale_transform;
+
+                renderCylinder(final_transform, p_geometry.color);
+            }
+            else
+            {
+                renderCylinder(p_world_transform, p_geometry.color);
+            }
+            break;
+        }
+        case Geometry::Type::SPHERE:
+        {
+            // Scale based on geometry parameters (radius)
+            if (parameters.size() >= 1)
+            {
+                double radius = parameters[0];
+
+                // Create scaling transformation
+                Transform scale_transform = Transform::Identity();
+                scale_transform(0, 0) = radius;
+                scale_transform(1, 1) = radius;
+                scale_transform(2, 2) = radius;
+                Transform final_transform = p_world_transform * scale_transform;
+
+                renderSphere(final_transform, p_geometry.color);
+            }
+            else
+            {
+                renderSphere(p_world_transform, p_geometry.color);
+            }
+            break;
+        }
+        case Geometry::Type::MESH:
+        {
+            // TODO: Implement mesh rendering
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+// ----------------------------------------------------------------------------
 } // namespace robotik
