@@ -21,5 +21,5 @@ Mettre le scene graphe comme un behavior tree: composite, decorator, leaf:
 - decorator entre local et joint
 - leaf: capteur ?
 
-Repenser le parcours du scene graphe via un pattern observeur: par exemple pour le debug:
+Repenser le parcours du scene graphe via un pattern visiteur: par exemple pour le debug:
  if (joint->type() == Joint::Type::CONTINUOUS) { std::cout << joint_indent   << "├── T_joint:      rotate(axis = " << joint->axis().x()

@@ -148,4 +148,12 @@ Transform poseToTransform(Pose const& p_pose);
 // ------------------------------------------------------------------------
 Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta);
 
+// ------------------------------------------------------------------------
+//! \brief Print a transformation matrix.
+//! \param p_transform The transformation matrix to print.
+//! \param p_precision The number of decimal places to print.
+//! \return The string representation of the transformation matrix.
+// ------------------------------------------------------------------------
+std::string printTransform(const Transform& p_transform, int p_precision = 3);
+
 } // namespace robotik::utils

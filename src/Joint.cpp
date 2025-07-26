@@ -84,4 +84,79 @@ Transform Joint::computeJointTransform(Joint::Type p_type,
     return joint_transform;
 }
 
+#if 0
+// ----------------------------------------------------------------------------
+std::string Joint::printName(bool p_detailed) const
+{
+    std::string type_name;
+    switch (m_type)
+    {
+        case Joint::Type::REVOLUTE:
+            type_name = "revolute";
+            break;
+        case Joint::Type::CONTINUOUS:
+            type_name = "continuous";
+            break;
+        case Joint::Type::PRISMATIC:
+            type_name = "prismatic";
+            break;
+        case Joint::Type::FIXED:
+            type_name = "fixed";
+            break;
+        default:
+            type_name = "unknown";
+            break;
+    }
+
+    std::string name = m_name + " (" + type_name;
+    if (p_detailed && m_type != Joint::Type::FIXED)
+    {
+        name += ", axis = (" + std::to_string(m_axis.x()) + ", " +
+                std::to_string(m_axis.y()) + ", " + std::to_string(m_axis.z()) +
+                "), ";
+        if (m_type == Joint::Type::REVOLUTE)
+        {
+            name += "θ ∈ [" + std::to_string(m_min) + ", " +
+                    std::to_string(m_max) + "]";
+        }
+        else if (m_type == Joint::Type::PRISMATIC)
+        {
+            name += "d ∈ [" + std::to_string(m_min) + ", " +
+                    std::to_string(m_max) + "]";
+        }
+    }
+    name += ")";
+    return name;
+}
+
+// ----------------------------------------------------------------------------
+std::string Joint::printDetails(bool p_end_connector) const
+{
+    std::stringstream ss;
+
+    ss << "├── Local: " << printTransform(localTransform()) << std::endl;
+    ss << "├── Joint:  ";
+    if (type() == Joint::Type::FIXED)
+    {
+        ss << "identity (fixed joint)" << std::endl;
+    }
+    else if (type() == Joint::Type::PRISMATIC)
+    {
+        ss << "d = " << position() << std::endl;
+    }
+    else if ((type() == Joint::Type::REVOLUTE) ||
+             (type() == Joint::Type::CONTINUOUS))
+    {
+        ss << "θ = " << position() << std::endl;
+    }
+    else
+    {
+        ss << "unknown" << std::endl;
+    }
+    ss << (p_end_connector ? "└──" : "├──")
+       << " World:  " << utils::printTransform(worldTransform()) << std::endl;
+    return ss.str();
+}
+#endif
+
 } // namespace robotik

@@ -55,6 +55,18 @@ public:
     virtual ~Node() = default;
 
     // ------------------------------------------------------------------------
+    //! \brief Disable copy constructor and copy assignment due to unique_ptr
+    // ------------------------------------------------------------------------
+    Node(const Node&) = delete;
+    Node& operator=(const Node&) = delete;
+
+    // ------------------------------------------------------------------------
+    //! \brief Enable move constructor and move assignment
+    // ------------------------------------------------------------------------
+    Node(Node&&) = default;
+    Node& operator=(Node&&) = default;
+
+    // ------------------------------------------------------------------------
     //! \brief Create a new node of type T derived from Node.
     //! \tparam T Type of the node to create (must inherit from Node).
     //! \param p_args Arguments passed to the constructor.
@@ -307,6 +319,16 @@ public:
     {
         return m_name;
     }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's debug string.
+    //! \param p_detailed Whether to include detailed information.
+    //! \return The joint's debug string.
+    // ------------------------------------------------------------------------
+    // virtual std::string debug(bool /*p_detailed*/) const
+    //{
+    //    return {};
+    //}
 
 protected:
 

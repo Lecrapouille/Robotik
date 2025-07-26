@@ -435,47 +435,43 @@ void Viewer::renderJoint(Joint const& p_joint,
 void Viewer::renderLink(Link const& p_link,
                         Transform const& p_world_transform) const
 {
-    // Get color from geometry (RGB only, ignore alpha)
-    Eigen::Vector3f color = p_link.geometry().color.head<3>().cast<float>();
-
-    // Apply geometry origin transformation
-    Transform geometry_transform = p_world_transform * p_link.geometry().origin;
+    Geometry const& geometry = p_link.geometry();
+    std::vector<double> const& parameters = geometry.parameters();
 
     // Use geometry type and parameters for rendering
-    switch (p_link.geometry().type)
+    switch (geometry.type())
     {
         case Geometry::Type::BOX:
         {
             // Scale based on geometry parameters (width, height, depth)
-            if (p_link.geometry().parameters.size() >= 3)
+            if (parameters.size() >= 3)
             {
-                double width = p_link.geometry().parameters[0];
-                double height = p_link.geometry().parameters[1];
-                double depth = p_link.geometry().parameters[2];
+                double width = parameters[0];
+                double height = parameters[1];
+                double depth = parameters[2];
 
                 // Create scaling transformation
                 Transform scale_transform = Transform::Identity();
                 scale_transform(0, 0) = width;
                 scale_transform(1, 1) = height;
                 scale_transform(2, 2) = depth;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                // Apply scaling correctly: geometry_transform * scale
-                Transform link_transform = geometry_transform * scale_transform;
-                renderBox(link_transform, color);
+                renderBox(link_transform, geometry.color);
             }
             else
             {
-                renderBox(geometry_transform, color);
+                renderBox(p_world_transform, geometry.color);
             }
             break;
         }
         case Geometry::Type::CYLINDER:
         {
             // Scale based on geometry parameters (radius, height)
-            if (p_link.geometry().parameters.size() >= 2)
+            if (parameters.size() >= 2)
             {
-                double radius = p_link.geometry().parameters[0];
-                double height = p_link.geometry().parameters[1];
+                double radius = parameters[0];
+                double height = parameters[1];
 
                 // Create scaling transformation
                 // Base cylinder is radius 1, height 2, oriented along Z-axis.
@@ -483,23 +479,22 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = height / 2.0;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                // Apply scaling correctly: geometry_transform * scale
-                Transform link_transform = geometry_transform * scale_transform;
-                renderCylinder(link_transform, color);
+                renderCylinder(link_transform, geometry.color);
             }
             else
             {
-                renderCylinder(geometry_transform, color);
+                renderCylinder(p_world_transform, geometry.color);
             }
             break;
         }
         case Geometry::Type::SPHERE:
         {
             // Scale based on geometry parameters (radius)
-            if (p_link.geometry().parameters.size() >= 1)
+            if (parameters.size() >= 1)
             {
-                double radius = p_link.geometry().parameters[0];
+                double radius = parameters[0];
 
                 // Create scaling transformation
                 // Base sphere is radius 1
@@ -507,14 +502,13 @@ void Viewer::renderLink(Link const& p_link,
                 scale_transform(0, 0) = radius;
                 scale_transform(1, 1) = radius;
                 scale_transform(2, 2) = radius;
+                Transform link_transform = p_world_transform * scale_transform;
 
-                // Apply scaling correctly: geometry_transform * scale
-                Transform link_transform = geometry_transform * scale_transform;
-                renderSphere(link_transform, color);
+                renderSphere(link_transform, geometry.color);
             }
             else
             {
-                renderSphere(geometry_transform, color);
+                renderSphere(p_world_transform, geometry.color);
             }
             break;
         }
@@ -524,19 +518,7 @@ void Viewer::renderLink(Link const& p_link,
             break;
         }
         default:
-        {
-            // Default to box for unknown geometry
-            // Create scaling transformation
-            Transform scale_transform = Transform::Identity();
-            scale_transform(0, 0) = 0.1;
-            scale_transform(1, 1) = 0.1;
-            scale_transform(2, 2) = 0.1;
-
-            // Apply scaling correctly: geometry_transform * scale
-            Transform link_transform = geometry_transform * scale_transform;
-            renderBox(link_transform, color);
             break;
-        }
     }
 }
 

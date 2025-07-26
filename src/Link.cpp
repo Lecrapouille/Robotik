@@ -4,11 +4,24 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Link::Link(std::string_view const& p_name,
-           Geometry const& p_geometry,
-           Inertial const& p_inertial)
-    : scene::Node(p_name), m_geometry(p_geometry), m_inertial(p_inertial)
+Geometry const& Link::geometry() const
 {
+    // Return the first child that shall exist.
+    auto const& children = scene::Node::children();
+    return *dynamic_cast<Geometry const*>(children[0].get());
+}
+
+// ----------------------------------------------------------------------------
+Geometry const& Link::collision() const
+{
+    // Return the second child if it exists and is a geometry.
+    if (auto const& children = scene::Node::children(); children.size() > 1u)
+    {
+        return *dynamic_cast<Geometry const*>(children[1].get());
+    }
+
+    // Fallback: return the visual geometry (1st child).
+    return geometry();
 }
 
 } // namespace robotik
