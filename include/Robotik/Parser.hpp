@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Robotik/Robot.hpp"
-#include <optional>
 
 // Forward declarations
 namespace tinyxml2
 {
 class XMLElement;
-}
+class XMLDocument;
+} // namespace tinyxml2
 
 namespace robotik
 {
@@ -22,14 +22,15 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Load a robot from a URDF file.
     //! \param p_filename The path to the URDF file.
-    //! \return A unique pointer to the robot.
+    //! \return A unique pointer to the robot if the file was loaded
+    //! successfully, else nullptr.
     // ------------------------------------------------------------------------
     std::unique_ptr<Robot> load(const std::string& p_filename);
 
     // ------------------------------------------------------------------------
-    //! \brief Get the error message if the load() method failed.
-    //! \return The error message if the load() method failed, else an empty
-    //! string.
+    //! \brief Get the error message if the load() method failed (returns
+    //! nullptr).
+    //! \return The error message in case of failure, else an empty string.
     // ------------------------------------------------------------------------
     inline std::string getError() const
     {
@@ -39,7 +40,8 @@ public:
 private:
 
     // ------------------------------------------------------------------------
-    //! \brief Parsed data for a link.*
+    //! \brief Temporary data for storing parsed link data. Will be converted to
+    //! a robotik::Link object in the buildSceneGraph() method.
     //! \note This is a private class used internally by the URDFParser class.
     //! Do not confuse with robotik::Link which is the definitive class used by
     //! the robot.
@@ -49,9 +51,8 @@ private:
         explicit Link(std::string_view const& p_name) : name(p_name) {}
 
         std::string name;
-        std::optional<Geometry> geometry;
-        std::optional<Geometry> collision;
-        Transform visual_origin = Transform::Identity();
+        Geometry::Ptr geometry;
+        Geometry::Ptr collision;
         Eigen::Vector3f color = Eigen::Vector3f(0.5, 0.5, 0.5);
         Inertial inertial;
         Joint* parent_joint = nullptr;
@@ -59,73 +60,104 @@ private:
     };
 
     // ------------------------------------------------------------------------
-    //! \brief Find the link that has no parent joint.
-    //! \return The name of the root link.
+    //! \brief Create the scene graph from the parsed URDF data.
+    //! \param p_robot_name The name of the robot.
+    //! \return A unique pointer to the robot if the scene graph was created
+    //! successfully, else nullptr.
     // ------------------------------------------------------------------------
-    std::string findRootLinkName() const;
+    std::unique_ptr<Robot> buildSceneGraph(std::string_view p_robot_name);
 
     // ------------------------------------------------------------------------
-    //! \brief Scene graph building methods.
+    //! \brief Find the URDFParser::Link that has no parent joint to be used as
+    //! the root of the scene graph.
+    //! \return A pointer to the root link if found, else nullptr.
     // ------------------------------------------------------------------------
-    bool buildSceneGraph();
+    URDFParser::Link* findRootLink() const;
 
     // ------------------------------------------------------------------------
     std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
 
     // ------------------------------------------------------------------------
-    //! \brief Create a Geometry object from URDF Link data.
-    //! \param p_urdf_link The URDF Link data containing geometry information.
-    //! \param p_name_suffix The suffix to add to the geometry name.
-    //! \return A unique pointer to the created Geometry object.
+    //! \brief Parse the URDF robot links.
     // ------------------------------------------------------------------------
-    std::unique_ptr<Geometry>
-    createGeometryFromURDFData(std::optional<Geometry> const& p_geom,
-                               std::string_view p_name_suffix,
-                               Eigen::Vector3f const& p_color,
-                               Transform const& p_transform) const;
+    void parseLinks(tinyxml2::XMLElement* p_robot_element);
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the URDF robot joints.
+    // ------------------------------------------------------------------------
+    void parseJoints(tinyxml2::XMLElement* p_robot_element);
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the parent and child links of a joint.
+    // ------------------------------------------------------------------------
+    void parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
+                               Joint& p_joint) const;
 
     // ------------------------------------------------------------------------
     //! \brief Create a Link object from URDF Link data.
     //! \param p_urdf_link The URDF Link data containing geometry information.
+    //! \note p_urdf_link has its collision and geometry moved.
     //! \return A unique pointer to the created Link object.
     // ------------------------------------------------------------------------
-    std::unique_ptr<robotik::Link>
-    createLinkFromURDFData(const URDFParser::Link& p_urdf_link) const;
+    robotik::Link::Ptr
+    createLinkFromURDFData(URDFParser::Link& p_urdf_link) const;
 
-    // XML Parsing methods
+    // ------------------------------------------------------------------------
+    //! \brief Parse an optional geometry (visual or collision) of a link.
+    // ------------------------------------------------------------------------
+    std::unique_ptr<Geometry> parseGeometry(const std::string& p_xml,
+                                            const std::string& p_name) const;
 
-    void parseLinks(tinyxml2::XMLElement* p_robot_element);
-    void parseJoints(tinyxml2::XMLElement* p_robot_element);
+    // ------------------------------------------------------------------------
+    //! \brief Parse visual geometry of a link (geometry, origin, material).
+    // ------------------------------------------------------------------------
     void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
                                URDFParser::Link& p_link) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse collision geometry of a link.
+    // ------------------------------------------------------------------------
     void parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
                                   URDFParser::Link& p_link) const;
-    void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                 URDFParser::Link& p_link) const;
-    void parseMaterial(tinyxml2::XMLElement* p_visual_element,
-                       URDFParser::Link& p_link) const;
-    void parseLimits(tinyxml2::XMLElement* p_joint_element,
-                     Joint& p_joint) const;
-    void parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
-                               Joint& p_joint) const;
-    Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the origin from an element.
+    // ------------------------------------------------------------------------
+    Transform parseOriginFromElement(tinyxml2::XMLElement* p_element) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the origin transform from the URDF file.
+    // ------------------------------------------------------------------------
     std::pair<Eigen::Vector3d, Eigen::Vector3d>
     parseOriginTransform(tinyxml2::XMLElement* p_element) const;
-    Transform parseOriginFromElement(tinyxml2::XMLElement* p_element) const;
-    Geometry parseGeometryFromElement(
-        tinyxml2::XMLElement const* p_geometry_element) const;
-    std::string getRequiredAttribute(tinyxml2::XMLElement const* p_element,
-                                     const char* p_attr_name) const;
-    std::string getAttributeOrDefault(tinyxml2::XMLElement const* p_element,
-                                      const char* p_attr_name,
-                                      const std::string& p_default) const;
-    Eigen::Vector3d parseVector3(const std::string& p_str) const;
-    Eigen::Vector4d parseVector4(const std::string& p_str) const;
-    Transform parseOrigin(const std::string& p_xyz,
-                          const std::string& p_rpy) const;
-    std::optional<Geometry> parseGeometry(const std::string& p_xml) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the material of a link.
+    // ------------------------------------------------------------------------
+    void parseMaterial(tinyxml2::XMLElement* p_visual_element,
+                       URDFParser::Link& p_link) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the inertial properties from the URDF file.
+    // ------------------------------------------------------------------------
+    void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
+                                 URDFParser::Link& p_link) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the inertial properties from the URDF file.
+    // ------------------------------------------------------------------------
     Inertial parseInertial(const std::string& p_xml) const;
-    Joint::Type parseJointType(std::string_view const& p_str_type) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the axis from the URDF file.
+    // ------------------------------------------------------------------------
+    Eigen::Vector3d parseAxis(tinyxml2::XMLElement* p_joint_element) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse the limits from the URDF file.
+    // ------------------------------------------------------------------------
+    void parseLimits(tinyxml2::XMLElement* p_joint_element,
+                     Joint& p_joint) const;
 
 private:
 
