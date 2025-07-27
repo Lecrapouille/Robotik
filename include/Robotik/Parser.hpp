@@ -78,14 +78,9 @@ private:
     std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
 
     // ------------------------------------------------------------------------
-    //! \brief Parse the URDF robot links.
+    //! \brief Parse the robot from the URDF file.
     // ------------------------------------------------------------------------
-    void parseLinks(tinyxml2::XMLElement* p_robot_element);
-
-    // ------------------------------------------------------------------------
-    //! \brief Parse the URDF robot joints.
-    // ------------------------------------------------------------------------
-    void parseJoints(tinyxml2::XMLElement* p_robot_element);
+    std::unique_ptr<Robot> parseRobot(tinyxml2::XMLElement* p_robot_element);
 
     // ------------------------------------------------------------------------
     //! \brief Parse the parent and child links of a joint.
@@ -105,8 +100,9 @@ private:
     // ------------------------------------------------------------------------
     //! \brief Parse an optional geometry (visual or collision) of a link.
     // ------------------------------------------------------------------------
-    std::unique_ptr<Geometry> parseGeometry(const std::string& p_xml,
-                                            const std::string& p_name) const;
+    std::unique_ptr<Geometry>
+    parseGeometry(tinyxml2::XMLElement* p_geometry_element,
+                  const std::string& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse visual geometry of a link (geometry, origin, material).
@@ -146,7 +142,7 @@ private:
     // ------------------------------------------------------------------------
     //! \brief Parse the inertial properties from the URDF file.
     // ------------------------------------------------------------------------
-    Inertial parseInertial(const std::string& p_xml) const;
+    Inertial parseInertial(tinyxml2::XMLElement* p_inertial_element) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse the axis from the URDF file.
