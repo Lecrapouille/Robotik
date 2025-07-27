@@ -15,6 +15,98 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
+//! \brief Iterate over all child elements of a parent element.
+//! \param p_parent The parent element.
+//! \param p_child_name The name of the child elements to iterate over.
+//! \param p_func The function to call for each child element.
+// ----------------------------------------------------------------------------
+template <typename Func>
+static void forEachChildElement(tinyxml2::XMLElement* p_parent,
+                                const char* p_child_name,
+                                Func p_func)
+{
+    for (auto element = p_parent->FirstChildElement(p_child_name); element;
+         element = element->NextSiblingElement(p_child_name))
+    {
+        p_func(element);
+    }
+}
+
+// ----------------------------------------------------------------------------
+static Joint::Type jointType(std::string_view const& p_str_type)
+{
+    if (p_str_type == "revolute" || p_str_type == "continuous")
+        return Joint::Type::REVOLUTE;
+    else if (p_str_type == "prismatic")
+        return Joint::Type::PRISMATIC;
+    else
+        return Joint::Type::FIXED;
+}
+
+// ----------------------------------------------------------------------------
+template <int N>
+static Eigen::Matrix<double, N, 1> parseVector(const std::string& p_str)
+{
+    std::istringstream iss(p_str);
+    Eigen::Matrix<double, N, 1> vec;
+    for (int i = 0; i < N; ++i)
+    {
+        if (!(iss >> vec[i]))
+            vec[i] = 0.0;
+    }
+    return vec;
+}
+
+// ----------------------------------------------------------------------------
+static std::string getAttributeOrDefault(tinyxml2::XMLElement const* p_element,
+                                         const char* p_attr_name,
+                                         const std::string& p_default)
+{
+    const char* attr = p_element->Attribute(p_attr_name);
+    return attr ? std::string(attr) : p_default;
+}
+
+// ----------------------------------------------------------------------------
+static Eigen::Vector3d
+parseOptionalVector3(tinyxml2::XMLElement const* p_element,
+                     const char* p_attr_name,
+                     const std::string& p_default = "0 0 0")
+{
+    return parseVector<3>(
+        getAttributeOrDefault(p_element, p_attr_name, p_default));
+}
+
+// ----------------------------------------------------------------------------
+static std::string xmlElementToString(tinyxml2::XMLElement const* p_element)
+{
+    tinyxml2::XMLPrinter printer;
+    p_element->Accept(&printer);
+    return printer.CStr();
+}
+
+// ----------------------------------------------------------------------------
+std::unique_ptr<tinyxml2::XMLDocument>
+parseXMLFromString(const std::string& p_xml)
+{
+    auto doc = std::make_unique<tinyxml2::XMLDocument>();
+    if (doc->Parse(p_xml.c_str()) != tinyxml2::XML_SUCCESS)
+        return nullptr;
+    return doc;
+}
+
+// ----------------------------------------------------------------------------
+static void queryDoubleAttribute(tinyxml2::XMLElement* p_parent,
+                                 const char* p_child_name,
+                                 const char* p_attr_name,
+                                 double& p_value)
+{
+    if (auto element = p_parent->FirstChildElement(p_child_name))
+    {
+        element->QueryDoubleAttribute(p_attr_name, &p_value);
+    }
+}
+
+// ----------------------------------------------------------------------------
 std::unique_ptr<Robot> URDFParser::load(const std::string& p_filename)
 {
     if (std::ifstream file(p_filename); !file)
@@ -38,14 +130,9 @@ std::unique_ptr<Robot> URDFParser::load(const std::string& p_filename)
         return nullptr;
     }
 
-    // Parse the robot name and create a new Robot object
-    m_robot = std::make_unique<Robot>(robot_element->Attribute("name"));
+    std::string robot_name = robot_element->Attribute("name");
 
-    // Parse the robot links before parsing joints to ensure that the links are
-    // created before the joints are added to them.
     parseLinks(robot_element);
-
-    // Parse the robot joints
     parseJoints(robot_element);
 
     if (m_links.empty() || m_joints.empty())
@@ -54,88 +141,92 @@ std::unique_ptr<Robot> URDFParser::load(const std::string& p_filename)
         return nullptr;
     }
 
-    // Build the scene graph
-    if (!buildSceneGraph())
-        return nullptr;
-
-    return std::move(m_robot);
+    return buildSceneGraph(robot_name);
 }
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseLinks(tinyxml2::XMLElement* p_robot_element)
 {
-    for (auto link_element = p_robot_element->FirstChildElement("link");
-         link_element;
-         link_element = link_element->NextSiblingElement("link"))
-    {
-        std::string name = getRequiredAttribute(link_element, "name");
-        auto link = std::make_unique<URDFParser::Link>(name);
+    forEachChildElement( //
+        p_robot_element,
+        "link",
+        [this](auto* xml)
+        {
+            std::string name = xml->Attribute("name");
+            auto link = std::make_unique<URDFParser::Link>(name);
 
-        // Parse visual and collision properties
-        parseVisualProperties(link_element, *link);
-        parseCollisionProperties(link_element, *link);
-        parseInertialProperties(link_element, *link);
+            parseVisualProperties(xml, *link);
+            parseCollisionProperties(xml, *link);
+            parseInertialProperties(xml, *link);
 
-        m_links[name] = std::move(link);
-    }
+            m_links[name] = std::move(link);
+        });
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
+{
+    forEachChildElement( //
+        p_robot_element,
+        "joint",
+        [this](auto* xml)
+        {
+            std::string name = xml->Attribute("name");
+            Joint::Type type = jointType(xml->Attribute("type"));
+
+            Eigen::Vector3d axis = parseAxis(xml);
+            auto [origin_xyz, origin_rpy] = parseOriginTransform(xml);
+            auto joint = std::make_unique<Joint>(name, type, axis);
+            joint->localTransform(origin_xyz, origin_rpy);
+
+            parseLimits(xml, *joint);
+            parseParentChildLinks(xml, *joint);
+
+            m_joints[name] = std::move(joint);
+        });
 }
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseInertialProperties(tinyxml2::XMLElement* p_link_element,
                                          URDFParser::Link& p_link) const
 {
-    auto inertial_element = p_link_element->FirstChildElement("inertial");
-    if (!inertial_element)
-        return;
-
-    tinyxml2::XMLPrinter printer;
-    inertial_element->Accept(&printer);
-    p_link.inertial = parseInertial(printer.CStr());
+    if (auto inertial_element = p_link_element->FirstChildElement("inertial"))
+    {
+        p_link.inertial = parseInertial(xmlElementToString(inertial_element));
+    }
 }
 
 // ----------------------------------------------------------------------------
 Inertial URDFParser::parseInertial(const std::string& p_xml) const
 {
     Inertial inert;
-
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(p_xml.c_str()) != tinyxml2::XML_SUCCESS)
-    {
+    auto doc = parseXMLFromString(p_xml);
+    if (!doc)
         return inert;
-    }
 
-    auto inertialElement = doc.FirstChildElement("inertial");
+    auto inertialElement = doc->FirstChildElement("inertial");
     if (!inertialElement)
-    {
         return inert;
-    }
 
-    // Parse mass
-    if (auto massElement = inertialElement->FirstChildElement("mass"))
-    {
-        massElement->QueryDoubleAttribute("value", &inert.mass);
-    }
+    queryDoubleAttribute(inertialElement, "mass", "value", inert.mass);
 
-    // Parse center of mass from origin
     if (auto originElement = inertialElement->FirstChildElement("origin"))
     {
-        const char* xyzAttr = originElement->Attribute("xyz");
-        if (xyzAttr)
-        {
-            inert.center_of_mass = parseVector3(xyzAttr);
-        }
+        inert.center_of_mass = parseOptionalVector3(originElement, "xyz");
     }
 
-    // Parse inertia matrix
     if (auto inertiaElement = inertialElement->FirstChildElement("inertia"))
     {
         double ixx = 0, ixy = 0, ixz = 0, iyy = 0, iyz = 0, izz = 0;
-        inertiaElement->QueryDoubleAttribute("ixx", &ixx);
-        inertiaElement->QueryDoubleAttribute("ixy", &ixy);
-        inertiaElement->QueryDoubleAttribute("ixz", &ixz);
-        inertiaElement->QueryDoubleAttribute("iyy", &iyy);
-        inertiaElement->QueryDoubleAttribute("iyz", &iyz);
-        inertiaElement->QueryDoubleAttribute("izz", &izz);
+        auto queryInertia = [&](const char* attr, double& val)
+        { inertiaElement->QueryDoubleAttribute(attr, &val); };
+
+        queryInertia("ixx", ixx);
+        queryInertia("ixy", ixy);
+        queryInertia("ixz", ixz);
+        queryInertia("iyy", iyy);
+        queryInertia("iyz", iyz);
+        queryInertia("izz", izz);
 
         inert.inertia_matrix << ixx, ixy, ixz, ixy, iyy, iyz, ixz, iyz, izz;
     }
@@ -151,19 +242,27 @@ void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
     if (!visual_element)
         return;
 
-    // Parse geometry
     if (auto geometry_element = visual_element->FirstChildElement("geometry"))
     {
-        tinyxml2::XMLPrinter printer;
-        geometry_element->Accept(&printer);
-        p_link.geometry = parseGeometry(printer.CStr());
+        // Create geometry with "_visual" suffix
+        std::string visual_name = p_link.name + "_visual";
+        p_link.geometry =
+            parseGeometry(xmlElementToString(geometry_element), visual_name);
+
+        // Apply visual transform and color directly
+        if (p_link.geometry)
+        {
+            Transform visual_origin = parseOriginFromElement(visual_element);
+            p_link.geometry->localTransform(visual_origin);
+
+            // Parse and apply material color
+            parseMaterial(visual_element, p_link);
+            if (auto* geom = dynamic_cast<Geometry*>(p_link.geometry.get()))
+            {
+                geom->color = p_link.color;
+            }
+        }
     }
-
-    // Parse visual origin - store for later use when creating scene graph
-    p_link.visual_origin = parseOriginFromElement(visual_element);
-
-    // Parse material
-    parseMaterial(visual_element, p_link);
 }
 
 // ----------------------------------------------------------------------------
@@ -174,80 +273,59 @@ void URDFParser::parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
     if (!collision_element)
         return;
 
-    // Parse geometry
     if (auto geometry_element =
             collision_element->FirstChildElement("geometry"))
     {
-        tinyxml2::XMLPrinter printer;
-        geometry_element->Accept(&printer);
-        p_link.collision = parseGeometry(printer.CStr());
+        // Create collision geometry with "_collision" suffix
+        std::string collision_name = p_link.name + "_collision";
+        p_link.collision =
+            parseGeometry(xmlElementToString(geometry_element), collision_name);
     }
-
-    // Parse collision origin (if different from visual origin)
-    // For now, we'll use the same origin as visual, but this could be extended
-    // if collision origin needs to be different
 }
 
 // ----------------------------------------------------------------------------
-std::optional<Geometry>
-URDFParser::parseGeometry(const std::string& p_xml) const
+std::unique_ptr<Geometry>
+URDFParser::parseGeometry(const std::string& p_xml,
+                          const std::string& p_name) const
 {
-    // Default geometry values
-    Geometry::Type geom_type = Geometry::Type::BOX;
-    std::vector<double> parameters{ 1.0, 1.0, 1.0 };
-    std::string mesh_path = "";
+    auto doc = parseXMLFromString(p_xml);
+    if (!doc)
+        return nullptr;
 
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(p_xml.c_str()) != tinyxml2::XML_SUCCESS)
-    {
-        return std::nullopt;
-    }
-
-    // Look for geometry elements
-    auto geometryElement = doc.FirstChildElement("geometry");
+    auto geometryElement = doc->FirstChildElement("geometry");
     if (!geometryElement)
-    {
-        return std::nullopt;
-    }
+        return nullptr;
 
-    // Check for different geometry types
     if (auto boxElement = geometryElement->FirstChildElement("box"))
     {
-        geom_type = Geometry::Type::BOX;
-        const char* sizeAttr = boxElement->Attribute("size");
-        if (sizeAttr)
-        {
-            Eigen::Vector3d size = parseVector3(sizeAttr);
-            parameters = { size.x(), size.y(), size.z() };
-        }
+        auto size = parseOptionalVector3(boxElement, "size");
+        auto params = std::vector<double>{ size.x(), size.y(), size.z() };
+        return std::make_unique<robotik::Box>(p_name, std::move(params));
     }
     else if (auto cylinderElement =
                  geometryElement->FirstChildElement("cylinder"))
     {
-        geom_type = Geometry::Type::CYLINDER;
         double radius = 0.1, length = 0.2;
         cylinderElement->QueryDoubleAttribute("radius", &radius);
         cylinderElement->QueryDoubleAttribute("length", &length);
-        parameters = { radius, length };
+        auto params = std::vector<double>{ radius, length };
+        return std::make_unique<robotik::Cylinder>(p_name, std::move(params));
     }
     else if (auto sphereElement = geometryElement->FirstChildElement("sphere"))
     {
-        geom_type = Geometry::Type::SPHERE;
         double radius = 0.1;
         sphereElement->QueryDoubleAttribute("radius", &radius);
-        parameters = { radius };
+        auto params = std::vector<double>{ radius };
+        return std::make_unique<robotik::Sphere>(p_name, std::move(params));
     }
     else if (auto meshElement = geometryElement->FirstChildElement("mesh"))
     {
-        geom_type = Geometry::Type::MESH;
-        const char* filename = meshElement->Attribute("filename");
-        if (filename)
-        {
-            mesh_path = filename;
-        }
+        std::string mesh_path =
+            getAttributeOrDefault(meshElement, "filename", "");
+        return std::make_unique<robotik::Mesh>(p_name, mesh_path);
     }
 
-    return Geometry("parsed_geom", geom_type, std::move(parameters), mesh_path);
+    return nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -258,11 +336,8 @@ URDFParser::parseOriginFromElement(tinyxml2::XMLElement* p_element) const
     if (!origin_element)
         return Transform::Identity();
 
-    std::string xyz = getAttributeOrDefault(origin_element, "xyz", "0 0 0");
-    Eigen::Vector3d translation = parseVector3(xyz);
-
-    std::string rpy = getAttributeOrDefault(origin_element, "rpy", "0 0 0");
-    Eigen::Vector3d rotation = parseVector3(rpy);
+    Eigen::Vector3d translation = parseOptionalVector3(origin_element, "xyz");
+    Eigen::Vector3d rotation = parseOptionalVector3(origin_element, "rpy");
 
     return utils::createTransform(
         translation, rotation.x(), rotation.y(), rotation.z());
@@ -280,36 +355,9 @@ void URDFParser::parseMaterial(tinyxml2::XMLElement* p_visual_element,
     if (!color_element)
         return;
 
-    const char* rgba = color_element->Attribute("rgba");
-    if (rgba)
+    if (const char* rgba = color_element->Attribute("rgba"))
     {
-        // Convert RGBA to RGB
-        p_link.color = parseVector4(rgba).head<3>().cast<float>();
-    }
-}
-
-// ----------------------------------------------------------------------------
-void URDFParser::parseJoints(tinyxml2::XMLElement* p_robot_element)
-{
-    for (auto joint_element = p_robot_element->FirstChildElement("joint");
-         joint_element;
-         joint_element = joint_element->NextSiblingElement("joint"))
-    {
-        std::string name = getRequiredAttribute(joint_element, "name");
-        Joint::Type type =
-            parseJointType(getRequiredAttribute(joint_element, "type"));
-
-        // Parse axis, origin, and create joint
-        Eigen::Vector3d axis = parseAxis(joint_element);
-        auto [origin_xyz, origin_rpy] = parseOriginTransform(joint_element);
-        auto joint = std::make_unique<Joint>(name, type, axis);
-        joint->localTransform(origin_xyz, origin_rpy);
-
-        // Parse limits and link relationships
-        parseLimits(joint_element, *joint);
-        parseParentChildLinks(joint_element, *joint);
-
-        m_joints[name] = std::move(joint);
+        p_link.color = parseVector<4>(rgba).head<3>().cast<float>();
     }
 }
 
@@ -340,26 +388,12 @@ void URDFParser::parseParentChildLinks(tinyxml2::XMLElement* p_joint_element,
 }
 
 // ----------------------------------------------------------------------------
-Joint::Type URDFParser::parseJointType(std::string_view const& p_str_type) const
-{
-    if (p_str_type == "revolute" || p_str_type == "continuous")
-        return Joint::Type::REVOLUTE;
-    else if (p_str_type == "prismatic")
-        return Joint::Type::PRISMATIC;
-    else
-        return Joint::Type::FIXED;
-}
-
-// ----------------------------------------------------------------------------
 Eigen::Vector3d
 URDFParser::parseAxis(tinyxml2::XMLElement* p_joint_element) const
 {
     auto axis_element = p_joint_element->FirstChildElement("axis");
-    if (!axis_element)
-        return Eigen::Vector3d::UnitZ();
-
-    const char* xyz_attr = axis_element->Attribute("xyz");
-    return xyz_attr ? parseVector3(xyz_attr) : Eigen::Vector3d::UnitZ();
+    return axis_element ? parseOptionalVector3(axis_element, "xyz")
+                        : Eigen::Vector3d::UnitZ();
 }
 
 // ----------------------------------------------------------------------------
@@ -388,222 +422,110 @@ URDFParser::parseOriginTransform(tinyxml2::XMLElement* p_element) const
     if (!origin_element)
         return { Eigen::Vector3d::Zero(), Eigen::Vector3d::Zero() };
 
-    std::string xyz = getAttributeOrDefault(origin_element, "xyz", "0 0 0");
-    std::string rpy = getAttributeOrDefault(origin_element, "rpy", "0 0 0");
-
-    return { parseVector3(xyz), parseVector3(rpy) };
+    return { parseOptionalVector3(origin_element, "xyz"),
+             parseOptionalVector3(origin_element, "rpy") };
 }
 
 // ----------------------------------------------------------------------------
-std::string
-URDFParser::getRequiredAttribute(tinyxml2::XMLElement const* p_element,
-                                 const char* p_attr_name) const
+robotik::Link::Ptr
+URDFParser::createLinkFromURDFData(URDFParser::Link& p_urdf_link) const
 {
-    const char* attr = p_element->Attribute(p_attr_name);
-    return attr ? std::string(attr) : std::string();
-}
-
-// ----------------------------------------------------------------------------
-std::string
-URDFParser::getAttributeOrDefault(tinyxml2::XMLElement const* p_element,
-                                  const char* p_attr_name,
-                                  const std::string& p_default) const
-{
-    const char* attr = p_element->Attribute(p_attr_name);
-    return attr ? std::string(attr) : p_default;
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Vector3d URDFParser::parseVector3(const std::string& p_str) const
-{
-    std::istringstream iss(p_str);
-    double x, y, z;
-    iss >> x >> y >> z;
-    return Eigen::Vector3d(x, y, z);
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Vector4d URDFParser::parseVector4(const std::string& p_str) const
-{
-    std::istringstream iss(p_str);
-    double x, y, z, w;
-    iss >> x >> y >> z >> w;
-    return Eigen::Vector4d(x, y, z, w);
-}
-
-// ----------------------------------------------------------------------------
-std::unique_ptr<Geometry>
-URDFParser::createGeometryFromURDFData(std::optional<Geometry> const& p_geom,
-                                       std::string_view p_name_suffix,
-                                       Eigen::Vector3f const& p_color,
-                                       Transform const& p_visual_origin) const
-{
-    if (!p_geom)
-    {
-        return nullptr;
-    }
-
-    const auto& geom = *p_geom; // Déréférence l'optional
-    std::unique_ptr<Geometry> geometry_node;
-    std::string name = std::string(geom.name()) + std::string(p_name_suffix);
-
-    switch (geom.type())
-    {
-        case Geometry::Type::BOX:
-            geometry_node = std::make_unique<robotik::Box>(
-                name, std::vector<double>(geom.parameters()));
-            break;
-        case Geometry::Type::CYLINDER:
-            geometry_node = std::make_unique<robotik::Cylinder>(
-                name, std::vector<double>(geom.parameters()));
-            break;
-        case Geometry::Type::SPHERE:
-            geometry_node = std::make_unique<robotik::Sphere>(
-                name, std::vector<double>(geom.parameters()));
-            break;
-        case Geometry::Type::MESH:
-            geometry_node =
-                std::make_unique<robotik::Mesh>(name, geom.meshPath());
-            break;
-        default:
-            // Fallback to box with unit dimensions
-            geometry_node = std::make_unique<robotik::Box>(
-                name, std::vector<double>{ 1.0, 1.0, 1.0 });
-            break;
-    }
-
-    if (geometry_node)
-    {
-        // Assigner la couleur
-        geometry_node->color = p_color;
-
-        // Appliquer la transformation visuelle origin
-        // Cette transformation positionne la géométrie par rapport au frame du
-        // link
-        geometry_node->localTransform(p_visual_origin);
-    }
-
-    return geometry_node;
-}
-
-// ----------------------------------------------------------------------------
-std::unique_ptr<robotik::Link>
-URDFParser::createLinkFromURDFData(const URDFParser::Link& p_urdf_link) const
-{
+    // Transformations and colors are now applied directly in
+    // parseVisualProperties
     if (p_urdf_link.geometry && p_urdf_link.collision)
     {
-        return std::make_unique<robotik::Link>(
+        return scene::Node::create<robotik::Link>(
             p_urdf_link.name,
-            createGeometryFromURDFData(p_urdf_link.geometry,
-                                       "_visual",
-                                       p_urdf_link.color,
-                                       p_urdf_link.visual_origin),
-            createGeometryFromURDFData(p_urdf_link.collision,
-                                       "_collision",
-                                       p_urdf_link.color,
-                                       Transform::Identity()));
+            std::move(p_urdf_link.geometry),
+            std::move(p_urdf_link.collision));
     }
     else if (p_urdf_link.geometry)
     {
-        return std::make_unique<robotik::Link>(
-            p_urdf_link.name,
-            createGeometryFromURDFData(p_urdf_link.geometry,
-                                       "_visual",
-                                       p_urdf_link.color,
-                                       p_urdf_link.visual_origin));
+        return scene::Node::create<robotik::Link>(
+            p_urdf_link.name, std::move(p_urdf_link.geometry));
     }
 
-    // Geometry is missing
+    // We need at least a visual geometry to create a link
     return nullptr;
 }
 
 // ----------------------------------------------------------------------------
-bool URDFParser::buildSceneGraph()
+std::unique_ptr<Robot>
+URDFParser::buildSceneGraph(std::string_view p_robot_name)
 {
-    // Find the root link (link with no parent joint)
-    std::string root_link_name = findRootLinkName();
-    if (root_link_name.empty())
+    // Since in URDF file, a joint is always associated with a link parent
+    // and a link child, we need to find the root link (link with no parent
+    // joint) to start building the scene graph.
+    auto root_link = findRootLink();
+    if (!root_link)
     {
         m_error = "Could not find root link (link with no parent joint)";
-        return false;
+        return nullptr;
     }
 
-    // Find the root link in the links map
-    auto root_link_it = m_links.find(root_link_name);
-    if (root_link_it == m_links.end())
+    // Create the scene graph root node.
+    auto root_node = createLinkFromURDFData(*root_link);
+    if (!root_node)
     {
-        m_error = "Root link '" + root_link_name + "' not found in links map";
-        return false;
+        m_error = "We need at least a visual geometry to create a link for " +
+                  root_link->name;
+        return nullptr;
     }
 
-    // Create the root link node
-    auto root_link_node = createLinkFromURDFData(*root_link_it->second);
-    if (!root_link_node)
+    // Build the scene graph recursively.
+    for (Joint const* child_joint : root_link->child_joints)
     {
-        m_error = "Failed to create root link node";
-        return false;
-    }
-
-    // Build the joint tree starting from the root link
-    for (Joint const* child_joint : root_link_it->second->child_joints)
-    {
-        auto joint_tree = buildJointTree(child_joint);
-        if (joint_tree)
+        if (auto joint_tree = buildJointTree(child_joint))
         {
-            root_link_node->addChild(std::move(joint_tree));
+            root_node->addChild(std::move(joint_tree));
         }
     }
 
-    // Set the root node in the robot
-    m_robot->root(std::move(root_link_node));
-
-    return true;
+    // Create the robot.
+    auto robot = std::make_unique<Robot>(p_robot_name);
+    robot->root(std::move(root_node));
+    return robot;
 }
 
 // ----------------------------------------------------------------------------
-std::string URDFParser::findRootLinkName() const
+URDFParser::Link* URDFParser::findRootLink() const
 {
     for (const auto& [name, link] : m_links)
     {
         if (link->parent_joint == nullptr)
         {
-            return name;
+            return link.get();
         }
     }
-    return {};
+    return nullptr;
 }
 
 // ----------------------------------------------------------------------------
-std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* current_joint)
+std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* p_current_joint)
 {
-    if (!current_joint)
-        return nullptr;
-
-    // Find the joint in our map
+    //
     auto joint_it =
         std::find_if(m_joints.begin(),
                      m_joints.end(),
-                     [current_joint](const auto& pair)
-                     { return pair.second.get() == current_joint; });
+                     [p_current_joint](const auto& pair)
+                     { return pair.second.get() == p_current_joint; });
 
     if (joint_it == m_joints.end())
         return nullptr;
 
-    // Create a copy of the joint
-    auto joint_copy = std::make_unique<Joint>(
-        current_joint->name(), current_joint->type(), current_joint->axis());
+    auto joint_copy = std::make_unique<Joint>(p_current_joint->name(),
+                                              p_current_joint->type(),
+                                              p_current_joint->axis());
 
-    // Copy joint properties
-    joint_copy->localTransform(current_joint->localTransform());
-    joint_copy->limits(current_joint->limits().first,
-                       current_joint->limits().second);
-    joint_copy->position(current_joint->position());
+    joint_copy->localTransform(p_current_joint->localTransform());
+    joint_copy->limits(p_current_joint->limits().first,
+                       p_current_joint->limits().second);
+    joint_copy->position(p_current_joint->position());
 
-    // Find the child link for this joint
     std::string child_link_name;
     for (const auto& [name, link] : m_links)
     {
-        if (link->parent_joint == current_joint)
+        if (link->parent_joint == p_current_joint)
         {
             child_link_name = name;
             break;
@@ -615,7 +537,6 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* current_joint)
         auto child_link_it = m_links.find(child_link_name);
         if (child_link_it != m_links.end())
         {
-            // Create the child link node
             auto child_link_node =
                 createLinkFromURDFData(*child_link_it->second);
             if (!child_link_node)
@@ -624,17 +545,14 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* current_joint)
                 return nullptr;
             }
 
-            // Recursively build the subtree for the child joints
             for (Joint const* child_joint : child_link_it->second->child_joints)
             {
-                auto child_joint_tree = buildJointTree(child_joint);
-                if (child_joint_tree)
+                if (auto child_joint_tree = buildJointTree(child_joint))
                 {
                     child_link_node->addChild(std::move(child_joint_tree));
                 }
             }
 
-            // Add the child link to the joint
             joint_copy->addChild(std::move(child_link_node));
         }
     }

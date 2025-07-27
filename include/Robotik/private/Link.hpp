@@ -17,7 +17,7 @@ public:
     //! \param p_name The name of the link.
     //! \param p_visual The visual geometry of the link.
     // ------------------------------------------------------------------------
-    explicit Link(std::string_view const& p_name, Geometry::Ptr p_visual)
+    explicit Link(std::string const& p_name, Geometry::Ptr p_visual)
         : scene::Node(p_name)
     {
         scene::Node::addChild(std::move(p_visual));
@@ -29,7 +29,7 @@ public:
     //! \param p_visual The visual geometry of the link.
     //! \param p_collision The collision geometry of the link.
     // ------------------------------------------------------------------------
-    explicit Link(std::string_view const& p_name,
+    explicit Link(std::string const& p_name,
                   Geometry::Ptr p_visual,
                   Geometry::Ptr p_collision)
         : scene::Node(p_name)
