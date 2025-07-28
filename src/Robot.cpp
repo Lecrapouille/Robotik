@@ -24,6 +24,7 @@ void Robot::root(scene::Node::Ptr p_root)
 void Robot::cacheListOfJoints()
 {
     m_joints.clear();
+    m_joints_map.clear();
     if (m_root_node == nullptr)
     {
         return;
@@ -34,10 +35,12 @@ void Robot::cacheListOfJoints()
         {
             if (auto joint = dynamic_cast<Joint*>(&p_node))
             {
-                // Only cache actuable joints (REVOLUTE and PRISMATIC)
+                // Only cache actuable joints
                 if (joint->type() == Joint::Type::REVOLUTE ||
+                    joint->type() == Joint::Type::CONTINUOUS ||
                     joint->type() == Joint::Type::PRISMATIC)
                 {
+                    m_joints_map[joint->name()] = joint;
                     m_joints.push_back(joint);
                 }
             }
@@ -140,6 +143,17 @@ Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
     }
 
     return J;
+}
+
+// ----------------------------------------------------------------------------
+Joint const& Robot::joint(std::string_view const& p_name) const
+{
+    auto const& it = m_joints_map.find(std::string(p_name));
+    if (it == m_joints_map.end())
+    {
+        throw RobotikException("Joint not found: " + std::string(p_name));
+    }
+    return *it->second;
 }
 
 // ----------------------------------------------------------------------------

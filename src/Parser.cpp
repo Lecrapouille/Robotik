@@ -30,8 +30,10 @@ static void forEachChildElement(tinyxml2::XMLElement* p_parent,
 // ----------------------------------------------------------------------------
 static Joint::Type jointType(std::string_view const& p_str_type)
 {
-    if (p_str_type == "revolute" || p_str_type == "continuous")
+    if (p_str_type == "revolute")
         return Joint::Type::REVOLUTE;
+    else if (p_str_type == "continuous")
+        return Joint::Type::CONTINUOUS;
     else if (p_str_type == "prismatic")
         return Joint::Type::PRISMATIC;
     else
