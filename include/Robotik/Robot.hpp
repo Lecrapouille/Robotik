@@ -65,6 +65,24 @@ public:
     Robot(std::string_view const& p_name, scene::Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
+    //! \brief Get the name of the robot arm.
+    //! \return The name of the robot arm.
+    // ------------------------------------------------------------------------
+    inline std::string const& name() const
+    {
+        return m_name;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if the robot arm has a root node.
+    //! \return True if the robot arm has a root node, false otherwise.
+    // ------------------------------------------------------------------------
+    inline bool hasRoot() const
+    {
+        return m_root_node != nullptr;
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Set and replace the root node of the robot arm.
     //! \param p_root Unique pointer to the root node.
     //! \return Reference to the root node.
@@ -83,29 +101,18 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the robot arm has a root node.
-    //! \return True if the robot arm has a root node, false otherwise.
-    // ------------------------------------------------------------------------
-    inline bool hasRoot() const
-    {
-        return m_root_node != nullptr;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the name of the robot arm.
-    //! \return The name of the robot arm.
-    // ------------------------------------------------------------------------
-    inline std::string const& name() const
-    {
-        return m_name;
-    }
-
-    // ------------------------------------------------------------------------
     //! \brief Find and return a link by its name.
     //! \param p_name Name of the link.
     //! \return Pointer to the link, or nullptr if not found.
     // ------------------------------------------------------------------------
     // Link* link(std::string_view const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find and return a joint by its name.
+    //! \param p_name Name of the joint.
+    //! \return Pointer to the joint, or nullptr if not found.
+    // ------------------------------------------------------------------------
+    Joint const& joint(std::string_view const& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint values of the robot arm.
@@ -228,7 +235,7 @@ private:
     std::string m_name;
     scene::Node::Ptr m_root_node;
     std::vector<Joint*> m_joints;
-    // std::unordered_map<std::string, std::unique_ptr<Link>> m_links;
+    std::unordered_map<std::string, Joint*> m_joints_map;
 };
 
 } // namespace robotik

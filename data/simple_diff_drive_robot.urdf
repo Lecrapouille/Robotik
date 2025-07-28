@@ -40,7 +40,9 @@
       <geometry>
         <cylinder length="0.05" radius="0.10"/>
       </geometry>
-      <material name="black"/>
+      <material name="white">
+        <color rgba="0 0 0 1"/>
+      </material>
     </visual>
   </link>
 
