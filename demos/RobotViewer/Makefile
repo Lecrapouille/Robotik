@@ -41,7 +41,7 @@ VPATH += $(P)/demos/RobotViewer
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES += Viewer.cpp RobotViewer.cpp
+SRC_FILES += RobotViewer.cpp OpenGLViewer.cpp
 INCLUDES := $(P)/include src
 INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
 

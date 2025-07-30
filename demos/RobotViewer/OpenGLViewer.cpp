@@ -1,4 +1,4 @@
-#include "Viewer.hpp"
+#include "OpenGLViewer.hpp"
 
 #include <cmath>
 
@@ -6,7 +6,7 @@ namespace robotik
 {
 
 // Shader sources
-const std::string Viewer::s_vertex_shader_source = R"(
+const std::string OpenGLViewer::s_vertex_shader_source = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
@@ -34,7 +34,7 @@ void main()
 }
 )";
 
-const std::string Viewer::s_fragment_shader_source = R"(
+const std::string OpenGLViewer::s_fragment_shader_source = R"(
 #version 330 core
 in vec3 FragColor;
 in vec3 Normal;
@@ -69,7 +69,9 @@ static const Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
 static const Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
 
 // ----------------------------------------------------------------------------
-Viewer::Viewer(int p_width, int p_height, const std::string& p_title)
+OpenGLViewer::OpenGLViewer(int p_width,
+                           int p_height,
+                           const std::string& p_title)
     : m_width(p_width), m_height(p_height), m_title(p_title)
 {
     m_aspect_ratio = static_cast<float>(p_width) / static_cast<float>(p_height);
@@ -89,7 +91,7 @@ Viewer::Viewer(int p_width, int p_height, const std::string& p_title)
 }
 
 // ----------------------------------------------------------------------------
-Viewer::~Viewer()
+OpenGLViewer::~OpenGLViewer()
 {
     if (m_window)
     {
@@ -99,13 +101,13 @@ Viewer::~Viewer()
 }
 
 // ----------------------------------------------------------------------------
-bool Viewer::shouldClose() const
+bool OpenGLViewer::shouldClose() const
 {
     return glfwWindowShouldClose(m_window);
 }
 
 // ----------------------------------------------------------------------------
-bool Viewer::initialize()
+bool OpenGLViewer::initialize()
 {
     if (!initializeGL())
     {
@@ -126,7 +128,7 @@ bool Viewer::initialize()
 }
 
 // ----------------------------------------------------------------------------
-bool Viewer::initializeGL()
+bool OpenGLViewer::initializeGL()
 {
     if (!glfwInit())
     {
@@ -175,7 +177,7 @@ bool Viewer::initializeGL()
 }
 
 // ----------------------------------------------------------------------------
-bool Viewer::initializeShaders()
+bool OpenGLViewer::initializeShaders()
 {
     m_shader_program =
         createShaderProgram(s_vertex_shader_source, s_fragment_shader_source);
@@ -187,8 +189,8 @@ bool Viewer::initializeShaders()
 }
 
 // ----------------------------------------------------------------------------
-unsigned int Viewer::compileShader(const std::string& p_source,
-                                   unsigned int p_type) const
+unsigned int OpenGLViewer::compileShader(const std::string& p_source,
+                                         unsigned int p_type) const
 {
     unsigned int shader = glCreateShader(p_type);
     const char* source = p_source.c_str();
@@ -217,8 +219,8 @@ unsigned int Viewer::compileShader(const std::string& p_source,
 
 // ----------------------------------------------------------------------------
 unsigned int
-Viewer::createShaderProgram(const std::string& p_vertexSource,
-                            const std::string& p_fragmentSource) const
+OpenGLViewer::createShaderProgram(const std::string& p_vertexSource,
+                                  const std::string& p_fragmentSource) const
 {
     unsigned int vertex_shader =
         compileShader(p_vertexSource, GL_VERTEX_SHADER);
@@ -266,23 +268,23 @@ Viewer::createShaderProgram(const std::string& p_vertexSource,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::setCameraView(CameraViewType p_view,
-                           const Eigen::Vector3f& p_camera_target)
+void OpenGLViewer::setCameraView(CameraViewType p_view,
+                                 const Eigen::Vector3f& p_camera_target)
 {
     setupCameraView(p_view, p_camera_target);
     updateCamera();
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::setCameraView(CameraViewType p_view,
-                           const Eigen::Vector3d& p_camera_target)
+void OpenGLViewer::setCameraView(CameraViewType p_view,
+                                 const Eigen::Vector3d& p_camera_target)
 {
     setupCameraView(p_view, p_camera_target.cast<float>());
     updateCamera();
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::render(Robot const& p_robot)
+void OpenGLViewer::render(Robot const& p_robot)
 {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -311,7 +313,7 @@ void Viewer::render(Robot const& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-bool Viewer::initializeGeometry()
+bool OpenGLViewer::initializeGeometry()
 {
     initializeBox();
     initializeGrid();
@@ -322,7 +324,7 @@ bool Viewer::initializeGeometry()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderGrid() const
+void OpenGLViewer::renderGrid() const
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
@@ -340,8 +342,8 @@ void Viewer::renderGrid() const
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderBox(Transform const& p_transform,
-                       const Eigen::Vector3f& p_color) const
+void OpenGLViewer::renderBox(Transform const& p_transform,
+                             const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
@@ -356,8 +358,8 @@ void Viewer::renderBox(Transform const& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderCylinder(Transform const& p_transform,
-                            const Eigen::Vector3f& p_color) const
+void OpenGLViewer::renderCylinder(Transform const& p_transform,
+                                  const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
@@ -375,8 +377,8 @@ void Viewer::renderCylinder(Transform const& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderSphere(Transform const& p_transform,
-                          const Eigen::Vector3f& p_color) const
+void OpenGLViewer::renderSphere(Transform const& p_transform,
+                                const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
     glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
@@ -392,8 +394,8 @@ void Viewer::renderSphere(Transform const& p_transform,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderJoint(Joint const& p_joint,
-                         Transform const& p_world_transform) const
+void OpenGLViewer::renderJoint(Joint const& p_joint,
+                               Transform const& p_world_transform) const
 {
     // Scale the joint to 5% of the link
     double scaling = 0.025;
@@ -432,8 +434,8 @@ void Viewer::renderJoint(Joint const& p_joint,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderLink(Link const& p_link,
-                        Transform const& p_world_transform) const
+void OpenGLViewer::renderLink(Link const& p_link,
+                              Transform const& p_world_transform) const
 {
     Geometry const& geometry = p_link.geometry();
     std::vector<double> const& parameters = geometry.parameters();
@@ -523,7 +525,7 @@ void Viewer::renderLink(Link const& p_link,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderRobot(Robot const& p_robot) const
+void OpenGLViewer::renderRobot(Robot const& p_robot) const
 {
     if (!p_robot.hasRoot())
         return;
@@ -554,7 +556,7 @@ void Viewer::renderRobot(Robot const& p_robot) const
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::updateCamera()
+void OpenGLViewer::updateCamera()
 {
     // Standard lookAt matrix construction
     Eigen::Vector3f f = (m_camera_target - m_camera_pos).normalized();
@@ -597,8 +599,8 @@ void Viewer::updateCamera()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::generateBox(std::vector<float>& vertices,
-                         std::vector<unsigned int>& indices) const
+void OpenGLViewer::generateBox(std::vector<float>& vertices,
+                               std::vector<unsigned int>& indices) const
 {
     vertices.clear();
     indices.clear();
@@ -643,11 +645,11 @@ void Viewer::generateBox(std::vector<float>& vertices,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::generateCylinder(std::vector<float>& vertices,
-                              std::vector<unsigned int>& indices,
-                              float radius,
-                              float height,
-                              size_t segments) const
+void OpenGLViewer::generateCylinder(std::vector<float>& vertices,
+                                    std::vector<unsigned int>& indices,
+                                    float radius,
+                                    float height,
+                                    size_t segments) const
 {
     vertices.clear();
     indices.clear();
@@ -729,11 +731,11 @@ void Viewer::generateCylinder(std::vector<float>& vertices,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::generateSphere(std::vector<float>& vertices,
-                            std::vector<unsigned int>& indices,
-                            float radius,
-                            size_t latitude_segments,
-                            size_t longitude_segments) const
+void OpenGLViewer::generateSphere(std::vector<float>& vertices,
+                                  std::vector<unsigned int>& indices,
+                                  float radius,
+                                  size_t latitude_segments,
+                                  size_t longitude_segments) const
 {
     vertices.clear();
     indices.clear();
@@ -789,7 +791,7 @@ void Viewer::generateSphere(std::vector<float>& vertices,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::initializeBox()
+void OpenGLViewer::initializeBox()
 {
     std::vector<float> box_vertices;
     std::vector<unsigned int> box_indices;
@@ -824,7 +826,7 @@ void Viewer::initializeBox()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::initializeCylinder()
+void OpenGLViewer::initializeCylinder()
 {
     std::vector<float> cylinder_vertices;
     std::vector<unsigned int> cylinder_indices;
@@ -860,7 +862,7 @@ void Viewer::initializeCylinder()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::initializeSphere()
+void OpenGLViewer::initializeSphere()
 {
     std::vector<float> sphere_vertices;
     std::vector<unsigned int> sphere_indices;
@@ -896,7 +898,7 @@ void Viewer::initializeSphere()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::initializeGrid()
+void OpenGLViewer::initializeGrid()
 {
     std::vector<float> grid_vertices;
     const int grid_size = 20;
@@ -957,8 +959,8 @@ void Viewer::initializeGrid()
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::setupCameraView(CameraViewType p_view_type,
-                             const Eigen::Vector3f& p_camera_target)
+void OpenGLViewer::setupCameraView(CameraViewType p_view_type,
+                                   const Eigen::Vector3f& p_camera_target)
 {
     // Set the camera target
     m_camera_target = p_camera_target;
@@ -1023,7 +1025,8 @@ void Viewer::setupCameraView(CameraViewType p_view_type,
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
+void OpenGLViewer::renderAxes(Transform const& p_transform,
+                              double p_scale) const
 {
     const double radius = 0.02 * p_scale; // Thin cylinder radius
     const double height = p_scale;        // Axis length
@@ -1103,34 +1106,43 @@ void Viewer::renderAxes(Transform const& p_transform, double p_scale) const
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::processInput(std::function<void(int, int)> const& key_callback)
+void OpenGLViewer::processInput(KeyCallback const& p_key_callback)
 {
+    // Track key states (pressed or released)
+    static std::array<bool, 256> keys_old = { false };
+
     glfwPollEvents();
 
-    if (key_callback)
+    for (size_t i = 0; i < m_keys.size(); ++i)
     {
-        // Check for camera view keys
-        if (glfwGetKey(m_window, GLFW_KEY_1) == GLFW_PRESS)
-            key_callback(GLFW_KEY_1, GLFW_PRESS);
-        if (glfwGetKey(m_window, GLFW_KEY_2) == GLFW_PRESS)
-            key_callback(GLFW_KEY_2, GLFW_PRESS);
-        if (glfwGetKey(m_window, GLFW_KEY_3) == GLFW_PRESS)
-            key_callback(GLFW_KEY_3, GLFW_PRESS);
-        if (glfwGetKey(m_window, GLFW_KEY_4) == GLFW_PRESS)
-            key_callback(GLFW_KEY_4, GLFW_PRESS);
-        if (glfwGetKey(m_window, GLFW_KEY_5) == GLFW_PRESS)
-            key_callback(GLFW_KEY_5, GLFW_PRESS);
+        keys_old[i] = m_keys[i];
+        m_keys[i] = (glfwGetKey(m_window, int(i)) == GLFW_PRESS);
+
+        if (m_keys[i] && !keys_old[i])
+        {
+            p_key_callback(i, GLFW_PRESS);
+        }
+        else if (!m_keys[i] && keys_old[i])
+        {
+            p_key_callback(i, GLFW_RELEASE);
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
-void Viewer::renderGeometry(Geometry const& p_geometry,
-                            Transform const& p_world_transform) const
+bool OpenGLViewer::isKeyPressed(int p_key) const
+{
+    if (p_key < 0 || p_key >= 256)
+        return false;
+
+    return m_keys[p_key];
+}
+
+// ----------------------------------------------------------------------------
+void OpenGLViewer::renderGeometry(Geometry const& p_geometry,
+                                  Transform const& p_world_transform) const
 {
     std::vector<double> const& parameters = p_geometry.parameters();
-
-    // Le p_world_transform inclut déjà l'origine de la géométrie
-    // grâce au scene graph, plus besoin de calculer manuellement
 
     switch (p_geometry.type())
     {
