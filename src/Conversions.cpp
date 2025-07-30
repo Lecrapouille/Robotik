@@ -114,4 +114,13 @@ std::string printTransform(const Transform& p_transform, int p_precision)
     return oss.str();
 }
 
+// ----------------------------------------------------------------------------
+std::string printPose(const std::string& name, const Pose& pose)
+{
+    std::ostringstream oss;
+    oss << name << ": [" << pose(0) << ", " << pose(1) << ", " << pose(2)
+        << ", " << pose(3) << ", " << pose(4) << ", " << pose(5) << "]";
+    return oss.str();
+}
+
 } // namespace robotik::utils

@@ -3,6 +3,8 @@
 #include "Robotik/private/Exception.hpp"
 
 #include <cmath>
+#include <iostream>
+
 namespace robotik
 {
 
@@ -110,8 +112,14 @@ Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
     Transform end_effector_transform = p_end_effector.worldTransform();
     Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
+    std::cout << "End effector position: "
+              << utils::printTransform(end_effector_transform) << std::endl;
+
     for (size_t i = 0; i < num_joints; ++i)
     {
+        std::cout << "  Joint " << i << " position: "
+                  << utils::printTransform(m_joints[i]->worldTransform())
+                  << std::endl;
         auto const& joint = *m_joints[i];
 
         // Transformation of the joint in the global space
@@ -124,7 +132,8 @@ Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
         Eigen::Vector3d joint_axis =
             joint_transform.block<3, 3>(0, 0) * joint.axis();
 
-        if (joint.type() == Joint::Type::REVOLUTE)
+        if ((joint.type() == Joint::Type::REVOLUTE) ||
+            (joint.type() == Joint::Type::CONTINUOUS))
         {
             // Contribution to linear velocity: cross(axis, (end - joint))
             Eigen::Vector3d r = end_pos - joint_pos;
@@ -133,12 +142,26 @@ Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
             // Fill the Jacobian
             J.block<3, 1>(0, i) = v;
             J.block<3, 1>(3, i) = joint_axis;
+
+            std::cout << "  REVOLUTE Joint " << i
+                      << " contribution to linear velocity: " << v.transpose()
+                      << std::endl;
+            std::cout << "  REVOLUTE Joint " << i
+                      << " contribution to angular velocity: "
+                      << joint_axis.transpose() << std::endl;
         }
         else if (joint.type() == Joint::Type::PRISMATIC)
         {
             // Contribution to linear velocity: axis
             J.block<3, 1>(0, i) = joint_axis;
             J.block<3, 1>(3, i) = Eigen::Vector3d::Zero();
+
+            std::cout << "  PRISMATIC Joint " << i
+                      << " contribution to linear velocity: "
+                      << joint_axis.transpose() << std::endl;
+            std::cout << "  PRISMATIC Joint " << i
+                      << " contribution to angular velocity: "
+                      << Eigen::Vector3d::Zero().transpose() << std::endl;
         }
     }
 

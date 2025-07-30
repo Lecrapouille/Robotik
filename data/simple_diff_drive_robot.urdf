@@ -29,7 +29,7 @@
         <cylinder length="0.05" radius="0.1"/>
       </geometry>
       <material name="white">
-        <color rgba="0 0 0 1"/>
+        <color rgba="1 1 1 1"/>
       </material>
     </visual>
   </link>
@@ -41,7 +41,7 @@
         <cylinder length="0.05" radius="0.10"/>
       </geometry>
       <material name="white">
-        <color rgba="0 0 0 1"/>
+        <color rgba="1 1 1 1"/>
       </material>
     </visual>
   </link>
@@ -52,7 +52,9 @@
       <geometry>
         <sphere radius="0.02"/>
       </geometry>
-      <material name="black"/>
+      <material name="black">
+        <color rgba="0 0 0 1"/>
+      </material>
     </visual>
   </link>
 
