@@ -230,7 +230,7 @@ TEST_F(URDFParserTest, DifferentialDriveRobotSceneGraph)
     EXPECT_DOUBLE_EQ(geometries[1]->parameters()[0], 0.1);
     EXPECT_DOUBLE_EQ(geometries[1]->parameters()[1], 0.05);
     EXPECT_EQ(geometries[1]->meshPath(), "");
-    EXPECT_EQ(geometries[1]->color, Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+    EXPECT_EQ(geometries[1]->color, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
 
     EXPECT_EQ(geometries[2]->name(), "right_wheel_visual");
     EXPECT_EQ(geometries[2]->type(), Geometry::Type::CYLINDER);
@@ -238,7 +238,7 @@ TEST_F(URDFParserTest, DifferentialDriveRobotSceneGraph)
     EXPECT_DOUBLE_EQ(geometries[2]->parameters()[0], 0.1);
     EXPECT_DOUBLE_EQ(geometries[2]->parameters()[1], 0.05);
     EXPECT_EQ(geometries[2]->meshPath(), "");
-    EXPECT_EQ(geometries[2]->color, Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+    EXPECT_EQ(geometries[2]->color, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
 
     EXPECT_EQ(geometries[3]->name(), "caster_wheel_visual");
     EXPECT_EQ(geometries[3]->type(), Geometry::Type::SPHERE);
@@ -298,4 +298,106 @@ TEST_F(URDFParserTest, SCARArobotSceneGraph)
 
     EXPECT_NEAR(ee_limits.first, 0.038, 1e-3);
     EXPECT_NEAR(ee_limits.second, 0.16, 1e-3);
+}
+
+// *********************************************************************************
+//! \brief Test parsing cartesian robot URDF scene graph.
+// *********************************************************************************
+TEST_F(URDFParserTest, CartesianRobotSceneGraph)
+{
+    std::string robot_file_path = "cartesian_robot.urdf";
+    auto robot = parseRobot(robot_file_path);
+    ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
+
+    // Check robot has root node
+    EXPECT_TRUE(robot->hasRoot());
+
+    // Check joint structure - should have 3 prismatic joints
+    auto joint_names = robot->jointNames();
+    EXPECT_EQ(joint_names.size(), 3);
+
+    // Check specific joints exist
+    auto const& joint_x = robot->joint("joint_x");
+    auto const& joint_y = robot->joint("joint_y");
+    auto const& joint_z = robot->joint("joint_z");
+
+    // Check joint types - all should be prismatic
+    EXPECT_EQ(joint_x.type(), Joint::Type::PRISMATIC);
+    EXPECT_EQ(joint_y.type(), Joint::Type::PRISMATIC);
+    EXPECT_EQ(joint_z.type(), Joint::Type::PRISMATIC);
+
+    // Check joint axes
+    auto joint_x_axis = joint_x.axis();
+    auto joint_y_axis = joint_y.axis();
+    auto joint_z_axis = joint_z.axis();
+
+    // X joint should translate along X-axis
+    EXPECT_DOUBLE_EQ(joint_x_axis.x(), 1.0);
+    EXPECT_DOUBLE_EQ(joint_x_axis.y(), 0.0);
+    EXPECT_DOUBLE_EQ(joint_x_axis.z(), 0.0);
+
+    // Y joint should translate along Y-axis
+    EXPECT_DOUBLE_EQ(joint_y_axis.x(), 0.0);
+    EXPECT_DOUBLE_EQ(joint_y_axis.y(), 1.0);
+    EXPECT_DOUBLE_EQ(joint_y_axis.z(), 0.0);
+
+    // Z joint should translate along Z-axis
+    EXPECT_DOUBLE_EQ(joint_z_axis.x(), 0.0);
+    EXPECT_DOUBLE_EQ(joint_z_axis.y(), 0.0);
+    EXPECT_DOUBLE_EQ(joint_z_axis.z(), 1.0);
+
+    // Check joint limits
+    auto joint_x_limits = joint_x.limits();
+    auto joint_y_limits = joint_y.limits();
+    auto joint_z_limits = joint_z.limits();
+
+    EXPECT_DOUBLE_EQ(joint_x_limits.first, -0.5);
+    EXPECT_DOUBLE_EQ(joint_x_limits.second, 0.5);
+    EXPECT_DOUBLE_EQ(joint_y_limits.first, -0.45);
+    EXPECT_DOUBLE_EQ(joint_y_limits.second, 0.45);
+    EXPECT_DOUBLE_EQ(joint_z_limits.first, -0.1);
+    EXPECT_DOUBLE_EQ(joint_z_limits.second, 0.0);
+
+    // Test geometry information
+    auto geometries = getGeometries(*robot);
+    EXPECT_EQ(geometries.size(), 4);
+
+    // Check frame2 geometry (grey box)
+    EXPECT_EQ(geometries[0]->name(), "frame2_visual");
+    EXPECT_EQ(geometries[0]->type(), Geometry::Type::BOX);
+    EXPECT_EQ(geometries[0]->parameters().size(), 3u);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[0], 1.1);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[1], 0.1);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[2], 0.1);
+    EXPECT_EQ(geometries[0]->meshPath(), "");
+    EXPECT_EQ(geometries[0]->color, Eigen::Vector3f(0.5f, 0.5f, 0.5f));
+
+    // Check link_x geometry (red box)
+    EXPECT_EQ(geometries[1]->name(), "link_x_visual");
+    EXPECT_EQ(geometries[1]->type(), Geometry::Type::BOX);
+    EXPECT_EQ(geometries[1]->parameters().size(), 3u);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[0], 0.1);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[1], 1.0);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[2], 0.1);
+    EXPECT_EQ(geometries[1]->meshPath(), "");
+    EXPECT_EQ(geometries[1]->color, Eigen::Vector3f(1.0f, 0.0f, 0.0f));
+
+    // Check link_y geometry (green box)
+    EXPECT_EQ(geometries[2]->name(), "link_y_visual");
+    EXPECT_EQ(geometries[2]->type(), Geometry::Type::BOX);
+    EXPECT_EQ(geometries[2]->parameters().size(), 3u);
+    EXPECT_DOUBLE_EQ(geometries[2]->parameters()[0], 0.15);
+    EXPECT_DOUBLE_EQ(geometries[2]->parameters()[1], 0.15);
+    EXPECT_DOUBLE_EQ(geometries[2]->parameters()[2], 0.15);
+    EXPECT_EQ(geometries[2]->meshPath(), "");
+    EXPECT_EQ(geometries[2]->color, Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+
+    // Check link_z geometry (blue cylinder)
+    EXPECT_EQ(geometries[3]->name(), "link_z_visual");
+    EXPECT_EQ(geometries[3]->type(), Geometry::Type::CYLINDER);
+    EXPECT_EQ(geometries[3]->parameters().size(), 2u);
+    EXPECT_DOUBLE_EQ(geometries[3]->parameters()[0], 0.04);
+    EXPECT_DOUBLE_EQ(geometries[3]->parameters()[1], 0.3);
+    EXPECT_EQ(geometries[3]->meshPath(), "");
+    EXPECT_EQ(geometries[3]->color, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
 }

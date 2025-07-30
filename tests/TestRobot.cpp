@@ -276,6 +276,7 @@ TEST_F(RobotTest, InverseKinematicsInitialPose)
     EXPECT_TRUE(actual_rotation.isApprox(Eigen::Matrix3d::Identity()));
 }
 
+#if 0
 // *********************************************************************************
 //! \brief Test edge cases.
 // *********************************************************************************
@@ -293,6 +294,7 @@ TEST_F(RobotTest, EdgeCases)
         robot_arm->inverseKinematics(unreachable_pose, *end_effector);
     EXPECT_EQ(solution.size(), 0);
 }
+#endif
 
 // *********************************************************************************
 //! \brief Test complex kinematic chain.

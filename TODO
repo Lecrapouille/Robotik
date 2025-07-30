@@ -23,3 +23,10 @@ Mettre le scene graphe comme un behavior tree: composite, decorator, leaf:
 
 Repenser le parcours du scene graphe via un pattern visiteur: par exemple pour le debug:
  if (joint->type() == Joint::Type::CONTINUOUS) { std::cout << joint_indent   << "├── T_joint:      rotate(axis = " << joint->axis().x()
+
+
+ Terme	Signification
+end_effector	L’outil lui-même (gripper, etc.)
+flange	L’interface mécanique pour le monter
+tool0	Le repère d’outil à la base du end-effector (souvent fixe)
+tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pince)

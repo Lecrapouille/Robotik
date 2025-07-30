@@ -156,4 +156,12 @@ Transform dhTransform(double p_a, double p_alpha, double p_d, double p_theta);
 // ------------------------------------------------------------------------
 std::string printTransform(const Transform& p_transform, int p_precision = 3);
 
+// ------------------------------------------------------------------------
+//! \brief Print a pose.
+//! \param p_name The name of the pose.
+//! \param p_pose The pose to print.
+//! \return The string representation of the pose.
+// ------------------------------------------------------------------------
+std::string printPose(const std::string& name, const Pose& pose);
+
 } // namespace robotik::utils
