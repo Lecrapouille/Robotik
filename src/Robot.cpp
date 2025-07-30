@@ -226,4 +226,106 @@ bool Robot::setJointValues(std::vector<double> const& p_values)
     return true;
 }
 
+// ----------------------------------------------------------------------------
+Joint const& Robot::findEndEffector() const
+{
+    if (!hasRoot())
+    {
+        throw RobotikException("Robot has no root");
+    }
+
+    Joint const* end_effector_joint = nullptr;
+    size_t max_depth = 0;
+
+    // Traverse the scene graph to find the joint at maximum depth
+    m_root_node->traverse(
+        [&](scene::Node const& p_node, size_t p_depth)
+        {
+            // Check if this is a Joint node
+            if (auto joint = dynamic_cast<Joint const*>(&p_node))
+            {
+                // Check if this joint has no child joints (it's a terminal
+                // joint)
+                bool has_child_joints = false;
+                p_node.traverse(
+                    [&has_child_joints](scene::Node const& p_child,
+                                        size_t /*p_child_depth*/)
+                    {
+                        if (dynamic_cast<Joint const*>(&p_child))
+                        {
+                            has_child_joints = true;
+                        }
+                    });
+
+                // If this joint has no child joints, it's a candidate for end
+                // effector
+                if (!has_child_joints && p_depth > max_depth)
+                {
+                    max_depth = p_depth;
+                    end_effector_joint = joint;
+                }
+            }
+        });
+
+    // If no terminal joint found, look for the parent joint of the deepest link
+    if (!end_effector_joint)
+    {
+        Link const* deepest_link = nullptr;
+        max_depth = 0;
+
+        m_root_node->traverse(
+            [&](scene::Node const& p_node, size_t p_depth)
+            {
+                if (auto link = dynamic_cast<Link const*>(&p_node))
+                {
+                    // Check if this link has no child joints
+                    bool has_child_joints = false;
+                    p_node.traverse(
+                        [&has_child_joints](scene::Node const& p_child,
+                                            size_t /*p_child_depth*/)
+                        {
+                            if (dynamic_cast<Joint const*>(&p_child))
+                            {
+                                has_child_joints = true;
+                            }
+                        });
+
+                    if (!has_child_joints && p_depth > max_depth)
+                    {
+                        max_depth = p_depth;
+                        deepest_link = link;
+                    }
+                }
+            });
+
+        // Find the joint that connects to this deepest link
+        if (deepest_link)
+        {
+            m_root_node->traverse(
+                [&](scene::Node const& p_node, size_t /*p_depth*/)
+                {
+                    if (auto joint = dynamic_cast<Joint const*>(&p_node))
+                    {
+                        // Check if this joint has the deepest link as a child
+                        for (auto const& child : joint->children())
+                        {
+                            if (child.get() == deepest_link)
+                            {
+                                end_effector_joint = joint;
+                                return;
+                            }
+                        }
+                    }
+                });
+        }
+    }
+
+    if (!end_effector_joint)
+    {
+        throw RobotikException("End effector not found");
+    }
+
+    return *end_effector_joint;
+}
+
 } // namespace robotik

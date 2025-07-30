@@ -110,9 +110,31 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Find and return a joint by its name.
     //! \param p_name Name of the joint.
-    //! \return Pointer to the joint, or nullptr if not found.
+    //! \return Reference to the joint.
+    //! \throw RobotikException if the joint is not found.
     // ------------------------------------------------------------------------
     Joint const& joint(std::string_view const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find the end effector of the robot arm.
+    //!
+    //! This method automatically identifies the end effector by finding the
+    //! link that is furthest from the root in the kinematic chain and has
+    //! no child joints. The end effector is typically the last link in the
+    //! robot's kinematic chain where tools or grippers are attached.
+    //!
+    //! ALGORITHM:
+    //! - Traverse the scene graph starting from the root
+    //! - Find all Link nodes in the kinematic chain
+    //! - Identify the link with maximum depth that has no child joints
+    //! - If multiple candidates exist, prefer the one with the most children
+    //!   (indicating it's a tool attachment point)
+    //!
+    //! \return Pointer to the end effector link, or nullptr if not found
+    //! \note Call hasRoot() before calling this method to ensure the robot
+    //! is properly initialized
+    // ------------------------------------------------------------------------
+    Joint const& findEndEffector() const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint values of the robot arm.

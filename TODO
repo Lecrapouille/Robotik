@@ -30,3 +30,7 @@ end_effector	L’outil lui-même (gripper, etc.)
 flange	L’interface mécanique pour le monter
 tool0	Le repère d’outil à la base du end-effector (souvent fixe)
 tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pince)
+
+Reprendre https://youtu.be/l5eo4ePBxlE?si=hO9RFDiYwtCLCNvn&t=398
+- appliquer vitesse robot 0% -- 100%
+- differents reperes
