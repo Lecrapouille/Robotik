@@ -69,8 +69,8 @@ static const Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
 static const Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
 
 // ----------------------------------------------------------------------------
-OpenGLViewer::OpenGLViewer(int p_width,
-                           int p_height,
+OpenGLViewer::OpenGLViewer(size_t p_width,
+                           size_t p_height,
                            const std::string& p_title)
     : m_width(p_width), m_height(p_height), m_title(p_title)
 {
@@ -142,8 +142,8 @@ bool OpenGLViewer::initializeGL()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4); // 4x antialiasing
 
-    m_window =
-        glfwCreateWindow(m_width, m_height, m_title.c_str(), nullptr, nullptr);
+    m_window = glfwCreateWindow(
+        int(m_width), int(m_height), m_title.c_str(), nullptr, nullptr);
     if (!m_window)
     {
         m_error_message = "Failed to create GLFW window";
@@ -268,16 +268,16 @@ OpenGLViewer::createShaderProgram(const std::string& p_vertexSource,
 }
 
 // ----------------------------------------------------------------------------
-void OpenGLViewer::setCameraView(CameraViewType p_view,
-                                 const Eigen::Vector3f& p_camera_target)
+void OpenGLViewer::cameraView(CameraViewType p_view,
+                              const Eigen::Vector3f& p_camera_target)
 {
     setupCameraView(p_view, p_camera_target);
     updateCamera();
 }
 
 // ----------------------------------------------------------------------------
-void OpenGLViewer::setCameraView(CameraViewType p_view,
-                                 const Eigen::Vector3d& p_camera_target)
+void OpenGLViewer::cameraView(CameraViewType p_view,
+                              const Eigen::Vector3d& p_camera_target)
 {
     setupCameraView(p_view, p_camera_target.cast<float>());
     updateCamera();
@@ -535,7 +535,7 @@ void OpenGLViewer::renderRobot(Robot const& p_robot) const
         [this](scene::Node const& node, size_t /*p_depth*/)
         {
             Transform world_transform = node.worldTransform();
-            if (auto joint = dynamic_cast<Joint const*>(&node))
+            if (/*auto joint =*/dynamic_cast<Joint const*>(&node))
             {
                 // renderJoint(*joint, world_transform);
             }
@@ -964,6 +964,7 @@ void OpenGLViewer::setupCameraView(CameraViewType p_view_type,
 {
     // Set the camera target
     m_camera_target = p_camera_target;
+    m_camera_view = p_view_type;
 
     // Calculate appropriate camera distance based on view type
     float camera_distance;

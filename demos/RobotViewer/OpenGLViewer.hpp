@@ -43,8 +43,8 @@ public:
     //! \param p_height Window height.
     //! \param p_title Window title.
     // ------------------------------------------------------------------------
-    OpenGLViewer(int p_width = 800,
-                 int p_height = 600,
+    OpenGLViewer(size_t p_width = 800,
+                 size_t p_height = 600,
                  const std::string& p_title = "Robotik Viewer");
 
     // ------------------------------------------------------------------------
@@ -63,16 +63,25 @@ public:
     //! \param p_view_type Camera view position.
     //! \param p_camera_target Camera target position (default: origin).
     // ------------------------------------------------------------------------
-    void setCameraView(CameraViewType p_view_type,
-                       const Eigen::Vector3f& p_camera_target);
+    void cameraView(CameraViewType p_view_type,
+                    const Eigen::Vector3f& p_camera_target);
 
     // ------------------------------------------------------------------------
     //! \brief Set camera view.
     //! \param p_view_type Camera view position.
     //! \param p_camera_target Camera target position (default: origin).
     // ------------------------------------------------------------------------
-    void setCameraView(CameraViewType p_view_type,
-                       const Eigen::Vector3d& p_camera_target);
+    void cameraView(CameraViewType p_view_type,
+                    const Eigen::Vector3d& p_camera_target);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current camera view.
+    //! \return Current camera view.
+    // ------------------------------------------------------------------------
+    CameraViewType cameraView() const
+    {
+        return m_camera_view;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Render the scene.
@@ -96,7 +105,7 @@ public:
     //! \brief Get the GLFW window.
     //! \return Pointer to GLFW window.
     // ------------------------------------------------------------------------
-    GLFWwindow* getWindow() const
+    GLFWwindow* window() const
     {
         return m_window;
     }
@@ -295,8 +304,8 @@ private:
 private:
 
     // Window properties
-    int m_width;
-    int m_height;
+    size_t m_width;
+    size_t m_height;
     std::string m_title;
     GLFWwindow* m_window = nullptr;
 
@@ -321,6 +330,7 @@ private:
     size_t m_sphere_index_count = 0;
 
     // Camera
+    CameraViewType m_camera_view = CameraViewType::PERSPECTIVE;
     Eigen::Vector3f m_camera_pos = Eigen::Vector3f(8.0f, 3.0f, 8.0f);
     Eigen::Vector3f m_camera_target = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
     Eigen::Vector3f m_camera_up = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
