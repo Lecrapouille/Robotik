@@ -19,9 +19,11 @@ namespace robotik
 //! - Robot arm visualization
 //! - No lighting (flat shading)
 // ****************************************************************************
-class Viewer
+class OpenGLViewer
 {
 public:
+
+    using KeyCallback = std::function<void(size_t, int)>;
 
     // ------------------------------------------------------------------------
     //! \brief Camera view positions.
@@ -41,14 +43,14 @@ public:
     //! \param p_height Window height.
     //! \param p_title Window title.
     // ------------------------------------------------------------------------
-    Viewer(int p_width = 800,
-           int p_height = 600,
-           const std::string& p_title = "Robotik Viewer");
+    OpenGLViewer(int p_width = 800,
+                 int p_height = 600,
+                 const std::string& p_title = "Robotik Viewer");
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.
     // ------------------------------------------------------------------------
-    ~Viewer();
+    ~OpenGLViewer();
 
     // ------------------------------------------------------------------------
     //! \brief Initialize the viewer.
@@ -88,8 +90,7 @@ public:
     //! \brief Process input events.
     //! \param p_key_callback Callback function for key events.
     // ------------------------------------------------------------------------
-    void
-    processInput(std::function<void(int, int)> const& p_key_callback = nullptr);
+    void processInput(KeyCallback const& p_key_callback);
 
     // ------------------------------------------------------------------------
     //! \brief Get the GLFW window.
@@ -108,6 +109,13 @@ public:
     {
         return m_error_message;
     }
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if a key is currently pressed.
+    //! \param p_key The key to check.
+    //! \return true if the key is pressed.
+    // ------------------------------------------------------------------------
+    bool isKeyPressed(int p_key) const;
 
 private:
 
@@ -332,6 +340,9 @@ private:
 
     // Error message
     mutable std::string m_error_message;
+
+    // Key state tracking
+    std::array<bool, 256> m_keys = { false };
 };
 
 } // namespace robotik
