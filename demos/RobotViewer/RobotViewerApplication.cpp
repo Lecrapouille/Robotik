@@ -51,7 +51,7 @@ bool RobotViewerApplication::loadRobot(const std::string& p_urdf_file)
     else
     {
         std::cout << "Loaded robot from: " << p_urdf_file << std::endl;
-        debug::printRobot(*m_robot, true);
+        std::cout << debug::printRobot(*m_robot, true) << std::endl;
     }
     return true;
 }
