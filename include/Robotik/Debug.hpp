@@ -1,16 +1,18 @@
 #pragma once
 
 #include "Robotik/Robot.hpp"
+#include <string>
 
 namespace robotik::debug
 {
 
 // ****************************************************************************
-//! \brief Print the robot as scene graph to the console.
+//! \brief Print the robot as scene graph to a string.
 //! \param p_robot The robot to print.
-//! \param p_detailed If true, show detailed information (transforms, geometry).
-//!                   If false, show only the tree structure (default).
+//! \param p_detailed If false, show only the tree structure (default).
+//!  If true, show detailed information (local and world transforms, geometry).
+//! \return A string containing the formatted robot representation.
 // ****************************************************************************
-void printRobot(const Robot& p_robot, bool p_detailed = false);
+std::string printRobot(Robot const& p_robot, bool p_detailed = false);
 
 } // namespace robotik::debug
