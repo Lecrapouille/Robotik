@@ -1,8 +1,6 @@
 #include "Application.hpp"
 
 #include <chrono>
-#include <iostream>
-#include <thread>
 
 namespace robotik
 {

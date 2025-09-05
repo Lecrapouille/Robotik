@@ -1,18 +1,49 @@
 #include "Robotik/Parser.hpp"
+
 #include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Geometry.hpp"
+#include "Robotik/private/Joint.hpp"
 #include "Robotik/private/Link.hpp"
+
+#include "Robotik/Robot.hpp"
 
 #include <tinyxml2/tinyxml2.h>
 
 #include <algorithm>
 #include <fstream>
-#include <memory>
 #include <sstream>
-#include <unordered_map>
 
 namespace robotik
 {
+
+// ------------------------------------------------------------------------
+//! \brief Private Link data extracted from the URDF file. Used temporarily
+//! to be converted into the definitive robotik::Link object in the method
+//! buildSceneGraph().
+// ------------------------------------------------------------------------
+struct URDFParserLink
+{
+    explicit URDFParserLink(std::string_view const& p_name) : name(p_name) {}
+
+    std::string name;
+    Geometry::Ptr geometry;
+    Geometry::Ptr collision;
+    Eigen::Vector3f color = Eigen::Vector3f(0.5, 0.5, 0.5);
+    Inertial inertial;
+    Joint* parent_joint = nullptr;
+    std::vector<Joint*> child_joints;
+};
+
+// ----------------------------------------------------------------------------
+URDFParser::URDFParser() = default;
+
+// ----------------------------------------------------------------------------
+URDFParser::~URDFParser() = default;
+
+// ----------------------------------------------------------------------------
+URDFParser::URDFParser(URDFParser&&) noexcept = default;
+
+// ----------------------------------------------------------------------------
+URDFParser& URDFParser::operator=(URDFParser&&) noexcept = default;
 
 // ----------------------------------------------------------------------------
 template <typename Func>
@@ -113,7 +144,7 @@ URDFParser::parseRobot(tinyxml2::XMLElement* p_robot_element)
         [this](auto* xml)
         {
             std::string name = xml->Attribute("name");
-            auto link = std::make_unique<URDFParser::Link>(name);
+            auto link = std::make_unique<URDFParserLink>(name);
 
             parseVisualProperties(xml, *link);
             parseCollisionProperties(xml, *link);
@@ -197,7 +228,7 @@ URDFParser::buildSceneGraph(std::string_view p_robot_name)
 }
 
 // ----------------------------------------------------------------------------
-URDFParser::Link* URDFParser::findRootLink() const
+URDFParserLink* URDFParser::findRootLink() const
 {
     for (const auto& [name, link] : m_links)
     {
@@ -227,7 +258,7 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* p_current_joint)
     m_joints.erase(joint_it);
 
     // Find the child link of the current joint.
-    URDFParser::Link* child_link = nullptr;
+    URDFParserLink* child_link = nullptr;
     for (const auto& [name, link] : m_links)
     {
         if (link->parent_joint == p_current_joint)
@@ -266,7 +297,7 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* p_current_joint)
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                         URDFParser::Link& p_link) const
+                                         URDFParserLink& p_link) const
 {
     if (auto inertial_element = p_link_element->FirstChildElement("inertial"))
     {
@@ -312,7 +343,7 @@ URDFParser::parseInertial(tinyxml2::XMLElement* p_inertial_element) const
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
-                                       URDFParser::Link& p_link) const
+                                       URDFParserLink& p_link) const
 {
     auto visual_element = p_link_element->FirstChildElement("visual");
     if (!visual_element)
@@ -342,7 +373,7 @@ void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
-                                          URDFParser::Link& p_link) const
+                                          URDFParserLink& p_link) const
 {
     auto collision_element = p_link_element->FirstChildElement("collision");
     if (!collision_element)
@@ -368,8 +399,8 @@ URDFParser::parseGeometry(tinyxml2::XMLElement* p_geometry_element,
     if (auto boxElement = p_geometry_element->FirstChildElement("box"))
     {
         auto size = parseOptionalVector3(boxElement, "size");
-        auto params = std::vector<double>{ size.x(), size.y(), size.z() };
-        return std::make_unique<robotik::Box>(p_name, std::move(params));
+        return std::make_unique<robotik::Box>(
+            p_name, size.x(), size.y(), size.z());
     }
     else if (auto cylinderElement =
                  p_geometry_element->FirstChildElement("cylinder"))
@@ -377,16 +408,14 @@ URDFParser::parseGeometry(tinyxml2::XMLElement* p_geometry_element,
         double radius = 0.1, length = 0.2;
         cylinderElement->QueryDoubleAttribute("radius", &radius);
         cylinderElement->QueryDoubleAttribute("length", &length);
-        auto params = std::vector<double>{ radius, length };
-        return std::make_unique<robotik::Cylinder>(p_name, std::move(params));
+        return std::make_unique<robotik::Cylinder>(p_name, radius, length);
     }
     else if (auto sphereElement =
                  p_geometry_element->FirstChildElement("sphere"))
     {
         double radius = 0.1;
         sphereElement->QueryDoubleAttribute("radius", &radius);
-        auto params = std::vector<double>{ radius };
-        return std::make_unique<robotik::Sphere>(p_name, std::move(params));
+        return std::make_unique<robotik::Sphere>(p_name, radius);
     }
     else if (auto meshElement = p_geometry_element->FirstChildElement("mesh"))
     {
@@ -415,7 +444,7 @@ URDFParser::parseOriginFromElement(tinyxml2::XMLElement* p_element) const
 
 // ----------------------------------------------------------------------------
 void URDFParser::parseMaterial(tinyxml2::XMLElement* p_visual_element,
-                               URDFParser::Link& p_link) const
+                               URDFParserLink& p_link) const
 {
     auto material_element = p_visual_element->FirstChildElement("material");
     if (!material_element)
@@ -498,7 +527,7 @@ URDFParser::parseOriginTransform(tinyxml2::XMLElement* p_element) const
 
 // ----------------------------------------------------------------------------
 robotik::Link::Ptr
-URDFParser::createLinkFromURDFData(URDFParser::Link& p_urdf_link) const
+URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link) const
 {
     if (p_urdf_link.geometry && p_urdf_link.collision)
     {

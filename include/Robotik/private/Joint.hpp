@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Robotik/private/Geometry.hpp"
 #include "Robotik/private/Inertial.hpp"
 #include "Robotik/private/SceneNode.hpp"
 
@@ -11,30 +10,31 @@ namespace robotik
 //! \brief Class representing a robotic joint.
 //!
 //! In robotics, a joint is a mechanical connection between two rigid bodies
-//! (links) that allows controlled motion between them. Joints are the
-//! actuated components that give robots their ability to move and
-//! manipulate objects.
+//! (links) that allows controlled motion between them. Joints are the actuated
+//! components that give robots their ability to move and manipulate objects.
 //!
-//! Physical characteristics:
 //! - REVOLUTE joints: Allow rotation around a fixed axis (like elbow,
-//! shoulder)
-//!   * Typical range: -π to +π radians (or limited by mechanical
-//!   constraints)
-//!   * Examples: Robot arm joints, wheel steering mechanisms
+//! shoulder).
+//!   * Examples: Robot arm joints, wheel steering mechanisms.
+//!   * Example of range: -π to +π radians (or limited by mechanical
+//!   constraints).
+//!
+//! - CONTINUOUS joints: Allow rotation around a fixed axis with no limits.
+//!   * Examples: wheel steering mechanisms.
 //!
 //! - PRISMATIC joints: Allow linear translation along a fixed axis (like
-//! pistons)
-//!   * Typical range: 0 to max_extension (in meters)
-//!   * Examples: Linear actuators, elevator mechanisms, grippers
+//! pistons).
+//!   * Examples: Linear actuators, elevator mechanisms, grippers.
+//!   * Example of range: 0 to max_extension (in meters).
 //!
 //! - FIXED joints: No movement, rigid connection between links
-//!   * Used for: Tool attachments, sensor mounts, structural connections
+//!   * Used for: Tool attachments, sensor mounts, structural connections.
 //!
 //! Each joint has:
-//! - A motion axis (3D vector defining rotation/translation direction)
-//! - Current position/angle value (the joint's configuration)
-//! - Motion limits (safety and mechanical constraints)
-//! - Associated Node for transform propagation in the scene graph
+//! - A motion axis (3D vector defining rotation/translation direction).
+//! - Current position/angle value (the joint's configuration).
+//! - Motion limits (safety and mechanical constraints).
+//! - Associated Node for transform propagation in the scene graph.
 //!
 //! The joint transforms the coordinate frame from parent link to child link
 //! based on its current value and type, enabling forward kinematics
@@ -52,30 +52,35 @@ public:
     //! This defines the fundamental types of mechanical connections in
     //! robotics:
     //!
-    //! REVOLUTE: Rotational joint around a fixed axis
-    //! - Degrees of freedom: 1 (rotation angle)
-    //! - Motion: Circular around axis vector
-    //! - Examples: Elbow, shoulder, wrist rotation
-    //! - Typical actuators: Servo motors, stepper motors
+    //! REVOLUTE, CONTINUOUS: Rotational joint around a fixed axis.
+    //! CONTINUOUS is a special case of REVOLUTE with no limits.
+    //! - Degrees of freedom: 1 (rotation angle).
+    //! - Motion: Circular around axis vector.
+    //! - Examples: Elbow, shoulder, wrist rotation.
+    //! - Typical actuators: Servo motors, stepper motors.
     //!
-    //! PRISMATIC: Linear translation joint along a fixed axis
-    //! - Degrees of freedom: 1 (linear position)
-    //! - Motion: Straight line along axis vector
-    //! - Examples: Linear actuators, pneumatic pistons, telescoping arms
-    //! - Typical actuators: Linear motors, hydraulic cylinders
+    //! PRISMATIC: Linear translation joint along a fixed axis.
+    //! - Degrees of freedom: 1 (linear position).
+    //! - Motion: Straight line along axis vector.
+    //! - Examples: Linear actuators, pneumatic pistons, telescoping arms.
+    //! - Typical actuators: Linear motors, hydraulic cylinders.
     //!
-    //! FIXED: Rigid connection with no movement
-    //! - Degrees of freedom: 0 (completely constrained)
-    //! - Motion: None (permanent rigid attachment)
-    //! - Examples: Tool mounting, sensor brackets, structural connections
-    //! - Purpose: Maintain fixed spatial relationships between components
+    //! FIXED: Rigid connection with no movement.
+    //! - Degrees of freedom: 0 (completely constrained).
+    //! - Motion: None (permanent rigid attachment).
+    //! - Examples: Tool mounting, sensor brackets, structural connections.
+    //! - Purpose: Maintain fixed spatial relationships between components.
     // ------------------------------------------------------------------------
     enum class Type
     {
-        REVOLUTE,   // Revolute joint - rotation around axis
-        PRISMATIC,  // Prismatic joint - translation along axis
-        CONTINUOUS, // Continuous joint - rotation around axis
-        FIXED       // Fixed joint - no movement, rigid connection
+        //! \brief Fixed joint - no movement, rigid connection
+        FIXED,
+        //! \brief Prismatic joint - translation along axis with limits
+        PRISMATIC,
+        //! \brief Revolute joint - rotation around axis with limits
+        REVOLUTE,
+        //! \brief Continuous joint - rotation around axis with no limits
+        CONTINUOUS,
     };
 
     // ------------------------------------------------------------------------
@@ -87,28 +92,58 @@ public:
     //! through the kinematic chain.
     //!
     //! For REVOLUTE joints:
-    //! - Axis defines the instantaneous axis of rotation (Rodrigues' theorem)
-    //! - Angular displacement follows θ(t) = θ₀ + ω*t for constant velocity
-    //! - Kinetic energy: KE = ½*I*ω² where I is moment of inertia
-    //! - Torque-angle relationship: τ = I*α (α = angular acceleration)
+    //! - Axis defines the instantaneous axis of rotation (Rodrigues' theorem).
+    //! - Angular displacement follows θ(t) = θ₀ + ω*t for constant velocity.
+    //! - Kinetic energy: KE = ½*I*ω² where I is moment of inertia.
+    //! - Torque-angle relationship: τ = I*α (α = angular acceleration).
     //!
     //! For PRISMATIC joints:
-    //! - Axis defines the direction of linear translation
-    //! - Linear displacement follows x(t) = x₀ + v*t for constant velocity
-    //! - Kinetic energy: KE = ½*m*v² where m is mass
-    //! - Force-displacement relationship: F = m*a (a = linear acceleration)
+    //! - Axis defines the direction of linear translation.
+    //! - Linear displacement follows x(t) = x₀ + v*t for constant velocity.
+    //! - Kinetic energy: KE = ½*m*v² where m is mass.
+    //! - Force-displacement relationship: F = m*a (a = linear acceleration).
     //!
     //! The axis vector must be normalized as it represents a pure direction
     //! in 3D space. The joint's configuration space is one-dimensional for
     //! both revolute and prismatic joints.
     //!
-    //! \param p_name Unique identifier for the joint in the kinematic chain
-    //! \param p_type Mechanical type defining the motion constraint
-    //! \param p_axis Normalized 3D vector defining the motion axis
+    //! \param p_name Unique identifier for the joint in the kinematic chain.
+    //! \param p_type Mechanical type defining the motion constraint (REVOLUTE,
+    //! PRISMATIC, FIXED, CONTINUOUS).
+    //! \param p_axis Normalized 3D vector defining the motion axis.
     // ------------------------------------------------------------------------
     Joint(std::string_view const& p_name,
           Type p_type,
-          const Eigen::Vector3d& p_axis);
+          const Eigen::Vector3d& p_axis); // TODO mettre Inertia
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's motion axis vector.
+    //! \return Constant reference to the normalized motion axis vector.
+    //!
+    //! For REVOLUTE and CONTINUOUS joints:
+    //! - Axis represents the instantaneous rotation axis.
+    //! - Right-hand rule: Positive angles follow right-hand convention.
+    //! - Screw axis: Defines helical motion if combined with translation.
+    //! - Angular velocity: ω = θ̇' * axis (where θ̇' is joint velocity).
+    //!
+    //! For PRISMATIC joints:
+    //! - Axis represents the translation direction.
+    //! - Unit direction: Positive values move in +axis direction.
+    //! - Linear velocity: v = d' * axis (where d' is joint velocity).
+    // ------------------------------------------------------------------------
+    inline Eigen::Vector3d const& axis() const
+    {
+        return m_axis;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the mechanical type of the joint (REVOLUTE, PRISMATIC ...).
+    //! \return The mechanical type of the joint
+    // ------------------------------------------------------------------------
+    inline Joint::Type type() const
+    {
+        return m_type;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Set the joint's configuration value.
@@ -169,13 +204,11 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Set joint motion limits for safety and mechanical constraints.
     //!
-    //! PHYSICS: Joint limits represent physical and safety constraints that
-    //! prevent damage to the robotic system and ensure safe operation.
-    //!
-    //! MECHANICAL LIMITS:
-    //! - Hard stops: Physical barriers preventing further motion
-    //! - Actuator limits: Maximum torque/force output capabilities
-    //! - Structural limits: Material stress and fatigue considerations
+    //! Joint limits represent physical and safety constraints that prevent
+    //! damage to the robotic system and ensure safe operation:
+    //! - Hard stops: Physical barriers preventing further motion.
+    //! - Actuator limits: Maximum torque/force output capabilities.
+    //! - Structural limits: Material stress and fatigue considerations.
     //!
     //! For REVOLUTE joints:
     //! - Angular limits prevent over-rotation and cable wrapping
@@ -194,11 +227,17 @@ public:
     //! - Velocity limits: Maximum safe motion speeds
     //! - Acceleration limits: Maximum safe motion accelerations
     //!
-    //! \param p_min Minimum allowed joint value
-    //! \param p_max Maximum allowed joint value
+    //! \param p_min Minimum allowed joint value.
+    //! \param p_max Maximum allowed joint value.
+    //! \note The limits have no effect for CONTINUOUS joints and FIXED joints.
     // ------------------------------------------------------------------------
     inline void limits(double p_min, double p_max)
     {
+        // Note: the if is redundant since the setter position() has security.
+        // This code is for the sake of clarity.
+        if (m_type == Joint::Type::CONTINUOUS || m_type == Joint::Type::FIXED)
+            return;
+
         m_min = p_min;
         m_max = p_max;
     }
@@ -240,35 +279,6 @@ public:
     //! Called automatically when joint value changes via value()
     // ------------------------------------------------------------------------
     void updateTransforms();
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the mechanical type of the joint.
-    //! \return The mechanical type of the joint
-    // ------------------------------------------------------------------------
-    inline Joint::Type type() const
-    {
-        return m_type;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the joint's motion axis vector.
-    //! \return Constant reference to the normalized motion axis vector
-    //!
-    //! For REVOLUTE joints:
-    //! - Axis represents the instantaneous rotation axis
-    //! - Right-hand rule: Positive angles follow right-hand convention
-    //! - Screw axis: Defines helical motion if combined with translation
-    //! - Angular velocity: ω = θ̇ * axis (where θ̇ is joint velocity)
-    //!
-    //! For PRISMATIC joints:
-    //! - Axis represents the translation direction.
-    //! - Unit direction: Positive values move in +axis direction.
-    //! - Linear velocity: v = ḋ * axis (where ḋ is joint velocity).
-    // ------------------------------------------------------------------------
-    inline const Eigen::Vector3d& axis() const
-    {
-        return m_axis;
-    }
 
     // ------------------------------------------------------------------------
     //! \brief Set the inertial properties of the joint.

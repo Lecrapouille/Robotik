@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Robotik/Robot.hpp"
-#include <string>
 
 namespace robotik::debug
 {

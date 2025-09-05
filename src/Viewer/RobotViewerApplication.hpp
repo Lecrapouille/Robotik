@@ -1,13 +1,11 @@
 #pragma once
 
-#include "Application.hpp"
 #include "Robotik/Robot.hpp"
 
-#include <atomic>
+#include "Application.hpp"
+
 #include <chrono>
-#include <memory>
 #include <mutex>
-#include <string>
 
 namespace robotik
 {

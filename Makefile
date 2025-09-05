@@ -40,7 +40,7 @@ INCLUDES += $(P)/include $(P)/src
 ###############################################################################
 # Inform Makefile where to find *.cpp files
 #
-VPATH += $(P)/src
+VPATH += $(P)/src/Robotik
 
 ###############################################################################
 # Project defines
@@ -50,7 +50,7 @@ DEFINES +=
 ###############################################################################
 # Make the list of files to compile
 #
-LIB_FILES := $(wildcard $(P)/src/*.cpp)
+LIB_FILES := $(wildcard $(P)/src/Robotik/*.cpp)
 
 ###############################################################################
 # Set Eigen3 library
@@ -86,4 +86,4 @@ post-build: build-robot-viewer
 
 .PHONY: build-robot-viewer
 build-robot-viewer: $(TARGET_STATIC_LIB_NAME)
-	$(Q)$(MAKE) --no-print-directory --directory=demos/RobotViewer all
+	$(Q)$(MAKE) --no-print-directory --directory=src/Viewer all

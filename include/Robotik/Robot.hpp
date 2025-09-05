@@ -1,13 +1,14 @@
 #pragma once
 
+#include "Robotik/Component.hpp"
 #include "Robotik/private/Joint.hpp"
 #include "Robotik/private/Link.hpp"
 
-#include <string>
-#include <vector>
-
 namespace robotik
 {
+
+class Joint;
+class Link;
 
 // *********************************************************************************
 //! \brief Class representing a complete robotic arm.

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Robotik/private/SceneNode.hpp"
-#include "Robotik/private/Types.hpp"
 
 namespace robotik
 {
@@ -22,12 +21,13 @@ public:
     };
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor with name and type.
+    //! \brief Common constructor for any kind of geometry with name, type,
+    //! parameters, and mesh path.
     // ------------------------------------------------------------------------
-    explicit Geometry(std::string_view const& p_name,
-                      Type p_type,
-                      std::vector<double>&& p_parameters,
-                      std::string_view p_mesh_path)
+    Geometry(std::string_view const& p_name,
+             Type p_type,
+             std::vector<double>&& p_parameters,
+             std::string_view p_mesh_path)
         : scene::Node(p_name),
           m_type(p_type),
           m_parameters(std::move(p_parameters)),
@@ -48,6 +48,9 @@ public:
     //! \brief Get the geometry's parameters (if type is BOX, CYLINDER, or
     //! SPHERE).
     //! \return The geometry's parameters.
+    //!  for box: size (x, y, z)
+    //!  for cylinder: radius, length
+    //!  for sphere: radius
     // ------------------------------------------------------------------------
     std::vector<double> const& parameters() const
     {
@@ -93,8 +96,8 @@ class Box: public Geometry
 {
 public:
 
-    Box(std::string_view const& p_name, std::vector<double>&& p_parameters)
-        : Geometry(p_name, Type::BOX, std::move(p_parameters), "")
+    Box(std::string_view const& p_name, double p_x, double p_y, double p_z)
+        : Geometry(p_name, Type::BOX, std::vector<double>{ p_x, p_y, p_z }, "")
     {
     }
 };
@@ -106,8 +109,11 @@ class Cylinder: public Geometry
 {
 public:
 
-    Cylinder(std::string_view const& p_name, std::vector<double>&& p_parameters)
-        : Geometry(p_name, Type::CYLINDER, std::move(p_parameters), "")
+    Cylinder(std::string_view const& p_name, double p_radius, double p_length)
+        : Geometry(p_name,
+                   Type::CYLINDER,
+                   std::vector<double>{ p_radius, p_length },
+                   "")
     {
     }
 };
@@ -119,8 +125,8 @@ class Sphere: public Geometry
 {
 public:
 
-    Sphere(std::string_view const& p_name, std::vector<double>&& p_parameters)
-        : Geometry(p_name, Type::SPHERE, std::move(p_parameters), "")
+    Sphere(std::string_view const& p_name, double p_radius)
+        : Geometry(p_name, Type::SPHERE, std::vector<double>{ p_radius }, "")
     {
     }
 };
