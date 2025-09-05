@@ -3,7 +3,6 @@
 #include "OpenGLViewer.hpp"
 
 #include <atomic>
-#include <string>
 #include <thread>
 
 namespace robotik

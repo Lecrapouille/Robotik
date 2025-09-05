@@ -9,6 +9,8 @@
 namespace robotik
 {
 
+class Geometry;
+
 // ****************************************************************************
 //! \brief Simple OpenGL viewer for robot visualization.
 //!
@@ -43,9 +45,9 @@ public:
     //! \param p_height Window height.
     //! \param p_title Window title.
     // ------------------------------------------------------------------------
-    OpenGLViewer(size_t p_width = 800,
-                 size_t p_height = 600,
-                 const std::string& p_title = "Robotik Viewer");
+    explicit OpenGLViewer(size_t p_width = 800,
+                          size_t p_height = 600,
+                          const std::string& p_title = "Robotik Viewer");
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.

@@ -1,6 +1,11 @@
 #pragma once
 
-#include "Robotik/Robot.hpp"
+#include "Robotik/private/Types.hpp"
+
+#include <memory>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 // Forward declarations
 namespace tinyxml2
@@ -12,12 +17,43 @@ class XMLDocument;
 namespace robotik
 {
 
+struct URDFParserLink;
+struct Inertial;
+class Robot;
+class Joint;
+class Link;
+class Geometry;
+
 // ****************************************************************************
 //! \brief Parser for URDF files to automatically build the robot.
 // ****************************************************************************
 class URDFParser
 {
 public:
+
+    // ------------------------------------------------------------------------
+    //! \brief Constructor.
+    // ------------------------------------------------------------------------
+    URDFParser();
+
+    // ------------------------------------------------------------------------
+    //! \brief Destructor.
+    //! \note Explicitly declared to handle incomplete type URDFParserLink.
+    // ------------------------------------------------------------------------
+    ~URDFParser();
+
+    // ------------------------------------------------------------------------
+    //! \brief Copy constructor and assignment operator are deleted.
+    //! \note This is necessary because of the incomplete type URDFParserLink.
+    // ------------------------------------------------------------------------
+    URDFParser(const URDFParser&) = delete;
+    URDFParser& operator=(const URDFParser&) = delete;
+
+    // ------------------------------------------------------------------------
+    //! \brief Move constructor and assignment operator.
+    // ------------------------------------------------------------------------
+    URDFParser(URDFParser&&) noexcept;
+    URDFParser& operator=(URDFParser&&) noexcept;
 
     // ------------------------------------------------------------------------
     //! \brief Load a robot from a URDF file.
@@ -40,26 +76,6 @@ public:
 private:
 
     // ------------------------------------------------------------------------
-    //! \brief Temporary data for storing parsed link data. Will be converted to
-    //! a robotik::Link object in the buildSceneGraph() method.
-    //! \note This is a private class used internally by the URDFParser class.
-    //! Do not confuse with robotik::Link which is the definitive class used by
-    //! the robot.
-    // ------------------------------------------------------------------------
-    struct Link
-    {
-        explicit Link(std::string_view const& p_name) : name(p_name) {}
-
-        std::string name;
-        Geometry::Ptr geometry;
-        Geometry::Ptr collision;
-        Eigen::Vector3f color = Eigen::Vector3f(0.5, 0.5, 0.5);
-        Inertial inertial;
-        Joint* parent_joint = nullptr;
-        std::vector<Joint*> child_joints;
-    };
-
-    // ------------------------------------------------------------------------
     //! \brief Create the scene graph from the parsed URDF data.
     //! \param p_robot_name The name of the robot.
     //! \return A unique pointer to the robot if the scene graph was created
@@ -68,11 +84,11 @@ private:
     std::unique_ptr<Robot> buildSceneGraph(std::string_view p_robot_name);
 
     // ------------------------------------------------------------------------
-    //! \brief Find the URDFParser::Link that has no parent joint to be used as
+    //! \brief Find the URDFParserLink that has no parent joint to be used as
     //! the root of the scene graph.
     //! \return A pointer to the root link if found, else nullptr.
     // ------------------------------------------------------------------------
-    URDFParser::Link* findRootLink() const;
+    URDFParserLink* findRootLink() const;
 
     // ------------------------------------------------------------------------
     std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
@@ -94,8 +110,8 @@ private:
     //! \note p_urdf_link has its collision and geometry moved.
     //! \return A unique pointer to the created Link object.
     // ------------------------------------------------------------------------
-    robotik::Link::Ptr
-    createLinkFromURDFData(URDFParser::Link& p_urdf_link) const;
+    std::unique_ptr<Link>
+    createLinkFromURDFData(URDFParserLink& p_urdf_link) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse an optional geometry (visual or collision) of a link.
@@ -108,13 +124,13 @@ private:
     //! \brief Parse visual geometry of a link (geometry, origin, material).
     // ------------------------------------------------------------------------
     void parseVisualProperties(tinyxml2::XMLElement* p_link_element,
-                               URDFParser::Link& p_link) const;
+                               URDFParserLink& p_link) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse collision geometry of a link.
     // ------------------------------------------------------------------------
     void parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
-                                  URDFParser::Link& p_link) const;
+                                  URDFParserLink& p_link) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse the origin from an element.
@@ -131,13 +147,13 @@ private:
     //! \brief Parse the material of a link.
     // ------------------------------------------------------------------------
     void parseMaterial(tinyxml2::XMLElement* p_visual_element,
-                       URDFParser::Link& p_link) const;
+                       URDFParserLink& p_link) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse the inertial properties from the URDF file.
     // ------------------------------------------------------------------------
     void parseInertialProperties(tinyxml2::XMLElement* p_link_element,
-                                 URDFParser::Link& p_link) const;
+                                 URDFParserLink& p_link) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse the inertial properties from the URDF file.
@@ -158,7 +174,7 @@ private:
 private:
 
     std::unique_ptr<Robot> m_robot;
-    std::unordered_map<std::string, std::unique_ptr<URDFParser::Link>> m_links;
+    std::unordered_map<std::string, std::unique_ptr<URDFParserLink>> m_links;
     std::unordered_map<std::string, std::unique_ptr<Joint>> m_joints;
     std::string m_error;
 };

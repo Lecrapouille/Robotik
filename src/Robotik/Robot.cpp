@@ -1,6 +1,8 @@
 #include "Robotik/Robot.hpp"
 #include "Robotik/private/Conversions.hpp"
 #include "Robotik/private/Exception.hpp"
+#include "Robotik/private/Joint.hpp"
+#include "Robotik/private/Link.hpp"
 
 #include <cmath>
 #include <iostream>
