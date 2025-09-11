@@ -146,10 +146,14 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set the joint's configuration value.
+    //! \brief Set the joint's position (angular or linear) value and compute
+    //! the joint's local transformation matrix. The joint value directly
+    //! affects the local transformation matrix that propagates through the
+    //! kinematic chain during forward kinematics.
     //!
-    //! PHYSICS: This method updates the joint's generalized coordinate,
-    //! which represents the current state in the joint's configuration space.
+    //! PHYSICS: This method computes the 4x4 homogeneous transformation
+    //! matrix that represents the spatial relationship between the joint's
+    //! parent and child coordinate frames.
     //!
     //! For REVOLUTE joints:
     //! - Value represents angular displacement θ from reference position
@@ -165,10 +169,20 @@ public:
     //! - Physical meaning: translation distance along the joint axis
     //! - Transformation: T = Trans(axis * d)
     //!
-    //! The joint value directly affects the local transformation matrix
-    //! that propagates through the kinematic chain during forward kinematics.
+    //! MATHEMATICAL FOUNDATION:
+    //! The transformation encodes both rotation and translation:
+    //! T = [R  t]  where R is 3x3 rotation matrix, t is 3x1 translation
+    //!     [0  1]
     //!
-    //! \param p_position New joint configuration value in appropriate units
+    //! For REVOLUTE joints:
+    //! - R = Rot(axis, θ) using Rodrigues' rotation formula
+    //! - R = I + sin(θ)*[axis]× + (1-cos(θ))*[axis]×²
+    //! - Where [axis]× is the skew-symmetric matrix of the axis vector
+    //! - Translation t = 0 (pure rotation about axis)
+    //!
+    //! For PRISMATIC joints:
+    //! - R = I (identity matrix, no rotation)
+    //! - Translation t = d * axis (linear displacement along axis)
     // ------------------------------------------------------------------------
     void position(double p_position); // FIXME: utiliser S.I.
 
@@ -252,6 +266,32 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Set the local transform of the joint.
+    // ------------------------------------------------------------------------
+    void localTransform(Transform const& p_transform) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the local transform of the joint.
+    //!
+    //! PHYSICS: This method overrides the base class localTransform() to
+    //! properly combine the static local transform (from URDF parsing) with
+    //! the dynamic joint transform (computed from joint position/type).
+    //!
+    //! The combined transformation follows the composition:
+    //! T_local_combined = T_static * T_joint
+    //!
+    //! Where:
+    //! - T_static: Static transformation from URDF (Node::m_local_transform)
+    //! - T_joint: Dynamic transformation based on joint position/type
+    //!
+    //! This ensures proper kinematic chain propagation while maintaining
+    //! clean separation between static and dynamic transformations.
+    //!
+    //! \return Combined local transformation matrix
+    // ------------------------------------------------------------------------
+    Transform const& localTransform() const override;
+
+    // ------------------------------------------------------------------------
     //! \brief Update the associated node's transformation.
     //!
     //! PHYSICS: This method propagates the joint's motion through the
@@ -299,40 +339,6 @@ public:
 
 private:
 
-    // ------------------------------------------------------------------------
-    //! \brief Compute the joint's local transformation matrix.
-    //!
-    //! PHYSICS: This method computes the 4x4 homogeneous transformation
-    //! matrix that represents the spatial relationship between the joint's
-    //! parent and child coordinate frames.
-    //!
-    //! MATHEMATICAL FOUNDATION:
-    //! The transformation encodes both rotation and translation:
-    //! T = [R  t]  where R is 3x3 rotation matrix, t is 3x1 translation
-    //!     [0  1]
-    //!
-    //! For REVOLUTE joints:
-    //! - R = Rot(axis, θ) using Rodrigues' rotation formula
-    //! - R = I + sin(θ)*[axis]× + (1-cos(θ))*[axis]×²
-    //! - Where [axis]× is the skew-symmetric matrix of the axis vector
-    //! - Translation t = 0 (pure rotation about axis)
-    //!
-    //! For PRISMATIC joints:
-    //! - R = I (identity matrix, no rotation)
-    //! - Translation t = d * axis (linear displacement along axis)
-    //!
-    //! KINEMATIC CHAIN PROPAGATION:
-    //! The joint transformation is multiplied with parent transformations
-    //! to compute the forward kinematics: T_world = T_parent * T_joint
-    //!
-    //! \return 4x4 homogeneous transformation matrix
-    // ------------------------------------------------------------------------
-    Transform computeJointTransform(Joint::Type p_type,
-                                    double p_position,
-                                    const Eigen::Vector3d& p_axis) const;
-
-private:
-
     //! \brief Mechanical constraint type (revolute/prismatic/fixed)
     Joint::Type m_type;
     //! \brief Current joint configuration value
@@ -346,7 +352,9 @@ private:
     //! \brief Inertial properties of the joint
     Inertial m_inertial;
     //! \brief Cached joint transformation matrix.
-    // FIXME Transform m_joint_transform;
+    Transform m_joint_transform;
+    //! \brief Cached combined local transformation (static + joint).
+    Transform m_combined_local_transform;
 };
 
 } // namespace robotik

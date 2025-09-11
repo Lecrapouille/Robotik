@@ -171,7 +171,8 @@ URDFParser::parseRobot(tinyxml2::XMLElement* p_robot_element)
             Eigen::Vector3d axis = parseAxis(xml);
             auto [origin_xyz, origin_rpy] = parseOriginTransform(xml);
             auto joint = std::make_unique<Joint>(name, type, axis);
-            joint->localTransform(origin_xyz, origin_rpy);
+            joint->localTransform(utils::createTransform(
+                origin_xyz, origin_rpy.x(), origin_rpy.y(), origin_rpy.z()));
 
             parseLimits(xml, *joint);
             parseParentChildLinks(xml, *joint);

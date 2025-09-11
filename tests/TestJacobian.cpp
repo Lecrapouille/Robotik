@@ -3,6 +3,7 @@
 #include "Robotik/Parser.hpp"
 #include "Robotik/Robot.hpp"
 #include "Robotik/private/Conversions.hpp"
+
 #include <cmath>
 
 #define TEST_DATA_DIR "/home/qq/MyGitHub/Robotik/data/"

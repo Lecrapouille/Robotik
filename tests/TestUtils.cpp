@@ -1,7 +1,6 @@
-#include "Robotik/private/Conversions.hpp"
+#include "main.hpp"
 
-#include <gmock/gmock.h>
-#include <gtest/gtest.h>
+#include "Robotik/private/Conversions.hpp"
 
 #include <cmath>
 

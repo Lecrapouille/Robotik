@@ -8,7 +8,6 @@ Node::Node(std::string_view const& p_name) : m_name(p_name)
 {
     m_local_transform = Transform::Identity();
     m_world_transform = Transform::Identity();
-    m_joint_transform = Transform::Identity();
 }
 
 // ----------------------------------------------------------------------------
@@ -82,52 +81,22 @@ Node const* Node::find(Node const& p_root, std::string_view const& p_name)
 }
 
 // ----------------------------------------------------------------------------
-void Node::localTransform(const Eigen::Vector3d& p_origin_xyz,
-                          const Eigen::Vector3d& p_origin_rpy)
-{
-    m_local_transform = Eigen::Matrix4d::Identity();
-
-    // Apply translation
-    m_local_transform.block<3, 1>(0, 3) = p_origin_xyz;
-
-    // Apply RPY rotation
-    Eigen::Matrix3d rotation =
-        (Eigen::AngleAxisd(p_origin_rpy.z(), Eigen::Vector3d::UnitZ()) *
-         Eigen::AngleAxisd(p_origin_rpy.y(), Eigen::Vector3d::UnitY()) *
-         Eigen::AngleAxisd(p_origin_rpy.x(), Eigen::Vector3d::UnitX()))
-            .toRotationMatrix();
-    m_local_transform.block<3, 3>(0, 0) = rotation;
-
-    updateWorldTransforms();
-}
-
-// ----------------------------------------------------------------------------
 void Node::localTransform(Transform const& p_transform)
 {
     m_local_transform = p_transform;
-    updateWorldTransforms();
+    updateWorldTransforms(); // FIXME find a lazy way to do this
 }
 
 // ----------------------------------------------------------------------------
-// FIXME: A ameliorer
-void Node::jointTransform(Transform const& p_transform)
-{
-    m_joint_transform = p_transform;
-    updateWorldTransforms();
-}
-
-// ----------------------------------------------------------------------------
-// FIXME: A ameliorer
 void Node::updateWorldTransforms()
 {
     if (m_parent)
     {
-        m_world_transform =
-            m_parent->worldTransform() * m_local_transform * m_joint_transform;
+        m_world_transform = m_parent->worldTransform() * localTransform();
     }
     else
     {
-        m_world_transform = m_local_transform * m_joint_transform;
+        m_world_transform = localTransform();
     }
 
     for (auto const& child : m_children)

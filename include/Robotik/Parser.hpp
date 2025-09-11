@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Robotik/private/Types.hpp"
+#include "Robotik/Robot.hpp"
 
 #include <memory>
 #include <string>
@@ -19,7 +19,6 @@ namespace robotik
 
 struct URDFParserLink;
 struct Inertial;
-class Robot;
 class Joint;
 class Link;
 class Geometry;

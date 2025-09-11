@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Robotik with gdb",
+            "name": "Robotik-tests with gdb",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/arm6dof-demo",
+            "program": "${workspaceFolder}/build/Robotik-tests",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

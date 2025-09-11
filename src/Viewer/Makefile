@@ -28,7 +28,7 @@ M := $(P)/.makefile
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := RobotViewer
+TARGET_NAME := Robotik-viewer
 TARGET_DESCRIPTION := Demo of Viewer usage
 include $(M)/project/Makefile
 
