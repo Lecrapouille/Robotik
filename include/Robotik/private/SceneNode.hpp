@@ -230,19 +230,6 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Set the local transform of the node.
-    //! \note This method is used when parsing a URDF file.
-    //!
-    //! This method sets the local transform of the node using a translation
-    //! and RPY (roll-pitch-yaw) rotation.
-    //!
-    //! \param p_origin_xyz Translation vector (x, y, z)
-    //! \param p_origin_rpy RPY rotation (roll, pitch, yaw) in radians
-    // ------------------------------------------------------------------------
-    void localTransform(const Eigen::Vector3d& p_origin_xyz,
-                        const Eigen::Vector3d& p_origin_rpy);
-
-    // ------------------------------------------------------------------------
-    //! \brief Set the local transform of the node.
     //!
     //! The local transform defines the position and orientation of this
     //! node relative to its parent in the hierarchy. In the context of
@@ -257,20 +244,7 @@ public:
     //!
     //! \param p_transform Local homogeneous transformation matrix 4x4
     // ------------------------------------------------------------------------
-    void localTransform(Transform const& p_transform);
-
-    // ------------------------------------------------------------------------
-    //! \brief Set the joint transform of the node.
-    // ------------------------------------------------------------------------
-    void jointTransform(Transform const& p_transform);
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the joint transform of the node.
-    // ------------------------------------------------------------------------
-    Transform const& jointTransform() const
-    {
-        return m_joint_transform;
-    }
+    virtual void localTransform(Transform const& p_transform);
 
     // ------------------------------------------------------------------------
     //! \brief Get the local transform of the node.
@@ -286,9 +260,9 @@ public:
     //!
     //! \return Constant reference to the local transformation matrix 4x4
     // ------------------------------------------------------------------------
-    inline Transform /*const&*/ localTransform() const
+    virtual Transform const& localTransform() const
     {
-        return m_local_transform * m_joint_transform; // FIXME: A ameliorer
+        return m_local_transform;
     }
 
     // ------------------------------------------------------------------------
@@ -356,11 +330,17 @@ protected:
 
 protected:
 
+    //! \brief Name of the node.
     std::string m_name;
+    //! \brief Local transformation of the node.
+    //! \note Do not use directly, use the virtual localTransform() instead that
+    //! should use it.
     Transform m_local_transform;
-    Transform m_joint_transform;
+    //! \brief World transformation of the node.
     Transform m_world_transform;
+    //! \brief Children of the node.
     std::vector<std::unique_ptr<Node>> m_children;
+    //! \brief Parent of the node.
     Node* m_parent = nullptr;
 };
 

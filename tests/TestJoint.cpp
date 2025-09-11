@@ -1,6 +1,7 @@
 #include "main.hpp"
 
 #include "Robotik/private/Joint.hpp"
+
 #include <cmath>
 
 using namespace robotik;

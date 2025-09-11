@@ -1,8 +1,8 @@
 #include "main.hpp"
 
-#include "Robotik/Debug.hpp"
 #include "Robotik/Robot.hpp"
 #include "Robotik/private/Conversions.hpp"
+
 #include <cmath>
 
 using namespace robotik;

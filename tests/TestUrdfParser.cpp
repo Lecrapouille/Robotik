@@ -2,11 +2,7 @@
 
 #include "Robotik/Parser.hpp"
 
-#include "project_info.hpp"
-
 #include <cmath>
-#include <fstream>
-#include <gtest/gtest.h>
 
 using namespace robotik;
 

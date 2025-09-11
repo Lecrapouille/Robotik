@@ -1,6 +1,7 @@
 #include "main.hpp"
 
 #include "Robotik/private/SceneNode.hpp"
+
 #include <cmath>
 
 using namespace robotik;

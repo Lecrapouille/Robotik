@@ -15,23 +15,20 @@ Joint::Joint(std::string_view const& p_name,
     {
         case Joint::Type::CONTINUOUS:
         case Joint::Type::REVOLUTE:
-            m_min = -M_PI;
-            m_max = M_PI;
-            m_position = 0.0;
+            limits(-M_PI, M_PI);
+            position(0.0);
             break;
         case Joint::Type::PRISMATIC:
-            m_min = -1.0;
-            m_max = 1.0;
-            m_position = 0.0;
+            limits(-1.0, 1.0);
+            position(0.0);
             break;
         case Joint::Type::FIXED:
-            m_min = 0.0;
-            m_max = 0.0;
+            m_min = m_max = 0.0;
             m_position = 0.0;
+            m_joint_transform = Eigen::Matrix4d::Identity();
+            m_combined_local_transform = Eigen::Matrix4d::Identity();
             break;
     }
-
-    jointTransform(computeJointTransform(m_type, m_position, m_axis));
 }
 
 // ----------------------------------------------------------------------------
@@ -48,40 +45,42 @@ void Joint::position(double p_position)
             p_position = m_max;
     }
 
+    // Compute the joint's local transformation matrix
+    Eigen::Matrix4d joint_transform = Eigen::Matrix4d::Identity();
+    if (m_type == Joint::Type::PRISMATIC)
+    {
+        // Translation along the axis
+        joint_transform.block<3, 1>(0, 3) = m_axis * p_position;
+    }
+    else if (m_type == Joint::Type::CONTINUOUS ||
+             m_type == Joint::Type::REVOLUTE)
+    {
+        // Create the rotation matrix around the axis
+        Eigen::AngleAxisd joint_rotation(p_position, m_axis);
+        joint_transform.block<3, 3>(0, 0) = joint_rotation.toRotationMatrix();
+    }
+
+    // Update the joint's position and transformation
     m_position = p_position;
-    jointTransform(computeJointTransform(m_type, m_position, m_axis));
+    m_joint_transform = joint_transform;
+    m_combined_local_transform = m_local_transform * m_joint_transform;
+
+    // Update the world transform
+    updateWorldTransforms(); // FIXME find a lazy way to do this
 }
 
 // ----------------------------------------------------------------------------
-Transform Joint::computeJointTransform(Joint::Type p_type,
-                                       double p_position,
-                                       const Eigen::Vector3d& p_axis) const
+void Joint::localTransform(Transform const& p_transform)
 {
-    Eigen::Matrix4d joint_transform = Eigen::Matrix4d::Identity();
+    m_local_transform = p_transform;
+    m_combined_local_transform = m_local_transform * m_joint_transform;
+    updateWorldTransforms(); // FIXME find a lazy way to do this
+}
 
-    switch (p_type)
-    {
-        case Joint::Type::CONTINUOUS:
-        case Joint::Type::REVOLUTE:
-        {
-            // Create the rotation matrix around the axis
-            Eigen::AngleAxisd joint_rotation(p_position, p_axis);
-            joint_transform.block<3, 3>(0, 0) =
-                joint_rotation.toRotationMatrix();
-            break;
-        }
-        case Joint::Type::PRISMATIC:
-        {
-            // Translation along the axis
-            joint_transform.block<3, 1>(0, 3) = p_axis * p_position;
-            break;
-        }
-        case Joint::Type::FIXED:
-            // No transformation for fixed joints
-            break;
-    }
-
-    return joint_transform;
+// ----------------------------------------------------------------------------
+Transform const& Joint::localTransform() const
+{
+    return m_combined_local_transform;
 }
 
 #if 0
