@@ -7,9 +7,6 @@
 namespace robotik
 {
 
-class Joint;
-class Link;
-
 // *********************************************************************************
 //! \brief Class representing a complete robotic arm.
 //!
@@ -246,19 +243,38 @@ protected:
     void checkRobotSetupValidity() const;
 
     // ------------------------------------------------------------------------
-    //! \brief Cache the list of joints in the robot arm. Shall be called
-    //! each time the scene graph is modified.
+    //! \brief Cache the list of joints in the robot arm.
+    //! This is now called automatically when needed (lazy evaluation).
     //! \note This method is called automatically when needed, but can be
     //! called explicitly to force cache update.
     // ------------------------------------------------------------------------
-    void cacheListOfJoints();
+    void cacheListOfJoints() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Mark the joints cache as dirty (needs refresh).
+    //! Called automatically when scene graph is modified.
+    // ------------------------------------------------------------------------
+    void markJointsCacheDirty() const
+    {
+        m_joints_cache_dirty = true;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Calculate proper pose error between target and current pose.
+    //! Handles orientation error correctly using rotation matrices.
+    // ------------------------------------------------------------------------
+    Pose calculatePoseError(Pose const& p_target_pose,
+                            Pose const& p_current_pose) const;
 
 private:
 
     std::string m_name;
     scene::Node::Ptr m_root_node;
-    std::vector<Joint*> m_joints;
-    std::unordered_map<std::string, Joint*> m_joints_map;
+
+    mutable std::vector<std::reference_wrapper<Joint>> m_joints;
+    mutable std::unordered_map<std::string, std::reference_wrapper<Joint>>
+        m_joints_map;
+    mutable bool m_joints_cache_dirty = true;
 };
 
 } // namespace robotik
