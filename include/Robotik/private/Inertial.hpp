@@ -1,3 +1,12 @@
+/**
+ * @file Inertial.hpp
+ * @brief Inertial properties used for a robotic link.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/Types.hpp"

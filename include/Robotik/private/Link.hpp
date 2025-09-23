@@ -1,3 +1,12 @@
+/**
+ * @file Link.hpp
+ * @brief Link class - Representation of a robotic link.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/Geometry.hpp"

@@ -1,3 +1,15 @@
+/**
+ * @file TestSceneNode.cpp
+ * @brief Unit tests for the SceneNode class - Verification of scene graph
+ * construction, management, local and world transformations, and node traversal
+ * operations. The scene graph is the structure holding the robot links and
+ * joints.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/private/SceneNode.hpp"

@@ -1,3 +1,12 @@
+/**
+ * @file Geometry.hpp
+ * @brief Geometry classes for collision detection and/or visualization.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/SceneNode.hpp"

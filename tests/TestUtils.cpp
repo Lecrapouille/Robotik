@@ -1,3 +1,14 @@
+/**
+ * @file TestUtils.cpp
+ * @brief Unit tests for utility functions - Verification of coordinate
+ * conversions (Euler angles, quaternions, rotation matrices) and basic
+ * mathematical functions.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/private/Conversions.hpp"

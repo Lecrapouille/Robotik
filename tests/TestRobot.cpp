@@ -1,3 +1,13 @@
+/**
+ * @file TestRobot.cpp
+ * @brief Unit tests for the Robot class - Verification of forward and inverse
+ * kinematics, Jacobian matrix computation, and end-effector transformations.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/Robot.hpp"

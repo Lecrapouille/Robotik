@@ -1,3 +1,14 @@
+/**
+ * @file TestJacobian.cpp
+ * @brief Unit tests for Jacobian matrix computation - Verification of Jacobian
+ * calculations, differential inverse kinematics and numerical validation for
+ * robots loaded from the folder data/.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/Parser.hpp"
