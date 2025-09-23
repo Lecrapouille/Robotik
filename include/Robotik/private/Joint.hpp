@@ -1,3 +1,12 @@
+/**
+ * @file Joint.hpp
+ * @brief Joint class - Representation of a robotic joint.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/Inertial.hpp"

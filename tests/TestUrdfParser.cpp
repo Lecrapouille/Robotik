@@ -1,3 +1,16 @@
+/**
+ * @file TestUrdfParser.cpp
+ * @brief Unit tests for the URDF parser - Verification of URDF file loading and
+ * parsing, robot structure creation and error handling from the folder data/.
+ *
+ * This test allows to verify the correctness of the URDF file given in the
+ * data/ folder and prevent modifying them without updating the tests.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/Parser.hpp"

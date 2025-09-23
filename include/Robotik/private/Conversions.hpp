@@ -1,3 +1,12 @@
+/**
+ * @file Conversions.hpp
+ * @brief Conversion functions for transformations and poses.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/Types.hpp"

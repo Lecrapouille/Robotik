@@ -1,3 +1,12 @@
+/**
+ * @file Robot.hpp
+ * @brief Robot class - Representation of a complete robotic system.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/Component.hpp"

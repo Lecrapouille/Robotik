@@ -1,3 +1,13 @@
+/**
+ * @file TestJoint.cpp
+ * @brief Unit tests for the Joint class - Verification of different joint types
+ * (revolute, prismatic, fixed), their properties and transformations.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 #include "Robotik/private/Joint.hpp"

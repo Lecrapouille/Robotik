@@ -1,3 +1,13 @@
+/**
+ * @file main.cpp
+ * @brief Main entry point for unit test execution - Initializes the Google Test
+ * framework and runs all tests.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "main.hpp"
 
 int main(int argc, char* argv[])

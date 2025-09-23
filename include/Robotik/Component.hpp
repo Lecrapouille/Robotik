@@ -1,3 +1,12 @@
+/**
+ * @file Component.hpp
+ * @brief Base classes for all robot components (sensors, actuators, etc.).
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/private/SceneNode.hpp"
