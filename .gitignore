@@ -3,6 +3,9 @@ build/
 doc/code-coverage/*
 external/*/
 
+# Python
+__pycache__
+
 # Prerequisites
 *.d
 
