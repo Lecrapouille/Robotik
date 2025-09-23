@@ -45,7 +45,7 @@ TEST_F(SceneNodeTest, Creation)
 }
 
 // *********************************************************************************
-//! \brief Test name() method.
+//! \brief Test name() method and find() method.
 // *********************************************************************************
 TEST_F(SceneNodeTest, GetName)
 {
@@ -68,7 +68,8 @@ TEST_F(SceneNodeTest, GetName)
 }
 
 // *********************************************************************************
-//! \brief Test adding children and parent-child relationships.
+//! \brief Test adding children and parent-child relationships and world
+//! transform updates.
 // *********************************************************************************
 TEST_F(SceneNodeTest, CreateChildAndParenthood)
 {
@@ -96,9 +97,6 @@ TEST_F(SceneNodeTest, CreateChildAndParenthood)
     child_transform(1, 3) = 3.0; // Translation in y
     child1.localTransform(child_transform);
 
-    // Update world transforms
-    // root->update();
-
     // Compare with explicit matrix:
     // 1 0 0 5
     // 0 1 0 3
@@ -111,7 +109,8 @@ TEST_F(SceneNodeTest, CreateChildAndParenthood)
 }
 
 // *********************************************************************************
-//! \brief Test hierarchical structure with multiple levels.
+//! \brief Test hierarchical structure with multiple levels with the find()
+//! method.
 // *********************************************************************************
 TEST_F(SceneNodeTest, ComplexHierarchy)
 {
@@ -148,7 +147,7 @@ TEST_F(SceneNodeTest, ComplexHierarchy)
 }
 
 // *********************************************************************************
-//! \brief Test complex transformation propagation through hierarchy.
+//! \brief Test complex world transform propagation through hierarchy.
 // *********************************************************************************
 TEST_F(SceneNodeTest, ComplexTransformationPropagation)
 {
@@ -173,9 +172,6 @@ TEST_F(SceneNodeTest, ComplexTransformationPropagation)
     Transform level3_transform = Eigen::Matrix4d::Identity();
     level3_transform(0, 3) = 4.0; // Another translation in x
     level3.localTransform(level3_transform);
-
-    // Update world transforms
-    // root->update();
 
     // Compare with explicit matrix:
     // 1 0 0 1
@@ -296,9 +292,6 @@ TEST_F(SceneNodeTest, ParentWithTwoRotationsAndWorldTransform)
     child2_transform(1, 3) = 2.0; // Translation in y
     child2.localTransform(child2_transform);
 
-    // Update world transforms
-    // root->update();
-
     // Verify world transforms
     Transform expected_child1_world = parent_transform * child1_transform;
     Transform expected_child2_world = parent_transform * child2_transform;
@@ -311,10 +304,10 @@ TEST_F(SceneNodeTest, ParentWithTwoRotationsAndWorldTransform)
     EXPECT_TRUE(root->worldTransform().isApprox(parent_transform));
 
     // Verify against expected matrix:
-    // 0.707107 -0.612372 0.353553 5
-    // 0.707107 0.612372 -0.353553 3
-    // 0 0.5 0.866025 2
-    // 0 0 0 1
+    // 0.707107 -0.612372  0.353553 5
+    // 0.707107  0.612372 -0.353553 3
+    // 0         0.5       0.866025 2
+    // 0         0         0        1
     Transform expected_matrix;
     expected_matrix << 0.707107, -0.612372, 0.353553, 5, 0.707107, 0.612372,
         -0.353553, 3, 0, 0.5, 0.866025, 2, 0, 0, 0, 1;
@@ -340,9 +333,6 @@ TEST_F(SceneNodeTest, WorldTransformMultipleChildren)
     Transform child2_transform = Eigen::Matrix4d::Identity();
     child2_transform(2, 3) = 3.0; // Translation in z
     child2.localTransform(child2_transform);
-
-    // Update world transforms
-    // root->update();
 
     // Both children should have parent transform applied
     Transform expected_child1 = parent_transform * child1_transform;
@@ -386,9 +376,6 @@ TEST_F(SceneNodeTest, DirtyFlagMechanism)
     child_transform(1, 3) = 2.0;
     child1.localTransform(child_transform);
 
-    // Update world transforms
-    // root->update();
-
     // Store initial world transforms
     Transform initial_child_world = child1.worldTransform();
     Transform initial_grandchild_world = grandchild.worldTransform();
@@ -396,9 +383,6 @@ TEST_F(SceneNodeTest, DirtyFlagMechanism)
     // Change root transform - should mark all descendants as dirty
     root_transform(0, 3) = 5.0;
     root->localTransform(root_transform);
-
-    // Update world transforms again
-    // root->update();
 
     // World transforms should be different now
     EXPECT_FALSE(child1.worldTransform().isApprox(initial_child_world));
