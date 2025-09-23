@@ -356,16 +356,16 @@ TEST_F(URDFParserTest, CartesianRobotSceneGraph)
     EXPECT_DOUBLE_EQ(joint_z_axis.z(), 1.0);
 
     // Check joint limits
-    auto joint_x_limits = joint_x.limits();
-    auto joint_y_limits = joint_y.limits();
-    auto joint_z_limits = joint_z.limits();
+    auto [joint_x_min, joint_x_max] = joint_x.limits();
+    auto [joint_y_min, joint_y_max] = joint_y.limits();
+    auto [joint_z_min, joint_z_max] = joint_z.limits();
 
-    EXPECT_DOUBLE_EQ(joint_x_limits.first, -0.5);
-    EXPECT_DOUBLE_EQ(joint_x_limits.second, 0.5);
-    EXPECT_DOUBLE_EQ(joint_y_limits.first, -0.45);
-    EXPECT_DOUBLE_EQ(joint_y_limits.second, 0.45);
-    EXPECT_DOUBLE_EQ(joint_z_limits.first, -0.1);
-    EXPECT_DOUBLE_EQ(joint_z_limits.second, 0.0);
+    EXPECT_DOUBLE_EQ(joint_x_min, -0.5);
+    EXPECT_DOUBLE_EQ(joint_x_max, 0.5);
+    EXPECT_DOUBLE_EQ(joint_y_min, -0.45);
+    EXPECT_DOUBLE_EQ(joint_y_max, 0.45);
+    EXPECT_DOUBLE_EQ(joint_z_min, -0.1);
+    EXPECT_DOUBLE_EQ(joint_z_max, 0.0);
 
     // Test geometry information
     auto geometries = getGeometries(*robot);
