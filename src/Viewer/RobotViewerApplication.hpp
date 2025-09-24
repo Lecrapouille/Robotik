@@ -1,8 +1,9 @@
 #pragma once
 
-#include "Robotik/Robot.hpp"
-
 #include "Application.hpp"
+
+#include "Robotik/Robot.hpp"
+#include "Robotik/private/Path.hpp"
 
 #include <chrono>
 #include <mutex>
@@ -33,6 +34,8 @@ public:
     // ************************************************************************
     struct Configuration
     {
+        //! Search paths data (STL files ...)
+        std::string search_paths;
         //! Path to the URDF file to load
         std::string urdf_file;
         //! Window width in pixels
@@ -137,6 +140,8 @@ private:
 
 private:
 
+    //! \brief Path searcher
+    Path m_path;
     //! \brief Configuration
     Configuration m_config;
     //! \brief Robot to control and display

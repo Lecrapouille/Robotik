@@ -13,12 +13,14 @@ namespace robotik
 
 // ----------------------------------------------------------------------------
 RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
-    : Application(p_config.window_width,
+    : Application(m_path,
+                  p_config.window_width,
                   p_config.window_height,
                   p_config.window_title),
       m_config(p_config),
       m_start_time(std::chrono::steady_clock::now())
 {
+    m_path.add(p_config.search_paths);
 }
 
 // ----------------------------------------------------------------------------

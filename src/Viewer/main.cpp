@@ -1,4 +1,7 @@
 #include "RobotViewerApplication.hpp"
+
+#include "project_info.hpp"
+
 #include <iostream>
 
 using namespace robotik;
@@ -50,6 +53,7 @@ static bool parse_command_line(size_t const p_argc,
     size_t i = 1;
 
     p_config.window_title = "Robot Viewer";
+    p_config.search_paths = project::info::paths::data;
 
     try
     {

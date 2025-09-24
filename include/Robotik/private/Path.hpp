@@ -18,19 +18,6 @@
 namespace robotik
 {
 
-//------------------------------------------------------------------------------
-#if defined(__APPLE__)
-std::string osx_get_resources_dir(std::string const& file);
-#endif
-
-//------------------------------------------------------------------------------
-#undef GET_DATA_PATH
-#if defined(__APPLE__)
-#    define GET_DATA_PATH osx_get_resources_dir("")
-#else
-#    define GET_DATA_PATH project::info::data_path
-#endif
-
 // *****************************************************************************
 //! \brief Class manipulating a set of paths for searching files in the same
 //! idea of the Unix environment variable $PATH. Paths are separated by ':' and
@@ -83,7 +70,7 @@ public:
     //--------------------------------------------------------------------------
     //! \brief Find if a file exists in the search path. Note that you have to
     //! check again the existence of this file when opening it (with functions
-    //! such as iofstream, fopen, open ...). Indeed the file may have been
+    //! such as iostream, fopen, open ...). Indeed the file may have been
     //! suppress since this method have bee called.
     //!
     //! \return the full path (if found) and the existence of this path.
@@ -96,16 +83,15 @@ public:
     //! Beware of race condition: even if found the file may have suppress after
     //! this function has been called.
     //--------------------------------------------------------------------------
-    std::string expand(std::string const& filename)
-        const; // FIXME retourner pair<string,RD/WR>
+    std::string expand(std::string const& filename) const;
 
     //--------------------------------------------------------------------------
     //! \brief Return the container of path
     //--------------------------------------------------------------------------
-    std::vector<std::string> pathes() const;
+    std::vector<std::string> paths() const;
 
     //--------------------------------------------------------------------------
-    //! \brief Return pathes as string. The first path is always ".:"
+    //! \brief Return paths as string. The first path is always ".:"
     //--------------------------------------------------------------------------
     std::string toString() const;
 
@@ -135,9 +121,9 @@ protected:
 
 protected:
 
-    //! \brief Path separator when several pathes are given as a single string.
+    //! \brief Path separator when several paths are given as a single string.
     const char m_delimiter = ':';
-    //! \brief the list of pathes.
+    //! \brief the list of paths.
     std::list<std::string> m_search_paths;
 };
 } // namespace robotik

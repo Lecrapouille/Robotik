@@ -160,7 +160,7 @@ bool Path::open(std::string& filename,
 }
 
 //------------------------------------------------------------------------------
-std::vector<std::string> Path::pathes() const
+std::vector<std::string> Path::paths() const
 {
     std::vector<std::string> res;
     res.reserve(m_search_paths.size());
