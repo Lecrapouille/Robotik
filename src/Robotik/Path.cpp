@@ -9,6 +9,9 @@
  */
 
 #include "Robotik/private/Path.hpp"
+#include <algorithm>
+#include <cctype>
+#include <dirent.h>
 #include <sstream>
 #include <sys/stat.h>
 
@@ -85,6 +88,82 @@ std::string Path::expand(std::string const& filename) const
     }
 
     return filename;
+}
+
+//------------------------------------------------------------------------------
+std::pair<std::string, bool>
+Path::findWithExtension(std::string const& filename,
+                        std::string const& extension) const
+{
+    std::string file_with_ext = addExtensionIfMissing(filename, extension);
+    return find(file_with_ext);
+}
+
+//------------------------------------------------------------------------------
+std::pair<std::string, bool>
+Path::findWithExtensions(std::string const& filename,
+                         std::vector<std::string> const& extensions) const
+{
+    // First try the filename as-is
+    auto result = find(filename);
+    if (result.second)
+        return result;
+
+    // Then try with each extension
+    for (const auto& ext : extensions)
+    {
+        std::string file_with_ext = addExtensionIfMissing(filename, ext);
+        result = find(file_with_ext);
+        if (result.second)
+            return result;
+    }
+
+    return std::make_pair(std::string(), false);
+}
+
+//------------------------------------------------------------------------------
+std::string Path::expandWithExtension(std::string const& filename,
+                                      std::string const& extension) const
+{
+    std::string file_with_ext = addExtensionIfMissing(filename, extension);
+    return expand(file_with_ext);
+}
+
+//------------------------------------------------------------------------------
+bool Path::exists(std::string const& filename) const
+{
+    return find(filename).second;
+}
+
+//------------------------------------------------------------------------------
+std::vector<std::string>
+Path::findAllWithExtension(std::string const& extension) const
+{
+    std::vector<std::string> result;
+
+    for (const auto& search_path : m_search_paths)
+    {
+        DIR* dir = opendir(search_path.c_str());
+        if (dir == nullptr)
+            continue;
+
+        const struct dirent* entry;
+        while ((entry = readdir(dir)) != nullptr)
+        {
+            std::string filename(entry->d_name);
+            if (hasExtension(filename, extension))
+            {
+                std::string full_path = search_path + filename;
+                if (exist(full_path))
+                {
+                    result.push_back(full_path);
+                }
+            }
+        }
+        closedir(dir);
+    }
+
+    return result;
 }
 
 //------------------------------------------------------------------------------
@@ -206,6 +285,30 @@ void Path::split(std::string const& path)
         else
             m_search_paths.push_back(directory + "/");
     }
+}
+
+//------------------------------------------------------------------------------
+bool Path::hasExtension(std::string const& filename,
+                        std::string const& extension) const
+{
+    if (filename.length() < extension.length())
+        return false;
+
+    return std::equal(extension.rbegin(),
+                      extension.rend(),
+                      filename.rbegin(),
+                      [](char a, char b)
+                      { return std::tolower(a) == std::tolower(b); });
+}
+
+//------------------------------------------------------------------------------
+std::string Path::addExtensionIfMissing(std::string const& filename,
+                                        std::string const& extension) const
+{
+    if (hasExtension(filename, extension))
+        return filename;
+
+    return filename + extension;
 }
 
 } // namespace robotik
