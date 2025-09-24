@@ -92,41 +92,12 @@ public:
     std::pair<std::string, bool> find(std::string const& filename) const;
 
     //--------------------------------------------------------------------------
-    //! \brief Find files with specific extension in the search path.
-    //! \param filename Base filename (can be with or without extension)
-    //! \param extension File extension to search for (e.g., ".stl", ".urdf")
-    //! \return the full path (if found) and the existence of this path.
-    //--------------------------------------------------------------------------
-    std::pair<std::string, bool>
-    findWithExtension(std::string const& filename,
-                      std::string const& extension) const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Find first file matching any of the given extensions.
-    //! \param filename Base filename (without extension)
-    //! \param extensions List of extensions to try (e.g., {".stl", ".obj",
-    //! ".ply"})
-    //! \return the full path (if found) and the existence of this path.
-    //--------------------------------------------------------------------------
-    std::pair<std::string, bool>
-    findWithExtensions(std::string const& filename,
-                       std::vector<std::string> const& extensions) const;
-
-    //--------------------------------------------------------------------------
     //! \brief Return the full path for the file (if found) else return itself.
     //! Beware of race condition: even if found the file may have suppress after
     //! this function has been called.
     //--------------------------------------------------------------------------
-    std::string expand(std::string const& filename) const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Expand filename with extension support.
-    //! \param filename Base filename
-    //! \param extension File extension to append if not present
-    //! \return the full path (if found) else return original filename
-    //--------------------------------------------------------------------------
-    std::string expandWithExtension(std::string const& filename,
-                                    std::string const& extension) const;
+    std::string expand(std::string const& filename)
+        const; // FIXME retourner pair<string,RD/WR>
 
     //--------------------------------------------------------------------------
     //! \brief Return the container of path
@@ -137,21 +108,6 @@ public:
     //! \brief Return pathes as string. The first path is always ".:"
     //--------------------------------------------------------------------------
     std::string toString() const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Check if a file exists (convenience method).
-    //! \param filename File to check
-    //! \return true if file exists
-    //--------------------------------------------------------------------------
-    bool exists(std::string const& filename) const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Get all files with specific extension in all search paths.
-    //! \param extension File extension to search for (e.g., ".stl")
-    //! \return vector of full paths to matching files
-    //--------------------------------------------------------------------------
-    std::vector<std::string>
-    findAllWithExtension(std::string const& extension) const;
 
     bool open(std::string& filename,
               std::ifstream& ifs,
@@ -176,24 +132,6 @@ protected:
     //! exist after the function ends.
     //--------------------------------------------------------------------------
     bool exist(std::string const& path) const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Check if filename has the given extension.
-    //! \param filename File to check
-    //! \param extension Extension to check for (e.g., ".stl")
-    //! \return true if filename ends with extension
-    //--------------------------------------------------------------------------
-    bool hasExtension(std::string const& filename,
-                      std::string const& extension) const;
-
-    //--------------------------------------------------------------------------
-    //! \brief Add extension to filename if not already present.
-    //! \param filename Base filename
-    //! \param extension Extension to add (e.g., ".stl")
-    //! \return filename with extension
-    //--------------------------------------------------------------------------
-    std::string addExtensionIfMissing(std::string const& filename,
-                                      std::string const& extension) const;
 
 protected:
 
