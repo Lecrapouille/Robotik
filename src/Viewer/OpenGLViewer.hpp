@@ -2,9 +2,12 @@
 
 #include "Robotik/Robot.hpp"
 
+#include "Robotik/private/Path.hpp"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <functional>
+#include <map>
 
 namespace robotik
 {
@@ -41,13 +44,15 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Constructor.
+    //! \param p_path Path searcher.
     //! \param p_width Window width.
     //! \param p_height Window height.
     //! \param p_title Window title.
     // ------------------------------------------------------------------------
-    explicit OpenGLViewer(size_t p_width = 800,
-                          size_t p_height = 600,
-                          const std::string& p_title = "Robotik Viewer");
+    explicit OpenGLViewer(Path& p_path,
+                          size_t p_width,
+                          size_t p_height,
+                          const std::string& p_title);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.
@@ -303,7 +308,21 @@ private:
     // ------------------------------------------------------------------------
     void renderAxes(Transform const& p_transform, double p_scale = 1.0) const;
 
+    // ------------------------------------------------------------------------
+    //! \brief Render STL mesh.
+    //! \param p_transform Transformation matrix.
+    //! \param p_mesh_path Path to STL file.
+    //! \param p_color Color.
+    // ------------------------------------------------------------------------
+    void renderMesh(Transform const& p_transform,
+                    const std::string& p_mesh_path,
+                    const Eigen::Vector3f& p_color =
+                        Eigen::Vector3f(0.8f, 0.8f, 0.8f)) const;
+
 private:
+
+    // Path searcher
+    Path& m_path;
 
     // Window properties
     size_t m_width;
@@ -330,6 +349,12 @@ private:
     // Index counts for geometry
     size_t m_cylinder_index_count = 0;
     size_t m_sphere_index_count = 0;
+
+    // Mesh rendering cache
+    mutable std::map<std::string, unsigned int> m_mesh_vaos;
+    mutable std::map<std::string, unsigned int> m_mesh_vbos;
+    mutable std::map<std::string, unsigned int> m_mesh_ebos;
+    mutable std::map<std::string, size_t> m_mesh_index_counts;
 
     // Camera
     CameraViewType m_camera_view = CameraViewType::PERSPECTIVE;

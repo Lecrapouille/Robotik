@@ -1,6 +1,10 @@
 #include "OpenGLViewer.hpp"
+#include "STLLoader.hpp"
+
+#include "Robotik/private/Path.hpp"
 
 #include <cmath>
+#include <iostream>
 
 namespace robotik
 {
@@ -69,10 +73,11 @@ static const Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
 static const Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
 
 // ----------------------------------------------------------------------------
-OpenGLViewer::OpenGLViewer(size_t p_width,
+OpenGLViewer::OpenGLViewer(Path& p_path,
+                           size_t p_width,
                            size_t p_height,
                            const std::string& p_title)
-    : m_width(p_width), m_height(p_height), m_title(p_title)
+    : m_path(p_path), m_width(p_width), m_height(p_height), m_title(p_title)
 {
     m_aspect_ratio = static_cast<float>(p_width) / static_cast<float>(p_height);
 
@@ -93,6 +98,20 @@ OpenGLViewer::OpenGLViewer(size_t p_width,
 // ----------------------------------------------------------------------------
 OpenGLViewer::~OpenGLViewer()
 {
+    // Clean up mesh resources
+    for (auto& pair : m_mesh_vaos)
+    {
+        glDeleteVertexArrays(1, &pair.second);
+    }
+    for (auto& pair : m_mesh_vbos)
+    {
+        glDeleteBuffers(1, &pair.second);
+    }
+    for (auto& pair : m_mesh_ebos)
+    {
+        glDeleteBuffers(1, &pair.second);
+    }
+
     if (m_window)
     {
         glfwDestroyWindow(m_window);
@@ -394,6 +413,91 @@ void OpenGLViewer::renderSphere(Transform const& p_transform,
 }
 
 // ----------------------------------------------------------------------------
+void OpenGLViewer::renderMesh(Transform const& p_transform,
+                              const std::string& p_mesh_path,
+                              const Eigen::Vector3f& p_color) const
+{
+    if (p_mesh_path.empty())
+        return;
+
+    // Check if mesh is already loaded
+    auto vao_it = m_mesh_vaos.find(p_mesh_path);
+    if (vao_it == m_mesh_vaos.end())
+    {
+        // Load STL file
+        STLLoader::MeshData mesh_data;
+        if (!STLLoader::loadSTL(m_path.expand(p_mesh_path), mesh_data))
+        {
+            std::cerr << "Failed to load STL file: " << p_mesh_path << " - "
+                      << STLLoader::getLastError() << std::endl;
+            return;
+        }
+
+        if (mesh_data.vertices.empty() || mesh_data.indices.empty())
+        {
+            std::cerr << "STL file contains no geometry: " << p_mesh_path
+                      << std::endl;
+            return;
+        }
+
+        // Generate OpenGL buffers
+        unsigned int vao, vbo, ebo;
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
+
+        glBindVertexArray(vao);
+
+        // Upload vertex data
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER,
+                     mesh_data.vertices.size() * sizeof(float),
+                     mesh_data.vertices.data(),
+                     GL_STATIC_DRAW);
+
+        // Upload index data
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     mesh_data.indices.size() * sizeof(unsigned int),
+                     mesh_data.indices.data(),
+                     GL_STATIC_DRAW);
+
+        // Set vertex attributes (position + normal)
+        glVertexAttribPointer(
+            0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1,
+                              3,
+                              GL_FLOAT,
+                              GL_FALSE,
+                              6 * sizeof(float),
+                              (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
+
+        // Cache the mesh data
+        m_mesh_vaos[p_mesh_path] = vao;
+        m_mesh_vbos[p_mesh_path] = vbo;
+        m_mesh_ebos[p_mesh_path] = ebo;
+        m_mesh_index_counts[p_mesh_path] = mesh_data.indices.size();
+    }
+
+    // Render the mesh
+    Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
+    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
+                       1,
+                       GL_FALSE,
+                       model.data());
+    glUniform3fv(
+        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+
+    glBindVertexArray(m_mesh_vaos[p_mesh_path]);
+    glDrawElements(GL_TRIANGLES,
+                   GLsizei(m_mesh_index_counts[p_mesh_path]),
+                   GL_UNSIGNED_INT,
+                   nullptr);
+}
+
+// ----------------------------------------------------------------------------
 void OpenGLViewer::renderJoint(Joint const& p_joint,
                                Transform const& p_world_transform) const
 {
@@ -516,7 +620,8 @@ void OpenGLViewer::renderLink(Link const& p_link,
         }
         case Geometry::Type::MESH:
         {
-            // TODO: Implement mesh rendering
+            // Render STL mesh
+            renderMesh(p_world_transform, geometry.meshPath(), geometry.color);
             break;
         }
         default:
@@ -1218,7 +1323,9 @@ void OpenGLViewer::renderGeometry(Geometry const& p_geometry,
         }
         case Geometry::Type::MESH:
         {
-            // TODO: Implement mesh rendering
+            // Render STL mesh
+            renderMesh(
+                p_world_transform, p_geometry.meshPath(), p_geometry.color);
             break;
         }
         default:

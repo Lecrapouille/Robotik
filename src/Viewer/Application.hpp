@@ -2,6 +2,8 @@
 
 #include "OpenGLViewer.hpp"
 
+#include "Robotik/private/Path.hpp"
+
 #include <atomic>
 #include <thread>
 
@@ -21,11 +23,13 @@ public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor. No actions are performed here.
+    //! \param p_path Path searcher.
     //! \param p_window_width Window width in pixels.
     //! \param p_window_height Window height in pixels.
     //! \param p_window_title Window title.
     // ----------------------------------------------------------------------------
-    Application(size_t p_window_width,
+    Application(Path& p_path,
+                size_t p_window_width,
                 size_t p_window_height,
                 const std::string& p_window_title);
 

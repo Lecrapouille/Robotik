@@ -39,10 +39,11 @@ private:
 };
 
 // ----------------------------------------------------------------------------
-Application::Application(size_t window_width,
+Application::Application(Path& p_path,
+                         size_t window_width,
                          size_t window_height,
                          const std::string& window_title)
-    : m_viewer(window_width, window_height, window_title)
+    : m_viewer(p_path, window_width, window_height, window_title)
 {
 }
 

@@ -34,7 +34,7 @@ TEST_F(PathTests, EmptyConstructor)
 {
     Path path;
 
-    EXPECT_EQ(0, path.pathes().size());
+    EXPECT_EQ(0, path.paths().size());
     EXPECT_TRUE(path.toString() == "");
 }
 
@@ -43,16 +43,16 @@ TEST_F(PathTests, SplitConstructor)
 {
     Path path("/a/b:c/d");
 
-    EXPECT_EQ(2, path.pathes().size());
+    EXPECT_EQ(2, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:/a/b:c/d:");
     path.clear();
-    EXPECT_EQ(0, path.pathes().size());
+    EXPECT_EQ(0, path.paths().size());
     EXPECT_TRUE(path.toString() == "");
     path.add("g/g");
-    EXPECT_EQ(1, path.pathes().size());
+    EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:g/g:");
     path.reset("a/b");
-    EXPECT_EQ(1, path.pathes().size());
+    EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:a/b:");
     std::cout << path.toString() << std::endl;
 }
@@ -62,22 +62,22 @@ TEST_F(PathTests, SplitDir)
 {
     Path path("/a//b\\d/:e\\d:");
     EXPECT_TRUE(path.toString() == ".:/a//b\\d:e\\d:");
-    EXPECT_EQ(2, path.pathes().size());
+    EXPECT_EQ(2, path.paths().size());
     path.remove("incorrect/path");
-    EXPECT_EQ(2, path.pathes().size());
+    EXPECT_EQ(2, path.paths().size());
     path.remove("/a//b\\d");
-    EXPECT_EQ(2, path.pathes().size()); // FIXME should be1
+    EXPECT_EQ(2, path.paths().size()); // FIXME should be1
     path.remove("/a//b\\d/");
-    EXPECT_EQ(1, path.pathes().size());
+    EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:e\\d:");
     path.remove("e\\d/");
-    EXPECT_EQ(0, path.pathes().size());
+    EXPECT_EQ(0, path.paths().size());
     path.remove("");
-    EXPECT_EQ(0, path.pathes().size());
+    EXPECT_EQ(0, path.paths().size());
     path.remove("incorrect/path");
-    EXPECT_EQ(0, path.pathes().size());
+    EXPECT_EQ(0, path.paths().size());
     path.add("g/g");
-    EXPECT_EQ(1, path.pathes().size());
+    EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:g/g:");
 }
 
