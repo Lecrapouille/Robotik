@@ -1,3 +1,12 @@
+/**
+ * @file main.cpp
+ * @brief Main entry point for the Robot 3D viewer application.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "RobotViewerApplication.hpp"
 
 #include "project_info.hpp"
@@ -21,13 +30,15 @@ static void display_usage(const std::string& program_name)
               << std::endl;
     std::cout << "  --fps <fps>         Set target frame rate (default: 60)"
               << std::endl;
-    std::cout << "  --physics <hz>      Set physics update rate (default: 1000)"
+    std::cout << "  --physics <hz>      Set physics update rate (default: 15)"
               << std::endl;
     std::cout << "  --control-joint <joint>  Set control joint for IK "
                  "(default: auto-detect)"
               << std::endl;
     std::cout << "  --camera-target <joint>  Set camera target joint (default: "
                  "auto-detect)"
+              << std::endl;
+    std::cout << "  --profile               Enable performance profiling"
               << std::endl;
     std::cout << std::endl;
     std::cout << "Arguments:" << std::endl;
@@ -129,6 +140,10 @@ static bool parse_command_line(size_t const p_argc,
                 }
 
                 p_config.camera_target = p_argv[++i];
+            }
+            else if (arg == "--profile")
+            {
+                p_config.enable_profiling = true;
             }
             else if (arg[0] == '-')
             {

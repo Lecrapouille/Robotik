@@ -1,6 +1,15 @@
+/**
+ * @file Application.hpp
+ * @brief Application base class for the viewer.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
-#include "OpenGLViewer.hpp"
+#include "Viewer/OpenGLViewer.hpp"
 
 #include "Robotik/private/Path.hpp"
 

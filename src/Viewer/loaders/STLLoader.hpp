@@ -1,3 +1,12 @@
+/**
+ * @file STLLoader.hpp
+ * @brief STL file loader for 3D models.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include <cstring>

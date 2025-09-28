@@ -1,6 +1,15 @@
+/**
+ * @file RobotViewerApplication.hpp
+ * @brief Robot viewer application class for the 3D viewer.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
-#include "Application.hpp"
+#include "Viewer/Application.hpp"
 
 #include "Robotik/Robot.hpp"
 #include "Robotik/private/Path.hpp"
@@ -47,7 +56,7 @@ public:
         //! Target frame rate in FPS
         size_t target_fps = 60;
         //! Target physics update rate in Hz
-        size_t target_physics_hz = 1000;
+        size_t target_physics_hz = 15;
         //! Control joint for inverse kinematics: usually the tool center point
         std::string control_joint;
         //! Camera target joint: usually the base link or the tool center point
@@ -55,6 +64,8 @@ public:
         //! Camera view type
         OpenGLViewer::CameraViewType camera_view =
             OpenGLViewer::CameraViewType::ISOMETRIC;
+        //! Enable performance profiling
+        bool enable_profiling = false;
     };
 
     // ----------------------------------------------------------------------------
@@ -163,6 +174,11 @@ private:
     std::chrono::steady_clock::time_point m_start_time;
     //! \brief Error message
     std::string m_error;
+
+    // Performance optimization: animation cache
+    mutable std::vector<double> m_cached_joint_values;
+    mutable double m_last_animation_time = -1.0;
+    mutable bool m_animation_dirty = true;
 };
 
 } // namespace robotik

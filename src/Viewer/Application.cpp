@@ -1,4 +1,13 @@
-#include "Application.hpp"
+/**
+ * @file Application.cpp
+ * @brief Application base class for the viewer.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
+#include "Viewer/Application.hpp"
 
 #include <chrono>
 
@@ -6,16 +15,16 @@ namespace robotik
 {
 
 // *****************************************************************************
-//! \brief
+//! \brief Simple timer for application timing.
 // *****************************************************************************
-class Timer
+class AppTimer
 {
     using Clock = std::chrono::steady_clock;
     using Second = std::chrono::duration<float, std::ratio<1>>;
 
 public:
 
-    Timer()
+    AppTimer()
     {
         m_begin = Clock::now();
     }
@@ -84,29 +93,27 @@ bool Application::run(size_t const p_target_fps,
     // Start physics thread
     startPhysicsThread(p_target_physics_hz);
 
-    Timer timer;
+    AppTimer timer;
     float time_since_last_update = 0.0f;
     const float time_per_frame = 1.0f / float(p_target_fps);
 
-    // Main application loop
+    // Main application loop - Proper 60 FPS timing
     while (!shouldClose())
     {
-        // Process events at fixed time steps
+        // Process input events every frame
+        m_viewer.processInput([this](int key, int action)
+                              { handleInput(key, action); });
+
+        // Update application logic at target FPS
         time_since_last_update += timer.restart();
-        while (time_since_last_update > time_per_frame)
+        if (time_since_last_update >= time_per_frame)
         {
             time_since_last_update -= time_per_frame;
-
-            // Process input events
-            m_viewer.processInput([this](int key, int action)
-                                  { handleInput(key, action); });
-
-            // Update application logic
             onUpdate(time_per_frame);
-
-            // Draw the application
-            onDraw();
         }
+
+        // Draw the application every frame
+        onDraw();
     }
 
     // Stop physics thread before exiting
@@ -123,9 +130,8 @@ void Application::startPhysicsThread(size_t const p_target_physics_hz)
         [this, p_target_physics_hz]()
         {
             const auto physics_dt =
-                std::chrono::microseconds(p_target_physics_hz);
-            const auto physics_dt_seconds =
-                float(physics_dt.count()) / 1000000.0f;
+                std::chrono::microseconds(1000000 / p_target_physics_hz);
+            const auto physics_dt_seconds = 1.0f / float(p_target_physics_hz);
             auto next_update = std::chrono::steady_clock::now();
 
             while (m_physics_running)
