@@ -26,6 +26,17 @@ void Robot::root(scene::Node::Ptr p_root)
 }
 
 // ----------------------------------------------------------------------------
+void Robot::setNeutralPosition()
+{
+    std::vector<double> neutral_joints = jointValues();
+    for (size_t i = 0; i < neutral_joints.size(); ++i)
+    {
+        neutral_joints[i] = 0.0;
+    }
+    setJointValues(neutral_joints);
+}
+
+// ----------------------------------------------------------------------------
 void Robot::cacheListOfJoints() const
 {
     if (!m_joints_cache_dirty)

@@ -1,0 +1,218 @@
+/**
+ * @file RobotManager.hpp
+ * @brief OpenGL robot rendering class.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
+#pragma once
+
+#include "Robotik/Robot.hpp"
+#include "Viewer/Configuration.hpp"
+
+#include <Eigen/Dense>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace robotik::viewer
+{
+
+// ****************************************************************************
+//! \brief OpenGL robot rendering class.
+//!
+//! This class handles the rendering of robot models loaded from URDF files.
+//! It manages the visual representation of robot links, joints, and provides
+//! methods to update the robot's pose and render it in 3D space.
+//!
+//! Key features:
+//! - Renders robot links as 3D geometries (boxes, cylinders, spheres, meshes)
+//! - Supports joint transformations and animations
+//! - Manages robot materials and colors
+//! - Provides coordinate frame visualization
+//! - Handles multiple robot instances
+// ****************************************************************************
+class RobotManager
+{
+public:
+
+    // ------------------------------------------------------------------------
+    //! \brief Structure to hold controlled robot data.
+    // ------------------------------------------------------------------------
+    struct ControlledRobot
+    {
+        //! \brief Robot instance
+        std::unique_ptr<Robot> robot;
+        //! \brief Control mode
+        ControlMode control_mode = ControlMode::ANIMATION;
+        //! \brief Controlled joint for Inverse Kinematics
+        scene::Node const* control_joint = nullptr;
+        //! \brief Tracked node for camera
+        scene::Node const* camera_target = nullptr;
+        //! \brief Visibility flag
+        bool is_visible = true;
+        //! \brief Scale factor
+        float scale = 1.0f;
+    };
+
+    // ------------------------------------------------------------------------
+    //! \brief Destructor.
+    // ------------------------------------------------------------------------
+    ~RobotManager() = default;
+
+    // ------------------------------------------------------------------------
+    //! \brief Reset the robot manager.
+    // ------------------------------------------------------------------------
+    void reset();
+
+    // ------------------------------------------------------------------------
+    //! \brief Load a robot from URDF file.
+    //! \param p_urdf_path Path to the URDF file.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool loadRobot(const std::string& p_urdf_path);
+
+    // ------------------------------------------------------------------------
+    //! \brief Add an existing robot instance.
+    //! \param p_robot_name Unique name for the robot.
+    //! \param p_robot Robot instance to add.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool addRobot(const std::string& p_robot_name,
+                  std::unique_ptr<Robot> p_robot);
+
+    // ------------------------------------------------------------------------
+    //! \brief Remove a robot by name.
+    //! \param p_robot_name Name of the robot to remove.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool removeRobot(const std::string& p_robot_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if a robot is loaded.
+    //! \param p_robot_name Name of the robot.
+    //! \return true if loaded.
+    // ------------------------------------------------------------------------
+    bool hasRobot(const std::string& p_robot_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get robot by name.
+    //! \param p_robot_name Name of the robot.
+    //! \return Pointer to robot, nullptr if not found.
+    // ------------------------------------------------------------------------
+    RobotManager::ControlledRobot* getRobot(const std::string& p_robot_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current robot (first loaded robot).
+    //! \return Pointer to current robot, nullptr if no robot loaded.
+    // ------------------------------------------------------------------------
+    RobotManager::ControlledRobot* getCurrentRobot() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set robot joint values.
+    //! \param p_robot_name Name of the robot.
+    //! \param p_joint_values Vector of joint values.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool setRobotJointValues(const std::string& p_robot_name,
+                             const std::vector<double>& p_joint_values);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get robot joint values.
+    //! \param p_robot_name Name of the robot.
+    //! \return Vector of joint values, empty if not found.
+    // ------------------------------------------------------------------------
+    std::vector<double>
+    getRobotJointValues(const std::string& p_robot_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set robot pose (position and orientation).
+    //! \param p_robot_name Name of the robot.
+    //! \param p_transform 4x4 transformation matrix.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool setRobotPose(const std::string& p_robot_name,
+                      const Eigen::Matrix4f& p_transform);
+
+    // ------------------------------------------------------------------------
+    //! \brief Set robot visibility.
+    //! \param p_robot_name Name of the robot.
+    //! \param p_visible Visibility flag.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool setRobotVisibility(const std::string& p_robot_name, bool p_visible);
+
+    // ------------------------------------------------------------------------
+    //! \brief Set robot scale.
+    //! \param p_robot_name Name of the robot.
+    //! \param p_scale Scale factor.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool setRobotScale(const std::string& p_robot_name, float p_scale);
+
+    // ------------------------------------------------------------------------
+    //! \brief Update robot transforms (call after joint changes).
+    //! \param p_robot_name Name of the robot to update.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool updateRobotTransforms(const std::string& p_robot_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Update all robot transforms.
+    // ------------------------------------------------------------------------
+    void updateAllRobotTransforms();
+
+    // ------------------------------------------------------------------------
+    //! \brief Get all robots.
+    //! \return Map of robot names and visual data.
+    // ------------------------------------------------------------------------
+    const std::unordered_map<std::string, ControlledRobot>& robots() const
+    {
+        return m_robots;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the number of loaded robots.
+    //! \return Number of loaded robots.
+    // ------------------------------------------------------------------------
+    size_t getRobotCount() const
+    {
+        return m_robots.size();
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the last error message.
+    //! \return Error message.
+    // ------------------------------------------------------------------------
+    const std::string& error() const
+    {
+        return m_error;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Clear all robots.
+    // ------------------------------------------------------------------------
+    void clear();
+
+private:
+
+    // ------------------------------------------------------------------------
+    //! \brief Update robot link transforms from joint values.
+    //! \param p_robot_name Name of the robot.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool updateRobotLinkTransforms(const std::string& p_robot_name);
+
+private:
+
+    std::unordered_map<std::string, ControlledRobot> m_robots;
+    ControlledRobot* m_current_robot = nullptr;
+    std::string m_error;
+};
+
+} // namespace robotik::viewer

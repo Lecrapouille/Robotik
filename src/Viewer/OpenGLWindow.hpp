@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "Viewer/Configuration.hpp"
+
 #include <functional>
 #include <string>
 
@@ -16,14 +18,6 @@ class GLFWwindow;
 
 namespace robotik::viewer
 {
-
-// Forward declaration
-struct WindowConfig
-{
-    size_t window_width = 800;
-    size_t window_height = 600;
-    std::string window_title = "Robot Viewer";
-};
 
 // ****************************************************************************
 //! \brief Simple OpenGL viewer for robot visualization.
@@ -50,7 +44,7 @@ public:
     //! \brief Constructor.
     //! \param p_config Configuration for the window.
     // ------------------------------------------------------------------------
-    explicit OpenGLWindow(const WindowConfig& p_config);
+    explicit OpenGLWindow(Configuration const& p_config);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.

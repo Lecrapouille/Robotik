@@ -403,8 +403,8 @@ TEST_F(ApplicationTest, PhysicsThreadRestart)
 // *********************************************************************************
 TEST_F(ApplicationTest, PhysicsThreadErrorHandling)
 {
-    // Test that getLastError returns empty string initially
-    EXPECT_EQ(app->getLastError(), "");
+    // Test that error returns empty string initially
+    EXPECT_EQ(app->error(), "");
 
     app->setSetupReturns(true);
     app->setShouldClose(true);
@@ -413,5 +413,5 @@ TEST_F(ApplicationTest, PhysicsThreadErrorHandling)
     app->run(60, 60);
 
     // Error string should still be empty for normal operation
-    EXPECT_EQ(app->getLastError(), "");
+    EXPECT_EQ(app->error(), "");
 }
