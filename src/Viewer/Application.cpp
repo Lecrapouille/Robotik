@@ -104,7 +104,6 @@ bool Application::run(size_t const p_target_fps,
         m_last_frame_time = current_time;
 
         // User setup callbacks
-        onHandleEvents();
         onUpdate(delta_time);
         onDraw();
 

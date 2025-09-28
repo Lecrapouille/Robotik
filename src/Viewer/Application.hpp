@@ -53,12 +53,6 @@ public:
     // ----------------------------------------------------------------------------
     virtual void setTitle(std::string const& p_title) = 0;
 
-    // ----------------------------------------------------------------------------
-    //! \brief Get the FPS.
-    //! \return The FPS.
-    // ----------------------------------------------------------------------------
-    size_t fps() const;
-
 private:
 
     // ----------------------------------------------------------------------------
@@ -90,11 +84,6 @@ private:
     virtual void onUpdate(float const p_dt) = 0;
 
     // ----------------------------------------------------------------------------
-    //! \brief Handle events. Called every frame.
-    // ----------------------------------------------------------------------------
-    virtual void onHandleEvents() = 0;
-
-    // ----------------------------------------------------------------------------
     //! \brief Update physics simulation. Called at fixed time intervals.
     //! \param p_dt Fixed delta time for physics simulation.
     //! \note This method is called internally by the physics thread.
@@ -113,14 +102,14 @@ private:
     //! \brief Start the physics thread.
     //! \param p_target_physics_hz Target physics update rate.
     //! \return true if the physics thread was started successfully, false
-    //! otherwise. Call getLastError() to get the error message.
+    //! otherwise. Call error() to get the error message.
     // ----------------------------------------------------------------------------
     bool startPhysicsThread(size_t const p_target_physics_hz);
 
     // ----------------------------------------------------------------------------
     //! \brief Stop the physics thread.
     //! \return true if the physics thread was stopped successfully, false
-    //! otherwise. Call getLastError() to get the error message.
+    //! otherwise. Call error() to get the error message.
     // ----------------------------------------------------------------------------
     bool stopPhysicsThread();
 

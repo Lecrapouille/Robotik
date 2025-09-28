@@ -173,7 +173,7 @@ void GeometryRenderer::renderAxes(const Eigen::Matrix4f& p_transform,
 
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
-            Eigen::AngleAxisf(M_PI / 2.0f, Eigen::Vector3f::UnitY())
+            Eigen::AngleAxisf(M_PIf / 2.0f, Eigen::Vector3f::UnitY())
                 .toRotationMatrix();
 
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
@@ -201,7 +201,7 @@ void GeometryRenderer::renderAxes(const Eigen::Matrix4f& p_transform,
 
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
-            Eigen::AngleAxisf(-M_PI / 2.0f, Eigen::Vector3f::UnitX())
+            Eigen::AngleAxisf(-M_PIf / 2.0f, Eigen::Vector3f::UnitX())
                 .toRotationMatrix();
 
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
@@ -451,7 +451,7 @@ void GeometryRenderer::generateCylinder(std::vector<float>& p_vertices,
     // Bottom and top circles
     for (size_t i = 0; i <= p_segments; ++i)
     {
-        float angle = 2.0f * M_PI * float(i) / float(p_segments);
+        float angle = 2.0f * M_PIf * float(i) / float(p_segments);
         float x = p_radius * std::cos(angle);
         float y = p_radius * std::sin(angle);
 
@@ -466,7 +466,7 @@ void GeometryRenderer::generateCylinder(std::vector<float>& p_vertices,
     // Side vertices with side normals
     for (size_t i = 0; i <= p_segments; ++i)
     {
-        float angle = 2.0f * M_PI * float(i) / float(p_segments);
+        float angle = 2.0f * M_PIf * float(i) / float(p_segments);
         float x = p_radius * std::cos(angle);
         float y = p_radius * std::sin(angle);
 
@@ -532,13 +532,13 @@ void GeometryRenderer::generateSphere(std::vector<float>& p_vertices,
     // Generate vertices
     for (size_t lat = 0; lat <= p_latitude_segments; ++lat)
     {
-        float theta = M_PI * float(lat) / float(p_latitude_segments);
+        float theta = M_PIf * float(lat) / float(p_latitude_segments);
         float sin_theta = std::sin(theta);
         float cos_theta = std::cos(theta);
 
         for (size_t lon = 0; lon <= p_longitude_segments; ++lon)
         {
-            float phi = 2.0f * M_PI * float(lon) / float(p_longitude_segments);
+            float phi = 2.0f * M_PIf * float(lon) / float(p_longitude_segments);
             float sin_phi = std::sin(phi);
             float cos_phi = std::cos(phi);
 
@@ -589,14 +589,14 @@ void GeometryRenderer::generateGrid(std::vector<float>& p_vertices,
     for (int i = -p_size; i <= p_size; ++i)
     {
         // Lines parallel to X axis
-        p_vertices.push_back(-p_size * p_spacing);
+        p_vertices.push_back(-float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(float(i) * p_spacing);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);
 
-        p_vertices.push_back(p_size * p_spacing);
+        p_vertices.push_back(float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(float(i) * p_spacing);
         p_vertices.push_back(0.0f);
@@ -606,14 +606,14 @@ void GeometryRenderer::generateGrid(std::vector<float>& p_vertices,
         // Lines parallel to Z axis
         p_vertices.push_back(float(i) * p_spacing);
         p_vertices.push_back(0.0f);
-        p_vertices.push_back(-p_size * p_spacing);
+        p_vertices.push_back(-float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);
 
         p_vertices.push_back(float(i) * p_spacing);
         p_vertices.push_back(0.0f);
-        p_vertices.push_back(p_size * p_spacing);
+        p_vertices.push_back(float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);

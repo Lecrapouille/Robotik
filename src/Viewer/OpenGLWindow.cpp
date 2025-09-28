@@ -16,7 +16,7 @@
 namespace robotik::viewer
 {
 // ----------------------------------------------------------------------------
-OpenGLWindow::OpenGLWindow(const WindowConfig& p_config)
+OpenGLWindow::OpenGLWindow(Configuration const& p_config)
     : m_width(p_config.window_width), m_height(p_config.window_height)
 {
 }

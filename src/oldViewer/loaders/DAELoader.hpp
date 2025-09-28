@@ -56,7 +56,7 @@ public:
     //! \brief Get the last error message.
     //! \return Error message.
     // ------------------------------------------------------------------------
-    static const std::string& getLastError()
+    static const std::string& error()
     {
         return s_last_error;
     }

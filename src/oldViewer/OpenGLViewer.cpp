@@ -20,8 +20,8 @@
 namespace robotik
 {
 
-// Shader sources
-const std::string OpenGLViewer::s_vertex_shader_source = R"(
+// ----------------------------------------------------------------------------
+static const std::string s_vertex_shader_source = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
@@ -49,7 +49,8 @@ void main()
 }
 )";
 
-const std::string OpenGLViewer::s_fragment_shader_source = R"(
+// ----------------------------------------------------------------------------
+static const std::string s_fragment_shader_source = R"(
 #version 330 core
 in vec3 FragColor;
 in vec3 Normal;
@@ -80,6 +81,7 @@ void main()
 }
 )";
 
+// ----------------------------------------------------------------------------
 static const Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
 static const Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
 
@@ -477,7 +479,7 @@ void OpenGLViewer::renderMesh(Transform const& p_transform,
         if (!STLLoader::loadSTL(m_path.expand(p_mesh_path), mesh_data))
         {
             std::cerr << "Failed to load STL file: " << p_mesh_path << " - "
-                      << STLLoader::getLastError() << std::endl;
+                      << STLLoader::error() << std::endl;
             return;
         }
 

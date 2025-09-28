@@ -10,9 +10,13 @@
 #pragma once
 
 #include "Viewer/Application.hpp"
+#include "Viewer/Camera.hpp"
+#include "Viewer/Configuration.hpp"
+#include "Viewer/GeometryRenderer.hpp"
+#include "Viewer/MeshManager.hpp"
 #include "Viewer/OpenGLWindow.hpp"
-#include "Viewer/RobotViewer.hpp"
-
+#include "Viewer/RobotManager.hpp"
+#include "Viewer/ShaderManager.hpp"
 namespace robotik::viewer
 {
 
@@ -25,27 +29,10 @@ class RobotViewerApplication: public Application
 {
 public:
 
-    // ************************************************************************
-    //! \brief Configuration for the application.
-    // ************************************************************************
-    struct Configuration
-    {
-        //! Window width in pixels
-        size_t window_width = 1024;
-        //! Window height in pixels
-        size_t window_height = 768;
-        //! Window title
-        std::string window_title = "Robot Viewer";
-        //! Target frame rate in FPS
-        size_t target_fps = 60;
-        //! Target physics update rate in Hz
-        size_t target_physics_hz = 15;
-    };
-
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
     // ----------------------------------------------------------------------------
-    explicit RobotViewerApplication(Configuration& p_config);
+    explicit RobotViewerApplication(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Destructor.
@@ -58,13 +45,13 @@ public:
     // ----------------------------------------------------------------------------
     bool run();
 
+private: // override Application methods
+
     // ----------------------------------------------------------------------------
     //! \brief Set the title of the application.
     //! \param p_title The title of the application.
     // ----------------------------------------------------------------------------
     void setTitle(std::string const& p_title) override;
-
-private:
 
     // ----------------------------------------------------------------------------
     //! \brief Check if the application should close.
@@ -93,11 +80,6 @@ private:
     //! \param dt Delta time in seconds since last frame.
     // ----------------------------------------------------------------------------
     void onUpdate(float const dt) override;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle events. Called every frame.
-    // ----------------------------------------------------------------------------
-    void onHandleEvents() override;
 
     // ----------------------------------------------------------------------------
     //! \brief Update physics simulation. Called at fixed time intervals.
@@ -151,15 +133,41 @@ private:
 
 private:
 
-    //! \brief Configuration for the application.
-    Configuration& m_config;
-    //! \brief OpenGL viewer.
+    // ----------------------------------------------------------------------------
+    //! \brief Use a shader program.
+    // ----------------------------------------------------------------------------
+    void useShaderProgram(const std::string& p_program_name);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Load the robot.
+    // ----------------------------------------------------------------------------
+    bool loadRobot();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render a robot.
+    // ----------------------------------------------------------------------------
+    void renderRobot(Robot const& p_robot);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render a geometry.
+    // ----------------------------------------------------------------------------
+    void renderGeometry(Geometry const& p_geometry,
+                        Eigen::Matrix4f const& p_transform);
+
+private:
+
+    Configuration const& m_config;
     OpenGLWindow m_window;
-    //! \brief Robot viewer.
-    RobotViewer m_robot_viewer;
-    //! \brief Title of the application.
+    Camera m_camera;
+    ShaderManager m_shader_manager;
+    MeshManager m_mesh_manager;
+    GeometryRenderer m_geometry_renderer;
+    RobotManager m_robot_manager;
+    int m_model_uniform = -1;
+    int m_color_uniform = -1;
+    int m_projection_uniform = -1;
+    int m_view_uniform = -1;
     std::string m_title;
-    //! \brief FPS of the application.
     size_t m_fps = 0;
 };
 

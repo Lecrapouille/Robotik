@@ -17,7 +17,6 @@ namespace robotik
 {
 
 // TODO: ajouter getFrameId(name)
-// TODO: .neutral()
 
 // *********************************************************************************
 //! \brief Class representing a complete robotic arm.
@@ -194,6 +193,13 @@ public:
     //! the number of joints.
     // ------------------------------------------------------------------------
     bool setJointValues(std::vector<double> const& p_values);
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the robot to its neutral position.
+    //!
+    //! This method sets all joint values to 0.
+    // ------------------------------------------------------------------------
+    void setNeutralPosition();
 
     // ------------------------------------------------------------------------
     //! \brief Compute the inverse kinematics of the robot arm by the Jacobian

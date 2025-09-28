@@ -101,7 +101,7 @@ public:
     //! \brief Get the last error message.
     //! \return Error message.
     // ------------------------------------------------------------------------
-    const std::string& getLastError() const
+    const std::string& error() const
     {
         return m_last_error;
     }
