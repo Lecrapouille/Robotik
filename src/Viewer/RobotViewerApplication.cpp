@@ -8,385 +8,162 @@
  */
 
 #include "Viewer/RobotViewerApplication.hpp"
-#include "Viewer/Benchmark.hpp"
 
-#include "Robotik/Debug.hpp"
-#include "Robotik/Parser.hpp"
-#include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Exception.hpp"
+#include <GLFW/glfw3.h>
 
-#include <iostream>
-#include <map>
-
-namespace robotik
+namespace robotik::viewer
 {
 
 // ----------------------------------------------------------------------------
-RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
-    : Application(m_path,
-                  p_config.window_width,
-                  p_config.window_height,
-                  p_config.window_title),
-      m_config(p_config),
-      m_start_time(std::chrono::steady_clock::now())
+RobotViewerApplication::RobotViewerApplication(Configuration& p_config)
+    : m_config(p_config),
+      m_window(WindowConfig{ p_config.window_width,
+                             p_config.window_height,
+                             p_config.window_title }),
+      m_robot_viewer(p_config.window_width, p_config.window_height),
+      m_title(p_config.window_title)
 {
-    m_path.add(p_config.search_paths);
+    m_window.setTitle(m_title + " - FPS: " + std::to_string(m_fps));
+}
+
+// ----------------------------------------------------------------------------
+RobotViewerApplication::~RobotViewerApplication() = default;
+
+// ----------------------------------------------------------------------------
+bool RobotViewerApplication::run()
+{
+    return Application::run(m_config.target_fps, m_config.target_physics_hz);
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::setTitle(std::string const& p_title)
+{
+    m_title = p_title;
+    m_window.setTitle(m_title + " - FPS: " + std::to_string(m_fps));
+}
+
+// ----------------------------------------------------------------------------
+bool RobotViewerApplication::isHalting() const
+{
+    return m_window.isHalting();
 }
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::onSetup()
 {
-    if (!loadRobot(m_config.urdf_file))
-        return false;
-
-    if (!setTarget(m_config.control_joint))
-        return false;
-
-    if (!initCameraView(m_config.camera_target))
-        return false;
-
-    // Enable profiling if requested
-    m_viewer.setProfilingEnabled(m_config.enable_profiling);
-
-    // Pre-allocate memory for performance
-    if (m_robot)
+    if (!m_window.initialize())
     {
-        size_t joint_count = m_robot->jointValues().size();
-        m_cached_joint_values.reserve(joint_count);
-        m_cached_joint_values.resize(joint_count);
+        m_error = m_window.error();
+        return false;
     }
+
+    m_window.setCallbacks(std::bind(&RobotViewerApplication::onKeyInput,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3,
+                                    std::placeholders::_4),
+                          std::bind(&RobotViewerApplication::onMouseButton,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2,
+                                    std::placeholders::_3),
+                          std::bind(&RobotViewerApplication::onCursorPos,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2),
+                          std::bind(&RobotViewerApplication::onScroll,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2),
+                          std::bind(&RobotViewerApplication::onWindowResize,
+                                    this,
+                                    std::placeholders::_1,
+                                    std::placeholders::_2));
+
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-bool RobotViewerApplication::loadRobot(const std::string& p_urdf_file)
-{
-    URDFParser parser;
-
-    m_robot = parser.load(p_urdf_file);
-    if (!m_robot)
-    {
-        m_error = "Failed to load robot from '" + p_urdf_file +
-                  "': " + parser.getError();
-        return false;
-    }
-    else
-    {
-        std::cout << "Loaded robot from: " << p_urdf_file << std::endl;
-        std::cout << debug::printRobot(*m_robot, true) << std::endl;
-    }
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::setTarget(std::string const& p_target_joint_name)
-{
-    m_target = nullptr;
-
-    // Search for the joint to control, given by the user from the application
-    // command line. If not provided, find the robot end effector.
-    try
-    {
-        if (!p_target_joint_name.empty())
-        {
-            m_target = &m_robot->joint(p_target_joint_name);
-        }
-        else
-        {
-            m_target = &m_robot->findEndEffector();
-        }
-    }
-    catch (RobotikException const& e)
-    {
-        m_error = e.what();
-        return false;
-    }
-
-    // Set the target pose to the target joint.
-    if (m_target)
-    {
-        std::cout << "Target: " << m_target->name() << std::endl;
-        m_target_pose = utils::transformToPose(m_target->worldTransform());
-    }
-    else
-    {
-        m_error =
-            "Warning: End effector not found, inverse kinematics disabled";
-        return false;
-    }
-
-    return m_target != nullptr;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::initCameraView(
-    std::string const& p_look_at_joint_name)
-{
-    m_camera_target = nullptr;
-
-    // Search for the joint to look at, given by the user from the
-    // application command line. If not provided, use the robot root.
-    try
-    {
-        if (!p_look_at_joint_name.empty())
-        {
-            m_camera_target = &m_robot->joint(p_look_at_joint_name);
-        }
-        else
-        {
-            m_camera_target = &m_robot->root();
-        }
-    }
-    catch (RobotikException const& e)
-    {
-        m_error = e.what();
-        return false;
-    }
-
-    // Set the camera view to the target joint.
-    if (m_camera_target)
-    {
-        std::cout << "Camera target: " << m_camera_target->name() << std::endl;
-        m_viewer.cameraView(
-            OpenGLViewer::CameraViewType::SIDE,
-            utils::getTranslation(m_camera_target->worldTransform()));
-    }
-    else
-    {
-        m_error = "Warning: Camera target not found";
-    }
-
-    return m_camera_target != nullptr;
-}
+void RobotViewerApplication::onCleanup() {}
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onDraw()
 {
-    std::lock_guard<std::mutex> lock(m_robot_mutex);
-    m_viewer.render(*m_robot);
+    m_window.swapBuffers();
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onUpdate(float const /* dt */)
+void RobotViewerApplication::onUpdate(float const /* dt */) {}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onHandleEvents()
 {
-    // Track the camera view to the target joint.
-    m_viewer.cameraView(
-        m_config.camera_view,
-        utils::getTranslation(m_camera_target->worldTransform()));
+    // Poll GLFW events to process callbacks
+    glfwPollEvents();
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
+void RobotViewerApplication::onPhysicUpdate(float const /* dt */) {}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
 {
-    if (m_viewer.isProfilingEnabled())
-    {
-        PROFILE_SCOPE("Physics Update");
-    }
-
-    auto current_time = std::chrono::steady_clock::now();
-    double elapsed_seconds =
-        std::chrono::duration<double>(current_time - m_start_time).count();
-
-    // Lock robot for updates
-    std::lock_guard<std::mutex> lock(m_robot_mutex);
-
-    ControlMode mode = m_control_mode.load();
-    if (mode == ControlMode::ANIMATION)
-    {
-        if (m_viewer.isProfilingEnabled())
-        {
-            PROFILE_SCOPE("Animation Update");
-        }
-        handleAnimation(elapsed_seconds);
-    }
-    else if (mode == ControlMode::INVERSE_KINEMATICS)
-    {
-        if (m_viewer.isProfilingEnabled())
-        {
-            PROFILE_SCOPE("IK Update");
-        }
-        handleInverseKinematics();
-    }
+    m_fps = p_fps;
+    m_window.setTitle(m_title + " - FPS: " + std::to_string(p_fps));
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleAnimation(double p_time)
+void RobotViewerApplication::onWindowResize(int width, int height)
 {
-    if (m_viewer.isProfilingEnabled())
+    glViewport(0, 0, width, height);
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onKeyInput(int key,
+                                        int /* scancode */,
+                                        int action,
+                                        int /* mods */)
+{
+    // Handle key event
+    if (action == GLFW_PRESS)
     {
-        PROFILE_SCOPE("Animation Calculation");
-    }
-
-    // Update animation time (slower for more visible animation)
-    float animation_time = static_cast<float>(p_time) * 0.5f;
-
-    // Check if we need to recalculate (cache optimization)
-    if (m_animation_dirty ||
-        std::abs(animation_time - m_last_animation_time) > 0.01)
-    {
-        // Get current joint values
-        std::vector<double> joint_values = m_robot->jointValues();
-
-        // Resize cache if needed
-        if (m_cached_joint_values.size() != joint_values.size())
+        switch (key)
         {
-            m_cached_joint_values.resize(joint_values.size());
-            m_animation_dirty = true;
+            case GLFW_KEY_ESCAPE:
+                m_window.halt();
+                break;
+            default:
+                break;
         }
-
-        // Animate each joint with different frequencies and amplitudes
-        for (size_t i = 0; i < joint_values.size(); ++i)
-        {
-            // Different frequency for each joint to create varied motion
-            float frequency = 0.8f + static_cast<float>(i) * 0.3f;
-            float amplitude =
-                0.8f; // Increased amplitude for more visible motion
-
-            // Sinusoidal motion with phase offset for each joint
-            float phase = static_cast<float>(i) * 1.5f;
-            m_cached_joint_values[i] = double(
-                amplitude * std::sin(frequency * animation_time + phase));
-        }
-
-        m_last_animation_time = animation_time;
-        m_animation_dirty = false;
-    }
-
-    // Apply the cached joint values to the robot
-    {
-        if (m_viewer.isProfilingEnabled())
-        {
-            PROFILE_SCOPE("Robot Joint Update");
-        }
-        m_robot->setJointValues(m_cached_joint_values);
     }
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleInverseKinematics()
+void RobotViewerApplication::onMouseButton(int /* button */,
+                                           int /* action */,
+                                           int /* mods */)
 {
-    if (m_viewer.isProfilingEnabled())
-    {
-        PROFILE_SCOPE("IK Calculation");
-    }
-
-    std::cout << "Target pose: [" << m_target_pose(0) << ", "
-              << m_target_pose(1) << ", " << m_target_pose(2) << ", "
-              << m_target_pose(3) << ", " << m_target_pose(4) << ", "
-              << m_target_pose(5) << "]" << std::endl;
-
-    // Calculate inverse kinematics
-    auto solution = m_robot->inverseKinematics(m_target_pose, *m_target);
-
-    if (!solution.empty())
-    {
-        if (m_viewer.isProfilingEnabled())
-        {
-            PROFILE_SCOPE("IK Solution Apply");
-        }
-        m_robot->setJointValues(solution);
-        std::cout << "IK solution found: ";
-        for (double joint_val : solution)
-        {
-            std::cout << joint_val << " ";
-        }
-        std::cout << std::endl;
-    }
-    else
-    {
-        std::cout << "No IK solution found for target pose!" << std::endl;
-    }
-
-    m_target_updated.store(false);
+    // Handle mouse button event
+    // This could be used for camera controls, object selection, etc.
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleInput(int key, int /* action */)
+void RobotViewerApplication::onCursorPos(double /* xpos */, double /* ypos */)
 {
-    // Lookup table for camera view keys => camera view type.
-    static const std::map<int, OpenGLViewer::CameraViewType> camera_keys = {
-        { GLFW_KEY_1, OpenGLViewer::CameraViewType::PERSPECTIVE },
-        { GLFW_KEY_2, OpenGLViewer::CameraViewType::TOP },
-        { GLFW_KEY_3, OpenGLViewer::CameraViewType::FRONT },
-        { GLFW_KEY_4, OpenGLViewer::CameraViewType::SIDE },
-        { GLFW_KEY_5, OpenGLViewer::CameraViewType::ISOMETRIC }
-    };
-
-    if (!m_viewer.isKeyPressed(key))
-        return;
-
-    // Robot mode switching (animation or inverse kinematics)
-    if (key == GLFW_KEY_M)
-    {
-        auto new_mode = (m_control_mode.load() == ControlMode::ANIMATION)
-                            ? ControlMode::INVERSE_KINEMATICS
-                            : ControlMode::ANIMATION;
-        m_control_mode.store(new_mode);
-        std::cout << "Mode: "
-                  << (new_mode == ControlMode::ANIMATION ? "Animation" : "IK")
-                  << std::endl;
-
-        if (new_mode == ControlMode::INVERSE_KINEMATICS)
-        {
-            m_target_pose = utils::transformToPose(m_target->worldTransform());
-            std::cout << "Target pose initialized" << std::endl;
-        }
-    }
-
-    // Switch camera views
-    auto it = camera_keys.find(key);
-    if (it != camera_keys.end())
-    {
-        m_config.camera_view = it->second;
-    }
-
-    // IK target position controls: continuous movement while pressed
-    if (m_control_mode.load() == ControlMode::INVERSE_KINEMATICS)
-    {
-        if (m_viewer.isKeyPressed(GLFW_KEY_Z)) // +X
-        {
-            m_target_pose(0) += 0.05;
-            m_target_updated.store(true);
-            std::cout << "Z pressed - Target X: " << m_target_pose(0)
-                      << std::endl;
-        }
-        if (m_viewer.isKeyPressed(GLFW_KEY_S)) // -X
-        {
-            m_target_pose(0) -= 0.05;
-            m_target_updated.store(true);
-            std::cout << "S pressed - Target X: " << m_target_pose(0)
-                      << std::endl;
-        }
-        if (m_viewer.isKeyPressed(GLFW_KEY_Q)) // -Y
-        {
-            m_target_pose(1) -= 0.05;
-            m_target_updated.store(true);
-            std::cout << "Q pressed - Target Y: " << m_target_pose(1)
-                      << std::endl;
-        }
-        if (m_viewer.isKeyPressed(GLFW_KEY_D)) // +Y
-        {
-            m_target_pose(1) += 0.05;
-            m_target_updated.store(true);
-            std::cout << "D pressed - Target Y: " << m_target_pose(1)
-                      << std::endl;
-        }
-        if (m_viewer.isKeyPressed(GLFW_KEY_A)) // +Z
-        {
-            m_target_pose(2) += 0.05;
-            m_target_updated.store(true);
-            std::cout << "A pressed - Target Z: " << m_target_pose(2)
-                      << std::endl;
-        }
-        if (m_viewer.isKeyPressed(GLFW_KEY_E)) // -Z
-        {
-            m_target_pose(2) -= 0.05;
-            m_target_updated.store(true);
-            std::cout << "E pressed - Target Z: " << m_target_pose(2)
-                      << std::endl;
-        }
-    }
+    // Handle cursor position event
+    // This could be used for camera controls, mouse tracking, etc.
 }
 
-} // namespace robotik
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onScroll(double /* xoffset */,
+                                      double /* yoffset */)
+{
+    // Handle scroll event
+    // This could be used for zoom controls, etc.
+}
+
+} // namespace robotik::viewer

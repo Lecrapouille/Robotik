@@ -40,10 +40,8 @@ INCLUDES += $(P)/src $(P)/include
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES += Application.cpp OpenGLWindow.cpp RobotViewerApplication.cpp
-SRC_FILES += Camera.cpp GeometryRenderer.cpp MeshManager.cpp
-SRC_FILES += ShaderManager.cpp STLLoader.cpp
-SRC_FILES += RobotViewer.cpp main.cpp
+SRC_FILES += loaders/STLLoader.cpp
+SRC_FILES += Benchmark.cpp OpenGLViewer.cpp Application.cpp RobotViewerApplication.cpp main.cpp
 INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
 
 ###############################################################################

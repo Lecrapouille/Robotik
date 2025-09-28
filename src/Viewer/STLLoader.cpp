@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/loaders/STLLoader.hpp"
+#include "Viewer/STLLoader.hpp"
 
 #include <algorithm>
 #include <cctype>
