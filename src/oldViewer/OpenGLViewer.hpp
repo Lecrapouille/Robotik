@@ -110,7 +110,7 @@ public:
     //! \brief Check if window should close.
     //! \return true if window should close.
     // ------------------------------------------------------------------------
-    bool shouldClose() const;
+    bool isHalting() const;
 
     // ------------------------------------------------------------------------
     //! \brief Process input events.

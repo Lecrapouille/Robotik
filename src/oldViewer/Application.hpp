@@ -9,11 +9,14 @@
 
 #pragma once
 
+#include "Viewer/OpenGLWindow.hpp"
+
+#include "Robotik/private/Path.hpp"
+
 #include <atomic>
-#include <string>
 #include <thread>
 
-namespace robotik::viewer
+namespace robotik
 {
 
 // Forward declaration
@@ -28,6 +31,18 @@ class Application
 public:
 
     // ----------------------------------------------------------------------------
+    //! \brief Constructor. No actions are performed here.
+    //! \param p_path Path searcher.
+    //! \param p_window_width Window width in pixels.
+    //! \param p_window_height Window height in pixels.
+    //! \param p_window_title Window title.
+    // ----------------------------------------------------------------------------
+    Application(Path& p_path,
+                size_t p_window_width,
+                size_t p_window_height,
+                const std::string& p_window_title);
+
+    // ----------------------------------------------------------------------------
     //! \brief Destructor.
     // ----------------------------------------------------------------------------
     virtual ~Application();
@@ -35,29 +50,13 @@ public:
     // ----------------------------------------------------------------------------
     //! \brief Start the application, start the physics thread and run the main
     //! loop.
-    //! \param p_target_fps Target rendering frame rate.
-    //! \param p_target_physics_hz Target physics update rate.
+    //! \param p_target_fps Target rendering frame rate (default: 60 FPS).
+    //! \param p_target_physics_hz Target physics update rate (default: 1000
+    //! Hz).
     //! \return true if the application should close, false otherwise.
     // ----------------------------------------------------------------------------
-    bool run(size_t const p_target_fps, size_t const p_target_physics_hz);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get the last error message from the physics thread.
-    //! \return The error message, or empty string if no error.
-    // ----------------------------------------------------------------------------
-    std::string const& error() const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set the title of the application.
-    //! \param p_title The title of the application.
-    // ----------------------------------------------------------------------------
-    virtual void setTitle(std::string const& p_title) = 0;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get the FPS.
-    //! \return The FPS.
-    // ----------------------------------------------------------------------------
-    size_t fps() const;
+    bool run(size_t const p_target_fps = 60u,
+             size_t const p_target_physics_hz = 1000u);
 
 private:
 
@@ -74,11 +73,6 @@ private:
     virtual bool onSetup() = 0;
 
     // ----------------------------------------------------------------------------
-    //! \brief Cleanup the application. Called once at shutdown.
-    // ----------------------------------------------------------------------------
-    virtual void onCleanup() = 0;
-
-    // ----------------------------------------------------------------------------
     //! \brief Render the application. Called every frame.
     // ----------------------------------------------------------------------------
     virtual void onDraw() = 0;
@@ -90,11 +84,6 @@ private:
     virtual void onUpdate(float const p_dt) = 0;
 
     // ----------------------------------------------------------------------------
-    //! \brief Handle events. Called every frame.
-    // ----------------------------------------------------------------------------
-    virtual void onHandleEvents() = 0;
-
-    // ----------------------------------------------------------------------------
     //! \brief Update physics simulation. Called at fixed time intervals.
     //! \param p_dt Fixed delta time for physics simulation.
     //! \note This method is called internally by the physics thread.
@@ -102,54 +91,40 @@ private:
     virtual void onPhysicUpdate(float const p_dt) = 0;
 
     // ----------------------------------------------------------------------------
-    //! \brief Update the FPS.
-    //! \param p_fps Current FPS value.
+    //! \brief Handle input events. Called for each input event.
+    //! \param p_key The key that was pressed.
+    //! \param p_action The action (press/release).
     // ----------------------------------------------------------------------------
-    virtual void onFPSUpdated(size_t const p_fps) = 0;
+    virtual void handleInput(int p_key, int p_action) = 0;
 
 private:
 
     // ----------------------------------------------------------------------------
     //! \brief Start the physics thread.
-    //! \param p_target_physics_hz Target physics update rate.
-    //! \return true if the physics thread was started successfully, false
-    //! otherwise. Call getLastError() to get the error message.
     // ----------------------------------------------------------------------------
-    bool startPhysicsThread(size_t const p_target_physics_hz);
+    void startPhysicsThread(size_t const p_target_physics_hz);
 
     // ----------------------------------------------------------------------------
     //! \brief Stop the physics thread.
-    //! \return true if the physics thread was stopped successfully, false
-    //! otherwise. Call getLastError() to get the error message.
     // ----------------------------------------------------------------------------
-    bool stopPhysicsThread();
+    void stopPhysicsThread();
 
     // ----------------------------------------------------------------------------
-    //! \brief Physics thread main loop.
-    //! \param p_target_physics_hz Target physics update rate.
+    //! \brief Check if a key is pressed.
+    //! \param p_key The key to check.
+    //! \return true if the key is pressed, false otherwise.
     // ----------------------------------------------------------------------------
-    void physicsThreadLoop(size_t const p_target_physics_hz);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Update the FPS calculation based on frame count.
-    // ----------------------------------------------------------------------------
-    void updateFPS();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Limit the framerate.
-    // ----------------------------------------------------------------------------
-    void limitFramerate(float const p_target_frame_time) const;
+    bool isKeyPressed(int p_key) const;
 
 protected:
 
-    std::string m_error;
+    OpenGLWindow m_viewer;
 
 private:
 
-    std::chrono::high_resolution_clock::time_point m_last_frame_time;
     std::thread m_physics_thread{};
     std::atomic<bool> m_physics_running{ false };
-    size_t m_frame_count;
+    std::string m_error;
 };
 
-} // namespace robotik::viewer
+} // namespace robotik

@@ -9,52 +9,13 @@
 
 #include "Viewer/Application.hpp"
 
+#include <algorithm>
 #include <chrono>
+#include <future>
+#include <thread>
 
-namespace robotik
+namespace robotik::viewer
 {
-
-// *****************************************************************************
-//! \brief Simple timer for application timing.
-// *****************************************************************************
-class AppTimer
-{
-    using Clock = std::chrono::steady_clock;
-    using Second = std::chrono::duration<float, std::ratio<1>>;
-
-public:
-
-    AppTimer()
-    {
-        m_begin = Clock::now();
-    }
-
-    float restart()
-    {
-        float res = elapsed();
-        m_begin = Clock::now();
-        return res;
-    }
-
-    float elapsed() const
-    {
-        return std::chrono::duration_cast<Second>(Clock::now() - m_begin)
-            .count();
-    }
-
-private:
-
-    std::chrono::time_point<Clock> m_begin;
-};
-
-// ----------------------------------------------------------------------------
-Application::Application(Path& p_path,
-                         size_t window_width,
-                         size_t window_height,
-                         const std::string& window_title)
-    : m_viewer(p_path, window_width, window_height, window_title)
-{
-}
 
 // ----------------------------------------------------------------------------
 Application::~Application()
@@ -63,97 +24,220 @@ Application::~Application()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::isKeyPressed(int p_key) const
+bool Application::isHalting() const
 {
-    return m_viewer.isKeyPressed(p_key);
+    // Default implementation: always return false.
+    // Derived classes should override this method.
+    return false;
 }
 
 // ----------------------------------------------------------------------------
-bool Application::shouldClose() const
+std::string const& Application::error() const
 {
-    return m_viewer.shouldClose();
+    return m_error;
+}
+
+// ----------------------------------------------------------------------------
+void Application::updateFPS()
+{
+    // Calculate FPS based on frame count and time elapsed
+    // This gives a more accurate average FPS over the last second
+    static auto last_fps_time = std::chrono::high_resolution_clock::now();
+    static size_t last_frame_count = 0;
+
+    auto current_time = std::chrono::high_resolution_clock::now();
+    auto time_elapsed =
+        std::chrono::duration<float>(current_time - last_fps_time).count();
+
+    // Update FPS every second
+    if (time_elapsed >= 1.0f)
+    {
+        size_t frames_this_second = m_frame_count - last_frame_count;
+        float current_fps =
+            static_cast<float>(frames_this_second) / time_elapsed;
+
+        onFPSUpdated(static_cast<size_t>(current_fps));
+
+        // Reset counters
+        last_fps_time = current_time;
+        last_frame_count = m_frame_count;
+    }
+    m_frame_count++;
+}
+
+// ----------------------------------------------------------------------------
+void Application::limitFramerate(float const p_target_frame_time) const
+{
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float frameTime =
+        std::chrono::duration<float>(currentTime - m_last_frame_time).count();
+
+    if (frameTime < p_target_frame_time)
+    {
+        float sleepTime = p_target_frame_time - frameTime;
+        std::this_thread::sleep_for(std::chrono::duration<float>(sleepTime));
+    }
 }
 
 // ----------------------------------------------------------------------------
 bool Application::run(size_t const p_target_fps,
                       size_t const p_target_physics_hz)
 {
-    // Initialize the OpenGL viewer
-    if (!m_viewer.initialize())
-    {
-        return false;
-    }
-
     // User setup callback
     if (!onSetup())
     {
         return false;
     }
 
-    // Start physics thread
     startPhysicsThread(p_target_physics_hz);
 
-    AppTimer timer;
-    float time_since_last_update = 0.0f;
-    const float time_per_frame = 1.0f / float(p_target_fps);
-
-    // Main application loop - Proper 60 FPS timing
-    while (!shouldClose())
+    // Main application loop
+    float target_frame_time = 1.0f / static_cast<float>(p_target_fps);
+    m_last_frame_time = std::chrono::high_resolution_clock::now();
+    while (!isHalting())
     {
-        // Process input events every frame
-        m_viewer.processInput([this](int key, int action)
-                              { handleInput(key, action); });
+        // Calculate the delta time for the display
+        auto current_time = std::chrono::high_resolution_clock::now();
+        float delta_time =
+            std::chrono::duration<float>(current_time - m_last_frame_time)
+                .count();
+        m_last_frame_time = current_time;
 
-        // Update application logic at target FPS
-        time_since_last_update += timer.restart();
-        if (time_since_last_update >= time_per_frame)
-        {
-            time_since_last_update -= time_per_frame;
-            onUpdate(time_per_frame);
-        }
-
-        // Draw the application every frame
+        // User setup callbacks
+        onHandleEvents();
+        onUpdate(delta_time);
         onDraw();
+
+        // Update the FPS and limit the framerate
+        updateFPS();
+        limitFramerate(target_frame_time);
     }
 
-    // Stop physics thread before exiting
     stopPhysicsThread();
+
+    // User setup callback
+    onCleanup();
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void Application::startPhysicsThread(size_t const p_target_physics_hz)
+bool Application::startPhysicsThread(size_t const p_target_physics_hz)
 {
-    m_physics_running = true;
-    m_physics_thread = std::thread(
-        [this, p_target_physics_hz]()
-        {
-            const auto physics_dt =
-                std::chrono::microseconds(1000000 / p_target_physics_hz);
-            const auto physics_dt_seconds = 1.0f / float(p_target_physics_hz);
-            auto next_update = std::chrono::steady_clock::now();
+    try
+    {
+        // Stop any existing physics thread first
+        stopPhysicsThread();
 
-            while (m_physics_running)
-            {
-                // Call physics update with fixed timestep
-                onPhysicUpdate(physics_dt_seconds);
-
-                // Sleep until next update
-                next_update += physics_dt;
-                std::this_thread::sleep_until(next_update);
-            }
-        });
+        m_physics_running = true;
+        m_physics_thread = std::thread(
+            &Application::physicsThreadLoop, this, p_target_physics_hz);
+    }
+    catch (const std::exception& e)
+    {
+        // Store error for later retrieval
+        m_error = "Physics thread exception: " + std::string(e.what());
+        m_physics_running = false;
+    }
+    return m_physics_running;
 }
 
 // ----------------------------------------------------------------------------
-void Application::stopPhysicsThread()
+void Application::physicsThreadLoop(size_t const p_target_physics_hz)
 {
-    m_physics_running = false;
-    if (m_physics_thread.joinable())
+    try
     {
-        m_physics_thread.join();
+        // Use high resolution clock for better precision
+        using Clock = std::chrono::high_resolution_clock;
+        const auto physics_dt = std::chrono::duration<double>(
+            1.0 / static_cast<double>(p_target_physics_hz));
+        const float physics_dt_seconds =
+            1.0f / static_cast<float>(p_target_physics_hz);
+
+        auto next_update = Clock::now();
+        auto last_update = Clock::now();
+
+        while (m_physics_running)
+        {
+            // Calculate actual delta time for this physics step
+            auto current_time = Clock::now();
+            auto actual_dt =
+                std::chrono::duration<float>(current_time - last_update)
+                    .count();
+            last_update = current_time;
+
+            // Use actual delta time if reasonable, otherwise use fixed
+            // timestep
+            float dt_to_use = (actual_dt > 0.0f && actual_dt < 0.1f)
+                                  ? actual_dt
+                                  : physics_dt_seconds;
+
+            // Clamp delta time to prevent physics explosions
+            dt_to_use = std::clamp(dt_to_use, 0.001f, 0.1f);
+
+            onPhysicUpdate(dt_to_use);
+
+            // Calculate next update time with better precision
+            next_update +=
+                std::chrono::duration_cast<Clock::duration>(physics_dt);
+
+            // Sleep until next update, but handle oversleeping
+            // gracefully
+            auto now = Clock::now();
+            if (next_update > now)
+            {
+                std::this_thread::sleep_until(next_update);
+            }
+            else
+            {
+                // We're behind schedule, don't sleep and catch up
+                next_update = now + std::chrono::duration_cast<Clock::duration>(
+                                        physics_dt);
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        // Store error for later retrieval
+        m_error = "Physics thread exception: " + std::string(e.what());
+        m_physics_running = false;
     }
 }
 
-} // namespace robotik
+// ----------------------------------------------------------------------------
+bool Application::stopPhysicsThread()
+{
+    try
+    {
+        if (m_physics_running)
+        {
+            m_physics_running = false;
+
+            if (m_physics_thread.joinable())
+            {
+                // Give the thread a reasonable time to finish gracefully
+                auto future = std::async(std::launch::async,
+                                         [this]() { m_physics_thread.join(); });
+
+                // Wait for join with timeout
+                if (future.wait_for(std::chrono::milliseconds(100)) ==
+                    std::future_status::timeout)
+                {
+                    // Thread didn't join in time, detach it (not ideal but
+                    // prevents hang)
+                    m_physics_thread.detach();
+                }
+            }
+        }
+        return true;
+    }
+    catch (std::exception const& e)
+    {
+        // Handle any other exceptions
+        m_error = "Physics thread exception: " + std::string(e.what());
+        m_physics_running = false;
+        return false;
+    }
+}
+
+} // namespace robotik::viewer

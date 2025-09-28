@@ -137,7 +137,7 @@ OpenGLViewer::~OpenGLViewer()
 }
 
 // ----------------------------------------------------------------------------
-bool OpenGLViewer::shouldClose() const
+bool OpenGLViewer::isHalting() const
 {
     return glfwWindowShouldClose(m_window);
 }
