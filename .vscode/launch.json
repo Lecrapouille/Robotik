@@ -19,6 +19,41 @@
                     "ignoreFailures": false
                 }
             ]
+        },
+        {
+            "name": "Robotik-viewer with gdb",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/Robotik-viewer",
+            "args": [
+                "${workspaceFolder}/data/T12.urdf"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                }
+            ]
         }
+    ],
+    "compounds": [
+        {
+            "name": "Robotik-viewer",
+            "configurations": [
+                "Robotik-viewer with gdb"
+            ]
+        },
+        {
+            "name": "Robotik-tests",
+            "configurations": [
+                "Robotik-tests with gdb"
+            ]
+        },
     ]
 }

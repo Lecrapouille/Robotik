@@ -1,9 +1,20 @@
-#include "OpenGLViewer.hpp"
-#include "STLLoader.hpp"
+/**
+ * @file OpenGLViewer.cpp
+ * @brief OpenGL viewer class for the 3D viewer.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
+#include "Viewer/OpenGLViewer.hpp"
+#include "Viewer/loaders/STLLoader.hpp"
 
 #include "Robotik/private/Path.hpp"
 
+#include <chrono>
 #include <cmath>
+#include <iomanip>
 #include <iostream>
 
 namespace robotik
@@ -93,6 +104,12 @@ OpenGLViewer::OpenGLViewer(Path& p_path,
     m_urdf_to_opengl_matrix(1, 2) = 1.0f;  // OpenGL_Y = URDF_Z
     m_urdf_to_opengl_matrix(2, 0) = -1.0f; // OpenGL_Z = -URDF_X
     m_urdf_to_opengl_matrix(3, 3) = 1.0f;  // Homogeneous coordinate
+
+    // Initialize FPS tracking
+    m_base_window_title = p_title;
+    m_last_fps_time = std::chrono::steady_clock::now();
+    m_fps_counter = 0;
+    m_current_fps = 0.0;
 }
 
 // ----------------------------------------------------------------------------
@@ -204,6 +221,14 @@ bool OpenGLViewer::initializeShaders()
     {
         return false;
     }
+
+    // Cache uniform locations for performance
+    glUseProgram(m_shader_program);
+    m_projection_uniform = glGetUniformLocation(m_shader_program, "projection");
+    m_view_uniform = glGetUniformLocation(m_shader_program, "view");
+    m_model_uniform = glGetUniformLocation(m_shader_program, "model");
+    m_color_uniform = glGetUniformLocation(m_shader_program, "color");
+
     return true;
 }
 
@@ -305,30 +330,67 @@ void OpenGLViewer::cameraView(CameraViewType p_view,
 // ----------------------------------------------------------------------------
 void OpenGLViewer::render(Robot const& p_robot)
 {
+    // Always measure render time for FPS calculation
+    auto render_start = std::chrono::steady_clock::now();
+
+    if (m_enable_profiling)
+    {
+        PROFILE_SCOPE_VAR("Total Render", m_render_time_ms);
+    }
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Always bind shader and set matrices (required for proper rendering)
     glUseProgram(m_shader_program);
-
-    // Set projection matrix
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "projection"),
-                       1,
-                       GL_FALSE,
-                       m_projection_matrix.data());
-
-    // Set view matrix
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "view"),
-                       1,
-                       GL_FALSE,
-                       m_view_matrix.data());
+    glUniformMatrix4fv(
+        m_projection_uniform, 1, GL_FALSE, m_projection_matrix.data());
+    glUniformMatrix4fv(m_view_uniform, 1, GL_FALSE, m_view_matrix.data());
 
     // Render grid
-    renderGrid();
+    if (m_enable_profiling)
+    {
+        PROFILE_SCOPE("Grid Render");
+        renderGrid();
+    }
+    else
+    {
+        renderGrid();
+    }
 
     // Render robot if set
-    renderRobot(p_robot);
+    if (m_enable_profiling)
+    {
+        PROFILE_SCOPE_VAR("Robot Render", m_robot_render_time_ms);
+        renderRobot(p_robot);
+    }
+    else
+    {
+        renderRobot(p_robot);
+    }
 
     glfwSwapBuffers(m_window);
+
+    // Calculate render time
+    auto render_end = std::chrono::steady_clock::now();
+    auto render_duration =
+        std::chrono::duration_cast<std::chrono::microseconds>(render_end -
+                                                              render_start)
+            .count();
+    m_render_time_ms = render_duration / 1000.0;
+
+    // Update window title with FPS
+    updateWindowTitle();
+
+    // Update frame count and print stats every 60 frames
+    if (m_enable_profiling)
+    {
+        m_frame_count++;
+        if (m_frame_count % 60 == 0)
+        {
+            g_perf_stats.print_all_stats();
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -346,18 +408,13 @@ bool OpenGLViewer::initializeGeometry()
 void OpenGLViewer::renderGrid() const
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
-                       1,
-                       GL_FALSE,
-                       model.data());
+    glUniformMatrix4fv(m_model_uniform, 1, GL_FALSE, model.data());
 
     Eigen::Vector3f grid_color(0.7f, 0.7f, 0.7f);
-    glUniform3fv(
-        glGetUniformLocation(m_shader_program, "color"), 1, grid_color.data());
+    glUniform3fv(m_color_uniform, 1, grid_color.data());
 
     glBindVertexArray(m_grid_vao);
-    glDrawArrays(GL_LINES, 0,
-                 164); // 41 lines * 4 vertices = 164 vertices
+    glDrawArrays(GL_LINES, 0, 164); // 41 lines * 4 vertices = 164 vertices
 }
 
 // ----------------------------------------------------------------------------
@@ -365,12 +422,8 @@ void OpenGLViewer::renderBox(Transform const& p_transform,
                              const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
-                       1,
-                       GL_FALSE,
-                       model.data());
-    glUniform3fv(
-        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+    glUniformMatrix4fv(m_model_uniform, 1, GL_FALSE, model.data());
+    glUniform3fv(m_color_uniform, 1, p_color.data());
 
     glBindVertexArray(m_box_vao);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -381,12 +434,8 @@ void OpenGLViewer::renderCylinder(Transform const& p_transform,
                                   const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
-                       1,
-                       GL_FALSE,
-                       model.data());
-    glUniform3fv(
-        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+    glUniformMatrix4fv(m_model_uniform, 1, GL_FALSE, model.data());
+    glUniform3fv(m_color_uniform, 1, p_color.data());
 
     glBindVertexArray(m_cylinder_vao);
     glDrawElements(GL_TRIANGLES,
@@ -400,12 +449,8 @@ void OpenGLViewer::renderSphere(Transform const& p_transform,
                                 const Eigen::Vector3f& p_color) const
 {
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
-                       1,
-                       GL_FALSE,
-                       model.data());
-    glUniform3fv(
-        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+    glUniformMatrix4fv(m_model_uniform, 1, GL_FALSE, model.data());
+    glUniform3fv(m_color_uniform, 1, p_color.data());
 
     glBindVertexArray(m_sphere_vao);
     glDrawElements(
@@ -424,6 +469,9 @@ void OpenGLViewer::renderMesh(Transform const& p_transform,
     auto vao_it = m_mesh_vaos.find(p_mesh_path);
     if (vao_it == m_mesh_vaos.end())
     {
+        std::cout << "[DEBUG] Loading mesh: " << p_mesh_path << std::endl;
+        PROFILE_SCOPE_VAR("Mesh Loading", m_mesh_load_time_ms);
+
         // Load STL file
         STLLoader::MeshData mesh_data;
         if (!STLLoader::loadSTL(m_path.expand(p_mesh_path), mesh_data))
@@ -481,14 +529,22 @@ void OpenGLViewer::renderMesh(Transform const& p_transform,
         m_mesh_index_counts[p_mesh_path] = mesh_data.indices.size();
     }
 
+    // Simple frustum culling: check if mesh is in front of camera
+    Eigen::Vector3f world_pos = p_transform.block<3, 1>(0, 3).cast<float>();
+    Eigen::Vector3f camera_to_mesh = world_pos - m_camera_pos;
+
+    // Skip meshes behind camera
+    Eigen::Vector3f camera_forward =
+        (m_camera_target - m_camera_pos).normalized();
+    if (camera_to_mesh.normalized().dot(camera_forward) < -0.5f)
+    {
+        return;
+    }
+
     // Render the mesh
     Eigen::Matrix4f model = m_urdf_to_opengl_matrix * p_transform.cast<float>();
-    glUniformMatrix4fv(glGetUniformLocation(m_shader_program, "model"),
-                       1,
-                       GL_FALSE,
-                       model.data());
-    glUniform3fv(
-        glGetUniformLocation(m_shader_program, "color"), 1, p_color.data());
+    glUniformMatrix4fv(m_model_uniform, 1, GL_FALSE, model.data());
+    glUniform3fv(m_color_uniform, 1, p_color.data());
 
     glBindVertexArray(m_mesh_vaos[p_mesh_path]);
     glDrawElements(GL_TRIANGLES,
@@ -635,20 +691,19 @@ void OpenGLViewer::renderRobot(Robot const& p_robot) const
     if (!p_robot.hasRoot())
         return;
 
-    // Traverse the robot tree and render each node
-    p_robot.root().traverse(
-        [this](scene::Node const& node, size_t /*p_depth*/)
-        {
-            Transform world_transform = node.worldTransform();
-            if (/*auto joint =*/dynamic_cast<Joint const*>(&node))
+    // Always traverse robot and render (cache was causing issues)
+    {
+        PROFILE_SCOPE("Robot Rendering");
+
+        p_robot.root().traverse(
+            [this](scene::Node const& node, size_t /*p_depth*/)
             {
-                // renderJoint(*joint, world_transform);
-            }
-            else if (auto geometry = dynamic_cast<Geometry const*>(&node))
-            {
-                renderGeometry(*geometry, world_transform);
-            }
-        });
+                if (auto geometry = dynamic_cast<Geometry const*>(&node))
+                {
+                    renderGeometry(*geometry, node.worldTransform());
+                }
+            });
+    }
 
 #if 0
     // Traverse the robot tree and render each axis
@@ -701,6 +756,46 @@ void OpenGLViewer::updateCamera()
     m_projection_matrix(2, 3) =
         -2.0f * m_far_plane * m_near_plane / (m_far_plane - m_near_plane);
     m_projection_matrix(3, 2) = -1.0f;
+
+    // Matrices updated - no state reset needed
+}
+
+// ----------------------------------------------------------------------------
+void OpenGLViewer::updateWindowTitle() const
+{
+    if (!m_window)
+        return;
+
+    // Calculate FPS every 30 frames or every second
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                       now - m_last_fps_time)
+                       .count();
+
+    m_fps_counter++;
+
+    // Update FPS every second
+    if (elapsed >= 1000)
+    {
+        m_current_fps = (m_fps_counter * 1000.0) / static_cast<double>(elapsed);
+        m_fps_counter = 0;
+        m_last_fps_time = now;
+
+        // Update window title with FPS
+        std::string title =
+            m_base_window_title +
+            " - FPS: " + std::to_string(static_cast<int>(m_current_fps + 0.5));
+        glfwSetWindowTitle(m_window, title.c_str());
+
+        // Also print FPS to console for debugging
+        std::cout << "[FPS] " << static_cast<int>(m_current_fps + 0.5)
+                  << " FPS";
+        std::cout << " | Render: " << std::fixed << std::setprecision(2)
+                  << m_render_time_ms << "ms";
+        std::cout << " | Robot: " << m_robot_render_time_ms << "ms";
+        std::cout << " | Mesh: " << m_mesh_load_time_ms << "ms" << std::endl;
+        std::cout.flush(); // Force output
+    }
 }
 
 // ----------------------------------------------------------------------------

@@ -1,3 +1,12 @@
+/**
+ * @file DAELoader.hpp
+ * @brief DAE file loader for 3D models.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include <cstring>
@@ -60,7 +69,8 @@ private:
     //! \param p_mesh_data Output mesh data.
     //! \return true if successful.
     // ------------------------------------------------------------------------
-    static bool parseGeometry(const std::string& p_xml_content, MeshData& p_mesh_data);
+    static bool parseGeometry(const std::string& p_xml_content,
+                              MeshData& p_mesh_data);
 
     // ------------------------------------------------------------------------
     //! \brief Extract float array from XML source element.
@@ -69,7 +79,7 @@ private:
     //! \param p_values Output float values.
     //! \return true if successful.
     // ------------------------------------------------------------------------
-    static bool extractFloatArray(const std::string& p_xml_content, 
+    static bool extractFloatArray(const std::string& p_xml_content,
                                   const std::string& p_source_id,
                                   std::vector<float>& p_values);
 
@@ -115,4 +125,3 @@ private:
 };
 
 } // namespace robotik
-

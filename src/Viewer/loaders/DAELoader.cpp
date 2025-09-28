@@ -1,4 +1,13 @@
-#include "DAELoader.hpp"
+/**
+ * @file DAELoader.cpp
+ * @brief DAE file loader for 3D models.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
+#include "Viewer/loaders/DAELoader.hpp"
 #include <fstream>
 #include <sstream>
 

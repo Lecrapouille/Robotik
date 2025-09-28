@@ -1,6 +1,16 @@
+/**
+ * @file OpenGLViewer.hpp
+ * @brief OpenGL viewer class for the 3D viewer.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #pragma once
 
 #include "Robotik/Robot.hpp"
+#include "Viewer/Benchmark.hpp"
 
 #include "Robotik/private/Path.hpp"
 
@@ -132,6 +142,34 @@ public:
     //! \return true if the key is pressed.
     // ------------------------------------------------------------------------
     bool isKeyPressed(int p_key) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Mark robot as dirty (removed - was causing performance issues).
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    //! \brief Enable or disable performance profiling.
+    //! \param enable true to enable profiling.
+    // ------------------------------------------------------------------------
+    void setProfilingEnabled(bool enable)
+    {
+        m_enable_profiling = enable;
+    }
+
+    bool isProfilingEnabled() const
+    {
+        return m_enable_profiling;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Reset OpenGL state flags (removed - was causing performance
+    //! issues).
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    //! \brief Update window title with FPS information.
+    // ------------------------------------------------------------------------
+    void updateWindowTitle() const;
 
 private:
 
@@ -333,6 +371,12 @@ private:
     // Shaders
     unsigned int m_shader_program = 0;
 
+    // Cached uniform locations for performance
+    int m_projection_uniform = -1;
+    int m_view_uniform = -1;
+    int m_model_uniform = -1;
+    int m_color_uniform = -1;
+
     // Geometry buffers
     unsigned int m_box_vao = 0;
     unsigned int m_box_vbo = 0;
@@ -380,6 +424,25 @@ private:
 
     // Key state tracking
     std::array<bool, 256> m_keys = { false };
+
+    // Performance optimization: cache robot state (removed - was causing
+    // issues)
+
+    // Performance monitoring
+    mutable double m_render_time_ms = 0.0;
+    mutable double m_robot_render_time_ms = 0.0;
+    mutable double m_mesh_load_time_ms = 0.0;
+    mutable int m_frame_count = 0;
+    bool m_enable_profiling = false;
+
+    // Performance optimization: avoid redundant OpenGL calls (removed - causing
+    // issues)
+
+    // FPS calculation and display
+    mutable std::chrono::steady_clock::time_point m_last_fps_time;
+    mutable int m_fps_counter = 0;
+    mutable double m_current_fps = 0.0;
+    mutable std::string m_base_window_title;
 };
 
 } // namespace robotik

@@ -1,4 +1,14 @@
-#include "STLLoader.hpp"
+/**
+ * @file STLLoader.cpp
+ * @brief STL file loader for 3D models.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
+#include "Viewer/loaders/STLLoader.hpp"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
