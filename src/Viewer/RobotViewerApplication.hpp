@@ -134,19 +134,34 @@ private: // override Application methods
 private:
 
     // ----------------------------------------------------------------------------
-    //! \brief Use a shader program.
+    //! \brief Search for the joint to control or inverse kinematics, given by
+    //! the user from the application command line. If not provided, find the
+    //! robot end effector.
+    //! \param p_controlled_robot The controlled robot.
+    //! \param p_control_joint_name The name of the control joint.
+    //! \return true if setting the control joint was successful, false
+    //! otherwise.
     // ----------------------------------------------------------------------------
-    void useShaderProgram(const std::string& p_program_name);
+    bool setControlJoint(RobotManager::ControlledRobot& p_controlled_robot,
+                         std::string const& p_control_joint_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Load the robot.
+    //! \brief Search for the joint to look at, given by the user from the
+    //! application command line. If not provided, use the robot root.
+    //! \param p_controlled_robot The controlled robot.
+    //! \param p_look_at_joint_name The name of the look at joint.
+    //! \return true if setting the look at joint was successful, false
+    //! otherwise.
     // ----------------------------------------------------------------------------
-    bool loadRobot();
+    bool initCameraView(RobotManager::ControlledRobot& p_controlled_robot,
+                        std::string const& p_look_at_joint_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Render a robot.
+    //! \brief Setup shaders.
+    //! \param p_program_name The name of the shader program.
+    //! \return true if setting up the shaders was successful, false otherwise.
     // ----------------------------------------------------------------------------
-    void renderRobot(Robot const& p_robot);
+    bool setupShaders(std::string const& p_program_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Render a geometry.
@@ -154,19 +169,41 @@ private:
     void renderGeometry(Geometry const& p_geometry,
                         Eigen::Matrix4f const& p_transform);
 
+    // ----------------------------------------------------------------------------
+    //! \brief Handle animation.
+    //! \param p_time The time.
+    // ----------------------------------------------------------------------------
+    void handleAnimation(double p_time);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Handle inverse kinematics.
+    // ----------------------------------------------------------------------------
+    void handleInverseKinematics();
+
 private:
 
+    // Configuration
     Configuration const& m_config;
+
+    // Components
     OpenGLWindow m_window;
     Camera m_camera;
     ShaderManager m_shader_manager;
     MeshManager m_mesh_manager;
     GeometryRenderer m_geometry_renderer;
     RobotManager m_robot_manager;
+
+    // Cached OpenGL shader uniforms
     int m_model_uniform = -1;
     int m_color_uniform = -1;
     int m_projection_uniform = -1;
     int m_view_uniform = -1;
+
+    // Animation
+    std::chrono::steady_clock::time_point m_start_time;
+    ControlMode m_control_mode = ControlMode::INVERSE_KINEMATICS;
+
+    // Title and FPS states
     std::string m_title;
     size_t m_fps = 0;
 };

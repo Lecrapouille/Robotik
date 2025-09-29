@@ -62,20 +62,20 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Constructor. Perform no action, just set the name.
-    //! \param p_name Name of the robot arm.
+    //! \param p_name Name of the robot.
     // ------------------------------------------------------------------------
     explicit Robot(std::string_view const& p_name) : m_name(p_name) {}
 
     // ------------------------------------------------------------------------
     //! \brief Constructor. Perform no action, just set the name.
-    //! \param p_name Name of the robot arm.
+    //! \param p_name Name of the robot.
     //! \param p_end_effector Reference to the end effector node.
     // ------------------------------------------------------------------------
     Robot(std::string_view const& p_name, scene::Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
-    //! \brief Get the name of the robot arm.
-    //! \return The name of the robot arm.
+    //! \brief Get the name of the robot.
+    //! \return The name of the robot.
     // ------------------------------------------------------------------------
     inline std::string const& name() const
     {
@@ -83,8 +83,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the robot arm has a root node.
-    //! \return True if the robot arm has a root node, false otherwise.
+    //! \brief Check if the robot has a root node.
+    //! \return True if the robot has a root node, false otherwise.
     // ------------------------------------------------------------------------
     inline bool hasRoot() const
     {
@@ -92,14 +92,14 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set and replace the root node of the robot arm.
+    //! \brief Set and replace the root node of the robot.
     //! \param p_root Unique pointer to the root node.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
     void root(scene::Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
-    //! \brief Get the root node of the robot arm.
+    //! \brief Get the root node of the robot.
     //! \note Call init() before calling this method, otherwise the root node
     //! is not set. Call hasRoot() to check if the root node is set.
     //! \return Reference to the root node.
@@ -114,7 +114,7 @@ public:
     //! \param p_name Name of the link.
     //! \return Pointer to the link, or nullptr if not found.
     // ------------------------------------------------------------------------
-    // Link* link(std::string_view const& p_name) const;
+    Link const& link(std::string_view const& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Find and return a joint by its name.
@@ -125,28 +125,24 @@ public:
     Joint const& joint(std::string_view const& p_name) const;
 
     // ------------------------------------------------------------------------
-    //! \brief Find the end effector of the robot arm.
+    //! \brief Find all end effectors of the robot.
     //!
-    //! This method automatically identifies the end effector by finding the
-    //! link that is furthest from the root in the kinematic chain and has
-    //! no child joints. The end effector is typically the last link in the
-    //! robot's kinematic chain where tools or grippers are attached.
+    //! This method automatically identifies all end effectors by finding links
+    //! that have no child joints and whose children are links. An end effector
+    //! is typically the last joint in a kinematic chain where tools or grippers
+    //! are attached.
     //!
-    //! ALGORITHM:
-    //! - Traverse the scene graph starting from the root
-    //! - Find all Link nodes in the kinematic chain
-    //! - Identify the link with maximum depth that has no child joints
-    //! - If multiple candidates exist, prefer the one with the most children
-    //!   (indicating it's a tool attachment point)
-    //!
-    //! \return Pointer to the end effector link, or nullptr if not found
+    //! \param p_end_effectors Output vector to store references to end effector
+    //! links
+    //! \return Number of end effectors found
     //! \note Call hasRoot() before calling this method to ensure the robot
-    //! is properly initialized
+    //! is properly initialized and the scene graph cache is up to date
     // ------------------------------------------------------------------------
-    Joint const& findEndEffector() const;
+    size_t findEndEffectors(
+        std::vector<std::reference_wrapper<Link const>>& p_end_effectors) const;
 
     // ------------------------------------------------------------------------
-    //! \brief Get the joint values of the robot arm.
+    //! \brief Get the joint values of the robot.
     //!
     //! PHYSICS: Returns the current configuration of all joints in the
     //! kinematic chain. This vector represents the robot's pose in joint
@@ -166,8 +162,7 @@ public:
     //!
     //! \return Vector of joint configuration values in order
     // ------------------------------------------------------------------------
-    // FIXME: retourner std::vector<Joint::Value>
-    std::vector<double> jointValues() const;
+    std::vector<double> jointPositions() const;
 
     // ------------------------------------------------------------------------
     //! \brief Get the names of the actuable joints in the order they appear
@@ -175,11 +170,29 @@ public:
     //!
     //! This method provides a mapping between joint indices and joint names,
     //! allowing you to know which joint corresponds to which index in the
-    //! joint values vector returned by jointValues().
+    //! joint values vector returned by jointPositions().
     //!
     //! \return Vector of joint names in the same order as joint values.
     // ------------------------------------------------------------------------
     std::vector<std::string> jointNames() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the names of the links in the robot.
+    //! \return Vector of link names.
+    // ------------------------------------------------------------------------
+    std::vector<std::string> linkNames() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the names of the sensors in the robot.
+    //! \return Vector of sensor names.
+    // ------------------------------------------------------------------------
+    std::vector<std::string> sensorNames() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the names of the actuators in the robot.
+    //! \return Vector of actuator names.
+    // ------------------------------------------------------------------------
+    std::vector<std::string> actuatorNames() const;
 
     // ------------------------------------------------------------------------
     //! \brief Set joint values for all actuable joints in order.
@@ -202,7 +215,7 @@ public:
     void setNeutralPosition();
 
     // ------------------------------------------------------------------------
-    //! \brief Compute the inverse kinematics of the robot arm by the Jacobian
+    //! \brief Compute the inverse kinematics of the robot by the Jacobian
     //! method.
     //!
     //! PHYSICS: Inverse kinematics solves for the joint configuration that
@@ -246,7 +259,7 @@ public:
                                           double const p_damping = 0.01);
 
     // ------------------------------------------------------------------------
-    //! \brief Compute the Jacobian matrix of the robot arm.
+    //! \brief Compute the Jacobian matrix of the robot.
     //! \param p_end_effector Reference to the end effector node.
     //! \return The Jacobian matrix.
     // ------------------------------------------------------------------------
@@ -255,26 +268,26 @@ public:
 protected:
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the robot arm is setup correctly.
-    //! \throw std::runtime_error if the robot arm is not setup correctly.
+    //! \brief Check if the robot is setup correctly.
+    //! \throw std::runtime_error if the robot is not setup correctly.
     // ------------------------------------------------------------------------
     void checkRobotSetupValidity() const;
 
     // ------------------------------------------------------------------------
-    //! \brief Cache the list of joints in the robot arm.
+    //! \brief Cache the tree of the robot.
     //! This is now called automatically when needed (lazy evaluation).
     //! \note This method is called automatically when needed, but can be
     //! called explicitly to force cache update.
     // ------------------------------------------------------------------------
-    void cacheListOfJoints() const;
+    void cacheSceneGraph();
 
     // ------------------------------------------------------------------------
     //! \brief Mark the joints cache as dirty (needs refresh).
     //! Called automatically when scene graph is modified.
     // ------------------------------------------------------------------------
-    void markJointsCacheDirty() const
+    void markSceneGraphCacheDirty()
     {
-        m_joints_cache_dirty = true;
+        m_scene_graph_cache_dirty = true;
     }
 
     // ------------------------------------------------------------------------
@@ -286,13 +299,24 @@ protected:
 
 private:
 
+    //! \brief Name of the robot.
     std::string m_name;
+    //! \brief Root node of the scene graph representing the robot.
     scene::Node::Ptr m_root_node;
-
-    mutable std::vector<std::reference_wrapper<Joint>> m_joints;
-    mutable std::unordered_map<std::string, std::reference_wrapper<Joint>>
-        m_joints_map;
-    mutable bool m_joints_cache_dirty = true;
+    //! \brief List of joints in the robot from the scene graph.
+    std::vector<std::reference_wrapper<Joint>> m_joints;
+    //! \brief Map of joints in the robot from the scene graph.
+    std::unordered_map<std::string, std::reference_wrapper<Joint>> m_joints_map;
+    //! \brief Map of links from the scene graph.
+    std::unordered_map<std::string, std::reference_wrapper<Link>> m_links_map;
+    //! \brief Map of sensors in the robot from the scene graph.
+    std::unordered_map<std::string, std::reference_wrapper<Sensor>>
+        m_sensors_map;
+    //! \brief Map of actuators in the robot from the scene graph.
+    std::unordered_map<std::string, std::reference_wrapper<Actuator>>
+        m_actuators_map;
+    //! \brief Flag to indicate if the scene graph cache is dirty.
+    bool m_scene_graph_cache_dirty = true;
 };
 
 } // namespace robotik

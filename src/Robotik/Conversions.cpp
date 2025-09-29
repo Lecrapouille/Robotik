@@ -41,6 +41,7 @@ Transform createTransform(const Eigen::Vector3d& p_translation,
 }
 
 // ----------------------------------------------------------------------------
+// FIXME: replace Eigen::Vector3d with Eigen::Vector3f
 Eigen::Vector3d getTranslation(Transform const& p_transform)
 {
     return p_transform.block<3, 1>(0, 3);

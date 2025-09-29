@@ -41,6 +41,13 @@ public:
     void setView(ViewType p_view_type, const Eigen::Vector3f& p_camera_target);
 
     // ------------------------------------------------------------------------
+    //! \brief Set camera view.
+    //! \param p_view_type Camera view position.
+    //! \param p_camera_target Camera target position.
+    // ------------------------------------------------------------------------
+    void setView(ViewType p_view_type, const Eigen::Vector3d& p_camera_target);
+
+    // ------------------------------------------------------------------------
     //! \brief Update aspect ratio (when window is resized).
     // ------------------------------------------------------------------------
     void setAspectRatio(size_t p_width, size_t p_height);

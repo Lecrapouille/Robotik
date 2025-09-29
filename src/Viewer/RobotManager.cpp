@@ -22,7 +22,8 @@ void RobotManager::reset()
 }
 
 // ----------------------------------------------------------------------------
-bool RobotManager::loadRobot(const std::string& p_urdf_path)
+RobotManager::ControlledRobot*
+RobotManager::loadRobot(const std::string& p_urdf_path)
 {
     robotik::URDFParser parser;
     auto robot = parser.load(p_urdf_path);
@@ -30,12 +31,23 @@ bool RobotManager::loadRobot(const std::string& p_urdf_path)
     if (!robot)
     {
         m_error = "Failed to load robot from URDF: " + parser.getError();
-        return false;
+        return nullptr;
     }
 
     // Store the robot name before moving the robot
     std::string robot_name = robot->name();
-    return addRobot(robot_name, std::move(robot));
+    if (!addRobot(robot_name, std::move(robot)))
+    {
+        m_error = "Failed to add robot: " + m_error;
+        return nullptr;
+    }
+    auto it = getRobot(robot_name);
+    if (!it)
+    {
+        m_error = "Failed to get robot: " + m_error;
+        return nullptr;
+    }
+    return it;
 }
 
 // ----------------------------------------------------------------------------
@@ -104,7 +116,7 @@ RobotManager::getRobot(const std::string& p_robot_name)
 }
 
 // ----------------------------------------------------------------------------
-RobotManager::ControlledRobot* RobotManager::getCurrentRobot() const
+RobotManager::ControlledRobot* RobotManager::currentRobot() const
 {
     return m_current_robot;
 }
@@ -141,7 +153,7 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
         return {};
     }
 
-    return it->second.robot->jointValues();
+    return it->second.robot->jointPositions();
 }
 #if 0
 // ----------------------------------------------------------------------------

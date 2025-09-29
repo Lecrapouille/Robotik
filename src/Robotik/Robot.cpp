@@ -5,7 +5,6 @@
 #include "Robotik/private/Link.hpp"
 
 #include <algorithm>
-#include <cmath>
 #include <functional>
 
 namespace robotik
@@ -22,54 +21,65 @@ Robot::Robot(std::string_view const& p_name, scene::Node::Ptr p_root)
 void Robot::root(scene::Node::Ptr p_root)
 {
     m_root_node = std::move(p_root);
-    markJointsCacheDirty();
+    cacheSceneGraph();
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setNeutralPosition()
+void Robot::cacheSceneGraph()
 {
-    std::vector<double> neutral_joints = jointValues();
-    for (size_t i = 0; i < neutral_joints.size(); ++i)
+    // If the cache is not dirty, we can return early
+    if (!m_scene_graph_cache_dirty)
     {
-        neutral_joints[i] = 0.0;
-    }
-    setJointValues(neutral_joints);
-}
-
-// ----------------------------------------------------------------------------
-void Robot::cacheListOfJoints() const
-{
-    if (!m_joints_cache_dirty)
-    {
-        return; // Cache is still valid
+        return;
     }
 
     m_joints.clear();
     m_joints_map.clear();
+    m_links_map.clear();
+    m_sensors_map.clear();
+    m_actuators_map.clear();
 
-    if (m_root_node == nullptr)
+    if (m_root_node != nullptr)
     {
-        m_joints_cache_dirty = false;
-        return;
-    }
-
-    m_root_node->traverse(
-        [this](scene::Node& p_node, size_t /*p_depth*/)
-        {
-            if (auto joint = dynamic_cast<Joint*>(&p_node))
+        m_root_node->traverse(
+            [this](scene::Node& p_node, size_t /*p_depth*/)
             {
                 // Only cache actuable joints
-                if (joint->type() == Joint::Type::REVOLUTE ||
-                    joint->type() == Joint::Type::CONTINUOUS ||
-                    joint->type() == Joint::Type::PRISMATIC)
+                if (auto joint = dynamic_cast<Joint*>(&p_node))
                 {
-                    m_joints_map.try_emplace(joint->name(), std::ref(*joint));
-                    m_joints.emplace_back(std::ref(*joint));
+                    if (joint->type() != Joint::Type::FIXED)
+                    {
+                        m_joints_map.try_emplace(joint->name(),
+                                                 std::ref(*joint));
+                        m_joints.emplace_back(std::ref(*joint));
+                    }
                 }
-            }
-        });
+                // Cache links, note that their geometry and collision is given
+                // in their API
+                else if (auto link = dynamic_cast<Link*>(&p_node))
+                {
+                    m_links_map.try_emplace(link->name(), std::ref(*link));
+                }
+                // Cache sensors
+                else if (auto sensor = dynamic_cast<Sensor*>(&p_node))
+                {
+                    m_sensors_map.try_emplace(sensor->name(),
+                                              std::ref(*sensor));
+                }
+                // Cache actuators
+                else if (auto actuator = dynamic_cast<Actuator*>(&p_node))
+                {
+                    m_actuators_map.try_emplace(actuator->name(),
+                                                std::ref(*actuator));
+                }
+                else
+                {
+                    // Ignore other nodes
+                }
+            });
+    }
 
-    m_joints_cache_dirty = false;
+    m_scene_graph_cache_dirty = false;
 }
 
 // ----------------------------------------------------------------------------
@@ -121,17 +131,13 @@ std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
     {
         throw RobotikException("Invalid damping: must be >= 0");
     }
-
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
-
     if (m_joints.empty())
     {
         throw RobotikException("No actuable joints found in robot");
     }
 
     // Initialize with the current values
-    std::vector<double> solution = jointValues();
+    std::vector<double> solution = jointPositions();
     const size_t num_joints = m_joints.size();
 
     for (size_t iter = 0; iter < p_max_iterations; ++iter)
@@ -232,9 +238,6 @@ std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
 // ----------------------------------------------------------------------------
 Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
 {
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
-
     const size_t num_joints = m_joints.size();
     Jacobian J(6, num_joints);
 
@@ -281,9 +284,6 @@ Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
 // ----------------------------------------------------------------------------
 Joint const& Robot::joint(std::string_view const& p_name) const
 {
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
-
     auto const& it = m_joints_map.find(std::string(p_name));
     if (it == m_joints_map.end())
     {
@@ -293,11 +293,19 @@ Joint const& Robot::joint(std::string_view const& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<double> Robot::jointValues() const
+Link const& Robot::link(std::string_view const& p_name) const
 {
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
+    auto const& it = m_links_map.find(std::string(p_name));
+    if (it == m_links_map.end())
+    {
+        throw RobotikException("Link not found: " + std::string(p_name));
+    }
+    return it->second.get();
+}
 
+// ----------------------------------------------------------------------------
+std::vector<double> Robot::jointPositions() const
+{
     std::vector<double> values;
     values.reserve(m_joints.size());
 
@@ -312,9 +320,6 @@ std::vector<double> Robot::jointValues() const
 // ----------------------------------------------------------------------------
 std::vector<std::string> Robot::jointNames() const
 {
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
-
     std::vector<std::string> names;
     names.reserve(m_joints.size());
 
@@ -327,11 +332,44 @@ std::vector<std::string> Robot::jointNames() const
 }
 
 // ----------------------------------------------------------------------------
+std::vector<std::string> Robot::linkNames() const
+{
+    std::vector<std::string> names;
+    names.reserve(m_links_map.size());
+    for (const auto& [name, _] : m_links_map)
+    {
+        names.push_back(name);
+    }
+    return names;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<std::string> Robot::sensorNames() const
+{
+    std::vector<std::string> names;
+    names.reserve(m_sensors_map.size());
+    for (const auto& [name, _] : m_sensors_map)
+    {
+        names.push_back(name);
+    }
+    return names;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<std::string> Robot::actuatorNames() const
+{
+    std::vector<std::string> names;
+    names.reserve(m_actuators_map.size());
+    for (const auto& [name, _] : m_actuators_map)
+    {
+        names.push_back(name);
+    }
+    return names;
+}
+
+// ----------------------------------------------------------------------------
 bool Robot::setJointValues(std::vector<double> const& p_values)
 {
-    // Ensure joints cache is up to date
-    cacheListOfJoints();
-
     if (p_values.size() != m_joints.size())
     {
         return false;
@@ -347,105 +385,39 @@ bool Robot::setJointValues(std::vector<double> const& p_values)
 }
 
 // ----------------------------------------------------------------------------
-Joint const& Robot::findEndEffector() const
+void Robot::setNeutralPosition()
 {
-    if (!hasRoot())
+    std::vector<double> neutral_joints(m_joints.size(), 0.0);
+    setJointValues(neutral_joints);
+}
+
+// ----------------------------------------------------------------------------
+size_t Robot::findEndEffectors(
+    std::vector<std::reference_wrapper<Link const>>& p_end_effectors) const
+{
+    p_end_effectors.clear();
+    p_end_effectors.reserve(m_links_map.size());
+
+    for (const auto& [_, link_ref] : m_links_map)
     {
-        throw RobotikException("Robot has no root");
-    }
-
-    Joint const* end_effector_joint = nullptr;
-    size_t max_depth = 0;
-
-    // Traverse the scene graph to find the joint at maximum depth
-    m_root_node->traverse(
-        [&](scene::Node const& p_node, size_t p_depth)
+        const Link& link = link_ref.get();
+        bool has_child_joints = false;
+        for (const auto& child : link.children())
         {
-            // Check if this is a Joint node
-            if (auto joint = dynamic_cast<Joint const*>(&p_node))
+            if (dynamic_cast<Joint const*>(child.get()))
             {
-                // Check if this joint has no child joints (it's a terminal
-                // joint)
-                bool has_child_joints = false;
-                p_node.traverse(
-                    [&has_child_joints](scene::Node const& p_child,
-                                        size_t /*p_child_depth*/)
-                    {
-                        if (dynamic_cast<Joint const*>(&p_child))
-                        {
-                            has_child_joints = true;
-                        }
-                    });
-
-                // If this joint has no child joints, it's a candidate for end
-                // effector
-                if (!has_child_joints && p_depth > max_depth)
-                {
-                    max_depth = p_depth;
-                    end_effector_joint = joint;
-                }
+                has_child_joints = true;
+                break;
             }
-        });
+        }
 
-    // If no terminal joint found, look for the parent joint of the deepest link
-    if (!end_effector_joint)
-    {
-        Link const* deepest_link = nullptr;
-        max_depth = 0;
-
-        m_root_node->traverse(
-            [&](scene::Node const& p_node, size_t p_depth)
-            {
-                if (auto link = dynamic_cast<Link const*>(&p_node))
-                {
-                    // Check if this link has no child joints
-                    bool has_child_joints = false;
-                    p_node.traverse(
-                        [&has_child_joints](scene::Node const& p_child,
-                                            size_t /*p_child_depth*/)
-                        {
-                            if (dynamic_cast<Joint const*>(&p_child))
-                            {
-                                has_child_joints = true;
-                            }
-                        });
-
-                    if (!has_child_joints && p_depth > max_depth)
-                    {
-                        max_depth = p_depth;
-                        deepest_link = link;
-                    }
-                }
-            });
-
-        // Find the joint that connects to this deepest link
-        if (deepest_link)
+        if (!has_child_joints)
         {
-            m_root_node->traverse(
-                [&](scene::Node const& p_node, size_t /*p_depth*/)
-                {
-                    if (auto joint = dynamic_cast<Joint const*>(&p_node))
-                    {
-                        // Check if this joint has the deepest link as a child
-                        for (auto const& child : joint->children())
-                        {
-                            if (child.get() == deepest_link)
-                            {
-                                end_effector_joint = joint;
-                                return;
-                            }
-                        }
-                    }
-                });
+            p_end_effectors.emplace_back(std::ref(link));
         }
     }
 
-    if (!end_effector_joint)
-    {
-        throw RobotikException("End effector not found");
-    }
-
-    return *end_effector_joint;
+    return p_end_effectors.size();
 }
 
 } // namespace robotik

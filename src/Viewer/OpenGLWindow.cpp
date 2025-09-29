@@ -44,7 +44,12 @@ void OpenGLWindow::swapBuffers()
 }
 
 // ----------------------------------------------------------------------------
-bool OpenGLWindow::initialize()
+bool OpenGLWindow::initialize(
+    KeyCallback const& p_key_callback,
+    MouseButtonCallback const& p_mouse_button_callback,
+    CursorPosCallback const& p_cursor_pos_callback,
+    ScrollCallback const& p_scroll_callback,
+    WindowResizeCallback const& p_window_resize_callback)
 {
     if (!initializeGLFW())
         return false;
@@ -55,7 +60,11 @@ bool OpenGLWindow::initialize()
     if (!initializeGlew())
         return false;
 
-    setupCallbacks();
+    setupCallbacks(p_key_callback,
+                   p_mouse_button_callback,
+                   p_cursor_pos_callback,
+                   p_scroll_callback,
+                   p_window_resize_callback);
 
     return true;
 }
@@ -122,9 +131,15 @@ bool OpenGLWindow::initializeGlew()
 }
 
 // ----------------------------------------------------------------------------
-void OpenGLWindow::setupCallbacks()
+void OpenGLWindow::setupCallbacks(
+    KeyCallback const& p_key_callback,
+    MouseButtonCallback const& p_mouse_button_callback,
+    CursorPosCallback const& p_cursor_pos_callback,
+    ScrollCallback const& p_scroll_callback,
+    WindowResizeCallback const& p_window_resize_callback)
 {
     // Callback resize window
+    m_window_resize_callback = p_window_resize_callback;
     glfwSetFramebufferSizeCallback(
         m_window,
         [](GLFWwindow* window, int width, int height)
@@ -138,6 +153,7 @@ void OpenGLWindow::setupCallbacks()
         });
 
     // Callback keyboard
+    m_key_callback = p_key_callback;
     glfwSetKeyCallback(
         m_window,
         [](GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -151,6 +167,8 @@ void OpenGLWindow::setupCallbacks()
         });
 
     // Callback mouse buttons
+    m_mouse_button_callback = p_mouse_button_callback;
+    m_key_callback = p_key_callback;
     glfwSetMouseButtonCallback(
         m_window,
         [](GLFWwindow* window, int button, int action, int mods)
@@ -164,6 +182,7 @@ void OpenGLWindow::setupCallbacks()
         });
 
     // Callback mouse position
+    m_cursor_pos_callback = p_cursor_pos_callback;
     glfwSetCursorPosCallback(m_window,
                              [](GLFWwindow* window, double xpos, double ypos)
                              {
@@ -176,6 +195,7 @@ void OpenGLWindow::setupCallbacks()
                              });
 
     // Callback scroll wheel
+    m_scroll_callback = p_scroll_callback;
     glfwSetScrollCallback(m_window,
                           [](GLFWwindow* window, double xoffset, double yoffset)
                           {
@@ -207,21 +227,6 @@ void OpenGLWindow::setTitle(std::string const& p_title)
         return;
 
     glfwSetWindowTitle(m_window, p_title.c_str());
-}
-
-// ----------------------------------------------------------------------------
-void OpenGLWindow::setCallbacks(
-    KeyCallback const& p_key_callback,
-    MouseButtonCallback const& p_mouse_button_callback,
-    CursorPosCallback const& p_cursor_pos_callback,
-    ScrollCallback const& p_scroll_callback,
-    WindowResizeCallback const& p_window_resize_callback)
-{
-    m_key_callback = p_key_callback;
-    m_mouse_button_callback = p_mouse_button_callback;
-    m_cursor_pos_callback = p_cursor_pos_callback;
-    m_scroll_callback = p_scroll_callback;
-    m_window_resize_callback = p_window_resize_callback;
 }
 
 // ----------------------------------------------------------------------------

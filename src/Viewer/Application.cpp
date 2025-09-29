@@ -180,8 +180,7 @@ void Application::physicsThreadLoop(size_t const p_target_physics_hz)
             next_update +=
                 std::chrono::duration_cast<Clock::duration>(physics_dt);
 
-            // Sleep until next update, but handle oversleeping
-            // gracefully
+            // Sleep until next update
             auto now = Clock::now();
             if (next_update > now)
             {
