@@ -73,9 +73,9 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Load a robot from URDF file.
     //! \param p_urdf_path Path to the URDF file.
-    //! \return true if successful.
+    //! \return Pointer to controlled robot, nullptr if failed.
     // ------------------------------------------------------------------------
-    bool loadRobot(const std::string& p_urdf_path);
+    ControlledRobot* loadRobot(const std::string& p_urdf_path);
 
     // ------------------------------------------------------------------------
     //! \brief Add an existing robot instance.
@@ -111,7 +111,7 @@ public:
     //! \brief Get the current robot (first loaded robot).
     //! \return Pointer to current robot, nullptr if no robot loaded.
     // ------------------------------------------------------------------------
-    RobotManager::ControlledRobot* getCurrentRobot() const;
+    RobotManager::ControlledRobot* currentRobot() const;
 
     // ------------------------------------------------------------------------
     //! \brief Set robot joint values.

@@ -41,19 +41,5 @@
                 }
             ]
         }
-    ],
-    "compounds": [
-        {
-            "name": "Robotik-viewer",
-            "configurations": [
-                "Robotik-viewer with gdb"
-            ]
-        },
-        {
-            "name": "Robotik-tests",
-            "configurations": [
-                "Robotik-tests with gdb"
-            ]
-        },
     ]
 }

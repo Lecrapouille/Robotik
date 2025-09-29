@@ -15,7 +15,17 @@ void Camera::setView(ViewType p_view_type,
 {
     m_view_type = p_view_type;
     m_camera_target = p_camera_target;
-    setupView(p_view_type, p_camera_target);
+    setupView(p_view_type, m_camera_target);
+    updateMatrices();
+}
+
+// ----------------------------------------------------------------------------
+void Camera::setView(ViewType p_view_type,
+                     const Eigen::Vector3d& p_camera_target)
+{
+    m_view_type = p_view_type;
+    m_camera_target = p_camera_target.cast<float>();
+    setupView(p_view_type, m_camera_target);
     updateMatrices();
 }
 

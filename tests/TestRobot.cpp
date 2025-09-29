@@ -117,7 +117,7 @@ TEST_F(RobotTest, JointValues)
     std::vector<double> values = { M_PI / 4.0, M_PI / 2.0 };
     robot_arm->setJointValues(values);
 
-    std::vector<double> retrieved_values = robot_arm->jointValues();
+    std::vector<double> retrieved_values = robot_arm->jointPositions();
 
     EXPECT_EQ(retrieved_values.size(), 2);
     EXPECT_DOUBLE_EQ(retrieved_values[0], values[0]);
@@ -360,7 +360,7 @@ TEST_F(RobotTest, JointLimits)
     std::vector<double> excessive_values = { M_PI, M_PI };
     robot_arm->setJointValues(excessive_values);
 
-    std::vector<double> actual_values = robot_arm->jointValues();
+    std::vector<double> actual_values = robot_arm->jointPositions();
     EXPECT_LE(actual_values[0], M_PI / 2.0);
     EXPECT_LE(actual_values[1], M_PI / 4.0);
 }

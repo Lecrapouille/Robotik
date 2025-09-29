@@ -52,10 +52,19 @@ public:
     ~OpenGLWindow();
 
     // ------------------------------------------------------------------------
-    //! \brief Initialize the viewer.
+    //! \brief Initialize the viewer with callbacks.
+    //! \param p_key_callback Key callback.
+    //! \param p_mouse_button_callback Mouse button callback.
+    //! \param p_cursor_pos_callback Cursor position callback.
+    //! \param p_scroll_callback Scroll callback.
+    //! \param p_window_resize_callback Window resize callback.
     //! \return true if initialization successful.
     // ------------------------------------------------------------------------
-    bool initialize();
+    bool initialize(KeyCallback const& p_key_callback,
+                    MouseButtonCallback const& p_mouse_button_callback,
+                    CursorPosCallback const& p_cursor_pos_callback,
+                    ScrollCallback const& p_scroll_callback,
+                    WindowResizeCallback const& p_window_resize_callback);
 
     // ------------------------------------------------------------------------
     //! \brief Check if window should close.
@@ -92,26 +101,16 @@ public:
     // ------------------------------------------------------------------------
     std::string const& error() const;
 
-    // ------------------------------------------------------------------------
-    //! \brief Set the callbacks for window events.
-    //! \param p_key_callback Key callback.
-    //! \param p_mouse_button_callback Mouse button callback.
-    //! \param p_cursor_pos_callback Cursor position callback.
-    //! \param p_scroll_callback Scroll callback.
-    //! \param p_window_resize_callback Window resize callback.
-    // ------------------------------------------------------------------------
-    void setCallbacks(KeyCallback const& p_key_callback,
-                      MouseButtonCallback const& p_mouse_button_callback,
-                      CursorPosCallback const& p_cursor_pos_callback,
-                      ScrollCallback const& p_scroll_callback,
-                      WindowResizeCallback const& p_window_resize_callback);
-
 private:
 
     bool initializeGLFW();
     bool createWindow();
     bool initializeGlew();
-    void setupCallbacks();
+    void setupCallbacks(KeyCallback const& p_key_callback,
+                        MouseButtonCallback const& p_mouse_button_callback,
+                        CursorPosCallback const& p_cursor_pos_callback,
+                        ScrollCallback const& p_scroll_callback,
+                        WindowResizeCallback const& p_window_resize_callback);
 
 private:
 

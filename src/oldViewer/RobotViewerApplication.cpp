@@ -51,7 +51,7 @@ bool RobotViewerApplication::onSetup()
     // Pre-allocate memory for performance
     if (m_robot)
     {
-        size_t joint_count = m_robot->jointValues().size();
+        size_t joint_count = m_robot->jointPositions().size();
         m_cached_joint_values.reserve(joint_count);
         m_cached_joint_values.resize(joint_count);
     }
@@ -226,7 +226,7 @@ void RobotViewerApplication::handleAnimation(double p_time)
         std::abs(animation_time - m_last_animation_time) > 0.01)
     {
         // Get current joint values
-        std::vector<double> joint_values = m_robot->jointValues();
+        std::vector<double> joint_values = m_robot->jointPositions();
 
         // Resize cache if needed
         if (m_cached_joint_values.size() != joint_values.size())
