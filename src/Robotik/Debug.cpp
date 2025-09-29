@@ -1,3 +1,12 @@
+/**
+ * @file Debug.cpp
+ * @brief Debug printing functions for debugging the robot.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "Robotik/Debug.hpp"
 #include "Robotik/private/Conversions.hpp"
 #include "Robotik/private/Joint.hpp"
