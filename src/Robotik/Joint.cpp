@@ -1,3 +1,12 @@
+/**
+ * @file Joint.cpp
+ * @brief Joint class - Representation of a robotic joint.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "Robotik/private/Joint.hpp"
 
 #include <iostream>

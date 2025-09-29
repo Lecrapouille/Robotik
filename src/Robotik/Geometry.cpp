@@ -1,3 +1,12 @@
+/**
+ * @file Geometry.cpp
+ * @brief Geometry classes for collision detection and/or visualization.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "Robotik/private/Geometry.hpp"
 
 #include <iomanip>

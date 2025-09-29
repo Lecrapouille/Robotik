@@ -1,3 +1,12 @@
+/**
+ * @file Parser.cpp
+ * @brief Parser for URDF files to create a robot.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "Robotik/Parser.hpp"
 
 #include "Robotik/private/Conversions.hpp"

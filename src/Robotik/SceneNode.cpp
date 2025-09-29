@@ -1,3 +1,12 @@
+/**
+ * @file SceneNode.hpp
+ * @brief Scene graph node class - Representation of a node in the scene graph.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
+
 #include "Robotik/private/SceneNode.hpp"
 
 namespace robotik::scene
