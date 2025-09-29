@@ -64,7 +64,7 @@ bool ShaderManager::useProgram(const std::string& p_name)
     auto it = m_programs.find(p_name);
     if (it == m_programs.end())
     {
-        m_last_error = "Shader program '" + p_name + "' not found";
+        m_error = "Shader program '" + p_name + "' not found";
         return false;
     }
 
@@ -147,7 +147,7 @@ unsigned int ShaderManager::compileShader(const std::string& p_source,
         std::string info_log(info_log_length, '\0');
         glGetShaderInfoLog(shader, info_log_length, nullptr, &info_log[0]);
 
-        m_last_error = std::string("Shader compilation error: ") + info_log;
+        m_error = std::string("Shader compilation error: ") + info_log;
         glDeleteShader(shader);
         return 0;
     }
@@ -176,7 +176,7 @@ unsigned int ShaderManager::createProgram(unsigned int p_vertex_shader,
         std::string info_log(info_log_length, '\0');
         glGetProgramInfoLog(program, info_log_length, nullptr, &info_log[0]);
 
-        m_last_error = "Program linking error: " + info_log;
+        m_error = "Program linking error: " + info_log;
         glDeleteProgram(program);
         return 0;
     }

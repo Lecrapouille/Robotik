@@ -14,7 +14,7 @@ namespace robotik::viewer
 {
 
 // ----------------------------------------------------------------------------
-void RobotManager::reset()
+void RobotManager::clear()
 {
     m_robots.clear();
     m_current_robot = nullptr;
@@ -27,27 +27,22 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
 {
     robotik::URDFParser parser;
     auto robot = parser.load(p_urdf_path);
-
     if (!robot)
     {
         m_error = "Failed to load robot from URDF: " + parser.getError();
         return nullptr;
     }
 
-    // Store the robot name before moving the robot
-    std::string robot_name = robot->name();
-    if (!addRobot(robot_name, std::move(robot)))
+    // Store the new robot
+    if (std::string robot_name = robot->name();
+        !addRobot(robot_name, std::move(robot)))
     {
         m_error = "Failed to add robot: " + m_error;
         return nullptr;
     }
-    auto it = getRobot(robot_name);
-    if (!it)
-    {
-        m_error = "Failed to get robot: " + m_error;
-        return nullptr;
-    }
-    return it;
+
+    // Return the new robot
+    return m_current_robot;
 }
 
 // ----------------------------------------------------------------------------
@@ -66,12 +61,11 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
         return false;
     }
 
+    // Add the robot to the map, fails if the robot already exists.
     ControlledRobot controlled_robot;
     controlled_robot.robot = std::move(p_robot);
     controlled_robot.is_visible = true;
     controlled_robot.scale = 1.0f;
-
-    // Add the robot to the map, fails if the robot already exists.
     auto [it, success] =
         m_robots.try_emplace(p_robot_name, std::move(controlled_robot));
 
@@ -140,7 +134,8 @@ bool RobotManager::setRobotJointValues(
     }
 
     // Update transforms after joint changes
-    return updateRobotTransforms(p_robot_name);
+    // return updateRobotTransforms(p_robot_name);
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -155,28 +150,6 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
 
     return it->second.robot->jointPositions();
 }
-#if 0
-// ----------------------------------------------------------------------------
-bool RobotManager::setRobotPose(const std::string& p_robot_name,
-                                const Eigen::Matrix4f& p_transform)
-{
-    auto it = m_robots.find(p_robot_name);
-    if (it == m_robots.end())
-    {
-        m_error = "Robot '" + p_robot_name + "' not found";
-        return false;
-    }
-
-    // For now, we'll just store the transform
-    // In a full implementation, we would apply this to the root of the robot
-    if (!it->second.link_transforms.empty())
-    {
-        it->second.link_transforms[0] = p_transform;
-    }
-
-    return true;
-}
-#endif
 
 // ----------------------------------------------------------------------------
 bool RobotManager::setRobotVisibility(const std::string& p_robot_name,
@@ -207,6 +180,28 @@ bool RobotManager::setRobotScale(const std::string& p_robot_name, float p_scale)
     return true;
 }
 
+#if 0
+// ----------------------------------------------------------------------------
+bool RobotManager::setRobotPose(const std::string& p_robot_name,
+                                const Eigen::Matrix4f& p_transform)
+{
+    auto it = m_robots.find(p_robot_name);
+    if (it == m_robots.end())
+    {
+        m_error = "Robot '" + p_robot_name + "' not found";
+        return false;
+    }
+
+    // For now, we'll just store the transform
+    // In a full implementation, we would apply this to the root of the robot
+    if (!it->second.link_transforms.empty())
+    {
+        it->second.link_transforms[0] = p_transform;
+    }
+
+    return true;
+}
+
 // ----------------------------------------------------------------------------
 bool RobotManager::updateRobotTransforms(const std::string& p_robot_name)
 {
@@ -220,13 +215,6 @@ void RobotManager::updateAllRobotTransforms()
     {
         updateRobotTransforms(name);
     }
-}
-
-// ----------------------------------------------------------------------------
-void RobotManager::clear()
-{
-    m_robots.clear();
-    m_error.clear();
 }
 
 // ----------------------------------------------------------------------------
@@ -249,5 +237,6 @@ bool RobotManager::updateRobotLinkTransforms(const std::string& p_robot_name)
 
     return true;
 }
+#endif
 
 } // namespace robotik::viewer

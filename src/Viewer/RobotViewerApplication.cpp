@@ -95,7 +95,7 @@ bool RobotViewerApplication::onSetup()
     // Set mesh base path if specified
     if (!m_config.search_paths.empty())
     {
-        m_mesh_manager.setBasePath(m_config.search_paths);
+        m_mesh_manager.setSearchPaths(m_config.search_paths);
     }
 
     // Setup shaders
@@ -136,9 +136,6 @@ bool RobotViewerApplication::onSetup()
             return false;
         }
     }
-
-    // Animation or inverse kinematics mode
-    m_control_mode = ControlMode::ANIMATION;
 
     // Set control joint (end effector) for inverse kinematics
     if (!setControlJoint(*controlled_robot, m_config.control_joint))
@@ -326,8 +323,7 @@ bool RobotViewerApplication::setupShaders(std::string const& p_program_name)
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onCleanup()
 {
-    m_robot_manager.reset();
-    m_control_mode = ControlMode::ANIMATION;
+    m_robot_manager.clear();
 }
 
 // ----------------------------------------------------------------------------
@@ -439,7 +435,13 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
                 // Load mesh if not already loaded
                 if (!m_mesh_manager.isMeshLoaded(mesh_path))
                 {
-                    m_mesh_manager.loadMesh(mesh_path);
+                    if (!m_mesh_manager.loadMesh(mesh_path))
+                    {
+                        std::cout << "Failed to load mesh: " << mesh_path
+                                  << ": " << m_mesh_manager.error()
+                                  << std::endl;
+                        return;
+                    }
                 }
 
                 // Render the mesh
@@ -455,35 +457,37 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onUpdate(float const /* dt */)
 {
-    // No update logic needed for now
+    auto current_time = std::chrono::steady_clock::now();
+    double elapsed_seconds =
+        std::chrono::duration<double>(current_time - m_start_time).count();
+
+    for (const auto& [_, it] : m_robot_manager.robots())
+    {
+        if (it.control_mode == ControlMode::ANIMATION)
+        {
+            handleAnimation(*it.robot, elapsed_seconds);
+        }
+        else if (it.control_mode == ControlMode::INVERSE_KINEMATICS)
+        {
+            handleInverseKinematics();
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
 {
-    auto current_time = std::chrono::steady_clock::now();
-    double elapsed_seconds =
-        std::chrono::duration<double>(current_time - m_start_time).count();
-
-    if (m_control_mode == ControlMode::ANIMATION)
-    {
-        handleAnimation(elapsed_seconds);
-    }
-    else if (m_control_mode == ControlMode::INVERSE_KINEMATICS)
-    {
-        handleInverseKinematics();
-    }
+    // No physics simulation needed for now
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleAnimation(double p_time)
+void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
 {
     // Update animation time (slower for more visible animation)
     float animation_time = static_cast<float>(p_time) * 0.5f;
 
     // Get current joint values
-    std::vector<double> joint_values =
-        m_robot_manager.currentRobot()->robot->jointPositions();
+    std::vector<double> joint_values = p_robot.jointPositions();
 
     // Animate each joint with different frequencies and amplitudes
     for (size_t i = 0; i < joint_values.size(); ++i)
@@ -498,7 +502,7 @@ void RobotViewerApplication::handleAnimation(double p_time)
             double(amplitude * std::sin(frequency * animation_time + phase));
     }
 
-    m_robot_manager.currentRobot()->robot->setJointValues(joint_values);
+    p_robot.setJointValues(joint_values);
 }
 
 // ----------------------------------------------------------------------------
@@ -571,14 +575,20 @@ void RobotViewerApplication::onKeyInput(int key,
                 break;
             // Robot mode switching (animation or inverse kinematics)
             case GLFW_KEY_M:
-                m_control_mode = m_control_mode == ControlMode::ANIMATION
-                                     ? ControlMode::INVERSE_KINEMATICS
-                                     : ControlMode::ANIMATION;
-                std::cout << "🤖 Mode: "
-                          << (m_control_mode == ControlMode::ANIMATION
-                                  ? "Animation"
-                                  : "IK")
-                          << std::endl;
+                if (auto* robot = m_robot_manager.currentRobot(); robot)
+                {
+                    robot->control_mode =
+                        robot->control_mode == ControlMode::ANIMATION
+                            ? ControlMode::INVERSE_KINEMATICS
+                            : ControlMode::ANIMATION;
+                    std::cout
+                        << "🤖 Mode: "
+                        << (m_robot_manager.currentRobot()->control_mode ==
+                                    ControlMode::ANIMATION
+                                ? "Animation"
+                                : "IK")
+                        << std::endl;
+                }
                 break;
             default:
                 break;

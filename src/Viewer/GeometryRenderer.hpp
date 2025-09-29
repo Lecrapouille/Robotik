@@ -110,7 +110,7 @@ public:
     // ------------------------------------------------------------------------
     const std::string& error() const
     {
-        return m_last_error;
+        return m_error;
     }
 
 private:
@@ -213,7 +213,7 @@ private:
     int m_model_uniform = -1;
     int m_color_uniform = -1;
 
-    std::string m_last_error;
+    std::string m_error;
 };
 
 } // namespace robotik::viewer
