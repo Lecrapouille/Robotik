@@ -9,11 +9,12 @@
 
 #pragma once
 
+#include "Robotik/private/Path.hpp"
 #include "Viewer/STLLoader.hpp"
+
 #include <cstddef>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace robotik::viewer
 {
@@ -124,16 +125,16 @@ public:
     // ------------------------------------------------------------------------
     const std::string& error() const
     {
-        return m_last_error;
+        return m_error;
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set the base path for mesh files.
+    //! \brief Set the search paths for mesh files.
     //! \param p_base_path Base path for mesh files.
     // ------------------------------------------------------------------------
-    void setBasePath(std::string_view p_base_path)
+    void setSearchPaths(std::string const& p_base_path)
     {
-        m_base_path = p_base_path;
+        m_path.add(p_base_path);
     }
 
 private:
@@ -155,10 +156,12 @@ private:
 
 private:
 
-    // Mesh storage
+    //! \brief Mesh storage
     std::unordered_map<std::string, OpenGLMesh> m_meshes;
-    std::string m_base_path;
-    std::string m_last_error;
+    //! \brief Search paths
+    Path m_path;
+    //! \brief Last error
+    std::string m_error;
 };
 
 } // namespace robotik::viewer

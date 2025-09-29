@@ -61,7 +61,7 @@ bool GeometryRenderer::initialize()
 
     if (m_model_uniform < 0 || m_color_uniform < 0)
     {
-        m_last_error = "Failed to get shader uniform locations";
+        m_error = "Failed to get shader uniform locations";
         return false;
     }
 

@@ -103,7 +103,7 @@ public:
     // ------------------------------------------------------------------------
     const std::string& error() const
     {
-        return m_last_error;
+        return m_error;
     }
 
     // ------------------------------------------------------------------------
@@ -136,7 +136,7 @@ private:
     // Shader programs storage
     std::unordered_map<std::string, unsigned int> m_programs;
     unsigned int m_current_program = 0;
-    std::string m_last_error;
+    std::string m_error;
 };
 
 } // namespace robotik::viewer

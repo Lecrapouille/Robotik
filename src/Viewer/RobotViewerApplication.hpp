@@ -170,10 +170,11 @@ private:
                         Eigen::Matrix4f const& p_transform);
 
     // ----------------------------------------------------------------------------
-    //! \brief Handle animation.
+    //! \brief Handle animation of the given robot.
+    //! \param p_robot The robot.
     //! \param p_time The time.
     // ----------------------------------------------------------------------------
-    void handleAnimation(double p_time);
+    void handleAnimation(Robot& p_robot, double p_time);
 
     // ----------------------------------------------------------------------------
     //! \brief Handle inverse kinematics.
@@ -201,7 +202,6 @@ private:
 
     // Animation
     std::chrono::steady_clock::time_point m_start_time;
-    ControlMode m_control_mode = ControlMode::INVERSE_KINEMATICS;
 
     // Title and FPS states
     std::string m_title;

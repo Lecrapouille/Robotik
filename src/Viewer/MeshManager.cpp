@@ -30,18 +30,18 @@ bool MeshManager::loadMesh(const std::string& p_mesh_path, bool p_force_reload)
 
     // Load STL file
     STLLoader::MeshData mesh_data;
-    const std::string full_path = m_base_path + p_mesh_path;
+    const std::string full_path = m_path.expand(p_mesh_path);
 
     if (!STLLoader::loadSTL(full_path, mesh_data))
     {
-        m_last_error = "Failed to load STL file: " + p_mesh_path + " - " +
-                       STLLoader::error();
+        m_error = "Failed to load STL file: " + p_mesh_path + " - " +
+                  STLLoader::error();
         return false;
     }
 
     if (mesh_data.vertices.empty() || mesh_data.indices.empty())
     {
-        m_last_error = "STL file contains no geometry: " + p_mesh_path;
+        m_error = "STL file contains no geometry: " + p_mesh_path;
         return false;
     }
 
@@ -63,7 +63,7 @@ bool MeshManager::loadMeshFromData(const std::string& p_mesh_path,
 {
     if (p_mesh_data.vertices.empty() || p_mesh_data.indices.empty())
     {
-        m_last_error = "Mesh data is empty: " + p_mesh_path;
+        m_error = "Mesh data is empty: " + p_mesh_path;
         return false;
     }
 
@@ -101,7 +101,7 @@ bool MeshManager::renderMesh(const std::string& p_mesh_path) const
     const OpenGLMesh* mesh = getMesh(p_mesh_path);
     if (!mesh)
     {
-        // Cannot modify m_last_error in const method, so we'll just return
+        // Cannot modify m_error in const method, so we'll just return
         // false
         return false;
     }
