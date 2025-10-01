@@ -7,13 +7,15 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
+#include "Configuration.hpp"
 #include "RobotViewerApplication.hpp"
 
+// Generated file holding project information
 #include "project_info.hpp"
 
 #include <iostream>
 
-using namespace robotik;
+using namespace robotik::viewer;
 
 // ----------------------------------------------------------------------------
 static void display_usage(const std::string& program_name)
@@ -33,32 +35,20 @@ static void display_usage(const std::string& program_name)
     std::cout << "  --physics <hz>      Set physics update rate (default: 15)"
               << std::endl;
     std::cout << "  --control-joint <joint>  Set control joint for IK "
-                 "(default: auto-detect)"
+                 "(default: auto-detect the end-effector)"
               << std::endl;
-    std::cout << "  --camera-target <joint>  Set camera target joint (default: "
-                 "auto-detect)"
+    std::cout << "  --camera-target <joint>  Set camera target joint "
+                 "(default: auto-detect the base link)"
               << std::endl;
-    std::cout << "  --profile               Enable performance profiling"
-              << std::endl;
-    std::cout << std::endl;
     std::cout << "Arguments:" << std::endl;
     std::cout << "  urdf_file               Path to the URDF file to load"
               << std::endl;
-    std::cout << std::endl;
-    std::cout << "Controls:" << std::endl;
-    std::cout << "  1-5            Change camera view" << std::endl;
-    std::cout << "  M              Toggle between Animation and Inverse "
-                 "Kinematics mode"
-              << std::endl;
-    std::cout << "  Z/S            Move target +/-X (IK mode)" << std::endl;
-    std::cout << "  Q/D            Move target +/-Y (IK mode)" << std::endl;
-    std::cout << "  A/E            Move target +/-Z (IK mode)" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
 static bool parse_command_line(size_t const p_argc,
                                char* const p_argv[],
-                               RobotViewerApplication::Configuration& p_config)
+                               Configuration& p_config)
 {
     std::string urdf_file;
     size_t i = 1;
@@ -183,7 +173,7 @@ static bool parse_command_line(size_t const p_argc,
 // ----------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-    RobotViewerApplication::Configuration config;
+    Configuration config;
     if (!parse_command_line(argc, argv, config))
     {
         return EXIT_FAILURE;

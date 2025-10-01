@@ -1,5 +1,5 @@
 ###############################################################################
-## Robotik: A robot library.
+## Robotik: A basic logger.
 ## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
 ##
 ## This file is part of Robotik.
@@ -28,26 +28,29 @@ M := $(P)/.makefile
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := robotik-viewer
-TARGET_DESCRIPTION := OpenGL visualization library for robots
+TARGET_NAME := robotik-core
+TARGET_DESCRIPTION := Core library for Robotik
 include $(M)/project/Makefile
 
 ###############################################################################
 # Inform Makefile where to find header files
 #
-INCLUDES += $(P)/src $(P)/include
+INCLUDES += $(P)/include $(P)/src
 
 ###############################################################################
 # Inform Makefile where to find *.cpp files
 #
-VPATH += $(P)/src/Viewer
+VPATH += $(P)/src/Robotik
+
+###############################################################################
+# Project defines
+#
+DEFINES +=
 
 ###############################################################################
 # Make the list of files to compile
 #
-LIB_FILES += Application.cpp OpenGLWindow.cpp
-LIB_FILES += Camera.cpp GeometryRenderer.cpp MeshManager.cpp
-LIB_FILES += ShaderManager.cpp STLLoader.cpp RobotManager.cpp
+LIB_FILES := $(wildcard $(P)/src/Robotik/*.cpp)
 
 ###############################################################################
 # Set Eigen3 library
@@ -57,9 +60,14 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
-# Set OpenGL library
+# Set TinyXML2 library
 #
-PKG_LIBS += glfw3 glew gl
+LIB_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
+
+###############################################################################
+# Set units library
+#
+INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # Sharable information between all Makefiles

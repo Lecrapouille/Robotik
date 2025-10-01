@@ -1,5 +1,5 @@
 ###############################################################################
-## Robotik: A robot library.
+## Robotik: A basic logger.
 ## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
 ##
 ## This file is part of Robotik.
@@ -21,35 +21,42 @@
 ###############################################################################
 # Location of the project directory and Makefiles
 #
-P := ../..
+P := ../../..
 M := $(P)/.makefile
 
 ###############################################################################
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := Robotik-viewer
-TARGET_DESCRIPTION := Demo of Viewer usage
+TARGET_NAME := Robotik-Viewer
+TARGET_DESCRIPTION := An URDF robot viewer application demo
 include $(M)/project/Makefile
 
 ###############################################################################
 # Inform Makefile where to find header files
 #
-INCLUDES += $(P)/src $(P)/include
+INCLUDES += $(P)/include $(P)/doc/demos/viewer
+
+###############################################################################
+# Inform Makefile where to find *.cpp files
+#
+VPATH += $(P)/doc/demos/viewer
+
+###################################################
+# Set third-party libraries. Order matters: dependencies last
+#
+THIRD_PARTIES_LIBS += $(call internal-lib,robotik-viewer)
+THIRD_PARTIES_LIBS += $(call internal-lib,robotik-core)
 
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES += loaders/STLLoader.cpp
-SRC_FILES += Benchmark.cpp OpenGLViewer.cpp Application.cpp RobotViewerApplication.cpp main.cpp
-INTERNAL_LIBS := $(call internal-lib,$(PROJECT_NAME))
+SRC_FILES := main.cpp RobotViewerApplication.cpp
 
 ###############################################################################
-# Set libraries (Eigen3 and OpenGL for visualization)
+# Set operating system libraries.
 #
-PKG_LIBS += eigen3 glfw3 glew gl
-USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
-USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
+PKG_LIBS += glfw3 glew gl eigen3
 
 ###############################################################################
 # Sharable information between all Makefiles
