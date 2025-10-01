@@ -10,7 +10,6 @@
 #pragma once
 
 #include "Robotik/Robot.hpp"
-#include "Viewer/Configuration.hpp"
 
 #include <Eigen/Dense>
 
@@ -40,6 +39,17 @@ namespace robotik::viewer
 class RobotManager
 {
 public:
+
+    // ------------------------------------------------------------------------
+    //! \brief Control modes for the robot.
+    // ------------------------------------------------------------------------
+    enum class ControlMode
+    {
+        //! Automatic sinusoidal animation
+        ANIMATION,
+        //! Interactive inverse kinematics control
+        INVERSE_KINEMATICS
+    };
 
     // ------------------------------------------------------------------------
     //! \brief Structure to hold controlled robot data.

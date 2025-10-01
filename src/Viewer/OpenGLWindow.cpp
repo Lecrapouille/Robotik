@@ -8,7 +8,6 @@
  */
 
 #include "Viewer/OpenGLWindow.hpp"
-#include "Viewer/RobotViewerApplication.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -16,8 +15,8 @@
 namespace robotik::viewer
 {
 // ----------------------------------------------------------------------------
-OpenGLWindow::OpenGLWindow(Configuration const& p_config)
-    : m_width(p_config.window_width), m_height(p_config.window_height)
+OpenGLWindow::OpenGLWindow(size_t const p_width, size_t const p_height)
+    : m_width(p_width), m_height(p_height)
 {
 }
 

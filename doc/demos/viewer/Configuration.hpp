@@ -8,17 +8,6 @@ namespace robotik::viewer
 {
 
 // ************************************************************************
-//! \brief Control modes for the robot.
-// ************************************************************************
-enum class ControlMode
-{
-    //! Automatic sinusoidal animation
-    ANIMATION,
-    //! Interactive inverse kinematics control
-    INVERSE_KINEMATICS
-};
-
-// ************************************************************************
 //! \brief Configuration for the application.
 // ************************************************************************
 struct Configuration

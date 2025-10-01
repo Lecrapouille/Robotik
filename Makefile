@@ -31,59 +31,50 @@ include $(P)/Makefile.common
 TARGET_NAME := $(PROJECT_NAME)
 TARGET_DESCRIPTION := A robot library
 include $(M)/project/Makefile
+ORCHESTRATOR_MODE := 1
 
-###############################################################################
-# Inform Makefile where to find header files
+###################################################
+# Internal libs to compile
 #
-INCLUDES += $(P)/include $(P)/src
+LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
+LIB_ROBOTIK_VIEWER := $(call internal-lib,robotik-viewer)
+INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_VIEWER)
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik $(P)/src/Viewer
 
-###############################################################################
-# Inform Makefile where to find *.cpp files
+###################################################
+# Demos to compile after libs
 #
-VPATH += $(P)/src/Robotik
+DEMO_DIRS := $(sort $(dir $(wildcard $(P)/doc/demos/*/.)))
 
-###############################################################################
-# Project defines
+###################################################
+# Compile internal libraries in the correct order
+# robotik-viewer depends on robotik-core
 #
-DEFINES +=
+$(LIB_ROBOTIK_VIEWER): $(P)/src/Viewer
 
-###############################################################################
-# Make the list of files to compile
-#
-LIB_FILES := $(wildcard $(P)/src/Robotik/*.cpp)
+$(LIB_ROBOTIK_CORE): $(P)/src/Robotik
 
-###############################################################################
-# Set Eigen3 library
-#
-PKG_LIBS += eigen3
-USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
-USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
+$(LIB_ROBOTIK_VIEWER):| $(LIB_ROBOTIK_CORE)
 
-###############################################################################
-# Set OpenGL libraries (for Viewer)
-#
-PKG_LIBS += glfw3 glew
-
-###############################################################################
-# Set TinyXML2 library
-#
-LIB_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
-
-###############################################################################
-# Set units library
-#
-INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
-
-###############################################################################
-# Sharable information between all Makefiles
+###################################################
+# Generic Makefile rules
 #
 include $(M)/rules/Makefile
 
-###############################################################################
-# Post-build rules
+###################################################
+# Extra rules: compile demos after everything
 #
-post-build: build-robot-viewer
+DEMOS = $(sort $(dir $(wildcard ./doc/demos/*/.)))
 
-.PHONY: build-robot-viewer
-build-robot-viewer: $(TARGET_STATIC_LIB_NAME)
-	$(Q)$(MAKE) --no-print-directory --directory=src/Viewer all
+.PHONY: demos
+demos: | $(INTERNAL_LIBS)
+	@$(call print-from,"Compiling scenarios",$(PROJECT_NAME),$(DEMOS))
+	@for i in $(DEMOS);        \
+	do                             \
+		$(MAKE) -C $$i all;        \
+	done;
+
+###################################################
+# Clean targets
+#
+all:: demos

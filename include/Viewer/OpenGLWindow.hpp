@@ -9,8 +9,6 @@
 
 #pragma once
 
-#include "Viewer/Configuration.hpp"
-
 #include <functional>
 #include <string>
 
@@ -44,7 +42,7 @@ public:
     //! \brief Constructor.
     //! \param p_config Configuration for the window.
     // ------------------------------------------------------------------------
-    explicit OpenGLWindow(Configuration const& p_config);
+    explicit OpenGLWindow(size_t const p_width, size_t const p_height);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.

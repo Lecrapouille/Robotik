@@ -9,14 +9,16 @@
 
 #pragma once
 
+#include "Configuration.hpp"
+
 #include "Viewer/Application.hpp"
 #include "Viewer/Camera.hpp"
-#include "Viewer/Configuration.hpp"
 #include "Viewer/GeometryRenderer.hpp"
 #include "Viewer/MeshManager.hpp"
 #include "Viewer/OpenGLWindow.hpp"
 #include "Viewer/RobotManager.hpp"
 #include "Viewer/ShaderManager.hpp"
+
 namespace robotik::viewer
 {
 
