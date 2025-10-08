@@ -8,7 +8,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/private/Path.hpp"
+#include "Robotik/Viewer/Path.hpp"
 #include <sstream>
 #include <sys/stat.h>
 

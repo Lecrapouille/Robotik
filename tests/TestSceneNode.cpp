@@ -12,7 +12,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/private/SceneNode.hpp"
+#include "Robotik/Core/SceneNode.hpp"
 
 #include <cmath>
 

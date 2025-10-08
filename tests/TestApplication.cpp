@@ -10,13 +10,13 @@
 
 #include "main.hpp"
 
-#include "Viewer/Application.hpp"
+#include "Robotik/Viewer/Application.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <thread>
 
-using namespace robotik;
+using namespace robotik::viewer;
 
 // *********************************************************************************
 //! \brief Mock Application class for testing.
@@ -81,6 +81,11 @@ protected:
         return m_setup_returns;
     }
 
+    void onCleanup() override
+    {
+        // Mock implementation - do nothing
+    }
+
     void onDraw() override
     {
         m_draw_count++;
@@ -97,22 +102,12 @@ protected:
         m_physics_update_count++;
     }
 
+    void onFPSUpdated(size_t const /* p_delta_time */) override
+    {
+        // Mock implementation - do nothing
+    }
+
     void setTitle(std::string const& /* p_title */) override
-    {
-        // Mock implementation - do nothing
-    }
-
-    void onCleanup() override
-    {
-        // Mock implementation - do nothing
-    }
-
-    void onHandleEvents() override
-    {
-        // Mock implementation - do nothing
-    }
-
-    void onFPSUpdated(float /* p_delta_time */) override
     {
         // Mock implementation - do nothing
     }

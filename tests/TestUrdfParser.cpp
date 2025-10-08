@@ -13,7 +13,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Parser.hpp"
+#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/URDFParser.hpp"
 
 #include <cmath>
 

@@ -47,7 +47,7 @@ DIRS_WITH_MAKEFILE := $(P)/src/Robotik $(P)/src/Viewer
 DEMO_DIRS := $(sort $(dir $(wildcard $(P)/doc/demos/*/.)))
 
 ###################################################
-# Compile internal libraries in the correct order
+# Compile internal libraries in the correct order:
 # robotik-viewer depends on robotik-core
 #
 $(LIB_ROBOTIK_VIEWER): $(P)/src/Viewer
@@ -68,7 +68,7 @@ DEMOS = $(sort $(dir $(wildcard ./doc/demos/*/.)))
 
 .PHONY: demos
 demos: | $(INTERNAL_LIBS)
-	@$(call print-from,"Compiling scenarios",$(PROJECT_NAME),$(DEMOS))
+	@$(call print-from,"Compiling demos",$(PROJECT_NAME),$(DEMOS))
 	@for i in $(DEMOS);        \
 	do                             \
 		$(MAKE) -C $$i all;        \

@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/ShaderManager.hpp"
+#include "Robotik/Viewer/ShaderManager.hpp"
 #include <GL/glew.h>
 
 namespace robotik::viewer

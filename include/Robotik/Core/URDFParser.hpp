@@ -1,5 +1,5 @@
 /**
- * @file Parser.hpp
+ * @file URDFParser.hpp
  * @brief Parser for URDF files to create a robot.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -9,11 +9,11 @@
 
 #pragma once
 
-#include "Robotik/Robot.hpp"
+#include "Robotik/Core/ClassesFwd.hpp"
+#include "Robotik/Core/Types.hpp"
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 
 // Forward declarations
@@ -27,10 +27,6 @@ namespace robotik
 {
 
 struct URDFParserLink;
-struct Inertial;
-class Joint;
-class Link;
-class Geometry;
 
 // ****************************************************************************
 //! \brief Parser for URDF files to automatically build the robot.
@@ -89,7 +85,7 @@ private:
     //! \return A unique pointer to the robot if the scene graph was created
     //! successfully, else nullptr.
     // ------------------------------------------------------------------------
-    std::unique_ptr<Robot> buildSceneGraph(std::string_view p_robot_name);
+    std::unique_ptr<Robot> buildSceneGraph(std::string const& p_robot_name);
 
     // ------------------------------------------------------------------------
     //! \brief Find the URDFParserLink that has no parent joint to be used as

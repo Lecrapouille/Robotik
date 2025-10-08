@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "Robotik/private/Inertial.hpp"
-#include "Robotik/private/SceneNode.hpp"
+#include "Robotik/Core/Inertial.hpp"
+#include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik
 {

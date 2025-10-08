@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "Robotik/private/Path.hpp"
-#include "Viewer/STLLoader.hpp"
+#include "Robotik/Viewer/Path.hpp"
+#include "Robotik/Viewer/STLLoader.hpp"
 
 #include <cstddef>
 #include <string>

@@ -7,10 +7,8 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Debug.hpp"
-#include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Joint.hpp"
-#include "Robotik/private/Link.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Robot.hpp"
 
 #include <iomanip>
 #include <iostream>

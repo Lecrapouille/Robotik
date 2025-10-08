@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/private/Types.hpp"
+#include "Robotik/Core/Types.hpp"
 
 #include <memory>
 #include <string>

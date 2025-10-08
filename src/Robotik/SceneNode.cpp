@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/private/SceneNode.hpp"
+#include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik::scene
 {

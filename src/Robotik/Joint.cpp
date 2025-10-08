@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/private/Joint.hpp"
+#include "Robotik/Core/Joint.hpp"
 
 #include <iostream>
 

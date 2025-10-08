@@ -9,8 +9,8 @@
 
 #pragma once
 
-#include "Robotik/private/Geometry.hpp"
-#include "Robotik/private/SceneNode.hpp"
+#include "Robotik/Core/Geometry.hpp"
+#include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik
 {

@@ -45,9 +45,7 @@ VPATH += $(P)/src/Viewer
 ###############################################################################
 # Make the list of files to compile
 #
-LIB_FILES += Application.cpp OpenGLWindow.cpp
-LIB_FILES += Camera.cpp GeometryRenderer.cpp MeshManager.cpp
-LIB_FILES += ShaderManager.cpp STLLoader.cpp RobotManager.cpp
+LIB_FILES := $(wildcard $(P)/src/Viewer/*.cpp)
 
 ###############################################################################
 # Set Eigen3 library

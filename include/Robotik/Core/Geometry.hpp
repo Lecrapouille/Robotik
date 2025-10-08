@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/private/SceneNode.hpp"
+#include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik
 {
