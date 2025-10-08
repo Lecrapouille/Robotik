@@ -11,13 +11,13 @@
 
 #include "Configuration.hpp"
 
-#include "Viewer/Application.hpp"
-#include "Viewer/Camera.hpp"
-#include "Viewer/GeometryRenderer.hpp"
-#include "Viewer/MeshManager.hpp"
-#include "Viewer/OpenGLWindow.hpp"
-#include "Viewer/RobotManager.hpp"
-#include "Viewer/ShaderManager.hpp"
+#include "Robotik/Viewer/Application.hpp"
+#include "Robotik/Viewer/Camera.hpp"
+#include "Robotik/Viewer/GeometryRenderer.hpp"
+#include "Robotik/Viewer/MeshManager.hpp"
+#include "Robotik/Viewer/OpenGLWindow.hpp"
+#include "Robotik/Viewer/RobotManager.hpp"
+#include "Robotik/Viewer/ShaderManager.hpp"
 
 namespace robotik::viewer
 {

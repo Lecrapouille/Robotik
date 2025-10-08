@@ -52,6 +52,8 @@ THIRD_PARTIES_LIBS += $(call internal-lib,robotik-core)
 # Make the list of files to compile
 #
 SRC_FILES := main.cpp RobotViewerApplication.cpp
+USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
+USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
 # Set operating system libraries.

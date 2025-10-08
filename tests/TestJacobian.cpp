@@ -11,9 +11,9 @@
 
 #include "main.hpp"
 
-#include "Robotik/Parser.hpp"
-#include "Robotik/Robot.hpp"
-#include "Robotik/private/Conversions.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/URDFParser.hpp"
 
 #include <cmath>
 
@@ -84,7 +84,7 @@ TEST_F(JacobianTest, SimpleRevoluteRobotJacobian)
     robot->setJointValues({ 0.0 });
 
     // Calculate Jacobian
-    Jacobian jacobian = robot->calculateJacobian(*end_effector);
+    Jacobian jacobian = robot->jacobian(*end_effector);
 
     // Expected Jacobian for simple revolute robot at zero position
     // The joint and end effector are at same Z position (0.05), so no linear
@@ -116,7 +116,7 @@ TEST_F(JacobianTest, SimplePrismaticRobotJacobian)
     robot->setJointValues({ 0.0 });
 
     // Calculate Jacobian
-    Jacobian jacobian = robot->calculateJacobian(*end_effector);
+    Jacobian jacobian = robot->jacobian(*end_effector);
 
     // Expected Jacobian for simple prismatic robot
     // For prismatic joint: v = axis, ω = 0
@@ -150,7 +150,7 @@ TEST_F(JacobianTest, DifferentialDriveRobotJacobian)
     robot->setJointValues(zero_values);
 
     // Calculate Jacobian
-    Jacobian jacobian = robot->calculateJacobian(*base_link);
+    Jacobian jacobian = robot->jacobian(*base_link);
 
     // Expected Jacobian for differential drive robot (2 continuous joints)
     // Based on actual computed values for the wheel positions
@@ -181,7 +181,7 @@ TEST_F(JacobianTest, SCARArobotJacobian)
     robot->setJointValues({ 0.0, 0.0, 0.0 });
 
     // Calculate Jacobian
-    Jacobian jacobian = robot->calculateJacobian(*end_effector);
+    Jacobian jacobian = robot->jacobian(*end_effector);
 
     // Expected Jacobian for SCARA robot at zero configuration
     // Joint 1: revolute at (0, 0, 0.06), end effector at (0.8, 0, 0.06)
@@ -214,7 +214,7 @@ TEST_F(JacobianTest, CartesianRobotJacobian)
     robot->setJointValues({ 0.0, 0.0, 0.0 });
 
     // Calculate Jacobian
-    Jacobian jacobian = robot->calculateJacobian(*end_effector);
+    Jacobian jacobian = robot->jacobian(*end_effector);
 
     // Expected Jacobian for Cartesian robot
     // All joints are prismatic along X, Y, Z axes respectively

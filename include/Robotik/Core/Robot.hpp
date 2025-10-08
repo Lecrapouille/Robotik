@@ -9,14 +9,28 @@
 
 #pragma once
 
-#include "Robotik/Component.hpp"
-#include "Robotik/private/Joint.hpp"
-#include "Robotik/private/Link.hpp"
+#include "Robotik/Core/Component.hpp"
+#include "Robotik/Core/Joint.hpp"
+#include "Robotik/Core/Link.hpp"
 
 namespace robotik
 {
 
-// TODO: ajouter getFrameId(name)
+class Robot;
+
+namespace debug
+{
+
+// ****************************************************************************
+//! \brief Print the robot as scene graph to a string.
+//! \param p_robot The robot to print.
+//! \param p_detailed If false, show only the tree structure (default).
+//!  If true, show detailed information (local and world transforms, geometry).
+//! \return A string containing the formatted robot representation.
+// ****************************************************************************
+std::string printRobot(Robot const& p_robot, bool p_detailed = false);
+
+} // namespace debug
 
 // *********************************************************************************
 //! \brief Class representing a complete robotic arm.
@@ -215,55 +229,12 @@ public:
     void setNeutralPosition();
 
     // ------------------------------------------------------------------------
-    //! \brief Compute the inverse kinematics of the robot by the Jacobian
-    //! method.
-    //!
-    //! PHYSICS: Inverse kinematics solves for the joint configuration that
-    //! achieves a desired end-effector pose. This is mathematically complex
-    //! as it involves solving a system of nonlinear equations.
-    //!
-    //! MATHEMATICAL FORMULATION:
-    //! Given target pose P_target, find joint values Q such that:
-    //! P_target = f(Q) where f is the forward kinematics function
-    //!
-    //! SOLUTION CHALLENGES:
-    //! - Multiple solutions: A given pose may have several valid joint configs
-    //! - No solutions: Target pose may be outside robot's workspace
-    //! - Infinite solutions: At kinematic singularities
-    //! - Numerical stability: Iterative methods may not converge
-    //!
-    //! COMMON ALGORITHMS:
-    //! - Jacobian-based methods (Newton-Raphson, Levenberg-Marquardt)
-    //! - Geometric methods (for specific robot geometries)
-    //! - Optimization-based approaches
-    //!
-    //! WORKSPACE CONSTRAINTS:
-    //! - Reachable workspace: All poses that can be achieved
-    //! - Dexterous workspace: Poses achievable with arbitrary orientations
-    //! - Joint limits, singularities, and obstacles affect solvability
-    //!
-    //! \param p_target_pose Desired 6D pose of the end-effector
-    //! [x,y,z,rx,ry,rz].
-    //! \param p_end_effector Reference to the end effector node.
-    //! \param p_max_iterations Maximum number of iterations.
-    //! \param p_epsilon Tolerance for convergence.
-    //! \param p_damping Damping factor.
-    //!
-    //! \return Vector of joint values if a valid solution is found, empty
-    //! vector otherwise.
-    // ------------------------------------------------------------------------
-    std::vector<double> inverseKinematics(Pose const& p_target_pose,
-                                          scene::Node const& p_end_effector,
-                                          size_t const p_max_iterations = 500,
-                                          double const p_epsilon = 1e-4,
-                                          double const p_damping = 0.01);
-
-    // ------------------------------------------------------------------------
     //! \brief Compute the Jacobian matrix of the robot.
     //! \param p_end_effector Reference to the end effector node.
     //! \return The Jacobian matrix.
     // ------------------------------------------------------------------------
-    Jacobian calculateJacobian(scene::Node const& p_end_effector) const;
+    Jacobian
+    jacobian(scene::Node const& p_end_effector) const; // FIXME a deplacer
 
 protected:
 

@@ -9,9 +9,8 @@
 
 #include "RobotViewerApplication.hpp"
 
-#include "Robotik/Debug.hpp"
-#include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Exception.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Exception.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>

@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/private/Geometry.hpp"
+#include "Robotik/Core/Geometry.hpp"
 
 #include <iomanip>
 #include <sstream>

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Robot.hpp"
+#include "Robotik/Core/Robot.hpp"
 
 #include <Eigen/Dense>
 

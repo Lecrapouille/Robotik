@@ -1,4 +1,4 @@
-#include "Robotik/private/Link.hpp"
+#include "Robotik/Core/Link.hpp"
 
 namespace robotik
 {

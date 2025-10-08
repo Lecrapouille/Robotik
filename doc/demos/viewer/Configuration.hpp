@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Viewer/Camera.hpp"
+#include "Robotik/Viewer/Camera.hpp"
 
 #include <string>
 

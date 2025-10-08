@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/MeshManager.hpp"
+#include "Robotik/Viewer/MeshManager.hpp"
 #include <GL/glew.h>
 
 namespace robotik::viewer

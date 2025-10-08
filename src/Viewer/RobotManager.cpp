@@ -7,8 +7,8 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/RobotManager.hpp"
-#include "Robotik/Parser.hpp"
+#include "Robotik/Viewer/RobotManager.hpp"
+#include "Robotik/Core/URDFParser.hpp"
 
 namespace robotik::viewer
 {

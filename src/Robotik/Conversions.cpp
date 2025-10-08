@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/private/Conversions.hpp"
+#include "Robotik/Core/Conversions.hpp"
 #include <iomanip>
 
 namespace robotik::utils

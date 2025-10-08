@@ -10,8 +10,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot.hpp"
-#include "Robotik/private/Conversions.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Robot.hpp"
 
 #include <cmath>
 
@@ -247,7 +247,7 @@ TEST_F(RobotTest, JacobianCalculation)
     std::vector<double> values = { 0.0, 0.0 };
     robot_arm->setJointValues(values);
 
-    Jacobian jacobian = robot_arm->calculateJacobian(*end_effector);
+    Jacobian jacobian = robot_arm->jacobian(*end_effector);
 
     // For a 2-DOF arm, Jacobian should be 6x2
     EXPECT_EQ(jacobian.rows(), 6);
@@ -257,6 +257,7 @@ TEST_F(RobotTest, JacobianCalculation)
     EXPECT_GT(jacobian.norm(), 0.0);
 }
 
+#if 0 // FIXME A deplacer
 // *********************************************************************************
 //! \brief Test inverse kinematics with initial pose.
 // *********************************************************************************
@@ -285,6 +286,7 @@ TEST_F(RobotTest, InverseKinematicsInitialPose)
     EXPECT_TRUE(actual_position.isApprox(Eigen::Vector3d(2.0, 0.0, 1.0)));
     EXPECT_TRUE(actual_rotation.isApprox(Eigen::Matrix3d::Identity()));
 }
+#endif
 
 #if 0
 // *********************************************************************************
@@ -324,12 +326,12 @@ TEST_F(RobotTest, ComplexKinematics)
         robot_arm->setJointValues(config);
 
         // Jacobian calculation should not crash
-        EXPECT_NO_THROW(robot_arm->calculateJacobian(*end_effector));
+        EXPECT_NO_THROW(robot_arm->jacobian(*end_effector));
 
         // Verify that results are reasonable
         Transform fk_result = end_effector->worldTransform();
         Pose pose = utils::transformToPose(fk_result);
-        Jacobian jacobian = robot_arm->calculateJacobian(*end_effector);
+        Jacobian jacobian = robot_arm->jacobian(*end_effector);
 
         // Transform should be valid homogeneous matrix
         EXPECT_DOUBLE_EQ(fk_result(3, 3), 1.0);

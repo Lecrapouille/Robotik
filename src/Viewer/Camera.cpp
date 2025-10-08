@@ -1,4 +1,4 @@
-#include "Viewer/Camera.hpp"
+#include "Robotik/Viewer/Camera.hpp"
 
 namespace robotik::viewer
 {

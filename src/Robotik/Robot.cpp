@@ -7,11 +7,11 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Robot.hpp"
-#include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Exception.hpp"
-#include "Robotik/private/Joint.hpp"
-#include "Robotik/private/Link.hpp"
+#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Exception.hpp"
+#include "Robotik/Core/Joint.hpp"
+#include "Robotik/Core/Link.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -121,131 +121,7 @@ Pose Robot::calculatePoseError(Pose const& p_target_pose,
 }
 
 // ----------------------------------------------------------------------------
-std::vector<double> Robot::inverseKinematics(Pose const& p_target_pose,
-                                             scene::Node const& p_end_effector,
-                                             size_t const p_max_iterations,
-                                             double const p_epsilon,
-                                             double const p_damping)
-{
-    // Validate input parameters
-    if (p_max_iterations == 0)
-    {
-        throw RobotikException("Invalid max_iterations: must be > 0");
-    }
-    if (p_epsilon <= 0.0)
-    {
-        throw RobotikException("Invalid epsilon: must be > 0");
-    }
-    if (p_damping < 0.0)
-    {
-        throw RobotikException("Invalid damping: must be >= 0");
-    }
-    if (m_joints.empty())
-    {
-        throw RobotikException("No actuable joints found in robot");
-    }
-
-    // Initialize with the current values
-    std::vector<double> solution = jointPositions();
-    const size_t num_joints = m_joints.size();
-
-    for (size_t iter = 0; iter < p_max_iterations; ++iter)
-    {
-        // Current position of the end effector
-        Transform current_transform = p_end_effector.worldTransform();
-        Pose current_pose = utils::transformToPose(current_transform);
-
-        // Calculate pose error (proper handling of orientation)
-        Pose error = calculatePoseError(p_target_pose, current_pose);
-
-        // If the error is small enough, we consider the solution as found
-        if (error.norm() < p_epsilon)
-        {
-            return solution;
-        }
-
-        // Calculate the Jacobian
-        Jacobian J = calculateJacobian(p_end_effector);
-
-        // Use SVD for robust pseudo-inverse calculation
-        Eigen::JacobiSVD<Jacobian> svd(
-            J, Eigen::ComputeThinU | Eigen::ComputeThinV);
-
-        // Handle singularities by filtering small singular values
-        const double singular_threshold = 1e-6;
-        Eigen::VectorXd singular_values = svd.singularValues();
-        Eigen::VectorXd inv_singular_values(singular_values.size());
-
-        for (int i = 0; i < singular_values.size(); ++i)
-        {
-            if (singular_values(i) > singular_threshold)
-            {
-                inv_singular_values(i) =
-                    1.0 / (singular_values(i) * singular_values(i) +
-                           p_damping * p_damping);
-                inv_singular_values(i) *= singular_values(i);
-            }
-            else
-            {
-                inv_singular_values(i) = 0.0;
-            }
-        }
-
-        // Compute damped pseudo-inverse: J+ = V * S+ * U^T
-        Jacobian Jpinv = svd.matrixV() * inv_singular_values.asDiagonal() *
-                         svd.matrixU().transpose();
-
-        // Calculate the increment of the joint angles
-        Eigen::VectorXd dTheta = Jpinv * error;
-
-        // Apply joint limits and update angles
-        bool limits_violated = false;
-        for (size_t i = 0; i < num_joints; ++i)
-        {
-            double new_value = solution[i] + double(dTheta(i));
-            Joint const& joint = m_joints[i].get();
-            auto [min_limit, max_limit] = joint.limits();
-
-            // Check joint limits for non-continuous joints
-            if (joint.type() != Joint::Type::CONTINUOUS)
-            {
-                if (new_value < min_limit || new_value > max_limit)
-                {
-                    // Clamp to limits
-                    new_value = std::clamp(new_value, min_limit, max_limit);
-                    limits_violated = true;
-                }
-            }
-
-            solution[i] = new_value;
-        }
-
-        // Apply the new values
-        if (!setJointValues(solution))
-        {
-            throw RobotikException(
-                "Failed to set joint values during IK iteration");
-        }
-
-        // If we hit joint limits, we might need more iterations or different
-        // approach
-        if (limits_violated && iter > p_max_iterations / 2)
-        {
-            // Try to continue but with reduced step size
-            for (size_t i = 0; i < num_joints; ++i)
-            {
-                solution[i] = solution[i] - 0.5 * double(dTheta(i));
-            }
-            setJointValues(solution);
-        }
-    }
-
-    // If we arrive here, it means we haven't found a solution
-    return {};
-}
-
-// ----------------------------------------------------------------------------
-Jacobian Robot::calculateJacobian(scene::Node const& p_end_effector) const
+Jacobian Robot::jacobian(scene::Node const& p_end_effector) const
 {
     const size_t num_joints = m_joints.size();
     Jacobian J(6, num_joints);

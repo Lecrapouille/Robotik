@@ -7,8 +7,8 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/GeometryRenderer.hpp"
-#include "Viewer/ShaderManager.hpp"
+#include "Robotik/Viewer/GeometryRenderer.hpp"
+#include "Robotik/Viewer/ShaderManager.hpp"
 #include <GL/glew.h>
 #include <cmath>
 

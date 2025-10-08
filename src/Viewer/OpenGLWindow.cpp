@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/OpenGLWindow.hpp"
+#include "Robotik/Viewer/OpenGLWindow.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>

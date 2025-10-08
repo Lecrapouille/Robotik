@@ -7,8 +7,9 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include <Robotik/private/Path.hpp>
-#include <gtest/gtest.h>
+#include "main.hpp"
+
+#include "Robotik/Viewer/Path.hpp"
 
 using namespace robotik;
 
@@ -35,7 +36,7 @@ TEST_F(PathTests, EmptyConstructor)
     Path path;
 
     EXPECT_EQ(0, path.paths().size());
-    EXPECT_TRUE(path.toString() == "");
+    EXPECT_TRUE(path.toString() == ".:");
 }
 
 //--------------------------------------------------------------------------
@@ -47,7 +48,7 @@ TEST_F(PathTests, SplitConstructor)
     EXPECT_TRUE(path.toString() == ".:/a/b:c/d:");
     path.clear();
     EXPECT_EQ(0, path.paths().size());
-    EXPECT_TRUE(path.toString() == "");
+    EXPECT_TRUE(path.toString() == ".:");
     path.add("g/g");
     EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:g/g:");

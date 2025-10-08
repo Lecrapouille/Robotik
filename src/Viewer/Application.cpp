@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Viewer/Application.hpp"
+#include "Robotik/Viewer/Application.hpp"
 
 #include <algorithm>
 #include <chrono>

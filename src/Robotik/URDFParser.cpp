@@ -7,13 +7,10 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Parser.hpp"
+#include "Robotik/Core/URDFParser.hpp"
 
-#include "Robotik/private/Conversions.hpp"
-#include "Robotik/private/Joint.hpp"
-#include "Robotik/private/Link.hpp"
-
-#include "Robotik/Robot.hpp"
+#include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Robot.hpp"
 
 #include <tinyxml2/tinyxml2.h>
 
@@ -201,7 +198,7 @@ URDFParser::parseRobot(tinyxml2::XMLElement* p_robot_element)
 
 // ----------------------------------------------------------------------------
 std::unique_ptr<Robot>
-URDFParser::buildSceneGraph(std::string_view p_robot_name)
+URDFParser::buildSceneGraph(std::string const& p_robot_name)
 {
     // Since in URDF file, a joint is always associated with a link parent
     // and a link child, we need to find the root link (link with no parent
