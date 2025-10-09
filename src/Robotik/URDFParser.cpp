@@ -111,6 +111,7 @@ parseOptionalVector3(tinyxml2::XMLElement const* p_element,
 }
 
 // ----------------------------------------------------------------------------
+// FIXME mettre template pour Robot afin de faire load<DerivedRobot>
 std::unique_ptr<Robot> URDFParser::load(const std::string& p_filename)
 {
     if (std::ifstream file(p_filename); !file)
@@ -231,6 +232,7 @@ URDFParser::buildSceneGraph(std::string const& p_robot_name)
     // Create the robot.
     auto robot = std::make_unique<Robot>(p_robot_name);
     robot->root(std::move(root_node));
+
     return robot;
 }
 
@@ -518,6 +520,22 @@ void URDFParser::parseLimits(tinyxml2::XMLElement* p_joint_element,
     {
         p_joint.limits(lower, upper);
     }
+
+    // Parse velocity limit
+    double velocity = 0;
+    if (limit_element->QueryDoubleAttribute("velocity", &velocity) ==
+        tinyxml2::XML_SUCCESS)
+    {
+        p_joint.maxVelocity(velocity);
+    }
+
+    // Parse effort limit
+    double effort = 0;
+    if (limit_element->QueryDoubleAttribute("effort", &effort) ==
+        tinyxml2::XML_SUCCESS)
+    {
+        p_joint.effort_max(effort);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -536,21 +554,33 @@ URDFParser::parseOriginTransform(tinyxml2::XMLElement* p_element) const
 robotik::Link::Ptr
 URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link) const
 {
+    std::unique_ptr<robotik::Link> link;
+
     if (p_urdf_link.geometry && p_urdf_link.collision)
     {
-        return scene::Node::create<robotik::Link>(
+        link = scene::Node::create<robotik::Link>(
             p_urdf_link.name,
             std::move(p_urdf_link.geometry),
             std::move(p_urdf_link.collision));
     }
     else if (p_urdf_link.geometry)
     {
-        return scene::Node::create<robotik::Link>(
+        link = scene::Node::create<robotik::Link>(
             p_urdf_link.name, std::move(p_urdf_link.geometry));
     }
+    else
+    {
+        // We need at least a visual geometry to create a link
+        return nullptr;
+    }
 
-    // We need at least a visual geometry to create a link
-    return nullptr;
+    // Transfer inertial properties
+    if (link)
+    {
+        link->inertia(p_urdf_link.inertial);
+    }
+
+    return link;
 }
 
 } // namespace robotik

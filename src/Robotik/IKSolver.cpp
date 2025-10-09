@@ -8,7 +8,8 @@
 
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Conversions.hpp"
-#include <cmath>
+#include "Robotik/Core/Robot.hpp"
+
 #include <iostream>
 
 namespace robotik

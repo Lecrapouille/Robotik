@@ -32,12 +32,18 @@ Joint::Joint(std::string_view const& p_name,
             position(0.0);
             break;
         case Joint::Type::FIXED:
-            m_min = m_max = 0.0;
+            m_position_min = m_position_max = 0.0;
             m_position = 0.0;
             m_joint_transform = Eigen::Matrix4d::Identity();
             m_combined_local_transform = Eigen::Matrix4d::Identity();
             break;
     }
+}
+
+// ----------------------------------------------------------------------------
+void Joint::position(double p_velocity, double p_dt)
+{
+    position(m_position + p_dt * p_velocity);
 }
 
 // ----------------------------------------------------------------------------
@@ -48,10 +54,10 @@ void Joint::position(double p_position)
 
     if (m_type != Joint::Type::CONTINUOUS)
     {
-        if (p_position < m_min)
-            p_position = m_min;
-        if (p_position > m_max)
-            p_position = m_max;
+        if (p_position < m_position_min)
+            p_position = m_position_min;
+        if (p_position > m_position_max)
+            p_position = m_position_max;
     }
 
     // Compute the joint's local transformation matrix
@@ -76,6 +82,13 @@ void Joint::position(double p_position)
 
     // Update the world transform
     updateWorldTransforms(); // FIXME find a lazy way to do this
+}
+
+// ----------------------------------------------------------------------------
+void Joint::velocity(double p_acceleration, double p_dt)
+{
+    double v = m_velocity + p_dt * p_acceleration;
+    m_velocity = std::max(-maxVelocity(), std::min(maxVelocity(), v));
 }
 
 // ----------------------------------------------------------------------------

@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include "Robotik/Core/Inertial.hpp"
 #include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik
@@ -196,6 +195,13 @@ public:
     void position(double p_position); // FIXME: utiliser S.I.
 
     // ------------------------------------------------------------------------
+    //! \brief Set the current joint configuration value.
+    //! \param p_velocity The current joint velocity value.
+    //! \param p_dt The time step.
+    // ------------------------------------------------------------------------
+    void position(double p_velocity, double p_dt);
+
+    // ------------------------------------------------------------------------
     //! \brief Get the current joint configuration value.
     //!
     //! PHYSICS: Returns the current generalized coordinate representing
@@ -225,6 +231,129 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Get the current joint velocity value.
+    //! \return The current joint velocity value
+    // ------------------------------------------------------------------------
+    inline double velocity() const
+    {
+        return m_velocity;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the maximum joint velocity value.
+    // ------------------------------------------------------------------------
+    inline double maxVelocity() const
+    {
+        return m_velocity_max;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the maximum joint velocity value.
+    //! \param p_velocity_max The maximum joint velocity value
+    // ------------------------------------------------------------------------
+    inline void maxVelocity(double p_velocity_max)
+    {
+        m_velocity_max = p_velocity_max;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the current joint velocity value constrained by the maximum
+    //! velocity.
+    //! \param p_velocity The current joint velocity value
+    // ------------------------------------------------------------------------
+    void velocity(double p_acceleration, double p_dt);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current joint acceleration value.
+    //! \return The current joint acceleration value
+    // ------------------------------------------------------------------------
+    inline double acceleration() const
+    {
+        return m_acceleration;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the current joint acceleration value.
+    //! \param p_acceleration The current joint acceleration value
+    // ------------------------------------------------------------------------
+    inline void acceleration(double p_acceleration)
+    {
+        m_acceleration = p_acceleration;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current joint effort (force or torque) value.
+    //! \return The current joint effort value
+    // ------------------------------------------------------------------------
+    inline double effort() const
+    {
+        return m_effort;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the current joint effort (force or torque) value.
+    //! \param p_effort The current joint effort value
+    // ------------------------------------------------------------------------
+    inline void effort(double p_effort)
+    {
+        m_effort = p_effort;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the maximum joint effort (force or torque) value.
+    //! \return The maximum joint effort value
+    // ------------------------------------------------------------------------
+    inline double effort_max() const
+    {
+        return m_effort_max;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the maximum joint effort (force or torque) value.
+    //! \param p_effort_max The maximum joint effort value
+    // ------------------------------------------------------------------------
+    inline void effort_max(double p_effort_max)
+    {
+        m_effort_max = p_effort_max;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint damping coefficient.
+    //! \return The joint damping coefficient
+    // ------------------------------------------------------------------------
+    inline double damping() const
+    {
+        return m_damping;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint damping coefficient.
+    //! \param p_damping The joint damping coefficient
+    // ------------------------------------------------------------------------
+    inline void damping(double p_damping)
+    {
+        m_damping = p_damping;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint friction coefficient.
+    //! \return The joint friction coefficient
+    // ------------------------------------------------------------------------
+    inline double friction() const
+    {
+        return m_friction;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint friction coefficient.
+    //! \param p_friction The joint friction coefficient
+    // ------------------------------------------------------------------------
+    inline void friction(double p_friction)
+    {
+        m_friction = p_friction;
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Set joint motion limits for safety and mechanical constraints.
     //!
     //! Joint limits represent physical and safety constraints that prevent
@@ -250,19 +379,19 @@ public:
     //! - Velocity limits: Maximum safe motion speeds
     //! - Acceleration limits: Maximum safe motion accelerations
     //!
-    //! \param p_min Minimum allowed joint value.
-    //! \param p_max Maximum allowed joint value.
+    //! \param p_position_min Minimum allowed joint value.
+    //! \param p_position_max Maximum allowed joint value.
     //! \note The limits have no effect for CONTINUOUS joints and FIXED joints.
     // ------------------------------------------------------------------------
-    inline void limits(double p_min, double p_max)
+    inline void limits(double p_position_min, double p_position_max)
     {
         // Note: the if is redundant since the setter position() has security.
         // This code is for the sake of clarity.
         if (m_type == Joint::Type::CONTINUOUS || m_type == Joint::Type::FIXED)
             return;
 
-        m_min = p_min;
-        m_max = p_max;
+        m_position_min = p_position_min;
+        m_position_max = p_position_max;
     }
 
     // ------------------------------------------------------------------------
@@ -271,7 +400,7 @@ public:
     // ------------------------------------------------------------------------
     inline std::pair<double, double> limits() const
     {
-        return { m_min, m_max };
+        return { m_position_min, m_position_max };
     }
 
     // ------------------------------------------------------------------------
@@ -330,15 +459,6 @@ public:
     void updateTransforms();
 
     // ------------------------------------------------------------------------
-    //! \brief Set the inertial properties of the joint.
-    //! \param p_inertial The inertial properties to set.
-    // ------------------------------------------------------------------------
-    inline void setInertial(const Inertial& p_inertial)
-    {
-        m_inertial = p_inertial;
-    }
-
-    // ------------------------------------------------------------------------
     //! \brief Get the joint's debug string.
     //! \param p_detailed Whether to include detailed information.
     //! \return The joint's debug string.
@@ -350,20 +470,35 @@ private:
 
     //! \brief Mechanical constraint type (revolute/prismatic/fixed)
     Joint::Type m_type;
-    //! \brief Current joint configuration value
-    double m_position;
-    //! \brief Minimum allowable joint value (safety limit)
-    double m_min;
-    //! \brief Maximum allowable joint value (safety limit)
-    double m_max;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
-    //! \brief Inertial properties of the joint
-    Inertial m_inertial;
     //! \brief Cached joint transformation matrix.
     Transform m_joint_transform;
     //! \brief Cached combined local transformation (static + joint).
     Transform m_combined_local_transform;
+    //! \brief Current joint configuration value (radians or meters)
+    double m_position;
+    //! \brief safety limit: minimum allowable joint value (safety limit)
+    //! (radians or meters)
+    double m_position_min;
+    //! \brief safety limit: maximum allowable joint value (safety limit)
+    //! (radians or meters)
+    double m_position_max;
+    //! \brief Current joint velocity value (radians/second or meters/second)
+    double m_velocity = 0.0;
+    //! \brief Maximum joint velocity value (radians/second or meters/second)
+    double m_velocity_max = 0.0;
+    //! \brief Current joint acceleration value (radians/second² or
+    //! meters/second²)
+    double m_acceleration = 0.0;
+    //! \brief Current force/torque value (newtons or newton-meters)
+    double m_effort = 0.0;
+    //! \brief Maximum joint force/torque value (newtons or newton-meters)
+    double m_effort_max = 0.0;
+    //! \brief Damping parameter (no unit)
+    double m_damping = 0.0;
+    //! \brief Friction parameter (no unit)
+    double m_friction = 0.0;
 };
 
 } // namespace robotik

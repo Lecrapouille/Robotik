@@ -114,6 +114,7 @@
 // ============================================================================
 
 #include "Robotik/Core/IKSolver.hpp"
+#include "Robotik/Core/PhysicsSimulator.hpp"
 
 namespace robotik
 {
