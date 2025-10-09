@@ -12,10 +12,20 @@
 
 #pragma once
 
+#include "Robotik/Core/Types.hpp"
+
 #include <memory>
+#include <vector>
 
 namespace robotik
 {
+
+// Forward declarations
+class Robot;
+namespace scene
+{
+class Node;
+}
 
 // ****************************************************************************
 //! \brief Base interface for Inverse Kinematics solvers.
