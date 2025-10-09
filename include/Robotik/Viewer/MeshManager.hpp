@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Robotik/Viewer/Mesh.hpp"
 #include "Robotik/Viewer/Path.hpp"
 #include "Robotik/Viewer/STLLoader.hpp"
 
@@ -28,27 +29,6 @@ namespace robotik::viewer
 class MeshManager
 {
 public:
-
-    // ------------------------------------------------------------------------
-    //! \brief Structure to hold OpenGL mesh data.
-    // ------------------------------------------------------------------------
-    struct OpenGLMesh
-    {
-        unsigned int vao = 0;   //!< Vertex Array Object
-        unsigned int vbo = 0;   //!< Vertex Buffer Object
-        unsigned int ebo = 0;   //!< Element Buffer Object
-        size_t index_count = 0; //!< Number of indices
-        bool is_loaded = false; //!< Load status
-
-        void clear()
-        {
-            vao = 0;
-            vbo = 0;
-            ebo = 0;
-            index_count = 0;
-            is_loaded = false;
-        }
-    };
 
     // ------------------------------------------------------------------------
     //! \brief Constructor.
@@ -89,7 +69,7 @@ public:
     //! \param p_mesh_path Path to the mesh file.
     //! \return Pointer to mesh data, nullptr if not found.
     // ------------------------------------------------------------------------
-    const OpenGLMesh* getMesh(const std::string& p_mesh_path) const;
+    const Mesh* getMesh(const std::string& p_mesh_path) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render a mesh.
@@ -146,18 +126,18 @@ private:
     //! \return true if successful.
     // ------------------------------------------------------------------------
     bool createOpenGLBuffers(const STLLoader::MeshData& p_mesh_data,
-                             OpenGLMesh& p_opengl_mesh) const;
+                             Mesh& p_opengl_mesh) const;
 
     // ------------------------------------------------------------------------
     //! \brief Free OpenGL resources for a mesh.
     //! \param p_opengl_mesh Mesh to free.
     // ------------------------------------------------------------------------
-    void freeMeshResources(OpenGLMesh& p_opengl_mesh) const;
+    void freeMeshResources(Mesh& p_opengl_mesh) const;
 
 private:
 
     //! \brief Mesh storage
-    std::unordered_map<std::string, OpenGLMesh> m_meshes;
+    std::unordered_map<std::string, Mesh> m_meshes;
     //! \brief Search paths
     Path m_path;
     //! \brief Last error

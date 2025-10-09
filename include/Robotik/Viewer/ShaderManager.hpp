@@ -133,9 +133,11 @@ private:
 
 private:
 
-    // Shader programs storage
+    //! \brief Shader programs storage
     std::unordered_map<std::string, unsigned int> m_programs;
+    //! \brief Currently active shader program ID.
     unsigned int m_current_program = 0;
+    //! \brief Last error message.
     std::string m_error;
 };
 

@@ -46,7 +46,7 @@ bool MeshManager::loadMesh(const std::string& p_mesh_path, bool p_force_reload)
     }
 
     // Create OpenGL mesh
-    OpenGLMesh opengl_mesh;
+    Mesh opengl_mesh;
     if (!createOpenGLBuffers(mesh_data, opengl_mesh))
     {
         return false;
@@ -68,7 +68,7 @@ bool MeshManager::loadMeshFromData(const std::string& p_mesh_path,
     }
 
     // Create OpenGL mesh
-    OpenGLMesh opengl_mesh;
+    Mesh opengl_mesh;
     if (!createOpenGLBuffers(p_mesh_data, opengl_mesh))
     {
         return false;
@@ -87,8 +87,7 @@ bool MeshManager::isMeshLoaded(const std::string& p_mesh_path) const
 }
 
 // ----------------------------------------------------------------------------
-const MeshManager::OpenGLMesh*
-MeshManager::getMesh(const std::string& p_mesh_path) const
+const Mesh* MeshManager::getMesh(const std::string& p_mesh_path) const
 {
     auto it = m_meshes.find(p_mesh_path);
     return (it != m_meshes.end() && it->second.is_loaded) ? &it->second
@@ -98,7 +97,7 @@ MeshManager::getMesh(const std::string& p_mesh_path) const
 // ----------------------------------------------------------------------------
 bool MeshManager::renderMesh(const std::string& p_mesh_path) const
 {
-    const OpenGLMesh* mesh = getMesh(p_mesh_path);
+    const Mesh* mesh = getMesh(p_mesh_path);
     if (!mesh)
     {
         // Cannot modify m_error in const method, so we'll just return
@@ -141,7 +140,7 @@ void MeshManager::clear()
 
 // ----------------------------------------------------------------------------
 bool MeshManager::createOpenGLBuffers(const STLLoader::MeshData& p_mesh_data,
-                                      OpenGLMesh& p_opengl_mesh) const
+                                      Mesh& p_opengl_mesh) const
 {
     // Generate OpenGL buffers
     glGenVertexArrays(1, &p_opengl_mesh.vao);
@@ -182,7 +181,7 @@ bool MeshManager::createOpenGLBuffers(const STLLoader::MeshData& p_mesh_data,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::freeMeshResources(OpenGLMesh& p_opengl_mesh) const
+void MeshManager::freeMeshResources(Mesh& p_opengl_mesh) const
 {
     if (p_opengl_mesh.vao != 0)
     {

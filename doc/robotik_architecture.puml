@@ -1,0 +1,127 @@
+@startuml Robotik Architecture
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #F8F8F8
+skinparam class {
+    BackgroundColor #E8F4FD
+    BorderColor #2E86AB
+    ArrowColor #2E86AB
+}
+
+package "robotik::viewer" {
+    abstract class Application {
+    }
+
+    class Camera {
+    }
+
+    class OpenGLWindow {
+    }
+
+    class ShaderManager {
+    }
+
+    class STLLoader {
+    }
+
+    class MeshManager {
+    }
+
+    class GeometryRenderer {
+    }
+
+    class RobotManager {
+    }
+
+    class Path {
+    }
+
+    struct ControlledRobot {
+    }
+}
+
+package "application" {
+    class RobotViewerApplication {
+    }
+
+    struct Configuration {
+    }
+}
+
+package "robotik::core" {
+    class Node {
+    }
+
+    class Joint {
+    }
+
+    class Link {
+    }
+
+    class Geometry {
+    }
+
+    abstract class Component {
+    }
+
+    abstract class Sensor {
+    }
+
+    abstract class Actuator {
+    }
+
+    class Robot {
+    }
+
+    class URDFParser {
+    }
+
+    abstract class IKSolver {
+    }
+
+    class Inertial {
+    }
+}
+
+' Core package inheritances
+Node <|-- Joint
+Node <|-- Link
+Node <|-- Geometry
+Node <|-- Component
+
+Component <|-- Sensor
+Component <|-- Actuator
+
+' Core package associations
+Robot --> Node : contains root
+URDFParser --> Robot : creates
+IKSolver --> Robot : uses
+Joint --> Inertial : contains
+Link --> Geometry : contains
+
+' Viewer package inheritances
+Application <|-- RobotViewerApplication
+
+' Viewer package associations
+RobotViewerApplication --> Configuration : uses
+RobotViewerApplication --> OpenGLWindow : contains
+RobotViewerApplication --> Camera : contains
+RobotViewerApplication --> ShaderManager : contains
+RobotViewerApplication --> MeshManager : contains
+RobotViewerApplication --> GeometryRenderer : contains
+RobotViewerApplication --> RobotManager : contains
+Application <- OpenGLWindow : implements
+
+GeometryRenderer --> ShaderManager : uses
+MeshManager --> STLLoader : uses
+MeshManager --> Path : contains
+
+ControlledRobot <-- RobotManager : contains
+Robot <|-- ControlledRobot
+
+' Cross-package dependencies
+GeometryRenderer --> Geometry : renders
+MeshManager --> Geometry : renders
+
+@enduml

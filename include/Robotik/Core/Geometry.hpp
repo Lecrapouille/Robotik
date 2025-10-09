@@ -76,6 +76,15 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Set the geometry's mesh path (if type is MESH).
+    //! \param p_mesh_path The geometry's mesh path.
+    // ------------------------------------------------------------------------
+    void meshPath(std::string_view p_mesh_path)
+    {
+        m_mesh_path = p_mesh_path;
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Get the geometry's debug string.
     //! \param p_detailed Whether to include detailed information
     //! \return The geometry's debug string

@@ -429,25 +429,24 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
         }
         case Geometry::Type::MESH:
         {
-            // Load and render mesh using MeshManager
-            if (std::string const& mesh_path = p_geometry.meshPath();
-                !mesh_path.empty())
-            {
-                // Load mesh if not already loaded
-                if (!m_mesh_manager.isMeshLoaded(mesh_path))
-                {
-                    if (!m_mesh_manager.loadMesh(mesh_path))
-                    {
-                        std::cout << "Failed to load mesh: " << mesh_path
-                                  << ": " << m_mesh_manager.error()
-                                  << std::endl;
-                        return;
-                    }
-                }
+            // Load and render mesh using MeshManager.
+            // Note: use robot name as prefix for the mesh path to avoid
+            // conflicts with other mesh names.
+            std::string const& mesh_path = p_geometry.meshPath();
 
-                // Render the mesh
-                m_mesh_manager.renderMesh(mesh_path);
+            // Load mesh if not already loaded
+            if (!m_mesh_manager.isMeshLoaded(mesh_path))
+            {
+                if (!m_mesh_manager.loadMesh(mesh_path))
+                {
+                    std::cout << "Failed to load mesh: " << mesh_path << ": "
+                              << m_mesh_manager.error() << std::endl;
+                    return;
+                }
             }
+
+            // Render the mesh
+            m_mesh_manager.renderMesh(mesh_path);
             break;
         }
         default:

@@ -33,6 +33,9 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
         return nullptr;
     }
 
+    // Rename mesh paths to avoid conflicts with other robots.
+    robot->setMeshPrefixPath(robot->name());
+
     // Store the new robot
     if (std::string robot_name = robot->name();
         !addRobot(robot_name, std::move(robot)))
