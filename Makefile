@@ -64,11 +64,11 @@ include $(M)/rules/Makefile
 ###################################################
 # Extra rules: compile demos after everything
 #
-DEMOS = $(sort $(dir $(wildcard ./doc/demos/*/.)))
+DEMOS = $(sort $(dir $(wildcard ./applications/*/.)))
 
-.PHONY: demos
-demos: | $(INTERNAL_LIBS)
-	@$(call print-from,"Compiling demos",$(PROJECT_NAME),$(DEMOS))
+.PHONY: applications
+applications: | $(INTERNAL_LIBS)
+	@$(call print-from,"Compiling applications",$(PROJECT_NAME),$(DEMOS))
 	@for i in $(DEMOS);        \
 	do                             \
 		$(MAKE) -C $$i all;        \
@@ -77,4 +77,4 @@ demos: | $(INTERNAL_LIBS)
 ###################################################
 # Clean targets
 #
-all:: demos
+all:: applications

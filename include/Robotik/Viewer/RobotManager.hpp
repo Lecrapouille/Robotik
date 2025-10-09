@@ -54,14 +54,17 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Structure to hold controlled robot data.
     // ------------------------------------------------------------------------
-    struct ControlledRobot
+    struct ControlledRobot // FIXME faire heriter de Robot, a deplacer dans
+                           // robotik::core ?
     {
         //! \brief Robot instance
         std::unique_ptr<Robot> robot;
         //! \brief Control mode
         ControlMode control_mode = ControlMode::ANIMATION;
         //! \brief Controlled joint for Inverse Kinematics
-        scene::Node const* control_joint = nullptr;
+        scene::Node const* control_joint =
+            nullptr; // FIXME mettre ici end_effectors et mettre en cache
+                     // joints/links ici ?
         //! \brief Tracked node for camera
         scene::Node const* camera_target = nullptr;
         //! \brief Visibility flag

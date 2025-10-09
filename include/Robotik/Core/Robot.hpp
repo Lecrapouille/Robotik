@@ -124,6 +124,16 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Set a prefix path for each mesh geometry of the robot.
+    //!
+    //! For example, if the URDF has:
+    //! <geometry><mesh filename="Body.STL"/></geometry>
+    //! then the mesh path will be set to p_prefix_path + "/Body.STL".
+    //! \param p_prefix The prefix to add to the mesh path.
+    // ------------------------------------------------------------------------
+    void setMeshPrefixPath(std::string const& p_prefix) const;
+
+    // ------------------------------------------------------------------------
     //! \brief Find and return a link by its name.
     //! \param p_name Name of the link.
     //! \return Pointer to the link, or nullptr if not found.

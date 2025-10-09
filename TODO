@@ -1,27 +1,29 @@
-- Faire fonctionner le viewer
-- Ajouter plusieurs URDF robots https://automaticaddison.com/the-ultimate-guide-to-jacobian-matrices-for-robotics/
-- Vérifier les jacobiennes
-- listes de joints: les fixed aussi ?
-- gerer multiple organes terminaux
-- KO viewer (?) pattern visiter visit(node, render) ==> Node::paint(Render& r) { r.paintRectangle(); }
-- Robot: il faudrait mettre tout a const sur les joints et links mais KO pour end effector.
+
+- Ajouter plus URDF robots https://automaticaddison.com/the-ultimate-guide-to-jacobian-matrices-for-robotics/
+
+
+- gerer multiple organes terminaux via URDF. A la main:
+class EndEffector: public scene::Node { ... }
+end_effector = joint2.createChild<EndEffector>("end_effector");
+mais comment faire ca avec URDF ?
+
+- Ajouter des securités concernant createChild pour forcer qu'un joint soit entre 2 links
+
+- std::unique_ptr<Robot> robot = parser.load(urdf_file); Ok ca marche mais par exemple si je veux un autre robot ?
+std::unique_ptr<ControlledRobot> robot = parser.load<ControlledRobot>(urdf_file);
+
+- API Robot: il faudrait mettre tout a const sur les joints et links mais KO pour end effector.
 - Ou bien quand on fait un getNode non const il faudrait mettre un markDirty().
 
-- KO Jacobian: je pense que les axis des links ne sont pas pris en compte.
-
-Online viewer: http://urdf.robotsfan.com/
-
-Revoir la hierarchie des joints: Fixed n'a pas a avoir de setValue()
+- Revoir la hierarchie des joints: Fixed n'a pas a avoir de setValue()
 Node <--- Fixed <-- prismatic
 Repenser les S.I. mettre Radian pour revolute et Meter pour prismatic
 
-CONFUSION ENTRE localtransform entre le joint_transform et l'origin.
+- Scene graphe m_children => reprendre behavior tree: composite, decorator, leaf:
+  decorator entre local et joint
+  leaf: capteur ?
 
-Mettre le scene graphe comme un behavior tree: composite, decorator, leaf:
-- decorator entre local et joint
-- leaf: capteur ?
-
-Repenser le parcours du scene graphe via un pattern visiteur: par exemple pour le debug:
+- Repenser le parcours du scene graphe via un pattern visiteur: par exemple pour le debug:
  if (joint->type() == Joint::Type::CONTINUOUS) { std::cout << joint_indent   << "├── T_joint:      rotate(axis = " << joint->axis().x()
 
 

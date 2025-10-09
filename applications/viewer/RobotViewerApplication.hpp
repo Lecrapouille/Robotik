@@ -167,6 +167,8 @@ private:
 
     // ----------------------------------------------------------------------------
     //! \brief Render a geometry.
+    //! \param p_geometry The geometry.
+    //! \param p_transform The transform.
     // ----------------------------------------------------------------------------
     void renderGeometry(Geometry const& p_geometry,
                         Eigen::Matrix4f const& p_transform);

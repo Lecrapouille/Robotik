@@ -118,7 +118,7 @@ bool ShaderManager::hasProgram(const std::string& p_name) const
 // ----------------------------------------------------------------------------
 void ShaderManager::clear()
 {
-    for (auto& [name, program] : m_programs)
+    for (auto const& [name, program] : m_programs)
     {
         glDeleteProgram(program);
     }

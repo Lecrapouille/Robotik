@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include "Robotik/Viewer/Mesh.hpp"
+
 #include <Eigen/Dense>
 #include <cstddef>
 #include <string>
@@ -187,26 +189,14 @@ private:
 
 private:
 
-    // Shader manager reference
+    //! \brief Shader manager reference
     ShaderManager& m_shader_manager;
 
     // OpenGL buffer objects
-    unsigned int m_box_vao = 0;
-    unsigned int m_box_vbo = 0;
-    unsigned int m_box_ebo = 0;
-
-    unsigned int m_cylinder_vao = 0;
-    unsigned int m_cylinder_vbo = 0;
-    unsigned int m_cylinder_ebo = 0;
-    size_t m_cylinder_index_count = 0;
-
-    unsigned int m_sphere_vao = 0;
-    unsigned int m_sphere_vbo = 0;
-    unsigned int m_sphere_ebo = 0;
-    size_t m_sphere_index_count = 0;
-
-    unsigned int m_grid_vao = 0;
-    unsigned int m_grid_vbo = 0;
+    Mesh m_box;
+    Mesh m_cylinder;
+    Mesh m_sphere;
+    Mesh m_grid;
     size_t m_grid_vertex_count = 0;
 
     // Shader uniform locations

@@ -25,31 +25,31 @@ GeometryRenderer::GeometryRenderer(ShaderManager& p_shader_manager)
 GeometryRenderer::~GeometryRenderer()
 {
     // Clean up OpenGL resources
-    if (m_box_vao != 0)
-        glDeleteVertexArrays(1, &m_box_vao);
-    if (m_box_vbo != 0)
-        glDeleteBuffers(1, &m_box_vbo);
-    if (m_box_ebo != 0)
-        glDeleteBuffers(1, &m_box_ebo);
+    if (m_box.vao != 0)
+        glDeleteVertexArrays(1, &m_box.vao);
+    if (m_box.vbo != 0)
+        glDeleteBuffers(1, &m_box.vbo);
+    if (m_box.ebo != 0)
+        glDeleteBuffers(1, &m_box.ebo);
 
-    if (m_cylinder_vao != 0)
-        glDeleteVertexArrays(1, &m_cylinder_vao);
-    if (m_cylinder_vbo != 0)
-        glDeleteBuffers(1, &m_cylinder_vbo);
-    if (m_cylinder_ebo != 0)
-        glDeleteBuffers(1, &m_cylinder_ebo);
+    if (m_cylinder.vao != 0)
+        glDeleteVertexArrays(1, &m_cylinder.vao);
+    if (m_cylinder.vbo != 0)
+        glDeleteBuffers(1, &m_cylinder.vbo);
+    if (m_cylinder.ebo != 0)
+        glDeleteBuffers(1, &m_cylinder.ebo);
 
-    if (m_sphere_vao != 0)
-        glDeleteVertexArrays(1, &m_sphere_vao);
-    if (m_sphere_vbo != 0)
-        glDeleteBuffers(1, &m_sphere_vbo);
-    if (m_sphere_ebo != 0)
-        glDeleteBuffers(1, &m_sphere_ebo);
+    if (m_sphere.vao != 0)
+        glDeleteVertexArrays(1, &m_sphere.vao);
+    if (m_sphere.vbo != 0)
+        glDeleteBuffers(1, &m_sphere.vbo);
+    if (m_sphere.ebo != 0)
+        glDeleteBuffers(1, &m_sphere.ebo);
 
-    if (m_grid_vao != 0)
-        glDeleteVertexArrays(1, &m_grid_vao);
-    if (m_grid_vbo != 0)
-        glDeleteBuffers(1, &m_grid_vbo);
+    if (m_grid.vao != 0)
+        glDeleteVertexArrays(1, &m_grid.vao);
+    if (m_grid.vbo != 0)
+        glDeleteBuffers(1, &m_grid.vbo);
 }
 
 // ----------------------------------------------------------------------------
@@ -93,7 +93,7 @@ void GeometryRenderer::renderBox(const Eigen::Matrix4f& p_transform,
     m_shader_manager.setMatrix4f(m_model_uniform, model.data());
     m_shader_manager.setVector3f(m_color_uniform, p_color.data());
 
-    glBindVertexArray(m_box_vao);
+    glBindVertexArray(m_box.vao);
     glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, nullptr);
 }
 
@@ -114,9 +114,9 @@ void GeometryRenderer::renderCylinder(const Eigen::Matrix4f& p_transform,
     m_shader_manager.setMatrix4f(m_model_uniform, model.data());
     m_shader_manager.setVector3f(m_color_uniform, p_color.data());
 
-    glBindVertexArray(m_cylinder_vao);
+    glBindVertexArray(m_cylinder.vao);
     glDrawElements(GL_TRIANGLES,
-                   static_cast<GLsizei>(m_cylinder_index_count),
+                   static_cast<GLsizei>(m_cylinder.index_count),
                    GL_UNSIGNED_INT,
                    nullptr);
 }
@@ -137,23 +137,23 @@ void GeometryRenderer::renderSphere(const Eigen::Matrix4f& p_transform,
     m_shader_manager.setMatrix4f(m_model_uniform, model.data());
     m_shader_manager.setVector3f(m_color_uniform, p_color.data());
 
-    glBindVertexArray(m_sphere_vao);
+    glBindVertexArray(m_sphere.vao);
     glDrawElements(GL_TRIANGLES,
-                   static_cast<GLsizei>(m_sphere_index_count),
+                   static_cast<GLsizei>(m_sphere.index_count),
                    GL_UNSIGNED_INT,
                    nullptr);
 }
 
 // ----------------------------------------------------------------------------
 void GeometryRenderer::renderGrid(const Eigen::Vector3f& p_color,
-                                  int p_size,
-                                  float p_spacing) const
+                                  int /*p_size*/,
+                                  float /*p_spacing*/) const
 {
     Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
     m_shader_manager.setMatrix4f(m_model_uniform, model.data());
     m_shader_manager.setVector3f(m_color_uniform, p_color.data());
 
-    glBindVertexArray(m_grid_vao);
+    glBindVertexArray(m_grid.vao);
     glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(m_grid_vertex_count));
 }
 
@@ -185,9 +185,9 @@ void GeometryRenderer::renderAxes(const Eigen::Matrix4f& p_transform,
         Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
         m_shader_manager.setVector3f(m_color_uniform, red_color.data());
 
-        glBindVertexArray(m_cylinder_vao);
+        glBindVertexArray(m_cylinder.vao);
         glDrawElements(GL_TRIANGLES,
-                       static_cast<GLsizei>(m_cylinder_index_count),
+                       static_cast<GLsizei>(m_cylinder.index_count),
                        GL_UNSIGNED_INT,
                        nullptr);
     }
@@ -213,9 +213,9 @@ void GeometryRenderer::renderAxes(const Eigen::Matrix4f& p_transform,
         Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
         m_shader_manager.setVector3f(m_color_uniform, green_color.data());
 
-        glBindVertexArray(m_cylinder_vao);
+        glBindVertexArray(m_cylinder.vao);
         glDrawElements(GL_TRIANGLES,
-                       static_cast<GLsizei>(m_cylinder_index_count),
+                       static_cast<GLsizei>(m_cylinder.index_count),
                        GL_UNSIGNED_INT,
                        nullptr);
     }
@@ -236,9 +236,9 @@ void GeometryRenderer::renderAxes(const Eigen::Matrix4f& p_transform,
         Eigen::Vector3f blue_color(0.0f, 0.0f, 1.0f);
         m_shader_manager.setVector3f(m_color_uniform, blue_color.data());
 
-        glBindVertexArray(m_cylinder_vao);
+        glBindVertexArray(m_cylinder.vao);
         glDrawElements(GL_TRIANGLES,
-                       static_cast<GLsizei>(m_cylinder_index_count),
+                       static_cast<GLsizei>(m_cylinder.index_count),
                        GL_UNSIGNED_INT,
                        nullptr);
     }
@@ -251,17 +251,17 @@ bool GeometryRenderer::initializeBox()
     std::vector<unsigned int> box_indices;
     generateBox(box_vertices, box_indices);
 
-    glGenVertexArrays(1, &m_box_vao);
-    glGenBuffers(1, &m_box_vbo);
-    glGenBuffers(1, &m_box_ebo);
+    glGenVertexArrays(1, &m_box.vao);
+    glGenBuffers(1, &m_box.vbo);
+    glGenBuffers(1, &m_box.ebo);
 
-    glBindVertexArray(m_box_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_box_vbo);
+    glBindVertexArray(m_box.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_box.vbo);
     glBufferData(GL_ARRAY_BUFFER,
                  box_vertices.size() * sizeof(float),
                  box_vertices.data(),
                  GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_box_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_box.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  box_indices.size() * sizeof(unsigned int),
                  box_indices.data(),
@@ -288,17 +288,17 @@ bool GeometryRenderer::initializeCylinder()
     std::vector<unsigned int> cylinder_indices;
     generateCylinder(cylinder_vertices, cylinder_indices, 1.0f, 2.0f, 16);
 
-    glGenVertexArrays(1, &m_cylinder_vao);
-    glGenBuffers(1, &m_cylinder_vbo);
-    glGenBuffers(1, &m_cylinder_ebo);
+    glGenVertexArrays(1, &m_cylinder.vao);
+    glGenBuffers(1, &m_cylinder.vbo);
+    glGenBuffers(1, &m_cylinder.ebo);
 
-    glBindVertexArray(m_cylinder_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_cylinder_vbo);
+    glBindVertexArray(m_cylinder.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_cylinder.vbo);
     glBufferData(GL_ARRAY_BUFFER,
                  cylinder_vertices.size() * sizeof(float),
                  cylinder_vertices.data(),
                  GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_cylinder.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  cylinder_indices.size() * sizeof(unsigned int),
                  cylinder_indices.data(),
@@ -314,7 +314,7 @@ bool GeometryRenderer::initializeCylinder()
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    m_cylinder_index_count = cylinder_indices.size();
+    m_cylinder.index_count = cylinder_indices.size();
     return true;
 }
 
@@ -325,17 +325,17 @@ bool GeometryRenderer::initializeSphere()
     std::vector<unsigned int> sphere_indices;
     generateSphere(sphere_vertices, sphere_indices, 1.0f, 16, 16);
 
-    glGenVertexArrays(1, &m_sphere_vao);
-    glGenBuffers(1, &m_sphere_vbo);
-    glGenBuffers(1, &m_sphere_ebo);
+    glGenVertexArrays(1, &m_sphere.vao);
+    glGenBuffers(1, &m_sphere.vbo);
+    glGenBuffers(1, &m_sphere.ebo);
 
-    glBindVertexArray(m_sphere_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_sphere_vbo);
+    glBindVertexArray(m_sphere.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_sphere.vbo);
     glBufferData(GL_ARRAY_BUFFER,
                  sphere_vertices.size() * sizeof(float),
                  sphere_vertices.data(),
                  GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere_ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_sphere.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  sphere_indices.size() * sizeof(unsigned int),
                  sphere_indices.data(),
@@ -351,7 +351,7 @@ bool GeometryRenderer::initializeSphere()
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
-    m_sphere_index_count = sphere_indices.size();
+    m_sphere.index_count = sphere_indices.size();
     return true;
 }
 
@@ -361,11 +361,11 @@ bool GeometryRenderer::initializeGrid()
     std::vector<float> grid_vertices;
     generateGrid(grid_vertices, 20, 1.0f);
 
-    glGenVertexArrays(1, &m_grid_vao);
-    glGenBuffers(1, &m_grid_vbo);
+    glGenVertexArrays(1, &m_grid.vao);
+    glGenBuffers(1, &m_grid.vbo);
 
-    glBindVertexArray(m_grid_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m_grid_vbo);
+    glBindVertexArray(m_grid.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m_grid.vbo);
     glBufferData(GL_ARRAY_BUFFER,
                  grid_vertices.size() * sizeof(float),
                  grid_vertices.data(),
