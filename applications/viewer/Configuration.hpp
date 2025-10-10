@@ -40,6 +40,8 @@ struct Configuration
     bool show_frames = false;
     //! Frame scale
     float frame_scale = 0.1f;
+    //! Physics gravity
+    Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };
 
 } // namespace robotik::viewer

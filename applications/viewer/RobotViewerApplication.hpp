@@ -11,6 +11,8 @@
 
 #include "Configuration.hpp"
 
+#include "Robotik/Core/PhysicsSimulator.hpp"
+
 #include "Robotik/Viewer/Application.hpp"
 #include "Robotik/Viewer/Camera.hpp"
 #include "Robotik/Viewer/GeometryRenderer.hpp"
@@ -197,6 +199,7 @@ private:
     MeshManager m_mesh_manager;
     GeometryRenderer m_geometry_renderer;
     RobotManager m_robot_manager;
+    PhysicsSimulator m_physics_simulator;
 
     // Cached OpenGL shader uniforms
     int m_model_uniform = -1;
