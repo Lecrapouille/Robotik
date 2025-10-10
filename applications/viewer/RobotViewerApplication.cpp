@@ -34,6 +34,8 @@ RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
       m_window(p_config.window_width, p_config.window_height),
       m_camera(p_config.window_width, p_config.window_height),
       m_geometry_renderer(m_shader_manager),
+      m_physics_simulator(1.0 / double(p_config.target_physics_hz),
+                          p_config.physics_gravity),
       m_title(p_config.window_title)
 {
     m_window.setTitle(m_title + " - FPS: " + std::to_string(m_fps));
@@ -478,7 +480,7 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
 {
-    // No physics simulation needed for now
+    m_physics_simulator.step(*m_robot_manager.currentRobot()->robot);
 }
 
 // ----------------------------------------------------------------------------
