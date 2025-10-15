@@ -72,7 +72,7 @@ public:
     //! nullptr).
     //! \return The error message in case of failure, else an empty string.
     // ------------------------------------------------------------------------
-    inline std::string getError() const
+    inline std::string error() const
     {
         return m_error;
     }
@@ -111,11 +111,12 @@ private:
     // ------------------------------------------------------------------------
     //! \brief Create a Link object from URDF Link data.
     //! \param p_urdf_link The URDF Link data containing geometry information.
+    //! \param p_error The error message in case of failure.
     //! \note p_urdf_link has its collision and geometry moved.
     //! \return A unique pointer to the created Link object.
     // ------------------------------------------------------------------------
-    std::unique_ptr<Link>
-    createLinkFromURDFData(URDFParserLink& p_urdf_link) const;
+    std::unique_ptr<Link> createLinkFromURDFData(URDFParserLink& p_urdf_link,
+                                                 std::string& p_error) const;
 
     // ------------------------------------------------------------------------
     //! \brief Parse an optional geometry (visual or collision) of a link.
@@ -174,6 +175,40 @@ private:
     // ------------------------------------------------------------------------
     void parseLimits(tinyxml2::XMLElement* p_joint_element,
                      Joint& p_joint) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Compute OBB from mesh file using PCA.
+    //! \param p_mesh_path Path to the mesh file.
+    //! \param p_center Output: center of the OBB.
+    //! \param p_orientation Output: orientation matrix of the OBB.
+    //! \param p_params Output: half-extents of the OBB.
+    //! \return True if successful, false otherwise.
+    // ------------------------------------------------------------------------
+    bool computeOBBFromMesh(const std::string& p_mesh_path,
+                            Eigen::Vector3d& p_center,
+                            Eigen::Matrix3d& p_orientation,
+                            std::vector<double>& p_params) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Parse STL file to extract vertices for OBB computation.
+    //! \param p_mesh_path Path to the STL file.
+    //! \param p_positions Output: vertex positions.
+    //! \return True if successful, false otherwise.
+    // ------------------------------------------------------------------------
+    bool parseSTLVertices(const std::string& p_mesh_path,
+                          std::vector<Eigen::Vector3d>& p_positions) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Compute OBB from vertices using PCA.
+    //! \param p_positions Input: vertex positions.
+    //! \param p_center Output: center of the OBB.
+    //! \param p_orientation Output: orientation matrix of the OBB.
+    //! \param p_params Output: half-extents of the OBB.
+    // ------------------------------------------------------------------------
+    void computeOBBFromVertices(const std::vector<Eigen::Vector3d>& p_positions,
+                                Eigen::Vector3d& p_center,
+                                Eigen::Matrix3d& p_orientation,
+                                std::vector<double>& p_params) const;
 
 private:
 

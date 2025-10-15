@@ -122,7 +122,7 @@ protected:
 protected:
 
     //! \brief Path separator when several paths are given as a single string.
-    const char m_delimiter = ':';
+    char m_delimiter = ':';
     //! \brief the list of paths.
     std::list<std::string> m_search_paths;
 };

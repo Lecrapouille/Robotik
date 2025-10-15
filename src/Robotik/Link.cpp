@@ -19,32 +19,6 @@ Geometry& Link::geometry()
 }
 
 // ----------------------------------------------------------------------------
-Geometry const& Link::collision() const
-{
-    // Return the second child if it exists and is a geometry.
-    if (auto const& children = scene::Node::children(); children.size() > 1u)
-    {
-        return *dynamic_cast<Geometry const*>(children[1].get());
-    }
-
-    // Fallback: return the visual geometry (1st child).
-    return geometry();
-}
-
-// ----------------------------------------------------------------------------
-Geometry& Link::collision()
-{
-    // Return the second child if it exists and is a geometry.
-    if (auto& children = scene::Node::children(); children.size() > 1u)
-    {
-        return *dynamic_cast<Geometry*>(children[1].get());
-    }
-
-    // Fallback: return the visual geometry (1st child).
-    return geometry();
-}
-
-// ----------------------------------------------------------------------------
 void Link::inertia(double p_mass,
                    const Eigen::Vector3d& p_center_of_mass,
                    const Eigen::Matrix3d& p_inertia_matrix)

@@ -32,7 +32,7 @@
  *
  *     // 3. Check for errors
  *     if (!robot) {
- *         std::cerr << "Error: " << parser.getError() << std::endl;
+ *         std::cerr << "Error: " << parser.error() << std::endl;
  *         return 1;
  *     }
  *
@@ -144,7 +144,7 @@ inline std::unique_ptr<Robot> loadRobot(const std::string& p_filename,
 
     if (!robot && p_error_message)
     {
-        *p_error_message = parser.getError();
+        *p_error_message = parser.error();
     }
 
     return robot;

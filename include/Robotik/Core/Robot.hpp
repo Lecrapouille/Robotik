@@ -110,7 +110,7 @@ public:
     //! \param p_root Unique pointer to the root node.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    void root(scene::Node::Ptr p_root);
+    void root(scene::Node::Ptr p_root); // FIXME mettre un Link
 
     // ------------------------------------------------------------------------
     //! \brief Get the root node of the robot.
@@ -118,7 +118,7 @@ public:
     //! is not set. Call hasRoot() to check if the root node is set.
     //! \return Reference to the root node.
     // ------------------------------------------------------------------------
-    inline scene::Node const& root() const
+    inline scene::Node const& root() const // FIXME retourne un Link
     {
         return *m_root_node.get();
     }

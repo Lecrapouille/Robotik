@@ -13,14 +13,13 @@
 
 #include "main.hpp"
 
+#include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
 #include "Robotik/Core/URDFParser.hpp"
 
 #include <cmath>
 
 using namespace robotik;
-
-#define TEST_DATA_DIR "/home/qq/MyGitHub/Robotik/data/"
 
 // *********************************************************************************
 //! \brief Test fixture for URDFParser class.
@@ -36,12 +35,12 @@ protected:
 
     std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
     {
-        std::string file_path = std::string(TEST_DATA_DIR) + p_urdf_file_path;
-        auto robot = parser->load(file_path);
+        Path path(project::info::paths::data);
+        auto robot = parser->load(path.expand(p_urdf_file_path));
         if (robot == nullptr)
         {
-            std::cerr << "Failed to load " << file_path << ": "
-                      << parser->getError();
+            std::cerr << "Failed to load URDF file " << p_urdf_file_path << ": "
+                      << parser->error();
         }
         return robot;
     }
@@ -71,9 +70,10 @@ TEST_F(URDFParserTest, NonExistentFile)
 {
     std::string fake_path = "/fake/path/robot.urdf";
 
-    auto robot = parser->load(fake_path);
+    Path path(project::info::paths::data);
+    auto robot = parser->load(path.expand(fake_path));
     EXPECT_EQ(robot, nullptr);
-    EXPECT_EQ(parser->getError(),
+    EXPECT_EQ(parser->error(),
               "Failed opening '" + fake_path +
                   "'. Reason was 'No such file or directory'");
 }

@@ -12,12 +12,11 @@
 #include "main.hpp"
 
 #include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
 #include "Robotik/Core/URDFParser.hpp"
 
 #include <cmath>
-
-#define TEST_DATA_DIR "/home/qq/MyGitHub/Robotik/data/"
 
 using namespace robotik;
 
@@ -35,12 +34,12 @@ protected:
 
     std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
     {
-        std::string file_path = std::string(TEST_DATA_DIR) + p_urdf_file_path;
-        auto robot = parser->load(file_path);
+        Path path(project::info::paths::data);
+        auto robot = parser->load(path.expand(p_urdf_file_path));
         if (robot == nullptr)
         {
-            std::cerr << "Failed to load " << file_path << ": "
-                      << parser->getError();
+            std::cerr << "Failed to load URDF file " << p_urdf_file_path << ": "
+                      << parser->error();
         }
         return robot;
     }

@@ -30,7 +30,7 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     //! \param p_name The name of the link.
-    //! \param p_visual The visual geometry of the link.
+    //! \param p_visual The visual geometry of the link. Shall not be null.
     // ------------------------------------------------------------------------
     explicit Link(std::string const& p_name, Geometry::Ptr p_visual)
         : scene::Node(p_name)
@@ -39,18 +39,18 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor.
-    //! \param p_name The name of the link.
-    //! \param p_visual The visual geometry of the link.
-    //! \param p_collision The collision geometry of the link.
+    //! \brief Set the collision data for the link.
+    //! \param p_collision_center Center of collision volume in local frame.
+    //! \param p_collision_orientation Orientation of collision volume in local
+    //! frame.
+    //! \param p_collision_params Collision parameters (dimensions).
     // ------------------------------------------------------------------------
-    explicit Link(std::string const& p_name,
-                  Geometry::Ptr p_visual,
-                  Geometry::Ptr p_collision)
-        : scene::Node(p_name)
+    void setCollisionData(const Eigen::Vector3d& p_collision_center,
+                          const Eigen::Matrix3d& p_collision_orientation,
+                          const std::vector<double>& p_collision_params)
     {
-        scene::Node::addChild(std::move(p_visual));
-        scene::Node::addChild(std::move(p_collision));
+        geometry().setCollisionData(
+            p_collision_center, p_collision_orientation, p_collision_params);
     }
 
     // ------------------------------------------------------------------------
@@ -105,14 +105,6 @@ public:
     // ------------------------------------------------------------------------
     Geometry const& geometry() const;
     Geometry& geometry();
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the collision geometry (second geometry child found or same
-    //! as visual if only one).
-    //! \return The collision geometry or nullptr if not found.
-    // ------------------------------------------------------------------------
-    Geometry const& collision() const;
-    Geometry& collision();
 
     // ------------------------------------------------------------------------
     //! \brief Get the link's debug string.

@@ -187,6 +187,11 @@ private:
     // ----------------------------------------------------------------------------
     void handleInverseKinematics();
 
+public:
+
+    //! \brief Search paths to load URDF files.
+    Path path;
+
 private:
 
     // Configuration
