@@ -24,11 +24,11 @@
             "name": "Robotik-viewer with gdb",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Robotik-viewer",
+            "program": "${workspaceFolder}/build/Robotik-Viewer",
             "args": [
                 "${workspaceFolder}/data/T12.urdf"
             ],
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": true,

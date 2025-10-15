@@ -1,4 +1,8 @@
 {
+    // Coverage Gutters
+    "coverage-gutters.coverageReportFileName": "doc/code-coverage/lcov.info",
+    "coverage-gutters.showLineCoverage": true,
+    "coverage-gutters.showRulerCoverage": true,
     // clang-format
     "clang-format.executable": "clang-format",
     "editor.formatOnSave": true,
@@ -6,15 +10,10 @@
     "C_Cpp.errorSquiggles": "disabled",
     // Remove trailing whitespace
     "files.trimTrailingWhitespace": true,
-    // SonarLint configuration
-    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
-    "sonarlint.rules": {
-        "cpp:S107": "off",
-        "cpp:S1066": "off",
-        "cpp:S1065": "off"
-    },
+    // SonarLint
     "sonarlint.disableTelemetry": true,
     "sonarlint.output.showVerboseLogs": true,
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
     // Makefile needed for SonarLint
     "makefile.compileCommandsPath": "${workspaceFolder}/compile_commands.json",
     "makefile.configurations": [
@@ -25,19 +24,6 @@
             ],
             "makeArgs": []
         }
-    ],
-    // Enable Python linting and Pylance type checking
-    "cpplint.lineLength": 82,
-    "cpplint.filters": [
-        "-whitespace/parens",
-        "-whitespace/braces",
-        "-whitespace/forcolon",
-        "-whitespace/comments",
-        "-whitespace/newline",
-        "-whitespace/indent",
-        "-whitespace/blank_line",
-        "-readability/inheritance",
-        "-whitespace/ending_newline"
     ],
     "files.associations": {
         "random": "cpp",

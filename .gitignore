@@ -2,6 +2,7 @@ build/
 .cache/
 doc/code-coverage/*
 external/*/
+./compile_commands.json
 
 # Python
 __pycache__
