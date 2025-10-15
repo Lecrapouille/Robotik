@@ -85,11 +85,46 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Set collision data (called by Link constructor).
+    //! \param p_center Center of the collision volume in local frame.
+    //! \param p_orientation Orientation of the collision volume in local frame.
+    //! \param p_params Collision parameters (dimensions).
+    // ------------------------------------------------------------------------
+    void setCollisionData(const Eigen::Vector3d& p_center,
+                          const Eigen::Matrix3d& p_orientation,
+                          const std::vector<double>& p_params)
+    {
+        m_collision_center = p_center;
+        m_collision_orientation = p_orientation;
+        m_collision_params = p_params;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Check collision with another geometry.
+    //! \param p_other The other geometry to check collision with.
+    //! \return True if collision detected, false otherwise.
+    // ------------------------------------------------------------------------
+    bool collide(const Geometry& p_other) const;
+
+    // ------------------------------------------------------------------------
     //! \brief Get the geometry's debug string.
     //! \param p_detailed Whether to include detailed information
     //! \return The geometry's debug string
     // ------------------------------------------------------------------------
     // std::string debug(bool p_detailed) const override;
+
+private:
+
+    // Helper methods for collision detection
+    bool collideSpheres(const Geometry& p_other) const;
+    bool collideCylinders(const Geometry& p_other) const;
+    bool collideOBBs(const Geometry& p_other) const;
+    bool collideSphereCylinder(const Geometry& p_sphere,
+                               const Geometry& p_cylinder) const;
+    bool collideSphereOBB(const Geometry& p_sphere,
+                          const Geometry& p_obb) const;
+    bool collideCylinderOBB(const Geometry& p_cylinder,
+                            const Geometry& p_obb) const;
 
 public:
 
@@ -105,6 +140,14 @@ protected:
     std::vector<double> m_parameters;
     //! \brief Path to the mesh file (if type is MESH).
     std::string m_mesh_path;
+    // Collision data (OBB representation)
+    //! \brief Center of the collision volume in local frame.
+    Eigen::Vector3d m_collision_center;
+    //! \brief Orientation of the collision volume in local frame (for OBB).
+    Eigen::Matrix3d m_collision_orientation;
+    //! \brief Collision parameters (half-extents for box/OBB, radius+length for
+    //! cylinder, radius for sphere).
+    std::vector<double> m_collision_params;
 };
 
 // ****************************************************************************

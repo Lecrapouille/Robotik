@@ -3,11 +3,30 @@
  * @brief Unit tests for PhysicsSimulator class
  */
 
-#include "Robotik/Core/PhysicsSimulator.hpp"
-#include "Robotik/Core/URDFParser.hpp"
 #include "main.hpp"
 
+#include "Robotik/Core/Path.hpp"
+#include "Robotik/Core/PhysicsSimulator.hpp"
+#include "Robotik/Core/URDFParser.hpp"
+
 using namespace robotik;
+
+namespace helper
+{
+
+std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
+{
+    Path path(project::info::paths::data);
+    URDFParser parser;
+    auto robot = parser.load(path.expand(p_urdf_file_path));
+    if (robot == nullptr)
+    {
+        std::cerr << "Failed to load URDF file " << p_urdf_file_path << ": "
+                  << parser.error();
+    }
+    return robot;
+}
+} // namespace helper
 
 // ============================================================================
 //! \brief Test basic PhysicsSimulator creation
@@ -43,10 +62,10 @@ TEST(PhysicsSimulator, SimpleRevoluteJoint)
 {
     // Load a simple robot with one revolute joint
     URDFParser parser;
-    auto robot = parser.load("data/simple_revolute_robot.urdf");
+    Path path(project::info::paths::data);
+    auto robot = parser.load(path.expand("simple_revolute_robot.urdf"));
 
-    ASSERT_TRUE(robot != nullptr)
-        << "Failed to load robot: " << parser.getError();
+    ASSERT_TRUE(robot != nullptr) << "Failed to load robot: " << parser.error();
     ASSERT_GT(robot->jointNames().size(), 0u) << "Robot has no joints";
 
     // Create simulator
@@ -86,8 +105,7 @@ TEST(PhysicsSimulator, SimpleRevoluteJoint)
 TEST(PhysicsSimulator, AppliedEffort)
 {
     // Load a simple robot
-    URDFParser parser;
-    auto robot = parser.load("data/simple_revolute_robot_with_inertia.urdf");
+    auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
     ASSERT_GT(robot->jointNames().size(), 0u);
@@ -124,8 +142,7 @@ TEST(PhysicsSimulator, AppliedEffort)
 TEST(PhysicsSimulator, DampingEffect)
 {
     // Load a simple robot
-    URDFParser parser;
-    auto robot = parser.load("data/simple_revolute_robot_with_inertia.urdf");
+    auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
     ASSERT_GT(robot->jointNames().size(), 0u);
@@ -174,8 +191,7 @@ TEST(PhysicsSimulator, DampingEffect)
 TEST(PhysicsSimulator, EffortLimits)
 {
     // Load a simple robot
-    URDFParser parser;
-    auto robot = parser.load("data/simple_revolute_robot_with_inertia.urdf");
+    auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
     ASSERT_GT(robot->jointNames().size(), 0u);

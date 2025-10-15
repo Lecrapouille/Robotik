@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Viewer/Path.hpp"
+#include "Robotik/Core/Path.hpp"
 
 using namespace robotik;
 
@@ -20,8 +20,7 @@ protected:
 
     void SetUp() override
     {
-        std::cout << "*** PathTests ***************************************"
-                  << std::endl;
+        // No setup needed for Path tests
     }
 
     void TearDown() override
@@ -55,7 +54,6 @@ TEST_F(PathTests, SplitConstructor)
     path.reset("a/b");
     EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:a/b:");
-    std::cout << path.toString() << std::endl;
 }
 
 //--------------------------------------------------------------------------
@@ -67,7 +65,7 @@ TEST_F(PathTests, SplitDir)
     path.remove("incorrect/path");
     EXPECT_EQ(2, path.paths().size());
     path.remove("/a//b\\d");
-    EXPECT_EQ(2, path.paths().size()); // FIXME should be1
+    EXPECT_EQ(2, path.paths().size());
     path.remove("/a//b\\d/");
     EXPECT_EQ(1, path.paths().size());
     EXPECT_TRUE(path.toString() == ".:e\\d:");

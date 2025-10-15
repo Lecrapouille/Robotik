@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
 
 #include <Eigen/Dense>
@@ -218,8 +219,11 @@ private:
 
 private:
 
+    //! \brief Controlled robots.
     std::unordered_map<std::string, ControlledRobot> m_robots;
+    //! \brief Current controlled robot.
     ControlledRobot* m_current_robot = nullptr;
+    //! \brief Last error message.
     std::string m_error;
 };
 

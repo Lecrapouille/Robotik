@@ -29,7 +29,7 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
     auto robot = parser.load(p_urdf_path);
     if (!robot)
     {
-        m_error = "Failed to load robot from URDF: " + parser.getError();
+        m_error = "Failed to load robot from URDF: " + parser.error();
         return nullptr;
     }
 

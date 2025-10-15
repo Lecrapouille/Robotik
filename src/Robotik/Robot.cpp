@@ -316,15 +316,10 @@ void Robot::setMeshPrefixPath(std::string const& p_prefix_path) const
     for (auto const& [_, link] : m_links_map)
     {
         auto& geometry = link.get().geometry();
-        auto& collision = link.get().collision();
 
         if (geometry.type() == Geometry::Type::MESH)
         {
             geometry.meshPath(p_prefix_path + "/" + geometry.meshPath());
-        }
-        if (collision.type() == Geometry::Type::MESH)
-        {
-            collision.meshPath(p_prefix_path + "/" + collision.meshPath());
         }
     }
 }

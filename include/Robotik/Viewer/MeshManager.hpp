@@ -10,7 +10,6 @@
 #pragma once
 
 #include "Robotik/Viewer/Mesh.hpp"
-#include "Robotik/Viewer/Path.hpp"
 #include "Robotik/Viewer/STLLoader.hpp"
 
 #include <cstddef>
@@ -108,15 +107,6 @@ public:
         return m_error;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Set the search paths for mesh files.
-    //! \param p_base_path Base path for mesh files.
-    // ------------------------------------------------------------------------
-    void setSearchPaths(std::string const& p_base_path)
-    {
-        m_path.add(p_base_path);
-    }
-
 private:
 
     // ------------------------------------------------------------------------
@@ -138,8 +128,6 @@ private:
 
     //! \brief Mesh storage
     std::unordered_map<std::string, Mesh> m_meshes;
-    //! \brief Search paths
-    Path m_path;
     //! \brief Last error
     std::string m_error;
 };

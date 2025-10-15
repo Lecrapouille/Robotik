@@ -226,7 +226,7 @@ std::unique_ptr<Robot> robot = parser.load(urdf_file);
 if (robot == nullptr)
 {
     std::cerr << "Failed to load robot from '" << urdf_file
-                << "': " << parser.getError() << std::endl;
+                << "': " << parser.error() << std::endl;
     return nullptr;
 }
 ```

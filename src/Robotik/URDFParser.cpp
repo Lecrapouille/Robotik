@@ -15,7 +15,11 @@
 #include <tinyxml2/tinyxml2.h>
 
 #include <algorithm>
+#include <cctype>
+#include <cstdint>
+#include <cstring>
 #include <fstream>
+#include <limits>
 #include <sstream>
 
 namespace robotik
@@ -30,13 +34,28 @@ struct URDFParserLink
 {
     explicit URDFParserLink(std::string_view const& p_name) : name(p_name) {}
 
+    //! \brief Name of the link
     std::string name;
+    //! \brief Geometry of the link. Shall not be null.
     Geometry::Ptr geometry;
-    Geometry::Ptr collision;
+    //! \brief Color of the link
     Eigen::Vector3f color = Eigen::Vector3f(0.5, 0.5, 0.5);
+    //! \brief Inertial properties of the link
     Inertial inertial;
+    //! \brief Parent joint of the link
     Joint* parent_joint = nullptr;
+    //! \brief Child joints of the link
     std::vector<Joint*> child_joints;
+    //! \brief Collision data (computed from visual geometry or overridden by
+    //! URDF collision)
+    std::vector<double> urdf_collision_params;
+    //! \brief Center of the collision volume in local frame
+    Eigen::Vector3d urdf_collision_center = Eigen::Vector3d::Zero();
+    //! \brief Orientation of the collision volume in local frame
+    Eigen::Matrix3d urdf_collision_orientation = Eigen::Matrix3d::Identity();
+    //! \brief Mesh path for OBB computation (collision mesh if exists, else
+    //! visual mesh)
+    std::string mesh_path_for_obb;
 };
 
 // ----------------------------------------------------------------------------
@@ -212,11 +231,9 @@ URDFParser::buildSceneGraph(std::string const& p_robot_name)
     }
 
     // Create the scene graph root node.
-    auto root_node = createLinkFromURDFData(*root_link);
+    auto root_node = createLinkFromURDFData(*root_link, m_error);
     if (!root_node)
     {
-        m_error = "We need at least a visual geometry to create a link for " +
-                  root_link->name;
         return nullptr;
     }
 
@@ -282,7 +299,7 @@ std::unique_ptr<Joint> URDFParser::buildJointTree(Joint const* p_current_joint)
         return joint;
 
     // Create a link node from the child link.
-    auto child_link_node = createLinkFromURDFData(*child_link);
+    auto child_link_node = createLinkFromURDFData(*child_link, m_error);
     if (!child_link_node)
     {
         m_error = "We need at least a visual geometry to create a link for " +
@@ -360,11 +377,11 @@ void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
 
     if (auto geometry_element = visual_element->FirstChildElement("geometry"))
     {
-        // Create geometry with "_visual" suffix
-        std::string visual_name = p_link.name + "_visual";
+        // Create geometry with "_visual" suffix.
+        std::string visual_name = p_link.name + "_geometry";
         p_link.geometry = parseGeometry(geometry_element, visual_name);
 
-        // Apply visual transform and color directly
+        // Apply visual transform and color directly.
         if (p_link.geometry)
         {
             Transform visual_origin = parseOriginFromElement(visual_element);
@@ -372,9 +389,30 @@ void URDFParser::parseVisualProperties(tinyxml2::XMLElement* p_link_element,
 
             // Parse and apply material color
             parseMaterial(visual_element, p_link);
+
+            // Store collision data from visual geometry.
+            // Will be overridden if URDF provides explicit collision geometry.
             if (auto* geom = dynamic_cast<Geometry*>(p_link.geometry.get()))
             {
                 geom->color = p_link.color;
+
+                if (geom->type() == Geometry::Type::MESH)
+                {
+                    // Store mesh path for later OBB computation
+                    // (may be overridden by collision mesh)
+                    if (p_link.mesh_path_for_obb.empty())
+                    {
+                        p_link.mesh_path_for_obb = geom->meshPath();
+                    }
+                }
+                else
+                {
+                    // For non-mesh geometry, use parameters directly
+                    p_link.urdf_collision_center = Eigen::Vector3d::Zero();
+                    p_link.urdf_collision_orientation =
+                        Eigen::Matrix3d::Identity();
+                    p_link.urdf_collision_params = geom->parameters();
+                }
             }
         }
     }
@@ -388,12 +426,64 @@ void URDFParser::parseCollisionProperties(tinyxml2::XMLElement* p_link_element,
     if (!collision_element)
         return;
 
+    // Parse collision origin (center and orientation)
+    Eigen::Vector3d collision_center = Eigen::Vector3d::Zero();
+    Eigen::Matrix3d collision_orientation = Eigen::Matrix3d::Identity();
+
+    auto origin_element = collision_element->FirstChildElement("origin");
+    if (origin_element)
+    {
+        collision_center = parseOptionalVector3(origin_element, "xyz");
+        Eigen::Vector3d rpy = parseOptionalVector3(origin_element, "rpy");
+        collision_orientation =
+            utils::createTransform(
+                Eigen::Vector3d::Zero(), rpy.x(), rpy.y(), rpy.z())
+                .block<3, 3>(0, 0);
+    }
+
+    // Parse collision geometry type and parameters (overrides default from
+    // visual)
     if (auto geometry_element =
             collision_element->FirstChildElement("geometry"))
     {
-        // Create collision geometry with "_collision" suffix
-        std::string collision_name = p_link.name + "_collision";
-        p_link.collision = parseGeometry(geometry_element, collision_name);
+        if (auto boxElement = geometry_element->FirstChildElement("box"))
+        {
+            auto size = parseOptionalVector3(boxElement, "size");
+            p_link.urdf_collision_center = collision_center;
+            p_link.urdf_collision_orientation = collision_orientation;
+            p_link.urdf_collision_params = { size.x() / 2.0,
+                                             size.y() / 2.0,
+                                             size.z() / 2.0 };
+        }
+        else if (auto cylinderElement =
+                     geometry_element->FirstChildElement("cylinder"))
+        {
+            double radius = 0.1, length = 0.2;
+            cylinderElement->QueryDoubleAttribute("radius", &radius);
+            cylinderElement->QueryDoubleAttribute("length", &length);
+            p_link.urdf_collision_center = collision_center;
+            p_link.urdf_collision_orientation = collision_orientation;
+            p_link.urdf_collision_params = { radius, length };
+        }
+        else if (auto sphereElement =
+                     geometry_element->FirstChildElement("sphere"))
+        {
+            double radius = 0.1;
+            sphereElement->QueryDoubleAttribute("radius", &radius);
+            p_link.urdf_collision_center = collision_center;
+            p_link.urdf_collision_orientation = collision_orientation;
+            p_link.urdf_collision_params = { radius };
+        }
+        else if (auto meshElement = geometry_element->FirstChildElement("mesh"))
+        {
+            // Store collision mesh path (overrides visual mesh for OBB)
+            std::string mesh_path =
+                getAttributeOrDefault(meshElement, "filename", "");
+            if (!mesh_path.empty())
+            {
+                p_link.mesh_path_for_obb = mesh_path;
+            }
+        }
     }
 }
 
@@ -552,35 +642,220 @@ URDFParser::parseOriginTransform(tinyxml2::XMLElement* p_element) const
 
 // ----------------------------------------------------------------------------
 robotik::Link::Ptr
-URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link) const
+URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link,
+                                   std::string& p_error) const
 {
-    std::unique_ptr<robotik::Link> link;
-
-    if (p_urdf_link.geometry && p_urdf_link.collision)
+    // We need at least a visual geometry to create a link
+    if (!p_urdf_link.geometry)
     {
-        link = scene::Node::create<robotik::Link>(
-            p_urdf_link.name,
-            std::move(p_urdf_link.geometry),
-            std::move(p_urdf_link.collision));
-    }
-    else if (p_urdf_link.geometry)
-    {
-        link = scene::Node::create<robotik::Link>(
-            p_urdf_link.name, std::move(p_urdf_link.geometry));
-    }
-    else
-    {
-        // We need at least a visual geometry to create a link
+        p_error = "We need at least a visual geometry to create a link for " +
+                  p_urdf_link.name;
         return nullptr;
     }
 
-    // Transfer inertial properties
-    if (link)
+    // Compute OBB from mesh
+    if (!p_urdf_link.mesh_path_for_obb.empty())
     {
-        link->inertia(p_urdf_link.inertial);
+        if (!computeOBBFromMesh(p_urdf_link.mesh_path_for_obb,
+                                p_urdf_link.urdf_collision_center,
+                                p_urdf_link.urdf_collision_orientation,
+                                p_urdf_link.urdf_collision_params))
+        {
+            p_error = "Failed to compute OBB from mesh for " + p_urdf_link.name;
+            return nullptr;
+        }
     }
 
+    // Create link with visual geometry and collision data
+    auto link = scene::Node::create<robotik::Link>(
+        p_urdf_link.name, std::move(p_urdf_link.geometry));
+    link->setCollisionData(p_urdf_link.urdf_collision_center,
+                           p_urdf_link.urdf_collision_orientation,
+                           p_urdf_link.urdf_collision_params);
+
+    // Transfer inertial properties
+    link->inertia(p_urdf_link.inertial);
+
     return link;
+}
+
+// ----------------------------------------------------------------------------
+bool URDFParser::computeOBBFromMesh(const std::string& p_mesh_path,
+                                    Eigen::Vector3d& p_center,
+                                    Eigen::Matrix3d& p_orientation,
+                                    std::vector<double>& p_params) const
+{
+    // Parse STL file directly to extract vertices
+    std::vector<Eigen::Vector3d> positions;
+    if (!parseSTLVertices(p_mesh_path, positions))
+    {
+        // Failed to load mesh, use default bounding box
+        p_center = Eigen::Vector3d::Zero();
+        p_orientation = Eigen::Matrix3d::Identity();
+        p_params = { 1.0, 1.0, 1.0 };
+        return false;
+    }
+
+    computeOBBFromVertices(positions, p_center, p_orientation, p_params);
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::computeOBBFromVertices(
+    const std::vector<Eigen::Vector3d>& p_positions,
+    Eigen::Vector3d& p_center,
+    Eigen::Matrix3d& p_orientation,
+    std::vector<double>& p_params) const
+{
+    if (p_positions.empty())
+    {
+        p_center = Eigen::Vector3d::Zero();
+        p_orientation = Eigen::Matrix3d::Identity();
+        p_params = { 1.0, 1.0, 1.0 };
+        return;
+    }
+
+    // Compute centroid
+    Eigen::Vector3d centroid = Eigen::Vector3d::Zero();
+    for (const auto& pos : p_positions)
+    {
+        centroid += pos;
+    }
+    centroid /= static_cast<double>(p_positions.size());
+
+    // Compute covariance matrix for PCA
+    Eigen::Matrix3d covariance = Eigen::Matrix3d::Zero();
+    for (const auto& pos : p_positions)
+    {
+        Eigen::Vector3d centered = pos - centroid;
+        covariance += centered * centered.transpose();
+    }
+    covariance /= static_cast<double>(p_positions.size());
+
+    // Eigen decomposition to get principal axes
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> eigen_solver(covariance);
+    Eigen::Matrix3d eigenvectors = eigen_solver.eigenvectors();
+
+    // Ensure right-handed coordinate system
+    if (eigenvectors.determinant() < 0)
+    {
+        eigenvectors.col(0) = -eigenvectors.col(0);
+    }
+
+    // Project vertices onto principal axes and find extents
+    Eigen::Vector3d min_extents =
+        Eigen::Vector3d::Constant(std::numeric_limits<double>::max());
+    Eigen::Vector3d max_extents =
+        Eigen::Vector3d::Constant(std::numeric_limits<double>::lowest());
+
+    for (const auto& pos : p_positions)
+    {
+        Eigen::Vector3d local_pos = eigenvectors.transpose() * (pos - centroid);
+        min_extents = min_extents.cwiseMin(local_pos);
+        max_extents = max_extents.cwiseMax(local_pos);
+    }
+
+    // Compute half-extents and adjusted center
+    Eigen::Vector3d half_extents = (max_extents - min_extents) * 0.5;
+    Eigen::Vector3d local_center = (min_extents + max_extents) * 0.5;
+    Eigen::Vector3d world_center = centroid + eigenvectors * local_center;
+
+    // Store OBB data
+    p_center = world_center;
+    p_orientation = eigenvectors;
+    p_params = { half_extents.x(), half_extents.y(), half_extents.z() };
+}
+
+// ----------------------------------------------------------------------------
+bool URDFParser::parseSTLVertices(
+    const std::string& p_mesh_path,
+    std::vector<Eigen::Vector3d>& p_positions) const
+{
+    std::ifstream file(p_mesh_path, std::ios::binary);
+    if (!file.is_open())
+    {
+        return false;
+    }
+
+    // Check if binary STL (read first 5 bytes)
+    char header[5];
+    file.read(header, 5);
+    file.seekg(0); // Reset to beginning
+
+    bool is_binary = (strncmp(header, "solid", 5) != 0);
+
+    if (is_binary)
+    {
+        // Binary STL format
+        // Skip 80-byte header
+        file.seekg(80);
+
+        // Read triangle count
+        uint32_t triangle_count;
+        file.read(reinterpret_cast<char*>(&triangle_count), sizeof(uint32_t));
+
+        if (triangle_count == 0)
+        {
+            return false;
+        }
+
+        p_positions.reserve(triangle_count * 3);
+
+        for (uint32_t i = 0; i < triangle_count; ++i)
+        {
+            // Skip normal vector (3 floats)
+            file.seekg(3 * sizeof(float), std::ios::cur);
+
+            // Read 3 vertices (9 floats)
+            float vertices[9];
+            file.read(reinterpret_cast<char*>(vertices), 9 * sizeof(float));
+
+            // Add vertices
+            for (int j = 0; j < 3; ++j)
+            {
+                p_positions.emplace_back(
+                    vertices[j * 3], vertices[j * 3 + 1], vertices[j * 3 + 2]);
+            }
+
+            // Skip attribute byte count (2 bytes)
+            file.seekg(2, std::ios::cur);
+        }
+    }
+    else
+    {
+        // ASCII STL format
+        file.close();
+        file.open(p_mesh_path, std::ios::in);
+        if (!file.is_open())
+        {
+            return false;
+        }
+
+        std::string line;
+        while (std::getline(file, line))
+        {
+            // Convert to lowercase for easier parsing
+            std::string line_lower = line;
+            std::transform(line_lower.begin(),
+                           line_lower.end(),
+                           line_lower.begin(),
+                           ::tolower);
+
+            std::istringstream iss(line_lower);
+            std::string token;
+            iss >> token;
+
+            if (token == "vertex")
+            {
+                // Read vertex coordinates
+                float x, y, z;
+                iss >> x >> y >> z;
+                p_positions.emplace_back(x, y, z);
+            }
+        }
+    }
+
+    return !p_positions.empty();
 }
 
 } // namespace robotik

@@ -30,7 +30,8 @@ namespace robotik::viewer
 
 // ----------------------------------------------------------------------------
 RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
-    : m_config(p_config),
+    : path(p_config.search_paths),
+      m_config(p_config),
       m_window(p_config.window_width, p_config.window_height),
       m_camera(p_config.window_width, p_config.window_height),
       m_geometry_renderer(m_shader_manager),
@@ -95,11 +96,8 @@ bool RobotViewerApplication::onSetup()
         return false;
     }
 
-    // Set mesh base path if specified
-    if (!m_config.search_paths.empty())
-    {
-        m_mesh_manager.setSearchPaths(m_config.search_paths);
-    }
+    // Set mesh base path if specified.
+    path.add(m_config.search_paths);
 
     // Setup shaders
     if (!setupShaders("default"))
@@ -439,7 +437,7 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
             // Load mesh if not already loaded
             if (!m_mesh_manager.isMeshLoaded(mesh_path))
             {
-                if (!m_mesh_manager.loadMesh(mesh_path))
+                if (!m_mesh_manager.loadMesh(path.expand(mesh_path)))
                 {
                     std::cout << "Failed to load mesh: " << mesh_path << ": "
                               << m_mesh_manager.error() << std::endl;

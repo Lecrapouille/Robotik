@@ -30,9 +30,7 @@ bool MeshManager::loadMesh(const std::string& p_mesh_path, bool p_force_reload)
 
     // Load STL file
     STLLoader::MeshData mesh_data;
-    const std::string full_path = m_path.expand(p_mesh_path);
-
-    if (!STLLoader::loadSTL(full_path, mesh_data))
+    if (!STLLoader::loadSTL(p_mesh_path, mesh_data))
     {
         m_error = "Failed to load STL file: " + p_mesh_path + " - " +
                   STLLoader::error();

@@ -10,6 +10,10 @@
 
 #pragma once
 
+// Generated file holding project information
+#include "project_info.hpp"
+
+// Google Test and Google Mock frameworks
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
