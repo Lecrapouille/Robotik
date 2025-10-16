@@ -16,9 +16,10 @@ namespace robotik
 {
 
 // ============================================================================
-std::vector<double> JacobianIKSolver::solve(Robot& p_robot,
-                                            scene::Node const& p_end_effector,
-                                            Pose const& p_target_pose)
+std::vector<double>
+JacobianIKSolver::solve(Robot& p_robot,
+                        hierarchy::Node const& p_end_effector,
+                        Pose const& p_target_pose)
 {
     m_converged = false;
     m_last_iterations = 0;
@@ -81,7 +82,7 @@ std::vector<double> JacobianIKSolver::solve(Robot& p_robot,
             q[i] += dq[i];
         }
 
-        // Apply updated joint values to robot
+        // Apply to robot
         if (!p_robot.setJointValues(q))
         {
             if (m_config.verbose)

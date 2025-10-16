@@ -1,64 +1,49 @@
 /**
  * @file Robot.cpp
- * @brief Robot class implementation (extends Hierarchy).
+ * @brief Implementation of Robot class (kinematic computations).
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/Robot_new.hpp"
 #include "Robotik/Core/Conversions.hpp"
-
-#include <algorithm>
-#include <functional>
+#include "Robotik/Core/IKSolver.hpp"
 
 namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-std::vector<double> Robot::jointPositions() const
+Robot_new::Robot_new(Hierarchy const& p_hierarchy) : m_hierarchy(p_hierarchy) {}
+
+// ----------------------------------------------------------------------------
+State Robot_new::createState() const
 {
-    std::vector<double> values;
-    values.reserve(joints().size());
-
-    for (const auto& joint_ref : joints())
-    {
-        values.push_back(joint_ref.get().position());
-    }
-
-    return values;
+    return State(m_hierarchy.numJoints(), m_hierarchy.numLinks());
 }
 
 // ----------------------------------------------------------------------------
-bool Robot::setJointValues(std::vector<double> const& p_values)
+void Robot_new::forwardKinematics(State& p_state)
 {
-    if (p_values.size() != joints().size())
+    // Set joint positions in the hierarchy
+    auto& joints = const_cast<Hierarchy&>(m_hierarchy).joints();
+
+    for (size_t i = 0; i < joints.size(); ++i)
     {
-        return false;
+        joints[i].get().position(p_state.jointPositions()[i]);
     }
 
-    // Set all joint values
-    auto& joint_refs =
-        const_cast<std::vector<std::reference_wrapper<Joint>>&>(joints());
-    for (size_t i = 0; i < joint_refs.size(); ++i)
-    {
-        joint_refs[i].get().position(p_values[i]);
-    }
+    // The joint position() method automatically updates world transforms
+    // via the hierarchy tree traversal
 
-    return true;
+    // Mark Jacobian as dirty since positions changed
+    p_state.markJacobianDirty();
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setNeutralPosition()
-{
-    std::vector<double> neutral_joints(joints().size(), 0.0);
-    setJointValues(neutral_joints);
-}
-
-// ----------------------------------------------------------------------------
-Pose Robot::calculatePoseError(Pose const& p_target_pose,
-                               Pose const& p_current_pose) const
+Pose Robot_new::calculatePoseError(Pose const& p_target_pose,
+                                   Pose const& p_current_pose) const
 {
     Pose error;
 
@@ -85,18 +70,28 @@ Pose Robot::calculatePoseError(Pose const& p_target_pose,
 }
 
 // ----------------------------------------------------------------------------
-Jacobian Robot::jacobian(hierarchy::Node const& p_end_effector) const
+Jacobian const&
+Robot_new::computeJacobian(State& p_state,
+                           hierarchy::Node const& p_end_effector)
 {
-    const size_t num_joints = joints().size();
-    Jacobian J(6, num_joints);
+    // Check if Jacobian is already up to date
+    if (!p_state.isJacobianDirty())
+    {
+        return p_state.jacobian();
+    }
+
+    const size_t num_joints = m_hierarchy.numJoints();
+    Jacobian& J = p_state.jacobian();
+    J.resize(6, num_joints);
 
     // Position of the end effector
     Transform end_effector_transform = p_end_effector.worldTransform();
     Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
+    auto const& joints = m_hierarchy.joints();
     for (size_t i = 0; i < num_joints; ++i)
     {
-        Joint const& joint = joints()[i].get();
+        Joint const& joint = joints[i].get();
 
         // Transformation of the joint in the global space
         Transform joint_transform = joint.worldTransform();
@@ -127,7 +122,20 @@ Jacobian Robot::jacobian(hierarchy::Node const& p_end_effector) const
         }
     }
 
+    p_state.markJacobianClean();
     return J;
+}
+
+// ----------------------------------------------------------------------------
+bool Robot_new::inverseKinematics(State& p_state,
+                                  hierarchy::Node const& p_end_effector,
+                                  Pose const& p_target_pose,
+                                  IKSolver& p_solver)
+{
+    // The IK solver will work with the old Robot interface temporarily
+    // This is a bridge until we update IKSolver
+    // For now, just return false as we need to update IKSolver first
+    return false;
 }
 
 } // namespace robotik

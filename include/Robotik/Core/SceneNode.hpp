@@ -1,6 +1,6 @@
 /**
  * @file SceneNode.hpp
- * @brief Scene graph node class - Representation of a node in the scene graph.
+ * @brief Hierarchy node class - Representation of a node in the kinematic hierarchy.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -16,14 +16,14 @@
 #include <string_view>
 #include <vector>
 
-namespace robotik::scene
+namespace robotik::hierarchy
 {
 
 // ****************************************************************************
-//! \brief Class representing a scene graph node.
+//! \brief Class representing a node in the kinematic hierarchy.
 //!
-//! A scene graph is a hierarchical data structure that represents the spatial
-//! relationships between its different components. Each node in this graph
+//! A kinematic hierarchy is a tree data structure that represents the spatial
+//! relationships between its different components. Each node in this hierarchy
 //! represents a physical or logical component that has:
 //! - A position and orientation in 3D space (transform).
 //! - A relationship to a parent component (inheritance of transforms).
@@ -36,7 +36,7 @@ namespace robotik::scene
 //! - Sensor mounts (camera, lidar attachment points).
 //! - Collision geometries (for path planning).
 //!
-//! The scene graph enables:
+//! The kinematic hierarchy enables:
 //! - Forward kinematics calculation (computing end-effector pose).
 //! - Coordinate frame transformations between robot components.
 //! - Hierarchical motion propagation (parent motion affects all children).
@@ -353,4 +353,4 @@ protected:
     Node* m_parent = nullptr;
 };
 
-} // namespace robotik::scene
+} // namespace robotik::hierarchy

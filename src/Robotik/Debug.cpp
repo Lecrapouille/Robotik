@@ -8,6 +8,7 @@
  */
 
 #include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Hierarchy.hpp"
 #include "Robotik/Core/Robot.hpp"
 
 #include <iomanip>
@@ -272,7 +273,7 @@ static std::string printLinkDetails(Link const& p_link,
 }
 
 // ----------------------------------------------------------------------------
-static std::string printNodeRecursive(scene::Node const& p_node,
+static std::string printNodeRecursive(hierarchy::Node const& p_node,
                                       size_t p_depth,
                                       std::vector<bool>& p_last_flags,
                                       bool const p_detailed)
@@ -338,22 +339,29 @@ static std::string printNodeRecursive(scene::Node const& p_node,
 }
 
 // ----------------------------------------------------------------------------
-std::string printRobot(Robot const& p_robot, bool const p_detailed)
+std::string printRobot(Hierarchy const& p_hierarchy, bool const p_detailed)
 {
     std::ostringstream oss;
 
-    oss << ROBOT_EMOJI << " " << BOLD << MAGENTA << "Robot" << RESET << ": "
-        << BOLD << WHITE << p_robot.name() << RESET << std::endl;
-    if (!p_robot.hasRoot())
+    oss << ROBOT_EMOJI << " " << BOLD << MAGENTA << "Hierarchy" << RESET << ": "
+        << BOLD << WHITE << p_hierarchy.name() << RESET << std::endl;
+    if (!p_hierarchy.hasRoot())
     {
         oss << "  " << RED << "❌ No root node found!" << RESET << std::endl;
         return oss.str();
     }
 
     std::vector<bool> last_flags;
-    oss << printNodeRecursive(p_robot.root(), 0, last_flags, p_detailed);
+    oss << printNodeRecursive(p_hierarchy.root(), 0, last_flags, p_detailed);
 
     return oss.str();
+}
+
+// ----------------------------------------------------------------------------
+std::string printRobot(Robot const& p_robot, bool const p_detailed)
+{
+    // Robot inherits from Hierarchy, so we can just cast and call
+    return printRobot(static_cast<Hierarchy const&>(p_robot), p_detailed);
 }
 
 } // namespace robotik::debug

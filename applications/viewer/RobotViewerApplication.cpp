@@ -179,7 +179,7 @@ bool RobotViewerApplication::setControlJoint(
     {
         if (!p_control_joint_name.empty())
         {
-            p_controlled_robot.control_joint = scene::Node::find(
+            p_controlled_robot.control_joint = hierarchy::Node::find(
                 p_controlled_robot.robot->root(), p_control_joint_name);
         }
         else
@@ -209,7 +209,7 @@ bool RobotViewerApplication::initCameraView(
     {
         if (!p_look_at_joint_name.empty())
         {
-            p_controlled_robot.camera_target = scene::Node::find(
+            p_controlled_robot.camera_target = hierarchy::Node::find(
                 p_controlled_robot.robot->root(), p_look_at_joint_name);
         }
         else
@@ -363,7 +363,7 @@ void RobotViewerApplication::onDraw()
         if (it.is_visible && it.robot->hasRoot())
         {
             it.robot->root().traverse(
-                [this](scene::Node const& node, size_t /*p_depth*/)
+                [this](hierarchy::Node const& node, size_t /*p_depth*/)
                 {
                     if (auto geometry = dynamic_cast<Geometry const*>(&node))
                     {

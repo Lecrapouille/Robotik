@@ -3,11 +3,12 @@
 namespace robotik
 {
 
-namespace scene
+namespace hierarchy
 {
 class Node;
 }
 class URDFParser;
+class Hierarchy;
 class Robot;
 class Joint;
 class Link;

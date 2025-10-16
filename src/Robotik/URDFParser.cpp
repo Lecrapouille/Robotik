@@ -247,8 +247,7 @@ URDFParser::buildSceneGraph(std::string const& p_robot_name)
     }
 
     // Create the robot.
-    auto robot = std::make_unique<Robot>(p_robot_name);
-    robot->root(std::move(root_node));
+    auto robot = std::make_unique<Robot>(p_robot_name, std::move(root_node));
 
     return robot;
 }
@@ -667,7 +666,7 @@ URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link,
     }
 
     // Create link with visual geometry and collision data
-    auto link = scene::Node::create<robotik::Link>(
+    auto link = hierarchy::Node::create<robotik::Link>(
         p_urdf_link.name, std::move(p_urdf_link.geometry));
     link->setCollisionData(p_urdf_link.urdf_collision_center,
                            p_urdf_link.urdf_collision_orientation,
