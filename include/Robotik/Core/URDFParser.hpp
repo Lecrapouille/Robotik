@@ -80,9 +80,9 @@ public:
 private:
 
     // ------------------------------------------------------------------------
-    //! \brief Create the scene graph from the parsed URDF data.
+    //! \brief Create the robot from the parsed URDF data.
     //! \param p_robot_name The name of the robot.
-    //! \return A unique pointer to the robot if the scene graph was created
+    //! \return A unique pointer to the robot if the tree was created
     //! successfully, else nullptr.
     // ------------------------------------------------------------------------
     std::unique_ptr<Robot> buildSceneGraph(std::string const& p_robot_name);

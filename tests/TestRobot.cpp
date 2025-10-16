@@ -20,11 +20,11 @@ using namespace robotik;
 // *********************************************************************************
 //! \brief End effector node. For this current implementation, a node is enough.
 // *********************************************************************************
-class EndEffector: public scene::Node
+class EndEffector: public hierarchy::Node
 {
 public:
 
-    using Node = scene::Node;
+    using Node = hierarchy::Node;
     using Node::Node;
 };
 
@@ -41,7 +41,7 @@ protected:
         robot_arm = std::make_unique<Robot>("test_arm");
 
         // Create the scene graph
-        Joint::Ptr r = scene::Node::create<Joint>(
+        Joint::Ptr r = hierarchy::Node::create<Joint>(
             "root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
         joint1 = &(r->createChild<Joint>(
             "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1)));
@@ -79,7 +79,7 @@ protected:
 // *********************************************************************************
 TEST_F(RobotTest, RootSceneNode)
 {
-    scene::Node const& found_root = robot_arm->root();
+    hierarchy::Node const& found_root = robot_arm->root();
     EXPECT_EQ(found_root.name(), "root");
 }
 
@@ -88,12 +88,12 @@ TEST_F(RobotTest, RootSceneNode)
 // *********************************************************************************
 TEST_F(RobotTest, SceneNodeSearch)
 {
-    EXPECT_EQ(scene::Node::find(robot_arm->root(), "root"), root);
-    EXPECT_EQ(scene::Node::find(robot_arm->root(), "joint1"), joint1);
-    EXPECT_EQ(scene::Node::find(robot_arm->root(), "joint2"), joint2);
-    EXPECT_EQ(scene::Node::find(robot_arm->root(), "end_effector"),
+    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "root"), root);
+    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "joint1"), joint1);
+    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "joint2"), joint2);
+    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "end_effector"),
               end_effector);
-    EXPECT_EQ(scene::Node::find(robot_arm->root(), "nonexistent"), nullptr);
+    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "nonexistent"), nullptr);
 }
 
 // *********************************************************************************

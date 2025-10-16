@@ -22,7 +22,7 @@ namespace robotik
 
 // Forward declarations
 class Robot;
-namespace scene
+namespace hierarchy
 {
 class Node;
 }
@@ -50,7 +50,7 @@ public:
     //! otherwise.
     // ------------------------------------------------------------------------
     virtual std::vector<double> solve(Robot& p_robot,
-                                      scene::Node const& p_end_effector,
+                                      hierarchy::Node const& p_end_effector,
                                       Pose const& p_target_pose) = 0;
 
     // ------------------------------------------------------------------------
@@ -145,7 +145,7 @@ public:
     //! \brief Solve IK using Jacobian-based iterative method.
     // ------------------------------------------------------------------------
     std::vector<double> solve(Robot& p_robot,
-                              scene::Node const& p_end_effector,
+                              hierarchy::Node const& p_end_effector,
                               Pose const& p_target_pose) override;
 
     // ------------------------------------------------------------------------
@@ -216,7 +216,7 @@ createJacobianIKSolver(JacobianIKSolver::Config const& p_config)
 //! \return Vector of joint values if solution found, empty vector otherwise.
 // ****************************************************************************
 inline std::vector<double> solveIK(Robot& p_robot,
-                                   scene::Node const& p_end_effector,
+                                   hierarchy::Node const& p_end_effector,
                                    Pose const& p_target_pose)
 {
     auto solver = createDefaultIKSolver();

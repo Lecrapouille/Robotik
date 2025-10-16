@@ -9,7 +9,7 @@
 
 #include "Robotik/Core/SceneNode.hpp"
 
-namespace robotik::scene
+namespace robotik::hierarchy
 {
 
 // ----------------------------------------------------------------------------
@@ -114,4 +114,4 @@ void Node::updateWorldTransforms()
     }
 }
 
-} // namespace robotik::scene
+} // namespace robotik::hierarchy

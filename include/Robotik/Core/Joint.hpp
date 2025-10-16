@@ -48,7 +48,7 @@ namespace robotik
 //! based on its current value and type, enabling forward kinematics
 //! computation.
 // *********************************************************************************
-class Joint: public scene::Node
+class Joint: public hierarchy::Node
 {
 public:
 

@@ -39,7 +39,7 @@ void PhysicsSimulator::step(Robot& p_robot)
     // The robot structure is: Link (root) -> Joint -> Link -> Joint -> ...
     // We need to find the first joint child of the root link
     // Note: We need non-const access to modify joint states
-    auto& root = const_cast<scene::Node&>(p_robot.root());
+    auto& root = const_cast<hierarchy::Node&>(p_robot.root());
 
     for (const auto& child : root.children())
     {

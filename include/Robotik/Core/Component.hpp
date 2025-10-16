@@ -17,7 +17,7 @@ namespace robotik
 // ****************************************************************************
 //! \brief Base class for all robot components.
 // ****************************************************************************
-class RobotComponent: public scene::Node
+class RobotComponent: public hierarchy::Node
 {
 public:
 

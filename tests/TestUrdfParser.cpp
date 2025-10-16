@@ -49,7 +49,7 @@ protected:
     {
         std::vector<Geometry const*> geometry_nodes;
         p_robot.root().traverse(
-            [&geometry_nodes](const scene::Node& node, size_t)
+            [&geometry_nodes](const hierarchy::Node& node, size_t)
             {
                 if (auto const* link = dynamic_cast<const Link*>(&node))
                 {

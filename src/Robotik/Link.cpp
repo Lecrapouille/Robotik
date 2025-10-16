@@ -7,14 +7,14 @@ namespace robotik
 Geometry const& Link::geometry() const
 {
     // Return the first child that shall exist.
-    auto const& children = scene::Node::children();
+    auto const& children = hierarchy::Node::children();
     return *dynamic_cast<Geometry const*>(children[0].get());
 }
 
 // ----------------------------------------------------------------------------
 Geometry& Link::geometry()
 {
-    auto& children = scene::Node::children();
+    auto& children = hierarchy::Node::children();
     return *dynamic_cast<Geometry*>(children[0].get());
 }
 

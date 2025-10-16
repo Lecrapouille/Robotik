@@ -21,7 +21,7 @@ namespace robotik
 //!
 //! In robotics, a link is a rigid body that connects two joints.
 // *********************************************************************************
-class Link: public scene::Node
+class Link: public hierarchy::Node
 {
 public:
 
@@ -33,9 +33,9 @@ public:
     //! \param p_visual The visual geometry of the link. Shall not be null.
     // ------------------------------------------------------------------------
     explicit Link(std::string const& p_name, Geometry::Ptr p_visual)
-        : scene::Node(p_name)
+        : hierarchy::Node(p_name)
     {
-        scene::Node::addChild(std::move(p_visual));
+        hierarchy::Node::addChild(std::move(p_visual));
     }
 
     // ------------------------------------------------------------------------

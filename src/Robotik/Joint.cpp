@@ -18,7 +18,7 @@ namespace robotik
 Joint::Joint(std::string_view const& p_name,
              Joint::Type p_type,
              const Eigen::Vector3d& p_axis)
-    : scene::Node(p_name), m_type(p_type), m_axis(p_axis.normalized())
+    : hierarchy::Node(p_name), m_type(p_type), m_axis(p_axis.normalized())
 {
     switch (p_type)
     {

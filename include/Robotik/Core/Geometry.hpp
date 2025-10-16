@@ -17,7 +17,7 @@ namespace robotik
 // ****************************************************************************
 //! \brief Geometry data for collision detection and/or visualization.
 // ****************************************************************************
-class Geometry: public scene::Node
+class Geometry: public hierarchy::Node
 {
 public:
 
@@ -37,7 +37,7 @@ public:
              Type p_type,
              std::vector<double>&& p_parameters,
              std::string_view p_mesh_path)
-        : scene::Node(p_name),
+        : hierarchy::Node(p_name),
           m_type(p_type),
           m_parameters(std::move(p_parameters)),
           m_mesh_path(p_mesh_path)
