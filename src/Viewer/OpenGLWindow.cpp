@@ -43,6 +43,12 @@ void OpenGLWindow::swapBuffers()
 }
 
 // ----------------------------------------------------------------------------
+void OpenGLWindow::pollEvents()
+{
+    glfwPollEvents();
+}
+
+// ----------------------------------------------------------------------------
 bool OpenGLWindow::initialize(
     KeyCallback const& p_key_callback,
     MouseButtonCallback const& p_mouse_button_callback,
@@ -167,7 +173,6 @@ void OpenGLWindow::setupCallbacks(
 
     // Callback mouse buttons
     m_mouse_button_callback = p_mouse_button_callback;
-    m_key_callback = p_key_callback;
     glfwSetMouseButtonCallback(
         m_window,
         [](GLFWwindow* window, int button, int action, int mods)

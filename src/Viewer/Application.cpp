@@ -24,14 +24,6 @@ Application::~Application()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::isHalting() const
-{
-    // Default implementation: always return false.
-    // Derived classes should override this method.
-    return false;
-}
-
-// ----------------------------------------------------------------------------
 std::string const& Application::error() const
 {
     return m_error;
@@ -218,7 +210,7 @@ bool Application::stopPhysicsThread()
                                          [this]() { m_physics_thread.join(); });
 
                 // Wait for join with timeout
-                if (future.wait_for(std::chrono::milliseconds(100)) ==
+                if (future.wait_for(std::chrono::milliseconds(500)) ==
                     std::future_status::timeout)
                 {
                     // Thread didn't join in time, detach it (not ideal but

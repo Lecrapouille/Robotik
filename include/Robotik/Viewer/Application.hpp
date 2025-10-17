@@ -59,7 +59,7 @@ private:
     //! \brief Check if the application should close.
     //! \return true if the application should close, false otherwise.
     // ----------------------------------------------------------------------------
-    virtual bool isHalting() const;
+    virtual bool isHalting() const = 0;
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize the application. Called once at startup.

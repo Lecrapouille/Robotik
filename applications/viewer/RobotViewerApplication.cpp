@@ -383,6 +383,7 @@ void RobotViewerApplication::onDraw()
     }
 
     m_window.swapBuffers();
+    m_window.pollEvents();
 }
 
 // ----------------------------------------------------------------------------
@@ -485,7 +486,11 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
 {
-    m_physics_simulator.step(*m_robot_manager.currentRobot()->robot);
+    auto* controlled_robot = m_robot_manager.currentRobot();
+    if (controlled_robot && controlled_robot->robot)
+    {
+        m_physics_simulator.step(*controlled_robot->robot);
+    }
 }
 
 // ----------------------------------------------------------------------------
