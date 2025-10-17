@@ -586,37 +586,38 @@ void GeometryRenderer::generateGrid(std::vector<float>& p_vertices,
 {
     p_vertices.clear();
 
+    // Grid in XY plane (Z=0) for Z-up coordinate system to match URDF standard
     for (int i = -p_size; i <= p_size; ++i)
     {
-        // Lines parallel to X axis
+        // Lines parallel to X axis (varying Y)
         p_vertices.push_back(-float(p_size) * p_spacing);
-        p_vertices.push_back(0.0f);
         p_vertices.push_back(float(i) * p_spacing);
         p_vertices.push_back(0.0f);
-        p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
 
         p_vertices.push_back(float(p_size) * p_spacing);
-        p_vertices.push_back(0.0f);
         p_vertices.push_back(float(i) * p_spacing);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
         p_vertices.push_back(0.0f);
         p_vertices.push_back(1.0f);
-        p_vertices.push_back(0.0f);
 
-        // Lines parallel to Z axis
+        // Lines parallel to Y axis (varying X)
         p_vertices.push_back(float(i) * p_spacing);
-        p_vertices.push_back(0.0f);
         p_vertices.push_back(-float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
-        p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
 
         p_vertices.push_back(float(i) * p_spacing);
-        p_vertices.push_back(0.0f);
         p_vertices.push_back(float(p_size) * p_spacing);
         p_vertices.push_back(0.0f);
-        p_vertices.push_back(1.0f);
         p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
     }
 }
 
