@@ -211,37 +211,32 @@ bool RobotViewerApplication::initCameraView(
     RobotManager::ControlledRobot& p_controlled_robot,
     std::string const& p_look_at_joint_name)
 {
-    try
+    // Look at joint name if provided, otherwise use the robot root.
+    if (!p_look_at_joint_name.empty())
     {
-        if (!p_look_at_joint_name.empty())
-        {
-            p_controlled_robot.camera_target =
-                Node::find(p_controlled_robot.robot->hierarchy().root(),
-                           p_look_at_joint_name);
-        }
-        else
-        {
-            p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->hierarchy().root();
-        }
+        p_controlled_robot.camera_target = Node::find(
+            p_controlled_robot.robot->hierarchy().root(), p_look_at_joint_name);
     }
-    catch (RobotikException const& e)
+    else
     {
-        p_controlled_robot.camera_target = nullptr;
-        m_error = e.what();
-        return false;
+        p_controlled_robot.camera_target =
+            &p_controlled_robot.robot->hierarchy().root();
     }
 
     // Set the camera view to the target joint.
     if (p_controlled_robot.camera_target != nullptr)
     {
-        m_camera.setView(
-            m_config.camera_view,
+        m_camera_target_position =
             utils::getTranslation(
-                p_controlled_robot.camera_target->worldTransform()));
-        return true;
+                p_controlled_robot.camera_target->worldTransform())
+                .cast<float>();
     }
-    return false;
+    else
+    {
+        m_camera_target_position = Eigen::Vector3f::Zero();
+    }
+    m_camera.setView(m_config.camera_view, m_camera_target_position);
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -343,17 +338,14 @@ void RobotViewerApplication::onDraw()
 
     // Update camera target position, tracking one element of the robot
     auto const* controlled_robot = m_robot_manager.currentRobot();
-    Eigen::Vector3d target_pos; // FIXME: fix Eigen conversion to float matrix
     if (controlled_robot && controlled_robot->camera_target)
     {
-        target_pos = utils::getTranslation(
-            controlled_robot->camera_target->worldTransform());
+        m_camera_target_position =
+            utils::getTranslation(
+                controlled_robot->camera_target->worldTransform())
+                .cast<float>();
+        m_camera.setView(m_camera.getViewType(), m_camera_target_position);
     }
-    else
-    {
-        target_pos = Eigen::Vector3d::Zero();
-    }
-    m_camera.setView(m_camera.getViewType(), target_pos);
 
     // Set camera matrices to OpenGL shader
     m_shader_manager.setMatrix4f(m_projection_uniform,
@@ -390,8 +382,20 @@ void RobotViewerApplication::onDraw()
 void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
                                             Eigen::Matrix4f const& p_transform)
 {
+    // URDF to OpenGL transformation: rotate -90 degrees around X-axis
+    // URDF: Z up, X forward, Y left
+    // OpenGL: Y up, -Z forward, X right
+    Eigen::Matrix4f urdf_to_opengl = Eigen::Matrix4f::Identity();
+    urdf_to_opengl.block<3, 3>(0, 0) =
+        Eigen::AngleAxisf(-static_cast<float>(M_PI) / 2.0f,
+                          Eigen::Vector3f::UnitX())
+            .toRotationMatrix();
+
+    // Apply transformation to model matrix (order: transform then convert)
+    Eigen::Matrix4f transformed = p_transform * urdf_to_opengl;
+
     // Set model matrix to OpenGL shader
-    m_shader_manager.setMatrix4f(m_model_uniform, p_transform.data());
+    m_shader_manager.setMatrix4f(m_model_uniform, transformed.data());
 
     // Set color to OpenGL shader
     m_shader_manager.setVector3f(m_color_uniform, p_geometry.color.data());
@@ -520,7 +524,7 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
 
     size_t idx = 0;
     p_robot.hierarchy().forEachJoint(
-        [&](Joint& joint, size_t)
+        [&idx, &joint_values](Joint& joint, size_t)
         {
             if (idx < joint_values.size())
             {
@@ -561,26 +565,26 @@ void RobotViewerApplication::onKeyInput(int key,
             case GLFW_KEY_ESCAPE:
                 m_window.halt();
                 break;
-            // Camera view controls
+            // Camera view controls - only change view type, keep current target
             case GLFW_KEY_1:
                 m_camera.setView(Camera::ViewType::PERSPECTIVE,
-                                 Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+                                 m_camera_target_position);
                 break;
             case GLFW_KEY_2:
                 m_camera.setView(Camera::ViewType::TOP,
-                                 Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+                                 m_camera_target_position);
                 break;
             case GLFW_KEY_3:
                 m_camera.setView(Camera::ViewType::FRONT,
-                                 Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+                                 m_camera_target_position);
                 break;
             case GLFW_KEY_4:
                 m_camera.setView(Camera::ViewType::SIDE,
-                                 Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+                                 m_camera_target_position);
                 break;
             case GLFW_KEY_5:
                 m_camera.setView(Camera::ViewType::ISOMETRIC,
-                                 Eigen::Vector3f(0.0f, 0.0f, 0.0f));
+                                 m_camera_target_position);
                 break;
             // Reset robot to neutral position
             case GLFW_KEY_SPACE:
@@ -638,11 +642,13 @@ void RobotViewerApplication::onCursorPos(double /* xpos */, double /* ypos */)
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onScroll(double /* xoffset */,
-                                      double /* yoffset */)
+void RobotViewerApplication::onScroll(double /* xoffset */, double yoffset)
 {
-    // Handle scroll event
-    // This could be used for zoom controls, etc.
+    // Handle scroll event for camera zoom
+    // yoffset > 0 = scroll up = zoom in (move camera closer)
+    // yoffset < 0 = scroll down = zoom out (move camera further)
+    float zoom_speed = 0.5f;
+    m_camera.zoom(static_cast<float>(-yoffset) * zoom_speed);
 }
 
 } // namespace robotik::viewer

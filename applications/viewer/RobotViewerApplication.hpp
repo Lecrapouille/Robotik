@@ -217,6 +217,9 @@ private:
     // Title and FPS states
     std::string m_title;
     size_t m_fps = 0;
+
+    // Camera target position (to maintain when switching views)
+    Eigen::Vector3f m_camera_target_position = Eigen::Vector3f::Zero();
 };
 
 } // namespace robotik::viewer
