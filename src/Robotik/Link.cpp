@@ -1,4 +1,5 @@
 #include "Robotik/Core/Link.hpp"
+#include "Robotik/Core/NodeVisitor.hpp"
 
 namespace robotik
 {
@@ -7,14 +8,14 @@ namespace robotik
 Geometry const& Link::geometry() const
 {
     // Return the first child that shall exist.
-    auto const& children = hierarchy::Node::children();
+    auto const& children = Node::children();
     return *dynamic_cast<Geometry const*>(children[0].get());
 }
 
 // ----------------------------------------------------------------------------
 Geometry& Link::geometry()
 {
-    auto& children = hierarchy::Node::children();
+    auto& children = Node::children();
     return *dynamic_cast<Geometry*>(children[0].get());
 }
 
@@ -48,6 +49,18 @@ double Link::length() const
 {
     // Approximate length as the distance from origin to center of mass
     return m_inertial.center_of_mass.norm();
+}
+
+// ----------------------------------------------------------------------------
+void Link::accept(NodeVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ----------------------------------------------------------------------------
+void Link::accept(ConstNodeVisitor& visitor) const
+{
+    visitor.visit(*this);
 }
 
 } // namespace robotik

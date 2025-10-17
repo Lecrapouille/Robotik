@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Core/SceneNode.hpp"
+#include "Robotik/Core/Node.hpp"
 
 namespace robotik
 {
@@ -17,10 +17,14 @@ namespace robotik
 // ****************************************************************************
 //! \brief Base class for all robot components.
 // ****************************************************************************
-class RobotComponent: public hierarchy::Node
+class RobotComponent: public Node
 {
 public:
 
+    // ------------------------------------------------------------------------
+    //! \brief Update the component with the given time step.
+    //! \param p_dt The time step.
+    // ------------------------------------------------------------------------
     virtual void update(double p_dt) = 0;
 };
 
@@ -31,8 +35,29 @@ class Sensor: public RobotComponent
 {
 public:
 
+    // ------------------------------------------------------------------------
+    //! \brief Read the sensor data.
+    //! \note the value shall be stored as variable member of the node.
+    // ------------------------------------------------------------------------
     virtual void readSensor() = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if the sensor data is ready.
+    //! \return True if the sensor data is ready, false otherwise.
+    // ------------------------------------------------------------------------
     virtual bool isDataReady() const = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a visitor (Visitor pattern override).
+    //! \param visitor The visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(NodeVisitor& visitor) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern override).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(ConstNodeVisitor& visitor) const override;
 };
 
 // ****************************************************************************
@@ -42,9 +67,35 @@ class Actuator: public RobotComponent
 {
 public:
 
+    // ------------------------------------------------------------------------
+    //! \brief Set the command for the actuator.
+    //! \param p_command The command.
+    // ------------------------------------------------------------------------
     virtual void setCommand(double p_command) = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current value of the actuator.
+    // ------------------------------------------------------------------------
     virtual double getCurrentValue() const = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the effort of the actuator.
+    //! \return The effort.
+    //! \note the effort is the torque/force applied by the actuator.
+    // ------------------------------------------------------------------------
     virtual double getEffort() const = 0; // couple/force
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a visitor (Visitor pattern override).
+    //! \param visitor The visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(NodeVisitor& visitor) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern override).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(ConstNodeVisitor& visitor) const override;
 };
 
 #if 0

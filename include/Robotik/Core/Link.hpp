@@ -11,7 +11,6 @@
 
 #include "Robotik/Core/Geometry.hpp"
 #include "Robotik/Core/Inertial.hpp"
-#include "Robotik/Core/SceneNode.hpp"
 
 namespace robotik
 {
@@ -21,7 +20,7 @@ namespace robotik
 //!
 //! In robotics, a link is a rigid body that connects two joints.
 // *********************************************************************************
-class Link: public hierarchy::Node
+class Link: public Node
 {
 public:
 
@@ -33,9 +32,9 @@ public:
     //! \param p_visual The visual geometry of the link. Shall not be null.
     // ------------------------------------------------------------------------
     explicit Link(std::string const& p_name, Geometry::Ptr p_visual)
-        : hierarchy::Node(p_name)
+        : Node(p_name)
     {
-        hierarchy::Node::addChild(std::move(p_visual));
+        Node::addChild(std::move(p_visual));
     }
 
     // ------------------------------------------------------------------------
@@ -107,14 +106,16 @@ public:
     Geometry& geometry();
 
     // ------------------------------------------------------------------------
-    //! \brief Get the link's debug string.
-    //! \param p_detailed has no effect.
-    //! \return The link's debug string
+    //! \brief Accept a visitor (Visitor pattern override).
+    //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    // std::string debug(bool /*p_detailed*/) const override
-    //{
-    //    return "[" + name() + "]";
-    //}
+    void accept(NodeVisitor& visitor) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern override).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(ConstNodeVisitor& visitor) const override;
 
 private:
 

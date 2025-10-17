@@ -12,14 +12,14 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/SceneNode.hpp"
+#include "Robotik/Core/Node.hpp"
 
 #include <cmath>
 
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for hierarchy::Node class.
+//! \brief Test fixture for node class.
 // *********************************************************************************
 class SceneNodeTest: public ::testing::Test
 {
@@ -27,14 +27,14 @@ protected:
 
     void SetUp() override
     {
-        root = hierarchy::Node::create<hierarchy::Node>("root");
+        root = Node::create<Node>("root");
     }
 
-    hierarchy::Node::Ptr root;
+    Node::Ptr root;
 };
 
 // *********************************************************************************
-//! \brief Test hierarchy::Node creation and basic properties.
+//! \brief Test node creation and basic properties.
 // *********************************************************************************
 TEST_F(SceneNodeTest, Creation)
 {
@@ -52,19 +52,18 @@ TEST_F(SceneNodeTest, GetName)
     EXPECT_EQ(root->name(), "root");
 
     // Test getting non-existent node
-    EXPECT_EQ(hierarchy::Node::find(*root, "nonexistent"), nullptr);
-    EXPECT_EQ(hierarchy::Node::find(*root, ""), nullptr);
+    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(*root, ""), nullptr);
 
-    hierarchy::Node const& child =
-        root->createChild<hierarchy::Node>("test_child");
+    Node const& child = root->createChild<Node>("test_child");
     EXPECT_EQ(child.name(), "test_child");
-    EXPECT_EQ(hierarchy::Node::find(*root, "test_child"), &child);
+    EXPECT_EQ(Node::find(*root, "test_child"), &child);
     EXPECT_EQ(root->child("test_child"), &child);
 
     // Test with empty name
-    hierarchy::Node const& empty_child = root->createChild<hierarchy::Node>("");
+    Node const& empty_child = root->createChild<Node>("");
     EXPECT_EQ(empty_child.name(), "");
-    EXPECT_EQ(hierarchy::Node::find(*root, ""), &empty_child);
+    EXPECT_EQ(Node::find(*root, ""), &empty_child);
     EXPECT_EQ(root->child(""), &empty_child);
 }
 
@@ -75,8 +74,8 @@ TEST_F(SceneNodeTest, GetName)
 TEST_F(SceneNodeTest, CreateChildAndParenthood)
 {
     // Create two children
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node& child2 = root->createChild<hierarchy::Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
 
     // Test that the children have the correct name
     EXPECT_EQ(child1.name(), "child1");
@@ -84,8 +83,8 @@ TEST_F(SceneNodeTest, CreateChildAndParenthood)
 
     // Test that the children are found from the root node
     EXPECT_EQ(root->children().size(), 2);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
     EXPECT_EQ(root->child("child1"), &child1);
     EXPECT_EQ(root->child("child2"), &child2);
 
@@ -116,15 +115,12 @@ TEST_F(SceneNodeTest, CreateChildAndParenthood)
 TEST_F(SceneNodeTest, ComplexHierarchy)
 {
     // Create a hierarchy of nodes
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node const& child2 =
-        root->createChild<hierarchy::Node>("child2");
-    hierarchy::Node& grandchild1 =
-        child1.createChild<hierarchy::Node>("grandchild1");
-    hierarchy::Node const& grandchild2 =
-        child1.createChild<hierarchy::Node>("grandchild2");
-    hierarchy::Node const& great_grandchild =
-        grandchild1.createChild<hierarchy::Node>("great_grandchild");
+    Node& child1 = root->createChild<Node>("child1");
+    Node const& child2 = root->createChild<Node>("child2");
+    Node& grandchild1 = child1.createChild<Node>("grandchild1");
+    Node const& grandchild2 = child1.createChild<Node>("grandchild2");
+    Node const& great_grandchild =
+        grandchild1.createChild<Node>("great_grandchild");
 
     // Test that the children are found from the parent nodes
     EXPECT_EQ(root->children().size(), 2);
@@ -135,18 +131,17 @@ TEST_F(SceneNodeTest, ComplexHierarchy)
     EXPECT_EQ(great_grandchild.children().size(), 0);
 
     // Test that the nodes are found from the root node
-    EXPECT_EQ(hierarchy::Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child2"), &child2);
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(hierarchy::Node::find(grandchild1, "great_grandchild"),
-              &great_grandchild);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
 
     // Test getting non-existent node
-    EXPECT_EQ(hierarchy::Node::find(*root, "nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(*root, "nonexistent"), nullptr);
 
     // Test with empty name search
-    EXPECT_EQ(hierarchy::Node::find(*root, ""), nullptr);
+    EXPECT_EQ(Node::find(*root, ""), nullptr);
 }
 
 // *********************************************************************************
@@ -155,9 +150,9 @@ TEST_F(SceneNodeTest, ComplexHierarchy)
 TEST_F(SceneNodeTest, ComplexTransformationPropagation)
 {
     // Create a 3-level hierarchy
-    hierarchy::Node& level1 = root->createChild<hierarchy::Node>("level1");
-    hierarchy::Node& level2 = level1.createChild<hierarchy::Node>("level2");
-    hierarchy::Node& level3 = level2.createChild<hierarchy::Node>("level3");
+    Node& level1 = root->createChild<Node>("level1");
+    Node& level2 = level1.createChild<Node>("level2");
+    Node& level3 = level2.createChild<Node>("level3");
 
     // Set transforms for each level
     Transform root_transform = Eigen::Matrix4d::Identity();
@@ -222,7 +217,7 @@ TEST_F(SceneNodeTest, LocalTransformWithRotation)
     EXPECT_TRUE(root->localTransform().isApprox(rotation_transform));
 
     // Create child node
-    hierarchy::Node& level1 = root->createChild<hierarchy::Node>("level1");
+    Node& level1 = root->createChild<Node>("level1");
 
     // Compare with explicit matrix:
     // 0 -1  0  1
@@ -238,8 +233,7 @@ TEST_F(SceneNodeTest, LocalTransformWithRotation)
     Eigen::AngleAxisd rotation2(M_PI / 2.0, Eigen::Vector3d::UnitZ());
     rotation_transform.block<3, 3>(0, 0) = rotation2.toRotationMatrix();
     level1.localTransform(rotation_transform);
-    hierarchy::Node const& level2 =
-        level1.createChild<hierarchy::Node>("level2");
+    Node const& level2 = level1.createChild<Node>("level2");
 
     // Compare with explicit matrix:
     // -1  0  0  1
@@ -256,8 +250,8 @@ TEST_F(SceneNodeTest, LocalTransformWithRotation)
 TEST_F(SceneNodeTest, ParentWithTwoRotationsAndWorldTransform)
 {
     // Create child nodes
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node& child2 = root->createChild<hierarchy::Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
 
     // Create parent transform with two rotations
     Transform parent_transform = Eigen::Matrix4d::Identity();
@@ -327,8 +321,8 @@ TEST_F(SceneNodeTest, WorldTransformMultipleChildren)
     parent_transform(0, 3) = 1.0; // Translation in x
     root->localTransform(parent_transform);
 
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node& child2 = root->createChild<hierarchy::Node>("child2");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
 
     Transform child1_transform = Eigen::Matrix4d::Identity();
     child1_transform(1, 3) = 2.0; // Translation in y
@@ -367,9 +361,8 @@ TEST_F(SceneNodeTest, WorldTransformMultipleChildren)
 // *********************************************************************************
 TEST_F(SceneNodeTest, DirtyFlagMechanism)
 {
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node const& grandchild =
-        child1.createChild<hierarchy::Node>("grandchild");
+    Node& child1 = root->createChild<Node>("child1");
+    Node const& grandchild = child1.createChild<Node>("grandchild");
 
     // Set initial transforms
     Transform root_transform = Eigen::Matrix4d::Identity();
@@ -399,7 +392,7 @@ TEST_F(SceneNodeTest, DirtyFlagMechanism)
 // *********************************************************************************
 TEST_F(SceneNodeTest, WorldTransformCaching)
 {
-    hierarchy::Node const& child = root->createChild<hierarchy::Node>("child");
+    Node const& child = root->createChild<Node>("child");
 
     Transform test_transform = Eigen::Matrix4d::Identity();
     test_transform(0, 3) = 1.0;
@@ -422,29 +415,27 @@ TEST_F(SceneNodeTest, WorldTransformCaching)
 TEST_F(SceneNodeTest, MultipleChildrenWithSameName)
 {
     // Test multiple children with same name (should return first found)
-    hierarchy::Node const& child1 =
-        root->createChild<hierarchy::Node>("duplicate");
-    hierarchy::Node const& child2 =
-        root->createChild<hierarchy::Node>("duplicate");
+    Node const& child1 = root->createChild<Node>("duplicate");
+    Node const& child2 = root->createChild<Node>("duplicate");
 
     // Test that there are two children
     EXPECT_EQ(root->children().size(), 2);
     EXPECT_NE(&child1, &child2);
 
     // Should return the first one found
-    hierarchy::Node const* found = hierarchy::Node::find(*root, "duplicate");
+    Node const* found = Node::find(*root, "duplicate");
     EXPECT_TRUE(found == &child1 || found == &child2);
 }
 
 // *********************************************************************************
 //! \brief Test template createChild with derived types.
 // *********************************************************************************
-class DerivedNode: public hierarchy::Node
+class DerivedNode: public Node
 {
 public:
 
     DerivedNode(const std::string& p_name, int p_value)
-        : hierarchy::Node(p_name), m_value(p_value)
+        : Node(p_name), m_value(p_value)
     {
     }
 
@@ -472,7 +463,7 @@ TEST_F(SceneNodeTest, TemplateCreateChildDerived)
 
     EXPECT_EQ(derived.name(), "derived");
     EXPECT_EQ(derived.value(), 42);
-    EXPECT_EQ(hierarchy::Node::find(*root, "derived"), &derived);
+    EXPECT_EQ(Node::find(*root, "derived"), &derived);
 
     // Test that derived functionality works
     derived.value(100);
@@ -489,9 +480,8 @@ TEST_F(SceneNodeTest, TemplateCreateChildDerived)
 // *********************************************************************************
 TEST_F(SceneNodeTest, AddExistingChildBasic)
 {
-    auto child_node =
-        hierarchy::Node::create<hierarchy::Node>("external_child");
-    hierarchy::Node* child_ptr = child_node.get();
+    auto child_node = Node::create<Node>("external_child");
+    Node* child_ptr = child_node.get();
 
     // Set a transform on the child before adding
     Transform child_transform = Eigen::Matrix4d::Identity();
@@ -510,7 +500,7 @@ TEST_F(SceneNodeTest, AddExistingChildBasic)
 
     // Verify the child is added to the root
     EXPECT_EQ(root->children().size(), 1);
-    EXPECT_EQ(hierarchy::Node::find(*root, "external_child"), child_ptr);
+    EXPECT_EQ(Node::find(*root, "external_child"), child_ptr);
 
     // Verify the child's transform is preserved
     Transform expected_transform = Eigen::Matrix4d::Identity();
@@ -535,40 +525,34 @@ TEST_F(SceneNodeTest, AddExistingChildBasic)
 // *********************************************************************************
 TEST_F(SceneNodeTest, RecursiveNodeSearchComplex)
 {
-    hierarchy::Node& child1 = root->createChild<hierarchy::Node>("child1");
-    hierarchy::Node& child2 = root->createChild<hierarchy::Node>("child2");
-    hierarchy::Node& grandchild1 =
-        child1.createChild<hierarchy::Node>("grandchild1");
-    hierarchy::Node& grandchild2 =
-        child1.createChild<hierarchy::Node>("grandchild2");
-    hierarchy::Node& great_grandchild =
-        grandchild1.createChild<hierarchy::Node>("great_grandchild");
+    Node& child1 = root->createChild<Node>("child1");
+    Node& child2 = root->createChild<Node>("child2");
+    Node& grandchild1 = child1.createChild<Node>("grandchild1");
+    Node& grandchild2 = child1.createChild<Node>("grandchild2");
+    Node& great_grandchild = grandchild1.createChild<Node>("great_grandchild");
 
     // Test that getNode searches recursively through the entire
     // subtree
-    EXPECT_EQ(hierarchy::Node::find(*root, "child1"), &child1);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child2"), &child2);
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(hierarchy::Node::find(grandchild1, "great_grandchild"),
-              &great_grandchild);
+    EXPECT_EQ(Node::find(*root, "child1"), &child1);
+    EXPECT_EQ(Node::find(*root, "child2"), &child2);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
 
     // Test search from child node
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild1"), &grandchild1);
-    EXPECT_EQ(hierarchy::Node::find(child1, "grandchild2"), &grandchild2);
-    EXPECT_EQ(hierarchy::Node::find(child1, "great_grandchild"),
-              &great_grandchild);
+    EXPECT_EQ(Node::find(child1, "grandchild1"), &grandchild1);
+    EXPECT_EQ(Node::find(child1, "grandchild2"), &grandchild2);
+    EXPECT_EQ(Node::find(child1, "great_grandchild"), &great_grandchild);
 
     // Test that child can't find sibling
-    EXPECT_EQ(hierarchy::Node::find(child1, "child2"), nullptr);
+    EXPECT_EQ(Node::find(child1, "child2"), nullptr);
 
     // Test that grandchild can't find uncle
-    EXPECT_EQ(hierarchy::Node::find(grandchild1, "child2"), nullptr);
+    EXPECT_EQ(Node::find(grandchild1, "child2"), nullptr);
 
     // Test search from grandchild
-    EXPECT_EQ(hierarchy::Node::find(grandchild1, "great_grandchild"),
-              &great_grandchild);
-    EXPECT_EQ(hierarchy::Node::find(grandchild2, "great_grandchild"), nullptr);
+    EXPECT_EQ(Node::find(grandchild1, "great_grandchild"), &great_grandchild);
+    EXPECT_EQ(Node::find(grandchild2, "great_grandchild"), nullptr);
 }
 
 // *********************************************************************************
@@ -576,22 +560,22 @@ TEST_F(SceneNodeTest, RecursiveNodeSearchComplex)
 // *********************************************************************************
 TEST_F(SceneNodeTest, MultipleAddChildCalls)
 {
-    auto child1 = hierarchy::Node::create<hierarchy::Node>("child1");
-    auto child2 = hierarchy::Node::create<hierarchy::Node>("child2");
-    auto child3 = hierarchy::Node::create<hierarchy::Node>("child3");
+    auto child1 = Node::create<Node>("child1");
+    auto child2 = Node::create<Node>("child2");
+    auto child3 = Node::create<Node>("child3");
 
-    hierarchy::Node* child1_ptr = child1.get();
-    hierarchy::Node* child2_ptr = child2.get();
-    hierarchy::Node* child3_ptr = child3.get();
+    Node* child1_ptr = child1.get();
+    Node* child2_ptr = child2.get();
+    Node* child3_ptr = child3.get();
 
     root->addChild(std::move(child1));
     root->addChild(std::move(child2));
     root->addChild(std::move(child3));
 
     EXPECT_EQ(root->children().size(), 3);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child1"), child1_ptr);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child2"), child2_ptr);
-    EXPECT_EQ(hierarchy::Node::find(*root, "child3"), child3_ptr);
+    EXPECT_EQ(Node::find(*root, "child1"), child1_ptr);
+    EXPECT_EQ(Node::find(*root, "child2"), child2_ptr);
+    EXPECT_EQ(Node::find(*root, "child3"), child3_ptr);
 }
 
 // *********************************************************************************
@@ -600,22 +584,20 @@ TEST_F(SceneNodeTest, MultipleAddChildCalls)
 TEST_F(SceneNodeTest, MixedChildCreation)
 {
     // Create child using createChild
-    hierarchy::Node& created_child =
-        root->createChild<hierarchy::Node>("created");
+    Node& created_child = root->createChild<Node>("created");
 
     // Add child using addChild
-    auto added_child = hierarchy::Node::create<hierarchy::Node>("added");
-    hierarchy::Node* added_ptr = added_child.get();
+    auto added_child = Node::create<Node>("added");
+    Node* added_ptr = added_child.get();
     root->addChild(std::move(added_child));
 
     // Create another child using createChild
-    hierarchy::Node& created_child2 =
-        root->createChild<hierarchy::Node>("created2");
+    Node& created_child2 = root->createChild<Node>("created2");
 
     EXPECT_EQ(root->children().size(), 3);
-    EXPECT_EQ(hierarchy::Node::find(*root, "created"), &created_child);
-    EXPECT_EQ(hierarchy::Node::find(*root, "added"), added_ptr);
-    EXPECT_EQ(hierarchy::Node::find(*root, "created2"), &created_child2);
+    EXPECT_EQ(Node::find(*root, "created"), &created_child);
+    EXPECT_EQ(Node::find(*root, "added"), added_ptr);
+    EXPECT_EQ(Node::find(*root, "created2"), &created_child2);
 }
 
 // *********************************************************************************
@@ -629,15 +611,14 @@ TEST_F(SceneNodeTest, CreateChildVsAddChildBehavior)
     root->localTransform(parent_transform);
 
     // Create child using createChild (should inherit parent transforms)
-    hierarchy::Node& created_child =
-        root->createChild<hierarchy::Node>("created");
+    Node& created_child = root->createChild<Node>("created");
     Transform child_transform = Eigen::Matrix4d::Identity();
     child_transform(1, 3) = 5.0; // Translation in y
     created_child.localTransform(child_transform);
 
     // Add child using addChild (should NOT inherit parent transforms)
-    auto added_child = hierarchy::Node::create<hierarchy::Node>("added");
-    hierarchy::Node const* added_ptr = added_child.get();
+    auto added_child = Node::create<Node>("added");
+    Node const* added_ptr = added_child.get();
     added_child->localTransform(child_transform); // Same local transform
     root->addChild(std::move(added_child));
 

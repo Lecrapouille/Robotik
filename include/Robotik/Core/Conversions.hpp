@@ -173,4 +173,12 @@ std::string printTransform(const Transform& p_transform, int p_precision = 3);
 // ------------------------------------------------------------------------
 std::string printPose(const std::string& name, const Pose& pose);
 
+// ------------------------------------------------------------------------
+//! \brief Calculate the pose error between a target and a current pose.
+//! \param p_target The target pose.
+//! \param p_current The current pose.
+//! \return The pose error.
+// ------------------------------------------------------------------------
+Pose calculatePoseError(Pose const& p_target, Pose const& p_current);
+
 } // namespace robotik::utils

@@ -10,6 +10,7 @@
 #include "RobotViewerApplication.hpp"
 
 #include "Robotik/Core/Conversions.hpp"
+#include "Robotik/Core/Debug.hpp"
 #include "Robotik/Core/Exception.hpp"
 
 #include <GL/glew.h>
@@ -123,19 +124,22 @@ bool RobotViewerApplication::onSetup()
     else
     {
         std::cout << "Loaded robot from: " << m_config.urdf_file << std::endl;
-        std::cout << debug::printRobot(*controlled_robot->robot, true)
+        std::cout << robotik::debug::printRobot(*controlled_robot->robot, true)
                   << std::endl;
     }
 
     // Set initial joint values to the specified position
     if (!m_config.joint_positions.empty())
     {
-        if (!controlled_robot->robot->setJointValues(m_config.joint_positions))
-        {
-            m_error = "Failed to set joint values for robot: " +
-                      controlled_robot->robot->name();
-            return false;
-        }
+        size_t idx = 0;
+        controlled_robot->robot->hierarchy().forEachJoint(
+            [&](Joint& joint, size_t)
+            {
+                if (idx < m_config.joint_positions.size())
+                {
+                    joint.position(m_config.joint_positions[idx++]);
+                }
+            });
     }
 
     // Set control joint (end effector) for inverse kinematics
@@ -179,13 +183,15 @@ bool RobotViewerApplication::setControlJoint(
     {
         if (!p_control_joint_name.empty())
         {
-            p_controlled_robot.control_joint = hierarchy::Node::find(
-                p_controlled_robot.robot->root(), p_control_joint_name);
+            p_controlled_robot.control_joint =
+                Node::find(p_controlled_robot.robot->hierarchy().root(),
+                           p_control_joint_name);
         }
         else
         {
-            std::vector<std::reference_wrapper<Link const>> p_end_effectors;
-            if (p_controlled_robot.robot->findEndEffectors(p_end_effectors))
+            auto const& p_end_effectors =
+                p_controlled_robot.robot->hierarchy().endEffectors();
+            if (!p_end_effectors.empty())
             {
                 p_controlled_robot.control_joint = &p_end_effectors[0].get();
             }
@@ -209,13 +215,14 @@ bool RobotViewerApplication::initCameraView(
     {
         if (!p_look_at_joint_name.empty())
         {
-            p_controlled_robot.camera_target = hierarchy::Node::find(
-                p_controlled_robot.robot->root(), p_look_at_joint_name);
+            p_controlled_robot.camera_target =
+                Node::find(p_controlled_robot.robot->hierarchy().root(),
+                           p_look_at_joint_name);
         }
         else
         {
             p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->root();
+                &p_controlled_robot.robot->hierarchy().root();
         }
     }
     catch (RobotikException const& e)
@@ -360,10 +367,10 @@ void RobotViewerApplication::onDraw()
     // Render all robots
     for (const auto& [_, it] : m_robot_manager.robots())
     {
-        if (it.is_visible && it.robot->hasRoot())
+        if (it.is_visible && it.robot->hierarchy().hasRoot())
         {
-            it.robot->root().traverse(
-                [this](hierarchy::Node const& node, size_t /*p_depth*/)
+            it.robot->hierarchy().root().traverse(
+                [this](Node const& node, size_t /*p_depth*/)
                 {
                     if (auto geometry = dynamic_cast<Geometry const*>(&node))
                     {
@@ -488,7 +495,10 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
     float animation_time = static_cast<float>(p_time) * 0.5f;
 
     // Get current joint values
-    std::vector<double> joint_values = p_robot.jointPositions();
+    std::vector<double> joint_values;
+    p_robot.hierarchy().forEachJoint(
+        [&](const Joint& joint, size_t)
+        { joint_values.push_back(joint.position()); });
 
     // Animate each joint with different frequencies and amplitudes
     for (size_t i = 0; i < joint_values.size(); ++i)
@@ -503,7 +513,15 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
             double(amplitude * std::sin(frequency * animation_time + phase));
     }
 
-    p_robot.setJointValues(joint_values);
+    size_t idx = 0;
+    p_robot.hierarchy().forEachJoint(
+        [&](Joint& joint, size_t)
+        {
+            if (idx < joint_values.size())
+            {
+                joint.position(joint_values[idx++]);
+            }
+        });
 }
 
 // ----------------------------------------------------------------------------

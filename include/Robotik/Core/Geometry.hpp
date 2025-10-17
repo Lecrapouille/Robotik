@@ -9,15 +9,22 @@
 
 #pragma once
 
-#include "Robotik/Core/SceneNode.hpp"
+#include "Robotik/Core/Node.hpp"
 
 namespace robotik
 {
 
 // ****************************************************************************
-//! \brief Geometry data for collision detection and/or visualization.
+//! \brief Geometry for visualization and collision detection. Geometry are
+//! stored in the hierarchy tree as robot model. Geometry type and parameters
+//! come from URDF file.
+//!
+//! This class represents a geometric shape for displaying a robot link. It can
+//! be a box, a cylinder, a sphere, or a mesh. In the case of a mesh, a bounding
+//! box is computed and used for collision detection. For other types, the
+//! geometry is directly used for collision detection.
 // ****************************************************************************
-class Geometry: public hierarchy::Node
+class Geometry: public Node
 {
 public:
 
@@ -33,11 +40,11 @@ public:
     //! \brief Common constructor for any kind of geometry with name, type,
     //! parameters, and mesh path.
     // ------------------------------------------------------------------------
-    Geometry(std::string_view const& p_name,
+    Geometry(std::string const& p_name,
              Type p_type,
              std::vector<double>&& p_parameters,
-             std::string_view p_mesh_path)
-        : hierarchy::Node(p_name),
+             std::string p_mesh_path)
+        : Node(p_name),
           m_type(p_type),
           m_parameters(std::move(p_parameters)),
           m_mesh_path(p_mesh_path)
@@ -79,7 +86,7 @@ public:
     //! \brief Set the geometry's mesh path (if type is MESH).
     //! \param p_mesh_path The geometry's mesh path.
     // ------------------------------------------------------------------------
-    void meshPath(std::string_view p_mesh_path)
+    void meshPath(std::string p_mesh_path)
     {
         m_mesh_path = p_mesh_path;
     }
@@ -107,11 +114,16 @@ public:
     bool collide(const Geometry& p_other) const;
 
     // ------------------------------------------------------------------------
-    //! \brief Get the geometry's debug string.
-    //! \param p_detailed Whether to include detailed information
-    //! \return The geometry's debug string
+    //! \brief Accept a visitor (Visitor pattern override).
+    //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    // std::string debug(bool p_detailed) const override;
+    void accept(NodeVisitor& visitor) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern override).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(ConstNodeVisitor& visitor) const override;
 
 private:
 
@@ -157,7 +169,7 @@ class Box: public Geometry
 {
 public:
 
-    Box(std::string_view const& p_name, double p_x, double p_y, double p_z)
+    Box(std::string const& p_name, double p_x, double p_y, double p_z)
         : Geometry(p_name, Type::BOX, std::vector<double>{ p_x, p_y, p_z }, "")
     {
     }
@@ -170,7 +182,7 @@ class Cylinder: public Geometry
 {
 public:
 
-    Cylinder(std::string_view const& p_name, double p_radius, double p_length)
+    Cylinder(std::string const& p_name, double p_radius, double p_length)
         : Geometry(p_name,
                    Type::CYLINDER,
                    std::vector<double>{ p_radius, p_length },
@@ -186,7 +198,7 @@ class Sphere: public Geometry
 {
 public:
 
-    Sphere(std::string_view const& p_name, double p_radius)
+    Sphere(std::string const& p_name, double p_radius)
         : Geometry(p_name, Type::SPHERE, std::vector<double>{ p_radius }, "")
     {
     }
@@ -199,7 +211,7 @@ class Mesh: public Geometry
 {
 public:
 
-    Mesh(std::string_view const& p_name, std::string_view p_mesh_path)
+    Mesh(std::string const& p_name, std::string p_mesh_path)
         : Geometry(p_name, Type::MESH, {}, p_mesh_path)
     {
     }

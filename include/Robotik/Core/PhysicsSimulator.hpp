@@ -7,10 +7,9 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#ifndef PHYSICS_SIMULATOR_HPP
-#define PHYSICS_SIMULATOR_HPP
+#pragma once
 
-#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/Types.hpp"
 
 namespace robotik
 {
@@ -69,15 +68,6 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set the time step.
-    //! \param p_dt Time step (seconds).
-    // ------------------------------------------------------------------------
-    inline void dt(double p_dt)
-    {
-        m_dt = p_dt;
-    }
-
-    // ------------------------------------------------------------------------
     //! \brief Simulate one time step for the robot.
     //!
     //! This method computes the forward dynamics (joint accelerations from
@@ -126,5 +116,3 @@ private:
 };
 
 } // namespace robotik
-
-#endif // PHYSICS_SIMULATOR_HPP

@@ -21,11 +21,8 @@ namespace robotik
 {
 
 // Forward declarations
-class Robot;
-namespace hierarchy
-{
+struct State;
 class Node;
-}
 
 // ****************************************************************************
 //! \brief Base interface for Inverse Kinematics solvers.
@@ -43,33 +40,37 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Solve inverse kinematics for a target pose.
     //!
-    //! \param p_robot The robot to solve IK for.
+    //! \param p_state The state to solve IK for.
     //! \param p_target_pose Desired end-effector 6D pose [x,y,z,rx,ry,rz].
     //! \param p_end_effector Reference to the end effector node.
-    //! \return Vector of joint values if solution found, empty vector
-    //! otherwise.
+    //! \return True if solution found, false otherwise.
     // ------------------------------------------------------------------------
-    virtual std::vector<double> solve(Robot& p_robot,
-                                      hierarchy::Node const& p_end_effector,
-                                      Pose const& p_target_pose) = 0;
+    virtual bool solve(State& p_state,
+                       Node const& p_end_effector,
+                       Pose const& p_target_pose) = 0;
 
     // ------------------------------------------------------------------------
-    //! \brief Get the last error magnitude from the solving process.
+    //! \brief Get the pose error magnitude from the solving process.
     //! \return Error magnitude (distance to target).
     // ------------------------------------------------------------------------
-    virtual double lastError() const = 0;
+    virtual double poseError() const = 0;
 
     // ------------------------------------------------------------------------
-    //! \brief Get the number of iterations used in the last solve.
+    //! \brief Get the number of iterations used in the solving process.
     //! \return Number of iterations.
     // ------------------------------------------------------------------------
-    virtual size_t lastIterations() const = 0;
+    virtual size_t numIterations() const = 0;
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the last solve converged successfully.
+    //! \brief Check if the solving process converged successfully.
     //! \return True if converged, false otherwise.
     // ------------------------------------------------------------------------
     virtual bool converged() const = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the error message.
+    // ------------------------------------------------------------------------
+    virtual std::string const& errorMessage() const = 0;
 };
 
 // ****************************************************************************
@@ -129,58 +130,47 @@ public:
     // ------------------------------------------------------------------------
     explicit JacobianIKSolver(Config const& p_config) : m_config(p_config) {}
 
-    // ------------------------------------------------------------------------
-    //! \brief Get/set the solver configuration.
-    // ------------------------------------------------------------------------
     Config& config()
     {
         return m_config;
     }
+
     Config const& config() const
     {
         return m_config;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Solve IK using Jacobian-based iterative method.
-    // ------------------------------------------------------------------------
-    std::vector<double> solve(Robot& p_robot,
-                              hierarchy::Node const& p_end_effector,
-                              Pose const& p_target_pose) override;
+    bool solve(State& p_state,
+               Node const& p_end_effector,
+               Pose const& p_target_pose) override;
 
-    // ------------------------------------------------------------------------
-    //! \brief Get the last error magnitude.
-    // ------------------------------------------------------------------------
-    double lastError() const override
+    double poseError() const override
     {
-        return m_last_error;
+        return m_pose_error;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Get the number of iterations used.
-    // ------------------------------------------------------------------------
-    size_t lastIterations() const override
+    size_t numIterations() const override
     {
-        return m_last_iterations;
+        return m_num_iterations;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Check if the solver converged.
-    // ------------------------------------------------------------------------
     bool converged() const override
     {
         return m_converged;
     }
 
+    std::string const& errorMessage() const override
+    {
+        return m_error_message;
+    }
+
 private:
 
     Config m_config;
-    double m_last_error = 0.0;
-    size_t m_last_iterations = 0;
+    double m_pose_error = 0.0;
+    size_t m_num_iterations = 0;
     bool m_converged = false;
-
-    // Helper to calculate pose error
-    Pose calculatePoseError(Pose const& p_target, Pose const& p_current) const;
+    std::string m_error_message;
 };
 
 // ****************************************************************************
@@ -203,24 +193,6 @@ inline std::unique_ptr<IKSolver>
 createJacobianIKSolver(JacobianIKSolver::Config const& p_config)
 {
     return std::make_unique<JacobianIKSolver>(p_config);
-}
-
-// ****************************************************************************
-//! \brief Convenience function for quick IK solving.
-//!
-//! This is a helper that creates a default solver and solves IK in one call.
-//!
-//! \param p_robot The robot to solve IK for.
-//! \param p_target_pose Desired end-effector pose.
-//! \param p_end_effector Reference to the end effector node.
-//! \return Vector of joint values if solution found, empty vector otherwise.
-// ****************************************************************************
-inline std::vector<double> solveIK(Robot& p_robot,
-                                   hierarchy::Node const& p_end_effector,
-                                   Pose const& p_target_pose)
-{
-    auto solver = createDefaultIKSolver();
-    return solver->solve(p_robot, p_end_effector, p_target_pose);
 }
 
 } // namespace robotik

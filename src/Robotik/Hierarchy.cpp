@@ -9,23 +9,87 @@
 
 #include "Robotik/Core/Hierarchy.hpp"
 #include "Robotik/Core/Exception.hpp"
-
-#include <algorithm>
-#include <functional>
+#include "Robotik/Core/NodeVisitor.hpp"
 
 namespace robotik
 {
 
-// ----------------------------------------------------------------------------
-Hierarchy::Hierarchy(std::string_view const& p_name,
-                     hierarchy::Node::Ptr p_root)
-    : m_name(p_name)
+// Forward declare for friend
+class CacheHierarchyVisitor;
+
+} // namespace robotik
+
+namespace robotik
 {
-    root(std::move(p_root));
+
+// ****************************************************************************
+//! \brief Visitor for caching the hierarchy tree structure.
+//!
+//! This visitor traverses the robot hierarchy and populates the internal
+//! lookup tables for joints, links, sensors, and actuators. It also assigns
+//! indices to actuable joints for efficient array-based access.
+// ****************************************************************************
+class CacheHierarchyVisitor: public NodeVisitor
+{
+private:
+
+    Hierarchy* m_hierarchy;
+    size_t m_joint_index = 0;
+
+public:
+
+    explicit CacheHierarchyVisitor(Hierarchy* p_hierarchy)
+        : m_hierarchy(p_hierarchy)
+    {
+    }
+
+    void visit(Joint& joint) override
+    {
+        // Only cache actuable joints (exclude FIXED joints)
+        if (joint.type() != Joint::Type::FIXED)
+        {
+            m_hierarchy->m_joints_map.try_emplace(joint.name(),
+                                                  std::ref(joint));
+            m_hierarchy->m_joints.emplace_back(std::ref(joint));
+            joint.setIndex(m_joint_index++);
+        }
+    }
+
+    void visit(Link& link) override
+    {
+        m_hierarchy->m_links_map.try_emplace(link.name(), std::ref(link));
+    }
+
+    void visit(Sensor& sensor) override
+    {
+        m_hierarchy->m_sensors_map.try_emplace(sensor.name(), std::ref(sensor));
+    }
+
+    void visit(Actuator& actuator) override
+    {
+        m_hierarchy->m_actuators_map.try_emplace(actuator.name(),
+                                                 std::ref(actuator));
+    }
+
+    void visit(Geometry&) override
+    {
+        // Ignore geometry nodes in hierarchy cache
+    }
+
+    void visit(Node&) override
+    {
+        // Ignore other node types
+    }
+};
+
+// ----------------------------------------------------------------------------
+Hierarchy::Hierarchy(Node::Ptr p_root) : m_root_node(std::move(p_root))
+{
+    cacheHierarchyTree();
 }
 
 // ----------------------------------------------------------------------------
-void Hierarchy::root(hierarchy::Node::Ptr p_root)
+void Hierarchy::root(Node::Ptr p_root)
 {
     m_root_node = std::move(p_root);
     cacheHierarchyTree();
@@ -34,58 +98,26 @@ void Hierarchy::root(hierarchy::Node::Ptr p_root)
 // ----------------------------------------------------------------------------
 void Hierarchy::cacheHierarchyTree()
 {
-    // If the cache is not dirty, we can return early
-    if (!m_cache_dirty)
-    {
-        return;
-    }
-
     m_joints.clear();
     m_joints_map.clear();
     m_links_map.clear();
     m_sensors_map.clear();
     m_actuators_map.clear();
+    m_end_effectors.clear();
 
-    if (m_root_node != nullptr)
-    {
-        m_root_node->traverse(
-            [this](hierarchy::Node& p_node, size_t /*p_depth*/)
-            {
-                // Only cache actuable joints
-                if (auto joint = dynamic_cast<Joint*>(&p_node))
-                {
-                    if (joint->type() != Joint::Type::FIXED)
-                    {
-                        m_joints_map.try_emplace(joint->name(),
-                                                 std::ref(*joint));
-                        m_joints.emplace_back(std::ref(*joint));
-                    }
-                }
-                // Cache links
-                else if (auto link = dynamic_cast<Link*>(&p_node))
-                {
-                    m_links_map.try_emplace(link->name(), std::ref(*link));
-                }
-                // Cache sensors
-                else if (auto sensor = dynamic_cast<Sensor*>(&p_node))
-                {
-                    m_sensors_map.try_emplace(sensor->name(),
-                                              std::ref(*sensor));
-                }
-                // Cache actuators
-                else if (auto actuator = dynamic_cast<Actuator*>(&p_node))
-                {
-                    m_actuators_map.try_emplace(actuator->name(),
-                                                std::ref(*actuator));
-                }
-            });
-    }
+    if (m_root_node == nullptr)
+        return;
 
-    m_cache_dirty = false;
+    // Use the Visitor pattern to traverse and cache the hierarchy
+    CacheHierarchyVisitor visitor(this);
+    m_root_node->traverse(visitor);
+
+    // To be called after all joints are cached
+    findEndEffectors(m_end_effectors);
 }
 
 // ----------------------------------------------------------------------------
-Joint const& Hierarchy::joint(std::string_view const& p_name) const
+Joint const& Hierarchy::joint(std::string const& p_name) const
 {
     auto const& it = m_joints_map.find(std::string(p_name));
     if (it == m_joints_map.end())
@@ -96,7 +128,7 @@ Joint const& Hierarchy::joint(std::string_view const& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-Joint& Hierarchy::joint(std::string_view const& p_name)
+Joint& Hierarchy::joint(std::string const& p_name)
 {
     auto const& it = m_joints_map.find(std::string(p_name));
     if (it == m_joints_map.end())
@@ -107,7 +139,7 @@ Joint& Hierarchy::joint(std::string_view const& p_name)
 }
 
 // ----------------------------------------------------------------------------
-Link const& Hierarchy::link(std::string_view const& p_name) const
+Link const& Hierarchy::link(std::string const& p_name) const
 {
     auto const& it = m_links_map.find(std::string(p_name));
     if (it == m_links_map.end())
@@ -118,69 +150,19 @@ Link const& Hierarchy::link(std::string_view const& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::string> Hierarchy::jointNames() const
-{
-    std::vector<std::string> names;
-    names.reserve(m_joints.size());
-
-    for (const auto& joint_ref : m_joints)
-    {
-        names.push_back(joint_ref.get().name());
-    }
-
-    return names;
-}
-
-// ----------------------------------------------------------------------------
-std::vector<std::string> Hierarchy::linkNames() const
-{
-    std::vector<std::string> names;
-    names.reserve(m_links_map.size());
-    for (const auto& [name, _] : m_links_map)
-    {
-        names.push_back(name);
-    }
-    return names;
-}
-
-// ----------------------------------------------------------------------------
-std::vector<std::string> Hierarchy::sensorNames() const
-{
-    std::vector<std::string> names;
-    names.reserve(m_sensors_map.size());
-    for (const auto& [name, _] : m_sensors_map)
-    {
-        names.push_back(name);
-    }
-    return names;
-}
-
-// ----------------------------------------------------------------------------
-std::vector<std::string> Hierarchy::actuatorNames() const
-{
-    std::vector<std::string> names;
-    names.reserve(m_actuators_map.size());
-    for (const auto& [name, _] : m_actuators_map)
-    {
-        names.push_back(name);
-    }
-    return names;
-}
-
-// ----------------------------------------------------------------------------
 size_t Hierarchy::findEndEffectors(
-    std::vector<std::reference_wrapper<Link const>>& p_end_effectors) const
+    std::vector<std::reference_wrapper<Link>>& p_end_effectors)
 {
     p_end_effectors.clear();
     p_end_effectors.reserve(m_links_map.size());
 
-    for (const auto& [_, link_ref] : m_links_map)
+    for (auto& [_, link_ref] : m_links_map)
     {
-        const Link& link = link_ref.get();
+        Link& link = link_ref.get();
         bool has_child_joints = false;
-        for (const auto& child : link.children())
+        for (auto& child : link.children())
         {
-            if (dynamic_cast<Joint const*>(child.get()))
+            if (dynamic_cast<Joint*>(child.get()))
             {
                 has_child_joints = true;
                 break;
@@ -194,25 +176,6 @@ size_t Hierarchy::findEndEffectors(
     }
 
     return p_end_effectors.size();
-}
-
-// ----------------------------------------------------------------------------
-void Hierarchy::setMeshPrefixPath(std::string const& p_prefix_path) const
-{
-    if (p_prefix_path.empty())
-    {
-        return;
-    }
-
-    for (auto const& [_, link] : m_links_map)
-    {
-        auto& geometry = link.get().geometry();
-
-        if (geometry.type() == Geometry::Type::MESH)
-        {
-            geometry.meshPath(p_prefix_path + "/" + geometry.meshPath());
-        }
-    }
 }
 
 } // namespace robotik

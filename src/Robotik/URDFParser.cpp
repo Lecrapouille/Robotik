@@ -32,7 +32,7 @@ namespace robotik
 // ------------------------------------------------------------------------
 struct URDFParserLink
 {
-    explicit URDFParserLink(std::string_view const& p_name) : name(p_name) {}
+    explicit URDFParserLink(std::string const& p_name) : name(p_name) {}
 
     //! \brief Name of the link
     std::string name;
@@ -84,7 +84,7 @@ static void forEachChildElement(tinyxml2::XMLElement* p_parent,
 }
 
 // ----------------------------------------------------------------------------
-static Joint::Type jointType(std::string_view const& p_str_type)
+static Joint::Type jointType(std::string const& p_str_type)
 {
     if (p_str_type == "revolute")
         return Joint::Type::REVOLUTE;
@@ -185,18 +185,20 @@ URDFParser::parseRobot(tinyxml2::XMLElement* p_robot_element)
         return nullptr;
     }
 
+    size_t index = 0;
+
     // Parse the joints.
     forEachChildElement( //
         p_robot_element,
         "joint",
-        [this](auto* xml)
+        [this, &index](auto* xml)
         {
             std::string name = xml->Attribute("name");
             Joint::Type type = jointType(xml->Attribute("type"));
 
             Eigen::Vector3d axis = parseAxis(xml);
             auto [origin_xyz, origin_rpy] = parseOriginTransform(xml);
-            auto joint = std::make_unique<Joint>(name, type, axis);
+            auto joint = std::make_unique<Joint>(name, type, axis, index++);
             joint->localTransform(utils::createTransform(
                 origin_xyz, origin_rpy.x(), origin_rpy.y(), origin_rpy.z()));
 
@@ -666,8 +668,8 @@ URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link,
     }
 
     // Create link with visual geometry and collision data
-    auto link = hierarchy::Node::create<robotik::Link>(
-        p_urdf_link.name, std::move(p_urdf_link.geometry));
+    auto link = Node::create<robotik::Link>(p_urdf_link.name,
+                                            std::move(p_urdf_link.geometry));
     link->setCollisionData(p_urdf_link.urdf_collision_center,
                            p_urdf_link.urdf_collision_orientation,
                            p_urdf_link.urdf_collision_params);

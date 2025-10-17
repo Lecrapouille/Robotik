@@ -8,7 +8,9 @@
  */
 
 #include "Robotik/Core/PhysicsSimulator.hpp"
-
+#include "Robotik/Core/Joint.hpp"
+#include "Robotik/Core/Link.hpp"
+#include "Robotik/Core/Robot.hpp"
 namespace robotik
 {
 
@@ -28,9 +30,6 @@ Eigen::Vector3d PhysicsSimulator::computeLinkForce(Link const& p_link) const
 // ----------------------------------------------------------------------------
 void PhysicsSimulator::step(Robot& p_robot)
 {
-    if (!p_robot.hasRoot())
-        return;
-
     // Initial conditions
     Eigen::Vector3d vel = Eigen::Vector3d::Zero();
     Eigen::Vector3d acc = Eigen::Vector3d::Zero();
@@ -39,7 +38,7 @@ void PhysicsSimulator::step(Robot& p_robot)
     // The robot structure is: Link (root) -> Joint -> Link -> Joint -> ...
     // We need to find the first joint child of the root link
     // Note: We need non-const access to modify joint states
-    auto& root = const_cast<hierarchy::Node&>(p_robot.root());
+    auto& root = p_robot.hierarchy().root();
 
     for (const auto& child : root.children())
     {
@@ -78,8 +77,7 @@ void PhysicsSimulator::computeDynamics(Joint& p_joint,
         for (const auto& child : p_joint.children())
         {
             // Find the link child, then its joint children
-            auto* link = dynamic_cast<Link*>(child.get());
-            if (link)
+            if (auto* link = dynamic_cast<Link*>(child.get()); link)
             {
                 for (const auto& grandchild : link->children())
                 {

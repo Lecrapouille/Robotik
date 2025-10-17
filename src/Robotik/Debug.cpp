@@ -8,7 +8,7 @@
  */
 
 #include "Robotik/Core/Conversions.hpp"
-#include "Robotik/Core/Hierarchy.hpp"
+#include "Robotik/Core/NodeVisitor.hpp"
 #include "Robotik/Core/Robot.hpp"
 
 #include <iomanip>
@@ -54,9 +54,9 @@ namespace robotik::debug
 {
 
 // ----------------------------------------------------------------------------
-static std::string generateIndentation(size_t p_depth,
-                                       const std::vector<bool>& p_last_flags,
-                                       bool p_is_detailed = false)
+static std::string indentation(size_t p_depth,
+                               const std::vector<bool>& p_last_flags,
+                               bool p_is_detailed = false)
 {
     std::string indent;
 
@@ -87,7 +87,7 @@ static std::string generateIndentation(size_t p_depth,
 }
 
 // ----------------------------------------------------------------------------
-static std::string getJointTypeName(Joint::Type p_type)
+static std::string joint_type(Joint::Type p_type)
 {
     switch (p_type)
     {
@@ -105,10 +105,10 @@ static std::string getJointTypeName(Joint::Type p_type)
 }
 
 // ----------------------------------------------------------------------------
-static std::string getJointName(const Joint& p_joint, bool p_detailed)
+static std::string joint_name(const Joint& p_joint, bool p_detailed)
 {
     std::string name = JOINT_EMOJI + " " + BOLD + YELLOW + p_joint.name() +
-                       RESET + " (" + getJointTypeName(p_joint.type());
+                       RESET + " (" + joint_type(p_joint.type());
     if (p_detailed && p_joint.type() != Joint::Type::FIXED)
     {
         // Add axis information
@@ -137,7 +137,7 @@ static std::string getJointName(const Joint& p_joint, bool p_detailed)
     return name;
 }
 // ----------------------------------------------------------------------------
-static std::string printTransform(Transform const& p_transform)
+static std::string print_transform(Transform const& p_transform)
 {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
@@ -155,7 +155,7 @@ static std::string printTransform(Transform const& p_transform)
 }
 
 // ----------------------------------------------------------------------------
-static std::string printGeometryDetails(Geometry const& p_geometry)
+static std::string print_geometry_details(Geometry const& p_geometry)
 {
     std::ostringstream oss;
     oss << std::fixed << std::setprecision(2);
@@ -206,27 +206,27 @@ static std::string printGeometryDetails(Geometry const& p_geometry)
 }
 
 // ----------------------------------------------------------------------------
-static std::string printGeometryDetails(Geometry const& p_geometry,
-                                        std::string const& p_indentation)
+static std::string print_geometry_details(Geometry const& p_geometry,
+                                          std::string const& p_indentation)
 {
     std::ostringstream oss;
 
-    oss << p_indentation << "└─ " << printGeometryDetails(p_geometry)
+    oss << p_indentation << "└─ " << print_geometry_details(p_geometry)
         << std::endl;
 
     return oss.str();
 }
 
 // ----------------------------------------------------------------------------
-static std::string printJointDetails(Joint const& p_joint,
-                                     std::string const& p_indentation,
-                                     bool const p_end_connector)
+static std::string print_joint_details(Joint const& p_joint,
+                                       std::string const& p_indentation,
+                                       bool const p_end_connector)
 {
     std::ostringstream oss;
 
     // Print the joint local transform
     oss << p_indentation << "│    ├─ " << LOCAL_EMOJI << " " << CYAN << "origin"
-        << RESET << ": " << printTransform(p_joint.localTransform())
+        << RESET << ": " << print_transform(p_joint.localTransform())
         << std::endl;
 
     // Print the joint position
@@ -250,118 +250,179 @@ static std::string printJointDetails(Joint const& p_joint,
     // Print the joint world transform
     oss << p_indentation << (p_end_connector ? "│    └─ " : "│    │   ")
         << WORLD_EMOJI << " " << BLUE << "world" << RESET << ":  "
-        << printTransform(p_joint.worldTransform()) << std::endl;
+        << print_transform(p_joint.worldTransform()) << std::endl;
 
     return oss.str();
 }
 
 // ----------------------------------------------------------------------------
-static std::string printLinkDetails(Link const& p_link,
-                                    const std::string& p_indentation,
-                                    bool const p_end_connector)
+static std::string print_link_details(Link const& p_link,
+                                      const std::string& p_indentation,
+                                      bool const p_end_connector)
 {
     std::ostringstream oss;
 
     oss << p_indentation << "│    ├─ " << LOCAL_EMOJI << " " << CYAN << "local"
-        << RESET << ":  " << printTransform(p_link.localTransform())
+        << RESET << ":  " << print_transform(p_link.localTransform())
         << std::endl;
     oss << p_indentation << (p_end_connector ? "│    └─ " : "│    │   ")
         << WORLD_EMOJI << " " << BLUE << "world" << RESET << ":  "
-        << printTransform(p_link.worldTransform()) << std::endl;
+        << print_transform(p_link.worldTransform()) << std::endl;
 
     return oss.str();
 }
 
-// ----------------------------------------------------------------------------
-static std::string printNodeRecursive(hierarchy::Node const& p_node,
-                                      size_t p_depth,
-                                      std::vector<bool>& p_last_flags,
-                                      bool const p_detailed)
+// ****************************************************************************
+//! \brief Visitor for debug printing of the robot hierarchy.
+//!
+//! This visitor traverses the robot hierarchy and generates formatted debug
+//! output with proper indentation and tree structure visualization.
+// ****************************************************************************
+class DebugPrintVisitor: public ConstNodeVisitor
 {
-    std::ostringstream oss;
+private:
 
-    oss << generateIndentation(p_depth, p_last_flags, false);
+    std::ostringstream& m_oss;
+    bool m_detailed;
+    std::vector<bool>& m_last_flags;
+    std::vector<size_t> m_child_indices;
+    std::vector<const Node*> m_node_stack;
 
-    // Print information depending on the appropriate node type
-    if (auto joint = dynamic_cast<const Joint*>(&p_node))
+public:
+
+    DebugPrintVisitor(std::ostringstream& oss,
+                      bool detailed,
+                      std::vector<bool>& last_flags)
+        : m_oss(oss), m_detailed(detailed), m_last_flags(last_flags)
     {
-        oss << getJointName(*joint, p_detailed) << std::endl;
-        if (p_detailed)
-        {
-            bool end_connector = !p_node.children().empty();
-            auto indentation = generateIndentation(p_depth, p_last_flags, true);
-            oss << printJointDetails(*joint, indentation, end_connector);
-        }
-    }
-    else if (auto link = dynamic_cast<const Link*>(&p_node))
-    {
-        oss << LINK_EMOJI << " " << BOLD << GREEN << "[" + link->name() + "]"
-            << RESET << std::endl;
-        if (p_detailed)
-        {
-            bool end_connector = !p_node.children().empty();
-            auto indentation = generateIndentation(p_depth, p_last_flags, true);
-            oss << printLinkDetails(*link, indentation, end_connector);
-        }
-    }
-    else if (auto geometry = dynamic_cast<const Geometry*>(&p_node))
-    {
-        oss << GEOMETRY_EMOJI << " " << BOLD << GREEN << geometry->name()
-            << RESET << std::endl;
-        if (p_detailed)
-        {
-            auto indentation = generateIndentation(p_depth, p_last_flags, true);
-            oss << printGeometryDetails(*geometry, indentation);
-        }
-    }
-    else
-    {
-        oss << p_node.name() << std::endl;
     }
 
-    // Process children
-    const auto& children = p_node.children();
-    for (size_t i = 0; i < children.size(); ++i)
+    void visitNode(const Node& node)
     {
-        if (p_depth >= p_last_flags.size())
+        // Manage indentation flags
+        if (m_depth >= m_last_flags.size())
         {
-            p_last_flags.resize(p_depth + 1);
+            m_last_flags.resize(m_depth + 1);
         }
 
-        bool is_last_child = (i == children.size() - 1);
-        p_last_flags[p_depth] = is_last_child;
+        // Update last_flags based on sibling position
+        if (!m_node_stack.empty() && m_depth > 0)
+        {
+            const Node* parent = m_node_stack.back();
+            const auto& children = parent->children();
+            size_t child_index = m_child_indices.back();
+            bool is_last = (child_index == children.size() - 1);
+            if (m_depth > 0)
+            {
+                m_last_flags[m_depth - 1] = is_last;
+            }
+        }
 
-        oss << printNodeRecursive(
-            *children[i], p_depth + 1, p_last_flags, p_detailed);
+        // Store current node for children processing
+        m_node_stack.push_back(&node);
+        m_child_indices.push_back(0);
     }
 
-    return oss.str();
-}
+    void afterVisitNode(const Node& node)
+    {
+        // Process children manually since we override traverse behavior
+        const auto& children = node.children();
+        if (!children.empty())
+        {
+            incrementDepth();
+            for (size_t i = 0; i < children.size(); ++i)
+            {
+                m_child_indices.back() = i;
+                children[i]->accept(*this);
+            }
+            decrementDepth();
+        }
+
+        m_node_stack.pop_back();
+        m_child_indices.pop_back();
+    }
+
+    void visit(const Joint& joint) override
+    {
+        visitNode(joint);
+        m_oss << indentation(m_depth, m_last_flags, false);
+        m_oss << joint_name(joint, m_detailed) << std::endl;
+        if (m_detailed)
+        {
+            bool end_connector = !joint.children().empty();
+            auto str_indentation = indentation(m_depth, m_last_flags, true);
+            m_oss << print_joint_details(joint, str_indentation, end_connector);
+        }
+        afterVisitNode(joint);
+    }
+
+    void visit(const Link& link) override
+    {
+        visitNode(link);
+        m_oss << indentation(m_depth, m_last_flags, false);
+        m_oss << LINK_EMOJI << " " << BOLD << GREEN << "[" + link.name() + "]"
+              << RESET << std::endl;
+        if (m_detailed)
+        {
+            bool end_connector = !link.children().empty();
+            auto str_indentation = indentation(m_depth, m_last_flags, true);
+            m_oss << print_link_details(link, str_indentation, end_connector);
+        }
+        afterVisitNode(link);
+    }
+
+    void visit(const Geometry& geometry) override
+    {
+        visitNode(geometry);
+        m_oss << indentation(m_depth, m_last_flags, false);
+        m_oss << GEOMETRY_EMOJI << " " << BOLD << GREEN << geometry.name()
+              << RESET << std::endl;
+        if (m_detailed)
+        {
+            auto str_indentation = indentation(m_depth, m_last_flags, true);
+            m_oss << print_geometry_details(geometry, str_indentation);
+        }
+        afterVisitNode(geometry);
+    }
+
+    void visit(const Sensor&) override
+    {
+        // Ignore sensors in debug output for now
+    }
+
+    void visit(const Actuator&) override
+    {
+        // Ignore actuators in debug output for now
+    }
+
+    void visit(const Node& node) override
+    {
+        visitNode(node);
+        m_oss << indentation(m_depth, m_last_flags, false);
+        m_oss << node.name() << std::endl;
+        afterVisitNode(node);
+    }
+};
 
 // ----------------------------------------------------------------------------
-std::string printRobot(Hierarchy const& p_hierarchy, bool const p_detailed)
+std::string printRobot(Robot const& p_robot, bool const p_detailed)
 {
     std::ostringstream oss;
 
     oss << ROBOT_EMOJI << " " << BOLD << MAGENTA << "Hierarchy" << RESET << ": "
-        << BOLD << WHITE << p_hierarchy.name() << RESET << std::endl;
-    if (!p_hierarchy.hasRoot())
+        << BOLD << WHITE << p_robot.name() << RESET << std::endl;
+    if (!p_robot.hierarchy().hasRoot())
     {
         oss << "  " << RED << "❌ No root node found!" << RESET << std::endl;
         return oss.str();
     }
 
+    // Use the Visitor pattern to print the robot hierarchy
     std::vector<bool> last_flags;
-    oss << printNodeRecursive(p_hierarchy.root(), 0, last_flags, p_detailed);
+    DebugPrintVisitor visitor(oss, p_detailed, last_flags);
+    p_robot.hierarchy().root().accept(visitor);
 
     return oss.str();
-}
-
-// ----------------------------------------------------------------------------
-std::string printRobot(Robot const& p_robot, bool const p_detailed)
-{
-    // Robot inherits from Hierarchy, so we can just cast and call
-    return printRobot(static_cast<Hierarchy const&>(p_robot), p_detailed);
 }
 
 } // namespace robotik::debug

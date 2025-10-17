@@ -91,18 +91,6 @@
 #pragma once
 
 // ============================================================================
-// Forward Declarations
-// ============================================================================
-
-#include "Robotik/Core/ClassesFwd.hpp"
-
-// ============================================================================
-// Common Types
-// ============================================================================
-
-#include "Robotik/Core/Types.hpp"
-
-// ============================================================================
 // Include full API after forward declarations
 // ============================================================================
 
@@ -113,7 +101,9 @@
 // Extended API: Additional modules for advanced functionality
 // ============================================================================
 
-#include "Robotik/Core/IKSolver.hpp"
+#include "Robotik/Core/Debug.hpp"
+#include "Robotik/Core/NodeVisitor.hpp"
+// #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/PhysicsSimulator.hpp"
 
 namespace robotik

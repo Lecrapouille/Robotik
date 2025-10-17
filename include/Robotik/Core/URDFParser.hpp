@@ -9,7 +9,6 @@
 
 #pragma once
 
-#include "Robotik/Core/ClassesFwd.hpp"
 #include "Robotik/Core/Types.hpp"
 
 #include <memory>

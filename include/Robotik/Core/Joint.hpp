@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Core/SceneNode.hpp"
+#include "Robotik/Core/Node.hpp"
 
 namespace robotik
 {
@@ -48,7 +48,7 @@ namespace robotik
 //! based on its current value and type, enabling forward kinematics
 //! computation.
 // *********************************************************************************
-class Joint: public hierarchy::Node
+class Joint: public Node
 {
 public:
 
@@ -116,13 +116,35 @@ public:
     //! both revolute and prismatic joints.
     //!
     //! \param p_name Unique identifier for the joint in the kinematic chain.
+    //! \param p_index Index of the joint in the hierarchy to access it from a
+    //! std::vector<Joint>.
     //! \param p_type Mechanical type defining the motion constraint (REVOLUTE,
     //! PRISMATIC, FIXED, CONTINUOUS).
     //! \param p_axis Normalized 3D vector defining the motion axis.
     // ------------------------------------------------------------------------
-    Joint(std::string_view const& p_name,
+    Joint(std::string const& p_name,
           Type p_type,
-          const Eigen::Vector3d& p_axis); // TODO mettre Inertia
+          Eigen::Vector3d const& p_axis,
+          size_t p_index = 0);
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the joint's index in the hierarchy.
+    //! \return The joint's index in the hierarchy.
+    // ------------------------------------------------------------------------
+    inline size_t index() const
+    {
+        return m_index;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the joint's index in the hierarchy.
+    //!
+    //! This method is called by Hierarchy::cacheHierarchyTree() to assign
+    //! indices to joints after they are added to the joints vector.
+    //!
+    //! \param p_index The index to assign to this joint.
+    // ------------------------------------------------------------------------
+    void setIndex(size_t p_index);
 
     // ------------------------------------------------------------------------
     //! \brief Get the joint's motion axis vector.
@@ -430,6 +452,18 @@ public:
     Transform const& localTransform() const override;
 
     // ------------------------------------------------------------------------
+    //! \brief Accept a visitor (Visitor pattern override).
+    //! \param visitor The visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(NodeVisitor& visitor) override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern override).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    void accept(ConstNodeVisitor& visitor) const override;
+
+    // ------------------------------------------------------------------------
     //! \brief Update the associated node's transformation.
     //!
     //! PHYSICS: This method propagates the joint's motion through the
@@ -458,18 +492,12 @@ public:
     // ------------------------------------------------------------------------
     void updateTransforms();
 
-    // ------------------------------------------------------------------------
-    //! \brief Get the joint's debug string.
-    //! \param p_detailed Whether to include detailed information.
-    //! \return The joint's debug string.
-    // ------------------------------------------------------------------------
-    // std::string printName(bool p_detailed) const;
-    // std::string printDetails();
-
 private:
 
     //! \brief Mechanical constraint type (revolute/prismatic/fixed)
     Joint::Type m_type;
+    //! \brief Index of the joint in the hierarchy.
+    size_t m_index = 0;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
     //! \brief Cached joint transformation matrix.

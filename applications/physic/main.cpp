@@ -36,8 +36,6 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "Robot loaded: " << robot->name() << std::endl;
-    std::cout << "Number of joints: " << robot->jointNames().size()
-              << std::endl;
     std::cout << std::endl;
 
     // ========================================================================
@@ -59,22 +57,13 @@ int main(int argc, char* argv[])
     // Note: In a real URDF file, these would be loaded from the file.
     // Here we set them manually for demonstration.
 
-    auto joint_names = robot->jointNames();
-    for (const auto& name : joint_names)
-    {
-        auto& joint = const_cast<robotik::Joint&>(robot->joint(name));
-
-        // Set physical properties
-        joint.damping(0.1);     // Damping coefficient
-        joint.friction(0.05);   // Friction coefficient
-        joint.effort_max(10.0); // Maximum torque/force (N·m or N)
-
-        std::cout << "Joint '" << name << "' configured:" << std::endl;
-        std::cout << "  Damping: " << joint.damping() << std::endl;
-        std::cout << "  Friction: " << joint.friction() << std::endl;
-        std::cout << "  Max effort: " << joint.effort_max() << " N·m"
-                  << std::endl;
-    }
+    robot->hierarchy().forEachJoint(
+        [](robotik::Joint& joint, size_t)
+        {
+            joint.damping(0.1);     // Damping coefficient (without unit)
+            joint.friction(0.05);   // Friction coefficient (without unit)
+            joint.effort_max(10.0); // Maximum torque/force (N·m or N)
+        });
     std::cout << std::endl;
 
     // ========================================================================
@@ -83,13 +72,13 @@ int main(int argc, char* argv[])
     robot->setNeutralPosition(); // Start at neutral (all joints at 0)
 
     std::cout << "Initial joint positions:" << std::endl;
-    auto positions = robot->jointPositions();
-    for (size_t i = 0; i < joint_names.size(); ++i)
-    {
-        std::cout << "  " << joint_names[i] << ": " << std::fixed
-                  << std::setprecision(3) << positions[i] << " rad"
-                  << std::endl;
-    }
+    robot->hierarchy().forEachJoint(
+        [](robotik::Joint const& joint, size_t)
+        {
+            std::cout << "  " << joint.name() << ": " << std::fixed
+                      << std::setprecision(3) << joint.position() << " rad"
+                      << std::endl;
+        });
     std::cout << std::endl;
 
     // ========================================================================
@@ -99,10 +88,10 @@ int main(int argc, char* argv[])
     std::cout << std::string(60, '-') << std::endl;
 
     double simulation_time = 2.0; // 2 seconds
-    int num_steps = static_cast<int>(simulation_time / dt);
-    int print_interval = 50; // Print every 0.5 seconds
+    size_t num_steps = size_t(simulation_time / dt);
+    size_t print_interval = 50; // Print every 0.5 seconds
 
-    for (int step = 0; step <= num_steps; ++step)
+    for (size_t step = 0; step <= num_steps; ++step)
     {
         // Step the physics simulation
         simulator.step(*robot);
@@ -110,23 +99,23 @@ int main(int argc, char* argv[])
         // Print state periodically
         if (step % print_interval == 0)
         {
-            double t = step * dt;
+            double t = double(step) * dt;
             std::cout << "Time: " << std::fixed << std::setprecision(2) << t
                       << " s" << std::endl;
 
-            positions = robot->jointPositions();
-            for (size_t i = 0; i < joint_names.size(); ++i)
-            {
-                const auto& joint = robot->joint(joint_names[i]);
-                std::cout << "  " << std::setw(15) << std::left
-                          << joint_names[i] << " pos: " << std::setw(8)
-                          << std::right << std::fixed << std::setprecision(3)
-                          << positions[i] << " rad, vel: " << std::setw(8)
-                          << std::right << std::fixed << std::setprecision(3)
-                          << joint.velocity() << " rad/s, acc: " << std::setw(8)
-                          << std::right << std::fixed << std::setprecision(3)
-                          << joint.acceleration() << " rad/s²" << std::endl;
-            }
+            robot->hierarchy().forEachJoint(
+                [](robotik::Joint const& joint, size_t)
+                {
+                    std::cout
+                        << "  " << std::setw(15) << std::left << joint.name()
+                        << " pos: " << std::setw(8) << std::right << std::fixed
+                        << std::setprecision(3) << joint.position()
+                        << " rad, vel: " << std::setw(8) << std::right
+                        << std::fixed << std::setprecision(3)
+                        << joint.velocity() << " rad/s, acc: " << std::setw(8)
+                        << std::right << std::fixed << std::setprecision(3)
+                        << joint.acceleration() << " rad/s²" << std::endl;
+                });
             std::cout << std::endl;
         }
     }
@@ -140,27 +129,23 @@ int main(int argc, char* argv[])
     std::cout << "\nExample: Applying external torque to first joint..."
               << std::endl;
 
-    if (!joint_names.empty())
+    auto& joint =
+        const_cast<robotik::Joint&>(robot->hierarchy().joint("revolute_joint"));
+    joint.effort(5.0); // Apply 5 N·m torque
+
+    std::cout << "Applied " << joint.effort() << " N·m to joint '"
+              << joint.name() << "'" << std::endl;
+
+    // Simulate for 1 more second
+    num_steps = size_t(1.0 / dt);
+    for (size_t step = 0; step < num_steps; ++step)
     {
-        auto& joint = const_cast<robotik::Joint&>(robot->joint(joint_names[0]));
-        joint.effort(5.0); // Apply 5 N·m torque
-
-        std::cout << "Applied " << joint.effort() << " N·m to joint '"
-                  << joint_names[0] << "'" << std::endl;
-
-        // Simulate for 1 more second
-        num_steps = static_cast<int>(1.0 / dt);
-        for (int step = 0; step < num_steps; ++step)
-        {
-            simulator.step(*robot);
-        }
-
-        positions = robot->jointPositions();
-        std::cout << "After 1 second with applied torque:" << std::endl;
-        std::cout << "  Position: " << positions[0] << " rad" << std::endl;
-        std::cout << "  Velocity: " << joint.velocity() << " rad/s"
-                  << std::endl;
+        simulator.step(*robot);
     }
 
-    return 0;
+    std::cout << "After 1 second with applied torque:" << std::endl;
+    std::cout << "  Position: " << joint.position() << " rad" << std::endl;
+    std::cout << "  Velocity: " << joint.velocity() << " rad/s" << std::endl;
+
+    return EXIT_SUCCESS;
 }

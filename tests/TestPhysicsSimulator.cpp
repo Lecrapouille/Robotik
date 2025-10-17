@@ -7,6 +7,7 @@
 
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/PhysicsSimulator.hpp"
+#include "Robotik/Core/Robot.hpp"
 #include "Robotik/Core/URDFParser.hpp"
 
 using namespace robotik;
@@ -66,13 +67,14 @@ TEST(PhysicsSimulator, SimpleRevoluteJoint)
     auto robot = parser.load(path.expand("simple_revolute_robot.urdf"));
 
     ASSERT_TRUE(robot != nullptr) << "Failed to load robot: " << parser.error();
-    ASSERT_GT(robot->jointNames().size(), 0u) << "Robot has no joints";
+    ASSERT_GT(robot->hierarchy().numJoints(), 0u) << "Robot has no joints";
 
     // Create simulator
     PhysicsSimulator simulator(0.01);
 
-    // Configure joint
-    auto& joint = const_cast<Joint&>(robot->joint(robot->jointNames()[0]));
+    // Configure joint (get first actuable joint)
+    Joint& joint =
+        const_cast<Joint&>(robot->hierarchy().joint("revolute_joint"));
     joint.damping(0.1);
     joint.friction(0.0);
     joint.effort_max(10.0);
@@ -108,13 +110,14 @@ TEST(PhysicsSimulator, AppliedEffort)
     auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
-    ASSERT_GT(robot->jointNames().size(), 0u);
+    ASSERT_GT(robot->hierarchy().numJoints(), 0u);
 
     // Create simulator with no gravity
     PhysicsSimulator simulator(0.01, Eigen::Vector3d::Zero());
 
     // Configure joint
-    auto& joint = const_cast<Joint&>(robot->joint(robot->jointNames()[0]));
+    Joint& joint =
+        const_cast<Joint&>(robot->hierarchy().joint("revolute_joint"));
     joint.damping(0.0);
     joint.friction(0.0);
     joint.effort_max(100.0);
@@ -145,13 +148,14 @@ TEST(PhysicsSimulator, DampingEffect)
     auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
-    ASSERT_GT(robot->jointNames().size(), 0u);
+    ASSERT_GT(robot->hierarchy().numJoints(), 0u);
 
     // Create simulator with no gravity
     PhysicsSimulator simulator(0.01, Eigen::Vector3d::Zero());
 
     // Configure joint with high damping
-    auto& joint = const_cast<Joint&>(robot->joint(robot->jointNames()[0]));
+    Joint& joint =
+        const_cast<Joint&>(robot->hierarchy().joint("revolute_joint"));
     joint.damping(1.0); // High damping
     joint.friction(0.0);
     joint.effort_max(100.0);
@@ -194,13 +198,14 @@ TEST(PhysicsSimulator, EffortLimits)
     auto robot = helper::parseRobot("simple_revolute_robot_with_inertia.urdf");
 
     ASSERT_TRUE(robot != nullptr);
-    ASSERT_GT(robot->jointNames().size(), 0u);
+    ASSERT_GT(robot->hierarchy().numJoints(), 0u);
 
     // Create simulator
     PhysicsSimulator simulator(0.01, Eigen::Vector3d::Zero());
 
     // Configure joint with low effort limit
-    auto& joint = const_cast<Joint&>(robot->joint(robot->jointNames()[0]));
+    Joint& joint =
+        const_cast<Joint&>(robot->hierarchy().joint("revolute_joint"));
     joint.damping(0.0);
     joint.friction(0.0);
     joint.effort_max(2.0); // Low limit
@@ -243,7 +248,7 @@ TEST(PhysicsSimulator, FixedJointsSkipped)
                                    ""));
 
     auto& fixed_joint = root_link->createChild<Joint>(
-        "fixed_joint", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
+        "fixed_joint", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1), 0);
 
     auto& child_link = fixed_joint.createChild<Link>(
         "child_link",
@@ -267,18 +272,4 @@ TEST(PhysicsSimulator, FixedJointsSkipped)
     }
 
     SUCCEED() << "Simulation with fixed joints completed without errors";
-}
-
-// ============================================================================
-//! \brief Test time step modification
-// ============================================================================
-TEST(PhysicsSimulator, TimeStepModification)
-{
-    PhysicsSimulator simulator(0.01);
-
-    EXPECT_DOUBLE_EQ(simulator.dt(), 0.01);
-
-    simulator.dt(0.005);
-
-    EXPECT_DOUBLE_EQ(simulator.dt(), 0.005);
 }

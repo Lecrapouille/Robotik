@@ -133,4 +133,32 @@ std::string printPose(const std::string& name, const Pose& pose)
     return oss.str();
 }
 
+// ----------------------------------------------------------------------------
+Pose calculatePoseError(Pose const& p_target, Pose const& p_current)
+{
+    Pose error;
+
+    // Position error (simple difference)
+    error.head<3>() = p_target.head<3>() - p_current.head<3>();
+
+    // Orientation error (convert to rotation matrices and compute proper error)
+    Eigen::Matrix3d R_target =
+        utils::eulerToRotation(p_target(3), p_target(4), p_target(5));
+    Eigen::Matrix3d R_current =
+        utils::eulerToRotation(p_current(3), p_current(4), p_current(5));
+
+    // Rotation error: R_error = R_target * R_current^T
+    Eigen::Matrix3d R_error = R_target * R_current.transpose();
+
+    // Convert rotation error to axis-angle representation
+    Eigen::AngleAxisd angle_axis(R_error);
+    Eigen::Vector3d axis = angle_axis.axis();
+    double angle = angle_axis.angle();
+
+    // Orientation error vector
+    error.tail<3>() = angle * axis;
+
+    return error;
+}
+
 } // namespace robotik::utils
