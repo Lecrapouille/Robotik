@@ -20,11 +20,10 @@ using namespace robotik;
 // *********************************************************************************
 //! \brief End effector node. For this current implementation, a node is enough.
 // *********************************************************************************
-class EndEffector: public hierarchy::Node
+class EndEffector: public Node
 {
 public:
 
-    using Node = hierarchy::Node;
     using Node::Node;
 };
 
@@ -37,11 +36,8 @@ protected:
 
     void SetUp() override
     {
-        // Create a simple 2-DOF arm for testing
-        robot_arm = std::make_unique<Robot>("test_arm");
-
         // Create the scene graph
-        Joint::Ptr r = hierarchy::Node::create<Joint>(
+        Joint::Ptr r = Node::create<Joint>(
             "root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
         joint1 = &(r->createChild<Joint>(
             "joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1)));
@@ -64,7 +60,9 @@ protected:
 
         // Set up the robot arm, base frame and end effector
         root = r.get();
-        robot_arm->root(std::move(r));
+
+        // Create robot with hierarchy
+        robot_arm = std::make_unique<Robot>("test_arm", std::move(r));
     }
 
     std::unique_ptr<Robot> robot_arm;
@@ -79,7 +77,7 @@ protected:
 // *********************************************************************************
 TEST_F(RobotTest, RootSceneNode)
 {
-    hierarchy::Node const& found_root = robot_arm->root();
+    Node const& found_root = robot_arm->hierarchy().root();
     EXPECT_EQ(found_root.name(), "root");
 }
 
@@ -88,12 +86,13 @@ TEST_F(RobotTest, RootSceneNode)
 // *********************************************************************************
 TEST_F(RobotTest, SceneNodeSearch)
 {
-    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "root"), root);
-    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "joint1"), joint1);
-    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "joint2"), joint2);
-    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "end_effector"),
+    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "root"), root);
+    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "joint1"), joint1);
+    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "joint2"), joint2);
+    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "end_effector"),
               end_effector);
-    EXPECT_EQ(hierarchy::Node::find(robot_arm->root(), "nonexistent"), nullptr);
+    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "nonexistent"),
+              nullptr);
 }
 
 // *********************************************************************************
@@ -101,12 +100,10 @@ TEST_F(RobotTest, SceneNodeSearch)
 // *********************************************************************************
 TEST_F(RobotTest, GetJoints)
 {
-    std::vector<std::string> joint_names = robot_arm->jointNames();
-
     // Note: root and end_effector are not actuable joints
-    EXPECT_EQ(joint_names.size(), 2);
-    EXPECT_EQ(joint_names[0], "joint1");
-    EXPECT_EQ(joint_names[1], "joint2");
+    EXPECT_EQ(robot_arm->hierarchy().numJoints(), 2);
+    EXPECT_EQ(robot_arm->hierarchy().joint("joint1").name(), "joint1");
+    EXPECT_EQ(robot_arm->hierarchy().joint("joint2").name(), "joint2");
 }
 
 // *********************************************************************************
@@ -115,13 +112,16 @@ TEST_F(RobotTest, GetJoints)
 TEST_F(RobotTest, JointValues)
 {
     std::vector<double> values = { M_PI / 4.0, M_PI / 2.0 };
-    robot_arm->setJointValues(values);
 
-    std::vector<double> retrieved_values = robot_arm->jointPositions();
+    // Set values directly on state
+    robot_arm->state().joint_positions = values;
 
-    EXPECT_EQ(retrieved_values.size(), 2);
-    EXPECT_DOUBLE_EQ(retrieved_values[0], values[0]);
-    EXPECT_DOUBLE_EQ(retrieved_values[1], values[1]);
+    // Set joint positions directly
+    joint1->position(values[0]);
+    joint2->position(values[1]);
+
+    EXPECT_DOUBLE_EQ(joint1->position(), values[0]);
+    EXPECT_DOUBLE_EQ(joint2->position(), values[1]);
 }
 
 // *********************************************************************************
@@ -178,8 +178,8 @@ TEST_F(RobotTest, Transforms)
 TEST_F(RobotTest, ForwardKinematics)
 {
     // Test with zero joint values
-    std::vector<double> zero_values = { 0.0, 0.0 };
-    robot_arm->setJointValues(zero_values);
+    joint1->position(0.0);
+    joint2->position(0.0);
 
     Transform fk_result = end_effector->worldTransform();
 
@@ -190,8 +190,8 @@ TEST_F(RobotTest, ForwardKinematics)
     EXPECT_TRUE(actual_position.norm() > 0.0);
 
     // Test with different joint values
-    std::vector<double> test_values = { M_PI / 2, M_PI / 4 };
-    robot_arm->setJointValues(test_values);
+    joint1->position(M_PI / 2);
+    joint2->position(M_PI / 4);
 
     Transform fk_result2 = end_effector->worldTransform();
 
@@ -211,8 +211,8 @@ TEST_F(RobotTest, ForwardKinematics)
                  0.0)); // Valid rotation matrix
 
     // Test with extreme joint values
-    std::vector<double> extreme_values = { M_PI, -M_PI };
-    robot_arm->setJointValues(extreme_values);
+    joint1->position(M_PI);
+    joint2->position(-M_PI);
 
     Transform fk_result3 = end_effector->worldTransform();
     EXPECT_NO_THROW(end_effector->worldTransform());
@@ -226,8 +226,8 @@ TEST_F(RobotTest, ForwardKinematics)
 // *********************************************************************************
 TEST_F(RobotTest, EndEffectorPose)
 {
-    std::vector<double> values = { 0.0, 0.0 };
-    robot_arm->setJointValues(values);
+    joint1->position(0.0);
+    joint2->position(0.0);
 
     Pose pose = utils::transformToPose(end_effector->worldTransform());
 
@@ -244,10 +244,11 @@ TEST_F(RobotTest, EndEffectorPose)
 // *********************************************************************************
 TEST_F(RobotTest, JacobianCalculation)
 {
-    std::vector<double> values = { 0.0, 0.0 };
-    robot_arm->setJointValues(values);
+    joint1->position(0.0);
+    joint2->position(0.0);
 
-    Jacobian jacobian = robot_arm->jacobian(*end_effector);
+    Jacobian const& jacobian =
+        robot_arm->computeJacobian(robot_arm->state(), *end_effector);
 
     // For a 2-DOF arm, Jacobian should be 6x2
     EXPECT_EQ(jacobian.rows(), 6);
@@ -323,15 +324,18 @@ TEST_F(RobotTest, ComplexKinematics)
 
     for (const auto& config : test_configurations)
     {
-        robot_arm->setJointValues(config);
+        joint1->position(config[0]);
+        joint2->position(config[1]);
 
         // Jacobian calculation should not crash
-        EXPECT_NO_THROW(robot_arm->jacobian(*end_effector));
+        EXPECT_NO_THROW(
+            robot_arm->computeJacobian(robot_arm->state(), *end_effector));
 
         // Verify that results are reasonable
         Transform fk_result = end_effector->worldTransform();
         Pose pose = utils::transformToPose(fk_result);
-        Jacobian jacobian = robot_arm->jacobian(*end_effector);
+        Jacobian const& jacobian =
+            robot_arm->computeJacobian(robot_arm->state(), *end_effector);
 
         // Transform should be valid homogeneous matrix
         EXPECT_DOUBLE_EQ(fk_result(3, 3), 1.0);
@@ -359,10 +363,9 @@ TEST_F(RobotTest, JointLimits)
     joint2->limits(-M_PI / 4.0, M_PI / 4.0);
 
     // Test that values are clamped to limits
-    std::vector<double> excessive_values = { M_PI, M_PI };
-    robot_arm->setJointValues(excessive_values);
+    joint1->position(M_PI);
+    joint2->position(M_PI);
 
-    std::vector<double> actual_values = robot_arm->jointPositions();
-    EXPECT_LE(actual_values[0], M_PI / 2.0);
-    EXPECT_LE(actual_values[1], M_PI / 4.0);
+    EXPECT_LE(joint1->position(), M_PI / 2.0);
+    EXPECT_LE(joint2->position(), M_PI / 4.0);
 }

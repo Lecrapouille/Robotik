@@ -51,4 +51,22 @@ using Pose = Eigen::Matrix<double, 6, 1>;
 // ----------------------------------------------------------------------------
 using Jacobian = Eigen::MatrixXd;
 
+// ============================================================================
+// Forward Declarations
+// ============================================================================
+
+struct Inertial;
+class Node;
+class Geometry;
+class Joint;
+class Link;
+class Component;
+class Sensor;
+class Actuator;
+struct State;
+class Hierarchy;
+class Robot;
+class IKSolver;
+class URDFParser;
+
 } // namespace robotik

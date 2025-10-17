@@ -12,7 +12,6 @@
 #include "Configuration.hpp"
 
 #include "Robotik/Core/PhysicsSimulator.hpp"
-
 #include "Robotik/Viewer/Application.hpp"
 #include "Robotik/Viewer/Camera.hpp"
 #include "Robotik/Viewer/GeometryRenderer.hpp"

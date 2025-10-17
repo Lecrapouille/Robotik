@@ -33,9 +33,6 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
         return nullptr;
     }
 
-    // Rename mesh paths to avoid conflicts with other robots.
-    robot->setMeshPrefixPath(robot->name());
-
     // Store the new robot
     if (std::string robot_name = robot->name();
         !addRobot(robot_name, std::move(robot)))
@@ -130,14 +127,14 @@ bool RobotManager::setRobotJointValues(
         return false;
     }
 
-    if (!it->second.robot->setJointValues(p_joint_values))
+    if (it->second.robot->state().joint_positions.size() !=
+        p_joint_values.size())
     {
         m_error = "Failed to set joint values for robot '" + p_robot_name + "'";
         return false;
     }
 
-    // Update transforms after joint changes
-    // return updateRobotTransforms(p_robot_name);
+    it->second.robot->state().joint_positions = p_joint_values;
     return true;
 }
 
@@ -151,7 +148,7 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
         return {};
     }
 
-    return it->second.robot->jointPositions();
+    return it->second.robot->state().joint_positions;
 }
 
 // ----------------------------------------------------------------------------

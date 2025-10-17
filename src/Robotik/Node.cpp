@@ -1,5 +1,5 @@
 /**
- * @file SceneNode.hpp
+ * @file Node.cpp
  * @brief Scene graph node class - Representation of a node in the scene graph.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -7,24 +7,25 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Core/SceneNode.hpp"
+#include "Robotik/Core/Node.hpp"
+#include "Robotik/Core/NodeVisitor.hpp"
 
-namespace robotik::hierarchy
+namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-Node::Node(std::string_view const& p_name) : m_name(p_name)
+Node::Node(std::string const& p_name) : m_name(p_name)
 {
     m_local_transform = Transform::Identity();
     m_world_transform = Transform::Identity();
 }
 
 // ----------------------------------------------------------------------------
-Node const* Node::child(std::string_view const& p_name) const
+Node const* Node::child(std::string const& p_name) const
 {
     auto it = std::find_if(m_children.begin(),
                            m_children.end(),
-                           [&p_name](const std::unique_ptr<Node>& p_node)
+                           [&p_name](std::unique_ptr<Node> const& p_node)
                            { return p_node->name() == p_name; });
 
     if (it != m_children.end())
@@ -36,7 +37,23 @@ Node const* Node::child(std::string_view const& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-Node* Node::find(Node& p_root, std::string_view const& p_name)
+Node* Node::child(std::string const& p_name)
+{
+    auto it = std::find_if(m_children.begin(),
+                           m_children.end(),
+                           [&p_name](std::unique_ptr<Node> const& p_node)
+                           { return p_node->name() == p_name; });
+
+    if (it != m_children.end())
+    {
+        return it->get();
+    }
+
+    return nullptr;
+}
+
+// ----------------------------------------------------------------------------
+Node* Node::find(Node& p_root, std::string const& p_name)
 {
     // Check if the root node itself has the name
     if (p_root.name() == p_name)
@@ -63,7 +80,7 @@ Node* Node::find(Node& p_root, std::string_view const& p_name)
 }
 
 // ----------------------------------------------------------------------------
-Node const* Node::find(Node const& p_root, std::string_view const& p_name)
+Node const* Node::find(Node const& p_root, std::string const& p_name)
 {
     // Check if the root node itself has the name
     if (p_root.name() == p_name)
@@ -114,4 +131,40 @@ void Node::updateWorldTransforms()
     }
 }
 
-} // namespace robotik::hierarchy
+// ----------------------------------------------------------------------------
+void Node::accept(NodeVisitor& visitor)
+{
+    visitor.visit(*this);
+}
+
+// ----------------------------------------------------------------------------
+void Node::accept(ConstNodeVisitor& visitor) const
+{
+    visitor.visit(*this);
+}
+
+// ----------------------------------------------------------------------------
+void Node::traverse(NodeVisitor& visitor)
+{
+    accept(visitor);
+    visitor.incrementDepth();
+    for (auto& child : m_children)
+    {
+        child->traverse(visitor);
+    }
+    visitor.decrementDepth();
+}
+
+// ----------------------------------------------------------------------------
+void Node::traverse(ConstNodeVisitor& visitor) const
+{
+    accept(visitor);
+    visitor.incrementDepth();
+    for (auto const& child : m_children)
+    {
+        child->traverse(visitor);
+    }
+    visitor.decrementDepth();
+}
+
+} // namespace robotik

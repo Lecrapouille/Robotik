@@ -1,6 +1,7 @@
 /**
- * @file SceneNode.hpp
- * @brief Hierarchy node class - Representation of a node in the kinematic hierarchy.
+ * @file Node.hpp
+ * @brief Hierarchy node class - Representation of a node in the kinematic
+ * hierarchy.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -13,30 +14,40 @@
 
 #include <memory>
 #include <string>
-#include <string_view>
 #include <vector>
 
-namespace robotik::hierarchy
+namespace robotik
 {
 
+// Forward declarations for Visitor pattern
+class NodeVisitor;
+class ConstNodeVisitor;
+
 // ****************************************************************************
-//! \brief Class representing a node in the kinematic hierarchy.
+//! \brief Class representing a node inside the tree hierarchy.
 //!
-//! A kinematic hierarchy is a tree data structure that represents the spatial
+//! A tree hierarchy is a tree data structure that represents the spatial
 //! relationships between its different components. Each node in this hierarchy
 //! represents a physical or logical component that has:
 //! - A position and orientation in 3D space (transform).
 //! - A relationship to a parent component (inheritance of transforms).
 //! - Potentially multiple child components.
 //!
+//! A tree hierarchy is more widely known under the following names:
+//! - Scene graph: but this a name is used in video games.
+//! - Kinematic tree: but this is constrain to Link and Joint.
+//! Our tree hierarchy is more general (scene tree) and can store other objects
+//! (sensors, actuators, visual geometries, ...).
+//!
 //! Physical representation in robotics:
 //! - Robot links (rigid bodies connecting joints).
-//! - Joint frames (coordinate systems at joint locations).
-//! - Tool frames (end-effector coordinate systems).
-//! - Sensor mounts (camera, lidar attachment points).
-//! - Collision geometries (for path planning).
+//! - Robot joints (coordinate systems at joint locations).
+//! - End-effector frames (end-effector coordinate systems).
+//! - Sensors (camera, lidar, ...).
+//! - Actuators (motor, ...).
+//! - Geometries (for visualization and collision detection).
 //!
-//! The kinematic hierarchy enables:
+//! The tree hierarchy enables:
 //! - Forward kinematics calculation (computing end-effector pose).
 //! - Coordinate frame transformations between robot components.
 //! - Hierarchical motion propagation (parent motion affects all children).
@@ -57,7 +68,7 @@ public:
     //! to identity matrix.
     //! \param p_name Name of the node.
     // ------------------------------------------------------------------------
-    explicit Node(std::string_view const& p_name);
+    explicit Node(std::string const& p_name);
 
     // ------------------------------------------------------------------------
     //! \brief Virtual destructor to ensure proper cleanup of derived classes.
@@ -91,10 +102,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Create and store a new child node of type T derived from
-    //! Node.
-    //! \tparam T Type of the child node to create (must inherit from
-    //! Node).
+    //! \brief Create and store a new child node of type T derived from Node.
+    //! \tparam T Type of the child node to create (must inherit from Node).
     //! \param p_args Arguments passed to the constructor.
     //! \return Reference to the added child node.
     // ------------------------------------------------------------------------
@@ -145,17 +154,14 @@ public:
     //! \param p_name Name of the child node.
     //! \return Pointer to the child node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node const* child(std::string_view const& p_name) const;
+    Node const* child(std::string const& p_name) const;
 
     // ------------------------------------------------------------------------
     //! \brief Get a child node by name.
     //! \param p_name Name of the child node.
     //! \return Pointer to the child node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    Node* child(std::string_view const& p_name)
-    {
-        return const_cast<Node*>(static_cast<Node const*>(this)->child(p_name));
-    }
+    Node* child(std::string const& p_name);
 
     // ------------------------------------------------------------------------
     //! \brief Get a node by name. This method is recursive and will search
@@ -164,7 +170,10 @@ public:
     //! \param p_name Name of the node.
     //! \return Pointer to the node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    static Node const* find(Node const& p_root, std::string_view const& p_name);
+    static Node const*
+    find(Node const& p_root,
+         std::string const& p_name); // FIXME: findChild<T>(name) et
+                                     // findChildren<T>(name) et name optionel
 
     // ------------------------------------------------------------------------
     //! \brief Get a node by name. This method is recursive and will search
@@ -173,7 +182,40 @@ public:
     //! \param p_name Name of the node.
     //! \return Pointer to the node, or nullptr if not found.
     // ------------------------------------------------------------------------
-    static Node* find(Node& p_root, std::string_view const& p_name);
+    static Node* find(Node& p_root, std::string const& p_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a visitor (Visitor pattern).
+    //!
+    //! This method implements the Visitor pattern, allowing operations on
+    //! nodes without adding methods to the node hierarchy. The visitor will
+    //! call the appropriate visit() method based on the actual node type.
+    //!
+    //! \param visitor The visitor to accept.
+    // ------------------------------------------------------------------------
+    virtual void accept(NodeVisitor& visitor);
+
+    // ------------------------------------------------------------------------
+    //! \brief Accept a const visitor (Visitor pattern).
+    //! \param visitor The const visitor to accept.
+    // ------------------------------------------------------------------------
+    virtual void accept(ConstNodeVisitor& visitor) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the node tree using a visitor.
+    //!
+    //! This method traverses the tree recursively using the Visitor pattern.
+    //! The visitor maintains its own depth state during traversal.
+    //!
+    //! \param visitor The visitor to use for traversal.
+    // ------------------------------------------------------------------------
+    void traverse(NodeVisitor& visitor);
+
+    // ------------------------------------------------------------------------
+    //! \brief Traverse the node tree using a const visitor.
+    //! \param visitor The const visitor to use for traversal.
+    // ------------------------------------------------------------------------
+    void traverse(ConstNodeVisitor& visitor) const;
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree recursively and apply a function to each
@@ -187,7 +229,13 @@ public:
     //! Node& parameter.
     //! \param p_depth Depth of the node in the tree.
     // ------------------------------------------------------------------------
-    template <typename Function>
+    template <
+        typename Function,
+        typename = typename std::enable_if<
+            !std::is_base_of<ConstNodeVisitor,
+                             typename std::decay<Function>::type>::value &&
+            !std::is_base_of<NodeVisitor,
+                             typename std::decay<Function>::type>::value>::type>
     void traverse(Function&& p_function, size_t p_depth = 0) const
     {
         // Apply the function to the current node
@@ -224,7 +272,13 @@ public:
     //! Node& parameter.
     //! \param p_depth Depth of the node in the tree.
     // ------------------------------------------------------------------------
-    template <typename Function>
+    template <
+        typename Function,
+        typename = typename std::enable_if<
+            !std::is_base_of<ConstNodeVisitor,
+                             typename std::decay<Function>::type>::value &&
+            !std::is_base_of<NodeVisitor,
+                             typename std::decay<Function>::type>::value>::type>
     void traverse(Function&& p_function, size_t p_depth = 0)
     {
         // Apply the function to the current node
@@ -304,16 +358,6 @@ public:
         return m_name;
     }
 
-    // ------------------------------------------------------------------------
-    //! \brief Get the joint's debug string.
-    //! \param p_detailed Whether to include detailed information.
-    //! \return The joint's debug string.
-    // ------------------------------------------------------------------------
-    // virtual std::string debug(bool /*p_detailed*/) const
-    //{
-    //    return {};
-    //}
-
 protected:
 
     // ------------------------------------------------------------------------
@@ -353,4 +397,4 @@ protected:
     Node* m_parent = nullptr;
 };
 
-} // namespace robotik::hierarchy
+} // namespace robotik

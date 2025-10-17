@@ -26,12 +26,10 @@ protected:
     void SetUp() override
     {
         axis = Eigen::Vector3d(0, 0, 1); // Z-axis
-        revolute = hierarchy::Node::create<Joint>(
-            "revolute", Joint::Type::REVOLUTE, axis);
-        prismatic = hierarchy::Node::create<Joint>(
-            "prismatic", Joint::Type::PRISMATIC, axis);
-        fixed =
-            hierarchy::Node::create<Joint>("fixed", Joint::Type::FIXED, axis);
+        revolute = Node::create<Joint>("revolute", Joint::Type::REVOLUTE, axis);
+        prismatic =
+            Node::create<Joint>("prismatic", Joint::Type::PRISMATIC, axis);
+        fixed = Node::create<Joint>("fixed", Joint::Type::FIXED, axis);
     }
 
     Eigen::Vector3d axis;
@@ -74,8 +72,8 @@ TEST_F(JointTest, AxisNormalization)
 {
     // Test that axis is normalized during construction
     Eigen::Vector3d unnormalized_axis(2, 0, 0);
-    auto joint = hierarchy::Node::create<Joint>(
-        "test", Joint::Type::REVOLUTE, unnormalized_axis);
+    auto joint =
+        Node::create<Joint>("test", Joint::Type::REVOLUTE, unnormalized_axis);
 
     Eigen::Vector3d expected_normalized = unnormalized_axis.normalized();
     EXPECT_TRUE(joint->axis().isApprox(expected_normalized));
@@ -294,8 +292,8 @@ TEST_F(JointTest, RevoluteAxes)
 {
     // Test X-axis rotation
     Eigen::Vector3d x_axis(1, 0, 0);
-    auto x_joint = hierarchy::Node::create<Joint>(
-        "x_joint", Joint::Type::REVOLUTE, x_axis);
+    auto x_joint =
+        Node::create<Joint>("x_joint", Joint::Type::REVOLUTE, x_axis);
     x_joint->position(M_PI / 2.0);
 
     // Check that it's a rotation around X-axis, and no translation
@@ -307,8 +305,8 @@ TEST_F(JointTest, RevoluteAxes)
 
     // Test Y-axis rotation
     Eigen::Vector3d y_axis(0, 1, 0);
-    auto y_joint = hierarchy::Node::create<Joint>(
-        "y_joint", Joint::Type::REVOLUTE, y_axis);
+    auto y_joint =
+        Node::create<Joint>("y_joint", Joint::Type::REVOLUTE, y_axis);
     y_joint->position(M_PI / 2.0);
 
     // Check that it's a rotation around Y-axis, and no translation
@@ -327,8 +325,8 @@ TEST_F(JointTest, PrismaticAxes)
 {
     // Test X-axis translation
     Eigen::Vector3d x_axis(1, 0, 0);
-    auto x_joint = hierarchy::Node::create<Joint>(
-        "x_joint", Joint::Type::PRISMATIC, x_axis);
+    auto x_joint =
+        Node::create<Joint>("x_joint", Joint::Type::PRISMATIC, x_axis);
     x_joint->position(0.5); // 0.5 meters
 
     // Check that it's a translation along X-axis, and no rotation
@@ -338,8 +336,8 @@ TEST_F(JointTest, PrismaticAxes)
 
     // Test Y-axis translation
     Eigen::Vector3d y_axis(0, 1, 0);
-    auto y_joint = hierarchy::Node::create<Joint>(
-        "y_joint", Joint::Type::PRISMATIC, y_axis);
+    auto y_joint =
+        Node::create<Joint>("y_joint", Joint::Type::PRISMATIC, y_axis);
     y_joint->position(0.3); // 0.3 meters
 
     // Check that it's a translation along Y-axis, and no rotation
@@ -355,8 +353,8 @@ TEST_F(JointTest, ArbitraryAxisRotation)
 {
     // Test with arbitrary axis
     Eigen::Vector3d arbitrary_axis(1, 1, 1);
-    auto joint = hierarchy::Node::create<Joint>(
-        "arbitrary", Joint::Type::REVOLUTE, arbitrary_axis);
+    auto joint =
+        Node::create<Joint>("arbitrary", Joint::Type::REVOLUTE, arbitrary_axis);
 
     // Verify axis is normalized
     EXPECT_TRUE(joint->axis().isApprox(arbitrary_axis.normalized()));
@@ -380,7 +378,7 @@ TEST_F(JointTest, ArbitraryAxisRotation)
 TEST_F(JointTest, JointHierarchy)
 {
     // Create parent joint
-    auto parent_joint = hierarchy::Node::create<Joint>(
+    auto parent_joint = Node::create<Joint>(
         "parent", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
     Joint* parent_ptr = parent_joint.get();
 
@@ -491,11 +489,11 @@ TEST_F(JointTest, JointNaming)
 
     // Test joint with empty name
     auto empty_named_joint =
-        hierarchy::Node::create<Joint>("", Joint::Type::REVOLUTE, axis);
+        Node::create<Joint>("", Joint::Type::REVOLUTE, axis);
     EXPECT_EQ(empty_named_joint->name(), "");
 
     // Test joint with special characters in name
-    auto special_joint = hierarchy::Node::create<Joint>(
-        "joint_01-test", Joint::Type::REVOLUTE, axis);
+    auto special_joint =
+        Node::create<Joint>("joint_01-test", Joint::Type::REVOLUTE, axis);
     EXPECT_EQ(special_joint->name(), "joint_01-test");
 }

@@ -63,11 +63,11 @@ public:
         //! \brief Control mode
         ControlMode control_mode = ControlMode::ANIMATION;
         //! \brief Controlled joint for Inverse Kinematics
-        hierarchy::Node const* control_joint =
+        Node const* control_joint =
             nullptr; // FIXME mettre ici end_effectors et mettre en cache
                      // joints/links ici ?
         //! \brief Tracked node for camera
-        hierarchy::Node const* camera_target = nullptr;
+        Node const* camera_target = nullptr;
         //! \brief Visibility flag
         bool is_visible = true;
         //! \brief Scale factor

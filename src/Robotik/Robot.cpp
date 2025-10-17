@@ -1,6 +1,6 @@
 /**
  * @file Robot.cpp
- * @brief Robot class implementation (extends Hierarchy).
+ * @brief Implementation of Robot class (kinematic computations).
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -9,51 +9,42 @@
 
 #include "Robotik/Core/Robot.hpp"
 #include "Robotik/Core/Conversions.hpp"
-
-#include <algorithm>
-#include <functional>
+// #include "Robotik/Core/IKSolver.hpp"
 
 namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-std::vector<double> Robot::jointPositions() const
+Robot::Robot(std::string const& p_name, Node::Ptr p_root)
+    : Robot(p_name, Hierarchy(std::move(p_root)))
 {
-    std::vector<double> values;
-    values.reserve(joints().size());
-
-    for (const auto& joint_ref : joints())
-    {
-        values.push_back(joint_ref.get().position());
-    }
-
-    return values;
 }
 
 // ----------------------------------------------------------------------------
-bool Robot::setJointValues(std::vector<double> const& p_values)
+Robot::Robot(std::string const& p_name, Hierarchy&& p_hierarchy)
+    : m_name(p_name),
+      m_hierarchy(std::move(p_hierarchy)),
+      m_state(m_hierarchy.numJoints(), m_hierarchy.numLinks())
 {
-    if (p_values.size() != joints().size())
-    {
-        return false;
-    }
-
-    // Set all joint values
-    auto& joint_refs =
-        const_cast<std::vector<std::reference_wrapper<Joint>>&>(joints());
-    for (size_t i = 0; i < joint_refs.size(); ++i)
-    {
-        joint_refs[i].get().position(p_values[i]);
-    }
-
-    return true;
+    // Modify the mesh path to be relative to the robot name
+    m_hierarchy.forEachLink(
+        [this](Link& p_link)
+        {
+            auto& geometry = p_link.geometry();
+            geometry.meshPath(m_name + "/" + geometry.meshPath());
+        });
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setNeutralPosition()
+void Robot::forwardKinematics(State& p_state)
 {
-    std::vector<double> neutral_joints(joints().size(), 0.0);
-    setJointValues(neutral_joints);
+    m_hierarchy.forEachJoint(
+        [&](Joint& p_joint, size_t p_index)
+        {
+            // The joint position() method automatically updates world
+            // transforms via the hierarchy tree traversal
+            p_joint.position(p_state.joint_positions[p_index]);
+        });
 }
 
 // ----------------------------------------------------------------------------
@@ -85,49 +76,77 @@ Pose Robot::calculatePoseError(Pose const& p_target_pose,
 }
 
 // ----------------------------------------------------------------------------
-Jacobian Robot::jacobian(hierarchy::Node const& p_end_effector) const
+void Robot::setNeutralPosition()
 {
-    const size_t num_joints = joints().size();
-    Jacobian J(6, num_joints);
+    m_hierarchy.forEachJoint(
+        [this](Joint& p_joint, size_t p_index)
+        {
+            auto [min, max] = p_joint.limits();
+            double value = (min + max) / 2.0;
+            p_joint.position(value);
+            m_state.joint_positions[p_index] = value;
+            m_state.joint_velocities[p_index] = 0.0;
+            m_state.joint_accelerations[p_index] = 0.0;
+        });
+}
+
+// ----------------------------------------------------------------------------
+Jacobian const& Robot::computeJacobian(State& p_state,
+                                       Node const& p_end_effector)
+{
+    // Resize the Jacobian matrix to the number of joints
+    Jacobian& J = p_state.jacobian;
+    J.resize(6, m_hierarchy.numJoints());
 
     // Position of the end effector
-    Transform end_effector_transform = p_end_effector.worldTransform();
+    Transform const& end_effector_transform = p_end_effector.worldTransform();
     Eigen::Vector3d end_pos = end_effector_transform.block<3, 1>(0, 3);
 
-    for (size_t i = 0; i < num_joints; ++i)
-    {
-        Joint const& joint = joints()[i].get();
-
-        // Transformation of the joint in the global space
-        Transform joint_transform = joint.worldTransform();
-
-        // Position of the joint
-        Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
-
-        // Orientation of the joint axis in the global space
-        Eigen::Vector3d joint_axis =
-            joint_transform.block<3, 3>(0, 0) * joint.axis();
-
-        if ((joint.type() == Joint::Type::REVOLUTE) ||
-            (joint.type() == Joint::Type::CONTINUOUS))
+    m_hierarchy.forEachJoint(
+        [&J, &end_pos](Joint const& joint, size_t index)
         {
-            // Contribution to linear velocity: cross(axis, (end - joint))
-            Eigen::Vector3d r = end_pos - joint_pos;
-            Eigen::Vector3d v = joint_axis.cross(r);
+            // Transformation of the joint in the global space
+            Transform const& joint_transform = joint.worldTransform();
 
-            // Fill the Jacobian
-            J.block<3, 1>(0, i) = v;
-            J.block<3, 1>(3, i) = joint_axis;
-        }
-        else if (joint.type() == Joint::Type::PRISMATIC)
-        {
-            // Contribution to linear velocity: axis
-            J.block<3, 1>(0, i) = joint_axis;
-            J.block<3, 1>(3, i) = Eigen::Vector3d::Zero();
-        }
-    }
+            // Position of the joint
+            Eigen::Vector3d joint_pos = joint_transform.block<3, 1>(0, 3);
+
+            // Orientation of the joint axis in the global space
+            Eigen::Vector3d joint_axis =
+                joint_transform.block<3, 3>(0, 0) * joint.axis();
+
+            if ((joint.type() == Joint::Type::REVOLUTE) ||
+                (joint.type() == Joint::Type::CONTINUOUS))
+            {
+                // Contribution to linear velocity: cross(axis, (end - joint))
+                Eigen::Vector3d r = end_pos - joint_pos;
+                Eigen::Vector3d v = joint_axis.cross(r);
+
+                // Fill the Jacobian
+                J.block<3, 1>(0, index) = v;
+                J.block<3, 1>(3, index) = joint_axis;
+            }
+            else if (joint.type() == Joint::Type::PRISMATIC)
+            {
+                // Contribution to linear velocity: axis
+                J.block<3, 1>(0, index) = joint_axis;
+                J.block<3, 1>(3, index) = Eigen::Vector3d::Zero();
+            }
+        });
 
     return J;
+}
+
+// ----------------------------------------------------------------------------
+bool Robot::inverseKinematics(State& p_state,
+                              Node const& p_end_effector,
+                              Pose const& p_target_pose,
+                              IKSolver& p_solver)
+{
+    // The IK solver will work with the old Robot interface temporarily
+    // This is a bridge until we update IKSolver
+    // For now, just return false as we need to update IKSolver first
+    return false;
 }
 
 } // namespace robotik

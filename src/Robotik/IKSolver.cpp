@@ -8,62 +8,60 @@
 
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Conversions.hpp"
-#include "Robotik/Core/Robot.hpp"
-
-#include <iostream>
+#include "Robotik/Core/Node.hpp"
+#include "Robotik/Core/State.hpp"
 
 namespace robotik
 {
 
 // ============================================================================
-std::vector<double>
-JacobianIKSolver::solve(Robot& p_robot,
-                        hierarchy::Node const& p_end_effector,
-                        Pose const& p_target_pose)
+bool JacobianIKSolver::solve(State& p_state,
+                             Node const& p_end_effector,
+                             Pose const& p_target_pose)
 {
+    m_error_message.clear();
     m_converged = false;
-    m_last_iterations = 0;
-    m_last_error = std::numeric_limits<double>::max();
+    m_num_iterations = 0;
+    m_pose_error = std::numeric_limits<double>::max();
 
     // Get initial joint values
-    std::vector<double> q = p_robot.jointPositions();
+    std::vector<double> q = p_state.joint_positions;
 
     if (q.empty())
     {
-        if (m_config.verbose)
-            std::cerr << "IKSolver: Robot has no joints\n";
-        return {};
+        m_error_message = "IKSolver: Robot has no joints";
+        return false;
     }
 
     // Iterative solving
     for (size_t iter = 0; iter < m_config.max_iterations; ++iter)
     {
-        m_last_iterations = iter + 1;
+        m_num_iterations = iter + 1;
 
         // Compute current end-effector pose
         Transform current_transform = p_end_effector.worldTransform();
         Pose current_pose = utils::transformToPose(current_transform);
 
         // Calculate error
-        Pose error = calculatePoseError(p_target_pose, current_pose);
-        m_last_error = error.norm();
+        Pose error = utils::calculatePoseError(p_target_pose, current_pose);
+        m_pose_error = error.norm();
 
         // Check convergence
-        if (m_last_error < m_config.tolerance)
+        if (m_pose_error < m_config.tolerance)
         {
             m_converged = true;
             if (m_config.verbose)
             {
-                std::cout << "IKSolver: Converged in " << iter
-                          << " iterations with error " << m_last_error << "\n";
+                m_error_message =
+                    "IKSolver: Converged in " + std::to_string(iter) +
+                    " iterations with error " + std::to_string(m_pose_error);
             }
-            return q;
+            p_state.joint_positions = q;
+            return true;
         }
 
-        // Compute Jacobian
-        Jacobian J = p_robot.jacobian(p_end_effector);
-
         // Damped least squares: Δq = J^T(JJ^T + λI)^(-1) * error
+        Jacobian const& J = p_state.jacobian;
         Eigen::MatrixXd JJt = J * J.transpose();
         Eigen::MatrixXd damped =
             JJt + m_config.damping *
@@ -83,58 +81,25 @@ JacobianIKSolver::solve(Robot& p_robot,
         }
 
         // Apply to robot
-        if (!p_robot.setJointValues(q))
-        {
-            if (m_config.verbose)
-                std::cerr << "IKSolver: Failed to set joint values\n";
-            return {};
-        }
+        p_state.joint_positions = q;
 
         if (m_config.verbose && iter % 50 == 0)
         {
-            std::cout << "IKSolver: Iteration " << iter
-                      << ", error = " << m_last_error << "\n";
+            m_error_message += "IKSolver: Iteration " + std::to_string(iter) +
+                               ", error = " + std::to_string(m_pose_error);
         }
     }
 
     // Max iterations reached without convergence
     if (m_config.verbose)
     {
-        std::cerr << "IKSolver: Failed to converge after "
-                  << m_config.max_iterations
-                  << " iterations. Final error: " << m_last_error << "\n";
+        m_error_message +=
+            "IKSolver: Failed to converge after " +
+            std::to_string(m_config.max_iterations) +
+            " iterations. Final error: " + std::to_string(m_pose_error);
     }
 
-    return {}; // Return empty vector to indicate failure
-}
-
-// ============================================================================
-Pose JacobianIKSolver::calculatePoseError(Pose const& p_target,
-                                          Pose const& p_current) const
-{
-    Pose error;
-
-    // Position error (simple difference)
-    error.head<3>() = p_target.head<3>() - p_current.head<3>();
-
-    // Orientation error (convert to rotation matrices and compute proper error)
-    Eigen::Matrix3d R_target =
-        utils::eulerToRotation(p_target(3), p_target(4), p_target(5));
-    Eigen::Matrix3d R_current =
-        utils::eulerToRotation(p_current(3), p_current(4), p_current(5));
-
-    // Rotation error: R_error = R_target * R_current^T
-    Eigen::Matrix3d R_error = R_target * R_current.transpose();
-
-    // Convert rotation error to axis-angle representation
-    Eigen::AngleAxisd angle_axis(R_error);
-    Eigen::Vector3d axis = angle_axis.axis();
-    double angle = angle_axis.angle();
-
-    // Orientation error vector
-    error.tail<3>() = angle * axis;
-
-    return error;
+    return false;
 }
 
 } // namespace robotik

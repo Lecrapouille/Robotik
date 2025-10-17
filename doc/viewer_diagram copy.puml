@@ -1,0 +1,328 @@
+@startuml Viewer Module Architecture
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam backgroundColor #F8F8F8
+skinparam class {
+    BackgroundColor #E8F4FD
+    BorderColor #2E86AB
+    ArrowColor #2E86AB
+}
+
+package "robotik::viewer" {
+
+    ' Base Application Class
+    abstract class Application {
+        - m_error: string
+        - m_last_frame_time: time_point
+        - m_physics_thread: thread
+        - m_physics_running: atomic<bool>
+        - m_frame_count: size_t
+        --
+        + run(fps: size_t, physics_hz: size_t): bool
+        + error(): string
+        + setTitle(title: string): void*
+        # isHalting(): bool*
+        # onSetup(): bool*
+        # onCleanup(): void*
+        # onDraw(): void*
+        # onUpdate(dt: float): void*
+        # onPhysicUpdate(dt: float): void*
+        # onFPSUpdated(fps: size_t): void*
+        --
+        - startPhysicsThread(hz: size_t): bool
+        - stopPhysicsThread(): bool
+        - physicsThreadLoop(hz: size_t): void
+        - updateFPS(): void
+        - limitFramerate(frame_time: float): void
+    }
+
+    ' Configuration Structure
+    struct Configuration {
+        + window_width: size_t = 1024
+        + window_height: size_t = 768
+        + window_title: string = "Robot Viewer"
+        + target_fps: size_t = 60
+        + target_physics_hz: size_t = 15
+        + search_paths: string
+        + urdf_file: string
+        + control_joint: string
+        + camera_target: string
+        + camera_view: Camera::ViewType = ISOMETRIC
+        + enable_profiling: bool = false
+        + show_frames: bool = false
+        + frame_scale: float = 0.1f
+    }
+
+    ' Camera Class
+    class Camera {
+        - m_view_type: ViewType = PERSPECTIVE
+        - m_camera_pos: Vector3f = (8,3,8)
+        - m_camera_target: Vector3f = (0,1,0)
+        - m_camera_up: Vector3f = (0,1,0)
+        - m_fov: float = 45.0f
+        - m_aspect_ratio: float = 1.0f
+        - m_near_plane: float = 0.1f
+        - m_far_plane: float = 100.0f
+        - m_view_matrix: Matrix4f
+        - m_projection_matrix: Matrix4f
+        --
+        + Camera(width: size_t, height: size_t)
+        + setView(type: ViewType, target: Vector3f): void
+        + setAspectRatio(width: size_t, height: size_t): void
+        + getViewType(): ViewType
+        + getViewMatrix(): Matrix4f
+        + getProjectionMatrix(): Matrix4f
+        --
+        - setupView(type: ViewType, target: Vector3f): void
+        - updateMatrices(): void
+    }
+
+    ' OpenGL Window Class
+    class OpenGLWindow {
+        - m_width: size_t
+        - m_height: size_t
+        - m_window: GLFWwindow*
+        - m_error: string
+        - m_key_callback: KeyCallback
+        - m_mouse_button_callback: MouseButtonCallback
+        - m_cursor_pos_callback: CursorPosCallback
+        - m_scroll_callback: ScrollCallback
+        - m_window_resize_callback: WindowResizeCallback
+        --
+        + OpenGLWindow(config: Configuration)
+        + initialize(): bool
+        + isHalting(): bool
+        + halt(): void
+        + setTitle(title: string): void
+        + swapBuffers(): void
+        + window(): GLFWwindow*
+        + error(): string
+        + setCallbacks(...): void
+        --
+        - initializeGLFW(): bool
+        - createWindow(): bool
+        - initializeGlew(): bool
+        - setupCallbacks(): void
+    }
+
+    ' Shader Manager Class
+    class ShaderManager {
+        - m_programs: map<string, unsigned int>
+        - m_current_program: unsigned int = 0
+        - m_last_error: string
+        --
+        + createProgram(name: string, vertex: string, fragment: string): bool
+        + useProgram(name: string): bool
+        + currentProgram(): unsigned int
+        + getProgram(name: string): unsigned int
+        + getUniformLocation(name: string): int
+        + setMatrix4f(location: int, matrix: float*): void
+        + setVector3f(location: int, vector: float*): void
+        + hasProgram(name: string): bool
+        + error(): string
+        + clear(): void
+        --
+        - compileShader(source: string, type: unsigned int): unsigned int
+        - createProgram(vertex: unsigned int, fragment: unsigned int): unsigned int
+    }
+
+    ' STL Loader Class
+    class STLLoader {
+        - s_last_error: string
+        --
+        + loadSTL(filename: string, mesh_data: MeshData&): bool
+        + error(): string
+        --
+        - loadBinarySTL(file: ifstream&, mesh_data: MeshData&): bool
+        - loadAsciiSTL(file: ifstream&, mesh_data: MeshData&): bool
+        - isBinarySTL(filename: string): bool
+    }
+
+    ' STL Loader Data Structure
+    struct STLLoader::MeshData {
+        + vertices: vector<float>
+        + indices: vector<unsigned int>
+        + triangle_count: size_t = 0
+        + clear(): void
+    }
+
+    ' Mesh Manager Class
+    class MeshManager {
+        - m_meshes: map<string, Mesh>
+        - m_base_path: string
+        - m_last_error: string
+        --
+        + loadMesh(path: string, force_reload: bool = false): bool
+        + loadMeshFromData(path: string, data: STLLoader::MeshData&): bool
+        + isMeshLoaded(path: string): bool
+        + getMesh(path: string): Mesh*
+        + renderMesh(path: string): bool
+        + unloadMesh(path: string): bool
+        + clear(): void
+        + getMeshCount(): size_t
+        + error(): string
+        + setBasePath(path: string_view): void
+        --
+        - createOpenGLBuffers(data: STLLoader::MeshData&, mesh: Mesh&): bool
+        - freeMeshResources(mesh: Mesh&): void
+    }
+
+    ' Mesh Manager Data Structure
+    struct MeshManager::Mesh {
+        + vao: unsigned int = 0
+        + vbo: unsigned int = 0
+        + ebo: unsigned int = 0
+        + index_count: size_t = 0
+        + is_loaded: bool = false
+        + clear(): void
+    }
+
+    ' Geometry Renderer Class
+    class GeometryRenderer {
+        - m_shader_manager: ShaderManager&
+        - m_box_vao, m_box_vbo, m_box_ebo: unsigned int
+        - m_cylinder_vao, m_cylinder_vbo, m_cylinder_ebo: unsigned int
+        - m_cylinder_index_count: size_t
+        - m_sphere_vao, m_sphere_vbo, m_sphere_ebo: unsigned int
+        - m_sphere_index_count: size_t
+        - m_grid_vao, m_grid_vbo: unsigned int
+        - m_grid_vertex_count: size_t
+        - m_model_uniform, m_color_uniform: int
+        - m_last_error: string
+        --
+        + GeometryRenderer(shader_manager: ShaderManager&)
+        + initialize(): bool
+        + renderBox(transform: Matrix4f, color: Vector3f, w: float, h: float, d: float): void
+        + renderCylinder(transform: Matrix4f, color: Vector3f, radius: float, height: float): void
+        + renderSphere(transform: Matrix4f, color: Vector3f, radius: float): void
+        + renderGrid(color: Vector3f, size: int, spacing: float): void
+        + renderAxes(transform: Matrix4f, scale: float): void
+        + error(): string
+        --
+        - initializeBox(): bool
+        - initializeCylinder(): bool
+        - initializeSphere(): bool
+        - initializeGrid(): bool
+        - generateBox(vertices: vector<float>&, indices: vector<unsigned int>&): void
+        - generateCylinder(vertices: vector<float>&, indices: vector<unsigned int>&, radius: float, height: float, segments: size_t): void
+        - generateSphere(vertices: vector<float>&, indices: vector<unsigned int>&, radius: float, lat_segments: size_t, lon_segments: size_t): void
+        - generateGrid(vertices: vector<float>&, size: int, spacing: float): void
+    }
+
+    ' Robot Manager Class
+    class RobotManager {
+        - m_robots: map<string, ControlledRobot>
+        - m_current_robot: ControlledRobot*
+        - m_error: string
+        --
+        + reset(): void
+        + loadRobot(urdf_path: string): bool
+        + addRobot(name: string, robot: unique_ptr<Robot>): bool
+        + removeRobot(name: string): bool
+        + hasRobot(name: string): bool
+        + getRobot(name: string): ControlledRobot*
+        + getCurrentRobot(): ControlledRobot*
+        + setRobotJointValues(name: string, values: vector<double>): bool
+        + getRobotJointValues(name: string): vector<double>
+        + setRobotPose(name: string, transform: Matrix4f): bool
+        + setRobotVisibility(name: string, visible: bool): bool
+        + setRobotScale(name: string, scale: float): bool
+        + updateRobotTransforms(name: string): bool
+        + updateAllRobotTransforms(): void
+        + robots(): map<string, ControlledRobot>&
+        + getRobotCount(): size_t
+        + error(): string
+        + clear(): void
+        --
+        - updateRobotLinkTransforms(name: string): bool
+    }
+
+    ' Robot Manager Data Structure
+    struct RobotManager::ControlledRobot {
+        + robot: unique_ptr<Robot>
+        + control_mode: ControlMode = ANIMATION
+        + control_joint: Node const*
+        + camera_target: Node const*
+        + is_visible: bool = true
+        + scale: float = 1.0f
+    }
+
+    ' Control Mode Enumeration
+    enum ControlMode {
+        ANIMATION
+        INVERSE_KINEMATICS
+    }
+
+    ' Camera View Type Enumeration
+    enum Camera::ViewType {
+        PERSPECTIVE
+        TOP
+        FRONT
+        SIDE
+        ISOMETRIC
+    }
+
+    ' Main Application Class
+    class RobotViewerApplication {
+        - m_config: Configuration const&
+        - m_window: OpenGLWindow
+        - m_camera: Camera
+        - m_shader_manager: ShaderManager
+        - m_mesh_manager: MeshManager
+        - m_geometry_renderer: GeometryRenderer
+        - m_robot_manager: RobotManager
+        - m_model_uniform: int = -1
+        - m_color_uniform: int = -1
+        - m_projection_uniform: int = -1
+        - m_view_uniform: int = -1
+        - m_title: string
+        - m_fps: size_t = 0
+        --
+        + RobotViewerApplication(config: Configuration)
+        + run(): bool
+        + setTitle(title: string): void
+        + isHalting(): bool
+        + onSetup(): bool
+        + onCleanup(): void
+        + onDraw(): void
+        + onUpdate(dt: float): void
+        + onPhysicUpdate(dt: float): void
+        + onFPSUpdated(fps: size_t): void
+        + onWindowResize(width: int, height: int): void
+        + onKeyInput(key: int, scancode: int, action: int, mods: int): void
+        + onMouseButton(button: int, action: int, mods: int): void
+        + onCursorPos(xpos: double, ypos: double): void
+        + onScroll(xoffset: double, yoffset: double): void
+        --
+        - useShaderProgram(name: string): void
+        - loadRobot(): bool
+        - renderRobot(robot: Robot const&): void
+        - renderGeometry(geometry: Geometry const&, transform: Matrix4f): void
+    }
+}
+
+' Relationships
+RobotViewerApplication --|> Application
+RobotViewerApplication --> Configuration : uses
+RobotViewerApplication --> OpenGLWindow : contains
+RobotViewerApplication --> Camera : contains
+RobotViewerApplication --> ShaderManager : contains
+RobotViewerApplication --> MeshManager : contains
+RobotViewerApplication --> GeometryRenderer : contains
+RobotViewerApplication --> RobotManager : contains
+
+OpenGLWindow --> Configuration : uses
+Camera --> Configuration : uses
+
+GeometryRenderer --> ShaderManager : uses
+MeshManager --> STLLoader : uses
+MeshManager --> STLLoader::MeshData : uses
+
+RobotManager --> Robot : uses
+RobotManager --> ControlMode : uses
+RobotManager --> ControlledRobot : contains
+
+Camera --> Camera::ViewType : uses
+
+@enduml

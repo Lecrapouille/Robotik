@@ -21,7 +21,7 @@ Compilation:
 git clone https://github.com/Lecrapouille/Robotik --recurse
 cd Robotik
 make -j8
-make demos -j8
+make applications -j8
 sudo make install
 
 # Optional:
@@ -40,7 +40,7 @@ Is a stand-alone application loading a robot from a URDF file, visualizing it an
 
 The application expected to have a URDF file to load. This project contains some files in the [data](data) folder. Type `-h` to display the help.
 
-## Project structure 🏗️
+## 🏗️ Project Architecture
 
 ```bash
 Robotik/
@@ -66,8 +66,6 @@ Robotik/
     ├── viewer/                        # Viewer stand-alone application
     └── ...
 ```
-
-## Project Architecture 🏛️
 
 ![robotik_architecture](doc/robotik_architecture.png)
 
