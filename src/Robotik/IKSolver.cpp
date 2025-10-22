@@ -8,14 +8,13 @@
 
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Conversions.hpp"
-#include "Robotik/Core/Node.hpp"
-#include "Robotik/Core/State.hpp"
+#include "Robotik/Core/Robot.hpp"
 
 namespace robotik
 {
 
 // ============================================================================
-bool JacobianIKSolver::solve(State& p_state,
+bool JacobianIKSolver::solve(Robot& p_robot,
                              Node const& p_end_effector,
                              Pose const& p_target_pose)
 {
@@ -24,14 +23,18 @@ bool JacobianIKSolver::solve(State& p_state,
     m_num_iterations = 0;
     m_pose_error = std::numeric_limits<double>::max();
 
-    // Get initial joint values
-    std::vector<double> q = p_state.joint_positions;
+    State& state = p_robot.state();
 
+    // Get initial joint values
+    auto& q = state.joint_positions;
     if (q.empty())
     {
         m_error_message = "IKSolver: Robot has no joints";
         return false;
     }
+
+    // Compute or update the Jacobian
+    Jacobian const& J = p_robot.computeJacobian(state, p_end_effector);
 
     // Iterative solving
     for (size_t iter = 0; iter < m_config.max_iterations; ++iter)
@@ -56,12 +59,10 @@ bool JacobianIKSolver::solve(State& p_state,
                     "IKSolver: Converged in " + std::to_string(iter) +
                     " iterations with error " + std::to_string(m_pose_error);
             }
-            p_state.joint_positions = q;
             return true;
         }
 
         // Damped least squares: Δq = J^T(JJ^T + λI)^(-1) * error
-        Jacobian const& J = p_state.jacobian;
         Eigen::MatrixXd JJt = J * J.transpose();
         Eigen::MatrixXd damped =
             JJt + m_config.damping *
@@ -81,8 +82,10 @@ bool JacobianIKSolver::solve(State& p_state,
         }
 
         // Apply to robot
-        p_state.joint_positions = q;
+        p_robot.hierarchy().forEachJoint([&](Joint& p_joint, size_t p_index)
+                                         { p_joint.position(q[p_index]); });
 
+        // Log verbose information
         if (m_config.verbose && iter % 50 == 0)
         {
             m_error_message += "IKSolver: Iteration " + std::to_string(iter) +

@@ -23,6 +23,7 @@ namespace robotik
 // Forward declarations
 struct State;
 class Node;
+class Robot;
 
 // ****************************************************************************
 //! \brief Base interface for Inverse Kinematics solvers.
@@ -40,12 +41,12 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Solve inverse kinematics for a target pose.
     //!
-    //! \param p_state The state to solve IK for.
+    //! \param p_robot The robot to solve IK for.
     //! \param p_target_pose Desired end-effector 6D pose [x,y,z,rx,ry,rz].
     //! \param p_end_effector Reference to the end effector node.
     //! \return True if solution found, false otherwise.
     // ------------------------------------------------------------------------
-    virtual bool solve(State& p_state,
+    virtual bool solve(Robot& p_robot,
                        Node const& p_end_effector,
                        Pose const& p_target_pose) = 0;
 
@@ -98,7 +99,7 @@ public:
 //! - Requires good initial guess
 //! - Slower than analytical solutions when available
 // ****************************************************************************
-class JacobianIKSolver: public IKSolver
+class JacobianIKSolver final: public IKSolver
 {
 public:
 
@@ -140,7 +141,7 @@ public:
         return m_config;
     }
 
-    bool solve(State& p_state,
+    bool solve(Robot& p_robot,
                Node const& p_end_effector,
                Pose const& p_target_pose) override;
 
