@@ -35,17 +35,15 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Set camera view.
-    //! \param p_view_type Camera view position.
     //! \param p_camera_target Camera target position.
     // ------------------------------------------------------------------------
-    void setView(ViewType p_view_type, const Eigen::Vector3f& p_camera_target);
+    void setView(Eigen::Vector3f const& p_camera_target);
 
     // ------------------------------------------------------------------------
     //! \brief Set camera view.
     //! \param p_view_type Camera view position.
-    //! \param p_camera_target Camera target position.
     // ------------------------------------------------------------------------
-    void setView(ViewType p_view_type, const Eigen::Vector3d& p_camera_target);
+    void setView(ViewType p_view_type);
 
     // ------------------------------------------------------------------------
     //! \brief Update aspect ratio (when window is resized).

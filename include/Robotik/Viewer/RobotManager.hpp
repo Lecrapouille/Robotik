@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
 
@@ -63,9 +64,11 @@ public:
         //! \brief Control mode
         ControlMode control_mode = ControlMode::ANIMATION;
         //! \brief Controlled joint for Inverse Kinematics
-        Node const* control_joint =
-            nullptr; // FIXME mettre ici end_effectors et mettre en cache
-                     // joints/links ici ?
+        Node const* control_joint = nullptr;
+        //! \brief Computed target poses for IK (3 poses)
+        std::vector<robotik::Pose> ik_target_poses;
+        //! \brief IK solver instance
+        std::unique_ptr<robotik::IKSolver> ik_solver;
         //! \brief Tracked node for camera
         Node const* camera_target = nullptr;
         //! \brief Visibility flag
@@ -185,7 +188,12 @@ public:
     //! \brief Get all robots.
     //! \return Map of robot names and visual data.
     // ------------------------------------------------------------------------
-    const std::unordered_map<std::string, ControlledRobot>& robots() const
+    std::unordered_map<std::string, ControlledRobot> const& robots() const
+    {
+        return m_robots;
+    }
+
+    std::unordered_map<std::string, ControlledRobot>& robots()
     {
         return m_robots;
     }
