@@ -652,10 +652,10 @@ void RobotViewerApplication::handleInverseKinematics(
 
     // Solve IK for current target
     bool solved = p_robot.ik_solver->solve(
-        p_robot.robot->state(), *p_robot.control_joint, target_pose);
+        *p_robot.robot, *p_robot.control_joint, target_pose);
 
     // If converged, transition to next state
-    if (p_robot.ik_solver->converged())
+    if (solved)
     {
         std::cout << "🎯 Reached target " << (m_target_pose_index + 1)
                   << " - Error: " << p_robot.ik_solver->poseError()
@@ -669,7 +669,7 @@ void RobotViewerApplication::handleInverseKinematics(
             m_target_pose_index = 0;
         }
     }
-    else if (!solved)
+    else
     {
         // Only log failures occasionally to avoid spam
         static size_t failure_count = 0;
