@@ -97,14 +97,25 @@ bool RobotViewerApplication::onSetup()
         return false;
     }
 
-    // Set mesh base path if specified.
+    // Search for meshes in the specified paths.
     path.add(m_config.search_paths);
 
-    // Setup shaders
-    if (!setupShaders("default"))
+    // Create OpenGL shaders
+    if (!setupShaderProgram("default"))
     {
+        m_error =
+            "Failed to create shader program: " + m_shader_manager.error();
         return false;
     }
+
+    // Use shader program and initialize shader uniform locations. Since
+    // we have only one shader program, we can initialize the uniform
+    // locations once.
+    m_shader_manager.useProgram("default");
+    m_model_uniform = m_shader_manager.getUniformLocation("model");
+    m_color_uniform = m_shader_manager.getUniformLocation("color");
+    m_projection_uniform = m_shader_manager.getUniformLocation("projection");
+    m_view_uniform = m_shader_manager.getUniformLocation("view");
 
     // Initialize geometry renderer
     if (!m_geometry_renderer.initialize())
@@ -129,17 +140,19 @@ bool RobotViewerApplication::onSetup()
     }
 
     // Set initial joint values to the specified position
-    if (!m_config.joint_positions.empty())
+    if (auto const& joint_positions = m_config.joint_positions;
+        !joint_positions.empty())
     {
-        size_t idx = 0;
         controlled_robot->robot->hierarchy().forEachJoint(
-            [&](Joint& joint, size_t)
-            {
-                if (idx < m_config.joint_positions.size())
-                {
-                    joint.position(m_config.joint_positions[idx++]);
-                }
-            });
+            [&joint_positions](Joint& joint, size_t index)
+            { joint.position(joint_positions[index]); });
+        std::cout << "🤖 Set initial joint values from configuration"
+                  << std::endl;
+    }
+    else
+    {
+        controlled_robot->robot->setNeutralPosition();
+        std::cout << "🤖 Set neutral position" << std::endl;
     }
 
     // Set control joint (end effector) for inverse kinematics
@@ -156,7 +169,7 @@ bool RobotViewerApplication::onSetup()
     }
 
     // Set camera target (base link or tool center point) to track
-    if (!initCameraView(*controlled_robot, m_config.camera_target))
+    if (!setCameraTarget(*controlled_robot, m_config.camera_target))
     {
         m_error = "📷 Failed to set camera target: " + m_config.camera_target +
                   ": " + m_error;
@@ -179,68 +192,48 @@ bool RobotViewerApplication::setControlJoint(
     RobotManager::ControlledRobot& p_controlled_robot,
     std::string const& p_control_joint_name)
 {
-    try
-    {
-        if (!p_control_joint_name.empty())
-        {
-            p_controlled_robot.control_joint =
-                Node::find(p_controlled_robot.robot->hierarchy().root(),
-                           p_control_joint_name);
-        }
-        else
-        {
-            auto const& p_end_effectors =
-                p_controlled_robot.robot->hierarchy().endEffectors();
-            if (!p_end_effectors.empty())
-            {
-                p_controlled_robot.control_joint = &p_end_effectors[0].get();
-            }
-        }
-        return p_controlled_robot.control_joint != nullptr;
-    }
-    catch (robotik::RobotikException const& e)
-    {
-        p_controlled_robot.control_joint = nullptr;
-        m_error = e.what();
-        return false;
-    }
+    p_controlled_robot.control_joint =
+        getRobotElementOrDefaultRoot(p_controlled_robot, p_control_joint_name);
+    return p_controlled_robot.control_joint != nullptr;
 }
 
 // ----------------------------------------------------------------------------
-bool RobotViewerApplication::initCameraView(
+bool RobotViewerApplication::setCameraTarget(
     RobotManager::ControlledRobot& p_controlled_robot,
     std::string const& p_look_at_joint_name)
 {
-    // Look at joint name if provided, otherwise use the robot root.
-    if (!p_look_at_joint_name.empty())
-    {
-        p_controlled_robot.camera_target = Node::find(
-            p_controlled_robot.robot->hierarchy().root(), p_look_at_joint_name);
-    }
-    else
-    {
-        p_controlled_robot.camera_target =
-            &p_controlled_robot.robot->hierarchy().root();
-    }
-
-    // Set the camera view to the target joint.
-    if (p_controlled_robot.camera_target != nullptr)
-    {
-        m_camera_target_position =
-            utils::getTranslation(
-                p_controlled_robot.camera_target->worldTransform())
-                .cast<float>();
-    }
-    else
-    {
-        m_camera_target_position = Eigen::Vector3f::Zero();
-    }
-    m_camera.setView(m_config.camera_view, m_camera_target_position);
-    return true;
+    p_controlled_robot.camera_target =
+        getRobotElementOrDefaultRoot(p_controlled_robot, p_look_at_joint_name);
+    return p_controlled_robot.camera_target != nullptr;
 }
 
 // ----------------------------------------------------------------------------
-bool RobotViewerApplication::setupShaders(std::string const& p_program_name)
+Node const* RobotViewerApplication::getRobotElementOrDefaultRoot(
+    RobotManager::ControlledRobot& p_controlled_robot,
+    std::string const& p_element_name)
+{
+    try
+    {
+        if (!p_element_name.empty())
+        {
+            return Node::find(p_controlled_robot.robot->hierarchy().root(),
+                              p_element_name);
+        }
+        else
+        {
+            return &p_controlled_robot.robot->hierarchy().root();
+        }
+    }
+    catch (robotik::RobotikException const& e)
+    {
+        m_error = e.what();
+        return nullptr;
+    }
+}
+
+// ----------------------------------------------------------------------------
+bool RobotViewerApplication::setupShaderProgram(
+    std::string const& p_program_name)
 {
     // Simple vertex shader with lighting.
     const std::string vertex_shader = R"(
@@ -312,14 +305,6 @@ bool RobotViewerApplication::setupShaders(std::string const& p_program_name)
         return false;
     }
 
-    // Use shader program and initialize shader uniform locations. Since we have
-    // only one shader program, we can initialize the uniform locations once.
-    m_shader_manager.useProgram(p_program_name);
-    m_model_uniform = m_shader_manager.getUniformLocation("model");
-    m_color_uniform = m_shader_manager.getUniformLocation("color");
-    m_projection_uniform = m_shader_manager.getUniformLocation("projection");
-    m_view_uniform = m_shader_manager.getUniformLocation("view");
-
     return true;
 }
 
@@ -330,21 +315,24 @@ void RobotViewerApplication::onCleanup()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDraw()
+void RobotViewerApplication::updateCameraTarget()
 {
-    // Clear screen
-    glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    Eigen::Vector3f camera_target_position;
 
-    // Update camera target position, tracking one element of the robot
+    // Update camera target position, tracking one element of the robot.
+    // If no robot is selected, set camera target to zero position.
     auto const* controlled_robot = m_robot_manager.currentRobot();
-    if (controlled_robot && controlled_robot->camera_target)
+    if ((controlled_robot != nullptr) &&
+        (controlled_robot->camera_target != nullptr))
     {
-        m_camera_target_position =
-            utils::getTranslation(
-                controlled_robot->camera_target->worldTransform())
-                .cast<float>();
-        m_camera.setView(m_camera.getViewType(), m_camera_target_position);
+        m_camera.setView(m_camera.getViewType(),
+                         utils::getTranslation(
+                             controlled_robot->camera_target->worldTransform())
+                             .cast<float>());
+    }
+    else
+    {
+        m_camera.setView(m_camera.getViewType(), Eigen::Vector3f::Zero());
     }
 
     // Set camera matrices to OpenGL shader
@@ -352,6 +340,17 @@ void RobotViewerApplication::onDraw()
                                  m_camera.getProjectionMatrix().data());
     m_shader_manager.setMatrix4f(m_view_uniform,
                                  m_camera.getViewMatrix().data());
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onDraw()
+{
+    // Clear screen
+    glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Update camera target position, tracking one element of the robot
+    updateCameraTarget();
 
     // Render the world ground
     m_geometry_renderer.renderGrid();
@@ -391,7 +390,8 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
                           Eigen::Vector3f::UnitX())
             .toRotationMatrix();
 
-    // Apply transformation to model matrix (order: transform then convert)
+    // Apply transformation to model matrix (order: transform then
+    // convert)
     Eigen::Matrix4f transformed = p_transform * urdf_to_opengl;
 
     // Set model matrix to OpenGL shader
@@ -504,10 +504,7 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
     float animation_time = static_cast<float>(p_time) * 0.5f;
 
     // Get current joint values
-    std::vector<double> joint_values;
-    p_robot.hierarchy().forEachJoint(
-        [&](const Joint& joint, size_t)
-        { joint_values.push_back(joint.position()); });
+    auto& joint_values = p_robot.state().joint_positions;
 
     // Animate each joint with different frequencies and amplitudes
     for (size_t i = 0; i < joint_values.size(); ++i)
@@ -522,15 +519,9 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
             double(amplitude * std::sin(frequency * animation_time + phase));
     }
 
-    size_t idx = 0;
-    p_robot.hierarchy().forEachJoint(
-        [&idx, &joint_values](Joint& joint, size_t)
-        {
-            if (idx < joint_values.size())
-            {
-                joint.position(joint_values[idx++]);
-            }
-        });
+    // Update joint positions
+    p_robot.hierarchy().forEachJoint([&joint_values](Joint& joint, size_t index)
+                                     { joint.position(joint_values[index]); });
 }
 
 // ----------------------------------------------------------------------------
@@ -565,7 +556,8 @@ void RobotViewerApplication::onKeyInput(int key,
             case GLFW_KEY_ESCAPE:
                 m_window.halt();
                 break;
-            // Camera view controls - only change view type, keep current target
+            // Camera view controls - only change view type, keep
+            // current target
             case GLFW_KEY_1:
                 m_camera.setView(Camera::ViewType::PERSPECTIVE,
                                  m_camera_target_position);
