@@ -137,6 +137,16 @@ private: // override Application methods
 private:
 
     // ----------------------------------------------------------------------------
+    //! \brief Get the robot element or the root if not found.
+    //! \param p_controlled_robot The controlled robot.
+    //! \param p_element_name The name of the element.
+    //! \return The robot element or the root if not found.
+    // ----------------------------------------------------------------------------
+    Node const* getRobotElementOrDefaultRoot(
+        RobotManager::ControlledRobot& p_controlled_robot,
+        std::string const& p_element_name);
+
+    // ----------------------------------------------------------------------------
     //! \brief Search for the joint to control or inverse kinematics, given by
     //! the user from the application command line. If not provided, find the
     //! robot end effector.
@@ -156,15 +166,16 @@ private:
     //! \return true if setting the look at joint was successful, false
     //! otherwise.
     // ----------------------------------------------------------------------------
-    bool initCameraView(RobotManager::ControlledRobot& p_controlled_robot,
-                        std::string const& p_look_at_joint_name);
+    bool setCameraTarget(RobotManager::ControlledRobot& p_controlled_robot,
+                         std::string const& p_look_at_joint_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Setup shaders.
     //! \param p_program_name The name of the shader program.
-    //! \return true if setting up the shaders was successful, false otherwise.
+    //! \return true if setting up the shader program was successful, false
+    //! otherwise.
     // ----------------------------------------------------------------------------
-    bool setupShaders(std::string const& p_program_name);
+    bool setupShaderProgram(std::string const& p_program_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Render a geometry.
@@ -185,6 +196,12 @@ private:
     //! \brief Handle inverse kinematics.
     // ----------------------------------------------------------------------------
     void handleInverseKinematics();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Update the camera target position for track the chosen robot
+    //! element and update OpenGL shader with the camera matrices.
+    // ----------------------------------------------------------------------------
+    void updateCameraTarget();
 
 public:
 
