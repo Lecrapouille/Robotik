@@ -10,22 +10,18 @@ Camera::Camera(size_t p_width, size_t p_height)
 }
 
 // ----------------------------------------------------------------------------
-void Camera::setView(ViewType p_view_type,
-                     const Eigen::Vector3f& p_camera_target)
+void Camera::setView(Eigen::Vector3f const& p_camera_target)
 {
-    m_view_type = p_view_type;
     m_camera_target = p_camera_target;
-    setupView(p_view_type, m_camera_target);
+    setupView(m_view_type, m_camera_target);
     updateMatrices();
 }
 
 // ----------------------------------------------------------------------------
-void Camera::setView(ViewType p_view_type,
-                     const Eigen::Vector3d& p_camera_target)
+void Camera::setView(ViewType p_view_type)
 {
     m_view_type = p_view_type;
-    m_camera_target = p_camera_target.cast<float>();
-    setupView(p_view_type, m_camera_target);
+    setupView(m_view_type, m_camera_target);
     updateMatrices();
 }
 

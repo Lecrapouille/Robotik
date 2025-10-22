@@ -137,14 +137,11 @@ private: // override Application methods
 private:
 
     // ----------------------------------------------------------------------------
-    //! \brief Get the robot element or the root if not found.
+    //! \brief Compute IK target poses.
     //! \param p_controlled_robot The controlled robot.
-    //! \param p_element_name The name of the element.
-    //! \return The robot element or the root if not found.
     // ----------------------------------------------------------------------------
-    Node const* getRobotElementOrDefaultRoot(
-        RobotManager::ControlledRobot& p_controlled_robot,
-        std::string const& p_element_name);
+    void
+    computeIKTargetPoses(RobotManager::ControlledRobot& p_controlled_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Search for the joint to control or inverse kinematics, given by
@@ -156,18 +153,20 @@ private:
     //! otherwise.
     // ----------------------------------------------------------------------------
     bool setControlJoint(RobotManager::ControlledRobot& p_controlled_robot,
-                         std::string const& p_control_joint_name);
+                         std::string const& p_control_joint_name) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Search for the joint to look at, given by the user from the
     //! application command line. If not provided, use the robot root.
     //! \param p_controlled_robot The controlled robot.
     //! \param p_look_at_joint_name The name of the look at joint.
+    //! \param p_use_root_if_not_found Whether to use the root if not found.
     //! \return true if setting the look at joint was successful, false
     //! otherwise.
     // ----------------------------------------------------------------------------
     bool setCameraTarget(RobotManager::ControlledRobot& p_controlled_robot,
-                         std::string const& p_look_at_joint_name);
+                         std::string const& p_look_at_joint_name,
+                         bool p_use_root_if_not_found) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Setup shaders.
@@ -190,12 +189,13 @@ private:
     //! \param p_robot The robot.
     //! \param p_time The time.
     // ----------------------------------------------------------------------------
-    void handleAnimation(Robot& p_robot, double p_time);
+    void handleAnimation(Robot& p_robot, double p_time) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Handle inverse kinematics.
+    //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
-    void handleInverseKinematics();
+    void handleInverseKinematics(RobotManager::ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Update the camera target position for track the chosen robot
@@ -230,13 +230,11 @@ private:
 
     // Animation
     std::chrono::steady_clock::time_point m_start_time;
+    size_t m_target_pose_index = 0;
 
     // Title and FPS states
     std::string m_title;
     size_t m_fps = 0;
-
-    // Camera target position (to maintain when switching views)
-    Eigen::Vector3f m_camera_target_position = Eigen::Vector3f::Zero();
 };
 
 } // namespace robotik::viewer

@@ -12,6 +12,7 @@
 #include "Robotik/Core/Conversions.hpp"
 #include "Robotik/Core/Debug.hpp"
 #include "Robotik/Core/Exception.hpp"
+#include "Robotik/Core/IKSolver.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -97,6 +98,9 @@ bool RobotViewerApplication::onSetup()
         return false;
     }
 
+    // Initialize OpenGL states
+    glEnable(GL_DEPTH_TEST);
+
     // Search for meshes in the specified paths.
     path.add(m_config.search_paths);
 
@@ -139,6 +143,23 @@ bool RobotViewerApplication::onSetup()
                   << std::endl;
     }
 
+    // Set control joint (end effector) for inverse kinematics
+    if (!setControlJoint(*controlled_robot, m_config.control_joint))
+    {
+        m_error = "🤖 Failed to set control joint: " + m_config.control_joint +
+                  ": " + m_error;
+        return false;
+    }
+    else if (controlled_robot->control_joint != nullptr)
+    {
+        std::cout << "🤖 Control joint: "
+                  << controlled_robot->control_joint->name() << std::endl;
+    }
+
+    // Compute IK target poses if control joint is set.
+    // To be placed before setting the initial joint values.
+    computeIKTargetPoses(*controlled_robot);
+
     // Set initial joint values to the specified position
     if (auto const& joint_positions = m_config.joint_positions;
         !joint_positions.empty())
@@ -155,21 +176,10 @@ bool RobotViewerApplication::onSetup()
         std::cout << "🤖 Set neutral position" << std::endl;
     }
 
-    // Set control joint (end effector) for inverse kinematics
-    if (!setControlJoint(*controlled_robot, m_config.control_joint))
-    {
-        m_error = "🤖 Failed to set control joint: " + m_config.control_joint +
-                  ": " + m_error;
-        return false;
-    }
-    else
-    {
-        std::cout << "🤖 Controlled joint: "
-                  << controlled_robot->control_joint->name() << std::endl;
-    }
-
     // Set camera target (base link or tool center point) to track
-    if (!setCameraTarget(*controlled_robot, m_config.camera_target))
+    bool use_root_if_not_found = true;
+    if (!setCameraTarget(
+            *controlled_robot, m_config.camera_target, use_root_if_not_found))
     {
         m_error = "📷 Failed to set camera target: " + m_config.camera_target +
                   ": " + m_error;
@@ -181,54 +191,139 @@ bool RobotViewerApplication::onSetup()
                   << controlled_robot->camera_target->name() << std::endl;
     }
 
-    // Initialize OpenGL states
-    glEnable(GL_DEPTH_TEST);
-
     return true;
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::computeIKTargetPoses(
+    RobotManager::ControlledRobot& p_controlled_robot)
+{
+    // Compute IK target poses if control joint is set
+    if (p_controlled_robot.control_joint == nullptr)
+        return;
+
+    std::cout << "🎯 Computing IK target poses..." << std::endl;
+
+    // Reserve memory for 3 joint configurations
+    size_t const num_poses = 3;
+    std::vector<std::vector<double>> joint_configs(num_poses);
+    for (auto& it : joint_configs)
+    {
+        it.resize(p_controlled_robot.robot->hierarchy().numJoints());
+    }
+
+    // Setup 3 joint configurations: 1/3 joint limits, 2/3 joint limits and
+    // neutral position
+    p_controlled_robot.robot->hierarchy().forEachJoint(
+        [&joint_configs](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+
+            // Pose 1: 1/3 from min
+            joint_configs[0][index] = min + (max - min) * 1.0 / 3.0;
+            // Pose 2: center (neutral)
+            joint_configs[1][index] = (max + min) / 2.0;
+            // Pose 3: 2/3 from min
+            joint_configs[2][index] = min + (max - min) * 2.0 / 3.0;
+        });
+
+    // For each configuration, compute end-effector pose
+    p_controlled_robot.ik_target_poses.clear();
+    p_controlled_robot.ik_target_poses.reserve(num_poses);
+    for (size_t pose_id = 0; pose_id < num_poses; ++pose_id)
+    {
+        // Apply joint configuration
+        p_controlled_robot.robot->hierarchy().forEachJoint(
+            [&joint_configs, pose_id](Joint& joint, size_t index)
+            { joint.position(joint_configs[pose_id][index]); });
+
+        // Get end-effector transform
+        Transform end_effector_transform =
+            p_controlled_robot.control_joint->worldTransform();
+
+        // Convert to pose and store
+        Pose target_pose = utils::transformToPose(end_effector_transform);
+        p_controlled_robot.ik_target_poses.push_back(target_pose);
+
+        std::cout << "  Target " << (pose_id + 1) << ": ["
+                  << target_pose.transpose() << "]" << std::endl;
+    }
+
+    // Initialize IK solver
+    p_controlled_robot.ik_solver = std::make_unique<JacobianIKSolver>();
+    p_controlled_robot.control_mode =
+        RobotManager::ControlMode::INVERSE_KINEMATICS;
 }
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::setControlJoint(
     RobotManager::ControlledRobot& p_controlled_robot,
-    std::string const& p_control_joint_name)
+    std::string const& p_element_name) const
 {
-    p_controlled_robot.control_joint =
-        getRobotElementOrDefaultRoot(p_controlled_robot, p_control_joint_name);
+    p_controlled_robot.control_joint = nullptr;
+
+    // No element name provided, use the first end effector if any.
+    if (p_element_name.empty())
+    {
+        if (auto const& end_effectors =
+                p_controlled_robot.robot->hierarchy().endEffectors();
+            !end_effectors.empty())
+        {
+            p_controlled_robot.control_joint = &end_effectors[0].get();
+        }
+    }
+    // Otherwise, search for the element by name. If not found, use the root.
+    else
+    {
+        p_controlled_robot.control_joint = Node::find(
+            p_controlled_robot.robot->hierarchy().root(), p_element_name);
+        if (p_controlled_robot.control_joint == nullptr)
+        {
+            p_controlled_robot.control_joint =
+                &p_controlled_robot.robot->hierarchy().root();
+        }
+    }
+
     return p_controlled_robot.control_joint != nullptr;
 }
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::setCameraTarget(
     RobotManager::ControlledRobot& p_controlled_robot,
-    std::string const& p_look_at_joint_name)
+    std::string const& p_element_name,
+    bool p_use_root_if_not_found) const
 {
-    p_controlled_robot.camera_target =
-        getRobotElementOrDefaultRoot(p_controlled_robot, p_look_at_joint_name);
-    return p_controlled_robot.camera_target != nullptr;
-}
+    p_controlled_robot.camera_target = nullptr;
 
-// ----------------------------------------------------------------------------
-Node const* RobotViewerApplication::getRobotElementOrDefaultRoot(
-    RobotManager::ControlledRobot& p_controlled_robot,
-    std::string const& p_element_name)
-{
-    try
+    // No element name provided, use the root if requested or the first end
+    // effector if any.
+    if (p_element_name.empty())
     {
-        if (!p_element_name.empty())
+        if (p_use_root_if_not_found)
         {
-            return Node::find(p_controlled_robot.robot->hierarchy().root(),
-                              p_element_name);
+            p_controlled_robot.camera_target =
+                &p_controlled_robot.robot->hierarchy().root();
         }
-        else
+        else if (auto const& end_effectors =
+                     p_controlled_robot.robot->hierarchy().endEffectors();
+                 !end_effectors.empty())
         {
-            return &p_controlled_robot.robot->hierarchy().root();
+            p_controlled_robot.camera_target = &end_effectors[0].get();
         }
     }
-    catch (robotik::RobotikException const& e)
+    // Otherwise, search for the element by name. If not found, use the root.
+    else
     {
-        m_error = e.what();
-        return nullptr;
+        p_controlled_robot.camera_target = Node::find(
+            p_controlled_robot.robot->hierarchy().root(), p_element_name);
+        if (p_controlled_robot.camera_target == nullptr)
+        {
+            p_controlled_robot.camera_target =
+                &p_controlled_robot.robot->hierarchy().root();
+        }
     }
+
+    return p_controlled_robot.camera_target != nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -317,22 +412,22 @@ void RobotViewerApplication::onCleanup()
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::updateCameraTarget()
 {
-    Eigen::Vector3f camera_target_position;
-
     // Update camera target position, tracking one element of the robot.
     // If no robot is selected, set camera target to zero position.
-    auto const* controlled_robot = m_robot_manager.currentRobot();
-    if ((controlled_robot != nullptr) &&
+    if (auto const* controlled_robot = m_robot_manager.currentRobot();
+        (controlled_robot != nullptr) &&
         (controlled_robot->camera_target != nullptr))
     {
-        m_camera.setView(m_camera.getViewType(),
-                         utils::getTranslation(
-                             controlled_robot->camera_target->worldTransform())
-                             .cast<float>());
+        Eigen::Vector3f target_position =
+            utils::getTranslation(
+                controlled_robot->camera_target->worldTransform())
+                .cast<float>();
+        m_camera.setView(target_position);
     }
     else
     {
-        m_camera.setView(m_camera.getViewType(), Eigen::Vector3f::Zero());
+        Eigen::Vector3f zero_position = Eigen::Vector3f::Zero();
+        m_camera.setView(zero_position);
     }
 
     // Set camera matrices to OpenGL shader
@@ -370,6 +465,21 @@ void RobotViewerApplication::onDraw()
                         renderGeometry(*geometry, transform);
                     }
                 });
+        }
+
+        // Render IK target if in IK mode
+        if (it.control_mode == RobotManager::ControlMode::INVERSE_KINEMATICS &&
+            it.ik_target_poses.size() == 3)
+        {
+            // Get current target pose
+            Pose const& target_pose = it.ik_target_poses[m_target_pose_index];
+
+            // Convert Pose to Transform
+            Transform target_transform = utils::poseToTransform(target_pose);
+
+            // Render axes at target position
+            m_geometry_renderer.renderAxes(target_transform.cast<float>(),
+                                           0.2f);
         }
     }
 
@@ -473,16 +583,18 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
     double elapsed_seconds =
         std::chrono::duration<double>(current_time - m_start_time).count();
 
-    for (const auto& [_, it] : m_robot_manager.robots())
+    for (auto& [_, it] : m_robot_manager.robots())
     {
-        if (it.control_mode == RobotManager::ControlMode::ANIMATION)
+        switch (it.control_mode)
         {
-            handleAnimation(*it.robot, elapsed_seconds);
-        }
-        else if (it.control_mode ==
-                 RobotManager::ControlMode::INVERSE_KINEMATICS)
-        {
-            handleInverseKinematics();
+            case RobotManager::ControlMode::ANIMATION:
+                handleAnimation(*it.robot, elapsed_seconds);
+                break;
+            case RobotManager::ControlMode::INVERSE_KINEMATICS:
+                handleInverseKinematics(it);
+                break;
+            default:
+                break;
         }
     }
 }
@@ -490,15 +602,16 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
 {
-    auto* controlled_robot = m_robot_manager.currentRobot();
-    if (controlled_robot && controlled_robot->robot)
-    {
-        m_physics_simulator.step(*controlled_robot->robot);
-    }
+    // auto* controlled_robot = m_robot_manager.currentRobot();
+    // if (controlled_robot && controlled_robot->robot)
+    //{
+    //     m_physics_simulator.step(*controlled_robot->robot);
+    // }
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
+void RobotViewerApplication::handleAnimation(Robot& p_robot,
+                                             double p_time) const
 {
     // Update animation time (slower for more visible animation)
     float animation_time = static_cast<float>(p_time) * 0.5f;
@@ -525,9 +638,47 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot, double p_time)
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::handleInverseKinematics()
+void RobotViewerApplication::handleInverseKinematics(
+    RobotManager::ControlledRobot& p_robot)
 {
-    // TODO: Implement inverse kinematics
+    if (p_robot.control_joint == nullptr || p_robot.ik_solver == nullptr)
+    {
+        std::cout << "🤖 Error: control joint or solver not set" << std::endl;
+        return;
+    }
+
+    // Get current target pose based on state);
+    Pose const& target_pose = p_robot.ik_target_poses[m_target_pose_index];
+
+    // Solve IK for current target
+    bool solved = p_robot.ik_solver->solve(
+        p_robot.robot->state(), *p_robot.control_joint, target_pose);
+
+    // If converged, transition to next state
+    if (p_robot.ik_solver->converged())
+    {
+        std::cout << "🎯 Reached target " << (m_target_pose_index + 1)
+                  << " - Error: " << p_robot.ik_solver->poseError()
+                  << " - Iterations: " << p_robot.ik_solver->numIterations()
+                  << std::endl;
+
+        // Transition to next state
+        m_target_pose_index++;
+        if (m_target_pose_index >= p_robot.ik_target_poses.size())
+        {
+            m_target_pose_index = 0;
+        }
+    }
+    else if (!solved)
+    {
+        // Only log failures occasionally to avoid spam
+        static size_t failure_count = 0;
+        if (++failure_count % 100 == 0)
+        {
+            std::cout << "⚠️ IK solving in progress - Error: "
+                      << p_robot.ik_solver->poseError() << std::endl;
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -559,24 +710,19 @@ void RobotViewerApplication::onKeyInput(int key,
             // Camera view controls - only change view type, keep
             // current target
             case GLFW_KEY_1:
-                m_camera.setView(Camera::ViewType::PERSPECTIVE,
-                                 m_camera_target_position);
+                m_camera.setView(Camera::ViewType::PERSPECTIVE);
                 break;
             case GLFW_KEY_2:
-                m_camera.setView(Camera::ViewType::TOP,
-                                 m_camera_target_position);
+                m_camera.setView(Camera::ViewType::TOP);
                 break;
             case GLFW_KEY_3:
-                m_camera.setView(Camera::ViewType::FRONT,
-                                 m_camera_target_position);
+                m_camera.setView(Camera::ViewType::FRONT);
                 break;
             case GLFW_KEY_4:
-                m_camera.setView(Camera::ViewType::SIDE,
-                                 m_camera_target_position);
+                m_camera.setView(Camera::ViewType::SIDE);
                 break;
             case GLFW_KEY_5:
-                m_camera.setView(Camera::ViewType::ISOMETRIC,
-                                 m_camera_target_position);
+                m_camera.setView(Camera::ViewType::ISOMETRIC);
                 break;
             // Reset robot to neutral position
             case GLFW_KEY_SPACE:
@@ -595,7 +741,8 @@ void RobotViewerApplication::onKeyInput(int key,
                 break;
             // Robot mode switching (animation or inverse kinematics)
             case GLFW_KEY_M:
-                if (auto* robot = m_robot_manager.currentRobot(); robot)
+                if (auto* robot = m_robot_manager.currentRobot();
+                    robot != nullptr && robot->control_joint != nullptr)
                 {
                     robot->control_mode =
                         robot->control_mode ==
@@ -609,6 +756,14 @@ void RobotViewerApplication::onKeyInput(int key,
                                 ? "Animation"
                                 : "IK")
                         << std::endl;
+                }
+                else
+                {
+                    std::cout << "🤖 Unable to switch mode: no control "
+                                 "joint specified from command line or "
+                                 "invalid command line argument"
+                              << " '" << m_config.control_joint << "'"
+                              << std::endl;
                 }
                 break;
             default:
