@@ -6,18 +6,20 @@ URDF file, end effector name and optionally a list of joint positions.
 ## Setup (run once):
 
 ```bash
-conda create -n pin_env python=3.11 pinocchio -c conda-forge
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
 ```
 
 ## Running the script:
 
 ```bash
-conda activate pin_env
-python robot_kinematics.py data/scara_robot.urdf end_effector
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python robot_kinematics.py ../../data/scara_robot.urdf end_effector
 ```
 
 Optionally, you can pass joint positions:
 
 ```bash
-python robot_kinematics.py data/scara_robot.urdf end_effector --joint-positions 0.1 0.2 0.3
+python robot_kinematics.py ../../data/scara_robot.urdf end_effector --joint-positions 0.1 0.2 0.3
 ```

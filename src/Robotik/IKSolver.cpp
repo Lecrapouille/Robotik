@@ -82,8 +82,8 @@ bool JacobianIKSolver::solve(Robot& p_robot,
         }
 
         // Apply to robot
-        p_robot.hierarchy().forEachJoint([&](Joint& p_joint, size_t p_index)
-                                         { p_joint.position(q[p_index]); });
+        p_robot.hierarchy().forEachJoint([&q](Joint& joint, size_t index)
+                                         { joint.position(q[index]); });
 
         // Log verbose information
         if (m_config.verbose && iter % 50 == 0)
