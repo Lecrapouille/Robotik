@@ -131,7 +131,8 @@ bool RobotViewerApplication::onSetup()
     }
 
     // Initialize ImGui application
-    m_imgui_app = std::make_unique<ImGuiApp>(&m_window);
+    m_imgui_app = std::make_unique<viewer::ImGuiApp>(m_config.window_width,
+                                                     m_config.window_height);
     if (!m_imgui_app->setup())
     {
         m_error = "Failed to initialize ImGui";

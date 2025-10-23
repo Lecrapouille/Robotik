@@ -1,6 +1,6 @@
 /**
  * @file DearImGuiApp.cpp
- * @brief Dear ImGui application base class for the viewer.
+ * @brief Dear ImGui application wrapper with docking support.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -8,26 +8,29 @@
  */
 
 #include "Robotik/Viewer/DearImGuiApp.hpp"
-#include "Robotik/Viewer/OpenGLWindow.hpp"
 
-ImGuiApp::ImGuiApp(robotik::viewer::OpenGLWindow* fenetreGL)
-    : m_fenetreGL(fenetreGL),
-      m_window(nullptr),
+namespace robotik::viewer
+{
+
+// ----------------------------------------------------------------------------
+ImGuiApp::ImGuiApp(size_t const p_width, size_t const p_height)
+    : m_window(nullptr),
       m_initialized(false),
       m_dockingEnabled(true),
       m_viewportsEnabled(true),
       m_fbo(0),
       m_fboTexture(0),
       m_rbo(0),
-      m_fboWidth(1280),
-      m_fboHeight(720),
-      m_viewportSize(1280, 720),
-      m_viewportPos(0, 0),
+      m_fboWidth(static_cast<int>(p_width)),
+      m_fboHeight(static_cast<int>(p_height)),
+      m_viewportSize(static_cast<float>(p_width), static_cast<float>(p_height)),
+      m_viewportPos(0.0f, 0.0f),
       m_viewportHovered(false),
       m_viewportFocused(false)
 {
 }
 
+// ----------------------------------------------------------------------------
 ImGuiApp::~ImGuiApp()
 {
     if (m_initialized)
@@ -36,6 +39,7 @@ ImGuiApp::~ImGuiApp()
     }
 }
 
+// ----------------------------------------------------------------------------
 bool ImGuiApp::setup()
 {
     if (m_initialized)
@@ -43,19 +47,19 @@ bool ImGuiApp::setup()
         return true;
     }
 
-    // Récupération de la fenêtre GLFW
+    // Get GLFW window from current context
     m_window = glfwGetCurrentContext();
     if (!m_window)
     {
         return false;
     }
 
-    // Création du contexte ImGui
+    // Create ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
 
-    // Configuration des flags
+    // Configure ImGui flags
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     if (m_dockingEnabled)
@@ -68,10 +72,10 @@ bool ImGuiApp::setup()
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
 
-    // Configuration du style
+    // Setup ImGui style
     setupStyle();
 
-    // Initialisation des backends
+    // Initialize backends
     const char* glsl_version = "#version 330";
     if (!ImGui_ImplGlfw_InitForOpenGL(m_window, true))
     {
@@ -84,7 +88,7 @@ bool ImGuiApp::setup()
         return false;
     }
 
-    // Création du framebuffer pour le rendu OpenGL
+    // Create framebuffer for OpenGL rendering
     if (!createFramebuffer(m_fboWidth, m_fboHeight))
     {
         teardown();
@@ -95,6 +99,7 @@ bool ImGuiApp::setup()
     return true;
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::teardown()
 {
     if (!m_initialized)
@@ -112,6 +117,7 @@ void ImGuiApp::teardown()
     m_window = nullptr;
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::draw()
 {
     if (!m_initialized)
@@ -119,24 +125,24 @@ void ImGuiApp::draw()
         return;
     }
 
-    // Début de la frame ImGui
+    // Start ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Configuration du dockspace
+    // Setup dockspace
     if (m_dockingEnabled)
     {
         setupDockspace();
     }
 
-    // Rendu de la viewport OpenGL intégrée
+    // Draw OpenGL viewport
     drawViewport();
 
-    // Fin de la frame ImGui
+    // Finalize ImGui frame
     ImGui::Render();
 
-    // Rendu final sur la fenêtre principale
+    // Render to main window
     int display_w, display_h;
     glfwGetFramebufferSize(m_window, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
@@ -145,7 +151,7 @@ void ImGuiApp::draw()
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    // Mise à jour des viewports multi-fenêtres
+    // Update multi-viewports
     if (m_viewportsEnabled)
     {
         ImGuiIO& io = ImGui::GetIO();
@@ -159,18 +165,20 @@ void ImGuiApp::draw()
     }
 }
 
+// ----------------------------------------------------------------------------
 ImGuiIO& ImGuiApp::io()
 {
     return ImGui::GetIO();
 }
 
-void ImGuiApp::enableDocking(bool enable)
+// ----------------------------------------------------------------------------
+void ImGuiApp::enableDocking(bool p_enable)
 {
-    m_dockingEnabled = enable;
+    m_dockingEnabled = p_enable;
     if (m_initialized)
     {
         ImGuiIO& io = ImGui::GetIO();
-        if (enable)
+        if (p_enable)
         {
             io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         }
@@ -181,13 +189,14 @@ void ImGuiApp::enableDocking(bool enable)
     }
 }
 
-void ImGuiApp::enableViewports(bool enable)
+// ----------------------------------------------------------------------------
+void ImGuiApp::enableViewports(bool p_enable)
 {
-    m_viewportsEnabled = enable;
+    m_viewportsEnabled = p_enable;
     if (m_initialized)
     {
         ImGuiIO& io = ImGui::GetIO();
-        if (enable)
+        if (p_enable)
         {
             io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
         }
@@ -198,6 +207,7 @@ void ImGuiApp::enableViewports(bool enable)
     }
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::setupStyle()
 {
     ImGui::StyleColorsDark();
@@ -211,6 +221,7 @@ void ImGuiApp::setupStyle()
     }
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::setupDockspace()
 {
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
@@ -240,12 +251,12 @@ void ImGuiApp::setupDockspace()
     ImGui::Begin("DockSpace", nullptr, window_flags);
     ImGui::PopStyleVar(3);
 
-    // Menu bar optionnel
+    // Menu bar
     if (ImGui::BeginMenuBar())
     {
-        if (ImGui::BeginMenu("Fichier"))
+        if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Quitter"))
+            if (ImGui::MenuItem("Quit"))
             {
                 glfwSetWindowShouldClose(m_window, GLFW_TRUE);
             }
@@ -260,37 +271,42 @@ void ImGuiApp::setupDockspace()
     ImGui::End();
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::drawViewport()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::Begin("Viewport OpenGL");
+    ImGui::Begin("OpenGL Viewport");
 
-    // Récupération de l'état de la fenêtre
+    // Get window state
     m_viewportHovered = ImGui::IsWindowHovered();
     m_viewportFocused = ImGui::IsWindowFocused();
 
-    // Récupération de la taille disponible
-    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+    // Get available size
+    ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
     m_viewportPos = ImGui::GetCursorScreenPos();
 
-    // Redimensionnement du framebuffer si nécessaire
-    if (viewportPanelSize.x != m_viewportSize.x ||
-        viewportPanelSize.y != m_viewportSize.y)
+    // Resize framebuffer if necessary
+    if (viewport_panel_size.x != m_viewportSize.x ||
+        viewport_panel_size.y != m_viewportSize.y)
     {
-        m_viewportSize = viewportPanelSize;
+        m_viewportSize = viewport_panel_size;
         if (m_viewportSize.x > 0 && m_viewportSize.y > 0)
         {
-            resizeFramebuffer((int)m_viewportSize.x, (int)m_viewportSize.y);
+            resizeFramebuffer(static_cast<int>(m_viewportSize.x),
+                              static_cast<int>(m_viewportSize.y));
         }
     }
 
-    // Rendu OpenGL dans le framebuffer
+    // Render OpenGL content to framebuffer
     if (m_fbo && m_viewportSize.x > 0 && m_viewportSize.y > 0)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
-        glViewport(0, 0, (int)m_viewportSize.x, (int)m_viewportSize.y);
+        glViewport(0,
+                   0,
+                   static_cast<int>(m_viewportSize.x),
+                   static_cast<int>(m_viewportSize.y));
 
-        // Appel du callback de rendu 3D
+        // Call render callback for 3D content
         if (m_render_callback)
         {
             m_render_callback();
@@ -298,31 +314,33 @@ void ImGuiApp::drawViewport()
 
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // Affichage de la texture dans ImGui
-        ImGui::Image((void*)(intptr_t)m_fboTexture,
-                     m_viewportSize,
-                     ImVec2(0, 1), // UV coords inversées pour OpenGL
-                     ImVec2(1, 0));
+        // Display texture in ImGui
+        ImGui::Image(
+            reinterpret_cast<void*>(static_cast<intptr_t>(m_fboTexture)),
+            m_viewportSize,
+            ImVec2(0, 1), // Flipped UV coords for OpenGL
+            ImVec2(1, 0));
     }
 
     ImGui::End();
     ImGui::PopStyleVar();
 }
 
-bool ImGuiApp::createFramebuffer(int width, int height)
+// ----------------------------------------------------------------------------
+bool ImGuiApp::createFramebuffer(int p_width, int p_height)
 {
-    // Génération du framebuffer
+    // Generate framebuffer
     glGenFramebuffers(1, &m_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
-    // Création de la texture de couleur
+    // Create color texture
     glGenTextures(1, &m_fboTexture);
     glBindTexture(GL_TEXTURE_2D, m_fboTexture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
                  GL_RGB,
-                 width,
-                 height,
+                 p_width,
+                 p_height,
                  0,
                  GL_RGB,
                  GL_UNSIGNED_BYTE,
@@ -332,14 +350,15 @@ bool ImGuiApp::createFramebuffer(int width, int height)
     glFramebufferTexture2D(
         GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboTexture, 0);
 
-    // Création du renderbuffer pour depth/stencil
+    // Create renderbuffer for depth/stencil
     glGenRenderbuffers(1, &m_rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, m_rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+    glRenderbufferStorage(
+        GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, p_width, p_height);
     glFramebufferRenderbuffer(
         GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_rbo);
 
-    // Vérification du framebuffer
+    // Check framebuffer status
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
         deleteFramebuffer();
@@ -349,12 +368,13 @@ bool ImGuiApp::createFramebuffer(int width, int height)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    m_fboWidth = width;
-    m_fboHeight = height;
+    m_fboWidth = p_width;
+    m_fboHeight = p_height;
 
     return true;
 }
 
+// ----------------------------------------------------------------------------
 void ImGuiApp::deleteFramebuffer()
 {
     if (m_fbo)
@@ -374,13 +394,16 @@ void ImGuiApp::deleteFramebuffer()
     }
 }
 
-void ImGuiApp::resizeFramebuffer(int width, int height)
+// ----------------------------------------------------------------------------
+void ImGuiApp::resizeFramebuffer(int p_width, int p_height)
 {
-    if (width <= 0 || height <= 0)
+    if (p_width <= 0 || p_height <= 0)
     {
         return;
     }
 
     deleteFramebuffer();
-    createFramebuffer(width, height);
+    createFramebuffer(p_width, p_height);
 }
+
+} // namespace robotik::viewer
