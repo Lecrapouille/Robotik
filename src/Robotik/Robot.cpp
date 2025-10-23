@@ -137,16 +137,4 @@ Jacobian const& Robot::computeJacobian(State& p_state,
     return J;
 }
 
-// ----------------------------------------------------------------------------
-bool Robot::inverseKinematics(State& p_state,
-                              Node const& p_end_effector,
-                              Pose const& p_target_pose,
-                              IKSolver& p_solver)
-{
-    // The IK solver will work with the old Robot interface temporarily
-    // This is a bridge until we update IKSolver
-    // For now, just return false as we need to update IKSolver first
-    return false;
-}
-
 } // namespace robotik
