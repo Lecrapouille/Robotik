@@ -42,11 +42,8 @@ class Robot:
         # Reshape to (6, nq) when nq, the number of joints, is available
         return J.reshape(6, self.model.nq)
 
-    def inverse_kinematics(self, target_pose, max_iter=500, tol=1e-4, dt=1.0, damp=0.01, initial_guess=None):
-        if initial_guess is None:
-            q = pinocchio.neutral(self.model)
-        else:
-            q = np.array(initial_guess)
+    def inverse_kinematics(self, target_pose, max_iter=500, tol=1e-4, dt=1.0, damp=0.01):
+        q = self.joint_positions.copy()
         for iter in range(max_iter):
             # Forward kinematics
             pinocchio.forwardKinematics(self.model, self.data, q)
@@ -56,8 +53,8 @@ class Robot:
             current_pose = self.get_end_effector_transform()
 
             # Error (difference between target and current pose)
-            error_SE3 = current_pose.actInv(target_pose)
-            error_vec = pinocchio.log(error_SE3).vector
+            error_se3 = current_pose.actInv(target_pose)
+            error_vec = pinocchio.log(error_se3).vector
             error_norm = np.linalg.norm(error_vec)
 
             # Convergence check
@@ -66,10 +63,10 @@ class Robot:
 
             # Damped least squares
             J = self.get_end_effector_jacobian(pinocchio.ReferenceFrame.LOCAL, q)
-            J_pinv = J.T @ np.linalg.inv(J @ J.T + damp * np.eye(6))
+            j_pseudo_inverse = J.T @ np.linalg.inv(J @ J.T + damp * np.eye(6))
 
             # Update configuration
-            dq = J_pinv @ error_vec
+            dq = j_pseudo_inverse @ error_vec
             q = pinocchio.integrate(self.model, q, dq * dt)
 
         # Not converged
