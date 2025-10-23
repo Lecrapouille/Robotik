@@ -251,8 +251,8 @@ void RobotViewerApplication::computeIKTargetPoses(
 
     // Initialize IK solver
     p_controlled_robot.ik_solver = std::make_unique<JacobianIKSolver>();
-    p_controlled_robot.control_mode =
-        RobotManager::ControlMode::INVERSE_KINEMATICS;
+    // p_controlled_robot.control_mode =
+    //     RobotManager::ControlMode::INVERSE_KINEMATICS;
 }
 
 // ----------------------------------------------------------------------------
@@ -593,6 +593,7 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
             case RobotManager::ControlMode::INVERSE_KINEMATICS:
                 handleInverseKinematics(it);
                 break;
+            case RobotManager::ControlMode::NO_CONTROL:
             default:
                 break;
         }
@@ -744,26 +745,27 @@ void RobotViewerApplication::onKeyInput(int key,
                 if (auto* robot = m_robot_manager.currentRobot();
                     robot != nullptr && robot->control_joint != nullptr)
                 {
-                    robot->control_mode =
-                        robot->control_mode ==
-                                RobotManager::ControlMode::ANIMATION
-                            ? RobotManager::ControlMode::INVERSE_KINEMATICS
-                            : RobotManager::ControlMode::ANIMATION;
-                    std::cout
-                        << "🤖 Mode: "
-                        << (m_robot_manager.currentRobot()->control_mode ==
-                                    RobotManager::ControlMode::ANIMATION
-                                ? "Animation"
-                                : "IK")
-                        << std::endl;
-                }
-                else
-                {
-                    std::cout << "🤖 Unable to switch mode: no control "
-                                 "joint specified from command line or "
-                                 "invalid command line argument"
-                              << " '" << m_config.control_joint << "'"
-                              << std::endl;
+                    switch (robot->control_mode)
+                    {
+                        case RobotManager::ControlMode::ANIMATION:
+                            std::cout << "🤖 Mode: INVERSE_KINEMATICS"
+                                      << std::endl;
+                            robot->control_mode =
+                                RobotManager::ControlMode::INVERSE_KINEMATICS;
+                            break;
+                        case RobotManager::ControlMode::INVERSE_KINEMATICS:
+                            std::cout << "🤖 Mode: NO_CONTROL" << std::endl;
+                            robot->control_mode =
+                                RobotManager::ControlMode::NO_CONTROL;
+                            break;
+                        case RobotManager::ControlMode::NO_CONTROL:
+                            std::cout << "🤖 Mode: ANIMATION" << std::endl;
+                            robot->control_mode =
+                                RobotManager::ControlMode::ANIMATION;
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 break;
             default:
