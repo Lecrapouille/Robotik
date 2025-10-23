@@ -3,7 +3,6 @@ build/
 doc/code-coverage/*
 doc/doxygen/*
 external/*/
-compile_commands.json
 
 # Python
 __pycache__

@@ -1,0 +1,38 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/include",
+                "${workspaceFolder}/src",
+                "${workspaceFolder}/external",
+                "${workspaceFolder}/external/units/include",
+                "${workspaceFolder}/build/generated/Robotik",
+                "${workspaceFolder}/build/downloaded",
+                "/usr/include/eigen3"
+            ],
+            "defines": [
+                "COMPILER_NAME=\"g++\"",
+                "COMPILER_VERSION=\"15.2.0\"",
+                "API_LINKAGE=",
+                "UNDEBUG",
+                "_GLIBCXX_ASSERTIONS"
+            ],
+            "compilerPath": "/usr/bin/g++",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compileCommands": "${workspaceFolder}/compile_commands.json",
+            "configurationProvider": "ms-vscode.makefile-tools",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/**"
+                ],
+                "limitSymbolsToIncludedHeaders": true,
+                "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db"
+            }
+        }
+    ],
+    "version": 4
+}
