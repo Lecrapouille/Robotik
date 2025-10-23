@@ -59,6 +59,19 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 #
 PKG_LIBS += glfw3 glew gl
 
+###################################################
+# Set third party Dear ImGui
+#
+IMGUI_DIR := $(P)/external/imgui
+INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+LIB_FILES += $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_draw.cpp
+LIB_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui.cpp
+LIB_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
+LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
+LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
+
 ###############################################################################
 # Sharable information between all Makefiles
 #
