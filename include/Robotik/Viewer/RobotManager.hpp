@@ -47,6 +47,8 @@ public:
     // ------------------------------------------------------------------------
     enum class ControlMode
     {
+        //! No control
+        NO_CONTROL,
         //! Automatic sinusoidal animation
         ANIMATION,
         //! Interactive inverse kinematics control
@@ -62,7 +64,7 @@ public:
         //! \brief Robot instance
         std::unique_ptr<Robot> robot;
         //! \brief Control mode
-        ControlMode control_mode = ControlMode::ANIMATION;
+        ControlMode control_mode = ControlMode::NO_CONTROL;
         //! \brief Controlled joint for Inverse Kinematics
         Node const* control_joint = nullptr;
         //! \brief Computed target poses for IK (3 poses)
