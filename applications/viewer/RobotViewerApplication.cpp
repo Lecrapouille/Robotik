@@ -13,6 +13,7 @@
 #include "Robotik/Core/Debug.hpp"
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Trajectory.hpp"
+#include "Robotik/Viewer/DearImGuiApp.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -128,6 +129,19 @@ bool RobotViewerApplication::onSetup()
                   m_geometry_renderer.error();
         return false;
     }
+
+    // Initialize ImGui application
+    m_imgui_app = std::make_unique<ImGuiApp>(&m_window);
+    if (!m_imgui_app->setup())
+    {
+        m_error = "Failed to initialize ImGui";
+        return false;
+    }
+
+    // Set the render callback for the 3D scene
+    m_imgui_app->setRenderCallback([this]() { this->render3DScene(); });
+
+    std::cout << "✨ ImGui initialized with docking support" << std::endl;
 
     // Load robot from the specified URDF file
     auto* controlled_robot = m_robot_manager.loadRobot(m_config.urdf_file);
@@ -454,6 +468,11 @@ bool RobotViewerApplication::setupShaderProgram(
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onCleanup()
 {
+    if (m_imgui_app)
+    {
+        m_imgui_app->teardown();
+        m_imgui_app.reset();
+    }
     m_robot_manager.clear();
 }
 
@@ -487,6 +506,22 @@ void RobotViewerApplication::updateCameraTarget()
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onDraw()
+{
+    // Poll events first
+    m_window.pollEvents();
+
+    // Render with ImGui
+    if (m_imgui_app)
+    {
+        m_imgui_app->draw();
+    }
+
+    // Swap buffers
+    m_window.swapBuffers();
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::render3DScene()
 {
     // Clear screen
     glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
@@ -537,9 +572,6 @@ void RobotViewerApplication::onDraw()
             renderTrajectoryPath(it);
         }
     }
-
-    m_window.swapBuffers();
-    m_window.pollEvents();
 }
 
 // ----------------------------------------------------------------------------

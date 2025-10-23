@@ -20,6 +20,9 @@
 #include "Robotik/Viewer/RobotManager.hpp"
 #include "Robotik/Viewer/ShaderManager.hpp"
 
+// Forward declaration for ImGuiApp
+class ImGuiApp;
+
 namespace robotik::viewer
 {
 
@@ -77,6 +80,11 @@ private: // override Application methods
     //! \brief Render the application. Called every frame.
     // ----------------------------------------------------------------------------
     void onDraw() override;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render the 3D scene (called by ImGuiApp).
+    // ----------------------------------------------------------------------------
+    void render3DScene();
 
     // ----------------------------------------------------------------------------
     //! \brief Update the application logic. Called every frame.
@@ -238,6 +246,7 @@ private:
 
     // Components
     OpenGLWindow m_window;
+    std::unique_ptr<ImGuiApp> m_imgui_app;
     Camera m_camera;
     ShaderManager m_shader_manager;
     MeshManager m_mesh_manager;
