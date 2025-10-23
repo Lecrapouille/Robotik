@@ -104,10 +104,10 @@ private: // override Application methods
 
     // ----------------------------------------------------------------------------
     //! \brief Handle window resize event.
-    //! \param width New window width.
-    //! \param height New window height.
+    //! \param p_width New window width.
+    //! \param p_height New window height.
     // ----------------------------------------------------------------------------
-    void onWindowResize(int width, int height);
+    void onWindowResize(int p_width, int p_height);
 
     // ----------------------------------------------------------------------------
     //! \brief Handle key event.
