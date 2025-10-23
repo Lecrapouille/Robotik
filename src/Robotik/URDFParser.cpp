@@ -203,6 +203,7 @@ URDFParser::parseRobot(tinyxml2::XMLElement* p_robot_element)
                 origin_xyz, origin_rpy.x(), origin_rpy.y(), origin_rpy.z()));
 
             parseLimits(xml, *joint);
+            parseDynamics(xml, *joint);
             parseParentChildLinks(xml, *joint);
 
             m_joints[name] = std::move(joint);
@@ -626,6 +627,31 @@ void URDFParser::parseLimits(tinyxml2::XMLElement* p_joint_element,
         tinyxml2::XML_SUCCESS)
     {
         p_joint.effort_max(effort);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void URDFParser::parseDynamics(tinyxml2::XMLElement* p_joint_element,
+                               Joint& p_joint) const
+{
+    auto dynamics_element = p_joint_element->FirstChildElement("dynamics");
+    if (!dynamics_element)
+        return;
+
+    // Parse damping
+    double damping = 0.0;
+    if (dynamics_element->QueryDoubleAttribute("damping", &damping) ==
+        tinyxml2::XML_SUCCESS)
+    {
+        p_joint.damping(damping);
+    }
+
+    // Parse friction
+    double friction = 0.0;
+    if (dynamics_element->QueryDoubleAttribute("friction", &friction) ==
+        tinyxml2::XML_SUCCESS)
+    {
+        p_joint.friction(friction);
     }
 }
 

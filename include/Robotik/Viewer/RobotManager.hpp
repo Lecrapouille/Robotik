@@ -12,6 +12,7 @@
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/Trajectory.hpp"
 
 #include <Eigen/Dense>
 
@@ -52,7 +53,9 @@ public:
         //! Automatic sinusoidal animation
         ANIMATION,
         //! Interactive inverse kinematics control
-        INVERSE_KINEMATICS
+        INVERSE_KINEMATICS,
+        //! Trajectory following with velocity limits
+        TRAJECTORY
     };
 
     // ------------------------------------------------------------------------
@@ -63,7 +66,8 @@ public:
     {
         //! \brief Robot instance
         std::unique_ptr<Robot> robot;
-        //! \brief Control mode
+        //! \brief Control mode (NO_CONTROL, ANIMATION, INVERSE_KINEMATICS,
+        //! TRAJECTORY)
         ControlMode control_mode = ControlMode::NO_CONTROL;
         //! \brief Controlled joint for Inverse Kinematics
         Node const* control_joint = nullptr;
@@ -77,6 +81,14 @@ public:
         bool is_visible = true;
         //! \brief Scale factor
         float scale = 1.0f;
+        //! \brief Current trajectory (for TRAJECTORY mode)
+        std::unique_ptr<robotik::Trajectory> trajectory;
+        //! \brief Trajectory start time
+        double trajectory_start_time = 0.0;
+        //! \brief Trajectory configurations (start and goal)
+        std::vector<std::vector<double>> trajectory_configs;
+        //! \brief Current trajectory segment index
+        size_t trajectory_segment = 0;
     };
 
     // ------------------------------------------------------------------------

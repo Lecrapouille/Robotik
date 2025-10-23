@@ -15,6 +15,12 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
+//! \brief Vector of values for each joint at a given time (i.e. positions,
+//! velocities, accelerations).
+// ----------------------------------------------------------------------------
+using JointValues = std::vector<double>;
+
+// ----------------------------------------------------------------------------
 //! \brief Homogeneous transformation matrix (4x4) for 3D spatial
 //! transformations.
 //!

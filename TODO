@@ -9,6 +9,8 @@ Index pour Joint et Link mais aussi sensor actuator
 findChild<T>(name) et findChildren<T>(name) et name optionel => retourner std::map
 ajouter a Node: visible ou inactif
 
+Remplacer double temps par std::chrono
+
 
 - Ajouter plus URDF robots https://automaticaddison.com/the-ultimate-guide-to-jacobian-matrices-for-robotics/
 
