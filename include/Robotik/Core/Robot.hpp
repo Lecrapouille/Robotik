@@ -183,23 +183,6 @@ public:
     // ------------------------------------------------------------------------
     Jacobian const& computeJacobian(State& p_state, Node const& p_end_effector);
 
-    // ------------------------------------------------------------------------
-    //! \brief Solve inverse kinematics for a target pose.
-    //!
-    //! Uses the provided IK solver to find joint positions that achieve
-    //! the desired end-effector pose. Updates the state with the solution.
-    //!
-    //! \param p_state The state to update with IK solution.
-    //! \param p_end_effector The end effector node.
-    //! \param p_target_pose Desired 6D pose [x,y,z,rx,ry,rz].
-    //! \param p_solver The IK solver to use.
-    //! \return True if IK converged to a solution, false otherwise.
-    // ------------------------------------------------------------------------
-    bool inverseKinematics(State& p_state,
-                           Node const& p_end_effector,
-                           Pose const& p_target_pose,
-                           IKSolver& p_solver);
-
 protected:
 
     // ------------------------------------------------------------------------
