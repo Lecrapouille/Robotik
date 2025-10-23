@@ -12,7 +12,7 @@
 #include <functional>
 #include <string>
 
-class GLFWwindow;
+struct GLFWwindow;
 
 namespace robotik::viewer
 {

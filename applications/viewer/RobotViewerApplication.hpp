@@ -14,14 +14,12 @@
 #include "Robotik/Core/PhysicsSimulator.hpp"
 #include "Robotik/Viewer/Application.hpp"
 #include "Robotik/Viewer/Camera.hpp"
+#include "Robotik/Viewer/DearImGuiApp.hpp"
 #include "Robotik/Viewer/GeometryRenderer.hpp"
 #include "Robotik/Viewer/MeshManager.hpp"
 #include "Robotik/Viewer/OpenGLWindow.hpp"
 #include "Robotik/Viewer/RobotManager.hpp"
 #include "Robotik/Viewer/ShaderManager.hpp"
-
-// Forward declaration for ImGuiApp
-class ImGuiApp;
 
 namespace robotik::viewer
 {
@@ -246,7 +244,7 @@ private:
 
     // Components
     OpenGLWindow m_window;
-    std::unique_ptr<ImGuiApp> m_imgui_app;
+    std::unique_ptr<viewer::ImGuiApp> m_imgui_app;
     Camera m_camera;
     ShaderManager m_shader_manager;
     MeshManager m_mesh_manager;
