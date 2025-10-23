@@ -50,6 +50,8 @@ public:
     {
         //! No control
         NO_CONTROL,
+        //! Direct kinematics - manual joint control
+        DIRECT_KINEMATICS,
         //! Automatic sinusoidal animation
         ANIMATION,
         //! Interactive inverse kinematics control
