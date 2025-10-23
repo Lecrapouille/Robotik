@@ -11,6 +11,8 @@
 #include "Robotik/Core/Conversions.hpp"
 // #include "Robotik/Core/IKSolver.hpp"
 
+#include <iostream>
+
 namespace robotik
 {
 
@@ -27,6 +29,7 @@ Robot::Robot(std::string const& p_name, Hierarchy&& p_hierarchy)
       m_state(m_hierarchy.numJoints(), m_hierarchy.numLinks())
 {
     // Modify the mesh path to be relative to the robot name
+    // FIXME: a supprimer
     m_hierarchy.forEachLink(
         [this](Link& p_link)
         {
@@ -39,54 +42,54 @@ Robot::Robot(std::string const& p_name, Hierarchy&& p_hierarchy)
 void Robot::forwardKinematics(State& p_state)
 {
     m_hierarchy.forEachJoint(
-        [&](Joint& p_joint, size_t p_index)
+        [&p_state](Joint& joint, size_t index)
         {
             // The joint position() method automatically updates world
             // transforms via the hierarchy tree traversal
-            p_joint.position(p_state.joint_positions[p_index]);
+            joint.position(p_state.joint_positions[index]);
         });
-}
-
-// ----------------------------------------------------------------------------
-Pose Robot::calculatePoseError(Pose const& p_target_pose,
-                               Pose const& p_current_pose) const
-{
-    Pose error;
-
-    // Position error is straightforward
-    error.head<3>() = p_target_pose.head<3>() - p_current_pose.head<3>();
-
-    // Orientation error: convert to rotation matrices for proper subtraction
-    Eigen::Vector3d target_euler = p_target_pose.tail<3>();
-    Eigen::Vector3d current_euler = p_current_pose.tail<3>();
-
-    Eigen::Matrix3d target_rot = utils::eulerToRotation(
-        target_euler(0), target_euler(1), target_euler(2));
-    Eigen::Matrix3d current_rot = utils::eulerToRotation(
-        current_euler(0), current_euler(1), current_euler(2));
-
-    // Compute rotation error: R_error = R_target * R_current^T
-    Eigen::Matrix3d error_rot = target_rot * current_rot.transpose();
-
-    // Convert back to Euler angles
-    Eigen::Vector3d error_euler = utils::rotationToEuler(error_rot);
-    error.tail<3>() = error_euler;
-
-    return error;
 }
 
 // ----------------------------------------------------------------------------
 void Robot::setNeutralPosition()
 {
     m_hierarchy.forEachJoint(
-        [this](Joint& p_joint, size_t p_index)
+        [this](Joint& joint, size_t index)
         {
-            auto [min, max] = p_joint.limits();
+            auto [min, max] = joint.limits();
             double value = (min + max) / 2.0;
-            p_joint.position(value);
-            m_state.joint_positions[p_index] = value;
-            m_state.joint_velocities[p_index] = 0.0;
-            m_state.joint_accelerations[p_index] = 0.0;
+            joint.position(value);
+            m_state.joint_positions[index] = value;
+            m_state.joint_velocities[index] = 0.0;
+            m_state.joint_accelerations[index] = 0.0;
+        });
+}
+
+// ----------------------------------------------------------------------------
+void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
+                                            double dt)
+{
+    m_hierarchy.forEachJoint(
+        [&q_target, dt](Joint& joint, size_t index)
+        {
+            double current_pos = joint.position();
+            double diff = q_target[index] - current_pos;
+
+            // Get maximum velocity for this joint
+            double max_speed = joint.maxVelocity();
+
+            // If no velocity limit set, use a reasonable default
+            if (max_speed <= 0.0)
+            {
+                max_speed = 1.0; // Default 1 rad/s or 1 m/s
+            }
+
+            // Clamp the step to respect velocity limits
+            double max_step = max_speed * dt;
+            double step = std::clamp(diff, -max_step, max_step);
+
+            // Apply the clamped position
+            joint.position(current_pos + step);
         });
 }
 

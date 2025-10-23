@@ -176,6 +176,12 @@ private:
                      Joint& p_joint) const;
 
     // ------------------------------------------------------------------------
+    //! \brief Parse the dynamics from the URDF file.
+    // ------------------------------------------------------------------------
+    void parseDynamics(tinyxml2::XMLElement* p_joint_element,
+                       Joint& p_joint) const;
+
+    // ------------------------------------------------------------------------
     //! \brief Compute OBB from mesh file using PCA.
     //! \param p_mesh_path Path to the mesh file.
     //! \param p_center Output: center of the OBB.

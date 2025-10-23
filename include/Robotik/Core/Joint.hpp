@@ -275,7 +275,7 @@ public:
     // ------------------------------------------------------------------------
     inline void maxVelocity(double p_velocity_max)
     {
-        m_velocity_max = p_velocity_max;
+        m_velocity_max = std::abs(p_velocity_max);
     }
 
     // ------------------------------------------------------------------------
@@ -336,7 +336,7 @@ public:
     // ------------------------------------------------------------------------
     inline void effort_max(double p_effort_max)
     {
-        m_effort_max = p_effort_max;
+        m_effort_max = std::abs(p_effort_max);
     }
 
     // ------------------------------------------------------------------------
@@ -354,7 +354,7 @@ public:
     // ------------------------------------------------------------------------
     inline void damping(double p_damping)
     {
-        m_damping = p_damping;
+        m_damping = std::abs(p_damping);
     }
 
     // ------------------------------------------------------------------------
@@ -372,7 +372,7 @@ public:
     // ------------------------------------------------------------------------
     inline void friction(double p_friction)
     {
-        m_friction = p_friction;
+        m_friction = std::abs(p_friction);
     }
 
     // ------------------------------------------------------------------------
@@ -412,8 +412,17 @@ public:
         if (m_type == Joint::Type::CONTINUOUS || m_type == Joint::Type::FIXED)
             return;
 
-        m_position_min = p_position_min;
-        m_position_max = p_position_max;
+        // Swap the limits if the minimum is greater than the maximum
+        if (p_position_min <= p_position_max)
+        {
+            m_position_min = p_position_min;
+            m_position_max = p_position_max;
+        }
+        else
+        {
+            m_position_min = p_position_max;
+            m_position_max = p_position_min;
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -515,14 +524,14 @@ private:
     //! \brief Current joint velocity value (radians/second or meters/second)
     double m_velocity = 0.0;
     //! \brief Maximum joint velocity value (radians/second or meters/second)
-    double m_velocity_max = 0.0;
+    double m_velocity_max = std::numeric_limits<double>::max();
     //! \brief Current joint acceleration value (radians/second² or
     //! meters/second²)
     double m_acceleration = 0.0;
     //! \brief Current force/torque value (newtons or newton-meters)
     double m_effort = 0.0;
     //! \brief Maximum joint force/torque value (newtons or newton-meters)
-    double m_effort_max = 0.0;
+    double m_effort_max = std::numeric_limits<double>::max();
     //! \brief Damping parameter (no unit)
     double m_damping = 0.0;
     //! \brief Friction parameter (no unit)

@@ -144,6 +144,13 @@ private:
     computeIKTargetPoses(RobotManager::ControlledRobot& p_controlled_robot);
 
     // ----------------------------------------------------------------------------
+    //! \brief Compute trajectory configurations.
+    //! \param p_controlled_robot The controlled robot.
+    // ----------------------------------------------------------------------------
+    void
+    computeTrajectoryConfigs(RobotManager::ControlledRobot& p_controlled_robot);
+
+    // ----------------------------------------------------------------------------
     //! \brief Search for the joint to control or inverse kinematics, given by
     //! the user from the application command line. If not provided, find the
     //! robot end effector.
@@ -185,6 +192,12 @@ private:
                         Eigen::Matrix4f const& p_transform);
 
     // ----------------------------------------------------------------------------
+    //! \brief Render trajectory path with axes.
+    //! \param p_robot The controlled robot.
+    // ----------------------------------------------------------------------------
+    void renderTrajectoryPath(RobotManager::ControlledRobot& p_robot);
+
+    // ----------------------------------------------------------------------------
     //! \brief Handle animation of the given robot.
     //! \param p_robot The robot.
     //! \param p_time The time.
@@ -196,6 +209,16 @@ private:
     //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
     void handleInverseKinematics(RobotManager::ControlledRobot& p_robot);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Handle trajectory following.
+    //! \param p_robot The controlled robot.
+    //! \param p_time Current time in seconds.
+    //! \param p_dt Delta time in seconds.
+    // ----------------------------------------------------------------------------
+    void handleTrajectory(RobotManager::ControlledRobot& p_robot,
+                          double p_time,
+                          double p_dt);
 
     // ----------------------------------------------------------------------------
     //! \brief Update the camera target position for track the chosen robot

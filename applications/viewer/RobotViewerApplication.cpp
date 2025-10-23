@@ -11,8 +11,8 @@
 
 #include "Robotik/Core/Conversions.hpp"
 #include "Robotik/Core/Debug.hpp"
-#include "Robotik/Core/Exception.hpp"
 #include "Robotik/Core/IKSolver.hpp"
+#include "Robotik/Core/Trajectory.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -160,6 +160,9 @@ bool RobotViewerApplication::onSetup()
     // To be placed before setting the initial joint values.
     computeIKTargetPoses(*controlled_robot);
 
+    // Compute trajectory configurations
+    computeTrajectoryConfigs(*controlled_robot);
+
     // Set initial joint values to the specified position
     if (auto const& joint_positions = m_config.joint_positions;
         !joint_positions.empty())
@@ -251,8 +254,53 @@ void RobotViewerApplication::computeIKTargetPoses(
 
     // Initialize IK solver
     p_controlled_robot.ik_solver = std::make_unique<JacobianIKSolver>();
-    // p_controlled_robot.control_mode =
-    //     RobotManager::ControlMode::INVERSE_KINEMATICS;
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::computeTrajectoryConfigs(
+    RobotManager::ControlledRobot& p_controlled_robot)
+{
+    std::cout << "🎯 Computing trajectory configurations..." << std::endl;
+
+    // Generate 3 joint configurations
+    size_t const num_configs = 3;
+    p_controlled_robot.trajectory_configs.clear();
+    p_controlled_robot.trajectory_configs.resize(num_configs);
+
+    for (auto& config : p_controlled_robot.trajectory_configs)
+    {
+        config.resize(p_controlled_robot.robot->hierarchy().numJoints());
+    }
+
+    // Setup 3 joint configurations: 1/4, 1/2, 3/4 of joint range
+    p_controlled_robot.robot->hierarchy().forEachJoint(
+        [&p_controlled_robot](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+
+            // Config 0: 1/4 from min
+            p_controlled_robot.trajectory_configs[0][index] =
+                min + (max - min) * 0.25;
+            // Config 1: center
+            p_controlled_robot.trajectory_configs[1][index] = (max + min) / 2.0;
+            // Config 2: 3/4 from min
+            p_controlled_robot.trajectory_configs[2][index] =
+                min + (max - min) * 0.75;
+        });
+
+    // Print configurations
+    for (size_t i = 0; i < num_configs; ++i)
+    {
+        std::cout << "  Config " << (i + 1) << ": [";
+        for (size_t j = 0; j < p_controlled_robot.trajectory_configs[i].size();
+             ++j)
+        {
+            std::cout << p_controlled_robot.trajectory_configs[i][j];
+            if (j < p_controlled_robot.trajectory_configs[i].size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -451,7 +499,7 @@ void RobotViewerApplication::onDraw()
     m_geometry_renderer.renderGrid();
 
     // Render all robots
-    for (const auto& [_, it] : m_robot_manager.robots())
+    for (auto& [_, it] : m_robot_manager.robots())
     {
         if (it.is_visible && it.robot->hierarchy().hasRoot())
         {
@@ -480,6 +528,13 @@ void RobotViewerApplication::onDraw()
             // Render axes at target position
             m_geometry_renderer.renderAxes(target_transform.cast<float>(),
                                            0.2f);
+        }
+
+        // Render trajectory path if in TRAJECTORY mode
+        if (it.control_mode == RobotManager::ControlMode::TRAJECTORY &&
+            it.trajectory && it.control_joint != nullptr)
+        {
+            renderTrajectoryPath(it);
         }
     }
 
@@ -577,7 +632,56 @@ void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onUpdate(float const /* dt */)
+void RobotViewerApplication::renderTrajectoryPath(
+    RobotManager::ControlledRobot& p_robot)
+{
+    if (!p_robot.trajectory || !p_robot.control_joint)
+        return;
+
+    // Number of samples to display along the trajectory
+    constexpr size_t num_samples = 20;
+
+    // Get trajectory duration
+    double duration = p_robot.trajectory->duration();
+
+    // Save current joint positions to restore them later
+    std::vector<double> saved_positions;
+    saved_positions.reserve(p_robot.robot->hierarchy().numJoints());
+    p_robot.robot->hierarchy().forEachJoint(
+        [&saved_positions](Joint const& joint, size_t /*index*/)
+        { saved_positions.push_back(joint.position()); });
+
+    // Sample the trajectory and render axes at each sample
+    for (size_t i = 0; i < num_samples; ++i)
+    {
+        // Compute time for this sample
+        double t = (double(i) / double(num_samples - 1)) * duration;
+
+        // Evaluate trajectory at this time
+        Trajectory::States states = p_robot.trajectory->evaluate(t);
+
+        // Apply joint configuration
+        p_robot.robot->hierarchy().forEachJoint(
+            [&states](Joint& joint, size_t index)
+            { joint.position(states.position[index]); });
+
+        // Get end-effector transform
+        Transform end_effector_transform =
+            p_robot.control_joint->worldTransform();
+
+        // Render axes at this position (smaller scale for trajectory)
+        m_geometry_renderer.renderAxes(end_effector_transform.cast<float>(),
+                                       0.15f);
+    }
+
+    // Restore original joint positions
+    p_robot.robot->hierarchy().forEachJoint(
+        [&saved_positions](Joint& joint, size_t index)
+        { joint.position(saved_positions[index]); });
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onUpdate(float const dt)
 {
     auto current_time = std::chrono::steady_clock::now();
     double elapsed_seconds =
@@ -592,6 +696,9 @@ void RobotViewerApplication::onUpdate(float const /* dt */)
                 break;
             case RobotManager::ControlMode::INVERSE_KINEMATICS:
                 handleInverseKinematics(it);
+                break;
+            case RobotManager::ControlMode::TRAJECTORY:
+                handleTrajectory(it, elapsed_seconds, static_cast<double>(dt));
                 break;
             case RobotManager::ControlMode::NO_CONTROL:
             default:
@@ -683,6 +790,65 @@ void RobotViewerApplication::handleInverseKinematics(
 }
 
 // ----------------------------------------------------------------------------
+void RobotViewerApplication::handleTrajectory(
+    RobotManager::ControlledRobot& p_robot,
+    double p_time,
+    double p_dt)
+{
+    if (p_robot.trajectory_configs.empty())
+    {
+        std::cout << "🤖 Error: no trajectory configurations" << std::endl;
+        return;
+    }
+
+    // If no trajectory is active, create a new one
+    if (!p_robot.trajectory)
+    {
+        size_t start_idx =
+            p_robot.trajectory_segment % p_robot.trajectory_configs.size();
+        size_t goal_idx = (p_robot.trajectory_segment + 1) %
+                          p_robot.trajectory_configs.size();
+
+        std::cout << "🎯 Creating trajectory from config " << (start_idx + 1)
+                  << " to config " << (goal_idx + 1) << std::endl;
+
+        // Create trajectory generator
+        JointSpaceGenerator generator;
+
+        // Generate trajectory with 3 second duration
+        double trajectory_duration = 3.0;
+        p_robot.trajectory =
+            generator.generate(p_robot.trajectory_configs[start_idx],
+                               p_robot.trajectory_configs[goal_idx],
+                               trajectory_duration);
+
+        p_robot.trajectory_start_time = p_time;
+    }
+
+    // Evaluate trajectory at current time
+    double t = p_time - p_robot.trajectory_start_time;
+
+    if (t >= p_robot.trajectory->duration())
+    {
+        // Trajectory complete, move to next segment
+        std::cout << "✅ Trajectory segment "
+                  << (p_robot.trajectory_segment + 1) << " complete"
+                  << std::endl;
+
+        p_robot.trajectory_segment++;
+        p_robot.trajectory.reset(); // Will create new trajectory on next update
+        return;
+    }
+
+    // Get target position from trajectory
+    auto trajectory_point = p_robot.trajectory->evaluate(t);
+
+    // Apply with velocity limits
+    p_robot.robot->applyJointTargetsWithSpeedLimit(trajectory_point.position,
+                                                   p_dt);
+}
+
+// ----------------------------------------------------------------------------
 void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
 {
     m_fps = p_fps;
@@ -740,7 +906,7 @@ void RobotViewerApplication::onKeyInput(int key,
                     robot->is_visible = !robot->is_visible;
                 }
                 break;
-            // Robot mode switching (animation or inverse kinematics)
+            // Robot mode switching (animation, inverse kinematics, trajectory)
             case GLFW_KEY_M:
                 if (auto* robot = m_robot_manager.currentRobot();
                     robot != nullptr && robot->control_joint != nullptr)
@@ -754,6 +920,13 @@ void RobotViewerApplication::onKeyInput(int key,
                                 RobotManager::ControlMode::INVERSE_KINEMATICS;
                             break;
                         case RobotManager::ControlMode::INVERSE_KINEMATICS:
+                            std::cout << "🤖 Mode: TRAJECTORY" << std::endl;
+                            robot->control_mode =
+                                RobotManager::ControlMode::TRAJECTORY;
+                            robot->trajectory_segment = 0;
+                            robot->trajectory.reset();
+                            break;
+                        case RobotManager::ControlMode::TRAJECTORY:
                             std::cout << "🤖 Mode: NO_CONTROL" << std::endl;
                             robot->control_mode =
                                 RobotManager::ControlMode::NO_CONTROL;

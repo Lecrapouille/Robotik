@@ -136,6 +136,19 @@ public:
     void setNeutralPosition();
 
     // ------------------------------------------------------------------------
+    //! \brief Apply target joint positions with velocity limits.
+    //!
+    //! This method smoothly moves joints toward target positions while
+    //! respecting maximum velocity constraints. Each joint moves at most
+    //! maxVelocity * dt per call.
+    //!
+    //! \param q_target Target joint positions vector.
+    //! \param dt Time step for velocity-limited motion.
+    // ------------------------------------------------------------------------
+    void applyJointTargetsWithSpeedLimit(const JointValues& q_target,
+                                         double dt);
+
+    // ------------------------------------------------------------------------
     //! \brief Perform forward kinematics computation.
     //!
     //! Computes the world transformations of all links and joints based on
@@ -182,19 +195,6 @@ public:
     //! \return Const reference to the computed Jacobian in the state.
     // ------------------------------------------------------------------------
     Jacobian const& computeJacobian(State& p_state, Node const& p_end_effector);
-
-protected:
-
-    // ------------------------------------------------------------------------
-    //! \brief Calculate proper pose error between target and current pose.
-    //! Handles orientation error correctly using rotation matrices.
-    //!
-    //! \param p_target_pose Target pose [x,y,z,rx,ry,rz].
-    //! \param p_current_pose Current pose [x,y,z,rx,ry,rz].
-    //! \return Pose error vector.
-    // ------------------------------------------------------------------------
-    Pose calculatePoseError(Pose const& p_target_pose,
-                            Pose const& p_current_pose) const;
 
 private:
 
