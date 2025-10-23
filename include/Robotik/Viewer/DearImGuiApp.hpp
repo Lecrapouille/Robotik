@@ -102,6 +102,24 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Get the current viewport width.
+    //! \return Viewport width in pixels.
+    // ------------------------------------------------------------------------
+    int getViewportWidth() const
+    {
+        return static_cast<int>(m_viewportSize.x);
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current viewport height.
+    //! \return Viewport height in pixels.
+    // ------------------------------------------------------------------------
+    int getViewportHeight() const
+    {
+        return static_cast<int>(m_viewportSize.y);
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Get the current viewport position.
     //! \return Viewport position in screen coordinates.
     // ------------------------------------------------------------------------

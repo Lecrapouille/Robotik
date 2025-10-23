@@ -528,6 +528,19 @@ void RobotViewerApplication::render3DScene()
     glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Update camera aspect ratio based on ImGui viewport size
+    if (m_imgui_app)
+    {
+        int viewport_width = m_imgui_app->getViewportWidth();
+        int viewport_height = m_imgui_app->getViewportHeight();
+
+        if (viewport_width > 0 && viewport_height > 0)
+        {
+            m_camera.setAspectRatio(static_cast<size_t>(viewport_width),
+                                    static_cast<size_t>(viewport_height));
+        }
+    }
+
     // Update camera target position, tracking one element of the robot
     updateCameraTarget();
 
@@ -889,9 +902,16 @@ void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onWindowResize(int width, int height)
+void RobotViewerApplication::onWindowResize(int p_width, int p_height)
 {
-    glViewport(0, 0, width, height);
+    // Update main window viewport
+    glViewport(0, 0, p_width, p_height);
+
+    // Update camera aspect ratio for main window
+    // Note: The actual 3D rendering uses the ImGui viewport size,
+    // which is updated automatically in render3DScene()
+    m_camera.setAspectRatio(static_cast<size_t>(p_width),
+                            static_cast<size_t>(p_height));
 }
 
 // ----------------------------------------------------------------------------
