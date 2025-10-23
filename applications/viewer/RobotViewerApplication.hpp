@@ -85,6 +85,11 @@ private: // override Application methods
     void render3DScene();
 
     // ----------------------------------------------------------------------------
+    //! \brief Setup ImGui callbacks for robot management.
+    // ----------------------------------------------------------------------------
+    void setupImGuiCallbacks();
+
+    // ----------------------------------------------------------------------------
     //! \brief Update the application logic. Called every frame.
     //! \param dt Delta time in seconds since last frame.
     // ----------------------------------------------------------------------------

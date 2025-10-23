@@ -8,6 +8,7 @@
  */
 
 #include "Robotik/Viewer/DearImGuiApp.hpp"
+#include "Robotik/Viewer/OpenGLWindow.hpp"
 
 namespace robotik::viewer
 {
@@ -26,7 +27,8 @@ ImGuiApp::ImGuiApp(size_t const p_width, size_t const p_height)
       m_viewportSize(static_cast<float>(p_width), static_cast<float>(p_height)),
       m_viewportPos(0.0f, 0.0f),
       m_viewportHovered(false),
-      m_viewportFocused(false)
+      m_viewportFocused(false),
+      m_urdf_path_buffer{ 0 }
 {
 }
 
@@ -135,6 +137,9 @@ void ImGuiApp::draw()
     {
         setupDockspace();
     }
+
+    // Draw robot control panel
+    drawRobotControlPanel();
 
     // Draw OpenGL viewport
     drawViewport();
@@ -404,6 +409,264 @@ void ImGuiApp::resizeFramebuffer(int p_width, int p_height)
 
     deleteFramebuffer();
     createFramebuffer(p_width, p_height);
+}
+
+// ----------------------------------------------------------------------------
+void ImGuiApp::drawRobotControlPanel()
+{
+    ImGui::Begin("Robot Control");
+
+    // Section: Robot Management
+    if (ImGui::CollapsingHeader("Robot Management",
+                                ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        // Get list of robots
+        std::vector<std::string> robot_list;
+        if (m_robot_list_callback)
+        {
+            robot_list = m_robot_list_callback();
+        }
+
+        // Robot selection
+        if (ImGui::BeginCombo(
+                "Selected Robot",
+                m_selected_robot.empty() ? "None" : m_selected_robot.c_str()))
+        {
+            for (const auto& robot_name : robot_list)
+            {
+                bool is_selected = (m_selected_robot == robot_name);
+                if (ImGui::Selectable(robot_name.c_str(), is_selected))
+                {
+                    m_selected_robot = robot_name;
+                }
+                if (is_selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+
+        // Add Robot
+        ImGui::Text("Add Robot:");
+        ImGui::InputText(
+            "URDF Path", m_urdf_path_buffer, sizeof(m_urdf_path_buffer));
+        ImGui::SameLine();
+        if (ImGui::Button("Browse..."))
+        {
+            // TODO: Add file browser dialog
+            ImGui::OpenPopup("File Browser");
+        }
+
+        if (ImGui::Button("Load Robot"))
+        {
+            if (m_load_robot_callback && m_urdf_path_buffer[0] != '\0')
+            {
+                if (m_load_robot_callback(std::string(m_urdf_path_buffer)))
+                {
+                    // Clear buffer after successful load
+                    m_urdf_path_buffer[0] = '\0';
+                }
+            }
+        }
+
+        ImGui::SameLine();
+
+        // Remove Robot
+        if (ImGui::Button("Remove Robot"))
+        {
+            if (m_remove_robot_callback && !m_selected_robot.empty())
+            {
+                m_remove_robot_callback(m_selected_robot);
+                m_selected_robot.clear();
+            }
+        }
+
+        // Display robot list
+        ImGui::Text("Loaded Robots (%zu):", robot_list.size());
+        ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
+        for (const auto& robot_name : robot_list)
+        {
+            if (ImGui::Selectable(robot_name.c_str(),
+                                  m_selected_robot == robot_name))
+            {
+                m_selected_robot = robot_name;
+            }
+        }
+        ImGui::EndChild();
+    }
+
+    // Only show controls if a robot is selected
+    if (!m_selected_robot.empty())
+    {
+        // Section: Control Mode
+        if (ImGui::CollapsingHeader("Control Mode",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            int current_mode = 0;
+            if (m_get_control_mode_callback)
+            {
+                current_mode = m_get_control_mode_callback(m_selected_robot);
+            }
+
+            const char* mode_names[] = { "No Control",
+                                         "Direct Kinematics",
+                                         "Animation",
+                                         "Inverse Kinematics",
+                                         "Trajectory" };
+
+            if (ImGui::Combo("Mode", &current_mode, mode_names, 5))
+            {
+                if (m_set_control_mode_callback)
+                {
+                    m_set_control_mode_callback(m_selected_robot, current_mode);
+                }
+            }
+        }
+
+        // Section: End Effector Selection
+        if (ImGui::CollapsingHeader("End Effector"))
+        {
+            std::vector<std::string> nodes;
+            if (m_get_nodes_callback)
+            {
+                nodes = m_get_nodes_callback(m_selected_robot);
+            }
+
+            std::string current_end_effector;
+            if (m_get_end_effector_callback)
+            {
+                current_end_effector =
+                    m_get_end_effector_callback(m_selected_robot);
+            }
+
+            if (ImGui::BeginCombo("End Effector",
+                                  current_end_effector.empty()
+                                      ? "None"
+                                      : current_end_effector.c_str()))
+            {
+                for (const auto& node_name : nodes)
+                {
+                    bool is_selected = (current_end_effector == node_name);
+                    if (ImGui::Selectable(node_name.c_str(), is_selected))
+                    {
+                        if (m_set_end_effector_callback)
+                        {
+                            m_set_end_effector_callback(m_selected_robot,
+                                                        node_name);
+                        }
+                    }
+                    if (is_selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        // Section: Camera Target
+        if (ImGui::CollapsingHeader("Camera Target"))
+        {
+            std::vector<std::string> nodes;
+            if (m_get_nodes_callback)
+            {
+                nodes = m_get_nodes_callback(m_selected_robot);
+            }
+
+            std::string current_camera_target;
+            if (m_get_camera_target_callback)
+            {
+                current_camera_target =
+                    m_get_camera_target_callback(m_selected_robot);
+            }
+
+            if (ImGui::BeginCombo("Camera Target",
+                                  current_camera_target.empty()
+                                      ? "None"
+                                      : current_camera_target.c_str()))
+            {
+                for (const auto& node_name : nodes)
+                {
+                    bool is_selected = (current_camera_target == node_name);
+                    if (ImGui::Selectable(node_name.c_str(), is_selected))
+                    {
+                        if (m_set_camera_target_callback)
+                        {
+                            m_set_camera_target_callback(m_selected_robot,
+                                                         node_name);
+                        }
+                    }
+                    if (is_selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        // Section: Joint Control
+        if (ImGui::CollapsingHeader("Joint Control",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            std::vector<std::pair<std::string, double>> joints;
+            if (m_get_joints_callback)
+            {
+                joints = m_get_joints_callback(m_selected_robot);
+            }
+
+            // Determine if sliders should be read-only
+            int control_mode = 0;
+            if (m_get_control_mode_callback)
+            {
+                control_mode = m_get_control_mode_callback(m_selected_robot);
+            }
+            // Sliders are editable only in DIRECT_KINEMATICS mode (1)
+            bool read_only = (control_mode != 1);
+
+            ImGui::Text("Joints (%zu):", joints.size());
+            ImGui::BeginChild("JointList", ImVec2(0, 300), true);
+
+            for (auto& joint : joints)
+            {
+                ImGui::PushID(joint.first.c_str());
+
+                float value = static_cast<float>(joint.second);
+
+                if (read_only)
+                {
+                    // Read-only mode: disable interaction
+                    ImGui::BeginDisabled();
+                    ImGui::SliderFloat(
+                        joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f");
+                    ImGui::EndDisabled();
+                }
+                else
+                {
+                    // Interactive mode
+                    if (ImGui::SliderFloat(
+                            joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f"))
+                    {
+                        if (m_set_joint_callback)
+                        {
+                            m_set_joint_callback(m_selected_robot,
+                                                 joint.first,
+                                                 static_cast<double>(value));
+                        }
+                    }
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndChild();
+        }
+    }
+
+    ImGui::End();
 }
 
 } // namespace robotik::viewer

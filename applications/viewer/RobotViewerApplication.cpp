@@ -142,6 +142,9 @@ bool RobotViewerApplication::onSetup()
     // Set the render callback for the 3D scene
     m_imgui_app->setRenderCallback([this]() { this->render3DScene(); });
 
+    // Setup robot management callbacks
+    setupImGuiCallbacks();
+
     std::cout << "✨ ImGui initialized with docking support" << std::endl;
 
     // Load robot from the specified URDF file
@@ -464,6 +467,220 @@ bool RobotViewerApplication::setupShaderProgram(
     }
 
     return true;
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::setupImGuiCallbacks()
+{
+    // Load robot callback
+    m_imgui_app->setLoadRobotCallback(
+        [this](const std::string& p_urdf_path) -> bool
+        {
+            auto* robot = m_robot_manager.loadRobot(p_urdf_path);
+            if (robot != nullptr)
+            {
+                std::cout << "✅ Loaded robot from: " << p_urdf_path
+                          << std::endl;
+                return true;
+            }
+            else
+            {
+                std::cerr << "❌ Failed to load robot: "
+                          << m_robot_manager.error() << std::endl;
+                return false;
+            }
+        });
+
+    // Remove robot callback
+    m_imgui_app->setRemoveRobotCallback(
+        [this](const std::string& p_robot_name) -> bool
+        {
+            if (m_robot_manager.removeRobot(p_robot_name))
+            {
+                std::cout << "✅ Removed robot: " << p_robot_name << std::endl;
+                return true;
+            }
+            return false;
+        });
+
+    // Get robot list callback
+    m_imgui_app->setRobotListCallback(
+        [this]() -> std::vector<std::string>
+        {
+            std::vector<std::string> robot_names;
+            for (const auto& [name, _] : m_robot_manager.robots())
+            {
+                robot_names.push_back(name);
+            }
+            return robot_names;
+        });
+
+    // Get joints callback
+    m_imgui_app->setGetJointsCallback(
+        [this](const std::string& p_robot_name)
+            -> std::vector<std::pair<std::string, double>>
+        {
+            std::vector<std::pair<std::string, double>> joints;
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->robot)
+            {
+                // Get all joints from the robot hierarchy
+                robot->robot->hierarchy().root().traverse(
+                    [&joints](Node const& node, size_t /*depth*/)
+                    {
+                        if (auto joint = dynamic_cast<Joint const*>(&node))
+                        {
+                            joints.emplace_back(joint->name(),
+                                                joint->position());
+                        }
+                    });
+            }
+            return joints;
+        });
+
+    // Set joint callback
+    m_imgui_app->setSetJointCallback(
+        [this](const std::string& p_robot_name,
+               const std::string& p_joint_name,
+               double p_value)
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->robot)
+            {
+                try
+                {
+                    // Get the joint by name and set its position
+                    Joint& joint =
+                        robot->robot->hierarchy().joint(p_joint_name);
+                    joint.position(p_value);
+                }
+                catch (...)
+                {
+                    // Joint not found or other error
+                }
+            }
+        });
+
+    // Get nodes callback
+    m_imgui_app->setGetNodesCallback(
+        [this](const std::string& p_robot_name) -> std::vector<std::string>
+        {
+            std::vector<std::string> node_names;
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->robot)
+            {
+                robot->robot->hierarchy().root().traverse(
+                    [&node_names](Node const& node, size_t /*depth*/)
+                    { node_names.push_back(node.name()); });
+            }
+            return node_names;
+        });
+
+    // Set control mode callback
+    m_imgui_app->setSetControlModeCallback(
+        [this](const std::string& p_robot_name, int p_mode)
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot)
+            {
+                robot->control_mode =
+                    static_cast<RobotManager::ControlMode>(p_mode);
+                std::cout << "🎮 Control mode changed to: " << p_mode
+                          << std::endl;
+            }
+        });
+
+    // Get control mode callback
+    m_imgui_app->setGetControlModeCallback(
+        [this](const std::string& p_robot_name) -> int
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot)
+            {
+                return static_cast<int>(robot->control_mode);
+            }
+            return 0; // NO_CONTROL
+        });
+
+    // Set end effector callback
+    m_imgui_app->setSetEndEffectorCallback(
+        [this](const std::string& p_robot_name, const std::string& p_node_name)
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->robot)
+            {
+                // Find the node by name
+                Node const* found_node = nullptr;
+                robot->robot->hierarchy().root().traverse(
+                    [&p_node_name, &found_node](Node const& node,
+                                                size_t /*depth*/)
+                    {
+                        if (node.name() == p_node_name)
+                        {
+                            found_node = &node;
+                        }
+                    });
+
+                if (found_node)
+                {
+                    robot->control_joint = found_node;
+                    std::cout << "🎯 End effector set to: " << p_node_name
+                              << std::endl;
+                }
+            }
+        });
+
+    // Get end effector callback
+    m_imgui_app->setGetEndEffectorCallback(
+        [this](const std::string& p_robot_name) -> std::string
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->control_joint)
+            {
+                return robot->control_joint->name();
+            }
+            return "";
+        });
+
+    // Set camera target callback
+    m_imgui_app->setSetCameraTargetCallback(
+        [this](const std::string& p_robot_name, const std::string& p_node_name)
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->robot)
+            {
+                // Find the node by name
+                Node const* found_node = nullptr;
+                robot->robot->hierarchy().root().traverse(
+                    [&p_node_name, &found_node](Node const& node,
+                                                size_t /*depth*/)
+                    {
+                        if (node.name() == p_node_name)
+                        {
+                            found_node = &node;
+                        }
+                    });
+
+                if (found_node)
+                {
+                    robot->camera_target = found_node;
+                    std::cout << "📹 Camera target set to: " << p_node_name
+                              << std::endl;
+                }
+            }
+        });
+
+    // Get camera target callback
+    m_imgui_app->setGetCameraTargetCallback(
+        [this](const std::string& p_robot_name) -> std::string
+        {
+            auto* robot = m_robot_manager.getRobot(p_robot_name);
+            if (robot && robot->camera_target)
+            {
+                return robot->camera_target->name();
+            }
+            return "";
+        });
 }
 
 // ----------------------------------------------------------------------------

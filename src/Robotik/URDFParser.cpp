@@ -680,6 +680,7 @@ URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link,
         return nullptr;
     }
 
+#if 0
     // Compute OBB from mesh
     if (!p_urdf_link.mesh_path_for_obb.empty())
     {
@@ -692,6 +693,7 @@ URDFParser::createLinkFromURDFData(URDFParserLink& p_urdf_link,
             return nullptr;
         }
     }
+#endif
 
     // Create link with visual geometry and collision data
     auto link = Node::create<robotik::Link>(p_urdf_link.name,
