@@ -7,7 +7,7 @@
     "clang-format.executable": "clang-format",
     "editor.formatOnSave": true,
     // Error squiggles
-    "C_Cpp.errorSquiggles": "disabled",
+    "C_Cpp.errorSquiggles": "enabled",
     // Remove trailing whitespace
     "files.trimTrailingWhitespace": true,
     // SonarLint
