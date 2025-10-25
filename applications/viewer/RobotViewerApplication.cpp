@@ -33,71 +33,36 @@ namespace robotik::viewer
 
 // ----------------------------------------------------------------------------
 RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
-    : path(p_config.search_paths),
+    : OpenGLApplication(p_config.window_width, p_config.window_height, true),
+      path(p_config.search_paths),
       m_config(p_config),
-      m_window(p_config.window_width, p_config.window_height),
       m_camera(p_config.window_width, p_config.window_height),
       m_geometry_renderer(m_shader_manager),
       m_physics_simulator(1.0 / double(p_config.target_physics_hz),
-                          p_config.physics_gravity),
-      m_title(p_config.window_title)
+                          p_config.physics_gravity)
 {
-    m_window.setTitle(m_title + " - FPS: " + std::to_string(m_fps));
+    setTitle(p_config.window_title);
 }
-
-// ----------------------------------------------------------------------------
-RobotViewerApplication::~RobotViewerApplication() = default;
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::run()
 {
-    return Application::run(m_config.target_fps, m_config.target_physics_hz);
+    return OpenGLApplication::run(m_config.target_fps,
+                                  m_config.target_physics_hz);
 }
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::setTitle(std::string const& p_title)
 {
     m_title = p_title;
-    m_window.setTitle(m_title + " - FPS: " + std::to_string(m_fps));
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::isHalting() const
-{
-    return m_window.isHalting();
+    OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(m_fps));
 }
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::onSetup()
 {
-    // Initialize OpenGL window
-    if (!m_window.initialize(std::bind(&RobotViewerApplication::onKeyInput,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3,
-                                       std::placeholders::_4),
-                             std::bind(&RobotViewerApplication::onMouseButton,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2,
-                                       std::placeholders::_3),
-                             std::bind(&RobotViewerApplication::onCursorPos,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2),
-                             std::bind(&RobotViewerApplication::onScroll,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2),
-                             std::bind(&RobotViewerApplication::onWindowResize,
-                                       this,
-                                       std::placeholders::_1,
-                                       std::placeholders::_2)))
-    {
-        m_error = m_window.error();
-        return false;
-    }
+    // Setup Robot callbacks for ImGui.
+    setupImGuiCallbacks();
 
     // Initialize OpenGL states
     glEnable(GL_DEPTH_TEST);
@@ -129,23 +94,6 @@ bool RobotViewerApplication::onSetup()
                   m_geometry_renderer.error();
         return false;
     }
-
-    // Initialize ImGui application
-    m_imgui_app = std::make_unique<viewer::ImGuiApp>(m_config.window_width,
-                                                     m_config.window_height);
-    if (!m_imgui_app->setup())
-    {
-        m_error = "Failed to initialize ImGui";
-        return false;
-    }
-
-    // Set the render callback for the 3D scene
-    m_imgui_app->setRenderCallback([this]() { this->render3DScene(); });
-
-    // Setup robot management callbacks
-    setupImGuiCallbacks();
-
-    std::cout << "✨ ImGui initialized with docking support" << std::endl;
 
     // Load robot from the specified URDF file
     auto* controlled_robot = m_robot_manager.loadRobot(m_config.urdf_file);
@@ -472,24 +420,23 @@ bool RobotViewerApplication::setupShaderProgram(
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::setupImGuiCallbacks()
 {
+#if 0
     // Load robot callback
-    m_imgui_app->setLoadRobotCallback(
-        [this](const std::string& p_urdf_path) -> bool
+    m_load_robot_callback = [this](const std::string& p_urdf_path)
+    {
+        auto* robot = m_robot_manager.loadRobot(p_urdf_path);
+        if (robot != nullptr)
         {
-            auto* robot = m_robot_manager.loadRobot(p_urdf_path);
-            if (robot != nullptr)
-            {
-                std::cout << "✅ Loaded robot from: " << p_urdf_path
-                          << std::endl;
-                return true;
-            }
-            else
-            {
-                std::cerr << "❌ Failed to load robot: "
-                          << m_robot_manager.error() << std::endl;
-                return false;
-            }
-        });
+            std::cout << "✅ Loaded robot from: " << p_urdf_path << std::endl;
+            return true;
+        }
+        else
+        {
+            std::cerr << "❌ Failed to load robot: " << m_robot_manager.error()
+                      << std::endl;
+            return false;
+        }
+    };
 
     // Remove robot callback
     m_imgui_app->setRemoveRobotCallback(
@@ -681,16 +628,12 @@ void RobotViewerApplication::setupImGuiCallbacks()
             }
             return "";
         });
+#endif
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onCleanup()
+void RobotViewerApplication::onTeardown()
 {
-    if (m_imgui_app)
-    {
-        m_imgui_app->teardown();
-        m_imgui_app.reset();
-    }
     m_robot_manager.clear();
 }
 
@@ -723,40 +666,11 @@ void RobotViewerApplication::updateCameraTarget()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDraw()
-{
-    // Poll events first
-    m_window.pollEvents();
-
-    // Render with ImGui
-    if (m_imgui_app)
-    {
-        m_imgui_app->draw();
-    }
-
-    // Swap buffers
-    m_window.swapBuffers();
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::render3DScene()
+void RobotViewerApplication::onDrawScene()
 {
     // Clear screen
     glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Update camera aspect ratio based on ImGui viewport size
-    if (m_imgui_app)
-    {
-        int viewport_width = m_imgui_app->getViewportWidth();
-        int viewport_height = m_imgui_app->getViewportHeight();
-
-        if (viewport_width > 0 && viewport_height > 0)
-        {
-            m_camera.setAspectRatio(static_cast<size_t>(viewport_width),
-                                    static_cast<size_t>(viewport_height));
-        }
-    }
 
     // Update camera target position, tracking one element of the robot
     updateCameraTarget();
@@ -1115,7 +1029,7 @@ void RobotViewerApplication::handleTrajectory(
 void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
 {
     m_fps = p_fps;
-    m_window.setTitle(m_title + " - FPS: " + std::to_string(p_fps));
+    OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(p_fps));
 }
 
 // ----------------------------------------------------------------------------
@@ -1142,7 +1056,7 @@ void RobotViewerApplication::onKeyInput(int key,
         switch (key)
         {
             case GLFW_KEY_ESCAPE:
-                m_window.halt();
+                halt();
                 break;
             // Camera view controls - only change view type, keep
             // current target
@@ -1218,22 +1132,6 @@ void RobotViewerApplication::onKeyInput(int key,
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onMouseButton(int /* button */,
-                                           int /* action */,
-                                           int /* mods */)
-{
-    // Handle mouse button event
-    // This could be used for camera controls, object selection, etc.
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onCursorPos(double /* xpos */, double /* ypos */)
-{
-    // Handle cursor position event
-    // This could be used for camera controls, mouse tracking, etc.
-}
-
-// ----------------------------------------------------------------------------
 void RobotViewerApplication::onScroll(double /* xoffset */, double yoffset)
 {
     // Handle scroll event for camera zoom
@@ -1241,6 +1139,269 @@ void RobotViewerApplication::onScroll(double /* xoffset */, double yoffset)
     // yoffset < 0 = scroll down = zoom out (move camera further)
     float zoom_speed = 0.5f;
     m_camera.zoom(static_cast<float>(-yoffset) * zoom_speed);
+}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onDrawMenuBar() {}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onDrawMainPanel()
+{
+    ImGui::Begin("Robot Control");
+
+#if 0
+    // Section: Robot Management
+    if (ImGui::CollapsingHeader("Robot Management",
+                                ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        // Get list of robots
+        std::vector<std::string> robot_list;
+        if (m_robot_list_callback)
+        {
+            robot_list = m_robot_list_callback();
+        }
+
+        // Robot selection
+        if (ImGui::BeginCombo(
+                "Selected Robot",
+                m_selected_robot.empty() ? "None" : m_selected_robot.c_str()))
+        {
+            for (const auto& robot_name : robot_list)
+            {
+                bool is_selected = (m_selected_robot == robot_name);
+                if (ImGui::Selectable(robot_name.c_str(), is_selected))
+                {
+                    m_selected_robot = robot_name;
+                }
+                if (is_selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        ImGui::Separator();
+
+        // Add Robot
+        ImGui::Text("Add Robot:");
+        ImGui::InputText(
+            "URDF Path", m_urdf_path_buffer, sizeof(m_urdf_path_buffer));
+        ImGui::SameLine();
+        if (ImGui::Button("Browse..."))
+        {
+            // TODO: Add file browser dialog
+            ImGui::OpenPopup("File Browser");
+        }
+
+        if (ImGui::Button("Load Robot"))
+        {
+            if (m_load_robot_callback && m_urdf_path_buffer[0] != '\0')
+            {
+                if (m_load_robot_callback(std::string(m_urdf_path_buffer)))
+                {
+                    // Clear buffer after successful load
+                    m_urdf_path_buffer[0] = '\0';
+                }
+            }
+        }
+
+        ImGui::SameLine();
+
+        // Remove Robot
+        if (ImGui::Button("Remove Robot"))
+        {
+            if (m_remove_robot_callback && !m_selected_robot.empty())
+            {
+                m_remove_robot_callback(m_selected_robot);
+                m_selected_robot.clear();
+            }
+        }
+
+        // Display robot list
+        ImGui::Text("Loaded Robots (%zu):", robot_list.size());
+        ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
+        for (const auto& robot_name : robot_list)
+        {
+            if (ImGui::Selectable(robot_name.c_str(),
+                                  m_selected_robot == robot_name))
+            {
+                m_selected_robot = robot_name;
+            }
+        }
+        ImGui::EndChild();
+    }
+
+    // Only show controls if a robot is selected
+    if (!m_selected_robot.empty())
+    {
+        // Section: Control Mode
+        if (ImGui::CollapsingHeader("Control Mode",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            int current_mode = 0;
+            if (m_get_control_mode_callback)
+            {
+                current_mode = m_get_control_mode_callback(m_selected_robot);
+            }
+
+            const char* mode_names[] = { "No Control",
+                                         "Direct Kinematics",
+                                         "Animation",
+                                         "Inverse Kinematics",
+                                         "Trajectory" };
+
+            if (ImGui::Combo("Mode", &current_mode, mode_names, 5))
+            {
+                if (m_set_control_mode_callback)
+                {
+                    m_set_control_mode_callback(m_selected_robot, current_mode);
+                }
+            }
+        }
+
+        // Section: End Effector Selection
+        if (ImGui::CollapsingHeader("End Effector"))
+        {
+            std::vector<std::string> nodes;
+            if (m_get_nodes_callback)
+            {
+                nodes = m_get_nodes_callback(m_selected_robot);
+            }
+
+            std::string current_end_effector;
+            if (m_get_end_effector_callback)
+            {
+                current_end_effector =
+                    m_get_end_effector_callback(m_selected_robot);
+            }
+
+            if (ImGui::BeginCombo("End Effector",
+                                  current_end_effector.empty()
+                                      ? "None"
+                                      : current_end_effector.c_str()))
+            {
+                for (const auto& node_name : nodes)
+                {
+                    bool is_selected = (current_end_effector == node_name);
+                    if (ImGui::Selectable(node_name.c_str(), is_selected))
+                    {
+                        if (m_set_end_effector_callback)
+                        {
+                            m_set_end_effector_callback(m_selected_robot,
+                                                        node_name);
+                        }
+                    }
+                    if (is_selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        // Section: Camera Target
+        if (ImGui::CollapsingHeader("Camera Target"))
+        {
+            std::vector<std::string> nodes;
+            if (m_get_nodes_callback)
+            {
+                nodes = m_get_nodes_callback(m_selected_robot);
+            }
+
+            std::string current_camera_target;
+            if (m_get_camera_target_callback)
+            {
+                current_camera_target =
+                    m_get_camera_target_callback(m_selected_robot);
+            }
+
+            if (ImGui::BeginCombo("Camera Target",
+                                  current_camera_target.empty()
+                                      ? "None"
+                                      : current_camera_target.c_str()))
+            {
+                for (const auto& node_name : nodes)
+                {
+                    bool is_selected = (current_camera_target == node_name);
+                    if (ImGui::Selectable(node_name.c_str(), is_selected))
+                    {
+                        if (m_set_camera_target_callback)
+                        {
+                            m_set_camera_target_callback(m_selected_robot,
+                                                         node_name);
+                        }
+                    }
+                    if (is_selected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+        }
+
+        // Section: Joint Control
+        if (ImGui::CollapsingHeader("Joint Control",
+                                    ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            std::vector<std::pair<std::string, double>> joints;
+            if (m_get_joints_callback)
+            {
+                joints = m_get_joints_callback(m_selected_robot);
+            }
+
+            // Determine if sliders should be read-only
+            int control_mode = 0;
+            if (m_get_control_mode_callback)
+            {
+                control_mode = m_get_control_mode_callback(m_selected_robot);
+            }
+            // Sliders are editable only in DIRECT_KINEMATICS mode (1)
+            bool read_only = (control_mode != 1);
+
+            ImGui::Text("Joints (%zu):", joints.size());
+            ImGui::BeginChild("JointList", ImVec2(0, 300), true);
+
+            for (auto& joint : joints)
+            {
+                ImGui::PushID(joint.first.c_str());
+
+                float value = static_cast<float>(joint.second);
+
+                if (read_only)
+                {
+                    // Read-only mode: disable interaction
+                    ImGui::BeginDisabled();
+                    ImGui::SliderFloat(
+                        joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f");
+                    ImGui::EndDisabled();
+                }
+                else
+                {
+                    // Interactive mode
+                    if (ImGui::SliderFloat(
+                            joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f"))
+                    {
+                        if (m_set_joint_callback)
+                        {
+                            m_set_joint_callback(m_selected_robot,
+                                                 joint.first,
+                                                 static_cast<double>(value));
+                        }
+                    }
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndChild();
+        }
+    }
+#endif
+
+    ImGui::End();
 }
 
 } // namespace robotik::viewer

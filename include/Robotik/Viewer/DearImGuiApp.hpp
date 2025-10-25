@@ -17,176 +17,83 @@
 #include <imgui_impl_opengl3.h>
 
 #include <functional>
-#include <string>
 #include <utility>
-#include <vector>
 
 namespace robotik::viewer
 {
 
 // ****************************************************************************
 //! \brief Dear ImGui application wrapper providing docking and viewport
-//! integration.
-//!
-//! This class wraps Dear ImGui to provide:
-//! - Docking support for flexible UI layout
-//! - Multi-viewport support for detachable windows
-//! - Framebuffer rendering for OpenGL content in ImGui windows
-//! - Customizable rendering callback for 3D content
+//! integration:
+//! - Docking support for detachable windows.
+//! - Framebuffer rendering for OpenGL content in ImGui widget.
+//! - Customizable rendering callback for building the UI.
 // ****************************************************************************
-class ImGuiApp
+class DearImGuiApp
 {
 public:
 
     using RenderCallback = std::function<void()>;
-    using LoadRobotCallback = std::function<bool(const std::string&)>;
-    using RemoveRobotCallback = std::function<bool(const std::string&)>;
-    using RobotListCallback = std::function<std::vector<std::string>()>;
-    using GetJointsCallback =
-        std::function<std::vector<std::pair<std::string, double>>(
-            const std::string&)>;
-    using SetJointCallback =
-        std::function<void(const std::string&, const std::string&, double)>;
-    using GetNodesCallback =
-        std::function<std::vector<std::string>(const std::string&)>;
-    using SetControlModeCallback = std::function<void(const std::string&, int)>;
-    using GetControlModeCallback = std::function<int(const std::string&)>;
-    using SetEndEffectorCallback =
-        std::function<void(const std::string&, const std::string&)>;
-    using GetEndEffectorCallback =
-        std::function<std::string(const std::string&)>;
-    using SetCameraTargetCallback =
-        std::function<void(const std::string&, const std::string&)>;
-    using GetCameraTargetCallback =
-        std::function<std::string(const std::string&)>;
+    using MenuBarCallback = std::function<void()>;
+    using MainPanelCallback = std::function<void()>;
+    using SidePanelCallback = std::function<void()>;
+    using StatusBarCallback = std::function<void()>;
 
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     //! \param p_width Initial framebuffer width.
     //! \param p_height Initial framebuffer height.
     // ------------------------------------------------------------------------
-    explicit ImGuiApp(size_t const p_width, size_t const p_height);
+    explicit DearImGuiApp(size_t const p_width, size_t const p_height);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.
     // ------------------------------------------------------------------------
-    ~ImGuiApp();
+    ~DearImGuiApp();
 
     // ------------------------------------------------------------------------
     //! \brief Set the render callback for 3D scene rendering.
     //! \param p_callback Function to call for rendering 3D content.
     // ------------------------------------------------------------------------
-    void setRenderCallback(RenderCallback p_callback)
+    void setRenderCallback(RenderCallback&& p_callback)
     {
-        m_render_callback = p_callback;
+        m_render_callback = std::move(p_callback);
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set callback for loading a robot from URDF file.
-    //! \param p_callback Function to call when loading a robot.
+    //! \brief Set the menu bar callback.
+    //! \param p_callback Function to call for menu bar rendering.
     // ------------------------------------------------------------------------
-    void setLoadRobotCallback(LoadRobotCallback p_callback)
+    void setMenuBarCallback(MenuBarCallback&& p_callback)
     {
-        m_load_robot_callback = p_callback;
+        m_menu_bar_callback = std::move(p_callback);
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set callback for removing a robot.
-    //! \param p_callback Function to call when removing a robot.
+    //! \brief Set the main panel callback.
+    //! \param p_callback Function to call for main panel rendering.
     // ------------------------------------------------------------------------
-    void setRemoveRobotCallback(RemoveRobotCallback p_callback)
+    void setMainPanelCallback(MainPanelCallback&& p_callback)
     {
-        m_remove_robot_callback = p_callback;
+        m_main_panel_callback = std::move(p_callback);
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set callback for getting the list of robots.
-    //! \param p_callback Function to call to get robot list.
+    //! \brief Set the side panel callback.
+    //! \param p_callback Function to call for side panel rendering.
     // ------------------------------------------------------------------------
-    void setRobotListCallback(RobotListCallback p_callback)
+    void setSidePanelCallback(SidePanelCallback&& p_callback)
     {
-        m_robot_list_callback = p_callback;
+        m_side_panel_callback = std::move(p_callback);
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Set callback for getting joint list and values.
-    //! \param p_callback Function to call to get joints.
+    //! \brief Set the status bar callback.
+    //! \param p_callback Function to call for status bar rendering.
     // ------------------------------------------------------------------------
-    void setGetJointsCallback(GetJointsCallback p_callback)
+    void setStatusBarCallback(StatusBarCallback&& p_callback)
     {
-        m_get_joints_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for setting joint value.
-    //! \param p_callback Function to call when joint value changes.
-    // ------------------------------------------------------------------------
-    void setSetJointCallback(SetJointCallback p_callback)
-    {
-        m_set_joint_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for getting node list.
-    //! \param p_callback Function to call to get nodes.
-    // ------------------------------------------------------------------------
-    void setGetNodesCallback(GetNodesCallback p_callback)
-    {
-        m_get_nodes_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for setting control mode.
-    //! \param p_callback Function to call when control mode changes.
-    // ------------------------------------------------------------------------
-    void setSetControlModeCallback(SetControlModeCallback p_callback)
-    {
-        m_set_control_mode_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for getting control mode.
-    //! \param p_callback Function to call to get control mode.
-    // ------------------------------------------------------------------------
-    void setGetControlModeCallback(GetControlModeCallback p_callback)
-    {
-        m_get_control_mode_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for setting end effector.
-    //! \param p_callback Function to call when end effector changes.
-    // ------------------------------------------------------------------------
-    void setSetEndEffectorCallback(SetEndEffectorCallback p_callback)
-    {
-        m_set_end_effector_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for getting end effector.
-    //! \param p_callback Function to call to get end effector.
-    // ------------------------------------------------------------------------
-    void setGetEndEffectorCallback(GetEndEffectorCallback p_callback)
-    {
-        m_get_end_effector_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for setting camera target.
-    //! \param p_callback Function to call when camera target changes.
-    // ------------------------------------------------------------------------
-    void setSetCameraTargetCallback(SetCameraTargetCallback p_callback)
-    {
-        m_set_camera_target_callback = p_callback;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set callback for getting camera target.
-    //! \param p_callback Function to call to get camera target.
-    // ------------------------------------------------------------------------
-    void setGetCameraTargetCallback(GetCameraTargetCallback p_callback)
-    {
-        m_get_camera_target_callback = p_callback;
+        m_status_bar_callback = std::move(p_callback);
     }
 
     // ------------------------------------------------------------------------
@@ -229,25 +136,7 @@ public:
     // ------------------------------------------------------------------------
     ImVec2 getViewportSize() const
     {
-        return m_viewportSize;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the current viewport width.
-    //! \return Viewport width in pixels.
-    // ------------------------------------------------------------------------
-    int getViewportWidth() const
-    {
-        return static_cast<int>(m_viewportSize.x);
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the current viewport height.
-    //! \return Viewport height in pixels.
-    // ------------------------------------------------------------------------
-    int getViewportHeight() const
-    {
-        return static_cast<int>(m_viewportSize.y);
+        return m_viewport_size;
     }
 
     // ------------------------------------------------------------------------
@@ -256,7 +145,7 @@ public:
     // ------------------------------------------------------------------------
     ImVec2 getViewportPos() const
     {
-        return m_viewportPos;
+        return m_viewport_pos;
     }
 
     // ------------------------------------------------------------------------
@@ -265,7 +154,7 @@ public:
     // ------------------------------------------------------------------------
     bool isViewportHovered() const
     {
-        return m_viewportHovered;
+        return m_viewport_hovered;
     }
 
     // ------------------------------------------------------------------------
@@ -274,25 +163,7 @@ public:
     // ------------------------------------------------------------------------
     bool isViewportFocused() const
     {
-        return m_viewportFocused;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the framebuffer texture ID.
-    //! \return OpenGL texture ID for the framebuffer.
-    // ------------------------------------------------------------------------
-    GLuint getFramebufferTexture() const
-    {
-        return m_fboTexture;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the framebuffer object ID.
-    //! \return OpenGL framebuffer object ID.
-    // ------------------------------------------------------------------------
-    GLuint getFramebuffer() const
-    {
-        return m_fbo;
+        return m_viewport_focused;
     }
 
 private:
@@ -340,46 +211,34 @@ private:
 private:
 
     // GLFW window (obtained from current context)
-    GLFWwindow* m_window;
+    GLFWwindow* m_window = nullptr;
 
     // State flags
-    bool m_initialized;
-    bool m_dockingEnabled;
-    bool m_viewportsEnabled;
+    bool m_initialized = false;
+    bool m_docking_enabled = true;
+    bool m_viewports_enabled = true;
 
     // Framebuffer for off-screen OpenGL rendering
-    GLuint m_fbo;
-    GLuint m_fboTexture;
-    GLuint m_rbo;
-    int m_fboWidth;
-    int m_fboHeight;
+    GLuint m_fbo = 0;
+    GLuint m_fbo_texture = 0;
+    GLuint m_rbo = 0;
+    int m_fbo_width = 0;
+    int m_fbo_height = 0;
 
     // Viewport state
-    ImVec2 m_viewportSize;
-    ImVec2 m_viewportPos;
-    bool m_viewportHovered;
-    bool m_viewportFocused;
+    ImVec2 m_viewport_size;
+    ImVec2 m_viewport_pos;
+    bool m_viewport_hovered = false;
+    bool m_viewport_focused = false;
 
     // Render callback for 3D content
     RenderCallback m_render_callback;
 
-    // Robot management callbacks
-    LoadRobotCallback m_load_robot_callback;
-    RemoveRobotCallback m_remove_robot_callback;
-    RobotListCallback m_robot_list_callback;
-    GetJointsCallback m_get_joints_callback;
-    SetJointCallback m_set_joint_callback;
-    GetNodesCallback m_get_nodes_callback;
-    SetControlModeCallback m_set_control_mode_callback;
-    GetControlModeCallback m_get_control_mode_callback;
-    SetEndEffectorCallback m_set_end_effector_callback;
-    GetEndEffectorCallback m_get_end_effector_callback;
-    SetCameraTargetCallback m_set_camera_target_callback;
-    GetCameraTargetCallback m_get_camera_target_callback;
-
-    // UI state
-    std::string m_selected_robot;
-    char m_urdf_path_buffer[512];
+    // ImGui UI callbacks
+    MenuBarCallback m_menu_bar_callback;
+    MainPanelCallback m_main_panel_callback;
+    SidePanelCallback m_side_panel_callback;
+    StatusBarCallback m_status_bar_callback;
 };
 
 } // namespace robotik::viewer
