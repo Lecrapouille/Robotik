@@ -8,32 +8,22 @@
  */
 
 #include "Robotik/Viewer/DearImGuiApp.hpp"
-#include "Robotik/Viewer/OpenGLWindow.hpp"
 
 namespace robotik::viewer
 {
 
 // ----------------------------------------------------------------------------
-ImGuiApp::ImGuiApp(size_t const p_width, size_t const p_height)
-    : m_window(nullptr),
-      m_initialized(false),
-      m_dockingEnabled(true),
-      m_viewportsEnabled(true),
-      m_fbo(0),
-      m_fboTexture(0),
-      m_rbo(0),
-      m_fboWidth(static_cast<int>(p_width)),
-      m_fboHeight(static_cast<int>(p_height)),
-      m_viewportSize(static_cast<float>(p_width), static_cast<float>(p_height)),
-      m_viewportPos(0.0f, 0.0f),
-      m_viewportHovered(false),
-      m_viewportFocused(false),
-      m_urdf_path_buffer{ 0 }
+DearImGuiApp::DearImGuiApp(size_t const p_width, size_t const p_height)
+    : m_fbo_width(static_cast<int>(p_width)),
+      m_fbo_height(static_cast<int>(p_height)),
+      m_viewport_size(static_cast<float>(p_width),
+                      static_cast<float>(p_height)),
+      m_viewport_pos(0.0f, 0.0f)
 {
 }
 
 // ----------------------------------------------------------------------------
-ImGuiApp::~ImGuiApp()
+DearImGuiApp::~DearImGuiApp()
 {
     if (m_initialized)
     {
@@ -42,7 +32,7 @@ ImGuiApp::~ImGuiApp()
 }
 
 // ----------------------------------------------------------------------------
-bool ImGuiApp::setup()
+bool DearImGuiApp::setup()
 {
     if (m_initialized)
     {
@@ -64,12 +54,12 @@ bool ImGuiApp::setup()
     // Configure ImGui flags
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-    if (m_dockingEnabled)
+    if (m_docking_enabled)
     {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     }
 
-    if (m_viewportsEnabled)
+    if (m_viewports_enabled)
     {
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     }
@@ -91,7 +81,7 @@ bool ImGuiApp::setup()
     }
 
     // Create framebuffer for OpenGL rendering
-    if (!createFramebuffer(m_fboWidth, m_fboHeight))
+    if (!createFramebuffer(m_fbo_width, m_fbo_height))
     {
         teardown();
         return false;
@@ -102,7 +92,7 @@ bool ImGuiApp::setup()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::teardown()
+void DearImGuiApp::teardown()
 {
     if (!m_initialized)
     {
@@ -120,7 +110,7 @@ void ImGuiApp::teardown()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::draw()
+void DearImGuiApp::draw()
 {
     if (!m_initialized)
     {
@@ -133,16 +123,29 @@ void ImGuiApp::draw()
     ImGui::NewFrame();
 
     // Setup dockspace
-    if (m_dockingEnabled)
+    if (m_docking_enabled)
     {
         setupDockspace();
     }
 
-    // Draw robot control panel
-    drawRobotControlPanel();
-
     // Draw OpenGL viewport
     drawViewport();
+
+    // Draw user-defined panels
+    if (m_main_panel_callback)
+    {
+        m_main_panel_callback();
+    }
+
+    if (m_side_panel_callback)
+    {
+        m_side_panel_callback();
+    }
+
+    if (m_status_bar_callback)
+    {
+        m_status_bar_callback();
+    }
 
     // Finalize ImGui frame
     ImGui::Render();
@@ -157,7 +160,7 @@ void ImGuiApp::draw()
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     // Update multi-viewports
-    if (m_viewportsEnabled)
+    if (m_viewports_enabled)
     {
         ImGuiIO& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -171,15 +174,15 @@ void ImGuiApp::draw()
 }
 
 // ----------------------------------------------------------------------------
-ImGuiIO& ImGuiApp::io()
+ImGuiIO& DearImGuiApp::io()
 {
     return ImGui::GetIO();
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::enableDocking(bool p_enable)
+void DearImGuiApp::enableDocking(bool p_enable)
 {
-    m_dockingEnabled = p_enable;
+    m_docking_enabled = p_enable;
     if (m_initialized)
     {
         ImGuiIO& io = ImGui::GetIO();
@@ -195,9 +198,9 @@ void ImGuiApp::enableDocking(bool p_enable)
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::enableViewports(bool p_enable)
+void DearImGuiApp::enableViewports(bool p_enable)
 {
-    m_viewportsEnabled = p_enable;
+    m_viewports_enabled = p_enable;
     if (m_initialized)
     {
         ImGuiIO& io = ImGui::GetIO();
@@ -213,7 +216,7 @@ void ImGuiApp::enableViewports(bool p_enable)
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::setupStyle()
+void DearImGuiApp::setupStyle()
 {
     ImGui::StyleColorsDark();
 
@@ -227,7 +230,7 @@ void ImGuiApp::setupStyle()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::setupDockspace()
+void DearImGuiApp::setupDockspace()
 {
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
@@ -256,16 +259,12 @@ void ImGuiApp::setupDockspace()
     ImGui::Begin("DockSpace", nullptr, window_flags);
     ImGui::PopStyleVar(3);
 
-    // Menu bar
+    // Menu bar - call user callback if provided
     if (ImGui::BeginMenuBar())
     {
-        if (ImGui::BeginMenu("File"))
+        if (m_menu_bar_callback)
         {
-            if (ImGui::MenuItem("Quit"))
-            {
-                glfwSetWindowShouldClose(m_window, GLFW_TRUE);
-            }
-            ImGui::EndMenu();
+            m_menu_bar_callback();
         }
         ImGui::EndMenuBar();
     }
@@ -277,39 +276,39 @@ void ImGuiApp::setupDockspace()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::drawViewport()
+void DearImGuiApp::drawViewport()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("OpenGL Viewport");
 
     // Get window state
-    m_viewportHovered = ImGui::IsWindowHovered();
-    m_viewportFocused = ImGui::IsWindowFocused();
+    m_viewport_hovered = ImGui::IsWindowHovered();
+    m_viewport_focused = ImGui::IsWindowFocused();
 
     // Get available size
     ImVec2 viewport_panel_size = ImGui::GetContentRegionAvail();
-    m_viewportPos = ImGui::GetCursorScreenPos();
+    m_viewport_pos = ImGui::GetCursorScreenPos();
 
     // Resize framebuffer if necessary
-    if (viewport_panel_size.x != m_viewportSize.x ||
-        viewport_panel_size.y != m_viewportSize.y)
+    if (viewport_panel_size.x != m_viewport_size.x ||
+        viewport_panel_size.y != m_viewport_size.y)
     {
-        m_viewportSize = viewport_panel_size;
-        if (m_viewportSize.x > 0 && m_viewportSize.y > 0)
+        m_viewport_size = viewport_panel_size;
+        if (m_viewport_size.x > 0 && m_viewport_size.y > 0)
         {
-            resizeFramebuffer(static_cast<int>(m_viewportSize.x),
-                              static_cast<int>(m_viewportSize.y));
+            resizeFramebuffer(static_cast<int>(m_viewport_size.x),
+                              static_cast<int>(m_viewport_size.y));
         }
     }
 
     // Render OpenGL content to framebuffer
-    if (m_fbo && m_viewportSize.x > 0 && m_viewportSize.y > 0)
+    if (m_fbo && m_viewport_size.x > 0 && m_viewport_size.y > 0)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
         glViewport(0,
                    0,
-                   static_cast<int>(m_viewportSize.x),
-                   static_cast<int>(m_viewportSize.y));
+                   static_cast<int>(m_viewport_size.x),
+                   static_cast<int>(m_viewport_size.y));
 
         // Call render callback for 3D content
         if (m_render_callback)
@@ -321,8 +320,8 @@ void ImGuiApp::drawViewport()
 
         // Display texture in ImGui
         ImGui::Image(
-            reinterpret_cast<void*>(static_cast<intptr_t>(m_fboTexture)),
-            m_viewportSize,
+            reinterpret_cast<void*>(static_cast<intptr_t>(m_fbo_texture)),
+            m_viewport_size,
             ImVec2(0, 1), // Flipped UV coords for OpenGL
             ImVec2(1, 0));
     }
@@ -332,15 +331,15 @@ void ImGuiApp::drawViewport()
 }
 
 // ----------------------------------------------------------------------------
-bool ImGuiApp::createFramebuffer(int p_width, int p_height)
+bool DearImGuiApp::createFramebuffer(int p_width, int p_height)
 {
     // Generate framebuffer
     glGenFramebuffers(1, &m_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 
     // Create color texture
-    glGenTextures(1, &m_fboTexture);
-    glBindTexture(GL_TEXTURE_2D, m_fboTexture);
+    glGenTextures(1, &m_fbo_texture);
+    glBindTexture(GL_TEXTURE_2D, m_fbo_texture);
     glTexImage2D(GL_TEXTURE_2D,
                  0,
                  GL_RGB,
@@ -353,7 +352,7 @@ bool ImGuiApp::createFramebuffer(int p_width, int p_height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(
-        GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fboTexture, 0);
+        GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_fbo_texture, 0);
 
     // Create renderbuffer for depth/stencil
     glGenRenderbuffers(1, &m_rbo);
@@ -373,24 +372,24 @@ bool ImGuiApp::createFramebuffer(int p_width, int p_height)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    m_fboWidth = p_width;
-    m_fboHeight = p_height;
+    m_fbo_width = p_width;
+    m_fbo_height = p_height;
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::deleteFramebuffer()
+void DearImGuiApp::deleteFramebuffer()
 {
     if (m_fbo)
     {
         glDeleteFramebuffers(1, &m_fbo);
         m_fbo = 0;
     }
-    if (m_fboTexture)
+    if (m_fbo_texture)
     {
-        glDeleteTextures(1, &m_fboTexture);
-        m_fboTexture = 0;
+        glDeleteTextures(1, &m_fbo_texture);
+        m_fbo_texture = 0;
     }
     if (m_rbo)
     {
@@ -400,7 +399,7 @@ void ImGuiApp::deleteFramebuffer()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiApp::resizeFramebuffer(int p_width, int p_height)
+void DearImGuiApp::resizeFramebuffer(int p_width, int p_height)
 {
     if (p_width <= 0 || p_height <= 0)
     {
@@ -409,264 +408,6 @@ void ImGuiApp::resizeFramebuffer(int p_width, int p_height)
 
     deleteFramebuffer();
     createFramebuffer(p_width, p_height);
-}
-
-// ----------------------------------------------------------------------------
-void ImGuiApp::drawRobotControlPanel()
-{
-    ImGui::Begin("Robot Control");
-
-    // Section: Robot Management
-    if (ImGui::CollapsingHeader("Robot Management",
-                                ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        // Get list of robots
-        std::vector<std::string> robot_list;
-        if (m_robot_list_callback)
-        {
-            robot_list = m_robot_list_callback();
-        }
-
-        // Robot selection
-        if (ImGui::BeginCombo(
-                "Selected Robot",
-                m_selected_robot.empty() ? "None" : m_selected_robot.c_str()))
-        {
-            for (const auto& robot_name : robot_list)
-            {
-                bool is_selected = (m_selected_robot == robot_name);
-                if (ImGui::Selectable(robot_name.c_str(), is_selected))
-                {
-                    m_selected_robot = robot_name;
-                }
-                if (is_selected)
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::Separator();
-
-        // Add Robot
-        ImGui::Text("Add Robot:");
-        ImGui::InputText(
-            "URDF Path", m_urdf_path_buffer, sizeof(m_urdf_path_buffer));
-        ImGui::SameLine();
-        if (ImGui::Button("Browse..."))
-        {
-            // TODO: Add file browser dialog
-            ImGui::OpenPopup("File Browser");
-        }
-
-        if (ImGui::Button("Load Robot"))
-        {
-            if (m_load_robot_callback && m_urdf_path_buffer[0] != '\0')
-            {
-                if (m_load_robot_callback(std::string(m_urdf_path_buffer)))
-                {
-                    // Clear buffer after successful load
-                    m_urdf_path_buffer[0] = '\0';
-                }
-            }
-        }
-
-        ImGui::SameLine();
-
-        // Remove Robot
-        if (ImGui::Button("Remove Robot"))
-        {
-            if (m_remove_robot_callback && !m_selected_robot.empty())
-            {
-                m_remove_robot_callback(m_selected_robot);
-                m_selected_robot.clear();
-            }
-        }
-
-        // Display robot list
-        ImGui::Text("Loaded Robots (%zu):", robot_list.size());
-        ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
-        for (const auto& robot_name : robot_list)
-        {
-            if (ImGui::Selectable(robot_name.c_str(),
-                                  m_selected_robot == robot_name))
-            {
-                m_selected_robot = robot_name;
-            }
-        }
-        ImGui::EndChild();
-    }
-
-    // Only show controls if a robot is selected
-    if (!m_selected_robot.empty())
-    {
-        // Section: Control Mode
-        if (ImGui::CollapsingHeader("Control Mode",
-                                    ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            int current_mode = 0;
-            if (m_get_control_mode_callback)
-            {
-                current_mode = m_get_control_mode_callback(m_selected_robot);
-            }
-
-            const char* mode_names[] = { "No Control",
-                                         "Direct Kinematics",
-                                         "Animation",
-                                         "Inverse Kinematics",
-                                         "Trajectory" };
-
-            if (ImGui::Combo("Mode", &current_mode, mode_names, 5))
-            {
-                if (m_set_control_mode_callback)
-                {
-                    m_set_control_mode_callback(m_selected_robot, current_mode);
-                }
-            }
-        }
-
-        // Section: End Effector Selection
-        if (ImGui::CollapsingHeader("End Effector"))
-        {
-            std::vector<std::string> nodes;
-            if (m_get_nodes_callback)
-            {
-                nodes = m_get_nodes_callback(m_selected_robot);
-            }
-
-            std::string current_end_effector;
-            if (m_get_end_effector_callback)
-            {
-                current_end_effector =
-                    m_get_end_effector_callback(m_selected_robot);
-            }
-
-            if (ImGui::BeginCombo("End Effector",
-                                  current_end_effector.empty()
-                                      ? "None"
-                                      : current_end_effector.c_str()))
-            {
-                for (const auto& node_name : nodes)
-                {
-                    bool is_selected = (current_end_effector == node_name);
-                    if (ImGui::Selectable(node_name.c_str(), is_selected))
-                    {
-                        if (m_set_end_effector_callback)
-                        {
-                            m_set_end_effector_callback(m_selected_robot,
-                                                        node_name);
-                        }
-                    }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        // Section: Camera Target
-        if (ImGui::CollapsingHeader("Camera Target"))
-        {
-            std::vector<std::string> nodes;
-            if (m_get_nodes_callback)
-            {
-                nodes = m_get_nodes_callback(m_selected_robot);
-            }
-
-            std::string current_camera_target;
-            if (m_get_camera_target_callback)
-            {
-                current_camera_target =
-                    m_get_camera_target_callback(m_selected_robot);
-            }
-
-            if (ImGui::BeginCombo("Camera Target",
-                                  current_camera_target.empty()
-                                      ? "None"
-                                      : current_camera_target.c_str()))
-            {
-                for (const auto& node_name : nodes)
-                {
-                    bool is_selected = (current_camera_target == node_name);
-                    if (ImGui::Selectable(node_name.c_str(), is_selected))
-                    {
-                        if (m_set_camera_target_callback)
-                        {
-                            m_set_camera_target_callback(m_selected_robot,
-                                                         node_name);
-                        }
-                    }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        // Section: Joint Control
-        if (ImGui::CollapsingHeader("Joint Control",
-                                    ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            std::vector<std::pair<std::string, double>> joints;
-            if (m_get_joints_callback)
-            {
-                joints = m_get_joints_callback(m_selected_robot);
-            }
-
-            // Determine if sliders should be read-only
-            int control_mode = 0;
-            if (m_get_control_mode_callback)
-            {
-                control_mode = m_get_control_mode_callback(m_selected_robot);
-            }
-            // Sliders are editable only in DIRECT_KINEMATICS mode (1)
-            bool read_only = (control_mode != 1);
-
-            ImGui::Text("Joints (%zu):", joints.size());
-            ImGui::BeginChild("JointList", ImVec2(0, 300), true);
-
-            for (auto& joint : joints)
-            {
-                ImGui::PushID(joint.first.c_str());
-
-                float value = static_cast<float>(joint.second);
-
-                if (read_only)
-                {
-                    // Read-only mode: disable interaction
-                    ImGui::BeginDisabled();
-                    ImGui::SliderFloat(
-                        joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f");
-                    ImGui::EndDisabled();
-                }
-                else
-                {
-                    // Interactive mode
-                    if (ImGui::SliderFloat(
-                            joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f"))
-                    {
-                        if (m_set_joint_callback)
-                        {
-                            m_set_joint_callback(m_selected_robot,
-                                                 joint.first,
-                                                 static_cast<double>(value));
-                        }
-                    }
-                }
-
-                ImGui::PopID();
-            }
-
-            ImGui::EndChild();
-        }
-    }
-
-    ImGui::End();
 }
 
 } // namespace robotik::viewer

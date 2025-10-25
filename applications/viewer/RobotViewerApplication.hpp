@@ -10,14 +10,13 @@
 #pragma once
 
 #include "Configuration.hpp"
+#include "Robotik/Viewer/OpenGLApplication.hpp"
 
 #include "Robotik/Core/PhysicsSimulator.hpp"
-#include "Robotik/Viewer/Application.hpp"
+
 #include "Robotik/Viewer/Camera.hpp"
-#include "Robotik/Viewer/DearImGuiApp.hpp"
 #include "Robotik/Viewer/GeometryRenderer.hpp"
 #include "Robotik/Viewer/MeshManager.hpp"
-#include "Robotik/Viewer/OpenGLWindow.hpp"
 #include "Robotik/Viewer/RobotManager.hpp"
 #include "Robotik/Viewer/ShaderManager.hpp"
 
@@ -29,7 +28,7 @@ class OpenGLWindow;
 // ****************************************************************************
 //! \brief Robot viewer application that inherits from Application.
 // ****************************************************************************
-class RobotViewerApplication: public Application
+class RobotViewerApplication final: public OpenGLApplication
 {
 public:
 
@@ -41,7 +40,7 @@ public:
     // ----------------------------------------------------------------------------
     //! \brief Destructor.
     // ----------------------------------------------------------------------------
-    ~RobotViewerApplication() override;
+    // ~RobotViewerApplication() override;
 
     // ----------------------------------------------------------------------------
     //! \brief Run the application with the given configuration.
@@ -49,7 +48,7 @@ public:
     // ----------------------------------------------------------------------------
     bool run();
 
-private: // override Application methods
+private: // override OpenGLApplication methods
 
     // ----------------------------------------------------------------------------
     //! \brief Set the title of the application.
@@ -58,36 +57,35 @@ private: // override Application methods
     void setTitle(std::string const& p_title) override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Check if the application should close.
-    //! \return true if the application should close, false otherwise.
-    // ----------------------------------------------------------------------------
-    bool isHalting() const override;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Initialize the application. Called once at startup.
-    //! \return true if initialization was successful, false otherwise.
+    //! \brief Initialize the application. Called once at startup. This method
+    //! is called before the physics thread is started.
+    //! \return true if initialization was successful, false otherwise. In this
+    //! last case, you can set the error message using the error() method.
     // ----------------------------------------------------------------------------
     bool onSetup() override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Cleanup the application. Called once at shutdown.
+    //! \brief Cleanup the application. Called once at shutdown. This method
+    //! is called after the physics thread is stopped.
+    //! You can use this method to clean up any resources you allocated in the
+    //! onSetup() method.
     // ----------------------------------------------------------------------------
-    void onCleanup() override;
+    void onTeardown() override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Render the application. Called every frame.
+    //! \brief Render the 3D scene. Called automatically within the viewport.
     // ----------------------------------------------------------------------------
-    void onDraw() override;
+    void onDrawScene() override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Render the 3D scene (called by ImGuiApp).
+    //! \brief Draw ImGui menu bar.
     // ----------------------------------------------------------------------------
-    void render3DScene();
+    void onDrawMenuBar() override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup ImGui callbacks for robot management.
+    //! \brief Draw ImGui main control panel.
     // ----------------------------------------------------------------------------
-    void setupImGuiCallbacks();
+    void onDrawMainPanel() override;
 
     // ----------------------------------------------------------------------------
     //! \brief Update the application logic. Called every frame.
@@ -108,42 +106,28 @@ private: // override Application methods
     void onFPSUpdated(size_t const p_fps) override;
 
     // ----------------------------------------------------------------------------
+    //! \brief Handle key event (override from Application).
+    //! \param p_key Key code.
+    //! \param p_scancode Scan code.
+    //! \param p_action Action (press, release, repeat).
+    //! \param p_mods Modifier keys.
+    // ----------------------------------------------------------------------------
+    void
+    onKeyInput(int p_key, int p_scancode, int p_action, int p_mods) override;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Handle scroll event.
+    //! \param p_xoffset Scroll x offset.
+    //! \param p_yoffset Scroll y offset.
+    // ----------------------------------------------------------------------------
+    void onScroll(double p_xoffset, double p_yoffset) override;
+
+    // ----------------------------------------------------------------------------
     //! \brief Handle window resize event.
     //! \param p_width New window width.
     //! \param p_height New window height.
     // ----------------------------------------------------------------------------
-    void onWindowResize(int p_width, int p_height);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle key event.
-    //! \param key Key code.
-    //! \param scancode Scan code.
-    //! \param action Action (press, release, repeat).
-    //! \param mods Modifier keys.
-    // ----------------------------------------------------------------------------
-    void onKeyInput(int key, int scancode, int action, int mods);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle mouse button event.
-    //! \param button Mouse button.
-    //! \param action Action (press, release).
-    //! \param mods Modifier keys.
-    // ----------------------------------------------------------------------------
-    void onMouseButton(int button, int action, int mods);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle cursor position event.
-    //! \param xpos Cursor x position.
-    //! \param ypos Cursor y position.
-    // ----------------------------------------------------------------------------
-    void onCursorPos(double xpos, double ypos);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle scroll event.
-    //! \param xoffset Scroll x offset.
-    //! \param yoffset Scroll y offset.
-    // ----------------------------------------------------------------------------
-    void onScroll(double xoffset, double yoffset);
+    void onWindowResize(int p_width, int p_height) override;
 
 private:
 
@@ -237,6 +221,11 @@ private:
     // ----------------------------------------------------------------------------
     void updateCameraTarget();
 
+    // ----------------------------------------------------------------------------
+    //! \brief Setup robot callbacks for ImGui.
+    // ----------------------------------------------------------------------------
+    void setupImGuiCallbacks();
+
 public:
 
     //! \brief Search paths to load URDF files.
@@ -247,9 +236,27 @@ private:
     // Configuration
     Configuration const& m_config;
 
+    // Robot management callbacks
+    std::function<bool(const std::string&)> m_load_robot_callback;
+    std::function<bool(const std::string&)> m_remove_robot_callback;
+    std::function<std::vector<std::string>()> m_robot_list_callback;
+    std::function<std::vector<std::pair<std::string, double>>(
+        const std::string&)>
+        m_get_joints_callback;
+    std::function<void(const std::string&, const std::string&, double)>
+        m_set_joint_callback;
+    std::function<std::vector<std::string>(const std::string&)>
+        m_get_nodes_callback;
+    std::function<void(const std::string&, int)> m_set_control_mode_callback;
+    std::function<int(const std::string&)> m_get_control_mode_callback;
+    std::function<void(const std::string&, const std::string&)>
+        m_set_end_effector_callback;
+    std::function<std::string(const std::string&)> m_get_end_effector_callback;
+    std::function<void(const std::string&, const std::string&)>
+        m_set_camera_target_callback;
+    std::function<std::string(const std::string&)> m_get_camera_target_callback;
+
     // Components
-    OpenGLWindow m_window;
-    std::unique_ptr<viewer::ImGuiApp> m_imgui_app;
     Camera m_camera;
     ShaderManager m_shader_manager;
     MeshManager m_mesh_manager;
