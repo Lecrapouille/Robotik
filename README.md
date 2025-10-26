@@ -214,11 +214,11 @@ Namespaces are `robotik`. You should include `#include <Robotik/Robotik.hpp>`
 
 ### 🚀 Quick Robot Creation
 
-You need the class `URDFParser` just the time to create a new `std::unique_ptr<Robot>`. You can use it as a local variable.
+You need the class `URDFLoader` just the time to create a new `std::unique_ptr<Robot>`. You can use it as a local variable.
 
 ```cpp
 std::string urdf_file = "xxxx.urdf";
-robotik::URDFParser parser;
+robotik::URDFLoader parser;
 
 std::unique_ptr<Robot> robot = parser.load(urdf_file);
 if (robot == nullptr)

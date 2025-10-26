@@ -14,7 +14,7 @@
 #include "Robotik/Core/Conversions.hpp"
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
-#include "Robotik/Core/URDFParser.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 #include <cmath>
 
@@ -29,7 +29,7 @@ protected:
 
     void SetUp() override
     {
-        parser = std::make_unique<URDFParser>();
+        parser = std::make_unique<URDFLoader>();
     }
 
     std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
@@ -64,7 +64,7 @@ protected:
         }
     }
 
-    std::unique_ptr<URDFParser> parser;
+    std::unique_ptr<URDFLoader> parser;
 };
 
 // *********************************************************************************

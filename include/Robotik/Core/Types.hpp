@@ -73,6 +73,6 @@ struct State;
 class Hierarchy;
 class Robot;
 class IKSolver;
-class URDFParser;
+class URDFLoader;
 
 } // namespace robotik

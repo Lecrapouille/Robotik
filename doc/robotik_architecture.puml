@@ -74,7 +74,7 @@ package "robotik::core" {
     class Robot {
     }
 
-    class URDFParser {
+    class URDFLoader {
     }
 
     abstract class IKSolver {
@@ -95,7 +95,7 @@ Component <|-- Actuator
 
 ' Core package associations
 Robot --> Node : contains root
-URDFParser --> Robot : creates
+URDFLoader --> Robot : creates
 IKSolver --> Robot : uses
 Joint --> Inertial : contains
 Link --> Geometry : contains

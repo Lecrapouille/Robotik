@@ -6,6 +6,12 @@
 #include <chrono>
 #include <memory>
 
+// Forward declarations
+namespace robotik
+{
+class Robot;
+}
+
 namespace robotik::renderer
 {
 // Forward declarations
@@ -20,7 +26,7 @@ namespace robotik::renderer::application
 {
 
 // ****************************************************************************
-//! \brief Robot renderer application that inherits from OpenGLApplication.
+//! \brief Robot viewer application that inherits from OpenGLApplication.
 // ****************************************************************************
 class RobotViewerApplication: public OpenGLApplication
 {
@@ -138,6 +144,9 @@ private:
 
     // Example: rotation angle for box
     float m_rotation_angle = 0.0f;
+
+    // Robot
+    std::unique_ptr<robotik::Robot> m_robot;
 };
 
 } // namespace robotik::renderer::application

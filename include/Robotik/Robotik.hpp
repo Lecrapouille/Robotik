@@ -25,7 +25,7 @@
  * int main()
  * {
  *     // 1. Create a parser
- *     robotik::URDFParser parser;
+ *     robotik::URDFLoader parser;
  *
  *     // 2. Load a robot from a URDF file
  *     auto robot = parser.load("path/to/robot.urdf");
@@ -80,7 +80,7 @@
  *
  * The Robotik API is organized as follows:
  *
- * - **Main Entry Point**: URDFParser - Load robots from URDF files
+ * - **Main Entry Point**: URDFLoader - Load robots from URDF files
  * - **Robot Control**: Robot - High-level robot manipulation
  * - **Types**: Common types (Transform, Pose, Jacobian)
  *
@@ -95,7 +95,7 @@
 // ============================================================================
 
 #include "Robotik/Core/Robot.hpp"
-#include "Robotik/Core/URDFParser.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 // ============================================================================
 // Extended API: Additional modules for advanced functionality
@@ -112,7 +112,7 @@ namespace robotik
 /**
  * @brief Convenience function to quickly load a robot from a URDF file.
  *
- * This is a shorthand for creating a URDFParser and calling load().
+ * This is a shorthand for creating a URDFLoader and calling load().
  *
  * @param p_filename Path to the URDF file
  * @param p_error_message Optional output parameter for error message
@@ -129,7 +129,7 @@ namespace robotik
 inline std::unique_ptr<Robot> loadRobot(const std::string& p_filename,
                                         std::string* p_error_message = nullptr)
 {
-    URDFParser parser;
+    URDFLoader parser;
     auto robot = parser.load(p_filename);
 
     if (!robot && p_error_message)

@@ -5,7 +5,7 @@
 
 #include "Robotik/Core/Robot.hpp"
 #include "Robotik/Core/Trajectory.hpp"
-#include "Robotik/Core/URDFParser.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 #include <iostream>
 
@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
     }
 
     // Load robot from URDF
-    robotik::URDFParser parser;
+    robotik::URDFLoader parser;
     auto robot = parser.load(argv[1]);
 
     if (!robot)

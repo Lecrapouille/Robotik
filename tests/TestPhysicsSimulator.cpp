@@ -8,7 +8,7 @@
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/PhysicsSimulator.hpp"
 #include "Robotik/Core/Robot.hpp"
-#include "Robotik/Core/URDFParser.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 using namespace robotik;
 
@@ -18,7 +18,7 @@ namespace helper
 std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
 {
     Path path(project::info::paths::data);
-    URDFParser parser;
+    URDFLoader parser;
     auto robot = parser.load(path.expand(p_urdf_file_path));
     if (robot == nullptr)
     {
@@ -62,7 +62,7 @@ TEST(PhysicsSimulator, GravitySetting)
 TEST(PhysicsSimulator, SimpleRevoluteJoint)
 {
     // Load a simple robot with one revolute joint
-    URDFParser parser;
+    URDFLoader parser;
     Path path(project::info::paths::data);
     auto robot = parser.load(path.expand("simple_revolute_robot.urdf"));
 

@@ -1,9 +1,12 @@
 #include "RobotViewerApplication.hpp"
+#include "Robotik/Core/Loaders/UrdfLoader.hpp"
+#include "Robotik/Core/Robot.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
 #include "Robotik/Renderer/Loaders/STLLoader.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
+#include "Robotik/Renderer/RenderVisitor.hpp"
 #include "Robotik/Renderer/Renderer.hpp"
 
 #include <Eigen/Dense>
@@ -153,6 +156,23 @@ bool RobotViewerApplication::onSetup()
         return false;
     }
 
+    // Try to load a robot URDF
+    robotik::loader::URDFLoader parser;
+    m_robot = parser.load("/home/qq/MyGitHub/Robotik/data/robot_6axis_urdf");
+    if (!m_robot)
+    {
+        std::cerr << "Note: Failed to load URDF: " << parser.error()
+                  << std::endl;
+        std::cerr << "Continuing without robot (update path in "
+                     "RobotViewerApplication.cpp)"
+                  << std::endl;
+    }
+    else
+    {
+        std::cout << "Robot loaded successfully: " << m_robot->name()
+                  << std::endl;
+    }
+
     std::cout << "Rendering system initialized successfully!" << std::endl;
     return true;
 }
@@ -236,6 +256,13 @@ void RobotViewerApplication::onDrawScene()
         // Render with cyan color
         m_renderer->render(
             stl_mesh, stl_transform, Eigen::Vector3f(0.0f, 1.0f, 1.0f));
+    }
+
+    // Render robot if loaded
+    if (m_robot && m_robot->hierarchy().hasRoot())
+    {
+        RenderVisitor visitor(*m_mesh_manager, *m_renderer, *m_shader_manager);
+        m_robot->hierarchy().root().traverse(visitor);
     }
 }
 
