@@ -35,7 +35,7 @@ include $(M)/project/Makefile
 ###############################################################################
 # Inform Makefile where to find header files
 #
-IMGUI_DIR := $(P)/external/imgui
+IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
 INCLUDES += $(P)/include $(P)/applications/viewer
 INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
 

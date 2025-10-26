@@ -56,7 +56,7 @@ class IKSolver;
 //! Example usage:
 //! \code
 //!   // Parse URDF to get hierarchy
-//!   URDFParser parser;
+//!   URDFLoader parser;
 //!   Hierarchy hierarchy = parser.parse("robot.urdf");
 //!
 //!   // Create robot and state

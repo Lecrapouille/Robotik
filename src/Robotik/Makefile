@@ -43,6 +43,11 @@ INCLUDES += $(P)/include $(P)/src
 VPATH += $(P)/src/Robotik
 
 ###############################################################################
+# Inform Makefile where to find header files
+#
+INCLUDES += $(THIRD_PARTIES_DIR)
+
+###############################################################################
 # Project defines
 #
 DEFINES +=
@@ -50,7 +55,8 @@ DEFINES +=
 ###############################################################################
 # Make the list of files to compile
 #
-LIB_FILES := $(wildcard $(P)/src/Robotik/*.cpp)
+LIB_FILES := $(wildcard $(P)/src/Robotik/*/*.cpp)
+LIB_FILES += $(wildcard $(P)/src/Robotik/*.cpp)
 
 ###############################################################################
 # Set Eigen3 library
@@ -60,14 +66,16 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
-# Set TinyXML2 library
+# Set pugixml library
 #
-LIB_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
+LIB_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp
+INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
+USER_CXXFLAGS += -Wno-switch-enum
 
 ###############################################################################
 # Set units library
 #
-INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
+INCLUDES += $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # Sharable information between all Makefiles

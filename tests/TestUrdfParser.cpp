@@ -1,5 +1,5 @@
 /**
- * @file TestUrdfParser.cpp
+ * @file TestURDFLoader.cpp
  * @brief Unit tests for the URDF parser - Verification of URDF file loading and
  * parsing, robot structure creation and error handling from the folder data/.
  *
@@ -15,22 +15,22 @@
 
 #include "Robotik/Core/Path.hpp"
 #include "Robotik/Core/Robot.hpp"
-#include "Robotik/Core/URDFParser.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 #include <cmath>
 
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for URDFParser class.
+//! \brief Test fixture for URDFLoader class.
 // *********************************************************************************
-class URDFParserTest: public ::testing::Test
+class URDFLoaderTest: public ::testing::Test
 {
 protected:
 
     void SetUp() override
     {
-        parser = std::make_unique<URDFParser>();
+        parser = std::make_unique<URDFLoader>();
     }
 
     std::unique_ptr<Robot> parseRobot(const std::string& p_urdf_file_path)
@@ -60,13 +60,13 @@ protected:
         return geometry_nodes;
     }
 
-    std::unique_ptr<URDFParser> parser;
+    std::unique_ptr<URDFLoader> parser;
 };
 
 // *********************************************************************************
 //! \brief Test loading non-existent file.
 // *********************************************************************************
-TEST_F(URDFParserTest, NonExistentFile)
+TEST_F(URDFLoaderTest, NonExistentFile)
 {
     std::string fake_path = "/fake/path/robot.urdf";
 
@@ -81,7 +81,7 @@ TEST_F(URDFParserTest, NonExistentFile)
 // *********************************************************************************
 //! \brief Test parsing simple revolute robot URDF scene graph.
 // *********************************************************************************
-TEST_F(URDFParserTest, SimpleRevoluteRobotSceneGraph)
+TEST_F(URDFLoaderTest, SimpleRevoluteRobotSceneGraph)
 {
     std::string robot_file_path = "simple_revolute_robot.urdf";
     auto robot = parseRobot(robot_file_path);
@@ -133,7 +133,7 @@ TEST_F(URDFParserTest, SimpleRevoluteRobotSceneGraph)
 // *********************************************************************************
 //! \brief Test parsing simple prismatic robot URDF scene graph.
 // *********************************************************************************
-TEST_F(URDFParserTest, SimplePrismaticRobotSceneGraph)
+TEST_F(URDFLoaderTest, SimplePrismaticRobotSceneGraph)
 {
     std::string robot_file_path = "simple_prismatic_robot.urdf";
     auto robot = parseRobot(robot_file_path);
@@ -185,7 +185,7 @@ TEST_F(URDFParserTest, SimplePrismaticRobotSceneGraph)
 // *********************************************************************************
 //! \brief Test parsing differential drive robot URDF scene graph.
 // *********************************************************************************
-TEST_F(URDFParserTest, DifferentialDriveRobotSceneGraph)
+TEST_F(URDFLoaderTest, DifferentialDriveRobotSceneGraph)
 {
     std::string robot_file_path = "simple_diff_drive_robot.urdf";
     auto robot = parseRobot(robot_file_path);
@@ -250,7 +250,7 @@ TEST_F(URDFParserTest, DifferentialDriveRobotSceneGraph)
 // *********************************************************************************
 //! \brief Test parsing SCARA robot URDF scene graph.
 // *********************************************************************************
-TEST_F(URDFParserTest, SCARArobotSceneGraph)
+TEST_F(URDFLoaderTest, SCARArobotSceneGraph)
 {
     std::string robot_file_path = "scara_robot.urdf";
     auto robot = parseRobot(robot_file_path);
@@ -302,7 +302,7 @@ TEST_F(URDFParserTest, SCARArobotSceneGraph)
 // *********************************************************************************
 //! \brief Test parsing cartesian robot URDF scene graph.
 // *********************************************************************************
-TEST_F(URDFParserTest, CartesianRobotSceneGraph)
+TEST_F(URDFLoaderTest, CartesianRobotSceneGraph)
 {
     std::string robot_file_path = "cartesian_robot.urdf";
     auto robot = parseRobot(robot_file_path);
