@@ -174,7 +174,7 @@ classDiagram
 #include "Viewer/OpenGLApplication.hpp"
 #include <GL/glew.h>
 
-class SimpleViewer : public robotik::viewer::OpenGLApplication
+class SimpleViewer : public robotik::renderer::OpenGLApplication
 {
 public:
     SimpleViewer()
@@ -232,7 +232,7 @@ int main()
 #include <GL/glew.h>
 #include <imgui.h>
 
-class RobotViewer : public robotik::viewer::OpenGLApplication
+class RobotViewer : public robotik::renderer::OpenGLApplication
 {
 public:
     RobotViewer()
@@ -428,7 +428,7 @@ int main()
 Pour créer un nouveau type d'application spécialisée, héritez simplement de `OpenGLApplication` :
 
 ```cpp
-class PhysicsSimulatorApp : public robotik::viewer::OpenGLApplication
+class PhysicsSimulatorApp : public robotik::renderer::OpenGLApplication
 {
     // Votre implémentation spécifique
 };
@@ -439,7 +439,7 @@ class PhysicsSimulatorApp : public robotik::viewer::OpenGLApplication
 Si vous avez besoin d'un contrôle plus fin sur l'initialisation OpenGL, vous pouvez créer une classe intermédiaire :
 
 ```cpp
-class CustomOpenGLApplication : public robotik::viewer::OpenGLApplication
+class CustomOpenGLApplication : public robotik::renderer::OpenGLApplication
 {
 protected:
     bool onSetup() override

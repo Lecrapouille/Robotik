@@ -10,13 +10,13 @@
 
 #include "main.hpp"
 
-#include "Robotik/Viewer/Application.hpp"
+#include "Robotik/Renderer/Application.hpp"
 
 #include <atomic>
 #include <chrono>
 #include <thread>
 
-using namespace robotik::viewer;
+using namespace robotik::renderer;
 
 // *********************************************************************************
 //! \brief Mock Application class for testing.

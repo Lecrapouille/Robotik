@@ -1,1124 +1,288 @@
-/**
- * @file RobotViewerApplication.cpp
- * @brief Robot viewer application class for the 3D viewer.
- *
- * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
- * distributed under MIT License
- * @see https://github.com/Lecrapouille/Robotik
- */
-
 #include "RobotViewerApplication.hpp"
+#include "Robotik/Renderer/Camera/OrbitController.hpp"
+#include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
+#include "Robotik/Renderer/Loaders/STLLoader.hpp"
+#include "Robotik/Renderer/Managers/MeshManager.hpp"
+#include "Robotik/Renderer/Managers/ShaderManager.hpp"
+#include "Robotik/Renderer/Renderer.hpp"
 
-#include "Robotik/Core/Conversions.hpp"
-#include "Robotik/Core/Debug.hpp"
-#include "Robotik/Core/IKSolver.hpp"
-#include "Robotik/Core/Trajectory.hpp"
-#include "Robotik/Viewer/Application/DearImGuiApplication.hpp"
-
+#include <Eigen/Dense>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-
+#include <imgui.h>
 #include <iostream>
 
-namespace robotik::viewer::application
+namespace robotik::renderer::application
 {
 
-// Background color
-const Eigen::Vector3f s_clear_color(0.2f, 0.3f, 0.3f);
+// Vertex shader source
+static const char* vertex_shader_source = R"(
+#version 330 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+out vec3 FragPos;
+out vec3 Normal;
+
+void main()
+{
+    FragPos = vec3(model * vec4(aPos, 1.0));
+    Normal = mat3(transpose(inverse(model))) * aNormal;
+    gl_Position = projection * view * vec4(FragPos, 1.0);
+}
+)";
+
+// Fragment shader source
+static const char* fragment_shader_source = R"(
+#version 330 core
+in vec3 FragPos;
+in vec3 Normal;
+
+uniform vec3 color;
+
+out vec4 FragColor;
+
+void main()
+{
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    vec3 normal = normalize(Normal);
+    float diff = max(dot(normal, lightDir), 0.0);
+    vec3 diffuse = diff * color;
+    vec3 ambient = 0.3 * color;
+    FragColor = vec4(ambient + diffuse, 1.0);
+}
+)";
 
 // ----------------------------------------------------------------------------
 RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
     : OpenGLApplication(p_config.window_width, p_config.window_height, true),
-      path(p_config.search_paths),
-      m_config(p_config),
-      m_camera(p_config.window_width, p_config.window_height),
-      m_geometry_renderer(m_shader_manager),
-      m_physics_simulator(1.0 / double(p_config.target_physics_hz),
-                          p_config.physics_gravity)
+      m_config(p_config)
 {
-    setTitle(p_config.window_title);
+    setTitle(p_config.window_title + " - FPS: " + std::to_string(m_fps));
 }
+
+// ----------------------------------------------------------------------------
+RobotViewerApplication::~RobotViewerApplication() = default;
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::run()
 {
-    return OpenGLApplication::run(m_config.target_fps,
-                                  m_config.target_physics_hz);
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::setTitle(std::string const& p_title)
-{
-    m_title = p_title;
-    OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(m_fps));
+    return Application::run(m_config.target_fps, m_config.target_physics_hz);
 }
 
 // ----------------------------------------------------------------------------
 bool RobotViewerApplication::onSetup()
 {
-    // Setup Robot callbacks for ImGui.
-    setupImGuiCallbacks();
+    // Create perspective camera
+    float aspect_ratio = static_cast<float>(m_config.window_width) /
+                         static_cast<float>(m_config.window_height);
+    m_camera =
+        std::make_unique<PerspectiveCamera>(45.0f, aspect_ratio, 0.1f, 100.0f);
+    m_camera->setPosition(Eigen::Vector3f(3.0f, 3.0f, 3.0f));
+    m_camera->lookAt(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
 
-    // Initialize OpenGL states
-    glEnable(GL_DEPTH_TEST);
+    // Create orbit controller for intuitive robot inspection
+    m_camera_controller = std::make_unique<OrbitController>(
+        *m_camera, Eigen::Vector3f(0.0f, 0.0f, 0.5f), 5.0f);
 
-    // Search for meshes in the specified paths.
-    path.add(m_config.search_paths);
-
-    // Create OpenGL shaders
-    if (!setupShaderProgram("default"))
+    // Create shader manager
+    m_shader_manager = std::make_unique<ShaderManager>();
+    if (!m_shader_manager->createProgram(
+            "basic", vertex_shader_source, fragment_shader_source))
     {
-        m_error =
-            "Failed to create shader program: " + m_shader_manager.error();
+        std::cerr << "Failed to create shader program: "
+                  << m_shader_manager->error() << std::endl;
         return false;
     }
 
-    // Use shader program and initialize shader uniform locations. Since
-    // we have only one shader program, we can initialize the uniform
-    // locations once.
-    m_shader_manager.useProgram("default");
-    m_model_uniform = m_shader_manager.getUniformLocation("model");
-    m_color_uniform = m_shader_manager.getUniformLocation("color");
-    m_projection_uniform = m_shader_manager.getUniformLocation("projection");
-    m_view_uniform = m_shader_manager.getUniformLocation("view");
-
-    // Initialize geometry renderer
-    if (!m_geometry_renderer.initialize())
+    // Use the shader
+    if (!m_shader_manager->useProgram("basic"))
     {
-        m_error = "Failed to initialize geometry renderer: " +
-                  m_geometry_renderer.error();
+        std::cerr << "Failed to use shader program" << std::endl;
         return false;
     }
 
-    // Load robot from the specified URDF file
-    auto* controlled_robot = m_robot_manager.loadRobot(m_config.urdf_file);
-    if (controlled_robot == nullptr)
+    // Set up camera matrices
+    int view_loc = m_shader_manager->getUniformLocation("view");
+    int proj_loc = m_shader_manager->getUniformLocation("projection");
+    m_shader_manager->setMatrix4f(view_loc, m_camera->viewMatrix().data());
+    m_shader_manager->setMatrix4f(proj_loc,
+                                  m_camera->projectionMatrix().data());
+
+    // Create mesh manager
+    m_mesh_manager = std::make_unique<MeshManager>();
+
+    // Create example box mesh
+    if (!m_mesh_manager->createBox("example_box", 1.0f, 1.0f, 1.0f))
     {
-        m_error = "Failed to load robot from URDF: " + m_robot_manager.error();
-        return false;
-    }
-    else
-    {
-        std::cout << "Loaded robot from: " << m_config.urdf_file << std::endl;
-        std::cout << robotik::debug::printRobot(*controlled_robot->robot, true)
+        std::cerr << "Failed to create box mesh: " << m_mesh_manager->error()
                   << std::endl;
-    }
-
-    // Set control joint (end effector) for inverse kinematics
-    if (!setControlJoint(*controlled_robot, m_config.control_joint))
-    {
-        m_error = "🤖 Failed to set control joint: " + m_config.control_joint +
-                  ": " + m_error;
         return false;
     }
-    else if (controlled_robot->control_joint != nullptr)
+
+    // Create cylinder for axes rendering
+    if (!m_mesh_manager->createCylinder("axis_cylinder", 1.0f, 2.0f, 16))
     {
-        std::cout << "🤖 Control joint: "
-                  << controlled_robot->control_joint->name() << std::endl;
+        std::cerr << "Failed to create cylinder mesh: "
+                  << m_mesh_manager->error() << std::endl;
+        return false;
     }
 
-    // Compute IK target poses if control joint is set.
-    // To be placed before setting the initial joint values.
-    computeIKTargetPoses(*controlled_robot);
-
-    // Compute trajectory configurations
-    computeTrajectoryConfigs(*controlled_robot);
-
-    // Set initial joint values to the specified position
-    if (auto const& joint_positions = m_config.joint_positions;
-        !joint_positions.empty())
+    // Try to load an STL file (example - this will fail if file doesn't exist)
+    // Update this path to a real STL file path on your system
+    STLLoader stl_loader;
+    if (!m_mesh_manager->loadFromFile(
+            "stl_model", "/tmp/example.stl", stl_loader, false))
     {
-        controlled_robot->robot->hierarchy().forEachJoint(
-            [&joint_positions](Joint& joint, size_t index)
-            { joint.position(joint_positions[index]); });
-        std::cout << "🤖 Set initial joint values from configuration"
+        std::cerr << "Note: Failed to load STL file (this is expected if file "
+                     "doesn't exist): "
+                  << m_mesh_manager->error() << std::endl;
+        // Continue anyway - we'll just render the box
+    }
+
+    // Create renderer
+    m_renderer = std::make_unique<Renderer>(*m_shader_manager);
+    if (!m_renderer->initialize())
+    {
+        std::cerr << "Failed to initialize renderer: " << m_renderer->error()
                   << std::endl;
-    }
-    else
-    {
-        controlled_robot->robot->setNeutralPosition();
-        std::cout << "🤖 Set neutral position" << std::endl;
-    }
-
-    // Set camera target (base link or tool center point) to track
-    bool use_root_if_not_found = true;
-    if (!setCameraTarget(
-            *controlled_robot, m_config.camera_target, use_root_if_not_found))
-    {
-        m_error = "📷 Failed to set camera target: " + m_config.camera_target +
-                  ": " + m_error;
         return false;
     }
-    else
-    {
-        std::cout << "📷 Camera target: "
-                  << controlled_robot->camera_target->name() << std::endl;
-    }
 
+    std::cout << "Rendering system initialized successfully!" << std::endl;
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::computeIKTargetPoses(
-    RobotManager::ControlledRobot& p_controlled_robot)
+void RobotViewerApplication::onTeardown() {}
+
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onUpdate(float const dt)
 {
-    // Compute IK target poses if control joint is set
-    if (p_controlled_robot.control_joint == nullptr)
-        return;
+    // Update camera controller
+    m_camera_controller->update(dt);
 
-    std::cout << "🎯 Computing IK target poses..." << std::endl;
-
-    // Reserve memory for 3 joint configurations
-    size_t const num_poses = 3;
-    std::vector<std::vector<double>> joint_configs(num_poses);
-    for (auto& it : joint_configs)
-    {
-        it.resize(p_controlled_robot.robot->hierarchy().numJoints());
-    }
-
-    // Setup 3 joint configurations: 1/3 joint limits, 2/3 joint limits and
-    // neutral position
-    p_controlled_robot.robot->hierarchy().forEachJoint(
-        [&joint_configs](Joint const& joint, size_t index)
-        {
-            auto [min, max] = joint.limits();
-
-            // Pose 1: 1/3 from min
-            joint_configs[0][index] = min + (max - min) * 1.0 / 3.0;
-            // Pose 2: center (neutral)
-            joint_configs[1][index] = (max + min) / 2.0;
-            // Pose 3: 2/3 from min
-            joint_configs[2][index] = min + (max - min) * 2.0 / 3.0;
-        });
-
-    // For each configuration, compute end-effector pose
-    p_controlled_robot.ik_target_poses.clear();
-    p_controlled_robot.ik_target_poses.reserve(num_poses);
-    for (size_t pose_id = 0; pose_id < num_poses; ++pose_id)
-    {
-        // Apply joint configuration
-        p_controlled_robot.robot->hierarchy().forEachJoint(
-            [&joint_configs, pose_id](Joint& joint, size_t index)
-            { joint.position(joint_configs[pose_id][index]); });
-
-        // Get end-effector transform
-        Transform end_effector_transform =
-            p_controlled_robot.control_joint->worldTransform();
-
-        // Convert to pose and store
-        Pose target_pose = utils::transformToPose(end_effector_transform);
-        p_controlled_robot.ik_target_poses.push_back(target_pose);
-
-        std::cout << "  Target " << (pose_id + 1) << ": ["
-                  << target_pose.transpose() << "]" << std::endl;
-    }
-
-    // Initialize IK solver
-    p_controlled_robot.ik_solver = std::make_unique<JacobianIKSolver>();
+    // Animate box rotation
+    m_rotation_angle += dt * 0.5f; // Rotate 0.5 radians per second
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::computeTrajectoryConfigs(
-    RobotManager::ControlledRobot& p_controlled_robot)
-{
-    std::cout << "🎯 Computing trajectory configurations..." << std::endl;
-
-    // Generate 3 joint configurations
-    size_t const num_configs = 3;
-    p_controlled_robot.trajectory_configs.clear();
-    p_controlled_robot.trajectory_configs.resize(num_configs);
-
-    for (auto& config : p_controlled_robot.trajectory_configs)
-    {
-        config.resize(p_controlled_robot.robot->hierarchy().numJoints());
-    }
-
-    // Setup 3 joint configurations: 1/4, 1/2, 3/4 of joint range
-    p_controlled_robot.robot->hierarchy().forEachJoint(
-        [&p_controlled_robot](Joint const& joint, size_t index)
-        {
-            auto [min, max] = joint.limits();
-
-            // Config 0: 1/4 from min
-            p_controlled_robot.trajectory_configs[0][index] =
-                min + (max - min) * 0.25;
-            // Config 1: center
-            p_controlled_robot.trajectory_configs[1][index] = (max + min) / 2.0;
-            // Config 2: 3/4 from min
-            p_controlled_robot.trajectory_configs[2][index] =
-                min + (max - min) * 0.75;
-        });
-
-    // Print configurations
-    for (size_t i = 0; i < num_configs; ++i)
-    {
-        std::cout << "  Config " << (i + 1) << ": [";
-        for (size_t j = 0; j < p_controlled_robot.trajectory_configs[i].size();
-             ++j)
-        {
-            std::cout << p_controlled_robot.trajectory_configs[i][j];
-            if (j < p_controlled_robot.trajectory_configs[i].size() - 1)
-                std::cout << ", ";
-        }
-        std::cout << "]" << std::endl;
-    }
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::setControlJoint(
-    RobotManager::ControlledRobot& p_controlled_robot,
-    std::string const& p_element_name) const
-{
-    p_controlled_robot.control_joint = nullptr;
-
-    // No element name provided, use the first end effector if any.
-    if (p_element_name.empty())
-    {
-        if (auto const& end_effectors =
-                p_controlled_robot.robot->hierarchy().endEffectors();
-            !end_effectors.empty())
-        {
-            p_controlled_robot.control_joint = &end_effectors[0].get();
-        }
-    }
-    // Otherwise, search for the element by name. If not found, use the root.
-    else
-    {
-        p_controlled_robot.control_joint = Node::find(
-            p_controlled_robot.robot->hierarchy().root(), p_element_name);
-        if (p_controlled_robot.control_joint == nullptr)
-        {
-            p_controlled_robot.control_joint =
-                &p_controlled_robot.robot->hierarchy().root();
-        }
-    }
-
-    return p_controlled_robot.control_joint != nullptr;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::setCameraTarget(
-    RobotManager::ControlledRobot& p_controlled_robot,
-    std::string const& p_element_name,
-    bool p_use_root_if_not_found) const
-{
-    p_controlled_robot.camera_target = nullptr;
-
-    // No element name provided, use the root if requested or the first end
-    // effector if any.
-    if (p_element_name.empty())
-    {
-        if (p_use_root_if_not_found)
-        {
-            p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->hierarchy().root();
-        }
-        else if (auto const& end_effectors =
-                     p_controlled_robot.robot->hierarchy().endEffectors();
-                 !end_effectors.empty())
-        {
-            p_controlled_robot.camera_target = &end_effectors[0].get();
-        }
-    }
-    // Otherwise, search for the element by name. If not found, use the root.
-    else
-    {
-        p_controlled_robot.camera_target = Node::find(
-            p_controlled_robot.robot->hierarchy().root(), p_element_name);
-        if (p_controlled_robot.camera_target == nullptr)
-        {
-            p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->hierarchy().root();
-        }
-    }
-
-    return p_controlled_robot.camera_target != nullptr;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotViewerApplication::setupShaderProgram(
-    std::string const& p_program_name)
-{
-    // Simple vertex shader with lighting.
-    const std::string vertex_shader = R"(
-    #version 330 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aNormal;
-
-    uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
-    uniform vec3 color;
-
-    out vec3 FragColor;
-    out vec3 Normal;
-    out vec3 FragPos;
-
-    void main()
-    {
-        gl_Position = projection * view * model * vec4(aPos, 1.0);
-
-        // Transform normal to world space
-        Normal = mat3(transpose(inverse(model))) * aNormal;
-
-        // Fragment position in world space
-        FragPos = vec3(model * vec4(aPos, 1.0));
-
-        FragColor = color;
-    }
-    )";
-
-    // Simple fragment shader with lighting.
-    const std::string fragment_shader = R"(
-    #version 330 core
-    in vec3 FragColor;
-    in vec3 Normal;
-    in vec3 FragPos;
-
-    out vec4 outColor;
-
-    void main()
-    {
-        // Simple directional light
-        vec3 lightDir = normalize(vec3(0.5, 1.0, 0.3));
-        vec3 lightColor = vec3(1.0, 1.0, 1.0);
-
-        // Normalize the normal
-        vec3 norm = normalize(Normal);
-
-        // Ambient lighting
-        float ambientStrength = 0.3;
-        vec3 ambient = ambientStrength * lightColor;
-
-        // Diffuse lighting
-        float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = diff * lightColor;
-
-        // Combine lighting
-        vec3 result = (ambient + diffuse) * FragColor;
-        outColor = vec4(result, 1.0);
-    }
-    )";
-
-    // Setup shaders
-    if (!m_shader_manager.createProgram(
-            p_program_name, vertex_shader, fragment_shader))
-    {
-        m_error = "Failed to create shader program " + p_program_name + ": " +
-                  m_shader_manager.error();
-        return false;
-    }
-
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::setupImGuiCallbacks()
-{
-#if 0
-    // Load robot callback
-    m_load_robot_callback = [this](const std::string& p_urdf_path)
-    {
-        auto* robot = m_robot_manager.loadRobot(p_urdf_path);
-        if (robot != nullptr)
-        {
-            std::cout << "✅ Loaded robot from: " << p_urdf_path << std::endl;
-            return true;
-        }
-        else
-        {
-            std::cerr << "❌ Failed to load robot: " << m_robot_manager.error()
-                      << std::endl;
-            return false;
-        }
-    };
-
-    // Remove robot callback
-    m_imgui_app->setRemoveRobotCallback(
-        [this](const std::string& p_robot_name) -> bool
-        {
-            if (m_robot_manager.removeRobot(p_robot_name))
-            {
-                std::cout << "✅ Removed robot: " << p_robot_name << std::endl;
-                return true;
-            }
-            return false;
-        });
-
-    // Get robot list callback
-    m_imgui_app->setRobotListCallback(
-        [this]() -> std::vector<std::string>
-        {
-            std::vector<std::string> robot_names;
-            for (const auto& [name, _] : m_robot_manager.robots())
-            {
-                robot_names.push_back(name);
-            }
-            return robot_names;
-        });
-
-    // Get joints callback
-    m_imgui_app->setGetJointsCallback(
-        [this](const std::string& p_robot_name)
-            -> std::vector<std::pair<std::string, double>>
-        {
-            std::vector<std::pair<std::string, double>> joints;
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->robot)
-            {
-                // Get all joints from the robot hierarchy
-                robot->robot->hierarchy().root().traverse(
-                    [&joints](Node const& node, size_t /*depth*/)
-                    {
-                        if (auto joint = dynamic_cast<Joint const*>(&node))
-                        {
-                            joints.emplace_back(joint->name(),
-                                                joint->position());
-                        }
-                    });
-            }
-            return joints;
-        });
-
-    // Set joint callback
-    m_imgui_app->setSetJointCallback(
-        [this](const std::string& p_robot_name,
-               const std::string& p_joint_name,
-               double p_value)
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->robot)
-            {
-                try
-                {
-                    // Get the joint by name and set its position
-                    Joint& joint =
-                        robot->robot->hierarchy().joint(p_joint_name);
-                    joint.position(p_value);
-                }
-                catch (...)
-                {
-                    // Joint not found or other error
-                }
-            }
-        });
-
-    // Get nodes callback
-    m_imgui_app->setGetNodesCallback(
-        [this](const std::string& p_robot_name) -> std::vector<std::string>
-        {
-            std::vector<std::string> node_names;
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->robot)
-            {
-                robot->robot->hierarchy().root().traverse(
-                    [&node_names](Node const& node, size_t /*depth*/)
-                    { node_names.push_back(node.name()); });
-            }
-            return node_names;
-        });
-
-    // Set control mode callback
-    m_imgui_app->setSetControlModeCallback(
-        [this](const std::string& p_robot_name, int p_mode)
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot)
-            {
-                robot->control_mode =
-                    static_cast<RobotManager::ControlMode>(p_mode);
-                std::cout << "🎮 Control mode changed to: " << p_mode
-                          << std::endl;
-            }
-        });
-
-    // Get control mode callback
-    m_imgui_app->setGetControlModeCallback(
-        [this](const std::string& p_robot_name) -> int
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot)
-            {
-                return static_cast<int>(robot->control_mode);
-            }
-            return 0; // NO_CONTROL
-        });
-
-    // Set end effector callback
-    m_imgui_app->setSetEndEffectorCallback(
-        [this](const std::string& p_robot_name, const std::string& p_node_name)
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->robot)
-            {
-                // Find the node by name
-                Node const* found_node = nullptr;
-                robot->robot->hierarchy().root().traverse(
-                    [&p_node_name, &found_node](Node const& node,
-                                                size_t /*depth*/)
-                    {
-                        if (node.name() == p_node_name)
-                        {
-                            found_node = &node;
-                        }
-                    });
-
-                if (found_node)
-                {
-                    robot->control_joint = found_node;
-                    std::cout << "🎯 End effector set to: " << p_node_name
-                              << std::endl;
-                }
-            }
-        });
-
-    // Get end effector callback
-    m_imgui_app->setGetEndEffectorCallback(
-        [this](const std::string& p_robot_name) -> std::string
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->control_joint)
-            {
-                return robot->control_joint->name();
-            }
-            return "";
-        });
-
-    // Set camera target callback
-    m_imgui_app->setSetCameraTargetCallback(
-        [this](const std::string& p_robot_name, const std::string& p_node_name)
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->robot)
-            {
-                // Find the node by name
-                Node const* found_node = nullptr;
-                robot->robot->hierarchy().root().traverse(
-                    [&p_node_name, &found_node](Node const& node,
-                                                size_t /*depth*/)
-                    {
-                        if (node.name() == p_node_name)
-                        {
-                            found_node = &node;
-                        }
-                    });
-
-                if (found_node)
-                {
-                    robot->camera_target = found_node;
-                    std::cout << "📹 Camera target set to: " << p_node_name
-                              << std::endl;
-                }
-            }
-        });
-
-    // Get camera target callback
-    m_imgui_app->setGetCameraTargetCallback(
-        [this](const std::string& p_robot_name) -> std::string
-        {
-            auto* robot = m_robot_manager.getRobot(p_robot_name);
-            if (robot && robot->camera_target)
-            {
-                return robot->camera_target->name();
-            }
-            return "";
-        });
-#endif
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onTeardown()
-{
-    m_robot_manager.clear();
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::updateCameraTarget()
-{
-    // Update camera target position, tracking one element of the robot.
-    // If no robot is selected, set camera target to zero position.
-    if (auto const* controlled_robot = m_robot_manager.currentRobot();
-        (controlled_robot != nullptr) &&
-        (controlled_robot->camera_target != nullptr))
-    {
-        Eigen::Vector3f target_position =
-            utils::getTranslation(
-                controlled_robot->camera_target->worldTransform())
-                .cast<float>();
-        m_camera.setView(target_position);
-    }
-    else
-    {
-        Eigen::Vector3f zero_position = Eigen::Vector3f::Zero();
-        m_camera.setView(zero_position);
-    }
-
-    // Set camera matrices to OpenGL shader
-    m_shader_manager.setMatrix4f(m_projection_uniform,
-                                 m_camera.getProjectionMatrix().data());
-    m_shader_manager.setMatrix4f(m_view_uniform,
-                                 m_camera.getViewMatrix().data());
-}
+void RobotViewerApplication::onPhysicUpdate(float const /* dt */) {}
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onDrawScene()
 {
     // Clear screen
-    glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Update camera target position, tracking one element of the robot
-    updateCameraTarget();
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
-    // Render the world ground
-    m_geometry_renderer.renderGrid();
+    // Use shader
+    m_shader_manager->useProgram("basic");
 
-    // Render all robots
-    for (auto& [_, it] : m_robot_manager.robots())
+    // Update camera matrices
+    int view_loc = m_shader_manager->getUniformLocation("view");
+    int proj_loc = m_shader_manager->getUniformLocation("projection");
+    m_shader_manager->setMatrix4f(view_loc, m_camera->viewMatrix().data());
+    m_shader_manager->setMatrix4f(proj_loc,
+                                  m_camera->projectionMatrix().data());
+
+    // Render grid
+    m_renderer->renderGrid(Eigen::Vector3f(0.5f, 0.5f, 0.5f));
+
+    // Render coordinate axes at origin
+    const MeshManager::GPUMesh* axis_mesh =
+        m_mesh_manager->getMesh("axis_cylinder");
+    if (axis_mesh)
     {
-        if (it.is_visible && it.robot->hierarchy().hasRoot())
-        {
-            it.robot->hierarchy().root().traverse(
-                [this](Node const& node, size_t /*p_depth*/)
-                {
-                    if (auto geometry = dynamic_cast<Geometry const*>(&node))
-                    {
-                        Eigen::Matrix4f transform =
-                            node.worldTransform().cast<float>();
-                        renderGeometry(*geometry, transform);
-                    }
-                });
-        }
+        m_renderer->renderAxes(Eigen::Matrix4f::Identity(), 1.0f, axis_mesh);
+    }
 
-        // Render IK target if in IK mode
-        if (it.control_mode == RobotManager::ControlMode::INVERSE_KINEMATICS &&
-            it.ik_target_poses.size() == 3)
-        {
-            // Get current target pose
-            Pose const& target_pose = it.ik_target_poses[m_target_pose_index];
+    // Render the rotating box
+    const MeshManager::GPUMesh* box_mesh =
+        m_mesh_manager->getMesh("example_box");
+    if (box_mesh)
+    {
+        Eigen::Matrix4f box_transform = Eigen::Matrix4f::Identity();
 
-            // Convert Pose to Transform
-            Transform target_transform = utils::poseToTransform(target_pose);
+        // Apply rotation around Z axis
+        Eigen::Matrix3f rotation =
+            Eigen::AngleAxisf(m_rotation_angle, Eigen::Vector3f::UnitZ())
+                .toRotationMatrix();
+        box_transform.block<3, 3>(0, 0) = rotation;
 
-            // Render axes at target position
-            m_geometry_renderer.renderAxes(target_transform.cast<float>(),
-                                           0.2f);
-        }
+        // Position the box at (0, 0, 0.5) to sit on the grid
+        box_transform(2, 3) = 0.5f;
 
-        // Render trajectory path if in TRAJECTORY mode
-        if (it.control_mode == RobotManager::ControlMode::TRAJECTORY &&
-            it.trajectory && it.control_joint != nullptr)
-        {
-            renderTrajectoryPath(it);
-        }
+        // Render with orange color
+        m_renderer->render(
+            box_mesh, box_transform, Eigen::Vector3f(1.0f, 0.5f, 0.0f));
+    }
+
+    // If STL model was loaded, render it next to the box
+    const MeshManager::GPUMesh* stl_mesh = m_mesh_manager->getMesh("stl_model");
+    if (stl_mesh)
+    {
+        Eigen::Matrix4f stl_transform = Eigen::Matrix4f::Identity();
+        stl_transform(0, 3) = 2.0f; // Position at x = 2.0
+        stl_transform(2, 3) = 0.5f; // Position at z = 0.5
+
+        // Render with cyan color
+        m_renderer->render(
+            stl_mesh, stl_transform, Eigen::Vector3f(0.0f, 1.0f, 1.0f));
     }
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::renderGeometry(Geometry const& p_geometry,
-                                            Eigen::Matrix4f const& p_transform)
+void RobotViewerApplication::onDrawMenuBar()
 {
-    // URDF to OpenGL transformation: rotate -90 degrees around X-axis
-    // URDF: Z up, X forward, Y left
-    // OpenGL: Y up, -Z forward, X right
-    Eigen::Matrix4f urdf_to_opengl = Eigen::Matrix4f::Identity();
-    urdf_to_opengl.block<3, 3>(0, 0) =
-        Eigen::AngleAxisf(-static_cast<float>(M_PI) / 2.0f,
-                          Eigen::Vector3f::UnitX())
-            .toRotationMatrix();
-
-    // Apply transformation to model matrix (order: transform then
-    // convert)
-    Eigen::Matrix4f transformed = p_transform * urdf_to_opengl;
-
-    // Set model matrix to OpenGL shader
-    m_shader_manager.setMatrix4f(m_model_uniform, transformed.data());
-
-    // Set color to OpenGL shader
-    m_shader_manager.setVector3f(m_color_uniform, p_geometry.color.data());
-
-    // Render based on geometry type
-    switch (p_geometry.type())
+    if (ImGui::BeginMenu("File"))
     {
-        case Geometry::Type::BOX:
+        if (ImGui::MenuItem("Quit"))
         {
-            if (auto const& params = p_geometry.parameters();
-                params.size() >= 3)
-            {
-                m_geometry_renderer.renderBox(p_transform,
-                                              p_geometry.color,
-                                              static_cast<float>(params[0]),
-                                              static_cast<float>(params[1]),
-                                              static_cast<float>(params[2]));
-            }
-            break;
+            halt();
         }
-        case Geometry::Type::CYLINDER:
-        {
-            if (auto const& params = p_geometry.parameters();
-                params.size() >= 2)
-            {
-                m_geometry_renderer.renderCylinder(
-                    p_transform,
-                    p_geometry.color,
-                    static_cast<float>(params[0]),
-                    static_cast<float>(params[1]));
-            }
-            break;
-        }
-        case Geometry::Type::SPHERE:
-        {
-            if (auto const& params = p_geometry.parameters(); !params.empty())
-            {
-                m_geometry_renderer.renderSphere(p_transform,
-                                                 p_geometry.color,
-                                                 static_cast<float>(params[0]));
-            }
-            break;
-        }
-        case Geometry::Type::MESH:
-        {
-            // Load and render mesh using MeshManager.
-            // Note: use robot name as prefix for the mesh path to avoid
-            // conflicts with other mesh names.
-            std::string const& mesh_path = p_geometry.meshPath();
-
-            // Load mesh if not already loaded
-            if (!m_mesh_manager.isMeshLoaded(mesh_path))
-            {
-                if (!m_mesh_manager.loadMesh(path.expand(mesh_path)))
-                {
-                    std::cout << "Failed to load mesh: " << mesh_path << ": "
-                              << m_mesh_manager.error() << std::endl;
-                    return;
-                }
-            }
-
-            // Render the mesh
-            m_mesh_manager.renderMesh(mesh_path);
-            break;
-        }
-        default:
-            break;
+        ImGui::EndMenu();
     }
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::renderTrajectoryPath(
-    RobotManager::ControlledRobot& p_robot)
+void RobotViewerApplication::onDrawMainPanel()
 {
-    if (!p_robot.trajectory || !p_robot.control_joint)
-        return;
-
-    // Number of samples to display along the trajectory
-    constexpr size_t num_samples = 20;
-
-    // Get trajectory duration
-    double duration = p_robot.trajectory->duration();
-
-    // Save current joint positions to restore them later
-    std::vector<double> saved_positions;
-    saved_positions.reserve(p_robot.robot->hierarchy().numJoints());
-    p_robot.robot->hierarchy().forEachJoint(
-        [&saved_positions](Joint const& joint, size_t /*index*/)
-        { saved_positions.push_back(joint.position()); });
-
-    // Sample the trajectory and render axes at each sample
-    for (size_t i = 0; i < num_samples; ++i)
-    {
-        // Compute time for this sample
-        double t = (double(i) / double(num_samples - 1)) * duration;
-
-        // Evaluate trajectory at this time
-        Trajectory::States states = p_robot.trajectory->evaluate(t);
-
-        // Apply joint configuration
-        p_robot.robot->hierarchy().forEachJoint(
-            [&states](Joint& joint, size_t index)
-            { joint.position(states.position[index]); });
-
-        // Get end-effector transform
-        Transform end_effector_transform =
-            p_robot.control_joint->worldTransform();
-
-        // Render axes at this position (smaller scale for trajectory)
-        m_geometry_renderer.renderAxes(end_effector_transform.cast<float>(),
-                                       0.15f);
-    }
-
-    // Restore original joint positions
-    p_robot.robot->hierarchy().forEachJoint(
-        [&saved_positions](Joint& joint, size_t index)
-        { joint.position(saved_positions[index]); });
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onUpdate(float const dt)
-{
-    auto current_time = std::chrono::steady_clock::now();
-    double elapsed_seconds =
-        std::chrono::duration<double>(current_time - m_start_time).count();
-
-    for (auto& [_, it] : m_robot_manager.robots())
-    {
-        switch (it.control_mode)
-        {
-            case RobotManager::ControlMode::ANIMATION:
-                handleAnimation(*it.robot, elapsed_seconds);
-                break;
-            case RobotManager::ControlMode::INVERSE_KINEMATICS:
-                handleInverseKinematics(it);
-                break;
-            case RobotManager::ControlMode::TRAJECTORY:
-                handleTrajectory(it, elapsed_seconds, static_cast<double>(dt));
-                break;
-            case RobotManager::ControlMode::NO_CONTROL:
-            default:
-                break;
-        }
-    }
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onPhysicUpdate(float const /* dt */)
-{
-    // auto* controlled_robot = m_robot_manager.currentRobot();
-    // if (controlled_robot && controlled_robot->robot)
-    //{
-    //     m_physics_simulator.step(*controlled_robot->robot);
-    // }
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::handleAnimation(Robot& p_robot,
-                                             double p_time) const
-{
-    // Update animation time (slower for more visible animation)
-    float animation_time = static_cast<float>(p_time) * 0.5f;
-
-    // Get current joint values
-    auto& joint_values = p_robot.state().joint_positions;
-
-    // Animate each joint with different frequencies and amplitudes
-    for (size_t i = 0; i < joint_values.size(); ++i)
-    {
-        // Different frequency for each joint to create varied motion
-        float frequency = 0.8f + static_cast<float>(i) * 0.3f;
-        float amplitude = 0.8f; // Increased amplitude for more visible motion
-
-        // Sinusoidal motion with phase offset for each joint
-        float phase = static_cast<float>(i) * 1.5f;
-        joint_values[i] =
-            double(amplitude * std::sin(frequency * animation_time + phase));
-    }
-
-    // Update joint positions
-    p_robot.hierarchy().forEachJoint([&joint_values](Joint& joint, size_t index)
-                                     { joint.position(joint_values[index]); });
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::handleInverseKinematics(
-    RobotManager::ControlledRobot& p_robot)
-{
-    if (p_robot.control_joint == nullptr || p_robot.ik_solver == nullptr)
-    {
-        std::cout << "🤖 Error: control joint or solver not set" << std::endl;
-        return;
-    }
-
-    // Get current target pose based on state);
-    Pose const& target_pose = p_robot.ik_target_poses[m_target_pose_index];
-
-    // Solve IK for current target
-    bool solved = p_robot.ik_solver->solve(
-        *p_robot.robot, *p_robot.control_joint, target_pose);
-
-    // If converged, transition to next state
-    if (solved)
-    {
-        std::cout << "🎯 Reached target " << (m_target_pose_index + 1)
-                  << " - Error: " << p_robot.ik_solver->poseError()
-                  << " - Iterations: " << p_robot.ik_solver->numIterations()
-                  << std::endl;
-
-        // Transition to next state
-        m_target_pose_index++;
-        if (m_target_pose_index >= p_robot.ik_target_poses.size())
-        {
-            m_target_pose_index = 0;
-        }
-    }
-    else
-    {
-        // Only log failures occasionally to avoid spam
-        static size_t failure_count = 0;
-        if (++failure_count % 100 == 0)
-        {
-            std::cout << "⚠️ IK solving in progress - Error: "
-                      << p_robot.ik_solver->poseError() << std::endl;
-        }
-    }
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::handleTrajectory(
-    RobotManager::ControlledRobot& p_robot,
-    double p_time,
-    double p_dt)
-{
-    if (p_robot.trajectory_configs.empty())
-    {
-        std::cout << "🤖 Error: no trajectory configurations" << std::endl;
-        return;
-    }
-
-    // If no trajectory is active, create a new one
-    if (!p_robot.trajectory)
-    {
-        size_t start_idx =
-            p_robot.trajectory_segment % p_robot.trajectory_configs.size();
-        size_t goal_idx = (p_robot.trajectory_segment + 1) %
-                          p_robot.trajectory_configs.size();
-
-        std::cout << "🎯 Creating trajectory from config " << (start_idx + 1)
-                  << " to config " << (goal_idx + 1) << std::endl;
-
-        // Create trajectory generator
-        JointSpaceGenerator generator;
-
-        // Generate trajectory with 3 second duration
-        double trajectory_duration = 3.0;
-        p_robot.trajectory =
-            generator.generate(p_robot.trajectory_configs[start_idx],
-                               p_robot.trajectory_configs[goal_idx],
-                               trajectory_duration);
-
-        p_robot.trajectory_start_time = p_time;
-    }
-
-    // Evaluate trajectory at current time
-    double t = p_time - p_robot.trajectory_start_time;
-
-    if (t >= p_robot.trajectory->duration())
-    {
-        // Trajectory complete, move to next segment
-        std::cout << "✅ Trajectory segment "
-                  << (p_robot.trajectory_segment + 1) << " complete"
-                  << std::endl;
-
-        p_robot.trajectory_segment++;
-        p_robot.trajectory.reset(); // Will create new trajectory on next update
-        return;
-    }
-
-    // Get target position from trajectory
-    auto trajectory_point = p_robot.trajectory->evaluate(t);
-
-    // Apply with velocity limits
-    p_robot.robot->applyJointTargetsWithSpeedLimit(trajectory_point.position,
-                                                   p_dt);
+    ImGui::Begin("Robot Control");
+    ImGui::Text("Robot control panel");
+    // TODO: Add robot control UI here
+    ImGui::End();
 }
 
 // ----------------------------------------------------------------------------
 void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
 {
     m_fps = p_fps;
-    OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(p_fps));
+    setTitle(m_config.window_title + " - FPS: " + std::to_string(p_fps));
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onWindowResize(int p_width, int p_height)
+void RobotViewerApplication::onKeyInput(int p_key,
+                                        int p_scancode,
+                                        int p_action,
+                                        int p_mods)
 {
-    // Update main window viewport
-    glViewport(0, 0, p_width, p_height);
+    // Forward to camera controller
+    m_camera_controller->handleKeyboard(p_key, p_action, p_mods);
 
-    // Update camera aspect ratio for main window
-    // Note: The actual 3D rendering uses the ImGui viewport size,
-    // which is updated automatically in render3DScene()
-    m_camera.setAspectRatio(static_cast<size_t>(p_width),
-                            static_cast<size_t>(p_height));
-}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onKeyInput(int key,
-                                        int /* scancode */,
-                                        int action,
-                                        int /* mods */)
-{
-    if (action == GLFW_PRESS)
+    if (p_action == GLFW_PRESS)
     {
-        switch (key)
+        switch (p_key)
         {
             case GLFW_KEY_ESCAPE:
                 halt();
-                break;
-            // Camera view controls - only change view type, keep
-            // current target
-            case GLFW_KEY_1:
-                m_camera.setView(Camera::ViewType::PERSPECTIVE);
-                break;
-            case GLFW_KEY_2:
-                m_camera.setView(Camera::ViewType::TOP);
-                break;
-            case GLFW_KEY_3:
-                m_camera.setView(Camera::ViewType::FRONT);
-                break;
-            case GLFW_KEY_4:
-                m_camera.setView(Camera::ViewType::SIDE);
-                break;
-            case GLFW_KEY_5:
-                m_camera.setView(Camera::ViewType::ISOMETRIC);
-                break;
-            // Reset robot to neutral position
-            case GLFW_KEY_SPACE:
-                if (auto* controlled_robot = m_robot_manager.currentRobot();
-                    controlled_robot)
-                {
-                    controlled_robot->robot->setNeutralPosition();
-                }
-                break;
-            // Toggle robot visibility
-            case GLFW_KEY_V:
-                if (auto* robot = m_robot_manager.currentRobot(); robot)
-                {
-                    robot->is_visible = !robot->is_visible;
-                }
-                break;
-            // Robot mode switching (animation, inverse kinematics, trajectory)
-            case GLFW_KEY_M:
-                if (auto* robot = m_robot_manager.currentRobot();
-                    robot != nullptr && robot->control_joint != nullptr)
-                {
-                    switch (robot->control_mode)
-                    {
-                        case RobotManager::ControlMode::ANIMATION:
-                            std::cout << "🤖 Mode: INVERSE_KINEMATICS"
-                                      << std::endl;
-                            robot->control_mode =
-                                RobotManager::ControlMode::INVERSE_KINEMATICS;
-                            break;
-                        case RobotManager::ControlMode::INVERSE_KINEMATICS:
-                            std::cout << "🤖 Mode: TRAJECTORY" << std::endl;
-                            robot->control_mode =
-                                RobotManager::ControlMode::TRAJECTORY;
-                            robot->trajectory_segment = 0;
-                            robot->trajectory.reset();
-                            break;
-                        case RobotManager::ControlMode::TRAJECTORY:
-                            std::cout << "🤖 Mode: NO_CONTROL" << std::endl;
-                            robot->control_mode =
-                                RobotManager::ControlMode::NO_CONTROL;
-                            break;
-                        case RobotManager::ControlMode::NO_CONTROL:
-                            std::cout << "🤖 Mode: ANIMATION" << std::endl;
-                            robot->control_mode =
-                                RobotManager::ControlMode::ANIMATION;
-                            break;
-                        default:
-                            break;
-                    }
-                }
                 break;
             default:
                 break;
@@ -1127,276 +291,23 @@ void RobotViewerApplication::onKeyInput(int key,
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onScroll(double /* xoffset */, double yoffset)
+void RobotViewerApplication::onMouseButton(int p_button,
+                                           int p_action,
+                                           int p_mods)
 {
-    // Handle scroll event for camera zoom
-    // yoffset > 0 = scroll up = zoom in (move camera closer)
-    // yoffset < 0 = scroll down = zoom out (move camera further)
-    float zoom_speed = 0.5f;
-    m_camera.zoom(static_cast<float>(-yoffset) * zoom_speed);
+    m_camera_controller->handleMouseButton(p_button, p_action, p_mods);
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDrawMenuBar() {}
-
-// ----------------------------------------------------------------------------
-void RobotViewerApplication::onDrawMainPanel()
+void RobotViewerApplication::onCursorPos(double p_xpos, double p_ypos)
 {
-    ImGui::Begin("Robot Control");
-
-#if 0
-    // Section: Robot Management
-    if (ImGui::CollapsingHeader("Robot Management",
-                                ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        // Get list of robots
-        std::vector<std::string> robot_list;
-        if (m_robot_list_callback)
-        {
-            robot_list = m_robot_list_callback();
-        }
-
-        // Robot selection
-        if (ImGui::BeginCombo(
-                "Selected Robot",
-                m_selected_robot.empty() ? "None" : m_selected_robot.c_str()))
-        {
-            for (const auto& robot_name : robot_list)
-            {
-                bool is_selected = (m_selected_robot == robot_name);
-                if (ImGui::Selectable(robot_name.c_str(), is_selected))
-                {
-                    m_selected_robot = robot_name;
-                }
-                if (is_selected)
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::Separator();
-
-        // Add Robot
-        ImGui::Text("Add Robot:");
-        ImGui::InputText(
-            "URDF Path", m_urdf_path_buffer, sizeof(m_urdf_path_buffer));
-        ImGui::SameLine();
-        if (ImGui::Button("Browse..."))
-        {
-            // TODO: Add file browser dialog
-            ImGui::OpenPopup("File Browser");
-        }
-
-        if (ImGui::Button("Load Robot"))
-        {
-            if (m_load_robot_callback && m_urdf_path_buffer[0] != '\0')
-            {
-                if (m_load_robot_callback(std::string(m_urdf_path_buffer)))
-                {
-                    // Clear buffer after successful load
-                    m_urdf_path_buffer[0] = '\0';
-                }
-            }
-        }
-
-        ImGui::SameLine();
-
-        // Remove Robot
-        if (ImGui::Button("Remove Robot"))
-        {
-            if (m_remove_robot_callback && !m_selected_robot.empty())
-            {
-                m_remove_robot_callback(m_selected_robot);
-                m_selected_robot.clear();
-            }
-        }
-
-        // Display robot list
-        ImGui::Text("Loaded Robots (%zu):", robot_list.size());
-        ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
-        for (const auto& robot_name : robot_list)
-        {
-            if (ImGui::Selectable(robot_name.c_str(),
-                                  m_selected_robot == robot_name))
-            {
-                m_selected_robot = robot_name;
-            }
-        }
-        ImGui::EndChild();
-    }
-
-    // Only show controls if a robot is selected
-    if (!m_selected_robot.empty())
-    {
-        // Section: Control Mode
-        if (ImGui::CollapsingHeader("Control Mode",
-                                    ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            int current_mode = 0;
-            if (m_get_control_mode_callback)
-            {
-                current_mode = m_get_control_mode_callback(m_selected_robot);
-            }
-
-            const char* mode_names[] = { "No Control",
-                                         "Direct Kinematics",
-                                         "Animation",
-                                         "Inverse Kinematics",
-                                         "Trajectory" };
-
-            if (ImGui::Combo("Mode", &current_mode, mode_names, 5))
-            {
-                if (m_set_control_mode_callback)
-                {
-                    m_set_control_mode_callback(m_selected_robot, current_mode);
-                }
-            }
-        }
-
-        // Section: End Effector Selection
-        if (ImGui::CollapsingHeader("End Effector"))
-        {
-            std::vector<std::string> nodes;
-            if (m_get_nodes_callback)
-            {
-                nodes = m_get_nodes_callback(m_selected_robot);
-            }
-
-            std::string current_end_effector;
-            if (m_get_end_effector_callback)
-            {
-                current_end_effector =
-                    m_get_end_effector_callback(m_selected_robot);
-            }
-
-            if (ImGui::BeginCombo("End Effector",
-                                  current_end_effector.empty()
-                                      ? "None"
-                                      : current_end_effector.c_str()))
-            {
-                for (const auto& node_name : nodes)
-                {
-                    bool is_selected = (current_end_effector == node_name);
-                    if (ImGui::Selectable(node_name.c_str(), is_selected))
-                    {
-                        if (m_set_end_effector_callback)
-                        {
-                            m_set_end_effector_callback(m_selected_robot,
-                                                        node_name);
-                        }
-                    }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        // Section: Camera Target
-        if (ImGui::CollapsingHeader("Camera Target"))
-        {
-            std::vector<std::string> nodes;
-            if (m_get_nodes_callback)
-            {
-                nodes = m_get_nodes_callback(m_selected_robot);
-            }
-
-            std::string current_camera_target;
-            if (m_get_camera_target_callback)
-            {
-                current_camera_target =
-                    m_get_camera_target_callback(m_selected_robot);
-            }
-
-            if (ImGui::BeginCombo("Camera Target",
-                                  current_camera_target.empty()
-                                      ? "None"
-                                      : current_camera_target.c_str()))
-            {
-                for (const auto& node_name : nodes)
-                {
-                    bool is_selected = (current_camera_target == node_name);
-                    if (ImGui::Selectable(node_name.c_str(), is_selected))
-                    {
-                        if (m_set_camera_target_callback)
-                        {
-                            m_set_camera_target_callback(m_selected_robot,
-                                                         node_name);
-                        }
-                    }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::EndCombo();
-            }
-        }
-
-        // Section: Joint Control
-        if (ImGui::CollapsingHeader("Joint Control",
-                                    ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            std::vector<std::pair<std::string, double>> joints;
-            if (m_get_joints_callback)
-            {
-                joints = m_get_joints_callback(m_selected_robot);
-            }
-
-            // Determine if sliders should be read-only
-            int control_mode = 0;
-            if (m_get_control_mode_callback)
-            {
-                control_mode = m_get_control_mode_callback(m_selected_robot);
-            }
-            // Sliders are editable only in DIRECT_KINEMATICS mode (1)
-            bool read_only = (control_mode != 1);
-
-            ImGui::Text("Joints (%zu):", joints.size());
-            ImGui::BeginChild("JointList", ImVec2(0, 300), true);
-
-            for (auto& joint : joints)
-            {
-                ImGui::PushID(joint.first.c_str());
-
-                float value = static_cast<float>(joint.second);
-
-                if (read_only)
-                {
-                    // Read-only mode: disable interaction
-                    ImGui::BeginDisabled();
-                    ImGui::SliderFloat(
-                        joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f");
-                    ImGui::EndDisabled();
-                }
-                else
-                {
-                    // Interactive mode
-                    if (ImGui::SliderFloat(
-                            joint.first.c_str(), &value, -3.14f, 3.14f, "%.3f"))
-                    {
-                        if (m_set_joint_callback)
-                        {
-                            m_set_joint_callback(m_selected_robot,
-                                                 joint.first,
-                                                 static_cast<double>(value));
-                        }
-                    }
-                }
-
-                ImGui::PopID();
-            }
-
-            ImGui::EndChild();
-        }
-    }
-#endif
-
-    ImGui::End();
+    m_camera_controller->handleMouseMove(p_xpos, p_ypos);
 }
 
-} // namespace robotik::viewer::application
+// ----------------------------------------------------------------------------
+void RobotViewerApplication::onScroll(double p_xoffset, double p_yoffset)
+{
+    m_camera_controller->handleScroll(p_xoffset, p_yoffset);
+}
+
+} // namespace robotik::renderer::application

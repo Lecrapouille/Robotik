@@ -9,7 +9,7 @@ skinparam class {
     ArrowColor #2E86AB
 }
 
-package "robotik::viewer" {
+package "robotik::renderer" {
 
     ' Base Application Class
     abstract class Application {
