@@ -1,5 +1,5 @@
 ###############################################################################
-## Robotik: A basic logger.
+## Robotik: A robot library.
 ## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
 ##
 ## This file is part of Robotik.
@@ -28,39 +28,50 @@ M := $(P)/.makefile
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := Robotik-Viewer
-TARGET_DESCRIPTION := An URDF robot viewer application demo
+TARGET_NAME := robotik-renderer
+TARGET_DESCRIPTION := OpenGL visualization library for robots
 include $(M)/project/Makefile
 
 ###############################################################################
 # Inform Makefile where to find header files
 #
-IMGUI_DIR := $(P)/external/imgui
-INCLUDES += $(P)/include $(P)/applications/viewer
-INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+INCLUDES += $(P)/src $(P)/include
 
 ###############################################################################
 # Inform Makefile where to find *.cpp files
 #
-VPATH += $(P)/doc/applications/viewer
-
-###################################################
-# Set third-party libraries. Order matters: dependencies last
-#
-THIRD_PARTIES_LIBS += $(call internal-lib,robotik-renderer)
-THIRD_PARTIES_LIBS += $(call internal-lib,robotik-core)
+VPATH += $(P)/src/Renderer
 
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES := main.cpp RobotViewerApplication.cpp
+LIB_FILES := $(wildcard $(P)/src/Renderer/*/*.cpp)
+LIB_FILES += $(wildcard $(P)/src/Renderer/*.cpp)
+
+###############################################################################
+# Set Eigen3 library
+#
+PKG_LIBS += eigen3
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
-# Set operating system libraries.
+# Set OpenGL library
 #
-PKG_LIBS += glfw3 glew gl eigen3
+PKG_LIBS += glfw3 glew gl
+
+###################################################
+# Set third party Dear ImGui
+#
+IMGUI_DIR := $(P)/external/imgui
+INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+LIB_FILES += $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_draw.cpp
+LIB_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui.cpp
+LIB_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
+LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
+LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
 
 ###############################################################################
 # Sharable information between all Makefiles

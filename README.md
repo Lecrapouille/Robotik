@@ -121,7 +121,7 @@ Robotik/
 - Jacobian-based iterative method with damping.
 - Computes joint values for desired end-effector pose.
 
-#### Viewer Module (robotik::viewer)
+#### Viewer Module (robotik::renderer)
 
 **🖼️ Application**
 

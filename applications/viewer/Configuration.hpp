@@ -1,10 +1,13 @@
 #pragma once
 
-#include "Robotik/Viewer/Camera.hpp"
+// #include "Robotik/Renderer/Camera.hpp"
 
 #include <string>
+#include <vector>
 
-namespace robotik::viewer::application
+#include <Eigen/Dense>
+
+namespace robotik::renderer::application
 {
 
 // ************************************************************************
@@ -33,7 +36,7 @@ struct Configuration
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
     //! Camera view type
-    Camera::ViewType camera_view = Camera::ViewType::ISOMETRIC;
+    // Camera::ViewType camera_view = Camera::ViewType::ISOMETRIC;
     //! Enable performance profiling
     bool enable_profiling = false;
     //! Show frames
@@ -44,4 +47,4 @@ struct Configuration
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };
 
-} // namespace robotik::viewer::application
+} // namespace robotik::renderer::application

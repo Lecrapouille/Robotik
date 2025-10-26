@@ -39,7 +39,7 @@ ORCHESTRATOR_MODE := 1
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
 LIB_ROBOTIK_VIEWER := $(call internal-lib,robotik-viewer)
 INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_VIEWER)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik $(P)/src/Viewer
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik $(P)/src/Renderer
 
 ###################################################
 # Demos to compile after libs
@@ -50,7 +50,7 @@ DEMO_DIRS := $(sort $(dir $(wildcard $(P)/doc/demos/*/.)))
 # Compile internal libraries in the correct order:
 # robotik-viewer depends on robotik-core
 #
-$(LIB_ROBOTIK_VIEWER): $(P)/src/Viewer
+$(LIB_ROBOTIK_VIEWER): $(P)/src/Renderer
 
 $(LIB_ROBOTIK_CORE): $(P)/src/Robotik
 

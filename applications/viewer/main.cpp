@@ -15,7 +15,7 @@
 #include <iostream>
 #include <sstream>
 
-using namespace robotik::viewer::application;
+using namespace robotik::renderer::application;
 
 // ----------------------------------------------------------------------------
 static void display_usage(const std::string& program_name)
