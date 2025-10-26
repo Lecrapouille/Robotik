@@ -33,7 +33,7 @@ classDiagram
 
     class OpenGLApplication {
         -GLFWwindow* m_window
-        -DearImGuiApp* m_imgui_app
+        -DearImGuiApplication* m_imgui_app
         -bool m_imgui_enabled
         +OpenGLApplication(width, height, enable_imgui)
         +window() GLFWwindow*
@@ -53,7 +53,7 @@ classDiagram
         -setupCallbacks()
     }
 
-    class DearImGuiApp {
+    class DearImGuiApplication {
         -GLFWwindow* m_window
         -GLuint m_fbo
         -RenderCallback m_render_callback
@@ -90,7 +90,7 @@ classDiagram
 
     Application <|-- OpenGLApplication : hérite
     OpenGLApplication <|-- RobotViewerApplication : hérite
-    OpenGLApplication *-- DearImGuiApp : contient (composition)
+    OpenGLApplication *-- DearImGuiApplication : contient (composition)
 ```
 
 ## Architecture détaillée
@@ -130,7 +130,7 @@ classDiagram
 
 **Caractéristiques :**
 - Hérite de `Application`
-- Contient un `DearImGuiApp` optionnel (composition)
+- Contient un `DearImGuiApplication` optionnel (composition)
 - Cache toute la complexité de l'initialisation OpenGL/ImGui
 - Fournit des méthodes virtuelles spécifiques à l'UI
 
@@ -141,7 +141,7 @@ classDiagram
 - `onDrawSidePanel()` : Rendu du panneau latéral ImGui
 - `onDrawStatusBar()` : Rendu de la barre de statut ImGui
 
-### 3. DearImGuiApp (Classe utilitaire)
+### 3. DearImGuiApplication (Classe utilitaire)
 
 **Responsabilités :**
 - Initialisation et gestion du contexte Dear ImGui
@@ -396,7 +396,7 @@ int main()
 ### 1. Séparation des responsabilités
 - `Application` : Gestion de la boucle principale et du threading
 - `OpenGLApplication` : Gestion d'OpenGL et de la fenêtre
-- `DearImGuiApp` : Gestion de l'interface utilisateur
+- `DearImGuiApplication` : Gestion de l'interface utilisateur
 - Application utilisateur : Logique métier uniquement
 
 ### 2. Simplicité d'utilisation
@@ -459,7 +459,7 @@ protected:
 
 ### Ajouter de nouveaux panneaux ImGui
 
-L'architecture supporte facilement l'ajout de nouveaux types de panneaux en ajoutant de nouvelles méthodes virtuelles dans `OpenGLApplication` et les callbacks correspondants dans `DearImGuiApp`.
+L'architecture supporte facilement l'ajout de nouveaux types de panneaux en ajoutant de nouvelles méthodes virtuelles dans `OpenGLApplication` et les callbacks correspondants dans `DearImGuiApplication`.
 
 ## Migration depuis l'ancienne API
 
@@ -469,14 +469,14 @@ L'architecture supporte facilement l'ajout de nouveaux types de panneaux en ajou
 class MyApp : public Application
 {
     OpenGLWindow m_window;
-    std::unique_ptr<DearImGuiApp> m_imgui_app;
+    std::unique_ptr<DearImGuiApplication> m_imgui_app;
 
     bool onSetup() override
     {
         if (!m_window.initialize(/* callbacks avec std::bind */))
             return false;
 
-        m_imgui_app = std::make_unique<DearImGuiApp>(800, 600);
+        m_imgui_app = std::make_unique<DearImGuiApplication>(800, 600);
         m_imgui_app->setup();
         m_imgui_app->setRenderCallback([this]() { render3DScene(); });
         // ...

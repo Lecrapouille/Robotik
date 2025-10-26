@@ -1,5 +1,5 @@
 /**
- * @file DearImGuiApp.hpp
+ * @file DearImGuiApplication.hpp
  * @brief Dear ImGui application wrapper with docking support.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -19,7 +19,7 @@
 #include <functional>
 #include <utility>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ****************************************************************************
@@ -28,8 +28,9 @@ namespace robotik::viewer
 //! - Docking support for detachable windows.
 //! - Framebuffer rendering for OpenGL content in ImGui widget.
 //! - Customizable rendering callback for building the UI.
+//! - Owned by OpenGLApplication.
 // ****************************************************************************
-class DearImGuiApp
+class DearImGuiApplication
 {
 public:
 
@@ -44,12 +45,12 @@ public:
     //! \param p_width Initial framebuffer width.
     //! \param p_height Initial framebuffer height.
     // ------------------------------------------------------------------------
-    explicit DearImGuiApp(size_t const p_width, size_t const p_height);
+    explicit DearImGuiApplication(size_t const p_width, size_t const p_height);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.
     // ------------------------------------------------------------------------
-    ~DearImGuiApp();
+    ~DearImGuiApplication();
 
     // ------------------------------------------------------------------------
     //! \brief Set the render callback for 3D scene rendering.
@@ -241,4 +242,4 @@ private:
     StatusBarCallback m_status_bar_callback;
 };
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

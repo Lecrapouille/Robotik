@@ -7,13 +7,12 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Viewer/Application.hpp"
+#include "Robotik/Viewer/Application/Application.hpp"
 
-#include <chrono>
 #include <future>
 #include <thread>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ----------------------------------------------------------------------------
@@ -125,4 +124,4 @@ bool Application::stopPhysicsThread()
     }
 }
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

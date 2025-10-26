@@ -9,13 +9,13 @@
 
 #pragma once
 
-#include "Robotik/Viewer/TimingController.hpp"
+#include "Robotik/Viewer/Application/TimingController.hpp"
 
 #include <atomic>
 #include <string>
 #include <thread>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // Forward declaration
@@ -202,4 +202,4 @@ private:
     std::atomic<bool> m_physics_running{ false };
 };
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

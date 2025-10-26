@@ -9,18 +9,18 @@
 
 #pragma once
 
-#include "Robotik/Viewer/Application.hpp"
+#include "Robotik/Viewer/Application/Application.hpp"
 
 #include <memory>
 #include <string>
 
 struct GLFWwindow;
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // Forward declaration
-class DearImGuiApp;
+class DearImGuiApplication;
 
 // ****************************************************************************
 //! \brief OpenGL application with optional ImGui integration.
@@ -155,7 +155,7 @@ private:
 
     // ImGui integration
     bool m_imgui_enabled;
-    std::unique_ptr<DearImGuiApp> m_imgui_app;
+    std::unique_ptr<DearImGuiApplication> m_imgui_app;
 };
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

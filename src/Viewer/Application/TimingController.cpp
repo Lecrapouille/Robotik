@@ -1,9 +1,10 @@
-#include "Robotik/Viewer/TimingController.hpp"
+#include "Robotik/Viewer/Application/TimingController.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <thread>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ----------------------------------------------------------------------------
@@ -148,4 +149,4 @@ void TimingController::limitFramerate() const
     }
 }
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

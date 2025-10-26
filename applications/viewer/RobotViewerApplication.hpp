@@ -10,7 +10,7 @@
 #pragma once
 
 #include "Configuration.hpp"
-#include "Robotik/Viewer/OpenGLApplication.hpp"
+#include "Robotik/Viewer/Application/OpenGLApplication.hpp"
 
 #include "Robotik/Core/PhysicsSimulator.hpp"
 
@@ -20,7 +20,7 @@
 #include "Robotik/Viewer/RobotManager.hpp"
 #include "Robotik/Viewer/ShaderManager.hpp"
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 class OpenGLWindow;
@@ -279,4 +279,4 @@ private:
     size_t m_fps = 0;
 };
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

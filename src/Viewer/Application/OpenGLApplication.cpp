@@ -7,13 +7,13 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Viewer/OpenGLApplication.hpp"
-#include "Robotik/Viewer/DearImGuiApp.hpp"
+#include "Robotik/Viewer/Application/OpenGLApplication.hpp"
+#include "Robotik/Viewer/Application/DearImGuiApplication.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ----------------------------------------------------------------------------
@@ -89,7 +89,7 @@ bool OpenGLApplication::setup()
     // Initialize ImGui if enabled
     if (m_imgui_enabled)
     {
-        m_imgui_app = std::make_unique<DearImGuiApp>(m_width, m_height);
+        m_imgui_app = std::make_unique<DearImGuiApplication>(m_width, m_height);
         if (!m_imgui_app->setup())
         {
             m_error = "Failed to initialize ImGui";
@@ -275,4 +275,4 @@ void OpenGLApplication::setupCallbacks()
                           });
 }
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application
