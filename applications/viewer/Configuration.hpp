@@ -4,7 +4,7 @@
 
 #include <string>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ************************************************************************
@@ -44,4 +44,4 @@ struct Configuration
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

@@ -1,5 +1,5 @@
 /**
- * @file DearImGuiApp.cpp
+ * @file DearImGuiApplication.cpp
  * @brief Dear ImGui application wrapper with docking support.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -7,13 +7,14 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Viewer/DearImGuiApp.hpp"
+#include "Robotik/Viewer/Application/DearImGuiApplication.hpp"
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // ----------------------------------------------------------------------------
-DearImGuiApp::DearImGuiApp(size_t const p_width, size_t const p_height)
+DearImGuiApplication::DearImGuiApplication(size_t const p_width,
+                                           size_t const p_height)
     : m_fbo_width(static_cast<int>(p_width)),
       m_fbo_height(static_cast<int>(p_height)),
       m_viewport_size(static_cast<float>(p_width),
@@ -23,7 +24,7 @@ DearImGuiApp::DearImGuiApp(size_t const p_width, size_t const p_height)
 }
 
 // ----------------------------------------------------------------------------
-DearImGuiApp::~DearImGuiApp()
+DearImGuiApplication::~DearImGuiApplication()
 {
     if (m_initialized)
     {
@@ -32,7 +33,7 @@ DearImGuiApp::~DearImGuiApp()
 }
 
 // ----------------------------------------------------------------------------
-bool DearImGuiApp::setup()
+bool DearImGuiApplication::setup()
 {
     if (m_initialized)
     {
@@ -92,7 +93,7 @@ bool DearImGuiApp::setup()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::teardown()
+void DearImGuiApplication::teardown()
 {
     if (!m_initialized)
     {
@@ -110,7 +111,7 @@ void DearImGuiApp::teardown()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::draw()
+void DearImGuiApplication::draw()
 {
     if (!m_initialized)
     {
@@ -174,13 +175,13 @@ void DearImGuiApp::draw()
 }
 
 // ----------------------------------------------------------------------------
-ImGuiIO& DearImGuiApp::io()
+ImGuiIO& DearImGuiApplication::io()
 {
     return ImGui::GetIO();
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::enableDocking(bool p_enable)
+void DearImGuiApplication::enableDocking(bool p_enable)
 {
     m_docking_enabled = p_enable;
     if (m_initialized)
@@ -198,7 +199,7 @@ void DearImGuiApp::enableDocking(bool p_enable)
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::enableViewports(bool p_enable)
+void DearImGuiApplication::enableViewports(bool p_enable)
 {
     m_viewports_enabled = p_enable;
     if (m_initialized)
@@ -216,7 +217,7 @@ void DearImGuiApp::enableViewports(bool p_enable)
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::setupStyle()
+void DearImGuiApplication::setupStyle()
 {
     ImGui::StyleColorsDark();
 
@@ -230,7 +231,7 @@ void DearImGuiApp::setupStyle()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::setupDockspace()
+void DearImGuiApplication::setupDockspace()
 {
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
@@ -276,7 +277,7 @@ void DearImGuiApp::setupDockspace()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::drawViewport()
+void DearImGuiApplication::drawViewport()
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
     ImGui::Begin("OpenGL Viewport");
@@ -331,7 +332,7 @@ void DearImGuiApp::drawViewport()
 }
 
 // ----------------------------------------------------------------------------
-bool DearImGuiApp::createFramebuffer(int p_width, int p_height)
+bool DearImGuiApplication::createFramebuffer(int p_width, int p_height)
 {
     // Generate framebuffer
     glGenFramebuffers(1, &m_fbo);
@@ -379,7 +380,7 @@ bool DearImGuiApp::createFramebuffer(int p_width, int p_height)
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::deleteFramebuffer()
+void DearImGuiApplication::deleteFramebuffer()
 {
     if (m_fbo)
     {
@@ -399,7 +400,7 @@ void DearImGuiApp::deleteFramebuffer()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApp::resizeFramebuffer(int p_width, int p_height)
+void DearImGuiApplication::resizeFramebuffer(int p_width, int p_height)
 {
     if (p_width <= 0 || p_height <= 0)
     {
@@ -410,4 +411,4 @@ void DearImGuiApp::resizeFramebuffer(int p_width, int p_height)
     createFramebuffer(p_width, p_height);
 }
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application

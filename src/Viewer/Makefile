@@ -46,6 +46,7 @@ VPATH += $(P)/src/Viewer
 # Make the list of files to compile
 #
 LIB_FILES := $(wildcard $(P)/src/Viewer/*.cpp)
+LIB_FILES += $(wildcard $(P)/src/Viewer/Application/*.cpp)
 
 ###############################################################################
 # Set Eigen3 library

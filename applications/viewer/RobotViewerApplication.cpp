@@ -13,23 +13,18 @@
 #include "Robotik/Core/Debug.hpp"
 #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/Trajectory.hpp"
-#include "Robotik/Viewer/DearImGuiApp.hpp"
+#include "Robotik/Viewer/Application/DearImGuiApplication.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
 #include <iostream>
 
-namespace robotik::viewer
+namespace robotik::viewer::application
 {
 
 // Background color
 const Eigen::Vector3f s_clear_color(0.2f, 0.3f, 0.3f);
-
-} // namespace robotik::viewer
-
-namespace robotik::viewer
-{
 
 // ----------------------------------------------------------------------------
 RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
@@ -1404,4 +1399,4 @@ void RobotViewerApplication::onDrawMainPanel()
     ImGui::End();
 }
 
-} // namespace robotik::viewer
+} // namespace robotik::viewer::application
