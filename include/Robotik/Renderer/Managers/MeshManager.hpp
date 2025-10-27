@@ -11,6 +11,8 @@
 
 #include "Robotik/Renderer/Loaders/MeshLoader.hpp"
 
+#include "Robotik/Common/Path.hpp"
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -58,7 +60,7 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     // ------------------------------------------------------------------------
-    MeshManager() = default;
+    MeshManager(Path const& p_path) : m_path(p_path) {}
 
     // ------------------------------------------------------------------------
     //! \brief Destructor - frees all GPU resources.
@@ -196,6 +198,8 @@ private:
 
 private:
 
+    //! \brief Path to the meshes directory
+    Path const& m_path;
     //! \brief Storage for all GPU meshes (name -> GPUMesh)
     std::unordered_map<std::string, GPUMesh> m_meshes;
     //! \brief Last error message

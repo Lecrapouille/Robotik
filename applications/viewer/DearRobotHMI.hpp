@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-namespace robotik::renderer
+namespace robotik::application
 {
 
 // ****************************************************************************
@@ -40,9 +40,9 @@ public:
     //! updates.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
-    DearRobotHMI(RobotManager& p_robot_manager,
-                 OrbitController& p_orbit_controller,
-                 std::function<void()> p_halt_callback);
+    DearRobotHMI(robotik::renderer::RobotManager& p_robot_manager,
+                 robotik::renderer::OrbitController& p_orbit_controller,
+                 std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
     //! \brief Render the main control panel.
@@ -102,16 +102,15 @@ private:
 private:
 
     //! \brief Reference to robot manager
-    RobotManager& m_robot_manager;
+    robotik::renderer::RobotManager& m_robot_manager;
     //! \brief Reference to orbit controller
-    OrbitController& m_orbit_controller;
+    robotik::renderer::OrbitController& m_orbit_controller;
     //! \brief Callback to halt the application
     std::function<void()> m_halt_callback;
-
     //! \brief Currently selected robot name
     std::string m_selected_robot;
     //! \brief Buffer for URDF file path input
     char m_urdf_path_buffer[256] = { 0 };
 };
 
-} // namespace robotik::renderer
+} // namespace robotik::application

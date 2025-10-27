@@ -28,19 +28,19 @@ namespace robotik::renderer
 // ****************************************************************************
 //! \brief Robot viewer application that inherits from OpenGLApplication.
 // ****************************************************************************
-class RobotViewerApplication: public OpenGLApplication
+class Application: public OpenGLApplication
 {
 public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
     // ----------------------------------------------------------------------------
-    explicit RobotViewerApplication(Configuration const& p_config);
+    explicit Application(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Destructor.
     // ----------------------------------------------------------------------------
-    ~RobotViewerApplication() override;
+    ~Application() override;
 
     // ----------------------------------------------------------------------------
     //! \brief Run the application with the given configuration.

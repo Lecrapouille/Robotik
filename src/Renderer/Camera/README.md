@@ -246,5 +246,5 @@ Camera/
 
 ---
 
-For examples, see `src/RobotViewerApplication.cpp`
+For examples, see `src/Application.cpp`
 

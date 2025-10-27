@@ -45,13 +45,6 @@ package "robotik::renderer" {
         + target_fps: size_t = 60
         + target_physics_hz: size_t = 15
         + search_paths: string
-        + urdf_file: string
-        + control_joint: string
-        + camera_target: string
-        + camera_view: Camera::ViewType = ISOMETRIC
-        + enable_profiling: bool = false
-        + show_frames: bool = false
-        + frame_scale: float = 0.1f
     }
 
     ' Camera Class
@@ -264,7 +257,7 @@ package "robotik::renderer" {
     }
 
     ' Main Application Class
-    class RobotViewerApplication {
+    class Application {
         - m_config: Configuration const&
         - m_window: OpenGLWindow
         - m_camera: Camera
@@ -279,7 +272,7 @@ package "robotik::renderer" {
         - m_title: string
         - m_fps: size_t = 0
         --
-        + RobotViewerApplication(config: Configuration)
+        + Application(config: Configuration)
         + run(): bool
         + setTitle(title: string): void
         + isHalting(): bool
@@ -303,14 +296,14 @@ package "robotik::renderer" {
 }
 
 ' Relationships
-RobotViewerApplication --|> Application
-RobotViewerApplication --> Configuration : uses
-RobotViewerApplication --> OpenGLWindow : contains
-RobotViewerApplication --> Camera : contains
-RobotViewerApplication --> ShaderManager : contains
-RobotViewerApplication --> MeshManager : contains
-RobotViewerApplication --> GeometryRenderer : contains
-RobotViewerApplication --> RobotManager : contains
+Application --|> Application
+Application --> Configuration : uses
+Application --> OpenGLWindow : contains
+Application --> Camera : contains
+Application --> ShaderManager : contains
+Application --> MeshManager : contains
+Application --> GeometryRenderer : contains
+Application --> RobotManager : contains
 
 OpenGLWindow --> Configuration : uses
 Camera --> Configuration : uses

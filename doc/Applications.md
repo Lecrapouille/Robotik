@@ -74,10 +74,10 @@ classDiagram
         -createFramebuffer()
     }
 
-    class RobotViewerApplication {
+    class Application {
         -Configuration m_config
         -size_t m_fps
-        +RobotViewerApplication(config)
+        +Application(config)
         +run() bool
         #onDrawScene()
         #onDrawMenuBar()
@@ -89,7 +89,7 @@ classDiagram
     }
 
     Application <|-- OpenGLApplication : hérite
-    OpenGLApplication <|-- RobotViewerApplication : hérite
+    OpenGLApplication <|-- Application : hérite
     OpenGLApplication *-- DearImGuiApplication : contient (composition)
 ```
 
@@ -154,7 +154,7 @@ classDiagram
 - Système de callbacks pour permettre l'injection de code UI personnalisé
 - Gestion automatique du viewport 3D dans une fenêtre ImGui
 
-### 4. RobotViewerApplication (Classe d'application concrète - Exemple)
+### 4. Application (Classe d'application concrète - Exemple)
 
 **Responsabilités :**
 - Implémentation spécifique pour la visualisation de robots

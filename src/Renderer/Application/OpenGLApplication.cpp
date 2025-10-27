@@ -35,6 +35,18 @@ OpenGLApplication::~OpenGLApplication()
 }
 
 // ----------------------------------------------------------------------------
+bool OpenGLApplication::isViewportHovered() const
+{
+    // If ImGui is not enabled, always return true (viewport is the whole
+    // window)
+    if (!m_imgui_enabled || !m_imgui_app)
+        return true;
+
+    // If ImGui is enabled, check if the viewport is hovered
+    return m_imgui_app->isViewportHovered();
+}
+
+// ----------------------------------------------------------------------------
 GLFWwindow* OpenGLApplication::window() const
 {
     return m_window;
@@ -219,7 +231,12 @@ void OpenGLApplication::setupCallbacks()
                 glfwGetWindowUserPointer(window));
             if (self)
             {
-                glViewport(0, 0, width, height);
+                // Only set viewport directly if not using ImGui
+                // (ImGui framebuffer will handle viewport)
+                if (!self->m_imgui_enabled)
+                {
+                    glViewport(0, 0, width, height);
+                }
                 self->onWindowResize(width, height);
             }
         });
