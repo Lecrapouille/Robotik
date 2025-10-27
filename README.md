@@ -97,7 +97,7 @@ Robotik/
 - Rigid body connecting joints.
 - Store inertial information.
 - Visual and collision geometry.
-- Part of the scene graph hierarchy.
+- Part of the scene graph blueprint.
 
 **📐 Geometry**
 
@@ -208,7 +208,7 @@ Namespaces are `robotik`. You should include `#include <Robotik/Robotik.hpp>`
     // can no longer be modified.
     robot->root(std::move(root));
 
-    // Optionally you can pretty print the robot hierarchy to the console
+    // Optionally you can pretty print the robot blueprint to the console
     std::cout << debug::printRobot(robot, true) << std::endl;
 ```
 

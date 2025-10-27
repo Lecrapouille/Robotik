@@ -76,11 +76,11 @@ TEST_F(JacobianTest, SimpleRevoluteRobotJacobian)
     ASSERT_NE(robot, nullptr) << "Failed to load simple_revolute_robot.urdf";
 
     // Find the end effector (arm_link is the end effector for this robot)
-    auto end_effector = Node::find(robot->hierarchy().root(), "arm_link");
+    auto end_effector = Node::find(robot->blueprint().root(), "arm_link");
     ASSERT_NE(end_effector, nullptr) << "End effector node not found";
 
     // Set joint to zero position
-    robot->hierarchy().joint("revolute_joint").position(0.0);
+    robot->blueprint().joint("revolute_joint").position(0.0);
 
     // Calculate Jacobian
     Jacobian const& jacobian =
@@ -110,11 +110,11 @@ TEST_F(JacobianTest, SimplePrismaticRobotJacobian)
 
     // Find the end effector
     auto end_effector =
-        Node::find(robot->hierarchy().root(), "end_effector_link");
+        Node::find(robot->blueprint().root(), "end_effector_link");
     ASSERT_NE(end_effector, nullptr) << "End effector node not found";
 
     // Set joint to zero position
-    robot->hierarchy().joint("prismatic_joint").position(0.0);
+    robot->blueprint().joint("prismatic_joint").position(0.0);
 
     // Calculate Jacobian
     Jacobian const& jacobian =
@@ -143,11 +143,11 @@ TEST_F(JacobianTest, DifferentialDriveRobotJacobian)
     ASSERT_NE(robot, nullptr) << "Failed to load simple_diff_drive_robot.urdf";
 
     // Find a reference point (base_link for this robot)
-    auto base_link = Node::find(robot->hierarchy().root(), "base_link");
+    auto base_link = Node::find(robot->blueprint().root(), "base_link");
     ASSERT_NE(base_link, nullptr) << "Base link node not found";
 
     // Set joints to zero position
-    robot->hierarchy().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
+    robot->blueprint().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
 
     // Calculate Jacobian
     Jacobian const& jacobian =
@@ -176,11 +176,11 @@ TEST_F(JacobianTest, SCARArobotJacobian)
 
     // Find the end effector
     auto end_effector =
-        Node::find(robot->hierarchy().root(), "link_end_effector");
+        Node::find(robot->blueprint().root(), "link_end_effector");
     ASSERT_NE(end_effector, nullptr) << "End effector node not found";
 
     // Set joints to zero position
-    robot->hierarchy().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
+    robot->blueprint().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
 
     // Calculate Jacobian
     Jacobian const& jacobian =
@@ -210,11 +210,11 @@ TEST_F(JacobianTest, CartesianRobotJacobian)
     ASSERT_NE(robot, nullptr) << "Failed to load cartesian_robot.urdf";
 
     // Find the end effector (link_z is the end effector)
-    auto end_effector = Node::find(robot->hierarchy().root(), "link_z");
+    auto end_effector = Node::find(robot->blueprint().root(), "link_z");
     ASSERT_NE(end_effector, nullptr) << "End effector node not found";
 
     // Set joints to zero position
-    robot->hierarchy().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
+    robot->blueprint().forEachJoint([](Joint& j, size_t) { j.position(0.0); });
 
     // Calculate Jacobian
     Jacobian const& jacobian =

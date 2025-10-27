@@ -16,7 +16,7 @@
 
 struct GLFWwindow;
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // Forward declaration
@@ -158,4 +158,4 @@ private:
     std::unique_ptr<DearImGuiApplication> m_imgui_app;
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

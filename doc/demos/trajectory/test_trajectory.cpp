@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "✅ Robot loaded successfully: " << robot->name() << std::endl;
-    std::cout << "   Number of joints: " << robot->hierarchy().numJoints()
+    std::cout << "   Number of joints: " << robot->blueprint().numJoints()
               << std::endl;
 
     // Validate robot limits
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 
     // Print joint information
     std::cout << "\n🔧 Joint Information:" << std::endl;
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [](robotik::Joint const& joint, size_t index)
         {
             auto [min, max] = joint.limits();
@@ -80,10 +80,10 @@ int main(int argc, char* argv[])
     std::cout << "\n🎯 Testing trajectory generation..." << std::endl;
 
     // Create start and goal configurations
-    std::vector<double> start_config(robot->hierarchy().numJoints());
-    std::vector<double> goal_config(robot->hierarchy().numJoints());
+    std::vector<double> start_config(robot->blueprint().numJoints());
+    std::vector<double> goal_config(robot->blueprint().numJoints());
 
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [&start_config, &goal_config](robotik::Joint const& joint, size_t index)
         {
             auto [min, max] = joint.limits();
@@ -121,12 +121,12 @@ int main(int argc, char* argv[])
               << std::endl;
 
     // Set robot to start configuration
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [&start_config](robotik::Joint& joint, size_t index)
         { joint.position(start_config[index]); });
 
     std::cout << "   Initial position: [";
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [](robotik::Joint const& joint, size_t index)
         {
             if (index > 0)
@@ -143,7 +143,7 @@ int main(int argc, char* argv[])
     }
 
     std::cout << "   After 10 steps (1s): [";
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [](robotik::Joint const& joint, size_t index)
         {
             if (index > 0)

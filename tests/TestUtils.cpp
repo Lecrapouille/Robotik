@@ -16,7 +16,7 @@
 #include <cmath>
 
 using namespace robotik;
-using namespace robotik::utils;
+using namespace robotik;
 
 // *********************************************************************************
 //! \brief Test fixture for Utils class.

@@ -39,7 +39,7 @@ ORCHESTRATOR_MODE := 1
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
 LIB_ROBOTIK_VIEWER := $(call internal-lib,robotik-viewer)
 INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_VIEWER)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik $(P)/src/Renderer
+DIRS_WITH_MAKEFILE := $(P)/src $(P)/src/Renderer
 
 ###################################################
 # Demos to compile after libs
@@ -52,7 +52,7 @@ DEMO_DIRS := $(sort $(dir $(wildcard $(P)/doc/demos/*/.)))
 #
 $(LIB_ROBOTIK_VIEWER): $(P)/src/Renderer
 
-$(LIB_ROBOTIK_CORE): $(P)/src/Robotik
+$(LIB_ROBOTIK_CORE): $(P)/src
 
 $(LIB_ROBOTIK_VIEWER):| $(LIB_ROBOTIK_CORE)
 

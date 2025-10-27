@@ -373,9 +373,9 @@ TEST_F(JointTest, ArbitraryAxisRotation)
 }
 
 // *********************************************************************************
-//! \brief Test joint hierarchy and transform propagation.
+//! \brief Test joint blueprint and transform propagation.
 // *********************************************************************************
-TEST_F(JointTest, JointHierarchy)
+TEST_F(JointTest, JointBlueprint)
 {
     // Create parent joint
     auto parent_joint = Node::create<Joint>(

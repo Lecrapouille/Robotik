@@ -6,7 +6,7 @@ This folder contains a complete game-engine-style camera system designed for rob
 
 ## Architecture
 
-### Camera Hierarchy
+### Camera Blueprint
 
 ```
 Camera (Abstract Base Class)

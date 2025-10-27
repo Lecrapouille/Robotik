@@ -20,7 +20,7 @@
 #include "Robotik/Renderer/RobotManager.hpp"
 #include "Robotik/Renderer/ShaderManager.hpp"
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 class OpenGLWindow;
@@ -279,4 +279,4 @@ private:
     size_t m_fps = 0;
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

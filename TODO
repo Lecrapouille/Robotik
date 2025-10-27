@@ -1,9 +1,9 @@
 Node: deplacer find et traverse
 Node: root doit etre un Link et non un Node
-Hierarchy: a deplacer setMeshPrefixPath
+Blueprint: a deplacer setMeshPrefixPath
 State Remplacer: std::vector<double> par Eigen::VectorXd
-void Hierarchy::cacheHierarchyTree() utiliser le pattern visiteur
-Joint const& Hierarchy::joint(std::string const& p_name) const => .then().else() ou avec une lambda
+void Blueprint::cacheBlueprintTree() utiliser le pattern visiteur
+Joint const& Blueprint::joint(std::string const& p_name) const => .then().else() ou avec une lambda
 Deplacer vitesse max, acc max dans State
 Index pour Joint et Link mais aussi sensor actuator
 findChild<T>(name) et findChildren<T>(name) et name optionel => retourner std::map

@@ -8,7 +8,7 @@
  */
 
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
-#include "Robotik/Core/Loaders/UrdfLoader.hpp"
+#include "Robotik/Loaders/UrdfLoader.hpp"
 
 namespace robotik::renderer
 {
@@ -25,7 +25,7 @@ void RobotManager::clear()
 RobotManager::ControlledRobot*
 RobotManager::loadRobot(const std::string& p_urdf_path)
 {
-    robotik::loader::URDFLoader parser;
+    robotik::URDFLoader parser;
     auto robot = parser.load(p_urdf_path);
     if (!robot)
     {

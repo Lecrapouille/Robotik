@@ -61,7 +61,7 @@ protected:
         // Set up the robot arm, base frame and end effector
         root = r.get();
 
-        // Create robot with hierarchy
+        // Create robot with blueprint
         robot_arm = std::make_unique<Robot>("test_arm", std::move(r));
     }
 
@@ -77,7 +77,7 @@ protected:
 // *********************************************************************************
 TEST_F(RobotTest, RootSceneNode)
 {
-    Node const& found_root = robot_arm->hierarchy().root();
+    Node const& found_root = robot_arm->blueprint().root();
     EXPECT_EQ(found_root.name(), "root");
 }
 
@@ -86,12 +86,12 @@ TEST_F(RobotTest, RootSceneNode)
 // *********************************************************************************
 TEST_F(RobotTest, SceneNodeSearch)
 {
-    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "root"), root);
-    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "joint1"), joint1);
-    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "joint2"), joint2);
-    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "end_effector"),
+    EXPECT_EQ(Node::find(robot_arm->blueprint().root(), "root"), root);
+    EXPECT_EQ(Node::find(robot_arm->blueprint().root(), "joint1"), joint1);
+    EXPECT_EQ(Node::find(robot_arm->blueprint().root(), "joint2"), joint2);
+    EXPECT_EQ(Node::find(robot_arm->blueprint().root(), "end_effector"),
               end_effector);
-    EXPECT_EQ(Node::find(robot_arm->hierarchy().root(), "nonexistent"),
+    EXPECT_EQ(Node::find(robot_arm->blueprint().root(), "nonexistent"),
               nullptr);
 }
 
@@ -101,9 +101,9 @@ TEST_F(RobotTest, SceneNodeSearch)
 TEST_F(RobotTest, GetJoints)
 {
     // Note: root and end_effector are not actuable joints
-    EXPECT_EQ(robot_arm->hierarchy().numJoints(), 2);
-    EXPECT_EQ(robot_arm->hierarchy().joint("joint1").name(), "joint1");
-    EXPECT_EQ(robot_arm->hierarchy().joint("joint2").name(), "joint2");
+    EXPECT_EQ(robot_arm->blueprint().numJoints(), 2);
+    EXPECT_EQ(robot_arm->blueprint().joint("joint1").name(), "joint1");
+    EXPECT_EQ(robot_arm->blueprint().joint("joint2").name(), "joint2");
 }
 
 // *********************************************************************************
@@ -229,7 +229,7 @@ TEST_F(RobotTest, EndEffectorPose)
     joint1->position(0.0);
     joint2->position(0.0);
 
-    Pose pose = utils::transformToPose(end_effector->worldTransform());
+    Pose pose = transformToPose(end_effector->worldTransform());
 
     // Check that pose has reasonable values
     EXPECT_EQ(pose.size(), 6); // Should be 6D pose
@@ -269,7 +269,7 @@ TEST_F(RobotTest, InverseKinematicsInitialPose)
     Transform target_transform = Eigen::Matrix4d::Identity();
     target_transform(0, 3) = 2.0;
     target_transform(2, 3) = 1.0;
-    Pose target_pose = utils::transformToPose(target_transform);
+    Pose target_pose = transformToPose(target_transform);
 
     std::vector<double> solution =
         robot_arm->inverseKinematics(target_pose, *end_effector);
@@ -333,7 +333,7 @@ TEST_F(RobotTest, ComplexKinematics)
 
         // Verify that results are reasonable
         Transform fk_result = end_effector->worldTransform();
-        Pose pose = utils::transformToPose(fk_result);
+        Pose pose = transformToPose(fk_result);
         Jacobian const& jacobian =
             robot_arm->computeJacobian(robot_arm->state(), *end_effector);
 

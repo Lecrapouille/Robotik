@@ -13,7 +13,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
@@ -275,4 +275,4 @@ void OpenGLApplication::setupCallbacks()
                           });
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

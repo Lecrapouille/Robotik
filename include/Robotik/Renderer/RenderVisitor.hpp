@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Robotik/Core/NodeVisitor.hpp"
+#include "Robotik/Robot/Blueprint/NodeVisitor.hpp"
 
 #include <Eigen/Dense>
 #include <string>
@@ -24,13 +24,13 @@ class ShaderManager;
 // ****************************************************************************
 //! \brief Visitor that renders robot nodes using OpenGL.
 //!
-//! This visitor traverses the robot hierarchy and renders each geometry node
+//! This visitor traverses the robot blueprint and renders each geometry node
 //! by creating or reusing GPU meshes and applying the correct transformations.
 //!
 //! Example usage:
 //! \code
 //!   RenderVisitor visitor(mesh_manager, renderer, shader_manager);
-//!   robot->hierarchy().root().traverse(visitor);
+//!   robot->blueprint().root().traverse(visitor);
 //! \endcode
 // ****************************************************************************
 class RenderVisitor: public robotik::ConstNodeVisitor
