@@ -26,16 +26,23 @@ RobotManager::ControlledRobot*
 RobotManager::loadRobot(const std::string& p_urdf_path)
 {
     robotik::URDFLoader parser;
-    auto robot = parser.load(p_urdf_path);
-    if (!robot)
+    auto base_robot = parser.load(p_urdf_path);
+    if (!base_robot)
     {
         m_error = "Failed to load robot from URDF: " + parser.error();
         return nullptr;
     }
 
+    // Extract name and blueprint from base robot to construct ControlledRobot
+    std::string robot_name = base_robot->name();
+    Blueprint blueprint = std::move(base_robot->blueprint());
+
+    // Create ControlledRobot from blueprint
+    auto controlled_robot =
+        std::make_unique<ControlledRobot>(robot_name, std::move(blueprint));
+
     // Store the new robot
-    if (std::string robot_name = robot->name();
-        !addRobot(robot_name, std::move(robot)))
+    if (!addRobot(robot_name, std::move(controlled_robot)))
     {
         m_error = "Failed to add robot: " + m_error;
         return nullptr;
@@ -47,7 +54,7 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
 
 // ----------------------------------------------------------------------------
 bool RobotManager::addRobot(const std::string& p_robot_name,
-                            std::unique_ptr<Robot> p_robot)
+                            std::unique_ptr<ControlledRobot> p_robot)
 {
     if (!p_robot)
     {
@@ -61,13 +68,9 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
         return false;
     }
 
-    // Add the robot to the map, fails if the robot already exists.
-    ControlledRobot controlled_robot;
-    controlled_robot.robot = std::move(p_robot);
-    controlled_robot.is_visible = true;
-    controlled_robot.scale = 1.0f;
+    // Add the robot to the map
     auto [it, success] =
-        m_robots.try_emplace(p_robot_name, std::move(controlled_robot));
+        m_robots.try_emplace(p_robot_name, std::move(*p_robot));
 
     // Set the current robot if the robot was added successfully.
     if (success)
@@ -127,14 +130,13 @@ bool RobotManager::setRobotJointValues(
         return false;
     }
 
-    if (it->second.robot->state().joint_positions.size() !=
-        p_joint_values.size())
+    if (it->second.state().joint_positions.size() != p_joint_values.size())
     {
         m_error = "Failed to set joint values for robot '" + p_robot_name + "'";
         return false;
     }
 
-    it->second.robot->state().joint_positions = p_joint_values;
+    it->second.state().joint_positions = p_joint_values;
     return true;
 }
 
@@ -148,7 +150,7 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
         return {};
     }
 
-    return it->second.robot->state().joint_positions;
+    return it->second.state().joint_positions;
 }
 
 // ----------------------------------------------------------------------------

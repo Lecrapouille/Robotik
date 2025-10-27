@@ -60,13 +60,19 @@ public:
     };
 
     // ------------------------------------------------------------------------
-    //! \brief Structure to hold controlled robot data.
+    //! \brief Controlled robot class that extends Robot with rendering and
+    //! control capabilities.
     // ------------------------------------------------------------------------
-    struct ControlledRobot // FIXME faire heriter de Robot, a deplacer dans
-                           // robotik::core ?
+    class ControlledRobot: public Robot
     {
-        //! \brief Robot instance
-        std::unique_ptr<Robot> robot;
+    public:
+
+        //! \brief Constructor forwarding to Robot constructor
+        ControlledRobot(std::string const& p_name, Blueprint&& p_blueprint)
+            : Robot(p_name, std::move(p_blueprint))
+        {
+        }
+
         //! \brief Control mode (NO_CONTROL, ANIMATION, INVERSE_KINEMATICS,
         //! TRAJECTORY)
         ControlMode control_mode = ControlMode::NO_CONTROL;
@@ -110,13 +116,13 @@ public:
     ControlledRobot* loadRobot(const std::string& p_urdf_path);
 
     // ------------------------------------------------------------------------
-    //! \brief Add an existing robot instance.
+    //! \brief Add an existing controlled robot instance.
     //! \param p_robot_name Unique name for the robot.
-    //! \param p_robot Robot instance to add.
+    //! \param p_robot Controlled robot instance to add.
     //! \return true if successful.
     // ------------------------------------------------------------------------
     bool addRobot(const std::string& p_robot_name,
-                  std::unique_ptr<Robot> p_robot);
+                  std::unique_ptr<ControlledRobot> p_robot);
 
     // ------------------------------------------------------------------------
     //! \brief Remove a robot by name.

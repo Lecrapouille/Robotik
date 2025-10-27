@@ -7,7 +7,7 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "RobotViewerApplication.hpp"
+#include "Application.hpp"
 
 // Generated file holding project information
 #include "project_info.hpp"
