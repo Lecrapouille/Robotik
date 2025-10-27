@@ -10,15 +10,18 @@
 #pragma once
 
 #include "Configuration.hpp"
+#include "DearRobotHMI.hpp"
+#include "Robotik/Common/Path.hpp"
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
+#include "Robotik/Simulation/PhysicsSimulator.hpp"
 
-#include "Robotik/Core/PhysicsSimulator.hpp"
-
-#include "Robotik/Renderer/Camera.hpp"
-#include "Robotik/Renderer/GeometryRenderer.hpp"
-#include "Robotik/Renderer/MeshManager.hpp"
-#include "Robotik/Renderer/RobotManager.hpp"
-#include "Robotik/Renderer/ShaderManager.hpp"
+#include "Robotik/Renderer/Camera/OrbitController.hpp"
+#include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
+#include "Robotik/Renderer/Managers/MeshManager.hpp"
+#include "Robotik/Renderer/Managers/RobotManager.hpp"
+#include "Robotik/Renderer/Managers/ShaderManager.hpp"
+#include "Robotik/Renderer/RenderVisitor.hpp"
+#include "Robotik/Renderer/Renderer.hpp"
 
 namespace robotik::renderer
 {
@@ -129,6 +132,21 @@ private: // override OpenGLApplication methods
     // ----------------------------------------------------------------------------
     void onWindowResize(int p_width, int p_height) override;
 
+    // ----------------------------------------------------------------------------
+    //! \brief Handle mouse button event.
+    //! \param p_button Mouse button.
+    //! \param p_action Action (press, release).
+    //! \param p_mods Modifier keys.
+    // ----------------------------------------------------------------------------
+    void onMouseButton(int p_button, int p_action, int p_mods) override;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Handle cursor position event.
+    //! \param p_xpos Cursor x position.
+    //! \param p_ypos Cursor y position.
+    // ----------------------------------------------------------------------------
+    void onCursorPos(double p_xpos, double p_ypos) override;
+
 private:
 
     // ----------------------------------------------------------------------------
@@ -146,7 +164,7 @@ private:
     computeTrajectoryConfigs(RobotManager::ControlledRobot& p_controlled_robot);
 
     // ----------------------------------------------------------------------------
-    //! \brief Search for the joint to control or inverse kinematics, given by
+    //! \brief Search for the joint to control for inverse kinematics, given by
     //! the user from the application command line. If not provided, find the
     //! robot end effector.
     //! \param p_controlled_robot The controlled robot.
@@ -171,33 +189,18 @@ private:
                          bool p_use_root_if_not_found) const;
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup shaders.
-    //! \param p_program_name The name of the shader program.
-    //! \return true if setting up the shader program was successful, false
-    //! otherwise.
-    // ----------------------------------------------------------------------------
-    bool setupShaderProgram(std::string const& p_program_name);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Render a geometry.
-    //! \param p_geometry The geometry.
-    //! \param p_transform The transform.
-    // ----------------------------------------------------------------------------
-    void renderGeometry(Geometry const& p_geometry,
-                        Eigen::Matrix4f const& p_transform);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Render trajectory path with axes.
+    //! \brief Render trajectory path with axes using RenderVisitor.
     //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
     void renderTrajectoryPath(RobotManager::ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Handle animation of the given robot.
-    //! \param p_robot The robot.
+    //! \param p_robot The controlled robot.
     //! \param p_time The time.
     // ----------------------------------------------------------------------------
-    void handleAnimation(Robot& p_robot, double p_time) const;
+    void handleAnimation(RobotManager::ControlledRobot& p_robot,
+                         double p_time) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Handle inverse kinematics.
@@ -215,17 +218,6 @@ private:
                           double p_time,
                           double p_dt);
 
-    // ----------------------------------------------------------------------------
-    //! \brief Update the camera target position for track the chosen robot
-    //! element and update OpenGL shader with the camera matrices.
-    // ----------------------------------------------------------------------------
-    void updateCameraTarget();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Setup robot callbacks for ImGui.
-    // ----------------------------------------------------------------------------
-    void setupImGuiCallbacks();
-
 public:
 
     //! \brief Search paths to load URDF files.
@@ -236,37 +228,19 @@ private:
     // Configuration
     Configuration const& m_config;
 
-    // Robot management callbacks
-    std::function<bool(const std::string&)> m_load_robot_callback;
-    std::function<bool(const std::string&)> m_remove_robot_callback;
-    std::function<std::vector<std::string>()> m_robot_list_callback;
-    std::function<std::vector<std::pair<std::string, double>>(
-        const std::string&)>
-        m_get_joints_callback;
-    std::function<void(const std::string&, const std::string&, double)>
-        m_set_joint_callback;
-    std::function<std::vector<std::string>(const std::string&)>
-        m_get_nodes_callback;
-    std::function<void(const std::string&, int)> m_set_control_mode_callback;
-    std::function<int(const std::string&)> m_get_control_mode_callback;
-    std::function<void(const std::string&, const std::string&)>
-        m_set_end_effector_callback;
-    std::function<std::string(const std::string&)> m_get_end_effector_callback;
-    std::function<void(const std::string&, const std::string&)>
-        m_set_camera_target_callback;
-    std::function<std::string(const std::string&)> m_get_camera_target_callback;
-
-    // Components
-    Camera m_camera;
+    // Rendering components
+    std::unique_ptr<PerspectiveCamera> m_perspective_camera;
+    std::unique_ptr<OrbitController> m_orbit_controller;
+    std::unique_ptr<Renderer> m_renderer;
     ShaderManager m_shader_manager;
     MeshManager m_mesh_manager;
-    GeometryRenderer m_geometry_renderer;
     RobotManager m_robot_manager;
     PhysicsSimulator m_physics_simulator;
 
+    // HMI
+    std::unique_ptr<DearRobotHMI> m_hmi;
+
     // Cached OpenGL shader uniforms
-    int m_model_uniform = -1;
-    int m_color_uniform = -1;
     int m_projection_uniform = -1;
     int m_view_uniform = -1;
 
