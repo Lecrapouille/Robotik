@@ -15,7 +15,7 @@
 #include <string>
 #include <thread>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // Forward declaration
@@ -202,4 +202,4 @@ private:
     std::atomic<bool> m_physics_running{ false };
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

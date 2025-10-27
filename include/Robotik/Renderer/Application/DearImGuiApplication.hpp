@@ -19,7 +19,7 @@
 #include <functional>
 #include <utility>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ****************************************************************************
@@ -242,4 +242,4 @@ private:
     StatusBarCallback m_status_bar_callback;
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

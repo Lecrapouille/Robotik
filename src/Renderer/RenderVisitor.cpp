@@ -8,20 +8,22 @@
 
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
-#include "Robotik/Core/Geometry.hpp"
-#include "Robotik/Core/Joint.hpp"
-#include "Robotik/Core/Link.hpp"
-#include "Robotik/Core/Node.hpp"
-#include "Robotik/Renderer/Loaders/STLLoader.hpp"
+#include "Robotik/Renderer/Loaders/StlLoader.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/Renderer.hpp"
+#include "Robotik/Robot/Blueprint/Geometry.hpp"
+#include "Robotik/Robot/Blueprint/Joint.hpp"
+#include "Robotik/Robot/Blueprint/Link.hpp"
+#include "Robotik/Robot/Blueprint/Node.hpp"
 
 #include <iostream>
 #include <sstream>
 
 namespace robotik::renderer
 {
+
+using namespace robotik;
 
 // ----------------------------------------------------------------------------
 RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,

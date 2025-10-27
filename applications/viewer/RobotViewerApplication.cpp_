@@ -20,7 +20,7 @@
 
 #include <iostream>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // Background color
@@ -128,7 +128,7 @@ bool RobotViewerApplication::onSetup()
     if (auto const& joint_positions = m_config.joint_positions;
         !joint_positions.empty())
     {
-        controlled_robot->robot->hierarchy().forEachJoint(
+        controlled_robot->robot->blueprint().forEachJoint(
             [&joint_positions](Joint& joint, size_t index)
             { joint.position(joint_positions[index]); });
         std::cout << "🤖 Set initial joint values from configuration"
@@ -173,12 +173,12 @@ void RobotViewerApplication::computeIKTargetPoses(
     std::vector<std::vector<double>> joint_configs(num_poses);
     for (auto& it : joint_configs)
     {
-        it.resize(p_controlled_robot.robot->hierarchy().numJoints());
+        it.resize(p_controlled_robot.robot->blueprint().numJoints());
     }
 
     // Setup 3 joint configurations: 1/3 joint limits, 2/3 joint limits and
     // neutral position
-    p_controlled_robot.robot->hierarchy().forEachJoint(
+    p_controlled_robot.robot->blueprint().forEachJoint(
         [&joint_configs](Joint const& joint, size_t index)
         {
             auto [min, max] = joint.limits();
@@ -197,7 +197,7 @@ void RobotViewerApplication::computeIKTargetPoses(
     for (size_t pose_id = 0; pose_id < num_poses; ++pose_id)
     {
         // Apply joint configuration
-        p_controlled_robot.robot->hierarchy().forEachJoint(
+        p_controlled_robot.robot->blueprint().forEachJoint(
             [&joint_configs, pose_id](Joint& joint, size_t index)
             { joint.position(joint_configs[pose_id][index]); });
 
@@ -206,7 +206,7 @@ void RobotViewerApplication::computeIKTargetPoses(
             p_controlled_robot.control_joint->worldTransform();
 
         // Convert to pose and store
-        Pose target_pose = utils::transformToPose(end_effector_transform);
+        Pose target_pose = transformToPose(end_effector_transform);
         p_controlled_robot.ik_target_poses.push_back(target_pose);
 
         std::cout << "  Target " << (pose_id + 1) << ": ["
@@ -230,11 +230,11 @@ void RobotViewerApplication::computeTrajectoryConfigs(
 
     for (auto& config : p_controlled_robot.trajectory_configs)
     {
-        config.resize(p_controlled_robot.robot->hierarchy().numJoints());
+        config.resize(p_controlled_robot.robot->blueprint().numJoints());
     }
 
     // Setup 3 joint configurations: 1/4, 1/2, 3/4 of joint range
-    p_controlled_robot.robot->hierarchy().forEachJoint(
+    p_controlled_robot.robot->blueprint().forEachJoint(
         [&p_controlled_robot](Joint const& joint, size_t index)
         {
             auto [min, max] = joint.limits();
@@ -275,7 +275,7 @@ bool RobotViewerApplication::setControlJoint(
     if (p_element_name.empty())
     {
         if (auto const& end_effectors =
-                p_controlled_robot.robot->hierarchy().endEffectors();
+                p_controlled_robot.robot->blueprint().endEffectors();
             !end_effectors.empty())
         {
             p_controlled_robot.control_joint = &end_effectors[0].get();
@@ -285,11 +285,11 @@ bool RobotViewerApplication::setControlJoint(
     else
     {
         p_controlled_robot.control_joint = Node::find(
-            p_controlled_robot.robot->hierarchy().root(), p_element_name);
+            p_controlled_robot.robot->blueprint().root(), p_element_name);
         if (p_controlled_robot.control_joint == nullptr)
         {
             p_controlled_robot.control_joint =
-                &p_controlled_robot.robot->hierarchy().root();
+                &p_controlled_robot.robot->blueprint().root();
         }
     }
 
@@ -311,10 +311,10 @@ bool RobotViewerApplication::setCameraTarget(
         if (p_use_root_if_not_found)
         {
             p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->hierarchy().root();
+                &p_controlled_robot.robot->blueprint().root();
         }
         else if (auto const& end_effectors =
-                     p_controlled_robot.robot->hierarchy().endEffectors();
+                     p_controlled_robot.robot->blueprint().endEffectors();
                  !end_effectors.empty())
         {
             p_controlled_robot.camera_target = &end_effectors[0].get();
@@ -324,11 +324,11 @@ bool RobotViewerApplication::setCameraTarget(
     else
     {
         p_controlled_robot.camera_target = Node::find(
-            p_controlled_robot.robot->hierarchy().root(), p_element_name);
+            p_controlled_robot.robot->blueprint().root(), p_element_name);
         if (p_controlled_robot.camera_target == nullptr)
         {
             p_controlled_robot.camera_target =
-                &p_controlled_robot.robot->hierarchy().root();
+                &p_controlled_robot.robot->blueprint().root();
         }
     }
 
@@ -466,8 +466,8 @@ void RobotViewerApplication::setupImGuiCallbacks()
             auto* robot = m_robot_manager.getRobot(p_robot_name);
             if (robot && robot->robot)
             {
-                // Get all joints from the robot hierarchy
-                robot->robot->hierarchy().root().traverse(
+                // Get all joints from the robot blueprint
+                robot->robot->blueprint().root().traverse(
                     [&joints](Node const& node, size_t /*depth*/)
                     {
                         if (auto joint = dynamic_cast<Joint const*>(&node))
@@ -493,7 +493,7 @@ void RobotViewerApplication::setupImGuiCallbacks()
                 {
                     // Get the joint by name and set its position
                     Joint& joint =
-                        robot->robot->hierarchy().joint(p_joint_name);
+                        robot->robot->blueprint().joint(p_joint_name);
                     joint.position(p_value);
                 }
                 catch (...)
@@ -511,7 +511,7 @@ void RobotViewerApplication::setupImGuiCallbacks()
             auto* robot = m_robot_manager.getRobot(p_robot_name);
             if (robot && robot->robot)
             {
-                robot->robot->hierarchy().root().traverse(
+                robot->robot->blueprint().root().traverse(
                     [&node_names](Node const& node, size_t /*depth*/)
                     { node_names.push_back(node.name()); });
             }
@@ -553,7 +553,7 @@ void RobotViewerApplication::setupImGuiCallbacks()
             {
                 // Find the node by name
                 Node const* found_node = nullptr;
-                robot->robot->hierarchy().root().traverse(
+                robot->robot->blueprint().root().traverse(
                     [&p_node_name, &found_node](Node const& node,
                                                 size_t /*depth*/)
                     {
@@ -593,7 +593,7 @@ void RobotViewerApplication::setupImGuiCallbacks()
             {
                 // Find the node by name
                 Node const* found_node = nullptr;
-                robot->robot->hierarchy().root().traverse(
+                robot->robot->blueprint().root().traverse(
                     [&p_node_name, &found_node](Node const& node,
                                                 size_t /*depth*/)
                     {
@@ -642,7 +642,7 @@ void RobotViewerApplication::updateCameraTarget()
         (controlled_robot->camera_target != nullptr))
     {
         Eigen::Vector3f target_position =
-            utils::getTranslation(
+            getTranslation(
                 controlled_robot->camera_target->worldTransform())
                 .cast<float>();
         m_camera.setView(target_position);
@@ -676,9 +676,9 @@ void RobotViewerApplication::onDrawScene()
     // Render all robots
     for (auto& [_, it] : m_robot_manager.robots())
     {
-        if (it.is_visible && it.robot->hierarchy().hasRoot())
+        if (it.is_visible && it.robot->blueprint().hasRoot())
         {
-            it.robot->hierarchy().root().traverse(
+            it.robot->blueprint().root().traverse(
                 [this](Node const& node, size_t /*p_depth*/)
                 {
                     if (auto geometry = dynamic_cast<Geometry const*>(&node))
@@ -698,7 +698,7 @@ void RobotViewerApplication::onDrawScene()
             Pose const& target_pose = it.ik_target_poses[m_target_pose_index];
 
             // Convert Pose to Transform
-            Transform target_transform = utils::poseToTransform(target_pose);
+            Transform target_transform = poseToTransform(target_pose);
 
             // Render axes at target position
             m_geometry_renderer.renderAxes(target_transform.cast<float>(),
@@ -818,8 +818,8 @@ void RobotViewerApplication::renderTrajectoryPath(
 
     // Save current joint positions to restore them later
     std::vector<double> saved_positions;
-    saved_positions.reserve(p_robot.robot->hierarchy().numJoints());
-    p_robot.robot->hierarchy().forEachJoint(
+    saved_positions.reserve(p_robot.robot->blueprint().numJoints());
+    p_robot.robot->blueprint().forEachJoint(
         [&saved_positions](Joint const& joint, size_t /*index*/)
         { saved_positions.push_back(joint.position()); });
 
@@ -833,7 +833,7 @@ void RobotViewerApplication::renderTrajectoryPath(
         Trajectory::States states = p_robot.trajectory->evaluate(t);
 
         // Apply joint configuration
-        p_robot.robot->hierarchy().forEachJoint(
+        p_robot.robot->blueprint().forEachJoint(
             [&states](Joint& joint, size_t index)
             { joint.position(states.position[index]); });
 
@@ -847,7 +847,7 @@ void RobotViewerApplication::renderTrajectoryPath(
     }
 
     // Restore original joint positions
-    p_robot.robot->hierarchy().forEachJoint(
+    p_robot.robot->blueprint().forEachJoint(
         [&saved_positions](Joint& joint, size_t index)
         { joint.position(saved_positions[index]); });
 }
@@ -913,7 +913,7 @@ void RobotViewerApplication::handleAnimation(Robot& p_robot,
     }
 
     // Update joint positions
-    p_robot.hierarchy().forEachJoint([&joint_values](Joint& joint, size_t index)
+    p_robot.blueprint().forEachJoint([&joint_values](Joint& joint, size_t index)
                                      { joint.position(joint_values[index]); });
 }
 
@@ -1399,4 +1399,4 @@ void RobotViewerApplication::onDrawMainPanel()
     ImGui::End();
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

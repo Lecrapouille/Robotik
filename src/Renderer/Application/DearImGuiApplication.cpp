@@ -9,7 +9,7 @@
 
 #include "Robotik/Renderer/Application/DearImGuiApplication.hpp"
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
@@ -411,4 +411,4 @@ void DearImGuiApplication::resizeFramebuffer(int p_width, int p_height)
     createFramebuffer(p_width, p_height);
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

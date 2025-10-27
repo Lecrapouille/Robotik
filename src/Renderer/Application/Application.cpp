@@ -12,7 +12,7 @@
 #include <future>
 #include <thread>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
@@ -124,4 +124,4 @@ bool Application::stopPhysicsThread()
     }
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

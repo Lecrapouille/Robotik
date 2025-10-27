@@ -1,13 +1,14 @@
 #include "RobotViewerApplication.hpp"
-#include "Robotik/Core/Loaders/UrdfLoader.hpp"
-#include "Robotik/Core/Robot.hpp"
+
+#include "Robotik/Loaders/UrdfLoader.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
-#include "Robotik/Renderer/Loaders/STLLoader.hpp"
+#include "Robotik/Renderer/Loaders/StlLoader.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
 #include "Robotik/Renderer/Renderer.hpp"
+#include "Robotik/Robot/Robot.hpp"
 
 #include <Eigen/Dense>
 #include <GL/glew.h>
@@ -15,7 +16,7 @@
 #include <imgui.h>
 #include <iostream>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // Vertex shader source
@@ -119,6 +120,7 @@ bool RobotViewerApplication::onSetup()
     // Create mesh manager
     m_mesh_manager = std::make_unique<MeshManager>();
 
+#if 0
     // Create example box mesh
     if (!m_mesh_manager->createBox("example_box", 1.0f, 1.0f, 1.0f))
     {
@@ -126,14 +128,7 @@ bool RobotViewerApplication::onSetup()
                   << std::endl;
         return false;
     }
-
-    // Create cylinder for axes rendering
-    if (!m_mesh_manager->createCylinder("axis_cylinder", 1.0f, 2.0f, 16))
-    {
-        std::cerr << "Failed to create cylinder mesh: "
-                  << m_mesh_manager->error() << std::endl;
-        return false;
-    }
+#endif
 
     // Try to load an STL file (example - this will fail if file doesn't exist)
     // Update this path to a real STL file path on your system
@@ -157,7 +152,7 @@ bool RobotViewerApplication::onSetup()
     }
 
     // Try to load a robot URDF
-    robotik::loader::URDFLoader parser;
+    robotik::URDFLoader parser;
     m_robot = parser.load("/home/qq/MyGitHub/Robotik/data/robot_6axis_urdf");
     if (!m_robot)
     {
@@ -259,10 +254,10 @@ void RobotViewerApplication::onDrawScene()
     }
 
     // Render robot if loaded
-    if (m_robot && m_robot->hierarchy().hasRoot())
+    if (m_robot && m_robot->blueprint().hasRoot())
     {
         RenderVisitor visitor(*m_mesh_manager, *m_renderer, *m_shader_manager);
-        m_robot->hierarchy().root().traverse(visitor);
+        m_robot->blueprint().root().traverse(visitor);
     }
 }
 
@@ -337,4 +332,4 @@ void RobotViewerApplication::onScroll(double p_xoffset, double p_yoffset)
     m_camera_controller->handleScroll(p_xoffset, p_yoffset);
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

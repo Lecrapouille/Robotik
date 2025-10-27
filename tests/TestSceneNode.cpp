@@ -112,9 +112,9 @@ TEST_F(SceneNodeTest, CreateChildAndParenthood)
 //! \brief Test hierarchical structure with multiple levels with the find()
 //! method.
 // *********************************************************************************
-TEST_F(SceneNodeTest, ComplexHierarchy)
+TEST_F(SceneNodeTest, ComplexBlueprint)
 {
-    // Create a hierarchy of nodes
+    // Create a blueprint of nodes
     Node& child1 = root->createChild<Node>("child1");
     Node const& child2 = root->createChild<Node>("child2");
     Node& grandchild1 = child1.createChild<Node>("grandchild1");
@@ -145,11 +145,11 @@ TEST_F(SceneNodeTest, ComplexHierarchy)
 }
 
 // *********************************************************************************
-//! \brief Test complex world transform propagation through hierarchy.
+//! \brief Test complex world transform propagation through blueprint.
 // *********************************************************************************
 TEST_F(SceneNodeTest, ComplexTransformationPropagation)
 {
-    // Create a 3-level hierarchy
+    // Create a 3-level blueprint
     Node& level1 = root->createChild<Node>("level1");
     Node& level2 = level1.createChild<Node>("level2");
     Node& level3 = level2.createChild<Node>("level3");
@@ -469,7 +469,7 @@ TEST_F(SceneNodeTest, TemplateCreateChildDerived)
     derived.value(100);
     EXPECT_EQ(derived.value(), 100);
 
-    // Test that it's properly integrated in hierarchy
+    // Test that it's properly integrated in blueprint
     EXPECT_EQ(root->children().size(), 1);
     EXPECT_EQ(root->children()[0].get(), &derived);
 }
@@ -521,7 +521,7 @@ TEST_F(SceneNodeTest, AddExistingChildBasic)
 }
 
 // *********************************************************************************
-//! \brief Test recursive node search with complex hierarchy.
+//! \brief Test recursive node search with complex blueprint.
 // *********************************************************************************
 TEST_F(SceneNodeTest, RecursiveNodeSearchComplex)
 {

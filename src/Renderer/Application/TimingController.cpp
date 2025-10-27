@@ -4,7 +4,7 @@
 #include <chrono>
 #include <thread>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
@@ -149,4 +149,4 @@ void TimingController::limitFramerate() const
     }
 }
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

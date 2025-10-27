@@ -22,7 +22,7 @@ class MeshManager;
 class Renderer;
 } // namespace robotik::renderer
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ****************************************************************************
@@ -149,4 +149,4 @@ private:
     std::unique_ptr<robotik::Robot> m_robot;
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

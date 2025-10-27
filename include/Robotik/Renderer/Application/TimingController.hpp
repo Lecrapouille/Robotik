@@ -14,7 +14,7 @@
 #include <chrono>
 #include <functional>
 
-namespace robotik::renderer::application
+namespace robotik::renderer
 {
 
 // ****************************************************************************
@@ -104,4 +104,4 @@ private:
     RateCallback m_rate_callback;
 };
 
-} // namespace robotik::renderer::application
+} // namespace robotik::renderer

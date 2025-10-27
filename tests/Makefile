@@ -44,9 +44,15 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Viewer,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Common/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Loaders/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Robot/Blueprint/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Robot/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Simulation/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Solvers/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Renderer/*/*.cpp)
+SRC_FILES += $(wildcard $(P)/src/Renderer/*.cpp)
+SRC_FILES += $(wildcard $(P)/tests/*.cpp)
 INCLUDES += $(P)/include
 INCLUDES += $(P)/src
 VPATH += $(P)/src

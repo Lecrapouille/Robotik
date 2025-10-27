@@ -48,7 +48,7 @@ protected:
     std::vector<Geometry const*> getGeometries(Robot const& p_robot) const
     {
         std::vector<Geometry const*> geometry_nodes;
-        p_robot.hierarchy().root().traverse(
+        p_robot.blueprint().root().traverse(
             [&geometry_nodes](const Node& node, size_t)
             {
                 if (auto const* link = dynamic_cast<const Link*>(&node))
@@ -88,13 +88,13 @@ TEST_F(URDFLoaderTest, SimpleRevoluteRobotSceneGraph)
     ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
 
     // Check robot has root node
-    EXPECT_TRUE(robot->hierarchy().hasRoot());
+    EXPECT_TRUE(robot->blueprint().hasRoot());
 
     // Check joint structure
-    EXPECT_EQ(robot->hierarchy().numJoints(), 1);
+    EXPECT_EQ(robot->blueprint().numJoints(), 1);
 
     // Get the revolute joint
-    auto const& revolute_joint = robot->hierarchy().joint("revolute_joint");
+    auto const& revolute_joint = robot->blueprint().joint("revolute_joint");
     EXPECT_EQ(revolute_joint.type(), Joint::Type::REVOLUTE);
 
     // Test joint axis - should be Z-axis (0, 0, 1) for revolute joint
@@ -140,14 +140,14 @@ TEST_F(URDFLoaderTest, SimplePrismaticRobotSceneGraph)
     ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
 
     // Check robot has root node
-    EXPECT_TRUE(robot->hierarchy().hasRoot());
+    EXPECT_TRUE(robot->blueprint().hasRoot());
 
     // Check joint structure
-    size_t num_joints = robot->hierarchy().numJoints();
+    size_t num_joints = robot->blueprint().numJoints();
     EXPECT_EQ(num_joints, 1);
 
     // Get the prismatic joint
-    auto const& prismatic_joint = robot->hierarchy().joint("prismatic_joint");
+    auto const& prismatic_joint = robot->blueprint().joint("prismatic_joint");
     EXPECT_EQ(prismatic_joint.type(), Joint::Type::PRISMATIC);
 
     // Test joint axis - should be Z-axis (0, 0, 1) for prismatic joint
@@ -192,14 +192,14 @@ TEST_F(URDFLoaderTest, DifferentialDriveRobotSceneGraph)
     ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
 
     // Check robot has root node
-    EXPECT_TRUE(robot->hierarchy().hasRoot());
+    EXPECT_TRUE(robot->blueprint().hasRoot());
 
     // Check joint structure
-    size_t num_joints = robot->hierarchy().numJoints();
+    size_t num_joints = robot->blueprint().numJoints();
     EXPECT_GE(num_joints, 2);
 
     // Check joint types
-    auto const& left_wheel_joint = robot->hierarchy().joint("left_wheel_joint");
+    auto const& left_wheel_joint = robot->blueprint().joint("left_wheel_joint");
     EXPECT_EQ(left_wheel_joint.type(), Joint::Type::CONTINUOUS);
     auto left_axis = left_wheel_joint.axis();
     EXPECT_DOUBLE_EQ(left_axis.x(), 0.0);
@@ -207,7 +207,7 @@ TEST_F(URDFLoaderTest, DifferentialDriveRobotSceneGraph)
     EXPECT_DOUBLE_EQ(left_axis.z(), 1.0);
 
     auto const& right_wheel_joint =
-        robot->hierarchy().joint("right_wheel_joint");
+        robot->blueprint().joint("right_wheel_joint");
     EXPECT_EQ(right_wheel_joint.type(), Joint::Type::CONTINUOUS);
     auto right_axis = right_wheel_joint.axis();
     EXPECT_DOUBLE_EQ(right_axis.x(), 0.0);
@@ -257,16 +257,16 @@ TEST_F(URDFLoaderTest, SCARArobotSceneGraph)
     ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
 
     // Check robot has root node
-    EXPECT_TRUE(robot->hierarchy().hasRoot());
+    EXPECT_TRUE(robot->blueprint().hasRoot());
 
     // Check joint structure - should have 3 joints
-    size_t num_joints = robot->hierarchy().numJoints();
+    size_t num_joints = robot->blueprint().numJoints();
     EXPECT_EQ(num_joints, 3);
 
     // Check specific joints exist
-    auto const& joint1 = robot->hierarchy().joint("joint1");
-    auto const& joint2 = robot->hierarchy().joint("joint2");
-    auto const& end_effector = robot->hierarchy().joint("end_effector");
+    auto const& joint1 = robot->blueprint().joint("joint1");
+    auto const& joint2 = robot->blueprint().joint("joint2");
+    auto const& end_effector = robot->blueprint().joint("end_effector");
 
     // Check joint types
     EXPECT_EQ(joint1.type(), Joint::Type::REVOLUTE);
@@ -309,16 +309,16 @@ TEST_F(URDFLoaderTest, CartesianRobotSceneGraph)
     ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
 
     // Check robot has root node
-    EXPECT_TRUE(robot->hierarchy().hasRoot());
+    EXPECT_TRUE(robot->blueprint().hasRoot());
 
     // Check joint structure - should have 3 prismatic joints
-    size_t num_joints = robot->hierarchy().numJoints();
+    size_t num_joints = robot->blueprint().numJoints();
     EXPECT_EQ(num_joints, 3);
 
     // Check specific joints exist
-    auto const& joint_x = robot->hierarchy().joint("joint_x");
-    auto const& joint_y = robot->hierarchy().joint("joint_y");
-    auto const& joint_z = robot->hierarchy().joint("joint_z");
+    auto const& joint_x = robot->blueprint().joint("joint_x");
+    auto const& joint_y = robot->blueprint().joint("joint_y");
+    auto const& joint_z = robot->blueprint().joint("joint_z");
 
     // Check joint types - all should be prismatic
     EXPECT_EQ(joint_x.type(), Joint::Type::PRISMATIC);

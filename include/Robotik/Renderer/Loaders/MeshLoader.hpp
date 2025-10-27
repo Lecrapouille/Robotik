@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace robotik
+namespace robotik::renderer
 {
 
 // ****************************************************************************
@@ -75,4 +75,4 @@ public:
     virtual const std::string& error() const = 0;
 };
 
-} // namespace robotik
+} // namespace robotik::renderer

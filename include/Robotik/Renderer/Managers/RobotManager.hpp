@@ -9,10 +9,9 @@
 
 #pragma once
 
-#include "Robotik/Core/IKSolver.hpp"
-#include "Robotik/Core/Path.hpp"
-#include "Robotik/Core/Robot.hpp"
-#include "Robotik/Core/Trajectory.hpp"
+#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Solvers/IKSolver.hpp"
+#include "Robotik/Solvers/Trajectory.hpp"
 
 #include <Eigen/Dense>
 

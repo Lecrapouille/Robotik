@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
     // Note: In a real URDF file, these would be loaded from the file.
     // Here we set them manually for demonstration.
 
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [](robotik::Joint& joint, size_t)
         {
             joint.damping(0.1);     // Damping coefficient (without unit)
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
     robot->setNeutralPosition(); // Start at neutral (all joints at 0)
 
     std::cout << "Initial joint positions:" << std::endl;
-    robot->hierarchy().forEachJoint(
+    robot->blueprint().forEachJoint(
         [](robotik::Joint const& joint, size_t)
         {
             std::cout << "  " << joint.name() << ": " << std::fixed
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
             std::cout << "Time: " << std::fixed << std::setprecision(2) << t
                       << " s" << std::endl;
 
-            robot->hierarchy().forEachJoint(
+            robot->blueprint().forEachJoint(
                 [](robotik::Joint const& joint, size_t)
                 {
                     std::cout
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
               << std::endl;
 
     auto& joint =
-        const_cast<robotik::Joint&>(robot->hierarchy().joint("revolute_joint"));
+        const_cast<robotik::Joint&>(robot->blueprint().joint("revolute_joint"));
     joint.effort(5.0); // Apply 5 N·m torque
 
     std::cout << "Applied " << joint.effort() << " N·m to joint '"
