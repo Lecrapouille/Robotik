@@ -42,7 +42,7 @@ package "robotik::renderer" {
 }
 
 package "application" {
-    class RobotViewerApplication {
+    class Application {
     }
 
     struct Configuration {
@@ -101,16 +101,16 @@ Joint --> Inertial : contains
 Link --> Geometry : contains
 
 ' Viewer package inheritances
-Application <|-- RobotViewerApplication
+Application <|-- Application
 
 ' Viewer package associations
-RobotViewerApplication --> Configuration : uses
-RobotViewerApplication --> OpenGLWindow : contains
-RobotViewerApplication --> Camera : contains
-RobotViewerApplication --> ShaderManager : contains
-RobotViewerApplication --> MeshManager : contains
-RobotViewerApplication --> GeometryRenderer : contains
-RobotViewerApplication --> RobotManager : contains
+Application --> Configuration : uses
+Application --> OpenGLWindow : contains
+Application --> Camera : contains
+Application --> ShaderManager : contains
+Application --> MeshManager : contains
+Application --> GeometryRenderer : contains
+Application --> RobotManager : contains
 Application <- OpenGLWindow : implements
 
 GeometryRenderer --> ShaderManager : uses

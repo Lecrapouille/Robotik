@@ -14,13 +14,14 @@
 #include <imgui.h>
 #include <iostream>
 
-namespace robotik::renderer
+namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-DearRobotHMI::DearRobotHMI(RobotManager& p_robot_manager,
-                           OrbitController& p_orbit_controller,
-                           std::function<void()> p_halt_callback)
+DearRobotHMI::DearRobotHMI(
+    robotik::renderer::RobotManager& p_robot_manager,
+    robotik::renderer::OrbitController& p_orbit_controller,
+    std::function<void()> const& p_halt_callback)
     : m_robot_manager(p_robot_manager),
       m_orbit_controller(p_orbit_controller),
       m_halt_callback(p_halt_callback)
@@ -42,9 +43,9 @@ void DearRobotHMI::onDrawMainPanel()
     // Only show controls if a robot is selected
     if (!m_selected_robot.empty())
     {
+        cameraTargetPanel();
         controlModePanel();
         endEffectorPanel();
-        cameraTargetPanel();
         jointControlPanel();
     }
 
@@ -169,26 +170,30 @@ void DearRobotHMI::robotManagementPanel()
 // ----------------------------------------------------------------------------
 void DearRobotHMI::controlModePanel()
 {
+    static constexpr std::array<const char*, 5> s_mode_names = {
+        "No Control",
+        "Direct Kinematics",
+        "Animation",
+        "Inverse Kinematics",
+        "Trajectory"
+    };
+
     if (ImGui::CollapsingHeader("Control Mode", ImGuiTreeNodeFlags_DefaultOpen))
     {
         auto* robot = m_robot_manager.getRobot(m_selected_robot);
         if (robot == nullptr)
             return;
 
-        int current_mode = static_cast<int>(robot->control_mode);
-
-        const char* mode_names[] = { "No Control",
-                                     "Direct Kinematics",
-                                     "Animation",
-                                     "Inverse Kinematics",
-                                     "Trajectory" };
-
-        if (ImGui::Combo("Mode", &current_mode, mode_names, 5))
+        auto current_mode = int(robot->control_mode);
+        if (ImGui::Combo("Mode",
+                         &current_mode,
+                         s_mode_names.data(),
+                         static_cast<int>(s_mode_names.size())))
         {
             robot->control_mode =
-                static_cast<RobotManager::ControlMode>(current_mode);
+                static_cast<renderer::RobotManager::ControlMode>(current_mode);
             std::cout << "🎮 Control mode changed to: "
-                      << mode_names[current_mode] << std::endl;
+                      << s_mode_names[current_mode] << std::endl;
         }
     }
 }
@@ -203,17 +208,14 @@ void DearRobotHMI::jointControlPanel()
         if (robot == nullptr)
             return;
 
-        std::vector<std::pair<std::string, double>> joints = getJoints();
+        // Sliders are editable only in DIRECT_KINEMATICS mode
+        bool read_only =
+            (robot->control_mode !=
+             renderer::RobotManager::ControlMode::DIRECT_KINEMATICS);
 
-        // Determine if sliders should be read-only
-        int control_mode = static_cast<int>(robot->control_mode);
-        // Sliders are editable only in DIRECT_KINEMATICS mode (1)
-        bool read_only = (control_mode != 1);
-
-        ImGui::Text("Joints (%zu):", joints.size());
+        ImGui::Text("Joints (%zu):", robot->blueprint().numJoints());
         ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
-        size_t joint_index = 0;
         robot->blueprint().forEachJoint(
             [&](Joint& joint, size_t /*index*/)
             {
@@ -247,7 +249,6 @@ void DearRobotHMI::jointControlPanel()
                 }
 
                 ImGui::PopID();
-                joint_index++;
             });
 
         ImGui::EndChild();
@@ -257,65 +258,41 @@ void DearRobotHMI::jointControlPanel()
 // ----------------------------------------------------------------------------
 void DearRobotHMI::endEffectorPanel()
 {
-    if (ImGui::CollapsingHeader("End Effector"))
+    if (!ImGui::CollapsingHeader("End Effectors"))
+        return;
+
+    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    if (robot == nullptr)
+        return;
+
+    std::vector<std::string> nodes = getNodeNames();
+    std::vector<std::string> end_effectors = getEndEffectorNames();
+
+    std::string current_end_effector;
+    if (robot->control_joint != nullptr)
     {
-        auto* robot = m_robot_manager.getRobot(m_selected_robot);
-        if (robot == nullptr)
-            return;
+        current_end_effector = robot->control_joint->name();
+    }
 
-        std::vector<std::string> nodes = getNodeNames();
-        std::vector<std::string> end_effectors = getEndEffectorNames();
-
-        std::string current_end_effector;
-        if (robot->control_joint != nullptr)
+    if (ImGui::BeginCombo("End Effector",
+                          current_end_effector.empty()
+                              ? "None"
+                              : current_end_effector.c_str()))
+    {
+        // First, show end effectors (highlighted)
+        if (!end_effectors.empty())
         {
-            current_end_effector = robot->control_joint->name();
-        }
+            ImGui::PushStyleColor(ImGuiCol_Text,
+                                  ImVec4(0.5f, 1.0f, 0.5f, 1.0f));
+            ImGui::PushID("##EffectorHeader");
+            ImGui::Selectable(
+                "-- End Effectors --", false, ImGuiSelectableFlags_Disabled);
+            ImGui::PopID();
+            ImGui::PopStyleColor();
 
-        if (ImGui::BeginCombo("End Effector",
-                              current_end_effector.empty()
-                                  ? "None"
-                                  : current_end_effector.c_str()))
-        {
-            // First, show end effectors (highlighted)
-            if (!end_effectors.empty())
+            for (const auto& node_name : end_effectors)
             {
-                ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f),
-                                   "-- End Effectors --");
-                for (const auto& node_name : end_effectors)
-                {
-                    bool is_selected = (current_end_effector == node_name);
-                    if (ImGui::Selectable(node_name.c_str(), is_selected))
-                    {
-                        robot->control_joint =
-                            Node::find(robot->blueprint().root(), node_name);
-                        if (robot->control_joint)
-                        {
-                            std::cout << "🎯 End effector set to: " << node_name
-                                      << std::endl;
-                        }
-                    }
-                    if (is_selected)
-                    {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-                ImGui::Separator();
-            }
-
-            // Then show all other nodes
-            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f),
-                               "-- All Nodes --");
-            for (const auto& node_name : nodes)
-            {
-                // Skip if already shown in end effectors
-                if (std::find(end_effectors.begin(),
-                              end_effectors.end(),
-                              node_name) != end_effectors.end())
-                {
-                    continue;
-                }
-
+                ImGui::PushID(node_name.c_str());
                 bool is_selected = (current_end_effector == node_name);
                 if (ImGui::Selectable(node_name.c_str(), is_selected))
                 {
@@ -331,59 +308,111 @@ void DearRobotHMI::endEffectorPanel()
                 {
                     ImGui::SetItemDefaultFocus();
                 }
+                ImGui::PopID();
             }
-            ImGui::EndCombo();
+            ImGui::Separator();
         }
+
+        // Then show all other nodes
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.7f, 0.7f, 0.7f, 1.0f));
+        ImGui::PushID("##AllNodesHeader");
+        ImGui::Selectable(
+            "-- All Nodes --", false, ImGuiSelectableFlags_Disabled);
+        ImGui::PopID();
+        ImGui::PopStyleColor();
+
+        for (const auto& node_name : nodes)
+        {
+            // Skip if already shown in end effectors
+            if (std::find(end_effectors.begin(),
+                          end_effectors.end(),
+                          node_name) != end_effectors.end())
+            {
+                continue;
+            }
+
+            ImGui::PushID(node_name.c_str());
+            bool is_selected = (current_end_effector == node_name);
+            if (ImGui::Selectable(node_name.c_str(), is_selected))
+            {
+                robot->control_joint =
+                    Node::find(robot->blueprint().root(), node_name);
+                if (robot->control_joint)
+                {
+                    std::cout << "🎯 End effector set to: " << node_name
+                              << std::endl;
+                }
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
     }
 }
 
 // ----------------------------------------------------------------------------
 void DearRobotHMI::cameraTargetPanel()
 {
-    if (ImGui::CollapsingHeader("Camera Target"))
+    if (!ImGui::CollapsingHeader("Camera Targets"))
+        return;
+
+    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    if (robot == nullptr)
+        return;
+
+    std::vector<std::string> nodes = getNodeNames();
+
+    std::string current_camera_target;
+    if (robot->camera_target != nullptr)
     {
-        auto* robot = m_robot_manager.getRobot(m_selected_robot);
-        if (robot == nullptr)
-            return;
+        current_camera_target = robot->camera_target->name();
+    }
 
-        std::vector<std::string> nodes = getNodeNames();
-
-        std::string current_camera_target;
-        if (robot->camera_target != nullptr)
+    if (ImGui::BeginCombo("Camera Target",
+                          current_camera_target.empty()
+                              ? "None"
+                              : current_camera_target.c_str()))
+    {
+        for (const auto& node_name : nodes)
         {
-            current_camera_target = robot->camera_target->name();
-        }
-
-        if (ImGui::BeginCombo("Camera Target",
-                              current_camera_target.empty()
-                                  ? "None"
-                                  : current_camera_target.c_str()))
-        {
-            for (const auto& node_name : nodes)
+            ImGui::PushID(node_name.c_str());
+            bool is_selected = (current_camera_target == node_name);
+            if (ImGui::Selectable(node_name.c_str(), is_selected))
             {
-                bool is_selected = (current_camera_target == node_name);
-                if (ImGui::Selectable(node_name.c_str(), is_selected))
+                robot->camera_target =
+                    Node::find(robot->blueprint().root(), node_name);
+                if (robot->camera_target)
                 {
-                    robot->camera_target =
-                        Node::find(robot->blueprint().root(), node_name);
-                    if (robot->camera_target)
-                    {
-                        // Update orbit controller target
-                        Eigen::Vector3d target_pos =
-                            robot->camera_target->worldTransform().block<3, 1>(
-                                0, 3);
-                        m_orbit_controller.setTarget(target_pos.cast<float>());
-                        std::cout << "📹 Camera target set to: " << node_name
-                                  << std::endl;
-                    }
-                }
-                if (is_selected)
-                {
-                    ImGui::SetItemDefaultFocus();
+                    // Enable camera tracking when a target is selected
+                    robot->camera_tracking_enabled = true;
+                    // Update orbit controller target
+                    Eigen::Vector3d target_pos =
+                        robot->camera_target->worldTransform().block<3, 1>(0,
+                                                                           3);
+                    m_orbit_controller.setTarget(target_pos.cast<float>());
+                    std::cout << "📹 Camera target set to: " << node_name
+                              << std::endl;
                 }
             }
-            ImGui::EndCombo();
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::PopID();
         }
+        ImGui::EndCombo();
+    }
+
+    // Add checkbox to enable/disable camera tracking
+    if (ImGui::Checkbox("Enable Camera Tracking",
+                        &robot->camera_tracking_enabled))
+    {
+        std::cout << "📹 Camera tracking: "
+                  << (robot->camera_tracking_enabled ? "enabled" : "disabled")
+                  << std::endl;
     }
 }
 
@@ -430,4 +459,4 @@ std::vector<std::pair<std::string, double>> DearRobotHMI::getJoints() const
     return joints;
 }
 
-} // namespace robotik::renderer
+} // namespace robotik::application

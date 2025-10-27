@@ -35,16 +35,17 @@ bool MeshManager::loadFromFile(const std::string& p_name,
 
     // Load CPU mesh data
     MeshLoader::CPUMesh cpu_mesh;
-    if (!p_loader.load(p_filename, cpu_mesh))
+    std::string full_filename = m_path.expand(p_filename);
+    if (!p_loader.load(full_filename, cpu_mesh))
     {
-        m_error = "Failed to load mesh file: " + p_filename + " - " +
+        m_error = "Failed to load mesh file: " + full_filename + " - " +
                   p_loader.error();
         return false;
     }
 
     if (cpu_mesh.empty())
     {
-        m_error = "Mesh file contains no geometry: " + p_filename;
+        m_error = "Mesh file contains no geometry: " + full_filename;
         return false;
     }
 
@@ -247,162 +248,163 @@ void MeshManager::generateBox(MeshLoader::CPUMesh& p_mesh,
     float sz = p_depth * 0.5f;
 
     // Box vertices with positions and normals
-    const float box_vertices[] = { // positions          // normals
-                                   // Front face (normal pointing towards +Z)
-                                   -sx,
-                                   -sy,
-                                   sz,
-                                   0.0f,
-                                   0.0f,
-                                   1.0f,
-                                   sx,
-                                   -sy,
-                                   sz,
-                                   0.0f,
-                                   0.0f,
-                                   1.0f,
-                                   sx,
-                                   sy,
-                                   sz,
-                                   0.0f,
-                                   0.0f,
-                                   1.0f,
-                                   -sx,
-                                   sy,
-                                   sz,
-                                   0.0f,
-                                   0.0f,
-                                   1.0f,
+    const float box_vertices[] = {
 
-                                   // Back face (normal pointing towards -Z)
-                                   -sx,
-                                   -sy,
-                                   -sz,
-                                   0.0f,
-                                   0.0f,
-                                   -1.0f,
-                                   -sx,
-                                   sy,
-                                   -sz,
-                                   0.0f,
-                                   0.0f,
-                                   -1.0f,
-                                   sx,
-                                   sy,
-                                   -sz,
-                                   0.0f,
-                                   0.0f,
-                                   -1.0f,
-                                   sx,
-                                   -sy,
-                                   -sz,
-                                   0.0f,
-                                   0.0f,
-                                   -1.0f,
+        // Front face (normal pointing towards +Z)
+        -sx,
+        -sy,
+        sz,
+        0.0f,
+        0.0f,
+        1.0f,
+        sx,
+        -sy,
+        sz,
+        0.0f,
+        0.0f,
+        1.0f,
+        sx,
+        sy,
+        sz,
+        0.0f,
+        0.0f,
+        1.0f,
+        -sx,
+        sy,
+        sz,
+        0.0f,
+        0.0f,
+        1.0f,
 
-                                   // Left face (normal pointing towards -X)
-                                   -sx,
-                                   -sy,
-                                   -sz,
-                                   -1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   -sx,
-                                   -sy,
-                                   sz,
-                                   -1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   -sx,
-                                   sy,
-                                   sz,
-                                   -1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   -sx,
-                                   sy,
-                                   -sz,
-                                   -1.0f,
-                                   0.0f,
-                                   0.0f,
+        // Back face (normal pointing towards -Z)
+        -sx,
+        -sy,
+        -sz,
+        0.0f,
+        0.0f,
+        -1.0f,
+        -sx,
+        sy,
+        -sz,
+        0.0f,
+        0.0f,
+        -1.0f,
+        sx,
+        sy,
+        -sz,
+        0.0f,
+        0.0f,
+        -1.0f,
+        sx,
+        -sy,
+        -sz,
+        0.0f,
+        0.0f,
+        -1.0f,
 
-                                   // Right face (normal pointing towards +X)
-                                   sx,
-                                   -sy,
-                                   -sz,
-                                   1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   sx,
-                                   sy,
-                                   -sz,
-                                   1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   sx,
-                                   sy,
-                                   sz,
-                                   1.0f,
-                                   0.0f,
-                                   0.0f,
-                                   sx,
-                                   -sy,
-                                   sz,
-                                   1.0f,
-                                   0.0f,
-                                   0.0f,
+        // Left face (normal pointing towards -X)
+        -sx,
+        -sy,
+        -sz,
+        -1.0f,
+        0.0f,
+        0.0f,
+        -sx,
+        -sy,
+        sz,
+        -1.0f,
+        0.0f,
+        0.0f,
+        -sx,
+        sy,
+        sz,
+        -1.0f,
+        0.0f,
+        0.0f,
+        -sx,
+        sy,
+        -sz,
+        -1.0f,
+        0.0f,
+        0.0f,
 
-                                   // Bottom face (normal pointing towards -Y)
-                                   -sx,
-                                   -sy,
-                                   -sz,
-                                   0.0f,
-                                   -1.0f,
-                                   0.0f,
-                                   sx,
-                                   -sy,
-                                   -sz,
-                                   0.0f,
-                                   -1.0f,
-                                   0.0f,
-                                   sx,
-                                   -sy,
-                                   sz,
-                                   0.0f,
-                                   -1.0f,
-                                   0.0f,
-                                   -sx,
-                                   -sy,
-                                   sz,
-                                   0.0f,
-                                   -1.0f,
-                                   0.0f,
+        // Right face (normal pointing towards +X)
+        sx,
+        -sy,
+        -sz,
+        1.0f,
+        0.0f,
+        0.0f,
+        sx,
+        sy,
+        -sz,
+        1.0f,
+        0.0f,
+        0.0f,
+        sx,
+        sy,
+        sz,
+        1.0f,
+        0.0f,
+        0.0f,
+        sx,
+        -sy,
+        sz,
+        1.0f,
+        0.0f,
+        0.0f,
 
-                                   // Top face (normal pointing towards +Y)
-                                   -sx,
-                                   sy,
-                                   -sz,
-                                   0.0f,
-                                   1.0f,
-                                   0.0f,
-                                   -sx,
-                                   sy,
-                                   sz,
-                                   0.0f,
-                                   1.0f,
-                                   0.0f,
-                                   sx,
-                                   sy,
-                                   sz,
-                                   0.0f,
-                                   1.0f,
-                                   0.0f,
-                                   sx,
-                                   sy,
-                                   -sz,
-                                   0.0f,
-                                   1.0f,
-                                   0.0f
+        // Bottom face (normal pointing towards -Y)
+        -sx,
+        -sy,
+        -sz,
+        0.0f,
+        -1.0f,
+        0.0f,
+        sx,
+        -sy,
+        -sz,
+        0.0f,
+        -1.0f,
+        0.0f,
+        sx,
+        -sy,
+        sz,
+        0.0f,
+        -1.0f,
+        0.0f,
+        -sx,
+        -sy,
+        sz,
+        0.0f,
+        -1.0f,
+        0.0f,
+
+        // Top face (normal pointing towards +Y)
+        -sx,
+        sy,
+        -sz,
+        0.0f,
+        1.0f,
+        0.0f,
+        -sx,
+        sy,
+        sz,
+        0.0f,
+        1.0f,
+        0.0f,
+        sx,
+        sy,
+        sz,
+        0.0f,
+        1.0f,
+        0.0f,
+        sx,
+        sy,
+        -sz,
+        0.0f,
+        1.0f,
+        0.0f
     };
 
     // Copy vertices
@@ -435,13 +437,13 @@ void MeshManager::generateSphere(MeshLoader::CPUMesh& p_mesh,
     // Generate vertices
     for (size_t lat = 0; lat <= p_latitude_segments; ++lat)
     {
-        float theta = M_PI * float(lat) / float(p_latitude_segments);
+        float theta = M_PIf * float(lat) / float(p_latitude_segments);
         float sin_theta = std::sin(theta);
         float cos_theta = std::cos(theta);
 
         for (size_t lon = 0; lon <= p_longitude_segments; ++lon)
         {
-            float phi = 2.0f * M_PI * float(lon) / float(p_longitude_segments);
+            float phi = 2.0f * M_PIf * float(lon) / float(p_longitude_segments);
             float sin_phi = std::sin(phi);
             float cos_phi = std::cos(phi);
 
@@ -502,7 +504,7 @@ void MeshManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
     // Bottom and top circles
     for (size_t i = 0; i <= p_segments; ++i)
     {
-        float angle = 2.0f * M_PI * float(i) / float(p_segments);
+        float angle = 2.0f * M_PIf * float(i) / float(p_segments);
         float x = p_radius * std::cos(angle);
         float y = p_radius * std::sin(angle);
 
@@ -517,7 +519,7 @@ void MeshManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
     // Side vertices with side normals
     for (size_t i = 0; i <= p_segments; ++i)
     {
-        float angle = 2.0f * M_PI * float(i) / float(p_segments);
+        float angle = 2.0f * M_PIf * float(i) / float(p_segments);
         float x = p_radius * std::cos(angle);
         float y = p_radius * std::sin(angle);
 

@@ -28,14 +28,6 @@ Robot::Robot(std::string const& p_name, Blueprint&& p_blueprint)
       m_blueprint(std::move(p_blueprint)),
       m_state(m_blueprint.numJoints(), m_blueprint.numLinks())
 {
-    // Modify the mesh path to be relative to the robot name
-    // FIXME: a supprimer
-    m_blueprint.forEachLink(
-        [this](Link& p_link)
-        {
-            auto& geometry = p_link.geometry();
-            geometry.meshPath(m_name + "/" + geometry.meshPath());
-        });
 }
 
 // ----------------------------------------------------------------------------

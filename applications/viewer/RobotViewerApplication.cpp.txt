@@ -1,4 +1,4 @@
-#include "RobotViewerApplication.hpp"
+#include "Application.hpp"
 
 #include "Robotik/Loaders/UrdfLoader.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
@@ -62,7 +62,7 @@ void main()
 )";
 
 // ----------------------------------------------------------------------------
-RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
+Application::Application(Configuration const& p_config)
     : OpenGLApplication(p_config.window_width, p_config.window_height, true),
       m_config(p_config)
 {
@@ -70,16 +70,16 @@ RobotViewerApplication::RobotViewerApplication(Configuration const& p_config)
 }
 
 // ----------------------------------------------------------------------------
-RobotViewerApplication::~RobotViewerApplication() = default;
+Application::~Application() = default;
 
 // ----------------------------------------------------------------------------
-bool RobotViewerApplication::run()
+bool Application::run()
 {
     return Application::run(m_config.target_fps, m_config.target_physics_hz);
 }
 
 // ----------------------------------------------------------------------------
-bool RobotViewerApplication::onSetup()
+bool Application::onSetup()
 {
     // Create perspective camera
     float aspect_ratio = static_cast<float>(m_config.window_width) /
@@ -159,7 +159,7 @@ bool RobotViewerApplication::onSetup()
         std::cerr << "Note: Failed to load URDF: " << parser.error()
                   << std::endl;
         std::cerr << "Continuing without robot (update path in "
-                     "RobotViewerApplication.cpp)"
+                     "Application.cpp)"
                   << std::endl;
     }
     else
@@ -173,10 +173,10 @@ bool RobotViewerApplication::onSetup()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onTeardown() {}
+void Application::onTeardown() {}
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onUpdate(float const dt)
+void Application::onUpdate(float const dt)
 {
     // Update camera controller
     m_camera_controller->update(dt);
@@ -186,10 +186,10 @@ void RobotViewerApplication::onUpdate(float const dt)
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onPhysicUpdate(float const /* dt */) {}
+void Application::onPhysicUpdate(float const /* dt */) {}
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDrawScene()
+void Application::onDrawScene()
 {
     // Clear screen
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
@@ -262,7 +262,7 @@ void RobotViewerApplication::onDrawScene()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDrawMenuBar()
+void Application::onDrawMenuBar()
 {
     if (ImGui::BeginMenu("File"))
     {
@@ -275,7 +275,7 @@ void RobotViewerApplication::onDrawMenuBar()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onDrawMainPanel()
+void Application::onDrawMainPanel()
 {
     ImGui::Begin("Robot Control");
     ImGui::Text("Robot control panel");
@@ -284,14 +284,14 @@ void RobotViewerApplication::onDrawMainPanel()
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onFPSUpdated(size_t const p_fps)
+void Application::onFPSUpdated(size_t const p_fps)
 {
     m_fps = p_fps;
     setTitle(m_config.window_title + " - FPS: " + std::to_string(p_fps));
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onKeyInput(int p_key,
+void Application::onKeyInput(int p_key,
                                         int p_scancode,
                                         int p_action,
                                         int p_mods)
@@ -313,7 +313,7 @@ void RobotViewerApplication::onKeyInput(int p_key,
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onMouseButton(int p_button,
+void Application::onMouseButton(int p_button,
                                            int p_action,
                                            int p_mods)
 {
@@ -321,13 +321,13 @@ void RobotViewerApplication::onMouseButton(int p_button,
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onCursorPos(double p_xpos, double p_ypos)
+void Application::onCursorPos(double p_xpos, double p_ypos)
 {
     m_camera_controller->handleMouseMove(p_xpos, p_ypos);
 }
 
 // ----------------------------------------------------------------------------
-void RobotViewerApplication::onScroll(double p_xoffset, double p_yoffset)
+void Application::onScroll(double p_xoffset, double p_yoffset)
 {
     m_camera_controller->handleScroll(p_xoffset, p_yoffset);
 }

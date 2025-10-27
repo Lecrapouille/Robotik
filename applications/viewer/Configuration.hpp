@@ -7,7 +7,7 @@
 
 #include <Eigen/Dense>
 
-namespace robotik::renderer
+namespace robotik::application
 {
 
 // ************************************************************************
@@ -28,17 +28,13 @@ struct Configuration
     //! Search paths data (STL files ...)
     std::string search_paths;
     //! Path to the URDF file to load
-    std::string urdf_file;
+    std::vector<std::string> urdf_files;
     //! Joint positions to set
     std::vector<double> joint_positions;
     //! Control joint for inverse kinematics: usually the tool center point
     std::string control_joint;
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
-    //! Camera view type
-    // Camera::ViewType camera_view = Camera::ViewType::ISOMETRIC;
-    //! Enable performance profiling
-    bool enable_profiling = false;
     //! Show frames
     bool show_frames = false;
     //! Frame scale
@@ -47,4 +43,4 @@ struct Configuration
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };
 
-} // namespace robotik::renderer
+} // namespace robotik::application

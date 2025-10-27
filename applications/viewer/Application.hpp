@@ -1,5 +1,5 @@
 /**
- * @file RobotViewerApplication.hpp
+ * @file Application.hpp
  * @brief Robot viewer application class for the 3D viewer.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -11,10 +11,10 @@
 
 #include "Configuration.hpp"
 #include "DearRobotHMI.hpp"
-#include "Robotik/Common/Path.hpp"
-#include "Robotik/Renderer/Application/OpenGLApplication.hpp"
+
 #include "Robotik/Simulation/PhysicsSimulator.hpp"
 
+#include "Robotik/Renderer/Application/OpenGLApplication.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
@@ -23,27 +23,22 @@
 #include "Robotik/Renderer/RenderVisitor.hpp"
 #include "Robotik/Renderer/Renderer.hpp"
 
-namespace robotik::renderer
-{
+#include "Robotik/Common/Path.hpp"
 
-class OpenGLWindow;
+namespace robotik::application
+{
 
 // ****************************************************************************
 //! \brief Robot viewer application that inherits from Application.
 // ****************************************************************************
-class RobotViewerApplication final: public OpenGLApplication
+class Application final: public renderer::OpenGLApplication
 {
 public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
     // ----------------------------------------------------------------------------
-    explicit RobotViewerApplication(Configuration const& p_config);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Destructor.
-    // ----------------------------------------------------------------------------
-    // ~RobotViewerApplication() override;
+    explicit Application(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Run the application with the given configuration.
@@ -153,15 +148,15 @@ private:
     //! \brief Compute IK target poses.
     //! \param p_controlled_robot The controlled robot.
     // ----------------------------------------------------------------------------
-    void
-    computeIKTargetPoses(RobotManager::ControlledRobot& p_controlled_robot);
+    void computeIKTargetPoses(
+        renderer::RobotManager::ControlledRobot& p_controlled_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Compute trajectory configurations.
     //! \param p_controlled_robot The controlled robot.
     // ----------------------------------------------------------------------------
-    void
-    computeTrajectoryConfigs(RobotManager::ControlledRobot& p_controlled_robot);
+    void computeTrajectoryConfigs(
+        renderer::RobotManager::ControlledRobot& p_controlled_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Search for the joint to control for inverse kinematics, given by
@@ -172,8 +167,9 @@ private:
     //! \return true if setting the control joint was successful, false
     //! otherwise.
     // ----------------------------------------------------------------------------
-    bool setControlJoint(RobotManager::ControlledRobot& p_controlled_robot,
-                         std::string const& p_control_joint_name) const;
+    bool
+    setControlJoint(renderer::RobotManager::ControlledRobot& p_controlled_robot,
+                    std::string const& p_control_joint_name) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Search for the joint to look at, given by the user from the
@@ -184,29 +180,31 @@ private:
     //! \return true if setting the look at joint was successful, false
     //! otherwise.
     // ----------------------------------------------------------------------------
-    bool setCameraTarget(RobotManager::ControlledRobot& p_controlled_robot,
-                         std::string const& p_look_at_joint_name,
-                         bool p_use_root_if_not_found) const;
+    bool
+    setCameraTarget(renderer::RobotManager::ControlledRobot& p_controlled_robot,
+                    std::string const& p_look_at_joint_name,
+                    bool p_use_root_if_not_found) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Render trajectory path with axes using RenderVisitor.
     //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
-    void renderTrajectoryPath(RobotManager::ControlledRobot& p_robot);
+    void renderTrajectoryPath(renderer::RobotManager::ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Handle animation of the given robot.
     //! \param p_robot The controlled robot.
     //! \param p_time The time.
     // ----------------------------------------------------------------------------
-    void handleAnimation(RobotManager::ControlledRobot& p_robot,
+    void handleAnimation(renderer::RobotManager::ControlledRobot& p_robot,
                          double p_time) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Handle inverse kinematics.
     //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
-    void handleInverseKinematics(RobotManager::ControlledRobot& p_robot);
+    void
+    handleInverseKinematics(renderer::RobotManager::ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Handle trajectory following.
@@ -214,43 +212,44 @@ private:
     //! \param p_time Current time in seconds.
     //! \param p_dt Delta time in seconds.
     // ----------------------------------------------------------------------------
-    void handleTrajectory(RobotManager::ControlledRobot& p_robot,
+    void handleTrajectory(renderer::RobotManager::ControlledRobot& p_robot,
                           double p_time,
                           double p_dt);
 
-public:
-
-    //! \brief Search paths to load URDF files.
-    Path path;
-
 private:
 
-    // Configuration
-    Configuration const& m_config;
-
-    // Rendering components
-    std::unique_ptr<PerspectiveCamera> m_perspective_camera;
-    std::unique_ptr<OrbitController> m_orbit_controller;
-    std::unique_ptr<Renderer> m_renderer;
-    ShaderManager m_shader_manager;
-    MeshManager m_mesh_manager;
-    RobotManager m_robot_manager;
-    PhysicsSimulator m_physics_simulator;
-
-    // HMI
+    //! \brief DearImGui-based HMI for robot control and visualization.
     std::unique_ptr<DearRobotHMI> m_hmi;
-
-    // Cached OpenGL shader uniforms
+    //! \brief Application settings and configuration.
+    Configuration const& m_config;
+    //! \brief Search paths to load URDF, STL, etc. files.
+    Path m_path;
+    //! \brief Perspective camera for intuitive robot inspection.
+    std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
+    //! \brief Orbit controller for orbiting around the robot.
+    std::unique_ptr<renderer::OrbitController> m_orbit_controller;
+    //! \brief Renderer for rendering the robot.
+    std::unique_ptr<renderer::Renderer> m_renderer;
+    //! \brief Shader manager for managing shaders.
+    renderer::ShaderManager m_shader_manager;
+    //! \brief Mesh manager for managing meshes.
+    renderer::MeshManager m_mesh_manager;
+    //! \brief Robot manager for managing robots.
+    renderer::RobotManager m_robot_manager;
+    //! \brief Physics simulator for simulating physics.
+    robotik::PhysicsSimulator m_physics_simulator;
+    //! \brief Cached OpenGL shader uniforms.
     int m_projection_uniform = -1;
+    //! \brief Cached OpenGL shader uniforms.
     int m_view_uniform = -1;
-
-    // Animation
+    //! \brief Start time for animation.
     std::chrono::steady_clock::time_point m_start_time;
+    //! \brief Target pose index for animation.
     size_t m_target_pose_index = 0;
-
-    // Title and FPS states
+    //! \brief Title of the application.
     std::string m_title;
+    //! \brief FPS of the application.
     size_t m_fps = 0;
 };
 
-} // namespace robotik::renderer
+} // namespace robotik::application

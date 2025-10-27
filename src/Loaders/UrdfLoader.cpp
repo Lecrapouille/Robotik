@@ -317,8 +317,8 @@ URDFLoader::buildRobotModel(std::string const& p_robot_name)
     // Create root node from root link
     if (!root_link->geometry)
     {
-        m_error =
-            "Root link needs at least a visual geometry: " + root_link->name;
+        m_error = "Root link '" + root_link->name +
+                  "' has no visual geometry. Cannot create robot.";
         return nullptr;
     }
 
@@ -376,7 +376,8 @@ std::unique_ptr<Joint> URDFLoader::buildJointTree(Joint const* p_current_joint)
     // Create link node
     if (!child_link->geometry)
     {
-        m_error = "Link needs at least a visual geometry: " + child_link->name;
+        m_error = "Link '" + child_link->name +
+                  "' has no visual geometry. Cannot create robot.";
         return nullptr;
     }
 
@@ -446,13 +447,26 @@ bool URDFLoader::parseLinkGeometries(pugi::xml_node p_link_element,
                 g->color = p_link.color;
 
                 if (g->type() == Geometry::Type::MESH)
+                {
                     p_link.mesh_path_for_obb = g->meshPath();
+                }
                 else
                 {
                     p_link.urdf_collision_center = Eigen::Vector3d::Zero();
                     p_link.urdf_collision_orientation =
                         Eigen::Matrix3d::Identity();
-                    p_link.urdf_collision_params = g->parameters();
+                    // Convert to half-extents for collision (box needs /2)
+                    auto params = g->parameters();
+                    if (g->type() == Geometry::Type::BOX && params.size() >= 3)
+                    {
+                        p_link.urdf_collision_params = { params[0] / 2.0,
+                                                         params[1] / 2.0,
+                                                         params[2] / 2.0 };
+                    }
+                    else
+                    {
+                        p_link.urdf_collision_params = params;
+                    }
                 }
             }
         }

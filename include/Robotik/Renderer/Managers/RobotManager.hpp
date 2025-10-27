@@ -84,6 +84,8 @@ public:
         std::unique_ptr<robotik::IKSolver> ik_solver;
         //! \brief Tracked node for camera
         Node const* camera_target = nullptr;
+        //! \brief Camera tracking enabled
+        bool camera_tracking_enabled = true;
         //! \brief Visibility flag
         bool is_visible = true;
         //! \brief Scale factor

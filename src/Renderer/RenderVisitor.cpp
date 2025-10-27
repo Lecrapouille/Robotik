@@ -91,21 +91,20 @@ void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
     {
         if (auto* box = dynamic_cast<const robotik::Box*>(&geom))
         {
-            // Box parameters are half-extents, MeshManager needs full
-            // dimensions
             const auto& params = box->parameters();
-            if (params.size() >= 3)
+            if (params.size() == 3)
             {
-                m_mesh_manager.createBox(mesh_name,
-                                         static_cast<float>(params[0] * 2.0),
-                                         static_cast<float>(params[1] * 2.0),
-                                         static_cast<float>(params[2] * 2.0));
+                m_mesh_manager.createBox(
+                    mesh_name,
+                    static_cast<float>(params[0]),  // width
+                    static_cast<float>(params[1]),  // height
+                    static_cast<float>(params[2])); // depth
             }
         }
         else if (auto* cyl = dynamic_cast<const robotik::Cylinder*>(&geom))
         {
             const auto& params = cyl->parameters();
-            if (params.size() >= 2)
+            if (params.size() == 2)
             {
                 m_mesh_manager.createCylinder(
                     mesh_name,
@@ -116,14 +115,14 @@ void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
         }
         else if (auto* sphere = dynamic_cast<const robotik::Sphere*>(&geom))
         {
-            // TODO: Add createSphere() to MeshManager
-            // For now, create a small box as placeholder
             const auto& params = sphere->parameters();
-            if (!params.empty())
+            if (params.size() == 1)
             {
-                float r = static_cast<float>(params[0]);
-                m_mesh_manager.createBox(
-                    mesh_name, r * 2.0f, r * 2.0f, r * 2.0f);
+                m_mesh_manager.createSphere(
+                    mesh_name,
+                    static_cast<float>(params[0]), // radius
+                    16,                            // latitude segments
+                    16);                           // longitude segments
             }
         }
         else if (auto* mesh = dynamic_cast<const robotik::Mesh*>(&geom))

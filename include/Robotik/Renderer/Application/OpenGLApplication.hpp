@@ -72,6 +72,13 @@ public:
     // ------------------------------------------------------------------------
     void halt();
 
+    // ------------------------------------------------------------------------
+    //! \brief Check if the OpenGL viewport is hovered (mouse over it).
+    //! \return true if viewport is hovered or ImGui is disabled, false
+    //! otherwise.
+    // ------------------------------------------------------------------------
+    bool isViewportHovered() const;
+
 protected:
 
     // ------------------------------------------------------------------------
