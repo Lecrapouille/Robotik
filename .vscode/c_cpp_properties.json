@@ -14,8 +14,6 @@
             ],
             "defines": [
                 "COMPILER_NAME=\"g++\"",
-                "COMPILER_VERSION=\"15.2.0\"",
-                "API_LINKAGE=",
                 "UNDEBUG",
                 "_GLIBCXX_ASSERTIONS"
             ],

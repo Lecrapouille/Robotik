@@ -52,6 +52,12 @@ tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pi
   - https://github.com/mcevoyandy/urdf_to_dh
   - https://adohaha.github.io/DH2URDF/
 
+- Charger le robot avec dear im gui
+- Cacher le robot et mise a l'echelle + position initiale
+- Faire mimic
+- Deplacer a la main un robot
+- tester make install
+
 Faits:
 
 - ~~void Blueprint::cacheBlueprintTree() utiliser le pattern visiteur~~

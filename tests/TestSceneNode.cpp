@@ -12,7 +12,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Node.hpp"
+#include "Robotik/Core/Core/Node.hpp"
 
 #include <cmath>
 

@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Path.hpp"
+#include "Robotik/Core/Core/Path.hpp"
 
 using namespace robotik;
 

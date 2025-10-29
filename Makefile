@@ -37,24 +37,10 @@ ORCHESTRATOR_MODE := 1
 # Internal libs to compile
 #
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
-LIB_ROBOTIK_VIEWER := $(call internal-lib,robotik-viewer)
-INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_VIEWER)
-DIRS_WITH_MAKEFILE := $(P)/src $(P)/src/Renderer
-
-###################################################
-# Demos to compile after libs
-#
-DEMO_DIRS := $(sort $(dir $(wildcard $(P)/doc/demos/*/.)))
-
-###################################################
-# Compile internal libraries in the correct order:
-# robotik-viewer depends on robotik-core
-#
-$(LIB_ROBOTIK_VIEWER): $(P)/src/Renderer
-
-$(LIB_ROBOTIK_CORE): $(P)/src
-
-$(LIB_ROBOTIK_VIEWER):| $(LIB_ROBOTIK_CORE)
+LIB_ROBOTIK_RENDERER := $(call internal-lib,robotik-renderer)
+INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_RENDERER)
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core $(P)/src/Robotik/Renderer
+$(P)/src/Robotik/Renderer: | $(P)/src/Robotik/Core
 
 ###################################################
 # Generic Makefile rules
@@ -62,19 +48,20 @@ $(LIB_ROBOTIK_VIEWER):| $(LIB_ROBOTIK_CORE)
 include $(M)/rules/Makefile
 
 ###################################################
-# Extra rules: compile demos after everything
+# Post-download setup
 #
-DEMOS = $(sort $(dir $(wildcard ./applications/*/.)))
+download-external-libs::
+	@cp $(THIRD_PARTIES_DIR)/units/include/units.h $(THIRD_PARTIES_DIR)/units/units.hpp
+
+###################################################
+# Extra rules: compile applications after everything
+#
+APPLICATIONS = $(sort $(dir $(wildcard $(P)/src/Applications/*/.)))
 
 .PHONY: applications
 applications: | $(INTERNAL_LIBS)
-	@$(call print-from,"Compiling applications",$(PROJECT_NAME),$(DEMOS))
-	@for i in $(DEMOS);        \
+	@$(call print-from,"Compiling applications",$(PROJECT_NAME),$(APPLICATIONS))
+	@for i in $(APPLICATIONS);     \
 	do                             \
 		$(MAKE) -C $$i all;        \
 	done;
-
-###################################################
-# Clean targets
-#
-all:: applications
