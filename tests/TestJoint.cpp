@@ -10,7 +10,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Joint.hpp"
+#include "Robotik/Core/Core/Joint.hpp"
 
 #include <cmath>
 
