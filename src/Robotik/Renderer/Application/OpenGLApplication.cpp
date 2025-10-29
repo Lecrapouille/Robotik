@@ -125,7 +125,7 @@ bool OpenGLApplication::setup()
 }
 
 // ----------------------------------------------------------------------------
-bool OpenGLApplication::teardown()
+void OpenGLApplication::teardown()
 {
     if (m_imgui_app)
     {
@@ -133,7 +133,6 @@ bool OpenGLApplication::teardown()
         m_imgui_app.reset();
     }
     onTeardown();
-    return true;
 }
 
 // ----------------------------------------------------------------------------

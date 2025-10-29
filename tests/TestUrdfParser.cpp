@@ -13,9 +13,9 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Core/Path.hpp"
-#include "Robotik/Core/Core/Robot.hpp"
-#include "Robotik/Core/Core/UrdfLoader.hpp"
+#include "Robotik/Core/Common/Path.hpp"
+#include "Robotik/Core/Loaders/UrdfLoader.hpp"
+#include "Robotik/Core/Robot/Robot.hpp"
 
 #include <cmath>
 

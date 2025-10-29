@@ -1,5 +1,5 @@
 /**
- * @file TestUtils.cpp
+ * @file TestConversions.cpp
  * @brief Unit tests for utility functions - Verification of coordinate
  * conversions (Euler angles, quaternions, rotation matrices) and basic
  * mathematical functions.
@@ -11,7 +11,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Core/Conversions.hpp"
+#include "Robotik/Core/Common/Conversions.hpp"
 
 #include <cmath>
 
@@ -19,9 +19,9 @@ using namespace robotik;
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for Utils class.
+//! \brief Test fixture for Conversions class.
 // *********************************************************************************
-class UtilsTest: public ::testing::Test
+class ConversionsTest: public ::testing::Test
 {
 protected:
 
@@ -37,7 +37,7 @@ protected:
 // *********************************************************************************
 //! \brief Test Euler angles to rotation matrix conversion.
 // *********************************************************************************
-TEST_F(UtilsTest, EulerToRotation)
+TEST_F(ConversionsTest, EulerToRotation)
 {
     // Test identity rotation
     Eigen::Matrix3d identity_rot = eulerToRotation(0.0, 0.0, 0.0);
@@ -65,7 +65,7 @@ TEST_F(UtilsTest, EulerToRotation)
 // *********************************************************************************
 //! \brief Test rotation matrix to Euler angles conversion.
 // *********************************************************************************
-TEST_F(UtilsTest, RotationToEuler)
+TEST_F(ConversionsTest, RotationToEuler)
 {
     // Test identity rotation
     Eigen::Matrix3d identity = Eigen::Matrix3d::Identity();
@@ -86,7 +86,7 @@ TEST_F(UtilsTest, RotationToEuler)
 // *********************************************************************************
 //! \brief Test round-trip conversion: Euler -> Rotation -> Euler.
 // *********************************************************************************
-TEST_F(UtilsTest, EulerRotationRoundTrip)
+TEST_F(ConversionsTest, EulerRotationRoundTrip)
 {
     std::vector<Eigen::Vector3d> test_angles = {
         Eigen::Vector3d(0.0, 0.0, 0.0),
@@ -113,7 +113,7 @@ TEST_F(UtilsTest, EulerRotationRoundTrip)
 // *********************************************************************************
 //! \brief Test createTransform with translation and rotation matrix.
 // *********************************************************************************
-TEST_F(UtilsTest, CreateTransformWithMatrix)
+TEST_F(ConversionsTest, CreateTransformWithMatrix)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
     Eigen::Matrix3d rotation = eulerToRotation(0.0, 0.0, M_PI / 2);
@@ -136,7 +136,7 @@ TEST_F(UtilsTest, CreateTransformWithMatrix)
 // *********************************************************************************
 //! \brief Test createTransform with translation and Euler angles.
 // *********************************************************************************
-TEST_F(UtilsTest, CreateTransformWithEuler)
+TEST_F(ConversionsTest, CreateTransformWithEuler)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
     double rx = M_PI / 4;
@@ -156,7 +156,7 @@ TEST_F(UtilsTest, CreateTransformWithEuler)
 // *********************************************************************************
 //! \brief Test getTranslation.
 // *********************************************************************************
-TEST_F(UtilsTest, GetTranslation)
+TEST_F(ConversionsTest, GetTranslation)
 {
     Eigen::Vector3d expected_translation(1.0, 2.0, 3.0);
     Transform transform = Transform::Identity();
@@ -169,7 +169,7 @@ TEST_F(UtilsTest, GetTranslation)
 // *********************************************************************************
 //! \brief Test getRotation.
 // *********************************************************************************
-TEST_F(UtilsTest, GetRotation)
+TEST_F(ConversionsTest, GetRotation)
 {
     Eigen::Matrix3d expected_rotation =
         eulerToRotation(M_PI / 4, M_PI / 6, M_PI / 3);
@@ -183,7 +183,7 @@ TEST_F(UtilsTest, GetRotation)
 // *********************************************************************************
 //! \brief Test transformToPose.
 // *********************************************************************************
-TEST_F(UtilsTest, TransformToPose)
+TEST_F(ConversionsTest, TransformToPose)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
     double rx = M_PI / 4.0;
@@ -207,7 +207,7 @@ TEST_F(UtilsTest, TransformToPose)
 // *********************************************************************************
 //! \brief Test poseToTransform.
 // *********************************************************************************
-TEST_F(UtilsTest, PoseToTransform)
+TEST_F(ConversionsTest, PoseToTransform)
 {
     Pose pose;
     pose << 1.0, 2.0, 3.0, M_PI / 4, M_PI / 6, M_PI / 3;
@@ -228,7 +228,7 @@ TEST_F(UtilsTest, PoseToTransform)
 // *********************************************************************************
 //! \brief Test round-trip conversion: Transform -> Pose -> Transform.
 // *********************************************************************************
-TEST_F(UtilsTest, TransformPoseRoundTrip)
+TEST_F(ConversionsTest, TransformPoseRoundTrip)
 {
     Eigen::Vector3d translation(1.0, 2.0, 3.0);
     double rx = M_PI / 4.0;
@@ -245,7 +245,7 @@ TEST_F(UtilsTest, TransformPoseRoundTrip)
 // *********************************************************************************
 //! \brief Test DH (Denavit-Hartenberg) transformation.
 // *********************************************************************************
-TEST_F(UtilsTest, DHTransform)
+TEST_F(ConversionsTest, DHTransform)
 {
     // Test with simple DH parameters
     double a = 1.0;
@@ -277,7 +277,7 @@ TEST_F(UtilsTest, DHTransform)
 // *********************************************************************************
 //! \brief Test DH transform with known values.
 // *********************************************************************************
-TEST_F(UtilsTest, DHTransformKnownValues)
+TEST_F(ConversionsTest, DHTransformKnownValues)
 {
     // Test simple case: only theta rotation
     Transform theta_only = dhTransform(0.0, 0.0, 0.0, M_PI / 2);
@@ -307,7 +307,7 @@ TEST_F(UtilsTest, DHTransformKnownValues)
 // *********************************************************************************
 //! \brief Test edge cases.
 // *********************************************************************************
-TEST_F(UtilsTest, EdgeCases)
+TEST_F(ConversionsTest, EdgeCases)
 {
     // Test with very small angles - use larger tolerance for numerical
     // precision

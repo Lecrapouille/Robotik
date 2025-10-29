@@ -22,11 +22,6 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
-# Set TinyXML2 library
-#
-SRC_FILES += $(THIRD_PARTIES_DIR)/tinyxml2/tinyxml2.cpp
-
-###############################################################################
 # Set units library
 #
 INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
@@ -44,18 +39,11 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES += $(wildcard $(P)/src/Common/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Loaders/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Robot/Blueprint/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Robot/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Simulation/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Solvers/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Renderer/*/*.cpp)
-SRC_FILES += $(wildcard $(P)/src/Renderer/*.cpp)
 SRC_FILES += $(wildcard $(P)/tests/*.cpp)
-INCLUDES += $(P)/include
 INCLUDES += $(P)/src
 VPATH += $(P)/src
+INTERNAL_LIBS += $(call internal-lib,robotik-core)
+INTERNAL_LIBS += $(call internal-lib,robotik-renderer)
 
 ###################################################
 # Generic Makefile rules
