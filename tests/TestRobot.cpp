@@ -10,8 +10,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Core/Core/Conversions.hpp"
-#include "Robotik/Core/Core/Robot.hpp"
+#include "Robotik/Core/Common/Conversions.hpp"
+#include "Robotik/Core/Robot/Robot.hpp"
 
 #include <cmath>
 

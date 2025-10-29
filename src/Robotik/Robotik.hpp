@@ -94,17 +94,17 @@
 // Include full API after forward declarations
 // ============================================================================
 
-#include "Robotik/Core/Core/Robot.hpp"
-#include "Robotik/Core/Core/UrdfLoader.hpp"
+#include "Robotik/Core/Robot.hpp"
+#include "Robotik/Core/UrdfLoader.hpp"
 
 // ============================================================================
 // Extended API: Additional modules for advanced functionality
 // ============================================================================
 
-#include "Robotik/Core/Core/Debug.hpp"
-#include "Robotik/Core/Core/NodeVisitor.hpp"
-// #include "Robotik/Core/Core/IKSolver.hpp"
-#include "Robotik/Core/Core/PhysicsSimulator.hpp"
+#include "Robotik/Core/Debug.hpp"
+#include "Robotik/Core/NodeVisitor.hpp"
+// #include "Robotik/Core/IKSolver.hpp"
+#include "Robotik/Core/PhysicsSimulator.hpp"
 
 namespace robotik
 {

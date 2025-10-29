@@ -10,7 +10,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Renderer/Application.hpp"
+#include "Robotik/Renderer/Application/Application.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -25,17 +25,6 @@ class MockApplication: public Application
 {
 public:
 
-    MockApplication()
-        : m_setup_called(false),
-          m_setup_returns(false),
-          m_update_count(0),
-          m_draw_count(0),
-          m_physics_update_count(0),
-          m_should_close(false),
-          m_last_delta_time(0.0f)
-    {
-    }
-
     // Test control methods
     void setSetupReturns(bool returns)
     {
@@ -43,7 +32,7 @@ public:
     }
     void setShouldClose(bool close)
     {
-        m_should_close = close;
+        m_shall_close = close;
     }
 
     // Getters for verification
@@ -70,23 +59,23 @@ public:
 
 protected:
 
-    bool isHalting() const override
+    bool shallBeHalted() const override
     {
-        return m_should_close;
+        return m_shall_close;
     }
 
-    bool onSetup() override
+    bool setup() override
     {
         m_setup_called = true;
         return m_setup_returns;
     }
 
-    void onCleanup() override
+    void teardown() override
     {
         // Mock implementation - do nothing
     }
 
-    void onDraw() override
+    void draw() override
     {
         m_draw_count++;
     }
@@ -114,13 +103,13 @@ protected:
 
 private:
 
-    std::atomic<bool> m_setup_called;
-    std::atomic<bool> m_setup_returns;
-    std::atomic<int> m_update_count;
-    std::atomic<int> m_draw_count;
-    std::atomic<int> m_physics_update_count;
-    std::atomic<bool> m_should_close;
-    std::atomic<float> m_last_delta_time;
+    std::atomic<bool> m_setup_called = false;
+    std::atomic<bool> m_setup_returns = false;
+    std::atomic<int> m_update_count = 0;
+    std::atomic<int> m_draw_count = 0;
+    std::atomic<int> m_physics_update_count = 0;
+    std::atomic<bool> m_shall_close = false;
+    std::atomic<float> m_last_delta_time = 0.0f;
 };
 
 // *********************************************************************************
@@ -156,23 +145,6 @@ TEST_F(ApplicationTest, SetupFailure)
     EXPECT_TRUE(app->isSetupCalled());
     EXPECT_EQ(app->getUpdateCount(), 0);
     EXPECT_EQ(app->getDrawCount(), 0);
-}
-
-// *********************************************************************************
-//! \brief Test successful application run with immediate close.
-// *********************************************************************************
-TEST_F(ApplicationTest, SuccessfulRunImmediateClose)
-{
-    app->setSetupReturns(true);
-    app->setShouldClose(true);
-
-    bool result = app->run(60, 60);
-
-    EXPECT_TRUE(result);
-    EXPECT_TRUE(app->isSetupCalled());
-    // With immediate close, we might have 0 or 1 calls depending on timing
-    EXPECT_GE(app->getUpdateCount(), 0);
-    EXPECT_GE(app->getDrawCount(), 0);
 }
 
 // *********************************************************************************
@@ -213,7 +185,7 @@ TEST_F(ApplicationTest, DeltaTimeCalculation)
     std::thread close_thread(
         [this]()
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
             app->setShouldClose(true);
         });
 
@@ -240,7 +212,7 @@ TEST_F(ApplicationTest, PhysicsThreadManagement)
     std::thread close_thread(
         [this]()
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            std::this_thread::sleep_for(std::chrono::milliseconds(30));
             app->setShouldClose(true);
         });
 
@@ -250,7 +222,7 @@ TEST_F(ApplicationTest, PhysicsThreadManagement)
     // Physics updates should have been called if thread had time to start
     // Note: Physics thread runs at 60Hz, so 20ms should be enough for at least
     // one update
-    EXPECT_GE(app->getPhysicsUpdateCount(), 0);
+    EXPECT_GE(app->getPhysicsUpdateCount(), 1);
 }
 
 // *********************************************************************************

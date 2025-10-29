@@ -143,7 +143,7 @@ private:
     // Override Application methods
     bool shallBeHalted() const final;
     bool setup() final;
-    bool teardown() final;
+    void teardown() final;
     void draw() final;
 
     // Internal initialization methods

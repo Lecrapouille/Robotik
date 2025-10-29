@@ -80,7 +80,7 @@ private:
     //! You can use this method to clean up any resources you allocated in the
     //! onSetup() method.
     // ----------------------------------------------------------------------------
-    virtual bool teardown() = 0;
+    virtual void teardown() = 0;
 
     // ----------------------------------------------------------------------------
     //! \brief Render the application. Called every frame.
