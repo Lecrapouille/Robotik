@@ -29,18 +29,20 @@ M := $(P)/.makefile
 #
 include $(P)/Makefile.common
 TARGET_NAME := $(PROJECT_NAME)
+RUNNING_TARGET_NAME := Robotik-Viewer
 TARGET_DESCRIPTION := A robot library
-include $(M)/project/Makefile
 ORCHESTRATOR_MODE := 1
 
+include $(M)/project/Makefile
+
 ###################################################
-# Internal libs to compile
+# Internal libs to compile in the correct order
 #
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
 LIB_ROBOTIK_RENDERER := $(call internal-lib,robotik-renderer)
 INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_RENDERER)
 DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core $(P)/src/Robotik/Renderer
-$(P)/src/Robotik/Renderer: | $(P)/src/Robotik/Core
+$(P)/src/Robotik/Renderer: $(P)/src/Robotik/Core
 
 ###################################################
 # Generic Makefile rules
@@ -59,9 +61,11 @@ download-external-libs::
 APPLICATIONS = $(sort $(dir $(wildcard $(P)/src/Applications/*/.)))
 
 .PHONY: applications
-applications: | $(INTERNAL_LIBS)
+applications: $(DIRS_WITH_MAKEFILE)
 	@$(call print-from,"Compiling applications",$(PROJECT_NAME),$(APPLICATIONS))
 	@for i in $(APPLICATIONS);     \
 	do                             \
 		$(MAKE) -C $$i all;        \
 	done;
+
+post-build:: applications
