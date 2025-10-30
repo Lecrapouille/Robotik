@@ -229,7 +229,7 @@ bool RobotManager::updateRobotLinkTransforms(const std::string& p_robot_name)
     }
 
     // For now, we'll just update the first link transform
-    // In a full implementation, we would traverse the robot's scene graph
+    // In a full implementation, we would traverse the robot's kinematic tree
     // and compute the transformation for each link based on joint values
     // if (!it->second.link_transforms.empty())
     //{

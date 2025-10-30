@@ -15,6 +15,7 @@
 
 #include "Robotik/Core/Common/Path.hpp"
 #include "Robotik/Core/Loaders/UrdfLoader.hpp"
+#include "Robotik/Core/Robot/Blueprint/Link.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 
 #include <cmath>
@@ -79,7 +80,7 @@ TEST_F(URDFLoaderTest, NonExistentFile)
 }
 
 // *********************************************************************************
-//! \brief Test parsing simple revolute robot URDF scene graph.
+//! \brief Test parsing simple revolute robot URDF kinematic tree.
 // *********************************************************************************
 TEST_F(URDFLoaderTest, SimpleRevoluteRobotSceneGraph)
 {
@@ -131,7 +132,7 @@ TEST_F(URDFLoaderTest, SimpleRevoluteRobotSceneGraph)
 }
 
 // *********************************************************************************
-//! \brief Test parsing simple prismatic robot URDF scene graph.
+//! \brief Test parsing simple prismatic robot URDF kinematic tree.
 // *********************************************************************************
 TEST_F(URDFLoaderTest, SimplePrismaticRobotSceneGraph)
 {
@@ -183,7 +184,7 @@ TEST_F(URDFLoaderTest, SimplePrismaticRobotSceneGraph)
 }
 
 // *********************************************************************************
-//! \brief Test parsing differential drive robot URDF scene graph.
+//! \brief Test parsing differential drive robot URDF kinematic tree.
 // *********************************************************************************
 TEST_F(URDFLoaderTest, DifferentialDriveRobotSceneGraph)
 {
@@ -248,7 +249,7 @@ TEST_F(URDFLoaderTest, DifferentialDriveRobotSceneGraph)
 }
 
 // *********************************************************************************
-//! \brief Test parsing SCARA robot URDF scene graph.
+//! \brief Test parsing SCARA robot URDF kinematic tree.
 // *********************************************************************************
 TEST_F(URDFLoaderTest, SCARArobotSceneGraph)
 {
@@ -300,7 +301,7 @@ TEST_F(URDFLoaderTest, SCARArobotSceneGraph)
 }
 
 // *********************************************************************************
-//! \brief Test parsing cartesian robot URDF scene graph.
+//! \brief Test parsing cartesian robot URDF kinematic tree.
 // *********************************************************************************
 TEST_F(URDFLoaderTest, CartesianRobotSceneGraph)
 {
@@ -395,4 +396,203 @@ TEST_F(URDFLoaderTest, CartesianRobotSceneGraph)
     EXPECT_DOUBLE_EQ(geometries[3]->parameters()[0], 0.04);
     EXPECT_DOUBLE_EQ(geometries[3]->parameters()[1], 0.3);
     EXPECT_EQ(geometries[3]->color, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
+}
+
+// *********************************************************************************
+//! \brief Test parsing simple revolute robot with inertia URDF kinematic tree.
+// *********************************************************************************
+TEST_F(URDFLoaderTest, SimpleRevoluteRobotWithInertiaSceneGraph)
+{
+    std::string robot_file_path = "simple_revolute_robot_with_inertia.urdf";
+    auto robot = parseRobot(robot_file_path);
+    ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
+
+    // Check robot has root node
+    EXPECT_TRUE(robot->blueprint().hasRoot());
+
+    // Check joint structure
+    EXPECT_EQ(robot->blueprint().numJoints(), 1);
+
+    // Get the revolute joint
+    auto const& revolute_joint = robot->blueprint().joint("revolute_joint");
+    EXPECT_EQ(revolute_joint.type(), Joint::Type::REVOLUTE);
+
+    // Test joint axis - should be Z-axis (0, 0, 1) for revolute joint
+    auto axis = revolute_joint.axis();
+    EXPECT_DOUBLE_EQ(axis.x(), 0.0);
+    EXPECT_DOUBLE_EQ(axis.y(), 0.0);
+    EXPECT_DOUBLE_EQ(axis.z(), 1.0);
+
+    // Test joint limits (-3.14159 to 3.14159)
+    auto [min_limit, max_limit] = revolute_joint.limits();
+    EXPECT_NEAR(min_limit, -3.14159, 1e-4);
+    EXPECT_NEAR(max_limit, 3.14159, 1e-4);
+
+    // Test joint velocity limit
+    EXPECT_DOUBLE_EQ(revolute_joint.maxVelocity(), 100.0);
+
+    // Test joint effort limit
+    EXPECT_DOUBLE_EQ(revolute_joint.effort_max(), 1000.0);
+
+    // Test geometry information
+    auto geometries = getGeometries(*robot);
+    EXPECT_EQ(geometries.size(), 2);
+
+    EXPECT_EQ(geometries[0]->name(), "base_link_geometry");
+    EXPECT_EQ(geometries[0]->type(), Geometry::Type::BOX);
+    EXPECT_EQ(geometries[0]->parameters().size(), 3u);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[0], 0.1);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[1], 0.1);
+    EXPECT_DOUBLE_EQ(geometries[0]->parameters()[2], 0.1);
+    EXPECT_EQ(geometries[0]->color, Eigen::Vector3f(0.5, 0.5, 0.5));
+
+    EXPECT_EQ(geometries[1]->name(), "arm_link_geometry");
+    EXPECT_EQ(geometries[1]->type(), Geometry::Type::BOX);
+    EXPECT_EQ(geometries[1]->parameters().size(), 3u);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[0], 0.2);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[1], 0.05);
+    EXPECT_DOUBLE_EQ(geometries[1]->parameters()[2], 0.05);
+    EXPECT_EQ(geometries[1]->color, Eigen::Vector3f(0.0, 0.0, 1.0));
+
+    // Test inertial properties for base_link
+    Link const& base_link = robot->blueprint().link("base_link");
+    EXPECT_DOUBLE_EQ(base_link.mass(), 1.0);
+    Eigen::Vector4d base_com = base_link.centerOfMass();
+    EXPECT_NEAR(base_com.x(), 0.0, 1e-6);
+    EXPECT_NEAR(base_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(base_com.z(), 0.0, 1e-6);
+    Inertial const& base_inertial = base_link.inertia();
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(0, 0), 0.01); // ixx
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(1, 1), 0.01); // iyy
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(2, 2), 0.01); // izz
+
+    // Test inertial properties for arm_link
+    Link const& arm_link = robot->blueprint().link("arm_link");
+    EXPECT_DOUBLE_EQ(arm_link.mass(), 0.5);
+    Eigen::Vector4d arm_com = arm_link.centerOfMass();
+    EXPECT_NEAR(arm_com.x(), 0.1, 1e-6);
+    EXPECT_NEAR(arm_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(arm_com.z(), 0.0, 1e-6);
+    Inertial const& arm_inertial = arm_link.inertia();
+    EXPECT_DOUBLE_EQ(arm_inertial.inertia_matrix(0, 0), 0.001); // ixx
+    EXPECT_DOUBLE_EQ(arm_inertial.inertia_matrix(1, 1), 0.001); // iyy
+    EXPECT_DOUBLE_EQ(arm_inertial.inertia_matrix(2, 2), 0.001); // izz
+}
+
+// *********************************************************************************
+//! \brief Test parsing 6-axis robot URDF kinematic tree.
+// *********************************************************************************
+TEST_F(URDFLoaderTest, Robot6AxisSceneGraph)
+{
+    std::string robot_file_path = "robot_6axis.urdf";
+    auto robot = parseRobot(robot_file_path);
+    ASSERT_NE(robot, nullptr) << "Failed to load " << robot_file_path;
+
+    // Check robot has root node
+    EXPECT_TRUE(robot->blueprint().hasRoot());
+
+    // Check joint structure - should have 6 joints
+    size_t num_joints = robot->blueprint().numJoints();
+    EXPECT_EQ(num_joints, 6);
+
+    // Check link structure - should have 7 links (base_link + 6 links)
+    EXPECT_EQ(robot->blueprint().numLinks(), 7);
+
+    // Test joint1 limits, velocity, effort
+    auto const& joint1 = robot->blueprint().joint("joint1");
+    EXPECT_EQ(joint1.type(), Joint::Type::REVOLUTE);
+    auto [j1_min, j1_max] = joint1.limits();
+    EXPECT_NEAR(j1_min, -3.14159, 1e-4);
+    EXPECT_NEAR(j1_max, 3.14159, 1e-4);
+    EXPECT_DOUBLE_EQ(joint1.maxVelocity(), 2.0);
+    EXPECT_DOUBLE_EQ(joint1.effort_max(), 150.0);
+
+    // Test joint2 limits, velocity, effort
+    auto const& joint2 = robot->blueprint().joint("joint2");
+    EXPECT_EQ(joint2.type(), Joint::Type::REVOLUTE);
+    auto [j2_min, j2_max] = joint2.limits();
+    EXPECT_NEAR(j2_min, -1.57079, 1e-4);
+    EXPECT_NEAR(j2_max, 1.57079, 1e-4);
+    EXPECT_DOUBLE_EQ(joint2.maxVelocity(), 1.8);
+    EXPECT_DOUBLE_EQ(joint2.effort_max(), 120.0);
+
+    // Test joint3 limits, velocity, effort
+    auto const& joint3 = robot->blueprint().joint("joint3");
+    EXPECT_EQ(joint3.type(), Joint::Type::REVOLUTE);
+    auto [j3_min, j3_max] = joint3.limits();
+    EXPECT_NEAR(j3_min, -2.35619, 1e-4);
+    EXPECT_NEAR(j3_max, 2.35619, 1e-4);
+    EXPECT_DOUBLE_EQ(joint3.maxVelocity(), 2.2);
+    EXPECT_DOUBLE_EQ(joint3.effort_max(), 100.0);
+
+    // Test joint4 limits, velocity, effort
+    auto const& joint4 = robot->blueprint().joint("joint4");
+    EXPECT_EQ(joint4.type(), Joint::Type::REVOLUTE);
+    auto [j4_min, j4_max] = joint4.limits();
+    EXPECT_NEAR(j4_min, -3.14159, 1e-4);
+    EXPECT_NEAR(j4_max, 3.14159, 1e-4);
+    EXPECT_DOUBLE_EQ(joint4.maxVelocity(), 2.5);
+    EXPECT_DOUBLE_EQ(joint4.effort_max(), 50.0);
+
+    // Test joint5 limits, velocity, effort
+    auto const& joint5 = robot->blueprint().joint("joint5");
+    EXPECT_EQ(joint5.type(), Joint::Type::REVOLUTE);
+    auto [j5_min, j5_max] = joint5.limits();
+    EXPECT_NEAR(j5_min, -1.74533, 1e-4);
+    EXPECT_NEAR(j5_max, 1.74533, 1e-4);
+    EXPECT_DOUBLE_EQ(joint5.maxVelocity(), 2.8);
+    EXPECT_DOUBLE_EQ(joint5.effort_max(), 40.0);
+
+    // Test joint6 limits, velocity, effort
+    auto const& joint6 = robot->blueprint().joint("joint6");
+    EXPECT_EQ(joint6.type(), Joint::Type::REVOLUTE);
+    auto [j6_min, j6_max] = joint6.limits();
+    EXPECT_NEAR(j6_min, -3.14159, 1e-4);
+    EXPECT_NEAR(j6_max, 3.14159, 1e-4);
+    EXPECT_DOUBLE_EQ(joint6.maxVelocity(), 3.0);
+    EXPECT_DOUBLE_EQ(joint6.effort_max(), 30.0);
+
+    // Test inertial properties for base_link
+    Link const& base_link = robot->blueprint().link("base_link");
+    EXPECT_DOUBLE_EQ(base_link.mass(), 5.0);
+    Eigen::Vector4d base_com = base_link.centerOfMass();
+    EXPECT_NEAR(base_com.x(), 0.0, 1e-6);
+    EXPECT_NEAR(base_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(base_com.z(), 0.05, 1e-6);
+    Inertial const& base_inertial = base_link.inertia();
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(0, 0), 0.05); // ixx
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(1, 1), 0.05); // iyy
+    EXPECT_DOUBLE_EQ(base_inertial.inertia_matrix(2, 2), 0.08); // izz
+
+    // Test inertial properties for link1
+    Link const& link1 = robot->blueprint().link("link1");
+    EXPECT_DOUBLE_EQ(link1.mass(), 3.0);
+    Eigen::Vector4d link1_com = link1.centerOfMass();
+    EXPECT_NEAR(link1_com.x(), 0.0, 1e-6);
+    EXPECT_NEAR(link1_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(link1_com.z(), 0.15, 1e-6);
+    Inertial const& link1_inertial = link1.inertia();
+    EXPECT_DOUBLE_EQ(link1_inertial.inertia_matrix(0, 0), 0.025); // ixx
+    EXPECT_DOUBLE_EQ(link1_inertial.inertia_matrix(1, 1), 0.025); // iyy
+    EXPECT_DOUBLE_EQ(link1_inertial.inertia_matrix(2, 2), 0.01);  // izz
+
+    // Test inertial properties for link2
+    Link const& link2 = robot->blueprint().link("link2");
+    EXPECT_DOUBLE_EQ(link2.mass(), 2.5);
+    Eigen::Vector4d link2_com = link2.centerOfMass();
+    EXPECT_NEAR(link2_com.x(), 0.0, 1e-6);
+    EXPECT_NEAR(link2_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(link2_com.z(), 0.175, 1e-6);
+
+    // Test inertial properties for link6 (end effector)
+    Link const& link6 = robot->blueprint().link("link6");
+    EXPECT_DOUBLE_EQ(link6.mass(), 0.5);
+    Eigen::Vector4d link6_com = link6.centerOfMass();
+    EXPECT_NEAR(link6_com.x(), 0.0, 1e-6);
+    EXPECT_NEAR(link6_com.y(), 0.0, 1e-6);
+    EXPECT_NEAR(link6_com.z(), 0.03, 1e-6);
+    Inertial const& link6_inertial = link6.inertia();
+    EXPECT_DOUBLE_EQ(link6_inertial.inertia_matrix(0, 0), 0.001);  // ixx
+    EXPECT_DOUBLE_EQ(link6_inertial.inertia_matrix(1, 1), 0.001);  // iyy
+    EXPECT_DOUBLE_EQ(link6_inertial.inertia_matrix(2, 2), 0.0005); // izz
 }

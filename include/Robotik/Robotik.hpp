@@ -62,7 +62,7 @@
  *
  * @section advanced_usage Advanced Usage
  *
- * For advanced users who need direct access to the scene graph:
+ * For advanced users who need direct access to the kinematic tree:
  *
  * @code{.cpp}
  * #include <Robotik/Robotik.hpp>

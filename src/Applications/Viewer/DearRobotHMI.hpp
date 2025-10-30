@@ -62,6 +62,16 @@ private:
     void robotManagementPanel();
 
     // ----------------------------------------------------------------------------
+    //! \brief Robot list panel.
+    // ----------------------------------------------------------------------------
+    void robotListPanel();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Load robot panel.
+    // ----------------------------------------------------------------------------
+    void loadRobotPanel();
+
+    // ----------------------------------------------------------------------------
     //! \brief Control mode selection panel.
     // ----------------------------------------------------------------------------
     void controlModePanel();
@@ -94,10 +104,44 @@ private:
     std::vector<std::string> getEndEffectorNames() const;
 
     // ----------------------------------------------------------------------------
-    //! \brief Get list of joints from current robot.
-    //! \return Vector of pairs (joint name, joint position).
+    //! \brief Refresh the list of robots
     // ----------------------------------------------------------------------------
-    std::vector<std::pair<std::string, double>> getJoints() const;
+    void refreshRobotList();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Refresh the list of nodes and end effectors of the current robot
+    // ----------------------------------------------------------------------------
+    void refreshCurrentRobotCaches();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set the selected robot
+    //! \param p_name The name of the robot to select
+    //! \return True if the robot was selected, false otherwise
+    // ----------------------------------------------------------------------------
+    bool setSelectedRobot(std::string const& p_name);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Open file dialog to load a robot from URDF file.
+    // ----------------------------------------------------------------------------
+    void loadRobot() const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Remove a robot
+    //! \param p_name The name of the robot to remove
+    // ----------------------------------------------------------------------------
+    void removeRobot(std::string const& p_name);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Initialize IK and trajectory configurations for a robot.
+    //! \param p_robot The robot to initialize.
+    // ----------------------------------------------------------------------------
+    void initializeRobotConfigurations(
+        renderer::RobotManager::ControlledRobot& p_robot);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Open about dialog
+    // ----------------------------------------------------------------------------
+    void about();
 
 private:
 
@@ -109,8 +153,14 @@ private:
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name
     std::string m_selected_robot;
-    //! \brief Buffer for URDF file path input
-    char m_urdf_path_buffer[256] = { 0 };
+    //! \brief Cache the list of robots
+    std::vector<std::string> m_robot_list;
+    //! \brief Cache the list of nodes of the current robot
+    std::vector<std::string> m_node_names;
+    //! \brief Cache the list of end effectors of the current robot
+    std::vector<std::string> m_end_effector_names;
+    //! \brief Flag to show about dialog
+    bool m_show_about = false;
 };
 
 } // namespace robotik::application

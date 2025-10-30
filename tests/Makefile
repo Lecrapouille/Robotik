@@ -32,6 +32,26 @@ INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
 PKG_LIBS += glfw3 glew
 
 ###############################################################################
+# Set pugixml library
+#
+SRC_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp
+INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
+USER_CXXFLAGS += -Wno-switch-enum -Wno-null-dereference
+
+###################################################
+# Set third party Dear ImGui
+#
+IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
+INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+SRC_FILES += $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_draw.cpp
+SRC_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui.cpp
+SRC_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
+SRC_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
+SRC_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
+
+###############################################################################
 # GTest and GMock
 #
 PKG_LIBS += gtest gmock
@@ -39,11 +59,12 @@ PKG_LIBS += gtest gmock
 ###################################################
 # Compile the unit tests
 #
-SRC_FILES += $(wildcard $(P)/tests/*.cpp)
-INCLUDES += $(P)/src
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Core,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Renderer,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
+
+INCLUDES += $(P)/src $(P)/tests
 VPATH += $(P)/src
-INTERNAL_LIBS += $(call internal-lib,robotik-core)
-INTERNAL_LIBS += $(call internal-lib,robotik-renderer)
 
 ###################################################
 # Generic Makefile rules

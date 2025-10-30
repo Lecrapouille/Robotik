@@ -37,8 +37,8 @@ FlyController::FlyController(Camera& p_camera, float p_move_speed)
 {
     // Initialize yaw and pitch from camera's current direction
     Eigen::Vector3f forward = m_camera.forward();
-    m_yaw = std::atan2(forward.y(), forward.x()) * 180.0f / M_PI;
-    m_pitch = std::asin(forward.z()) * 180.0f / M_PI;
+    m_yaw = std::atan2(forward.y(), forward.x()) * 180.0f / M_PIf;
+    m_pitch = std::asin(forward.z()) * 180.0f / M_PIf;
 }
 
 // ----------------------------------------------------------------------------
@@ -201,8 +201,8 @@ void FlyController::reset()
 void FlyController::updateCameraOrientation()
 {
     // Convert yaw and pitch to direction vector
-    float yaw_rad = m_yaw * M_PI / 180.0f;
-    float pitch_rad = m_pitch * M_PI / 180.0f;
+    float yaw_rad = m_yaw * M_PIf / 180.0f;
+    float pitch_rad = m_pitch * M_PIf / 180.0f;
 
     Eigen::Vector3f direction;
     direction.x() = std::cos(pitch_rad) * std::cos(yaw_rad);

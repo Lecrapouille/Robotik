@@ -1,7 +1,7 @@
 /**
  * @file TestRobot.cpp
- * @brief Unit tests for the Robot class - Verification of forward and inverse
- * kinematics, Jacobian matrix computation, and end-effector transformations.
+ * @brief Unit tests for the Robot class - Verification of forward kinematics,
+ * state management, blueprint access, and end-effector transformations.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -36,7 +36,7 @@ protected:
 
     void SetUp() override
     {
-        // Create the scene graph
+        // Create the kinematic tree
         Joint::Ptr r = Node::create<Joint>(
             "root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
         joint1 = &(r->createChild<Joint>(
@@ -238,76 +238,6 @@ TEST_F(RobotTest, EndEffectorPose)
     Eigen::Vector3d position = pose.head<3>();
     EXPECT_GT(position.norm(), 0.5);
 }
-
-// *********************************************************************************
-//! \brief Test Jacobian calculation.
-// *********************************************************************************
-TEST_F(RobotTest, JacobianCalculation)
-{
-    joint1->position(0.0);
-    joint2->position(0.0);
-
-    Jacobian const& jacobian =
-        robot_arm->computeJacobian(robot_arm->state(), *end_effector);
-
-    // For a 2-DOF arm, Jacobian should be 6x2
-    EXPECT_EQ(jacobian.rows(), 6);
-    EXPECT_EQ(jacobian.cols(), 2);
-
-    // Check that Jacobian is not zero (has some values)
-    EXPECT_GT(jacobian.norm(), 0.0);
-}
-
-#if 0 // FIXME A deplacer
-// *********************************************************************************
-//! \brief Test inverse kinematics with initial pose.
-// *********************************************************************************
-TEST_F(RobotTest, InverseKinematicsInitialPose)
-{
-    // Test if the actual pose is reachable by the target.
-    // Current joint positions = [0.0, 0.0]
-    Transform target_transform = Eigen::Matrix4d::Identity();
-    target_transform(0, 3) = 2.0;
-    target_transform(2, 3) = 1.0;
-    Pose target_pose = transformToPose(target_transform);
-
-    std::vector<double> solution =
-        robot_arm->inverseKinematics(target_pose, *end_effector);
-
-    // Verify the solution by forward kinematics.
-    EXPECT_EQ(solution.size(), 2);
-    EXPECT_EQ(solution[0], 0.0);
-    EXPECT_EQ(solution[1], 0.0);
-    robot_arm->setJointValues(solution);
-
-    Transform fk_result = end_effector->worldTransform();
-    Eigen::Vector3d actual_position = fk_result.block<3, 1>(0, 3);
-    Eigen::Matrix3d actual_rotation = fk_result.block<3, 3>(0, 0);
-
-    EXPECT_TRUE(actual_position.isApprox(Eigen::Vector3d(2.0, 0.0, 1.0)));
-    EXPECT_TRUE(actual_rotation.isApprox(Eigen::Matrix3d::Identity()));
-}
-#endif
-
-#if 0
-// *********************************************************************************
-//! \brief Test edge cases.
-// *********************************************************************************
-TEST_F(RobotTest, EdgeCases)
-{
-    // Test with mismatched joint values size
-    std::vector<double> wrong_size_values = { 1.0, 2.0, 3.0 };
-    EXPECT_FALSE(robot_arm->setJointValues(wrong_size_values));
-
-    // Test unreachable target for inverse kinematics
-    Pose unreachable_pose;
-    unreachable_pose << 100.0, 100.0, 100.0, 0.0, 0.0, 0.0;
-
-    std::vector<double> solution =
-        robot_arm->inverseKinematics(unreachable_pose, *end_effector);
-    EXPECT_EQ(solution.size(), 0);
-}
-#endif
 
 // *********************************************************************************
 //! \brief Test complex kinematic chain.

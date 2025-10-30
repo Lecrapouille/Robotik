@@ -1,6 +1,7 @@
 /**
  * @file Node.cpp
- * @brief Scene graph node class - Representation of a node in the scene graph.
+ * @brief Scene graph node class - Representation of a node in the kinematic
+ * tree.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License

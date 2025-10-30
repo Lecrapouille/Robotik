@@ -26,7 +26,7 @@ namespace robotik::renderer
 //! This class manages all mesh resources (primitives and loaded files) for
 //! rendering URDF robot geometries. It handles both CPU-side mesh data and
 //! GPU-side OpenGL resources. Meshes are identified by unique names for
-//! easy reference by scene graph nodes (links, joints, geometries).
+//! easy reference by kinematic tree nodes (links, joints, geometries).
 // ****************************************************************************
 class MeshManager
 {
@@ -73,7 +73,7 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Load a mesh from file using a loader.
-    //! \param p_name Unique name for the mesh (for scene graph reference).
+    //! \param p_name Unique name for the mesh (for kinematic tree reference).
     //! \param p_filename Path to the mesh file.
     //! \param p_loader Loader instance to use (e.g., STLLoader).
     //! \param p_force_reload Force reload even if already loaded.

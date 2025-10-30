@@ -51,12 +51,8 @@ DEFINES +=
 # Make the list of files to compile
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Common/*.cpp)
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Loaders/*.cpp)
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Robot/Blueprint/*.cpp)
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Robot/*.cpp)
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Simulation/*.cpp)
-LIB_FILES += $(wildcard $(ROBOTIK_CORE_PATH)/Solvers/*.cpp)
+LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
+HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
 
 ###############################################################################
 # Set Eigen3 library

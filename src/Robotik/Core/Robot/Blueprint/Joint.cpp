@@ -50,7 +50,7 @@ void Joint::position(double p_velocity, double p_dt)
 }
 
 // ----------------------------------------------------------------------------
-// TODO: si continuous wrap to -M_PI to M_PI
+// TODO: si continuous wrap to -M_PIf to M_PI
 void Joint::position(double p_position)
 {
     if (m_type == Joint::Type::FIXED)

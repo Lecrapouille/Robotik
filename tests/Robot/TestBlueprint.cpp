@@ -1,8 +1,8 @@
 /**
  * @file TestSceneNode.cpp
- * @brief Unit tests for the SceneNode class - Verification of scene graph
+ * @brief Unit tests for the SceneNode class - Verification of kinematic tree
  * construction, management, local and world transformations, and node traversal
- * operations. The scene graph is the structure holding the robot links and
+ * operations. The kinematic tree is the structure holding the robot links and
  * joints.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>

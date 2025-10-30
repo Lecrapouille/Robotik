@@ -203,10 +203,9 @@ class Mesh: public Geometry
 {
 public:
 
-    Mesh(std::string const& p_name, std::string p_mesh_path)
+    Mesh(std::string const& p_name, std::string const& p_mesh_path)
         : Geometry(p_name, Type::MESH, {}, p_mesh_path)
     {
-        std::cout << "Mesh: " << p_name << " " << p_mesh_path << std::endl;
     }
 };
 

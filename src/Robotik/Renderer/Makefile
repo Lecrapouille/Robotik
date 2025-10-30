@@ -46,8 +46,8 @@ VPATH += $(P)/src
 # Make the list of files to compile
 #
 RENDERER_PATH := $(P)/src/Robotik/Renderer
-LIB_FILES := $(wildcard $(RENDERER_PATH)/*/*.cpp)
-LIB_FILES += $(wildcard $(RENDERER_PATH)/*.cpp)
+LIB_FILES := $(call rwildcard,$(RENDERER_PATH),*.cpp)
+HEADER_FILES := $(call rwildcard,$(RENDERER_PATH),*.hpp)
 
 ###############################################################################
 # Set Eigen3 library
@@ -64,7 +64,7 @@ PKG_LIBS += glfw3 glew gl
 ###################################################
 # Set third party Dear ImGui
 #
-IMGUI_DIR := $(P)/external/imgui
+IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
 INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
 VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
 LIB_FILES += $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_draw.cpp

@@ -23,7 +23,7 @@ Repenser les S.I. mettre Radian pour revolute et Meter pour prismatic
 - Scene graphe m_children => reprendre behavior tree: composite, decorator, leaf:
   decorator entre local et joint
   leaf: capteur ?
-- Repenser le parcours du scene graphe via un pattern visiteur: par exemple pour le debug:
+- Repenser le parcours du kinematic treee via un pattern visiteur: par exemple pour le debug:
  if (joint->type() == Joint::Type::CONTINUOUS) { std::cout << joint_indent   << "├── T_joint:      rotate(axis = " << joint->axis().x()
 - Terme	Signification
 end_effector	L’outil lui-même (gripper, etc.)
@@ -57,6 +57,9 @@ tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pi
 - Faire mimic
 - Deplacer a la main un robot
 - tester make install
+
+KO copie include/Robotik.hpp et project_info.hpp
+- Trajectory perd 10 FPS et IK on tourne a 1 FPS
 
 Faits:
 
