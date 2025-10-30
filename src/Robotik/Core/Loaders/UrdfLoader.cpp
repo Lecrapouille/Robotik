@@ -15,12 +15,9 @@
 #include <pugixml.hpp>
 
 #include <algorithm>
-#include <cctype>
-#include <cstdint>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <limits>
 #include <sstream>
 
 namespace robotik

@@ -77,7 +77,7 @@ void PerspectiveCamera::updateProjectionMatrix() const
 {
     // Build perspective projection matrix
     // Using standard OpenGL perspective matrix
-    float fov_rad = m_fov * M_PI / 180.0f;
+    float fov_rad = m_fov * M_PIf / 180.0f;
     float f = 1.0f / std::tan(fov_rad / 2.0f);
     float range_inv = 1.0f / (m_near - m_far);
 

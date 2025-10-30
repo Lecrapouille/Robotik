@@ -25,7 +25,8 @@ class ShaderManager;
 //!
 //! This class is responsible for rendering meshes provided by MeshManager.
 //! It works with ShaderManager to apply transformations and colors.
-//! Designed to be called by scene graph traversal when rendering URDF robots.
+//! Designed to be called by kinematic tree traversal when rendering URDF
+//! robots.
 //!
 //! The Renderer does NOT create or manage meshes - it only renders them.
 //! Mesh creation and management is done by MeshManager.

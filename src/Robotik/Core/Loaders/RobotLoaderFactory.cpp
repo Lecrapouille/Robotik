@@ -20,28 +20,23 @@ namespace robotik
 std::unordered_map<std::string, RobotLoaderFactory::LoaderCreator>&
 RobotLoaderFactory::getRegistry()
 {
-    static std::unordered_map<std::string, LoaderCreator> registry;
-
-    // Register default loaders on first access
-    static bool initialized = false;
-    if (!initialized)
-    {
-        // Register URDF loader
-        registry[".urdf"] = []() -> std::unique_ptr<RobotLoader>
-        { return std::make_unique<URDFLoader>(); };
+    static std::unordered_map<std::string, LoaderCreator> registry = {
+        { ".urdf",
+          []() -> std::unique_ptr<RobotLoader>
+          { return std::make_unique<URDFLoader>(); } }
 
         // Future loaders can be registered here:
-        // registry[".sdf"] = []() { return std::make_unique<SDFParser>(); };
-        // registry[".mjcf"] = []() { return std::make_unique<MJCFParser>(); };
-
-        initialized = true;
-    }
+        // {".sdf", []() -> std::unique_ptr<RobotLoader>
+        // { return std::make_unique<SDFParser>(); }},
+        // {".mjcf", []() -> std::unique_ptr<RobotLoader>
+        // { return std::make_unique<MJCFParser>(); }},
+    };
 
     return registry;
 }
 
 // ----------------------------------------------------------------------------
-std::string RobotLoaderFactory::getExtension(const std::string& p_filename)
+std::string RobotLoaderFactory::getExtension(std::string const& p_filename)
 {
     // Find the last dot in the filename
     size_t dot_pos = p_filename.find_last_of('.');
@@ -67,9 +62,7 @@ RobotLoaderFactory::create(const std::string& p_filename)
     std::string extension = getExtension(p_filename);
 
     auto& registry = getRegistry();
-    auto it = registry.find(extension);
-
-    if (it != registry.end())
+    if (auto it = registry.find(extension); it != registry.end())
     {
         return it->second();
     }
@@ -80,7 +73,7 @@ RobotLoaderFactory::create(const std::string& p_filename)
 
 // ----------------------------------------------------------------------------
 void RobotLoaderFactory::registerLoader(const std::string& p_extension,
-                                        LoaderCreator p_creator)
+                                        LoaderCreator&& p_creator)
 {
     auto& registry = getRegistry();
 
@@ -97,7 +90,7 @@ void RobotLoaderFactory::registerLoader(const std::string& p_extension,
         ext = "." + ext;
     }
 
-    registry[ext] = p_creator;
+    registry[ext] = std::move(p_creator);
 }
 
 } // namespace robotik

@@ -1,3 +1,16 @@
+### A compile-time, header-only, dimensional analysis and unit conversion library
+### built on c++14 with no dependencies.
+### License: MIT
 nholthaus/units
+
+### Light-weight, simple and fast XML parser for C++ with XPath support
+### License: MIT
 zeux/pugixml
+
+### Dear ImGui: Bloat-free Graphical User interface for C++ with minimal dependencies
+### License: MIT
 ocornut/imgui@docking
+
+### File Dialog for Dear ImGui
+### License: MIT
+aiekick/ImGuiFileDialog

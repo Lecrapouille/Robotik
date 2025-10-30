@@ -74,7 +74,7 @@ Robotik/
 **🤖 Robot**
 
 - Entry-point class for robot description and manipulation.
-- Manages kinematic chain (joints + links) through a scene graph (also know as kinemetic tree).
+- Manages kinematic chain (joints + links) through a kinematic tree (also know as kinemetic tree).
 - Can be displayed by the Viewer.
 - Used by external algorithms (i.e. inverse kinematic solver, ...)
 
@@ -97,7 +97,7 @@ Robotik/
 - Rigid body connecting joints.
 - Store inertial information.
 - Visual and collision geometry.
-- Part of the scene graph blueprint.
+- Part of the kinematic tree blueprint.
 
 **📐 Geometry**
 
@@ -113,7 +113,7 @@ Robotik/
 
 - Parses URDF files (Unified Robot Description Format).
 - Automatically builds complete robot from file description.
-- Creates scene graph with joints and links.
+- Creates kinematic tree with joints and links.
 
 **🎯 IKSolver**
 
@@ -183,7 +183,7 @@ Namespaces are `robotik`. You should include `#include <Robotik/Robotik.hpp>`
     // Create a simple 2-DOF arm for testing
     std::unique_ptr<Robot> robot = std::make_unique<Robot>("test_arm");
 
-    // Create the scene graph
+    // Create the kinematic tree
     Joint::Ptr root = scene::Node::create<Joint>("root", Joint::Type::FIXED, Eigen::Vector3d(0, 0, 1));
     Joint& joint1 = root->createChild<Joint>("joint1", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
     Joint& joint2 = joint1.createChild<Joint>("joint2", Joint::Type::REVOLUTE, Eigen::Vector3d(0, 0, 1));
@@ -204,7 +204,7 @@ Namespaces are `robotik`. You should include `#include <Robotik/Robotik.hpp>`
     end_effector_transform(0, 3) = 1.0; // 1 unit forward
     end_effector.localTransform(end_effector_transform);
 
-    // Set up the robot arm, base frame and end effector. Now the scene graph
+    // Set up the robot arm, base frame and end effector. Now the kinematic tree
     // can no longer be modified.
     robot->root(std::move(root));
 

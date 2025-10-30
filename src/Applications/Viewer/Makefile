@@ -29,7 +29,7 @@ M := $(P)/.makefile
 #
 include $(P)/Makefile.common
 TARGET_NAME := Robotik-Viewer
-TARGET_DESCRIPTION := An URDF robot viewer application demo
+TARGET_DESCRIPTION := Robot viewer application demo
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/src/Applications/Viewer
@@ -38,7 +38,9 @@ CURRENT_DIR := $(P)/src/Applications/Viewer
 # Inform Makefile where to find header files
 #
 IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
-INCLUDES += $(CURRENT_DIR) $(P)/src $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+IMGUIFILEDIALOG_DIR := $(THIRD_PARTIES_DIR)/ImGuiFileDialog
+INCLUDES += $(CURRENT_DIR) $(THIRD_PARTIES_DIR) $(P)/src $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
+INCLUDES += $(IMGUIFILEDIALOG_DIR) $(IMGUIFILEDIALOG_DIR)/stb
 
 ###############################################################################
 # Inform Makefile where to find *.cpp files
@@ -54,7 +56,8 @@ THIRD_PARTIES_LIBS += $(call internal-lib,robotik-core)
 ###############################################################################
 # Make the list of files to compile
 #
-SRC_FILES := $(wildcard $(CURRENT_DIR)/*.cpp)
+SRC_FILES := $(call rwildcard,$(CURRENT_DIR),*.cpp)
+SRC_FILES += $(IMGUIFILEDIALOG_DIR)/ImGuiFileDialog.cpp
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 

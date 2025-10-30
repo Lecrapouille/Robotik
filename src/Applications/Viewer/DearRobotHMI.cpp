@@ -8,8 +8,13 @@
  */
 
 #include "DearRobotHMI.hpp"
+#include "ImGuiFileDialog/ImGuiFileDialog.h"
+#include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
+#include "Robotik/Core/Robot/Blueprint/Node.hpp"
+#include "Robotik/Core/Solvers/IKSolver.hpp"
+#include "project_info.hpp"
 
 #include <imgui.h>
 #include <iostream>
@@ -27,10 +32,43 @@ DearRobotHMI::DearRobotHMI(
       m_halt_callback(p_halt_callback)
 {
     // Initialize selected robot to current robot if any
-    if (auto* robot = m_robot_manager.currentRobot(); robot != nullptr)
+    if (auto const* robot = m_robot_manager.currentRobot(); robot != nullptr)
     {
         m_selected_robot = robot->name();
     }
+    refreshRobotList();
+    refreshCurrentRobotCaches();
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::onDrawMenuBar()
+{
+    if (ImGui::BeginMenu("File"))
+    {
+        if (ImGui::MenuItem("Load Robot"))
+        {
+            loadRobot();
+        }
+        if (ImGui::MenuItem("Quit") && m_halt_callback)
+        {
+            m_halt_callback();
+        }
+        ImGui::EndMenu();
+    }
+    if (ImGui::BeginMenu("Help"))
+    {
+        if (ImGui::MenuItem("About"))
+        {
+            m_show_about = true;
+        }
+        ImGui::EndMenu();
+    }
+    if (m_show_about)
+    {
+        ImGui::OpenPopup("About Robotik");
+        m_show_about = false;
+    }
+    about();
 }
 
 // ----------------------------------------------------------------------------
@@ -39,8 +77,6 @@ void DearRobotHMI::onDrawMainPanel()
     ImGui::Begin("Robot Control");
 
     robotManagementPanel();
-
-    // Only show controls if a robot is selected
     if (!m_selected_robot.empty())
     {
         cameraTargetPanel();
@@ -53,118 +89,104 @@ void DearRobotHMI::onDrawMainPanel()
 }
 
 // ----------------------------------------------------------------------------
-void DearRobotHMI::onDrawMenuBar()
-{
-    if (ImGui::BeginMenu("File"))
-    {
-        if (ImGui::MenuItem("Quit"))
-        {
-            if (m_halt_callback)
-            {
-                m_halt_callback();
-            }
-        }
-        ImGui::EndMenu();
-    }
-}
-
-// ----------------------------------------------------------------------------
 void DearRobotHMI::robotManagementPanel()
 {
     if (ImGui::CollapsingHeader("Robot Management",
                                 ImGuiTreeNodeFlags_DefaultOpen))
     {
-        // Get list of robots
-        std::vector<std::string> robot_list;
-        for (const auto& [name, _] : m_robot_manager.robots())
-        {
-            robot_list.push_back(name);
-        }
-
-        // Robot selection
-        if (ImGui::BeginCombo(
-                "Selected Robot",
-                m_selected_robot.empty() ? "None" : m_selected_robot.c_str()))
-        {
-            for (const auto& robot_name : robot_list)
-            {
-                bool is_selected = (m_selected_robot == robot_name);
-                if (ImGui::Selectable(robot_name.c_str(), is_selected))
-                {
-                    m_selected_robot = robot_name;
-                }
-                if (is_selected)
-                {
-                    ImGui::SetItemDefaultFocus();
-                }
-            }
-            ImGui::EndCombo();
-        }
-
-        ImGui::Separator();
-
-        // Add Robot
-        ImGui::Text("Add Robot:");
-        ImGui::InputText(
-            "URDF Path", m_urdf_path_buffer, sizeof(m_urdf_path_buffer));
-        ImGui::SameLine();
-        if (ImGui::Button("Browse..."))
-        {
-            // TODO: Add file browser dialog
-            ImGui::OpenPopup("File Browser");
-        }
-
         if (ImGui::Button("Load Robot"))
         {
-            if (m_urdf_path_buffer[0] != '\0')
-            {
-                auto* robot =
-                    m_robot_manager.loadRobot(std::string(m_urdf_path_buffer));
-                if (robot != nullptr)
-                {
-                    std::cout << "✅ Loaded robot from: " << m_urdf_path_buffer
-                              << std::endl;
-                    m_selected_robot = robot->name();
-                    // Clear buffer after successful load
-                    m_urdf_path_buffer[0] = '\0';
-                }
-                else
-                {
-                    std::cerr << "❌ Failed to load robot: "
-                              << m_robot_manager.error() << std::endl;
-                }
-            }
+            loadRobot();
         }
 
-        ImGui::SameLine();
-
-        // Remove Robot
-        if (ImGui::Button("Remove Robot"))
-        {
-            if (!m_selected_robot.empty())
-            {
-                if (m_robot_manager.removeRobot(m_selected_robot))
-                {
-                    std::cout << "✅ Removed robot: " << m_selected_robot
-                              << std::endl;
-                    m_selected_robot.clear();
-                }
-            }
-        }
-
-        // Display robot list
-        ImGui::Text("Loaded Robots (%zu):", robot_list.size());
-        ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
-        for (const auto& robot_name : robot_list)
-        {
-            if (ImGui::Selectable(robot_name.c_str(),
-                                  m_selected_robot == robot_name))
-            {
-                m_selected_robot = robot_name;
-            }
-        }
-        ImGui::EndChild();
+        robotListPanel();
+        loadRobotPanel();
     }
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::robotListPanel()
+{
+    ImGui::Text("Loaded Robots (%zu):", m_robot_list.size());
+    ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
+    for (const auto& robot_name : m_robot_list)
+    {
+        if (ImGui::Selectable(robot_name.c_str(),
+                              m_selected_robot == robot_name))
+        {
+            setSelectedRobot(robot_name);
+        }
+        if (ImGui::BeginPopupContextItem())
+        {
+            if (ImGui::MenuItem("Load robot"))
+            {
+                loadRobot();
+            }
+            if (ImGui::MenuItem("Remove robot"))
+            {
+                removeRobot(robot_name);
+            }
+
+            if (auto const* robot = m_robot_manager.getRobot(robot_name);
+                robot != nullptr)
+            {
+                if (ImGui::MenuItem("Hide robot", nullptr, !robot->is_visible))
+                {
+                    m_robot_manager.setRobotVisibility(robot_name, false);
+                }
+            }
+            ImGui::EndPopup();
+        }
+    }
+    ImGui::EndChild();
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::loadRobotPanel()
+{
+    if (ImGuiFileDialog::Instance()->Display("RobotURDFDlg"))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk())
+        {
+            std::string urdf = ImGuiFileDialog::Instance()->GetFilePathName();
+            auto* robot = m_robot_manager.loadRobot(urdf);
+            if (robot != nullptr)
+            {
+                std::cout << "✅ Loaded robot from: " << urdf << std::endl;
+                initializeRobotConfigurations(*robot);
+                setSelectedRobot(robot->name());
+                refreshRobotList();
+            }
+            else
+            {
+                std::cerr << "❌ Failed to load robot: "
+                          << m_robot_manager.error() << std::endl;
+            }
+        }
+        ImGuiFileDialog::Instance()->Close();
+    }
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::loadRobot() const
+{
+    IGFD::FileDialogConfig cfg;
+    ImGuiFileDialog::Instance()->OpenDialog(
+        "RobotURDFDlg", "Select URDF", "URDF files{.urdf}", cfg);
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::removeRobot(std::string const& p_name)
+{
+    if (!m_robot_manager.removeRobot(p_name))
+        return;
+
+    if (m_selected_robot == p_name)
+    {
+        m_selected_robot.clear();
+    }
+    refreshRobotList();
+    refreshCurrentRobotCaches();
 }
 
 // ----------------------------------------------------------------------------
@@ -178,81 +200,79 @@ void DearRobotHMI::controlModePanel()
         "Trajectory"
     };
 
-    if (ImGui::CollapsingHeader("Control Mode", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        auto* robot = m_robot_manager.getRobot(m_selected_robot);
-        if (robot == nullptr)
-            return;
+    if (!ImGui::CollapsingHeader("Control Mode",
+                                 ImGuiTreeNodeFlags_DefaultOpen))
+        return;
 
-        auto current_mode = int(robot->control_mode);
-        if (ImGui::Combo("Mode",
-                         &current_mode,
-                         s_mode_names.data(),
-                         static_cast<int>(s_mode_names.size())))
-        {
-            robot->control_mode =
-                static_cast<renderer::RobotManager::ControlMode>(current_mode);
-            std::cout << "🎮 Control mode changed to: "
-                      << s_mode_names[current_mode] << std::endl;
-        }
+    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    if (robot == nullptr)
+        return;
+
+    auto current_mode = int(robot->control_mode);
+    if (ImGui::Combo("Mode",
+                     &current_mode,
+                     s_mode_names.data(),
+                     static_cast<int>(s_mode_names.size())))
+    {
+        robot->control_mode =
+            static_cast<renderer::RobotManager::ControlMode>(current_mode);
+        std::cout << "🎮 Control mode changed to: "
+                  << s_mode_names[current_mode] << std::endl;
     }
 }
 
 // ----------------------------------------------------------------------------
 void DearRobotHMI::jointControlPanel()
 {
-    if (ImGui::CollapsingHeader("Joint Control",
-                                ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        auto* robot = m_robot_manager.getRobot(m_selected_robot);
-        if (robot == nullptr)
-            return;
+    if (!ImGui::CollapsingHeader("Joint Control",
+                                 ImGuiTreeNodeFlags_DefaultOpen))
+        return;
 
-        // Sliders are editable only in DIRECT_KINEMATICS mode
-        bool read_only =
-            (robot->control_mode !=
-             renderer::RobotManager::ControlMode::DIRECT_KINEMATICS);
+    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    if (robot == nullptr)
+        return;
 
-        ImGui::Text("Joints (%zu):", robot->blueprint().numJoints());
-        ImGui::BeginChild("JointList", ImVec2(0, 300), true);
+    // Sliders are editable only in DIRECT_KINEMATICS mode
+    bool read_only = (robot->control_mode !=
+                      renderer::RobotManager::ControlMode::DIRECT_KINEMATICS);
 
-        robot->blueprint().forEachJoint(
-            [&](Joint& joint, size_t /*index*/)
+    ImGui::Text("Joints (%zu):", robot->blueprint().numJoints());
+    ImGui::BeginChild("JointList", ImVec2(0, 300), true);
+
+    robot->blueprint().forEachJoint(
+        [read_only](Joint& joint, size_t /*index*/)
+        {
+            ImGui::PushID(joint.name().c_str());
+
+            auto value = static_cast<float>(joint.position());
+            auto const [min, max] = joint.limits();
+
+            if (read_only)
             {
-                ImGui::PushID(joint.name().c_str());
-
-                float value = static_cast<float>(joint.position());
-                auto [min, max] = joint.limits();
-
-                if (read_only)
-                {
-                    // Read-only mode: disable interaction
-                    ImGui::BeginDisabled();
-                    ImGui::SliderFloat(joint.name().c_str(),
+                ImGui::BeginDisabled();
+                ImGui::SliderFloat(joint.name().c_str(),
+                                   &value,
+                                   static_cast<float>(min),
+                                   static_cast<float>(max),
+                                   "%.3f");
+                ImGui::EndDisabled();
+            }
+            else
+            {
+                if (ImGui::SliderFloat(joint.name().c_str(),
                                        &value,
                                        static_cast<float>(min),
                                        static_cast<float>(max),
-                                       "%.3f");
-                    ImGui::EndDisabled();
-                }
-                else
+                                       "%.3f"))
                 {
-                    // Interactive mode
-                    if (ImGui::SliderFloat(joint.name().c_str(),
-                                           &value,
-                                           static_cast<float>(min),
-                                           static_cast<float>(max),
-                                           "%.3f"))
-                    {
-                        joint.position(static_cast<double>(value));
-                    }
+                    joint.position(static_cast<double>(value));
                 }
+            }
 
-                ImGui::PopID();
-            });
+            ImGui::PopID();
+        });
 
-        ImGui::EndChild();
-    }
+    ImGui::EndChild();
 }
 
 // ----------------------------------------------------------------------------
@@ -265,8 +285,8 @@ void DearRobotHMI::endEffectorPanel()
     if (robot == nullptr)
         return;
 
-    std::vector<std::string> nodes = getNodeNames();
-    std::vector<std::string> end_effectors = getEndEffectorNames();
+    std::vector<std::string> const& nodes = m_node_names;
+    std::vector<std::string> const& end_effectors = m_end_effector_names;
 
     std::string current_end_effector;
     if (robot->control_joint != nullptr)
@@ -363,7 +383,7 @@ void DearRobotHMI::cameraTargetPanel()
     if (robot == nullptr)
         return;
 
-    std::vector<std::string> nodes = getNodeNames();
+    std::vector<std::string> const& nodes = m_node_names;
 
     std::string current_camera_target;
     if (robot->camera_target != nullptr)
@@ -419,44 +439,230 @@ void DearRobotHMI::cameraTargetPanel()
 // ----------------------------------------------------------------------------
 std::vector<std::string> DearRobotHMI::getNodeNames() const
 {
-    std::vector<std::string> node_names;
-    auto* robot = m_robot_manager.getRobot(m_selected_robot);
-    if (robot != nullptr && robot->blueprint().hasRoot())
-    {
-        robot->blueprint().root().traverse(
-            [&node_names](Node const& node, size_t /*depth*/)
-            { node_names.push_back(node.name()); });
-    }
-    return node_names;
+    return m_node_names;
 }
 
 // ----------------------------------------------------------------------------
 std::vector<std::string> DearRobotHMI::getEndEffectorNames() const
 {
-    std::vector<std::string> end_effector_names;
-    auto* robot = m_robot_manager.getRobot(m_selected_robot);
-    if (robot != nullptr && robot->blueprint().hasRoot())
-    {
-        for (auto const& end_eff : robot->blueprint().endEffectors())
-        {
-            end_effector_names.push_back(end_eff.get().name());
-        }
-    }
-    return end_effector_names;
+    return m_end_effector_names;
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::pair<std::string, double>> DearRobotHMI::getJoints() const
+void DearRobotHMI::refreshRobotList()
 {
-    std::vector<std::pair<std::string, double>> joints;
-    auto* robot = m_robot_manager.getRobot(m_selected_robot);
-    if (robot != nullptr && robot->blueprint().hasRoot())
+    m_robot_list.clear();
+    m_robot_list.reserve(m_robot_manager.robots().size());
+    for (const auto& [name, _] : m_robot_manager.robots())
     {
-        robot->blueprint().forEachJoint(
-            [&joints](Joint const& joint, size_t /*index*/)
-            { joints.emplace_back(joint.name(), joint.position()); });
+        m_robot_list.emplace_back(name);
     }
-    return joints;
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::refreshCurrentRobotCaches()
+{
+    m_node_names.clear();
+    m_end_effector_names.clear();
+
+    if (m_selected_robot.empty())
+    {
+        return;
+    }
+
+    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    if (robot == nullptr || !robot->blueprint().hasRoot())
+    {
+        return;
+    }
+
+    m_node_names.reserve(robot->blueprint().numLinks());
+    robot->blueprint().root().traverse(
+        [this](Node const& node, size_t /*depth*/)
+        { m_node_names.emplace_back(node.name()); });
+
+    m_end_effector_names.reserve(robot->blueprint().endEffectors().size());
+    for (auto const& end_eff : robot->blueprint().endEffectors())
+    {
+        m_end_effector_names.emplace_back(end_eff.get().name());
+    }
+}
+
+// ----------------------------------------------------------------------------
+bool DearRobotHMI::setSelectedRobot(std::string const& name)
+{
+    if (m_selected_robot == name)
+        return false;
+
+    m_selected_robot = name;
+    refreshCurrentRobotCaches();
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+void DearRobotHMI::initializeRobotConfigurations(
+    renderer::RobotManager::ControlledRobot& p_robot)
+{
+    // Set control joint (end effector) for inverse kinematics
+    // Use the first end effector if available, otherwise use root
+    p_robot.control_joint = nullptr;
+    if (auto const& end_effectors = p_robot.blueprint().endEffectors();
+        !end_effectors.empty())
+    {
+        p_robot.control_joint = &end_effectors[0].get();
+        std::cout << "🤖 Control joint set to: "
+                  << p_robot.control_joint->name() << std::endl;
+    }
+    else
+    {
+        p_robot.control_joint = &p_robot.blueprint().root();
+        std::cout << "🤖 Control joint set to root: "
+                  << p_robot.control_joint->name() << std::endl;
+    }
+
+    // Compute IK target poses if control joint is set
+    if (p_robot.control_joint != nullptr)
+    {
+        std::cout << "🎯 Computing IK target poses..." << std::endl;
+
+        // Reserve memory for 3 joint configurations
+        size_t const num_poses = 3;
+        std::vector<std::vector<double>> joint_configs(num_poses);
+        for (auto& it : joint_configs)
+        {
+            it.resize(p_robot.blueprint().numJoints());
+        }
+
+        // Setup 3 joint configurations: 1/3 joint limits, 2/3 joint limits and
+        // neutral position
+        p_robot.blueprint().forEachJoint(
+            [&joint_configs](Joint const& joint, size_t index)
+            {
+                auto [min, max] = joint.limits();
+
+                // Pose 1: 1/3 from min
+                joint_configs[0][index] = min + (max - min) * 1.0 / 3.0;
+                // Pose 2: center (neutral)
+                joint_configs[1][index] = (max + min) / 2.0;
+                // Pose 3: 2/3 from min
+                joint_configs[2][index] = min + (max - min) * 2.0 / 3.0;
+            });
+
+        // Save current joint positions
+        std::vector<double> saved_positions;
+        saved_positions.reserve(p_robot.blueprint().numJoints());
+        p_robot.blueprint().forEachJoint(
+            [&saved_positions](Joint const& joint, size_t /*index*/)
+            { saved_positions.push_back(joint.position()); });
+
+        // For each configuration, compute end-effector pose
+        p_robot.ik_target_poses.clear();
+        p_robot.ik_target_poses.reserve(num_poses);
+        for (size_t pose_id = 0; pose_id < num_poses; ++pose_id)
+        {
+            // Apply joint configuration
+            p_robot.blueprint().forEachJoint(
+                [&joint_configs, pose_id](Joint& joint, size_t index)
+                { joint.position(joint_configs[pose_id][index]); });
+
+            // Get end-effector transform
+            Transform end_effector_transform =
+                p_robot.control_joint->worldTransform();
+
+            // Convert to pose and store
+            Pose target_pose = robotik::transformToPose(end_effector_transform);
+            p_robot.ik_target_poses.push_back(target_pose);
+
+            std::cout << "  Target " << (pose_id + 1) << ": ["
+                      << target_pose.transpose() << "]" << std::endl;
+        }
+
+        // Restore original joint positions
+        p_robot.blueprint().forEachJoint(
+            [&saved_positions](Joint& joint, size_t index)
+            { joint.position(saved_positions[index]); });
+
+        // Initialize IK solver
+        p_robot.ik_solver = std::make_unique<JacobianIKSolver>();
+    }
+
+    // Compute trajectory configurations
+    std::cout << "🎯 Computing trajectory configurations..." << std::endl;
+
+    // Generate 3 joint configurations
+    size_t const num_configs = 3;
+    p_robot.trajectory_configs.clear();
+    p_robot.trajectory_configs.resize(num_configs);
+
+    for (auto& config : p_robot.trajectory_configs)
+    {
+        config.resize(p_robot.blueprint().numJoints());
+    }
+
+    // Setup 3 joint configurations: 1/4, 1/2, 3/4 of joint range
+    p_robot.blueprint().forEachJoint(
+        [&p_robot](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+
+            // Config 0: 1/4 from min
+            p_robot.trajectory_configs[0][index] = min + (max - min) * 0.25;
+            // Config 1: center
+            p_robot.trajectory_configs[1][index] = (max + min) / 2.0;
+            // Config 2: 3/4 from min
+            p_robot.trajectory_configs[2][index] = min + (max - min) * 0.75;
+        });
+
+    // Print configurations
+    for (size_t i = 0; i < num_configs; ++i)
+    {
+        std::cout << "  Config " << (i + 1) << ": [";
+        for (size_t j = 0; j < p_robot.trajectory_configs[i].size(); ++j)
+        {
+            std::cout << p_robot.trajectory_configs[i][j];
+            if (j < p_robot.trajectory_configs[i].size() - 1)
+                std::cout << ", ";
+        }
+        std::cout << "]" << std::endl;
+    }
+}
+
+//------------------------------------------------------------------------------
+void DearRobotHMI::about()
+{
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal(
+            "About Robotik", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("A robot control and visualization application");
+        ImGui::Separator();
+        std::string version(
+            "Version: " + std::to_string(project::info::version::major) + '.' +
+            std::to_string(project::info::version::minor) + '.' +
+            std::to_string(project::info::version::patch));
+        ImGui::Text("%s", version.c_str());
+        ImGui::Separator();
+        ImGui::Text("https://github.com/Lecrapouille/Robotik");
+        ImGui::Text("Git branch: %s", project::info::git::branch.c_str());
+        ImGui::Text("Git SHA1: %s", project::info::git::sha1.c_str());
+        ImGui::Text("Compiled as %s",
+                    (project::info::compilation::mode ==
+                     project::info::compilation::Mode::debug)
+                        ? "Debug"
+                        : "Release");
+        ImGui::Separator();
+        ImGui::Text("Developed by Quentin Quadrat");
+        ImGui::Text("Email: lecrapouille@gmail.com");
+        ImGui::Separator();
+
+        if (ImGui::Button("OK", ImVec2(120, 0)))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace robotik::application

@@ -48,17 +48,17 @@ public:
     //! \return A unique pointer to the appropriate loader, or nullptr if the
     //! format is not supported.
     // ------------------------------------------------------------------------
-    static std::unique_ptr<RobotLoader> create(const std::string& p_filename);
+    static std::unique_ptr<RobotLoader> create(std::string const& p_filename);
 
     // ------------------------------------------------------------------------
     //! \brief Register a custom loader for a specific file extension.
     //! \param p_extension File extension (e.g., ".urdf", ".sdf").
-    //! \param p_creator Function that creates a loader instance.
+    //! \param p_creator Function that creates a loader instance (moved).
     //!
     //! This allows users to add support for custom robot file formats.
     // ------------------------------------------------------------------------
-    static void registerLoader(const std::string& p_extension,
-                               LoaderCreator p_creator);
+    static void registerLoader(std::string const& p_extension,
+                               LoaderCreator&& p_creator);
 
 private:
 
@@ -73,7 +73,7 @@ private:
     //! \param p_filename Filename to extract extension from.
     //! \return Extension in lowercase (e.g., ".urdf").
     // ------------------------------------------------------------------------
-    static std::string getExtension(const std::string& p_filename);
+    static std::string getExtension(std::string const& p_filename);
 };
 
 } // namespace robotik

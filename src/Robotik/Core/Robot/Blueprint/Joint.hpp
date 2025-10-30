@@ -42,7 +42,7 @@ namespace robotik
 //! - A motion axis (3D vector defining rotation/translation direction).
 //! - Current position/angle value (the joint's configuration).
 //! - Motion limits (safety and mechanical constraints).
-//! - Associated Node for transform propagation in the scene graph.
+//! - Associated Node for transform propagation in the kinematic tree.
 //!
 //! The joint transforms the coordinate frame from parent link to child link
 //! based on its current value and type, enabling forward kinematics
@@ -477,7 +477,7 @@ public:
     //!
     //! PHYSICS: This method propagates the joint's motion through the
     //! kinematic chain by updating the spatial transformation of the
-    //! associated scene graph node.
+    //! associated kinematic tree node.
     //!
     //! KINEMATIC CHAIN DYNAMICS:
     //! When a joint moves, it affects the position and orientation of all
