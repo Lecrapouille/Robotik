@@ -128,7 +128,7 @@ public:
     {
         m_children.push_back(std::move(p_child));
         m_children.back()->m_parent = this;
-        m_children.back()->updateWorldTransforms();
+        m_children.back()->markTransformsDirty();
     }
 
     // ------------------------------------------------------------------------
@@ -343,9 +343,17 @@ public:
     //!
     //! The world transform = T_base * T_joint1 * ... * T_jointN * T_local
     //! where each T_jointX is
+    //!
+    //! LAZY EVALUATION: This method uses dirty flags to avoid redundant
+    //! recalculations. The transforms are only updated when needed (when
+    //! accessed and marked as dirty).
     // ------------------------------------------------------------------------
     inline Transform const& worldTransform() const
     {
+        if (m_transforms_dirty)
+        {
+            const_cast<Node&>(*this).updateWorldTransforms();
+        }
         return m_world_transform;
     }
 
@@ -359,6 +367,23 @@ public:
     }
 
 protected:
+
+    // ------------------------------------------------------------------------
+    //! \brief Mark this node and all its children as needing transform update.
+    //!
+    //! This method implements the "dirty flag" pattern for lazy evaluation.
+    //! Instead of immediately recalculating world transforms when a joint
+    //! moves, we mark the affected nodes as dirty. The actual recalculation
+    //! happens only when worldTransform() is accessed.
+    //!
+    //! This optimization eliminates redundant recalculations when multiple
+    //! joints are updated in sequence (e.g., in setNeutralPosition() or
+    //! forwardKinematics()), reducing complexity from O(n²) to O(n).
+    //!
+    //! The dirty flag propagates to all children because changing a parent's
+    //! transform invalidates all descendant transforms in the kinematic chain.
+    // ------------------------------------------------------------------------
+    void markTransformsDirty();
 
     // ------------------------------------------------------------------------
     //! \brief Update the world transform of the node.
@@ -376,8 +401,8 @@ protected:
     //! - The robot's configuration is modified
     //! - The direct kinematics is recalculated
     //!
-    //! The algorithm uses a cache system ("dirty flag") to avoid
-    //! unnecessary recalculations and optimize performance.
+    //! This method is called automatically by worldTransform() when the
+    //! dirty flag is set, implementing lazy evaluation.
     // ------------------------------------------------------------------------
     void updateWorldTransforms();
 
@@ -395,6 +420,9 @@ protected:
     std::vector<std::unique_ptr<Node>> m_children;
     //! \brief Parent of the node.
     Node* m_parent = nullptr;
+    //! \brief Dirty flag for lazy transform evaluation.
+    //! When true, indicates that the world transform needs recalculation.
+    mutable bool m_transforms_dirty = false;
 };
 
 } // namespace robotik

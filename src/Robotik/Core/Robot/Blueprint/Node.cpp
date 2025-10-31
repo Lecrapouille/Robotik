@@ -111,7 +111,17 @@ Node const* Node::find(Node const& p_root, std::string const& p_name)
 void Node::localTransform(Transform const& p_transform)
 {
     m_local_transform = p_transform;
-    updateWorldTransforms(); // FIXME find a lazy way to do this
+    markTransformsDirty();
+}
+
+// ----------------------------------------------------------------------------
+void Node::markTransformsDirty()
+{
+    m_transforms_dirty = true;
+    for (auto const& child : m_children)
+    {
+        child->markTransformsDirty();
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -125,6 +135,8 @@ void Node::updateWorldTransforms()
     {
         m_world_transform = localTransform();
     }
+
+    m_transforms_dirty = false;
 
     for (auto const& child : m_children)
     {
