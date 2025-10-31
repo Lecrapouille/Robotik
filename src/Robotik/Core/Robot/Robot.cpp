@@ -8,10 +8,7 @@
  */
 
 #include "Robotik/Core/Robot/Robot.hpp"
-#include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
-
-#include <iostream>
 
 namespace robotik
 {
@@ -40,6 +37,13 @@ void Robot::forwardKinematics(State& p_state)
             // transforms via the blueprint tree traversal
             joint.position(p_state.joint_positions[index]);
         });
+}
+
+// ----------------------------------------------------------------------------
+void Robot::setJointPositions(const JointValues& p_joint_positions)
+{
+    m_blueprint.forEachJoint([&p_joint_positions](Joint& joint, size_t index)
+                             { joint.position(p_joint_positions[index]); });
 }
 
 // ----------------------------------------------------------------------------

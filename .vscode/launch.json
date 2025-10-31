@@ -26,7 +26,7 @@
             "request": "launch",
             "program": "${workspaceFolder}/build/Robotik-Viewer",
             "args": [
-                "${workspaceFolder}/data/T12.urdf"
+                "${workspaceFolder}/data/scara_robot.urdf"
             ],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",

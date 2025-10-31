@@ -136,6 +136,12 @@ public:
     void setNeutralPosition();
 
     // ------------------------------------------------------------------------
+    //! \brief Set all joints to the given joint positions.
+    //! \param p_joint_positions The joint positions to set.
+    // ------------------------------------------------------------------------
+    void setJointPositions(const JointValues& p_joint_positions);
+
+    // ------------------------------------------------------------------------
     //! \brief Apply target joint positions with velocity limits.
     //!
     //! This method smoothly moves joints toward target positions while

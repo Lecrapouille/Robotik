@@ -27,8 +27,8 @@ using namespace robotik;
 
 // ----------------------------------------------------------------------------
 RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
-                             Renderer& renderer,
-                             ShaderManager& shader_mgr)
+                             Renderer const& renderer,
+                             ShaderManager const& shader_mgr)
     : m_mesh_manager(mesh_mgr),
       m_renderer(renderer),
       m_shader_manager(shader_mgr)
@@ -36,13 +36,12 @@ RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Joint& /*joint*/)
+void RenderVisitor::visit(const robotik::Joint& joint)
 {
     // Optionally render joint axes for debugging
     if (m_show_joint_axes)
     {
-        // TODO: Implement joint axes rendering
-        // Could use m_renderer.renderAxes() here
+        renderJointAxis(joint);
     }
 }
 
@@ -160,6 +159,131 @@ std::string RenderVisitor::getMeshName(robotik::Geometry const& geom) const
     }
 
     return ss.str();
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint)
+{
+    constexpr float axis_length = 0.15f;  // 15 cm
+    constexpr float axis_radius = 0.015f; // 1.5 cm
+
+    // Get joint type and check if we should render this type
+    robotik::Joint::Type joint_type = p_joint.type();
+
+    if (joint_type == robotik::Joint::Type::REVOLUTE ||
+        joint_type == robotik::Joint::Type::CONTINUOUS)
+    {
+        if (!m_show_revolute_axes)
+            return;
+    }
+    else if (joint_type == robotik::Joint::Type::PRISMATIC)
+    {
+        if (!m_show_prismatic_axes)
+            return;
+    }
+    else
+    {
+        // FIXED joints don't have axes to render
+        return;
+    }
+
+    // Get joint world transform and axis in world space
+    Eigen::Matrix4d joint_world_transform = p_joint.worldTransform();
+    Eigen::Vector3d joint_axis_local = p_joint.axis();
+    Eigen::Vector3d joint_axis_world =
+        joint_world_transform.block<3, 3>(0, 0) * joint_axis_local;
+
+    // Get joint position in world space
+    Eigen::Vector3d joint_pos = joint_world_transform.block<3, 1>(0, 3);
+
+    // Create mesh name based on joint type
+    std::string mesh_name;
+    const MeshManager::GPUMesh* gpu_mesh = nullptr;
+
+    if (joint_type == robotik::Joint::Type::REVOLUTE ||
+        joint_type == robotik::Joint::Type::CONTINUOUS)
+    {
+        // Use cylinder for revolute joints
+        mesh_name = "joint_axis_cylinder";
+        if (!m_mesh_manager.hasMesh(mesh_name))
+        {
+            m_mesh_manager.createCylinder(
+                mesh_name, axis_radius, axis_length, 16);
+        }
+        gpu_mesh = m_mesh_manager.getMesh(mesh_name);
+    }
+    else if (joint_type == robotik::Joint::Type::PRISMATIC)
+    {
+        // Use box for prismatic joints
+        mesh_name = "joint_axis_box";
+        if (!m_mesh_manager.hasMesh(mesh_name))
+        {
+            m_mesh_manager.createBox(
+                mesh_name, axis_radius * 2.0f, axis_radius * 2.0f, axis_length);
+        }
+        gpu_mesh = m_mesh_manager.getMesh(mesh_name);
+    }
+
+    if (!gpu_mesh || !gpu_mesh->is_loaded)
+        return;
+
+    // Create rotation to align Z-axis (default mesh axis) with joint axis
+    Eigen::Vector3f z_axis = Eigen::Vector3f::UnitZ();
+    Eigen::Vector3f target_axis = joint_axis_world.normalized().cast<float>();
+
+    // Handle case where axis is already aligned with Z
+    Eigen::Matrix3f rotation;
+    if (target_axis.isApprox(z_axis) || target_axis.isApprox(-z_axis))
+    {
+        if (target_axis.isApprox(-z_axis))
+        {
+            // Rotate 180 degrees around X or Y
+            rotation = Eigen::AngleAxisf(M_PIf, Eigen::Vector3f::UnitX())
+                           .toRotationMatrix();
+        }
+        else
+        {
+            rotation = Eigen::Matrix3f::Identity();
+        }
+    }
+    else
+    {
+        // Create rotation from Z-axis to target axis
+        Eigen::Quaternionf quat =
+            Eigen::Quaternionf::FromTwoVectors(z_axis, target_axis);
+        rotation = quat.toRotationMatrix();
+    }
+
+    // Create transformation matrix
+    // The mesh is centered at origin with Z from -height/2 to +height/2
+    // We position it so it starts at the joint and extends along the axis
+    Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
+
+    // Set rotation
+    transform.block<3, 3>(0, 0) = rotation;
+
+    // Set position: mesh center should be at joint position + half length along
+    // axis Since mesh extends from -axis_length/2 to +axis_length/2 along Z,
+    // placing it at joint_pos + target_axis * (axis_length * 0.5f) centers it
+    // correctly
+    Eigen::Vector3f position =
+        joint_pos.cast<float>() + target_axis * (axis_length * 0.5f);
+    transform.block<3, 1>(0, 3) = position;
+
+    // Render with a distinct color
+    Eigen::Vector3f axis_color;
+    if (joint_type == robotik::Joint::Type::PRISMATIC)
+    {
+        // Yellow for prismatic joints
+        axis_color = Eigen::Vector3f(1.0f, 1.0f, 0.0f);
+    }
+    else
+    {
+        // Cyan for revolute joints
+        axis_color = Eigen::Vector3f(0.0f, 1.0f, 1.0f);
+    }
+
+    m_renderer.render(gpu_mesh, transform, axis_color);
 }
 
 } // namespace robotik::renderer

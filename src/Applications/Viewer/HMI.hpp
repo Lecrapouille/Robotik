@@ -1,5 +1,5 @@
 /**
- * @file DearRobotHMI.hpp
+ * @file HMI.hpp
  * @brief ImGui-based HMI for robot control and visualization.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -8,6 +8,8 @@
  */
 
 #pragma once
+
+#include "Controller.hpp"
 
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
@@ -29,20 +31,22 @@ namespace robotik::application
 //! - End effector selection for IK
 //! - Camera target selection
 // ****************************************************************************
-class DearRobotHMI
+class HMI
 {
 public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
     //! \param p_robot_manager Reference to robot manager for robot operations.
+    //! \param p_robot_controller Reference to robot controller.
     //! \param p_orbit_controller Reference to orbit controller for camera
     //! updates.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
-    DearRobotHMI(robotik::renderer::RobotManager& p_robot_manager,
-                 robotik::renderer::OrbitController& p_orbit_controller,
-                 std::function<void()> const& p_halt_callback);
+    HMI(robotik::renderer::RobotManager& p_robot_manager,
+        Controller& p_robot_controller,
+        robotik::renderer::OrbitController& p_orbit_controller,
+        std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
     //! \brief Render the main control panel.
@@ -53,6 +57,15 @@ public:
     //! \brief Render the menu bar.
     // ----------------------------------------------------------------------------
     void onDrawMenuBar();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the currently selected robot name
+    //! \return The name of the selected robot, empty string if none selected
+    // ----------------------------------------------------------------------------
+    std::string const& selectedRobot() const
+    {
+        return m_selected_robot;
+    }
 
 private:
 
@@ -132,13 +145,6 @@ private:
     void removeRobot(std::string const& p_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Initialize IK and trajectory configurations for a robot.
-    //! \param p_robot The robot to initialize.
-    // ----------------------------------------------------------------------------
-    void initializeRobotConfigurations(
-        renderer::RobotManager::ControlledRobot& p_robot);
-
-    // ----------------------------------------------------------------------------
     //! \brief Open about dialog
     // ----------------------------------------------------------------------------
     void about() const;
@@ -147,6 +153,8 @@ private:
 
     //! \brief Reference to robot manager
     robotik::renderer::RobotManager& m_robot_manager;
+    //! \brief Reference to Model-View-Controller controller
+    Controller& m_controller;
     //! \brief Reference to orbit controller
     robotik::renderer::OrbitController& m_orbit_controller;
     //! \brief Callback to halt the application

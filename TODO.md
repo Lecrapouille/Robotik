@@ -61,6 +61,8 @@ tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pi
 KO copie include/Robotik.hpp et project_info.hpp
 - Trajectory perd 10 FPS et IK on tourne a 1 FPS
 
+Trop de cast double vers float (geometry param, opengl matrice)
+
 Faits:
 
 - ~~void Blueprint::cacheBlueprintTree() utiliser le pattern visiteur~~

@@ -44,8 +44,8 @@ public:
     //! \param shader_mgr Shader manager for setting uniforms.
     // ------------------------------------------------------------------------
     RenderVisitor(MeshManager& mesh_mgr,
-                  Renderer& renderer,
-                  ShaderManager& shader_mgr);
+                  Renderer const& renderer,
+                  ShaderManager const& shader_mgr);
 
     // ------------------------------------------------------------------------
     //! \brief Visit a Joint node (optionally render joint axes for debug).
@@ -85,6 +85,17 @@ public:
         m_show_joint_axes = show;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Enable/disable rendering of specific joint types.
+    //! \param p_revolute Show revolute/continuous joint axes.
+    //! \param p_prismatic Show prismatic joint axes.
+    // ------------------------------------------------------------------------
+    inline void setJointAxesOptions(bool p_revolute, bool p_prismatic)
+    {
+        m_show_revolute_axes = p_revolute;
+        m_show_prismatic_axes = p_prismatic;
+    }
+
 private:
 
     // ------------------------------------------------------------------------
@@ -98,10 +109,19 @@ private:
     // ------------------------------------------------------------------------
     std::string getMeshName(robotik::Geometry const& geom) const;
 
+    // ------------------------------------------------------------------------
+    //! \brief Render a joint axis using appropriate mesh.
+    //! \param p_joint The joint to render axis for.
+    // ------------------------------------------------------------------------
+    void renderJointAxis(robotik::Joint const& p_joint);
+
+    //! \fixme shall be const
     MeshManager& m_mesh_manager;
-    Renderer& m_renderer;
-    ShaderManager& m_shader_manager;
+    Renderer const& m_renderer;
+    ShaderManager const& m_shader_manager;
     bool m_show_joint_axes = false;
+    bool m_show_revolute_axes = true;
+    bool m_show_prismatic_axes = true;
 };
 
 } // namespace robotik::renderer
