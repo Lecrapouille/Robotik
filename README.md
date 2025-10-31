@@ -245,3 +245,4 @@ robot->setJointValues(joint_values);
 - [Pinocchio](https://github.com/stack-of-tasks/pinocchio)
 - [Robot course by Jacques Gangloff](https://www.youtube.com/playlist?list=PLMXdciyMZwAAUlCQ_9mVs_CqQ9YaRTptX)
 - [Automatic Addison](https://automaticaddison.com/the-ultimate-guide-to-jacobian-matrices-for-robotics/)
+- [Medium](https://medium.com/geekculture/inverse-kinematics-solver-in-c-e999f1b7f353)

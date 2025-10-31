@@ -2,6 +2,7 @@ import pinocchio
 import numpy as np
 import argparse
 import sys
+import time
 
 ###############################################################################
 ### Robot class
@@ -20,16 +21,19 @@ class Robot:
         return f"Robot with {self.model.nq} degrees of freedom. Available joints: {[self.model.names[i] for i in range(1, self.model.njoints)]}"
 
     def forward_kinematics(self, joint_positions=None):
+        start_time = time.perf_counter()
         if joint_positions is None:
-            print(f"Forward kinematics: Using neutral joint configuration")
+            #print(f"Forward kinematics: Using neutral joint configuration")
             self.joint_positions = pinocchio.neutral(self.model)
         else:
-            print(f"Forward kinematics: Using joint positions: {joint_positions}")
+            #print(f"Forward kinematics: Using joint positions: {joint_positions}")
             if len(joint_positions) != self.model.nq:
                 raise ValueError(f"Joint positions must have {self.model.nq} elements")
             self.joint_positions = np.array(joint_positions)
         pinocchio.forwardKinematics(self.model, self.data, self.joint_positions)
         pinocchio.updateFramePlacements(self.model, self.data)
+        elapsed_time = time.perf_counter() - start_time
+        print(f"Forward kinematics: elapsed time = {elapsed_time*1000:.4f} ms")
 
     def get_end_effector_transform(self):
         return self.data.oMf[self.end_effector_id]

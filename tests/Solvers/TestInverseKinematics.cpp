@@ -182,6 +182,9 @@ TEST_F(InverseKinematicsTest, SimpleRevoluteRobotIK)
         // Solve IK
         bool solved = ik_solver->solve(*robot, *end_effector, target_pose);
 
+        std::cout << "IK solver: it: " << ik_solver->numIterations()
+                  << " error: " << ik_solver->poseError() << std::endl;
+
         // Verify convergence
         EXPECT_TRUE(solved) << "IK failed to converge for pose " << i;
         EXPECT_TRUE(ik_solver->converged())
@@ -240,6 +243,9 @@ TEST_F(InverseKinematicsTest, SCARARobotIK)
 
         // Solve IK
         bool solved = ik_solver->solve(*robot, *end_effector, target_pose);
+
+        std::cout << "IK solver: it: " << ik_solver->numIterations()
+                  << " error: " << ik_solver->poseError() << std::endl;
 
         // Verify convergence
         EXPECT_TRUE(solved) << "IK failed to converge for SCARA pose " << i;
@@ -323,6 +329,9 @@ TEST_F(InverseKinematicsTest, UnreachablePose)
 
     // Solve IK - should either fail or return a pose far from target
     bool solved = ik_solver->solve(*robot, *end_effector, unreachable_pose);
+
+    std::cout << "IK solver: it: " << ik_solver->numIterations()
+              << " error: " << ik_solver->poseError() << std::endl;
 
     // Either IK should not converge, or the error should be very large
     if (solved)
