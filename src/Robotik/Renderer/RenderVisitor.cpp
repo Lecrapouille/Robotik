@@ -8,6 +8,7 @@
 
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
+#include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
@@ -15,10 +16,9 @@
 #include "Robotik/Renderer/Loaders/StlLoader.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
-#include "Robotik/Renderer/Renderer.hpp"
 
+#include <GL/glew.h>
 #include <iostream>
-#include <sstream>
 
 namespace robotik::renderer
 {
@@ -27,11 +27,8 @@ using namespace robotik;
 
 // ----------------------------------------------------------------------------
 RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
-                             Renderer const& renderer,
                              ShaderManager const& shader_mgr)
-    : m_mesh_manager(mesh_mgr),
-      m_renderer(renderer),
-      m_shader_manager(shader_mgr)
+    : m_mesh_manager(mesh_mgr), m_shader_manager(shader_mgr)
 {
 }
 
@@ -79,15 +76,19 @@ void RenderVisitor::visit(const robotik::Node& /*node*/)
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
-                                   Eigen::Matrix4f const& transform)
+void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
 {
-    std::string mesh_name = getMeshName(geom);
-    const MeshManager::GPUMesh* gpu_mesh = m_mesh_manager.getMesh(mesh_name);
-
-    // Create the mesh if it doesn't exist yet
-    if (!gpu_mesh)
+    // Iterate through all cached geometries and create their meshes
+    for (auto const& geom_ref : p_blueprint.geometries())
     {
+        robotik::Geometry const& geom = geom_ref.get();
+        std::string const& mesh_name = geom.name();
+
+        // Skip if already loaded
+        if (m_mesh_manager.hasMesh(mesh_name))
+            continue;
+
+        // Create mesh based on geometry type
         if (auto* box = dynamic_cast<const robotik::Box*>(&geom))
         {
             const auto& params = box->parameters();
@@ -134,156 +135,200 @@ void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
                           << std::endl;
             }
         }
+    }
+}
 
-        gpu_mesh = m_mesh_manager.getMesh(mesh_name);
+// ----------------------------------------------------------------------------
+void RenderVisitor::renderMesh(const MeshManager::GPUMesh* p_mesh,
+                               const Eigen::Matrix4f& p_transform,
+                               const Eigen::Vector3f& p_color) const
+{
+    if (!p_mesh || !p_mesh->is_loaded)
+    {
+        return;
     }
 
-    // Render if mesh was created/found successfully
+    m_shader_manager.setMatrix4f(m_shader_manager.getUniformLocation("model"),
+                                 p_transform.data());
+    m_shader_manager.setVector3f(m_shader_manager.getUniformLocation("color"),
+                                 p_color.data());
+
+    glBindVertexArray(p_mesh->vao);
+    glDrawElements(GL_TRIANGLES,
+                   static_cast<GLsizei>(p_mesh->index_count),
+                   GL_UNSIGNED_INT,
+                   nullptr);
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::renderGrid(const MeshManager::GPUMesh* p_grid_mesh,
+                               const Eigen::Vector3f& p_color) const
+{
+    if (!p_grid_mesh || !p_grid_mesh->is_loaded)
+    {
+        return;
+    }
+
+    Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
+    m_shader_manager.setMatrix4f(m_shader_manager.getUniformLocation("model"),
+                                 model.data());
+    m_shader_manager.setVector3f(m_shader_manager.getUniformLocation("color"),
+                                 p_color.data());
+
+    glBindVertexArray(p_grid_mesh->vao);
+    glDrawArrays(GL_LINES, 0, static_cast<GLsizei>(p_grid_mesh->index_count));
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
+                               const Eigen::Matrix4f& p_transform,
+                               float p_scale) const
+{
+    if (!p_axes_mesh || !p_axes_mesh->is_loaded)
+    {
+        return;
+    }
+
+    const float radius = 0.02f * p_scale;
+    const float height = p_scale;
+
+    int model_uniform = m_shader_manager.getUniformLocation("model");
+    int color_uniform = m_shader_manager.getUniformLocation("color");
+
+    // X axis (red)
+    {
+        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+        scale(0, 0) = radius;
+        scale(1, 1) = radius;
+        scale(2, 2) = height / 2.0f;
+
+        Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
+        rotation.block<3, 3>(0, 0) =
+            Eigen::AngleAxisf(M_PIf / 2.0f, Eigen::Vector3f::UnitY())
+                .toRotationMatrix();
+
+        Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
+        translation(0, 3) = height * 0.5f;
+
+        Eigen::Matrix4f model = p_transform * translation * rotation * scale;
+        m_shader_manager.setMatrix4f(model_uniform, model.data());
+
+        Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
+        m_shader_manager.setVector3f(color_uniform, red_color.data());
+
+        glBindVertexArray(p_axes_mesh->vao);
+        glDrawElements(GL_TRIANGLES,
+                       static_cast<GLsizei>(p_axes_mesh->index_count),
+                       GL_UNSIGNED_INT,
+                       nullptr);
+    }
+
+    // Y axis (green)
+    {
+        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+        scale(0, 0) = radius;
+        scale(1, 1) = radius;
+        scale(2, 2) = height / 2.0f;
+
+        Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
+        rotation.block<3, 3>(0, 0) =
+            Eigen::AngleAxisf(-M_PIf / 2.0f, Eigen::Vector3f::UnitX())
+                .toRotationMatrix();
+
+        Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
+        translation(1, 3) = height * 0.5f;
+
+        Eigen::Matrix4f model = p_transform * translation * rotation * scale;
+        m_shader_manager.setMatrix4f(model_uniform, model.data());
+
+        Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
+        m_shader_manager.setVector3f(color_uniform, green_color.data());
+
+        glBindVertexArray(p_axes_mesh->vao);
+        glDrawElements(GL_TRIANGLES,
+                       static_cast<GLsizei>(p_axes_mesh->index_count),
+                       GL_UNSIGNED_INT,
+                       nullptr);
+    }
+
+    // Z axis (blue)
+    {
+        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+        scale(0, 0) = radius;
+        scale(1, 1) = radius;
+        scale(2, 2) = height / 2.0f;
+
+        Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
+        translation(2, 3) = height * 0.5f;
+
+        Eigen::Matrix4f model = p_transform * translation * scale;
+        m_shader_manager.setMatrix4f(model_uniform, model.data());
+
+        Eigen::Vector3f blue_color(0.0f, 0.0f, 1.0f);
+        m_shader_manager.setVector3f(color_uniform, blue_color.data());
+
+        glBindVertexArray(p_axes_mesh->vao);
+        glDrawElements(GL_TRIANGLES,
+                       static_cast<GLsizei>(p_axes_mesh->index_count),
+                       GL_UNSIGNED_INT,
+                       nullptr);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
+                                   Eigen::Matrix4f const& transform) const
+{
+    std::string const& mesh_name = geom.name();
+    const MeshManager::GPUMesh* gpu_mesh = m_mesh_manager.getMesh(mesh_name);
+
+    // Render if mesh was preloaded successfully
     if (gpu_mesh)
     {
         Eigen::Vector3f color = geom.color.cast<float>();
-        m_renderer.render(gpu_mesh, transform, color);
+        renderMesh(gpu_mesh, transform, color);
     }
-}
-
-// ----------------------------------------------------------------------------
-std::string RenderVisitor::getMeshName(robotik::Geometry const& geom) const
-{
-    std::stringstream ss;
-    ss << geom.name();
-
-    // Add parameters to make name unique
-    for (const auto& param : geom.parameters())
+    else
     {
-        ss << "_" << param;
+        std::cerr << "Warning: Mesh not preloaded: " << mesh_name << std::endl;
     }
-
-    return ss.str();
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint)
+void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint) const
 {
-    constexpr float axis_length = 0.15f;  // 15 cm
-    constexpr float axis_radius = 0.015f; // 1.5 cm
-
     // Get joint type and check if we should render this type
-    robotik::Joint::Type joint_type = p_joint.type();
+    switch (p_joint.type())
+    {
+        case robotik::Joint::Type::REVOLUTE:
+        case robotik::Joint::Type::CONTINUOUS:
+            if (!m_show_revolute_axes)
+                return;
+            break;
+        case robotik::Joint::Type::PRISMATIC:
+            if (!m_show_prismatic_axes)
+                return;
+            break;
+        case robotik::Joint::Type::FIXED:
+        default:
+            return;
+    }
 
-    if (joint_type == robotik::Joint::Type::REVOLUTE ||
-        joint_type == robotik::Joint::Type::CONTINUOUS)
+    // Get the axis mesh (should be preloaded by Application)
+    const MeshManager::GPUMesh* axis_mesh = m_mesh_manager.getMesh("axis");
+    if (!axis_mesh || !axis_mesh->is_loaded)
     {
-        if (!m_show_revolute_axes)
-            return;
-    }
-    else if (joint_type == robotik::Joint::Type::PRISMATIC)
-    {
-        if (!m_show_prismatic_axes)
-            return;
-    }
-    else
-    {
-        // FIXED joints don't have axes to render
+        std::cerr << "Warning: axis mesh not found for joint axes rendering"
+                  << std::endl;
         return;
     }
 
-    // Get joint world transform and axis in world space
-    Eigen::Matrix4d joint_world_transform = p_joint.worldTransform();
-    Eigen::Vector3d joint_axis_local = p_joint.axis();
-    Eigen::Vector3d joint_axis_world =
-        joint_world_transform.block<3, 3>(0, 0) * joint_axis_local;
+    // Get joint world transform
+    Eigen::Matrix4f joint_transform = p_joint.worldTransform().cast<float>();
 
-    // Get joint position in world space
-    Eigen::Vector3d joint_pos = joint_world_transform.block<3, 1>(0, 3);
-
-    // Create mesh name based on joint type
-    std::string mesh_name;
-    const MeshManager::GPUMesh* gpu_mesh = nullptr;
-
-    if (joint_type == robotik::Joint::Type::REVOLUTE ||
-        joint_type == robotik::Joint::Type::CONTINUOUS)
-    {
-        // Use cylinder for revolute joints
-        mesh_name = "joint_axis_cylinder";
-        if (!m_mesh_manager.hasMesh(mesh_name))
-        {
-            m_mesh_manager.createCylinder(
-                mesh_name, axis_radius, axis_length, 16);
-        }
-        gpu_mesh = m_mesh_manager.getMesh(mesh_name);
-    }
-    else if (joint_type == robotik::Joint::Type::PRISMATIC)
-    {
-        // Use box for prismatic joints
-        mesh_name = "joint_axis_box";
-        if (!m_mesh_manager.hasMesh(mesh_name))
-        {
-            m_mesh_manager.createBox(
-                mesh_name, axis_radius * 2.0f, axis_radius * 2.0f, axis_length);
-        }
-        gpu_mesh = m_mesh_manager.getMesh(mesh_name);
-    }
-
-    if (!gpu_mesh || !gpu_mesh->is_loaded)
-        return;
-
-    // Create rotation to align Z-axis (default mesh axis) with joint axis
-    Eigen::Vector3f z_axis = Eigen::Vector3f::UnitZ();
-    Eigen::Vector3f target_axis = joint_axis_world.normalized().cast<float>();
-
-    // Handle case where axis is already aligned with Z
-    Eigen::Matrix3f rotation;
-    if (target_axis.isApprox(z_axis) || target_axis.isApprox(-z_axis))
-    {
-        if (target_axis.isApprox(-z_axis))
-        {
-            // Rotate 180 degrees around X or Y
-            rotation = Eigen::AngleAxisf(M_PIf, Eigen::Vector3f::UnitX())
-                           .toRotationMatrix();
-        }
-        else
-        {
-            rotation = Eigen::Matrix3f::Identity();
-        }
-    }
-    else
-    {
-        // Create rotation from Z-axis to target axis
-        Eigen::Quaternionf quat =
-            Eigen::Quaternionf::FromTwoVectors(z_axis, target_axis);
-        rotation = quat.toRotationMatrix();
-    }
-
-    // Create transformation matrix
-    // The mesh is centered at origin with Z from -height/2 to +height/2
-    // We position it so it starts at the joint and extends along the axis
-    Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
-
-    // Set rotation
-    transform.block<3, 3>(0, 0) = rotation;
-
-    // Set position: mesh center should be at joint position + half length along
-    // axis Since mesh extends from -axis_length/2 to +axis_length/2 along Z,
-    // placing it at joint_pos + target_axis * (axis_length * 0.5f) centers it
-    // correctly
-    Eigen::Vector3f position =
-        joint_pos.cast<float>() + target_axis * (axis_length * 0.5f);
-    transform.block<3, 1>(0, 3) = position;
-
-    // Render with a distinct color
-    Eigen::Vector3f axis_color;
-    if (joint_type == robotik::Joint::Type::PRISMATIC)
-    {
-        // Yellow for prismatic joints
-        axis_color = Eigen::Vector3f(1.0f, 1.0f, 0.0f);
-    }
-    else
-    {
-        // Cyan for revolute joints
-        axis_color = Eigen::Vector3f(0.0f, 1.0f, 1.0f);
-    }
-
-    m_renderer.render(gpu_mesh, transform, axis_color);
+    // Render the standard RGB axes at the joint position
+    constexpr float axis_scale = 0.15f; // 15 cm
+    renderAxes(axis_mesh, joint_transform, axis_scale);
 }
 
 } // namespace robotik::renderer

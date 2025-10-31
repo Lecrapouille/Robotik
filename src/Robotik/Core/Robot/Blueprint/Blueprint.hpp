@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/Component.hpp"
+#include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
 
@@ -191,6 +192,16 @@ public:
         }
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Get all geometries in the blueprint.
+    //! \return Vector of references to all geometry nodes.
+    // ------------------------------------------------------------------------
+    inline std::vector<std::reference_wrapper<Geometry>> const&
+    geometries() const
+    {
+        return m_geometries;
+    }
+
 private:
 
     // ------------------------------------------------------------------------
@@ -234,6 +245,8 @@ private:
         m_actuators_map;
     //! \brief List of end effectors in the blueprint
     std::vector<std::reference_wrapper<Link>> m_end_effectors;
+    //! \brief List of all geometries in the blueprint
+    std::vector<std::reference_wrapper<Geometry>> m_geometries;
 };
 
 } // namespace robotik

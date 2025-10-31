@@ -9,16 +9,21 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Renderer/Managers/MeshManager.hpp"
 
 #include <Eigen/Dense>
 #include <string>
+
+// Forward declarations
+namespace robotik
+{
+class Blueprint;
+}
 
 namespace robotik::renderer
 {
 
 // Forward declarations
-class MeshManager;
-class Renderer;
 class ShaderManager;
 
 // ****************************************************************************
@@ -40,12 +45,9 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     //! \param mesh_mgr Mesh manager for creating/retrieving GPU meshes.
-    //! \param renderer Renderer for drawing meshes.
     //! \param shader_mgr Shader manager for setting uniforms.
     // ------------------------------------------------------------------------
-    RenderVisitor(MeshManager& mesh_mgr,
-                  Renderer const& renderer,
-                  ShaderManager const& shader_mgr);
+    RenderVisitor(MeshManager& mesh_mgr, ShaderManager const& shader_mgr);
 
     // ------------------------------------------------------------------------
     //! \brief Visit a Joint node (optionally render joint axes for debug).
@@ -96,28 +98,59 @@ public:
         m_show_prismatic_axes = p_prismatic;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Preload all geometries from the robot blueprint.
+    //! \param p_blueprint The robot blueprint containing all geometries.
+    //!
+    //! This method creates all GPU meshes needed for rendering the robot
+    //! before the first render call. It should be called once after loading
+    //! the robot model.
+    // ------------------------------------------------------------------------
+    void preloadGeometries(robotik::Blueprint const& p_blueprint);
+
+    // ------------------------------------------------------------------------
+    //! \brief Render a mesh with transformation and color.
+    //! \param p_mesh Pointer to GPU mesh to render.
+    //! \param p_transform 4x4 transformation matrix.
+    //! \param p_color RGB color (0.0-1.0).
+    // ------------------------------------------------------------------------
+    void renderMesh(const MeshManager::GPUMesh* p_mesh,
+                    const Eigen::Matrix4f& p_transform,
+                    const Eigen::Vector3f& p_color) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Render coordinate axes (X=red, Y=green, Z=blue).
+    //! \param p_transform 4x4 transformation matrix.
+    //! \param p_scale Scale factor for axes.
+    //! \param p_axes_mesh Pointer to cylinder mesh for axes (from MeshManager).
+    // ------------------------------------------------------------------------
+    void renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
+                    const Eigen::Matrix4f& p_transform,
+                    float p_scale) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Render grid.
+    //! \param p_grid_mesh Pointer to grid mesh (from MeshManager).
+    //! \param p_color RGB color (0.0-1.0).
+    // ------------------------------------------------------------------------
+    void renderGrid(const MeshManager::GPUMesh* p_grid_mesh,
+                    const Eigen::Vector3f& p_color) const;
+
 private:
 
     // ------------------------------------------------------------------------
     //! \brief Render a geometry with the given transform.
     // ------------------------------------------------------------------------
     void renderGeometry(robotik::Geometry const& geom,
-                        Eigen::Matrix4f const& transform);
-
-    // ------------------------------------------------------------------------
-    //! \brief Generate a unique mesh name based on geometry parameters.
-    // ------------------------------------------------------------------------
-    std::string getMeshName(robotik::Geometry const& geom) const;
+                        Eigen::Matrix4f const& transform) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render a joint axis using appropriate mesh.
     //! \param p_joint The joint to render axis for.
     // ------------------------------------------------------------------------
-    void renderJointAxis(robotik::Joint const& p_joint);
+    void renderJointAxis(robotik::Joint const& p_joint) const;
 
-    //! \fixme shall be const
     MeshManager& m_mesh_manager;
-    Renderer const& m_renderer;
     ShaderManager const& m_shader_manager;
     bool m_show_joint_axes = false;
     bool m_show_revolute_axes = true;

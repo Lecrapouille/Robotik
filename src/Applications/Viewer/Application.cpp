@@ -122,21 +122,18 @@ bool Application::setupMainShader()
 // ----------------------------------------------------------------------------
 bool Application::setupRenderer()
 {
-    m_renderer = std::make_unique<renderer::Renderer>(m_shader_manager);
-    if (!m_renderer->initialize())
+    // Create grid mesh for ground plane
+    if (!m_mesh_manager.createGrid("grid", 20, 1.0f))
     {
-        m_error = "Failed to initialize renderer: " + m_renderer->error();
+        m_error = "Failed to create grid mesh: " + m_mesh_manager.error();
         return false;
     }
 
-    // Create axis meshes once for reuse
-    if (!m_mesh_manager.hasMesh("axis_cylinder"))
+    // Create axis cylinder mesh for coordinate axes visualization
+    if (!m_mesh_manager.createCylinder("axis", 0.01f, 0.1f, 16))
     {
-        m_mesh_manager.createCylinder("axis_cylinder", 0.01f, 0.1f);
-    }
-    if (!m_mesh_manager.hasMesh("axis_box"))
-    {
-        m_mesh_manager.createBox("axis_box", 0.01f, 0.01f, 0.05f);
+        m_error = "Failed to create axis mesh: " + m_mesh_manager.error();
+        return false;
     }
 
     return true;
@@ -170,7 +167,7 @@ bool Application::onSetup()
         return false;
     }
 
-    // Create HMI
+    // Create DearImGui-based HMI
     m_hmi = std::make_unique<HMI>(m_robot_manager,
                                   *m_controller,
                                   *m_orbit_controller,
@@ -221,6 +218,11 @@ bool Application::setupRobot(std::string const& p_urdf_file)
         m_error = "📷 Failed to set camera target: " + m_config.camera_target;
         return false;
     }
+
+    // Preload all geometries (meshes) for this robot
+    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
+    visitor.preloadGeometries(robot->blueprint());
+    std::cout << "📦 Preloaded all geometries for robot" << std::endl;
 
     return true;
 }
@@ -288,12 +290,17 @@ void Application::onDrawScene()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the ground grid
-    m_renderer->renderGrid(Eigen::Vector3f(0.5f, 0.5f, 0.5f));
+    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
+    if (auto* grid_mesh = m_mesh_manager.getMesh("grid"))
+    {
+        visitor.renderGrid(grid_mesh, Eigen::Vector3f(0.5f, 0.5f, 0.5f));
+    }
 
     // Render the robots
     for (auto const& [robot_name, robot] : m_robot_manager.robots())
     {
-        renderRobot(robot, robot_name == m_hmi->selectedRobot());
+        bool const selected = (robot_name == m_hmi->selectedRobot());
+        renderRobot(robot, selected);
     }
 }
 
@@ -302,13 +309,12 @@ void Application::renderRobot(
     renderer::RobotManager::ControlledRobot const& p_robot,
     bool p_is_selected)
 {
+    // Create visitor for rendering
+    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
+
     // Render nodes of the robot
     if (p_robot.is_visible && p_robot.blueprint().hasRoot())
     {
-        // Const cast is safe here: rendering operations don't change logical
-        // state
-        renderer::RenderVisitor visitor(
-            m_mesh_manager, *m_renderer, m_shader_manager);
         p_robot.blueprint().root().traverse(visitor);
     }
 
@@ -323,10 +329,9 @@ void Application::renderRobot(
     {
         Transform target_transform =
             robotik::poseToTransform(p_robot.ik_target_poses[0]);
-        if (auto* axis_mesh = m_mesh_manager.getMesh("axis_cylinder"))
+        if (auto* axis_mesh = m_mesh_manager.getMesh("axis"))
         {
-            m_renderer->renderAxes(
-                target_transform.cast<float>(), 0.2f, axis_mesh);
+            visitor.renderAxes(axis_mesh, target_transform.cast<float>(), 1.0f);
         }
     }
 
@@ -355,9 +360,11 @@ void Application::renderTrajectoryPath(
         [&saved_positions](Joint const& joint, size_t /*index*/)
         { saved_positions.push_back(joint.position()); });
 
-    auto* axis_mesh = m_mesh_manager.getMesh("axis_cylinder");
+    auto* axis_mesh = m_mesh_manager.getMesh("axis");
     if (!axis_mesh)
         return;
+
+    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
 
     for (size_t i = 0; i < num_samples; ++i)
     {
@@ -366,10 +373,10 @@ void Application::renderTrajectoryPath(
         p_robot.blueprint().forEachJoint(
             [&states](Joint& joint, size_t index)
             { joint.position(states.position[index]); });
-        m_renderer->renderAxes(
+        visitor.renderAxes(
+            axis_mesh,
             p_robot.control_joint->worldTransform().cast<float>(),
-            0.15f,
-            axis_mesh);
+            1.0f);
     }
 
     p_robot.blueprint().forEachJoint(
