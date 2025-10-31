@@ -71,9 +71,9 @@ public:
                                                  std::ref(actuator));
     }
 
-    void visit(Geometry&) override
+    void visit(Geometry& geometry) override
     {
-        // Ignore geometry nodes in blueprint cache
+        m_blueprint->m_geometries.emplace_back(std::ref(geometry));
     }
 
     void visit(Node&) override
@@ -104,6 +104,7 @@ void Blueprint::cacheBlueprintTree()
     m_sensors_map.clear();
     m_actuators_map.clear();
     m_end_effectors.clear();
+    m_geometries.clear();
 
     if (m_root_node == nullptr)
         return;

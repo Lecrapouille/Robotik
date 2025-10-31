@@ -22,7 +22,6 @@
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
-#include "Robotik/Renderer/Renderer.hpp"
 
 #include "Robotik/Core/Common/Path.hpp"
 
@@ -219,8 +218,6 @@ private:
     std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
     //! \brief Orbit controller for orbiting around the robot.
     std::unique_ptr<renderer::OrbitController> m_orbit_controller;
-    //! \brief Renderer for rendering the robot.
-    std::unique_ptr<renderer::Renderer> m_renderer;
     //! \brief Shader manager for managing shaders.
     renderer::ShaderManager m_shader_manager;
     //! \brief Mesh manager for managing meshes.

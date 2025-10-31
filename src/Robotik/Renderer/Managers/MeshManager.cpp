@@ -129,6 +129,50 @@ bool MeshManager::createCylinder(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
+bool MeshManager::createGrid(const std::string& p_name,
+                             int p_size,
+                             float p_spacing)
+{
+    // Generate grid vertices
+    std::vector<float> grid_vertices;
+    generateGrid(grid_vertices, p_size, p_spacing);
+
+    // Create GPU mesh manually (grid uses GL_LINES, no indices)
+    GPUMesh gpu_mesh;
+
+    glGenVertexArrays(1, &gpu_mesh.vao);
+    glGenBuffers(1, &gpu_mesh.vbo);
+
+    glBindVertexArray(gpu_mesh.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, gpu_mesh.vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 grid_vertices.size() * sizeof(float),
+                 grid_vertices.data(),
+                 GL_STATIC_DRAW);
+
+    // Position attribute (location 0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+
+    // Normal attribute (location 1) - for grid it's just Z-up
+    glVertexAttribPointer(1,
+                          3,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          6 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    gpu_mesh.index_count =
+        grid_vertices.size() / 6; // 6 floats per vertex (pos + normal)
+    gpu_mesh.is_loaded = true;
+
+    // Store the mesh
+    m_meshes[p_name] = gpu_mesh;
+    return true;
+}
+
+// ----------------------------------------------------------------------------
 const MeshManager::GPUMesh*
 MeshManager::getMesh(const std::string& p_name) const
 {
@@ -569,6 +613,48 @@ void MeshManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
     }
 
     p_mesh.triangle_count = p_mesh.indices.size() / 3;
+}
+
+// ----------------------------------------------------------------------------
+void MeshManager::generateGrid(std::vector<float>& p_vertices,
+                               int p_size,
+                               float p_spacing) const
+{
+    p_vertices.clear();
+
+    // Grid in XY plane (Z=0) for Z-up coordinate system to match URDF standard
+    for (int i = -p_size; i <= p_size; ++i)
+    {
+        // Lines parallel to X axis (varying Y)
+        p_vertices.push_back(-float(p_size) * p_spacing);
+        p_vertices.push_back(float(i) * p_spacing);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
+
+        p_vertices.push_back(float(p_size) * p_spacing);
+        p_vertices.push_back(float(i) * p_spacing);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
+
+        // Lines parallel to Y axis (varying X)
+        p_vertices.push_back(float(i) * p_spacing);
+        p_vertices.push_back(-float(p_size) * p_spacing);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
+
+        p_vertices.push_back(float(i) * p_spacing);
+        p_vertices.push_back(float(p_size) * p_spacing);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(0.0f);
+        p_vertices.push_back(1.0f);
+    }
 }
 
 } // namespace robotik::renderer

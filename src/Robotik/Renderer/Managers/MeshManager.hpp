@@ -124,6 +124,17 @@ public:
                         size_t p_segments = 16);
 
     // ------------------------------------------------------------------------
+    //! \brief Create a grid mesh for ground plane visualization.
+    //! \param p_name Unique name for the mesh.
+    //! \param p_size Grid size (number of lines in each direction).
+    //! \param p_spacing Spacing between grid lines.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool createGrid(const std::string& p_name,
+                    int p_size = 20,
+                    float p_spacing = 1.0f);
+
+    // ------------------------------------------------------------------------
     //! \brief Get a mesh by name.
     //! \param p_name Name of the mesh.
     //! \return Pointer to GPU mesh, nullptr if not found.
@@ -195,6 +206,11 @@ private:
                           float p_radius,
                           float p_height,
                           size_t p_segments) const;
+
+    //! \brief Generate grid vertices (no indices, uses GL_LINES)
+    void generateGrid(std::vector<float>& p_vertices,
+                      int p_size,
+                      float p_spacing) const;
 
 private:
 
