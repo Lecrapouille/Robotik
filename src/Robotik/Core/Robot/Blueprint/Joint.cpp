@@ -84,8 +84,8 @@ void Joint::position(double p_position)
     m_joint_transform = joint_transform;
     m_combined_local_transform = m_local_transform * m_joint_transform;
 
-    // Update the world transform
-    updateWorldTransforms(); // FIXME find a lazy way to do this
+    // Mark transforms as dirty for lazy evaluation
+    markTransformsDirty();
 }
 
 // ----------------------------------------------------------------------------
@@ -100,7 +100,7 @@ void Joint::localTransform(Transform const& p_transform)
 {
     m_local_transform = p_transform;
     m_combined_local_transform = m_local_transform * m_joint_transform;
-    updateWorldTransforms(); // FIXME find a lazy way to do this
+    markTransformsDirty();
 }
 
 // ----------------------------------------------------------------------------
