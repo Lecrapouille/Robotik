@@ -44,7 +44,7 @@ public:
     Geometry(std::string const& p_name,
              Type p_type,
              std::vector<double>&& p_parameters,
-             std::string p_mesh_path)
+             std::string const& p_mesh_path)
         : Node(p_name),
           m_type(p_type),
           m_parameters(std::move(p_parameters)),
