@@ -57,17 +57,20 @@ struct State
     //! \brief Joint accelerations (generalized accelerations q_ddot)
     std::vector<double> joint_accelerations;
 
+    //! \brief Joint local transformations (computed from positions)
+    //! These are the transformations applied by each joint based on its
+    //! current position (rotation or translation). Combined with static
+    //! placements to get world transforms.
+    std::vector<Transform> joint_local_transforms;
+
+    //! \brief Joint world transformations (result of forward kinematics)
+    std::vector<Transform> joint_transforms;
+
     //! \brief Link world transformations (result of forward kinematics)
     std::vector<Transform> link_transforms;
 
-    //! \brief Joint world transformations
-    std::vector<Transform> joint_transforms;
-
     //! \brief Cached Jacobian matrix
     Jacobian jacobian;
-
-    //! \brief IK solver
-    // std::unique_ptr<IKSolver> ik_solver;
 };
 
 } // namespace robotik

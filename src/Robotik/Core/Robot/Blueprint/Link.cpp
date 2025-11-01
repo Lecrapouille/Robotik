@@ -8,7 +8,6 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 
 namespace robotik
 {
@@ -58,18 +57,6 @@ double Link::length() const
 {
     // Approximate length as the distance from origin to center of mass
     return m_inertial.center_of_mass.norm();
-}
-
-// ----------------------------------------------------------------------------
-void Link::accept(NodeVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ----------------------------------------------------------------------------
-void Link::accept(ConstNodeVisitor& visitor) const
-{
-    visitor.visit(*this);
 }
 
 } // namespace robotik

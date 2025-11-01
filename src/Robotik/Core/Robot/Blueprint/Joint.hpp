@@ -464,42 +464,11 @@ public:
     //! \brief Accept a visitor (Visitor pattern override).
     //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(NodeVisitor& visitor) override;
 
     // ------------------------------------------------------------------------
     //! \brief Accept a const visitor (Visitor pattern override).
     //! \param visitor The const visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(ConstNodeVisitor& visitor) const override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Update the associated node's transformation.
-    //!
-    //! PHYSICS: This method propagates the joint's motion through the
-    //! kinematic chain by updating the spatial transformation of the
-    //! associated kinematic tree node.
-    //!
-    //! KINEMATIC CHAIN DYNAMICS:
-    //! When a joint moves, it affects the position and orientation of all
-    //! downstream links in the kinematic chain. This propagation follows
-    //! the composition of transformations:
-    //!
-    //! T_end = T_base * T_joint1 * T_joint2 * ... * T_jointN
-    //!
-    //! The update process:
-    //! 1. Compute joint's local transformation T_joint
-    //! 2. Set node's local transform to T_joint
-    //! 3. Mark node as dirty for world transform recalculation
-    //! 4. Trigger cascading updates through child nodes
-    //!
-    //! This mechanism ensures that:
-    //! - Forward kinematics remains consistent
-    //! - All dependent coordinate frames are updated
-    //! - Performance is optimized through dirty flagging
-    //!
-    //! Called automatically when joint value changes via value()
-    // ------------------------------------------------------------------------
-    void updateTransforms();
 
 private:
 
@@ -509,10 +478,6 @@ private:
     size_t m_index = 0;
     //! \brief Normalized motion axis in 3D space
     Eigen::Vector3d m_axis;
-    //! \brief Cached joint transformation matrix.
-    Transform m_joint_transform;
-    //! \brief Cached combined local transformation (static + joint).
-    Transform m_combined_local_transform;
     //! \brief Current joint configuration value (radians or meters)
     double m_position;
     //! \brief safety limit: minimum allowable joint value (safety limit)

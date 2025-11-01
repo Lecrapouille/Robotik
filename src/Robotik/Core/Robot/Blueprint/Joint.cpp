@@ -8,7 +8,6 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 
 namespace robotik
 {
@@ -37,8 +36,6 @@ Joint::Joint(std::string const& p_name,
         case Joint::Type::FIXED:
             m_position_min = m_position_max = 0.0;
             m_position = 0.0;
-            m_joint_transform = Eigen::Matrix4d::Identity();
-            m_combined_local_transform = Eigen::Matrix4d::Identity();
             break;
     }
 }
@@ -64,28 +61,10 @@ void Joint::position(double p_position)
             p_position = m_position_max;
     }
 
-    // Compute the joint's local transformation matrix
-    Eigen::Matrix4d joint_transform = Eigen::Matrix4d::Identity();
-    if (m_type == Joint::Type::PRISMATIC)
-    {
-        // Translation along the axis
-        joint_transform.block<3, 1>(0, 3) = m_axis * p_position;
-    }
-    else if (m_type == Joint::Type::CONTINUOUS ||
-             m_type == Joint::Type::REVOLUTE)
-    {
-        // Create the rotation matrix around the axis
-        Eigen::AngleAxisd joint_rotation(p_position, m_axis);
-        joint_transform.block<3, 3>(0, 0) = joint_rotation.toRotationMatrix();
-    }
-
-    // Update the joint's position and transformation
+    // Simply store the position value
+    // Transform computation is now done in Robot::computeJointTransform()
+    // and stored in State, not in the Blueprint
     m_position = p_position;
-    m_joint_transform = joint_transform;
-    m_combined_local_transform = m_local_transform * m_joint_transform;
-
-    // Mark transforms as dirty for lazy evaluation
-    markTransformsDirty();
 }
 
 // ----------------------------------------------------------------------------
@@ -99,26 +78,14 @@ void Joint::velocity(double p_acceleration, double p_dt)
 void Joint::localTransform(Transform const& p_transform)
 {
     m_local_transform = p_transform;
-    m_combined_local_transform = m_local_transform * m_joint_transform;
-    markTransformsDirty();
 }
 
 // ----------------------------------------------------------------------------
 Transform const& Joint::localTransform() const
 {
-    return m_combined_local_transform;
-}
-
-// ----------------------------------------------------------------------------
-void Joint::accept(NodeVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ----------------------------------------------------------------------------
-void Joint::accept(ConstNodeVisitor& visitor) const
-{
-    visitor.visit(*this);
+    // Return the static placement from URDF
+    // Dynamic joint motion is handled in State, not here
+    return m_local_transform;
 }
 
 // ----------------------------------------------------------------------------

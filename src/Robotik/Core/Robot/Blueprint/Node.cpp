@@ -9,7 +9,6 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 
 namespace robotik
 {
@@ -111,73 +110,6 @@ Node const* Node::find(Node const& p_root, std::string const& p_name)
 void Node::localTransform(Transform const& p_transform)
 {
     m_local_transform = p_transform;
-    markTransformsDirty();
-}
-
-// ----------------------------------------------------------------------------
-void Node::markTransformsDirty()
-{
-    m_transforms_dirty = true;
-    for (auto const& child : m_children)
-    {
-        child->markTransformsDirty();
-    }
-}
-
-// ----------------------------------------------------------------------------
-void Node::updateWorldTransforms()
-{
-    if (m_parent)
-    {
-        m_world_transform = m_parent->worldTransform() * localTransform();
-    }
-    else
-    {
-        m_world_transform = localTransform();
-    }
-
-    m_transforms_dirty = false;
-
-    for (auto const& child : m_children)
-    {
-        child->updateWorldTransforms();
-    }
-}
-
-// ----------------------------------------------------------------------------
-void Node::accept(NodeVisitor& visitor)
-{
-    visitor.visit(*this);
-}
-
-// ----------------------------------------------------------------------------
-void Node::accept(ConstNodeVisitor& visitor) const
-{
-    visitor.visit(*this);
-}
-
-// ----------------------------------------------------------------------------
-void Node::traverse(NodeVisitor& visitor)
-{
-    accept(visitor);
-    visitor.incrementDepth();
-    for (auto& child : m_children)
-    {
-        child->traverse(visitor);
-    }
-    visitor.decrementDepth();
-}
-
-// ----------------------------------------------------------------------------
-void Node::traverse(ConstNodeVisitor& visitor) const
-{
-    accept(visitor);
-    visitor.incrementDepth();
-    for (auto const& child : m_children)
-    {
-        child->traverse(visitor);
-    }
-    visitor.decrementDepth();
 }
 
 } // namespace robotik

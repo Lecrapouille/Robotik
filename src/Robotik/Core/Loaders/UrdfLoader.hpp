@@ -11,6 +11,7 @@
 
 #include "Robotik/Core/Common/Types.hpp"
 #include "Robotik/Core/Loaders/RobotLoader.hpp"
+#include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 
 #include <memory>
 #include <string>
@@ -113,6 +114,18 @@ private:
     // Core parsing methods
     bool parseLinks(pugi::xml_node p_robot_element);
     bool parseJoints(pugi::xml_node p_robot_element);
+    
+    // New flat array architecture
+    std::unique_ptr<Robot> buildFlatArrays(std::string const& p_robot_name);
+    void buildFlatArraysRecursive(
+        URDFLoaderLink const* p_link,
+        size_t p_parent_joint_index,
+        std::vector<JointData>& p_joint_data,
+        std::vector<LinkData>& p_link_data,
+        std::vector<GeometryData>& p_geometry_data,
+        std::unordered_map<std::string, size_t>& p_link_name_to_index);
+    
+    // Legacy tree-based methods (deprecated)
     std::unique_ptr<Robot> buildRobotModel(std::string const& p_robot_name);
     std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
 

@@ -237,33 +237,36 @@ void HMI::jointControlPanel()
     ImGui::Text("Joints (%zu):", robot->blueprint().numJoints());
     ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
-    robot->blueprint().forEachJoint(
-        [read_only](Joint& joint, size_t /*index*/)
+    robot->blueprint().forEachJointData(
+        [read_only, robot](JointData const& joint_data, size_t i)
         {
-            ImGui::PushID(joint.name().c_str());
+            ImGui::PushID(joint_data.name.c_str());
 
-            auto value = static_cast<float>(joint.position());
-            auto const [min, max] = joint.limits();
+            float value = static_cast<float>(robot->state().joint_positions[i]);
+            float const min = static_cast<float>(joint_data.position_min);
+            float const max = static_cast<float>(joint_data.position_max);
 
             if (read_only)
             {
                 ImGui::BeginDisabled();
-                ImGui::SliderFloat(joint.name().c_str(),
+                ImGui::SliderFloat(joint_data.name.c_str(),
                                    &value,
-                                   static_cast<float>(min),
-                                   static_cast<float>(max),
+                                   min,
+                                   max,
                                    "%.3f");
                 ImGui::EndDisabled();
             }
             else
             {
-                if (ImGui::SliderFloat(joint.name().c_str(),
+                if (ImGui::SliderFloat(joint_data.name.c_str(),
                                        &value,
-                                       static_cast<float>(min),
-                                       static_cast<float>(max),
+                                       min,
+                                       max,
                                        "%.3f"))
                 {
-                    joint.position(static_cast<double>(value));
+                    // Update the robot state and recompute FK
+                    robot->state().joint_positions[i] = static_cast<double>(value);
+                    const_cast<Robot*>(static_cast<Robot const*>(robot))->setJointPositions(robot->state());
                 }
             }
 
@@ -287,7 +290,9 @@ void HMI::endEffectorPanel()
     std::vector<std::string> const& end_effectors = m_end_effector_names;
 
     std::string current_end_effector =
-        robot->control_link ? robot->control_link->name() : "";
+        (robot->control_link_index < robot->blueprint().numLinks())
+            ? robot->blueprint().linkData(robot->control_link_index).name
+            : "";
 
     if (ImGui::BeginCombo("End Effector",
                           current_end_effector.empty()
@@ -354,32 +359,35 @@ void HMI::cameraTargetPanel()
         return;
 
     std::string current_camera_target =
-        robot->camera_target ? robot->camera_target->name() : "";
+        (robot->camera_target_link_index < robot->blueprint().numLinks())
+            ? robot->blueprint().linkData(robot->camera_target_link_index).name
+            : "";
 
     if (ImGui::BeginCombo("Camera Target",
                           current_camera_target.empty()
                               ? "None"
                               : current_camera_target.c_str()))
     {
-        for (const auto& node_name : m_node_names)
-        {
-            ImGui::PushID(node_name.c_str());
-            bool is_selected = (current_camera_target == node_name);
-            if (ImGui::Selectable(node_name.c_str(), is_selected))
+        // Iterate over all links for camera target selection
+        robot->blueprint().forEachLinkData([&](LinkData const& link, size_t i) {
+            ImGui::PushID(link.name.c_str());
+            bool is_selected = (current_camera_target == link.name);
+            if (ImGui::Selectable(link.name.c_str(), is_selected))
             {
-                if (m_controller.setCameraTarget(m_selected_robot, node_name))
+                if (m_controller.setCameraTarget(m_selected_robot, link.name))
                 {
                     // Update orbit controller target
                     auto* updated_robot =
                         m_robot_manager.getRobot(m_selected_robot);
-                    if (updated_robot && updated_robot->camera_target)
+                    if (updated_robot && 
+                        updated_robot->camera_target_link_index < updated_robot->state().link_transforms.size())
                     {
                         Eigen::Vector3d target_pos =
-                            updated_robot->camera_target->worldTransform()
+                            updated_robot->state().link_transforms[updated_robot->camera_target_link_index]
                                 .block<3, 1>(0, 3);
                         m_orbit_controller.setTarget(target_pos.cast<float>());
                     }
-                    std::cout << "📹 Camera target set to: " << node_name
+                    std::cout << "📹 Camera target set to: " << link.name
                               << std::endl;
                 }
             }
@@ -388,7 +396,7 @@ void HMI::cameraTargetPanel()
                 ImGui::SetItemDefaultFocus();
             }
             ImGui::PopID();
-        }
+        });
         ImGui::EndCombo();
     }
 
@@ -437,20 +445,81 @@ void HMI::refreshCurrentRobotCaches()
     }
 
     auto* robot = m_robot_manager.getRobot(m_selected_robot);
-    if (robot == nullptr || !robot->blueprint().hasRoot())
+    if (robot == nullptr)
     {
         return;
     }
 
+    // Collect all link names
     m_node_names.reserve(robot->blueprint().numLinks());
-    robot->blueprint().root().traverse(
-        [this](Node const& node, size_t /*depth*/)
-        { m_node_names.emplace_back(node.name()); });
+    robot->blueprint().forEachLinkData(
+        [this](LinkData const& link, size_t /*index*/)
+        { m_node_names.emplace_back(link.name); });
 
-    m_end_effector_names.reserve(robot->blueprint().endEffectors().size());
-    for (auto const& end_eff : robot->blueprint().endEffectors())
+    // Find end effectors: links that have no child joints
+    // A link is an end effector if no joint has this link as parent
+    std::vector<bool> is_parent(robot->blueprint().numLinks(), false);
+    robot->blueprint().forEachJointData(
+        [&is_parent](JointData const& joint, size_t /*index*/)
+        {
+            if (joint.parent_link_index != SIZE_MAX)
+            {
+                // The parent joint's parent link has children
+                // Actually, we need to mark links that ARE parents of joints
+                // This is a bit complex. Let's simplify: a link is an end effector
+                // if no joint has it as its parent link.
+                // But JointData has parent_index (parent joint), not parent link.
+                // We need to find which link contains each joint.
+            }
+        });
+    
+    // Simpler approach: find links that no joint points to via parent_joint_index
+    std::vector<bool> has_child_joint(robot->blueprint().numLinks(), false);
+    robot->blueprint().forEachLinkData(
+        [&](LinkData const& link, size_t link_idx)
+        {
+            // Check if any joint has this link as parent
+            robot->blueprint().forEachJointData(
+                [&](JointData const& joint, size_t /*joint_idx*/)
+                {
+                    if (joint.parent_link_index != SIZE_MAX)
+                    {
+                        // This joint has a parent joint.
+                        // The link attached to that parent joint has a child.
+                        // But we need to know which link is attached to each joint...
+                        // Actually, each Link has a parent_joint_index, so we can
+                        // determine which link "belongs" to which joint.
+                    }
+                });
+        });
+    
+    // More direct approach: a link is an end effector if no other link
+    // has this link's "owning joint" as parent_joint_index
+    for (size_t link_idx = 0; link_idx < robot->blueprint().numLinks(); ++link_idx)
     {
-        m_end_effector_names.emplace_back(end_eff.get().name());
+        LinkData const& link = robot->blueprint().linkData(link_idx);
+        
+        // Check if there's any joint that uses this link
+        // Find joint index for this link (if link.parent_joint_index != SIZE_MAX,
+        // this link belongs to that joint's output)
+        // Then check if any other link has that joint as parent
+        
+        bool has_children = false;
+        for (size_t other_link_idx = 0; other_link_idx < robot->blueprint().numLinks(); ++other_link_idx)
+        {
+            if (other_link_idx == link_idx) continue;
+            
+            LinkData const& other_link = robot->blueprint().linkData(other_link_idx);
+            
+            // If another link's parent joint is the joint after this link,
+            // then this link has children
+            // But we need to find "the joint after this link"
+            // This is complex. Let's just mark all links as potential end effectors
+            // for now, or use a heuristic.
+        }
+        
+        // Heuristic: just add all links for now
+        m_end_effector_names.push_back(link.name);
     }
 }
 

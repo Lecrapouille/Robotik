@@ -83,8 +83,6 @@ public:
     // ------------------------------------------------------------------------
     Robot(std::string const& p_name, Blueprint&& p_blueprint);
 
-    Robot(std::string const& p_name, Node::Ptr p_root);
-
     // ------------------------------------------------------------------------
     //! \brief Get the name of the robot.
     //! \return The name of the robot.
@@ -203,6 +201,30 @@ public:
     Jacobian const& computeJacobian(State& p_state, Node const& p_end_effector);
 
 private:
+
+    // ------------------------------------------------------------------------
+    //! \brief Compute joint local transform from position.
+    //!
+    //! This helper function computes the 4x4 transformation matrix that
+    //! represents the motion applied by a joint based on its current position.
+    //!
+    //! For REVOLUTE/CONTINUOUS joints:
+    //! - Returns rotation matrix around joint axis by position (radians)
+    //!
+    //! For PRISMATIC joints:
+    //! - Returns translation along joint axis by position (meters)
+    //!
+    //! For FIXED joints:
+    //! - Returns identity matrix (no motion)
+    //!
+    //! \param p_type Joint type (REVOLUTE, PRISMATIC, CONTINUOUS, FIXED)
+    //! \param p_axis Normalized joint axis in local frame
+    //! \param p_position Current joint position (radians or meters)
+    //! \return 4x4 homogeneous transformation matrix
+    // ------------------------------------------------------------------------
+    static Transform computeJointTransform(Joint::Type p_type,
+                                           Eigen::Vector3d const& p_axis,
+                                           double p_position);
 
     //! \brief The name of the robot.
     std::string m_name;

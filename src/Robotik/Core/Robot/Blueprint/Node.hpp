@@ -128,7 +128,6 @@ public:
     {
         m_children.push_back(std::move(p_child));
         m_children.back()->m_parent = this;
-        m_children.back()->markTransformsDirty();
     }
 
     // ------------------------------------------------------------------------
@@ -147,6 +146,24 @@ public:
     inline std::vector<std::unique_ptr<Node>>& children()
     {
         return m_children;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the parent node.
+    //! \return Pointer to the parent node, or nullptr if this is the root.
+    // ------------------------------------------------------------------------
+    inline Node const* parent() const
+    {
+        return m_parent;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the parent node.
+    //! \return Pointer to the parent node, or nullptr if this is the root.
+    // ------------------------------------------------------------------------
+    inline Node* parent()
+    {
+        return m_parent;
     }
 
     // ------------------------------------------------------------------------
@@ -185,37 +202,6 @@ public:
     static Node* find(Node& p_root, std::string const& p_name);
 
     // ------------------------------------------------------------------------
-    //! \brief Accept a visitor (Visitor pattern).
-    //!
-    //! This method implements the Visitor pattern, allowing operations on
-    //! nodes without adding methods to the node blueprint. The visitor will
-    //! call the appropriate visit() method based on the actual node type.
-    //!
-    //! \param visitor The visitor to accept.
-    // ------------------------------------------------------------------------
-    virtual void accept(NodeVisitor& visitor);
-
-    // ------------------------------------------------------------------------
-    //! \brief Accept a const visitor (Visitor pattern).
-    //! \param visitor The const visitor to accept.
-    // ------------------------------------------------------------------------
-    virtual void accept(ConstNodeVisitor& visitor) const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Traverse the node tree using a visitor.
-    //!
-    //! This method traverses the tree recursively using the Visitor pattern.
-    //! The visitor maintains its own depth state during traversal.
-    //!
-    //! \param visitor The visitor to use for traversal.
-    // ------------------------------------------------------------------------
-    void traverse(NodeVisitor& visitor);
-
-    // ------------------------------------------------------------------------
-    //! \brief Traverse the node tree using a const visitor.
-    //! \param visitor The const visitor to use for traversal.
-    // ------------------------------------------------------------------------
-    void traverse(ConstNodeVisitor& visitor) const;
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree recursively and apply a function to each
@@ -332,29 +318,28 @@ public:
     //! \brief Get the world transform of the node.
     //!
     //! The world transform describes the absolute position and orientation
-    //! of this node in the global/base coordinate frame. This
-    //! transformation is calculated by multiplying all local transforms
-    //! from the root to this node.
+    //! of this node in the global/base coordinate frame.
     //!
-    //! In robotics, this transformation represents:
-    //! - Position/orientation of a link in the robot's workspace
-    //! - End-effector pose relative to the robot's base
-    //! - Absolute configuration of any part of the robot
-    //!
-    //! The world transform = T_base * T_joint1 * ... * T_jointN * T_local
-    //! where each T_jointX is
-    //!
-    //! LAZY EVALUATION: This method uses dirty flags to avoid redundant
-    //! recalculations. The transforms are only updated when needed (when
-    //! accessed and marked as dirty).
+    //! \note This is maintained for backward compatibility with tree-based
+    //!       visualization code. For kinematic algorithms, use State transforms
+    //!       which are computed by Robot::setJointPositions().
     // ------------------------------------------------------------------------
     inline Transform const& worldTransform() const
     {
-        if (m_transforms_dirty)
-        {
-            const_cast<Node&>(*this).updateWorldTransforms();
-        }
         return m_world_transform;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the world transform of the node.
+    //!
+    //! This is used by Robot algorithms to update node transforms for
+    //! visualization after computing forward kinematics.
+    //!
+    //! \param p_transform World transformation matrix
+    // ------------------------------------------------------------------------
+    inline void setWorldTransform(Transform const& p_transform)
+    {
+        m_world_transform = p_transform;
     }
 
     // ------------------------------------------------------------------------
@@ -365,46 +350,6 @@ public:
     {
         return m_name;
     }
-
-protected:
-
-    // ------------------------------------------------------------------------
-    //! \brief Mark this node and all its children as needing transform update.
-    //!
-    //! This method implements the "dirty flag" pattern for lazy evaluation.
-    //! Instead of immediately recalculating world transforms when a joint
-    //! moves, we mark the affected nodes as dirty. The actual recalculation
-    //! happens only when worldTransform() is accessed.
-    //!
-    //! This optimization eliminates redundant recalculations when multiple
-    //! joints are updated in sequence (e.g., in setNeutralPosition() or
-    //! setJointPositions()), reducing complexity from O(n²) to O(n).
-    //!
-    //! The dirty flag propagates to all children because changing a parent's
-    //! transform invalidates all descendant transforms in the kinematic chain.
-    // ------------------------------------------------------------------------
-    void markTransformsDirty();
-
-    // ------------------------------------------------------------------------
-    //! \brief Update the world transform of the node.
-    //!
-    //! Updates the world transform of this node and all its children
-    //! recursively. This method implements the propagation of transforms in
-    //! the robot's kinematic chain.
-    //!
-    //! The calculation follows the formula:
-    //! - If root node: T_world = T_local
-    //! - Otherwise: T_world = T_world_parent * T_local
-    //!
-    //! In robotics, this update is necessary when:
-    //! - A joint changes value (angle or position)
-    //! - The robot's configuration is modified
-    //! - The direct kinematics is recalculated
-    //!
-    //! This method is called automatically by worldTransform() when the
-    //! dirty flag is set, implementing lazy evaluation.
-    // ------------------------------------------------------------------------
-    void updateWorldTransforms();
 
 protected:
 
@@ -420,9 +365,6 @@ protected:
     std::vector<std::unique_ptr<Node>> m_children;
     //! \brief Parent of the node.
     Node* m_parent = nullptr;
-    //! \brief Dirty flag for lazy transform evaluation.
-    //! When true, indicates that the world transform needs recalculation.
-    mutable bool m_transforms_dirty = false;
 };
 
 } // namespace robotik

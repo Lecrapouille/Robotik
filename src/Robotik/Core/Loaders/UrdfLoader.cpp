@@ -163,8 +163,8 @@ std::unique_ptr<Robot> URDFLoader::load(const std::string& p_filename)
         return nullptr;
     }
 
-    // Build the hierarchical robot model
-    return buildRobotModel(robot_name);
+    // Build the flat array robot model (new architecture)
+    return buildFlatArrays(robot_name);
 }
 
 // ----------------------------------------------------------------------------
@@ -292,7 +292,7 @@ bool URDFLoader::parseJoints(pugi::xml_node p_robot_element)
 
 // ----------------------------------------------------------------------------
 std::unique_ptr<Robot>
-URDFLoader::buildRobotModel(std::string const& p_robot_name)
+URDFLoader::buildFlatArrays(std::string const& p_robot_name)
 {
     // Find root link (link with no parent joint)
     URDFLoaderLink* root_link = nullptr;
@@ -311,95 +311,126 @@ URDFLoader::buildRobotModel(std::string const& p_robot_name)
         return nullptr;
     }
 
-    // Create root node from root link
-    if (!root_link->geometry)
-    {
-        m_error = "Root link '" + root_link->name +
-                  "' has no visual geometry. Cannot create robot.";
-        return nullptr;
-    }
+    // Prepare flat arrays
+    std::vector<JointData> joint_data;
+    std::vector<LinkData> link_data;
+    std::vector<GeometryData> geometry_data;
+    std::unordered_map<std::string, size_t> link_name_to_index;
 
-    // Create root link node
-    auto root_node =
-        Node::create<Link>(root_link->name, std::move(root_link->geometry));
+    // Build flat arrays recursively starting from root
+    buildFlatArraysRecursive(root_link,
+                             SIZE_MAX, // Root link has no parent joint
+                             joint_data,
+                             link_data,
+                             geometry_data,
+                             link_name_to_index);
 
-    // Set collision data
-    root_node->setCollisionData(root_link->urdf_collision_center,
-                                root_link->urdf_collision_orientation,
-                                root_link->urdf_collision_params);
+    // Create Blueprint from flat arrays
+    Blueprint blueprint(
+        std::move(joint_data), std::move(link_data), std::move(geometry_data));
 
-    // Set inertia
-    root_node->inertia(root_link->inertial);
-
-    // Build tree recursively
-    for (Joint const* child_joint : root_link->child_joints)
-    {
-        if (auto joint_tree = buildJointTree(child_joint))
-            root_node->addChild(std::move(joint_tree));
-    }
-
-    // Create robot
-    return std::make_unique<Robot>(p_robot_name, std::move(root_node));
+    // Create and return Robot
+    return std::make_unique<Robot>(p_robot_name, std::move(blueprint));
 }
 
 // ----------------------------------------------------------------------------
-std::unique_ptr<Joint> URDFLoader::buildJointTree(Joint const* p_current_joint)
+void URDFLoader::buildFlatArraysRecursive(
+    URDFLoaderLink const* p_link,
+    size_t p_parent_joint_index,
+    std::vector<JointData>& p_joint_data,
+    std::vector<LinkData>& p_link_data,
+    std::vector<GeometryData>& p_geometry_data,
+    std::unordered_map<std::string, size_t>& p_link_name_to_index)
 {
-    // Extract joint from map
-    auto joint_it = std::find_if(m_joints.begin(),
-                                 m_joints.end(),
-                                 [p_current_joint](const auto& p)
-                                 { return p.second.get() == p_current_joint; });
-    if (joint_it == m_joints.end())
-        return nullptr;
+    // Add this link to link_data
+    LinkData link_data;
+    link_data.name = p_link->name;
+    link_data.parent_joint_index = p_parent_joint_index;
+    link_data.placement = Transform::Identity(); // Links have identity
+                                                 // placement relative to joint
+    link_data.inertial = p_link->inertial;
 
-    auto joint = std::move(joint_it->second);
-    m_joints.erase(joint_it);
+    size_t link_index = p_link_data.size();
+    p_link_name_to_index[p_link->name] = link_index;
+    p_link_data.push_back(link_data);
 
-    // Find child link
-    URDFLoaderLink* child_link = nullptr;
-    for (const auto& [name, link] : m_links)
+    // Add geometry for this link
+    if (p_link->geometry)
     {
-        if (link->parent_joint == p_current_joint)
+        // Cast to Geometry to access geometry-specific methods
+        Geometry* geom = dynamic_cast<Geometry*>(p_link->geometry.get());
+        if (geom)
         {
-            child_link = link.get();
-            break;
+            GeometryData geom_data;
+            geom_data.name = p_link->name + "_visual";
+            geom_data.parent_link_index = link_index;
+            geom_data.local_transform =
+                geom->localTransform(); // Use geometry's local transform from
+                                        // URDF <origin>
+            geom_data.type = geom->type();
+            geom_data.parameters = geom->parameters();
+            geom_data.mesh_path = geom->meshPath();
+            geom_data.color = p_link->color;
+
+            p_geometry_data.push_back(geom_data);
         }
     }
 
-    if (!child_link)
-        return joint;
-
-    // Create link node
-    if (!child_link->geometry)
+    // Process child joints
+    for (Joint const* child_joint : p_link->child_joints)
     {
-        m_error = "Link '" + child_link->name +
-                  "' has no visual geometry. Cannot create robot.";
-        return nullptr;
+        // Skip FIXED joints (they're not actuable)
+        if (child_joint->type() == Joint::Type::FIXED)
+            continue;
+
+        // Add joint to joint_data
+        JointData joint_data;
+        joint_data.name = child_joint->name();
+        joint_data.type = child_joint->type();
+        joint_data.parent_link_index =
+            link_index; // Joint placement is relative to parent link
+        joint_data.placement =
+            child_joint->localTransform(); // Joint placement from URDF <origin>
+        joint_data.axis = child_joint->axis();
+        auto limits = child_joint->limits();
+        joint_data.position_min = limits.first;
+        joint_data.position_max = limits.second;
+        joint_data.velocity_max = child_joint->maxVelocity();
+        joint_data.effort_max = child_joint->effort_max();
+        joint_data.damping = child_joint->damping();
+        joint_data.friction = child_joint->friction();
+
+        size_t joint_index = p_joint_data.size();
+        p_joint_data.push_back(joint_data);
+
+        // Find child link of this joint
+        URDFLoaderLink* child_link = nullptr;
+        for (const auto& [name, link] : m_links)
+        {
+            if (link->parent_joint == child_joint)
+            {
+                child_link = link.get();
+                break;
+            }
+        }
+
+        // Recursively process child link
+        if (child_link)
+        {
+            buildFlatArraysRecursive(
+                child_link,
+                joint_index, // This joint is now the parent
+                p_joint_data,
+                p_link_data,
+                p_geometry_data,
+                p_link_name_to_index);
+        }
     }
-
-    // Create link node
-    auto link_node =
-        Node::create<Link>(child_link->name, std::move(child_link->geometry));
-
-    // Set collision data
-    link_node->setCollisionData(child_link->urdf_collision_center,
-                                child_link->urdf_collision_orientation,
-                                child_link->urdf_collision_params);
-
-    // Set inertia
-    link_node->inertia(child_link->inertial);
-
-    // Recursively build children
-    for (Joint const* child_joint : child_link->child_joints)
-    {
-        if (auto child_tree = buildJointTree(child_joint))
-            link_node->addChild(std::move(child_tree));
-    }
-
-    joint->addChild(std::move(link_node));
-    return joint;
 }
+
+// ----------------------------------------------------------------------------
+// LEGACY METHODS (kept for reference, not used anymore)
+// ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
 bool URDFLoader::parseLinkGeometries(pugi::xml_node p_link_element,

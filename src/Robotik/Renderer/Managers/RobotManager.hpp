@@ -76,14 +76,15 @@ public:
         //! \brief Control mode (NO_CONTROL, ANIMATION, INVERSE_KINEMATICS,
         //! TRAJECTORY)
         ControlMode control_mode = ControlMode::NO_CONTROL;
-        //! \brief Controlled joint for Inverse Kinematics
-        Node const* control_link = nullptr;
+        //! \brief Controlled link index for Inverse Kinematics (flat array
+        //! architecture)
+        size_t control_link_index = 0;
         //! \brief Computed target poses for IK (3 poses)
         std::vector<robotik::Pose> ik_target_poses;
         //! \brief IK solver instance
         std::unique_ptr<robotik::IKSolver> ik_solver;
-        //! \brief Tracked node for camera
-        Node const* camera_target = nullptr;
+        //! \brief Tracked link index for camera (flat array architecture)
+        size_t camera_target_link_index = 0;
         //! \brief Camera tracking enabled
         bool camera_tracking_enabled = true;
         //! \brief Visibility flag

@@ -38,65 +38,56 @@ RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Joint& joint)
+void RenderVisitor::renderBlueprint(robotik::Blueprint const& p_blueprint,
+                                    robotik::State const& p_state)
 {
-    // Optionally render joint axes for debugging
-    if (m_show_joint_axes)
-    {
-        renderJointAxis(joint);
-    }
-}
+    // Iterate over all geometries and render them using transforms from State
+    p_blueprint.forEachGeometryData([&](robotik::GeometryData const& geom, size_t i) {
+        // Get the geometry's mesh
+        std::string const& mesh_name = geom.name;
+        const MeshManager::GPUMesh* gpu_mesh = m_mesh_manager.getMesh(mesh_name);
 
-// ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Link& /*link*/)
-{
-    // Links themselves have no geometry to render
-    // Their geometry is in separate Geometry child nodes
-}
+        if (!gpu_mesh)
+        {
+            std::cerr << "Warning: Mesh not preloaded: " << mesh_name << std::endl;
+            return; // Skip this geometry
+        }
 
-// ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Geometry& geometry)
-{
-    // Get world transform and render the geometry
-    Eigen::Matrix4f transform = geometry.worldTransform().cast<float>();
-    renderGeometry(geometry, transform);
-}
+        // Compute world transform for this geometry:
+        // T_world = T_parent_link * T_local
+        Transform world_transform;
+        if (geom.parent_link_index < p_state.link_transforms.size())
+        {
+            world_transform = p_state.link_transforms[geom.parent_link_index] * 
+                            geom.local_transform;
+        }
+        else
+        {
+            // Fallback to local transform if parent link index is invalid
+            world_transform = geom.local_transform;
+        }
 
-// ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Sensor& /*sensor*/)
-{
-    // Not yet implemented
-}
-
-// ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Actuator& /*actuator*/)
-{
-    // Not yet implemented
-}
-
-// ----------------------------------------------------------------------------
-void RenderVisitor::visit(const robotik::Node& /*node*/)
-{
-    // Fallback for generic nodes - nothing to render
+        // Render the mesh
+        Eigen::Vector3f color = geom.color.cast<float>();
+        renderMesh(gpu_mesh, world_transform.cast<float>(), color);
+    });
 }
 
 // ----------------------------------------------------------------------------
 void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
 {
-    // Iterate through all cached geometries and create their meshes
-    for (auto const& geom_ref : p_blueprint.geometries())
-    {
-        robotik::Geometry const& geom = geom_ref.get();
-        std::string const& mesh_name = geom.name();
+    // Iterate through all geometry data and create meshes
+    p_blueprint.forEachGeometryData([&](robotik::GeometryData const& geom, size_t i) {
+        std::string const& mesh_name = geom.name;
 
         // Skip if already loaded
         if (m_mesh_manager.hasMesh(mesh_name))
-            continue;
+            return;
 
         // Create mesh based on geometry type
-        if (auto* box = dynamic_cast<const robotik::Box*>(&geom))
+        if (geom.type == robotik::Geometry::Type::BOX)
         {
-            const auto& params = box->parameters();
+            const auto& params = geom.parameters;
             if (params.size() == 3)
             {
                 m_mesh_manager.createBox(
@@ -106,9 +97,9 @@ void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
                     static_cast<float>(params[2])); // depth
             }
         }
-        else if (auto* cyl = dynamic_cast<const robotik::Cylinder*>(&geom))
+        else if (geom.type == robotik::Geometry::Type::CYLINDER)
         {
-            const auto& params = cyl->parameters();
+            const auto& params = geom.parameters;
             if (params.size() == 2)
             {
                 m_mesh_manager.createCylinder(
@@ -118,9 +109,9 @@ void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
                     32);                           // segments
             }
         }
-        else if (auto* sphere = dynamic_cast<const robotik::Sphere*>(&geom))
+        else if (geom.type == robotik::Geometry::Type::SPHERE)
         {
-            const auto& params = sphere->parameters();
+            const auto& params = geom.parameters;
             if (params.size() == 1)
             {
                 m_mesh_manager.createSphere(
@@ -130,17 +121,17 @@ void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
                     16);                           // longitude segments
             }
         }
-        else if (auto* mesh = dynamic_cast<const robotik::Mesh*>(&geom))
+        else if (geom.type == robotik::Geometry::Type::MESH)
         {
             STLLoader loader;
             if (!m_mesh_manager.loadFromFile(
-                    mesh_name, mesh->meshPath(), loader, false))
+                    mesh_name, geom.mesh_path, loader, false))
             {
-                std::cerr << "Failed to load mesh: " << mesh->meshPath()
+                std::cerr << "Failed to load mesh: " << geom.mesh_path
                           << std::endl;
             }
         }
-    }
+    });
 }
 
 // ----------------------------------------------------------------------------
@@ -295,62 +286,6 @@ void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
                        GL_UNSIGNED_INT,
                        nullptr);
     }
-}
-
-// ----------------------------------------------------------------------------
-void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
-                                   Eigen::Matrix4f const& transform) const
-{
-    std::string const& mesh_name = geom.name();
-    const MeshManager::GPUMesh* gpu_mesh = m_mesh_manager.getMesh(mesh_name);
-
-    // Render if mesh was preloaded successfully
-    if (gpu_mesh)
-    {
-        Eigen::Vector3f color = geom.color.cast<float>();
-        renderMesh(gpu_mesh, transform, color);
-    }
-    else
-    {
-        std::cerr << "Warning: Mesh not preloaded: " << mesh_name << std::endl;
-    }
-}
-
-// ----------------------------------------------------------------------------
-void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint) const
-{
-    // Get joint type and check if we should render this type
-    switch (p_joint.type())
-    {
-        case robotik::Joint::Type::REVOLUTE:
-        case robotik::Joint::Type::CONTINUOUS:
-            if (!m_show_revolute_axes)
-                return;
-            break;
-        case robotik::Joint::Type::PRISMATIC:
-            if (!m_show_prismatic_axes)
-                return;
-            break;
-        case robotik::Joint::Type::FIXED:
-        default:
-            return;
-    }
-
-    // Get the axis mesh (should be preloaded by Application)
-    const MeshManager::GPUMesh* axis_mesh = m_mesh_manager.getMesh("revolute");
-    if (!axis_mesh || !axis_mesh->is_loaded)
-    {
-        std::cerr << "Warning: axis mesh not found for joint axes rendering"
-                  << std::endl;
-        return;
-    }
-
-    // Get joint world transform
-    Eigen::Matrix4f joint_transform = p_joint.worldTransform().cast<float>();
-
-    // Render the standard RGB axes at the joint position
-    constexpr float axis_scale = 1.0f;
-    renderAxes(axis_mesh, joint_transform, axis_scale);
 }
 
 } // namespace robotik::renderer

@@ -18,8 +18,89 @@
 namespace robotik
 {
 
-// Forward declaration for friend
-class CacheBlueprintVisitor;
+// ****************************************************************************
+//! \brief Pure data structures for the kinematic model (flat array storage).
+//!
+//! These structures hold static robot data in cache-friendly flat arrays.
+//! They replace the pointer-based tree traversal with index-based access.
+//! This enables:
+//! - Cache-friendly sequential memory access
+//! - Immutable Blueprint (Model) that can be shared across multiple States
+//! - Parallel forward kinematics computations
+//!
+//! Index guarantee: The index i in m_joint_data[i] IS the joint's index.
+//! No lookup needed. Use m_joint_name_to_index only when you have a name
+//! and need to find its index.
+// ****************************************************************************
+
+// ****************************************************************************
+//! \brief Static data for a single joint in the kinematic model.
+// ****************************************************************************
+struct JointData
+{
+    std::string name;         //! Joint name (for lookup and debugging)
+    Joint::Type type;         //! Joint type (REVOLUTE, PRISMATIC, etc.)
+    size_t parent_link_index; //! Index of parent link (joint placement is
+                              //! relative to this link)
+    Transform placement;  //! Static transform from URDF (joint origin relative
+                          //! to parent link)
+    Eigen::Vector3d axis; //! Joint axis in local frame
+    double position_min;  //! Minimum position limit
+    double position_max;  //! Maximum position limit
+    double velocity_max;  //! Maximum velocity limit
+    double effort_max;    //! Maximum effort (torque/force) limit
+    double damping;       //! Damping coefficient
+    double friction;      //! Friction coefficient
+};
+
+// ****************************************************************************
+//! \brief Static data for a single link in the kinematic model.
+// ****************************************************************************
+struct LinkData
+{
+    std::string name;          //! Link name (for lookup and debugging)
+    size_t parent_joint_index; //! Index of parent joint
+    Transform placement;       //! Static offset from parent joint
+    Inertial inertial;         //! Mass properties (mass, CoM, inertia tensor)
+    std::vector<size_t> geometry_indices; //! Indices into m_geometry_data
+};
+
+// ****************************************************************************
+//! \brief Static data for geometry (visual/collision).
+// ****************************************************************************
+struct GeometryData
+{
+    std::string name;               //! Geometry name
+    size_t parent_link_index;       //! Which link owns this geometry
+    Transform local_transform;      //! Transform relative to parent link
+    Geometry::Type type;            //! Type (BOX, CYLINDER, SPHERE, MESH)
+    std::vector<double> parameters; //! Dimensions (depends on type)
+    std::string mesh_path;          //! Path to mesh file (if type is MESH)
+    Eigen::Vector3f color;          //! RGB color for visualization
+};
+
+// ****************************************************************************
+//! \brief Static data for sensors attached to links.
+// ****************************************************************************
+struct SensorData
+{
+    std::string name;          //! Sensor name
+    size_t parent_link_index;  //! Which link the sensor is attached to
+    Transform local_transform; //! Transform relative to parent link
+    // Additional sensor-specific data can be added here
+    // For now, keep it minimal - extended by derived sensor types
+};
+
+// ****************************************************************************
+//! \brief Static data for actuators driving joints.
+// ****************************************************************************
+struct ActuatorData
+{
+    std::string name;   //! Actuator name
+    size_t joint_index; //! Which joint this actuator drives
+    // Additional actuator-specific data can be added here
+    // For now, keep it minimal - extended by derived actuator types
+};
 
 // *********************************************************************************
 //! \brief Class managing a robot's tree blueprint as static robot model.
@@ -48,61 +129,29 @@ class Blueprint
 public:
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor with root node.
+    //! \brief Constructor with root node (legacy, for backward compatibility).
     //! \param p_root Root node of the kinematic tree.
     // ------------------------------------------------------------------------
     explicit Blueprint(Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the blueprint has a root node.
-    //! \return True if the blueprint has a root node, false otherwise.
+    //! \brief Constructor with flat arrays (new architecture).
+    //!
+    //! This constructor directly initializes the Blueprint with pre-built flat
+    //! arrays, bypassing tree construction. This is the preferred method for
+    //! URDF loaders and other model parsers.
+    //!
+    //! \param p_joint_data Flat array of joint data
+    //! \param p_link_data Flat array of link data
+    //! \param p_geometry_data Flat array of geometry data
+    //! \param p_sensor_data Flat array of sensor data (optional)
+    //! \param p_actuator_data Flat array of actuator data (optional)
     // ------------------------------------------------------------------------
-    inline bool hasRoot() const
-    {
-        return m_root_node != nullptr;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Set and replace the root node of the blueprint.
-    //! \param p_root Unique pointer to the root node.
-    // ------------------------------------------------------------------------
-    void root(Node::Ptr p_root); // FIXME: Link
-
-    // ------------------------------------------------------------------------
-    //! \brief Get the root node of the blueprint.
-    //! \note Call hasRoot() before calling this method to ensure the root
-    //! node is set.
-    //! \return Reference to the root node.
-    // ------------------------------------------------------------------------
-    inline Node const& root() const // FIXME: Link
-    {
-        return *m_root_node.get();
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Find and return a link by its name.
-    //! \param p_name Name of the link.
-    //! \return Const reference to the link.
-    //! \throw RobotikException if the link is not found.
-    // ------------------------------------------------------------------------
-    Link const&
-    link(std::string const& p_name) const; // FIXME attacher une std::fucntion
-
-    // ------------------------------------------------------------------------
-    //! \brief Find and return a joint by its name.
-    //! \param p_name Name of the joint.
-    //! \return Const reference to the joint.
-    //! \throw RobotikException if the joint is not found.
-    // ------------------------------------------------------------------------
-    Joint const& joint(std::string const& p_name) const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Get mutable access to a joint by name.
-    //! \param p_name Name of the joint.
-    //! \return Reference to the joint.
-    //! \throw RobotikException if the joint is not found.
-    // ------------------------------------------------------------------------
-    Joint& joint(std::string const& p_name);
+    explicit Blueprint(std::vector<JointData>&& p_joint_data,
+                       std::vector<LinkData>&& p_link_data,
+                       std::vector<GeometryData>&& p_geometry_data,
+                       std::vector<SensorData>&& p_sensor_data = {},
+                       std::vector<ActuatorData>&& p_actuator_data = {});
 
     // ------------------------------------------------------------------------
     //! \brief Get the number of actuable joints.
@@ -110,7 +159,7 @@ public:
     // ------------------------------------------------------------------------
     inline size_t numJoints() const
     {
-        return m_joints.size();
+        return m_joint_data.size();
     }
 
     // ------------------------------------------------------------------------
@@ -119,134 +168,187 @@ public:
     // ------------------------------------------------------------------------
     inline size_t numLinks() const
     {
-        return m_links_map.size();
+        return m_link_data.size();
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the number of end effectors.
-    //! \return Number of end effectors.
+    //! \brief Get the number of geometries.
+    //! \return Number of geometries.
     // ------------------------------------------------------------------------
-    inline std::vector<std::reference_wrapper<Link>> const& endEffectors() const
+    inline size_t numGeometries() const
     {
-        return m_end_effectors;
+        return m_geometry_data.size();
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the number of end effectors.
-    //! \return Number of end effectors.
+    //! \brief Get joint data by index.
+    //! \param index Index of the joint (0 to numJoints()-1)
+    //! \return Const reference to joint data
+    //! \note Index i in m_joint_data[i] IS the joint's index. No lookup.
     // ------------------------------------------------------------------------
-    inline std::vector<std::reference_wrapper<Link>>& endEffectors()
+    inline JointData const& jointData(size_t index) const
     {
-        return m_end_effectors;
+        return m_joint_data[index];
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Iterate over all joints.
-    //! \param p_callback Callback function to call for each joint.
+    //! \brief Get link data by index.
+    //! \param index Index of the link (0 to numLinks()-1)
+    //! \return Const reference to link data
+    // ------------------------------------------------------------------------
+    inline LinkData const& linkData(size_t index) const
+    {
+        return m_link_data[index];
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get geometry data by index.
+    //! \param index Index of the geometry
+    //! \return Const reference to geometry data
+    // ------------------------------------------------------------------------
+    inline GeometryData const& geometryData(size_t index) const
+    {
+        return m_geometry_data[index];
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get sensor data by index.
+    //! \param index Index of the sensor
+    //! \return Const reference to sensor data
+    // ------------------------------------------------------------------------
+    inline SensorData const& sensorData(size_t index) const
+    {
+        return m_sensor_data[index];
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get actuator data by index.
+    //! \param index Index of the actuator
+    //! \return Const reference to actuator data
+    // ------------------------------------------------------------------------
+    inline ActuatorData const& actuatorData(size_t index) const
+    {
+        return m_actuator_data[index];
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Find joint index by name.
+    //! \param p_name Name of the joint
+    //! \return Index of the joint
+    //! \throw RobotikException if joint not found
+    // ------------------------------------------------------------------------
+    size_t jointIndex(std::string const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find link index by name.
+    //! \param p_name Name of the link
+    //! \return Index of the link
+    //! \throw RobotikException if link not found
+    // ------------------------------------------------------------------------
+    size_t linkIndex(std::string const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find geometry index by name.
+    //! \param p_name Name of the geometry
+    //! \return Index of the geometry
+    //! \throw RobotikException if geometry not found
+    // ------------------------------------------------------------------------
+    size_t geometryIndex(std::string const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find sensor index by name.
+    //! \param p_name Name of the sensor
+    //! \return Index of the sensor
+    //! \throw RobotikException if sensor not found
+    // ------------------------------------------------------------------------
+    size_t sensorIndex(std::string const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Find actuator index by name.
+    //! \param p_name Name of the actuator
+    //! \return Index of the actuator
+    //! \throw RobotikException if actuator not found
+    // ------------------------------------------------------------------------
+    size_t actuatorIndex(std::string const& p_name) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Iterate over all joints using flat array.
+    //! \param p_callback Callback function: void(JointData const&, size_t
+    //! index)
+    //!
+    //! Example:
+    //! \code
+    //!   blueprint.forEachJointData([](JointData const& joint, size_t i) {
+    //!       std::cout << "Joint " << i << ": " << joint.name << std::endl;
+    //!   });
+    //! \endcode
+    //!
+    //! \note Index i is guaranteed to be the joint's index (i == joint index).
+    //!       No lookup needed. This is cache-friendly sequential access.
     // ------------------------------------------------------------------------
     template <typename Callback>
-    void forEachJoint(Callback&& p_callback) const
+    void forEachJointData(Callback&& p_callback) const
     {
-        for (auto const& joint : m_joints)
+        for (size_t i = 0; i < m_joint_data.size(); ++i)
         {
-            p_callback(joint.get(), joint.get().index());
+            p_callback(m_joint_data[i], i);
         }
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Iterate over all joints.
-    //! \param p_callback Callback function to call for each joint.
+    //! \brief Iterate over all links using flat array.
+    //! \param p_callback Callback function: void(LinkData const&, size_t index)
+    //!
+    //! \note Index i is guaranteed to be the link's index (i == link index).
     // ------------------------------------------------------------------------
     template <typename Callback>
-    void forEachJoint(Callback&& p_callback)
+    void forEachLinkData(Callback&& p_callback) const
     {
-        for (auto const& joint : m_joints)
+        for (size_t i = 0; i < m_link_data.size(); ++i)
         {
-            p_callback(joint.get(), joint.get().index());
+            p_callback(m_link_data[i], i);
         }
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Iterate over all links.
-    //! \param p_callback Callback function to call for each link.
+    //! \brief Iterate over all geometries using flat array.
+    //! \param p_callback Callback function: void(GeometryData const&, size_t
+    //! index)
     // ------------------------------------------------------------------------
     template <typename Callback>
-    void forEachLink(Callback&& p_callback) const
+    void forEachGeometryData(Callback&& p_callback) const
     {
-        for (auto const& [_, link] : m_links_map)
+        for (size_t i = 0; i < m_geometry_data.size(); ++i)
         {
-            p_callback(link.get());
+            p_callback(m_geometry_data[i], i);
         }
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Iterate over all links.
-    //! \param p_callback Callback function to call for each link.
-    // ------------------------------------------------------------------------
-    template <typename Callback>
-    void forEachLink(Callback&& p_callback)
-    {
-        for (auto const& [_, link] : m_links_map)
-        {
-            p_callback(link.get());
-        }
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Get all geometries in the blueprint.
-    //! \return Vector of references to all geometry nodes.
-    // ------------------------------------------------------------------------
-    inline std::vector<std::reference_wrapper<Geometry>> const&
-    geometries() const
-    {
-        return m_geometries;
     }
 
 private:
 
-    // ------------------------------------------------------------------------
-    //! \brief Cache the tree structure of the blueprint.
-    //!
-    //! This method traverses the kinematic tree and populates internal lookup
-    //! tables for efficient access to joints, links, sensors, and actuators.
-    //! Called automatically when the root is set or modified.
-    // ------------------------------------------------------------------------
-    void cacheBlueprintTree();
+    // Flat array storage for cache-friendly algorithms
+    //! \brief Flat array of joint data (index = joint index)
+    std::vector<JointData> m_joint_data;
+    //! \brief Flat array of link data (index = link index)
+    std::vector<LinkData> m_link_data;
+    //! \brief Flat array of geometry data (index = geometry index)
+    std::vector<GeometryData> m_geometry_data;
+    //! \brief Flat array of sensor data (index = sensor index)
+    std::vector<SensorData> m_sensor_data;
+    //! \brief Flat array of actuator data (index = actuator index)
+    std::vector<ActuatorData> m_actuator_data;
 
-    // ------------------------------------------------------------------------
-    //! \brief Find all end effectors in the blueprint.
-    //!
-    //! This method automatically identifies all end effectors by finding links
-    //! that have no child joints. An end effector is typically the last link
-    //! in a kinematic chain where tools or grippers are attached.
-    //!
-    //! \param p_end_effectors Output vector to store references to end effector
-    //! links.
-    //! \return Number of end effectors found.
-    // ------------------------------------------------------------------------
-    size_t findEndEffectors(
-        std::vector<std::reference_wrapper<Link>>& p_end_effectors);
-
-private:
-
-    //! \brief Root node of the kinematic blueprint
-    Node::Ptr m_root_node;
-    //! \brief List of actuable joints in the blueprint
-    std::vector<std::reference_wrapper<Joint>> m_joints;
-    //! \brief Map of joints by name for fast lookup
-    std::unordered_map<std::string, std::reference_wrapper<Joint>> m_joints_map;
-    //! \brief Map of links by name for fast lookup
-    std::unordered_map<std::string, std::reference_wrapper<Link>> m_links_map;
-    //! \brief Map of sensors by name for fast lookup
-    std::unordered_map<std::string, std::reference_wrapper<Sensor>>
-        m_sensors_map;
-    //! \brief Map of actuators by name for fast lookup
-    std::unordered_map<std::string, std::reference_wrapper<Actuator>>
-        m_actuators_map;
-    //! \brief List of end effectors in the blueprint
-    std::vector<std::reference_wrapper<Link>> m_end_effectors;
-    //! \brief List of all geometries in the blueprint
-    std::vector<std::reference_wrapper<Geometry>> m_geometries;
+    // Name-to-index mappings (for when you have a name and need the index)
+    //! \brief Map from joint name to index in m_joint_data
+    std::unordered_map<std::string, size_t> m_joint_name_to_index;
+    //! \brief Map from link name to index in m_link_data
+    std::unordered_map<std::string, size_t> m_link_name_to_index;
+    //! \brief Map from geometry name to index in m_geometry_data
+    std::unordered_map<std::string, size_t> m_geometry_name_to_index;
+    //! \brief Map from sensor name to index in m_sensor_data
+    std::unordered_map<std::string, size_t> m_sensor_name_to_index;
+    //! \brief Map from actuator name to index in m_actuator_data
+    std::unordered_map<std::string, size_t> m_actuator_name_to_index;
 };
 
 } // namespace robotik

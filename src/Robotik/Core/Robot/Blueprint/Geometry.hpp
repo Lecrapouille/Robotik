@@ -109,13 +109,11 @@ public:
     //! \brief Accept a visitor (Visitor pattern override).
     //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(NodeVisitor& visitor) override;
 
     // ------------------------------------------------------------------------
     //! \brief Accept a const visitor (Visitor pattern override).
     //! \param visitor The const visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(ConstNodeVisitor& visitor) const override;
 
 private:
 

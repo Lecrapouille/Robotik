@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/State.hpp"
 #include "Robotik/Renderer/Managers/MeshManager.hpp"
 
 #include <Eigen/Dense>
@@ -38,7 +38,7 @@ class ShaderManager;
 //!   robot->blueprint().root().traverse(visitor);
 //! \endcode
 // ****************************************************************************
-class RenderVisitor: public robotik::ConstNodeVisitor
+class RenderVisitor
 {
 public:
 
@@ -48,36 +48,6 @@ public:
     //! \param shader_mgr Shader manager for setting uniforms.
     // ------------------------------------------------------------------------
     RenderVisitor(MeshManager& mesh_mgr, ShaderManager const& shader_mgr);
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit a Joint node (optionally render joint axes for debug).
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Joint& joint) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit a Link node (nothing to render, links have no geometry).
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Link& link) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit a Geometry node and render it.
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Geometry& geometry) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit a Sensor node (not yet implemented).
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Sensor& sensor) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit an Actuator node (not yet implemented).
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Actuator& actuator) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Visit a generic Node (fallback).
-    // ------------------------------------------------------------------------
-    void visit(const robotik::Node& node) override;
 
     // ------------------------------------------------------------------------
     //! \brief Configure joint axes rendering options.
@@ -102,6 +72,18 @@ public:
     //! the robot model.
     // ------------------------------------------------------------------------
     void preloadGeometries(robotik::Blueprint const& p_blueprint);
+
+    // ------------------------------------------------------------------------
+    //! \brief Render a robot using flat array architecture.
+    //! \param p_blueprint The robot blueprint containing geometry data.
+    //! \param p_state The robot state containing current transforms.
+    //!
+    //! This is the new rendering method that iterates over flat arrays instead
+    //! of traversing the tree structure. It's more cache-friendly and doesn't
+    //! require the tree to be built.
+    // ------------------------------------------------------------------------
+    void renderBlueprint(robotik::Blueprint const& p_blueprint,
+                         robotik::State const& p_state);
 
     // ------------------------------------------------------------------------
     //! \brief Render a mesh with transformation and color.
@@ -132,18 +114,6 @@ public:
                     const Eigen::Vector3f& p_color) const;
 
 private:
-
-    // ------------------------------------------------------------------------
-    //! \brief Render a geometry with the given transform.
-    // ------------------------------------------------------------------------
-    void renderGeometry(robotik::Geometry const& geom,
-                        Eigen::Matrix4f const& transform) const;
-
-    // ------------------------------------------------------------------------
-    //! \brief Render a joint axis using appropriate mesh.
-    //! \param p_joint The joint to render axis for.
-    // ------------------------------------------------------------------------
-    void renderJointAxis(robotik::Joint const& p_joint) const;
 
     MeshManager& m_mesh_manager;
     ShaderManager const& m_shader_manager;

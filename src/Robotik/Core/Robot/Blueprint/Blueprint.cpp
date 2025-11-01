@@ -9,174 +9,106 @@
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Common/Exception.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 
 namespace robotik
 {
 
-// Forward declare for friend
-class CacheBlueprintVisitor;
-
-} // namespace robotik
-
-namespace robotik
-{
-
-// ****************************************************************************
-//! \brief Visitor for caching the blueprint tree structure.
-//!
-//! This visitor traverses the robot blueprint and populates the internal
-//! lookup tables for joints, links, sensors, and actuators. It also assigns
-//! indices to actuable joints for efficient array-based access.
-// ****************************************************************************
-class CacheBlueprintVisitor: public NodeVisitor
-{
-private:
-
-    Blueprint* m_blueprint;
-    size_t m_joint_index = 0;
-
-public:
-
-    explicit CacheBlueprintVisitor(Blueprint* p_blueprint)
-        : m_blueprint(p_blueprint)
-    {
-    }
-
-    void visit(Joint& joint) override
-    {
-        // Only cache actuable joints (exclude FIXED joints)
-        if (joint.type() != Joint::Type::FIXED)
-        {
-            m_blueprint->m_joints_map.try_emplace(joint.name(),
-                                                  std::ref(joint));
-            m_blueprint->m_joints.emplace_back(std::ref(joint));
-            joint.setIndex(m_joint_index++);
-        }
-    }
-
-    void visit(Link& link) override
-    {
-        m_blueprint->m_links_map.try_emplace(link.name(), std::ref(link));
-    }
-
-    void visit(Sensor& sensor) override
-    {
-        m_blueprint->m_sensors_map.try_emplace(sensor.name(), std::ref(sensor));
-    }
-
-    void visit(Actuator& actuator) override
-    {
-        m_blueprint->m_actuators_map.try_emplace(actuator.name(),
-                                                 std::ref(actuator));
-    }
-
-    void visit(Geometry& geometry) override
-    {
-        m_blueprint->m_geometries.emplace_back(std::ref(geometry));
-    }
-
-    void visit(Node&) override
-    {
-        // Ignore other node types
-    }
-};
-
 // ----------------------------------------------------------------------------
-Blueprint::Blueprint(Node::Ptr p_root) : m_root_node(std::move(p_root))
+Blueprint::Blueprint(std::vector<JointData>&& p_joint_data,
+                     std::vector<LinkData>&& p_link_data,
+                     std::vector<GeometryData>&& p_geometry_data,
+                     std::vector<SensorData>&& p_sensor_data,
+                     std::vector<ActuatorData>&& p_actuator_data)
 {
-    cacheBlueprintTree();
+    // Move flat arrays
+    m_joint_data = std::move(p_joint_data);
+    m_link_data = std::move(p_link_data);
+    m_geometry_data = std::move(p_geometry_data);
+    m_sensor_data = std::move(p_sensor_data);
+    m_actuator_data = std::move(p_actuator_data);
+
+    // Build name-to-index mappings
+    for (size_t i = 0; i < m_joint_data.size(); ++i)
+    {
+        m_joint_name_to_index[m_joint_data[i].name] = i;
+    }
+
+    for (size_t i = 0; i < m_link_data.size(); ++i)
+    {
+        m_link_name_to_index[m_link_data[i].name] = i;
+    }
+
+    for (size_t i = 0; i < m_geometry_data.size(); ++i)
+    {
+        m_geometry_name_to_index[m_geometry_data[i].name] = i;
+    }
+
+    for (size_t i = 0; i < m_sensor_data.size(); ++i)
+    {
+        m_sensor_name_to_index[m_sensor_data[i].name] = i;
+    }
+
+    for (size_t i = 0; i < m_actuator_data.size(); ++i)
+    {
+        m_actuator_name_to_index[m_actuator_data[i].name] = i;
+    }
+
+    // No tree structure needed - we work directly with flat arrays
 }
 
 // ----------------------------------------------------------------------------
-void Blueprint::root(Node::Ptr p_root)
+size_t Blueprint::jointIndex(std::string const& p_name) const
 {
-    m_root_node = std::move(p_root);
-    cacheBlueprintTree();
-}
-
-// ----------------------------------------------------------------------------
-void Blueprint::cacheBlueprintTree()
-{
-    m_joints.clear();
-    m_joints_map.clear();
-    m_links_map.clear();
-    m_sensors_map.clear();
-    m_actuators_map.clear();
-    m_end_effectors.clear();
-    m_geometries.clear();
-
-    if (m_root_node == nullptr)
-        return;
-
-    // Use the Visitor pattern to traverse and cache the blueprint
-    CacheBlueprintVisitor visitor(this);
-    m_root_node->traverse(visitor);
-
-    // To be called after all joints are cached
-    findEndEffectors(m_end_effectors);
-}
-
-// ----------------------------------------------------------------------------
-Joint const& Blueprint::joint(std::string const& p_name) const
-{
-    auto const& it = m_joints_map.find(std::string(p_name));
-    if (it == m_joints_map.end())
+    auto const& it = m_joint_name_to_index.find(p_name);
+    if (it == m_joint_name_to_index.end())
     {
-        throw RobotikException("Joint not found: " + std::string(p_name));
+        throw RobotikException("Joint not found: " + p_name);
     }
-    return it->second.get();
+    return it->second;
 }
 
 // ----------------------------------------------------------------------------
-Joint& Blueprint::joint(std::string const& p_name)
+size_t Blueprint::linkIndex(std::string const& p_name) const
 {
-    auto const& it = m_joints_map.find(std::string(p_name));
-    if (it == m_joints_map.end())
+    auto const& it = m_link_name_to_index.find(p_name);
+    if (it == m_link_name_to_index.end())
     {
-        throw RobotikException("Joint not found: " + std::string(p_name));
+        throw RobotikException("Link not found: " + p_name);
     }
-    return it->second.get();
+    return it->second;
 }
 
 // ----------------------------------------------------------------------------
-Link const& Blueprint::link(std::string const& p_name) const
+size_t Blueprint::geometryIndex(std::string const& p_name) const
 {
-    auto const& it = m_links_map.find(std::string(p_name));
-    if (it == m_links_map.end())
+    auto const& it = m_geometry_name_to_index.find(p_name);
+    if (it == m_geometry_name_to_index.end())
     {
-        throw RobotikException("Link not found: " + std::string(p_name));
+        throw RobotikException("Geometry not found: " + p_name);
     }
-    return it->second.get();
+    return it->second;
 }
 
 // ----------------------------------------------------------------------------
-size_t Blueprint::findEndEffectors(
-    std::vector<std::reference_wrapper<Link>>& p_end_effectors)
+size_t Blueprint::sensorIndex(std::string const& p_name) const
 {
-    p_end_effectors.clear();
-    p_end_effectors.reserve(m_links_map.size());
-
-    for (auto& [_, link_ref] : m_links_map)
+    auto const& it = m_sensor_name_to_index.find(p_name);
+    if (it == m_sensor_name_to_index.end())
     {
-        Link& link = link_ref.get();
-        bool has_child_joints = false;
-        for (auto& child : link.children())
-        {
-            if (dynamic_cast<Joint*>(child.get()))
-            {
-                has_child_joints = true;
-                break;
-            }
-        }
-
-        if (!has_child_joints)
-        {
-            p_end_effectors.emplace_back(std::ref(link));
-        }
+        throw RobotikException("Sensor not found: " + p_name);
     }
+    return it->second;
+}
 
-    return p_end_effectors.size();
+// ----------------------------------------------------------------------------
+size_t Blueprint::actuatorIndex(std::string const& p_name) const
+{
+    auto const& it = m_actuator_name_to_index.find(p_name);
+    if (it == m_actuator_name_to_index.end())
+    {
+        throw RobotikException("Actuator not found: " + p_name);
+    }
+    return it->second;
 }
 
 } // namespace robotik

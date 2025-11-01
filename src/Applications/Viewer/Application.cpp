@@ -126,11 +126,6 @@ bool Application::setupMeshes()
 {
     m_mesh_manager = std::make_unique<renderer::MeshManager>(m_path);
 
-    // Configuration for the display of the joint axes
-    m_render->setJointAxesOptions(m_config.show_joint_axes,
-                                  m_config.show_revolute_joint_axes,
-                                  m_config.show_prismatic_joint_axes);
-
     // Create grid mesh for ground plane
     if (!m_mesh_manager->createGrid("grid", 20, 1.0f))
     {
@@ -176,10 +171,17 @@ bool Application::onSetup()
     // Create render visitor
     m_render = std::make_unique<renderer::RenderVisitor>(*m_mesh_manager,
                                                          *m_shader_manager);
+    // Configuration for the display of the joint axes
+    m_render->setJointAxesOptions(m_config.show_joint_axes,
+                                  m_config.show_revolute_joint_axes,
+                                  m_config.show_prismatic_joint_axes);
 
     // Create physics simulator
     m_physics_simulator = std::make_unique<PhysicsSimulator>(
         1.0 / double(m_config.target_physics_hz), m_config.physics_gravity);
+
+    // Create robot manager
+    m_robot_manager = std::make_unique<renderer::RobotManager>();
 
     // Load robots from URDF files
     for (auto const& urdf_file : m_config.urdf_files)
@@ -238,8 +240,10 @@ bool Application::setupRobot(std::string const& p_urdf_file)
     constexpr bool use_root_if_not_found = true;
     if (setCameraTarget(*robot, m_config.camera_target, use_root_if_not_found))
     {
-        std::cout << "📷 Camera target: " << robot->camera_target->name()
-                  << std::endl;
+        std::cout
+            << "📷 Camera target: "
+            << robot->blueprint().linkData(robot->camera_target_link_index).name
+            << std::endl;
         robot->camera_tracking_enabled = true;
     }
     else
@@ -261,31 +265,55 @@ bool Application::setCameraTarget(
     std::string const& p_element_name,
     bool p_use_root_if_not_found) const
 {
-    p_robot.camera_target = nullptr;
+    // In flat array architecture, camera doesn't track a node anymore
+    // Instead, we'll track a link index and use its transform from State
 
     if (p_element_name.empty())
     {
-        if (p_use_root_if_not_found)
+        // Default to root link (link with no parent)
+        p_robot.camera_target_link_index = 0; // Assume first link is root
+        for (size_t i = 0; i < p_robot.blueprint().numLinks(); ++i)
         {
-            p_robot.camera_target = &p_robot.blueprint().root();
-        }
-        else if (auto const& end_effectors = p_robot.blueprint().endEffectors();
-                 !end_effectors.empty())
-        {
-            p_robot.camera_target = &end_effectors[0].get();
+            if (p_robot.blueprint().linkData(i).parent_joint_index == SIZE_MAX)
+            {
+                p_robot.camera_target_link_index = i;
+                break;
+            }
         }
     }
     else
     {
-        p_robot.camera_target =
-            Node::find(p_robot.blueprint().root(), p_element_name);
-        if (!p_robot.camera_target && p_use_root_if_not_found)
+        // Try to find link by name
+        try
         {
-            p_robot.camera_target = &p_robot.blueprint().root();
+            p_robot.camera_target_link_index =
+                p_robot.blueprint().linkIndex(p_element_name);
+        }
+        catch (...)
+        {
+            if (p_use_root_if_not_found)
+            {
+                // Fallback to root
+                p_robot.camera_target_link_index = 0;
+                for (size_t i = 0; i < p_robot.blueprint().numLinks(); ++i)
+                {
+                    if (p_robot.blueprint().linkData(i).parent_joint_index ==
+                        SIZE_MAX)
+                    {
+                        p_robot.camera_target_link_index = i;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 
-    return p_robot.camera_target != nullptr;
+    p_robot.camera_tracking_enabled = true;
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -336,10 +364,10 @@ void Application::renderRobot(
     renderer::RobotManager::ControlledRobot const& p_robot,
     bool p_is_selected)
 {
-    // Render nodes of the robot
-    if (p_robot.is_visible && p_robot.blueprint().hasRoot())
+    // Render robot using flat arrays (new architecture)
+    if (p_robot.is_visible)
     {
-        p_robot.blueprint().root().traverse(*m_render);
+        m_render->renderBlueprint(p_robot.blueprint(), p_robot.state());
     }
 
     // Only render IK target and trajectory for selected robot
@@ -363,7 +391,8 @@ void Application::renderRobot(
     // Render trajectory path
     if (p_robot.control_mode ==
             renderer::RobotManager::ControlMode::TRAJECTORY &&
-        p_robot.trajectory && p_robot.control_link)
+        p_robot.trajectory &&
+        p_robot.control_link_index < p_robot.blueprint().numLinks())
     {
         renderTrajectoryPath(p_robot);
     }
@@ -373,38 +402,45 @@ void Application::renderRobot(
 void Application::renderTrajectoryPath(
     renderer::RobotManager::ControlledRobot const& p_robot) const
 {
-    if (!p_robot.trajectory || !p_robot.control_link)
+    if (!p_robot.trajectory ||
+        p_robot.control_link_index >= p_robot.blueprint().numLinks())
         return;
 
     constexpr size_t num_samples = 20;
     double duration = p_robot.trajectory->duration();
 
-    std::vector<double> saved_positions;
-    saved_positions.reserve(p_robot.blueprint().numJoints());
-    p_robot.blueprint().forEachJoint(
-        [&saved_positions](Joint const& joint, size_t /*index*/)
-        { saved_positions.push_back(joint.position()); });
+    // Save current joint positions
+    std::vector<double> saved_positions = p_robot.state().joint_positions;
 
     auto* axis_mesh = m_mesh_manager->getMesh("axis");
     if (!axis_mesh)
         return;
 
+    // Create a temporary state for trajectory visualization
+    State temp_state = p_robot.state();
+
     for (size_t i = 0; i < num_samples; ++i)
     {
         double t = (double(i) / double(num_samples - 1)) * duration;
-        auto states = p_robot.trajectory->evaluate(t);
-        p_robot.blueprint().forEachJoint(
-            [&states](Joint& joint, size_t index)
-            { joint.position(states.position[index]); });
+        auto trajectory_point = p_robot.trajectory->evaluate(t);
+
+        // Update temp state with trajectory positions
+        temp_state.joint_positions = trajectory_point.position;
+
+        // Compute FK for this configuration (const_cast because we need
+        // non-const Robot)
+        const_cast<Robot&>(static_cast<Robot const&>(p_robot))
+            .setJointPositions(temp_state);
+
+        // Render axes at control link position
         m_render->renderAxes(
             axis_mesh,
-            p_robot.control_link->worldTransform().cast<float>(),
+            temp_state.link_transforms[p_robot.control_link_index]
+                .cast<float>(),
             1.0f);
     }
 
-    p_robot.blueprint().forEachJoint(
-        [&saved_positions](Joint& joint, size_t index)
-        { joint.position(saved_positions[index]); });
+    // No need to restore - we didn't modify the robot's actual state
 }
 
 // ----------------------------------------------------------------------------
@@ -416,10 +452,13 @@ void Application::onUpdate(float const dt)
     // Camera tracking update
     for (auto const& [_, it] : m_robot_manager->robots())
     {
-        if (it.camera_tracking_enabled && it.camera_target)
+        if (it.camera_tracking_enabled &&
+            it.camera_target_link_index < it.state().link_transforms.size())
         {
             Eigen::Vector3d target_pos =
-                it.camera_target->worldTransform().block<3, 1>(0, 3);
+                it.state()
+                    .link_transforms[it.camera_target_link_index]
+                    .block<3, 1>(0, 3);
             m_orbit_controller->setTarget(target_pos.cast<float>());
         }
     }

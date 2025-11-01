@@ -81,9 +81,8 @@ bool JacobianIKSolver::solve(Robot& p_robot,
             q[i] += dq[i];
         }
 
-        // Apply to robot
-        p_robot.blueprint().forEachJoint([&q](Joint& joint, size_t index)
-                                         { joint.position(q[index]); });
+        // Apply to robot and recompute FK
+        p_robot.setJointPositions(state);
 
         // Log verbose information
         if (m_config.verbose && iter % 50 == 0)

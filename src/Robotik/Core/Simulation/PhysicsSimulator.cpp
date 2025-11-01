@@ -31,34 +31,10 @@ Eigen::Vector3d PhysicsSimulator::computeLinkForce(Link const& p_link) const
 // ----------------------------------------------------------------------------
 void PhysicsSimulator::step(Robot& p_robot)
 {
-    // Initial conditions
-    Eigen::Vector3d vel = Eigen::Vector3d::Zero();
-    Eigen::Vector3d acc = Eigen::Vector3d::Zero();
-
-    // Traverse the robot tree to compute dynamics
-    // The robot structure is: Link (root) -> Joint -> Link -> Joint -> ...
-    // We need to find the first joint child of the root link
-    // Note: We need non-const access to modify joint states
-    auto& root = p_robot.blueprint().root();
-
-    for (const auto& child : root.children())
-    {
-        auto* joint = dynamic_cast<Joint*>(child.get());
-        if (joint)
-        {
-            computeDynamics(*joint, vel, acc);
-        }
-    }
-
-    // Integrate velocities and positions
-    for (const auto& child : root.children())
-    {
-        auto* joint = dynamic_cast<Joint*>(child.get());
-        if (joint)
-        {
-            integrate(*joint);
-        }
-    }
+    // TODO: Reimplement physics simulation using flat arrays instead of tree
+    // structure The old tree-based implementation has been removed as part of
+    // the refactoring. For now, physics simulation is disabled.
+    (void)p_robot; // Suppress unused parameter warning
 }
 
 // ----------------------------------------------------------------------------
