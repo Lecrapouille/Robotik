@@ -190,7 +190,7 @@ bool Application::onSetup()
 
     // Initialize robot controller
     m_controller = std::make_unique<Controller>(*m_robot_manager);
-    if (!m_controller->initializeRobots(m_config.control_joint))
+    if (!m_controller->initializeRobots(m_config.control_link))
     {
         m_error = "Failed to initialize robot configurations";
         return false;
@@ -363,7 +363,7 @@ void Application::renderRobot(
     // Render trajectory path
     if (p_robot.control_mode ==
             renderer::RobotManager::ControlMode::TRAJECTORY &&
-        p_robot.trajectory && p_robot.control_joint)
+        p_robot.trajectory && p_robot.control_link)
     {
         renderTrajectoryPath(p_robot);
     }
@@ -373,7 +373,7 @@ void Application::renderRobot(
 void Application::renderTrajectoryPath(
     renderer::RobotManager::ControlledRobot const& p_robot) const
 {
-    if (!p_robot.trajectory || !p_robot.control_joint)
+    if (!p_robot.trajectory || !p_robot.control_link)
         return;
 
     constexpr size_t num_samples = 20;
@@ -398,7 +398,7 @@ void Application::renderTrajectoryPath(
             { joint.position(states.position[index]); });
         m_render->renderAxes(
             axis_mesh,
-            p_robot.control_joint->worldTransform().cast<float>(),
+            p_robot.control_link->worldTransform().cast<float>(),
             1.0f);
     }
 

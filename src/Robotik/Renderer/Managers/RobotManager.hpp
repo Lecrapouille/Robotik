@@ -77,7 +77,7 @@ public:
         //! TRAJECTORY)
         ControlMode control_mode = ControlMode::NO_CONTROL;
         //! \brief Controlled joint for Inverse Kinematics
-        Node const* control_joint = nullptr;
+        Node const* control_link = nullptr;
         //! \brief Computed target poses for IK (3 poses)
         std::vector<robotik::Pose> ik_target_poses;
         //! \brief IK solver instance

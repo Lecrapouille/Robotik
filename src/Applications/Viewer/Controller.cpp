@@ -26,12 +26,12 @@ Controller::Controller(renderer::RobotManager& p_robot_manager)
 }
 
 // ----------------------------------------------------------------------------
-bool Controller::initializeRobots(std::string const& p_control_joint_name)
+bool Controller::initializeRobots(std::string const& p_link_name)
 {
     bool success = true;
     for (auto& [_, robot] : m_robot_manager.robots())
     {
-        if (!initializeRobot(robot, p_control_joint_name))
+        if (!initializeRobot(robot, p_link_name))
         {
             success = false;
         }
@@ -42,43 +42,53 @@ bool Controller::initializeRobots(std::string const& p_control_joint_name)
 // ----------------------------------------------------------------------------
 bool Controller::initializeRobot(
     renderer::RobotManager::ControlledRobot& p_robot,
-    std::string const& p_control_joint_name)
+    std::string const& p_link_name)
 {
-    // Set control joint (end effector) for inverse kinematics
-    p_robot.control_joint = nullptr;
-    if (p_control_joint_name.empty())
+    // Set control link (end effector) for inverse kinematics.
+    // If no joint name is provided, use first end effector.
+    // If joint name is provided, use it.
+    // If joint name is not found, use base_link.
+    p_robot.control_link = nullptr;
+    if (!p_link_name.empty())
+    {
+        // Try to find the link by name.
+        p_robot.control_link =
+            Node::find(p_robot.blueprint().root(), p_link_name);
+
+        // If link is not found, use base_link.
+        if (p_robot.control_link == nullptr)
+        {
+            p_robot.control_link = &p_robot.blueprint().root();
+        }
+    }
+    else
     {
         // Use first end effector if available, otherwise use root
         if (auto const& end_effectors = p_robot.blueprint().endEffectors();
             !end_effectors.empty())
         {
-            p_robot.control_joint = &end_effectors[0].get();
+            p_robot.control_link = &end_effectors[0].get();
         }
         else
         {
-            p_robot.control_joint = &p_robot.blueprint().root();
+            p_robot.control_link = &p_robot.blueprint().root();
         }
+    }
+
+    // No control link found, return false, the robot will not be loaded.
+    if (p_robot.control_link == nullptr)
+    {
+        std::cout << "🤖 Control link set to: " << p_robot.control_link->name()
+                  << std::endl;
     }
     else
     {
-        p_robot.control_joint =
-            Node::find(p_robot.blueprint().root(), p_control_joint_name);
-        if (p_robot.control_joint == nullptr)
-        {
-            p_robot.control_joint = &p_robot.blueprint().root();
-        }
-    }
-
-    if (p_robot.control_joint == nullptr)
-    {
-        // m_error = "Control joint not found for robot: " + p_robot.name();
+        std::cout << "🤖 Error: control link not found for robot: "
+                  << p_robot.name() << std::endl;
         return false;
     }
 
-    std::cout << "🤖 Control joint set to: " << p_robot.control_joint->name()
-              << std::endl;
-
-    // Compute IK target poses if control joint is set
+    // Compute IK target poses if control link is set
     computeIKTargetPoses(p_robot);
 
     // Compute trajectory configurations
@@ -133,26 +143,27 @@ bool Controller::setControlMode(std::string const& p_robot_name,
         robot->trajectory.reset();
     }
 
+    // Recompute IK targets if not already computed.
+    if (p_mode == renderer::RobotManager::ControlMode::INVERSE_KINEMATICS &&
+        (!robot->ik_target_poses.empty()))
+    {
+        computeIKTargetPoses(*robot);
+    }
+
     return true;
 }
 
 // ----------------------------------------------------------------------------
 bool Controller::setControlJoint(std::string const& p_robot_name,
-                                 std::string const& p_joint_name)
+                                 std::string const& p_link_name)
 {
     auto* robot = m_robot_manager.getRobot(p_robot_name);
     if (robot == nullptr)
         return false;
 
-    robot->control_joint = Node::find(robot->blueprint().root(), p_joint_name);
-    if (robot->control_joint == nullptr)
+    robot->control_link = Node::find(robot->blueprint().root(), p_link_name);
+    if (robot->control_link == nullptr)
         return false;
-
-    // Recompute IK targets if switching control joint
-    if (!robot->ik_target_poses.empty())
-    {
-        computeIKTargetPoses(*robot);
-    }
 
     return true;
 }
@@ -177,7 +188,7 @@ bool Controller::setCameraTarget(std::string const& p_robot_name,
 void Controller::computeIKTargetPoses(
     renderer::RobotManager::ControlledRobot& p_robot)
 {
-    if (p_robot.control_joint == nullptr)
+    if (p_robot.control_link == nullptr)
         return;
 
     std::cout << "🎯 Computing IK target poses..." << std::endl;
@@ -219,7 +230,7 @@ void Controller::computeIKTargetPoses(
 
         // Get end-effector transform
         Transform end_effector_transform =
-            p_robot.control_joint->worldTransform();
+            p_robot.control_link->worldTransform();
 
         // Convert to pose and store
         Pose target_pose = robotik::transformToPose(end_effector_transform);
@@ -300,7 +311,7 @@ void Controller::handleAnimation(
     }
 
     // Update joint positions
-    p_robot.forwardKinematics(p_robot.state());
+    p_robot.setJointPositions(p_robot.state());
 }
 
 // ----------------------------------------------------------------------------
@@ -309,9 +320,9 @@ void Controller::handleInverseKinematics(
     double p_dt,
     RobotState& p_robot_state)
 {
-    if (p_robot.control_joint == nullptr || p_robot.ik_solver == nullptr)
+    if (p_robot.control_link == nullptr || p_robot.ik_solver == nullptr)
     {
-        std::cout << "🤖 Error: control joint or solver not set" << std::endl;
+        std::cout << "🤖 Error: control link or solver not set" << std::endl;
         return;
     }
 
@@ -321,7 +332,7 @@ void Controller::handleInverseKinematics(
 
     // Solve IK for current target
     if (bool solved = p_robot.ik_solver->solve(
-            p_robot, *p_robot.control_joint, target_pose);
+            p_robot, *p_robot.control_link, target_pose);
         solved)
     {
         std::cout << "🎯 Reached target "

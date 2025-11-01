@@ -65,7 +65,7 @@ class IKSolver;
 //!
 //!   // Set joint positions and compute forward kinematics
 //!   state.jointPositions() = {0.0, 1.57, -0.5};
-//!   robot.forwardKinematics(state);
+//!   robot.setJointPositions(state);
 //!
 //!   // Compute Jacobian for end effector
 //!   auto& end_eff = blueprint.link("end_effector");
@@ -170,14 +170,14 @@ public:
     //! \param p_state The state containing joint positions (input) and where
     //! transforms will be stored (output).
     // ------------------------------------------------------------------------
-    void forwardKinematics(State& p_state);
+    void setJointPositions(State& p_state);
 
     // ------------------------------------------------------------------------
     //! \brief Perform forward kinematics computation on the robot's state.
     // ------------------------------------------------------------------------
     inline void forwardKinematics()
     {
-        forwardKinematics(m_state);
+        setJointPositions(m_state);
     }
 
     // ------------------------------------------------------------------------

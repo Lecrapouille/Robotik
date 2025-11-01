@@ -31,8 +31,8 @@ struct Configuration
     std::vector<std::string> urdf_files;
     //! Joint positions to set
     std::vector<double> joint_positions;
-    //! Control joint for inverse kinematics: usually the tool center point
-    std::string control_joint;
+    //! Control link for inverse kinematics: usually the tool center point
+    std::string control_link;
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
     //! Show joint axes for debugging

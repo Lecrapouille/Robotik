@@ -287,7 +287,7 @@ void HMI::endEffectorPanel()
     std::vector<std::string> const& end_effectors = m_end_effector_names;
 
     std::string current_end_effector =
-        robot->control_joint ? robot->control_joint->name() : "";
+        robot->control_link ? robot->control_link->name() : "";
 
     if (ImGui::BeginCombo("End Effector",
                           current_end_effector.empty()
