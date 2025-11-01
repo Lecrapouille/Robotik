@@ -26,6 +26,11 @@ namespace robotik::renderer
 using namespace robotik;
 
 // ----------------------------------------------------------------------------
+static const Eigen::Vector3f s_red_color(1.0f, 0.0f, 0.0f);
+static const Eigen::Vector3f s_green_color(0.0f, 1.0f, 0.0f);
+static const Eigen::Vector3f s_blue_color(0.0f, 0.0f, 1.0f);
+
+// ----------------------------------------------------------------------------
 RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
                              ShaderManager const& shader_mgr)
     : m_mesh_manager(mesh_mgr), m_shader_manager(shader_mgr)
@@ -189,33 +194,39 @@ void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
         return;
     }
 
-    const float radius = 0.02f * p_scale;
-    const float height = p_scale;
+    const float radius = 0.02f * p_scale; // Thin cylinder radius
+    const float height = p_scale;         // Axis length
 
     int model_uniform = m_shader_manager.getUniformLocation("model");
     int color_uniform = m_shader_manager.getUniformLocation("color");
 
-    // X axis (red)
+    // X axis (red) - cylinder along X direction
     {
+        // Create scaling transformation (cylinder default: radius in XY, height
+        // in Z)
         Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
         scale(0, 0) = radius;
         scale(1, 1) = radius;
         scale(2, 2) = height / 2.0f;
 
+        // Create rotation to align cylinder with X axis (rotate 90° around Y)
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
             Eigen::AngleAxisf(M_PIf / 2.0f, Eigen::Vector3f::UnitY())
                 .toRotationMatrix();
 
+        // Create translation to position cylinder at half its length along X
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
         translation(0, 3) = height * 0.5f;
 
+        // Set model matrix to OpenGL shader
         Eigen::Matrix4f model = p_transform * translation * rotation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
 
-        Eigen::Vector3f red_color(1.0f, 0.0f, 0.0f);
-        m_shader_manager.setVector3f(color_uniform, red_color.data());
+        // Set color to OpenGL shader
+        m_shader_manager.setVector3f(color_uniform, s_red_color.data());
 
+        // Draw the cylinder
         glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
@@ -223,27 +234,32 @@ void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
                        nullptr);
     }
 
-    // Y axis (green)
+    // Y axis (green) - cylinder along Y direction
     {
+        // Create scaling transformation
         Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
         scale(0, 0) = radius;
         scale(1, 1) = radius;
         scale(2, 2) = height / 2.0f;
 
+        // Create rotation to align cylinder with Y axis (rotate 90° around X)
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
             Eigen::AngleAxisf(-M_PIf / 2.0f, Eigen::Vector3f::UnitX())
                 .toRotationMatrix();
 
+        // Create translation to position cylinder at half its length along Y
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
         translation(1, 3) = height * 0.5f;
 
+        // Set model matrix to OpenGL shader
         Eigen::Matrix4f model = p_transform * translation * rotation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
 
-        Eigen::Vector3f green_color(0.0f, 1.0f, 0.0f);
-        m_shader_manager.setVector3f(color_uniform, green_color.data());
+        // Set color to OpenGL shader
+        m_shader_manager.setVector3f(color_uniform, s_green_color.data());
 
+        // Draw the cylinder
         glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
@@ -251,22 +267,28 @@ void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
                        nullptr);
     }
 
-    // Z axis (blue)
+    // Z axis (blue) - cylinder along Z direction
     {
+        // Create scaling transformation
         Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
         scale(0, 0) = radius;
         scale(1, 1) = radius;
-        scale(2, 2) = height / 2.0f;
+        scale(2, 2) = height / 2.0f; // Base cylinder has height 2
 
+        // No rotation needed, cylinder is already aligned with Z axis
+
+        // Create translation to position cylinder at half its length along Z
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
         translation(2, 3) = height * 0.5f;
 
+        // Set model matrix to OpenGL shader
         Eigen::Matrix4f model = p_transform * translation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
 
-        Eigen::Vector3f blue_color(0.0f, 0.0f, 1.0f);
-        m_shader_manager.setVector3f(color_uniform, blue_color.data());
+        // Set color to OpenGL shader
+        m_shader_manager.setVector3f(color_uniform, s_blue_color.data());
 
+        // Draw the cylinder
         glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
@@ -315,7 +337,7 @@ void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint) const
     }
 
     // Get the axis mesh (should be preloaded by Application)
-    const MeshManager::GPUMesh* axis_mesh = m_mesh_manager.getMesh("axis");
+    const MeshManager::GPUMesh* axis_mesh = m_mesh_manager.getMesh("revolute");
     if (!axis_mesh || !axis_mesh->is_loaded)
     {
         std::cerr << "Warning: axis mesh not found for joint axes rendering"
@@ -327,7 +349,7 @@ void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint) const
     Eigen::Matrix4f joint_transform = p_joint.worldTransform().cast<float>();
 
     // Render the standard RGB axes at the joint position
-    constexpr float axis_scale = 0.15f; // 15 cm
+    constexpr float axis_scale = 1.0f;
     renderAxes(axis_mesh, joint_transform, axis_scale);
 }
 

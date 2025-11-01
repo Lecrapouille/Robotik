@@ -60,7 +60,7 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     // ------------------------------------------------------------------------
-    MeshManager(Path const& p_path) : m_path(p_path) {}
+    explicit MeshManager(Path const& p_path);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor - frees all GPU resources.
@@ -178,13 +178,13 @@ private:
     //! \return true if successful.
     // ------------------------------------------------------------------------
     bool createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
-                       GPUMesh& p_gpu_mesh);
+                       GPUMesh& p_gpu_mesh) const;
 
     // ------------------------------------------------------------------------
     //! \brief Free GPU resources for a mesh.
     //! \param p_gpu_mesh GPU mesh to free.
     // ------------------------------------------------------------------------
-    void freeGPUMesh(GPUMesh& p_gpu_mesh);
+    void freeGPUMesh(GPUMesh& p_gpu_mesh) const;
 
     // Primitive generation methods (from GeometryRenderer)
     // ------------------------------------------------------------------------
