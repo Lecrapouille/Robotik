@@ -16,6 +16,9 @@ namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
+MeshManager::MeshManager(Path const& p_path) : m_path(p_path) {}
+
+// ----------------------------------------------------------------------------
 MeshManager::~MeshManager()
 {
     clear();
@@ -214,7 +217,7 @@ void MeshManager::clear()
 
 // ----------------------------------------------------------------------------
 bool MeshManager::createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
-                                GPUMesh& p_gpu_mesh)
+                                GPUMesh& p_gpu_mesh) const
 {
     // Generate OpenGL buffers
     glGenVertexArrays(1, &p_gpu_mesh.vao);
@@ -258,7 +261,7 @@ bool MeshManager::createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::freeGPUMesh(GPUMesh& p_gpu_mesh)
+void MeshManager::freeGPUMesh(GPUMesh& p_gpu_mesh) const
 {
     if (p_gpu_mesh.vao != 0)
     {

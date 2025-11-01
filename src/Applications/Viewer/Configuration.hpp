@@ -31,14 +31,16 @@ struct Configuration
     std::vector<std::string> urdf_files;
     //! Joint positions to set
     std::vector<double> joint_positions;
-    //! Control joint for inverse kinematics: usually the tool center point
-    std::string control_joint;
+    //! Control link for inverse kinematics: usually the tool center point
+    std::string control_link;
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
-    //! Show frames
-    bool show_frames = false;
-    //! Frame scale
-    float frame_scale = 0.1f;
+    //! Show joint axes for debugging
+    bool show_joint_axes = true;
+    //! Show revolute joint axes
+    bool show_revolute_joint_axes = true;
+    //! Show prismatic joint axes
+    bool show_prismatic_joint_axes = true;
     //! Physics gravity
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };

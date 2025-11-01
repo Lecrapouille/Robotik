@@ -28,7 +28,7 @@ Robot::Robot(std::string const& p_name, Blueprint&& p_blueprint)
 }
 
 // ----------------------------------------------------------------------------
-void Robot::forwardKinematics(State& p_state)
+void Robot::setJointPositions(State& p_state)
 {
     m_blueprint.forEachJoint(
         [&p_state](Joint& joint, size_t index)

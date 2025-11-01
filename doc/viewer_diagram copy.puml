@@ -235,7 +235,7 @@ package "robotik::renderer" {
     struct RobotManager::ControlledRobot {
         + robot: unique_ptr<Robot>
         + control_mode: ControlMode = ANIMATION
-        + control_joint: Node const*
+        + control_link: Node const*
         + camera_target: Node const*
         + is_visible: bool = true
         + scale: float = 1.0f
