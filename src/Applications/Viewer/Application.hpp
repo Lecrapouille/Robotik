@@ -65,14 +65,6 @@ private: // override OpenGLApplication methods
     bool onSetup() override;
 
     // ----------------------------------------------------------------------------
-    //! \brief Cleanup the application. Called once at shutdown. This method
-    //! is called after the physics thread is stopped.
-    //! You can use this method to clean up any resources you allocated in the
-    //! onSetup() method.
-    // ----------------------------------------------------------------------------
-    void onTeardown() override;
-
-    // ----------------------------------------------------------------------------
     //! \brief Render the 3D scene. Called automatically within the viewport.
     // ----------------------------------------------------------------------------
     void onDrawScene() override;
@@ -157,14 +149,34 @@ private: // setups
     bool setupMainShader();
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup the renderer.
+    //! \brief Setup the builting meshes.
     // ----------------------------------------------------------------------------
-    bool setupRenderer();
+    bool setupMeshes();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Setup the render visitor.
+    // ----------------------------------------------------------------------------
+    void setupRender();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Setup the physics simulator.
+    // ----------------------------------------------------------------------------
+    void setupPhysicsSimulator();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Setup the robots.
+    // ----------------------------------------------------------------------------
+    bool setupRobots();
 
     // ----------------------------------------------------------------------------
     //! \brief Setup a robot.
     // ----------------------------------------------------------------------------
     bool setupRobot(std::string const& p_urdf_file);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Setup the HMI.
+    // ----------------------------------------------------------------------------
+    bool setupHMI();
 
 private:
 
@@ -181,7 +193,7 @@ private:
     //! \param p_robot The controlled robot.
     // ----------------------------------------------------------------------------
     void renderTrajectoryPath(
-        renderer::RobotManager::ControlledRobot const& p_robot);
+        renderer::RobotManager::ControlledRobot const& p_robot) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Set camera target for a robot.
@@ -206,26 +218,28 @@ private:
 
 private:
 
-    //! \brief DearImGui-based HMI for robot control and visualization.
-    std::unique_ptr<HMI> m_hmi;
-    //! \brief Model-View-Controller controller for managing robot logic.
-    std::unique_ptr<Controller> m_controller;
     //! \brief Application settings and configuration.
     Configuration const& m_config;
     //! \brief Search paths to load URDF, STL, etc. files.
     Path m_path;
+    //! \brief Model-View-Controller controller for managing robot logic.
+    std::unique_ptr<Controller> m_controller;
     //! \brief Perspective camera for intuitive robot inspection.
     std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
     //! \brief Orbit controller for orbiting around the robot.
     std::unique_ptr<renderer::OrbitController> m_orbit_controller;
     //! \brief Shader manager for managing shaders.
-    renderer::ShaderManager m_shader_manager;
+    std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Mesh manager for managing meshes.
-    renderer::MeshManager m_mesh_manager;
+    std::unique_ptr<renderer::MeshManager> m_mesh_manager;
     //! \brief Robot manager for managing robots.
-    renderer::RobotManager m_robot_manager;
+    std::unique_ptr<renderer::RobotManager> m_robot_manager;
+    //! \brief Mesh manager for managing meshes.
+    std::unique_ptr<renderer::RenderVisitor> m_render;
     //! \brief Physics simulator for simulating physics.
-    robotik::PhysicsSimulator m_physics_simulator;
+    std::unique_ptr<robotik::PhysicsSimulator> m_physics_simulator;
+    //! \brief DearImGui-based HMI for robot control and visualization.
+    std::unique_ptr<HMI> m_hmi;
     //! \brief Cached OpenGL shader uniforms.
     int m_projection_uniform = -1;
     //! \brief Cached OpenGL shader uniforms.

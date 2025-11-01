@@ -115,7 +115,7 @@ protected:
                     joint.position(q[index]);
                 }
             });
-        robot.forwardKinematics();
+        robot.setJointPositions();
     }
 
     // Helper to verify IK solution by checking forward kinematics result
@@ -125,7 +125,7 @@ protected:
                           double position_tolerance = 1e-3,
                           double orientation_tolerance = 1e-2)
     {
-        robot.forwardKinematics();
+        robot.setJointPositions();
         Transform current_transform = end_effector.worldTransform();
         Pose current_pose = transformToPose(current_transform);
 
@@ -412,7 +412,7 @@ TEST_F(InverseKinematicsTest, DifferentInitialConfigurations)
     {
         // Set initial configuration
         robot->blueprint().joint("revolute_joint").position(initial_pos);
-        robot->forwardKinematics();
+        robot->setJointPositions();
 
         // Solve IK
         bool solved = ik_solver->solve(*robot, *end_effector, target_pose);

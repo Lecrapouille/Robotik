@@ -79,7 +79,7 @@ public:
     // ------------------------------------------------------------------------
     bool isViewportHovered() const;
 
-protected:
+private:
 
     // ------------------------------------------------------------------------
     //! \brief Initialize the application. Called once at startup. This method
@@ -95,16 +95,16 @@ protected:
     //! You can use this method to clean up any resources you allocated in the
     //! onSetup() method.
     // ------------------------------------------------------------------------
-    virtual void onTeardown() = 0;
+    virtual void onTeardown()
+    {
+        // Empty implementation
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Render the 3D scene. Override this to draw your 3D content.
     //! This is called automatically within the ImGui viewport or directly.
     // ------------------------------------------------------------------------
-    virtual void onDrawScene()
-    {
-        // Empty implementation
-    }
+    virtual void onDrawScene() = 0;
 
     // ------------------------------------------------------------------------
     //! \brief Draw ImGui menu bar. Override to add custom menu items.

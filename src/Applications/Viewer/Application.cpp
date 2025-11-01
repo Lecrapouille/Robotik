@@ -52,16 +52,13 @@ void main()
 )";
 
 // ----------------------------------------------------------------------------
-const Eigen::Vector3f s_clear_color(0.1f, 0.1f, 0.1f);
+static const Eigen::Vector3f s_clear_color(0.1f, 0.1f, 0.1f);
 
 // ----------------------------------------------------------------------------
 Application::Application(Configuration const& p_config)
     : OpenGLApplication(p_config.window_width, p_config.window_height),
       m_config(p_config),
-      m_path(p_config.search_paths),
-      m_mesh_manager(m_path),
-      m_physics_simulator(1.0 / double(p_config.target_physics_hz),
-                          p_config.physics_gravity)
+      m_path(p_config.search_paths)
 {
     setTitle(p_config.window_title);
 }
@@ -78,6 +75,38 @@ void Application::setTitle(std::string const& p_title)
 {
     m_title = p_title;
     OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(m_fps));
+}
+// ----------------------------------------------------------------------------
+bool Application::onSetup()
+{
+    glEnable(GL_DEPTH_TEST);
+
+    // Setup the OpenGL camera and its controller
+    setupCamera();
+
+    // Setup OpenGL shader programs
+    if (!setupMainShader())
+        return false;
+
+    // Setup mesh manager (meshes from built-in and from URDF files)
+    if (!setupMeshes())
+        return false;
+
+    // Setup render visitor (render the robot, grid, axes, joints ...)
+    setupRender();
+
+    // Create robot manager (manage the list of robots)
+    if (!setupRobots())
+        return false;
+
+    // Setup physics simulator (simulate the physics of the robots)
+    setupPhysicsSimulator();
+
+    // Setup the Human-Machine Interface and its Model-View-Controller pattern
+    if (!setupHMI())
+        return false;
+
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -98,41 +127,58 @@ void Application::setupCamera()
 // ----------------------------------------------------------------------------
 bool Application::setupMainShader()
 {
+    m_shader_manager = std::make_unique<renderer::ShaderManager>();
+
     constexpr char const* const main_shader_name = "main";
 
-    if (!m_shader_manager.createProgram(
+    // Create the main OpenGL shader program
+    if (!m_shader_manager->createProgram(
             main_shader_name, vertex_shader_source, fragment_shader_source))
     {
         m_error =
-            "Failed to create shader program: " + m_shader_manager.error();
+            "Failed to create shader program: " + m_shader_manager->error();
         return false;
     }
 
-    if (!m_shader_manager.useProgram(main_shader_name))
+    // Use the main OpenGL shader program
+    if (!m_shader_manager->useProgram(main_shader_name))
     {
         m_error = "Failed to use shader program";
         return false;
     }
 
-    m_view_uniform = m_shader_manager.getUniformLocation("view");
-    m_projection_uniform = m_shader_manager.getUniformLocation("projection");
+    // Get the uniform locations for the view and projection matrices
+    m_view_uniform = m_shader_manager->getUniformLocation("view");
+    m_projection_uniform = m_shader_manager->getUniformLocation("projection");
     return true;
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupRenderer()
+bool Application::setupMeshes()
 {
+    m_mesh_manager = std::make_unique<renderer::MeshManager>(m_path);
+
     // Create grid mesh for ground plane
-    if (!m_mesh_manager.createGrid("grid", 20, 1.0f))
+    if (!m_mesh_manager->createGrid("grid", 20, 1.0f))
     {
-        m_error = "Failed to create grid mesh: " + m_mesh_manager.error();
+        m_error = "Failed to create grid mesh: " + m_mesh_manager->error();
         return false;
     }
 
-    // Create axis cylinder mesh for coordinate axes visualization
-    if (!m_mesh_manager.createCylinder("axis", 0.01f, 0.1f, 16))
+    // Create axis cylinder mesh for coordinate axes visualization (used by
+    // RenderVisitor::renderAxes() method)
+    if (!m_mesh_manager->createCylinder("axis", 0.01f, 0.1f, 16))
     {
-        m_error = "Failed to create axis mesh: " + m_mesh_manager.error();
+        m_error = "Failed to create axis mesh: " + m_mesh_manager->error();
+        return false;
+    }
+
+    // Create joint axis cylinder mesh for joint visualization (used by
+    // Application::renderJointAxes() method)
+    if (!m_mesh_manager->createCylinder("revolute", 0.015f, 0.3f, 16))
+    {
+        m_error =
+            "Failed to create joint axis mesh: " + m_mesh_manager->error();
         return false;
     }
 
@@ -140,17 +186,28 @@ bool Application::setupRenderer()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::onSetup()
+void Application::setupRender()
 {
-    glEnable(GL_DEPTH_TEST);
+    m_render = std::make_unique<renderer::RenderVisitor>(*m_mesh_manager,
+                                                         *m_shader_manager);
 
-    setupCamera();
+    // Configuration for the display of the joint axes
+    m_render->setJointAxesOptions(m_config.show_joint_axes,
+                                  m_config.show_revolute_joint_axes,
+                                  m_config.show_prismatic_joint_axes);
+}
 
-    if (!setupMainShader())
-        return false;
+// ----------------------------------------------------------------------------
+void Application::setupPhysicsSimulator()
+{
+    m_physics_simulator = std::make_unique<PhysicsSimulator>(
+        1.0 / double(m_config.target_physics_hz), m_config.physics_gravity);
+}
 
-    if (!setupRenderer())
-        return false;
+// ----------------------------------------------------------------------------
+bool Application::setupRobots()
+{
+    m_robot_manager = std::make_unique<renderer::RobotManager>();
 
     // Load robots from URDF files
     for (auto const& urdf_file : m_config.urdf_files)
@@ -159,21 +216,28 @@ bool Application::onSetup()
             return false;
     }
 
-    // Initialize robot controller
-    m_controller = std::make_unique<Controller>(m_robot_manager);
-    if (!m_controller->initializeRobots(m_config.control_joint))
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+bool Application::setupHMI()
+{
+    // Initialize the controller of the HMI (Model-View-Controller pattern)
+    m_controller = std::make_unique<Controller>(*m_robot_manager);
+    if (!m_controller->initializeRobots(m_config.control_link))
     {
         m_error = "Failed to initialize robot configurations";
         return false;
     }
 
-    // Create DearImGui-based HMI
-    m_hmi = std::make_unique<HMI>(m_robot_manager,
+    // Create the HMI view (view of the Model-View-Controller pattern)
+    m_hmi = std::make_unique<HMI>(*m_robot_manager,
                                   *m_controller,
                                   *m_orbit_controller,
                                   [this]() { halt(); });
 
     m_start_time = std::chrono::steady_clock::now();
+
     return true;
 }
 
@@ -181,10 +245,10 @@ bool Application::onSetup()
 bool Application::setupRobot(std::string const& p_urdf_file)
 {
     // Load robot from URDF file
-    auto* robot = m_robot_manager.loadRobot(p_urdf_file);
+    auto* robot = m_robot_manager->loadRobot(p_urdf_file);
     if (robot == nullptr)
     {
-        m_error = "Failed to load robot from URDF: " + m_robot_manager.error();
+        m_error = "Failed to load robot from URDF: " + m_robot_manager->error();
         return false;
     }
     std::cout << "Loaded robot from: " << p_urdf_file << std::endl;
@@ -206,7 +270,7 @@ bool Application::setupRobot(std::string const& p_urdf_file)
     }
 
     // Set camera target to the specified robot element.
-    bool use_root_if_not_found = true;
+    constexpr bool use_root_if_not_found = true;
     if (setCameraTarget(*robot, m_config.camera_target, use_root_if_not_found))
     {
         std::cout << "📷 Camera target: " << robot->camera_target->name()
@@ -220,8 +284,7 @@ bool Application::setupRobot(std::string const& p_urdf_file)
     }
 
     // Preload all geometries (meshes) for this robot
-    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
-    visitor.preloadGeometries(robot->blueprint());
+    m_render->preloadGeometries(robot->blueprint());
     std::cout << "📦 Preloaded all geometries for robot" << std::endl;
 
     return true;
@@ -238,26 +301,26 @@ bool Application::setCameraTarget(
     if (p_element_name.empty())
     {
         if (p_use_root_if_not_found)
+        {
             p_robot.camera_target = &p_robot.blueprint().root();
+        }
         else if (auto const& end_effectors = p_robot.blueprint().endEffectors();
                  !end_effectors.empty())
+        {
             p_robot.camera_target = &end_effectors[0].get();
+        }
     }
     else
     {
         p_robot.camera_target =
             Node::find(p_robot.blueprint().root(), p_element_name);
         if (!p_robot.camera_target && p_use_root_if_not_found)
+        {
             p_robot.camera_target = &p_robot.blueprint().root();
+        }
     }
 
     return p_robot.camera_target != nullptr;
-}
-
-// ----------------------------------------------------------------------------
-void Application::onTeardown()
-{
-    m_robot_manager.clear();
 }
 
 // ----------------------------------------------------------------------------
@@ -280,9 +343,9 @@ void Application::onDrawMainPanel()
 void Application::onDrawScene()
 {
     // Set camera matrices before rendering
-    m_shader_manager.setMatrix4f(m_view_uniform,
-                                 m_perspective_camera->viewMatrix().data());
-    m_shader_manager.setMatrix4f(
+    m_shader_manager->setMatrix4f(m_view_uniform,
+                                  m_perspective_camera->viewMatrix().data());
+    m_shader_manager->setMatrix4f(
         m_projection_uniform, m_perspective_camera->projectionMatrix().data());
 
     // OpenGL
@@ -290,14 +353,13 @@ void Application::onDrawScene()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the ground grid
-    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
-    if (auto* grid_mesh = m_mesh_manager.getMesh("grid"))
+    if (auto* grid_mesh = m_mesh_manager->getMesh("grid"))
     {
-        visitor.renderGrid(grid_mesh, Eigen::Vector3f(0.5f, 0.5f, 0.5f));
+        m_render->renderGrid(grid_mesh, Eigen::Vector3f(0.5f, 0.5f, 0.5f));
     }
 
     // Render the robots
-    for (auto const& [robot_name, robot] : m_robot_manager.robots())
+    for (auto const& [robot_name, robot] : m_robot_manager->robots())
     {
         bool const selected = (robot_name == m_hmi->selectedRobot());
         renderRobot(robot, selected);
@@ -309,13 +371,10 @@ void Application::renderRobot(
     renderer::RobotManager::ControlledRobot const& p_robot,
     bool p_is_selected)
 {
-    // Create visitor for rendering
-    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
-
     // Render nodes of the robot
     if (p_robot.is_visible && p_robot.blueprint().hasRoot())
     {
-        p_robot.blueprint().root().traverse(visitor);
+        p_robot.blueprint().root().traverse(*m_render);
     }
 
     // Only render IK target and trajectory for selected robot
@@ -329,16 +388,17 @@ void Application::renderRobot(
     {
         Transform target_transform =
             robotik::poseToTransform(p_robot.ik_target_poses[0]);
-        if (auto* axis_mesh = m_mesh_manager.getMesh("axis"))
+        if (auto* axis_mesh = m_mesh_manager->getMesh("axis"))
         {
-            visitor.renderAxes(axis_mesh, target_transform.cast<float>(), 1.0f);
+            m_render->renderAxes(
+                axis_mesh, target_transform.cast<float>(), 1.0f);
         }
     }
 
     // Render trajectory path
     if (p_robot.control_mode ==
             renderer::RobotManager::ControlMode::TRAJECTORY &&
-        p_robot.trajectory && p_robot.control_joint)
+        p_robot.trajectory && p_robot.control_link)
     {
         renderTrajectoryPath(p_robot);
     }
@@ -346,9 +406,9 @@ void Application::renderRobot(
 
 // ----------------------------------------------------------------------------
 void Application::renderTrajectoryPath(
-    renderer::RobotManager::ControlledRobot const& p_robot)
+    renderer::RobotManager::ControlledRobot const& p_robot) const
 {
-    if (!p_robot.trajectory || !p_robot.control_joint)
+    if (!p_robot.trajectory || !p_robot.control_link)
         return;
 
     constexpr size_t num_samples = 20;
@@ -360,11 +420,9 @@ void Application::renderTrajectoryPath(
         [&saved_positions](Joint const& joint, size_t /*index*/)
         { saved_positions.push_back(joint.position()); });
 
-    auto* axis_mesh = m_mesh_manager.getMesh("axis");
+    auto* axis_mesh = m_mesh_manager->getMesh("axis");
     if (!axis_mesh)
         return;
-
-    renderer::RenderVisitor visitor(m_mesh_manager, m_shader_manager);
 
     for (size_t i = 0; i < num_samples; ++i)
     {
@@ -373,9 +431,9 @@ void Application::renderTrajectoryPath(
         p_robot.blueprint().forEachJoint(
             [&states](Joint& joint, size_t index)
             { joint.position(states.position[index]); });
-        visitor.renderAxes(
+        m_render->renderAxes(
             axis_mesh,
-            p_robot.control_joint->worldTransform().cast<float>(),
+            p_robot.control_link->worldTransform().cast<float>(),
             1.0f);
     }
 
@@ -391,7 +449,7 @@ void Application::onUpdate(float const dt)
     m_orbit_controller->update(dt);
 
     // Camera tracking update
-    for (auto const& [_, it] : m_robot_manager.robots())
+    for (auto const& [_, it] : m_robot_manager->robots())
     {
         if (it.camera_tracking_enabled && it.camera_target)
         {
@@ -416,7 +474,7 @@ void Application::onUpdate(float const dt)
 // ----------------------------------------------------------------------------
 void Application::onPhysicUpdate(float const /* dt */)
 {
-    // auto* controlled_robot = m_robot_manager.currentRobot();
+    // auto* controlled_robot = m_robot_manager->currentRobot();
     // if (controlled_robot && controlled_robot->robot)
     //{
     //     m_physics_simulator.step(*controlled_robot->robot);
@@ -437,9 +495,9 @@ void Application::onWindowResize(int p_width, int p_height)
         static_cast<float>(p_width) / static_cast<float>(p_height);
     m_perspective_camera->setAspectRatio(aspect_ratio);
 
-    m_shader_manager.setMatrix4f(m_view_uniform,
-                                 m_perspective_camera->viewMatrix().data());
-    m_shader_manager.setMatrix4f(
+    m_shader_manager->setMatrix4f(m_view_uniform,
+                                  m_perspective_camera->viewMatrix().data());
+    m_shader_manager->setMatrix4f(
         m_projection_uniform, m_perspective_camera->projectionMatrix().data());
 }
 
@@ -471,7 +529,7 @@ void Application::onKeyInput(int key,
 // ----------------------------------------------------------------------------
 void Application::switchNeutralPosition() const
 {
-    auto* robot = m_robot_manager.currentRobot();
+    auto* robot = m_robot_manager->currentRobot();
     if (robot == nullptr)
         return;
     robot->setNeutralPosition();
@@ -480,7 +538,7 @@ void Application::switchNeutralPosition() const
 // ----------------------------------------------------------------------------
 void Application::switchVisibility() const
 {
-    auto* robot = m_robot_manager.currentRobot();
+    auto* robot = m_robot_manager->currentRobot();
     if (robot == nullptr)
         return;
     robot->is_visible = !robot->is_visible;

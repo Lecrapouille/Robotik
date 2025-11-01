@@ -378,7 +378,7 @@ protected:
     //!
     //! This optimization eliminates redundant recalculations when multiple
     //! joints are updated in sequence (e.g., in setNeutralPosition() or
-    //! forwardKinematics()), reducing complexity from O(n²) to O(n).
+    //! setJointPositions()), reducing complexity from O(n²) to O(n).
     //!
     //! The dirty flag propagates to all children because changing a parent's
     //! transform invalidates all descendant transforms in the kinematic chain.

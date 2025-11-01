@@ -80,20 +80,15 @@ public:
     void visit(const robotik::Node& node) override;
 
     // ------------------------------------------------------------------------
-    //! \brief Enable/disable rendering of joint axes for debugging.
-    // ------------------------------------------------------------------------
-    inline void showJointAxes(bool show)
-    {
-        m_show_joint_axes = show;
-    }
-
-    // ------------------------------------------------------------------------
-    //! \brief Enable/disable rendering of specific joint types.
+    //! \brief Configure joint axes rendering options.
+    //! \param p_enable Enable/disable joint axes rendering globally.
     //! \param p_revolute Show revolute/continuous joint axes.
     //! \param p_prismatic Show prismatic joint axes.
     // ------------------------------------------------------------------------
-    inline void setJointAxesOptions(bool p_revolute, bool p_prismatic)
+    inline void
+    setJointAxesOptions(bool p_enable, bool p_revolute, bool p_prismatic)
     {
+        m_show_joint_axes = p_enable;
         m_show_revolute_axes = p_revolute;
         m_show_prismatic_axes = p_prismatic;
     }

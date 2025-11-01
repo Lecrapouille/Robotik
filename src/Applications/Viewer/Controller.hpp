@@ -35,21 +35,21 @@ public:
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize all robots.
-    //! \param p_control_joint_name Optional control joint name. If empty, uses
+    //! \param p_link_name Optional control link name. If empty, uses
     //! first end effector.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
-    bool initializeRobots(std::string const& p_control_joint_name);
+    bool initializeRobots(std::string const& p_link_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize robot configurations (IK targets, trajectory configs).
     //! \param p_robot The robot to initialize.
-    //! \param p_control_joint_name Optional control joint name. If empty, uses
+    //! \param p_link_name Optional control link name. If empty, uses
     //! first end effector.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
     bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_control_joint_name = "");
+                         std::string const& p_link_name = "");
 
     // ----------------------------------------------------------------------------
     //! \brief Update all robots based on their control modes.
@@ -68,13 +68,13 @@ public:
                         renderer::RobotManager::ControlMode p_mode);
 
     // ----------------------------------------------------------------------------
-    //! \brief Set control joint for a robot.
+    //! \brief Set control link for a robot.
     //! \param p_robot_name Robot name.
-    //! \param p_joint_name Joint name.
+    //! \param p_link_name Joint name.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
     bool setControlJoint(std::string const& p_robot_name,
-                         std::string const& p_joint_name);
+                         std::string const& p_link_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Set camera target for a robot.
