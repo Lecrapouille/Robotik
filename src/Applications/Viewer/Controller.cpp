@@ -361,24 +361,29 @@ void Controller::handleInverseKinematics(
     // Apply IK solution with velocity limits
     p_robot.applyJointTargetsWithSpeedLimit(p_robot_state.ik_solution, p_dt);
 
-    // Check if robot has reached the target position
-    auto const& current_pos = p_robot.state().joint_positions;
-    double distance = 0.0;
-    for (size_t i = 0;
-         i < current_pos.size() && i < p_robot_state.ik_solution.size();
-         ++i)
-    {
-        double diff = current_pos[i] - p_robot_state.ik_solution[i];
-        distance += diff * diff;
-    }
-    distance = std::sqrt(distance);
+    // Check if end-effector has reached the target pose
+    Transform current_transform = p_robot.control_link->worldTransform();
+    Pose current_pose = robotik::transformToPose(current_transform);
+    Pose pose_error = robotik::calculatePoseError(target_pose, current_pose);
+    double error_magnitude = pose_error.norm();
 
-    // If close enough to target, move to next target
-    if (distance < 0.01) // 0.01 radians threshold
+    // Log progress occasionally
+    static size_t log_count = 0;
+    if (++log_count % 60 == 0) // Log every 60 frames (~1 second at 60fps)
+    {
+        std::cout << "📍 Target " << (p_robot_state.target_pose_index + 1)
+                  << " - Pose error: " << error_magnitude << std::endl;
+    }
+
+    // If close enough to target pose, move to next target
+    // Use stricter threshold (0.01) if IK converged, looser (0.1) otherwise
+    double threshold = (p_robot.ik_solver->converged()) ? 0.01 : 0.1;
+
+    if (error_magnitude < threshold)
     {
         std::cout << "✅ Reached target "
                   << (p_robot_state.target_pose_index + 1)
-                  << " (distance: " << distance << ")" << std::endl;
+                  << " (pose error: " << error_magnitude << ")" << std::endl;
 
         // Transition to next target
         p_robot_state.target_pose_index++;

@@ -66,7 +66,7 @@ void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
                                             double dt)
 {
     m_blueprint.forEachJoint(
-        [&q_target, dt](Joint& joint, size_t index)
+        [&q_target, dt, this](Joint& joint, size_t index)
         {
             double current_pos = joint.position();
             double diff = q_target[index] - current_pos;
@@ -85,7 +85,11 @@ void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
             double step = std::clamp(diff, -max_step, max_step);
 
             // Apply the clamped position
-            joint.position(current_pos + step);
+            double new_pos = current_pos + step;
+            joint.position(new_pos);
+
+            // Update state
+            m_state.joint_positions[index] = new_pos;
         });
 }
 
