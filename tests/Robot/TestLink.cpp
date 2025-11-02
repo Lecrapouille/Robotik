@@ -313,7 +313,7 @@ TEST_F(LinkTest, TransformPropagation)
 
     // Set joint position to change transforms
     robot->blueprint().joint("revolute_joint").position(M_PI / 4.0);
-    robot->setJointPositions();
+    robot->forwardKinematics();
 
     // Verify link has world transform
     Transform world_tf = base_link.worldTransform();

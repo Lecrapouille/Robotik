@@ -33,6 +33,11 @@ bool JacobianIKSolver::solve(Robot& p_robot,
         return false;
     }
 
+    // Save original state to restore after solving
+    JointValues q_initial = q;
+    // Work on a copy for the solving process
+    JointValues q_work = q;
+
     // Compute or update the Jacobian
     Jacobian const& J = p_robot.computeJacobian(state, p_end_effector);
 
@@ -59,6 +64,16 @@ bool JacobianIKSolver::solve(Robot& p_robot,
                     "IKSolver: Converged in " + std::to_string(iter) +
                     " iterations with error " + std::to_string(m_pose_error);
             }
+
+            // Store solution
+            m_solution = q_work;
+
+            // Restore robot to original state
+            p_robot.blueprint().forEachJoint(
+                [&q_initial](Joint& joint, size_t index)
+                { joint.position(q_initial[index]); });
+            state.joint_positions = q_initial;
+
             return true;
         }
 
@@ -74,16 +89,18 @@ bool JacobianIKSolver::solve(Robot& p_robot,
         // Scale by step size for stability
         dq *= m_config.step_size;
 
-        // Update joint values
-        for (size_t i = 0; i < q.size() && i < static_cast<size_t>(dq.size());
+        // Update joint values in working copy
+        for (size_t i = 0;
+             i < q_work.size() && i < static_cast<size_t>(dq.size());
              ++i)
         {
-            q[i] += dq[i];
+            q_work[i] += dq[i];
         }
 
-        // Apply to robot
-        p_robot.blueprint().forEachJoint([&q](Joint& joint, size_t index)
-                                         { joint.position(q[index]); });
+        // Temporarily apply to robot for FK/Jacobian computation
+        p_robot.blueprint().forEachJoint([&q_work](Joint& joint, size_t index)
+                                         { joint.position(q_work[index]); });
+        state.joint_positions = q_work;
 
         // Log verbose information
         if (m_config.verbose && iter % 50 == 0)
@@ -101,6 +118,14 @@ bool JacobianIKSolver::solve(Robot& p_robot,
             std::to_string(m_config.max_iterations) +
             " iterations. Final error: " + std::to_string(m_pose_error);
     }
+
+    // Store best solution found so far
+    m_solution = q_work;
+
+    // Restore robot to original state
+    p_robot.blueprint().forEachJoint([&q_initial](Joint& joint, size_t index)
+                                     { joint.position(q_initial[index]); });
+    state.joint_positions = q_initial;
 
     return false;
 }

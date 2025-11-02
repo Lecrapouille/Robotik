@@ -115,7 +115,7 @@ protected:
                     joint.position(q[index]);
                 }
             });
-        robot.setJointPositions();
+        robot.forwardKinematics();
     }
 
     // Helper to verify IK solution by checking forward kinematics result
@@ -125,7 +125,7 @@ protected:
                           double position_tolerance = 1e-3,
                           double orientation_tolerance = 1e-2)
     {
-        robot.setJointPositions();
+        robot.forwardKinematics();
         Transform current_transform = end_effector.worldTransform();
         Pose current_pose = transformToPose(current_transform);
 
@@ -192,6 +192,12 @@ TEST_F(InverseKinematicsTest, SimpleRevoluteRobotIK)
         EXPECT_LT(ik_solver->poseError(), 1e-3)
             << "IK pose error too large for pose " << i;
 
+        // Apply the IK solution to the robot
+        if (solved)
+        {
+            robot->setJointPositions(ik_solver->solution());
+        }
+
         // Verify solution by checking forward kinematics
         bool fk_matches = verifyIKSolution(*robot, *end_effector, target_pose);
         EXPECT_TRUE(fk_matches)
@@ -254,6 +260,9 @@ TEST_F(InverseKinematicsTest, SCARARobotIK)
             EXPECT_TRUE(ik_solver->converged());
             EXPECT_LT(ik_solver->poseError(), 1e-3);
 
+            // Apply the IK solution to the robot
+            robot->setJointPositions(ik_solver->solution());
+
             // Verify solution by checking forward kinematics
             bool fk_matches = verifyIKSolution(
                 *robot, *end_effector, target_pose, 1e-3, 1e-2);
@@ -298,6 +307,12 @@ TEST_F(InverseKinematicsTest, CartesianRobotIK)
         EXPECT_TRUE(ik_solver->converged());
         EXPECT_LT(ik_solver->poseError(), 1e-3);
 
+        // Apply the IK solution to the robot
+        if (solved)
+        {
+            robot->setJointPositions(ik_solver->solution());
+        }
+
         // Verify solution by checking forward kinematics
         // For prismatic joints, position accuracy should be very high
         bool fk_matches =
@@ -332,6 +347,9 @@ TEST_F(InverseKinematicsTest, UnreachablePose)
 
     std::cout << "IK solver: it: " << ik_solver->numIterations()
               << " error: " << ik_solver->poseError() << std::endl;
+
+    // Apply the IK solution to the robot (even if not converged)
+    robot->setJointPositions(ik_solver->solution());
 
     // Either IK should not converge, or the error should be very large
     if (solved)
@@ -372,6 +390,9 @@ TEST_F(InverseKinematicsTest, JointLimitsCompliance)
 
     if (solved)
     {
+        // Apply the IK solution to the robot
+        robot->setJointPositions(ik_solver->solution());
+
         // Verify all joints are within limits
         robot->blueprint().forEachJoint(
             [](Joint const& joint, size_t)
@@ -412,13 +433,16 @@ TEST_F(InverseKinematicsTest, DifferentInitialConfigurations)
     {
         // Set initial configuration
         robot->blueprint().joint("revolute_joint").position(initial_pos);
-        robot->setJointPositions();
+        robot->forwardKinematics();
 
         // Solve IK
         bool solved = ik_solver->solve(*robot, *end_effector, target_pose);
 
         if (solved)
         {
+            // Apply the IK solution to the robot
+            robot->setJointPositions(ik_solver->solution());
+
             // Verify solution
             bool fk_matches =
                 verifyIKSolution(*robot, *end_effector, target_pose);
