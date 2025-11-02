@@ -33,6 +33,8 @@ struct Configuration
     std::vector<double> joint_positions;
     //! Control link for inverse kinematics: usually the tool center point
     std::string control_link;
+    //! Control mode: position, velocity, torque
+    bool use_root_if_not_found = true;
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
     //! Show joint axes for debugging

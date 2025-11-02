@@ -95,10 +95,6 @@ bool Application::onSetup()
     // Setup render visitor (render the robot, grid, axes, joints ...)
     setupRender();
 
-    // Create robot manager (manage the list of robots)
-    if (!setupRobots())
-        return false;
-
     // Setup physics simulator (simulate the physics of the robots)
     setupPhysicsSimulator();
 
@@ -205,29 +201,23 @@ void Application::setupPhysicsSimulator()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupRobots()
-{
-    m_robot_manager = std::make_unique<renderer::RobotManager>();
-
-    // Load robots from URDF files
-    for (auto const& urdf_file : m_config.urdf_files)
-    {
-        if (!setupRobot(urdf_file))
-            return false;
-    }
-
-    return true;
-}
-
-// ----------------------------------------------------------------------------
 bool Application::setupHMI()
 {
     // Initialize the controller of the HMI (Model-View-Controller pattern)
+    m_robot_manager = std::make_unique<renderer::RobotManager>();
     m_controller = std::make_unique<Controller>(*m_robot_manager);
-    if (!m_controller->initializeRobots(m_config.control_link))
+
+    // Create robots from URDF files
+    if (!m_controller->setupRobots(m_config))
     {
         m_error = "Failed to initialize robot configurations";
         return false;
+    }
+
+    // Preload all geometries/meshes needed by loaded robots
+    for (auto const& [_, robot] : m_robot_manager->robots())
+    {
+        m_render->preloadGeometries(robot.blueprint());
     }
 
     // Create the HMI view (view of the Model-View-Controller pattern)
@@ -237,90 +227,7 @@ bool Application::setupHMI()
                                   [this]() { halt(); });
 
     m_start_time = std::chrono::steady_clock::now();
-
     return true;
-}
-
-// ----------------------------------------------------------------------------
-bool Application::setupRobot(std::string const& p_urdf_file)
-{
-    // Load robot from URDF file
-    auto* robot = m_robot_manager->loadRobot(p_urdf_file);
-    if (robot == nullptr)
-    {
-        m_error = "Failed to load robot from URDF: " + m_robot_manager->error();
-        return false;
-    }
-    std::cout << "Loaded robot from: " << p_urdf_file << std::endl;
-    std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
-
-    // Set initial joint values from configuration. If no configuration is
-    // provided, set neutral position.
-    if (auto const& joint_positions = m_config.joint_positions;
-        !joint_positions.empty())
-    {
-        robot->setJointPositions(joint_positions);
-        std::cout << "🤖 Set initial joint values from configuration"
-                  << std::endl;
-    }
-    else
-    {
-        robot->setNeutralPosition();
-        std::cout << "🤖 Set neutral position" << std::endl;
-    }
-
-    // Set camera target to the specified robot element.
-    constexpr bool use_root_if_not_found = true;
-    if (setCameraTarget(*robot, m_config.camera_target, use_root_if_not_found))
-    {
-        std::cout << "📷 Camera target: " << robot->camera_target->name()
-                  << std::endl;
-        robot->camera_tracking_enabled = true;
-    }
-    else
-    {
-        m_error = "📷 Failed to set camera target: " + m_config.camera_target;
-        return false;
-    }
-
-    // Preload all geometries (meshes) for this robot
-    m_render->preloadGeometries(robot->blueprint());
-    std::cout << "📦 Preloaded all geometries for robot" << std::endl;
-
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-bool Application::setCameraTarget(
-    renderer::RobotManager::ControlledRobot& p_robot,
-    std::string const& p_element_name,
-    bool p_use_root_if_not_found) const
-{
-    p_robot.camera_target = nullptr;
-
-    if (p_element_name.empty())
-    {
-        if (p_use_root_if_not_found)
-        {
-            p_robot.camera_target = &p_robot.blueprint().root();
-        }
-        else if (auto const& end_effectors = p_robot.blueprint().endEffectors();
-                 !end_effectors.empty())
-        {
-            p_robot.camera_target = &end_effectors[0].get();
-        }
-    }
-    else
-    {
-        p_robot.camera_target =
-            Node::find(p_robot.blueprint().root(), p_element_name);
-        if (!p_robot.camera_target && p_use_root_if_not_found)
-        {
-            p_robot.camera_target = &p_robot.blueprint().root();
-        }
-    }
-
-    return p_robot.camera_target != nullptr;
 }
 
 // ----------------------------------------------------------------------------

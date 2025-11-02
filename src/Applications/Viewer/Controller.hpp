@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Configuration.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
 #include <string>
@@ -25,6 +26,14 @@ namespace robotik::application
 // ****************************************************************************
 class Controller
 {
+    // ----------------------------------------------------------------------------
+    //! \brief Robot state for tracking IK target indices.
+    // ----------------------------------------------------------------------------
+    struct RobotState
+    {
+        size_t target_pose_index = 0;
+    };
+
 public:
 
     // ----------------------------------------------------------------------------
@@ -35,21 +44,11 @@ public:
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize all robots.
-    //! \param p_link_name Optional control link name. If empty, uses
+    //! \param p_config Configuration.
     //! first end effector.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
-    bool initializeRobots(std::string const& p_link_name);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Initialize robot configurations (IK targets, trajectory configs).
-    //! \param p_robot The robot to initialize.
-    //! \param p_link_name Optional control link name. If empty, uses
-    //! first end effector.
-    //! \return true if successful.
-    // ----------------------------------------------------------------------------
-    bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_link_name = "");
+    bool setupRobots(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Update all robots based on their control modes.
@@ -85,15 +84,35 @@ public:
     bool setCameraTarget(std::string const& p_robot_name,
                          std::string const& p_node_name);
 
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera target for a robot.
+    //! \param p_robot The robot.
+    //! \param p_node_name Node name.
+    //! \param p_use_root_if_not_found Whether to use root if not found.
+    //! \return true if successful.
+    // ----------------------------------------------------------------------------
+    bool setCameraTarget(renderer::RobotManager::ControlledRobot& p_robot,
+                         std::string const& p_node_name,
+                         bool p_use_root_if_not_found) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get error message.
+    // ----------------------------------------------------------------------------
+    std::string const& error() const
+    {
+        return m_error;
+    }
+
 private:
 
     // ----------------------------------------------------------------------------
-    //! \brief Robot state for tracking IK target indices.
+    //! \brief Initialize robot configurations (IK targets, trajectory configs).
+    //! \param p_robot The robot to initialize.
+    //! \param p_config Configuration.
+    //! \return true if successful.
     // ----------------------------------------------------------------------------
-    struct RobotState
-    {
-        size_t target_pose_index = 0;
-    };
+    bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
+                         Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Compute IK target poses for a robot.
@@ -143,6 +162,8 @@ private:
     renderer::RobotManager& m_robot_manager;
     //! \brief Robot states indexed by robot name.
     std::unordered_map<std::string, RobotState> m_robot_states;
+    //! \brief Error message.
+    std::string m_error;
 };
 
 } // namespace robotik::application

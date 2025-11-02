@@ -201,7 +201,7 @@ void HMI::controlModePanel()
                                  ImGuiTreeNodeFlags_DefaultOpen))
         return;
 
-    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    auto const* robot = m_robot_manager.getRobot(m_selected_robot);
     if (robot == nullptr)
         return;
 
@@ -279,7 +279,7 @@ void HMI::endEffectorPanel()
     if (!ImGui::CollapsingHeader("End Effectors"))
         return;
 
-    auto* robot = m_robot_manager.getRobot(m_selected_robot);
+    auto const* robot = m_robot_manager.getRobot(m_selected_robot);
     if (robot == nullptr)
         return;
 
@@ -370,9 +370,10 @@ void HMI::cameraTargetPanel()
                 if (m_controller.setCameraTarget(m_selected_robot, node_name))
                 {
                     // Update orbit controller target
-                    auto* updated_robot =
+                    auto const* updated_robot =
                         m_robot_manager.getRobot(m_selected_robot);
-                    if (updated_robot && updated_robot->camera_target)
+                    if (updated_robot != nullptr &&
+                        updated_robot->camera_target != nullptr)
                     {
                         Eigen::Vector3d target_pos =
                             updated_robot->camera_target->worldTransform()

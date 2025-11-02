@@ -11,6 +11,7 @@
 #include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
+#include "Robotik/Core/Robot/Debug.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 #include "Robotik/Core/Solvers/Trajectory.hpp"
 
@@ -26,34 +27,78 @@ Controller::Controller(renderer::RobotManager& p_robot_manager)
 }
 
 // ----------------------------------------------------------------------------
-bool Controller::initializeRobots(std::string const& p_link_name)
+bool Controller::setupRobots(Configuration const& p_config)
 {
-    bool success = true;
-    for (auto& [_, robot] : m_robot_manager.robots())
+    m_robot_manager.clear();
+    m_error.clear();
+
+    // Load robots from URDF files
+    for (auto const& urdf_file : p_config.urdf_files)
     {
-        if (!initializeRobot(robot, p_link_name))
+        // Load robot from URDF file
+        auto* robot = m_robot_manager.loadRobot(urdf_file);
+        if (robot == nullptr)
         {
-            success = false;
+            m_error =
+                "Failed to load robot from URDF: " + m_robot_manager.error() +
+                "\n";
+            return false;
         }
+
+        std::cout << "Loaded robot from: " << urdf_file << std::endl;
+        std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
+
+        if (!initializeRobot(*robot, p_config))
+            return false;
     }
-    return success;
+
+    return true;
 }
 
 // ----------------------------------------------------------------------------
 bool Controller::initializeRobot(
     renderer::RobotManager::ControlledRobot& p_robot,
-    std::string const& p_link_name)
+    Configuration const& p_config)
 {
+    // Set initial joint values from configuration. If no configuration is
+    // provided, set neutral position.
+    if (auto const& joint_positions = p_config.joint_positions;
+        !joint_positions.empty())
+    {
+        p_robot.setJointPositions(joint_positions);
+        std::cout << "🤖 Set initial joint values from configuration"
+                  << std::endl;
+    }
+    else
+    {
+        p_robot.setNeutralPosition();
+        std::cout << "🤖 Set neutral position" << std::endl;
+    }
+
+    // Set camera target to the specified robot element.
+    if (setCameraTarget(
+            p_robot, p_config.camera_target, p_config.use_root_if_not_found))
+    {
+        std::cout << "📷 Camera target: " << p_robot.camera_target->name()
+                  << std::endl;
+        p_robot.camera_tracking_enabled = true;
+    }
+    else
+    {
+        m_error = "📷 Failed to set camera target: " + p_config.camera_target;
+        return false;
+    }
+
     // Set control link (end effector) for inverse kinematics.
     // If no joint name is provided, use first end effector.
     // If joint name is provided, use it.
     // If joint name is not found, use base_link.
     p_robot.control_link = nullptr;
-    if (!p_link_name.empty())
+    if (!p_config.control_link.empty())
     {
         // Try to find the link by name.
         p_robot.control_link =
-            Node::find(p_robot.blueprint().root(), p_link_name);
+            Node::find(p_robot.blueprint().root(), p_config.control_link);
 
         // If link is not found, use base_link.
         if (p_robot.control_link == nullptr)
@@ -83,8 +128,8 @@ bool Controller::initializeRobot(
     }
     else
     {
-        std::cout << "🤖 Error: control link not found for robot: "
-                  << p_robot.name() << std::endl;
+        m_error =
+            "🤖 Error: control link not found for robot: " + p_robot.name();
         return false;
     }
 
@@ -166,6 +211,39 @@ bool Controller::setControlJoint(std::string const& p_robot_name,
         return false;
 
     return true;
+}
+
+// ----------------------------------------------------------------------------
+bool Controller::setCameraTarget(
+    renderer::RobotManager::ControlledRobot& p_robot,
+    std::string const& p_element_name,
+    bool p_use_root_if_not_found) const
+{
+    p_robot.camera_target = nullptr;
+
+    if (p_element_name.empty())
+    {
+        if (p_use_root_if_not_found)
+        {
+            p_robot.camera_target = &p_robot.blueprint().root();
+        }
+        else if (auto const& end_effectors = p_robot.blueprint().endEffectors();
+                 !end_effectors.empty())
+        {
+            p_robot.camera_target = &end_effectors[0].get();
+        }
+    }
+    else
+    {
+        p_robot.camera_target =
+            Node::find(p_robot.blueprint().root(), p_element_name);
+        if (!p_robot.camera_target && p_use_root_if_not_found)
+        {
+            p_robot.camera_target = &p_robot.blueprint().root();
+        }
+    }
+
+    return p_robot.camera_target != nullptr;
 }
 
 // ----------------------------------------------------------------------------
@@ -322,7 +400,7 @@ void Controller::handleInverseKinematics(
 {
     if (p_robot.control_link == nullptr || p_robot.ik_solver == nullptr)
     {
-        std::cout << "🤖 Error: control link or solver not set" << std::endl;
+        m_error = "🤖 Error: control link or solver not set";
         return;
     }
 
@@ -354,7 +432,7 @@ void Controller::handleInverseKinematics(
         static size_t failure_count = 0;
         if (++failure_count % 100 == 0)
         {
-            std::cout << "⚠️ IK solving in progress - Error: "
+            std::cout << "⚠️ IK solving in progress - Pose error: "
                       << p_robot.ik_solver->poseError() << std::endl;
         }
     }
@@ -372,7 +450,7 @@ void Controller::handleTrajectory(
 {
     if (p_robot.trajectory_configs.empty())
     {
-        std::cout << "🤖 Error: no trajectory configurations" << std::endl;
+        m_error = "🤖 Error: no trajectory configurations";
         return;
     }
 

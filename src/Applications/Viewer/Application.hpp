@@ -196,17 +196,6 @@ private:
         renderer::RobotManager::ControlledRobot const& p_robot) const;
 
     // ----------------------------------------------------------------------------
-    //! \brief Set camera target for a robot.
-    //! \param p_robot The robot.
-    //! \param p_node_name Node name.
-    //! \param p_use_root_if_not_found Whether to use root if not found.
-    //! \return true if successful.
-    // ----------------------------------------------------------------------------
-    bool setCameraTarget(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_node_name,
-                         bool p_use_root_if_not_found) const;
-
-    // ----------------------------------------------------------------------------
     //! \brief Switch neutral position for the current robot.
     // ----------------------------------------------------------------------------
     void switchNeutralPosition() const;
