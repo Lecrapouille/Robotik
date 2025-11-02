@@ -93,6 +93,8 @@ private:
     struct RobotState
     {
         size_t target_pose_index = 0;
+        bool solution_computed = false;
+        JointValues ik_solution;
     };
 
     // ----------------------------------------------------------------------------
@@ -114,7 +116,7 @@ private:
     //! \param p_time Elapsed time.
     // ----------------------------------------------------------------------------
     void handleAnimation(renderer::RobotManager::ControlledRobot& p_robot,
-                         double p_time);
+                         double p_time) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Handle inverse kinematics mode.
@@ -125,7 +127,7 @@ private:
     void
     handleInverseKinematics(renderer::RobotManager::ControlledRobot& p_robot,
                             double p_dt,
-                            RobotState& p_robot_state);
+                            RobotState& p_robot_state) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Handle trajectory mode.
@@ -135,7 +137,7 @@ private:
     // ----------------------------------------------------------------------------
     void handleTrajectory(renderer::RobotManager::ControlledRobot& p_robot,
                           double p_time,
-                          double p_dt);
+                          double p_dt) const;
 
 private:
 

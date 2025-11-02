@@ -292,7 +292,7 @@ void Controller::computeTrajectoryConfigs(
 // ----------------------------------------------------------------------------
 void Controller::handleAnimation(
     renderer::RobotManager::ControlledRobot& p_robot,
-    double p_time)
+    double p_time) const
 {
     // Update animation time (slower for more visible animation)
     float animation_time = static_cast<float>(p_time) * 0.5f;
@@ -318,7 +318,7 @@ void Controller::handleAnimation(
 void Controller::handleInverseKinematics(
     renderer::RobotManager::ControlledRobot& p_robot,
     double p_dt,
-    RobotState& p_robot_state)
+    RobotState& p_robot_state) const
 {
     if (p_robot.control_link == nullptr || p_robot.ik_solver == nullptr)
     {
@@ -330,45 +330,71 @@ void Controller::handleInverseKinematics(
     Pose const& target_pose =
         p_robot.ik_target_poses[p_robot_state.target_pose_index];
 
-    // Solve IK for current target
-    if (bool solved = p_robot.ik_solver->solve(
-            p_robot, *p_robot.control_link, target_pose);
-        solved)
+    // Compute IK solution only once per target
+    if (!p_robot_state.solution_computed)
     {
-        std::cout << "🎯 Reached target "
-                  << (p_robot_state.target_pose_index + 1)
-                  << " - Error: " << p_robot.ik_solver->poseError()
-                  << " - Iterations: " << p_robot.ik_solver->numIterations()
-                  << std::endl;
+        if (bool solved = p_robot.ik_solver->solve(
+                p_robot, *p_robot.control_link, target_pose);
+            solved)
+        {
+            p_robot_state.ik_solution = p_robot.ik_solver->solution();
+            p_robot_state.solution_computed = true;
 
-        // Transition to next state
+            std::cout << "🎯 IK solved for target "
+                      << (p_robot_state.target_pose_index + 1)
+                      << " - Error: " << p_robot.ik_solver->poseError()
+                      << " - Iterations: " << p_robot.ik_solver->numIterations()
+                      << std::endl;
+        }
+        else
+        {
+            std::cout << "⚠️ IK failed to converge for target "
+                      << (p_robot_state.target_pose_index + 1)
+                      << " - Error: " << p_robot.ik_solver->poseError()
+                      << std::endl;
+            // Use the best solution found so far
+            p_robot_state.ik_solution = p_robot.ik_solver->solution();
+            p_robot_state.solution_computed = true;
+        }
+    }
+
+    // Apply IK solution with velocity limits
+    p_robot.applyJointTargetsWithSpeedLimit(p_robot_state.ik_solution, p_dt);
+
+    // Check if robot has reached the target position
+    auto const& current_pos = p_robot.state().joint_positions;
+    double distance = 0.0;
+    for (size_t i = 0;
+         i < current_pos.size() && i < p_robot_state.ik_solution.size();
+         ++i)
+    {
+        double diff = current_pos[i] - p_robot_state.ik_solution[i];
+        distance += diff * diff;
+    }
+    distance = std::sqrt(distance);
+
+    // If close enough to target, move to next target
+    if (distance < 0.01) // 0.01 radians threshold
+    {
+        std::cout << "✅ Reached target "
+                  << (p_robot_state.target_pose_index + 1)
+                  << " (distance: " << distance << ")" << std::endl;
+
+        // Transition to next target
         p_robot_state.target_pose_index++;
         if (p_robot_state.target_pose_index >= p_robot.ik_target_poses.size())
         {
             p_robot_state.target_pose_index = 0;
         }
+        p_robot_state.solution_computed = false; // Recompute for next target
     }
-    else
-    {
-        // Only log failures occasionally to avoid spam
-        static size_t failure_count = 0;
-        if (++failure_count % 100 == 0)
-        {
-            std::cout << "⚠️ IK solving in progress - Error: "
-                      << p_robot.ik_solver->poseError() << std::endl;
-        }
-    }
-
-    // Apply with velocity limits
-    p_robot.applyJointTargetsWithSpeedLimit(p_robot.state().joint_positions,
-                                            p_dt);
 }
 
 // ----------------------------------------------------------------------------
 void Controller::handleTrajectory(
     renderer::RobotManager::ControlledRobot& p_robot,
     double p_time,
-    double p_dt)
+    double p_dt) const
 {
     if (p_robot.trajectory_configs.empty())
     {

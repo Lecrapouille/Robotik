@@ -72,6 +72,12 @@ public:
     //! \brief Get the error message.
     // ------------------------------------------------------------------------
     virtual std::string const& errorMessage() const = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the computed IK solution.
+    //! \return Joint values representing the IK solution.
+    // ------------------------------------------------------------------------
+    virtual JointValues const& solution() const = 0;
 };
 
 // ****************************************************************************
@@ -165,6 +171,11 @@ public:
         return m_error_message;
     }
 
+    JointValues const& solution() const override
+    {
+        return m_solution;
+    }
+
 private:
 
     Config m_config;
@@ -172,6 +183,7 @@ private:
     size_t m_num_iterations = 0;
     bool m_converged = false;
     std::string m_error_message;
+    JointValues m_solution;
 };
 
 // ****************************************************************************
