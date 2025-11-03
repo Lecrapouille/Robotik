@@ -13,8 +13,6 @@
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
-#include "Robotik/Renderer/Loaders/StlLoader.hpp"
-#include "Robotik/Renderer/Managers/MeshManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 
 #include <GL/glew.h>
@@ -31,9 +29,9 @@ static const Eigen::Vector3f s_green_color(0.0f, 1.0f, 0.0f);
 static const Eigen::Vector3f s_blue_color(0.0f, 0.0f, 1.0f);
 
 // ----------------------------------------------------------------------------
-RenderVisitor::RenderVisitor(MeshManager& mesh_mgr,
+RenderVisitor::RenderVisitor(GeometryManager& geometry_mgr,
                              ShaderManager const& shader_mgr)
-    : m_mesh_manager(mesh_mgr), m_shader_manager(shader_mgr)
+    : m_geometry_manager(geometry_mgr), m_shader_manager(shader_mgr)
 {
 }
 
@@ -81,70 +79,7 @@ void RenderVisitor::visit(const robotik::Node& /*node*/)
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
-{
-    // Iterate through all cached geometries and create their meshes
-    for (auto const& geom_ref : p_blueprint.geometries())
-    {
-        robotik::Geometry const& geom = geom_ref.get();
-        std::string const& mesh_name = geom.name();
-
-        // Skip if already loaded
-        if (m_mesh_manager.hasMesh(mesh_name))
-            continue;
-
-        // Create mesh based on geometry type
-        if (auto* box = dynamic_cast<const robotik::Box*>(&geom))
-        {
-            const auto& params = box->parameters();
-            if (params.size() == 3)
-            {
-                m_mesh_manager.createBox(
-                    mesh_name,
-                    static_cast<float>(params[0]),  // width
-                    static_cast<float>(params[1]),  // height
-                    static_cast<float>(params[2])); // depth
-            }
-        }
-        else if (auto* cyl = dynamic_cast<const robotik::Cylinder*>(&geom))
-        {
-            const auto& params = cyl->parameters();
-            if (params.size() == 2)
-            {
-                m_mesh_manager.createCylinder(
-                    mesh_name,
-                    static_cast<float>(params[0]), // radius
-                    static_cast<float>(params[1]), // length
-                    32);                           // segments
-            }
-        }
-        else if (auto* sphere = dynamic_cast<const robotik::Sphere*>(&geom))
-        {
-            const auto& params = sphere->parameters();
-            if (params.size() == 1)
-            {
-                m_mesh_manager.createSphere(
-                    mesh_name,
-                    static_cast<float>(params[0]), // radius
-                    16,                            // latitude segments
-                    16);                           // longitude segments
-            }
-        }
-        else if (auto* mesh = dynamic_cast<const robotik::Mesh*>(&geom))
-        {
-            STLLoader loader;
-            if (!m_mesh_manager.loadFromFile(
-                    mesh_name, mesh->meshPath(), loader, false))
-            {
-                std::cerr << "Failed to load mesh: " << mesh->meshPath()
-                          << std::endl;
-            }
-        }
-    }
-}
-
-// ----------------------------------------------------------------------------
-void RenderVisitor::renderMesh(const MeshManager::GPUMesh* p_mesh,
+void RenderVisitor::renderMesh(const GeometryManager::GPUMesh* p_mesh,
                                const Eigen::Matrix4f& p_transform,
                                const Eigen::Vector3f& p_color) const
 {
@@ -166,7 +101,7 @@ void RenderVisitor::renderMesh(const MeshManager::GPUMesh* p_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::renderGrid(const MeshManager::GPUMesh* p_grid_mesh,
+void RenderVisitor::renderGrid(const GeometryManager::GPUMesh* p_grid_mesh,
                                const Eigen::Vector3f& p_color) const
 {
     if (!p_grid_mesh || !p_grid_mesh->is_loaded)
@@ -185,7 +120,7 @@ void RenderVisitor::renderGrid(const MeshManager::GPUMesh* p_grid_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
+void RenderVisitor::renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
                                const Eigen::Matrix4f& p_transform,
                                float p_scale) const
 {
@@ -302,7 +237,8 @@ void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
                                    Eigen::Matrix4f const& transform) const
 {
     std::string const& mesh_name = geom.name();
-    const MeshManager::GPUMesh* gpu_mesh = m_mesh_manager.getMesh(mesh_name);
+    const GeometryManager::GPUMesh* gpu_mesh =
+        m_geometry_manager.getMesh(mesh_name);
 
     // Render if mesh was preloaded successfully
     if (gpu_mesh)
@@ -337,7 +273,8 @@ void RenderVisitor::renderJointAxis(robotik::Joint const& p_joint) const
     }
 
     // Get the axis mesh (should be preloaded by Application)
-    const MeshManager::GPUMesh* axis_mesh = m_mesh_manager.getMesh("revolute");
+    const GeometryManager::GPUMesh* axis_mesh =
+        m_geometry_manager.getMesh("revolute");
     if (!axis_mesh || !axis_mesh->is_loaded)
     {
         std::cerr << "Warning: axis mesh not found for joint axes rendering"

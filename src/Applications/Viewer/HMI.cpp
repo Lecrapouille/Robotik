@@ -150,7 +150,7 @@ void HMI::loadRobotPanel()
             if (robot != nullptr)
             {
                 std::cout << "✅ Loaded robot from: " << urdf << std::endl;
-                m_controller.initializeRobot(*robot);
+                m_controller.initializeRobot(*robot, "", {}, "");
                 setSelectedRobot(robot->name());
                 refreshRobotList();
             }

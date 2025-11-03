@@ -1,6 +1,6 @@
 /**
- * @file MeshManager.hpp
- * @brief Unified mesh management class.
+ * @file GeometryManager.hpp
+ * @brief Unified geometry-to-mesh management class.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -9,26 +9,28 @@
 
 #pragma once
 
+#include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Renderer/Loaders/MeshLoader.hpp"
 
 #include "Robotik/Core/Common/Path.hpp"
 
-#include <memory>
+#include <functional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace robotik::renderer
 {
 
 // ****************************************************************************
-//! \brief Unified mesh resource manager for a 3D rendering engine.
+//! \brief Unified geometry resource manager for a 3D rendering engine.
 //!
 //! This class manages all mesh resources (primitives and loaded files) for
 //! rendering URDF robot geometries. It handles both CPU-side mesh data and
 //! GPU-side OpenGL resources. Meshes are identified by unique names for
 //! easy reference by kinematic tree nodes (links, joints, geometries).
 // ****************************************************************************
-class MeshManager
+class GeometryManager
 {
 public:
 
@@ -60,16 +62,16 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Constructor.
     // ------------------------------------------------------------------------
-    explicit MeshManager(Path const& p_path);
+    explicit GeometryManager(Path const& p_path);
 
     // ------------------------------------------------------------------------
     //! \brief Destructor - frees all GPU resources.
     // ------------------------------------------------------------------------
-    ~MeshManager();
+    ~GeometryManager();
 
     // Prevent copying
-    MeshManager(const MeshManager&) = delete;
-    MeshManager& operator=(const MeshManager&) = delete;
+    GeometryManager(const GeometryManager&) = delete;
+    GeometryManager& operator=(const GeometryManager&) = delete;
 
     // ------------------------------------------------------------------------
     //! \brief Load a mesh from file using a loader.
@@ -83,6 +85,13 @@ public:
                       const std::string& p_filename,
                       MeshLoader& p_loader,
                       bool p_force_reload = false);
+
+    // ------------------------------------------------------------------------
+    //! \brief Create a GPU mesh from a Geometry object.
+    //! \param p_geom The geometry object to create mesh from.
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool createMeshFromGeometry(robotik::Geometry const& p_geom);
 
     // ------------------------------------------------------------------------
     //! \brief Create a box primitive mesh.

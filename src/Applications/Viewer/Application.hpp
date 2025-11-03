@@ -18,7 +18,7 @@
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
-#include "Robotik/Renderer/Managers/MeshManager.hpp"
+#include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
@@ -169,11 +169,6 @@ private: // setups
     bool setupRobots();
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup a robot.
-    // ----------------------------------------------------------------------------
-    bool setupRobot(std::string const& p_urdf_file);
-
-    // ----------------------------------------------------------------------------
     //! \brief Setup the HMI.
     // ----------------------------------------------------------------------------
     bool setupHMI();
@@ -194,17 +189,6 @@ private:
     // ----------------------------------------------------------------------------
     void renderTrajectoryPath(
         renderer::RobotManager::ControlledRobot const& p_robot) const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera target for a robot.
-    //! \param p_robot The robot.
-    //! \param p_node_name Node name.
-    //! \param p_use_root_if_not_found Whether to use root if not found.
-    //! \return true if successful.
-    // ----------------------------------------------------------------------------
-    bool setCameraTarget(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_node_name,
-                         bool p_use_root_if_not_found) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Switch neutral position for the current robot.
@@ -230,8 +214,8 @@ private:
     std::unique_ptr<renderer::OrbitController> m_orbit_controller;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
-    //! \brief Mesh manager for managing meshes.
-    std::unique_ptr<renderer::MeshManager> m_mesh_manager;
+    //! \brief Geometry manager for managing robot geometries and meshes.
+    std::unique_ptr<renderer::GeometryManager> m_geometry_manager;
     //! \brief Robot manager for managing robots.
     std::unique_ptr<renderer::RobotManager> m_robot_manager;
     //! \brief Mesh manager for managing meshes.

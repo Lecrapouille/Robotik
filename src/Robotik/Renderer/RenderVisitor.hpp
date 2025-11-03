@@ -9,7 +9,7 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
-#include "Robotik/Renderer/Managers/MeshManager.hpp"
+#include "Robotik/Renderer/Managers/GeometryManager.hpp"
 
 #include <Eigen/Dense>
 #include <string>
@@ -44,10 +44,11 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Constructor.
-    //! \param mesh_mgr Mesh manager for creating/retrieving GPU meshes.
+    //! \param geometry_mgr Geometry manager for creating/retrieving GPU meshes.
     //! \param shader_mgr Shader manager for setting uniforms.
     // ------------------------------------------------------------------------
-    RenderVisitor(MeshManager& mesh_mgr, ShaderManager const& shader_mgr);
+    RenderVisitor(GeometryManager& geometry_mgr,
+                  ShaderManager const& shader_mgr);
 
     // ------------------------------------------------------------------------
     //! \brief Visit a Joint node (optionally render joint axes for debug).
@@ -94,22 +95,12 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Preload all geometries from the robot blueprint.
-    //! \param p_blueprint The robot blueprint containing all geometries.
-    //!
-    //! This method creates all GPU meshes needed for rendering the robot
-    //! before the first render call. It should be called once after loading
-    //! the robot model.
-    // ------------------------------------------------------------------------
-    void preloadGeometries(robotik::Blueprint const& p_blueprint);
-
-    // ------------------------------------------------------------------------
     //! \brief Render a mesh with transformation and color.
     //! \param p_mesh Pointer to GPU mesh to render.
     //! \param p_transform 4x4 transformation matrix.
     //! \param p_color RGB color (0.0-1.0).
     // ------------------------------------------------------------------------
-    void renderMesh(const MeshManager::GPUMesh* p_mesh,
+    void renderMesh(const GeometryManager::GPUMesh* p_mesh,
                     const Eigen::Matrix4f& p_transform,
                     const Eigen::Vector3f& p_color) const;
 
@@ -117,18 +108,19 @@ public:
     //! \brief Render coordinate axes (X=red, Y=green, Z=blue).
     //! \param p_transform 4x4 transformation matrix.
     //! \param p_scale Scale factor for axes.
-    //! \param p_axes_mesh Pointer to cylinder mesh for axes (from MeshManager).
+    //! \param p_axes_mesh Pointer to cylinder mesh for axes (from
+    //! GeometryManager).
     // ------------------------------------------------------------------------
-    void renderAxes(const MeshManager::GPUMesh* p_axes_mesh,
+    void renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
                     const Eigen::Matrix4f& p_transform,
                     float p_scale) const;
 
     // ------------------------------------------------------------------------
     //! \brief Render grid.
-    //! \param p_grid_mesh Pointer to grid mesh (from MeshManager).
+    //! \param p_grid_mesh Pointer to grid mesh (from GeometryManager).
     //! \param p_color RGB color (0.0-1.0).
     // ------------------------------------------------------------------------
-    void renderGrid(const MeshManager::GPUMesh* p_grid_mesh,
+    void renderGrid(const GeometryManager::GPUMesh* p_grid_mesh,
                     const Eigen::Vector3f& p_color) const;
 
 private:
@@ -145,7 +137,7 @@ private:
     // ------------------------------------------------------------------------
     void renderJointAxis(robotik::Joint const& p_joint) const;
 
-    MeshManager& m_mesh_manager;
+    GeometryManager& m_geometry_manager;
     ShaderManager const& m_shader_manager;
     bool m_show_joint_axes = false;
     bool m_show_revolute_axes = true;

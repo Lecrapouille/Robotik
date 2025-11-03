@@ -1,34 +1,36 @@
 /**
- * @file MeshManager.cpp
- * @brief Unified mesh management class implementation.
+ * @file GeometryManager.cpp
+ * @brief Unified geometry-to-mesh management class implementation.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Renderer/Managers/MeshManager.hpp"
+#include "Robotik/Renderer/Managers/GeometryManager.hpp"
+#include "Robotik/Renderer/Loaders/StlLoader.hpp"
 
 #include <GL/glew.h>
 #include <cmath>
+#include <iostream>
 
 namespace robotik::renderer
 {
 
 // ----------------------------------------------------------------------------
-MeshManager::MeshManager(Path const& p_path) : m_path(p_path) {}
+GeometryManager::GeometryManager(Path const& p_path) : m_path(p_path) {}
 
 // ----------------------------------------------------------------------------
-MeshManager::~MeshManager()
+GeometryManager::~GeometryManager()
 {
     clear();
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::loadFromFile(const std::string& p_name,
-                               const std::string& p_filename,
-                               MeshLoader& p_loader,
-                               bool p_force_reload)
+bool GeometryManager::loadFromFile(const std::string& p_name,
+                                   const std::string& p_filename,
+                                   MeshLoader& p_loader,
+                                   bool p_force_reload)
 {
     // Check if already loaded
     if (!p_force_reload && hasMesh(p_name))
@@ -65,10 +67,71 @@ bool MeshManager::loadFromFile(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::createBox(const std::string& p_name,
-                            float p_width,
-                            float p_height,
-                            float p_depth)
+bool GeometryManager::createMeshFromGeometry(robotik::Geometry const& p_geom)
+{
+    std::string const& mesh_name = p_geom.name();
+
+    // Skip if already loaded
+    if (hasMesh(mesh_name))
+    {
+        return true;
+    }
+
+    // Create mesh based on geometry type
+    if (auto* box = dynamic_cast<const robotik::Box*>(&p_geom))
+    {
+        const auto& params = box->parameters();
+        if (params.size() == 3)
+        {
+            return createBox(mesh_name,
+                             static_cast<float>(params[0]),  // width
+                             static_cast<float>(params[1]),  // height
+                             static_cast<float>(params[2])); // depth
+        }
+    }
+    else if (auto* cyl = dynamic_cast<const robotik::Cylinder*>(&p_geom))
+    {
+        const auto& params = cyl->parameters();
+        if (params.size() == 2)
+        {
+            return createCylinder(mesh_name,
+                                  static_cast<float>(params[0]), // radius
+                                  static_cast<float>(params[1]), // length
+                                  32);                           // segments
+        }
+    }
+    else if (auto* sphere = dynamic_cast<const robotik::Sphere*>(&p_geom))
+    {
+        const auto& params = sphere->parameters();
+        if (params.size() == 1)
+        {
+            return createSphere(mesh_name,
+                                static_cast<float>(params[0]), // radius
+                                16,  // latitude segments
+                                16); // longitude segments
+        }
+    }
+    else if (auto* mesh = dynamic_cast<const robotik::Mesh*>(&p_geom))
+    {
+        STLLoader loader;
+        if (!loadFromFile(mesh_name, mesh->meshPath(), loader, false))
+        {
+            std::cerr << "Failed to load mesh: " << mesh->meshPath()
+                      << std::endl;
+            return false;
+        }
+        return true;
+    }
+
+    m_error = "Unknown geometry type for: " + mesh_name;
+    return false;
+}
+
+// ----------------------------------------------------------------------------
+bool GeometryManager::createBox(const std::string& p_name,
+                                float p_width,
+                                float p_height,
+                                float p_depth)
 {
     // Generate CPU mesh data
     MeshLoader::CPUMesh cpu_mesh;
@@ -87,10 +150,10 @@ bool MeshManager::createBox(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::createSphere(const std::string& p_name,
-                               float p_radius,
-                               size_t p_latitude_segments,
-                               size_t p_longitude_segments)
+bool GeometryManager::createSphere(const std::string& p_name,
+                                   float p_radius,
+                                   size_t p_latitude_segments,
+                                   size_t p_longitude_segments)
 {
     // Generate CPU mesh data
     MeshLoader::CPUMesh cpu_mesh;
@@ -110,10 +173,10 @@ bool MeshManager::createSphere(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::createCylinder(const std::string& p_name,
-                                 float p_radius,
-                                 float p_height,
-                                 size_t p_segments)
+bool GeometryManager::createCylinder(const std::string& p_name,
+                                     float p_radius,
+                                     float p_height,
+                                     size_t p_segments)
 {
     // Generate CPU mesh data
     MeshLoader::CPUMesh cpu_mesh;
@@ -132,9 +195,9 @@ bool MeshManager::createCylinder(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::createGrid(const std::string& p_name,
-                             int p_size,
-                             float p_spacing)
+bool GeometryManager::createGrid(const std::string& p_name,
+                                 int p_size,
+                                 float p_spacing)
 {
     // Generate grid vertices
     std::vector<float> grid_vertices;
@@ -176,8 +239,8 @@ bool MeshManager::createGrid(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-const MeshManager::GPUMesh*
-MeshManager::getMesh(const std::string& p_name) const
+const GeometryManager::GPUMesh*
+GeometryManager::getMesh(const std::string& p_name) const
 {
     auto it = m_meshes.find(p_name);
     return (it != m_meshes.end() && it->second.is_loaded) ? &it->second
@@ -185,14 +248,14 @@ MeshManager::getMesh(const std::string& p_name) const
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::hasMesh(const std::string& p_name) const
+bool GeometryManager::hasMesh(const std::string& p_name) const
 {
     auto it = m_meshes.find(p_name);
     return (it != m_meshes.end()) && it->second.is_loaded;
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::unloadMesh(const std::string& p_name)
+bool GeometryManager::unloadMesh(const std::string& p_name)
 {
     auto it = m_meshes.find(p_name);
     if (it == m_meshes.end())
@@ -206,7 +269,7 @@ bool MeshManager::unloadMesh(const std::string& p_name)
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::clear()
+void GeometryManager::clear()
 {
     for (auto& [name, mesh] : m_meshes)
     {
@@ -216,8 +279,8 @@ void MeshManager::clear()
 }
 
 // ----------------------------------------------------------------------------
-bool MeshManager::createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
-                                GPUMesh& p_gpu_mesh) const
+bool GeometryManager::createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
+                                    GPUMesh& p_gpu_mesh) const
 {
     // Generate OpenGL buffers
     glGenVertexArrays(1, &p_gpu_mesh.vao);
@@ -261,7 +324,7 @@ bool MeshManager::createGPUMesh(const MeshLoader::CPUMesh& p_cpu_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::freeGPUMesh(GPUMesh& p_gpu_mesh) const
+void GeometryManager::freeGPUMesh(GPUMesh& p_gpu_mesh) const
 {
     if (p_gpu_mesh.vao != 0)
     {
@@ -282,10 +345,10 @@ void MeshManager::freeGPUMesh(GPUMesh& p_gpu_mesh) const
 // Primitive generation methods
 // ----------------------------------------------------------------------------
 
-void MeshManager::generateBox(MeshLoader::CPUMesh& p_mesh,
-                              float p_width,
-                              float p_height,
-                              float p_depth) const
+void GeometryManager::generateBox(MeshLoader::CPUMesh& p_mesh,
+                                  float p_width,
+                                  float p_height,
+                                  float p_depth) const
 {
     p_mesh.clear();
 
@@ -474,10 +537,10 @@ void MeshManager::generateBox(MeshLoader::CPUMesh& p_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::generateSphere(MeshLoader::CPUMesh& p_mesh,
-                                 float p_radius,
-                                 size_t p_latitude_segments,
-                                 size_t p_longitude_segments) const
+void GeometryManager::generateSphere(MeshLoader::CPUMesh& p_mesh,
+                                     float p_radius,
+                                     size_t p_latitude_segments,
+                                     size_t p_longitude_segments) const
 {
     p_mesh.clear();
 
@@ -533,10 +596,10 @@ void MeshManager::generateSphere(MeshLoader::CPUMesh& p_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
-                                   float p_radius,
-                                   float p_height,
-                                   size_t p_segments) const
+void GeometryManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
+                                       float p_radius,
+                                       float p_height,
+                                       size_t p_segments) const
 {
     p_mesh.clear();
 
@@ -619,9 +682,9 @@ void MeshManager::generateCylinder(MeshLoader::CPUMesh& p_mesh,
 }
 
 // ----------------------------------------------------------------------------
-void MeshManager::generateGrid(std::vector<float>& p_vertices,
-                               int p_size,
-                               float p_spacing) const
+void GeometryManager::generateGrid(std::vector<float>& p_vertices,
+                                   int p_size,
+                                   float p_spacing) const
 {
     p_vertices.clear();
 

@@ -26,34 +26,35 @@ Controller::Controller(renderer::RobotManager& p_robot_manager)
 }
 
 // ----------------------------------------------------------------------------
-bool Controller::initializeRobots(std::string const& p_link_name)
-{
-    bool success = true;
-    for (auto& [_, robot] : m_robot_manager.robots())
-    {
-        if (!initializeRobot(robot, p_link_name))
-        {
-            success = false;
-        }
-    }
-    return success;
-}
-
-// ----------------------------------------------------------------------------
 bool Controller::initializeRobot(
     renderer::RobotManager::ControlledRobot& p_robot,
-    std::string const& p_link_name)
+    std::string const& p_control_link,
+    std::vector<double> const& p_joint_positions,
+    std::string const& p_camera_target)
 {
+    // Set initial joint positions from configuration or neutral position
+    if (!p_joint_positions.empty())
+    {
+        p_robot.setJointPositions(p_joint_positions);
+        std::cout << "🤖 Set initial joint values from configuration"
+                  << std::endl;
+    }
+    else
+    {
+        p_robot.setNeutralPosition();
+        std::cout << "🤖 Set neutral position" << std::endl;
+    }
+
     // Set control link (end effector) for inverse kinematics.
     // If no joint name is provided, use first end effector.
     // If joint name is provided, use it.
     // If joint name is not found, use base_link.
     p_robot.control_link = nullptr;
-    if (!p_link_name.empty())
+    if (!p_control_link.empty())
     {
         // Try to find the link by name.
         p_robot.control_link =
-            Node::find(p_robot.blueprint().root(), p_link_name);
+            Node::find(p_robot.blueprint().root(), p_control_link);
 
         // If link is not found, use base_link.
         if (p_robot.control_link == nullptr)
@@ -86,6 +87,27 @@ bool Controller::initializeRobot(
         std::cout << "🤖 Error: control link not found for robot: "
                   << p_robot.name() << std::endl;
         return false;
+    }
+
+    // Set camera target (always use root if not found)
+    p_robot.camera_target = nullptr;
+    if (!p_camera_target.empty())
+    {
+        p_robot.camera_target =
+            Node::find(p_robot.blueprint().root(), p_camera_target);
+    }
+
+    // Use root if target not found or not specified
+    if (p_robot.camera_target == nullptr)
+    {
+        p_robot.camera_target = &p_robot.blueprint().root();
+    }
+
+    if (p_robot.camera_target != nullptr)
+    {
+        std::cout << "📷 Camera target: " << p_robot.camera_target->name()
+                  << std::endl;
+        p_robot.camera_tracking_enabled = true;
     }
 
     // Compute IK target poses if control link is set
