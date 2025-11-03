@@ -44,7 +44,7 @@ using Transform = Eigen::Matrix4d;
 //! Used for: End-effector targets, trajectory waypoints, inverse kinematics
 //! goals.
 // ----------------------------------------------------------------------------
-using Pose = Eigen::Matrix<double, 6, 1>;
+using Pose = Eigen::Matrix<double, 6, 1>; // Eigen::Affine3d
 
 // ----------------------------------------------------------------------------
 //! \brief Jacobian matrix relating joint velocities to end-effector velocity.

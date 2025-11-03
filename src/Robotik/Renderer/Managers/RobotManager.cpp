@@ -22,27 +22,21 @@ void RobotManager::clear()
 }
 
 // ----------------------------------------------------------------------------
-RobotManager::ControlledRobot*
-RobotManager::loadRobot(const std::string& p_urdf_path)
+Robot* RobotManager::loadRobot(const std::string& p_urdf_path)
 {
     robotik::URDFLoader parser;
-    auto base_robot = parser.load(p_urdf_path);
-    if (!base_robot)
+    auto robot = parser.load(p_urdf_path);
+    if (!robot)
     {
         m_error = "Failed to load robot from URDF: " + parser.error();
         return nullptr;
     }
 
-    // Extract name and blueprint from base robot to construct ControlledRobot
-    std::string robot_name = base_robot->name();
-    Blueprint blueprint = std::move(base_robot->blueprint());
-
-    // Create ControlledRobot from blueprint
-    auto controlled_robot =
-        std::make_unique<ControlledRobot>(robot_name, std::move(blueprint));
+    // Get robot name before moving
+    std::string robot_name = robot->name();
 
     // Store the new robot
-    if (!addRobot(robot_name, std::move(controlled_robot)))
+    if (!addRobot(robot_name, std::move(robot)))
     {
         m_error = "Failed to add robot: " + m_error;
         return nullptr;
@@ -54,7 +48,7 @@ RobotManager::loadRobot(const std::string& p_urdf_path)
 
 // ----------------------------------------------------------------------------
 bool RobotManager::addRobot(const std::string& p_robot_name,
-                            std::unique_ptr<ControlledRobot> p_robot)
+                            std::unique_ptr<Robot> p_robot)
 {
     if (!p_robot)
     {
@@ -70,12 +64,12 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
 
     // Add the robot to the map
     auto [it, success] =
-        m_robots.try_emplace(p_robot_name, std::move(*p_robot));
+        m_robots.try_emplace(p_robot_name, std::move(p_robot));
 
     // Set the current robot if the robot was added successfully.
     if (success)
     {
-        m_current_robot = &it->second;
+        m_current_robot = it->second.get();
     }
     return success;
 }
@@ -101,19 +95,18 @@ bool RobotManager::hasRobot(const std::string& p_robot_name) const
 }
 
 // ----------------------------------------------------------------------------
-RobotManager::ControlledRobot*
-RobotManager::getRobot(const std::string& p_robot_name)
+Robot* RobotManager::getRobot(const std::string& p_robot_name)
 {
     auto it = m_robots.find(p_robot_name);
     if (it == m_robots.end())
     {
         return nullptr;
     }
-    return &it->second;
+    return it->second.get();
 }
 
 // ----------------------------------------------------------------------------
-RobotManager::ControlledRobot* RobotManager::currentRobot() const
+Robot* RobotManager::currentRobot() const
 {
     return m_current_robot;
 }
@@ -130,13 +123,13 @@ bool RobotManager::setRobotJointValues(
         return false;
     }
 
-    if (it->second.state().joint_positions.size() != p_joint_values.size())
+    if (it->second->state().joint_positions.size() != p_joint_values.size())
     {
         m_error = "Failed to set joint values for robot '" + p_robot_name + "'";
         return false;
     }
 
-    it->second.state().joint_positions = p_joint_values;
+    it->second->state().joint_positions = p_joint_values;
     return true;
 }
 
@@ -150,36 +143,7 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
         return {};
     }
 
-    return it->second.state().joint_positions;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotManager::setRobotVisibility(const std::string& p_robot_name,
-                                      bool p_visible)
-{
-    auto it = m_robots.find(p_robot_name);
-    if (it == m_robots.end())
-    {
-        m_error = "Robot '" + p_robot_name + "' not found";
-        return false;
-    }
-
-    it->second.is_visible = p_visible;
-    return true;
-}
-
-// ----------------------------------------------------------------------------
-bool RobotManager::setRobotScale(const std::string& p_robot_name, float p_scale)
-{
-    auto it = m_robots.find(p_robot_name);
-    if (it == m_robots.end())
-    {
-        m_error = "Robot '" + p_robot_name + "' not found";
-        return false;
-    }
-
-    it->second.scale = p_scale;
-    return true;
+    return it->second->state().joint_positions;
 }
 
 #if 0

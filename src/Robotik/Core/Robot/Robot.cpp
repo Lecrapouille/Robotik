@@ -42,8 +42,12 @@ void Robot::setJointPositions(State& p_state)
 // ----------------------------------------------------------------------------
 void Robot::setJointPositions(const JointValues& p_joint_positions)
 {
-    m_blueprint.forEachJoint([&p_joint_positions](Joint& joint, size_t index)
-                             { joint.position(p_joint_positions[index]); });
+    m_blueprint.forEachJoint(
+        [this, &p_joint_positions](Joint& joint, size_t index)
+        {
+            joint.position(p_joint_positions[index]);
+            m_state.joint_positions[index] = p_joint_positions[index];
+        });
 }
 
 // ----------------------------------------------------------------------------
