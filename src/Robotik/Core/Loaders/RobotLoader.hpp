@@ -82,7 +82,24 @@ public:
     //! NOTE: This is a convenience wrapper around loadBlueprint().
     // ------------------------------------------------------------------------
     template <typename RobotType = Robot>
-    std::unique_ptr<RobotType> loadAs(const std::string& p_filename);
+    std::unique_ptr<RobotType> loadAs(const std::string& p_filename)
+    {
+        static_assert(std::is_base_of<Robot, RobotType>::value,
+                      "RobotType must derive from Robot");
+
+        // Load the blueprint and robot name
+        std::string robot_name;
+        auto blueprint_opt = loadBlueprint(p_filename, robot_name);
+
+        if (!blueprint_opt)
+        {
+            return nullptr;
+        }
+
+        // Create the robot of the requested type with the loaded blueprint
+        return std::make_unique<RobotType>(robot_name,
+                                           std::move(*blueprint_opt));
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Load a robot from a file.
@@ -98,33 +115,5 @@ public:
     // ------------------------------------------------------------------------
     virtual std::string error() const = 0;
 };
-
-} // namespace robotik
-
-// Template implementation
-namespace robotik
-{
-
-// ----------------------------------------------------------------------------
-// Template implementation
-// ----------------------------------------------------------------------------
-template <typename RobotType>
-std::unique_ptr<RobotType> RobotLoader::loadAs(const std::string& p_filename)
-{
-    static_assert(std::is_base_of<Robot, RobotType>::value,
-                  "RobotType must derive from Robot");
-
-    // Load the blueprint and robot name
-    std::string robot_name;
-    auto blueprint_opt = loadBlueprint(p_filename, robot_name);
-
-    if (!blueprint_opt)
-    {
-        return nullptr;
-    }
-
-    // Create the robot of the requested type with the loaded blueprint
-    return std::make_unique<RobotType>(robot_name, std::move(*blueprint_opt));
-}
 
 } // namespace robotik
