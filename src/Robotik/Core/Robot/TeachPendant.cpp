@@ -1,6 +1,6 @@
 /**
  * @file TeachPendant.cpp
- * @brief Implementation of the teach pendant for the robot.
+ * @brief Implémentation du teach pendant pour le contrôle interactif du robot.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -8,437 +8,402 @@
  */
 
 #include "Robotik/Core/Robot/TeachPendant.hpp"
-#include <chrono>
-#include <stdexcept>
+#include "Robotik/Core/Robot/Blueprint/Joint.hpp"
+#include "Robotik/Core/Robot/ControlledRobot.hpp"
+#include "Robotik/Core/Solvers/Trajectory.hpp"
+
+#include <iostream>
 
 namespace robotik
 {
 
-TeachPendant::TeachPendant(Robot& robot)
-    : robot_(robot),
-      control_mode_(ControlMode::JOINT),
-      state_(State::IDLE),
-      speed_factor_(0.5),
-      recording_start_time_(0.0),
-      is_recording_(false)
+// ----------------------------------------------------------------------------
+TeachPendant::TeachPendant()
+    : m_robot(nullptr),
+      m_controlled_robot(nullptr),
+      m_ik_solver(nullptr),
+      m_end_effector(nullptr)
 {
-    size_t n_joints = robot_.blueprint().numJoints();
-    joint_velocity_.resize(n_joints, 0.0);
-    target_joint_positions_ = robot_.state().joint_positions;
-
-    // Limites par défaut
-    joint_limits_lower_.resize(n_joints, -M_PI);
-    joint_limits_upper_.resize(n_joints, M_PI);
-    workspace_min_ = Eigen::Vector3d(-2.0, -2.0, 0.0);
-    workspace_max_ = Eigen::Vector3d(2.0, 2.0, 2.0);
 }
 
-// === Contrôle articulaire ===
-bool TeachPendant::moveJoint(size_t joint_idx, double delta, double speed)
+// ============================================================================
+// Configuration
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+void TeachPendant::setRobot(application::ControlledRobot& p_robot)
 {
-    if (state_ == State::EMERGENCY_STOP)
+    m_robot = &p_robot;
+    m_controlled_robot = &p_robot;
+    m_end_effector = p_robot.end_effector;
+}
+
+// ----------------------------------------------------------------------------
+void TeachPendant::setIKSolver(IKSolver* p_solver)
+{
+    m_ik_solver = p_solver;
+}
+
+// ----------------------------------------------------------------------------
+void TeachPendant::setEndEffector(Node const& p_end_effector)
+{
+    m_end_effector = &p_end_effector;
+}
+
+// ============================================================================
+// Contrôle articulaire (Joint Space)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+bool TeachPendant::moveJoint(size_t p_joint_idx, double p_delta, double p_speed)
+{
+    if (!m_robot || !m_controlled_robot)
         return false;
-    if (joint_idx >= robot_.blueprint().numJoints())
+
+    // Impossible de bouger pendant la lecture d'une trajectoire
+    if (m_controlled_robot->state ==
+        application::ControlledRobot::State::PLAYING)
         return false;
 
-    auto current = robot_.state().joint_positions;
-    current[joint_idx] += delta * speed_factor_ * speed;
-
-    if (!checkJointLimits(current))
+    // Vérifier que l'index est valide
+    if (p_joint_idx >= m_robot->blueprint().numJoints())
         return false;
 
-    setState(State::MANUAL_CONTROL);
-    target_joint_positions_ = current;
-    robot_.setJointPositions(current);
+    // Calculer la nouvelle position cible
+    auto target = m_robot->state().joint_positions;
+    target[p_joint_idx] += p_delta * m_controlled_robot->speed_factor * p_speed;
 
-    if (is_recording_)
-    {
-        recordWaypoint("auto_" + std::to_string(waypoints_.size()));
-    }
+    // Vérifier les limites via forEachJoint
+    bool within_limits = true;
+    m_robot->blueprint().forEachJoint(
+        [&](Joint const& joint, size_t index)
+        {
+            if (index == p_joint_idx)
+            {
+                auto [min, max] = joint.limits();
+                if (target[index] < min || target[index] > max)
+                {
+                    within_limits = false;
+                }
+            }
+        });
+
+    if (!within_limits)
+        return false;
+
+    // Appliquer le mouvement
+    m_controlled_robot->state =
+        application::ControlledRobot::State::MANUAL_CONTROL;
+    m_robot->setJointPositions(target);
 
     return true;
 }
 
-bool TeachPendant::moveJoints(const std::vector<double>& deltas, double speed)
+// ----------------------------------------------------------------------------
+bool TeachPendant::moveJoints(const std::vector<double>& p_deltas,
+                              double p_speed)
 {
-    if (state_ == State::EMERGENCY_STOP)
-        return false;
-    if (deltas.size() != robot_.blueprint().numJoints())
+    if (!m_robot || !m_controlled_robot)
         return false;
 
-    auto current = robot_.state().joint_positions;
-    for (size_t i = 0; i < deltas.size(); ++i)
+    // Impossible de bouger pendant la lecture d'une trajectoire
+    if (m_controlled_robot->state ==
+        application::ControlledRobot::State::PLAYING)
+        return false;
+
+    // Vérifier que le nombre de deltas correspond au nombre de joints
+    if (p_deltas.size() != m_robot->blueprint().numJoints())
+        return false;
+
+    // Calculer les nouvelles positions cibles
+    auto target = m_robot->state().joint_positions;
+    for (size_t i = 0; i < p_deltas.size(); ++i)
     {
-        current[i] += deltas[i] * speed_factor_ * speed;
+        target[i] += p_deltas[i] * m_controlled_robot->speed_factor * p_speed;
     }
 
-    if (!checkJointLimits(current))
+    // Vérifier toutes les limites
+    bool within_limits = true;
+    m_robot->blueprint().forEachJoint(
+        [&](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+            if (target[index] < min || target[index] > max)
+            {
+                within_limits = false;
+            }
+        });
+
+    if (!within_limits)
         return false;
 
-    setState(State::MANUAL_CONTROL);
-    target_joint_positions_ = current;
-    robot_.setJointPositions(current);
-
-    if (is_recording_)
-    {
-        recordWaypoint("auto_" + std::to_string(waypoints_.size()));
-    }
+    // Appliquer le mouvement
+    m_controlled_robot->state =
+        application::ControlledRobot::State::MANUAL_CONTROL;
+    m_robot->setJointPositions(target);
 
     return true;
 }
 
-bool TeachPendant::moveToJointConfig(const std::vector<double>& target,
-                                     double duration)
+// ============================================================================
+// Contrôle cartésien (Task Space)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+bool TeachPendant::moveCartesian(const Eigen::Vector3d& p_translation,
+                                 double p_speed)
 {
-    if (state_ == State::EMERGENCY_STOP)
-        return false;
-    if (!checkJointLimits(target))
+    if (!m_robot || !m_controlled_robot || !m_end_effector || !m_ik_solver)
         return false;
 
-    // Créer une trajectoire simple entre position actuelle et cible
-    auto current = robot_.state().joint_positions;
-    // TODO: Utiliser la classe Trajectory pour interpoler
-    // trajectory_->addWaypoint(current, 0.0);
-    // trajectory_->addWaypoint(target, duration);
-
-    target_joint_positions_ = target;
-    robot_.setJointPositions(target);
-
-    return true;
-}
-
-// === Contrôle cartésien ===
-bool TeachPendant::moveCartesian(const Eigen::Vector3d& translation,
-                                 double speed)
-{
-    if (state_ == State::EMERGENCY_STOP)
-        return false;
-    if (control_mode_ != ControlMode::CARTESIAN)
-        return false;
-    if (!end_effector_ || !ik_solver_)
+    // Vérifier le mode de contrôle
+    if (m_controlled_robot->control_mode !=
+        application::ControlledRobot::ControlMode::CARTESIAN)
         return false;
 
-    auto current_transform = end_effector_->worldTransform();
-    Eigen::Affine3d target_pose(current_transform.cast<double>());
-    target_pose.translation() += translation * speed_factor_ * speed;
-
-    if (!checkWorkspaceLimits(target_pose))
+    // Impossible de bouger pendant la lecture d'une trajectoire
+    if (m_controlled_robot->state ==
+        application::ControlledRobot::State::PLAYING)
         return false;
 
-    // Convert Eigen::Affine3d to Pose (6D vector)
-    Pose target_pose_6d;
-    target_pose_6d.head<3>() = target_pose.translation();
-    Eigen::Vector3d euler = target_pose.rotation().eulerAngles(0, 1, 2);
-    target_pose_6d.tail<3>() = euler;
+    // Obtenir la transformation actuelle de l'effecteur (Matrix4d)
+    Transform current_transform = m_end_effector->worldTransform();
+
+    // Appliquer la translation
+    current_transform.block<3, 1>(0, 3) +=
+        p_translation * m_controlled_robot->speed_factor * p_speed;
+
+    // Convertir en Pose 6D pour le solveur IK
+    Pose target_pose;
+    target_pose.head<3>() = current_transform.block<3, 1>(0, 3);
+
+    // Extraire les angles d'Euler de la rotation
+    Eigen::Matrix3d R = current_transform.block<3, 3>(0, 0);
+    target_pose.tail<3>() = R.eulerAngles(0, 1, 2);
 
     // Résoudre la cinématique inverse
-    if (!ik_solver_->solve(robot_, *end_effector_, target_pose_6d))
+    if (!m_ik_solver->solve(*m_robot, *m_end_effector, target_pose))
     {
         return false;
     }
 
-    auto target_joints = ik_solver_->solution();
-    setState(State::MANUAL_CONTROL);
-    robot_.setJointPositions(target_joints);
-    target_joint_positions_ = target_joints;
-
-    if (is_recording_)
-    {
-        recordWaypoint("auto_" + std::to_string(waypoints_.size()));
-    }
+    // Appliquer la solution IK
+    m_robot->setJointPositions(m_ik_solver->solution());
+    m_controlled_robot->state =
+        application::ControlledRobot::State::MANUAL_CONTROL;
 
     return true;
 }
 
-bool TeachPendant::rotateCartesian(const Eigen::Vector3d& rotation_axis,
-                                   double angle,
-                                   double speed)
+// ----------------------------------------------------------------------------
+bool TeachPendant::rotateCartesian(const Eigen::Vector3d& p_rotation_axis,
+                                   double p_angle,
+                                   double p_speed)
 {
-    if (state_ == State::EMERGENCY_STOP)
-        return false;
-    if (control_mode_ != ControlMode::CARTESIAN)
-        return false;
-    if (!end_effector_ || !ik_solver_)
+    if (!m_robot || !m_controlled_robot || !m_end_effector || !m_ik_solver)
         return false;
 
-    auto current_transform = end_effector_->worldTransform();
-    Eigen::Affine3d target_pose(current_transform.cast<double>());
-    Eigen::AngleAxisd rotation(angle * speed_factor_ * speed,
-                               rotation_axis.normalized());
-    target_pose.rotate(rotation);
+    // Vérifier le mode de contrôle
+    if (m_controlled_robot->control_mode !=
+        application::ControlledRobot::ControlMode::CARTESIAN)
+        return false;
 
-    // Convert Eigen::Affine3d to Pose (6D vector)
-    Pose target_pose_6d;
-    target_pose_6d.head<3>() = target_pose.translation();
-    Eigen::Vector3d euler = target_pose.rotation().eulerAngles(0, 1, 2);
-    target_pose_6d.tail<3>() = euler;
+    // Impossible de bouger pendant la lecture d'une trajectoire
+    if (m_controlled_robot->state ==
+        application::ControlledRobot::State::PLAYING)
+        return false;
 
-    if (!ik_solver_->solve(robot_, *end_effector_, target_pose_6d))
+    // Obtenir la transformation actuelle de l'effecteur
+    Transform current_transform = m_end_effector->worldTransform();
+
+    // Créer la rotation via Rodrigues (AngleAxis)
+    Eigen::AngleAxisd rotation(p_angle * m_controlled_robot->speed_factor *
+                                   p_speed,
+                               p_rotation_axis.normalized());
+
+    // Appliquer la rotation à la partie rotationnelle de la transformation
+    Eigen::Matrix3d R = current_transform.block<3, 3>(0, 0);
+    R = rotation.toRotationMatrix() * R;
+    current_transform.block<3, 3>(0, 0) = R;
+
+    // Convertir en Pose 6D pour le solveur IK
+    Pose target_pose;
+    target_pose.head<3>() = current_transform.block<3, 1>(0, 3);
+    target_pose.tail<3>() = R.eulerAngles(0, 1, 2);
+
+    // Résoudre la cinématique inverse
+    if (!m_ik_solver->solve(*m_robot, *m_end_effector, target_pose))
     {
         return false;
     }
 
-    auto target_joints = ik_solver_->solution();
-    setState(State::MANUAL_CONTROL);
-    robot_.setJointPositions(target_joints);
-    target_joint_positions_ = target_joints;
+    // Appliquer la solution IK
+    m_robot->setJointPositions(m_ik_solver->solution());
+    m_controlled_robot->state =
+        application::ControlledRobot::State::MANUAL_CONTROL;
 
     return true;
 }
 
-// === Gestion des waypoints ===
-size_t TeachPendant::recordWaypoint(const std::string& label)
-{
-    Waypoint wp;
-    wp.joint_positions = robot_.state().joint_positions;
-    if (end_effector_)
-    {
-        wp.pose =
-            Eigen::Affine3d(end_effector_->worldTransform().cast<double>());
-    }
-    else
-    {
-        wp.pose = Eigen::Affine3d::Identity();
-    }
-    wp.timestamp = std::chrono::duration<double>(
-                       std::chrono::steady_clock::now().time_since_epoch())
-                       .count();
-    wp.label =
-        label.empty() ? "waypoint_" + std::to_string(waypoints_.size()) : label;
+// ============================================================================
+// Gestion des waypoints
+// ============================================================================
 
-    waypoints_.push_back(wp);
-    return waypoints_.size() - 1;
+// ----------------------------------------------------------------------------
+size_t TeachPendant::recordWaypoint(const std::string& p_label)
+{
+    if (!m_robot || !m_controlled_robot)
+        return 0;
+
+    // Créer un waypoint avec la position actuelle
+    Trajectory::States waypoint;
+    waypoint.position = m_robot->state().joint_positions;
+    waypoint.velocity.resize(waypoint.position.size(), 0.0);
+    waypoint.acceleration.resize(waypoint.position.size(), 0.0);
+    waypoint.time = 0.0; // Sera recalculé lors du playback
+
+    // Ajouter aux waypoints du robot
+    m_controlled_robot->waypoints.push_back(waypoint);
+
+    std::cout << "📍 Recorded waypoint "
+              << m_controlled_robot->waypoints.size() - 1 << ": "
+              << (p_label.empty() ? "unnamed" : p_label) << std::endl;
+
+    return m_controlled_robot->waypoints.size() - 1;
 }
 
+// ----------------------------------------------------------------------------
+void TeachPendant::deleteWaypoint(size_t p_idx)
+{
+    if (!m_controlled_robot)
+        return;
+
+    if (p_idx < m_controlled_robot->waypoints.size())
+    {
+        m_controlled_robot->waypoints.erase(
+            m_controlled_robot->waypoints.begin() + p_idx);
+    }
+}
+
+// ----------------------------------------------------------------------------
 void TeachPendant::clearWaypoints()
 {
-    waypoints_.clear();
+    if (!m_controlled_robot)
+        return;
+
+    m_controlled_robot->waypoints.clear();
 }
 
-bool TeachPendant::renameWaypoint(size_t idx, const std::string& new_label)
+// ----------------------------------------------------------------------------
+bool TeachPendant::goToWaypoint(size_t p_idx, double p_duration)
 {
-    if (idx >= waypoints_.size())
+    if (!m_robot || !m_controlled_robot)
         return false;
-    waypoints_[idx].label = new_label;
+
+    // Vérifier que l'index est valide
+    if (p_idx >= m_controlled_robot->waypoints.size())
+        return false;
+
+    // Créer une trajectoire entre la position actuelle et le waypoint
+    auto const& target_waypoint = m_controlled_robot->waypoints[p_idx];
+    auto current_pos = m_robot->state().joint_positions;
+
+    m_controlled_robot->playing_trajectory =
+        std::make_unique<JointSpaceTrajectory>(
+            current_pos, target_waypoint.position, p_duration);
+
+    m_controlled_robot->trajectory_time = 0.0;
+    m_controlled_robot->state = application::ControlledRobot::State::PLAYING;
+
+    std::cout << "🎯 Going to waypoint " << p_idx << std::endl;
+
     return true;
 }
 
-bool TeachPendant::goToWaypoint(size_t idx, double duration)
+// ============================================================================
+// Lecture de trajectoire
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+bool TeachPendant::playRecordedTrajectory(bool p_loop)
 {
-    if (idx >= waypoints_.size())
+    if (!m_robot || !m_controlled_robot)
         return false;
-    return moveToJointConfig(waypoints_[idx].joint_positions, duration);
-}
 
-// === Enregistrement de trajectoire ===
-void TeachPendant::startRecording()
-{
-    is_recording_ = true;
-    recording_start_time_ =
-        std::chrono::duration<double>(
-            std::chrono::steady_clock::now().time_since_epoch())
-            .count();
-    clearWaypoints();
-    setState(State::RECORDING);
-    recordWaypoint("start");
-}
-
-void TeachPendant::stopRecording()
-{
-    if (is_recording_)
+    // Vérifier qu'il y a au moins 2 waypoints
+    if (m_controlled_robot->waypoints.size() < 2)
     {
-        recordWaypoint("end");
-        is_recording_ = false;
-        setState(State::IDLE);
-    }
-}
-
-// === Sécurité ===
-void TeachPendant::emergencyStop()
-{
-    setState(State::EMERGENCY_STOP);
-    joint_velocity_.assign(joint_velocity_.size(), 0.0);
-    // Arrêt immédiat du robot
-}
-
-void TeachPendant::reset()
-{
-    if (state_ == State::EMERGENCY_STOP)
-    {
-        setState(State::IDLE);
-    }
-}
-
-bool TeachPendant::isInSafePosition() const
-{
-    if (collision_check_callback_ && !collision_check_callback_())
-    {
+        std::cout << "⚠️ Need at least 2 waypoints to play trajectory"
+                  << std::endl;
         return false;
     }
 
-    bool joint_limits_ok = checkJointLimits(robot_.state().joint_positions);
-    bool workspace_ok = true;
-    if (end_effector_)
-    {
-        auto transform = end_effector_->worldTransform();
-        Eigen::Affine3d pose(transform.cast<double>());
-        workspace_ok = checkWorkspaceLimits(pose);
-    }
+    // Pour l'instant: trajectoire simple entre premier et dernier waypoint
+    // TODO: Créer une trajectoire multi-segments passant par tous les waypoints
+    auto const& wps = m_controlled_robot->waypoints;
+    double duration_per_segment = 3.0; // 3 secondes entre waypoints
 
-    return joint_limits_ok && workspace_ok;
-}
+    m_controlled_robot->playing_trajectory =
+        std::make_unique<JointSpaceTrajectory>(wps.front().position,
+                                               wps.back().position,
+                                               duration_per_segment *
+                                                   (wps.size() - 1));
 
-// === Méthodes internes ===
-bool TeachPendant::checkJointLimits(const std::vector<double>& positions) const
-{
-    for (size_t i = 0; i < positions.size(); ++i)
-    {
-        if (positions[i] < joint_limits_lower_[i] ||
-            positions[i] > joint_limits_upper_[i])
-        {
-            return false;
-        }
-    }
+    m_controlled_robot->trajectory_time = 0.0;
+    m_controlled_robot->state = application::ControlledRobot::State::PLAYING;
+
+    std::cout << "▶️ Playing trajectory with " << wps.size() << " waypoints"
+              << std::endl;
+
     return true;
 }
 
-bool TeachPendant::checkWorkspaceLimits(const Eigen::Affine3d& pose) const
-{
-    auto pos = pose.translation();
-    return (pos.x() >= workspace_min_.x() && pos.x() <= workspace_max_.x() &&
-            pos.y() >= workspace_min_.y() && pos.y() <= workspace_max_.y() &&
-            pos.z() >= workspace_min_.z() && pos.z() <= workspace_max_.z());
-}
-
-void TeachPendant::setState(State new_state)
-{
-    if (state_ != new_state)
-    {
-        state_ = new_state;
-        if (state_change_callback_)
-        {
-            state_change_callback_(new_state);
-        }
-    }
-}
-
-void TeachPendant::setSpeedFactor(double factor)
-{
-    speed_factor_ = std::clamp(factor, 0.0, 1.0);
-}
-
-std::vector<double> TeachPendant::getCurrentJointPositions() const
-{
-    return robot_.state().joint_positions;
-}
-
-Eigen::Affine3d TeachPendant::getCurrentPose() const
-{
-    if (end_effector_)
-    {
-        return Eigen::Affine3d(end_effector_->worldTransform().cast<double>());
-    }
-    return Eigen::Affine3d::Identity();
-}
-
-void TeachPendant::setIKSolver(std::unique_ptr<IKSolver> solver)
-{
-    ik_solver_ = std::move(solver);
-}
-
-void TeachPendant::setEndEffector(Node const& end_effector)
-{
-    end_effector_ = &end_effector;
-}
-
-void TeachPendant::setControlMode(ControlMode mode)
-{
-    control_mode_ = mode;
-}
-
-void TeachPendant::deleteWaypoint(size_t idx)
-{
-    if (idx < waypoints_.size())
-    {
-        waypoints_.erase(waypoints_.begin() + idx);
-    }
-}
-
-bool TeachPendant::playRecordedTrajectory(bool loop)
-{
-    // TODO: Implement trajectory playback
-    return false;
-}
-
+// ----------------------------------------------------------------------------
 void TeachPendant::stopTrajectory()
 {
-    // TODO: Implement trajectory stop
+    if (!m_controlled_robot)
+        return;
+
+    m_controlled_robot->playing_trajectory.reset();
+    m_controlled_robot->state = application::ControlledRobot::State::IDLE;
+
+    std::cout << "⏹️ Trajectory stopped" << std::endl;
 }
 
-std::shared_ptr<Trajectory> TeachPendant::getRecordedTrajectory() const
+// ----------------------------------------------------------------------------
+void TeachPendant::update(double p_dt)
 {
-    return current_trajectory_;
-}
+    if (!m_robot || !m_controlled_robot)
+        return;
 
-bool TeachPendant::loadTrajectory(std::shared_ptr<Trajectory> traj)
-{
-    current_trajectory_ = traj;
-    return true;
-}
+    // Vérifier qu'on est en mode PLAYING avec une trajectoire
+    if (m_controlled_robot->state !=
+        application::ControlledRobot::State::PLAYING)
+        return;
 
-void TeachPendant::setCollisionCheckCallback(std::function<bool()> callback)
-{
-    collision_check_callback_ = callback;
-}
+    if (!m_controlled_robot->playing_trajectory)
+        return;
 
-void TeachPendant::updateRobotState(double dt)
-{
-    // Update robot state based on current control mode
-    // This can be expanded to handle trajectory following, etc.
-}
+    // Avancer dans le temps
+    m_controlled_robot->trajectory_time += p_dt;
 
-void TeachPendant::setStateChangeCallback(std::function<void(State)> callback)
-{
-    state_change_callback_ = callback;
-}
-
-void TeachPendant::setWaypointReachedCallback(
-    std::function<void(size_t)> callback)
-{
-    waypoint_reached_callback_ = callback;
-}
-
-bool TeachPendant::moveToPose(const Eigen::Affine3d& target_pose,
-                              double duration)
-{
-    if (state_ == State::EMERGENCY_STOP)
-        return false;
-    if (!end_effector_ || !ik_solver_)
-        return false;
-
-    // Convert Eigen::Affine3d to Pose (6D vector)
-    Pose target_pose_6d;
-    target_pose_6d.head<3>() = target_pose.translation();
-    Eigen::Vector3d euler = target_pose.rotation().eulerAngles(0, 1, 2);
-    target_pose_6d.tail<3>() = euler;
-
-    if (!ik_solver_->solve(robot_, *end_effector_, target_pose_6d))
+    // Vérifier si la trajectoire est terminée
+    if (m_controlled_robot->trajectory_time >=
+        m_controlled_robot->playing_trajectory->duration())
     {
-        return false;
+        // Fin de la trajectoire
+        std::cout << "✓ Trajectory completed" << std::endl;
+        m_controlled_robot->playing_trajectory.reset();
+        m_controlled_robot->state = application::ControlledRobot::State::IDLE;
+        return;
     }
 
-    auto target_joints = ik_solver_->solution();
-    robot_.setJointPositions(target_joints);
-    target_joint_positions_ = target_joints;
+    // Évaluer la position cible à ce temps
+    auto target_positions = m_controlled_robot->playing_trajectory->getPosition(
+        m_controlled_robot->trajectory_time);
 
-    return true;
-}
-
-bool TeachPendant::executeCartesianMotion(const Eigen::Affine3d& target_pose,
-                                          double dt)
-{
-    // TODO: Implement smooth cartesian motion with velocity control
-    return moveToPose(target_pose, dt);
+    // Appliquer avec limites de vitesse
+    m_robot->applyJointTargetsWithSpeedLimit(target_positions, p_dt);
 }
 
 } // namespace robotik

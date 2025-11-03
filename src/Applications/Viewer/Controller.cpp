@@ -19,7 +19,9 @@ namespace robotik::application
 
 // ----------------------------------------------------------------------------
 Controller::Controller(renderer::RobotManager& p_robot_manager)
-    : m_robot_manager(p_robot_manager)
+    : m_robot_manager(p_robot_manager),
+      m_teach_pendant(std::make_unique<robotik::TeachPendant>()),
+      m_ik_solver(std::make_unique<robotik::JacobianIKSolver>())
 {
 }
 
@@ -47,20 +49,11 @@ bool Controller::initializeRobot(std::string const& p_robot_name,
         std::cout << "🤖 Set neutral position" << std::endl;
     }
 
-    // Create teach pendant for the robot
-    controlled_robot->teach_pendant =
-        std::make_unique<robotik::TeachPendant>(*controlled_robot);
-
-    // Set IK solver
-    controlled_robot->teach_pendant->setIKSolver(
-        std::make_unique<robotik::JacobianIKSolver>());
-
-    // Set end effector for teach pendant
-    robotik::Node const* end_effector = nullptr;
+    // Set end effector for the robot
     if (!p_control_link.empty())
     {
-        end_effector = robotik::Node::find(controlled_robot->blueprint().root(),
-                                           p_control_link);
+        controlled_robot->end_effector = robotik::Node::find(
+            controlled_robot->blueprint().root(), p_control_link);
     }
     else
     {
@@ -69,15 +62,14 @@ bool Controller::initializeRobot(std::string const& p_robot_name,
                 controlled_robot->blueprint().endEffectors();
             !end_effectors.empty())
         {
-            end_effector = &end_effectors[0].get();
+            controlled_robot->end_effector = &end_effectors[0].get();
         }
     }
 
-    if (end_effector != nullptr)
+    if (controlled_robot->end_effector != nullptr)
     {
-        controlled_robot->teach_pendant->setEndEffector(*end_effector);
-        std::cout << "🤖 End effector set to: " << end_effector->name()
-                  << std::endl;
+        std::cout << "🤖 End effector set to: "
+                  << controlled_robot->end_effector->name() << std::endl;
     }
     else
     {
@@ -114,11 +106,14 @@ bool Controller::initializeRobot(std::string const& p_robot_name,
 // ----------------------------------------------------------------------------
 void Controller::update(double p_elapsed_time, double p_dt)
 {
+    // Mettre à jour chaque robot qui est en PLAYING
     for (auto& [robot_name, controlled_robot] : m_controlled_robots)
     {
-        if (controlled_robot && controlled_robot->teach_pendant)
+        if (controlled_robot &&
+            controlled_robot->state == ControlledRobot::State::PLAYING)
         {
-            controlled_robot->teach_pendant->updateRobotState(p_dt);
+            m_teach_pendant->setRobot(*controlled_robot);
+            m_teach_pendant->update(p_dt);
         }
     }
 }
@@ -136,11 +131,7 @@ bool Controller::setEndEffector(std::string const& p_robot_name,
     if (node == nullptr)
         return false;
 
-    if (controlled_robot->teach_pendant)
-    {
-        controlled_robot->teach_pendant->setEndEffector(*node);
-    }
-
+    controlled_robot->end_effector = node;
     return true;
 }
 
@@ -171,13 +162,9 @@ ControlledRobot* Controller::getControlledRobot(std::string const& p_robot_name)
 }
 
 // ----------------------------------------------------------------------------
-robotik::TeachPendant*
-Controller::getTeachPendant(std::string const& p_robot_name)
+robotik::TeachPendant* Controller::getTeachPendant()
 {
-    auto* controlled_robot = getControlledRobot(p_robot_name);
-    if (controlled_robot == nullptr)
-        return nullptr;
-    return controlled_robot->teach_pendant.get();
+    return m_teach_pendant.get();
 }
 
 } // namespace robotik::application

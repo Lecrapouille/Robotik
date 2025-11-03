@@ -63,6 +63,24 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Enable or disable the blueprint.
+    //! \param p_enabled True to enable the blueprint, false to disable it.
+    // ------------------------------------------------------------------------
+    inline void enable(bool p_enabled)
+    {
+        m_root_node->enabled(p_enabled);
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the enabled state of the blueprint.
+    //! \return True if the blueprint is enabled, false otherwise.
+    // ------------------------------------------------------------------------
+    inline bool enabled() const
+    {
+        return m_root_node->enabled();
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Set and replace the root node of the blueprint.
     //! \param p_root Unique pointer to the root node.
     // ------------------------------------------------------------------------

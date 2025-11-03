@@ -142,16 +142,14 @@ void HMI::robotListPanel()
                 removeRobot(robot_name);
             }
 
-            // TODO: Implement visibility toggle through Node::enabled()
-            // if (auto* controlled =
-            // m_controller.getControlledRobot(robot_name))
-            // {
-            //     if (ImGui::MenuItem("Toggle Visibility"))
-            //     {
-            //         //
-            //         controlled->blueprint().root().enabled(!controlled->blueprint().root().enabled());
-            //     }
-            // }
+            if (auto* controlled = m_controller.getControlledRobot(robot_name))
+            {
+                if (ImGui::MenuItem("Toggle Visibility"))
+                {
+                    controlled->blueprint().enable(
+                        !controlled->blueprint().enabled());
+                }
+            }
             ImGui::EndPopup();
         }
     }
@@ -217,10 +215,6 @@ void HMI::endEffectorSelectionPanel()
 {
     auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
     if (controlled_robot == nullptr)
-        return;
-
-    auto* teach_pendant = controlled_robot->teach_pendant.get();
-    if (teach_pendant == nullptr)
         return;
 
     std::vector<std::string> const& nodes = m_node_names;
@@ -289,15 +283,22 @@ void HMI::endEffectorSelectionPanel()
 // ----------------------------------------------------------------------------
 void HMI::teachPendantPanel()
 {
-    auto* teach_pendant = m_controller.getTeachPendant(m_selected_robot);
+    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    if (robot == nullptr)
+        return;
+
+    auto* teach_pendant = m_controller.getTeachPendant();
     if (teach_pendant == nullptr)
         return;
 
-    auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
-    if (controlled_robot == nullptr)
-        return;
+    // Configurer le teach pendant pour ce robot
+    teach_pendant->setRobot(*robot);
+    if (robot->end_effector != nullptr)
+    {
+        teach_pendant->setEndEffector(*robot->end_effector);
+    }
 
-    auto current_mode = teach_pendant->getControlMode();
+    auto current_mode = robot->control_mode;
 
     // Control Mode Selection
     ImGui::Text("Control Mode:");
@@ -305,35 +306,45 @@ void HMI::teachPendantPanel()
     int mode_idx = static_cast<int>(current_mode);
     if (ImGui::RadioButton("Joint", mode_idx == 0))
     {
-        teach_pendant->setControlMode(
-            robotik::TeachPendant::ControlMode::JOINT);
+        robot->control_mode =
+            robotik::application::ControlledRobot::ControlMode::JOINT;
         std::cout << "🎮 Control mode: Joint" << std::endl;
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Cartesian", mode_idx == 1))
     {
-        teach_pendant->setControlMode(
-            robotik::TeachPendant::ControlMode::CARTESIAN);
+        robot->control_mode =
+            robotik::application::ControlledRobot::ControlMode::CARTESIAN;
         std::cout << "🎮 Control mode: Cartesian" << std::endl;
     }
     ImGui::SameLine();
     if (ImGui::RadioButton("Trajectory", mode_idx == 2))
     {
-        teach_pendant->setControlMode(
-            robotik::TeachPendant::ControlMode::TRAJECTORY);
+        robot->control_mode =
+            robotik::application::ControlledRobot::ControlMode::TRAJECTORY;
         std::cout << "🎮 Control mode: Trajectory" << std::endl;
+    }
+
+    // Speed Factor (always visible)
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100);
+    float speed = static_cast<float>(robot->speed_factor);
+    if (ImGui::SliderFloat("Speed", &speed, 0.0f, 1.0f, "%.2f"))
+    {
+        robot->speed_factor = static_cast<double>(speed);
     }
 
     ImGui::Separator();
 
     // Joint Control Section (show in JOINT mode)
-    if (current_mode == robotik::TeachPendant::ControlMode::JOINT)
+    if (current_mode ==
+        robotik::application::ControlledRobot::ControlMode::JOINT)
     {
         ImGui::Text("Joint Control - Joints (%zu):",
-                    controlled_robot->blueprint().numJoints());
+                    robot->blueprint().numJoints());
         ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
-        controlled_robot->blueprint().forEachJoint(
+        robot->blueprint().forEachJoint(
             [teach_pendant](robotik::Joint& joint, size_t index)
             {
                 ImGui::PushID(joint.name().c_str());
@@ -368,47 +379,74 @@ void HMI::teachPendantPanel()
     }
 
     // Cartesian Control Section (show in CARTESIAN mode)
-    if (current_mode == robotik::TeachPendant::ControlMode::CARTESIAN)
+    if (current_mode ==
+        robotik::application::ControlledRobot::ControlMode::CARTESIAN)
     {
-        ImGui::Text("Cartesian Control");
-        static float translation[3] = { 0.01f, 0.0f, 0.0f };
-        static float rotation_axis[3] = { 0.0f, 0.0f, 1.0f };
-        static float rotation_angle = 0.01f;
+        ImGui::Text("Cartesian Control - Teach Pendant Style");
 
+        // Repère (référentiel)
+        static int frame_idx = 0;
+        const char* frames[] = { "World", "Tool", "Base" };
+        ImGui::Combo("Repère", &frame_idx, frames, 3);
+
+        ImGui::Separator();
+
+        // Translation
         ImGui::Text("Translation:");
-        ImGui::InputFloat3("Delta XYZ (m)", translation);
-        if (ImGui::Button("Apply Translation"))
+        static int trans_axis = 0; // 0=X, 1=Y, 2=Z
+        ImGui::RadioButton("X", &trans_axis, 0);
+        ImGui::SameLine();
+        ImGui::RadioButton("Y", &trans_axis, 1);
+        ImGui::SameLine();
+        ImGui::RadioButton("Z", &trans_axis, 2);
+
+        // Boutons + / - pour translation
+        static float step_size = 0.01f;
+        ImGui::SetNextItemWidth(100);
+        ImGui::InputFloat("Step (m)", &step_size, 0.001f, 0.01f, "%.3f");
+
+        if (ImGui::Button("+##trans", ImVec2(50, 50)))
         {
-            Eigen::Vector3d trans(
-                translation[0], translation[1], translation[2]);
-            if (teach_pendant->moveCartesian(trans, 1.0))
-            {
-                std::cout << "📐 Applied translation: [" << trans.transpose()
-                          << "]" << std::endl;
-            }
-            else
-            {
-                std::cout << "⚠️ Failed to apply translation" << std::endl;
-            }
+            Eigen::Vector3d dir = Eigen::Vector3d::Zero();
+            dir[trans_axis] = step_size;
+            teach_pendant->moveCartesian(dir, 1.0);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("-##trans", ImVec2(50, 50)))
+        {
+            Eigen::Vector3d dir = Eigen::Vector3d::Zero();
+            dir[trans_axis] = -step_size;
+            teach_pendant->moveCartesian(dir, 1.0);
         }
 
         ImGui::Separator();
+
+        // Rotation
         ImGui::Text("Rotation:");
-        ImGui::InputFloat3("Axis", rotation_axis);
-        ImGui::InputFloat("Angle (rad)", &rotation_angle);
-        if (ImGui::Button("Apply Rotation"))
+        static int rot_axis = 0; // 0=X, 1=Y, 2=Z
+        ImGui::RadioButton("X##rot", &rot_axis, 0);
+        ImGui::SameLine();
+        ImGui::RadioButton("Y##rot", &rot_axis, 1);
+        ImGui::SameLine();
+        ImGui::RadioButton("Z##rot", &rot_axis, 2);
+
+        // Boutons + / - pour rotation
+        static float angle_step = 0.05f;
+        ImGui::SetNextItemWidth(100);
+        ImGui::InputFloat("Step (rad)", &angle_step, 0.01f, 0.1f, "%.3f");
+
+        if (ImGui::Button("+##rot", ImVec2(50, 50)))
         {
-            Eigen::Vector3d axis(
-                rotation_axis[0], rotation_axis[1], rotation_axis[2]);
-            if (teach_pendant->rotateCartesian(axis, rotation_angle, 1.0))
-            {
-                std::cout << "🔄 Applied rotation: axis=[" << axis.transpose()
-                          << "], angle=" << rotation_angle << std::endl;
-            }
-            else
-            {
-                std::cout << "⚠️ Failed to apply rotation" << std::endl;
-            }
+            Eigen::Vector3d axis = Eigen::Vector3d::Zero();
+            axis[rot_axis] = 1.0;
+            teach_pendant->rotateCartesian(axis, angle_step, 1.0);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("-##rot", ImVec2(50, 50)))
+        {
+            Eigen::Vector3d axis = Eigen::Vector3d::Zero();
+            axis[rot_axis] = 1.0;
+            teach_pendant->rotateCartesian(axis, -angle_step, 1.0);
         }
     }
 
@@ -429,28 +467,22 @@ void HMI::teachPendantPanel()
         }
 
         ImGui::Separator();
-        ImGui::Text("Saved Waypoints (%zu):",
-                    teach_pendant->getWaypoints().size());
+        ImGui::Text("Saved Waypoints (%zu):", robot->waypoints.size());
         ImGui::BeginChild("WaypointList", ImVec2(0, 200), true);
 
-        auto const& waypoints = teach_pendant->getWaypoints();
+        auto const& waypoints = robot->waypoints;
         static int selected_waypoint = -1;
-        static char rename_buffer[128] = "";
 
         for (size_t i = 0; i < waypoints.size(); ++i)
         {
             ImGui::PushID(static_cast<int>(i));
 
             bool is_selected = (selected_waypoint == static_cast<int>(i));
-            if (ImGui::Selectable((std::string("[") + std::to_string(i) + "] " +
-                                   waypoints[i].label)
-                                      .c_str(),
-                                  is_selected))
+            std::string label =
+                "[" + std::to_string(i) + "] waypoint_" + std::to_string(i);
+            if (ImGui::Selectable(label.c_str(), is_selected))
             {
                 selected_waypoint = static_cast<int>(i);
-                strncpy(rename_buffer,
-                        waypoints[i].label.c_str(),
-                        sizeof(rename_buffer) - 1);
             }
 
             ImGui::SameLine();
@@ -458,8 +490,7 @@ void HMI::teachPendantPanel()
             {
                 if (teach_pendant->goToWaypoint(i, 3.0))
                 {
-                    std::cout << "🎯 Going to waypoint " << i << ": "
-                              << waypoints[i].label << std::endl;
+                    std::cout << "🎯 Going to waypoint " << i << std::endl;
                 }
                 else
                 {
@@ -488,62 +519,24 @@ void HMI::teachPendantPanel()
             selected_waypoint = -1;
             std::cout << "🗑️ Cleared all waypoints" << std::endl;
         }
-
-        // Rename selected waypoint
-        if (selected_waypoint >= 0 &&
-            selected_waypoint < static_cast<int>(waypoints.size()))
-        {
-            ImGui::SameLine();
-            ImGui::InputText("##rename", rename_buffer, sizeof(rename_buffer));
-            ImGui::SameLine();
-            if (ImGui::Button("Rename"))
-            {
-                if (teach_pendant->renameWaypoint(selected_waypoint,
-                                                  rename_buffer))
-                {
-                    std::cout << "🏷️ Renamed waypoint " << selected_waypoint
-                              << " to: " << rename_buffer << std::endl;
-                }
-            }
-        }
     }
 
-    // Recording / Trajectory Section (show in TRAJECTORY mode or always
-    // visible)
+    // Trajectory Playback Section (show in TRAJECTORY mode or always visible)
     ImGui::Separator();
-    if (ImGui::CollapsingHeader("Recording & Playback"))
+    if (ImGui::CollapsingHeader("Trajectory Playback"))
     {
-        auto state = teach_pendant->getState();
-        bool is_recording = (state == robotik::TeachPendant::State::RECORDING);
-        bool is_playing = (state == robotik::TeachPendant::State::PLAYING);
+        bool is_playing =
+            (robot->state ==
+             robotik::application::ControlledRobot::State::PLAYING);
 
-        if (!is_recording && !is_playing)
-        {
-            if (ImGui::Button("Start Recording"))
-            {
-                teach_pendant->startRecording();
-                std::cout << "🔴 Started recording" << std::endl;
-            }
-        }
-        else if (is_recording)
-        {
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-                               "● Recording...");
-            if (ImGui::Button("Stop Recording"))
-            {
-                teach_pendant->stopRecording();
-                std::cout << "⏹️ Stopped recording" << std::endl;
-            }
-        }
-
-        ImGui::Separator();
+        ImGui::Text("State: %s", is_playing ? "Playing" : "Idle");
 
         static bool loop_trajectory = false;
         ImGui::Checkbox("Loop Trajectory", &loop_trajectory);
 
         if (!is_playing)
         {
-            if (ImGui::Button("▶ Play Trajectory"))
+            if (ImGui::Button("▶ Play Trajectory", ImVec2(-1, 40)))
             {
                 if (teach_pendant->playRecordedTrajectory(loop_trajectory))
                 {
@@ -551,61 +544,19 @@ void HMI::teachPendantPanel()
                 }
                 else
                 {
-                    std::cout << "⚠️ No trajectory to play" << std::endl;
+                    std::cout
+                        << "⚠️ No trajectory to play (need at least 2 waypoints)"
+                        << std::endl;
                 }
             }
         }
         else
         {
             ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "▶ Playing...");
-            if (ImGui::Button("⏹ Stop"))
+            if (ImGui::Button("⏹ Stop", ImVec2(-1, 40)))
             {
                 teach_pendant->stopTrajectory();
                 std::cout << "⏹️ Stopped trajectory" << std::endl;
-            }
-        }
-    }
-
-    // Safety Section (always visible)
-    ImGui::Separator();
-    if (ImGui::CollapsingHeader("Safety", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        float speed_factor =
-            static_cast<float>(teach_pendant->getSpeedFactor());
-        if (ImGui::SliderFloat("Speed Factor", &speed_factor, 0.0f, 1.0f))
-        {
-            teach_pendant->setSpeedFactor(static_cast<double>(speed_factor));
-        }
-
-        ImGui::Separator();
-
-        if (ImGui::Button("EMERGENCY STOP", ImVec2(-1, 50)))
-        {
-            teach_pendant->emergencyStop();
-            std::cout << "🛑 EMERGENCY STOP activated!" << std::endl;
-        }
-
-        ImGui::Separator();
-
-        auto state = teach_pendant->getState();
-        if (state == robotik::TeachPendant::State::EMERGENCY_STOP)
-        {
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-                               "⚠️ EMERGENCY STOP ACTIVE");
-            if (ImGui::Button("Reset"))
-            {
-                teach_pendant->reset();
-                std::cout << "✅ Reset from emergency stop" << std::endl;
-            }
-        }
-        else
-        {
-            bool is_safe = teach_pendant->isInSafePosition();
-            ImGui::Text("Safe Position: %s", is_safe ? "✓ Yes" : "✗ No");
-            if (!is_safe)
-            {
-                ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f),
-                                   "⚠️ Robot outside safe limits!");
             }
         }
     }
