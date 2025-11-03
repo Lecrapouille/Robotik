@@ -34,22 +34,19 @@ public:
     explicit Controller(renderer::RobotManager& p_robot_manager);
 
     // ----------------------------------------------------------------------------
-    //! \brief Initialize all robots.
-    //! \param p_link_name Optional control link name. If empty, uses
-    //! first end effector.
-    //! \return true if successful.
-    // ----------------------------------------------------------------------------
-    bool initializeRobots(std::string const& p_link_name);
-
-    // ----------------------------------------------------------------------------
     //! \brief Initialize robot configurations (IK targets, trajectory configs).
     //! \param p_robot The robot to initialize.
-    //! \param p_link_name Optional control link name. If empty, uses
-    //! first end effector.
+    //! \param p_control_link Control link name. If empty, uses first end
+    //! effector.
+    //! \param p_joint_positions Initial joint positions. If empty, uses
+    //! neutral.
+    //! \param p_camera_target Camera target node name. If empty, uses root.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
     bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_link_name = "");
+                         std::string const& p_control_link = "",
+                         std::vector<double> const& p_joint_positions = {},
+                         std::string const& p_camera_target = "");
 
     // ----------------------------------------------------------------------------
     //! \brief Update all robots based on their control modes.
