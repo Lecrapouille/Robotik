@@ -14,6 +14,7 @@
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 #include "Robotik/Core/Solvers/Trajectory.hpp"
 
+#include <imgui.h>
 #include <iostream>
 
 namespace robotik::application
@@ -42,8 +43,23 @@ bool Controller::initializeRobots(std::string const& p_link_name)
 // ----------------------------------------------------------------------------
 bool Controller::initializeRobot(
     renderer::RobotManager::ControlledRobot& p_robot,
-    std::string const& p_link_name)
+    std::string const& p_link_name,
+    JointValues const& p_initial_joint_positions)
 {
+    // Set initial joint values from configuration. If no configuration is
+    // provided, set neutral position.
+    if (!p_initial_joint_positions.empty())
+    {
+        p_robot.setJointPositions(p_initial_joint_positions);
+        std::cout << "🤖 Set initial joint values from configuration"
+                  << std::endl;
+    }
+    else
+    {
+        p_robot.setNeutralPosition();
+        std::cout << "🤖 Set neutral position" << std::endl;
+    }
+
     // Set control link (end effector) for inverse kinematics.
     // If no joint name is provided, use first end effector.
     // If joint name is provided, use it.
@@ -88,14 +104,15 @@ bool Controller::initializeRobot(
         return false;
     }
 
+    // Initialize robot state BEFORE computing IK targets (which needs to access
+    // it)
+    m_robot_states[p_robot.name()] = RobotState{};
+
     // Compute IK target poses if control link is set
     computeIKTargetPoses(p_robot);
 
     // Compute trajectory configurations
     computeTrajectoryConfigs(p_robot);
-
-    // Initialize robot state
-    m_robot_states[p_robot.name()] = RobotState{};
 
     return true;
 }
@@ -143,11 +160,12 @@ bool Controller::setControlMode(std::string const& p_robot_name,
         robot->trajectory.reset();
     }
 
-    // Recompute IK targets if not already computed.
-    if (p_mode == renderer::RobotManager::ControlMode::INVERSE_KINEMATICS &&
-        (!robot->ik_target_poses.empty()))
+    // Reset IK cycle when switching to IK mode
+    if (p_mode == renderer::RobotManager::ControlMode::INVERSE_KINEMATICS)
     {
-        computeIKTargetPoses(*robot);
+        auto& robot_state = m_robot_states[p_robot_name];
+        robot_state.ik_cycle_complete = false; // Allow restart
+        robot_state.solution_computed = false; // Recompute solution
     }
 
     return true;
@@ -247,6 +265,10 @@ void Controller::computeIKTargetPoses(
 
     // Initialize IK solver
     p_robot.ik_solver = std::make_unique<robotik::JacobianIKSolver>();
+
+    // Store home configuration (center position) in robot state
+    auto& robot_state = m_robot_states[p_robot.name()];
+    robot_state.home_configuration = joint_configs[1];
 }
 
 // ----------------------------------------------------------------------------
@@ -317,13 +339,19 @@ void Controller::handleAnimation(
 // ----------------------------------------------------------------------------
 void Controller::handleInverseKinematics(
     renderer::RobotManager::ControlledRobot& p_robot,
-    double p_dt,
+    [[maybe_unused]] double p_dt,
     RobotState& p_robot_state) const
 {
     if (p_robot.control_link == nullptr || p_robot.ik_solver == nullptr)
     {
         std::cout << "🤖 Error: control link or solver not set" << std::endl;
         return;
+    }
+
+    // If cycle is complete, stop (user can manually restart)
+    if (p_robot_state.ik_cycle_complete)
+    {
+        return; // Stay in IK mode but don't compute anything
     }
 
     // Get current target pose based on state
@@ -333,65 +361,58 @@ void Controller::handleInverseKinematics(
     // Compute IK solution only once per target
     if (!p_robot_state.solution_computed)
     {
-        if (bool solved = p_robot.ik_solver->solve(
-                p_robot, *p_robot.control_link, target_pose);
-            solved)
+        bool solved = p_robot.ik_solver->solve(
+            p_robot, *p_robot.control_link, target_pose);
+
+        if (solved && p_robot.ik_solver->converged())
         {
+            // IK converged successfully
             p_robot_state.ik_solution = p_robot.ik_solver->solution();
             p_robot_state.solution_computed = true;
+            p_robot_state.ik_failed = false;
 
             std::cout << "🎯 IK solved for target "
                       << (p_robot_state.target_pose_index + 1)
                       << " - Error: " << p_robot.ik_solver->poseError()
                       << " - Iterations: " << p_robot.ik_solver->numIterations()
                       << std::endl;
+
+            // Get current joint positions
+            std::vector<double> current_positions;
+            current_positions.reserve(p_robot.blueprint().numJoints());
+            p_robot.blueprint().forEachJoint(
+                [&current_positions](Joint const& joint, size_t /*index*/)
+                { current_positions.push_back(joint.position()); });
+
+            // Create trajectory to IK solution
+            robotik::JointSpaceGenerator generator;
+            constexpr double trajectory_duration = 3.0; // 3 seconds
+            p_robot.trajectory = generator.generate(current_positions,
+                                                    p_robot_state.ik_solution,
+                                                    trajectory_duration);
+
+            // Switch to TRAJECTORY mode
+            p_robot.control_mode =
+                renderer::RobotManager::ControlMode::TRAJECTORY;
+            p_robot.trajectory_segment = 0;
+            p_robot_state.trajectory_from_ik = true;
+
+            std::cout << "🎯 Created trajectory to IK solution (duration: "
+                      << trajectory_duration << "s)" << std::endl;
         }
         else
         {
+            // IK failed to converge
             std::cout << "⚠️ IK failed to converge for target "
                       << (p_robot_state.target_pose_index + 1)
                       << " - Error: " << p_robot.ik_solver->poseError()
                       << std::endl;
-            // Use the best solution found so far
-            p_robot_state.ik_solution = p_robot.ik_solver->solution();
+
+            // Set failure flags to show popup
+            p_robot_state.ik_failed = true;
+            p_robot_state.show_failure_popup = true;
             p_robot_state.solution_computed = true;
         }
-    }
-
-    // Apply IK solution with velocity limits
-    p_robot.applyJointTargetsWithSpeedLimit(p_robot_state.ik_solution, p_dt);
-
-    // Check if end-effector has reached the target pose
-    Transform current_transform = p_robot.control_link->worldTransform();
-    Pose current_pose = robotik::transformToPose(current_transform);
-    Pose pose_error = robotik::calculatePoseError(target_pose, current_pose);
-    double error_magnitude = pose_error.norm();
-
-    // Log progress occasionally
-    static size_t log_count = 0;
-    if (++log_count % 60 == 0) // Log every 60 frames (~1 second at 60fps)
-    {
-        std::cout << "📍 Target " << (p_robot_state.target_pose_index + 1)
-                  << " - Pose error: " << error_magnitude << std::endl;
-    }
-
-    // If close enough to target pose, move to next target
-    // Use stricter threshold (0.01) if IK converged, looser (0.1) otherwise
-    double threshold = (p_robot.ik_solver->converged()) ? 0.01 : 0.1;
-
-    if (error_magnitude < threshold)
-    {
-        std::cout << "✅ Reached target "
-                  << (p_robot_state.target_pose_index + 1)
-                  << " (pose error: " << error_magnitude << ")" << std::endl;
-
-        // Transition to next target
-        p_robot_state.target_pose_index++;
-        if (p_robot_state.target_pose_index >= p_robot.ik_target_poses.size())
-        {
-            p_robot_state.target_pose_index = 0;
-        }
-        p_robot_state.solution_computed = false; // Recompute for next target
     }
 }
 
@@ -401,15 +422,29 @@ void Controller::handleTrajectory(
     double p_time,
     double p_dt) const
 {
-    if (p_robot.trajectory_configs.empty())
-    {
-        std::cout << "🤖 Error: no trajectory configurations" << std::endl;
-        return;
-    }
+    auto& robot_state = m_robot_states[p_robot.name()];
 
-    // If no trajectory is active, create a new one
+    // If no trajectory is active, create a new one (for manual trajectory mode)
     if (!p_robot.trajectory)
     {
+        // Only create automatic trajectories if not coming from IK
+        if (robot_state.trajectory_from_ik)
+        {
+            // This shouldn't happen, but handle gracefully
+            std::cout << "⚠️ No trajectory but trajectory_from_ik is set"
+                      << std::endl;
+            robot_state.trajectory_from_ik = false;
+            p_robot.control_mode =
+                renderer::RobotManager::ControlMode::INVERSE_KINEMATICS;
+            return;
+        }
+
+        if (p_robot.trajectory_configs.empty())
+        {
+            std::cout << "🤖 Error: no trajectory configurations" << std::endl;
+            return;
+        }
+
         size_t start_idx =
             p_robot.trajectory_segment % p_robot.trajectory_configs.size();
         size_t goal_idx = (p_robot.trajectory_segment + 1) %
@@ -436,13 +471,42 @@ void Controller::handleTrajectory(
 
     if (t >= p_robot.trajectory->duration())
     {
-        // Trajectory complete, move to next segment
+        // Trajectory complete
         std::cout << "✅ Trajectory segment "
                   << (p_robot.trajectory_segment + 1) << " complete"
                   << std::endl;
 
-        p_robot.trajectory_segment++;
-        p_robot.trajectory.reset(); // Will create new trajectory on next update
+        // Check if this trajectory was created by IK
+        if (robot_state.trajectory_from_ik)
+        {
+            // Return to IK mode and move to next target
+            std::cout << "🔄 Returning to INVERSE_KINEMATICS mode" << std::endl;
+            p_robot.control_mode =
+                renderer::RobotManager::ControlMode::INVERSE_KINEMATICS;
+            robot_state.trajectory_from_ik = false;
+
+            // Move to next IK target
+            robot_state.target_pose_index++;
+            if (robot_state.target_pose_index >= p_robot.ik_target_poses.size())
+            {
+                // Completed all targets, stop the cycle
+                robot_state.target_pose_index = 0;
+                robot_state.ik_cycle_complete = true;
+                std::cout << "✅ All IK targets reached! Cycle complete."
+                          << std::endl;
+                std::cout
+                    << "   (Switch to another mode or restart IK to continue)"
+                    << std::endl;
+            }
+            robot_state.solution_computed = false; // Recompute for next target
+        }
+        else
+        {
+            // Manual trajectory mode: move to next segment
+            p_robot.trajectory_segment++;
+        }
+
+        p_robot.trajectory.reset(); // Clear trajectory
         return;
     }
 
@@ -451,6 +515,93 @@ void Controller::handleTrajectory(
 
     // Apply with velocity limits
     p_robot.applyJointTargetsWithSpeedLimit(trajectory_point.position, p_dt);
+}
+
+// ----------------------------------------------------------------------------
+void Controller::renderIKFailurePopup(std::string const& p_robot_name)
+{
+    auto* robot = m_robot_manager.getRobot(p_robot_name);
+    if (robot == nullptr)
+        return;
+
+    auto& robot_state = m_robot_states[p_robot_name];
+
+    // Only show popup if IK failed and flag is set
+    if (!robot_state.show_failure_popup)
+        return;
+
+    // Open the popup
+    ImGui::OpenPopup("IK Failure");
+
+    // Center the popup
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal(
+            "IK Failure", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        ImGui::Text("Inverse Kinematics failed to converge for target %zu.",
+                    robot_state.target_pose_index + 1);
+        ImGui::Separator();
+        ImGui::Text("What would you like to do?");
+        ImGui::Spacing();
+
+        // Button 1: Return to Home
+        if (ImGui::Button("Return to Home", ImVec2(200, 0)))
+        {
+            std::cout << "🏠 Returning to home configuration" << std::endl;
+
+            // Get current joint positions
+            std::vector<double> current_positions;
+            current_positions.reserve(robot->blueprint().numJoints());
+            robot->blueprint().forEachJoint(
+                [&current_positions](Joint const& joint, size_t /*index*/)
+                { current_positions.push_back(joint.position()); });
+
+            // Create trajectory to home configuration
+            robotik::JointSpaceGenerator generator;
+            constexpr double trajectory_duration = 3.0; // 3 seconds
+            robot->trajectory =
+                generator.generate(current_positions,
+                                   robot_state.home_configuration,
+                                   trajectory_duration);
+
+            // Switch to TRAJECTORY mode
+            robot->control_mode =
+                renderer::RobotManager::ControlMode::TRAJECTORY;
+            robot->trajectory_segment = 0;
+            robot_state.trajectory_from_ik =
+                true; // Will return to IK mode after
+
+            // Close popup and reset flags
+            robot_state.show_failure_popup = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::Spacing();
+
+        // Button 2: Stay Immobile
+        if (ImGui::Button("Stay Immobile", ImVec2(200, 0)))
+        {
+            std::cout << "🛑 Staying at current position, moving to next target"
+                      << std::endl;
+
+            // Move to next IK target
+            robot_state.target_pose_index++;
+            if (robot_state.target_pose_index >= robot->ik_target_poses.size())
+            {
+                robot_state.target_pose_index = 0;
+            }
+            robot_state.solution_computed = false; // Recompute for next target
+            robot_state.ik_failed = false;
+
+            // Close popup and reset flags
+            robot_state.show_failure_popup = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 } // namespace robotik::application

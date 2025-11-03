@@ -46,10 +46,13 @@ public:
     //! \param p_robot The robot to initialize.
     //! \param p_link_name Optional control link name. If empty, uses
     //! first end effector.
+    //! \param p_initial_joint_positions Optional initial joint positions. If
+    //! empty, uses neutral position.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
     bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
-                         std::string const& p_link_name = "");
+                         std::string const& p_link_name = "",
+                         JointValues const& p_initial_joint_positions = {});
 
     // ----------------------------------------------------------------------------
     //! \brief Update all robots based on their control modes.
@@ -85,6 +88,12 @@ public:
     bool setCameraTarget(std::string const& p_robot_name,
                          std::string const& p_node_name);
 
+    // ----------------------------------------------------------------------------
+    //! \brief Render IK failure popup with recovery options.
+    //! \param p_robot_name Robot name.
+    // ----------------------------------------------------------------------------
+    void renderIKFailurePopup(std::string const& p_robot_name);
+
 private:
 
     // ----------------------------------------------------------------------------
@@ -95,6 +104,13 @@ private:
         size_t target_pose_index = 0;
         bool solution_computed = false;
         JointValues ik_solution;
+        JointValues home_configuration;
+        bool ik_failed = false;
+        bool show_failure_popup = false;
+        bool return_to_home_requested = false;
+        bool trajectory_from_ik =
+            false; // Flag to indicate trajectory was created by IK
+        bool ik_cycle_complete = false; // Flag to indicate all targets reached
     };
 
     // ----------------------------------------------------------------------------
@@ -143,8 +159,9 @@ private:
 
     //! \brief Reference to robot manager.
     renderer::RobotManager& m_robot_manager;
-    //! \brief Robot states indexed by robot name.
-    std::unordered_map<std::string, RobotState> m_robot_states;
+    //! \brief Robot states indexed by robot name (mutable for state tracking in
+    //! const methods).
+    mutable std::unordered_map<std::string, RobotState> m_robot_states;
 };
 
 } // namespace robotik::application

@@ -81,69 +81,6 @@ void RenderVisitor::visit(const robotik::Node& /*node*/)
 }
 
 // ----------------------------------------------------------------------------
-void RenderVisitor::preloadGeometries(robotik::Blueprint const& p_blueprint)
-{
-    // Iterate through all cached geometries and create their meshes
-    for (auto const& geom_ref : p_blueprint.geometries())
-    {
-        robotik::Geometry const& geom = geom_ref.get();
-        std::string const& mesh_name = geom.name();
-
-        // Skip if already loaded
-        if (m_mesh_manager.hasMesh(mesh_name))
-            continue;
-
-        // Create mesh based on geometry type
-        if (auto* box = dynamic_cast<const robotik::Box*>(&geom))
-        {
-            const auto& params = box->parameters();
-            if (params.size() == 3)
-            {
-                m_mesh_manager.createBox(
-                    mesh_name,
-                    static_cast<float>(params[0]),  // width
-                    static_cast<float>(params[1]),  // height
-                    static_cast<float>(params[2])); // depth
-            }
-        }
-        else if (auto* cyl = dynamic_cast<const robotik::Cylinder*>(&geom))
-        {
-            const auto& params = cyl->parameters();
-            if (params.size() == 2)
-            {
-                m_mesh_manager.createCylinder(
-                    mesh_name,
-                    static_cast<float>(params[0]), // radius
-                    static_cast<float>(params[1]), // length
-                    32);                           // segments
-            }
-        }
-        else if (auto* sphere = dynamic_cast<const robotik::Sphere*>(&geom))
-        {
-            const auto& params = sphere->parameters();
-            if (params.size() == 1)
-            {
-                m_mesh_manager.createSphere(
-                    mesh_name,
-                    static_cast<float>(params[0]), // radius
-                    16,                            // latitude segments
-                    16);                           // longitude segments
-            }
-        }
-        else if (auto* mesh = dynamic_cast<const robotik::Mesh*>(&geom))
-        {
-            STLLoader loader;
-            if (!m_mesh_manager.loadFromFile(
-                    mesh_name, mesh->meshPath(), loader, false))
-            {
-                std::cerr << "Failed to load mesh: " << mesh->meshPath()
-                          << std::endl;
-            }
-        }
-    }
-}
-
-// ----------------------------------------------------------------------------
 void RenderVisitor::renderMesh(const MeshManager::GPUMesh* p_mesh,
                                const Eigen::Matrix4f& p_transform,
                                const Eigen::Vector3f& p_color) const

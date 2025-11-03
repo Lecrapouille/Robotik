@@ -94,16 +94,6 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Preload all geometries from the robot blueprint.
-    //! \param p_blueprint The robot blueprint containing all geometries.
-    //!
-    //! This method creates all GPU meshes needed for rendering the robot
-    //! before the first render call. It should be called once after loading
-    //! the robot model.
-    // ------------------------------------------------------------------------
-    void preloadGeometries(robotik::Blueprint const& p_blueprint);
-
-    // ------------------------------------------------------------------------
     //! \brief Render a mesh with transformation and color.
     //! \param p_mesh Pointer to GPU mesh to render.
     //! \param p_transform 4x4 transformation matrix.

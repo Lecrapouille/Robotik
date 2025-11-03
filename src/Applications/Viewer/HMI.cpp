@@ -83,6 +83,12 @@ void HMI::onDrawMainPanel()
     }
 
     ImGui::End();
+
+    // Render IK failure popup for selected robot (outside main window)
+    if (!m_selected_robot.empty())
+    {
+        m_controller.renderIKFailurePopup(m_selected_robot);
+    }
 }
 
 // ----------------------------------------------------------------------------

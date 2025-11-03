@@ -43,6 +43,8 @@ struct Configuration
     bool show_prismatic_joint_axes = true;
     //! Physics gravity
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
+    //! Use root if camera target is not found
+    bool use_root_if_not_found = true;
 };
 
 } // namespace robotik::application
