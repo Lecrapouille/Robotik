@@ -9,8 +9,9 @@
 
 #pragma once
 
-#include "Robotik/Core/Robot/Robot.hpp"
+#include "Robotik/Core/Robot/ControlledRobot.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
+#include "Robotik/Core/Solvers/IKSolver.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
 #include <memory>
@@ -19,34 +20,6 @@
 
 namespace robotik::application
 {
-
-// ****************************************************************************
-//! \brief Controlled robot class that extends Robot with control capabilities.
-//!
-//! This class inherits from Robot and adds teach pendant functionality for
-//! interactive robot control, as well as camera tracking support.
-// ****************************************************************************
-class ControlledRobot: public robotik::Robot
-{
-public:
-
-    // ------------------------------------------------------------------------
-    //! \brief Constructor forwarding to Robot constructor.
-    //! \param p_name The name of the robot.
-    //! \param p_blueprint The robot's kinematic structure.
-    // ------------------------------------------------------------------------
-    ControlledRobot(std::string const& p_name, robotik::Blueprint&& p_blueprint)
-        : Robot(p_name, std::move(p_blueprint))
-    {
-    }
-
-    //! \brief Teach pendant for interactive robot control
-    std::unique_ptr<robotik::TeachPendant> teach_pendant;
-    //! \brief Tracked node for camera
-    robotik::Node const* camera_target = nullptr;
-    //! \brief Camera tracking enabled
-    bool camera_tracking_enabled = true;
-};
 
 // ****************************************************************************
 //! \brief Controller of the Model-View-Controller pattern.
@@ -114,11 +87,10 @@ public:
     ControlledRobot* getControlledRobot(std::string const& p_robot_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Get teach pendant for a robot.
-    //! \param p_robot_name Robot name.
-    //! \return Pointer to teach pendant, nullptr if not found.
+    //! \brief Get the shared teach pendant.
+    //! \return Pointer to teach pendant.
     // ----------------------------------------------------------------------------
-    robotik::TeachPendant* getTeachPendant(std::string const& p_robot_name);
+    robotik::TeachPendant* getTeachPendant();
 
 private:
 
@@ -127,6 +99,10 @@ private:
     //! \brief Controlled robots indexed by robot name.
     std::unordered_map<std::string, std::unique_ptr<ControlledRobot>>
         m_controlled_robots;
+    //! \brief Shared teach pendant for all robots.
+    std::unique_ptr<robotik::TeachPendant> m_teach_pendant;
+    //! \brief Shared IK solver for all robots.
+    std::unique_ptr<robotik::IKSolver> m_ik_solver;
 };
 
 } // namespace robotik::application

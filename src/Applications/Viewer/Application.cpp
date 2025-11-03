@@ -342,22 +342,23 @@ void Application::renderRobot(ControlledRobot const& p_robot,
                               bool p_is_selected)
 {
     // Render nodes of the robot (always visible in new architecture)
-    if (p_robot.blueprint().hasRoot())
+    auto& blueprint = p_robot.blueprint();
+    if (!blueprint.enabled())
+        return;
+    if (blueprint.hasRoot())
     {
-        p_robot.blueprint().root().traverse(*m_render);
+        blueprint.root().traverse(*m_render);
     }
 
     // Only render teach pendant visualization for selected robot
     if (!p_is_selected)
         return;
 
-    // Render teach pendant end effector axes
-    if (p_robot.teach_pendant)
+    // Render end effector axes if available
+    if (p_robot.end_effector)
     {
-        auto current_pose = p_robot.teach_pendant->getCurrentPose();
-        // Cast from double to float properly
         Eigen::Matrix4f target_transform_f =
-            current_pose.matrix().cast<float>();
+            p_robot.end_effector->worldTransform().cast<float>();
         if (auto* axis_mesh = m_geometry_manager->getMesh("axis"))
         {
             m_render->renderAxes(axis_mesh, target_transform_f, 1.0f);

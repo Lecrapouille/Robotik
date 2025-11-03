@@ -95,21 +95,11 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Render a mesh with transformation and color.
-    //! \param p_mesh Pointer to GPU mesh to render.
-    //! \param p_transform 4x4 transformation matrix.
-    //! \param p_color RGB color (0.0-1.0).
-    // ------------------------------------------------------------------------
-    void renderMesh(const GeometryManager::GPUMesh* p_mesh,
-                    const Eigen::Matrix4f& p_transform,
-                    const Eigen::Vector3f& p_color) const;
-
-    // ------------------------------------------------------------------------
     //! \brief Render coordinate axes (X=red, Y=green, Z=blue).
-    //! \param p_transform 4x4 transformation matrix.
-    //! \param p_scale Scale factor for axes.
     //! \param p_axes_mesh Pointer to cylinder mesh for axes (from
     //! GeometryManager).
+    //! \param p_transform 4x4 transformation matrix.
+    //! \param p_scale Scale factor for axes.
     // ------------------------------------------------------------------------
     void renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
                     const Eigen::Matrix4f& p_transform,
@@ -126,6 +116,16 @@ public:
 private:
 
     // ------------------------------------------------------------------------
+    //! \brief Render a mesh with transformation and color.
+    //! \param p_mesh Pointer to GPU mesh to render.
+    //! \param p_transform 4x4 transformation matrix.
+    //! \param p_color RGB color (0.0-1.0).
+    // ------------------------------------------------------------------------
+    void renderMesh(const GeometryManager::GPUMesh* p_mesh,
+                    const Eigen::Matrix4f& p_transform,
+                    const Eigen::Vector3f& p_color) const;
+
+    // ------------------------------------------------------------------------
     //! \brief Render a geometry with the given transform.
     // ------------------------------------------------------------------------
     void renderGeometry(robotik::Geometry const& geom,
@@ -136,6 +136,8 @@ private:
     //! \param p_joint The joint to render axis for.
     // ------------------------------------------------------------------------
     void renderJointAxis(robotik::Joint const& p_joint) const;
+
+private:
 
     GeometryManager& m_geometry_manager;
     ShaderManager const& m_shader_manager;
