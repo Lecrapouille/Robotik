@@ -245,6 +245,18 @@ public:
         m_scale = p_scale;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Rebuild the internal cache after the blueprint has been moved.
+    //!
+    //! This method should be called after moving a Blueprint to ensure that
+    //! internal lookup tables are correctly populated with references to the
+    //! nodes in the kinematic tree.
+    // ------------------------------------------------------------------------
+    inline void rebuildCache()
+    {
+        cacheBlueprintTree();
+    }
+
 private:
 
     // ------------------------------------------------------------------------

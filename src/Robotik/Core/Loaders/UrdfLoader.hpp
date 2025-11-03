@@ -63,40 +63,21 @@ public:
     URDFLoader& operator=(URDFLoader&&) = delete;
 
     // ------------------------------------------------------------------------
+    //! \brief Load the blueprint and robot name from a URDF file.
+    //! \param p_filename Path to the URDF file.
+    //! \param[out] p_robot_name The name of the robot extracted from the file.
+    //! \return A Blueprint if successful, or an empty optional on failure.
+    // ------------------------------------------------------------------------
+    std::optional<Blueprint> loadBlueprint(const std::string& p_filename,
+                                           std::string& p_robot_name) override;
+
+    // ------------------------------------------------------------------------
     //! \brief Load a robot from a URDF file.
     //! \param p_filename The path to the URDF file.
     //! \return A unique pointer to the robot if the file was loaded
     //! successfully, else nullptr.
     // ------------------------------------------------------------------------
     std::unique_ptr<Robot> load(const std::string& p_filename) override;
-
-    // ------------------------------------------------------------------------
-    //! \brief Load a robot from a URDF file as a derived Robot type.
-    //! \tparam RobotType The derived Robot class to instantiate.
-    //! \param p_filename The path to the URDF file.
-    //! \return A unique pointer to the derived robot if the file was loaded
-    //! successfully, else nullptr.
-    //!
-    //! This template method allows creating instances of classes derived from
-    //! Robot. The derived class must have the same constructor signature as
-    //! Robot (name and blueprint).
-    // ------------------------------------------------------------------------
-    template <typename RobotType = Robot>
-    std::unique_ptr<RobotType> loadAs(const std::string& p_filename)
-    {
-        static_assert(std::is_base_of<Robot, RobotType>::value,
-                      "RobotType must derive from Robot");
-
-        auto robot = load(p_filename);
-        if (!robot)
-        {
-            return nullptr;
-        }
-
-        // Safe cast due to static_assert
-        return std::unique_ptr<RobotType>(
-            static_cast<RobotType*>(robot.release()));
-    }
 
     // ------------------------------------------------------------------------
     //! \brief Get the error message if the load() method failed (returns
@@ -113,6 +94,7 @@ private:
     // Core parsing methods
     bool parseLinks(pugi::xml_node p_robot_element);
     bool parseJoints(pugi::xml_node p_robot_element);
+    std::optional<Blueprint> buildBlueprint();
     std::unique_ptr<Robot> buildRobotModel(std::string const& p_robot_name);
     std::unique_ptr<Joint> buildJointTree(Joint const* p_current_joint);
 

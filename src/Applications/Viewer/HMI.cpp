@@ -164,7 +164,7 @@ void HMI::loadRobotPanel()
         if (ImGuiFileDialog::Instance()->IsOk())
         {
             std::string urdf = ImGuiFileDialog::Instance()->GetFilePathName();
-            auto* robot = m_robot_manager.loadRobot(urdf);
+            auto* robot = m_robot_manager.loadRobot<ControlledRobot>(urdf);
             if (robot != nullptr)
             {
                 std::cout << "✅ Loaded robot from: " << urdf << std::endl;
@@ -172,8 +172,7 @@ void HMI::loadRobotPanel()
                 // Extract blueprint and initialize controlled robot
                 std::string robot_name = robot->name();
                 robotik::Blueprint blueprint = std::move(robot->blueprint());
-                m_controller.initializeRobot(
-                    robot_name, std::move(blueprint), "", {}, "");
+                m_controller.initializeRobot(robot, "", {}, "");
 
                 setSelectedRobot(robot_name);
                 refreshRobotList();

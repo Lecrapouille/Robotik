@@ -22,31 +22,6 @@ void RobotManager::clear()
 }
 
 // ----------------------------------------------------------------------------
-Robot* RobotManager::loadRobot(const std::string& p_urdf_path)
-{
-    robotik::URDFLoader parser;
-    auto robot = parser.load(p_urdf_path);
-    if (!robot)
-    {
-        m_error = "Failed to load robot from URDF: " + parser.error();
-        return nullptr;
-    }
-
-    // Get robot name before moving
-    std::string robot_name = robot->name();
-
-    // Store the new robot
-    if (!addRobot(robot_name, std::move(robot)))
-    {
-        m_error = "Failed to add robot: " + m_error;
-        return nullptr;
-    }
-
-    // Return the new robot
-    return m_current_robot;
-}
-
-// ----------------------------------------------------------------------------
 bool RobotManager::addRobot(const std::string& p_robot_name,
                             std::unique_ptr<Robot> p_robot)
 {
@@ -63,8 +38,7 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
     }
 
     // Add the robot to the map
-    auto [it, success] =
-        m_robots.try_emplace(p_robot_name, std::move(p_robot));
+    auto [it, success] = m_robots.try_emplace(p_robot_name, std::move(p_robot));
 
     // Set the current robot if the robot was added successfully.
     if (success)

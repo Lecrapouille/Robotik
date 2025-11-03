@@ -514,13 +514,13 @@ private:
     //! \brief Cached combined local transformation (static + joint).
     Transform m_combined_local_transform;
     //! \brief Current joint configuration value (radians or meters)
-    double m_position;
+    double m_position = 0.0;
     //! \brief safety limit: minimum allowable joint value (safety limit)
     //! (radians or meters)
-    double m_position_min;
+    double m_position_min = 0.0;
     //! \brief safety limit: maximum allowable joint value (safety limit)
     //! (radians or meters)
-    double m_position_max;
+    double m_position_max = 0.0;
     //! \brief Current joint velocity value (radians/second or meters/second)
     double m_velocity = 0.0;
     //! \brief Maximum joint velocity value (radians/second or meters/second)

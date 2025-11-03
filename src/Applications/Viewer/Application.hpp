@@ -223,8 +223,6 @@ private:
     int m_view_uniform = -1;
     //! \brief Viewport for the application.
     std::array<int, 4> m_viewport{ 0, 0, 0, 0 };
-    //! \brief Start time for animation.
-    std::chrono::steady_clock::time_point m_start_time;
     //! \brief Title of the application.
     std::string m_title;
     //! \brief FPS of the application.

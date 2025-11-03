@@ -220,7 +220,7 @@ bool Application::setupRobots()
     for (auto const& urdf_file : m_config.urdf_files)
     {
         // Load robot from URDF file
-        auto* robot = m_robot_manager->loadRobot(urdf_file);
+        auto* robot = m_robot_manager->loadRobot<ControlledRobot>(urdf_file);
         if (robot == nullptr)
         {
             m_error =
@@ -230,12 +230,7 @@ bool Application::setupRobots()
         std::cout << "Loaded robot from: " << urdf_file << std::endl;
         std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
 
-        // Extract blueprint and initialize controlled robot with teach pendant
-        std::string robot_name = robot->name();
-        robotik::Blueprint blueprint = std::move(robot->blueprint());
-
-        if (!m_controller->initializeRobot(robot_name,
-                                           std::move(blueprint),
+        if (!m_controller->initializeRobot(robot,
                                            m_config.control_link,
                                            m_config.joint_positions,
                                            m_config.camera_target))
@@ -245,7 +240,8 @@ bool Application::setupRobots()
         }
 
         // Get controlled robot to access its blueprint for mesh creation
-        auto* controlled_robot = m_controller->getControlledRobot(robot_name);
+        auto* controlled_robot =
+            m_controller->getControlledRobot(robot->name());
         if (controlled_robot != nullptr)
         {
             // Create meshes for all geometries of the robot
@@ -274,8 +270,6 @@ bool Application::setupHMI()
                                   *m_controller,
                                   *m_orbit_controller,
                                   [this]() { halt(); });
-
-    m_start_time = std::chrono::steady_clock::now();
 
     return true;
 }
@@ -386,15 +380,10 @@ void Application::onUpdate(float const dt)
         }
     }
 
-    // Animation timing update
-    auto current_time = std::chrono::steady_clock::now();
-    double elapsed_seconds =
-        std::chrono::duration<double>(current_time - m_start_time).count();
-
     // Robot controller update
     if (m_controller)
     {
-        m_controller->update(elapsed_seconds, static_cast<double>(dt));
+        m_controller->update(static_cast<double>(dt));
     }
 }
 

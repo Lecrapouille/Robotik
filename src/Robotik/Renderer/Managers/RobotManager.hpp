@@ -9,15 +9,16 @@
 
 #pragma once
 
+#include "Robotik/Core/Loaders/RobotLoaderFactory.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
-#include "Robotik/Core/Solvers/Trajectory.hpp"
 
 #include <Eigen/Dense>
 
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -55,7 +56,39 @@ public:
     //! \param p_urdf_path Path to the URDF file.
     //! \return Pointer to robot, nullptr if failed.
     // ------------------------------------------------------------------------
-    Robot* loadRobot(const std::string& p_urdf_path);
+    template <typename RobotType = Robot>
+    RobotType* loadRobot(const std::string& p_urdf_path)
+    {
+        static_assert(std::is_base_of_v<Robot, RobotType>,
+                      "RobotType must inherit from Robot");
+        auto loader = RobotLoaderFactory::create(p_urdf_path);
+        if (!loader)
+        {
+            m_error = "Failed to create loader for: " + p_urdf_path;
+            return nullptr;
+        }
+
+        auto robot = loader->loadAs<RobotType>(p_urdf_path);
+        if (!robot)
+        {
+            m_error = "Failed to load robot from: " + p_urdf_path + " - " +
+                      loader->error();
+            return nullptr;
+        }
+
+        // Get robot name before moving
+        std::string robot_name = robot->name();
+
+        // Store the new robot
+        if (!addRobot(robot_name, std::move(robot)))
+        {
+            m_error = "Failed to add robot: " + m_error;
+            return nullptr;
+        }
+
+        // Return the new robot
+        return static_cast<RobotType*>(m_current_robot);
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Add an existing robot instance.
@@ -88,10 +121,43 @@ public:
     Robot* getRobot(const std::string& p_robot_name);
 
     // ------------------------------------------------------------------------
+    //! \brief Get robot by name (template version for derived types).
+    //! \tparam RobotType Type of robot (default: Robot).
+    //! \param p_robot_name Name of the robot.
+    //! \return Pointer to robot of specified type, nullptr if not found.
+    // ------------------------------------------------------------------------
+    template <typename RobotType = Robot>
+    RobotType* getRobot(const std::string& p_robot_name)
+    {
+        static_assert(std::is_base_of_v<Robot, RobotType>,
+                      "RobotType must inherit from Robot");
+        auto it = m_robots.find(p_robot_name);
+        if (it == m_robots.end())
+        {
+            return nullptr;
+        }
+        return static_cast<RobotType*>(it->second.get());
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Get the current robot (first loaded robot).
     //! \return Pointer to current robot, nullptr if no robot loaded.
     // ------------------------------------------------------------------------
     Robot* currentRobot() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Get the current robot (template version for derived types).
+    //! \tparam RobotType Type of robot (default: Robot).
+    //! \return Pointer to current robot of specified type, nullptr if no robot
+    //! loaded.
+    // ------------------------------------------------------------------------
+    template <typename RobotType = Robot>
+    RobotType* currentRobot() const
+    {
+        static_assert(std::is_base_of_v<Robot, RobotType>,
+                      "RobotType must inherit from Robot");
+        return static_cast<RobotType*>(m_current_robot);
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Set robot joint values.
@@ -166,6 +232,8 @@ public:
 
 private:
 
+    //! \brief Robot loader factory.
+    RobotLoaderFactory m_loader_factory;
     //! \brief Managed robots.
     std::unordered_map<std::string, std::unique_ptr<Robot>> m_robots;
     //! \brief Current robot.
