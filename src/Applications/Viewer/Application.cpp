@@ -230,9 +230,12 @@ bool Application::setupRobots()
         std::cout << "Loaded robot from: " << urdf_file << std::endl;
         std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
 
-        // Initialize robot through controller (sets joints, control link,
-        // camera target)
-        if (!m_controller->initializeRobot(*robot,
+        // Extract blueprint and initialize controlled robot with teach pendant
+        std::string robot_name = robot->name();
+        robotik::Blueprint blueprint = std::move(robot->blueprint());
+
+        if (!m_controller->initializeRobot(robot_name,
+                                           std::move(blueprint),
                                            m_config.control_link,
                                            m_config.joint_positions,
                                            m_config.camera_target))
@@ -241,11 +244,17 @@ bool Application::setupRobots()
             return false;
         }
 
-        // Create meshes for all geometries of the robot
-        for (auto const& geom_ref : robot->blueprint().geometries())
+        // Get controlled robot to access its blueprint for mesh creation
+        auto* controlled_robot = m_controller->getControlledRobot(robot_name);
+        if (controlled_robot != nullptr)
         {
-            robotik::Geometry const& geom = geom_ref.get();
-            m_geometry_manager->createMeshFromGeometry(geom);
+            // Create meshes for all geometries of the robot
+            for (auto const& geom_ref :
+                 controlled_robot->blueprint().geometries())
+            {
+                robotik::Geometry const& geom = geom_ref.get();
+                m_geometry_manager->createMeshFromGeometry(geom);
+            }
         }
     }
 
@@ -284,6 +293,12 @@ void Application::onDrawMainPanel()
 {
     if (!m_hmi)
         return;
+
+    // Draw dockable windows
+    m_hmi->onDrawRobotManagementWindow();
+    m_hmi->onDrawCameraTargetWindow();
+
+    // Draw main teach pendant window
     m_hmi->onDrawMainPanel();
 }
 
@@ -307,87 +322,47 @@ void Application::onDrawScene()
     }
 
     // Render the robots
-    for (auto const& [robot_name, robot] : m_robot_manager->robots())
+    // Note: Robots are now stored in controller as ControlledRobot
+    // We still need to get them from somewhere for rendering
+    // For now, let's iterate through the robot manager's basic robots
+    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
         bool const selected = (robot_name == m_hmi->selectedRobot());
-        renderRobot(robot, selected);
+        // Get the controlled robot from controller
+        auto* controlled_robot = m_controller->getControlledRobot(robot_name);
+        if (controlled_robot)
+        {
+            renderRobot(*controlled_robot, selected);
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
-void Application::renderRobot(
-    renderer::RobotManager::ControlledRobot const& p_robot,
-    bool p_is_selected)
+void Application::renderRobot(ControlledRobot const& p_robot,
+                              bool p_is_selected)
 {
-    // Render nodes of the robot
-    if (p_robot.is_visible && p_robot.blueprint().hasRoot())
+    // Render nodes of the robot (always visible in new architecture)
+    if (p_robot.blueprint().hasRoot())
     {
         p_robot.blueprint().root().traverse(*m_render);
     }
 
-    // Only render IK target and trajectory for selected robot
+    // Only render teach pendant visualization for selected robot
     if (!p_is_selected)
         return;
 
-    // Render IK target axes
-    if (p_robot.control_mode ==
-            renderer::RobotManager::ControlMode::INVERSE_KINEMATICS &&
-        !p_robot.ik_target_poses.empty())
+    // Render teach pendant end effector axes
+    if (p_robot.teach_pendant)
     {
-        Transform target_transform =
-            robotik::poseToTransform(p_robot.ik_target_poses[0]);
+        auto current_pose = p_robot.teach_pendant->getCurrentPose();
+        // Cast from double to float properly
+        Eigen::Matrix4f target_transform_f =
+            current_pose.matrix().cast<float>();
         if (auto* axis_mesh = m_geometry_manager->getMesh("axis"))
         {
-            m_render->renderAxes(
-                axis_mesh, target_transform.cast<float>(), 1.0f);
+            m_render->renderAxes(axis_mesh, target_transform_f, 1.0f);
         }
     }
-
-    // Render trajectory path
-    if (p_robot.control_mode ==
-            renderer::RobotManager::ControlMode::TRAJECTORY &&
-        p_robot.trajectory && p_robot.control_link)
-    {
-        renderTrajectoryPath(p_robot);
-    }
-}
-
-// ----------------------------------------------------------------------------
-void Application::renderTrajectoryPath(
-    renderer::RobotManager::ControlledRobot const& p_robot) const
-{
-    if (!p_robot.trajectory || !p_robot.control_link)
-        return;
-
-    constexpr size_t num_samples = 20;
-    double duration = p_robot.trajectory->duration();
-
-    std::vector<double> saved_positions;
-    saved_positions.reserve(p_robot.blueprint().numJoints());
-    p_robot.blueprint().forEachJoint(
-        [&saved_positions](Joint const& joint, size_t /*index*/)
-        { saved_positions.push_back(joint.position()); });
-
-    auto* axis_mesh = m_geometry_manager->getMesh("axis");
-    if (!axis_mesh)
-        return;
-
-    for (size_t i = 0; i < num_samples; ++i)
-    {
-        double t = (double(i) / double(num_samples - 1)) * duration;
-        auto states = p_robot.trajectory->evaluate(t);
-        p_robot.blueprint().forEachJoint(
-            [&states](Joint& joint, size_t index)
-            { joint.position(states.position[index]); });
-        m_render->renderAxes(
-            axis_mesh,
-            p_robot.control_link->worldTransform().cast<float>(),
-            1.0f);
-    }
-
-    p_robot.blueprint().forEachJoint(
-        [&saved_positions](Joint& joint, size_t index)
-        { joint.position(saved_positions[index]); });
 }
 
 // ----------------------------------------------------------------------------
@@ -396,13 +371,16 @@ void Application::onUpdate(float const dt)
     // Camera update
     m_orbit_controller->update(dt);
 
-    // Camera tracking update
-    for (auto const& [_, it] : m_robot_manager->robots())
+    // Camera tracking update - get controlled robots from controller
+    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
-        if (it.camera_tracking_enabled && it.camera_target)
+        auto* controlled_robot = m_controller->getControlledRobot(robot_name);
+        if (controlled_robot && controlled_robot->camera_tracking_enabled &&
+            controlled_robot->camera_target)
         {
             Eigen::Vector3d target_pos =
-                it.camera_target->worldTransform().block<3, 1>(0, 3);
+                controlled_robot->camera_target->worldTransform().block<3, 1>(
+                    0, 3);
             m_orbit_controller->setTarget(target_pos.cast<float>());
         }
     }
@@ -486,10 +464,11 @@ void Application::switchNeutralPosition() const
 // ----------------------------------------------------------------------------
 void Application::switchVisibility() const
 {
-    auto* robot = m_robot_manager->currentRobot();
-    if (robot == nullptr)
-        return;
-    robot->is_visible = !robot->is_visible;
+    // TODO: Implement visibility toggle through Node::enabled()
+    // auto* robot = m_robot_manager->currentRobot();
+    // if (robot == nullptr)
+    //     return;
+    // robot->blueprint().root().enabled(!robot->blueprint().root().enabled());
 }
 
 // ----------------------------------------------------------------------------

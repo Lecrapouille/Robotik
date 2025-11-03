@@ -176,19 +176,12 @@ private: // setups
 private:
 
     // ----------------------------------------------------------------------------
-    //! \brief Render a robot.
-    //! \param p_robot The controlled robot.
-    //! \param p_is_selected Whether this robot is the currently selected one.
+    //! \brief Render a robot and its teach pendant visualization if selected.
+    //! \param p_robot The controlled robot to render.
+    //! \param p_is_selected Whether this is the selected robot.
     // ----------------------------------------------------------------------------
-    void renderRobot(renderer::RobotManager::ControlledRobot const& p_robot,
+    void renderRobot(ControlledRobot const& p_robot,
                      bool p_is_selected = false);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Render trajectory path with axes.
-    //! \param p_robot The controlled robot.
-    // ----------------------------------------------------------------------------
-    void renderTrajectoryPath(
-        renderer::RobotManager::ControlledRobot const& p_robot) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Switch neutral position for the current robot.

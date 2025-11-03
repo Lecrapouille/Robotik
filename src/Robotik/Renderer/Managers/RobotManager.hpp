@@ -25,80 +25,20 @@ namespace robotik::renderer
 {
 
 // ****************************************************************************
-//! \brief OpenGL robot rendering class.
+//! \brief Robot manager class for handling multiple robot instances.
 //!
-//! This class handles the rendering of robot models loaded from URDF files.
-//! It manages the visual representation of robot links, joints, and provides
-//! methods to update the robot's pose and render it in 3D space.
+//! This class manages basic Robot instances loaded from URDF files.
+//! It provides methods to load, remove, and access robots by name.
 //!
 //! Key features:
-//! - Renders robot links as 3D geometries (boxes, cylinders, spheres, meshes)
-//! - Supports joint transformations and animations
-//! - Manages robot materials and colors
-//! - Provides coordinate frame visualization
-//! - Handles multiple robot instances
+//! - Load robots from URDF files
+//! - Manage multiple robot instances
+//! - Simple robot lifecycle management
+//! - Error handling for robot operations
 // ****************************************************************************
 class RobotManager
 {
 public:
-
-    // ------------------------------------------------------------------------
-    //! \brief Control modes for the robot.
-    // ------------------------------------------------------------------------
-    enum class ControlMode
-    {
-        //! No control
-        NO_CONTROL,
-        //! Direct kinematics - manual joint control
-        DIRECT_KINEMATICS,
-        //! Automatic sinusoidal animation
-        ANIMATION,
-        //! Interactive inverse kinematics control
-        INVERSE_KINEMATICS,
-        //! Trajectory following with velocity limits
-        TRAJECTORY
-    };
-
-    // ------------------------------------------------------------------------
-    //! \brief Controlled robot class that extends Robot with rendering and
-    //! control capabilities.
-    // ------------------------------------------------------------------------
-    class ControlledRobot: public Robot
-    {
-    public:
-
-        //! \brief Constructor forwarding to Robot constructor
-        ControlledRobot(std::string const& p_name, Blueprint&& p_blueprint)
-            : Robot(p_name, std::move(p_blueprint))
-        {
-        }
-
-        //! \brief Control mode (NO_CONTROL, ANIMATION, INVERSE_KINEMATICS,
-        //! TRAJECTORY)
-        ControlMode control_mode = ControlMode::NO_CONTROL;
-        //! \brief Controlled joint for Inverse Kinematics
-        Node const* control_link = nullptr;
-        //! \brief Computed target poses for IK (3 poses)
-        std::vector<robotik::Pose> ik_target_poses;
-        //! \brief IK solver instance
-        std::unique_ptr<robotik::IKSolver> ik_solver;
-        //! \brief Tracked node for camera
-        Node const* camera_target = nullptr;
-        //! \brief Camera tracking enabled
-        bool camera_tracking_enabled = true;
-        //! \brief Visibility flag
-        bool is_visible = true;
-        //! \brief Scale factor
-        float scale = 1.0f;
-        //! \brief Current trajectory (for TRAJECTORY mode)
-        std::unique_ptr<robotik::Trajectory> trajectory;
-        //! \brief Trajectory start time
-        double trajectory_start_time = 0.0;
-        //! \brief Trajectory configurations (start and goal)
-        std::vector<std::vector<double>> trajectory_configs;
-        //! \brief Current trajectory segment index
-        size_t trajectory_segment = 0;
-    };
 
     // ------------------------------------------------------------------------
     //! \brief Destructor.
@@ -113,18 +53,18 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Load a robot from URDF file.
     //! \param p_urdf_path Path to the URDF file.
-    //! \return Pointer to controlled robot, nullptr if failed.
+    //! \return Pointer to robot, nullptr if failed.
     // ------------------------------------------------------------------------
-    ControlledRobot* loadRobot(const std::string& p_urdf_path);
+    Robot* loadRobot(const std::string& p_urdf_path);
 
     // ------------------------------------------------------------------------
-    //! \brief Add an existing controlled robot instance.
+    //! \brief Add an existing robot instance.
     //! \param p_robot_name Unique name for the robot.
-    //! \param p_robot Controlled robot instance to add.
+    //! \param p_robot Robot instance to add.
     //! \return true if successful.
     // ------------------------------------------------------------------------
     bool addRobot(const std::string& p_robot_name,
-                  std::unique_ptr<ControlledRobot> p_robot);
+                  std::unique_ptr<Robot> p_robot);
 
     // ------------------------------------------------------------------------
     //! \brief Remove a robot by name.
@@ -145,13 +85,13 @@ public:
     //! \param p_robot_name Name of the robot.
     //! \return Pointer to robot, nullptr if not found.
     // ------------------------------------------------------------------------
-    RobotManager::ControlledRobot* getRobot(const std::string& p_robot_name);
+    Robot* getRobot(const std::string& p_robot_name);
 
     // ------------------------------------------------------------------------
     //! \brief Get the current robot (first loaded robot).
     //! \return Pointer to current robot, nullptr if no robot loaded.
     // ------------------------------------------------------------------------
-    RobotManager::ControlledRobot* currentRobot() const;
+    Robot* currentRobot() const;
 
     // ------------------------------------------------------------------------
     //! \brief Set robot joint values.
@@ -180,22 +120,6 @@ public:
                       const Eigen::Matrix4f& p_transform);
 
     // ------------------------------------------------------------------------
-    //! \brief Set robot visibility.
-    //! \param p_robot_name Name of the robot.
-    //! \param p_visible Visibility flag.
-    //! \return true if successful.
-    // ------------------------------------------------------------------------
-    bool setRobotVisibility(const std::string& p_robot_name, bool p_visible);
-
-    // ------------------------------------------------------------------------
-    //! \brief Set robot scale.
-    //! \param p_robot_name Name of the robot.
-    //! \param p_scale Scale factor.
-    //! \return true if successful.
-    // ------------------------------------------------------------------------
-    bool setRobotScale(const std::string& p_robot_name, float p_scale);
-
-    // ------------------------------------------------------------------------
     //! \brief Update robot transforms (call after joint changes).
     //! \param p_robot_name Name of the robot to update.
     //! \return true if successful.
@@ -209,14 +133,15 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Get all robots.
-    //! \return Map of robot names and visual data.
+    //! \return Map of robot names and robot pointers.
     // ------------------------------------------------------------------------
-    std::unordered_map<std::string, ControlledRobot> const& robots() const
+    std::unordered_map<std::string, std::unique_ptr<Robot>> const&
+    robots() const
     {
         return m_robots;
     }
 
-    std::unordered_map<std::string, ControlledRobot>& robots()
+    std::unordered_map<std::string, std::unique_ptr<Robot>>& robots()
     {
         return m_robots;
     }
@@ -241,19 +166,10 @@ public:
 
 private:
 
-    // ------------------------------------------------------------------------
-    //! \brief Update robot link transforms from joint values.
-    //! \param p_robot_name Name of the robot.
-    //! \return true if successful.
-    // ------------------------------------------------------------------------
-    bool updateRobotLinkTransforms(const std::string& p_robot_name);
-
-private:
-
-    //! \brief Controlled robots.
-    std::unordered_map<std::string, ControlledRobot> m_robots;
-    //! \brief Current controlled robot.
-    ControlledRobot* m_current_robot = nullptr;
+    //! \brief Managed robots.
+    std::unordered_map<std::string, std::unique_ptr<Robot>> m_robots;
+    //! \brief Current robot.
+    Robot* m_current_robot = nullptr;
     //! \brief Last error message.
     std::string m_error;
 };

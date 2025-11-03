@@ -9,8 +9,11 @@
 
 #pragma once
 
+#include "Robotik/Core/Robot/Robot.hpp"
+#include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -18,10 +21,38 @@ namespace robotik::application
 {
 
 // ****************************************************************************
+//! \brief Controlled robot class that extends Robot with control capabilities.
+//!
+//! This class inherits from Robot and adds teach pendant functionality for
+//! interactive robot control, as well as camera tracking support.
+// ****************************************************************************
+class ControlledRobot: public robotik::Robot
+{
+public:
+
+    // ------------------------------------------------------------------------
+    //! \brief Constructor forwarding to Robot constructor.
+    //! \param p_name The name of the robot.
+    //! \param p_blueprint The robot's kinematic structure.
+    // ------------------------------------------------------------------------
+    ControlledRobot(std::string const& p_name, robotik::Blueprint&& p_blueprint)
+        : Robot(p_name, std::move(p_blueprint))
+    {
+    }
+
+    //! \brief Teach pendant for interactive robot control
+    std::unique_ptr<robotik::TeachPendant> teach_pendant;
+    //! \brief Tracked node for camera
+    robotik::Node const* camera_target = nullptr;
+    //! \brief Camera tracking enabled
+    bool camera_tracking_enabled = true;
+};
+
+// ****************************************************************************
 //! \brief Controller of the Model-View-Controller pattern.
 //!
 //! This class makes the bridge between the model (robot) and the view
-//! (DearImGui) by handling the robot management and control mode selection.
+//! (DearImGui) by handling the robot management and teach pendant control.
 // ****************************************************************************
 class Controller
 {
@@ -34,8 +65,9 @@ public:
     explicit Controller(renderer::RobotManager& p_robot_manager);
 
     // ----------------------------------------------------------------------------
-    //! \brief Initialize robot configurations (IK targets, trajectory configs).
-    //! \param p_robot The robot to initialize.
+    //! \brief Initialize robot configurations with teach pendant.
+    //! \param p_robot_name The robot name.
+    //! \param p_robot_blueprint The robot's blueprint.
     //! \param p_control_link Control link name. If empty, uses first end
     //! effector.
     //! \param p_joint_positions Initial joint positions. If empty, uses
@@ -43,7 +75,8 @@ public:
     //! \param p_camera_target Camera target node name. If empty, uses root.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
-    bool initializeRobot(renderer::RobotManager::ControlledRobot& p_robot,
+    bool initializeRobot(std::string const& p_robot_name,
+                         robotik::Blueprint&& p_robot_blueprint,
                          std::string const& p_control_link = "",
                          std::vector<double> const& p_joint_positions = {},
                          std::string const& p_camera_target = "");
@@ -56,22 +89,13 @@ public:
     void update(double p_elapsed_time, double p_dt);
 
     // ----------------------------------------------------------------------------
-    //! \brief Set control mode for a robot.
+    //! \brief Set end effector for teach pendant.
     //! \param p_robot_name Robot name.
-    //! \param p_mode Control mode.
+    //! \param p_link_name Link name.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
-    bool setControlMode(std::string const& p_robot_name,
-                        renderer::RobotManager::ControlMode p_mode);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set control link for a robot.
-    //! \param p_robot_name Robot name.
-    //! \param p_link_name Joint name.
-    //! \return true if successful.
-    // ----------------------------------------------------------------------------
-    bool setControlJoint(std::string const& p_robot_name,
-                         std::string const& p_link_name);
+    bool setEndEffector(std::string const& p_robot_name,
+                        std::string const& p_link_name);
 
     // ----------------------------------------------------------------------------
     //! \brief Set camera target for a robot.
@@ -82,66 +106,27 @@ public:
     bool setCameraTarget(std::string const& p_robot_name,
                          std::string const& p_node_name);
 
-private:
+    // ----------------------------------------------------------------------------
+    //! \brief Get controlled robot by name.
+    //! \param p_robot_name Robot name.
+    //! \return Pointer to controlled robot, nullptr if not found.
+    // ----------------------------------------------------------------------------
+    ControlledRobot* getControlledRobot(std::string const& p_robot_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Robot state for tracking IK target indices.
+    //! \brief Get teach pendant for a robot.
+    //! \param p_robot_name Robot name.
+    //! \return Pointer to teach pendant, nullptr if not found.
     // ----------------------------------------------------------------------------
-    struct RobotState
-    {
-        size_t target_pose_index = 0;
-        bool solution_computed = false;
-        JointValues ik_solution;
-    };
-
-    // ----------------------------------------------------------------------------
-    //! \brief Compute IK target poses for a robot.
-    //! \param p_robot The robot.
-    // ----------------------------------------------------------------------------
-    void computeIKTargetPoses(renderer::RobotManager::ControlledRobot& p_robot);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Compute trajectory configurations for a robot.
-    //! \param p_robot The robot.
-    // ----------------------------------------------------------------------------
-    void
-    computeTrajectoryConfigs(renderer::RobotManager::ControlledRobot& p_robot);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle animation mode.
-    //! \param p_robot The robot.
-    //! \param p_time Elapsed time.
-    // ----------------------------------------------------------------------------
-    void handleAnimation(renderer::RobotManager::ControlledRobot& p_robot,
-                         double p_time) const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle inverse kinematics mode.
-    //! \param p_robot The robot.
-    //! \param p_dt Delta time.
-    //! \param p_robot_state Robot state for tracking.
-    // ----------------------------------------------------------------------------
-    void
-    handleInverseKinematics(renderer::RobotManager::ControlledRobot& p_robot,
-                            double p_dt,
-                            RobotState& p_robot_state) const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Handle trajectory mode.
-    //! \param p_robot The robot.
-    //! \param p_time Elapsed time.
-    //! \param p_dt Delta time.
-    // ----------------------------------------------------------------------------
-    void handleTrajectory(renderer::RobotManager::ControlledRobot& p_robot,
-                          double p_time,
-                          double p_dt) const;
+    robotik::TeachPendant* getTeachPendant(std::string const& p_robot_name);
 
 private:
 
-    //! \brief Reference to robot manager.
+    //! \brief Reference to robot manager (for basic robots).
     renderer::RobotManager& m_robot_manager;
-    //! \brief Robot states indexed by robot name.
-    std::unordered_map<std::string, RobotState> m_robot_states;
+    //! \brief Controlled robots indexed by robot name.
+    std::unordered_map<std::string, std::unique_ptr<ControlledRobot>>
+        m_controlled_robots;
 };
 
 } // namespace robotik::application

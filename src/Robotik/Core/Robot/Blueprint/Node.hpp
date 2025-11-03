@@ -366,6 +366,30 @@ public:
         return m_name;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Check if the node is enabled/visible.
+    //!
+    //! This flag controls the visibility and activation state of nodes
+    //! (links, joints, sensors). When disabled, a node may not be rendered
+    //! or processed depending on the use case.
+    //!
+    //! \return True if node is enabled, false otherwise.
+    // ------------------------------------------------------------------------
+    inline bool enabled() const
+    {
+        return m_enabled;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the enabled/visible state of the node.
+    //!
+    //! \param p_enabled True to enable the node, false to disable it.
+    // ------------------------------------------------------------------------
+    inline void enabled(bool p_enabled)
+    {
+        m_enabled = p_enabled;
+    }
+
 protected:
 
     // ------------------------------------------------------------------------
@@ -423,6 +447,9 @@ protected:
     //! \brief Dirty flag for lazy transform evaluation.
     //! When true, indicates that the world transform needs recalculation.
     mutable bool m_transforms_dirty = false;
+    //! \brief Enabled/visible flag for the node.
+    //! Controls whether the node should be rendered or processed.
+    bool m_enabled = true;
 };
 
 } // namespace robotik

@@ -202,6 +202,31 @@ public:
         return m_geometries;
     }
 
+    // ------------------------------------------------------------------------
+    //! \brief Get the scale factor for rendering.
+    //!
+    //! The scale factor is applied to the entire robot for visualization
+    //! purposes. This is useful for adjusting the robot's size in the
+    //! rendering viewport without modifying the actual kinematic model.
+    //!
+    //! \return Scale factor (1.0 = normal size).
+    // ------------------------------------------------------------------------
+    inline float scale() const
+    {
+        return m_scale;
+    }
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the scale factor for rendering.
+    //!
+    //! \param p_scale Scale factor (1.0 = normal size, >1.0 = larger,
+    //! <1.0 = smaller).
+    // ------------------------------------------------------------------------
+    inline void scale(float p_scale)
+    {
+        m_scale = p_scale;
+    }
+
 private:
 
     // ------------------------------------------------------------------------
@@ -247,6 +272,8 @@ private:
     std::vector<std::reference_wrapper<Link>> m_end_effectors;
     //! \brief List of all geometries in the blueprint
     std::vector<std::reference_wrapper<Geometry>> m_geometries;
+    //! \brief Scale factor for rendering the entire robot
+    float m_scale = 1.0f;
 };
 
 } // namespace robotik
