@@ -86,6 +86,16 @@ public:
     Robot(std::string const& p_name, Node::Ptr p_root);
 
     // ------------------------------------------------------------------------
+    //! \brief Virtual destructor for proper cleanup of derived classes.
+    //!
+    //! This is essential because Robot is used polymorphically (e.g.,
+    //! ControlledRobot inherits from Robot). Without a virtual destructor,
+    //! deleting a derived class through a base class pointer would result
+    //! in undefined behavior and memory leaks.
+    // ------------------------------------------------------------------------
+    virtual ~Robot() = default;
+
+    // ------------------------------------------------------------------------
     //! \brief Get the name of the robot.
     //! \return The name of the robot.
     // ------------------------------------------------------------------------

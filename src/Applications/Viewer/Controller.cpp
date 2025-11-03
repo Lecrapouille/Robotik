@@ -8,7 +8,6 @@
  */
 
 #include "Controller.hpp"
-#include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 
@@ -26,89 +25,83 @@ Controller::Controller(renderer::RobotManager& p_robot_manager)
 }
 
 // ----------------------------------------------------------------------------
-bool Controller::initializeRobot(std::string const& p_robot_name,
-                                 robotik::Blueprint&& p_robot_blueprint,
+bool Controller::initializeRobot(ControlledRobot* p_controlled_robot,
                                  std::string const& p_control_link,
                                  std::vector<double> const& p_joint_positions,
                                  std::string const& p_camera_target)
 {
-    // Create ControlledRobot instance
-    auto controlled_robot = std::make_unique<ControlledRobot>(
-        p_robot_name, std::move(p_robot_blueprint));
-
     // Set initial joint positions from configuration or neutral position
     if (!p_joint_positions.empty())
     {
-        controlled_robot->setJointPositions(p_joint_positions);
+        p_controlled_robot->setJointPositions(p_joint_positions);
         std::cout << "🤖 Set initial joint values from configuration"
                   << std::endl;
     }
     else
     {
-        controlled_robot->setNeutralPosition();
+        p_controlled_robot->setNeutralPosition();
         std::cout << "🤖 Set neutral position" << std::endl;
     }
 
     // Set end effector for the robot
     if (!p_control_link.empty())
     {
-        controlled_robot->end_effector = robotik::Node::find(
-            controlled_robot->blueprint().root(), p_control_link);
+        p_controlled_robot->end_effector = robotik::Node::find(
+            p_controlled_robot->blueprint().root(), p_control_link);
     }
     else
     {
         // Use first end effector if available
         if (auto const& end_effectors =
-                controlled_robot->blueprint().endEffectors();
+                p_controlled_robot->blueprint().endEffectors();
             !end_effectors.empty())
         {
-            controlled_robot->end_effector = &end_effectors[0].get();
+            p_controlled_robot->end_effector = &end_effectors[0].get();
         }
     }
 
-    if (controlled_robot->end_effector != nullptr)
+    if (p_controlled_robot->end_effector != nullptr)
     {
         std::cout << "🤖 End effector set to: "
-                  << controlled_robot->end_effector->name() << std::endl;
+                  << p_controlled_robot->end_effector->name() << std::endl;
     }
     else
     {
         std::cout << "⚠️ Warning: no end effector found for robot: "
-                  << p_robot_name << std::endl;
+                  << p_controlled_robot->name() << std::endl;
     }
 
     // Set camera target (always use root if not found)
     if (!p_camera_target.empty())
     {
-        controlled_robot->camera_target = robotik::Node::find(
-            controlled_robot->blueprint().root(), p_camera_target);
+        p_controlled_robot->camera_target = robotik::Node::find(
+            p_controlled_robot->blueprint().root(), p_camera_target);
     }
 
     // Use root if target not found or not specified
-    if (controlled_robot->camera_target == nullptr)
+    if (p_controlled_robot->camera_target == nullptr)
     {
-        controlled_robot->camera_target = &controlled_robot->blueprint().root();
+        p_controlled_robot->camera_target =
+            &p_controlled_robot->blueprint().root();
     }
 
-    if (controlled_robot->camera_target != nullptr)
+    if (p_controlled_robot->camera_target != nullptr)
     {
         std::cout << "📷 Camera target: "
-                  << controlled_robot->camera_target->name() << std::endl;
-        controlled_robot->camera_tracking_enabled = true;
+                  << p_controlled_robot->camera_target->name() << std::endl;
+        p_controlled_robot->camera_tracking_enabled = true;
     }
-
-    // Store the controlled robot
-    m_controlled_robots[p_robot_name] = std::move(controlled_robot);
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void Controller::update(double p_elapsed_time, double p_dt)
+void Controller::update(double p_dt)
 {
-    // Mettre à jour chaque robot qui est en PLAYING
-    for (auto& [robot_name, controlled_robot] : m_controlled_robots)
+    for (auto const& [robot_name, robot_ptr] : m_robot_manager.robots())
     {
+        auto* controlled_robot =
+            m_robot_manager.getRobot<ControlledRobot>(robot_name);
         if (controlled_robot &&
             controlled_robot->state == ControlledRobot::State::PLAYING)
         {
@@ -155,10 +148,7 @@ bool Controller::setCameraTarget(std::string const& p_robot_name,
 // ----------------------------------------------------------------------------
 ControlledRobot* Controller::getControlledRobot(std::string const& p_robot_name)
 {
-    auto it = m_controlled_robots.find(p_robot_name);
-    if (it == m_controlled_robots.end())
-        return nullptr;
-    return it->second.get();
+    return m_robot_manager.getRobot<ControlledRobot>(p_robot_name);
 }
 
 // ----------------------------------------------------------------------------

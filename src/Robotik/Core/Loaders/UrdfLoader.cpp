@@ -118,14 +118,16 @@ URDFLoader::URDFLoader() = default;
 URDFLoader::~URDFLoader() = default;
 
 // ----------------------------------------------------------------------------
-std::unique_ptr<Robot> URDFLoader::load(const std::string& p_filename)
+std::optional<Blueprint>
+URDFLoader::loadBlueprint(const std::string& p_filename,
+                          std::string& p_robot_name)
 {
     // Open the file
     if (std::ifstream file(p_filename); !file)
     {
         m_error = "Failed opening '" + p_filename + "'. Reason was '" +
                   strerror(errno) + "'";
-        return nullptr;
+        return std::nullopt;
     }
 
     // Load the file
@@ -135,7 +137,7 @@ std::unique_ptr<Robot> URDFLoader::load(const std::string& p_filename)
     {
         m_error =
             "Failed to parse URDF XML: " + std::string(result.description());
-        return nullptr;
+        return std::nullopt;
     }
 
     // Find the <robot> element
@@ -143,28 +145,42 @@ std::unique_ptr<Robot> URDFLoader::load(const std::string& p_filename)
     if (!robot_element)
     {
         m_error = "No <robot> element found in URDF";
-        return nullptr;
+        return std::nullopt;
     }
 
     // Get the robot name
-    std::string robot_name = robot_element.attribute("name").as_string();
+    p_robot_name = robot_element.attribute("name").as_string();
 
     // Parse the links
     if (!parseLinks(robot_element))
     {
         m_error = "Failed to parse links in URDF";
-        return nullptr;
+        return std::nullopt;
     }
 
     // Parse the joints
     if (!parseJoints(robot_element))
     {
         m_error = "Failed to parse joints in URDF";
+        return std::nullopt;
+    }
+
+    // Build and return the blueprint
+    return buildBlueprint();
+}
+
+// ----------------------------------------------------------------------------
+std::unique_ptr<Robot> URDFLoader::load(const std::string& p_filename)
+{
+    std::string robot_name;
+    auto blueprint = loadBlueprint(p_filename, robot_name);
+
+    if (!blueprint)
+    {
         return nullptr;
     }
 
-    // Build the hierarchical robot model
-    return buildRobotModel(robot_name);
+    return std::make_unique<Robot>(robot_name, std::move(*blueprint));
 }
 
 // ----------------------------------------------------------------------------
@@ -291,8 +307,7 @@ bool URDFLoader::parseJoints(pugi::xml_node p_robot_element)
 }
 
 // ----------------------------------------------------------------------------
-std::unique_ptr<Robot>
-URDFLoader::buildRobotModel(std::string const& p_robot_name)
+std::optional<Blueprint> URDFLoader::buildBlueprint()
 {
     // Find root link (link with no parent joint)
     URDFLoaderLink* root_link = nullptr;
@@ -308,7 +323,7 @@ URDFLoader::buildRobotModel(std::string const& p_robot_name)
     if (!root_link)
     {
         m_error = "Could not find root link (link with no parent joint)";
-        return nullptr;
+        return std::nullopt;
     }
 
     // Create root node from root link
@@ -316,7 +331,7 @@ URDFLoader::buildRobotModel(std::string const& p_robot_name)
     {
         m_error = "Root link '" + root_link->name +
                   "' has no visual geometry. Cannot create robot.";
-        return nullptr;
+        return std::nullopt;
     }
 
     // Create root link node
@@ -338,8 +353,22 @@ URDFLoader::buildRobotModel(std::string const& p_robot_name)
             root_node->addChild(std::move(joint_tree));
     }
 
-    // Create robot
-    return std::make_unique<Robot>(p_robot_name, std::move(root_node));
+    // Create and return blueprint
+    return Blueprint(std::move(root_node));
+}
+
+// ----------------------------------------------------------------------------
+std::unique_ptr<Robot>
+URDFLoader::buildRobotModel(std::string const& p_robot_name)
+{
+    auto blueprint = buildBlueprint();
+
+    if (!blueprint)
+    {
+        return nullptr;
+    }
+
+    return std::make_unique<Robot>(p_robot_name, std::move(*blueprint));
 }
 
 // ----------------------------------------------------------------------------
