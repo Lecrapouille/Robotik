@@ -193,6 +193,13 @@ private:
     // ----------------------------------------------------------------------------
     void switchVisibility() const;
 
+    // ----------------------------------------------------------------------------
+    //! \brief Get the controlled robot by name.
+    //! \param p_robot_name Robot name.
+    //! \return Pointer to controlled robot, nullptr if not found.
+    // ----------------------------------------------------------------------------
+    ControlledRobot* getControlledRobot(std::string const& p_robot_name) const;
+
 private:
 
     //! \brief Application settings and configuration.

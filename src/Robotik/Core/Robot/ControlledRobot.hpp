@@ -32,9 +32,9 @@ public:
     // ------------------------------------------------------------------------
     enum class ControlMode
     {
-        JOINT,      //!< Contrôle articulaire (joint space)
-        CARTESIAN,  //!< Contrôle cartésien (task space)
-        TRAJECTORY  //!< Lecture de trajectoire enregistrée
+        JOINT,      //!< Joint control (joint space)
+        CARTESIAN,  //!< Cartesian control (task space)
+        TRAJECTORY, //!< Trajectory control
     };
 
     // ------------------------------------------------------------------------
@@ -42,9 +42,9 @@ public:
     // ------------------------------------------------------------------------
     enum class State
     {
-        IDLE,           //!< Inactif
-        MANUAL_CONTROL, //!< Contrôle manuel en cours
-        PLAYING         //!< Lecture de trajectoire
+        IDLE,           //!< Idle
+        MANUAL_CONTROL, //!< Manual control
+        PLAYING         //!< Playing trajectory
     };
 
     // ------------------------------------------------------------------------
@@ -57,32 +57,24 @@ public:
     {
     }
 
-    // === État du contrôle ===
-    //! \brief Mode de contrôle actuel
+    //! \brief Current control mode
     ControlMode control_mode = ControlMode::JOINT;
-    //! \brief État actuel du robot
+    //! \brief Current state of the robot
     State state = State::IDLE;
-    //! \brief Facteur de vitesse [0.0, 1.0]
+    //! \brief Speed factor [0.0, 1.0]
     double speed_factor = 0.5;
-
-    // === Waypoints et trajectoires ===
-    //! \brief Waypoints enregistrés (positions des joints)
+    //! \brief Waypoints (joint positions)
     std::vector<robotik::Trajectory::States> waypoints;
-    //! \brief Trajectoire en cours de lecture
+    //! \brief Current trajectory being played
     std::unique_ptr<robotik::Trajectory> playing_trajectory;
-    //! \brief Temps écoulé dans la trajectoire
+    //! \brief Time elapsed in the trajectory
     double trajectory_time = 0.0;
-
-    // === Configuration du contrôle ===
-    //! \brief End effector pour contrôle cartésien
+    //! \brief End effector for Cartesian control
     robotik::Node const* end_effector = nullptr;
-
-    // === Suivi caméra ===
-    //! \brief Nœud cible pour la caméra
+    //! \brief Target node for the camera
     robotik::Node const* camera_target = nullptr;
-    //! \brief Suivi caméra activé
+    //! \brief Camera tracking enabled
     bool camera_tracking_enabled = true;
 };
 
 } // namespace robotik::application
-

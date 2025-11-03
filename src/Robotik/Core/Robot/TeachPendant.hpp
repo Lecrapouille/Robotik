@@ -22,164 +22,149 @@ class ControlledRobot;
 }
 
 // ****************************************************************************
-//! \brief Teach pendant pour le contrôle interactif du robot.
+//! \brief Virtual teach pendant for interactive control of the robot.
 //!
-//! Cette classe implémente un teach pendant virtuel permettant de:
-//! - Contrôler le robot en mode articulaire (joint space)
-//! - Contrôler le robot en mode cartésien (task space) avec IK
-//! - Enregistrer des waypoints (positions clés)
-//! - Rejouer des trajectoires via les waypoints
-//!
-//! Le teach pendant est stateless: l'état (mode de contrôle, waypoints,
-//! trajectoire) est stocké dans ControlledRobot. Cela permet de partager
-//! un seul TeachPendant entre plusieurs robots.
-//!
-//! Architecture:
-//! - Controller: possède un TeachPendant partagé
-//! - ControlledRobot: possède l'état (control_mode, waypoints, trajectoire)
-//! - TeachPendant: outil qui opère sur un robot via setRobot()
+//! This class implements a virtual teach pendant for interactive control of the
+//! robot.
+//! - Control the robot in joint space mode.
+//! - Control the robot in Cartesian mode with IK.
+//! - Record waypoints (key positions).
+//! - Playback trajectories via waypoints.
 // ****************************************************************************
 class TeachPendant
 {
 public:
 
     // ------------------------------------------------------------------------
-    //! \brief Constructeur par défaut.
+    //! \brief Default constructor.
     // ------------------------------------------------------------------------
     TeachPendant();
 
-    // ========================================================================
-    // Configuration
-    // ========================================================================
-
     // ------------------------------------------------------------------------
-    //! \brief Configure le robot sur lequel opérer.
-    //! \param p_robot Robot contrôlé.
+    //! \brief Configure the robot to operate on.
+    //! \param p_robot Controlled robot.
     // ------------------------------------------------------------------------
     void setRobot(application::ControlledRobot& p_robot);
 
     // ------------------------------------------------------------------------
-    //! \brief Configure le solveur de cinématique inverse.
-    //! \param p_solver Pointeur vers le solveur IK (non possédé).
+    //! \brief Configure the IK solver.
+    //! \param p_solver Pointer to the IK solver (not owned).
     // ------------------------------------------------------------------------
     void setIKSolver(IKSolver* p_solver);
 
     // ------------------------------------------------------------------------
-    //! \brief Configure l'effecteur terminal pour le contrôle cartésien.
-    //! \param p_end_effector Référence vers le nœud effecteur.
+    //! \brief Configure the end effector for Cartesian control.
+    //! \param p_end_effector Reference to the end effector node.
     // ------------------------------------------------------------------------
     void setEndEffector(Node const& p_end_effector);
 
-    // ========================================================================
-    // Contrôle articulaire (Joint Space)
-    // ========================================================================
-
     // ------------------------------------------------------------------------
-    //! \brief Déplace un joint spécifique.
-    //! \param p_joint_idx Index du joint.
-    //! \param p_delta Variation de position (rad ou m).
-    //! \param p_speed Facteur de vitesse multiplicatif.
-    //! \return true si le mouvement a été appliqué.
+    //! \brief Move a specific joint.
+    //! \param p_joint_idx Index of the joint.
+    //! \param p_delta Position variation (rad or m).
+    //! \param p_speed Speed factor.
+    //! \return true if the movement has been applied.
     // ------------------------------------------------------------------------
     bool moveJoint(size_t p_joint_idx, double p_delta, double p_speed = 1.0);
 
     // ------------------------------------------------------------------------
-    //! \brief Déplace plusieurs joints simultanément.
-    //! \param p_deltas Variations de position pour chaque joint.
-    //! \param p_speed Facteur de vitesse multiplicatif.
-    //! \return true si le mouvement a été appliqué.
+    //! \brief Move multiple joints simultaneously.
+    //! \param p_deltas Position variations for each joint.
+    //! \param p_speed Speed factor.
+    //! \return true if the movement has been applied.
     // ------------------------------------------------------------------------
     bool moveJoints(const std::vector<double>& p_deltas, double p_speed = 1.0);
 
-    // ========================================================================
-    // Contrôle cartésien (Task Space)
-    // ========================================================================
-
     // ------------------------------------------------------------------------
-    //! \brief Déplace l'effecteur en translation cartésienne.
-    //! \param p_translation Vecteur de translation (m).
-    //! \param p_speed Facteur de vitesse multiplicatif.
-    //! \return true si le mouvement a été appliqué.
+    //! \brief Move the end effector in Cartesian translation.
+    //! \param p_translation Translation vector (m).
+    //! \param p_speed Speed factor.
+    //! \return true if the movement has been applied.
     // ------------------------------------------------------------------------
     bool moveCartesian(const Eigen::Vector3d& p_translation,
                        double p_speed = 1.0);
 
     // ------------------------------------------------------------------------
-    //! \brief Applique une rotation à l'effecteur.
-    //! \param p_rotation_axis Axe de rotation (normalisé).
-    //! \param p_angle Angle de rotation (rad).
-    //! \param p_speed Facteur de vitesse multiplicatif.
-    //! \return true si le mouvement a été appliqué.
+    //! \brief Apply a rotation to the end effector.
+    //! \param p_rotation_axis Rotation axis (normalized).
+    //! \param p_angle Rotation angle (rad).
+    //! \param p_speed Speed factor.
+    //! \return true if the movement has been applied.
     // ------------------------------------------------------------------------
     bool rotateCartesian(const Eigen::Vector3d& p_rotation_axis,
                          double p_angle,
                          double p_speed = 1.0);
 
-    // ========================================================================
-    // Gestion des waypoints
-    // ========================================================================
-
     // ------------------------------------------------------------------------
-    //! \brief Enregistre la position actuelle du robot comme waypoint.
-    //! \param p_label Label optionnel pour le waypoint.
-    //! \return Index du waypoint enregistré.
+    //! \brief Record the current position of the robot as a waypoint.
+    //! \param p_label Optional label for the waypoint.
+    //! \return Index of the recorded waypoint.
     // ------------------------------------------------------------------------
     size_t recordWaypoint(const std::string& p_label = "");
 
     // ------------------------------------------------------------------------
-    //! \brief Supprime un waypoint.
-    //! \param p_idx Index du waypoint à supprimer.
+    //! \brief Delete a waypoint.
+    //! \param p_idx Index of the waypoint to delete.
     // ------------------------------------------------------------------------
     void deleteWaypoint(size_t p_idx);
 
     // ------------------------------------------------------------------------
-    //! \brief Efface tous les waypoints enregistrés.
+    //! \brief Clear all recorded waypoints.
     // ------------------------------------------------------------------------
     void clearWaypoints();
 
     // ------------------------------------------------------------------------
-    //! \brief Déplace le robot vers un waypoint enregistré.
-    //! \param p_idx Index du waypoint cible.
-    //! \param p_duration Durée du mouvement (s).
-    //! \return true si le mouvement a démarré.
+    //! \brief Move the robot to a recorded waypoint.
+    //! \param p_idx Index of the target waypoint.
+    //! \param p_duration Duration of the movement (s).
+    //! \return true if the movement has started.
     // ------------------------------------------------------------------------
     bool goToWaypoint(size_t p_idx, double p_duration = 3.0);
 
-    // ========================================================================
-    // Lecture de trajectoire
-    // ========================================================================
-
     // ------------------------------------------------------------------------
-    //! \brief Démarre la lecture des waypoints enregistrés.
-    //! \param p_loop Si true, boucle la trajectoire.
-    //! \return true si la lecture a démarré.
+    //! \brief Start the playback of the recorded waypoints.
+    //! \param p_loop If true, loop the trajectory.
+    //! \return true if the playback has started.
     // ------------------------------------------------------------------------
     bool playRecordedTrajectory(bool p_loop = false);
 
     // ------------------------------------------------------------------------
-    //! \brief Arrête la lecture de la trajectoire en cours.
+    //! \brief Stop the playback of the current trajectory.
     // ------------------------------------------------------------------------
     void stopTrajectory();
 
     // ------------------------------------------------------------------------
-    //! \brief Met à jour l'état du robot (avance dans la trajectoire).
-    //! \param p_dt Pas de temps (s).
+    //! \brief Update the state of the robot (advance in the trajectory).
+    //! \param p_dt Time step (s).
     // ------------------------------------------------------------------------
     void update(double p_dt);
 
+    // ------------------------------------------------------------------------
+    //! \brief Get the error message.
+    //! \return Error message.
+    // ------------------------------------------------------------------------
+    std::string const& error() const;
+
 private:
 
-    //! \brief Pointeur vers le robot contrôlé (peut changer via setRobot).
+    // ------------------------------------------------------------------------
+    //! \brief Check the preconditions for the operation.
+    //! \return true if the preconditions are met.
+    // ------------------------------------------------------------------------
+    bool checkPreconditions(size_t p_joint_idx);
+
+private:
+
+    //! \brief Pointer to the controlled robot (can change via setRobot).
     Robot* m_robot = nullptr;
-
-    //! \brief Pointeur vers le robot contrôlé avec son état.
+    //! \brief Pointer to the controlled robot with its state.
     application::ControlledRobot* m_controlled_robot = nullptr;
-
-    //! \brief Pointeur vers le solveur IK (partagé, non possédé).
+    //! \brief Pointer to the IK solver (shared, not owned).
     IKSolver* m_ik_solver = nullptr;
-
-    //! \brief Pointeur vers l'effecteur terminal.
+    //! \brief Pointer to the end effector.
     Node const* m_end_effector = nullptr;
+    //! \brief Error message.
+    std::string m_error;
 };
 
 } // namespace robotik

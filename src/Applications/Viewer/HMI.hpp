@@ -14,6 +14,8 @@
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
+#include <imgui.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -90,6 +92,18 @@ private:
     void robotListPanel();
 
     // ----------------------------------------------------------------------------
+    //! \brief Draw a robot list item with context menu.
+    //! \param p_robot_name Name of the robot.
+    // ----------------------------------------------------------------------------
+    void drawRobotListItem(std::string const& p_robot_name);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw context menu for a robot.
+    //! \param p_robot_name Name of the robot.
+    // ----------------------------------------------------------------------------
+    void drawRobotListContextMenu(std::string const& p_robot_name);
+
+    // ----------------------------------------------------------------------------
     //! \brief Load robot panel.
     // ----------------------------------------------------------------------------
     void loadRobotPanel();
@@ -100,14 +114,115 @@ private:
     void cameraTargetPanel();
 
     // ----------------------------------------------------------------------------
+    //! \brief Draw camera target combo box.
+    //! \param p_current_camera_target Current camera target name.
+    // ----------------------------------------------------------------------------
+    void
+    drawCameraTargetCombo(std::string const& p_current_camera_target) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw camera tracking checkbox.
+    //! \param p_robot Controlled robot.
+    // ----------------------------------------------------------------------------
+    void drawCameraTrackingCheckbox(ControlledRobot* p_robot) const;
+
+    // ----------------------------------------------------------------------------
     //! \brief Teach pendant control panel with tabs.
     // ----------------------------------------------------------------------------
     void teachPendantPanel();
 
     // ----------------------------------------------------------------------------
+    //! \brief Draw control mode tabs (notebook) and return selected mode.
+    //! \param p_current_mode Current control mode.
+    //! \return Selected control mode.
+    // ----------------------------------------------------------------------------
+    ControlledRobot::ControlMode
+    drawControlModeTabs(ControlledRobot::ControlMode p_current_mode) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw joint control section.
+    //! \param p_robot Controlled robot.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void drawJointControlSection(ControlledRobot* p_robot,
+                                 robotik::TeachPendant* p_teach_pendant) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw cartesian control section with horizontal layout.
+    //! \param p_robot Controlled robot.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void drawCartesianControlSection(ControlledRobot* p_robot,
+                                     robotik::TeachPendant* p_teach_pendant);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw frame selection combo.
+    // ----------------------------------------------------------------------------
+    void drawFrameSelection() const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw translation controls.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void drawTranslationControls(robotik::TeachPendant* p_teach_pendant) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw rotation controls.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void drawRotationControls(robotik::TeachPendant* p_teach_pendant) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw waypoints section.
+    //! \param p_robot Controlled robot.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void drawWaypointsSection(ControlledRobot const* p_robot,
+                              robotik::TeachPendant* p_teach_pendant) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw trajectory playback section.
+    //! \param p_robot Controlled robot.
+    //! \param p_teach_pendant Teach pendant instance.
+    // ----------------------------------------------------------------------------
+    void
+    drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
+                                  robotik::TeachPendant* p_teach_pendant) const;
+
+    // ----------------------------------------------------------------------------
     //! \brief End effector selection panel for teach pendant.
     // ----------------------------------------------------------------------------
     void endEffectorSelectionPanel();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render a node in the end effector combo box.
+    //! \param p_node_name Name of the node.
+    //! \param p_color Color for the node.
+    //! \param p_current_end_effector Current end effector name.
+    //! \param p_is_header Whether this is a header item.
+    // ----------------------------------------------------------------------------
+    void renderEndEffectorNode(std::string const& p_node_name,
+                               ImVec4 p_color,
+                               std::string const& p_current_end_effector,
+                               bool p_is_header = false);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw end effector combo box items.
+    //! \param p_end_effectors List of end effector names.
+    //! \param p_current_end_effector Current end effector name.
+    // ----------------------------------------------------------------------------
+    void drawEndEffectorCombo(std::vector<std::string> const& p_end_effectors,
+                              std::string const& p_current_end_effector);
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw all nodes combo box items.
+    //! \param p_nodes List of all node names.
+    //! \param p_end_effectors List of end effector names.
+    //! \param p_current_end_effector Current end effector name.
+    // ----------------------------------------------------------------------------
+    void drawAllNodesCombo(std::vector<std::string> const& p_nodes,
+                           std::vector<std::string> const& p_end_effectors,
+                           std::string const& p_current_end_effector);
 
     // ----------------------------------------------------------------------------
     //! \brief Get list of all node names from current robot.

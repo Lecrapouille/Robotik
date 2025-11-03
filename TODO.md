@@ -68,3 +68,7 @@ Faits:
 - ~~void Blueprint::cacheBlueprintTree() utiliser le pattern visiteur~~
 - ~~Demander a remplacer loadURDF avec une autree lib xml et ajouter template robot~~
 - ~~- Blueprint: a deplacer setMeshPrefixPath~~
+
+
+Bug trajectoire s'arrete avant de rejoindre la destination.
+Verifier speed ratio
