@@ -43,6 +43,10 @@ bool Controller::initializeRobot(ControlledRobot* p_controlled_robot,
         std::cout << "🤖 Set neutral position" << std::endl;
     }
 
+    // Store home position
+    p_controlled_robot->setHomePosition(
+        p_controlled_robot->states().joint_positions);
+
     // Set end effector for the robot
     if (!p_control_link.empty())
     {

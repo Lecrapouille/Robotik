@@ -97,13 +97,13 @@ bool RobotManager::setRobotJointValues(
         return false;
     }
 
-    if (it->second->state().joint_positions.size() != p_joint_values.size())
+    if (it->second->states().joint_positions.size() != p_joint_values.size())
     {
         m_error = "Failed to set joint values for robot '" + p_robot_name + "'";
         return false;
     }
 
-    it->second->state().joint_positions = p_joint_values;
+    it->second->states().joint_positions = p_joint_values;
     return true;
 }
 
@@ -117,7 +117,7 @@ RobotManager::getRobotJointValues(const std::string& p_robot_name) const
         return {};
     }
 
-    return it->second->state().joint_positions;
+    return it->second->states().joint_positions;
 }
 
 #if 0

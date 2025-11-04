@@ -29,8 +29,8 @@ struct Configuration
     std::string search_paths;
     //! Path to the URDF file to load
     std::vector<std::string> urdf_files;
-    //! Joint positions to set
-    std::vector<double> joint_positions;
+    //! Home position (joint positions) to set
+    std::vector<double> home_position;
     //! Control link for inverse kinematics: usually the tool center point
     std::string control_link;
     //! Camera target joint: usually the base link or the tool center point

@@ -84,7 +84,7 @@ TEST_F(JacobianTest, SimpleRevoluteRobotJacobian)
 
     // Calculate Jacobian
     Jacobian const& jacobian =
-        robot->computeJacobian(robot->state(), *end_effector);
+        robot->computeJacobian(robot->states(), *end_effector);
 
     // Expected Jacobian for simple revolute robot at zero position
     // The joint and end effector are at same Z position (0.05), so no linear
@@ -118,7 +118,7 @@ TEST_F(JacobianTest, SimplePrismaticRobotJacobian)
 
     // Calculate Jacobian
     Jacobian const& jacobian =
-        robot->computeJacobian(robot->state(), *end_effector);
+        robot->computeJacobian(robot->states(), *end_effector);
 
     // Expected Jacobian for simple prismatic robot
     // For prismatic joint: v = axis, ω = 0
@@ -151,7 +151,7 @@ TEST_F(JacobianTest, DifferentialDriveRobotJacobian)
 
     // Calculate Jacobian
     Jacobian const& jacobian =
-        robot->computeJacobian(robot->state(), *base_link);
+        robot->computeJacobian(robot->states(), *base_link);
 
     // Expected Jacobian for differential drive robot (2 continuous joints)
     // Based on actual computed values for the wheel positions
@@ -184,7 +184,7 @@ TEST_F(JacobianTest, SCARArobotJacobian)
 
     // Calculate Jacobian
     Jacobian const& jacobian =
-        robot->computeJacobian(robot->state(), *end_effector);
+        robot->computeJacobian(robot->states(), *end_effector);
 
     // Expected Jacobian for SCARA robot at zero configuration
     // Joint 1: revolute at (0, 0, 0.06), end effector at (0.8, 0, 0.06)
@@ -218,7 +218,7 @@ TEST_F(JacobianTest, CartesianRobotJacobian)
 
     // Calculate Jacobian
     Jacobian const& jacobian =
-        robot->computeJacobian(robot->state(), *end_effector);
+        robot->computeJacobian(robot->states(), *end_effector);
 
     // Expected Jacobian for Cartesian robot
     // All joints are prismatic along X, Y, Z axes respectively

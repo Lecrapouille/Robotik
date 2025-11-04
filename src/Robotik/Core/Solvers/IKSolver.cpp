@@ -23,7 +23,7 @@ bool JacobianIKSolver::solve(Robot& p_robot,
     m_num_iterations = 0;
     m_pose_error = std::numeric_limits<double>::max();
 
-    State& state = p_robot.state();
+    State& state = p_robot.states();
 
     // Get initial joint values
     auto& q = state.joint_positions;

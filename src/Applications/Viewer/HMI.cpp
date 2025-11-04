@@ -498,6 +498,20 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 {
     ImGui::Text("Joint Control - %zu joints:",
                 p_robot->blueprint().numJoints());
+
+    // Add buttons for Neutral and Home positions
+    if (ImGui::Button("Neutral", ImVec2(100, 0)))
+    {
+        p_robot->setNeutralPosition();
+        std::cout << "🏠 Set neutral position" << std::endl;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Home", ImVec2(100, 0)))
+    {
+        p_robot->setHomePosition();
+        std::cout << "🏠 Applied home position" << std::endl;
+    }
+
     ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
     p_robot->blueprint().forEachJoint(

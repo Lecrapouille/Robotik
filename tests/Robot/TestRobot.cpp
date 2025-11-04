@@ -114,7 +114,7 @@ TEST_F(RobotTest, JointValues)
     std::vector<double> values = { M_PI / 4.0, M_PI / 2.0 };
 
     // Set values directly on state
-    robot_arm->state().joint_positions = values;
+    robot_arm->states().joint_positions = values;
 
     // Set joint positions directly
     joint1->position(values[0]);
@@ -259,13 +259,13 @@ TEST_F(RobotTest, ComplexKinematics)
 
         // Jacobian calculation should not crash
         EXPECT_NO_THROW(
-            robot_arm->computeJacobian(robot_arm->state(), *end_effector));
+            robot_arm->computeJacobian(robot_arm->states(), *end_effector));
 
         // Verify that results are reasonable
         Transform fk_result = end_effector->worldTransform();
         Pose pose = transformToPose(fk_result);
         Jacobian const& jacobian =
-            robot_arm->computeJacobian(robot_arm->state(), *end_effector);
+            robot_arm->computeJacobian(robot_arm->states(), *end_effector);
 
         // Transform should be valid homogeneous matrix
         EXPECT_DOUBLE_EQ(fk_result(3, 3), 1.0);

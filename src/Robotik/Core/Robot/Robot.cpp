@@ -23,7 +23,7 @@ Robot::Robot(std::string const& p_name, Node::Ptr p_root)
 Robot::Robot(std::string const& p_name, Blueprint&& p_blueprint)
     : m_name(p_name),
       m_blueprint(std::move(p_blueprint)),
-      m_state(m_blueprint.numJoints(), m_blueprint.numLinks())
+      m_states(m_blueprint.numJoints(), m_blueprint.numLinks())
 {
 }
 
@@ -46,7 +46,7 @@ void Robot::setJointPositions(const JointValues& p_joint_positions)
         [this, &p_joint_positions](Joint& joint, size_t index)
         {
             joint.position(p_joint_positions[index]);
-            m_state.joint_positions[index] = p_joint_positions[index];
+            m_states.joint_positions[index] = p_joint_positions[index];
         });
 }
 
@@ -59,10 +59,26 @@ void Robot::setNeutralPosition()
             auto [min, max] = joint.limits();
             double value = (min + max) / 2.0;
             joint.position(value);
-            m_state.joint_positions[index] = value;
-            m_state.joint_velocities[index] = 0.0;
-            m_state.joint_accelerations[index] = 0.0;
+            m_states.joint_positions[index] = value;
+            m_states.joint_velocities[index] = 0.0;
+            m_states.joint_accelerations[index] = 0.0;
         });
+}
+
+// ----------------------------------------------------------------------------
+void Robot::setHomePosition(const JointValues& p_home_position)
+{
+    m_home_position = p_home_position;
+}
+
+// ----------------------------------------------------------------------------
+void Robot::setHomePosition()
+{
+    if (!m_home_position.empty() &&
+        m_home_position.size() == m_blueprint.numJoints())
+    {
+        setJointPositions(m_home_position);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -93,7 +109,7 @@ void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
             joint.position(new_pos);
 
             // Update state
-            m_state.joint_positions[index] = new_pos;
+            m_states.joint_positions[index] = new_pos;
         });
 }
 
