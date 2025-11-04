@@ -163,7 +163,7 @@ void DearImGuiApplication::draw()
     // Update multi-viewports
     if (m_viewports_enabled)
     {
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO const& io = ImGui::GetIO();
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
             GLFWwindow* backup_current_context = glfwGetCurrentContext();
@@ -217,7 +217,7 @@ void DearImGuiApplication::enableViewports(bool p_enable)
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApplication::setupStyle()
+void DearImGuiApplication::setupStyle() const
 {
     ImGui::StyleColorsDark();
 
@@ -231,7 +231,7 @@ void DearImGuiApplication::setupStyle()
 }
 
 // ----------------------------------------------------------------------------
-void DearImGuiApplication::setupDockspace()
+void DearImGuiApplication::setupDockspace() const
 {
     static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 
