@@ -152,8 +152,9 @@ private:
     //! \param p_robot Controlled robot.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawCartesianControlSection(ControlledRobot* p_robot,
-                                     robotik::TeachPendant* p_teach_pendant);
+    void
+    drawCartesianControlSection(ControlledRobot* p_robot,
+                                robotik::TeachPendant* p_teach_pendant) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw frame selection combo.

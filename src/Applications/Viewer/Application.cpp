@@ -368,7 +368,7 @@ void Application::onUpdate(float const dt)
     // Camera tracking update - get controlled robots from controller
     for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
-        auto* controlled_robot = getControlledRobot(robot_name);
+        auto const* controlled_robot = getControlledRobot(robot_name);
         if (controlled_robot && controlled_robot->camera_tracking_enabled &&
             controlled_robot->camera_target)
         {

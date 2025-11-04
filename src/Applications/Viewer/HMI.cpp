@@ -520,8 +520,9 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCartesianControlSection(ControlledRobot* /*p_robot*/,
-                                      robotik::TeachPendant* p_teach_pendant)
+void HMI::drawCartesianControlSection(
+    ControlledRobot* /*p_robot*/,
+    robotik::TeachPendant* p_teach_pendant) const
 {
     ImGui::Text("Cartesian Control - Teach Pendant Style");
 
