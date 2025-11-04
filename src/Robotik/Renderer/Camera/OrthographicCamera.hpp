@@ -32,10 +32,10 @@ public:
     //! \param p_near Near clipping plane distance.
     //! \param p_far Far clipping plane distance.
     // ------------------------------------------------------------------------
-    OrthographicCamera(float p_size = 5.0f,
-                       float p_aspect_ratio = 1.0f,
-                       float p_near = 0.1f,
-                       float p_far = 100.0f);
+    explicit OrthographicCamera(float p_size = 5.0f,
+                                float p_aspect_ratio = 1.0f,
+                                float p_near = 0.1f,
+                                float p_far = 100.0f);
 
     // ------------------------------------------------------------------------
     //! \brief Constructor with explicit bounds.

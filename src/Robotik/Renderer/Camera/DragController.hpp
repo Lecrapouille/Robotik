@@ -58,7 +58,7 @@ public:
     //! \brief Set target point.
     //! \param p_target Target position.
     // ------------------------------------------------------------------------
-    void setTarget(const Eigen::Vector3f& p_target);
+    void setTarget(const Eigen::Vector3f& p_target) override;
 
     // ------------------------------------------------------------------------
     //! \brief Update controller state.
@@ -112,6 +112,8 @@ private:
 
     Eigen::Vector3f m_target; //!< Look-at target
     float m_distance;         //!< Distance from target
+    Eigen::Vector3f
+        m_direction;          //!< Direction from target to camera (normalized)
     float m_pan_sensitivity;  //!< Pan sensitivity
     float m_zoom_sensitivity; //!< Zoom sensitivity
     float m_min_distance;     //!< Minimum zoom distance

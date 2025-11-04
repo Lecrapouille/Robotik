@@ -120,8 +120,18 @@ void Application::setupCamera()
     m_perspective_camera->setPosition(Eigen::Vector3f(3.0f, 3.0f, 3.0f));
     m_perspective_camera->lookAt(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
 
+    // Create both controllers
+    Eigen::Vector3f initial_target(0.0f, 0.0f, 0.5f);
+    float initial_distance = 5.0f;
+
     m_orbit_controller = std::make_unique<renderer::OrbitController>(
-        *m_perspective_camera, Eigen::Vector3f(0.0f, 0.0f, 0.5f), 5.0f);
+        *m_perspective_camera, initial_target, initial_distance);
+
+    m_drag_controller = std::make_unique<renderer::DragController>(
+        *m_perspective_camera, initial_target, initial_distance);
+
+    // Start with OrbitController
+    m_camera_controller = m_orbit_controller.get();
 }
 
 // ----------------------------------------------------------------------------
@@ -260,15 +270,13 @@ bool Application::setupRobots()
 bool Application::setupHMI()
 {
     assert(m_controller != nullptr && "Controller not setup");
-    assert(m_orbit_controller != nullptr && "Orbit controller not setup");
+    assert(m_camera_controller != nullptr && "Camera controller not setup");
     assert(m_robot_manager != nullptr && "Robot manager not setup");
 
     // Create the HMI view (view of the Model-View-Controller pattern)
     // Note: m_controller was already created in setupRobots()
-    m_hmi = std::make_unique<HMI>(*m_robot_manager,
-                                  *m_controller,
-                                  *m_orbit_controller,
-                                  [this]() { halt(); });
+    m_hmi = std::make_unique<HMI>(
+        *m_robot_manager, *m_controller, *this, [this]() { halt(); });
 
     return true;
 }
@@ -363,19 +371,35 @@ void Application::renderRobot(ControlledRobot const& p_robot,
 void Application::onUpdate(float const dt)
 {
     // Camera update
-    m_orbit_controller->update(dt);
+    if (m_camera_controller)
+    {
+        m_camera_controller->update(dt);
+    }
 
     // Camera tracking update - get controlled robots from controller
-    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
+    // Only apply tracking if user is not currently interacting with the camera
+    bool user_interacting = false;
+    if (m_orbit_controller && m_camera_controller == m_orbit_controller.get())
     {
-        auto const* controlled_robot = getControlledRobot(robot_name);
-        if (controlled_robot && controlled_robot->camera_tracking_enabled &&
-            controlled_robot->camera_target)
+        user_interacting = m_orbit_controller->isUserInteracting();
+    }
+
+    if (!user_interacting)
+    {
+        for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
         {
-            Eigen::Vector3d target_pos =
-                controlled_robot->camera_target->worldTransform().block<3, 1>(
-                    0, 3);
-            m_orbit_controller->setTarget(target_pos.cast<float>());
+            auto const* controlled_robot = getControlledRobot(robot_name);
+            if (controlled_robot && controlled_robot->camera_tracking_enabled &&
+                controlled_robot->camera_target)
+            {
+                Eigen::Vector3d target_pos =
+                    controlled_robot->camera_target->worldTransform()
+                        .block<3, 1>(0, 3);
+                if (m_camera_controller)
+                {
+                    m_camera_controller->setTarget(target_pos.cast<float>());
+                }
+            }
         }
     }
 
@@ -472,13 +496,19 @@ void Application::onMouseButton(int p_button, int p_action, int p_mods)
 {
     if (!isViewportHovered())
         return;
-    m_orbit_controller->handleMouseButton(p_button, p_action, p_mods);
+    if (m_camera_controller)
+    {
+        m_camera_controller->handleMouseButton(p_button, p_action, p_mods);
+    }
 }
 
 // ----------------------------------------------------------------------------
 void Application::onCursorPos(double p_xpos, double p_ypos)
 {
-    m_orbit_controller->handleMouseMove(p_xpos, p_ypos);
+    if (m_camera_controller)
+    {
+        m_camera_controller->handleMouseMove(p_xpos, p_ypos);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -486,7 +516,187 @@ void Application::onScroll(double xoffset, double yoffset)
 {
     if (!isViewportHovered())
         return;
-    m_orbit_controller->handleScroll(xoffset, yoffset);
+    if (m_camera_controller)
+    {
+        m_camera_controller->handleScroll(xoffset, yoffset);
+    }
+}
+
+// ----------------------------------------------------------------------------
+Eigen::Vector3f Application::getCameraTarget() const
+{
+    // Try to get target from selected robot
+    if (m_hmi && !m_hmi->selectedRobot().empty())
+    {
+        auto const* controlled_robot =
+            getControlledRobot(m_hmi->selectedRobot());
+        if (controlled_robot && controlled_robot->camera_target)
+        {
+            Eigen::Vector3d target_pos =
+                controlled_robot->camera_target->worldTransform().block<3, 1>(
+                    0, 3);
+            return target_pos.cast<float>();
+        }
+    }
+
+    // Try to get from any robot
+    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
+    {
+        auto const* controlled_robot = getControlledRobot(robot_name);
+        if (controlled_robot && controlled_robot->camera_target)
+        {
+            Eigen::Vector3d target_pos =
+                controlled_robot->camera_target->worldTransform().block<3, 1>(
+                    0, 3);
+            return target_pos.cast<float>();
+        }
+    }
+
+    // Default target
+    return Eigen::Vector3f(0.0f, 0.0f, 0.5f);
+}
+
+// ----------------------------------------------------------------------------
+void Application::switchToOrbitController()
+{
+    if (!m_orbit_controller)
+        return;
+
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // If we have a current camera controller, try to preserve distance
+    if (m_camera_controller && m_orbit_controller.get() == m_camera_controller)
+    {
+        // Already using orbit controller, just update target
+        m_orbit_controller->setTarget(target);
+        m_camera_controller = m_orbit_controller.get();
+        return;
+    }
+
+    // Recreate orbit controller with current target
+    m_orbit_controller = std::make_unique<renderer::OrbitController>(
+        *m_perspective_camera, target, distance);
+    m_camera_controller = m_orbit_controller.get();
+}
+
+// ----------------------------------------------------------------------------
+void Application::switchToDragController()
+{
+    if (!m_drag_controller)
+        return;
+
+    // Calculate target and distance from current camera position
+    // This preserves the current view when switching to drag controller
+    Eigen::Vector3f target = m_perspective_camera->target();
+    Eigen::Vector3f position = m_perspective_camera->position();
+    Eigen::Vector3f direction = target - position;
+    float distance = direction.norm();
+
+    // If distance is too small, use default values
+    if (distance < 0.1f)
+    {
+        target = getCameraTarget();
+        distance = 5.0f;
+    }
+
+    // Always recreate drag controller to capture the current camera direction
+    // This is necessary when switching between orthographic views (Top, Bottom,
+    // etc.) The constructor will automatically preserve the current camera
+    // direction
+    m_drag_controller = std::make_unique<renderer::DragController>(
+        *m_perspective_camera, target, distance);
+    m_camera_controller = m_drag_controller.get();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setTopView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking down from Z+ (top view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, 0.0f, distance);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setBottomView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking up from Z- (bottom view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, 0.0f, -distance);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 1.0f, 0.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setFrontView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking from Y+ (front view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, distance, 0.0f);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setBackView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking from Y- (back view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, -distance, 0.0f);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setRightView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking from X+ (right view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(distance, 0.0f, 0.0f);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
+}
+
+// ----------------------------------------------------------------------------
+void Application::setLeftView()
+{
+    Eigen::Vector3f target = getCameraTarget();
+    float distance = 5.0f;
+
+    // Looking from X- (left view)
+    Eigen::Vector3f position = target + Eigen::Vector3f(-distance, 0.0f, 0.0f);
+    m_perspective_camera->lookAt(
+        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
+
+    // Switch to drag controller to preserve this view
+    switchToDragController();
 }
 
 } // namespace robotik::application

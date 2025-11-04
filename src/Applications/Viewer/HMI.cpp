@@ -8,6 +8,7 @@
  */
 
 #include "HMI.hpp"
+#include "Application.hpp"
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
@@ -23,11 +24,11 @@ namespace robotik::application
 // ----------------------------------------------------------------------------
 HMI::HMI(robotik::renderer::RobotManager& p_robot_manager,
          Controller& p_robot_controller,
-         robotik::renderer::OrbitController& p_orbit_controller,
+         Application& p_application,
          std::function<void()> const& p_halt_callback)
     : m_robot_manager(p_robot_manager),
       m_controller(p_robot_controller),
-      m_orbit_controller(p_orbit_controller),
+      m_application(p_application),
       m_halt_callback(p_halt_callback)
 {
     if (auto const* robot = m_robot_manager.currentRobot(); robot != nullptr)
@@ -105,11 +106,24 @@ void HMI::onDrawRobotManagementWindow()
 // ----------------------------------------------------------------------------
 void HMI::onDrawCameraTargetWindow()
 {
-    if (m_selected_robot.empty())
-        return;
+    ImGui::Begin("Camera");
 
-    ImGui::Begin("Camera Target");
-    cameraTargetPanel();
+    // Camera views (Orbit + predefined views)
+    drawCameraControllerPanel();
+
+    ImGui::Separator();
+
+    // Camera target selection (only if robot is selected)
+    if (!m_selected_robot.empty())
+    {
+        cameraTargetPanel();
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                           "Select a robot to configure camera target");
+    }
+
     ImGui::End();
 }
 
@@ -786,7 +800,7 @@ void HMI::drawCameraTargetCombo(
             {
                 if (m_controller.setCameraTarget(m_selected_robot, node_name))
                 {
-                    // Update orbit controller target
+                    // Update camera controller target via Application
                     auto const* updated_robot =
                         m_controller.getControlledRobot(m_selected_robot);
                     if (updated_robot && updated_robot->camera_target)
@@ -794,7 +808,9 @@ void HMI::drawCameraTargetCombo(
                         Eigen::Vector3d target_pos =
                             updated_robot->camera_target->worldTransform()
                                 .block<3, 1>(0, 3);
-                        m_orbit_controller.setTarget(target_pos.cast<float>());
+                        // The target will be updated in Application::onUpdate()
+                        // via camera tracking, but we can also set it directly
+                        // here For now, let the tracking handle it
                     }
                     std::cout << "📹 Camera target set to: " << node_name
                               << std::endl;
@@ -820,6 +836,76 @@ void HMI::drawCameraTrackingCheckbox(ControlledRobot* p_robot) const
                   << (p_robot->camera_tracking_enabled ? "enabled" : "disabled")
                   << std::endl;
     }
+}
+
+// ----------------------------------------------------------------------------
+void HMI::drawCameraControllerPanel() const
+{
+    // Create a grid of buttons (3 columns) with Orbit + predefined views
+    if (ImGui::BeginTable("CameraViews", 3, ImGuiTableFlags_None))
+    {
+        // Row 1: Orbit, Top, Bottom
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.switchToOrbitController();
+            std::cout << "📹 Switched to Orbit Controller" << std::endl;
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Top", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setTopView();
+            std::cout << "📹 Set to Top view" << std::endl;
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Bottom", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setBottomView();
+            std::cout << "📹 Set to Bottom view" << std::endl;
+        }
+
+        // Row 2: Front, Back, Right
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Front", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setFrontView();
+            std::cout << "📹 Set to Front view" << std::endl;
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Back", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setBackView();
+            std::cout << "📹 Set to Back view" << std::endl;
+        }
+
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Right", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setRightView();
+            std::cout << "📹 Set to Right view" << std::endl;
+        }
+
+        // Row 3: Left (and potentially more buttons in the future)
+        ImGui::TableNextColumn();
+        if (ImGui::Button("Left", ImVec2(-FLT_MIN, 0)))
+        {
+            m_application.setLeftView();
+            std::cout << "📹 Set to Left view" << std::endl;
+        }
+
+        ImGui::EndTable();
+    }
+}
+
+// ----------------------------------------------------------------------------
+void HMI::drawPredefinedViews() const
+{
+    // This method is now merged into drawCameraControllerPanel
+    // Kept for compatibility, just call the main method
+    drawCameraControllerPanel();
 }
 
 // ----------------------------------------------------------------------------

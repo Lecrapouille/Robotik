@@ -11,7 +11,6 @@
 
 #include "Controller.hpp"
 
-#include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
 #include <imgui.h>
@@ -23,6 +22,9 @@
 namespace robotik::application
 {
 
+// Forward declaration
+class Application;
+
 // ****************************************************************************
 //! \brief ImGui-based Human-Machine Interface for robot control.
 //!
@@ -32,6 +34,7 @@ namespace robotik::application
 //! - Joint control with sliders
 //! - End effector selection for IK
 //! - Camera target selection
+//! - Camera controller selection and predefined views
 // ****************************************************************************
 class HMI
 {
@@ -41,13 +44,12 @@ public:
     //! \brief Constructor.
     //! \param p_robot_manager Reference to robot manager for robot operations.
     //! \param p_robot_controller Reference to robot controller.
-    //! \param p_orbit_controller Reference to orbit controller for camera
-    //! updates.
+    //! \param p_application Reference to application for camera operations.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
     HMI(robotik::renderer::RobotManager& p_robot_manager,
         Controller& p_robot_controller,
-        robotik::renderer::OrbitController& p_orbit_controller,
+        Application& p_application,
         std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
@@ -125,6 +127,16 @@ private:
     //! \param p_robot Controlled robot.
     // ----------------------------------------------------------------------------
     void drawCameraTrackingCheckbox(ControlledRobot* p_robot) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw camera controller selection panel.
+    // ----------------------------------------------------------------------------
+    void drawCameraControllerPanel() const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw predefined view buttons.
+    // ----------------------------------------------------------------------------
+    void drawPredefinedViews() const;
 
     // ----------------------------------------------------------------------------
     //! \brief Teach pendant control panel with tabs.
@@ -286,8 +298,8 @@ private:
     robotik::renderer::RobotManager& m_robot_manager;
     //! \brief Reference to Model-View-Controller controller
     Controller& m_controller;
-    //! \brief Reference to orbit controller
-    robotik::renderer::OrbitController& m_orbit_controller;
+    //! \brief Reference to application for camera operations
+    Application& m_application;
     //! \brief Callback to halt the application
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name

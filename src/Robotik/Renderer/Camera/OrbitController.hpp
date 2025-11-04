@@ -49,7 +49,7 @@ public:
     //! \brief Set orbit target point.
     //! \param p_target Target position in world space.
     // ------------------------------------------------------------------------
-    void setTarget(const Eigen::Vector3f& p_target);
+    void setTarget(const Eigen::Vector3f& p_target) override;
 
     // ------------------------------------------------------------------------
     //! \brief Set orbit distance from target.
@@ -115,6 +115,12 @@ public:
     //! \brief Reset to default state.
     // ------------------------------------------------------------------------
     void reset() override;
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if user is currently interacting with the camera.
+    //! \return True if user is orbiting or panning, false otherwise.
+    // ------------------------------------------------------------------------
+    bool isUserInteracting() const;
 
 private:
 
