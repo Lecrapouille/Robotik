@@ -175,6 +175,12 @@ void OrbitController::reset()
 }
 
 // ----------------------------------------------------------------------------
+bool OrbitController::isUserInteracting() const
+{
+    return m_is_orbiting || m_is_panning;
+}
+
+// ----------------------------------------------------------------------------
 void OrbitController::updateCameraPosition()
 {
     // Convert spherical coordinates to Cartesian

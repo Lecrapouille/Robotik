@@ -16,6 +16,8 @@
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
 
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
+#include "Robotik/Renderer/Camera/CameraController.hpp"
+#include "Robotik/Renderer/Camera/DragController.hpp"
 #include "Robotik/Renderer/Camera/OrbitController.hpp"
 #include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
@@ -47,6 +49,46 @@ public:
     //! \return true if the application was run successfully, false otherwise.
     // ----------------------------------------------------------------------------
     bool run();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Switch to OrbitController.
+    // ----------------------------------------------------------------------------
+    void switchToOrbitController();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Switch to DragController.
+    // ----------------------------------------------------------------------------
+    void switchToDragController();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to top view (looking down from Z+).
+    // ----------------------------------------------------------------------------
+    void setTopView();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to bottom view (looking up from Z-).
+    // ----------------------------------------------------------------------------
+    void setBottomView();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to front view (looking from Y+).
+    // ----------------------------------------------------------------------------
+    void setFrontView();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to back view (looking from Y-).
+    // ----------------------------------------------------------------------------
+    void setBackView();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to right view (looking from X+).
+    // ----------------------------------------------------------------------------
+    void setRightView();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set camera to left view (looking from X-).
+    // ----------------------------------------------------------------------------
+    void setLeftView();
 
 private: // override OpenGLApplication methods
 
@@ -200,6 +242,12 @@ private:
     // ----------------------------------------------------------------------------
     ControlledRobot* getControlledRobot(std::string const& p_robot_name) const;
 
+    // ----------------------------------------------------------------------------
+    //! \brief Get current camera target position (from robot or default).
+    //! \return Target position in world space.
+    // ----------------------------------------------------------------------------
+    Eigen::Vector3f getCameraTarget() const;
+
 private:
 
     //! \brief Application settings and configuration.
@@ -210,8 +258,12 @@ private:
     std::unique_ptr<Controller> m_controller;
     //! \brief Perspective camera for intuitive robot inspection.
     std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
-    //! \brief Orbit controller for orbiting around the robot.
+    //! \brief Current camera controller (non-owning pointer, points to one of the controllers below).
+    renderer::CameraController* m_camera_controller = nullptr;
+    //! \brief Orbit controller instance (for switching).
     std::unique_ptr<renderer::OrbitController> m_orbit_controller;
+    //! \brief Drag controller instance (for switching).
+    std::unique_ptr<renderer::DragController> m_drag_controller;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.

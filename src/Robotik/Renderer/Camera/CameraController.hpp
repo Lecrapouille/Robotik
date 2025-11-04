@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <Eigen/Dense>
+
 namespace robotik::renderer
 {
 
@@ -71,6 +73,15 @@ public:
     //! \brief Reset controller to default state.
     // ------------------------------------------------------------------------
     virtual void reset() = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Set target point for camera tracking (optional).
+    //! \param p_target Target position in world space.
+    //! \note Default implementation does nothing. Override in derived classes
+    //! that support target-based navigation (e.g., OrbitController,
+    //! DragController).
+    // ------------------------------------------------------------------------
+    virtual void setTarget(const Eigen::Vector3f& /*p_target*/) {}
 
 protected:
 
