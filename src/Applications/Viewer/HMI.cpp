@@ -311,10 +311,10 @@ void HMI::endEffectorSelectionPanel()
     std::vector<std::string> const& nodes = m_node_names;
     std::vector<std::string> const& end_effectors = m_end_effector_names;
 
-    // TODO: Get current end effector name from teach pendant
-    // Note: We don't have direct access to the end effector name from teach
-    // pendant - we'll need to track it separately or add a getter
-    std::string current_end_effector = "";
+    std::string current_end_effector =
+        (controlled_robot->end_effector != nullptr)
+            ? controlled_robot->end_effector->name()
+            : "";
 
     ImGui::Text("End Effector Selection");
     if (ImGui::BeginCombo("End Effector",
