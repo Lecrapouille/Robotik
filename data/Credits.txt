@@ -1,0 +1,3 @@
+* irb2400.urdf:
+* irb1600id.urdf:
+	https://github.com/andrewneill/abb_irb1600id_support
