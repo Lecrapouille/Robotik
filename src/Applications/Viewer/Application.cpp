@@ -242,7 +242,7 @@ bool Application::setupRobots()
 
         if (!m_controller->initializeRobot(robot,
                                            m_config.control_link,
-                                           m_config.joint_positions,
+                                           m_config.home_position,
                                            m_config.camera_target))
         {
             m_error = "Failed to initialize robot configuration";

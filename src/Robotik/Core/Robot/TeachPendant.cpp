@@ -72,7 +72,7 @@ bool TeachPendant::moveJoint(size_t p_joint_idx, double p_delta, double p_speed)
     }
 
     // Calculate the new target position
-    auto target = m_robot->state().joint_positions;
+    auto target = m_robot->states().joint_positions;
     target[p_joint_idx] += p_delta * m_controlled_robot->speed_factor * p_speed;
 
     // Check the limits via forEachJoint
@@ -131,7 +131,7 @@ bool TeachPendant::moveJoints(const std::vector<double>& p_deltas,
     }
 
     // Calculate the new target positions
-    auto target = m_robot->state().joint_positions;
+    auto target = m_robot->states().joint_positions;
     for (size_t i = 0; i < p_deltas.size(); ++i)
     {
         target[i] += p_deltas[i] * m_controlled_robot->speed_factor * p_speed;
@@ -290,7 +290,7 @@ size_t TeachPendant::recordWaypoint(const std::string& p_label)
 
     // Create a waypoint with the current position
     Trajectory::States waypoint;
-    waypoint.position = m_robot->state().joint_positions;
+    waypoint.position = m_robot->states().joint_positions;
     waypoint.velocity.resize(waypoint.position.size(), 0.0);
     waypoint.acceleration.resize(waypoint.position.size(), 0.0);
     waypoint.time = 0.0; // Will be recalculated during playback
@@ -339,7 +339,7 @@ bool TeachPendant::goToWaypoint(size_t p_idx, double p_duration)
 
     // Create a trajectory between the current position and the waypoint
     auto const& target_waypoint = m_controlled_robot->waypoints[p_idx];
-    auto current_pos = m_robot->state().joint_positions;
+    auto current_pos = m_robot->states().joint_positions;
 
     m_controlled_robot->playing_trajectory =
         std::make_unique<JointSpaceTrajectory>(

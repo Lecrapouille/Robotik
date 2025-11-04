@@ -13,6 +13,7 @@
 #include "project_info.hpp"
 
 #include <iostream>
+#include <string>
 
 // ----------------------------------------------------------------------------
 static void display_usage(const std::string& program_name)
@@ -33,6 +34,9 @@ static void display_usage(const std::string& program_name)
               << std::endl;
     std::cout << "  --gravity <value> Set physics gravity (default: -9.81)"
               << std::endl;
+    std::cout
+        << "  --home <values>   Set home position (comma-separated values)"
+        << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -110,6 +114,33 @@ static bool parse_command_line(size_t const p_argc,
 
                 p_config.physics_gravity =
                     Eigen::Vector3d(0.0, 0.0, std::stod(p_argv[++i]));
+            }
+            else if (arg == "--home")
+            {
+                if (i + 1 >= p_argc)
+                {
+                    std::cerr << "Error: --home requires a value" << std::endl;
+                    return false;
+                }
+
+                std::string home_str = p_argv[++i];
+                p_config.home_position.clear();
+
+                // Parse comma-separated values
+                size_t start = 0;
+                size_t pos = 0;
+                while ((pos = home_str.find(',', start)) != std::string::npos)
+                {
+                    std::string value_str = home_str.substr(start, pos - start);
+                    p_config.home_position.push_back(std::stod(value_str));
+                    start = pos + 1;
+                }
+                // Add the last value
+                if (start < home_str.length())
+                {
+                    std::string value_str = home_str.substr(start);
+                    p_config.home_position.push_back(std::stod(value_str));
+                }
             }
             else if (arg[0] == '-')
             {

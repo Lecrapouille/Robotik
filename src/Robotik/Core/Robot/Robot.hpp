@@ -108,18 +108,18 @@ public:
     //! \brief Get access to the robot's state (dynamic model).
     //! \return Reference to the state.
     // ------------------------------------------------------------------------
-    inline State& state()
+    inline State& states()
     {
-        return m_state;
+        return m_states;
     }
 
     // ------------------------------------------------------------------------
     //! \brief Get access to the robot's state (dynamic model).
     //! \return Const reference to the state.
     // ------------------------------------------------------------------------
-    inline State const& state() const
+    inline State const& states() const
     {
-        return m_state;
+        return m_states;
     }
 
     // ------------------------------------------------------------------------
@@ -150,6 +150,18 @@ public:
     //! \param p_joint_positions The joint positions to set.
     // ------------------------------------------------------------------------
     void setJointPositions(const JointValues& p_joint_positions);
+
+    // ------------------------------------------------------------------------
+    //! \brief Set the home position values (store without applying).
+    //! \param p_home_position The home position joint values to store.
+    // ------------------------------------------------------------------------
+    void setHomePosition(const JointValues& p_home_position);
+
+    // ------------------------------------------------------------------------
+    //! \brief Apply the stored home position to the robot.
+    //! If no home position is set, does nothing.
+    // ------------------------------------------------------------------------
+    void setHomePosition();
 
     // ------------------------------------------------------------------------
     //! \brief Apply target joint positions with velocity limits.
@@ -187,7 +199,7 @@ public:
     // ------------------------------------------------------------------------
     inline void forwardKinematics()
     {
-        setJointPositions(m_state);
+        setJointPositions(m_states);
     }
 
     // ------------------------------------------------------------------------
@@ -219,7 +231,9 @@ private:
     //! \brief Reference to the robot's kinematic blueprint (static model)
     Blueprint m_blueprint;
     //! \brief State of the robot (dynamic model)
-    State m_state;
+    State m_states;
+    //! \brief Stored home position (joint values)
+    JointValues m_home_position;
 };
 
 } // namespace robotik
