@@ -10,6 +10,7 @@
 #include "HMI.hpp"
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
+#include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "project_info.hpp"
 
@@ -45,6 +46,11 @@ void HMI::onDrawMenuBar()
         if (ImGui::MenuItem("Load Robot"))
         {
             loadRobot();
+        }
+        if (ImGui::MenuItem(
+                "Export Robot", nullptr, false, !m_selected_robot.empty()))
+        {
+            exportRobot();
         }
         if (ImGui::MenuItem("Quit") && m_halt_callback)
         {
@@ -117,6 +123,7 @@ void HMI::robotManagementPanel()
 
     robotListPanel();
     loadRobotPanel();
+    exportRobotPanel();
 }
 
 // ----------------------------------------------------------------------------
@@ -206,6 +213,64 @@ void HMI::loadRobot() const
     IGFD::FileDialogConfig cfg;
     ImGuiFileDialog::Instance()->OpenDialog(
         "RobotURDFDlg", "Select URDF", "URDF files{.urdf}", cfg);
+}
+
+// ----------------------------------------------------------------------------
+void HMI::exportRobot() const
+{
+    if (m_selected_robot.empty())
+        return;
+
+    IGFD::FileDialogConfig cfg;
+    cfg.sidePaneWidth = 0.0f;
+    cfg.flags =
+        ImGuiFileDialogFlags_ConfirmOverwrite | ImGuiFileDialogFlags_Modal;
+    ImGuiFileDialog::Instance()->OpenDialog(
+        "RobotExportDlg", "Export Robot", "DOT files{.dot}", cfg);
+}
+
+// ----------------------------------------------------------------------------
+void HMI::exportRobotPanel()
+{
+    if (!ImGuiFileDialog::Instance()->Display("RobotExportDlg"))
+        return;
+
+    if (ImGuiFileDialog::Instance()->IsOk())
+    {
+        std::string filename = ImGuiFileDialog::Instance()->GetFilePathName();
+
+        // Get the current robot
+        auto* controlled_robot =
+            m_controller.getControlledRobot(m_selected_robot);
+        if (controlled_robot == nullptr)
+        {
+            std::cerr << "❌ No robot selected for export" << std::endl;
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+
+        // Create exporter based on file extension
+        auto exporter = RobotExporterFactory::create(filename);
+        if (exporter == nullptr)
+        {
+            std::cerr << "❌ Unsupported export format: " << filename
+                      << std::endl;
+            ImGuiFileDialog::Instance()->Close();
+            return;
+        }
+
+        // Export the robot
+        if (exporter->exportTo(*controlled_robot, filename))
+        {
+            std::cout << "✅ Exported robot to: " << filename << std::endl;
+        }
+        else
+        {
+            std::cerr << "❌ Failed to export robot: " << exporter->error()
+                      << std::endl;
+        }
+    }
+    ImGuiFileDialog::Instance()->Close();
 }
 
 // ----------------------------------------------------------------------------
