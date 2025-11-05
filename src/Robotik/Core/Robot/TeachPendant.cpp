@@ -215,7 +215,7 @@ bool TeachPendant::moveCartesian(const Eigen::Vector3d& p_translation,
 
     // Extract the Euler angles from the rotation
     Eigen::Matrix3d R = current_transform.block<3, 3>(0, 0);
-    target_pose.tail<3>() = R.eulerAngles(0, 1, 2);
+    target_pose.tail<3>() = robotik::rotationToEuler(R);
 
     // Solve the inverse kinematics
     if (!m_ik_solver->solve(*m_robot, *m_end_effector, target_pose))
@@ -288,7 +288,7 @@ bool TeachPendant::rotateCartesian(const Eigen::Vector3d& p_rotation_axis,
     // Convert to 6D pose for the IK solver
     Pose target_pose;
     target_pose.head<3>() = current_transform.block<3, 1>(0, 3);
-    target_pose.tail<3>() = R.eulerAngles(0, 1, 2);
+    target_pose.tail<3>() = robotik::rotationToEuler(R);
 
     // Solve the inverse kinematics
     if (!m_ik_solver->solve(*m_robot, *m_end_effector, target_pose))

@@ -143,7 +143,10 @@ public:
     //! \brief Get the error message.
     //! \return Error message.
     // ------------------------------------------------------------------------
-    std::string const& error() const;
+    std::string const& error() const
+    {
+        return m_error;
+    }
 
     // ------------------------------------------------------------------------
     //! \brief Check if a waypoint has been reached using pose error.

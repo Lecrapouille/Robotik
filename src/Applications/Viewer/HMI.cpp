@@ -571,9 +571,8 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCartesianControlSection(
-    ControlledRobot* p_robot,
-    robotik::TeachPendant* p_teach_pendant) const
+void HMI::drawCartesianControlSection(ControlledRobot* p_robot,
+                                      robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Cartesian Control - Teach Pendant Style");
 
@@ -594,6 +593,15 @@ void HMI::drawCartesianControlSection(
     drawRotationControls(p_teach_pendant);
 
     ImGui::Columns(1);
+
+    // Display error message in red if there is one
+    if (!m_cartesian_error.empty())
+    {
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
+                           "❌ Error: %s",
+                           m_cartesian_error.c_str());
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -647,7 +655,7 @@ void HMI::drawFrameSelection(ControlledRobot* p_robot) const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawTranslationControls(robotik::TeachPendant* p_teach_pendant) const
+void HMI::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Translation:");
 
@@ -665,21 +673,33 @@ void HMI::drawTranslationControls(robotik::TeachPendant* p_teach_pendant) const
 
     if (ImGui::Button("+##trans", ImVec2(50, 50)))
     {
+        m_cartesian_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = double(step_size);
-        p_teach_pendant->moveCartesian(dir, 1.0);
+        if (!p_teach_pendant->moveCartesian(dir, 1.0))
+        {
+            m_cartesian_error = p_teach_pendant->error();
+            std::cerr << "❌ Failed to move robot: " << m_cartesian_error
+                      << std::endl;
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("-##trans", ImVec2(50, 50)))
     {
+        m_cartesian_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = -double(step_size);
-        p_teach_pendant->moveCartesian(dir, 1.0);
+        if (!p_teach_pendant->moveCartesian(dir, 1.0))
+        {
+            m_cartesian_error = p_teach_pendant->error();
+            std::cerr << "❌ Failed to move robot: " << m_cartesian_error
+                      << std::endl;
+        }
     }
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant) const
+void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Rotation:");
 
@@ -697,16 +717,28 @@ void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant) const
 
     if (ImGui::Button("+##rot", ImVec2(50, 50)))
     {
+        m_cartesian_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        p_teach_pendant->rotateCartesian(axis, double(angle_step), 1.0);
+        if (!p_teach_pendant->rotateCartesian(axis, double(angle_step), 1.0))
+        {
+            m_cartesian_error = p_teach_pendant->error();
+            std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
+                      << std::endl;
+        }
     }
     ImGui::SameLine();
     if (ImGui::Button("-##rot", ImVec2(50, 50)))
     {
+        m_cartesian_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        p_teach_pendant->rotateCartesian(axis, -double(angle_step), 1.0);
+        if (!p_teach_pendant->rotateCartesian(axis, -double(angle_step), 1.0))
+        {
+            m_cartesian_error = p_teach_pendant->error();
+            std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
+                      << std::endl;
+        }
     }
 }
 
