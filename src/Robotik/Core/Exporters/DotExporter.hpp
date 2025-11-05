@@ -26,6 +26,7 @@ class Link;
 class Geometry;
 class Sensor;
 class Actuator;
+class Frame;
 
 // ****************************************************************************
 //! \brief Exporter for DOT format (Graphviz) to visualize robot blueprint.
@@ -117,6 +118,12 @@ private:
         //! \param actuator The actuator to visit.
         // ------------------------------------------------------------------------
         void visit(const Actuator& actuator) override;
+
+        // ------------------------------------------------------------------------
+        //! \brief Visit a const Frame node.
+        //! \param frame The frames to visit.
+        // ------------------------------------------------------------------------
+        void visit(const Frame& frame) override;
 
         // ------------------------------------------------------------------------
         //! \brief Visit a const generic Node (fallback).

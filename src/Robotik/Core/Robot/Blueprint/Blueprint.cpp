@@ -9,6 +9,7 @@
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Common/Exception.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 #include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 
 namespace robotik
@@ -74,6 +75,11 @@ public:
     void visit(Geometry& geometry) override
     {
         m_blueprint->m_geometries.emplace_back(std::ref(geometry));
+    }
+
+    void visit(Frame&) override
+    {
+        // Frames are not cached (optional, as per plan)
     }
 
     void visit(Node&) override

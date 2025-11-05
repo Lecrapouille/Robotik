@@ -22,7 +22,7 @@
 namespace robotik::application
 {
 
-// Forward declaration
+// Forward declarations
 class Application;
 
 // ****************************************************************************
@@ -287,6 +287,19 @@ private:
     void exportRobotPanel();
 
     // ----------------------------------------------------------------------------
+    //! \brief Scene graph panel (displays the robot's scene graph tree).
+    // ----------------------------------------------------------------------------
+    void sceneGraphPanel();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Draw a node in the scene graph tree recursively.
+    //! \param p_node The node to draw.
+    //! \param p_parent The parent node (for context, can be nullptr for root).
+    // ----------------------------------------------------------------------------
+    void drawSceneGraphNode(::robotik::Node const& p_node,
+                            ::robotik::Node const* p_parent);
+
+    // ----------------------------------------------------------------------------
     //! \brief Remove a robot
     //! \param p_name The name of the robot to remove
     // ----------------------------------------------------------------------------
@@ -319,6 +332,8 @@ private:
     bool m_show_about = false;
     //! \brief Error message for cartesian control operations
     std::string m_cartesian_error;
+    //! \brief Flag to show add frames dialog
+    bool m_show_add_frame_dialog = false;
 };
 
 } // namespace robotik::application

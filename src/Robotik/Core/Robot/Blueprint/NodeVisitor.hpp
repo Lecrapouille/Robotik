@@ -21,6 +21,7 @@ class Link;
 class Geometry;
 class Sensor;
 class Actuator;
+class Frame;
 
 // ****************************************************************************
 //! \brief Abstract visitor for traversing and operating on nodes.
@@ -83,6 +84,12 @@ public:
     //! \param actuator The actuator to visit.
     // ------------------------------------------------------------------------
     virtual void visit(Actuator& actuator) = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Visit a Frame node.
+    //! \param frame The frame to visit.
+    // ------------------------------------------------------------------------
+    virtual void visit(Frame& frame) = 0;
 
     // ------------------------------------------------------------------------
     //! \brief Visit a generic Node (fallback).
@@ -161,6 +168,12 @@ public:
     //! \param actuator The actuator to visit.
     // ------------------------------------------------------------------------
     virtual void visit(const Actuator& actuator) = 0;
+
+    // ------------------------------------------------------------------------
+    //! \brief Visit a const Frame node.
+    //! \param frame The frame to visit.
+    // ------------------------------------------------------------------------
+    virtual void visit(const Frame& frame) = 0;
 
     // ------------------------------------------------------------------------
     //! \brief Visit a const generic Node (fallback).

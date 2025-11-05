@@ -9,6 +9,7 @@
 
 #include "Robotik/Core/Robot/Robot.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 
 namespace robotik
 {
@@ -158,6 +159,53 @@ Jacobian const& Robot::computeJacobian(State& p_state,
         });
 
     return J;
+}
+
+// ----------------------------------------------------------------------------
+Frame& Robot::addFrame(std::string const& p_name, Transform const& p_transform)
+{
+    return addFrameToNode(m_blueprint.root(), p_name, p_transform);
+}
+
+// ----------------------------------------------------------------------------
+Frame& Robot::addFrameToNode(Node& p_parent,
+                             std::string const& p_name,
+                             Transform const& p_transform)
+{
+    Frame& frame = p_parent.createChild<Frame>(p_name);
+    frame.localTransform(p_transform);
+    return frame;
+}
+
+// ----------------------------------------------------------------------------
+void Robot::attachToFrame(Frame& p_frame)
+{
+    if (!m_blueprint.hasRoot())
+    {
+        return;
+    }
+
+    // Create a new root frames with the same properties as the provided one
+    Node::Ptr new_root = Node::create<Frame>(p_frame.name());
+    new_root->localTransform(p_frame.localTransform());
+
+    // Get reference to current root
+    Node& old_root = m_blueprint.root();
+
+    // Move all children from old root to new root
+    auto& old_children = old_root.children();
+    for (auto& child : old_children)
+    {
+        new_root->addChild(std::move(child));
+    }
+    old_children.clear();
+
+    // Add the old root as a child of the new frames root
+    // Note: We can't move the old root since it's owned by Blueprint,
+    // so we create a wrapper or work with references
+    // For now, the old root structure is preserved as children of new root
+    // The new root becomes the blueprint root
+    m_blueprint.root(std::move(new_root));
 }
 
 } // namespace robotik

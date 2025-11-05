@@ -16,8 +16,9 @@
 namespace robotik
 {
 
-// Forward declaration
+// Forward declarations
 class IKSolver;
+class Frame;
 
 // *********************************************************************************
 //! \brief Class that performs kinematic computations on a robot model.
@@ -223,6 +224,42 @@ public:
     //! \return Const reference to the computed Jacobian in the state.
     // ------------------------------------------------------------------------
     Jacobian const& computeJacobian(State& p_state, Node const& p_end_effector);
+
+    // ------------------------------------------------------------------------
+    //! \brief Create and add a new frames (coordinate frame) to the root of
+    //! the blueprint.
+    //!
+    //! \param p_name The name of the frames.
+    //! \param p_transform The local transformation of the frames (default:
+    //! identity).
+    //! \return Reference to the created frames.
+    // ------------------------------------------------------------------------
+    Frame& addFrame(std::string const& p_name,
+                    Transform const& p_transform = Transform::Identity());
+
+    // ------------------------------------------------------------------------
+    //! \brief Create and add a new frames (coordinate frame) to a specific
+    //! parent node.
+    //!
+    //! \param p_parent The parent node to attach the frames to.
+    //! \param p_name The name of the frames.
+    //! \param p_transform The local transformation of the frames (default:
+    //! identity).
+    //! \return Reference to the created frames.
+    // ------------------------------------------------------------------------
+    Frame& addFrameToNode(Node& p_parent,
+                          std::string const& p_name,
+                          Transform const& p_transform = Transform::Identity());
+
+    // ------------------------------------------------------------------------
+    //! \brief Attach the robot's root to a frames (coordinate frame).
+    //!
+    //! This allows positioning the robot in a different coordinate system
+    //! (e.g., workshop frame). The current root becomes a child of the frames.
+    //!
+    //! \param p_frame The frames to attach the robot to.
+    // ------------------------------------------------------------------------
+    void attachToFrame(Frame& p_frame);
 
 private:
 

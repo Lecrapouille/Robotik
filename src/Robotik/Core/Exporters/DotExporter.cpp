@@ -11,6 +11,7 @@
 #include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Component.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 #include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
@@ -326,6 +327,26 @@ void DotExporter::DotExportVisitor::visit(const Actuator& actuator)
 
     // Create edges to all children (we know them via children())
     for (const auto& child : actuator.children())
+    {
+        std::string child_id = getNodeId(child.get());
+        std::string transform_label = formatTransform(child->localTransform());
+        addEdge(node_id, child_id, transform_label);
+    }
+}
+
+// ----------------------------------------------------------------------------
+void DotExporter::DotExportVisitor::visit(const Frame& frame)
+{
+    std::string node_id = getNodeId(&frame);
+
+    // Build label with frames name
+    std::ostringstream label;
+    label << "Frame: " << frame.name();
+
+    addNode(node_id, label.str(), "hexagon");
+
+    // Create edges to all children (we know them via children())
+    for (const auto& child : frame.children())
     {
         std::string child_id = getNodeId(child.get());
         std::string transform_label = formatTransform(child->localTransform());
