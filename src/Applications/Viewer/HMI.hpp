@@ -190,7 +190,7 @@ private:
     //! \param p_robot Controlled robot.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawWaypointsSection(ControlledRobot const* p_robot,
+    void drawWaypointsSection(ControlledRobot* p_robot,
                               robotik::TeachPendant* p_teach_pendant) const;
 
     // ----------------------------------------------------------------------------
