@@ -98,9 +98,10 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Record the current position of the robot as a waypoint.
     //! \param p_label Optional label for the waypoint.
+    //! \param p_duration Duration for reaching this waypoint (seconds).
     //! \return Index of the recorded waypoint.
     // ------------------------------------------------------------------------
-    size_t recordWaypoint(const std::string& p_label = "");
+    size_t recordWaypoint(const std::string& p_label, double p_duration);
 
     // ------------------------------------------------------------------------
     //! \brief Delete a waypoint.
@@ -123,10 +124,9 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Start the playback of the recorded waypoints.
-    //! \param p_loop If true, loop the trajectory.
     //! \return true if the playback has started.
     // ------------------------------------------------------------------------
-    bool playRecordedTrajectory(bool p_loop = false);
+    bool playRecordedTrajectory();
 
     // ------------------------------------------------------------------------
     //! \brief Stop the playback of the current trajectory.
@@ -144,6 +144,15 @@ public:
     //! \return Error message.
     // ------------------------------------------------------------------------
     std::string const& error() const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if a waypoint has been reached using pose error.
+    //! \param p_robot The controlled robot.
+    //! \param p_waypoint_index Index of the waypoint to check.
+    //! \return true if the waypoint is reached (within tolerance).
+    // ------------------------------------------------------------------------
+    static bool isWaypointReached(application::ControlledRobot* p_robot,
+                                  size_t p_waypoint_index);
 
 private:
 

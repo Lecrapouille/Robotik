@@ -13,9 +13,12 @@
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
+#include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "project_info.hpp"
 
+#include <algorithm>
 #include <imgui.h>
+#include <imgui_stdlib.h>
 #include <iostream>
 
 namespace robotik::application
@@ -254,7 +257,7 @@ void HMI::exportRobotPanel()
         std::string filename = ImGuiFileDialog::Instance()->GetFilePathName();
 
         // Get the current robot
-        auto* controlled_robot =
+        auto const* controlled_robot =
             m_controller.getControlledRobot(m_selected_robot);
         if (controlled_robot == nullptr)
         {
@@ -304,7 +307,8 @@ void HMI::removeRobot(std::string const& p_name)
 // ----------------------------------------------------------------------------
 void HMI::endEffectorSelectionPanel()
 {
-    auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
+    auto const* controlled_robot =
+        m_controller.getControlledRobot(m_selected_robot);
     if (controlled_robot == nullptr)
         return;
 
@@ -522,16 +526,7 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
             auto value = static_cast<float>(joint.position());
             auto const [min, max] = joint.limits();
 
-            // Format label with limits
-            char label[256];
-            snprintf(label,
-                     sizeof(label),
-                     "%s [%.3f, %.3f]",
-                     joint.name().c_str(),
-                     min,
-                     max);
-
-            if (ImGui::SliderFloat(label,
+            if (ImGui::SliderFloat(joint.name().c_str(),
                                    &value,
                                    static_cast<float>(min),
                                    static_cast<float>(max),
@@ -577,8 +572,10 @@ void HMI::drawCartesianControlSection(
 void HMI::drawFrameSelection() const
 {
     static int frame_idx = 0;
-    const char* frames[] = { "World", "Tool", "Base" };
-    ImGui::Combo("Frame", &frame_idx, frames, 3);
+    static const std::array<const char*, 3> frames = { "World",
+                                                       "Tool",
+                                                       "Base" };
+    ImGui::Combo("Frame", &frame_idx, frames.data(), frames.size());
 }
 
 // ----------------------------------------------------------------------------
@@ -646,49 +643,45 @@ void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant) const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawWaypointsSection(ControlledRobot const* p_robot,
+void HMI::drawWaypointsSection(ControlledRobot* p_robot,
                                robotik::TeachPendant* p_teach_pendant) const
 {
     ImGui::Text("Waypoints");
     ImGui::Separator();
 
-    static char waypoint_label[128] = "";
+    static std::string waypoint_label;
     static float waypoint_duration = 3.0f;
+    std::vector<size_t> indices_to_delete;
 
+    // Waypoint label and duration
     ImGui::SetNextItemWidth(150);
-    ImGui::InputText("Label", waypoint_label, IM_ARRAYSIZE(waypoint_label));
+    ImGui::InputText("Label", &waypoint_label);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Duration (s)", &waypoint_duration, 0.1f, 1.0f, "%.2f");
     ImGui::SameLine();
-    if (ImGui::Button("Record Waypoint"))
+    if (ImGui::Button("Add"))
     {
-        size_t idx = p_teach_pendant->recordWaypoint(waypoint_label);
+        size_t idx = p_teach_pendant->recordWaypoint(
+            waypoint_label, static_cast<double>(waypoint_duration));
         std::cout << "📍 Recorded waypoint " << idx << ": " << waypoint_label
                   << std::endl;
-        waypoint_label[0] = '\0'; // Clear input
     }
 
     ImGui::Separator();
     ImGui::Text("Saved Waypoints (%zu):", p_robot->waypoints.size());
     ImGui::BeginChild("WaypointList", ImVec2(0, 200), true);
 
-    auto const& waypoints = p_robot->waypoints;
-    static int selected_waypoint = -1;
-
-    for (size_t i = 0; i < waypoints.size(); ++i)
+    // Display waypoints and collect indices to delete
+    for (size_t i = 0; i < p_robot->waypoints.size(); ++i)
     {
         ImGui::PushID(static_cast<int>(i));
 
-        std::string label =
-            "[" + std::to_string(i) + "] waypoint_" + std::to_string(i);
-        bool is_selected = (selected_waypoint == static_cast<int>(i));
-
-        // Put buttons first to avoid conflict with Selectable
-        if (ImGui::SmallButton("Go##waypoint"))
+        // Put buttons first
+        if (ImGui::Button("Go##waypoint", ImVec2(50, 0)))
         {
-            if (p_teach_pendant->goToWaypoint(
-                    i, static_cast<double>(waypoint_duration)))
+            if (p_teach_pendant->goToWaypoint(i,
+                                              p_robot->waypoints[i].duration))
             {
                 std::cout << "🎯 Going to waypoint " << i << std::endl;
             }
@@ -698,24 +691,51 @@ void HMI::drawWaypointsSection(ControlledRobot const* p_robot,
             }
         }
         ImGui::SameLine();
-        if (ImGui::SmallButton("Delete##waypoint"))
+        if (ImGui::Button("Delete##waypoint", ImVec2(60, 0)))
         {
-            p_teach_pendant->deleteWaypoint(i);
-            std::cout << "🗑️ Deleted waypoint " << i << std::endl;
-            if (selected_waypoint == static_cast<int>(i))
-                selected_waypoint = -1;
-            ImGui::PopID();
-            continue; // Skip Selectable after delete
+            // Collect index to delete (don't delete while iterating)
+            indices_to_delete.push_back(i);
+            std::cout << "🗑️ Marked waypoint " << i << " for deletion"
+                      << std::endl;
         }
         ImGui::SameLine();
 
-        // Selectable after buttons
-        if (ImGui::Selectable(label.c_str(), is_selected))
-        {
-            selected_waypoint = static_cast<int>(i);
-        }
+        // Waypoint name editing
+        ImGui::SetNextItemWidth(150);
+        ImGui::InputText("##name", &p_robot->waypoints[i].label);
+        ImGui::SameLine();
+
+        // Waypoint duration editing
+        ImGui::InputDouble(
+            "##duration", &p_robot->waypoints[i].duration, 0.1, 1.0, "%.2f");
 
         ImGui::PopID();
+    }
+
+    // Delete waypoints after the loop, in descending order to avoid index
+    // shifting issues
+    if (!indices_to_delete.empty())
+    {
+        // Sort in descending order
+        std::sort(indices_to_delete.begin(),
+                  indices_to_delete.end(),
+                  std::greater<size_t>());
+
+        // Remove duplicates (in case of multiple clicks)
+        indices_to_delete.erase(
+            std::unique(indices_to_delete.begin(), indices_to_delete.end()),
+            indices_to_delete.end());
+
+        // Delete from largest index to smallest
+        for (size_t idx : indices_to_delete)
+        {
+            if (idx < p_robot->waypoints.size())
+            {
+                p_teach_pendant->deleteWaypoint(idx);
+                std::cout << "🗑️ Deleted waypoint " << idx << std::endl;
+            }
+        }
+        indices_to_delete.clear();
     }
 
     ImGui::EndChild();
@@ -724,7 +744,6 @@ void HMI::drawWaypointsSection(ControlledRobot const* p_robot,
     if (ImGui::Button("Clear All"))
     {
         p_teach_pendant->clearWaypoints();
-        selected_waypoint = -1;
         std::cout << "🗑️ Cleared all waypoints" << std::endl;
     }
 }
@@ -739,24 +758,23 @@ void HMI::drawTrajectoryPlaybackSection(
 
     // Speed Factor
     ImGui::SetNextItemWidth(100);
-    float speed = static_cast<float>(p_robot->speed_factor);
+    auto speed = static_cast<float>(p_robot->speed_factor);
     if (ImGui::SliderFloat("Speed", &speed, 0.0f, 1.0f, "%.2f"))
     {
         p_robot->speed_factor = static_cast<double>(speed);
     }
 
+    // Loop the trajectory
+    ImGui::SameLine();
+    ImGui::Checkbox("Loop Trajectory", &p_robot->play_in_loop);
+
+    // Play/Stop button
     bool is_playing = (p_robot->state == ControlledRobot::State::PLAYING);
-
-    ImGui::Text("State: %s", is_playing ? "Playing" : "Idle");
-
-    static bool loop_trajectory = false;
-    ImGui::Checkbox("Loop Trajectory", &loop_trajectory);
-
     if (!is_playing)
     {
         if (ImGui::Button("▶ Play Trajectory", ImVec2(-1, 40)))
         {
-            if (p_teach_pendant->playRecordedTrajectory(loop_trajectory))
+            if (p_teach_pendant->playRecordedTrajectory())
             {
                 std::cout << "▶️ Playing trajectory" << std::endl;
             }
@@ -770,11 +788,89 @@ void HMI::drawTrajectoryPlaybackSection(
     }
     else
     {
-        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "▶ Playing...");
         if (ImGui::Button("⏹ Stop", ImVec2(-1, 40)))
         {
             p_teach_pendant->stopTrajectory();
             std::cout << "⏹️ Stopped trajectory" << std::endl;
+        }
+    }
+
+    // State and waypoint information below the button
+    ImGui::Text("State: %s", is_playing ? "Playing" : "Idle");
+
+    // Display waypoint information when playing
+    if (is_playing && !p_robot->waypoints.empty())
+    {
+        bool has_error = false;
+        bool target_reached = false;
+
+        if (!p_robot->trajectory)
+        {
+            has_error = true;
+        }
+        else
+        {
+            // Check if target waypoint has been reached using pose error
+            size_t target_wp_idx = p_robot->target_waypoint_index;
+            if (target_wp_idx < p_robot->waypoints.size())
+            {
+                target_reached = robotik::TeachPendant::isWaypointReached(
+                    p_robot, target_wp_idx);
+            }
+        }
+
+        // Get target waypoint (destination)
+        size_t target_wp_idx = p_robot->target_waypoint_index;
+        std::string target_wp_name = "Unknown";
+        if (target_wp_idx < p_robot->waypoints.size())
+        {
+            target_wp_name = p_robot->waypoints[target_wp_idx].label;
+        }
+
+        // Display waypoint information
+        if (has_error)
+        {
+            ImGui::Text("Target Waypoint: ");
+            ImGui::SameLine();
+            ImGui::TextColored(
+                ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", target_wp_name.c_str());
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), " (Error)");
+        }
+        else
+        {
+            // Show current waypoint if we're coming from a recorded waypoint
+            // (current_waypoint_index != -1 means we're at a waypoint)
+            if (p_robot->current_waypoint_index != -1)
+            {
+                size_t current_wp_idx =
+                    static_cast<size_t>(p_robot->current_waypoint_index);
+                if (current_wp_idx < p_robot->waypoints.size())
+                {
+                    std::string current_wp_name =
+                        p_robot->waypoints[current_wp_idx].label;
+                    ImGui::Text("Current Waypoint: ");
+                    ImGui::SameLine();
+                    ImGui::Text("%s", current_wp_name.c_str());
+                }
+            }
+
+            // Display target waypoint with status
+            ImGui::Text("Target Waypoint: ");
+            ImGui::SameLine();
+            if (target_reached)
+            {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                   "%s",
+                                   target_wp_name.c_str());
+                ImGui::SameLine();
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                   " (Reached)");
+            }
+            else
+            {
+                ImGui::Text("%s", target_wp_name.c_str());
+            }
         }
     }
 }

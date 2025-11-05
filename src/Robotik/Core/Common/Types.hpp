@@ -31,7 +31,7 @@ using JointValues = std::vector<double>;
 //! Used for: Forward kinematics, coordinate frame transformations, pose
 //! composition.
 // ----------------------------------------------------------------------------
-using Transform = Eigen::Matrix4d;
+using Transform = Eigen::Matrix4d; // TODO Eigen::Affine3d
 
 // ----------------------------------------------------------------------------
 //! \brief 6D pose vector representing position and orientation
@@ -44,7 +44,7 @@ using Transform = Eigen::Matrix4d;
 //! Used for: End-effector targets, trajectory waypoints, inverse kinematics
 //! goals.
 // ----------------------------------------------------------------------------
-using Pose = Eigen::Matrix<double, 6, 1>; // Eigen::Affine3d
+using Pose = Eigen::Matrix<double, 6, 1>;
 
 // ----------------------------------------------------------------------------
 //! \brief Jacobian matrix relating joint velocities to end-effector velocity.

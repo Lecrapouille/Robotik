@@ -9,6 +9,7 @@
  */
 
 #include "Robotik/Core/Robot/TeachPendant.hpp"
+#include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/ControlledRobot.hpp"
 #include "Robotik/Core/Solvers/Trajectory.hpp"
@@ -78,7 +79,7 @@ bool TeachPendant::moveJoint(size_t p_joint_idx, double p_delta, double p_speed)
     // Check the limits via forEachJoint
     bool within_limits = true;
     m_robot->blueprint().forEachJoint(
-        [&](Joint const& joint, size_t index)
+        [&target, &within_limits, p_joint_idx](Joint const& joint, size_t index)
         {
             if (index == p_joint_idx)
             {
@@ -140,7 +141,7 @@ bool TeachPendant::moveJoints(const std::vector<double>& p_deltas,
     // Check all limits
     bool within_limits = true;
     m_robot->blueprint().forEachJoint(
-        [&](Joint const& joint, size_t index)
+        [&target, &within_limits](Joint const& joint, size_t index)
         {
             auto [min, max] = joint.limits();
             if (target[index] < min || target[index] > max)
@@ -280,7 +281,8 @@ bool TeachPendant::rotateCartesian(const Eigen::Vector3d& p_rotation_axis,
 }
 
 // ----------------------------------------------------------------------------
-size_t TeachPendant::recordWaypoint(const std::string& p_label)
+size_t TeachPendant::recordWaypoint(const std::string& p_label,
+                                    double p_duration)
 {
     if (!m_robot || !m_controlled_robot)
     {
@@ -289,18 +291,26 @@ size_t TeachPendant::recordWaypoint(const std::string& p_label)
     }
 
     // Create a waypoint with the current position
-    Trajectory::States waypoint;
-    waypoint.position = m_robot->states().joint_positions;
-    waypoint.velocity.resize(waypoint.position.size(), 0.0);
-    waypoint.acceleration.resize(waypoint.position.size(), 0.0);
-    waypoint.time = 0.0; // Will be recalculated during playback
+    application::ControlledRobot::Waypoint waypoint;
+    waypoint.states.position = m_robot->states().joint_positions;
+    waypoint.states.velocity.resize(waypoint.states.position.size(), 0.0);
+    waypoint.states.acceleration.resize(waypoint.states.position.size(), 0.0);
+    waypoint.states.time = 0.0; // Will be recalculated during playback
 
-    // Add to the robot's waypoints
+    // Store duration
+    waypoint.duration = p_duration;
     m_controlled_robot->waypoints.push_back(waypoint);
 
+    // Store label (default to auto-generated name if empty)
+    // Calculate index after push_back to get correct index
+    size_t waypoint_index = m_controlled_robot->waypoints.size() - 1;
+    m_controlled_robot->waypoints[waypoint_index].label =
+        p_label.empty() ? ("waypoint_" + std::to_string(waypoint_index))
+                        : p_label;
+
     std::cout << "📍 Recorded waypoint "
-              << m_controlled_robot->waypoints.size() - 1 << ": "
-              << (p_label.empty() ? "unnamed" : p_label) << std::endl;
+              << m_controlled_robot->waypoints.size() - 1 << ": " << p_label
+              << " (duration: " << p_duration << "s)" << std::endl;
 
     return m_controlled_robot->waypoints.size() - 1;
 }
@@ -308,14 +318,60 @@ size_t TeachPendant::recordWaypoint(const std::string& p_label)
 // ----------------------------------------------------------------------------
 void TeachPendant::deleteWaypoint(size_t p_idx)
 {
-    if (!m_controlled_robot)
+    if (!m_controlled_robot || p_idx >= m_controlled_robot->waypoints.size())
         return;
 
-    if (p_idx < m_controlled_robot->waypoints.size())
+    // Adjust current_waypoint_index if necessary
+    if (m_controlled_robot->current_waypoint_index != -1)
     {
-        m_controlled_robot->waypoints.erase(
-            m_controlled_robot->waypoints.begin() + p_idx);
+        int current_idx = m_controlled_robot->current_waypoint_index;
+        if (static_cast<size_t>(current_idx) == p_idx)
+        {
+            // The current waypoint is being deleted, reset to -1
+            m_controlled_robot->current_waypoint_index = -1;
+        }
+        else if (static_cast<size_t>(current_idx) > p_idx)
+        {
+            // A waypoint before current was deleted, decrement
+            m_controlled_robot->current_waypoint_index = current_idx - 1;
+        }
     }
+
+    // Adjust target_waypoint_index if necessary
+    if (m_controlled_robot->target_waypoint_index == p_idx)
+    {
+        // The target waypoint is being deleted, stop the trajectory
+        if (m_controlled_robot->state ==
+            application::ControlledRobot::State::PLAYING)
+        {
+            m_controlled_robot->trajectory.reset();
+            m_controlled_robot->state =
+                application::ControlledRobot::State::IDLE;
+        }
+    }
+    else if (m_controlled_robot->target_waypoint_index > p_idx)
+    {
+        // A waypoint before target was deleted, decrement
+        m_controlled_robot->target_waypoint_index--;
+    }
+
+    // Check if indices become invalid after deletion
+    size_t new_size = m_controlled_robot->waypoints.size() - 1;
+    if ((m_controlled_robot->target_waypoint_index >= new_size ||
+         (m_controlled_robot->current_waypoint_index != -1 &&
+          static_cast<size_t>(m_controlled_robot->current_waypoint_index) >=
+              new_size)) &&
+        m_controlled_robot->state ==
+            application::ControlledRobot::State::PLAYING)
+    {
+        // Indices are invalid, stop the trajectory
+        m_controlled_robot->trajectory.reset();
+        m_controlled_robot->state = application::ControlledRobot::State::IDLE;
+    }
+
+    // Delete the waypoint
+    m_controlled_robot->waypoints.erase(m_controlled_robot->waypoints.begin() +
+                                        p_idx);
 }
 
 // ----------------------------------------------------------------------------
@@ -339,13 +395,17 @@ bool TeachPendant::goToWaypoint(size_t p_idx, double p_duration)
 
     // Create a trajectory between the current position and the waypoint
     auto const& target_waypoint = m_controlled_robot->waypoints[p_idx];
-    auto current_pos = m_robot->states().joint_positions;
+    auto const& current_pos = m_robot->states().joint_positions;
 
-    m_controlled_robot->playing_trajectory =
-        std::make_unique<JointSpaceTrajectory>(
-            current_pos, target_waypoint.position, p_duration);
+    m_controlled_robot->trajectory = std::make_unique<JointSpaceTrajectory>(
+        current_pos, target_waypoint.states.position, p_duration);
 
-    m_controlled_robot->trajectory_time = 0.0;
+    m_controlled_robot->trajectory_current_time = 0.0;
+    m_controlled_robot->current_waypoint_index =
+        -1; // Coming from current position
+    m_controlled_robot->target_waypoint_index = p_idx;
+    m_controlled_robot->is_playing_all_waypoints =
+        false; // "go" mode: single waypoint
     m_controlled_robot->state = application::ControlledRobot::State::PLAYING;
 
     std::cout << "🎯 Going to waypoint " << p_idx << std::endl;
@@ -354,7 +414,7 @@ bool TeachPendant::goToWaypoint(size_t p_idx, double p_duration)
 }
 
 // ----------------------------------------------------------------------------
-bool TeachPendant::playRecordedTrajectory(bool p_loop)
+bool TeachPendant::playRecordedTrajectory()
 {
     if (!m_robot || !m_controlled_robot)
     {
@@ -362,26 +422,28 @@ bool TeachPendant::playRecordedTrajectory(bool p_loop)
         return false;
     }
 
-    // Check that there are at least 2 waypoints
-    if (m_controlled_robot->waypoints.size() < 2)
+    // Check that there are at least 1 waypoint
+    if (m_controlled_robot->waypoints.empty())
     {
-        std::cout << "⚠️ Need at least 2 waypoints to play trajectory"
+        std::cout << "⚠️ Need at least 1 waypoint to play trajectory"
                   << std::endl;
         return false;
     }
 
-    // For now: simple trajectory between first and last waypoint
-    // TODO: Create a multi-segment trajectory passing through all waypoints
+    // The robot must first reach waypoint 0 (initial waypoint)
     auto const& wps = m_controlled_robot->waypoints;
-    double duration_per_segment = 3.0; // 3 secondes entre waypoints
+    auto const& current_pos = m_robot->states().joint_positions;
 
-    m_controlled_robot->playing_trajectory =
-        std::make_unique<JointSpaceTrajectory>(wps.front().position,
-                                               wps.back().position,
-                                               duration_per_segment *
-                                                   (wps.size() - 1));
+    // Create trajectory from current position to waypoint 0
+    m_controlled_robot->trajectory = std::make_unique<JointSpaceTrajectory>(
+        current_pos, wps[0].states.position, wps[0].duration);
 
-    m_controlled_robot->trajectory_time = 0.0;
+    m_controlled_robot->trajectory_current_time = 0.0;
+    m_controlled_robot->current_waypoint_index =
+        -1; // Coming from current position
+    m_controlled_robot->target_waypoint_index = 0; // Destination: waypoint 0
+    m_controlled_robot->is_playing_all_waypoints =
+        true; // "play" mode: all waypoints
     m_controlled_robot->state = application::ControlledRobot::State::PLAYING;
 
     std::cout << "▶️ Playing trajectory with " << wps.size() << " waypoints"
@@ -396,10 +458,56 @@ void TeachPendant::stopTrajectory()
     if (!m_controlled_robot)
         return;
 
-    m_controlled_robot->playing_trajectory.reset();
+    m_controlled_robot->current_waypoint_index = -1; // Reset to initial state
+    m_controlled_robot->is_playing_all_waypoints = false; // Reset flag
+    m_controlled_robot->trajectory.reset();
     m_controlled_robot->state = application::ControlledRobot::State::IDLE;
 
     std::cout << "⏹️ Trajectory stopped" << std::endl;
+}
+
+// ----------------------------------------------------------------------------
+bool TeachPendant::isWaypointReached(application::ControlledRobot* p_robot,
+                                     size_t p_waypoint_index)
+{
+    if (!p_robot || p_waypoint_index >= p_robot->waypoints.size())
+        return false;
+
+    // Check that end-effector is configured
+    if (!p_robot->end_effector)
+        return false;
+
+    // Get current end-effector pose
+    Transform current_transform = p_robot->end_effector->worldTransform();
+    Pose current_pose = transformToPose(current_transform);
+
+    // Save current joint positions
+    auto current_joint_positions = p_robot->states().joint_positions;
+
+    // Apply waypoint joint positions temporarily
+    auto const& waypoint = p_robot->waypoints[p_waypoint_index];
+    if (waypoint.states.position.size() != current_joint_positions.size())
+        return false;
+
+    p_robot->setJointPositions(waypoint.states.position);
+
+    // Calculate target pose
+    Transform target_transform = p_robot->end_effector->worldTransform();
+    Pose target_pose = transformToPose(target_transform);
+
+    // Restore original joint positions
+    p_robot->setJointPositions(current_joint_positions);
+
+    // Calculate pose error
+    Pose error = calculatePoseError(target_pose, current_pose);
+
+    // Check if error is within tolerance
+    // Position tolerance: 0.01 m
+    // Orientation tolerance: 0.01 rad
+    double position_error = error.head<3>().norm();
+    double orientation_error = error.tail<3>().norm();
+
+    return (position_error < 0.01 && orientation_error < 0.01);
 }
 
 // ----------------------------------------------------------------------------
@@ -416,32 +524,135 @@ void TeachPendant::update(double p_dt)
         return;
     }
 
-    if (!m_controlled_robot->playing_trajectory)
+    if (!m_controlled_robot->trajectory)
     {
         m_error = "No trajectory to play";
         return;
     }
 
-    // Advance in time
-    m_controlled_robot->trajectory_time += p_dt;
-
-    // Check if the trajectory is finished
-    if (m_controlled_robot->trajectory_time >=
-        m_controlled_robot->playing_trajectory->duration())
+    // Check if the target waypoint has been reached
+    if (m_controlled_robot->target_waypoint_index <
+            m_controlled_robot->waypoints.size() &&
+        isWaypointReached(m_controlled_robot,
+                          m_controlled_robot->target_waypoint_index))
     {
-        // The trajectory is finished
-        std::cout << "✓ Trajectory completed" << std::endl;
-        m_controlled_robot->playing_trajectory.reset();
-        m_controlled_robot->state = application::ControlledRobot::State::IDLE;
-        return;
+        // Waypoint reached
+        auto const& wps = m_controlled_robot->waypoints;
+        size_t target_idx = m_controlled_robot->target_waypoint_index;
+
+        // Check if we reached the last waypoint
+        if (target_idx == wps.size() - 1)
+        {
+            // Last waypoint reached
+            if (m_controlled_robot->play_in_loop)
+            {
+                // Loop: go back to waypoint 0
+                m_controlled_robot->current_waypoint_index =
+                    static_cast<int>(wps.size() - 1);
+                m_controlled_robot->target_waypoint_index = 0;
+
+                // Create trajectory from last waypoint to first waypoint
+                m_controlled_robot->trajectory =
+                    std::make_unique<JointSpaceTrajectory>(
+                        wps[wps.size() - 1].states.position,
+                        wps[0].states.position,
+                        wps[0].duration);
+
+                m_controlled_robot->trajectory_current_time = 0.0;
+                std::cout << "✓ Waypoint " << target_idx
+                          << " reached, looping to waypoint 0" << std::endl;
+            }
+            else
+            {
+                // No loop: stop trajectory
+                std::cout << "✓ Trajectory completed (all waypoints reached)"
+                          << std::endl;
+                m_controlled_robot->current_waypoint_index =
+                    -1; // Reset to initial state
+                m_controlled_robot->is_playing_all_waypoints =
+                    false; // Reset flag
+                m_controlled_robot->trajectory.reset();
+                m_controlled_robot->state =
+                    application::ControlledRobot::State::IDLE;
+                return;
+            }
+        }
+        else
+        {
+            // Check if we're playing all waypoints or just going to one
+            if (!m_controlled_robot->is_playing_all_waypoints)
+            {
+                // We're doing "go" to a single waypoint, stop when reached
+                m_controlled_robot->current_waypoint_index =
+                    static_cast<int>(target_idx);
+                m_controlled_robot->trajectory.reset();
+                m_controlled_robot->state =
+                    application::ControlledRobot::State::IDLE;
+                std::cout << "✓ Waypoint " << target_idx
+                          << " reached (go completed)" << std::endl;
+                return;
+            }
+
+            // Move to next waypoint
+            m_controlled_robot->current_waypoint_index =
+                static_cast<int>(target_idx);
+            m_controlled_robot->target_waypoint_index = target_idx + 1;
+
+            // Create trajectory to next waypoint
+            if (m_controlled_robot->current_waypoint_index == -1)
+            {
+                // Coming from current position
+                auto const& current_pos = m_robot->states().joint_positions;
+                m_controlled_robot
+                    ->trajectory = std::make_unique<JointSpaceTrajectory>(
+                    current_pos,
+                    wps[m_controlled_robot->target_waypoint_index]
+                        .states.position,
+                    wps[m_controlled_robot->target_waypoint_index].duration);
+            }
+            else
+            {
+                // Coming from a waypoint
+                m_controlled_robot
+                    ->trajectory = std::make_unique<JointSpaceTrajectory>(
+                    wps[static_cast<size_t>(
+                            m_controlled_robot->current_waypoint_index)]
+                        .states.position,
+                    wps[m_controlled_robot->target_waypoint_index]
+                        .states.position,
+                    wps[m_controlled_robot->target_waypoint_index].duration);
+            }
+
+            m_controlled_robot->trajectory_current_time = 0.0;
+            std::cout << "✓ Waypoint " << target_idx
+                      << " reached, moving to waypoint "
+                      << m_controlled_robot->target_waypoint_index << std::endl;
+        }
+    }
+
+    // Advance in time
+    m_controlled_robot->trajectory_current_time += p_dt;
+
+    // Check if the trajectory is finished (time-based fallback)
+    if (m_controlled_robot->trajectory &&
+        m_controlled_robot->trajectory_current_time >=
+            m_controlled_robot->trajectory->duration())
+    {
+        // Trajectory time exceeded, but waypoint might not be reached yet
+        // Continue executing until waypoint is reached
+        m_controlled_robot->trajectory_current_time =
+            m_controlled_robot->trajectory->duration();
     }
 
     // Evaluate the target position at this time
-    auto target_positions = m_controlled_robot->playing_trajectory->getPosition(
-        m_controlled_robot->trajectory_time);
+    if (m_controlled_robot->trajectory)
+    {
+        auto target_positions = m_controlled_robot->trajectory->getPosition(
+            m_controlled_robot->trajectory_current_time);
 
-    // Apply with speed limits
-    m_robot->applyJointTargetsWithSpeedLimit(target_positions, p_dt);
+        // Apply with speed limits
+        m_robot->applyJointTargetsWithSpeedLimit(target_positions, p_dt);
+    }
 }
 
 } // namespace robotik
