@@ -76,6 +76,11 @@ public:
     void visit(const robotik::Actuator& actuator) override;
 
     // ------------------------------------------------------------------------
+    //! \brief Visit a Frame node (render coordinate axes).
+    // ------------------------------------------------------------------------
+    void visit(const robotik::Frame& frame) override;
+
+    // ------------------------------------------------------------------------
     //! \brief Visit a generic Node (fallback).
     // ------------------------------------------------------------------------
     void visit(const robotik::Node& node) override;

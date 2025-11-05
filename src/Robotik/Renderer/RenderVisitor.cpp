@@ -9,6 +9,7 @@
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 #include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
@@ -70,6 +71,27 @@ void RenderVisitor::visit(const robotik::Sensor& /*sensor*/)
 void RenderVisitor::visit(const robotik::Actuator& /*actuator*/)
 {
     // Not yet implemented
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::visit(const robotik::Frame& frame)
+{
+    // Always render axes for frames (coordinate frames)
+    const GeometryManager::GPUMesh* axis_mesh =
+        m_geometry_manager.getMesh("revolute");
+    if (!axis_mesh || !axis_mesh->is_loaded)
+    {
+        std::cerr << "Warning: axis mesh not found for frames axes rendering"
+                  << std::endl;
+        return;
+    }
+
+    // Get frames world transform
+    Eigen::Matrix4f frame_transform = frame.worldTransform().cast<float>();
+
+    // Render the standard RGB axes at the frames position
+    constexpr float axis_scale = 1.0f;
+    renderAxes(axis_mesh, frame_transform, axis_scale);
 }
 
 // ----------------------------------------------------------------------------

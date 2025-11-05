@@ -12,7 +12,7 @@
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
-#include "Robotik/Core/Robot/Blueprint/Node.hpp"
+#include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "project_info.hpp"
 
@@ -184,6 +184,9 @@ void HMI::robotManagementPanel()
     robotListPanel();
     loadRobotPanel();
     exportRobotPanel();
+
+    ImGui::Separator();
+    sceneGraphPanel();
 }
 
 // ----------------------------------------------------------------------------
@@ -1217,6 +1220,161 @@ void HMI::about() const
         }
 
         ImGui::EndPopup();
+    }
+}
+
+// ----------------------------------------------------------------------------
+void HMI::sceneGraphPanel()
+{
+    if (m_selected_robot.empty())
+    {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                           "Select a robot to view scene graph");
+        return;
+    }
+
+    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    if (robot == nullptr)
+    {
+        return;
+    }
+
+    ImGui::Text("Scene Graph");
+    ImGui::BeginChild("SceneGraph", ImVec2(0, 200), true);
+
+    auto const& root = robot->blueprint().root();
+    drawSceneGraphNode(root, nullptr);
+
+    ImGui::EndChild();
+
+    // Add Frame button
+    if (ImGui::Button("Add Frame"))
+    {
+        m_show_add_frame_dialog = true;
+    }
+
+    // Add Frame dialog
+    if (m_show_add_frame_dialog)
+    {
+        ImGui::OpenPopup("Add Frame");
+        m_show_add_frame_dialog = false;
+    }
+
+    if (ImGui::BeginPopupModal(
+            "Add Frame", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        static char frame_name[256] = "";
+        static float translation[3] = { 0.0f, 0.0f, 0.0f };
+        static float rotation[3] = { 0.0f,
+                                     0.0f,
+                                     0.0f }; // Euler angles in degrees
+
+        ImGui::InputText("Name", frame_name, sizeof(frame_name));
+        ImGui::InputFloat3("Translation", translation);
+        ImGui::InputFloat3("Rotation (deg)", rotation);
+
+        if (ImGui::Button("Cancel"))
+        {
+            ImGui::CloseCurrentPopup();
+            frame_name[0] = '\0';
+            translation[0] = translation[1] = translation[2] = 0.0f;
+            rotation[0] = rotation[1] = rotation[2] = 0.0f;
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Create"))
+        {
+            if (frame_name[0] != '\0')
+            {
+                // Create transform from translation and rotation
+                Eigen::Vector3d trans(
+                    translation[0], translation[1], translation[2]);
+                Eigen::Vector3d rot_rad(rotation[0] * M_PI / 180.0,
+                                        rotation[1] * M_PI / 180.0,
+                                        rotation[2] * M_PI / 180.0);
+
+                // Create rotation matrix from Euler angles (ZYX order)
+                Eigen::Matrix3d rot =
+                    (Eigen::AngleAxisd(rot_rad.z(), Eigen::Vector3d::UnitZ()) *
+                     Eigen::AngleAxisd(rot_rad.y(), Eigen::Vector3d::UnitY()) *
+                     Eigen::AngleAxisd(rot_rad.x(), Eigen::Vector3d::UnitX()))
+                        .toRotationMatrix();
+
+                using robotik::Transform;
+                Transform transform = Transform::Identity();
+                transform.block<3, 3>(0, 0) = rot;
+                transform.block<3, 1>(0, 3) = trans;
+
+                robot->addFrame(std::string(frame_name), transform);
+
+                ImGui::CloseCurrentPopup();
+                frame_name[0] = '\0';
+                translation[0] = translation[1] = translation[2] = 0.0f;
+                rotation[0] = rotation[1] = rotation[2] = 0.0f;
+            }
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+// ----------------------------------------------------------------------------
+void HMI::drawSceneGraphNode(::robotik::Node const& p_node,
+                             ::robotik::Node const* /*p_parent*/)
+{
+    using namespace robotik;
+
+    // Determine node type
+    std::string node_type = "Node";
+    ImVec4 type_color(0.7f, 0.7f, 0.7f, 1.0f);
+
+    if (dynamic_cast<Frame const*>(&p_node))
+    {
+        node_type = "Frame";
+        type_color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f); // Yellow
+    }
+    else if (dynamic_cast<Joint const*>(&p_node))
+    {
+        node_type = "Joint";
+        type_color = ImVec4(0.0f, 1.0f, 1.0f, 1.0f); // Cyan
+    }
+    else if (dynamic_cast<Link const*>(&p_node))
+    {
+        node_type = "Link";
+        type_color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f); // Green
+    }
+    else if (dynamic_cast<Geometry const*>(&p_node))
+    {
+        node_type = "Geometry";
+        type_color = ImVec4(1.0f, 0.5f, 0.0f, 1.0f); // Orange
+    }
+
+    // Create tree node label
+    std::string label = "[" + node_type + "] " + p_node.name();
+
+    // Check if node has children
+    bool has_children = !p_node.children().empty();
+
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow;
+    if (!has_children)
+    {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+
+    // Draw the node
+    ImGui::PushStyleColor(ImGuiCol_Text, type_color);
+    bool node_open = ImGui::TreeNodeEx(label.c_str(), flags);
+    ImGui::PopStyleColor();
+
+    if (node_open)
+    {
+        // Recursively draw children
+        for (auto const& child : p_node.children())
+        {
+            drawSceneGraphNode(*child, child.get());
+        }
+
+        ImGui::TreePop();
     }
 }
 

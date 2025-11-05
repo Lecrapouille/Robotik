@@ -98,6 +98,17 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Get the root node of the blueprint (non-const version).
+    //! \note Call hasRoot() before calling this method to ensure the root
+    //! node is set.
+    //! \return Reference to the root node.
+    // ------------------------------------------------------------------------
+    inline Node& root() // FIXME: Link
+    {
+        return *m_root_node.get();
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Find and return a link by its name.
     //! \param p_name Name of the link.
     //! \return Const reference to the link.

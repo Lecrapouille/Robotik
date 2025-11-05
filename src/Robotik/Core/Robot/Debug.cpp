@@ -8,6 +8,7 @@
  */
 
 #include "Robotik/Core/Common/Conversions.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 #include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 
@@ -393,6 +394,27 @@ public:
     void visit(const Actuator&) override
     {
         // Ignore actuators in debug output for now
+    }
+
+    void visit(const Frame& frame) override
+    {
+        visitNode(frame);
+        m_oss << indentation(m_depth, m_last_flags, false);
+        m_oss << YELLOW << "📍" << RESET << " " << BOLD << YELLOW
+              << "[Frame: " + frame.name() + "]" << RESET << std::endl;
+        if (m_detailed)
+        {
+            bool end_connector = !frame.children().empty();
+            auto str_indentation = indentation(m_depth, m_last_flags, true);
+            m_oss << str_indentation << "│    ├─ " << LOCAL_EMOJI << " " << CYAN
+                  << "local" << RESET << ":  "
+                  << print_transform(frame.localTransform()) << std::endl;
+            m_oss << str_indentation
+                  << (end_connector ? "│    └─ " : "│    │   ") << WORLD_EMOJI
+                  << " " << BLUE << "world" << RESET << ":  "
+                  << print_transform(frame.worldTransform()) << std::endl;
+        }
+        afterVisitNode(frame);
     }
 
     void visit(const Node& node) override
