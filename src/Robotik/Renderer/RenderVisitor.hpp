@@ -102,9 +102,11 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Render coordinate axes (X=red, Y=green, Z=blue).
     //! \param p_axes_mesh Pointer to cylinder mesh for axes (from
-    //! GeometryManager).
+    //! GeometryManager). The cylinder should be centered (extending from
+    //! -height/2 to +height/2).
     //! \param p_transform 4x4 transformation matrix.
-    //! \param p_scale Scale factor for axes.
+    //! \param p_scale Scale factor for axis length (desired length of each
+    //! axis).
     // ------------------------------------------------------------------------
     void renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
                     const Eigen::Matrix4f& p_transform,
@@ -117,8 +119,6 @@ public:
     // ------------------------------------------------------------------------
     void renderGrid(const GeometryManager::GPUMesh* p_grid_mesh,
                     const Eigen::Vector3f& p_color) const;
-
-private:
 
     // ------------------------------------------------------------------------
     //! \brief Render a mesh with transformation and color.

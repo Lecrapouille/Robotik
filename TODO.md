@@ -28,15 +28,15 @@ Repenser les S.I. mettre Radian pour revolute et Meter pour prismatic
 - Terme	Signification
 end_effector	L’outil lui-même (gripper, etc.)
 flange	L’interface mécanique pour le monter
-tool0	Le repère d’outil à la base du end-effector (souvent fixe)
+tool0	Le frames d’outil à la base du end-effector (souvent fixe)
 tcp (tool center point)	Le point central actif de l’outil (ex: bout d’une pince)
 - Reprendre https://youtu.be/l5eo4ePBxlE?si=hO9RFDiYwtCLCNvn&t=398
  - appliquer vitesse robot 0% -- 100%
- - differents reperes
+ - differents frames
 - Gestion de camera
   - Suggestions Supplémentaires pour la Robotique
   - Focus on Link/Joint - Méthode pour centrer la caméra sur un lien ou joint spécifique
-  - Frame Visualization - Toggle pour afficher les repères des joints
+  - Frame Visualization - Toggle pour afficher les frames des joints
   - Preset Views - Positions de caméra prédéfinies optimales pour différents robots
   - Smooth Transitions - Interpolation douce entre les positions de caméra
   - Follow Mode - La caméra suit le mouvement du robot (utile pour l'animation)

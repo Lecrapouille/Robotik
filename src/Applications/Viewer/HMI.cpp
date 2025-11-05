@@ -81,7 +81,7 @@ void HMI::onDrawMenuBar()
 // ----------------------------------------------------------------------------
 void HMI::onDrawMainPanel()
 {
-    ImGui::Begin("Teach Pendant Control");
+    ImGui::Begin("Teach Pendant");
 
     if (!m_selected_robot.empty())
     {
@@ -101,7 +101,7 @@ void HMI::onDrawMainPanel()
 // ----------------------------------------------------------------------------
 void HMI::onDrawRobotManagementWindow()
 {
-    ImGui::Begin("Robot Management");
+    ImGui::Begin("Robots");
     robotManagementPanel();
     ImGui::End();
 }
@@ -577,7 +577,7 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 void HMI::drawCartesianControlSection(ControlledRobot* p_robot,
                                       robotik::TeachPendant* p_teach_pendant)
 {
-    ImGui::Text("Cartesian Control - Teach Pendant Style");
+    ImGui::Text("Cartesian Control");
 
     drawFrameSelection(p_robot);
 

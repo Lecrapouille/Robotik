@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/Component.hpp"
+#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 #include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"

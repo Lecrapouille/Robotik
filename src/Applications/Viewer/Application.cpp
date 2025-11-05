@@ -177,7 +177,7 @@ bool Application::setupMeshes()
 
     // Create axis cylinder mesh for coordinate axes visualization (used by
     // RenderVisitor::renderAxes() method)
-    if (!m_geometry_manager->createCylinder("axis", 0.01f, 0.1f, 16))
+    if (!m_geometry_manager->createCylinder("axis", 1.0f, 1.0f, 16))
     {
         m_error = "Failed to create axis mesh: " + m_geometry_manager->error();
         return false;
@@ -189,6 +189,14 @@ bool Application::setupMeshes()
     {
         m_error =
             "Failed to create joint axis mesh: " + m_geometry_manager->error();
+        return false;
+    }
+
+    // Create sphere mesh for waypoint markers
+    if (!m_geometry_manager->createSphere("waypoint", 0.05f, 16, 16))
+    {
+        m_error =
+            "Failed to create waypoint mesh: " + m_geometry_manager->error();
         return false;
     }
 
@@ -331,7 +339,7 @@ void Application::onDrawScene()
     {
         bool const selected = (robot_name == m_hmi->selectedRobot());
         // Get the controlled robot from controller
-        auto* controlled_robot = getControlledRobot(robot_name);
+        auto const* controlled_robot = getControlledRobot(robot_name);
         if (controlled_robot)
         {
             renderRobot(*controlled_robot, selected);
@@ -363,9 +371,67 @@ void Application::renderRobot(ControlledRobot const& p_robot,
             p_robot.end_effector->worldTransform().cast<float>();
         if (auto* axis_mesh = m_geometry_manager->getMesh("axis"))
         {
-            m_render->renderAxes(axis_mesh, target_transform_f, 1.0f);
+            m_render->renderAxes(axis_mesh, target_transform_f, 0.1f);
         }
     }
+
+    // Render waypoints
+    renderWaypoints(p_robot);
+}
+
+// ----------------------------------------------------------------------------
+void Application::renderWaypoints(ControlledRobot const& p_robot)
+{
+    if (p_robot.waypoints.empty() || !p_robot.end_effector)
+        return;
+
+    auto* waypoint_mesh = m_geometry_manager->getMesh("waypoint");
+    if (!waypoint_mesh || !waypoint_mesh->is_loaded)
+        return;
+
+    // Get non-const reference to robot for temporary joint position changes
+    auto* robot = getControlledRobot(p_robot.name());
+    if (!robot)
+        return;
+
+    // Save current joint positions
+    auto current_positions = robot->states().joint_positions;
+
+    // Render each waypoint
+    for (size_t i = 0; i < p_robot.waypoints.size(); ++i)
+    {
+        auto const& waypoint = p_robot.waypoints[i];
+
+        // Temporarily apply waypoint joint positions
+        robot->setJointPositions(waypoint.states.position);
+
+        // Calculate end effector position
+        Eigen::Matrix4f waypoint_transform =
+            robot->end_effector->worldTransform().cast<float>();
+        Eigen::Vector3f waypoint_pos = waypoint_transform.block<3, 1>(0, 3);
+
+        // Create transform matrix for the waypoint sphere
+        Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
+        transform.block<3, 1>(0, 3) = waypoint_pos;
+
+        // Choose color: yellow for waypoints, green if it's the target
+        Eigen::Vector3f color(1.0f, 1.0f, 0.0f); // Yellow
+        if (static_cast<size_t>(p_robot.target_waypoint_index) == i)
+        {
+            color = Eigen::Vector3f(0.0f, 1.0f, 0.0f); // Green for target
+        }
+        else if (p_robot.current_waypoint_index != -1 &&
+                 static_cast<size_t>(p_robot.current_waypoint_index) == i)
+        {
+            color = Eigen::Vector3f(0.0f, 0.8f, 1.0f); // Cyan for current
+        }
+
+        // Render waypoint sphere
+        m_render->renderMesh(waypoint_mesh, transform, color);
+    }
+
+    // Restore original joint positions
+    robot->setJointPositions(current_positions);
 }
 
 // ----------------------------------------------------------------------------
