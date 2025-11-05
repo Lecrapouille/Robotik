@@ -169,9 +169,8 @@ private:
     //! \param p_robot Controlled robot.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void
-    drawCartesianControlSection(ControlledRobot* p_robot,
-                                robotik::TeachPendant* p_teach_pendant) const;
+    void drawCartesianControlSection(ControlledRobot* p_robot,
+                                     robotik::TeachPendant* p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw frame selection combo.
@@ -183,13 +182,13 @@ private:
     //! \brief Draw translation controls.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawTranslationControls(robotik::TeachPendant* p_teach_pendant) const;
+    void drawTranslationControls(robotik::TeachPendant* p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw rotation controls.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawRotationControls(robotik::TeachPendant* p_teach_pendant) const;
+    void drawRotationControls(robotik::TeachPendant* p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw waypoints section.
@@ -318,6 +317,8 @@ private:
     std::vector<std::string> m_end_effector_names;
     //! \brief Flag to show about dialog
     bool m_show_about = false;
+    //! \brief Error message for cartesian control operations
+    std::string m_cartesian_error;
 };
 
 } // namespace robotik::application
