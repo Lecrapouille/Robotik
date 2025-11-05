@@ -298,6 +298,7 @@ void Application::onDrawMainPanel()
     // Draw dockable windows
     m_hmi->onDrawRobotManagementWindow();
     m_hmi->onDrawCameraTargetWindow();
+    m_hmi->onDrawTrajectoryWindow();
 
     // Draw main teach pendant window
     m_hmi->onDrawMainPanel();

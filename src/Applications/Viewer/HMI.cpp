@@ -131,6 +131,44 @@ void HMI::onDrawCameraTargetWindow()
 }
 
 // ----------------------------------------------------------------------------
+void HMI::onDrawTrajectoryWindow()
+{
+    ImGui::Begin("Trajectory");
+
+    if (!m_selected_robot.empty())
+    {
+        auto* robot = m_controller.getControlledRobot(m_selected_robot);
+        if (robot != nullptr)
+        {
+            auto* teach_pendant = m_controller.getTeachPendant();
+            if (teach_pendant != nullptr)
+            {
+                // Configure the teach pendant for this robot
+                teach_pendant->setRobot(*robot);
+                if (robot->end_effector != nullptr)
+                {
+                    teach_pendant->setEndEffector(*robot->end_effector);
+                }
+
+                // Waypoints Section
+                drawWaypointsSection(robot, teach_pendant);
+                ImGui::Spacing();
+
+                // Trajectory Playback Section
+                drawTrajectoryPlaybackSection(robot, teach_pendant);
+            }
+        }
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                           "Select a robot to configure trajectory");
+    }
+
+    ImGui::End();
+}
+
+// ----------------------------------------------------------------------------
 void HMI::robotManagementPanel()
 {
     if (ImGui::Button("Load Robot"))
@@ -440,16 +478,6 @@ void HMI::teachPendantPanel()
         drawCartesianControlSection(robot, teach_pendant);
         ImGui::Spacing();
     }
-
-    // Waypoints Section (always visible)
-    drawWaypointsSection(robot, teach_pendant);
-    ImGui::Spacing();
-
-    // Trajectory Playback Section (show only in TRAJECTORY mode)
-    if (selected_mode == ControlledRobot::ControlMode::TRAJECTORY)
-    {
-        drawTrajectoryPlaybackSection(robot, teach_pendant);
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -476,16 +504,6 @@ HMI::drawControlModeTabs(ControlledRobot::ControlMode p_current_mode) const
             {
                 selected_mode = ControlledRobot::ControlMode::CARTESIAN;
                 std::cout << "🎮 Control mode: Cartesian" << std::endl;
-            }
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Trajectory"))
-        {
-            if (selected_mode != ControlledRobot::ControlMode::TRAJECTORY)
-            {
-                selected_mode = ControlledRobot::ControlMode::TRAJECTORY;
-                std::cout << "🎮 Control mode: Trajectory" << std::endl;
             }
             ImGui::EndTabItem();
         }
