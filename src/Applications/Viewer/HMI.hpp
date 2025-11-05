@@ -73,6 +73,11 @@ public:
     void onDrawCameraTargetWindow();
 
     // ----------------------------------------------------------------------------
+    //! \brief Render the trajectory dockable window.
+    // ----------------------------------------------------------------------------
+    void onDrawTrajectoryWindow();
+
+    // ----------------------------------------------------------------------------
     //! \brief Get the currently selected robot name
     //! \return The name of the selected robot, empty string if none selected
     // ----------------------------------------------------------------------------
