@@ -226,6 +226,12 @@ private:
                      bool p_is_selected = false);
 
     // ----------------------------------------------------------------------------
+    //! \brief Render waypoints for the given robot.
+    //! \param p_robot The controlled robot whose waypoints to render.
+    // ----------------------------------------------------------------------------
+    void renderWaypoints(ControlledRobot const& p_robot);
+
+    // ----------------------------------------------------------------------------
     //! \brief Switch neutral position for the current robot.
     // ----------------------------------------------------------------------------
     void switchNeutralPosition() const;
@@ -258,7 +264,8 @@ private:
     std::unique_ptr<Controller> m_controller;
     //! \brief Perspective camera for intuitive robot inspection.
     std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
-    //! \brief Current camera controller (non-owning pointer, points to one of the controllers below).
+    //! \brief Current camera controller (non-owning pointer, points to one of
+    //! the controllers below).
     renderer::CameraController* m_camera_controller = nullptr;
     //! \brief Orbit controller instance (for switching).
     std::unique_ptr<renderer::OrbitController> m_orbit_controller;

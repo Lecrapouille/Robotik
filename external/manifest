@@ -14,3 +14,7 @@ ocornut/imgui@docking
 ### File Dialog for Dear ImGui
 ### License: MIT
 aiekick/ImGuiFileDialog
+
+### Immediate Mode Plotting
+### License: MIT
+epezent/implot

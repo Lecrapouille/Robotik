@@ -151,102 +151,61 @@ void RenderVisitor::renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
         return;
     }
 
-    const float radius = 0.02f * p_scale; // Thin cylinder radius
-    const float height = p_scale;         // Axis length
+    // Cylinder is unit (radius=1, height=1), p_scale controls axis length
+    const float scaled_half_height = p_scale * 0.5f;
+    constexpr float radius_scale_factor = 0.1f; // Keep axes thin
+
+    // Create common scale matrix
+    Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
+    scale(0, 0) = p_scale * radius_scale_factor;
+    scale(1, 1) = p_scale * radius_scale_factor;
+    scale(2, 2) = p_scale;
 
     int model_uniform = m_shader_manager.getUniformLocation("model");
     int color_uniform = m_shader_manager.getUniformLocation("color");
+    glBindVertexArray(p_axes_mesh->vao);
 
-    // X axis (red) - cylinder along X direction
+    // X axis (red) - rotate 90° around Y, translate along X
     {
-        // Create scaling transformation (cylinder default: radius in XY, height
-        // in Z)
-        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
-        scale(0, 0) = radius;
-        scale(1, 1) = radius;
-        scale(2, 2) = height / 2.0f;
-
-        // Create rotation to align cylinder with X axis (rotate 90° around Y)
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
             Eigen::AngleAxisf(M_PIf / 2.0f, Eigen::Vector3f::UnitY())
                 .toRotationMatrix();
-
-        // Create translation to position cylinder at half its length along X
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
-        translation(0, 3) = height * 0.5f;
-
-        // Set model matrix to OpenGL shader
+        translation(0, 3) = scaled_half_height;
         Eigen::Matrix4f model = p_transform * translation * rotation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
-
-        // Set color to OpenGL shader
         m_shader_manager.setVector3f(color_uniform, s_red_color.data());
-
-        // Draw the cylinder
-        glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
                        GL_UNSIGNED_INT,
                        nullptr);
     }
 
-    // Y axis (green) - cylinder along Y direction
+    // Y axis (green) - rotate -90° around X, translate along Y
     {
-        // Create scaling transformation
-        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
-        scale(0, 0) = radius;
-        scale(1, 1) = radius;
-        scale(2, 2) = height / 2.0f;
-
-        // Create rotation to align cylinder with Y axis (rotate 90° around X)
         Eigen::Matrix4f rotation = Eigen::Matrix4f::Identity();
         rotation.block<3, 3>(0, 0) =
             Eigen::AngleAxisf(-M_PIf / 2.0f, Eigen::Vector3f::UnitX())
                 .toRotationMatrix();
-
-        // Create translation to position cylinder at half its length along Y
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
-        translation(1, 3) = height * 0.5f;
-
-        // Set model matrix to OpenGL shader
+        translation(1, 3) = scaled_half_height;
         Eigen::Matrix4f model = p_transform * translation * rotation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
-
-        // Set color to OpenGL shader
         m_shader_manager.setVector3f(color_uniform, s_green_color.data());
-
-        // Draw the cylinder
-        glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
                        GL_UNSIGNED_INT,
                        nullptr);
     }
 
-    // Z axis (blue) - cylinder along Z direction
+    // Z axis (blue) - no rotation, translate along Z
     {
-        // Create scaling transformation
-        Eigen::Matrix4f scale = Eigen::Matrix4f::Identity();
-        scale(0, 0) = radius;
-        scale(1, 1) = radius;
-        scale(2, 2) = height / 2.0f; // Base cylinder has height 2
-
-        // No rotation needed, cylinder is already aligned with Z axis
-
-        // Create translation to position cylinder at half its length along Z
         Eigen::Matrix4f translation = Eigen::Matrix4f::Identity();
-        translation(2, 3) = height * 0.5f;
-
-        // Set model matrix to OpenGL shader
+        translation(2, 3) = scaled_half_height;
         Eigen::Matrix4f model = p_transform * translation * scale;
         m_shader_manager.setMatrix4f(model_uniform, model.data());
-
-        // Set color to OpenGL shader
         m_shader_manager.setVector3f(color_uniform, s_blue_color.data());
-
-        // Draw the cylinder
-        glBindVertexArray(p_axes_mesh->vao);
         glDrawElements(GL_TRIANGLES,
                        static_cast<GLsizei>(p_axes_mesh->index_count),
                        GL_UNSIGNED_INT,

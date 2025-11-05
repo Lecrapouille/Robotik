@@ -36,11 +36,11 @@ struct Configuration
     //! Camera target joint: usually the base link or the tool center point
     std::string camera_target;
     //! Show joint axes for debugging
-    bool show_joint_axes = true;
+    bool show_joint_axes = false;
     //! Show revolute joint axes
-    bool show_revolute_joint_axes = true;
+    bool show_revolute_joint_axes = false;
     //! Show prismatic joint axes
-    bool show_prismatic_joint_axes = true;
+    bool show_prismatic_joint_axes = false;
     //! Physics gravity
     Eigen::Vector3d physics_gravity = Eigen::Vector3d(0.0, 0.0, -9.81);
 };

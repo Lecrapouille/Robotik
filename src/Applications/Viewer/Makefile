@@ -50,8 +50,8 @@ VPATH += $(P)/src $(CURRENT_DIR)
 ###################################################
 # Set third-party libraries. Order matters: dependencies last
 #
-THIRD_PARTIES_LIBS += $(call internal-lib,robotik-renderer)
-THIRD_PARTIES_LIBS += $(call internal-lib,robotik-core)
+INTERNAL_LIBS += $(call internal-lib,robotik-renderer)
+INTERNAL_LIBS += $(call internal-lib,robotik-core)
 
 ###############################################################################
 # Make the list of files to compile
