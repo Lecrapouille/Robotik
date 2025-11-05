@@ -77,6 +77,15 @@ public:
                          std::string const& p_node_name);
 
     // ----------------------------------------------------------------------------
+    //! \brief Set Cartesian frame for Cartesian control.
+    //! \param p_robot_name Robot name.
+    //! \param p_node_name Node name (empty string = world frame).
+    //! \return true if successful.
+    // ----------------------------------------------------------------------------
+    bool setCartesianFrame(std::string const& p_robot_name,
+                           std::string const& p_node_name);
+
+    // ----------------------------------------------------------------------------
     //! \brief Get the controlled robot by name.
     //! \param p_robot_name Robot name.
     //! \return Pointer to controlled robot, nullptr if not found.
@@ -88,6 +97,12 @@ public:
     //! \return Pointer to teach pendant.
     // ----------------------------------------------------------------------------
     robotik::TeachPendant* getTeachPendant();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the shared IK solver.
+    //! \return Pointer to IK solver.
+    // ----------------------------------------------------------------------------
+    robotik::IKSolver* getIKSolver();
 
 private:
 

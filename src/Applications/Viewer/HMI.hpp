@@ -175,8 +175,9 @@ private:
 
     // ----------------------------------------------------------------------------
     //! \brief Draw frame selection combo.
+    //! \param p_robot Controlled robot.
     // ----------------------------------------------------------------------------
-    void drawFrameSelection() const;
+    void drawFrameSelection(ControlledRobot* p_robot) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw translation controls.

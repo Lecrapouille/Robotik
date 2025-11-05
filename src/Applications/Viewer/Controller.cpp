@@ -150,6 +150,29 @@ bool Controller::setCameraTarget(std::string const& p_robot_name,
 }
 
 // ----------------------------------------------------------------------------
+bool Controller::setCartesianFrame(std::string const& p_robot_name,
+                                   std::string const& p_node_name)
+{
+    auto* controlled_robot = getControlledRobot(p_robot_name);
+    if (controlled_robot == nullptr)
+        return false;
+
+    // Empty node name means world frame (nullptr)
+    if (p_node_name.empty())
+    {
+        controlled_robot->cartesian_frame = nullptr;
+        return true;
+    }
+
+    controlled_robot->cartesian_frame =
+        robotik::Node::find(controlled_robot->blueprint().root(), p_node_name);
+    if (controlled_robot->cartesian_frame == nullptr)
+        return false;
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
 ControlledRobot* Controller::getControlledRobot(std::string const& p_robot_name)
 {
     return m_robot_manager.getRobot<ControlledRobot>(p_robot_name);
@@ -159,6 +182,12 @@ ControlledRobot* Controller::getControlledRobot(std::string const& p_robot_name)
 robotik::TeachPendant* Controller::getTeachPendant()
 {
     return m_teach_pendant.get();
+}
+
+// ----------------------------------------------------------------------------
+robotik::IKSolver* Controller::getIKSolver()
+{
+    return m_ik_solver.get();
 }
 
 } // namespace robotik::application
