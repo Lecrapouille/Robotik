@@ -193,9 +193,21 @@ bool TeachPendant::moveCartesian(const Eigen::Vector3d& p_translation,
     // Get the current transform of the end effector
     Transform current_transform = m_end_effector->worldTransform();
 
+    // Transform translation vector from frame to world coordinates
+    Eigen::Vector3d translation_world = p_translation;
+    if (m_controlled_robot->cartesian_frame != nullptr)
+    {
+        // Get rotation matrix from frame to world
+        Eigen::Matrix3d R_frame =
+            m_controlled_robot->cartesian_frame->worldTransform().block<3, 3>(
+                0, 0);
+        // Transform direction vector from frame to world
+        translation_world = R_frame * p_translation;
+    }
+
     // Apply the translation
     current_transform.block<3, 1>(0, 3) +=
-        p_translation * m_controlled_robot->speed_factor * p_speed;
+        translation_world * m_controlled_robot->speed_factor * p_speed;
 
     // Convert to 6D pose for the IK solver
     Pose target_pose;
@@ -250,10 +262,23 @@ bool TeachPendant::rotateCartesian(const Eigen::Vector3d& p_rotation_axis,
     // Get the current transform of the end effector
     Transform current_transform = m_end_effector->worldTransform();
 
+    // Transform rotation axis from frame to world coordinates
+    Eigen::Vector3d rotation_axis_world = p_rotation_axis.normalized();
+    if (m_controlled_robot->cartesian_frame != nullptr)
+    {
+        // Get rotation matrix from frame to world
+        Eigen::Matrix3d R_frame =
+            m_controlled_robot->cartesian_frame->worldTransform().block<3, 3>(
+                0, 0);
+        // Transform direction vector from frame to world
+        rotation_axis_world = R_frame * p_rotation_axis;
+        rotation_axis_world.normalize();
+    }
+
     // Create the rotation via Rodrigues (AngleAxis)
     Eigen::AngleAxisd rotation(p_angle * m_controlled_robot->speed_factor *
                                    p_speed,
-                               p_rotation_axis.normalized());
+                               rotation_axis_world);
 
     // Apply the rotation to the rotational part of the transformation
     Eigen::Matrix3d R = current_transform.block<3, 3>(0, 0);

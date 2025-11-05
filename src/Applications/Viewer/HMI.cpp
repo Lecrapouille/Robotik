@@ -143,8 +143,13 @@ void HMI::onDrawTrajectoryWindow()
             auto* teach_pendant = m_controller.getTeachPendant();
             if (teach_pendant != nullptr)
             {
+                auto* ik_solver = m_controller.getIKSolver();
                 // Configure the teach pendant for this robot
                 teach_pendant->setRobot(*robot);
+                if (ik_solver != nullptr)
+                {
+                    teach_pendant->setIKSolver(ik_solver);
+                }
                 if (robot->end_effector != nullptr)
                 {
                     teach_pendant->setEndEffector(*robot->end_effector);
@@ -452,8 +457,13 @@ void HMI::teachPendantPanel()
     if (teach_pendant == nullptr)
         return;
 
+    auto* ik_solver = m_controller.getIKSolver();
+    if (ik_solver == nullptr)
+        return;
+
     // Configure the teach pendant for this robot
     teach_pendant->setRobot(*robot);
+    teach_pendant->setIKSolver(ik_solver);
     if (robot->end_effector != nullptr)
     {
         teach_pendant->setEndEffector(*robot->end_effector);
@@ -562,12 +572,12 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 
 // ----------------------------------------------------------------------------
 void HMI::drawCartesianControlSection(
-    ControlledRobot* /*p_robot*/,
+    ControlledRobot* p_robot,
     robotik::TeachPendant* p_teach_pendant) const
 {
     ImGui::Text("Cartesian Control - Teach Pendant Style");
 
-    drawFrameSelection();
+    drawFrameSelection(p_robot);
 
     ImGui::Spacing();
 
@@ -587,13 +597,53 @@ void HMI::drawCartesianControlSection(
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawFrameSelection() const
+void HMI::drawFrameSelection(ControlledRobot* p_robot) const
 {
-    static int frame_idx = 0;
-    static const std::array<const char*, 3> frames = { "World",
-                                                       "Tool",
-                                                       "Base" };
-    ImGui::Combo("Frame", &frame_idx, frames.data(), frames.size());
+    if (p_robot == nullptr)
+        return;
+
+    std::string current_frame = (p_robot->cartesian_frame != nullptr)
+                                    ? p_robot->cartesian_frame->name()
+                                    : "";
+
+    if (ImGui::BeginCombo(
+            "Frame", current_frame.empty() ? "World" : current_frame.c_str()))
+    {
+        // Option "World" (nullptr frame)
+        bool is_world_selected = current_frame.empty();
+        if (ImGui::Selectable("World", is_world_selected))
+        {
+            if (m_controller.setCartesianFrame(m_selected_robot, ""))
+            {
+                std::cout << "🎯 Cartesian frame set to: World" << std::endl;
+            }
+        }
+        if (is_world_selected)
+        {
+            ImGui::SetItemDefaultFocus();
+        }
+
+        // All robot nodes
+        for (const auto& node_name : m_node_names)
+        {
+            ImGui::PushID(node_name.c_str());
+            bool is_selected = (current_frame == node_name);
+            if (ImGui::Selectable(node_name.c_str(), is_selected))
+            {
+                if (m_controller.setCartesianFrame(m_selected_robot, node_name))
+                {
+                    std::cout << "🎯 Cartesian frame set to: " << node_name
+                              << std::endl;
+                }
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndCombo();
+    }
 }
 
 // ----------------------------------------------------------------------------

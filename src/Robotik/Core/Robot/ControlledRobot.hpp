@@ -95,6 +95,8 @@ public:
     robotik::Node const* camera_target = nullptr;
     //! \brief Camera tracking enabled
     bool camera_tracking_enabled = true;
+    //! \brief Frame for Cartesian control (nullptr = world frame)
+    robotik::Node const* cartesian_frame = nullptr;
 };
 
 } // namespace robotik::application
