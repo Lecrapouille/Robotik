@@ -1,6 +1,6 @@
 /**
  * @file ApplicationController.hpp
- * @brief Controller for robot control logic (MVC pattern).
+ * @brief Application controller for robot control logic (MVC pattern).
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -21,12 +21,12 @@ namespace robotik::application
 {
 
 // ****************************************************************************
-//! \brief Controller of the Model-View-Controller pattern.
+//! \brief Application controller of the Model-View-Controller pattern.
 //!
 //! This class makes the bridge between the model (robot) and the view
 //! (DearImGui) by handling the robot management and teach pendant control.
 // ****************************************************************************
-class Controller
+class ApplicationController
 {
 public:
 
@@ -34,7 +34,7 @@ public:
     //! \brief Constructor.
     //! \param p_robot_manager Reference to robot manager.
     // ----------------------------------------------------------------------------
-    explicit Controller(renderer::RobotManager& p_robot_manager);
+    explicit ApplicationController(renderer::RobotManager& p_robot_manager);
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize robot configurations with teach pendant that has been

@@ -1,13 +1,13 @@
 /**
  * @file main.cpp
- * @brief Main entry point for the Robot 3D viewer application.
+ * @brief Main entry point for the Robot simulator application.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Application.hpp"
+#include "MainApplication.hpp"
 
 // Generated file holding project information
 #include "project_info.hpp"
@@ -47,7 +47,7 @@ static bool parse_command_line(size_t const p_argc,
     std::string urdf_file;
     size_t i = 1;
 
-    p_config.window_title = "Robot Viewer";
+    p_config.window_title = "Robot Simulator";
     p_config.search_paths = project::info::paths::data;
 
     try
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (robotik::application::Application app(config); !app.run())
+    if (robotik::application::MainApplication app(config); !app.run())
     {
         std::cerr << "Failed to run the application. Reason: " << app.error()
                   << std::endl;
