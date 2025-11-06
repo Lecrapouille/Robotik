@@ -20,7 +20,7 @@ struct Configuration
     //! Window height in pixels
     size_t window_height = 768;
     //! Window title
-    std::string window_title = "Robot Viewer";
+    std::string window_title = "Robot Simulator";
     //! Target frame rate in FPS
     size_t target_fps = 60;
     //! Target physics update rate in Hz

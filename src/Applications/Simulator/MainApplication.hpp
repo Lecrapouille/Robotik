@@ -1,6 +1,6 @@
 /**
  * @file Application.hpp
- * @brief Robot viewer application class for the 3D viewer.
+ * @brief Robot simulator application class for the 3D simulator.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -9,17 +9,14 @@
 
 #pragma once
 
+#include "ApplicationController.hpp"
+#include "CameraViewModel.hpp"
 #include "Configuration.hpp"
-#include "Controller.hpp"
-#include "HMI.hpp"
+#include "ImGuiView.hpp"
 
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
 
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
-#include "Robotik/Renderer/Camera/CameraController.hpp"
-#include "Robotik/Renderer/Camera/DragController.hpp"
-#include "Robotik/Renderer/Camera/OrbitController.hpp"
-#include "Robotik/Renderer/Camera/PerspectiveCamera.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
@@ -33,62 +30,34 @@ namespace robotik::application
 {
 
 // ****************************************************************************
-//! \brief Robot viewer application that inherits from Application.
+//! \brief Concrete application that inherits from OpenGL Application.
+//!
+//! This class is the main entry point for the simulator application.
+//! It provides a complete 3D simulator with robot visualization, physics
+//! simulation, and human-machine interface (teach pendant emulation: joint
+//! control, Cartesian control, waypoints saving and playback).
 // ****************************************************************************
-class Application final: public renderer::OpenGLApplication
+class MainApplication final: public renderer::OpenGLApplication
 {
 public:
 
     // ----------------------------------------------------------------------------
-    //! \brief Constructor.
+    //! \brief Constructor. Only calls the constructor of the OpenGL
+    //! Application.
+    //! \param p_config The configuration of the application (window width,
+    //! height, title, search paths, target FPS, target physics Hz ...).
     // ----------------------------------------------------------------------------
-    explicit Application(Configuration const& p_config);
+    explicit MainApplication(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Run the application with the given configuration.
+    //! This method is blocking and will return when the application halted
+    //! (e.g. by user request or error).
     //! \return true if the application was run successfully, false otherwise.
+    //! \note This method calls the run() method of the OpenGL Application but
+    //! using the target FPS and physics Hz from the configuration.
     // ----------------------------------------------------------------------------
     bool run();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Switch to OrbitController.
-    // ----------------------------------------------------------------------------
-    void switchToOrbitController();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Switch to DragController.
-    // ----------------------------------------------------------------------------
-    void switchToDragController();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to top view (looking down from Z+).
-    // ----------------------------------------------------------------------------
-    void setTopView();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to bottom view (looking up from Z-).
-    // ----------------------------------------------------------------------------
-    void setBottomView();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to front view (looking from Y+).
-    // ----------------------------------------------------------------------------
-    void setFrontView();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to back view (looking from Y-).
-    // ----------------------------------------------------------------------------
-    void setBackView();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to right view (looking from X+).
-    // ----------------------------------------------------------------------------
-    void setRightView();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Set camera to left view (looking from X-).
-    // ----------------------------------------------------------------------------
-    void setLeftView();
 
 private: // override OpenGLApplication methods
 
@@ -211,9 +180,9 @@ private: // setups
     bool setupRobots();
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup the HMI.
+    //! \brief Setup the ImGui view.
     // ----------------------------------------------------------------------------
-    bool setupHMI();
+    bool setupImGuiView();
 
 private:
 
@@ -248,29 +217,17 @@ private:
     // ----------------------------------------------------------------------------
     ControlledRobot* getControlledRobot(std::string const& p_robot_name) const;
 
-    // ----------------------------------------------------------------------------
-    //! \brief Get current camera target position (from robot or default).
-    //! \return Target position in world space.
-    // ----------------------------------------------------------------------------
-    Eigen::Vector3f getCameraTarget() const;
-
 private:
 
     //! \brief Application settings and configuration.
     Configuration const& m_config;
     //! \brief Search paths to load URDF, STL, etc. files.
     Path m_path;
-    //! \brief Model-View-Controller controller for managing robot logic.
-    std::unique_ptr<Controller> m_controller;
-    //! \brief Perspective camera for intuitive robot inspection.
-    std::unique_ptr<renderer::PerspectiveCamera> m_perspective_camera;
-    //! \brief Current camera controller (non-owning pointer, points to one of
-    //! the controllers below).
-    renderer::CameraController* m_camera_controller = nullptr;
-    //! \brief Orbit controller instance (for switching).
-    std::unique_ptr<renderer::OrbitController> m_orbit_controller;
-    //! \brief Drag controller instance (for switching).
-    std::unique_ptr<renderer::DragController> m_drag_controller;
+    //! \brief Model-View-Controller application controller for managing robot
+    //! logic.
+    std::unique_ptr<ApplicationController> m_app_controller;
+    //! \brief Camera view model for managing camera state and interactions.
+    std::unique_ptr<CameraViewModel> m_camera_model;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.
@@ -281,8 +238,8 @@ private:
     std::unique_ptr<renderer::RenderVisitor> m_render;
     //! \brief Physics simulator for simulating physics.
     std::unique_ptr<robotik::PhysicsSimulator> m_physics_simulator;
-    //! \brief DearImGui-based HMI for robot control and visualization.
-    std::unique_ptr<HMI> m_hmi;
+    //! \brief DearImGui-based view for robot control and visualization.
+    std::unique_ptr<ImGuiView> m_imgui_view;
     //! \brief Cached OpenGL shader uniforms.
     int m_projection_uniform = -1;
     //! \brief Cached OpenGL shader uniforms.

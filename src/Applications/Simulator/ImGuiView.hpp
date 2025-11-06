@@ -1,6 +1,6 @@
 /**
- * @file HMI.hpp
- * @brief ImGui-based HMI for robot control and visualization.
+ * @file ImGuiView.hpp
+ * @brief ImGui-based view for robot control and visualization.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "Controller.hpp"
+#include "ApplicationController.hpp"
+#include "CameraViewModel.hpp"
 
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
 
@@ -22,11 +23,8 @@
 namespace robotik::application
 {
 
-// Forward declarations
-class Application;
-
 // ****************************************************************************
-//! \brief ImGui-based Human-Machine Interface for robot control.
+//! \brief ImGui-based view for robot control (MVC pattern).
 //!
 //! This class provides a comprehensive UI for:
 //! - Robot management (load/remove robots)
@@ -36,21 +34,23 @@ class Application;
 //! - Camera target selection
 //! - Camera controller selection and predefined views
 // ****************************************************************************
-class HMI
+class ImGuiView
 {
 public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
+    //! \param p_controller The application controller of the
+    //! Model-View-Controller pattern.
     //! \param p_robot_manager Reference to robot manager for robot operations.
-    //! \param p_robot_controller Reference to robot controller.
-    //! \param p_application Reference to application for camera operations.
+    //! \param p_camera_model Reference to camera view model for camera
+    //! operations.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
-    HMI(robotik::renderer::RobotManager& p_robot_manager,
-        Controller& p_robot_controller,
-        Application& p_application,
-        std::function<void()> const& p_halt_callback);
+    ImGuiView(ApplicationController& p_controller,
+              robotik::renderer::RobotManager& p_robot_manager,
+              CameraViewModel& p_camera_model,
+              std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
     //! \brief Render the teach pendant control panel.
@@ -314,10 +314,10 @@ private:
 
     //! \brief Reference to robot manager
     robotik::renderer::RobotManager& m_robot_manager;
-    //! \brief Reference to Model-View-Controller controller
-    Controller& m_controller;
-    //! \brief Reference to application for camera operations
-    Application& m_application;
+    //! \brief Reference to Model-View-Controller application controller
+    ApplicationController& m_controller;
+    //! \brief Reference to camera view model for camera operations
+    CameraViewModel& m_camera_model;
     //! \brief Callback to halt the application
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name

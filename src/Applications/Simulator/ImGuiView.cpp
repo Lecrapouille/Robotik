@@ -1,14 +1,13 @@
 /**
- * @file HMI.cpp
- * @brief ImGui-based HMI for robot control and visualization implementation.
+ * @file ImGuiView.cpp
+ * @brief ImGui-based view for robot control and visualization implementation.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "HMI.hpp"
-#include "Application.hpp"
+#include "ImGuiView.hpp"
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
@@ -25,13 +24,13 @@ namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-HMI::HMI(robotik::renderer::RobotManager& p_robot_manager,
-         Controller& p_robot_controller,
-         Application& p_application,
-         std::function<void()> const& p_halt_callback)
+ImGuiView::ImGuiView(ApplicationController& p_controller,
+                     robotik::renderer::RobotManager& p_robot_manager,
+                     CameraViewModel& p_camera_model,
+                     std::function<void()> const& p_halt_callback)
     : m_robot_manager(p_robot_manager),
-      m_controller(p_robot_controller),
-      m_application(p_application),
+      m_controller(p_controller),
+      m_camera_model(p_camera_model),
       m_halt_callback(p_halt_callback)
 {
     if (auto const* robot = m_robot_manager.currentRobot(); robot != nullptr)
@@ -43,7 +42,7 @@ HMI::HMI(robotik::renderer::RobotManager& p_robot_manager,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::onDrawMenuBar()
+void ImGuiView::onDrawMenuBar()
 {
     if (ImGui::BeginMenu("File"))
     {
@@ -79,7 +78,7 @@ void HMI::onDrawMenuBar()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::onDrawMainPanel()
+void ImGuiView::onDrawMainPanel()
 {
     ImGui::Begin("Teach Pendant");
 
@@ -99,7 +98,7 @@ void HMI::onDrawMainPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::onDrawRobotManagementWindow()
+void ImGuiView::onDrawRobotManagementWindow()
 {
     ImGui::Begin("Robots");
     robotManagementPanel();
@@ -107,7 +106,7 @@ void HMI::onDrawRobotManagementWindow()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::onDrawCameraTargetWindow()
+void ImGuiView::onDrawCameraTargetWindow()
 {
     ImGui::Begin("Camera");
 
@@ -131,7 +130,7 @@ void HMI::onDrawCameraTargetWindow()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::onDrawTrajectoryWindow()
+void ImGuiView::onDrawTrajectoryWindow()
 {
     ImGui::Begin("Trajectory");
 
@@ -174,7 +173,7 @@ void HMI::onDrawTrajectoryWindow()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::robotManagementPanel()
+void ImGuiView::robotManagementPanel()
 {
     if (ImGui::Button("Load Robot"))
     {
@@ -190,7 +189,7 @@ void HMI::robotManagementPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::robotListPanel()
+void ImGuiView::robotListPanel()
 {
     ImGui::Text("Loaded Robots (%zu):", m_robot_list.size());
     ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
@@ -202,7 +201,7 @@ void HMI::robotListPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawRobotListItem(std::string const& p_robot_name)
+void ImGuiView::drawRobotListItem(std::string const& p_robot_name)
 {
     if (ImGui::Selectable(p_robot_name.c_str(),
                           m_selected_robot == p_robot_name))
@@ -218,7 +217,7 @@ void HMI::drawRobotListItem(std::string const& p_robot_name)
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawRobotListContextMenu(std::string const& p_robot_name)
+void ImGuiView::drawRobotListContextMenu(std::string const& p_robot_name)
 {
     if (ImGui::MenuItem("Load robot"))
     {
@@ -240,7 +239,7 @@ void HMI::drawRobotListContextMenu(std::string const& p_robot_name)
 }
 
 // ----------------------------------------------------------------------------
-void HMI::loadRobotPanel()
+void ImGuiView::loadRobotPanel()
 {
     if (!ImGuiFileDialog::Instance()->Display("RobotURDFDlg"))
         return;
@@ -271,7 +270,7 @@ void HMI::loadRobotPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::loadRobot() const
+void ImGuiView::loadRobot() const
 {
     IGFD::FileDialogConfig cfg;
     ImGuiFileDialog::Instance()->OpenDialog(
@@ -279,7 +278,7 @@ void HMI::loadRobot() const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::exportRobot() const
+void ImGuiView::exportRobot() const
 {
     if (m_selected_robot.empty())
         return;
@@ -293,7 +292,7 @@ void HMI::exportRobot() const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::exportRobotPanel()
+void ImGuiView::exportRobotPanel()
 {
     if (!ImGuiFileDialog::Instance()->Display("RobotExportDlg"))
         return;
@@ -337,7 +336,7 @@ void HMI::exportRobotPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::removeRobot(std::string const& p_name)
+void ImGuiView::removeRobot(std::string const& p_name)
 {
     if (!m_robot_manager.removeRobot(p_name))
         return;
@@ -351,7 +350,7 @@ void HMI::removeRobot(std::string const& p_name)
 }
 
 // ----------------------------------------------------------------------------
-void HMI::endEffectorSelectionPanel()
+void ImGuiView::endEffectorSelectionPanel()
 {
     auto const* controlled_robot =
         m_controller.getControlledRobot(m_selected_robot);
@@ -391,10 +390,10 @@ void HMI::endEffectorSelectionPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::renderEndEffectorNode(std::string const& p_node_name,
-                                ImVec4 p_color,
-                                std::string const& p_current_end_effector,
-                                bool p_is_header)
+void ImGuiView::renderEndEffectorNode(std::string const& p_node_name,
+                                      ImVec4 p_color,
+                                      std::string const& p_current_end_effector,
+                                      bool p_is_header)
 {
     if (p_is_header)
     {
@@ -421,8 +420,9 @@ void HMI::renderEndEffectorNode(std::string const& p_node_name,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawEndEffectorCombo(std::vector<std::string> const& p_end_effectors,
-                               std::string const& p_current_end_effector)
+void ImGuiView::drawEndEffectorCombo(
+    std::vector<std::string> const& p_end_effectors,
+    std::string const& p_current_end_effector)
 {
     for (const auto& node_name : p_end_effectors)
     {
@@ -432,9 +432,10 @@ void HMI::drawEndEffectorCombo(std::vector<std::string> const& p_end_effectors,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawAllNodesCombo(std::vector<std::string> const& p_nodes,
-                            std::vector<std::string> const& p_end_effectors,
-                            std::string const& p_current_end_effector)
+void ImGuiView::drawAllNodesCombo(
+    std::vector<std::string> const& p_nodes,
+    std::vector<std::string> const& p_end_effectors,
+    std::string const& p_current_end_effector)
 {
     for (const auto& node_name : p_nodes)
     {
@@ -450,7 +451,7 @@ void HMI::drawAllNodesCombo(std::vector<std::string> const& p_nodes,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::teachPendantPanel()
+void ImGuiView::teachPendantPanel()
 {
     auto* robot = m_controller.getControlledRobot(m_selected_robot);
     if (robot == nullptr)
@@ -494,8 +495,8 @@ void HMI::teachPendantPanel()
 }
 
 // ----------------------------------------------------------------------------
-ControlledRobot::ControlMode
-HMI::drawControlModeTabs(ControlledRobot::ControlMode p_current_mode) const
+ControlledRobot::ControlMode ImGuiView::drawControlModeTabs(
+    ControlledRobot::ControlMode p_current_mode) const
 {
     auto selected_mode = p_current_mode;
 
@@ -528,8 +529,9 @@ HMI::drawControlModeTabs(ControlledRobot::ControlMode p_current_mode) const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawJointControlSection(ControlledRobot* p_robot,
-                                  robotik::TeachPendant* p_teach_pendant) const
+void ImGuiView::drawJointControlSection(
+    ControlledRobot* p_robot,
+    robotik::TeachPendant* p_teach_pendant) const
 {
     ImGui::Text("Joint Control - %zu joints:",
                 p_robot->blueprint().numJoints());
@@ -574,8 +576,9 @@ void HMI::drawJointControlSection(ControlledRobot* p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCartesianControlSection(ControlledRobot* p_robot,
-                                      robotik::TeachPendant* p_teach_pendant)
+void ImGuiView::drawCartesianControlSection(
+    ControlledRobot* p_robot,
+    robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Cartesian Control");
 
@@ -608,7 +611,7 @@ void HMI::drawCartesianControlSection(ControlledRobot* p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawFrameSelection(ControlledRobot* p_robot) const
+void ImGuiView::drawFrameSelection(ControlledRobot* p_robot) const
 {
     if (p_robot == nullptr)
         return;
@@ -658,7 +661,7 @@ void HMI::drawFrameSelection(ControlledRobot* p_robot) const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
+void ImGuiView::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Translation:");
 
@@ -702,7 +705,7 @@ void HMI::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
+void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
 {
     ImGui::Text("Rotation:");
 
@@ -746,8 +749,9 @@ void HMI::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawWaypointsSection(ControlledRobot* p_robot,
-                               robotik::TeachPendant* p_teach_pendant) const
+void ImGuiView::drawWaypointsSection(
+    ControlledRobot* p_robot,
+    robotik::TeachPendant* p_teach_pendant) const
 {
     ImGui::Text("Waypoints");
     ImGui::Separator();
@@ -852,7 +856,7 @@ void HMI::drawWaypointsSection(ControlledRobot* p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawTrajectoryPlaybackSection(
+void ImGuiView::drawTrajectoryPlaybackSection(
     ControlledRobot* p_robot,
     robotik::TeachPendant* p_teach_pendant) const
 {
@@ -979,7 +983,7 @@ void HMI::drawTrajectoryPlaybackSection(
 }
 
 // ----------------------------------------------------------------------------
-void HMI::cameraTargetPanel()
+void ImGuiView::cameraTargetPanel()
 {
     auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
     if (controlled_robot == nullptr)
@@ -997,7 +1001,7 @@ void HMI::cameraTargetPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCameraTargetCombo(
+void ImGuiView::drawCameraTargetCombo(
     std::string const& p_current_camera_target) const
 {
     if (ImGui::BeginCombo("Camera Target",
@@ -1013,18 +1017,8 @@ void HMI::drawCameraTargetCombo(
             {
                 if (m_controller.setCameraTarget(m_selected_robot, node_name))
                 {
-                    // Update camera controller target via Application
-                    auto const* updated_robot =
-                        m_controller.getControlledRobot(m_selected_robot);
-                    if (updated_robot && updated_robot->camera_target)
-                    {
-                        Eigen::Vector3d target_pos =
-                            updated_robot->camera_target->worldTransform()
-                                .block<3, 1>(0, 3);
-                        // The target will be updated in Application::onUpdate()
-                        // via camera tracking, but we can also set it directly
-                        // here For now, let the tracking handle it
-                    }
+                    // The target will be updated in Application::onUpdate()
+                    // via camera tracking
                     std::cout << "📹 Camera target set to: " << node_name
                               << std::endl;
                 }
@@ -1040,7 +1034,7 @@ void HMI::drawCameraTargetCombo(
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCameraTrackingCheckbox(ControlledRobot* p_robot) const
+void ImGuiView::drawCameraTrackingCheckbox(ControlledRobot* p_robot) const
 {
     if (ImGui::Checkbox("Enable Camera Tracking",
                         &p_robot->camera_tracking_enabled))
@@ -1052,7 +1046,7 @@ void HMI::drawCameraTrackingCheckbox(ControlledRobot* p_robot) const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawCameraControllerPanel() const
+void ImGuiView::drawCameraControllerPanel() const
 {
     // Create a grid of buttons (3 columns) with Orbit + predefined views
     if (ImGui::BeginTable("CameraViews", 3, ImGuiTableFlags_None))
@@ -1061,21 +1055,21 @@ void HMI::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.switchToOrbitController();
+            m_camera_model.switchToOrbitMode();
             std::cout << "📹 Switched to Orbit Controller" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Top", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setTopView();
+            m_camera_model.setView(CameraViewModel::ViewType::TOP);
             std::cout << "📹 Set to Top view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Bottom", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setBottomView();
+            m_camera_model.setView(CameraViewModel::ViewType::BOTTOM);
             std::cout << "📹 Set to Bottom view" << std::endl;
         }
 
@@ -1083,21 +1077,21 @@ void HMI::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Front", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setFrontView();
+            m_camera_model.setView(CameraViewModel::ViewType::FRONT);
             std::cout << "📹 Set to Front view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Back", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setBackView();
+            m_camera_model.setView(CameraViewModel::ViewType::BACK);
             std::cout << "📹 Set to Back view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Right", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setRightView();
+            m_camera_model.setView(CameraViewModel::ViewType::RIGHT);
             std::cout << "📹 Set to Right view" << std::endl;
         }
 
@@ -1105,7 +1099,7 @@ void HMI::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Left", ImVec2(-FLT_MIN, 0)))
         {
-            m_application.setLeftView();
+            m_camera_model.setView(CameraViewModel::ViewType::LEFT);
             std::cout << "📹 Set to Left view" << std::endl;
         }
 
@@ -1114,7 +1108,7 @@ void HMI::drawCameraControllerPanel() const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawPredefinedViews() const
+void ImGuiView::drawPredefinedViews() const
 {
     // This method is now merged into drawCameraControllerPanel
     // Kept for compatibility, just call the main method
@@ -1122,19 +1116,19 @@ void HMI::drawPredefinedViews() const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::string> HMI::getNodeNames() const
+std::vector<std::string> ImGuiView::getNodeNames() const
 {
     return m_node_names;
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::string> HMI::getEndEffectorNames() const
+std::vector<std::string> ImGuiView::getEndEffectorNames() const
 {
     return m_end_effector_names;
 }
 
 // ----------------------------------------------------------------------------
-void HMI::refreshRobotList()
+void ImGuiView::refreshRobotList()
 {
     m_robot_list.clear();
     m_robot_list.reserve(m_robot_manager.robots().size());
@@ -1145,7 +1139,7 @@ void HMI::refreshRobotList()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::refreshCurrentRobotCaches()
+void ImGuiView::refreshCurrentRobotCaches()
 {
     m_node_names.clear();
     m_end_effector_names.clear();
@@ -1175,7 +1169,7 @@ void HMI::refreshCurrentRobotCaches()
 }
 
 // ----------------------------------------------------------------------------
-bool HMI::setSelectedRobot(std::string const& name)
+bool ImGuiView::setSelectedRobot(std::string const& name)
 {
     if (m_selected_robot == name)
         return false;
@@ -1186,7 +1180,7 @@ bool HMI::setSelectedRobot(std::string const& name)
 }
 
 //------------------------------------------------------------------------------
-void HMI::about() const
+void ImGuiView::about() const
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
@@ -1224,7 +1218,7 @@ void HMI::about() const
 }
 
 // ----------------------------------------------------------------------------
-void HMI::sceneGraphPanel()
+void ImGuiView::sceneGraphPanel()
 {
     if (m_selected_robot.empty())
     {
@@ -1319,8 +1313,8 @@ void HMI::sceneGraphPanel()
 }
 
 // ----------------------------------------------------------------------------
-void HMI::drawSceneGraphNode(::robotik::Node const& p_node,
-                             ::robotik::Node const* /*p_parent*/)
+void ImGuiView::drawSceneGraphNode(::robotik::Node const& p_node,
+                                   ::robotik::Node const* /*p_parent*/)
 {
     using namespace robotik;
 

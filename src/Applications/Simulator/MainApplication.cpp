@@ -1,6 +1,14 @@
-#include "Application.hpp"
+/**
+ * @file MainApplication.cpp
+ * @brief Main application implementation.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ * @see https://github.com/Lecrapouille/Robotik
+ */
 
-#include "Robotik/Core/Common/Conversions.hpp"
+#include "MainApplication.hpp"
+
 #include "Robotik/Core/Robot/Debug.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -55,7 +63,7 @@ void main()
 static const Eigen::Vector3f s_clear_color(0.1f, 0.1f, 0.1f);
 
 // ----------------------------------------------------------------------------
-Application::Application(Configuration const& p_config)
+MainApplication::MainApplication(Configuration const& p_config)
     : OpenGLApplication(p_config.window_width, p_config.window_height),
       m_config(p_config),
       m_path(p_config.search_paths)
@@ -64,20 +72,20 @@ Application::Application(Configuration const& p_config)
 }
 
 // ----------------------------------------------------------------------------
-bool Application::run()
+bool MainApplication::run()
 {
     return OpenGLApplication::run(m_config.target_fps,
                                   m_config.target_physics_hz);
 }
 
 // ----------------------------------------------------------------------------
-void Application::setTitle(std::string const& p_title)
+void MainApplication::setTitle(std::string const& p_title)
 {
     m_title = p_title;
     OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(m_fps));
 }
 // ----------------------------------------------------------------------------
-bool Application::onSetup()
+bool MainApplication::onSetup()
 {
     glEnable(GL_DEPTH_TEST);
 
@@ -102,40 +110,23 @@ bool Application::onSetup()
     // Setup physics simulator (simulate the physics of the robots)
     setupPhysicsSimulator();
 
-    // Setup the Human-Machine Interface and its Model-View-Controller pattern
-    if (!setupHMI())
+    // Setup the ImGui view and its Model-View-Controller pattern
+    if (!setupImGuiView())
         return false;
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void Application::setupCamera()
+void MainApplication::setupCamera()
 {
-    float aspect_ratio = static_cast<float>(m_config.window_width) /
-                         static_cast<float>(m_config.window_height);
-
-    m_perspective_camera = std::make_unique<renderer::PerspectiveCamera>(
-        45.0f, aspect_ratio, 0.1f, 100.0f);
-    m_perspective_camera->setPosition(Eigen::Vector3f(3.0f, 3.0f, 3.0f));
-    m_perspective_camera->lookAt(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
-
-    // Create both controllers
-    Eigen::Vector3f initial_target(0.0f, 0.0f, 0.5f);
-    float initial_distance = 5.0f;
-
-    m_orbit_controller = std::make_unique<renderer::OrbitController>(
-        *m_perspective_camera, initial_target, initial_distance);
-
-    m_drag_controller = std::make_unique<renderer::DragController>(
-        *m_perspective_camera, initial_target, initial_distance);
-
-    // Start with OrbitController
-    m_camera_controller = m_orbit_controller.get();
+    // Create the camera view model
+    m_camera_model = std::make_unique<CameraViewModel>(m_config.window_width,
+                                                       m_config.window_height);
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupMainShader()
+bool MainApplication::setupMainShader()
 {
     m_shader_manager = std::make_unique<renderer::ShaderManager>();
 
@@ -164,7 +155,7 @@ bool Application::setupMainShader()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupMeshes()
+bool MainApplication::setupMeshes()
 {
     m_geometry_manager = std::make_unique<renderer::GeometryManager>(m_path);
 
@@ -184,7 +175,7 @@ bool Application::setupMeshes()
     }
 
     // Create joint axis cylinder mesh for joint visualization (used by
-    // Application::renderJointAxes() method)
+    // MainApplication::renderJointAxes() method)
     if (!m_geometry_manager->createCylinder("revolute", 0.015f, 0.3f, 16))
     {
         m_error =
@@ -204,7 +195,7 @@ bool Application::setupMeshes()
 }
 
 // ----------------------------------------------------------------------------
-void Application::setupRender()
+void MainApplication::setupRender()
 {
     assert(m_geometry_manager != nullptr && "Geometry manager not setup");
     assert(m_shader_manager != nullptr && "Shader manager not setup");
@@ -219,20 +210,21 @@ void Application::setupRender()
 }
 
 // ----------------------------------------------------------------------------
-void Application::setupPhysicsSimulator()
+void MainApplication::setupPhysicsSimulator()
 {
     m_physics_simulator = std::make_unique<PhysicsSimulator>(
         1.0 / double(m_config.target_physics_hz), m_config.physics_gravity);
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupRobots()
+bool MainApplication::setupRobots()
 {
     assert(m_geometry_manager != nullptr && "Geometry manager not setup");
 
-    // Create the Model-View-Controller's controller
+    // Create the Model-View-Controller's application controller
     m_robot_manager = std::make_unique<renderer::RobotManager>();
-    m_controller = std::make_unique<Controller>(*m_robot_manager);
+    m_app_controller =
+        std::make_unique<ApplicationController>(*m_robot_manager);
 
     // Create and initialize all robots
     for (auto const& urdf_file : m_config.urdf_files)
@@ -248,10 +240,10 @@ bool Application::setupRobots()
         std::cout << "Loaded robot from: " << urdf_file << std::endl;
         std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
 
-        if (!m_controller->initializeRobot(robot,
-                                           m_config.control_link,
-                                           m_config.home_position,
-                                           m_config.camera_target))
+        if (!m_app_controller->initializeRobot(robot,
+                                               m_config.control_link,
+                                               m_config.home_position,
+                                               m_config.camera_target))
         {
             m_error = "Failed to initialize robot configuration";
             return false;
@@ -275,51 +267,54 @@ bool Application::setupRobots()
 }
 
 // ----------------------------------------------------------------------------
-bool Application::setupHMI()
+bool MainApplication::setupImGuiView()
 {
-    assert(m_controller != nullptr && "Controller not setup");
-    assert(m_camera_controller != nullptr && "Camera controller not setup");
+    assert(m_app_controller != nullptr && "Application controller not setup");
+    assert(m_camera_model != nullptr && "Camera model not setup");
     assert(m_robot_manager != nullptr && "Robot manager not setup");
 
-    // Create the HMI view (view of the Model-View-Controller pattern)
-    // Note: m_controller was already created in setupRobots()
-    m_hmi = std::make_unique<HMI>(
-        *m_robot_manager, *m_controller, *this, [this]() { halt(); });
+    // Create the ImGui view (view of the Model-View-Controller pattern)
+    // Note: m_app_controller was already created in setupRobots()
+    m_imgui_view = std::make_unique<ImGuiView>(*m_app_controller,
+                                               *m_robot_manager,
+                                               *m_camera_model,
+                                               [this]() { halt(); });
 
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void Application::onDrawMenuBar()
+void MainApplication::onDrawMenuBar()
 {
-    if (!m_hmi)
+    if (!m_imgui_view)
         return;
-    m_hmi->onDrawMenuBar();
+    m_imgui_view->onDrawMenuBar();
 }
 
 // ----------------------------------------------------------------------------
-void Application::onDrawMainPanel()
+void MainApplication::onDrawMainPanel()
 {
-    if (!m_hmi)
+    if (!m_imgui_view)
         return;
 
     // Draw dockable windows
-    m_hmi->onDrawRobotManagementWindow();
-    m_hmi->onDrawCameraTargetWindow();
-    m_hmi->onDrawTrajectoryWindow();
+    m_imgui_view->onDrawRobotManagementWindow();
+    m_imgui_view->onDrawCameraTargetWindow();
+    m_imgui_view->onDrawTrajectoryWindow();
 
     // Draw main teach pendant window
-    m_hmi->onDrawMainPanel();
+    m_imgui_view->onDrawMainPanel();
 }
 
 // ----------------------------------------------------------------------------
-void Application::onDrawScene()
+void MainApplication::onDrawScene()
 {
     // Set camera matrices before rendering
     m_shader_manager->setMatrix4f(m_view_uniform,
-                                  m_perspective_camera->viewMatrix().data());
+                                  m_camera_model->camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(
-        m_projection_uniform, m_perspective_camera->projectionMatrix().data());
+        m_projection_uniform,
+        m_camera_model->camera().projectionMatrix().data());
 
     // OpenGL
     glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
@@ -337,7 +332,7 @@ void Application::onDrawScene()
     // For now, let's iterate through the robot manager's basic robots
     for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
-        bool const selected = (robot_name == m_hmi->selectedRobot());
+        bool const selected = (robot_name == m_imgui_view->selectedRobot());
         // Get the controlled robot from controller
         auto const* controlled_robot = getControlledRobot(robot_name);
         if (controlled_robot)
@@ -348,8 +343,8 @@ void Application::onDrawScene()
 }
 
 // ----------------------------------------------------------------------------
-void Application::renderRobot(ControlledRobot const& p_robot,
-                              bool p_is_selected)
+void MainApplication::renderRobot(ControlledRobot const& p_robot,
+                                  bool p_is_selected)
 {
     // Render nodes of the robot (always visible in new architecture)
     auto& blueprint = p_robot.blueprint();
@@ -380,7 +375,7 @@ void Application::renderRobot(ControlledRobot const& p_robot,
 }
 
 // ----------------------------------------------------------------------------
-void Application::renderWaypoints(ControlledRobot const& p_robot)
+void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
 {
     if (p_robot.waypoints.empty() || !p_robot.end_effector)
         return;
@@ -435,50 +430,44 @@ void Application::renderWaypoints(ControlledRobot const& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-void Application::onUpdate(float const dt)
+void MainApplication::onUpdate(float const dt)
 {
-    // Camera update
-    if (m_camera_controller)
-    {
-        m_camera_controller->update(dt);
-    }
+    // Get tracking target from controlled robots
+    Eigen::Vector3f const* tracking_target = nullptr;
+    Eigen::Vector3f target_pos;
+    bool tracking_enabled = false;
 
-    // Camera tracking update - get controlled robots from controller
-    // Only apply tracking if user is not currently interacting with the camera
-    bool user_interacting = false;
-    if (m_orbit_controller && m_camera_controller == m_orbit_controller.get())
+    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
-        user_interacting = m_orbit_controller->isUserInteracting();
-    }
-
-    if (!user_interacting)
-    {
-        for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
+        auto const* controlled_robot = getControlledRobot(robot_name);
+        if (controlled_robot && controlled_robot->camera_tracking_enabled &&
+            controlled_robot->camera_target)
         {
-            auto const* controlled_robot = getControlledRobot(robot_name);
-            if (controlled_robot && controlled_robot->camera_tracking_enabled &&
-                controlled_robot->camera_target)
-            {
-                Eigen::Vector3d target_pos =
-                    controlled_robot->camera_target->worldTransform()
-                        .block<3, 1>(0, 3);
-                if (m_camera_controller)
-                {
-                    m_camera_controller->setTarget(target_pos.cast<float>());
-                }
-            }
+            target_pos = controlled_robot->camera_target->worldTransform()
+                             .block<3, 1>(0, 3)
+                             .cast<float>();
+            tracking_target = &target_pos;
+            tracking_enabled = true;
+            break; // Use first robot with tracking enabled
         }
     }
 
-    // Robot controller update
-    if (m_controller)
+    // Update camera model with tracking information
+    if (m_camera_model)
     {
-        m_controller->update(static_cast<double>(dt));
+        m_camera_model->setTrackingEnabled(tracking_enabled);
+        m_camera_model->update(dt, tracking_target);
+    }
+
+    // Robot application controller update
+    if (m_app_controller)
+    {
+        m_app_controller->update(static_cast<double>(dt));
     }
 }
 
 // ----------------------------------------------------------------------------
-void Application::onPhysicUpdate(float const /* dt */)
+void MainApplication::onPhysicUpdate(float const /* dt */)
 {
     // auto* controlled_robot = m_robot_manager->currentRobot();
     // if (controlled_robot && controlled_robot->robot)
@@ -488,30 +477,32 @@ void Application::onPhysicUpdate(float const /* dt */)
 }
 
 // ----------------------------------------------------------------------------
-void Application::onFPSUpdated(size_t const p_fps)
+void MainApplication::onFPSUpdated(size_t const p_fps)
 {
     m_fps = p_fps;
     OpenGLApplication::setTitle(m_title + " - FPS: " + std::to_string(p_fps));
 }
 
 // ----------------------------------------------------------------------------
-void Application::onWindowResize(int p_width, int p_height)
+void MainApplication::onWindowResize(int p_width, int p_height)
 {
-    auto aspect_ratio =
-        static_cast<float>(p_width) / static_cast<float>(p_height);
-    m_perspective_camera->setAspectRatio(aspect_ratio);
+    if (m_camera_model)
+    {
+        m_camera_model->onWindowResize(p_width, p_height);
+    }
 
     m_shader_manager->setMatrix4f(m_view_uniform,
-                                  m_perspective_camera->viewMatrix().data());
+                                  m_camera_model->camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(
-        m_projection_uniform, m_perspective_camera->projectionMatrix().data());
+        m_projection_uniform,
+        m_camera_model->camera().projectionMatrix().data());
 }
 
 // ----------------------------------------------------------------------------
-void Application::onKeyInput(int key,
-                             int /* scancode */,
-                             int action,
-                             int /* mods */)
+void MainApplication::onKeyInput(int key,
+                                 int /* scancode */,
+                                 int action,
+                                 int /* mods */)
 {
     if (action == GLFW_PRESS)
     {
@@ -534,13 +525,13 @@ void Application::onKeyInput(int key,
 
 // ----------------------------------------------------------------------------
 ControlledRobot*
-Application::getControlledRobot(std::string const& p_robot_name) const
+MainApplication::getControlledRobot(std::string const& p_robot_name) const
 {
     return m_robot_manager->getRobot<ControlledRobot>(p_robot_name);
 }
 
 // ----------------------------------------------------------------------------
-void Application::switchNeutralPosition() const
+void MainApplication::switchNeutralPosition() const
 {
     auto* robot = m_robot_manager->currentRobot();
     if (robot == nullptr)
@@ -549,9 +540,9 @@ void Application::switchNeutralPosition() const
 }
 
 // ----------------------------------------------------------------------------
-void Application::switchVisibility() const
+void MainApplication::switchVisibility() const
 {
-    auto* controlled_robot = getControlledRobot(m_hmi->selectedRobot());
+    auto* controlled_robot = getControlledRobot(m_imgui_view->selectedRobot());
     if (controlled_robot == nullptr)
         return;
     controlled_robot->blueprint().enable(
@@ -559,211 +550,34 @@ void Application::switchVisibility() const
 }
 
 // ----------------------------------------------------------------------------
-void Application::onMouseButton(int p_button, int p_action, int p_mods)
+void MainApplication::onMouseButton(int p_button, int p_action, int p_mods)
 {
     if (!isViewportHovered())
         return;
-    if (m_camera_controller)
+    if (m_camera_model)
     {
-        m_camera_controller->handleMouseButton(p_button, p_action, p_mods);
+        m_camera_model->handleMouseButton(p_button, p_action, p_mods);
     }
 }
 
 // ----------------------------------------------------------------------------
-void Application::onCursorPos(double p_xpos, double p_ypos)
+void MainApplication::onCursorPos(double p_xpos, double p_ypos)
 {
-    if (m_camera_controller)
+    if (m_camera_model)
     {
-        m_camera_controller->handleMouseMove(p_xpos, p_ypos);
+        m_camera_model->handleMouseMove(p_xpos, p_ypos);
     }
 }
 
 // ----------------------------------------------------------------------------
-void Application::onScroll(double xoffset, double yoffset)
+void MainApplication::onScroll(double xoffset, double yoffset)
 {
     if (!isViewportHovered())
         return;
-    if (m_camera_controller)
+    if (m_camera_model)
     {
-        m_camera_controller->handleScroll(xoffset, yoffset);
+        m_camera_model->handleScroll(xoffset, yoffset);
     }
-}
-
-// ----------------------------------------------------------------------------
-Eigen::Vector3f Application::getCameraTarget() const
-{
-    // Try to get target from selected robot
-    if (m_hmi && !m_hmi->selectedRobot().empty())
-    {
-        auto const* controlled_robot =
-            getControlledRobot(m_hmi->selectedRobot());
-        if (controlled_robot && controlled_robot->camera_target)
-        {
-            Eigen::Vector3d target_pos =
-                controlled_robot->camera_target->worldTransform().block<3, 1>(
-                    0, 3);
-            return target_pos.cast<float>();
-        }
-    }
-
-    // Try to get from any robot
-    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
-    {
-        auto const* controlled_robot = getControlledRobot(robot_name);
-        if (controlled_robot && controlled_robot->camera_target)
-        {
-            Eigen::Vector3d target_pos =
-                controlled_robot->camera_target->worldTransform().block<3, 1>(
-                    0, 3);
-            return target_pos.cast<float>();
-        }
-    }
-
-    // Default target
-    return Eigen::Vector3f(0.0f, 0.0f, 0.5f);
-}
-
-// ----------------------------------------------------------------------------
-void Application::switchToOrbitController()
-{
-    if (!m_orbit_controller)
-        return;
-
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // If we have a current camera controller, try to preserve distance
-    if (m_camera_controller && m_orbit_controller.get() == m_camera_controller)
-    {
-        // Already using orbit controller, just update target
-        m_orbit_controller->setTarget(target);
-        m_camera_controller = m_orbit_controller.get();
-        return;
-    }
-
-    // Recreate orbit controller with current target
-    m_orbit_controller = std::make_unique<renderer::OrbitController>(
-        *m_perspective_camera, target, distance);
-    m_camera_controller = m_orbit_controller.get();
-}
-
-// ----------------------------------------------------------------------------
-void Application::switchToDragController()
-{
-    if (!m_drag_controller)
-        return;
-
-    // Calculate target and distance from current camera position
-    // This preserves the current view when switching to drag controller
-    Eigen::Vector3f target = m_perspective_camera->target();
-    Eigen::Vector3f position = m_perspective_camera->position();
-    Eigen::Vector3f direction = target - position;
-    float distance = direction.norm();
-
-    // If distance is too small, use default values
-    if (distance < 0.1f)
-    {
-        target = getCameraTarget();
-        distance = 5.0f;
-    }
-
-    // Always recreate drag controller to capture the current camera direction
-    // This is necessary when switching between orthographic views (Top, Bottom,
-    // etc.) The constructor will automatically preserve the current camera
-    // direction
-    m_drag_controller = std::make_unique<renderer::DragController>(
-        *m_perspective_camera, target, distance);
-    m_camera_controller = m_drag_controller.get();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setTopView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking down from Z+ (top view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, 0.0f, distance);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 1.0f, 0.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setBottomView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking up from Z- (bottom view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, 0.0f, -distance);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 1.0f, 0.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setFrontView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking from Y+ (front view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, distance, 0.0f);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setBackView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking from Y- (back view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(0.0f, -distance, 0.0f);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setRightView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking from X+ (right view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(distance, 0.0f, 0.0f);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
-}
-
-// ----------------------------------------------------------------------------
-void Application::setLeftView()
-{
-    Eigen::Vector3f target = getCameraTarget();
-    float distance = 5.0f;
-
-    // Looking from X- (left view)
-    Eigen::Vector3f position = target + Eigen::Vector3f(-distance, 0.0f, 0.0f);
-    m_perspective_camera->lookAt(
-        position, target, Eigen::Vector3f(0.0f, 0.0f, 1.0f));
-
-    // Switch to drag controller to preserve this view
-    switchToDragController();
 }
 
 } // namespace robotik::application

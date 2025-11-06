@@ -28,11 +28,11 @@ M := $(P)/.makefile
 # Project definition
 #
 include $(P)/Makefile.common
-TARGET_NAME := Robotik-Viewer
-TARGET_DESCRIPTION := Robot viewer application demo
+TARGET_NAME := Robotik-Simulator
+TARGET_DESCRIPTION := Robot simulation and control application
 include $(M)/project/Makefile
 
-CURRENT_DIR := $(P)/src/Applications/Viewer
+CURRENT_DIR := $(P)/src/Applications/Simulator
 
 ###############################################################################
 # Inform Makefile where to find header files
