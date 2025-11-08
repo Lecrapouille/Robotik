@@ -1,6 +1,6 @@
 /**
  * @file ControlledRobot.hpp
- * @brief Controlled robot with interactive control state.
+ * @brief Controlled robot with UI state for the simulator application.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -10,18 +10,16 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Robot.hpp"
-#include "Robotik/Core/Solvers/Trajectory.hpp"
-
-#include <memory>
 
 namespace robotik::application
 {
 
 // ****************************************************************************
-//! \brief Controlled robot class that extends Robot with control capabilities.
+//! \brief Controlled robot class that extends Robot with UI state.
 //!
-//! This class inherits from Robot and adds state for interactive control
-//! (teach pendant), waypoints, and camera tracking support.
+//! This class inherits from Robot and adds minimal state for the UI layer.
+//! All complex logic (waypoints, trajectory control) is handled by separate
+//! managers in the application layer.
 // ****************************************************************************
 class ControlledRobot: public robotik::Robot
 {
@@ -57,38 +55,12 @@ public:
     {
     }
 
-public:
-
-    //! \brief Waypoint recorded by the user (editable in the HMI)
-    struct Waypoint
-    {
-        robotik::Trajectory::States states;
-        std::string label;
-        double duration;
-    };
-
     //! \brief Current control mode
     ControlMode control_mode = ControlMode::JOINT;
     //! \brief Current state of the robot
     State state = State::IDLE;
     //! \brief Speed factor [0.0, 1.0]
     double speed_factor = 0.5;
-    //! \brief Current recorded trajectory
-    std::unique_ptr<robotik::Trajectory> trajectory;
-    //! \brief Waypoints recorded by the user (HMI)
-    std::vector<ControlledRobot::Waypoint> waypoints;
-    //! \brief Current waypoint (-1 indicates coming from current robot
-    //! position, not a recorded waypoint)
-    int current_waypoint_index = -1;
-    //! \brief Destination waypoint
-    size_t target_waypoint_index = 0;
-    //! \brief Play in loop the trajectory
-    bool play_in_loop = false;
-    //! \brief Whether we're playing all waypoints (play) or going to a single
-    //! waypoint (go)
-    bool is_playing_all_waypoints = false;
-    //! \brief Time elapsed in the trajectory
-    double trajectory_current_time = 0.0;
     //! \brief End effector for Cartesian control
     robotik::Node const* end_effector = nullptr;
     //! \brief Target node for the camera
@@ -100,3 +72,4 @@ public:
 };
 
 } // namespace robotik::application
+

@@ -8,6 +8,7 @@
  */
 
 #include "ImGuiView.hpp"
+#include "MainApplication.hpp"
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
@@ -27,10 +28,12 @@ namespace robotik::application
 ImGuiView::ImGuiView(ApplicationController& p_controller,
                      robotik::renderer::RobotManager& p_robot_manager,
                      CameraViewModel& p_camera_model,
+                     MainApplication& p_main_app,
                      std::function<void()> const& p_halt_callback)
     : m_robot_manager(p_robot_manager),
       m_controller(p_controller),
       m_camera_model(p_camera_model),
+      m_main_app(p_main_app),
       m_halt_callback(p_halt_callback)
 {
     if (auto const* robot = m_robot_manager.currentRobot(); robot != nullptr)
@@ -139,28 +142,12 @@ void ImGuiView::onDrawTrajectoryWindow()
         auto* robot = m_controller.getControlledRobot(m_selected_robot);
         if (robot != nullptr)
         {
-            auto* teach_pendant = m_controller.getTeachPendant();
-            if (teach_pendant != nullptr)
-            {
-                auto* ik_solver = m_controller.getIKSolver();
-                // Configure the teach pendant for this robot
-                teach_pendant->setRobot(*robot);
-                if (ik_solver != nullptr)
-                {
-                    teach_pendant->setIKSolver(ik_solver);
-                }
-                if (robot->end_effector != nullptr)
-                {
-                    teach_pendant->setEndEffector(*robot->end_effector);
-                }
+            // Waypoints Section
+            drawWaypointsSection(robot, &m_main_app);
+            ImGui::Spacing();
 
-                // Waypoints Section
-                drawWaypointsSection(robot, teach_pendant);
-                ImGui::Spacing();
-
-                // Trajectory Playback Section
-                drawTrajectoryPlaybackSection(robot, teach_pendant);
-            }
+            // Trajectory Playback Section
+            drawTrajectoryPlaybackSection(robot, &m_main_app);
         }
     }
     else
@@ -255,7 +242,7 @@ void ImGuiView::loadRobotPanel()
             // Extract blueprint and initialize controlled robot
             std::string robot_name = robot->name();
             robotik::Blueprint blueprint = std::move(robot->blueprint());
-            m_controller.initializeRobot(robot, "", {}, "");
+            m_controller.initializeRobot(*robot, "", {}, "");
 
             setSelectedRobot(robot_name);
             refreshRobotList();
@@ -466,12 +453,7 @@ void ImGuiView::teachPendantPanel()
         return;
 
     // Configure the teach pendant for this robot
-    teach_pendant->setRobot(*robot);
     teach_pendant->setIKSolver(ik_solver);
-    if (robot->end_effector != nullptr)
-    {
-        teach_pendant->setEndEffector(*robot->end_effector);
-    }
 
     // Draw control mode tabs (notebook)
     auto selected_mode = drawControlModeTabs(robot->control_mode);
@@ -552,7 +534,8 @@ void ImGuiView::drawJointControlSection(
     ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
     p_robot->blueprint().forEachJoint(
-        [p_teach_pendant](robotik::Joint const& joint, size_t index)
+        [this, p_teach_pendant, p_robot](robotik::Joint const& joint,
+                                         size_t index)
         {
             ImGui::PushID(joint.name().c_str());
 
@@ -566,7 +549,8 @@ void ImGuiView::drawJointControlSection(
                                    "%.3f"))
             {
                 double delta = static_cast<double>(value) - joint.position();
-                p_teach_pendant->moveJoint(index, delta, 1.0);
+                p_teach_pendant->moveJoint(
+                    *p_robot, index, delta, p_robot->speed_factor);
             }
 
             ImGui::PopID();
@@ -677,12 +661,20 @@ void ImGuiView::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (m)", &step_size, 0.001f, 0.01f, "%.3f");
 
+    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    if (!robot || !robot->end_effector)
+        return;
+
     if (ImGui::Button("+##trans", ImVec2(50, 50)))
     {
         m_cartesian_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = double(step_size);
-        if (!p_teach_pendant->moveCartesian(dir, 1.0))
+        if (!p_teach_pendant->moveCartesian(*robot,
+                                            robot->end_effector,
+                                            dir,
+                                            robot->speed_factor,
+                                            robot->cartesian_frame))
         {
             m_cartesian_error = p_teach_pendant->error();
             std::cerr << "❌ Failed to move robot: " << m_cartesian_error
@@ -695,7 +687,11 @@ void ImGuiView::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
         m_cartesian_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = -double(step_size);
-        if (!p_teach_pendant->moveCartesian(dir, 1.0))
+        if (!p_teach_pendant->moveCartesian(*robot,
+                                            robot->end_effector,
+                                            dir,
+                                            robot->speed_factor,
+                                            robot->cartesian_frame))
         {
             m_cartesian_error = p_teach_pendant->error();
             std::cerr << "❌ Failed to move robot: " << m_cartesian_error
@@ -721,12 +717,21 @@ void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (rad)", &angle_step, 0.01f, 0.1f, "%.3f");
 
+    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    if (!robot || !robot->end_effector)
+        return;
+
     if (ImGui::Button("+##rot", ImVec2(50, 50)))
     {
         m_cartesian_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        if (!p_teach_pendant->rotateCartesian(axis, double(angle_step), 1.0))
+        if (!p_teach_pendant->rotateCartesian(*robot,
+                                              robot->end_effector,
+                                              axis,
+                                              double(angle_step),
+                                              robot->speed_factor,
+                                              robot->cartesian_frame))
         {
             m_cartesian_error = p_teach_pendant->error();
             std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
@@ -739,7 +744,12 @@ void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
         m_cartesian_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        if (!p_teach_pendant->rotateCartesian(axis, -double(angle_step), 1.0))
+        if (!p_teach_pendant->rotateCartesian(*robot,
+                                              robot->end_effector,
+                                              axis,
+                                              -double(angle_step),
+                                              robot->speed_factor,
+                                              robot->cartesian_frame))
         {
             m_cartesian_error = p_teach_pendant->error();
             std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
@@ -749,12 +759,18 @@ void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawWaypointsSection(
-    ControlledRobot* p_robot,
-    robotik::TeachPendant* p_teach_pendant) const
+void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
+                                     MainApplication* p_main_app) const
 {
     ImGui::Text("Waypoints");
     ImGui::Separator();
+
+    if (!p_robot || !p_main_app || !p_robot->end_effector)
+        return;
+
+    auto* wm = p_main_app->getWaypointManager(p_robot);
+    if (!wm)
+        return;
 
     static std::string waypoint_label;
     static float waypoint_duration = 3.0f;
@@ -769,27 +785,34 @@ void ImGuiView::drawWaypointsSection(
     ImGui::SameLine();
     if (ImGui::Button("Add"))
     {
-        size_t idx = p_teach_pendant->recordWaypoint(
-            waypoint_label, static_cast<double>(waypoint_duration));
+        size_t idx = wm->addWaypoint(*p_robot,
+                                     p_robot->end_effector,
+                                     waypoint_label,
+                                     static_cast<double>(waypoint_duration));
+        p_main_app->updateWaypointRenderCache(p_robot, p_robot->end_effector);
         std::cout << "📍 Recorded waypoint " << idx << ": " << waypoint_label
                   << std::endl;
     }
 
     ImGui::Separator();
-    ImGui::Text("Saved Waypoints (%zu):", p_robot->waypoints.size());
+    auto const& waypoints = wm->getWaypoints(p_robot->end_effector);
+    ImGui::Text("Saved Waypoints (%zu):", waypoints.size());
     ImGui::BeginChild("WaypointList", ImVec2(0, 200), true);
 
     // Display waypoints and collect indices to delete
-    for (size_t i = 0; i < p_robot->waypoints.size(); ++i)
+    for (size_t i = 0; i < waypoints.size(); ++i)
     {
         ImGui::PushID(static_cast<int>(i));
 
         // Put buttons first
         if (ImGui::Button("Go##waypoint", ImVec2(50, 0)))
         {
-            if (p_teach_pendant->goToWaypoint(i,
-                                              p_robot->waypoints[i].duration))
+            auto* tc = p_main_app->getTrajectoryController(p_robot);
+            if (tc && tc->goToWaypoint(p_robot->states().joint_positions,
+                                       waypoints[i].position,
+                                       waypoints[i].duration))
             {
+                p_robot->state = ControlledRobot::State::PLAYING;
                 std::cout << "🎯 Going to waypoint " << i << std::endl;
             }
             else
@@ -807,14 +830,13 @@ void ImGuiView::drawWaypointsSection(
         }
         ImGui::SameLine();
 
-        // Waypoint name editing
+        // Waypoint name - read only for now (can be made editable later)
         ImGui::SetNextItemWidth(150);
-        ImGui::InputText("##name", &p_robot->waypoints[i].label);
+        ImGui::Text("%s", waypoints[i].label.c_str());
         ImGui::SameLine();
 
-        // Waypoint duration editing
-        ImGui::InputDouble(
-            "##duration", &p_robot->waypoints[i].duration, 0.1, 1.0, "%.2f");
+        // Waypoint duration - read only for now
+        ImGui::Text("%.2f s", waypoints[i].duration);
 
         ImGui::PopID();
     }
@@ -836,9 +858,11 @@ void ImGuiView::drawWaypointsSection(
         // Delete from largest index to smallest
         for (size_t idx : indices_to_delete)
         {
-            if (idx < p_robot->waypoints.size())
+            if (idx < waypoints.size())
             {
-                p_teach_pendant->deleteWaypoint(idx);
+                wm->deleteWaypoint(p_robot->end_effector, idx);
+                p_main_app->updateWaypointRenderCache(p_robot,
+                                                      p_robot->end_effector);
                 std::cout << "🗑️ Deleted waypoint " << idx << std::endl;
             }
         }
@@ -850,18 +874,26 @@ void ImGuiView::drawWaypointsSection(
     // Waypoint actions
     if (ImGui::Button("Clear All"))
     {
-        p_teach_pendant->clearWaypoints();
+        wm->clearWaypoints(p_robot->end_effector);
+        p_main_app->updateWaypointRenderCache(p_robot, p_robot->end_effector);
         std::cout << "🗑️ Cleared all waypoints" << std::endl;
     }
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawTrajectoryPlaybackSection(
-    ControlledRobot* p_robot,
-    robotik::TeachPendant* p_teach_pendant) const
+void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
+                                              MainApplication* p_main_app) const
 {
     ImGui::Text("Trajectory Playback");
     ImGui::Separator();
+
+    if (!p_robot || !p_main_app || !p_robot->end_effector)
+        return;
+
+    auto* wm = p_main_app->getWaypointManager(p_robot);
+    auto* tc = p_main_app->getTrajectoryController(p_robot);
+    if (!wm || !tc)
+        return;
 
     // Speed Factor
     ImGui::SetNextItemWidth(100);
@@ -871,9 +903,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(
         p_robot->speed_factor = static_cast<double>(speed);
     }
 
-    // Loop the trajectory
-    ImGui::SameLine();
-    ImGui::Checkbox("Loop Trajectory", &p_robot->play_in_loop);
+    // Get waypoints
+    auto const& waypoints = wm->getWaypoints(p_robot->end_effector);
 
     // Play/Stop button
     bool is_playing = (p_robot->state == ControlledRobot::State::PLAYING);
@@ -881,15 +912,20 @@ void ImGuiView::drawTrajectoryPlaybackSection(
     {
         if (ImGui::Button("▶ Play Trajectory", ImVec2(-1, 40)))
         {
-            if (p_teach_pendant->playRecordedTrajectory())
+            if (waypoints.size() > 0)
             {
-                std::cout << "▶️ Playing trajectory" << std::endl;
+                // Use loop flag from UI (to be added if needed)
+                bool loop = false; // or get from a checkbox
+                if (tc->playWaypoints(
+                        p_robot->states().joint_positions, waypoints, loop))
+                {
+                    p_robot->state = ControlledRobot::State::PLAYING;
+                    std::cout << "▶️ Playing trajectory" << std::endl;
+                }
             }
             else
             {
-                std::cout
-                    << "⚠️ No trajectory to play (need at least 2 waypoints)"
-                    << std::endl;
+                std::cout << "⚠️ No waypoints to play" << std::endl;
             }
         }
     }
@@ -897,7 +933,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(
     {
         if (ImGui::Button("⏹ Stop", ImVec2(-1, 40)))
         {
-            p_teach_pendant->stopTrajectory();
+            tc->stop();
+            p_robot->state = ControlledRobot::State::IDLE;
             std::cout << "⏹️ Stopped trajectory" << std::endl;
         }
     }
@@ -906,78 +943,25 @@ void ImGuiView::drawTrajectoryPlaybackSection(
     ImGui::Text("State: %s", is_playing ? "Playing" : "Idle");
 
     // Display waypoint information when playing
-    if (is_playing && !p_robot->waypoints.empty())
+    if (is_playing && !waypoints.empty())
     {
-        bool has_error = false;
-        bool target_reached = false;
+        int current_wp_idx = tc->currentWaypointIndex();
+        int target_wp_idx = tc->targetWaypointIndex();
 
-        if (!p_robot->trajectory)
+        // Show current waypoint if valid
+        if (current_wp_idx >= 0 &&
+            static_cast<size_t>(current_wp_idx) < waypoints.size())
         {
-            has_error = true;
-        }
-        else
-        {
-            // Check if target waypoint has been reached using pose error
-            size_t target_wp_idx = p_robot->target_waypoint_index;
-            if (target_wp_idx < p_robot->waypoints.size())
-            {
-                target_reached = robotik::TeachPendant::isWaypointReached(
-                    p_robot, target_wp_idx);
-            }
+            ImGui::Text("Current Waypoint: %s",
+                        waypoints[current_wp_idx].label.c_str());
         }
 
-        // Get target waypoint (destination)
-        size_t target_wp_idx = p_robot->target_waypoint_index;
-        std::string target_wp_name = "Unknown";
-        if (target_wp_idx < p_robot->waypoints.size())
+        // Display target waypoint
+        if (target_wp_idx >= 0 &&
+            static_cast<size_t>(target_wp_idx) < waypoints.size())
         {
-            target_wp_name = p_robot->waypoints[target_wp_idx].label;
-        }
-
-        // Display waypoint information
-        if (has_error)
-        {
-            ImGui::Text("Target Waypoint: ");
-            ImGui::SameLine();
-            ImGui::TextColored(
-                ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", target_wp_name.c_str());
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), " (Error)");
-        }
-        else
-        {
-            // Show current waypoint if we're coming from a recorded waypoint
-            // (current_waypoint_index != -1 means we're at a waypoint)
-            if (p_robot->current_waypoint_index != -1)
-            {
-                size_t current_wp_idx =
-                    static_cast<size_t>(p_robot->current_waypoint_index);
-                if (current_wp_idx < p_robot->waypoints.size())
-                {
-                    std::string current_wp_name =
-                        p_robot->waypoints[current_wp_idx].label;
-                    ImGui::Text("Current Waypoint: ");
-                    ImGui::SameLine();
-                    ImGui::Text("%s", current_wp_name.c_str());
-                }
-            }
-
-            // Display target waypoint with status
-            ImGui::Text("Target Waypoint: ");
-            ImGui::SameLine();
-            if (target_reached)
-            {
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                                   "%s",
-                                   target_wp_name.c_str());
-                ImGui::SameLine();
-                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f),
-                                   " (Reached)");
-            }
-            else
-            {
-                ImGui::Text("%s", target_wp_name.c_str());
-            }
+            ImGui::Text("Target Waypoint: %s",
+                        waypoints[target_wp_idx].label.c_str());
         }
     }
 }
@@ -1283,9 +1267,10 @@ void ImGuiView::sceneGraphPanel()
                 // Create transform from translation and rotation
                 Eigen::Vector3d trans(
                     translation[0], translation[1], translation[2]);
-                Eigen::Vector3d rot_rad(rotation[0] * M_PI / 180.0,
-                                        rotation[1] * M_PI / 180.0,
-                                        rotation[2] * M_PI / 180.0);
+                Eigen::Vector3d rot_rad(
+                    static_cast<double>(rotation[0]) * M_PI / 180.0,
+                    static_cast<double>(rotation[1]) * M_PI / 180.0,
+                    static_cast<double>(rotation[2]) * M_PI / 180.0);
 
                 // Create rotation matrix from Euler angles (ZYX order)
                 Eigen::Matrix3d rot =

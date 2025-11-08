@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "Robotik/Core/Robot/ControlledRobot.hpp"
+#include "ControlledRobot.hpp"
+
 #include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 #include "Robotik/Renderer/Managers/RobotManager.hpp"
@@ -47,10 +48,10 @@ public:
     //! \param p_camera_target Camera target node name. If empty, uses root.
     //! \return true if successful.
     // ----------------------------------------------------------------------------
-    bool initializeRobot(ControlledRobot* p_robot,
+    bool initializeRobot(ControlledRobot& p_robot,
                          std::string const& p_control_link = "",
                          std::vector<double> const& p_joint_positions = {},
-                         std::string const& p_camera_target = "");
+                         std::string const& p_camera_target = "") const;
 
     // ----------------------------------------------------------------------------
     //! \brief Update all robots based on their control modes.

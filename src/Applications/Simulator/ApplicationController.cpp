@@ -27,75 +27,79 @@ ApplicationController::ApplicationController(
 
 // ----------------------------------------------------------------------------
 bool ApplicationController::initializeRobot(
-    ControlledRobot* p_controlled_robot,
+    ControlledRobot& p_controlled_robot,
     std::string const& p_control_link,
     std::vector<double> const& p_joint_positions,
-    std::string const& p_camera_target)
+    std::string const& p_camera_target) const
 {
     // Set initial joint positions from configuration or neutral position
     if (!p_joint_positions.empty())
     {
-        p_controlled_robot->setJointPositions(p_joint_positions);
+        p_controlled_robot.setJointPositions(p_joint_positions);
         std::cout << "🤖 Set initial joint values from configuration"
                   << std::endl;
     }
     else
     {
-        p_controlled_robot->setNeutralPosition();
+        p_controlled_robot.setNeutralPosition();
         std::cout << "🤖 Set neutral position" << std::endl;
     }
 
     // Store home position
-    p_controlled_robot->setHomePosition(
-        p_controlled_robot->states().joint_positions);
+    if (!p_controlled_robot.setHomePosition(
+            p_controlled_robot.states().joint_positions))
+    {
+        std::cout << "⚠️ Home position was adjusted to fit joint limits"
+                  << std::endl;
+    }
 
     // Set end effector for the robot
     if (!p_control_link.empty())
     {
-        p_controlled_robot->end_effector = robotik::Node::find(
-            p_controlled_robot->blueprint().root(), p_control_link);
+        p_controlled_robot.end_effector = robotik::Node::find(
+            p_controlled_robot.blueprint().root(), p_control_link);
     }
     else
     {
         // Use first end effector if available
         if (auto const& end_effectors =
-                p_controlled_robot->blueprint().endEffectors();
+                p_controlled_robot.blueprint().endEffectors();
             !end_effectors.empty())
         {
-            p_controlled_robot->end_effector = &end_effectors[0].get();
+            p_controlled_robot.end_effector = &end_effectors[0].get();
         }
     }
 
-    if (p_controlled_robot->end_effector != nullptr)
+    if (p_controlled_robot.end_effector != nullptr)
     {
         std::cout << "🤖 End effector set to: "
-                  << p_controlled_robot->end_effector->name() << std::endl;
+                  << p_controlled_robot.end_effector->name() << std::endl;
     }
     else
     {
         std::cout << "⚠️ Warning: no end effector found for robot: "
-                  << p_controlled_robot->name() << std::endl;
+                  << p_controlled_robot.name() << std::endl;
     }
 
     // Set camera target (always use root if not found)
     if (!p_camera_target.empty())
     {
-        p_controlled_robot->camera_target = robotik::Node::find(
-            p_controlled_robot->blueprint().root(), p_camera_target);
+        p_controlled_robot.camera_target = robotik::Node::find(
+            p_controlled_robot.blueprint().root(), p_camera_target);
     }
 
     // Use root if target not found or not specified
-    if (p_controlled_robot->camera_target == nullptr)
+    if (p_controlled_robot.camera_target == nullptr)
     {
-        p_controlled_robot->camera_target =
-            &p_controlled_robot->blueprint().root();
+        p_controlled_robot.camera_target =
+            &p_controlled_robot.blueprint().root();
     }
 
-    if (p_controlled_robot->camera_target != nullptr)
+    if (p_controlled_robot.camera_target != nullptr)
     {
         std::cout << "📷 Camera target: "
-                  << p_controlled_robot->camera_target->name() << std::endl;
-        p_controlled_robot->camera_tracking_enabled = true;
+                  << p_controlled_robot.camera_target->name() << std::endl;
+        p_controlled_robot.camera_tracking_enabled = true;
     }
 
     return true;
@@ -104,17 +108,10 @@ bool ApplicationController::initializeRobot(
 // ----------------------------------------------------------------------------
 void ApplicationController::update(double p_dt)
 {
-    for (auto const& [robot_name, robot_ptr] : m_robot_manager.robots())
-    {
-        auto* controlled_robot =
-            m_robot_manager.getRobot<ControlledRobot>(robot_name);
-        if (controlled_robot &&
-            controlled_robot->state == ControlledRobot::State::PLAYING)
-        {
-            m_teach_pendant->setRobot(*controlled_robot);
-            m_teach_pendant->update(p_dt);
-        }
-    }
+    // Trajectory control is now handled by MainApplication via
+    // TrajectoryController This method can be used for other controller logic
+    // if needed
+    (void)p_dt; // Unused for now
 }
 
 // ----------------------------------------------------------------------------

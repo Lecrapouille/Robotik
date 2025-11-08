@@ -67,9 +67,27 @@ void Robot::setNeutralPosition()
 }
 
 // ----------------------------------------------------------------------------
-void Robot::setHomePosition(const JointValues& p_home_position)
+bool Robot::setHomePosition(const JointValues& p_home_position)
 {
+    if (p_home_position.size() != m_blueprint.numJoints())
+    {
+        std::cerr << "⚠️  Invalid home position size: expected "
+                  << m_blueprint.numJoints() << ", got "
+                  << p_home_position.size() << std::endl;
+        return false;
+    }
+
+    if (!areJointPositionsValid(p_home_position))
+    {
+        std::cerr
+            << "⚠️  Home position contains out-of-limits values. Clamping..."
+            << std::endl;
+        m_home_position = clampJointPositions(p_home_position);
+        return false; // Indicate modification
+    }
+
     m_home_position = p_home_position;
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -80,6 +98,60 @@ void Robot::setHomePosition()
     {
         setJointPositions(m_home_position);
     }
+}
+
+// ----------------------------------------------------------------------------
+bool Robot::areJointPositionsValid(const JointValues& p_positions) const
+{
+    if (p_positions.size() != m_blueprint.numJoints())
+        return false;
+
+    bool valid = true;
+    m_blueprint.forEachJoint(
+        [&p_positions, &valid](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+            if (p_positions[index] < min || p_positions[index] > max)
+            {
+                valid = false;
+            }
+        });
+
+    return valid;
+}
+
+// ----------------------------------------------------------------------------
+JointValues Robot::clampJointPositions(const JointValues& p_positions) const
+{
+    JointValues clamped = p_positions;
+
+    if (clamped.size() != m_blueprint.numJoints())
+    {
+        std::cerr << "⚠️  Cannot clamp: invalid size" << std::endl;
+        return clamped;
+    }
+
+    m_blueprint.forEachJoint(
+        [&clamped](Joint const& joint, size_t index)
+        {
+            auto [min, max] = joint.limits();
+            if (clamped[index] < min)
+            {
+                std::cerr << "⚠️  Joint " << index << " (" << joint.name()
+                          << ") clamped from " << clamped[index] << " to "
+                          << min << std::endl;
+                clamped[index] = min;
+            }
+            else if (clamped[index] > max)
+            {
+                std::cerr << "⚠️  Joint " << index << " (" << joint.name()
+                          << ") clamped from " << clamped[index] << " to "
+                          << max << std::endl;
+                clamped[index] = max;
+            }
+        });
+
+    return clamped;
 }
 
 // ----------------------------------------------------------------------------
@@ -159,6 +231,15 @@ Jacobian const& Robot::computeJacobian(State& p_state,
         });
 
     return J;
+}
+
+// ----------------------------------------------------------------------------
+void Robot::traverse(ConstNodeVisitor& visitor) const
+{
+    if (m_blueprint.hasRoot() && m_blueprint.enabled())
+    {
+        m_blueprint.root().traverse(visitor);
+    }
 }
 
 // ----------------------------------------------------------------------------
