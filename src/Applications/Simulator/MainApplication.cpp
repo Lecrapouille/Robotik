@@ -18,51 +18,6 @@ namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-static char const* const vertex_shader_source = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 projection;
-
-out vec3 FragPos;
-out vec3 Normal;
-
-void main()
-{
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = mat3(transpose(inverse(model))) * aNormal;
-    gl_Position = projection * view * vec4(FragPos, 1.0);
-}
-)";
-
-// ----------------------------------------------------------------------------
-static char const* const fragment_shader_source = R"(
-#version 330 core
-in vec3 FragPos;
-in vec3 Normal;
-
-uniform vec3 color;
-
-out vec4 FragColor;
-
-void main()
-{
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-    vec3 normal = normalize(Normal);
-    float diff = max(dot(normal, lightDir), 0.0);
-    vec3 diffuse = diff * color;
-    vec3 ambient = 0.3 * color;
-    FragColor = vec4(ambient + diffuse, 1.0);
-}
-)";
-
-// ----------------------------------------------------------------------------
-static const Eigen::Vector3f s_clear_color(0.1f, 0.1f, 0.1f);
-
-// ----------------------------------------------------------------------------
 MainApplication::MainApplication(Configuration const& p_config)
     : OpenGLApplication(p_config.window_width, p_config.window_height),
       m_config(p_config),
@@ -131,6 +86,45 @@ bool MainApplication::setupMainShader()
     m_shader_manager = std::make_unique<renderer::ShaderManager>();
 
     constexpr char const* const main_shader_name = "main";
+    static char const* const vertex_shader_source = R"(
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    layout (location = 1) in vec3 aNormal;
+
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
+
+    out vec3 FragPos;
+    out vec3 Normal;
+
+    void main()
+    {
+        FragPos = vec3(model * vec4(aPos, 1.0));
+        Normal = mat3(transpose(inverse(model))) * aNormal;
+        gl_Position = projection * view * vec4(FragPos, 1.0);
+    }
+    )";
+
+    static char const* const fragment_shader_source = R"(
+    #version 330 core
+    in vec3 FragPos;
+    in vec3 Normal;
+
+    uniform vec3 color;
+
+    out vec4 FragColor;
+
+    void main()
+    {
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+        vec3 normal = normalize(Normal);
+        float diff = max(dot(normal, lightDir), 0.0);
+        vec3 diffuse = diff * color;
+        vec3 ambient = 0.3 * color;
+        FragColor = vec4(ambient + diffuse, 1.0);
+    }
+    )";
 
     // Create the main OpenGL shader program
     if (!m_shader_manager->createProgram(
@@ -171,15 +165,6 @@ bool MainApplication::setupMeshes()
     if (!m_geometry_manager->createCylinder("axis", 1.0f, 1.0f, 16))
     {
         m_error = "Failed to create axis mesh: " + m_geometry_manager->error();
-        return false;
-    }
-
-    // Create joint axis cylinder mesh for joint visualization (used by
-    // MainApplication::renderJointAxes() method)
-    if (!m_geometry_manager->createCylinder("revolute", 0.015f, 0.3f, 16))
-    {
-        m_error =
-            "Failed to create joint axis mesh: " + m_geometry_manager->error();
         return false;
     }
 
@@ -240,7 +225,7 @@ bool MainApplication::setupRobots()
         std::cout << "Loaded robot from: " << urdf_file << std::endl;
         std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
 
-        if (!m_app_controller->initializeRobot(robot,
+        if (!m_app_controller->initializeRobot(*robot,
                                                m_config.control_link,
                                                m_config.home_position,
                                                m_config.camera_target))
@@ -260,6 +245,12 @@ bool MainApplication::setupRobots()
                 robotik::Geometry const& geom = geom_ref.get();
                 m_geometry_manager->createMeshFromGeometry(geom);
             }
+
+            // Create waypoint manager and trajectory controller for this robot
+            m_waypoint_managers[controlled_robot] =
+                std::make_unique<robotik::WaypointManager>();
+            m_trajectory_controllers[controlled_robot] =
+                std::make_unique<robotik::TrajectoryController>();
         }
     }
 
@@ -278,6 +269,7 @@ bool MainApplication::setupImGuiView()
     m_imgui_view = std::make_unique<ImGuiView>(*m_app_controller,
                                                *m_robot_manager,
                                                *m_camera_model,
+                                               *this,
                                                [this]() { halt(); });
 
     return true;
@@ -286,39 +278,34 @@ bool MainApplication::setupImGuiView()
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawMenuBar()
 {
-    if (!m_imgui_view)
-        return;
+    assert(m_imgui_view != nullptr && "ImGui view not setup");
     m_imgui_view->onDrawMenuBar();
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawMainPanel()
 {
-    if (!m_imgui_view)
-        return;
-
-    // Draw dockable windows
+    assert(m_imgui_view != nullptr && "ImGui view not setup");
     m_imgui_view->onDrawRobotManagementWindow();
     m_imgui_view->onDrawCameraTargetWindow();
     m_imgui_view->onDrawTrajectoryWindow();
-
-    // Draw main teach pendant window
     m_imgui_view->onDrawMainPanel();
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawScene()
 {
-    // Set camera matrices before rendering
+    // OpenGL
+    static const Eigen::Vector3f s_clear_color(0.1f, 0.1f, 0.1f);
+    glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // Set camera matrices first
     m_shader_manager->setMatrix4f(m_view_uniform,
                                   m_camera_model->camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(
         m_projection_uniform,
         m_camera_model->camera().projectionMatrix().data());
-
-    // OpenGL
-    glClearColor(s_clear_color.x(), s_clear_color.y(), s_clear_color.z(), 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render the ground grid
     if (auto* grid_mesh = m_geometry_manager->getMesh("grid"))
@@ -326,84 +313,77 @@ void MainApplication::onDrawScene()
         m_render->renderGrid(grid_mesh, Eigen::Vector3f(0.5f, 0.5f, 0.5f));
     }
 
-    // Render the robots
-    // Note: Robots are now stored in controller as ControlledRobot
-    // We still need to get them from somewhere for rendering
-    // For now, let's iterate through the robot manager's basic robots
+    // Render all robots
     for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
     {
-        bool const selected = (robot_name == m_imgui_view->selectedRobot());
-        // Get the controlled robot from controller
-        auto const* controlled_robot = getControlledRobot(robot_name);
-        if (controlled_robot)
+        if (auto const* robot = getControlledRobot(robot_name);
+            robot != nullptr && robot->blueprint().enabled())
         {
-            renderRobot(*controlled_robot, selected);
+            bool const is_selected =
+                (robot_name == m_imgui_view->selectedRobot());
+            renderRobot(*robot, is_selected);
         }
     }
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::renderRobot(ControlledRobot const& p_robot,
-                                  bool p_is_selected)
+                                  bool p_is_selected) const
 {
-    // Render nodes of the robot (always visible in new architecture)
-    auto& blueprint = p_robot.blueprint();
-    if (!blueprint.enabled())
-        return;
-    if (blueprint.hasRoot())
-    {
-        blueprint.root().traverse(*m_render);
-    }
+    // Render the robot by traversing its blueprint.
+    p_robot.traverse(*m_render);
 
-    // Only render teach pendant visualization for selected robot
-    if (!p_is_selected)
-        return;
-
-    // Render end effector axes if available
-    if (p_robot.end_effector)
+    if (p_is_selected)
     {
-        Eigen::Matrix4f target_transform_f =
-            p_robot.end_effector->worldTransform().cast<float>();
-        if (auto* axis_mesh = m_geometry_manager->getMesh("axis"))
+        // Render end effector axes if available
+        if (p_robot.end_effector)
         {
-            m_render->renderAxes(axis_mesh, target_transform_f, 0.1f);
+            Eigen::Matrix4f target_transform_f =
+                p_robot.end_effector->worldTransform().cast<float>();
+            if (auto* axis_mesh = m_geometry_manager->getMesh("axis"))
+            {
+                m_render->renderAxes(axis_mesh, target_transform_f, 0.1f);
+            }
         }
-    }
 
-    // Render waypoints
-    renderWaypoints(p_robot);
+        // Render waypoints
+        renderWaypoints(p_robot);
+    }
 }
 
 // ----------------------------------------------------------------------------
-void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
+void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 {
-    if (p_robot.waypoints.empty() || !p_robot.end_effector)
+    if (!p_robot.end_effector)
         return;
 
     auto* waypoint_mesh = m_geometry_manager->getMesh("waypoint");
     if (!waypoint_mesh || !waypoint_mesh->is_loaded)
         return;
 
-    // Get non-const reference to robot for temporary joint position changes
-    auto* robot = getControlledRobot(p_robot.name());
-    if (!robot)
+    // Get waypoint manager
+    auto* wm = getWaypointManager(&p_robot);
+    if (!wm || !wm->hasWaypoints(p_robot.end_effector))
         return;
 
-    // Save current joint positions
-    auto current_positions = robot->states().joint_positions;
+    // Check if we have cached transforms
+    auto cache_key =
+        std::make_pair(const_cast<robotik::Robot*>(
+                           static_cast<robotik::Robot const*>(&p_robot)),
+                       p_robot.end_effector);
+    auto it = m_waypoint_render_cache.find(cache_key);
+    if (it == m_waypoint_render_cache.end())
+        return; // No cache yet
 
-    // Render each waypoint
-    for (size_t i = 0; i < p_robot.waypoints.size(); ++i)
+    auto const& cached_transforms = it->second;
+    auto* tc = getTrajectoryController(const_cast<robotik::Robot*>(
+        static_cast<robotik::Robot const*>(&p_robot)));
+
+    // Render each waypoint using cached transforms
+    for (size_t i = 0; i < cached_transforms.size(); ++i)
     {
-        auto const& waypoint = p_robot.waypoints[i];
-
-        // Temporarily apply waypoint joint positions
-        robot->setJointPositions(waypoint.states.position);
-
-        // Calculate end effector position
-        Eigen::Matrix4f waypoint_transform =
-            robot->end_effector->worldTransform().cast<float>();
-        Eigen::Vector3f waypoint_pos = waypoint_transform.block<3, 1>(0, 3);
+        // Extract position from cached transform
+        Eigen::Vector3f waypoint_pos = cached_transforms[i].block<3, 1>(0, 3);
 
         // Create transform matrix for the waypoint sphere
         Eigen::Matrix4f transform = Eigen::Matrix4f::Identity();
@@ -411,12 +391,11 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
 
         // Choose color: yellow for waypoints, green if it's the target
         Eigen::Vector3f color(1.0f, 1.0f, 0.0f); // Yellow
-        if (static_cast<size_t>(p_robot.target_waypoint_index) == i)
+        if (tc && tc->targetWaypointIndex() == static_cast<int>(i))
         {
             color = Eigen::Vector3f(0.0f, 1.0f, 0.0f); // Green for target
         }
-        else if (p_robot.current_waypoint_index != -1 &&
-                 static_cast<size_t>(p_robot.current_waypoint_index) == i)
+        else if (tc && tc->currentWaypointIndex() == static_cast<int>(i))
         {
             color = Eigen::Vector3f(0.0f, 0.8f, 1.0f); // Cyan for current
         }
@@ -424,39 +403,56 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
         // Render waypoint sphere
         m_render->renderMesh(waypoint_mesh, transform, color);
     }
-
-    // Restore original joint positions
-    robot->setJointPositions(current_positions);
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::onUpdate(float const dt)
 {
-    // Get tracking target from controlled robots
-    Eigen::Vector3f const* tracking_target = nullptr;
-    Eigen::Vector3f target_pos;
-    bool tracking_enabled = false;
-
-    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
+    // Camera tracking - use active robot
+    auto const* robot = m_robot_manager->currentRobot<ControlledRobot>();
+    if (robot && robot->camera_tracking_enabled && robot->camera_target)
     {
-        auto const* controlled_robot = getControlledRobot(robot_name);
-        if (controlled_robot && controlled_robot->camera_tracking_enabled &&
-            controlled_robot->camera_target)
+        Eigen::Vector3f target_pos = robot->camera_target->worldTransform()
+                                         .block<3, 1>(0, 3)
+                                         .cast<float>();
+        if (m_camera_model)
         {
-            target_pos = controlled_robot->camera_target->worldTransform()
-                             .block<3, 1>(0, 3)
-                             .cast<float>();
-            tracking_target = &target_pos;
-            tracking_enabled = true;
-            break; // Use first robot with tracking enabled
+            m_camera_model->setTrackingEnabled(true);
+            m_camera_model->update(dt, &target_pos);
         }
     }
-
-    // Update camera model with tracking information
-    if (m_camera_model)
+    else if (m_camera_model)
     {
-        m_camera_model->setTrackingEnabled(tracking_enabled);
-        m_camera_model->update(dt, tracking_target);
+        m_camera_model->setTrackingEnabled(false);
+        m_camera_model->update(dt, nullptr);
+    }
+
+    // Update trajectory controllers
+    for (auto const& [robot_ptr, controller] : m_trajectory_controllers)
+    {
+        if (controller && controller->isPlaying())
+        {
+            controller->update(static_cast<double>(dt));
+            // Check if still playing after update (might have stopped)
+            if (controller->isPlaying())
+            {
+                auto target = controller->getCurrentTarget();
+                if (!target.empty())
+                {
+                    robot_ptr->setJointPositions(target);
+                }
+            }
+            else
+            {
+                // Trajectory finished, update robot state
+                auto* controlled_robot =
+                    dynamic_cast<ControlledRobot*>(robot_ptr);
+                if (controlled_robot)
+                {
+                    controlled_robot->state = ControlledRobot::State::IDLE;
+                }
+            }
+        }
     }
 
     // Robot application controller update
@@ -578,6 +574,80 @@ void MainApplication::onScroll(double xoffset, double yoffset)
     {
         m_camera_model->handleScroll(xoffset, yoffset);
     }
+}
+
+// ----------------------------------------------------------------------------
+robotik::WaypointManager*
+MainApplication::getWaypointManager(robotik::Robot* p_robot)
+{
+    auto it = m_waypoint_managers.find(p_robot);
+    if (it == m_waypoint_managers.end())
+        return nullptr;
+    return it->second.get();
+}
+
+// ----------------------------------------------------------------------------
+robotik::WaypointManager const*
+MainApplication::getWaypointManager(robotik::Robot const* p_robot) const
+{
+    auto it = m_waypoint_managers.find(const_cast<robotik::Robot*>(p_robot));
+    if (it == m_waypoint_managers.end())
+        return nullptr;
+    return it->second.get();
+}
+
+// ----------------------------------------------------------------------------
+robotik::TrajectoryController*
+MainApplication::getTrajectoryController(robotik::Robot* p_robot)
+{
+    auto it = m_trajectory_controllers.find(p_robot);
+    if (it == m_trajectory_controllers.end())
+        return nullptr;
+    return it->second.get();
+}
+
+// ----------------------------------------------------------------------------
+robotik::TrajectoryController const*
+MainApplication::getTrajectoryController(robotik::Robot const* p_robot) const
+{
+    auto it =
+        m_trajectory_controllers.find(const_cast<robotik::Robot*>(p_robot));
+    if (it == m_trajectory_controllers.end())
+        return nullptr;
+    return it->second.get();
+}
+
+// ----------------------------------------------------------------------------
+void MainApplication::updateWaypointRenderCache(
+    robotik::Robot* p_robot,
+    robotik::Node const* p_end_effector)
+{
+    if (!p_robot || !p_end_effector)
+        return;
+
+    auto const* wm = getWaypointManager(p_robot);
+    if (!wm)
+        return;
+
+    auto const& waypoints = wm->getWaypoints(p_end_effector);
+
+    auto cache_key = std::make_pair(p_robot, p_end_effector);
+    auto& cache = m_waypoint_render_cache[cache_key];
+    cache.clear();
+    cache.reserve(waypoints.size());
+
+    // Save current state
+    auto current_pos = p_robot->states().joint_positions;
+
+    // Compute transforms for each waypoint
+    for (auto const& wp : waypoints)
+    {
+        p_robot->setJointPositions(wp.position);
+        cache.emplace_back(p_end_effector->worldTransform().cast<float>());
+    }
+
+    // Restore
+    p_robot->setJointPositions(current_pos);
 }
 
 } // namespace robotik::application

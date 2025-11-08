@@ -23,6 +23,9 @@
 namespace robotik::application
 {
 
+// Forward declaration
+class MainApplication;
+
 // ****************************************************************************
 //! \brief ImGui-based view for robot control (MVC pattern).
 //!
@@ -45,11 +48,13 @@ public:
     //! \param p_robot_manager Reference to robot manager for robot operations.
     //! \param p_camera_model Reference to camera view model for camera
     //! operations.
+    //! \param p_main_app Reference to main application for manager access.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
     ImGuiView(ApplicationController& p_controller,
               robotik::renderer::RobotManager& p_robot_manager,
               CameraViewModel& p_camera_model,
+              class MainApplication& p_main_app,
               std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
@@ -193,19 +198,19 @@ private:
     // ----------------------------------------------------------------------------
     //! \brief Draw waypoints section.
     //! \param p_robot Controlled robot.
-    //! \param p_teach_pendant Teach pendant instance.
+    //! \param p_main_app Main application for accessing managers.
     // ----------------------------------------------------------------------------
     void drawWaypointsSection(ControlledRobot* p_robot,
-                              robotik::TeachPendant* p_teach_pendant) const;
+                              class MainApplication* p_main_app) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw trajectory playback section.
     //! \param p_robot Controlled robot.
-    //! \param p_teach_pendant Teach pendant instance.
+    //! \param p_main_app Main application for accessing managers.
     // ----------------------------------------------------------------------------
     void
     drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
-                                  robotik::TeachPendant* p_teach_pendant) const;
+                                  class MainApplication* p_main_app) const;
 
     // ----------------------------------------------------------------------------
     //! \brief End effector selection panel for teach pendant.
@@ -318,6 +323,8 @@ private:
     ApplicationController& m_controller;
     //! \brief Reference to camera view model for camera operations
     CameraViewModel& m_camera_model;
+    //! \brief Reference to main application for manager access
+    class MainApplication& m_main_app;
     //! \brief Callback to halt the application
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name

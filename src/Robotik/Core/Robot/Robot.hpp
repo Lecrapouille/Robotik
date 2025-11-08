@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
+#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 #include "Robotik/Core/Robot/State.hpp"
 
 namespace robotik
@@ -142,6 +143,12 @@ public:
     }
 
     // ------------------------------------------------------------------------
+    //! \brief Traverse the robot's blueprint.
+    //! \param visitor The visitor to traverse the blueprint.
+    // ------------------------------------------------------------------------
+    void traverse(ConstNodeVisitor& visitor) const;
+
+    // ------------------------------------------------------------------------
     //! \brief Set all joints to neutral position (0).
     // ------------------------------------------------------------------------
     void setNeutralPosition();
@@ -155,14 +162,29 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Set the home position values (store without applying).
     //! \param p_home_position The home position joint values to store.
+    //! \return true if values are valid, false if they were clamped.
     // ------------------------------------------------------------------------
-    void setHomePosition(const JointValues& p_home_position);
+    bool setHomePosition(const JointValues& p_home_position);
 
     // ------------------------------------------------------------------------
     //! \brief Apply the stored home position to the robot.
     //! If no home position is set, does nothing.
     // ------------------------------------------------------------------------
     void setHomePosition();
+
+    // ------------------------------------------------------------------------
+    //! \brief Check if joint positions are within limits.
+    //! \param p_positions Joint positions to check.
+    //! \return true if all positions are within limits.
+    // ------------------------------------------------------------------------
+    bool areJointPositionsValid(const JointValues& p_positions) const;
+
+    // ------------------------------------------------------------------------
+    //! \brief Clamp joint positions to their limits.
+    //! \param p_positions Joint positions to clamp.
+    //! \return Clamped joint positions.
+    // ------------------------------------------------------------------------
+    JointValues clampJointPositions(const JointValues& p_positions) const;
 
     // ------------------------------------------------------------------------
     //! \brief Apply target joint positions with velocity limits.
