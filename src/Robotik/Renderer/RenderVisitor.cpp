@@ -9,11 +9,6 @@
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
-#include "Robotik/Core/Robot/Blueprint/Frame.hpp"
-#include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
-#include "Robotik/Core/Robot/Blueprint/Joint.hpp"
-#include "Robotik/Core/Robot/Blueprint/Link.hpp"
-#include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 
 #include <GL/glew.h>

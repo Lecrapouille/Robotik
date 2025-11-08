@@ -24,7 +24,7 @@ CameraViewModel::CameraViewModel(size_t p_window_width, size_t p_window_height)
     m_camera->setPosition(Eigen::Vector3f(3.0f, 3.0f, 3.0f));
     m_camera->lookAt(Eigen::Vector3f(0.0f, 0.0f, 0.0f));
 
-    // Create both controllers
+    // Create two camera controllers
     Eigen::Vector3f initial_target(0.0f, 0.0f, 0.5f);
 
     m_orbit_controller = std::make_unique<renderer::OrbitController>(
@@ -38,59 +38,14 @@ CameraViewModel::CameraViewModel(size_t p_window_width, size_t p_window_height)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::switchToOrbitMode()
-{
-    if (!m_orbit_controller)
-        return;
-
-    Eigen::Vector3f target = getCurrentTarget();
-
-    // If already using orbit controller, just update target
-    if (m_current_controller == m_orbit_controller.get())
-    {
-        m_orbit_controller->setTarget(target);
-        return;
-    }
-
-    // Recreate orbit controller with current target
-    m_orbit_controller = std::make_unique<renderer::OrbitController>(
-        *m_camera, target, m_default_distance);
-    m_current_controller = m_orbit_controller.get();
-}
-
-// ----------------------------------------------------------------------------
-void CameraViewModel::switchToDragMode()
-{
-    if (!m_drag_controller)
-        return;
-
-    // Calculate target and distance from current camera position
-    Eigen::Vector3f target = m_camera->target();
-    Eigen::Vector3f position = m_camera->position();
-    Eigen::Vector3f direction = target - position;
-    float distance = direction.norm();
-
-    // If distance is too small, use default values
-    if (distance < 0.1f)
-    {
-        target = getCurrentTarget();
-        distance = m_default_distance;
-    }
-
-    // Always recreate drag controller to capture the current camera direction
-    m_drag_controller =
-        std::make_unique<renderer::DragController>(*m_camera, target, distance);
-    m_current_controller = m_drag_controller.get();
-}
-
-// ----------------------------------------------------------------------------
 void CameraViewModel::setView(ViewType p_view_type)
 {
     Eigen::Vector3f target = getCurrentTarget();
+
+    // For all other views, calculate position and up vector
     Eigen::Vector3f position;
     Eigen::Vector3f up;
 
-    // Calculate position and up vector based on view type
     switch (p_view_type)
     {
         case ViewType::TOP:
@@ -131,13 +86,32 @@ void CameraViewModel::setView(ViewType p_view_type)
                 target + Eigen::Vector3f(-m_default_distance, 0.0f, 0.0f);
             up = Eigen::Vector3f(0.0f, 0.0f, 1.0f);
             break;
+
+        case ViewType::ORBIT:
+            // Recreate orbit controller with current target
+            m_orbit_controller = std::make_unique<renderer::OrbitController>(
+                *m_camera, target, m_default_distance);
+            m_current_controller = m_orbit_controller.get();
+            return;
     }
 
     // Update camera
     m_camera->lookAt(position, target, up);
 
-    // Switch to drag controller to preserve this view
-    switchToDragMode();
+    // Create drag controller to preserve this view
+    Eigen::Vector3f camera_position = m_camera->position();
+    Eigen::Vector3f direction = target - camera_position;
+    float distance = direction.norm();
+
+    // If distance is too small, use default values
+    if (distance < 0.1f)
+    {
+        distance = m_default_distance;
+    }
+
+    m_drag_controller =
+        std::make_unique<renderer::DragController>(*m_camera, target, distance);
+    m_current_controller = m_drag_controller.get();
 }
 
 // ----------------------------------------------------------------------------

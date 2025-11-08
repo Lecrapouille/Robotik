@@ -8,6 +8,7 @@
  */
 
 #include "ApplicationController.hpp"
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 
@@ -104,6 +105,7 @@ bool ApplicationController::initializeRobot(
 // ----------------------------------------------------------------------------
 void ApplicationController::update(double p_dt)
 {
+    ZoneScoped;
     for (auto const& [robot_name, robot_ptr] : m_robot_manager.robots())
     {
         auto* controlled_robot =
