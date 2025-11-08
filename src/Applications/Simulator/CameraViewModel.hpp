@@ -41,7 +41,8 @@ public:
         FRONT,  //!< Front view (looking from Y+)
         BACK,   //!< Back view (looking from Y-)
         RIGHT,  //!< Right view (looking from X+)
-        LEFT    //!< Left view (looking from X-)
+        LEFT,   //!< Left view (looking from X-)
+        ORBIT   //!< Orbit mode (free rotation around target)
     };
 
     // ----------------------------------------------------------------------------
@@ -50,16 +51,6 @@ public:
     //! \param p_window_height Window height for aspect ratio.
     // ----------------------------------------------------------------------------
     CameraViewModel(size_t p_window_width, size_t p_window_height);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Switch to orbit mode (free rotation around target).
-    // ----------------------------------------------------------------------------
-    void switchToOrbitMode();
-
-    // ----------------------------------------------------------------------------
-    //! \brief Switch to drag mode (fixed angle, pan and zoom only).
-    // ----------------------------------------------------------------------------
-    void switchToDragMode();
 
     // ----------------------------------------------------------------------------
     //! \brief Set camera to a predefined view.

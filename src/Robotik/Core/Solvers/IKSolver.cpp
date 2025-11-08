@@ -26,7 +26,7 @@ bool JacobianIKSolver::solve(Robot& p_robot,
     State& state = p_robot.states();
 
     // Get initial joint values
-    auto& q = state.joint_positions;
+    auto const& q = state.joint_positions;
     if (q.empty())
     {
         m_error_message = "IKSolver: Robot has no joints";
