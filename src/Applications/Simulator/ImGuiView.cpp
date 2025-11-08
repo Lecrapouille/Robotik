@@ -1055,7 +1055,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.switchToOrbitMode();
+            m_camera_model.setView(CameraViewModel::ViewType::ORBIT);
             std::cout << "📹 Switched to Orbit Controller" << std::endl;
         }
 
