@@ -8,6 +8,7 @@
 
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 
@@ -100,6 +101,7 @@ void RenderVisitor::renderMesh(const GeometryManager::GPUMesh* p_mesh,
                                const Eigen::Matrix4f& p_transform,
                                const Eigen::Vector3f& p_color) const
 {
+    ZoneScoped;
     if (!p_mesh || !p_mesh->is_loaded)
     {
         return;
@@ -121,6 +123,7 @@ void RenderVisitor::renderMesh(const GeometryManager::GPUMesh* p_mesh,
 void RenderVisitor::renderGrid(const GeometryManager::GPUMesh* p_grid_mesh,
                                const Eigen::Vector3f& p_color) const
 {
+    ZoneScoped;
     if (!p_grid_mesh || !p_grid_mesh->is_loaded)
     {
         return;
@@ -141,6 +144,7 @@ void RenderVisitor::renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
                                const Eigen::Matrix4f& p_transform,
                                float p_scale) const
 {
+    ZoneScoped;
     if (!p_axes_mesh || !p_axes_mesh->is_loaded)
     {
         return;
@@ -212,6 +216,7 @@ void RenderVisitor::renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
 void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
                                    Eigen::Matrix4f const& transform) const
 {
+    ZoneScoped;
     std::string const& mesh_name = geom.name();
     const GeometryManager::GPUMesh* gpu_mesh =
         m_geometry_manager.getMesh(mesh_name);

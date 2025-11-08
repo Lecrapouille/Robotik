@@ -75,6 +75,12 @@ LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
 
 ###############################################################################
+# Set Tracy frame profiler library
+#
+DEFINES += -DTRACER_ENABLED
+INCLUDES += $(THIRD_PARTIES_DIR)/tracy/public
+
+###############################################################################
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile

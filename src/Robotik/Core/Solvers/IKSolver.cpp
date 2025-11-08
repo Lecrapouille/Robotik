@@ -8,6 +8,7 @@
 
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 #include "Robotik/Core/Common/Conversions.hpp"
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 
 namespace robotik
@@ -18,6 +19,8 @@ bool JacobianIKSolver::solve(Robot& p_robot,
                              Node const& p_end_effector,
                              Pose const& p_target_pose)
 {
+    ZoneScoped;
+
     m_error_message.clear();
     m_converged = false;
     m_num_iterations = 0;

@@ -62,6 +62,13 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set Tracy frame profiler library
+#
+DEFINES += -DTRACER_ENABLED
+INCLUDES += $(THIRD_PARTIES_DIR)/tracy/public
+NOT_PKG_LIBS += -lTracyClient
+
+###############################################################################
 # Set operating system libraries.
 #
 PKG_LIBS += glfw3 glew gl eigen3

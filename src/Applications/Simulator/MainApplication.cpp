@@ -9,7 +9,9 @@
 
 #include "MainApplication.hpp"
 
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Core/Robot/Debug.hpp"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
@@ -87,6 +89,7 @@ void MainApplication::setTitle(std::string const& p_title)
 // ----------------------------------------------------------------------------
 bool MainApplication::onSetup()
 {
+    ZoneScoped;
     glEnable(GL_DEPTH_TEST);
 
     // Setup the OpenGL camera and its controller
@@ -128,6 +131,7 @@ void MainApplication::setupCamera()
 // ----------------------------------------------------------------------------
 bool MainApplication::setupMainShader()
 {
+    ZoneScoped;
     m_shader_manager = std::make_unique<renderer::ShaderManager>();
 
     constexpr char const* const main_shader_name = "main";
@@ -157,6 +161,7 @@ bool MainApplication::setupMainShader()
 // ----------------------------------------------------------------------------
 bool MainApplication::setupMeshes()
 {
+    ZoneScoped;
     m_geometry_manager = std::make_unique<renderer::GeometryManager>(m_path);
 
     // Create grid mesh for ground plane
@@ -197,6 +202,7 @@ bool MainApplication::setupMeshes()
 // ----------------------------------------------------------------------------
 void MainApplication::setupRender()
 {
+    ZoneScoped;
     assert(m_geometry_manager != nullptr && "Geometry manager not setup");
     assert(m_shader_manager != nullptr && "Shader manager not setup");
 
@@ -212,6 +218,7 @@ void MainApplication::setupRender()
 // ----------------------------------------------------------------------------
 void MainApplication::setupPhysicsSimulator()
 {
+    ZoneScoped;
     m_physics_simulator = std::make_unique<PhysicsSimulator>(
         1.0 / double(m_config.target_physics_hz), m_config.physics_gravity);
 }
@@ -219,6 +226,7 @@ void MainApplication::setupPhysicsSimulator()
 // ----------------------------------------------------------------------------
 bool MainApplication::setupRobots()
 {
+    ZoneScoped;
     assert(m_geometry_manager != nullptr && "Geometry manager not setup");
 
     // Create the Model-View-Controller's application controller
@@ -269,6 +277,7 @@ bool MainApplication::setupRobots()
 // ----------------------------------------------------------------------------
 bool MainApplication::setupImGuiView()
 {
+    ZoneScoped;
     assert(m_app_controller != nullptr && "Application controller not setup");
     assert(m_camera_model != nullptr && "Camera model not setup");
     assert(m_robot_manager != nullptr && "Robot manager not setup");
@@ -286,6 +295,7 @@ bool MainApplication::setupImGuiView()
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawMenuBar()
 {
+    ZoneScoped;
     if (!m_imgui_view)
         return;
     m_imgui_view->onDrawMenuBar();
@@ -294,6 +304,7 @@ void MainApplication::onDrawMenuBar()
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawMainPanel()
 {
+    ZoneScoped;
     if (!m_imgui_view)
         return;
 
@@ -309,6 +320,7 @@ void MainApplication::onDrawMainPanel()
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawScene()
 {
+    ZoneScoped;
     // Set camera matrices before rendering
     m_shader_manager->setMatrix4f(m_view_uniform,
                                   m_camera_model->camera().viewMatrix().data());
@@ -346,6 +358,7 @@ void MainApplication::onDrawScene()
 void MainApplication::renderRobot(ControlledRobot const& p_robot,
                                   bool p_is_selected)
 {
+    ZoneScoped;
     // Render nodes of the robot (always visible in new architecture)
     auto& blueprint = p_robot.blueprint();
     if (!blueprint.enabled())
@@ -377,6 +390,7 @@ void MainApplication::renderRobot(ControlledRobot const& p_robot,
 // ----------------------------------------------------------------------------
 void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
 {
+    ZoneScoped;
     if (p_robot.waypoints.empty() || !p_robot.end_effector)
         return;
 
@@ -411,7 +425,7 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
 
         // Choose color: yellow for waypoints, green if it's the target
         Eigen::Vector3f color(1.0f, 1.0f, 0.0f); // Yellow
-        if (static_cast<size_t>(p_robot.target_waypoint_index) == i)
+        if (p_robot.target_waypoint_index == i)
         {
             color = Eigen::Vector3f(0.0f, 1.0f, 0.0f); // Green for target
         }
@@ -432,6 +446,7 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot)
 // ----------------------------------------------------------------------------
 void MainApplication::onUpdate(float const dt)
 {
+    ZoneScoped;
     // Get tracking target from controlled robots
     Eigen::Vector3f const* tracking_target = nullptr;
     Eigen::Vector3f target_pos;
@@ -469,6 +484,7 @@ void MainApplication::onUpdate(float const dt)
 // ----------------------------------------------------------------------------
 void MainApplication::onPhysicUpdate(float const /* dt */)
 {
+    ZoneScoped;
     // auto* controlled_robot = m_robot_manager->currentRobot();
     // if (controlled_robot && controlled_robot->robot)
     //{

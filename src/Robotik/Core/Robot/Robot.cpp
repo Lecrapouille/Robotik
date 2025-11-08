@@ -8,6 +8,7 @@
  */
 
 #include "Robotik/Core/Robot/Robot.hpp"
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/Blueprint/Frame.hpp"
 
@@ -43,6 +44,7 @@ void Robot::setJointPositions(State& p_state)
 // ----------------------------------------------------------------------------
 void Robot::setJointPositions(const JointValues& p_joint_positions)
 {
+    ZoneScoped;
     m_blueprint.forEachJoint(
         [this, &p_joint_positions](Joint& joint, size_t index)
         {
@@ -54,6 +56,7 @@ void Robot::setJointPositions(const JointValues& p_joint_positions)
 // ----------------------------------------------------------------------------
 void Robot::setNeutralPosition()
 {
+    ZoneScoped;
     m_blueprint.forEachJoint(
         [this](Joint& joint, size_t index)
         {
@@ -75,6 +78,7 @@ void Robot::setHomePosition(const JointValues& p_home_position)
 // ----------------------------------------------------------------------------
 void Robot::setHomePosition()
 {
+    ZoneScoped;
     if (!m_home_position.empty() &&
         m_home_position.size() == m_blueprint.numJoints())
     {
@@ -86,6 +90,7 @@ void Robot::setHomePosition()
 void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
                                             double dt)
 {
+    ZoneScoped;
     m_blueprint.forEachJoint(
         [&q_target, dt, this](Joint& joint, size_t index)
         {
@@ -118,6 +123,8 @@ void Robot::applyJointTargetsWithSpeedLimit(const JointValues& q_target,
 Jacobian const& Robot::computeJacobian(State& p_state,
                                        Node const& p_end_effector)
 {
+    ZoneScoped;
+
     // Resize the Jacobian matrix to the number of joints
     Jacobian& J = p_state.jacobian;
     J.resize(6, m_blueprint.numJoints());

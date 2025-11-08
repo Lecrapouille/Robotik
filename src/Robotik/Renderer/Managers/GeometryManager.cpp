@@ -8,6 +8,7 @@
  */
 
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
+#include "Robotik/Core/Common/Tracer.hpp"
 #include "Robotik/Renderer/Loaders/StlLoader.hpp"
 
 #include <GL/glew.h>
@@ -242,6 +243,7 @@ bool GeometryManager::createGrid(const std::string& p_name,
 const GeometryManager::GPUMesh*
 GeometryManager::getMesh(const std::string& p_name) const
 {
+    ZoneScoped;
     auto it = m_meshes.find(p_name);
     return (it != m_meshes.end() && it->second.is_loaded) ? &it->second
                                                           : nullptr;

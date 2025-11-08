@@ -74,6 +74,12 @@ USER_CXXFLAGS += -Wno-switch-enum
 INCLUDES += $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
+# Set Tracy frame profiler library
+#
+DEFINES += -DTRACER_ENABLED
+INCLUDES += $(THIRD_PARTIES_DIR)/tracy/public
+
+###############################################################################
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile
