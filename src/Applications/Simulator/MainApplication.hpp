@@ -9,28 +9,25 @@
 
 #pragma once
 
-#include "ApplicationController.hpp"
-#include "CameraViewModel.hpp"
 #include "Configuration.hpp"
 #include "ImGuiView.hpp"
+#include "RobotController.hpp"
 
-#include "Robotik/Core/Robot/WaypointManager.hpp"
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
-#include "Robotik/Core/Solvers/TrajectoryController.hpp"
-
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
-#include "Robotik/Renderer/Managers/RobotManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
 
 #include "Robotik/Core/Common/Path.hpp"
 
-#include <array>
-#include <unordered_map>
+#include <memory>
 
 namespace robotik::application
 {
+
+// Forward declaration
+class ImGuiView;
 
 // ****************************************************************************
 //! \brief Concrete application that inherits from OpenGL Application.
@@ -153,11 +150,6 @@ private: // override OpenGLApplication methods
 private: // setups
 
     // ----------------------------------------------------------------------------
-    //! \brief Setup the camera.
-    // ----------------------------------------------------------------------------
-    void setupCamera();
-
-    // ----------------------------------------------------------------------------
     //! \brief Setup the main shader.
     // ----------------------------------------------------------------------------
     bool setupMainShader();
@@ -219,70 +211,24 @@ private:
     // ----------------------------------------------------------------------------
     ControlledRobot* getControlledRobot(std::string const& p_robot_name) const;
 
-public:
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get waypoint manager for a robot.
-    //! \param p_robot Robot pointer.
-    //! \return Pointer to waypoint manager, nullptr if not found.
-    // ----------------------------------------------------------------------------
-    robotik::WaypointManager* getWaypointManager(robotik::Robot* p_robot);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get waypoint manager for a robot (const version).
-    //! \param p_robot Robot pointer.
-    //! \return Const pointer to waypoint manager, nullptr if not found.
-    // ----------------------------------------------------------------------------
-    robotik::WaypointManager const*
-    getWaypointManager(robotik::Robot const* p_robot) const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get trajectory controller for a robot.
-    //! \param p_robot Robot pointer.
-    //! \return Pointer to trajectory controller, nullptr if not found.
-    // ----------------------------------------------------------------------------
-    robotik::TrajectoryController*
-    getTrajectoryController(robotik::Robot* p_robot);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Get trajectory controller for a robot (const version).
-    //! \param p_robot Robot pointer.
-    //! \return Const pointer to trajectory controller, nullptr if not found.
-    // ----------------------------------------------------------------------------
-    robotik::TrajectoryController const*
-    getTrajectoryController(robotik::Robot const* p_robot) const;
-
-    // ----------------------------------------------------------------------------
-    //! \brief Update waypoint render cache for a robot.
-    //! \param p_robot Robot pointer.
-    //! \param p_end_effector End effector pointer.
-    // ----------------------------------------------------------------------------
-    void updateWaypointRenderCache(robotik::Robot* p_robot,
-                                   robotik::Node const* p_end_effector);
-
 private:
 
     //! \brief Application settings and configuration.
     Configuration const& m_config;
     //! \brief Search paths to load URDF, STL, etc. files.
     Path m_path;
-    //! \brief Model-View-Controller application controller for managing robot
-    //! logic.
-    std::unique_ptr<ApplicationController> m_app_controller;
-    //! \brief Camera view model for managing camera state and interactions.
-    std::unique_ptr<CameraViewModel> m_camera_model;
+    //! \brief Robot controller for managing robots and their interactions.
+    std::unique_ptr<RobotController> m_robot_controller;
+    //! \brief ImGui view for managing robot control and visualization.
+    std::unique_ptr<ImGuiView> m_imgui_view;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.
     std::unique_ptr<renderer::GeometryManager> m_geometry_manager;
-    //! \brief Robot manager for managing robots.
-    std::unique_ptr<renderer::RobotManager> m_robot_manager;
     //! \brief Mesh manager for managing meshes.
     std::unique_ptr<renderer::RenderVisitor> m_render;
     //! \brief Physics simulator for simulating physics.
-    std::unique_ptr<robotik::PhysicsSimulator> m_physics_simulator;
-    //! \brief DearImGui-based view for robot control and visualization.
-    std::unique_ptr<ImGuiView> m_imgui_view;
+    std::unique_ptr<PhysicsSimulator> m_physics_simulator;
     //! \brief Cached OpenGL shader uniforms.
     int m_projection_uniform = -1;
     //! \brief Cached OpenGL shader uniforms.
@@ -291,31 +237,6 @@ private:
     std::string m_title;
     //! \brief FPS of the application.
     size_t m_fps = 0;
-    //! \brief Hash function for robot/node pairs.
-    struct PairHash
-    {
-        template <class T1, class T2>
-        std::size_t operator()(const std::pair<T1, T2>& p) const noexcept
-        {
-            auto h1 = std::hash<T1>{}(p.first);
-            auto h2 = std::hash<T2>{}(p.second);
-            return h1 ^ (h2 << 1);
-        }
-    };
-
-    //! \brief Waypoint managers for each robot.
-    std::unordered_map<robotik::Robot*,
-                       std::unique_ptr<robotik::WaypointManager>>
-        m_waypoint_managers;
-    //! \brief Trajectory controllers for each robot.
-    std::unordered_map<robotik::Robot*,
-                       std::unique_ptr<robotik::TrajectoryController>>
-        m_trajectory_controllers;
-    //! \brief Waypoint render cache (position transforms for rendering).
-    mutable std::unordered_map<std::pair<robotik::Robot*, robotik::Node const*>,
-                               std::vector<Eigen::Matrix4f>,
-                               PairHash>
-        m_waypoint_render_cache;
 };
 
 } // namespace robotik::application

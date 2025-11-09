@@ -352,7 +352,7 @@ public:
     {
         if (m_transforms_dirty)
         {
-            const_cast<Node&>(*this).updateWorldTransforms();
+            updateWorldTransforms();
         }
         return m_world_transform;
     }
@@ -428,7 +428,7 @@ protected:
     //! This method is called automatically by worldTransform() when the
     //! dirty flag is set, implementing lazy evaluation.
     // ------------------------------------------------------------------------
-    void updateWorldTransforms();
+    void updateWorldTransforms() const;
 
 protected:
 
@@ -439,7 +439,7 @@ protected:
     //! should use it.
     Transform m_local_transform;
     //! \brief World transformation of the node.
-    Transform m_world_transform;
+    mutable Transform m_world_transform;
     //! \brief Children of the node.
     std::vector<std::unique_ptr<Node>> m_children;
     //! \brief Parent of the node.

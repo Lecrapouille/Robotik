@@ -1,6 +1,6 @@
 /**
- * @file ApplicationController.hpp
- * @brief Application controller for robot control logic (MVC pattern).
+ * @file RobotController.hpp
+ * @brief Robot controller for robot control logic (MVC pattern).
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
@@ -9,11 +9,15 @@
 
 #pragma once
 
+#include "CameraViewModel.hpp"
+#include "Configuration.hpp"
 #include "ControlledRobot.hpp"
 
+#include "Robotik/Core/Managers/RobotManager.hpp"
+#include "Robotik/Core/Managers/WaypointManager.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
-#include "Robotik/Renderer/Managers/RobotManager.hpp"
+#include "Robotik/Core/Solvers/TrajectoryController.hpp"
 
 #include <memory>
 #include <string>
@@ -22,12 +26,12 @@ namespace robotik::application
 {
 
 // ****************************************************************************
-//! \brief Application controller of the Model-View-Controller pattern.
+//! \brief Robot controller of the Model-View-Controller pattern.
 //!
 //! This class makes the bridge between the model (robot) and the view
 //! (DearImGui) by handling the robot management and teach pendant control.
 // ****************************************************************************
-class ApplicationController
+class RobotController
 {
 public:
 
@@ -35,7 +39,7 @@ public:
     //! \brief Constructor.
     //! \param p_robot_manager Reference to robot manager.
     // ----------------------------------------------------------------------------
-    explicit ApplicationController(renderer::RobotManager& p_robot_manager);
+    explicit RobotController(Configuration const& p_config);
 
     // ----------------------------------------------------------------------------
     //! \brief Initialize robot configurations with teach pendant that has been
@@ -87,32 +91,88 @@ public:
                            std::string const& p_node_name);
 
     // ----------------------------------------------------------------------------
-    //! \brief Get the controlled robot by name.
+    //! \brief Get the current robot.
+    //! \return Pointer to current robot, nullptr if no robot loaded.
+    // ----------------------------------------------------------------------------
+    ControlledRobot* getCurrentRobot() const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the robot by name.
     //! \param p_robot_name Robot name.
     //! \return Pointer to controlled robot, nullptr if not found.
     // ----------------------------------------------------------------------------
-    ControlledRobot* getControlledRobot(std::string const& p_robot_name);
+    ControlledRobot* getRobot(std::string const& p_robot_name) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Get the shared teach pendant.
     //! \return Pointer to teach pendant.
     // ----------------------------------------------------------------------------
-    robotik::TeachPendant* getTeachPendant();
+    robotik::TeachPendant& getTeachPendant()
+    {
+        return *m_teach_pendant;
+    }
 
     // ----------------------------------------------------------------------------
     //! \brief Get the shared IK solver.
     //! \return Pointer to IK solver.
     // ----------------------------------------------------------------------------
-    robotik::IKSolver* getIKSolver();
+    robotik::IKSolver& getIKSolver()
+    {
+        return *m_ik_solver;
+    }
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the reference to camera model.
+    //! \return Reference to camera model.
+    // ----------------------------------------------------------------------------
+    CameraViewModel& getCameraModel()
+    {
+        return *camera_model;
+    }
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the reference to waypoint manager.
+    //! \return Reference to waypoint manager.
+    // ----------------------------------------------------------------------------
+    WaypointManager& getWaypointManager()
+    {
+        return *waypoint_manager;
+    }
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the reference to trajectory controller.
+    //! \return Reference to trajectory controller.
+    // ----------------------------------------------------------------------------
+    TrajectoryController& getTrajectoryController()
+    {
+        return *trajectory_controller;
+    }
+
+    // ----------------------------------------------------------------------------
+    //! \brief Get the reference to robot manager.
+    //! \return Reference to robot manager.
+    // ----------------------------------------------------------------------------
+    RobotManager& getRobotManager()
+    {
+        return *m_robot_manager;
+    }
 
 private:
 
     //! \brief Reference to robot manager (for basic robots).
-    renderer::RobotManager& m_robot_manager;
+    std::unique_ptr<RobotManager> m_robot_manager;
     //! \brief Shared teach pendant for all robots.
     std::unique_ptr<robotik::TeachPendant> m_teach_pendant;
     //! \brief Shared IK solver for all robots.
     std::unique_ptr<robotik::IKSolver> m_ik_solver;
+    //! \brief Reference to camera model.
+    std::unique_ptr<CameraViewModel> camera_model;
+    //! \brief Reference to waypoint manager.
+    std::unique_ptr<WaypointManager> waypoint_manager;
+    //! \brief Reference to trajectory controller.
+    std::unique_ptr<TrajectoryController> trajectory_controller;
+    //! \brief Cache list of robot names.
+    std::vector<std::string> m_robot_list;
 };
 
 } // namespace robotik::application

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Core/Robot/WaypointManager.hpp"
+#include "Robotik/Core/Managers/WaypointManager.hpp"
 #include "Robotik/Core/Solvers/Trajectory.hpp"
 
 #include <memory>

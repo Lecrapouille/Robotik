@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "Robotik/Core/Common/Signal.hpp"
 #include "Robotik/Core/Loaders/RobotLoaderFactory.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
@@ -22,7 +23,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace robotik::renderer
+namespace robotik
 {
 
 // ****************************************************************************
@@ -45,6 +46,18 @@ public:
     //! \brief Destructor.
     // ------------------------------------------------------------------------
     ~RobotManager() = default;
+
+    // ------------------------------------------------------------------------
+    //! \brief Signal emitted when a robot is added.
+    //! \param p_robot Pointer to the added robot.
+    // ------------------------------------------------------------------------
+    Signal<Robot*> onRobotAdded;
+
+    // ------------------------------------------------------------------------
+    //! \brief Signal emitted when a robot is removed.
+    //! \param p_robot_name Name of the removed robot.
+    // ------------------------------------------------------------------------
+    Signal<std::string const&> onRobotRemoved;
 
     // ------------------------------------------------------------------------
     //! \brief Reset the memory occupied by the robot manager.
@@ -242,4 +255,4 @@ private:
     std::string m_error;
 };
 
-} // namespace robotik::renderer
+} // namespace robotik

@@ -7,10 +7,10 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "Robotik/Renderer/Managers/RobotManager.hpp"
+#include "Robotik/Core/Managers/RobotManager.hpp"
 #include "Robotik/Core/Loaders/UrdfLoader.hpp"
 
-namespace robotik::renderer
+namespace robotik
 {
 
 // ----------------------------------------------------------------------------
@@ -44,6 +44,8 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
     if (success)
     {
         m_current_robot = it->second.get();
+        // Emit signal that robot was added
+        onRobotAdded(m_current_robot);
     }
     return success;
 }
@@ -57,6 +59,9 @@ bool RobotManager::removeRobot(const std::string& p_robot_name)
         m_error = "Robot '" + p_robot_name + "' not found";
         return false;
     }
+
+    // Emit signal before removing
+    onRobotRemoved(p_robot_name);
 
     m_robots.erase(it);
     return true;
@@ -179,4 +184,4 @@ bool RobotManager::updateRobotLinkTransforms(const std::string& p_robot_name)
 }
 #endif
 
-} // namespace robotik::renderer
+} // namespace robotik
