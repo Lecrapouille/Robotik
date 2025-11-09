@@ -95,11 +95,11 @@
       "-Wno-float-equal",
       "-c",
       "-o",
-      "/home/qq/MyGitHub/Robotik/build/debug/objs-Linux/Robotik-Simulator/src/Applications/Simulator/MainApplication.o",
-      "/home/qq/MyGitHub/Robotik/src/Applications/Simulator/MainApplication.cpp"
+      "/home/qq/MyGitHub/Robotik/build/debug/objs-Linux/Robotik-Simulator/src/Applications/Simulator/ImGuiView.o",
+      "/home/qq/MyGitHub/Robotik/src/Applications/Simulator/ImGuiView.cpp"
     ],
     "directory": "/home/qq/MyGitHub/Robotik/src/Applications/Simulator",
-    "file": "/home/qq/MyGitHub/Robotik/src/Applications/Simulator/MainApplication.cpp",
-    "output": "/home/qq/MyGitHub/Robotik/build/debug/objs-Linux/Robotik-Simulator/src/Applications/Simulator/MainApplication.o"
+    "file": "/home/qq/MyGitHub/Robotik/src/Applications/Simulator/ImGuiView.cpp",
+    "output": "/home/qq/MyGitHub/Robotik/build/debug/objs-Linux/Robotik-Simulator/src/Applications/Simulator/ImGuiView.o"
   }
 ]

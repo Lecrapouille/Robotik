@@ -289,9 +289,9 @@ void MainApplication::onDrawScene()
     // Set camera matrices first
     m_shader_manager->setMatrix4f(
         m_view_uniform,
-        m_robot_controller->getCameraModel().camera().viewMatrix().data());
+        m_robot_controller->getCameraController().camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(m_projection_uniform,
-                                  m_robot_controller->getCameraModel()
+                                  m_robot_controller->getCameraController()
                                       .camera()
                                       .projectionMatrix()
                                       .data());
@@ -403,12 +403,12 @@ void MainApplication::onUpdate(float const dt)
                                          .block<3, 1>(0, 3)
                                          .cast<float>();
 
-        m_robot_controller->getCameraModel().setTrackingEnabled(true);
-        m_robot_controller->getCameraModel().update(dt, &target_pos);
+        m_robot_controller->getCameraController().setTrackingEnabled(true);
+        m_robot_controller->getCameraController().update(dt, &target_pos);
     }
 
-    m_robot_controller->getCameraModel().setTrackingEnabled(false);
-    m_robot_controller->getCameraModel().update(dt, nullptr);
+    m_robot_controller->getCameraController().setTrackingEnabled(false);
+    m_robot_controller->getCameraController().update(dt, nullptr);
 
     // Update trajectory controller (single controller for current robot)
     auto* trajectory_controller =
@@ -462,13 +462,13 @@ void MainApplication::onFPSUpdated(size_t const p_fps)
 // ----------------------------------------------------------------------------
 void MainApplication::onWindowResize(int p_width, int p_height)
 {
-    m_robot_controller->getCameraModel().onWindowResize(p_width, p_height);
+    m_robot_controller->getCameraController().onWindowResize(p_width, p_height);
 
     m_shader_manager->setMatrix4f(
         m_view_uniform,
-        m_robot_controller->getCameraModel().camera().viewMatrix().data());
+        m_robot_controller->getCameraController().camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(m_projection_uniform,
-                                  m_robot_controller->getCameraModel()
+                                  m_robot_controller->getCameraController()
                                       .camera()
                                       .projectionMatrix()
                                       .data());
@@ -533,14 +533,14 @@ void MainApplication::onMouseButton(int p_button, int p_action, int p_mods)
     if (!isViewportHovered())
         return;
 
-    m_robot_controller->getCameraModel().handleMouseButton(
+    m_robot_controller->getCameraController().handleMouseButton(
         p_button, p_action, p_mods);
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::onCursorPos(double p_xpos, double p_ypos)
 {
-    m_robot_controller->getCameraModel().handleMouseMove(p_xpos, p_ypos);
+    m_robot_controller->getCameraController().handleMouseMove(p_xpos, p_ypos);
 }
 
 // ----------------------------------------------------------------------------
@@ -549,7 +549,7 @@ void MainApplication::onScroll(double xoffset, double yoffset)
     if (!isViewportHovered())
         return;
 
-    m_robot_controller->getCameraModel().handleScroll(xoffset, yoffset);
+    m_robot_controller->getCameraController().handleScroll(xoffset, yoffset);
 }
 
 } // namespace robotik::application

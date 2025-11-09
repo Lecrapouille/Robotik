@@ -1,5 +1,5 @@
 /**
- * @file CameraViewModel.cpp
+ * @file CameraController.cpp
  * @brief Camera view model implementation.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -7,13 +7,14 @@
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "CameraViewModel.hpp"
+#include "CameraController.hpp"
 
 namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-CameraViewModel::CameraViewModel(size_t p_window_width, size_t p_window_height)
+CameraController::CameraController(size_t p_window_width,
+                                   size_t p_window_height)
 {
     float aspect_ratio = static_cast<float>(p_window_width) /
                          static_cast<float>(p_window_height);
@@ -38,7 +39,7 @@ CameraViewModel::CameraViewModel(size_t p_window_width, size_t p_window_height)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::setView(ViewType p_view_type)
+void CameraController::setView(ViewType p_view_type)
 {
     Eigen::Vector3f target = getCurrentTarget();
 
@@ -115,7 +116,7 @@ void CameraViewModel::setView(ViewType p_view_type)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::setTarget(Eigen::Vector3f const& p_target)
+void CameraController::setTarget(Eigen::Vector3f const& p_target)
 {
     if (m_current_controller)
     {
@@ -124,14 +125,14 @@ void CameraViewModel::setTarget(Eigen::Vector3f const& p_target)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::setTrackingEnabled(bool p_enabled)
+void CameraController::setTrackingEnabled(bool p_enabled)
 {
     m_tracking_enabled = p_enabled;
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::update(float p_dt,
-                             Eigen::Vector3f const* p_tracking_target)
+void CameraController::update(float p_dt,
+                              Eigen::Vector3f const* p_tracking_target)
 {
     // Update camera controller
     if (m_current_controller)
@@ -148,7 +149,7 @@ void CameraViewModel::update(float p_dt,
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::handleMouseButton(int p_button, int p_action, int p_mods)
+void CameraController::handleMouseButton(int p_button, int p_action, int p_mods)
 {
     // Block user interaction if tracking is enabled
     if (!isUserInteractionAllowed())
@@ -161,7 +162,7 @@ void CameraViewModel::handleMouseButton(int p_button, int p_action, int p_mods)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::handleMouseMove(double p_xpos, double p_ypos)
+void CameraController::handleMouseMove(double p_xpos, double p_ypos)
 {
     // Block user interaction if tracking is enabled
     if (!isUserInteractionAllowed())
@@ -174,7 +175,7 @@ void CameraViewModel::handleMouseMove(double p_xpos, double p_ypos)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::handleScroll(double p_xoffset, double p_yoffset)
+void CameraController::handleScroll(double p_xoffset, double p_yoffset)
 {
     // Block user interaction if tracking is enabled
     if (!isUserInteractionAllowed())
@@ -187,7 +188,7 @@ void CameraViewModel::handleScroll(double p_xoffset, double p_yoffset)
 }
 
 // ----------------------------------------------------------------------------
-void CameraViewModel::onWindowResize(int p_width, int p_height)
+void CameraController::onWindowResize(int p_width, int p_height)
 {
     auto aspect_ratio =
         static_cast<float>(p_width) / static_cast<float>(p_height);
@@ -195,14 +196,14 @@ void CameraViewModel::onWindowResize(int p_width, int p_height)
 }
 
 // ----------------------------------------------------------------------------
-bool CameraViewModel::isUserInteractionAllowed() const
+bool CameraController::isUserInteractionAllowed() const
 {
     // Don't allow user interaction when tracking is enabled
     return !m_tracking_enabled;
 }
 
 // ----------------------------------------------------------------------------
-bool CameraViewModel::isUserInteracting() const
+bool CameraController::isUserInteracting() const
 {
     // Check if user is currently interacting with orbit controller
     if (m_orbit_controller && m_current_controller == m_orbit_controller.get())
@@ -215,7 +216,7 @@ bool CameraViewModel::isUserInteracting() const
 }
 
 // ----------------------------------------------------------------------------
-Eigen::Vector3f CameraViewModel::getCurrentTarget() const
+Eigen::Vector3f CameraController::getCurrentTarget() const
 {
     return m_camera->target();
 }
