@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "CameraViewModel.hpp"
+#include "CameraController.hpp"
 #include "Configuration.hpp"
 #include "ControlledRobot.hpp"
 
@@ -125,9 +125,9 @@ public:
     //! \brief Get the reference to camera model.
     //! \return Reference to camera model.
     // ----------------------------------------------------------------------------
-    CameraViewModel& getCameraModel()
+    CameraController& getCameraController()
     {
-        return *camera_model;
+        return *m_camera_controller;
     }
 
     // ----------------------------------------------------------------------------
@@ -166,7 +166,7 @@ private:
     //! \brief Shared IK solver for all robots.
     std::unique_ptr<robotik::IKSolver> m_ik_solver;
     //! \brief Reference to camera model.
-    std::unique_ptr<CameraViewModel> camera_model;
+    std::unique_ptr<CameraController> m_camera_controller;
     //! \brief Reference to waypoint manager.
     std::unique_ptr<WaypointManager> waypoint_manager;
     //! \brief Reference to trajectory controller.

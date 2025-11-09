@@ -1014,24 +1014,24 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::ORBIT);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::ORBIT);
             std::cout << "📹 Switched to Orbit Controller" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Top", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::TOP);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::TOP);
             std::cout << "📹 Set to Top view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Bottom", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::BOTTOM);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::BOTTOM);
             std::cout << "📹 Set to Bottom view" << std::endl;
         }
 
@@ -1039,24 +1039,24 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Front", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::FRONT);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::FRONT);
             std::cout << "📹 Set to Front view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Back", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::BACK);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::BACK);
             std::cout << "📹 Set to Back view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Right", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::RIGHT);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::RIGHT);
             std::cout << "📹 Set to Right view" << std::endl;
         }
 
@@ -1064,8 +1064,8 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Left", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraModel().setView(
-                CameraViewModel::ViewType::LEFT);
+            m_robot_controller.getCameraController().setView(
+                CameraController::ViewType::LEFT);
             std::cout << "📹 Set to Left view" << std::endl;
         }
 

@@ -1,5 +1,5 @@
 /**
- * @file CameraViewModel.hpp
+ * @file CameraController.hpp
  * @brief Camera view model for managing camera state and interactions.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -27,7 +27,7 @@ namespace robotik::application
 //! switching between different camera modes and views. It also handles camera
 //! tracking with proper user interaction management to avoid glitches.
 // ****************************************************************************
-class CameraViewModel
+class CameraController
 {
 public:
 
@@ -50,7 +50,7 @@ public:
     //! \param p_window_width Window width for aspect ratio.
     //! \param p_window_height Window height for aspect ratio.
     // ----------------------------------------------------------------------------
-    CameraViewModel(size_t p_window_width, size_t p_window_height);
+    CameraController(size_t p_window_width, size_t p_window_height);
 
     // ----------------------------------------------------------------------------
     //! \brief Set camera to a predefined view.

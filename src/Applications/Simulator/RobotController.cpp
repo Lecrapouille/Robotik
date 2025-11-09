@@ -22,8 +22,8 @@ RobotController::RobotController(Configuration const& p_config)
     m_robot_manager = std::make_unique<RobotManager>();
     m_teach_pendant = std::make_unique<robotik::TeachPendant>();
     m_ik_solver = std::make_unique<robotik::JacobianIKSolver>();
-    camera_model = std::make_unique<CameraViewModel>(p_config.window_width,
-                                                     p_config.window_height);
+    m_camera_controller = std::make_unique<CameraController>(
+        p_config.window_width, p_config.window_height);
     waypoint_manager = std::make_unique<WaypointManager>();
     trajectory_controller = std::make_unique<TrajectoryController>();
 }
