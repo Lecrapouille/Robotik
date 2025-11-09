@@ -9,6 +9,7 @@
 
 #include "MainApplication.hpp"
 
+#include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Debug.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -44,9 +45,6 @@ bool MainApplication::onSetup()
 {
     glEnable(GL_DEPTH_TEST);
 
-    // Setup the OpenGL camera and its controller
-    setupCamera();
-
     // Setup OpenGL shader programs
     if (!setupMainShader())
         return false;
@@ -70,14 +68,6 @@ bool MainApplication::onSetup()
         return false;
 
     return true;
-}
-
-// ----------------------------------------------------------------------------
-void MainApplication::setupCamera()
-{
-    // Create the camera view model
-    m_camera_model = std::make_unique<CameraViewModel>(m_config.window_width,
-                                                       m_config.window_height);
 }
 
 // ----------------------------------------------------------------------------
@@ -206,29 +196,39 @@ bool MainApplication::setupRobots()
 {
     assert(m_geometry_manager != nullptr && "Geometry manager not setup");
 
-    // Create the Model-View-Controller's application controller
-    m_robot_manager = std::make_unique<renderer::RobotManager>();
-    m_app_controller =
-        std::make_unique<ApplicationController>(*m_robot_manager);
+    // Create the robot controller
+    m_robot_controller = std::make_unique<RobotController>(m_config);
+
+    // Connect waypoint manager to robot manager signals
+    m_robot_controller->getRobotManager().onRobotAdded.connect(
+        [this](Robot* robot)
+        { m_robot_controller->getWaypointManager().onRobotAdded(robot); });
+    m_robot_controller->getRobotManager().onRobotRemoved.connect(
+        [this](std::string const& name)
+        { m_robot_controller->getWaypointManager().onRobotRemoved(name); });
 
     // Create and initialize all robots
     for (auto const& urdf_file : m_config.urdf_files)
     {
         // Load robot from URDF file
-        auto* robot = m_robot_manager->loadRobot<ControlledRobot>(urdf_file);
+        auto* robot =
+            m_robot_controller->getRobotManager().loadRobot<ControlledRobot>(
+                urdf_file);
         if (robot == nullptr)
         {
-            m_error =
-                "Failed to load robot from URDF: " + m_robot_manager->error();
+            m_error = "Failed to load robot from URDF: " +
+                      m_robot_controller->getRobotManager().error();
             return false;
         }
         std::cout << "Loaded robot from: " << urdf_file << std::endl;
         std::cout << robotik::debug::printRobot(*robot, true) << std::endl;
 
-        if (!m_app_controller->initializeRobot(*robot,
-                                               m_config.control_link,
-                                               m_config.home_position,
-                                               m_config.camera_target))
+        // Set the robot configuration (home position, end effector selection,
+        // camera target selection)
+        if (!m_robot_controller->initializeRobot(*robot,
+                                                 m_config.control_link,
+                                                 m_config.home_position,
+                                                 m_config.camera_target))
         {
             m_error = "Failed to initialize robot configuration";
             return false;
@@ -245,12 +245,6 @@ bool MainApplication::setupRobots()
                 robotik::Geometry const& geom = geom_ref.get();
                 m_geometry_manager->createMeshFromGeometry(geom);
             }
-
-            // Create waypoint manager and trajectory controller for this robot
-            m_waypoint_managers[controlled_robot] =
-                std::make_unique<robotik::WaypointManager>();
-            m_trajectory_controllers[controlled_robot] =
-                std::make_unique<robotik::TrajectoryController>();
         }
     }
 
@@ -260,17 +254,10 @@ bool MainApplication::setupRobots()
 // ----------------------------------------------------------------------------
 bool MainApplication::setupImGuiView()
 {
-    assert(m_app_controller != nullptr && "Application controller not setup");
-    assert(m_camera_model != nullptr && "Camera model not setup");
-    assert(m_robot_manager != nullptr && "Robot manager not setup");
+    assert(m_robot_controller != nullptr && "Application controller not setup");
 
-    // Create the ImGui view (view of the Model-View-Controller pattern)
-    // Note: m_app_controller was already created in setupRobots()
-    m_imgui_view = std::make_unique<ImGuiView>(*m_app_controller,
-                                               *m_robot_manager,
-                                               *m_camera_model,
-                                               *this,
-                                               [this]() { halt(); });
+    m_imgui_view =
+        std::make_unique<ImGuiView>(*m_robot_controller, [this]() { halt(); });
 
     return true;
 }
@@ -278,7 +265,6 @@ bool MainApplication::setupImGuiView()
 // ----------------------------------------------------------------------------
 void MainApplication::onDrawMenuBar()
 {
-    assert(m_imgui_view != nullptr && "ImGui view not setup");
     m_imgui_view->onDrawMenuBar();
 }
 
@@ -301,11 +287,14 @@ void MainApplication::onDrawScene()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Set camera matrices first
-    m_shader_manager->setMatrix4f(m_view_uniform,
-                                  m_camera_model->camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(
-        m_projection_uniform,
-        m_camera_model->camera().projectionMatrix().data());
+        m_view_uniform,
+        m_robot_controller->getCameraModel().camera().viewMatrix().data());
+    m_shader_manager->setMatrix4f(m_projection_uniform,
+                                  m_robot_controller->getCameraModel()
+                                      .camera()
+                                      .projectionMatrix()
+                                      .data());
 
     // Render the ground grid
     if (auto* grid_mesh = m_geometry_manager->getMesh("grid"))
@@ -314,7 +303,8 @@ void MainApplication::onDrawScene()
     }
 
     // Render all robots
-    for (auto const& [robot_name, robot_ptr] : m_robot_manager->robots())
+    for (auto const& [robot_name, robot_ptr] :
+         m_robot_controller->getRobotManager().robots())
     {
         if (auto const* robot = getControlledRobot(robot_name);
             robot != nullptr && robot->blueprint().enabled())
@@ -354,30 +344,27 @@ void MainApplication::renderRobot(ControlledRobot const& p_robot,
 // ----------------------------------------------------------------------------
 void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 {
+    // Waypoints are linked to an end effector. The user shall select the end
+    // effector first.
     if (!p_robot.end_effector)
         return;
 
+    // Get the waypoint OpenGL mesh
     auto* waypoint_mesh = m_geometry_manager->getMesh("waypoint");
     if (!waypoint_mesh || !waypoint_mesh->is_loaded)
         return;
 
-    // Get waypoint manager
-    auto* wm = getWaypointManager(&p_robot);
-    if (!wm || !wm->hasWaypoints(p_robot.end_effector))
+    // Get the waypoint manager responsible for robot's end effector
+    auto& wm = m_robot_controller->getWaypointManager();
+    if (!wm.hasWaypoints(*p_robot.end_effector))
         return;
 
-    // Check if we have cached transforms
-    auto cache_key =
-        std::make_pair(const_cast<robotik::Robot*>(
-                           static_cast<robotik::Robot const*>(&p_robot)),
-                       p_robot.end_effector);
-    auto it = m_waypoint_render_cache.find(cache_key);
-    if (it == m_waypoint_render_cache.end())
+    // Get cached transforms from waypoint manager
+    auto const& cached_transforms = wm.getRenderCache(*p_robot.end_effector);
+    if (cached_transforms.empty())
         return; // No cache yet
 
-    auto const& cached_transforms = it->second;
-    auto* tc = getTrajectoryController(const_cast<robotik::Robot*>(
-        static_cast<robotik::Robot const*>(&p_robot)));
+    auto& tc = m_robot_controller->getTrajectoryController();
 
     // Render each waypoint using cached transforms
     for (size_t i = 0; i < cached_transforms.size(); ++i)
@@ -391,11 +378,11 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 
         // Choose color: yellow for waypoints, green if it's the target
         Eigen::Vector3f color(1.0f, 1.0f, 0.0f); // Yellow
-        if (tc && tc->targetWaypointIndex() == static_cast<int>(i))
+        if (tc.targetWaypointIndex() == static_cast<int>(i))
         {
             color = Eigen::Vector3f(0.0f, 1.0f, 0.0f); // Green for target
         }
-        else if (tc && tc->currentWaypointIndex() == static_cast<int>(i))
+        else if (tc.currentWaypointIndex() == static_cast<int>(i))
         {
             color = Eigen::Vector3f(0.0f, 0.8f, 1.0f); // Cyan for current
         }
@@ -409,56 +396,49 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 void MainApplication::onUpdate(float const dt)
 {
     // Camera tracking - use active robot
-    auto const* robot = m_robot_manager->currentRobot<ControlledRobot>();
+    auto* robot = m_robot_controller->getCurrentRobot();
     if (robot && robot->camera_tracking_enabled && robot->camera_target)
     {
         Eigen::Vector3f target_pos = robot->camera_target->worldTransform()
                                          .block<3, 1>(0, 3)
                                          .cast<float>();
-        if (m_camera_model)
-        {
-            m_camera_model->setTrackingEnabled(true);
-            m_camera_model->update(dt, &target_pos);
-        }
-    }
-    else if (m_camera_model)
-    {
-        m_camera_model->setTrackingEnabled(false);
-        m_camera_model->update(dt, nullptr);
+
+        m_robot_controller->getCameraModel().setTrackingEnabled(true);
+        m_robot_controller->getCameraModel().update(dt, &target_pos);
     }
 
-    // Update trajectory controllers
-    for (auto const& [robot_ptr, controller] : m_trajectory_controllers)
+    m_robot_controller->getCameraModel().setTrackingEnabled(false);
+    m_robot_controller->getCameraModel().update(dt, nullptr);
+
+    // Update trajectory controller (single controller for current robot)
+    auto* trajectory_controller =
+        &m_robot_controller->getTrajectoryController();
+    if (trajectory_controller->isPlaying())
     {
-        if (controller && controller->isPlaying())
+        trajectory_controller->update(static_cast<double>(dt));
+        // Check if still playing after update (might have stopped)
+        if (trajectory_controller->isPlaying())
         {
-            controller->update(static_cast<double>(dt));
-            // Check if still playing after update (might have stopped)
-            if (controller->isPlaying())
+            auto target = trajectory_controller->getCurrentTarget();
+            if (!target.empty() && robot)
             {
-                auto target = controller->getCurrentTarget();
-                if (!target.empty())
-                {
-                    robot_ptr->setJointPositions(target);
-                }
-            }
-            else
-            {
-                // Trajectory finished, update robot state
-                auto* controlled_robot =
-                    dynamic_cast<ControlledRobot*>(robot_ptr);
-                if (controlled_robot)
-                {
-                    controlled_robot->state = ControlledRobot::State::IDLE;
-                }
+                robot->setJointPositions(target);
             }
         }
     }
-
-    // Robot application controller update
-    if (m_app_controller)
+    else
     {
-        m_app_controller->update(static_cast<double>(dt));
+        auto& robots = m_robot_controller->getRobotManager().robots();
+        for (auto& [name, robot_ptr] : robots)
+        {
+            if (auto* controlled_robot =
+                    dynamic_cast<ControlledRobot*>(robot_ptr.get());
+                controlled_robot != nullptr &&
+                controlled_robot->state == ControlledRobot::State::PLAYING)
+            {
+                controlled_robot->state = ControlledRobot::State::IDLE;
+            }
+        }
     }
 }
 
@@ -482,16 +462,16 @@ void MainApplication::onFPSUpdated(size_t const p_fps)
 // ----------------------------------------------------------------------------
 void MainApplication::onWindowResize(int p_width, int p_height)
 {
-    if (m_camera_model)
-    {
-        m_camera_model->onWindowResize(p_width, p_height);
-    }
+    m_robot_controller->getCameraModel().onWindowResize(p_width, p_height);
 
-    m_shader_manager->setMatrix4f(m_view_uniform,
-                                  m_camera_model->camera().viewMatrix().data());
     m_shader_manager->setMatrix4f(
-        m_projection_uniform,
-        m_camera_model->camera().projectionMatrix().data());
+        m_view_uniform,
+        m_robot_controller->getCameraModel().camera().viewMatrix().data());
+    m_shader_manager->setMatrix4f(m_projection_uniform,
+                                  m_robot_controller->getCameraModel()
+                                      .camera()
+                                      .projectionMatrix()
+                                      .data());
 }
 
 // ----------------------------------------------------------------------------
@@ -523,13 +503,14 @@ void MainApplication::onKeyInput(int key,
 ControlledRobot*
 MainApplication::getControlledRobot(std::string const& p_robot_name) const
 {
-    return m_robot_manager->getRobot<ControlledRobot>(p_robot_name);
+    return m_robot_controller->getRobotManager().getRobot<ControlledRobot>(
+        p_robot_name);
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::switchNeutralPosition() const
 {
-    auto* robot = m_robot_manager->currentRobot();
+    auto* robot = m_robot_controller->getCurrentRobot();
     if (robot == nullptr)
         return;
     robot->setNeutralPosition();
@@ -541,6 +522,7 @@ void MainApplication::switchVisibility() const
     auto* controlled_robot = getControlledRobot(m_imgui_view->selectedRobot());
     if (controlled_robot == nullptr)
         return;
+
     controlled_robot->blueprint().enable(
         !controlled_robot->blueprint().enabled());
 }
@@ -550,19 +532,15 @@ void MainApplication::onMouseButton(int p_button, int p_action, int p_mods)
 {
     if (!isViewportHovered())
         return;
-    if (m_camera_model)
-    {
-        m_camera_model->handleMouseButton(p_button, p_action, p_mods);
-    }
+
+    m_robot_controller->getCameraModel().handleMouseButton(
+        p_button, p_action, p_mods);
 }
 
 // ----------------------------------------------------------------------------
 void MainApplication::onCursorPos(double p_xpos, double p_ypos)
 {
-    if (m_camera_model)
-    {
-        m_camera_model->handleMouseMove(p_xpos, p_ypos);
-    }
+    m_robot_controller->getCameraModel().handleMouseMove(p_xpos, p_ypos);
 }
 
 // ----------------------------------------------------------------------------
@@ -570,84 +548,8 @@ void MainApplication::onScroll(double xoffset, double yoffset)
 {
     if (!isViewportHovered())
         return;
-    if (m_camera_model)
-    {
-        m_camera_model->handleScroll(xoffset, yoffset);
-    }
-}
 
-// ----------------------------------------------------------------------------
-robotik::WaypointManager*
-MainApplication::getWaypointManager(robotik::Robot* p_robot)
-{
-    auto it = m_waypoint_managers.find(p_robot);
-    if (it == m_waypoint_managers.end())
-        return nullptr;
-    return it->second.get();
-}
-
-// ----------------------------------------------------------------------------
-robotik::WaypointManager const*
-MainApplication::getWaypointManager(robotik::Robot const* p_robot) const
-{
-    auto it = m_waypoint_managers.find(const_cast<robotik::Robot*>(p_robot));
-    if (it == m_waypoint_managers.end())
-        return nullptr;
-    return it->second.get();
-}
-
-// ----------------------------------------------------------------------------
-robotik::TrajectoryController*
-MainApplication::getTrajectoryController(robotik::Robot* p_robot)
-{
-    auto it = m_trajectory_controllers.find(p_robot);
-    if (it == m_trajectory_controllers.end())
-        return nullptr;
-    return it->second.get();
-}
-
-// ----------------------------------------------------------------------------
-robotik::TrajectoryController const*
-MainApplication::getTrajectoryController(robotik::Robot const* p_robot) const
-{
-    auto it =
-        m_trajectory_controllers.find(const_cast<robotik::Robot*>(p_robot));
-    if (it == m_trajectory_controllers.end())
-        return nullptr;
-    return it->second.get();
-}
-
-// ----------------------------------------------------------------------------
-void MainApplication::updateWaypointRenderCache(
-    robotik::Robot* p_robot,
-    robotik::Node const* p_end_effector)
-{
-    if (!p_robot || !p_end_effector)
-        return;
-
-    auto const* wm = getWaypointManager(p_robot);
-    if (!wm)
-        return;
-
-    auto const& waypoints = wm->getWaypoints(p_end_effector);
-
-    auto cache_key = std::make_pair(p_robot, p_end_effector);
-    auto& cache = m_waypoint_render_cache[cache_key];
-    cache.clear();
-    cache.reserve(waypoints.size());
-
-    // Save current state
-    auto current_pos = p_robot->states().joint_positions;
-
-    // Compute transforms for each waypoint
-    for (auto const& wp : waypoints)
-    {
-        p_robot->setJointPositions(wp.position);
-        cache.emplace_back(p_end_effector->worldTransform().cast<float>());
-    }
-
-    // Restore
-    p_robot->setJointPositions(current_pos);
+    m_robot_controller->getCameraModel().handleScroll(xoffset, yoffset);
 }
 
 } // namespace robotik::application

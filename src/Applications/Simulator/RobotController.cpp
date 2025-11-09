@@ -1,13 +1,13 @@
 /**
- * @file ApplicationController.cpp
- * @brief Application controller for robot control logic implementation.
+ * @file RobotController.cpp
+ * @brief Robot controller for robot control logic implementation.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  * @see https://github.com/Lecrapouille/Robotik
  */
 
-#include "ApplicationController.hpp"
+#include "RobotController.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
 
@@ -17,16 +17,19 @@ namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-ApplicationController::ApplicationController(
-    renderer::RobotManager& p_robot_manager)
-    : m_robot_manager(p_robot_manager),
-      m_teach_pendant(std::make_unique<robotik::TeachPendant>()),
-      m_ik_solver(std::make_unique<robotik::JacobianIKSolver>())
+RobotController::RobotController(Configuration const& p_config)
 {
+    m_robot_manager = std::make_unique<RobotManager>();
+    m_teach_pendant = std::make_unique<robotik::TeachPendant>();
+    m_ik_solver = std::make_unique<robotik::JacobianIKSolver>();
+    camera_model = std::make_unique<CameraViewModel>(p_config.window_width,
+                                                     p_config.window_height);
+    waypoint_manager = std::make_unique<WaypointManager>();
+    trajectory_controller = std::make_unique<TrajectoryController>();
 }
 
 // ----------------------------------------------------------------------------
-bool ApplicationController::initializeRobot(
+bool RobotController::initializeRobot(
     ControlledRobot& p_controlled_robot,
     std::string const& p_control_link,
     std::vector<double> const& p_joint_positions,
@@ -106,7 +109,7 @@ bool ApplicationController::initializeRobot(
 }
 
 // ----------------------------------------------------------------------------
-void ApplicationController::update(double p_dt)
+void RobotController::update(double p_dt)
 {
     // Trajectory control is now handled by MainApplication via
     // TrajectoryController This method can be used for other controller logic
@@ -115,10 +118,10 @@ void ApplicationController::update(double p_dt)
 }
 
 // ----------------------------------------------------------------------------
-bool ApplicationController::setEndEffector(std::string const& p_robot_name,
-                                           std::string const& p_link_name)
+bool RobotController::setEndEffector(std::string const& p_robot_name,
+                                     std::string const& p_link_name)
 {
-    auto* controlled_robot = getControlledRobot(p_robot_name);
+    auto* controlled_robot = getRobot(p_robot_name);
     if (controlled_robot == nullptr)
         return false;
 
@@ -132,10 +135,10 @@ bool ApplicationController::setEndEffector(std::string const& p_robot_name,
 }
 
 // ----------------------------------------------------------------------------
-bool ApplicationController::setCameraTarget(std::string const& p_robot_name,
-                                            std::string const& p_node_name)
+bool RobotController::setCameraTarget(std::string const& p_robot_name,
+                                      std::string const& p_node_name)
 {
-    auto* controlled_robot = getControlledRobot(p_robot_name);
+    auto* controlled_robot = getRobot(p_robot_name);
     if (controlled_robot == nullptr)
         return false;
 
@@ -149,10 +152,10 @@ bool ApplicationController::setCameraTarget(std::string const& p_robot_name,
 }
 
 // ----------------------------------------------------------------------------
-bool ApplicationController::setCartesianFrame(std::string const& p_robot_name,
-                                              std::string const& p_node_name)
+bool RobotController::setCartesianFrame(std::string const& p_robot_name,
+                                        std::string const& p_node_name)
 {
-    auto* controlled_robot = getControlledRobot(p_robot_name);
+    auto* controlled_robot = getRobot(p_robot_name);
     if (controlled_robot == nullptr)
         return false;
 
@@ -172,22 +175,16 @@ bool ApplicationController::setCartesianFrame(std::string const& p_robot_name,
 }
 
 // ----------------------------------------------------------------------------
+ControlledRobot* RobotController::getCurrentRobot() const
+{
+    return m_robot_manager->currentRobot<ControlledRobot>();
+}
+
+// ----------------------------------------------------------------------------
 ControlledRobot*
-ApplicationController::getControlledRobot(std::string const& p_robot_name)
+RobotController::getRobot(std::string const& p_robot_name) const
 {
-    return m_robot_manager.getRobot<ControlledRobot>(p_robot_name);
-}
-
-// ----------------------------------------------------------------------------
-robotik::TeachPendant* ApplicationController::getTeachPendant()
-{
-    return m_teach_pendant.get();
-}
-
-// ----------------------------------------------------------------------------
-robotik::IKSolver* ApplicationController::getIKSolver()
-{
-    return m_ik_solver.get();
+    return m_robot_manager->getRobot<ControlledRobot>(p_robot_name);
 }
 
 } // namespace robotik::application

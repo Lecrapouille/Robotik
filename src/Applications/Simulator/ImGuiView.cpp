@@ -8,7 +8,6 @@
  */
 
 #include "ImGuiView.hpp"
-#include "MainApplication.hpp"
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
@@ -25,18 +24,12 @@ namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-ImGuiView::ImGuiView(ApplicationController& p_controller,
-                     robotik::renderer::RobotManager& p_robot_manager,
-                     CameraViewModel& p_camera_model,
-                     MainApplication& p_main_app,
+ImGuiView::ImGuiView(RobotController& p_robot_controller,
                      std::function<void()> const& p_halt_callback)
-    : m_robot_manager(p_robot_manager),
-      m_controller(p_controller),
-      m_camera_model(p_camera_model),
-      m_main_app(p_main_app),
-      m_halt_callback(p_halt_callback)
+    : m_robot_controller(p_robot_controller), m_halt_callback(p_halt_callback)
 {
-    if (auto const* robot = m_robot_manager.currentRobot(); robot != nullptr)
+    if (auto const* robot = p_robot_controller.getCurrentRobot();
+        robot != nullptr)
     {
         m_selected_robot = robot->name();
     }
@@ -139,15 +132,15 @@ void ImGuiView::onDrawTrajectoryWindow()
 
     if (!m_selected_robot.empty())
     {
-        auto* robot = m_controller.getControlledRobot(m_selected_robot);
+        auto* robot = m_robot_controller.getRobot(m_selected_robot);
         if (robot != nullptr)
         {
             // Waypoints Section
-            drawWaypointsSection(robot, &m_main_app);
+            drawWaypointsSection(*robot);
             ImGui::Spacing();
 
             // Trajectory Playback Section
-            drawTrajectoryPlaybackSection(robot, &m_main_app);
+            drawTrajectoryPlaybackSection(*robot);
         }
     }
     else
@@ -216,7 +209,7 @@ void ImGuiView::drawRobotListContextMenu(std::string const& p_robot_name)
         removeRobot(p_robot_name);
     }
 
-    if (auto* controlled = m_controller.getControlledRobot(p_robot_name))
+    if (auto* controlled = m_robot_controller.getRobot(p_robot_name))
     {
         if (ImGui::MenuItem("Toggle Visibility"))
         {
@@ -234,7 +227,9 @@ void ImGuiView::loadRobotPanel()
     if (ImGuiFileDialog::Instance()->IsOk())
     {
         std::string urdf = ImGuiFileDialog::Instance()->GetFilePathName();
-        auto* robot = m_robot_manager.loadRobot<ControlledRobot>(urdf);
+        auto* robot =
+            m_robot_controller.getRobotManager().loadRobot<ControlledRobot>(
+                urdf);
         if (robot != nullptr)
         {
             std::cout << "✅ Loaded robot from: " << urdf << std::endl;
@@ -242,14 +237,15 @@ void ImGuiView::loadRobotPanel()
             // Extract blueprint and initialize controlled robot
             std::string robot_name = robot->name();
             robotik::Blueprint blueprint = std::move(robot->blueprint());
-            m_controller.initializeRobot(*robot, "", {}, "");
+            m_robot_controller.initializeRobot(*robot);
 
             setSelectedRobot(robot_name);
             refreshRobotList();
         }
         else
         {
-            std::cerr << "❌ Failed to load robot: " << m_robot_manager.error()
+            std::cerr << "❌ Failed to load robot: "
+                      << m_robot_controller.getRobotManager().error()
                       << std::endl;
         }
     }
@@ -290,7 +286,7 @@ void ImGuiView::exportRobotPanel()
 
         // Get the current robot
         auto const* controlled_robot =
-            m_controller.getControlledRobot(m_selected_robot);
+            m_robot_controller.getRobot(m_selected_robot);
         if (controlled_robot == nullptr)
         {
             std::cerr << "❌ No robot selected for export" << std::endl;
@@ -325,7 +321,7 @@ void ImGuiView::exportRobotPanel()
 // ----------------------------------------------------------------------------
 void ImGuiView::removeRobot(std::string const& p_name)
 {
-    if (!m_robot_manager.removeRobot(p_name))
+    if (!m_robot_controller.getRobotManager().removeRobot(p_name))
         return;
 
     if (m_selected_robot == p_name)
@@ -340,7 +336,7 @@ void ImGuiView::removeRobot(std::string const& p_name)
 void ImGuiView::endEffectorSelectionPanel()
 {
     auto const* controlled_robot =
-        m_controller.getControlledRobot(m_selected_robot);
+        m_robot_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr)
         return;
 
@@ -396,7 +392,7 @@ void ImGuiView::renderEndEffectorNode(std::string const& p_node_name,
     bool is_selected = (p_current_end_effector == p_node_name);
     if (ImGui::Selectable(p_node_name.c_str(), is_selected))
     {
-        if (m_controller.setEndEffector(m_selected_robot, p_node_name))
+        if (m_robot_controller.setEndEffector(m_selected_robot, p_node_name))
         {
             std::cout << "🎯 End effector set to: " << p_node_name << std::endl;
         }
@@ -440,20 +436,15 @@ void ImGuiView::drawAllNodesCombo(
 // ----------------------------------------------------------------------------
 void ImGuiView::teachPendantPanel()
 {
-    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* robot = m_robot_controller.getRobot(m_selected_robot);
     if (robot == nullptr)
         return;
 
-    auto* teach_pendant = m_controller.getTeachPendant();
-    if (teach_pendant == nullptr)
-        return;
-
-    auto* ik_solver = m_controller.getIKSolver();
-    if (ik_solver == nullptr)
-        return;
+    auto& teach_pendant = m_robot_controller.getTeachPendant();
+    auto& ik_solver = m_robot_controller.getIKSolver();
 
     // Configure the teach pendant for this robot
-    teach_pendant->setIKSolver(ik_solver);
+    teach_pendant.setIKSolver(&ik_solver);
 
     // Draw control mode tabs (notebook)
     auto selected_mode = drawControlModeTabs(robot->control_mode);
@@ -464,14 +455,14 @@ void ImGuiView::teachPendantPanel()
     // Joint Control Section (show in JOINT mode)
     if (selected_mode == ControlledRobot::ControlMode::JOINT)
     {
-        drawJointControlSection(robot, teach_pendant);
+        drawJointControlSection(*robot, teach_pendant);
         ImGui::Spacing();
     }
 
     // Cartesian Control Section (show in CARTESIAN mode)
     if (selected_mode == ControlledRobot::ControlMode::CARTESIAN)
     {
-        drawCartesianControlSection(robot, teach_pendant);
+        drawCartesianControlSection(*robot, teach_pendant);
         ImGui::Spacing();
     }
 }
@@ -512,30 +503,28 @@ ControlledRobot::ControlMode ImGuiView::drawControlModeTabs(
 
 // ----------------------------------------------------------------------------
 void ImGuiView::drawJointControlSection(
-    ControlledRobot* p_robot,
-    robotik::TeachPendant* p_teach_pendant) const
+    ControlledRobot& p_robot,
+    robotik::TeachPendant& p_teach_pendant) const
 {
-    ImGui::Text("Joint Control - %zu joints:",
-                p_robot->blueprint().numJoints());
+    ImGui::Text("Joint Control - %zu joints:", p_robot.blueprint().numJoints());
 
     // Add buttons for Neutral and Home positions
     if (ImGui::Button("Neutral", ImVec2(100, 0)))
     {
-        p_robot->setNeutralPosition();
+        p_robot.setNeutralPosition();
         std::cout << "🏠 Set neutral position" << std::endl;
     }
     ImGui::SameLine();
     if (ImGui::Button("Home", ImVec2(100, 0)))
     {
-        p_robot->setHomePosition();
+        p_robot.setHomePosition();
         std::cout << "🏠 Applied home position" << std::endl;
     }
 
     ImGui::BeginChild("JointList", ImVec2(0, 300), true);
 
-    p_robot->blueprint().forEachJoint(
-        [this, p_teach_pendant, p_robot](robotik::Joint const& joint,
-                                         size_t index)
+    p_robot.blueprint().forEachJoint(
+        [&p_teach_pendant, &p_robot](robotik::Joint const& joint, size_t index)
         {
             ImGui::PushID(joint.name().c_str());
 
@@ -549,8 +538,8 @@ void ImGuiView::drawJointControlSection(
                                    "%.3f"))
             {
                 double delta = static_cast<double>(value) - joint.position();
-                p_teach_pendant->moveJoint(
-                    *p_robot, index, delta, p_robot->speed_factor);
+                p_teach_pendant.moveJoint(
+                    p_robot, index, delta, p_robot.speed_factor);
             }
 
             ImGui::PopID();
@@ -561,8 +550,8 @@ void ImGuiView::drawJointControlSection(
 
 // ----------------------------------------------------------------------------
 void ImGuiView::drawCartesianControlSection(
-    ControlledRobot* p_robot,
-    robotik::TeachPendant* p_teach_pendant)
+    ControlledRobot& p_robot,
+    robotik::TeachPendant& p_teach_pendant)
 {
     ImGui::Text("Cartesian Control");
 
@@ -585,23 +574,19 @@ void ImGuiView::drawCartesianControlSection(
     ImGui::Columns(1);
 
     // Display error message in red if there is one
-    if (!m_cartesian_error.empty())
+    if (!m_error.empty())
     {
         ImGui::Spacing();
-        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f),
-                           "❌ Error: %s",
-                           m_cartesian_error.c_str());
+        ImGui::TextColored(
+            ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "❌ Error: %s", m_error.c_str());
     }
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawFrameSelection(ControlledRobot* p_robot) const
+void ImGuiView::drawFrameSelection(ControlledRobot& p_robot) const
 {
-    if (p_robot == nullptr)
-        return;
-
-    std::string current_frame = (p_robot->cartesian_frame != nullptr)
-                                    ? p_robot->cartesian_frame->name()
+    std::string current_frame = (p_robot.cartesian_frame != nullptr)
+                                    ? p_robot.cartesian_frame->name()
                                     : "";
 
     if (ImGui::BeginCombo(
@@ -611,7 +596,7 @@ void ImGuiView::drawFrameSelection(ControlledRobot* p_robot) const
         bool is_world_selected = current_frame.empty();
         if (ImGui::Selectable("World", is_world_selected))
         {
-            if (m_controller.setCartesianFrame(m_selected_robot, ""))
+            if (m_robot_controller.setCartesianFrame(m_selected_robot, ""))
             {
                 std::cout << "🎯 Cartesian frame set to: World" << std::endl;
             }
@@ -628,7 +613,8 @@ void ImGuiView::drawFrameSelection(ControlledRobot* p_robot) const
             bool is_selected = (current_frame == node_name);
             if (ImGui::Selectable(node_name.c_str(), is_selected))
             {
-                if (m_controller.setCartesianFrame(m_selected_robot, node_name))
+                if (m_robot_controller.setCartesianFrame(m_selected_robot,
+                                                         node_name))
                 {
                     std::cout << "🎯 Cartesian frame set to: " << node_name
                               << std::endl;
@@ -645,7 +631,7 @@ void ImGuiView::drawFrameSelection(ControlledRobot* p_robot) const
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
+void ImGuiView::drawTranslationControls(robotik::TeachPendant& p_teach_pendant)
 {
     ImGui::Text("Translation:");
 
@@ -661,47 +647,45 @@ void ImGuiView::drawTranslationControls(robotik::TeachPendant* p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (m)", &step_size, 0.001f, 0.01f, "%.3f");
 
-    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* robot = m_robot_controller.getRobot(m_selected_robot);
     if (!robot || !robot->end_effector)
         return;
 
     if (ImGui::Button("+##trans", ImVec2(50, 50)))
     {
-        m_cartesian_error.clear();
+        m_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = double(step_size);
-        if (!p_teach_pendant->moveCartesian(*robot,
-                                            robot->end_effector,
-                                            dir,
-                                            robot->speed_factor,
-                                            robot->cartesian_frame))
+        if (!p_teach_pendant.moveCartesian(*robot,
+                                           robot->end_effector,
+                                           dir,
+                                           robot->speed_factor,
+                                           robot->cartesian_frame))
         {
-            m_cartesian_error = p_teach_pendant->error();
-            std::cerr << "❌ Failed to move robot: " << m_cartesian_error
-                      << std::endl;
+            m_error = p_teach_pendant.error();
+            std::cerr << "❌ Failed to move robot: " << m_error << std::endl;
         }
     }
     ImGui::SameLine();
     if (ImGui::Button("-##trans", ImVec2(50, 50)))
     {
-        m_cartesian_error.clear();
+        m_error.clear();
         Eigen::Vector3d dir = Eigen::Vector3d::Zero();
         dir[trans_axis] = -double(step_size);
-        if (!p_teach_pendant->moveCartesian(*robot,
-                                            robot->end_effector,
-                                            dir,
-                                            robot->speed_factor,
-                                            robot->cartesian_frame))
+        if (!p_teach_pendant.moveCartesian(*robot,
+                                           robot->end_effector,
+                                           dir,
+                                           robot->speed_factor,
+                                           robot->cartesian_frame))
         {
-            m_cartesian_error = p_teach_pendant->error();
-            std::cerr << "❌ Failed to move robot: " << m_cartesian_error
-                      << std::endl;
+            m_error = p_teach_pendant.error();
+            std::cerr << "❌ Failed to move robot: " << m_error << std::endl;
         }
     }
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
+void ImGuiView::drawRotationControls(robotik::TeachPendant& p_teach_pendant)
 {
     ImGui::Text("Rotation:");
 
@@ -717,59 +701,52 @@ void ImGuiView::drawRotationControls(robotik::TeachPendant* p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (rad)", &angle_step, 0.01f, 0.1f, "%.3f");
 
-    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* robot = m_robot_controller.getRobot(m_selected_robot);
     if (!robot || !robot->end_effector)
         return;
 
     if (ImGui::Button("+##rot", ImVec2(50, 50)))
     {
-        m_cartesian_error.clear();
+        m_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        if (!p_teach_pendant->rotateCartesian(*robot,
-                                              robot->end_effector,
-                                              axis,
-                                              double(angle_step),
-                                              robot->speed_factor,
-                                              robot->cartesian_frame))
+        if (!p_teach_pendant.rotateCartesian(*robot,
+                                             robot->end_effector,
+                                             axis,
+                                             double(angle_step),
+                                             robot->speed_factor,
+                                             robot->cartesian_frame))
         {
-            m_cartesian_error = p_teach_pendant->error();
-            std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
-                      << std::endl;
+            m_error = p_teach_pendant.error();
+            std::cerr << "❌ Failed to rotate robot: " << m_error << std::endl;
         }
     }
     ImGui::SameLine();
     if (ImGui::Button("-##rot", ImVec2(50, 50)))
     {
-        m_cartesian_error.clear();
+        m_error.clear();
         Eigen::Vector3d axis = Eigen::Vector3d::Zero();
         axis[rot_axis] = 1.0;
-        if (!p_teach_pendant->rotateCartesian(*robot,
-                                              robot->end_effector,
-                                              axis,
-                                              -double(angle_step),
-                                              robot->speed_factor,
-                                              robot->cartesian_frame))
+        if (!p_teach_pendant.rotateCartesian(*robot,
+                                             robot->end_effector,
+                                             axis,
+                                             -double(angle_step),
+                                             robot->speed_factor,
+                                             robot->cartesian_frame))
         {
-            m_cartesian_error = p_teach_pendant->error();
-            std::cerr << "❌ Failed to rotate robot: " << m_cartesian_error
-                      << std::endl;
+            m_error = p_teach_pendant.error();
+            std::cerr << "❌ Failed to rotate robot: " << m_error << std::endl;
         }
     }
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
-                                     MainApplication* p_main_app) const
+void ImGuiView::drawWaypointsSection(ControlledRobot& p_robot)
 {
     ImGui::Text("Waypoints");
     ImGui::Separator();
 
-    if (!p_robot || !p_main_app || !p_robot->end_effector)
-        return;
-
-    auto* wm = p_main_app->getWaypointManager(p_robot);
-    if (!wm)
+    if (!p_robot.end_effector)
         return;
 
     static std::string waypoint_label;
@@ -777,6 +754,7 @@ void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
     std::vector<size_t> indices_to_delete;
 
     // Waypoint label and duration
+    auto& wm = m_robot_controller.getWaypointManager();
     ImGui::SetNextItemWidth(150);
     ImGui::InputText("Label", &waypoint_label);
     ImGui::SameLine();
@@ -785,17 +763,17 @@ void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
     ImGui::SameLine();
     if (ImGui::Button("Add"))
     {
-        size_t idx = wm->addWaypoint(*p_robot,
-                                     p_robot->end_effector,
-                                     waypoint_label,
-                                     static_cast<double>(waypoint_duration));
-        p_main_app->updateWaypointRenderCache(p_robot, p_robot->end_effector);
+        size_t idx = wm.addWaypoint(p_robot,
+                                    *p_robot.end_effector,
+                                    waypoint_label,
+                                    static_cast<double>(waypoint_duration));
+        wm.updateRenderCache(*p_robot.end_effector);
         std::cout << "📍 Recorded waypoint " << idx << ": " << waypoint_label
                   << std::endl;
     }
 
     ImGui::Separator();
-    auto const& waypoints = wm->getWaypoints(p_robot->end_effector);
+    auto const& waypoints = wm.getWaypoints(*p_robot.end_effector);
     ImGui::Text("Saved Waypoints (%zu):", waypoints.size());
     ImGui::BeginChild("WaypointList", ImVec2(0, 200), true);
 
@@ -807,12 +785,12 @@ void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
         // Put buttons first
         if (ImGui::Button("Go##waypoint", ImVec2(50, 0)))
         {
-            auto* tc = p_main_app->getTrajectoryController(p_robot);
-            if (tc && tc->goToWaypoint(p_robot->states().joint_positions,
-                                       waypoints[i].position,
-                                       waypoints[i].duration))
+            auto& tc = m_robot_controller.getTrajectoryController();
+            if (tc.goToWaypoint(p_robot.states().joint_positions,
+                                waypoints[i].position,
+                                waypoints[i].duration))
             {
-                p_robot->state = ControlledRobot::State::PLAYING;
+                p_robot.state = ControlledRobot::State::PLAYING;
                 std::cout << "🎯 Going to waypoint " << i << std::endl;
             }
             else
@@ -860,9 +838,8 @@ void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
         {
             if (idx < waypoints.size())
             {
-                wm->deleteWaypoint(p_robot->end_effector, idx);
-                p_main_app->updateWaypointRenderCache(p_robot,
-                                                      p_robot->end_effector);
+                wm.deleteWaypoint(*p_robot.end_effector, idx);
+                wm.updateRenderCache(*p_robot.end_effector);
                 std::cout << "🗑️ Deleted waypoint " << idx << std::endl;
             }
         }
@@ -874,52 +851,49 @@ void ImGuiView::drawWaypointsSection(ControlledRobot* p_robot,
     // Waypoint actions
     if (ImGui::Button("Clear All"))
     {
-        wm->clearWaypoints(p_robot->end_effector);
-        p_main_app->updateWaypointRenderCache(p_robot, p_robot->end_effector);
+        wm.clearWaypoints(*p_robot.end_effector);
+        wm.updateRenderCache(*p_robot.end_effector);
         std::cout << "🗑️ Cleared all waypoints" << std::endl;
     }
 }
 
-// ----------------------------------------------------------------------------
-void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
-                                              MainApplication* p_main_app) const
+// ---------------------------------------- ------------------------------------
+void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot& p_robot)
 {
     ImGui::Text("Trajectory Playback");
     ImGui::Separator();
 
-    if (!p_robot || !p_main_app || !p_robot->end_effector)
+    if (!p_robot.end_effector)
         return;
 
-    auto* wm = p_main_app->getWaypointManager(p_robot);
-    auto* tc = p_main_app->getTrajectoryController(p_robot);
-    if (!wm || !tc)
-        return;
+    auto& wm = m_robot_controller.getWaypointManager();
+    auto& tc = m_robot_controller.getTrajectoryController();
 
     // Speed Factor
     ImGui::SetNextItemWidth(100);
-    auto speed = static_cast<float>(p_robot->speed_factor);
+    auto speed = static_cast<float>(p_robot.speed_factor);
     if (ImGui::SliderFloat("Speed", &speed, 0.0f, 1.0f, "%.2f"))
     {
-        p_robot->speed_factor = static_cast<double>(speed);
+        p_robot.speed_factor = static_cast<double>(speed);
     }
 
     // Get waypoints
-    auto const& waypoints = wm->getWaypoints(p_robot->end_effector);
+    auto const& waypoints = wm.getWaypoints(*p_robot.end_effector);
 
     // Play/Stop button
-    bool is_playing = (p_robot->state == ControlledRobot::State::PLAYING);
+    bool is_playing = (p_robot.state == ControlledRobot::State::PLAYING);
     if (!is_playing)
     {
         if (ImGui::Button("▶ Play Trajectory", ImVec2(-1, 40)))
         {
-            if (waypoints.size() > 0)
+            if (!waypoints.empty())
             {
                 // Use loop flag from UI (to be added if needed)
                 bool loop = false; // or get from a checkbox
-                if (tc->playWaypoints(
-                        p_robot->states().joint_positions, waypoints, loop))
+                if (tc.playWaypoints(
+                        p_robot.states().joint_positions, waypoints, loop))
                 {
-                    p_robot->state = ControlledRobot::State::PLAYING;
+                    p_robot.state = ControlledRobot::State::PLAYING;
                     std::cout << "▶️ Playing trajectory" << std::endl;
                 }
             }
@@ -933,8 +907,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
     {
         if (ImGui::Button("⏹ Stop", ImVec2(-1, 40)))
         {
-            tc->stop();
-            p_robot->state = ControlledRobot::State::IDLE;
+            tc.stop();
+            p_robot.state = ControlledRobot::State::IDLE;
             std::cout << "⏹️ Stopped trajectory" << std::endl;
         }
     }
@@ -945,8 +919,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
     // Display waypoint information when playing
     if (is_playing && !waypoints.empty())
     {
-        int current_wp_idx = tc->currentWaypointIndex();
-        int target_wp_idx = tc->targetWaypointIndex();
+        int current_wp_idx = tc.currentWaypointIndex();
+        int target_wp_idx = tc.targetWaypointIndex();
 
         // Show current waypoint if valid
         if (current_wp_idx >= 0 &&
@@ -969,7 +943,7 @@ void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
 // ----------------------------------------------------------------------------
 void ImGuiView::cameraTargetPanel()
 {
-    auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* controlled_robot = m_robot_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr)
         return;
 
@@ -981,7 +955,7 @@ void ImGuiView::cameraTargetPanel()
     ImGui::Text("Camera Target Selection");
     drawCameraTargetCombo(current_camera_target);
     ImGui::Spacing();
-    drawCameraTrackingCheckbox(controlled_robot);
+    drawCameraTrackingCheckbox(*controlled_robot);
 }
 
 // ----------------------------------------------------------------------------
@@ -999,7 +973,8 @@ void ImGuiView::drawCameraTargetCombo(
             bool is_selected = (p_current_camera_target == node_name);
             if (ImGui::Selectable(node_name.c_str(), is_selected))
             {
-                if (m_controller.setCameraTarget(m_selected_robot, node_name))
+                if (m_robot_controller.setCameraTarget(m_selected_robot,
+                                                       node_name))
                 {
                     // The target will be updated in Application::onUpdate()
                     // via camera tracking
@@ -1018,13 +993,13 @@ void ImGuiView::drawCameraTargetCombo(
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::drawCameraTrackingCheckbox(ControlledRobot* p_robot) const
+void ImGuiView::drawCameraTrackingCheckbox(ControlledRobot& p_robot) const
 {
     if (ImGui::Checkbox("Enable Camera Tracking",
-                        &p_robot->camera_tracking_enabled))
+                        &p_robot.camera_tracking_enabled))
     {
         std::cout << "📹 Camera tracking: "
-                  << (p_robot->camera_tracking_enabled ? "enabled" : "disabled")
+                  << (p_robot.camera_tracking_enabled ? "enabled" : "disabled")
                   << std::endl;
     }
 }
@@ -1039,21 +1014,24 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::ORBIT);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::ORBIT);
             std::cout << "📹 Switched to Orbit Controller" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Top", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::TOP);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::TOP);
             std::cout << "📹 Set to Top view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Bottom", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::BOTTOM);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::BOTTOM);
             std::cout << "📹 Set to Bottom view" << std::endl;
         }
 
@@ -1061,21 +1039,24 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Front", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::FRONT);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::FRONT);
             std::cout << "📹 Set to Front view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Back", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::BACK);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::BACK);
             std::cout << "📹 Set to Back view" << std::endl;
         }
 
         ImGui::TableNextColumn();
         if (ImGui::Button("Right", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::RIGHT);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::RIGHT);
             std::cout << "📹 Set to Right view" << std::endl;
         }
 
@@ -1083,7 +1064,8 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Left", ImVec2(-FLT_MIN, 0)))
         {
-            m_camera_model.setView(CameraViewModel::ViewType::LEFT);
+            m_robot_controller.getCameraModel().setView(
+                CameraViewModel::ViewType::LEFT);
             std::cout << "📹 Set to Left view" << std::endl;
         }
 
@@ -1114,9 +1096,11 @@ std::vector<std::string> ImGuiView::getEndEffectorNames() const
 // ----------------------------------------------------------------------------
 void ImGuiView::refreshRobotList()
 {
+    auto const& robots = m_robot_controller.getRobotManager().robots();
+
     m_robot_list.clear();
-    m_robot_list.reserve(m_robot_manager.robots().size());
-    for (const auto& [name, _] : m_robot_manager.robots())
+    m_robot_list.reserve(robots.size());
+    for (const auto& [name, _] : robots)
     {
         m_robot_list.emplace_back(name);
     }
@@ -1133,7 +1117,7 @@ void ImGuiView::refreshCurrentRobotCaches()
         return;
     }
 
-    auto* controlled_robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* controlled_robot = m_robot_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr || !controlled_robot->blueprint().hasRoot())
     {
         return;
@@ -1211,7 +1195,7 @@ void ImGuiView::sceneGraphPanel()
         return;
     }
 
-    auto* robot = m_controller.getControlledRobot(m_selected_robot);
+    auto* robot = m_robot_controller.getRobot(m_selected_robot);
     if (robot == nullptr)
     {
         return;

@@ -9,10 +9,7 @@
 
 #pragma once
 
-#include "ApplicationController.hpp"
-#include "CameraViewModel.hpp"
-
-#include "Robotik/Renderer/Managers/RobotManager.hpp"
+#include "RobotController.hpp"
 
 #include <imgui.h>
 
@@ -23,7 +20,7 @@
 namespace robotik::application
 {
 
-// Forward declaration
+// Forward declarations
 class MainApplication;
 
 // ****************************************************************************
@@ -43,18 +40,10 @@ public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
-    //! \param p_controller The application controller of the
-    //! Model-View-Controller pattern.
-    //! \param p_robot_manager Reference to robot manager for robot operations.
-    //! \param p_camera_model Reference to camera view model for camera
-    //! operations.
-    //! \param p_main_app Reference to main application for manager access.
+    //! \param p_robot_controller Reference to robot controller.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
-    ImGuiView(ApplicationController& p_controller,
-              robotik::renderer::RobotManager& p_robot_manager,
-              CameraViewModel& p_camera_model,
-              class MainApplication& p_main_app,
+    ImGuiView(RobotController& p_robot_controller,
               std::function<void()> const& p_halt_callback);
 
     // ----------------------------------------------------------------------------
@@ -136,7 +125,7 @@ private:
     //! \brief Draw camera tracking checkbox.
     //! \param p_robot Controlled robot.
     // ----------------------------------------------------------------------------
-    void drawCameraTrackingCheckbox(ControlledRobot* p_robot) const;
+    void drawCameraTrackingCheckbox(ControlledRobot& p_robot) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw camera controller selection panel.
@@ -166,51 +155,46 @@ private:
     //! \param p_robot Controlled robot.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawJointControlSection(ControlledRobot* p_robot,
-                                 robotik::TeachPendant* p_teach_pendant) const;
+    void drawJointControlSection(ControlledRobot& p_robot,
+                                 robotik::TeachPendant& p_teach_pendant) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw cartesian control section with horizontal layout.
     //! \param p_robot Controlled robot.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawCartesianControlSection(ControlledRobot* p_robot,
-                                     robotik::TeachPendant* p_teach_pendant);
+    void drawCartesianControlSection(ControlledRobot& p_robot,
+                                     robotik::TeachPendant& p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw frame selection combo.
     //! \param p_robot Controlled robot.
     // ----------------------------------------------------------------------------
-    void drawFrameSelection(ControlledRobot* p_robot) const;
+    void drawFrameSelection(ControlledRobot& p_robot) const;
 
     // ----------------------------------------------------------------------------
     //! \brief Draw translation controls.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawTranslationControls(robotik::TeachPendant* p_teach_pendant);
+    void drawTranslationControls(robotik::TeachPendant& p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw rotation controls.
     //! \param p_teach_pendant Teach pendant instance.
     // ----------------------------------------------------------------------------
-    void drawRotationControls(robotik::TeachPendant* p_teach_pendant);
+    void drawRotationControls(robotik::TeachPendant& p_teach_pendant);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw waypoints section.
     //! \param p_robot Controlled robot.
-    //! \param p_main_app Main application for accessing managers.
     // ----------------------------------------------------------------------------
-    void drawWaypointsSection(ControlledRobot* p_robot,
-                              class MainApplication* p_main_app) const;
+    void drawWaypointsSection(ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Draw trajectory playback section.
     //! \param p_robot Controlled robot.
-    //! \param p_main_app Main application for accessing managers.
     // ----------------------------------------------------------------------------
-    void
-    drawTrajectoryPlaybackSection(ControlledRobot* p_robot,
-                                  class MainApplication* p_main_app) const;
+    void drawTrajectoryPlaybackSection(ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief End effector selection panel for teach pendant.
@@ -317,15 +301,9 @@ private:
 
 private:
 
-    //! \brief Reference to robot manager
-    robotik::renderer::RobotManager& m_robot_manager;
-    //! \brief Reference to Model-View-Controller application controller
-    ApplicationController& m_controller;
-    //! \brief Reference to camera view model for camera operations
-    CameraViewModel& m_camera_model;
-    //! \brief Reference to main application for manager access
-    class MainApplication& m_main_app;
-    //! \brief Callback to halt the application
+    //! \brief Reference to robot controller.
+    RobotController& m_robot_controller;
+    //! \brief Callback to halt the application.
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name
     std::string m_selected_robot;
@@ -337,8 +315,8 @@ private:
     std::vector<std::string> m_end_effector_names;
     //! \brief Flag to show about dialog
     bool m_show_about = false;
-    //! \brief Error message for cartesian control operations
-    std::string m_cartesian_error;
+    //! \brief Error message
+    std::string m_error;
     //! \brief Flag to show add frames dialog
     bool m_show_add_frame_dialog = false;
 };

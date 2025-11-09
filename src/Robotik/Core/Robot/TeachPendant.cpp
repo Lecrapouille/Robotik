@@ -12,8 +12,6 @@
 #include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
 
-#include <iostream>
-
 namespace robotik
 {
 

@@ -137,16 +137,14 @@ JointValues Robot::clampJointPositions(const JointValues& p_positions) const
             auto [min, max] = joint.limits();
             if (clamped[index] < min)
             {
-                std::cerr << "⚠️  Joint " << index << " (" << joint.name()
-                          << ") clamped from " << clamped[index] << " to "
-                          << min << std::endl;
+                std::cerr << "⚠️  Joint " << joint.name() << " clamped from "
+                          << clamped[index] << " to " << min << std::endl;
                 clamped[index] = min;
             }
             else if (clamped[index] > max)
             {
-                std::cerr << "⚠️  Joint " << index << " (" << joint.name()
-                          << ") clamped from " << clamped[index] << " to "
-                          << max << std::endl;
+                std::cerr << "⚠️  Joint " << joint.name() << " clamped from "
+                          << clamped[index] << " to " << max << std::endl;
                 clamped[index] = max;
             }
         });

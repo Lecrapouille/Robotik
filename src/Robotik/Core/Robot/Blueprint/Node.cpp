@@ -125,7 +125,7 @@ void Node::markTransformsDirty()
 }
 
 // ----------------------------------------------------------------------------
-void Node::updateWorldTransforms()
+void Node::updateWorldTransforms() const
 {
     if (m_parent)
     {
@@ -161,7 +161,7 @@ void Node::traverse(NodeVisitor& visitor)
 {
     accept(visitor);
     visitor.incrementDepth();
-    for (auto& child : m_children)
+    for (auto const& child : m_children)
     {
         child->traverse(visitor);
     }
