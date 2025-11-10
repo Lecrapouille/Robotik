@@ -24,17 +24,49 @@ namespace robotik::application
 {
 
 // ----------------------------------------------------------------------------
-ImGuiView::ImGuiView(RobotController& p_robot_controller,
+ImGuiView::ImGuiView(ApplicationController& p_application_controller,
                      std::function<void()> const& p_halt_callback)
-    : m_robot_controller(p_robot_controller), m_halt_callback(p_halt_callback)
+    : m_application_controller(p_application_controller),
+      m_halt_callback(p_halt_callback)
 {
-    if (auto const* robot = p_robot_controller.getCurrentRobot();
+    if (auto const* robot = p_application_controller.getCurrentRobot();
         robot != nullptr)
     {
         m_selected_robot = robot->name();
     }
     refreshRobotList();
     refreshCurrentRobotCaches();
+
+    auto& robot_manager = m_application_controller.getRobotManager();
+
+    // Connect signal from RobotManager to ImGuiView
+    onRobotSelected.connect(
+        [this](std::string const& robot_name)
+        {
+            auto& manager = m_application_controller.getRobotManager();
+            m_error.clear();
+            if (!manager.selectRobot(robot_name))
+            {
+                m_error = manager.error();
+                if (!m_error.empty())
+                {
+                    std::cerr << "❌ " << m_error << std::endl;
+                }
+            }
+        });
+
+    // Connect signal from RobotManager to ImGuiView
+    robot_manager.onRobotSelected.connect(
+        [this](robotik::Robot const* robot)
+        {
+            std::string new_selection = robot != nullptr ? robot->name() : "";
+            if (new_selection == m_selected_robot)
+            {
+                return;
+            }
+            m_selected_robot = new_selection;
+            refreshCurrentRobotCaches();
+        });
 }
 
 // ----------------------------------------------------------------------------
@@ -74,7 +106,7 @@ void ImGuiView::onDrawMenuBar()
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::onDrawMainPanel()
+void ImGuiView::onDrawTeachPendantWindow()
 {
     ImGui::Begin("Teach Pendant");
 
@@ -132,7 +164,7 @@ void ImGuiView::onDrawTrajectoryWindow()
 
     if (!m_selected_robot.empty())
     {
-        auto* robot = m_robot_controller.getRobot(m_selected_robot);
+        auto* robot = m_application_controller.getRobot(m_selected_robot);
         if (robot != nullptr)
         {
             // Waypoints Section
@@ -171,9 +203,9 @@ void ImGuiView::robotManagementPanel()
 // ----------------------------------------------------------------------------
 void ImGuiView::robotListPanel()
 {
-    ImGui::Text("Loaded Robots (%zu):", m_robot_list.size());
+    ImGui::Text("Loaded Robots (%zu):", m_robot_names.size());
     ImGui::BeginChild("RobotList", ImVec2(0, 100), true);
-    for (const auto& robot_name : m_robot_list)
+    for (const auto& robot_name : m_robot_names)
     {
         drawRobotListItem(robot_name);
     }
@@ -209,7 +241,7 @@ void ImGuiView::drawRobotListContextMenu(std::string const& p_robot_name)
         removeRobot(p_robot_name);
     }
 
-    if (auto* controlled = m_robot_controller.getRobot(p_robot_name))
+    if (auto* controlled = m_application_controller.getRobot(p_robot_name))
     {
         if (ImGui::MenuItem("Toggle Visibility"))
         {
@@ -227,17 +259,14 @@ void ImGuiView::loadRobotPanel()
     if (ImGuiFileDialog::Instance()->IsOk())
     {
         std::string urdf = ImGuiFileDialog::Instance()->GetFilePathName();
-        auto* robot =
-            m_robot_controller.getRobotManager().loadRobot<ControlledRobot>(
-                urdf);
+        auto* robot = m_application_controller.getRobotManager()
+                          .loadRobot<ControlledRobot>(urdf);
         if (robot != nullptr)
         {
             std::cout << "✅ Loaded robot from: " << urdf << std::endl;
 
-            // Extract blueprint and initialize controlled robot
             std::string robot_name = robot->name();
-            robotik::Blueprint blueprint = std::move(robot->blueprint());
-            m_robot_controller.initializeRobot(*robot);
+            m_application_controller.initializeRobot(*robot);
 
             setSelectedRobot(robot_name);
             refreshRobotList();
@@ -245,7 +274,7 @@ void ImGuiView::loadRobotPanel()
         else
         {
             std::cerr << "❌ Failed to load robot: "
-                      << m_robot_controller.getRobotManager().error()
+                      << m_application_controller.getRobotManager().error()
                       << std::endl;
         }
     }
@@ -275,7 +304,7 @@ void ImGuiView::exportRobot() const
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::exportRobotPanel()
+void ImGuiView::exportRobotPanel() const
 {
     if (!ImGuiFileDialog::Instance()->Display("RobotExportDlg"))
         return;
@@ -286,7 +315,7 @@ void ImGuiView::exportRobotPanel()
 
         // Get the current robot
         auto const* controlled_robot =
-            m_robot_controller.getRobot(m_selected_robot);
+            m_application_controller.getRobot(m_selected_robot);
         if (controlled_robot == nullptr)
         {
             std::cerr << "❌ No robot selected for export" << std::endl;
@@ -321,7 +350,7 @@ void ImGuiView::exportRobotPanel()
 // ----------------------------------------------------------------------------
 void ImGuiView::removeRobot(std::string const& p_name)
 {
-    if (!m_robot_controller.getRobotManager().removeRobot(p_name))
+    if (!m_application_controller.getRobotManager().removeRobot(p_name))
         return;
 
     if (m_selected_robot == p_name)
@@ -336,7 +365,7 @@ void ImGuiView::removeRobot(std::string const& p_name)
 void ImGuiView::endEffectorSelectionPanel()
 {
     auto const* controlled_robot =
-        m_robot_controller.getRobot(m_selected_robot);
+        m_application_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr)
         return;
 
@@ -392,7 +421,8 @@ void ImGuiView::renderEndEffectorNode(std::string const& p_node_name,
     bool is_selected = (p_current_end_effector == p_node_name);
     if (ImGui::Selectable(p_node_name.c_str(), is_selected))
     {
-        if (m_robot_controller.setEndEffector(m_selected_robot, p_node_name))
+        if (m_application_controller.setEndEffector(m_selected_robot,
+                                                    p_node_name))
         {
             std::cout << "🎯 End effector set to: " << p_node_name << std::endl;
         }
@@ -436,12 +466,12 @@ void ImGuiView::drawAllNodesCombo(
 // ----------------------------------------------------------------------------
 void ImGuiView::teachPendantPanel()
 {
-    auto* robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* robot = m_application_controller.getRobot(m_selected_robot);
     if (robot == nullptr)
         return;
 
-    auto& teach_pendant = m_robot_controller.getTeachPendant();
-    auto& ik_solver = m_robot_controller.getIKSolver();
+    auto& teach_pendant = m_application_controller.getTeachPendant();
+    auto& ik_solver = m_application_controller.getIKSolver();
 
     // Configure the teach pendant for this robot
     teach_pendant.setIKSolver(&ik_solver);
@@ -596,7 +626,8 @@ void ImGuiView::drawFrameSelection(ControlledRobot& p_robot) const
         bool is_world_selected = current_frame.empty();
         if (ImGui::Selectable("World", is_world_selected))
         {
-            if (m_robot_controller.setCartesianFrame(m_selected_robot, ""))
+            if (m_application_controller.setCartesianFrame(m_selected_robot,
+                                                           ""))
             {
                 std::cout << "🎯 Cartesian frame set to: World" << std::endl;
             }
@@ -613,8 +644,8 @@ void ImGuiView::drawFrameSelection(ControlledRobot& p_robot) const
             bool is_selected = (current_frame == node_name);
             if (ImGui::Selectable(node_name.c_str(), is_selected))
             {
-                if (m_robot_controller.setCartesianFrame(m_selected_robot,
-                                                         node_name))
+                if (m_application_controller.setCartesianFrame(m_selected_robot,
+                                                               node_name))
                 {
                     std::cout << "🎯 Cartesian frame set to: " << node_name
                               << std::endl;
@@ -647,7 +678,7 @@ void ImGuiView::drawTranslationControls(robotik::TeachPendant& p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (m)", &step_size, 0.001f, 0.01f, "%.3f");
 
-    auto* robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* robot = m_application_controller.getRobot(m_selected_robot);
     if (!robot || !robot->end_effector)
         return;
 
@@ -701,7 +732,7 @@ void ImGuiView::drawRotationControls(robotik::TeachPendant& p_teach_pendant)
     ImGui::SetNextItemWidth(100);
     ImGui::InputFloat("Step (rad)", &angle_step, 0.01f, 0.1f, "%.3f");
 
-    auto* robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* robot = m_application_controller.getRobot(m_selected_robot);
     if (!robot || !robot->end_effector)
         return;
 
@@ -754,7 +785,7 @@ void ImGuiView::drawWaypointsSection(ControlledRobot& p_robot)
     std::vector<size_t> indices_to_delete;
 
     // Waypoint label and duration
-    auto& wm = m_robot_controller.getWaypointManager();
+    auto& wm = m_application_controller.getWaypointManager();
     ImGui::SetNextItemWidth(150);
     ImGui::InputText("Label", &waypoint_label);
     ImGui::SameLine();
@@ -785,7 +816,7 @@ void ImGuiView::drawWaypointsSection(ControlledRobot& p_robot)
         // Put buttons first
         if (ImGui::Button("Go##waypoint", ImVec2(50, 0)))
         {
-            auto& tc = m_robot_controller.getTrajectoryController();
+            auto& tc = m_application_controller.getTrajectoryController();
             if (tc.goToWaypoint(p_robot.states().joint_positions,
                                 waypoints[i].position,
                                 waypoints[i].duration))
@@ -866,8 +897,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot& p_robot)
     if (!p_robot.end_effector)
         return;
 
-    auto& wm = m_robot_controller.getWaypointManager();
-    auto& tc = m_robot_controller.getTrajectoryController();
+    auto& wm = m_application_controller.getWaypointManager();
+    auto& tc = m_application_controller.getTrajectoryController();
 
     // Speed Factor
     ImGui::SetNextItemWidth(100);
@@ -943,7 +974,8 @@ void ImGuiView::drawTrajectoryPlaybackSection(ControlledRobot& p_robot)
 // ----------------------------------------------------------------------------
 void ImGuiView::cameraTargetPanel()
 {
-    auto* controlled_robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* controlled_robot =
+        m_application_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr)
         return;
 
@@ -973,8 +1005,8 @@ void ImGuiView::drawCameraTargetCombo(
             bool is_selected = (p_current_camera_target == node_name);
             if (ImGui::Selectable(node_name.c_str(), is_selected))
             {
-                if (m_robot_controller.setCameraTarget(m_selected_robot,
-                                                       node_name))
+                if (m_application_controller.setCameraTarget(m_selected_robot,
+                                                             node_name))
                 {
                     // The target will be updated in Application::onUpdate()
                     // via camera tracking
@@ -1014,7 +1046,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Orbit", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::ORBIT);
             std::cout << "📹 Switched to Orbit Controller" << std::endl;
         }
@@ -1022,7 +1054,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Top", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::TOP);
             std::cout << "📹 Set to Top view" << std::endl;
         }
@@ -1030,7 +1062,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Bottom", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::BOTTOM);
             std::cout << "📹 Set to Bottom view" << std::endl;
         }
@@ -1039,7 +1071,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Front", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::FRONT);
             std::cout << "📹 Set to Front view" << std::endl;
         }
@@ -1047,7 +1079,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Back", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::BACK);
             std::cout << "📹 Set to Back view" << std::endl;
         }
@@ -1055,7 +1087,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Right", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::RIGHT);
             std::cout << "📹 Set to Right view" << std::endl;
         }
@@ -1064,7 +1096,7 @@ void ImGuiView::drawCameraControllerPanel() const
         ImGui::TableNextColumn();
         if (ImGui::Button("Left", ImVec2(-FLT_MIN, 0)))
         {
-            m_robot_controller.getCameraController().setView(
+            m_application_controller.getCameraController().setView(
                 CameraController::ViewType::LEFT);
             std::cout << "📹 Set to Left view" << std::endl;
         }
@@ -1096,13 +1128,13 @@ std::vector<std::string> ImGuiView::getEndEffectorNames() const
 // ----------------------------------------------------------------------------
 void ImGuiView::refreshRobotList()
 {
-    auto const& robots = m_robot_controller.getRobotManager().robots();
+    auto const& robots = m_application_controller.getRobotManager().robots();
 
-    m_robot_list.clear();
-    m_robot_list.reserve(robots.size());
+    m_robot_names.clear();
+    m_robot_names.reserve(robots.size());
     for (const auto& [name, _] : robots)
     {
-        m_robot_list.emplace_back(name);
+        m_robot_names.emplace_back(name);
     }
 }
 
@@ -1117,7 +1149,8 @@ void ImGuiView::refreshCurrentRobotCaches()
         return;
     }
 
-    auto* controlled_robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* controlled_robot =
+        m_application_controller.getRobot(m_selected_robot);
     if (controlled_robot == nullptr || !controlled_robot->blueprint().hasRoot())
     {
         return;
@@ -1140,10 +1173,30 @@ void ImGuiView::refreshCurrentRobotCaches()
 bool ImGuiView::setSelectedRobot(std::string const& name)
 {
     if (m_selected_robot == name)
+        return true;
+
+    auto const& robot_manager = m_application_controller.getRobotManager();
+    robotik::Robot const* current = robot_manager.currentRobot();
+    if (bool selection_ok =
+            (name.empty() && current == nullptr) ||
+            (!name.empty() && current != nullptr && current->name() == name);
+        !selection_ok)
+    {
+        if (m_error.empty())
+        {
+            m_error = robot_manager.error();
+        }
+        if (m_error.empty())
+        {
+            m_error = "Failed to select robot '" + name + "'";
+        }
+        std::cerr << "❌ " << m_error << std::endl;
         return false;
+    }
 
     m_selected_robot = name;
     refreshCurrentRobotCaches();
+    onRobotSelected(name);
     return true;
 }
 
@@ -1195,7 +1248,7 @@ void ImGuiView::sceneGraphPanel()
         return;
     }
 
-    auto* robot = m_robot_controller.getRobot(m_selected_robot);
+    auto* robot = m_application_controller.getRobot(m_selected_robot);
     if (robot == nullptr)
     {
         return;

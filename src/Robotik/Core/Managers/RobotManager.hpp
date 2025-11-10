@@ -54,6 +54,12 @@ public:
     Signal<Robot*> onRobotAdded;
 
     // ------------------------------------------------------------------------
+    //! \brief Signal emitted when the current robot selection changes.
+    //! \param p_robot Pointer to the selected robot (nullptr if none).
+    // ------------------------------------------------------------------------
+    Signal<Robot*> onRobotSelected;
+
+    // ------------------------------------------------------------------------
     //! \brief Signal emitted when a robot is removed.
     //! \param p_robot_name Name of the removed robot.
     // ------------------------------------------------------------------------
@@ -118,6 +124,13 @@ public:
     //! \return true if successful.
     // ------------------------------------------------------------------------
     bool removeRobot(const std::string& p_robot_name);
+
+    // ------------------------------------------------------------------------
+    //! \brief Select an existing robot by name.
+    //! \param p_robot_name Name of the robot to select (empty to deselect).
+    //! \return true if successful.
+    // ------------------------------------------------------------------------
+    bool selectRobot(const std::string& p_robot_name);
 
     // ------------------------------------------------------------------------
     //! \brief Check if a robot is loaded.
@@ -242,6 +255,15 @@ public:
     {
         return m_error;
     }
+
+private:
+
+    // ------------------------------------------------------------------------
+    //! \brief Update current robot pointer and emit selection signal if
+    //! changed.
+    //! \param p_robot Pointer to the robot to select.
+    // ------------------------------------------------------------------------
+    void setCurrentRobot(Robot* p_robot);
 
 private:
 

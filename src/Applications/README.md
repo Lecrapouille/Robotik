@@ -10,28 +10,28 @@ This 3D simulator provides a standalone application to load robots (from files s
 classDiagram
     renderer_OpenGLApplication <|-- MainApplication
     MainApplication o--> Configuration
-    MainApplication o--> RobotController
+    MainApplication o--> ApplicationController
     MainApplication o--> ImGuiView
     MainApplication o--> renderer_GeometryManager
     MainApplication o--> renderer_ShaderManager
     MainApplication o--> renderer_RenderVisitor
     MainApplication o--> robotik_PhysicsSimulator
     robotik_Robot <|-- ControlledRobot
-    RobotController o--> RobotManager
-    RobotController o--> WaypointManager
-    RobotController o--> TrajectoryController
-    RobotController o--> CameraViewModel
-    RobotController o--> TeachPendant
-    RobotController o--> IKSolver
+    ApplicationController o--> RobotManager
+    ApplicationController o--> WaypointManager
+    ApplicationController o--> TrajectoryController
+    ApplicationController o--> CameraViewModel
+    ApplicationController o--> TeachPendant
+    ApplicationController o--> IKSolver
     RobotManager o--> ControlledRobot
-    ImGuiView --> RobotController
+    ImGuiView --> ApplicationController
     ImGuiView --> MainApplication
     CameraViewModel o--> PerspectiveCamera
     CameraViewModel o--> CameraController
 ```
 
 - `MainApplication`: entry point inheriting from `OpenGLApplication`; coordinates rendering, physics, robot loading, and MVC setup. It's the View module of the MVC pattern.
-- `RobotController`: bridges `ControlledRobot` instances with shared services (teach pendant, IK solver, waypoint and trajectory managers) and exposes actions to the UI layer. It's the Controller module of the MVC pattern.
+- `ApplicationController`: bridges `ControlledRobot` instances with shared services (teach pendant, IK solver, waypoint and trajectory managers) and exposes actions to the UI layer. It's the Controller module of the MVC pattern.
 - `ControlledRobot`: inherits from `robotik::Robot` and stores UI-related state (control mode, camera tracking, frames). It's the Model module of the MVC pattern.
 - `ImGuiView`: Dear ImGui front-end that orchestrates robot management, control modes, trajectory panels, and delegates to the controller. It's the View module of the MVC pattern.
 - `CameraViewModel`: wraps the perspective camera and its controllers (`CameraController`, orbit, drag) to manage predefined views and tracking. It's the Model module of the MVC pattern.
@@ -46,7 +46,7 @@ sequenceDiagram
     participant User
     participant CLI as CLI Process
     participant MainApp as MainApplication
-    participant Ctrl as RobotController
+    participant Ctrl as ApplicationController
     participant RobotMgr as RobotManager
     participant View as ImGuiView
     participant Traj as TrajectoryController
@@ -70,7 +70,7 @@ sequenceDiagram
 ## Responsibilities of Key Components
 
 - **Loading**: `MainApplication::setupRobots()` loads URDF robots through `RobotManager`, builds meshes via `GeometryManager`, and creates waypoint/trajectory helpers.
-- **Control**: `RobotController` initializes each robot (home pose, end effector, camera target) and exposes helpers such as `setEndEffector`, `setCameraTarget`, and `setCartesianFrame`.
+- **Control**: `ApplicationController` initializes each robot (home pose, end effector, camera target) and exposes helpers such as `setEndEffector`, `setCameraTarget`, and `setCartesianFrame`.
 - **Interface**: `ImGuiView` aggregates panels (robot management, joint/cartesian controls, trajectories, camera) and communicates with the controller.
 - **Camera**: `CameraViewModel` manages predefined views, tracking, and mouse interaction by orchestrating camera controllers.
 - **Simulation & Rendering**: `MainApplication` drives the main loop (physics step, scene/menu panels) and renders robots, ground grid, axes, and waypoints.

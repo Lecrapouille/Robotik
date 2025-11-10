@@ -17,7 +17,10 @@ namespace robotik
 void RobotManager::clear()
 {
     m_robots.clear();
-    m_current_robot = nullptr;
+    if (m_current_robot != nullptr)
+    {
+        setCurrentRobot(nullptr);
+    }
     m_error.clear();
 }
 
@@ -43,7 +46,7 @@ bool RobotManager::addRobot(const std::string& p_robot_name,
     // Set the current robot if the robot was added successfully.
     if (success)
     {
-        m_current_robot = it->second.get();
+        setCurrentRobot(it->second.get());
         // Emit signal that robot was added
         onRobotAdded(m_current_robot);
     }
@@ -63,7 +66,21 @@ bool RobotManager::removeRobot(const std::string& p_robot_name)
     // Emit signal before removing
     onRobotRemoved(p_robot_name);
 
+    const bool was_current = (m_current_robot == it->second.get());
+
     m_robots.erase(it);
+
+    if (was_current)
+    {
+        if (!m_robots.empty())
+        {
+            setCurrentRobot(m_robots.begin()->second.get());
+        }
+        else
+        {
+            setCurrentRobot(nullptr);
+        }
+    }
     return true;
 }
 
@@ -88,6 +105,26 @@ Robot* RobotManager::getRobot(const std::string& p_robot_name)
 Robot* RobotManager::currentRobot() const
 {
     return m_current_robot;
+}
+
+// ----------------------------------------------------------------------------
+bool RobotManager::selectRobot(const std::string& p_robot_name)
+{
+    if (p_robot_name.empty())
+    {
+        setCurrentRobot(nullptr);
+        return true;
+    }
+
+    auto it = m_robots.find(p_robot_name);
+    if (it == m_robots.end())
+    {
+        m_error = "Robot '" + p_robot_name + "' not found";
+        return false;
+    }
+
+    setCurrentRobot(it->second.get());
+    return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -183,5 +220,17 @@ bool RobotManager::updateRobotLinkTransforms(const std::string& p_robot_name)
     return true;
 }
 #endif
+
+// ----------------------------------------------------------------------------
+void RobotManager::setCurrentRobot(Robot* p_robot)
+{
+    if (m_current_robot == p_robot)
+    {
+        return;
+    }
+
+    m_current_robot = p_robot;
+    onRobotSelected(m_current_robot);
+}
 
 } // namespace robotik

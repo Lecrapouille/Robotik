@@ -15,11 +15,12 @@ namespace robotik::application
 {
 
 // ****************************************************************************
-//! \brief Controlled robot class that extends Robot with UI state.
+//! \brief Extended robot class to add UI-related state.
 //!
-//! This class inherits from Robot and adds minimal state for the UI layer.
-//! All complex logic (waypoints, trajectory control) is handled by separate
-//! managers in the application layer.
+//! This class inherits from Robot and adds UI-related state (control mode,
+//! state, speed factor, end effector, camera target, camera tracking enabled,
+//! Cartesian frame). All complex logic (waypoints, trajectory control) is
+//! handled by separate managers in the application layer.
 // ****************************************************************************
 class ControlledRobot: public robotik::Robot
 {
@@ -72,4 +73,3 @@ public:
 };
 
 } // namespace robotik::application
-
