@@ -9,7 +9,8 @@
 
 #pragma once
 
-#include "RobotController.hpp"
+#include "ApplicationController.hpp"
+#include "Robotik/Core/Common/Signal.hpp"
 
 #include <imgui.h>
 
@@ -40,21 +41,21 @@ public:
 
     // ----------------------------------------------------------------------------
     //! \brief Constructor.
-    //! \param p_robot_controller Reference to robot controller.
+    //! \param p_application_controller Reference to application controller.
     //! \param p_halt_callback Callback to halt the application.
     // ----------------------------------------------------------------------------
-    ImGuiView(RobotController& p_robot_controller,
+    ImGuiView(ApplicationController& p_application_controller,
               std::function<void()> const& p_halt_callback);
-
-    // ----------------------------------------------------------------------------
-    //! \brief Render the teach pendant control panel.
-    // ----------------------------------------------------------------------------
-    void onDrawMainPanel();
 
     // ----------------------------------------------------------------------------
     //! \brief Render the menu bar.
     // ----------------------------------------------------------------------------
     void onDrawMenuBar();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render the teach pendant control panel.
+    // ----------------------------------------------------------------------------
+    void onDrawTeachPendantWindow();
 
     // ----------------------------------------------------------------------------
     //! \brief Render the robot management dockable window.
@@ -72,13 +73,10 @@ public:
     void onDrawTrajectoryWindow();
 
     // ----------------------------------------------------------------------------
-    //! \brief Get the currently selected robot name
-    //! \return The name of the selected robot, empty string if none selected
+    //! \brief Signal emitted when user selects a robot in the UI.
+    //! \param p_robot_name Name of the selected robot (empty if none).
     // ----------------------------------------------------------------------------
-    std::string const& selectedRobot() const
-    {
-        return m_selected_robot;
-    }
+    Signal<std::string const&> onRobotSelected;
 
 private:
 
@@ -273,7 +271,7 @@ private:
     // ----------------------------------------------------------------------------
     //! \brief Export robot panel (handles file dialog).
     // ----------------------------------------------------------------------------
-    void exportRobotPanel();
+    void exportRobotPanel() const;
 
     // ----------------------------------------------------------------------------
     //! \brief Scene graph panel (displays the robot's scene graph tree).
@@ -301,14 +299,14 @@ private:
 
 private:
 
-    //! \brief Reference to robot controller.
-    RobotController& m_robot_controller;
+    //! \brief Reference to application controller.
+    ApplicationController& m_application_controller;
     //! \brief Callback to halt the application.
     std::function<void()> m_halt_callback;
     //! \brief Currently selected robot name
     std::string m_selected_robot;
     //! \brief Cache the list of robots
-    std::vector<std::string> m_robot_list;
+    std::vector<std::string> m_robot_names;
     //! \brief Cache the list of nodes of the current robot
     std::vector<std::string> m_node_names;
     //! \brief Cache the list of end effectors of the current robot

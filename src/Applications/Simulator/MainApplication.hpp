@@ -9,9 +9,9 @@
 
 #pragma once
 
+#include "ApplicationController.hpp"
 #include "Configuration.hpp"
 #include "ImGuiView.hpp"
-#include "RobotController.hpp"
 
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
@@ -204,21 +204,15 @@ private:
     // ----------------------------------------------------------------------------
     void switchVisibility() const;
 
-    // ----------------------------------------------------------------------------
-    //! \brief Get the controlled robot by name.
-    //! \param p_robot_name Robot name.
-    //! \return Pointer to controlled robot, nullptr if not found.
-    // ----------------------------------------------------------------------------
-    ControlledRobot* getControlledRobot(std::string const& p_robot_name) const;
-
 private:
 
     //! \brief Application settings and configuration.
     Configuration const& m_config;
     //! \brief Search paths to load URDF, STL, etc. files.
     Path m_path;
-    //! \brief Robot controller for managing robots and their interactions.
-    std::unique_ptr<RobotController> m_robot_controller;
+    //! \brief Application controller for managing robots and their
+    //! interactions.
+    std::unique_ptr<ApplicationController> m_application_controller;
     //! \brief ImGui view for managing robot control and visualization.
     std::unique_ptr<ImGuiView> m_imgui_view;
     //! \brief Shader manager for managing shaders.
