@@ -173,6 +173,15 @@ public:
     void setHomePosition();
 
     // ------------------------------------------------------------------------
+    //! \brief Get the stored home position.
+    //! \return The home position joint values.
+    // ------------------------------------------------------------------------
+    const JointValues& homePosition() const
+    {
+        return m_home_position;
+    }
+
+    // ------------------------------------------------------------------------
     //! \brief Check if joint positions are within limits.
     //! \param p_positions Joint positions to check.
     //! \return true if all positions are within limits.

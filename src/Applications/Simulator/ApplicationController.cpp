@@ -8,6 +8,7 @@
  */
 
 #include "ApplicationController.hpp"
+#include "Robotik/Core/BehaviorTree/Actions/RobotActions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Core/Robot/Debug.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
@@ -28,6 +29,7 @@ ApplicationController::ApplicationController(Configuration const& p_config)
         m_config.window_width, m_config.window_height);
     m_waypoint_manager = std::make_unique<WaypointManager>();
     m_trajectory_controller = std::make_unique<TrajectoryController>();
+    m_behavior_tree_manager = std::make_unique<BehaviorTreeManager>();
 }
 
 // ----------------------------------------------------------------------------
@@ -56,7 +58,25 @@ ApplicationController::loadRobot(std::string const& p_urdf_file)
         return nullptr;
     }
 
+    // Initialize behavior tree with this robot
+    initializeBehaviorTree(*robot);
+
     return robot;
+}
+
+// ----------------------------------------------------------------------------
+void ApplicationController::initializeBehaviorTree(ControlledRobot& p_robot)
+{
+    // Register robot-specific actions in the behavior tree factory
+    robotik::registerRobotActions(m_behavior_tree_manager->getFactory(),
+                                  p_robot,
+                                  *m_teach_pendant,
+                                  *m_ik_solver,
+                                  *m_trajectory_controller,
+                                  m_behavior_tree_manager->getBlackboard());
+
+    std::cout << "✅ Registered robot actions in behavior tree factory"
+              << std::endl;
 }
 
 // ----------------------------------------------------------------------------
@@ -159,19 +179,10 @@ void ApplicationController::update(float const dt)
     m_camera_controller->setTrackingEnabled(false);
     m_camera_controller->update(dt, nullptr);
 
-    // Update trajectory controller (single controller for current robot)
-    if (m_trajectory_controller->isPlaying())
+    // Update behavior tree if playing
+    if (m_behavior_tree_manager->isPlaying())
     {
-        m_trajectory_controller->update(static_cast<double>(dt));
-        // Check if still playing after update (might have stopped)
-        if (m_trajectory_controller->isPlaying())
-        {
-            auto target = m_trajectory_controller->getCurrentTarget();
-            if (!target.empty() && robot)
-            {
-                robot->setJointPositions(target);
-            }
-        }
+        m_behavior_tree_manager->tick(dt);
     }
     else
     {
@@ -185,6 +196,19 @@ void ApplicationController::update(float const dt)
             {
                 controlled_robot->state = ControlledRobot::State::IDLE;
             }
+        }
+    }
+
+    // Update trajectory controller (always update if playing, even if BT
+    // stopped)
+    if (m_trajectory_controller->isPlaying())
+    {
+        m_trajectory_controller->update(static_cast<double>(dt));
+        // Apply current target to robot
+        auto target = m_trajectory_controller->getCurrentTarget();
+        if (!target.empty() && robot)
+        {
+            robot->setJointPositions(target);
         }
     }
 }

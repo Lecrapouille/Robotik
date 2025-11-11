@@ -62,6 +62,11 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set YAML-CPP library
+#
+PKG_LIBS += yaml-cpp
+
+###############################################################################
 # Set pugixml library
 #
 LIB_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp

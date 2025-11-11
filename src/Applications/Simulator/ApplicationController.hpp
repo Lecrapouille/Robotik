@@ -13,6 +13,7 @@
 #include "Configuration.hpp"
 #include "ControlledRobot.hpp"
 
+#include "Robotik/Core/Managers/BehaviorTreeManager.hpp"
 #include "Robotik/Core/Managers/RobotManager.hpp"
 #include "Robotik/Core/Managers/WaypointManager.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
@@ -95,6 +96,14 @@ public:
     // ----------------------------------------------------------------------------
     bool setCameraTarget(std::string const& p_robot_name,
                          std::string const& p_node_name) const;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Initialize behavior tree with robot actions.
+    //! This registers all robot-specific actions in the behavior tree factory.
+    //! Should be called after loading a robot.
+    //! \param p_robot The robot to use for behavior tree actions.
+    // ----------------------------------------------------------------------------
+    void initializeBehaviorTree(ControlledRobot& p_robot);
 
     // ----------------------------------------------------------------------------
     //! \brief Set the Cartesian frame to use for the Cartesian control.
@@ -181,6 +190,16 @@ public:
     }
 
     // ----------------------------------------------------------------------------
+    //! \brief Get the reference to the behavior tree manager used to manage
+    //! behavior trees.
+    //! \return Reference to the behavior tree manager.
+    // ----------------------------------------------------------------------------
+    BehaviorTreeManager& getBehaviorTreeManager()
+    {
+        return *m_behavior_tree_manager;
+    }
+
+    // ----------------------------------------------------------------------------
     //! \brief Get the error message.
     //! \return Error message.
     // ----------------------------------------------------------------------------
@@ -205,6 +224,8 @@ private:
     std::unique_ptr<WaypointManager> m_waypoint_manager;
     //! \brief Trajectory controller used to manage the trajectories.
     std::unique_ptr<TrajectoryController> m_trajectory_controller;
+    //! \brief Behavior tree manager used to manage behavior trees.
+    std::unique_ptr<BehaviorTreeManager> m_behavior_tree_manager;
     //! \brief Error message.
     std::string m_error;
 };

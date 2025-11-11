@@ -250,6 +250,9 @@ bool MainApplication::setupImGuiView()
     m_imgui_view = std::make_unique<ImGuiView>(*m_application_controller,
                                                [this]() { halt(); });
 
+    m_behavior_tree_editor = std::make_unique<BehaviorTreeEditor>(
+        *m_application_controller, [this]() { halt(); });
+
     return true;
 }
 
@@ -267,6 +270,10 @@ void MainApplication::onDrawMainPanel()
     m_imgui_view->onDrawCameraTargetWindow();
     m_imgui_view->onDrawTrajectoryWindow();
     m_imgui_view->onDrawTeachPendantWindow();
+    // Draw BehaviorTree windows (two separate windows)
+    m_behavior_tree_editor->onDrawControlsWindow();
+    m_behavior_tree_editor->onDrawEditorWindow();
+    m_behavior_tree_editor->loadTreePanel();
 }
 
 // ----------------------------------------------------------------------------

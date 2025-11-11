@@ -64,7 +64,7 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ###############################################################################
 # Set operating system libraries.
 #
-PKG_LIBS += glfw3 glew gl eigen3
+PKG_LIBS += glfw3 glew gl eigen3 yaml-cpp
 
 ###############################################################################
 # Sharable information between all Makefiles
