@@ -11,7 +11,7 @@
 #pragma once
 
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 #include "Robotik/Core/Robot/State.hpp"
 
 namespace robotik
@@ -146,7 +146,7 @@ public:
     //! \brief Traverse the robot's blueprint.
     //! \param visitor The visitor to traverse the blueprint.
     // ------------------------------------------------------------------------
-    void traverse(ConstNodeVisitor& visitor) const;
+    void traverse(ConstRobotVisitor& visitor) const;
 
     // ------------------------------------------------------------------------
     //! \brief Set all joints to neutral position (0).

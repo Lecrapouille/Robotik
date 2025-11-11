@@ -232,7 +232,7 @@ Jacobian const& Robot::computeJacobian(State& p_state,
 }
 
 // ----------------------------------------------------------------------------
-void Robot::traverse(ConstNodeVisitor& visitor) const
+void Robot::traverse(ConstRobotVisitor& visitor) const
 {
     if (m_blueprint.hasRoot() && m_blueprint.enabled())
     {

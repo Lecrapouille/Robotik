@@ -102,7 +102,7 @@
 // ============================================================================
 
 #include "Robotik/Core/Debug.hpp"
-#include "Robotik/Core/NodeVisitor.hpp"
+#include "Robotik/Core/RobotVisitor.hpp"
 // #include "Robotik/Core/IKSolver.hpp"
 #include "Robotik/Core/PhysicsSimulator.hpp"
 

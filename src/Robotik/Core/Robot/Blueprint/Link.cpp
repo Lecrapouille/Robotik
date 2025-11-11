@@ -8,7 +8,7 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Link.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
@@ -61,13 +61,13 @@ double Link::length() const
 }
 
 // ----------------------------------------------------------------------------
-void Link::accept(NodeVisitor& visitor)
+void Link::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Link::accept(ConstNodeVisitor& visitor) const
+void Link::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }

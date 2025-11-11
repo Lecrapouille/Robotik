@@ -67,9 +67,12 @@ bool GeometryManager::loadFromFile(const std::string& p_name,
 }
 
 // ----------------------------------------------------------------------------
-bool GeometryManager::createMeshFromGeometry(robotik::Geometry const& p_geom)
+bool GeometryManager::createMeshFromGeometry(robotik::Geometry const& p_geom,
+                                             std::string const& p_namespace)
 {
-    std::string const& mesh_name = p_geom.name();
+    std::string mesh_name = p_namespace.empty()
+                                ? p_geom.name()
+                                : p_namespace + "::" + p_geom.name();
 
     // Skip if already loaded
     if (hasMesh(mesh_name))

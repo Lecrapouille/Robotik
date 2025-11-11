@@ -212,7 +212,9 @@ void RenderVisitor::renderAxes(const GeometryManager::GPUMesh* p_axes_mesh,
 void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
                                    Eigen::Matrix4f const& transform) const
 {
-    std::string const& mesh_name = geom.name();
+    std::string mesh_name = m_mesh_namespace.empty()
+                                ? geom.name()
+                                : m_mesh_namespace + "::" + geom.name();
     const GeometryManager::GPUMesh* gpu_mesh =
         m_geometry_manager.getMesh(mesh_name);
 
@@ -226,6 +228,12 @@ void RenderVisitor::renderGeometry(robotik::Geometry const& geom,
     {
         std::cerr << "Warning: Mesh not preloaded: " << mesh_name << std::endl;
     }
+}
+
+// ----------------------------------------------------------------------------
+void RenderVisitor::setMeshNamespace(std::string_view p_namespace)
+{
+    m_mesh_namespace.assign(p_namespace);
 }
 
 // ----------------------------------------------------------------------------
