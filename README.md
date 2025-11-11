@@ -1,3 +1,7 @@
+**WARNING: This project is currently in at its beginning age and is currently instable. Use it with care!**
+
+See my [Youtube video](https://www.youtube.com/watch?v=BgFjewCz328)
+
 # 🤖 RobotIK
 
 C++ robotics library for simulation and visualization of robot (libraries and stand-alone applications).
@@ -5,7 +9,6 @@ C++ robotics library for simulation and visualization of robot (libraries and st
 - **Scene graph** : Hierarchical representation of robots (links, joints, geometries, collisions, actuators, sensors).
 - **OpenGL visualization** : Real-time 3D rendering with interactive controls.
 - **Forward and inverse kinematics** : Position and orientation calculations.
-
 
 ## ⚙️ Compilation
 
@@ -232,6 +235,7 @@ if (robot == nullptr)
 ### 📐 Forward Kinematics ⚡
 
 (work in progress API)
+
 - Par nom de joints
 - Utiliser les contraintes.
 

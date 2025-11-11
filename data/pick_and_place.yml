@@ -1,0 +1,104 @@
+# Pick and Place Behavior Tree Example
+# This behavior tree demonstrates a typical pick-and-place operation for a robotic arm.
+#
+# The tree performs the following sequence:
+# 1. Move to home position
+# 2. Approach the pick location
+# 3. Pick the object (move down, close gripper, move up)
+# 4. Move to place location
+# 5. Place the object (move down, open gripper, move up)
+# 6. Return to home position
+
+BehaviorTree:
+  Sequence:
+    name: PickAndPlace
+    children:
+      # Step 1: Homing
+      - Sequence:
+          name: Homing
+          children:
+            - Action:
+                name: Homing
+
+      # Step 2: Approach pick location
+      - Sequence:
+          name: Approach
+          children:
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${approach_pose}
+
+      # Step 3: Pick object
+      - Sequence:
+          name: Pick
+          children:
+            # Move down to object
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${pick_pose}
+            # Close gripper
+            - Action:
+                name: CloseGripper
+            # Move up with object
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${pick_up_pose}
+
+      # Step 4: Move to place location
+      - Sequence:
+          name: MoveToTarget
+          children:
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${place_approach_pose}
+
+      # Step 5: Place object
+      - Sequence:
+          name: Place
+          children:
+            # Move down to place location
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${place_pose}
+            # Open gripper
+            - Action:
+                name: OpenGripper
+            # Move up
+            - Action:
+                name: MoveToCartesianPose
+                parameters:
+                  pose: ${place_up_pose}
+
+      # Step 6: Return to home
+      - Sequence:
+          name: HomingFinal
+          children:
+            - Action:
+                name: Homing
+
+# Global Blackboard - shared parameters
+# These can be referenced in actions using ${key} syntax
+Blackboard:
+  # Movement duration in seconds
+  movement_duration: 2.0
+  # Default tolerance for pose checking
+  tolerance: 0.01
+  # Default wait duration
+  wait_duration: 1.0
+  # Approach pose (above pick location)
+  approach_pose: [1.5, 0.087, 0.044, 0.0, 0.0, 0.0]
+  # Pick location (down to object)
+  pick_pose: [0.4, 0.0, 0.2, 0.0, 1.57, 0.0]
+  # Pick up pose (lift object)
+  pick_up_pose: [0.4, 0.0, 0.5, 0.0, 1.57, 0.0]
+  # Place approach pose (above place location)
+  place_approach_pose: [0.3, 0.3, 0.5, 0.0, 1.57, 0.0]
+  # Place location (down to place)
+  place_pose: [0.3, 0.3, 0.2, 0.0, 1.57, 0.0]
+  # Place up pose (after releasing)
+  place_up_pose: [0.3, 0.3, 0.5, 0.0, 1.57, 0.0]

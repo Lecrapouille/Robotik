@@ -10,6 +10,7 @@
 #pragma once
 
 #include "ApplicationController.hpp"
+#include "BehaviorTreeEditor.hpp"
 #include "Configuration.hpp"
 #include "ImGuiView.hpp"
 
@@ -215,6 +216,8 @@ private:
     std::unique_ptr<ApplicationController> m_application_controller;
     //! \brief ImGui view for managing robot control and visualization.
     std::unique_ptr<ImGuiView> m_imgui_view;
+    //! \brief BehaviorTree editor for behavior tree visualization and control.
+    std::unique_ptr<BehaviorTreeEditor> m_behavior_tree_editor;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.

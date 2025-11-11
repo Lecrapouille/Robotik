@@ -792,12 +792,6 @@ void ImGuiView::drawWaypointsSection(ControlledRobot& p_robot)
 
     // Waypoint label and duration
     auto& wm = m_application_controller.getWaypointManager();
-    ImGui::SetNextItemWidth(150);
-    ImGui::InputText("Label", &waypoint_label);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(100);
-    ImGui::InputFloat("Duration (s)", &waypoint_duration, 0.1f, 1.0f, "%.2f");
-    ImGui::SameLine();
     if (ImGui::Button("Add"))
     {
         size_t idx = wm.addWaypoint(p_robot,
@@ -808,6 +802,12 @@ void ImGuiView::drawWaypointsSection(ControlledRobot& p_robot)
         std::cout << "📍 Recorded waypoint " << idx << ": " << waypoint_label
                   << std::endl;
     }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(150);
+    ImGui::InputText("Label", &waypoint_label);
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100);
+    ImGui::InputFloat("seconds", &waypoint_duration, 0.1f, 1.0f, "%.2f");
 
     ImGui::Separator();
     auto const& waypoints = wm.getWaypoints(*p_robot.end_effector);
