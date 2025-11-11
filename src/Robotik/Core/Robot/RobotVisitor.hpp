@@ -1,5 +1,5 @@
 /**
- * @file NodeVisitor.hpp
+ * @file RobotVisitor.hpp
  * @brief Visitor pattern for traversing the node blueprint.
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
@@ -32,7 +32,7 @@ class Frame;
 //!
 //! Usage example:
 //! \code
-//!   class MyVisitor : public NodeVisitor {
+//!   class MyVisitor : public RobotVisitor {
 //!   public:
 //!       void visit(Joint& joint) override {
 //!           std::cout << "Joint at depth " << depth() << std::endl;
@@ -44,7 +44,7 @@ class Frame;
 //!   root->traverse(visitor);
 //! \endcode
 // ****************************************************************************
-class NodeVisitor
+class RobotVisitor
 {
 protected:
 
@@ -53,7 +53,7 @@ protected:
 
 public:
 
-    virtual ~NodeVisitor() = default;
+    virtual ~RobotVisitor() = default;
 
     // ------------------------------------------------------------------------
     //! \brief Visit a Joint node.
@@ -126,9 +126,9 @@ public:
 // ****************************************************************************
 //! \brief Const visitor for read-only traversal of the node blueprint.
 //!
-//! Similar to NodeVisitor but for const operations only.
+//! Similar to RobotVisitor but for const operations only.
 // ****************************************************************************
-class ConstNodeVisitor
+class ConstRobotVisitor
 {
 protected:
 
@@ -137,7 +137,7 @@ protected:
 
 public:
 
-    virtual ~ConstNodeVisitor() = default;
+    virtual ~ConstRobotVisitor() = default;
 
     // ------------------------------------------------------------------------
     //! \brief Visit a const Joint node.

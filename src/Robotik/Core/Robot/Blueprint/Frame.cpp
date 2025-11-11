@@ -8,19 +8,19 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Frame.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-void Frame::accept(NodeVisitor& visitor)
+void Frame::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Frame::accept(ConstNodeVisitor& visitor) const
+void Frame::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }

@@ -8,31 +8,31 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Component.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-void Sensor::accept(NodeVisitor& visitor)
+void Sensor::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Sensor::accept(ConstNodeVisitor& visitor) const
+void Sensor::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Actuator::accept(NodeVisitor& visitor)
+void Actuator::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Actuator::accept(ConstNodeVisitor& visitor) const
+void Actuator::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }

@@ -10,7 +10,7 @@
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Common/Exception.hpp"
 #include "Robotik/Core/Robot/Blueprint/Frame.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
@@ -30,7 +30,7 @@ namespace robotik
 //! lookup tables for joints, links, sensors, and actuators. It also assigns
 //! indices to actuable joints for efficient array-based access.
 // ****************************************************************************
-class CacheBlueprintVisitor: public NodeVisitor
+class CacheBlueprintVisitor: public RobotVisitor
 {
 private:
 

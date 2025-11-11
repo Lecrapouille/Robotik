@@ -10,7 +10,7 @@
 #pragma once
 
 #include "Robotik/Core/Exporters/RobotExporter.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 #include <sstream>
 #include <string>
@@ -82,7 +82,7 @@ private:
     //! This visitor traverses the blueprint tree and generates DOT graph
     //! definitions for all nodes (Joint, Link, Geometry, Sensor, Actuator).
     // ****************************************************************************
-    class DotExportVisitor: public ConstNodeVisitor
+    class DotExportVisitor: public ConstRobotVisitor
     {
     public:
 

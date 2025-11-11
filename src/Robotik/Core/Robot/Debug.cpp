@@ -9,8 +9,8 @@
 
 #include "Robotik/Core/Common/Conversions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Frame.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -279,7 +279,7 @@ static std::string print_link_details(Link const& p_link,
 //! This visitor traverses the robot blueprint and generates formatted debug
 //! output with proper indentation and tree structure visualization.
 // ****************************************************************************
-class DebugPrintVisitor: public ConstNodeVisitor
+class DebugPrintVisitor: public ConstRobotVisitor
 {
 private:
 

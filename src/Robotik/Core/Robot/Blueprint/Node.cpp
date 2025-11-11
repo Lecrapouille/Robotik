@@ -9,7 +9,7 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
@@ -145,19 +145,19 @@ void Node::updateWorldTransforms() const
 }
 
 // ----------------------------------------------------------------------------
-void Node::accept(NodeVisitor& visitor)
+void Node::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Node::accept(ConstNodeVisitor& visitor) const
+void Node::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Node::traverse(NodeVisitor& visitor)
+void Node::traverse(RobotVisitor& visitor)
 {
     accept(visitor);
     visitor.incrementDepth();
@@ -169,7 +169,7 @@ void Node::traverse(NodeVisitor& visitor)
 }
 
 // ----------------------------------------------------------------------------
-void Node::traverse(ConstNodeVisitor& visitor) const
+void Node::traverse(ConstRobotVisitor& visitor) const
 {
     accept(visitor);
     visitor.incrementDepth();

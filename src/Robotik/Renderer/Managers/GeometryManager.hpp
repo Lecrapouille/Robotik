@@ -89,9 +89,11 @@ public:
     // ------------------------------------------------------------------------
     //! \brief Create a GPU mesh from a Geometry object.
     //! \param p_geom The geometry object to create mesh from.
+    //! \param p_namespace The namespace of the robot.
     //! \return true if successful.
     // ------------------------------------------------------------------------
-    bool createMeshFromGeometry(robotik::Geometry const& p_geom);
+    bool createMeshFromGeometry(robotik::Geometry const& p_geom,
+                                std::string const& p_namespace = "");
 
     // ------------------------------------------------------------------------
     //! \brief Create a box primitive mesh.

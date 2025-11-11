@@ -197,21 +197,24 @@ bool MainApplication::setupRobots()
     m_application_controller =
         std::make_unique<ApplicationController>(m_config);
 
+    auto& robot_manager = m_application_controller->getRobotManager();
+
     // Connect waypoint manager to robot manager signals
-    m_application_controller->getRobotManager().onRobotAdded.connect(
+    robot_manager.onRobotAdded.connect(
         [this](Robot* robot)
         {
             m_application_controller->getWaypointManager().onRobotAdded(robot);
         });
 
     // Connect waypoint manager to robot manager signals
-    m_application_controller->getRobotManager().onRobotRemoved.connect(
+    robot_manager.onRobotRemoved.connect(
         [this](std::string const& name)
         {
             m_application_controller->getWaypointManager().onRobotRemoved(name);
         });
 
     // Create and initialize all robots
+    std::string robot_name;
     for (auto const& urdf_file : m_config.urdf_files)
     {
         // Create from URDF file
@@ -223,13 +226,17 @@ bool MainApplication::setupRobots()
             return false;
         }
 
+        robot_name = robot->name();
+
         // Create meshes for the display of the robot geometries
         for (auto const& geom_ref : robot->blueprint().geometries())
         {
             robotik::Geometry const& geom = geom_ref.get();
-            m_geometry_manager->createMeshFromGeometry(geom);
+            m_geometry_manager->createMeshFromGeometry(geom, robot_name);
         }
     }
+
+    robot_manager.selectRobot(robot_name);
 
     return true;
 }
@@ -310,7 +317,11 @@ void MainApplication::renderRobot(ControlledRobot const& p_robot,
                                   bool p_is_selected) const
 {
     // Render the robot by traversing its blueprint.
+    // Set the namespace of the robot for the render visitor: this avoids
+    // conflicts with other robots.
+    m_render->setMeshNamespace(p_robot.name());
     p_robot.traverse(*m_render);
+    m_render->setMeshNamespace("");
 
     if (p_is_selected)
     {

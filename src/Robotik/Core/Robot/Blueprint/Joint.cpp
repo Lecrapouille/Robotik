@@ -8,7 +8,7 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Joint.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 namespace robotik
 {
@@ -110,13 +110,13 @@ Transform const& Joint::localTransform() const
 }
 
 // ----------------------------------------------------------------------------
-void Joint::accept(NodeVisitor& visitor)
+void Joint::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Joint::accept(ConstNodeVisitor& visitor) const
+void Joint::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }

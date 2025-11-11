@@ -20,8 +20,8 @@ namespace robotik
 {
 
 // Forward declarations for Visitor pattern
-class NodeVisitor;
-class ConstNodeVisitor;
+class RobotVisitor;
+class ConstRobotVisitor;
 
 // ****************************************************************************
 //! \brief Class representing a node inside the tree blueprint.
@@ -193,13 +193,13 @@ public:
     //!
     //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    virtual void accept(NodeVisitor& visitor);
+    virtual void accept(RobotVisitor& visitor);
 
     // ------------------------------------------------------------------------
     //! \brief Accept a const visitor (Visitor pattern).
     //! \param visitor The const visitor to accept.
     // ------------------------------------------------------------------------
-    virtual void accept(ConstNodeVisitor& visitor) const;
+    virtual void accept(ConstRobotVisitor& visitor) const;
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree using a visitor.
@@ -209,13 +209,13 @@ public:
     //!
     //! \param visitor The visitor to use for traversal.
     // ------------------------------------------------------------------------
-    void traverse(NodeVisitor& visitor);
+    void traverse(RobotVisitor& visitor);
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree using a const visitor.
     //! \param visitor The const visitor to use for traversal.
     // ------------------------------------------------------------------------
-    void traverse(ConstNodeVisitor& visitor) const;
+    void traverse(ConstRobotVisitor& visitor) const;
 
     // ------------------------------------------------------------------------
     //! \brief Traverse the node tree recursively and apply a function to each
@@ -232,9 +232,9 @@ public:
     template <
         typename Function,
         typename = typename std::enable_if<
-            !std::is_base_of<ConstNodeVisitor,
+            !std::is_base_of<ConstRobotVisitor,
                              typename std::decay<Function>::type>::value &&
-            !std::is_base_of<NodeVisitor,
+            !std::is_base_of<RobotVisitor,
                              typename std::decay<Function>::type>::value>::type>
     void traverse(Function&& p_function, size_t p_depth = 0) const
     {
@@ -275,9 +275,9 @@ public:
     template <
         typename Function,
         typename = typename std::enable_if<
-            !std::is_base_of<ConstNodeVisitor,
+            !std::is_base_of<ConstRobotVisitor,
                              typename std::decay<Function>::type>::value &&
-            !std::is_base_of<NodeVisitor,
+            !std::is_base_of<RobotVisitor,
                              typename std::decay<Function>::type>::value>::type>
     void traverse(Function&& p_function, size_t p_depth = 0)
     {

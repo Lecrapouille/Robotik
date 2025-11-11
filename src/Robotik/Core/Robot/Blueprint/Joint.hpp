@@ -464,13 +464,13 @@ public:
     //! \brief Accept a visitor (Visitor pattern override).
     //! \param visitor The visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(NodeVisitor& visitor) override;
+    void accept(RobotVisitor& visitor) override;
 
     // ------------------------------------------------------------------------
     //! \brief Accept a const visitor (Visitor pattern override).
     //! \param visitor The const visitor to accept.
     // ------------------------------------------------------------------------
-    void accept(ConstNodeVisitor& visitor) const override;
+    void accept(ConstRobotVisitor& visitor) const override;
 
     // ------------------------------------------------------------------------
     //! \brief Update the associated node's transformation.

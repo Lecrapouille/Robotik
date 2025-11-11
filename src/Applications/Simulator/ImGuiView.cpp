@@ -265,10 +265,16 @@ void ImGuiView::loadRobotPanel()
         {
             std::cout << "✅ Loaded robot from: " << urdf << std::endl;
 
-            std::string robot_name = robot->name();
-            m_application_controller.initializeRobot(*robot);
+            // Create meshes for the display of the robot geometries
+            for (auto const& geom_ref : robot->blueprint().geometries())
+            {
+                robotik::Geometry const& geom = geom_ref.get();
+                // FIXME
+                // m_application_controller.getGeometryManager()
+                //     ->createMeshFromGeometry(geom, robot->name());
+            }
 
-            setSelectedRobot(robot_name);
+            setSelectedRobot(robot->name());
             refreshRobotList();
         }
         else

@@ -8,11 +8,12 @@
 
 #pragma once
 
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
 
 #include <Eigen/Dense>
 #include <string>
+#include <string_view>
 
 // Forward declarations
 namespace robotik
@@ -38,7 +39,7 @@ class ShaderManager;
 //!   robot->blueprint().root().traverse(visitor);
 //! \endcode
 // ****************************************************************************
-class RenderVisitor: public robotik::ConstNodeVisitor
+class RenderVisitor: public robotik::ConstRobotVisitor
 {
 public:
 
@@ -142,6 +143,12 @@ public:
     // ------------------------------------------------------------------------
     void renderJointAxis(robotik::Joint const& p_joint) const;
 
+    // ------------------------------------------------------------------------
+    //! \brief Set namespace prefix for mesh lookup.
+    //! \param p_namespace Namespace string (empty to disable).
+    // ------------------------------------------------------------------------
+    void setMeshNamespace(std::string_view p_namespace);
+
 private:
 
     GeometryManager& m_geometry_manager;
@@ -149,6 +156,7 @@ private:
     bool m_show_joint_axes = false;
     bool m_show_revolute_axes = true;
     bool m_show_prismatic_axes = true;
+    std::string m_mesh_namespace;
 };
 
 } // namespace robotik::renderer

@@ -8,7 +8,7 @@
  */
 
 #include "Robotik/Core/Robot/Blueprint/Geometry.hpp"
-#include "Robotik/Core/Robot/Blueprint/NodeVisitor.hpp"
+#include "Robotik/Core/Robot/RobotVisitor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -406,13 +406,13 @@ bool Geometry::collideCylinderOBB(const Geometry& p_cylinder,
 }
 
 // ----------------------------------------------------------------------------
-void Geometry::accept(NodeVisitor& visitor)
+void Geometry::accept(RobotVisitor& visitor)
 {
     visitor.visit(*this);
 }
 
 // ----------------------------------------------------------------------------
-void Geometry::accept(ConstNodeVisitor& visitor) const
+void Geometry::accept(ConstRobotVisitor& visitor) const
 {
     visitor.visit(*this);
 }
