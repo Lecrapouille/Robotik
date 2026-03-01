@@ -433,6 +433,8 @@ void BehaviorTreeEditor::onDrawControlsWindow()
         drawBlackboardPanel();
         ImGui::Separator();
         drawPropertiesPanel();
+        ImGui::Separator();
+        drawServerPanel();
     }
     ImGui::End();
 }
@@ -1869,6 +1871,140 @@ void BehaviorTreeEditor::subscribeToTreeLoadedSignal()
 void BehaviorTreeEditor::disconnectTreeLoadedSignal()
 {
     m_tree_loaded_connection.reset();
+}
+
+// ============================================================================
+// Server Management
+// ============================================================================
+
+void BehaviorTreeEditor::update()
+{
+    updateServerState();
+}
+
+bool BehaviorTreeEditor::startServer(uint16_t p_port)
+{
+    if (m_server && m_server_enabled)
+    {
+        return true;
+    }
+
+    m_server = std::make_unique<bt::VisualizerServer>();
+    if (m_server->start(p_port))
+    {
+        m_server_port = p_port;
+        m_server_enabled = true;
+        updateStatusMessage("Server started on port " + std::to_string(p_port));
+        return true;
+    }
+
+    m_server.reset();
+    m_server_enabled = false;
+    updateErrorMessage("Failed to start server on port " + std::to_string(p_port));
+    return false;
+}
+
+void BehaviorTreeEditor::stopServer()
+{
+    if (m_server)
+    {
+        m_server->stop();
+        m_server.reset();
+    }
+    m_server_enabled = false;
+    updateStatusMessage("Server stopped");
+}
+
+bool BehaviorTreeEditor::isServerRunning() const
+{
+    return m_server_enabled && m_server != nullptr;
+}
+
+bool BehaviorTreeEditor::isClientConnected() const
+{
+    return m_server && m_server->isConnected();
+}
+
+void BehaviorTreeEditor::updateServerState()
+{
+    if (!m_server || !m_server_enabled)
+    {
+        return;
+    }
+
+    m_server->update();
+
+    // Handle state updates from remote client
+    if (m_server->hasStateUpdate())
+    {
+        // Update local state map based on received states
+        for (auto& node_visual : m_node_visuals)
+        {
+            if (node_visual && node_visual->getBTNode())
+            {
+                bt::Node* bt_node = node_visual->getBTNode();
+                int state = m_server->getNodeState(bt_node->id());
+
+                // Store the status in local map (0=INVALID, 1=RUNNING, 2=SUCCESS, 3=FAILURE)
+                switch (state)
+                {
+                case 1:
+                    m_remote_node_states[bt_node->id()] = bt::Status::RUNNING;
+                    break;
+                case 2:
+                    m_remote_node_states[bt_node->id()] = bt::Status::SUCCESS;
+                    break;
+                case 3:
+                    m_remote_node_states[bt_node->id()] = bt::Status::FAILURE;
+                    break;
+                default:
+                    m_remote_node_states[bt_node->id()] = bt::Status::INVALID;
+                    break;
+                }
+            }
+        }
+        m_server->clearStateUpdate();
+    }
+}
+
+void BehaviorTreeEditor::drawServerPanel()
+{
+    ImGui::Text("Remote Visualization");
+    ImGui::Separator();
+
+    if (m_server_enabled)
+    {
+        ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Server: Running");
+        ImGui::Text("Port: %d", m_server_port);
+
+        if (isClientConnected())
+        {
+            ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Client: Connected");
+        }
+        else
+        {
+            ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f),
+                               "Client: Waiting...");
+        }
+
+        if (ImGui::Button("Stop Server"))
+        {
+            stopServer();
+        }
+    }
+    else
+    {
+        ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "Server: Stopped");
+
+        static int port = 8888;
+        ImGui::InputInt("Port", &port);
+        port = std::clamp(port, 1024, 65535);
+
+        if (ImGui::Button("Start Server"))
+        {
+            startServer(static_cast<uint16_t>(port));
+        }
+    }
 }
 
 } // namespace robotik::application

@@ -16,6 +16,7 @@
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include "Robotik/Core/BehaviorTree/BehaviorTree.hpp"
+#include "Robotik/Core/BehaviorTree/Network/VisualizerServer.hpp"
 #include "Robotik/Core/Common/Signal.hpp"
 
 #include <functional>
@@ -422,6 +423,12 @@ private:
     std::string m_error_message;
     bool m_file_dialog_open = false;
 
+    // === Remote Visualization Server ===
+    std::unique_ptr<bt::VisualizerServer> m_server;
+    bool m_server_enabled = false;
+    uint16_t m_server_port = 8888;
+    std::map<int, bt::Status> m_remote_node_states;
+
     // === Drawing ===
     void updateCanvasRect();
     void updateCanvasScrollZoom();
@@ -491,12 +498,20 @@ private:
     void createNode(BTNodeType type, ImVec2 position);
     void showNodeCreationMenu();
 
+    // === Server Management ===
+    void drawServerPanel();
+    void updateServerState();
+
 public:
 
     explicit BehaviorTreeEditor(
         ApplicationController& application_controller,
         const std::function<void()>& halt_callback = nullptr);
     ~BehaviorTreeEditor();
+
+    //! \brief Update the editor (handle server updates)
+    //! Call this every frame before drawing
+    void update();
 
     //! \brief Draw the main editor window
     void onDrawEditorWindow();
@@ -506,6 +521,20 @@ public:
 
     //! \brief Handle file dialog (must be called each frame)
     void loadTreePanel();
+
+    //! \brief Start the remote visualization server
+    //! \param p_port Port to listen on (default: 8888)
+    //! \return true if server started successfully
+    bool startServer(uint16_t p_port = 8888);
+
+    //! \brief Stop the remote visualization server
+    void stopServer();
+
+    //! \brief Check if server is running
+    bool isServerRunning() const;
+
+    //! \brief Check if a remote client is connected
+    bool isClientConnected() const;
 };
 
 } // namespace robotik::application

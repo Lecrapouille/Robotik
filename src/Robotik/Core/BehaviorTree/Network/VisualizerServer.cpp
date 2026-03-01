@@ -1,33 +1,32 @@
 /**
- * @file Server.cpp
+ * @file VisualizerServer.cpp
  * @brief TCP server implementation using SFML
  *
  * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
  * distributed under MIT License
  */
 
-#include "Server.hpp"
+#include "Robotik/Core/BehaviorTree/Network/VisualizerServer.hpp"
+
 #include <iostream>
 #include <sstream>
 
+namespace robotik::bt {
+
 // ----------------------------------------------------------------------------
-Server::~Server()
+VisualizerServer::~VisualizerServer()
 {
     stop();
 }
 
 // ----------------------------------------------------------------------------
-bool Server::start(uint16_t const p_port)
+bool VisualizerServer::start(uint16_t const p_port)
 {
     m_port = p_port;
 
-    // Create listener
     m_listener = std::make_unique<sf::TcpListener>();
-
-    // Set non-blocking mode
     m_listener->setBlocking(false);
 
-    // Bind to port
     if (m_listener->listen(int(m_port)) != sf::Socket::Done)
     {
         std::cerr << "Failed to bind to port " << int(m_port) << std::endl;
@@ -35,12 +34,13 @@ bool Server::start(uint16_t const p_port)
         return false;
     }
 
-    std::cout << "Server listening on port " << int(m_port) << std::endl;
+    std::cout << "VisualizerServer listening on port " << int(m_port)
+              << std::endl;
     return true;
 }
 
 // ----------------------------------------------------------------------------
-void Server::stop()
+void VisualizerServer::stop()
 {
     if (m_client_socket)
     {
@@ -61,14 +61,13 @@ void Server::stop()
     m_node_states.clear();
     m_states_updated = false;
 
-    std::cout << "Server stopped" << std::endl;
+    std::cout << "VisualizerServer stopped" << std::endl;
 }
 
 // ----------------------------------------------------------------------------
-void Server::parseStatusMessage(std::string const& msg)
+void VisualizerServer::parseStatusMessage(std::string const& msg)
 {
     // Format: "S:node_id:status,node_id:status,...\n"
-    // Skip the "S:" prefix
     if (msg.size() < 3 || msg[0] != 'S' || msg[1] != ':')
     {
         return;
@@ -76,7 +75,6 @@ void Server::parseStatusMessage(std::string const& msg)
 
     std::string data = msg.substr(2);
 
-    // Remove trailing newline if present
     if (!data.empty() && data.back() == '\n')
     {
         data.pop_back();
@@ -87,7 +85,6 @@ void Server::parseStatusMessage(std::string const& msg)
         return;
     }
 
-    // Parse pairs "node_id:status,node_id:status,..."
     std::istringstream stream(data);
     std::string pair;
 
@@ -107,7 +104,6 @@ void Server::parseStatusMessage(std::string const& msg)
         }
         catch (std::exception const&)
         {
-            // Ignore parsing errors
             continue;
         }
     }
@@ -116,7 +112,7 @@ void Server::parseStatusMessage(std::string const& msg)
 }
 
 // ----------------------------------------------------------------------------
-void Server::update()
+void VisualizerServer::update()
 {
     if (!m_listener)
         return;
@@ -128,7 +124,7 @@ void Server::update()
 
         if (m_listener->accept(*m_client_socket) == sf::Socket::Done)
         {
-            std::cout << "Client connected: "
+            std::cout << "Visualizer client connected: "
                       << m_client_socket->getRemoteAddress() << ":"
                       << m_client_socket->getRemotePort() << std::endl;
 
@@ -172,7 +168,7 @@ void Server::update()
                 if (message.rfind("YAML:", 0) == 0)
                 {
                     // YAML message - accumulate until END_YAML
-                    m_yaml_data += message.substr(5); // Remove "YAML:" prefix
+                    m_yaml_data += message.substr(5);
                 }
                 else if (message.rfind("END_YAML", 0) == 0)
                 {
@@ -206,7 +202,7 @@ void Server::update()
         }
         else if (status == sf::Socket::Disconnected)
         {
-            std::cout << "Client disconnected" << std::endl;
+            std::cout << "Visualizer client disconnected" << std::endl;
             m_client_socket.reset();
             m_connected = false;
             m_yaml_data.clear();
@@ -215,6 +211,7 @@ void Server::update()
             m_node_states.clear();
             m_states_updated = false;
         }
-        // sf::Socket::NotReady is normal in non-blocking mode
     }
 }
+
+} // namespace robotik::bt
