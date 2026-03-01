@@ -61,16 +61,6 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 #
 PKG_LIBS += glfw3 glew gl
 
-###############################################################################
-# Set YAML-CPP library (for BehaviorTree IDE)
-#
-PKG_LIBS += yaml-cpp
-
-###############################################################################
-# Set SFML Network library (for BehaviorTree Server)
-#
-PKG_LIBS += sfml-network
-
 ###################################################
 # Set third party Dear ImGui
 #

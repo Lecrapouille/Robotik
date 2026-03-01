@@ -403,6 +403,7 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 void MainApplication::onUpdate(float const p_dt)
 {
     m_application_controller->update(p_dt);
+    m_behavior_tree_editor->update();
 }
 
 // ----------------------------------------------------------------------------

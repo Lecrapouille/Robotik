@@ -15,18 +15,20 @@
 #include <string>
 #include <unordered_map>
 
+namespace robotik::bt {
+
 // ****************************************************************************
-//! \briefTCP server that receives behavior tree data from clients
+//! \brief TCP server that receives behavior tree data from clients
 //!
 //! The server listens for incoming connections and receives YAML data
 //! representing behavior trees. This allows runtime visualization of
 //! behavior trees running in other processes.
 // ****************************************************************************
-class Server
+class VisualizerServer
 {
 public:
 
-    ~Server();
+    ~VisualizerServer();
 
     // ------------------------------------------------------------------------
     //! \brief Start the TCP server
@@ -121,7 +123,7 @@ private:
     bool m_has_tree = false;
     uint16_t m_port = 8888;
     std::string m_yaml_data;
-    std::string m_receive_buffer; //!< Buffer for partial messages
+    std::string m_receive_buffer;
 
     //! \brief Node states by node ID (0=INVALID, 1=RUNNING, 2=SUCCESS,
     //! 3=FAILURE)
@@ -129,3 +131,5 @@ private:
     //! \brief Flag indicating if states have been updated since last read
     bool m_states_updated = false;
 };
+
+} // namespace robotik::bt
