@@ -10,7 +10,7 @@
 #include "Robotik/Core/Managers/BehaviorTreeManager.hpp"
 
 #include "Robotik/Core/BehaviorTree/Actions/RobotActions.hpp"
-#include "Robotik/Core/BehaviorTree/Builder.hpp"
+#include "Robotik/Core/BehaviorTree/Builder/Builder.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
@@ -174,12 +174,12 @@ void BehaviorTreeManager::registerRobotActions(
     TrajectoryController& p_trajectory_controller)
 {
     // Use the helper function from RobotActions
-    robotik::registerRobotActions(*m_factory,
-                                  p_robot,
-                                  p_teach_pendant,
-                                  p_ik_solver,
-                                  p_trajectory_controller,
-                                  m_blackboard);
+    bt::registerRobotActions(*m_factory,
+                             p_robot,
+                             p_teach_pendant,
+                             p_ik_solver,
+                             p_trajectory_controller,
+                             m_blackboard);
 }
 
 // ----------------------------------------------------------------------------

@@ -15,7 +15,7 @@ C++ robotics library for simulation and visualization of robot (libraries and st
 Prerequisites:
 
 ```bash
-sudo apt-get install libeigen3-dev libgl1-mesa-dev libglew-dev libglfw3-dev
+sudo apt-get install libeigen3-dev libgl1-mesa-dev libglew-dev libglfw3-dev swi-prolog-dev swi-prolog
 ```
 
 Compilation:
@@ -123,6 +123,12 @@ Robotik/
 - Inverse kinematics solvers.
 - Jacobian-based iterative method with damping.
 - Computes joint values for desired end-effector pose.
+
+**🧠 Prolog (robotik::prolog)**
+
+- SWI-Prolog integration for logic-based reasoning.
+- Useful for behavior trees, decision making, and rule-based AI.
+- See [doc/Prolog-API.md](doc/Prolog-API.md) for the complete API reference.
 
 #### Viewer Module (robotik::renderer)
 

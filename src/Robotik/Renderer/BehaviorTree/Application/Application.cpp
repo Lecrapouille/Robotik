@@ -1,0 +1,229 @@
+/**
+ * @file Application.cpp
+ * @brief Implementation of ImGui-only application base class.
+ *
+ * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
+ * distributed under MIT License
+ */
+
+#include "Application.hpp"
+
+#include <iostream>
+
+namespace robotik::bt {
+
+// ----------------------------------------------------------------------------
+BTApplication::BTApplication(size_t const p_width, size_t const p_height)
+    : m_width(p_width), m_height(p_height)
+{
+}
+
+// ----------------------------------------------------------------------------
+BTApplication::~BTApplication()
+{
+    shutdownImGui();
+    shutdownWindow();
+}
+
+// ----------------------------------------------------------------------------
+bool BTApplication::initWindow()
+{
+    if (!glfwInit())
+    {
+        m_error = "Failed to initialize GLFW";
+        return false;
+    }
+
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    m_window = glfwCreateWindow(static_cast<int>(m_width),
+                                static_cast<int>(m_height),
+                                "Application",
+                                nullptr,
+                                nullptr);
+    if (!m_window)
+    {
+        m_error = "Failed to create GLFW window";
+        glfwTerminate();
+        return false;
+    }
+
+    glfwMakeContextCurrent(m_window);
+    glfwSwapInterval(1); // Enable vsync
+
+    if (glewInit() != GLEW_OK)
+    {
+        m_error = "Failed to initialize GLEW";
+        return false;
+    }
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+bool BTApplication::initImGui()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+    ImGui::StyleColorsDark();
+
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    ImGui_ImplGlfw_InitForOpenGL(m_window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+void BTApplication::shutdownImGui()
+{
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+
+// ----------------------------------------------------------------------------
+void BTApplication::shutdownWindow()
+{
+    if (m_window)
+    {
+        glfwDestroyWindow(m_window);
+        m_window = nullptr;
+    }
+    glfwTerminate();
+}
+
+// ----------------------------------------------------------------------------
+void BTApplication::setTitle(std::string const& p_title)
+{
+    if (m_window)
+    {
+        glfwSetWindowTitle(m_window, p_title.c_str());
+    }
+}
+
+// ----------------------------------------------------------------------------
+bool BTApplication::run()
+{
+    if (!initWindow())
+    {
+        return false;
+    }
+
+    if (!initImGui())
+    {
+        return false;
+    }
+
+    if (!onSetup())
+    {
+        return false;
+    }
+
+    m_last_time = glfwGetTime();
+    m_running = true;
+
+    while (m_running && !glfwWindowShouldClose(m_window))
+    {
+        processFrame();
+    }
+
+    onTeardown();
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+void BTApplication::setupDockspace()
+{
+    ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+
+    ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar |
+                                    ImGuiWindowFlags_NoDocking |
+                                    ImGuiWindowFlags_NoTitleBar |
+                                    ImGuiWindowFlags_NoCollapse |
+                                    ImGuiWindowFlags_NoResize |
+                                    ImGuiWindowFlags_NoMove |
+                                    ImGuiWindowFlags_NoBringToFrontOnFocus |
+                                    ImGuiWindowFlags_NoNavFocus;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+    ImGui::Begin("DockSpace", nullptr, window_flags);
+    ImGui::PopStyleVar(3);
+
+    ImGuiID dockspace_id = ImGui::GetID("MainDockSpace");
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+
+    if (ImGui::BeginMenuBar())
+    {
+        onDrawMenuBar();
+        ImGui::EndMenuBar();
+    }
+
+    ImGui::End();
+}
+
+// ----------------------------------------------------------------------------
+void BTApplication::processFrame()
+{
+    glfwPollEvents();
+
+    double current_time = glfwGetTime();
+    float dt = static_cast<float>(current_time - m_last_time);
+    m_last_time = current_time;
+
+    onUpdate(dt);
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    setupDockspace();
+    onDrawMainPanel();
+    onDrawSidePanel();
+    onDrawStatusBar();
+
+    ImGui::Render();
+
+    int display_w, display_h;
+    glfwGetFramebufferSize(m_window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        GLFWwindow* backup_current_context = glfwGetCurrentContext();
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(backup_current_context);
+    }
+
+    glfwSwapBuffers(m_window);
+}
+
+} // namespace robotik::bt

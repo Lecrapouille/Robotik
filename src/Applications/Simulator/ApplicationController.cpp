@@ -68,7 +68,7 @@ ApplicationController::loadRobot(std::string const& p_urdf_file)
 void ApplicationController::initializeBehaviorTree(ControlledRobot& p_robot)
 {
     // Register robot-specific actions in the behavior tree factory
-    robotik::registerRobotActions(m_behavior_tree_manager->getFactory(),
+    bt::registerRobotActions(m_behavior_tree_manager->getFactory(),
                                   p_robot,
                                   *m_teach_pendant,
                                   *m_ik_solver,
