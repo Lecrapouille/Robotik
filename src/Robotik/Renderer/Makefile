@@ -61,6 +61,16 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 #
 PKG_LIBS += glfw3 glew gl
 
+###############################################################################
+# Set YAML-CPP library (for BehaviorTree IDE)
+#
+PKG_LIBS += yaml-cpp
+
+###############################################################################
+# Set SFML Network library (for BehaviorTree Server)
+#
+PKG_LIBS += sfml-network
+
 ###################################################
 # Set third party Dear ImGui
 #
@@ -73,6 +83,14 @@ LIB_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
 LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
 LIB_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
+
+###################################################
+# Set third party ImGuiFileDialog (for BehaviorTree IDE)
+#
+IMGUIFILEDIALOG_DIR := $(THIRD_PARTIES_DIR)/ImGuiFileDialog
+INCLUDES += $(IMGUIFILEDIALOG_DIR)
+VPATH += $(IMGUIFILEDIALOG_DIR)
+LIB_FILES += $(IMGUIFILEDIALOG_DIR)/ImGuiFileDialog.cpp
 
 ###############################################################################
 # Sharable information between all Makefiles

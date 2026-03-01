@@ -55,6 +55,13 @@ LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
 
 ###############################################################################
+# Set pugixml library (from thirdparties)
+#
+LIB_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp
+INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
+USER_CXXFLAGS += -Wno-switch-enum
+
+###############################################################################
 # Set Eigen3 library
 #
 PKG_LIBS += eigen3
@@ -67,11 +74,14 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 PKG_LIBS += yaml-cpp
 
 ###############################################################################
-# Set pugixml library
+# Set SFML Network library (for VisualizerClient)
 #
-LIB_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp
-INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
-USER_CXXFLAGS += -Wno-switch-enum
+PKG_LIBS += sfml-network
+
+###############################################################################
+# Set SWI-Prolog library
+#
+PKG_LIBS += swipl
 
 ###############################################################################
 # Set units library

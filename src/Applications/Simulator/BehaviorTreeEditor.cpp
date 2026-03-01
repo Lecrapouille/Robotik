@@ -194,6 +194,7 @@ BTNodeVisual::BTNodeVisual(bt::Node* node,
         case BTNodeType::Condition:
             m_color_node = ImColor(200, 200, 100);
             break;
+        case BTNodeType::Unknown:
         default:
             m_color_node = ImColor(150, 150, 150);
             break;
@@ -222,7 +223,7 @@ void BTNodeVisual::buildGeometry()
     float outputs_height = 0.0f;
     if (!m_output_ports.empty())
     {
-        outputs_height = port_spacing * m_output_ports.size();
+        outputs_height = port_spacing * float(m_output_ports.size());
     }
     m_body_height = std::max(40.0f, outputs_height + padding * 2);
 
@@ -239,10 +240,10 @@ void BTNodeVisual::buildGeometry()
 
     // Position output ports (bottom)
     m_output_port_start = ImVec2(0, node_height);
-    float x_step = node_width / (m_output_ports.size() + 1);
+    float x_step = node_width / (float(m_output_ports.size()) + 1.0f);
     for (size_t i = 0; i < m_output_ports.size(); ++i)
     {
-        float x = x_step * (i + 1);
+        float x = x_step * (float(i) + 1.0f);
         m_output_ports[i].setPosition(ImVec2(x, node_height));
     }
 }
@@ -346,7 +347,7 @@ void BTNodeVisual::draw(ImDrawList* draw_list, ImVec2 offset, float scale) const
     if (m_bt_node)
     {
         ImColor status_color;
-        switch (m_bt_node->getStatus())
+        switch (m_bt_node->status())
         {
             case bt::Status::SUCCESS:
                 status_color = ImColor(0, 255, 0, 150);
@@ -357,6 +358,7 @@ void BTNodeVisual::draw(ImDrawList* draw_list, ImVec2 offset, float scale) const
             case bt::Status::RUNNING:
                 status_color = ImColor(255, 165, 0, 150);
                 break;
+            case bt::Status::INVALID:
             default:
                 status_color = ImColor(100, 100, 100, 50);
                 break;
@@ -391,7 +393,7 @@ void BehaviorTreeEditor::onDrawEditorWindow()
                      ImGuiWindowFlags_NoScrollbar |
                          ImGuiWindowFlags_NoScrollWithMouse))
     {
-        auto& bt_manager = m_application_controller.getBehaviorTreeManager();
+        auto const& bt_manager = m_application_controller.getBehaviorTreeManager();
         if (bt_manager.hasTree())
         {
             updateCanvasRect();
@@ -1302,8 +1304,8 @@ std::string BehaviorTreeEditor::getNodeDisplayName(bt::Node* node) const
 
     if (!node->name.empty())
         return node->name;
-    if (!node->m_type.empty())
-        return node->m_type;
+    if (!node->type().empty())
+        return node->type();
 
     BTNodeType type = detectNodeType(node);
     switch (type)
@@ -1320,6 +1322,7 @@ std::string BehaviorTreeEditor::getNodeDisplayName(bt::Node* node) const
             return "Action";
         case BTNodeType::Condition:
             return "Condition";
+        case BTNodeType::Unknown:
         default:
             return "Node";
     }
@@ -1643,10 +1646,10 @@ void BehaviorTreeEditor::drawBlackboardPanel()
             ImGui::TableNextColumn();
 
             // Try different types
-            auto [double_val, found_double] = blackboard->get<double>(key);
-            if (found_double)
+            auto found_double = blackboard->get<double>(key);
+            if (found_double.has_value())
             {
-                double edited_val = double_val;
+                double edited_val = found_double.value();
                 ImGui::PushItemWidth(-1);
                 if (ImGui::InputDouble(("##" + key).c_str(), &edited_val))
                 {
@@ -1656,12 +1659,12 @@ void BehaviorTreeEditor::drawBlackboardPanel()
             }
             else
             {
-                auto [string_val, found_string] =
+                auto found_string =
                     blackboard->get<std::string>(key);
-                if (found_string)
+                if (found_string.has_value())
                 {
                     char buffer[256];
-                    strncpy(buffer, string_val.c_str(), sizeof(buffer));
+                    strncpy(buffer, found_string.value().c_str(), sizeof(buffer));
                     buffer[sizeof(buffer) - 1] = '\0';
 
                     ImGui::PushItemWidth(-1);
@@ -1674,15 +1677,16 @@ void BehaviorTreeEditor::drawBlackboardPanel()
                 }
                 else
                 {
-                    auto [vec_val, found_vec] =
+                    auto found_vec =
                         blackboard->get<std::vector<double>>(key);
-                    if (found_vec)
+                    if (found_vec.has_value())
                     {
+                        auto const& vec_value = found_vec.value();
                         std::string vec_str = "[";
-                        for (size_t i = 0; i < vec_val.size(); ++i)
+                        for (size_t i = 0; i < vec_value.size(); ++i)
                         {
-                            vec_str += std::to_string(vec_val[i]);
-                            if (i < vec_val.size() - 1)
+                            vec_str += std::to_string(vec_value[i]);
+                            if (i < vec_value.size() - 1)
                                 vec_str += ", ";
                         }
                         vec_str += "]";
@@ -1699,7 +1703,7 @@ void BehaviorTreeEditor::drawBlackboardPanel()
             ImGui::TableNextColumn();
             if (ImGui::SmallButton(("Del##" + key).c_str()))
             {
-                // TODO: Implement deletion
+                blackboard->remove(key);
             }
         }
 
@@ -1708,7 +1712,7 @@ void BehaviorTreeEditor::drawBlackboardPanel()
 
     if (ImGui::Button("➕ Add Entry"))
     {
-        // TODO: Implement add entry dialog
+       std::cerr << "Add entry dialog not implemented" << std::endl;
     }
 }
 
@@ -1736,6 +1740,7 @@ void BehaviorTreeEditor::drawPropertiesPanel()
                                 return "Action";
                             case BTNodeType::Condition:
                                 return "Condition";
+                            case BTNodeType::Unknown:
                             default:
                                 return "Unknown";
                         }
@@ -1744,7 +1749,7 @@ void BehaviorTreeEditor::drawPropertiesPanel()
         if (m_highlighted_node->getBTNode())
         {
             bt::Node* node = m_highlighted_node->getBTNode();
-            ImGui::Text("Status: %s", bt::to_string(node->getStatus()).c_str());
+            ImGui::Text("Status: %s", bt::to_string(node->status()).c_str());
         }
     }
     else

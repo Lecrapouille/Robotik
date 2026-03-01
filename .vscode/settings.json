@@ -4,8 +4,36 @@
     "coverage-gutters.showLineCoverage": true,
     "coverage-gutters.showRulerCoverage": true,
     // clang-format
-    "clang-format.executable": "clang-format",
     "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "editor.formatOnPaste": false
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "editor.formatOnPaste": false
+    },
+    "[hpp]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "editor.formatOnPaste": false
+    },
+    "[h]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.formatOnType": false,
+        "editor.formatOnPaste": false
+    },
+    // Configuration pour l'extension clang-format dédiée (xaver.clang-format)
+    "clang-format.executable": "/usr/bin/clang-format",
+    "clang-format.style": "file",
+    "clang-format.fallbackStyle": "Google",
     // Error squiggles
     "C_Cpp.errorSquiggles": "enabled",
     // Remove trailing whitespace
