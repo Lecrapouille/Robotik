@@ -517,7 +517,11 @@ void MainApplication::onScroll(double xoffset, double yoffset)
 // ----------------------------------------------------------------------------
 void MainApplication::onTeardown()
 {
-    m_bt_editor->shutdown();
+    if (m_bt_editor)
+    {
+        m_bt_editor->shutdown();
+        m_bt_editor.reset();
+    }
     m_render.reset();
     m_geometry_manager.reset();
     m_shader_manager.reset();

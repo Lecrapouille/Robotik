@@ -27,11 +27,28 @@ OpenGLApplication::OpenGLApplication(size_t const p_width,
 // ----------------------------------------------------------------------------
 OpenGLApplication::~OpenGLApplication()
 {
+    // Ensure ImGui is properly shutdown before destroying window
+    if (m_imgui_app)
+    {
+        m_imgui_app->teardown();
+        m_imgui_app.reset();
+    }
+
     if (m_window)
     {
         glfwDestroyWindow(m_window);
+        m_window = nullptr;
     }
-    glfwTerminate();
+
+    if (m_glfw_initialized)
+    {
+        // Drain any pending Wayland events before disconnecting the display.
+        // Without this, the NVIDIA EGL Wayland driver can leave queued closures
+        // referencing freed memory, causing a segfault inside glfwTerminate().
+        glfwPollEvents();
+        glfwTerminate();
+        m_glfw_initialized = false;
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -166,6 +183,7 @@ bool OpenGLApplication::initializeGLFW()
         m_error = "Failed to initialize GLFW";
         return false;
     }
+    m_glfw_initialized = true;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -184,7 +202,6 @@ bool OpenGLApplication::createWindow()
     if (!m_window)
     {
         m_error = "Failed to create GLFW window";
-        glfwTerminate();
         return false;
     }
 
@@ -215,7 +232,6 @@ bool OpenGLApplication::initializeGlew()
         {
             m_error = "Failed to initialize GLEW: ";
             m_error += reinterpret_cast<const char*>(glewGetErrorString(err));
-            glfwTerminate();
             return false;
         }
     }
@@ -227,7 +243,6 @@ bool OpenGLApplication::initializeGlew()
             reinterpret_cast<const char*>(glGetString(GL_VERSION));
         m_error = "OpenGL 3.3 not supported. Available: ";
         m_error += version ? version : "unknown";
-        glfwTerminate();
         return false;
     }
 

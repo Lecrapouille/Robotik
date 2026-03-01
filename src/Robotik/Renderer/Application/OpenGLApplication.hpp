@@ -159,6 +159,7 @@ private:
     size_t m_height;
     GLFWwindow* m_window = nullptr;
     std::string m_title;
+    bool m_glfw_initialized = false;
 
     // ImGui integration
     bool m_imgui_enabled;
