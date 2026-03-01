@@ -14,6 +14,7 @@
 // Forward declarations in robotik namespace
 namespace robotik {
 class Robot;
+class RobotManager;
 class TeachPendant;
 class IKSolver;
 class TrajectoryController;
@@ -27,7 +28,7 @@ class HomingAction final: public Leaf
 {
 public:
 
-    HomingAction(Robot& p_robot,
+    HomingAction(RobotManager& p_robot_manager,
                  TrajectoryController& p_trajectory_controller,
                  Blackboard::Ptr p_blackboard);
     Status onRunning() override;
@@ -37,7 +38,7 @@ public:
 
 private:
 
-    Robot& m_robot;
+    RobotManager& m_robot_manager;
     TrajectoryController& m_trajectory_controller;
     bool m_started = false;
 };
@@ -50,7 +51,7 @@ class MoveToJointPoseAction final: public Leaf
 {
 public:
 
-    MoveToJointPoseAction(Robot& p_robot,
+    MoveToJointPoseAction(RobotManager& p_robot_manager,
                           TrajectoryController& p_trajectory_controller,
                           Blackboard::Ptr p_blackboard);
     Status onRunning() override;
@@ -60,7 +61,7 @@ public:
 
 private:
 
-    Robot& m_robot;
+    RobotManager& m_robot_manager;
     TrajectoryController& m_trajectory_controller;
     bool m_started = false;
 };
@@ -73,7 +74,7 @@ class MoveToCartesianPoseAction final: public Leaf
 {
 public:
 
-    MoveToCartesianPoseAction(Robot& p_robot,
+    MoveToCartesianPoseAction(RobotManager& p_robot_manager,
                               IKSolver& p_ik_solver,
                               TrajectoryController& p_trajectory_controller,
                               Blackboard::Ptr p_blackboard);
@@ -84,7 +85,7 @@ public:
 
 private:
 
-    Robot& m_robot;
+    RobotManager& m_robot_manager;
     IKSolver& m_ik_solver;
     TrajectoryController& m_trajectory_controller;
     bool m_started = false;
@@ -125,14 +126,14 @@ class IsAtPoseCondition final: public Leaf
 {
 public:
 
-    IsAtPoseCondition(Robot& p_robot, Blackboard::Ptr p_blackboard);
+    IsAtPoseCondition(RobotManager& p_robot_manager, Blackboard::Ptr p_blackboard);
     Status onRunning() override;
     void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
     void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
 
 private:
 
-    Robot& m_robot;
+    RobotManager& m_robot_manager;
 };
 
 // ****************************************************************************
@@ -152,14 +153,14 @@ public:
 // ****************************************************************************
 //! \brief Helper function to register all built-in robot actions.
 //! \param p_factory Node factory to register actions in.
-//! \param p_robot Robot to control.
+//! \param p_robot_manager Robot manager to get the current robot.
 //! \param p_teach_pendant Teach pendant for robot control.
 //! \param p_ik_solver IK solver for cartesian movements.
 //! \param p_trajectory_controller Trajectory controller for smooth movements.
 //! \param p_blackboard Blackboard for sharing data.
 // ****************************************************************************
 void registerRobotActions(NodeFactory& p_factory,
-                          Robot& p_robot,
+                          RobotManager& p_robot_manager,
                           TeachPendant& p_teach_pendant,
                           IKSolver& p_ik_solver,
                           TrajectoryController& p_trajectory_controller,

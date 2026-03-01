@@ -18,6 +18,11 @@
 #include <string>
 #include <vector>
 
+namespace robotik::renderer
+{
+class BTEditor;
+}
+
 namespace robotik::application
 {
 
@@ -71,6 +76,12 @@ public:
     //! \brief Render the trajectory dockable window.
     // ----------------------------------------------------------------------------
     void onDrawTrajectoryWindow();
+
+    // ----------------------------------------------------------------------------
+    //! \brief Render the behavior tree controls window.
+    //! \param p_bt_editor Reference to the behavior tree editor.
+    // ----------------------------------------------------------------------------
+    void onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor);
 
     // ----------------------------------------------------------------------------
     //! \brief Signal emitted when user selects a robot in the UI.
@@ -317,6 +328,12 @@ private:
     std::string m_error;
     //! \brief Flag to show add frames dialog
     bool m_show_add_frame_dialog = false;
+    //! \brief Flag to show BT file dialog
+    bool m_bt_file_dialog_open = false;
+    //! \brief BT status message
+    std::string m_bt_status_message;
+    //! \brief BT error message
+    std::string m_bt_error_message;
 };
 
 } // namespace robotik::application

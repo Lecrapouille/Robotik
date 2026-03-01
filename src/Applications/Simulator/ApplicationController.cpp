@@ -8,7 +8,6 @@
  */
 
 #include "ApplicationController.hpp"
-#include "Robotik/Core/BehaviorTree/Actions/RobotActions.hpp"
 #include "Robotik/Core/Robot/Blueprint/Node.hpp"
 #include "Robotik/Core/Robot/Debug.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
@@ -30,6 +29,9 @@ ApplicationController::ApplicationController(Configuration const& p_config)
     m_waypoint_manager = std::make_unique<WaypointManager>();
     m_trajectory_controller = std::make_unique<TrajectoryController>();
     m_behavior_tree_manager = std::make_unique<BehaviorTreeManager>();
+
+    // Register robot actions once with the RobotManager (not per-robot)
+    initializeBehaviorTree();
 }
 
 // ----------------------------------------------------------------------------
@@ -58,22 +60,17 @@ ApplicationController::loadRobot(std::string const& p_urdf_file)
         return nullptr;
     }
 
-    // Initialize behavior tree with this robot
-    initializeBehaviorTree(*robot);
-
     return robot;
 }
 
 // ----------------------------------------------------------------------------
-void ApplicationController::initializeBehaviorTree(ControlledRobot& p_robot)
+void ApplicationController::initializeBehaviorTree()
 {
-    // Register robot-specific actions in the behavior tree factory
-    bt::registerRobotActions(m_behavior_tree_manager->getFactory(),
-                                  p_robot,
-                                  *m_teach_pendant,
-                                  *m_ik_solver,
-                                  *m_trajectory_controller,
-                                  m_behavior_tree_manager->getBlackboard());
+    // Register robot-specific actions with RobotManager (uses currentRobot())
+    m_behavior_tree_manager->registerRobotActions(*m_robot_manager,
+                                                  *m_teach_pendant,
+                                                  *m_ik_solver,
+                                                  *m_trajectory_controller);
 
     std::cout << "✅ Registered robot actions in behavior tree factory"
               << std::endl;

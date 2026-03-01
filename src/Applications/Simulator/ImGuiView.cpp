@@ -11,8 +11,11 @@
 
 #include "ImGuiFileDialog/ImGuiFileDialog.h"
 #include "Robotik/Core/Exporters/RobotExporterFactory.hpp"
+#include "Robotik/Core/Managers/BehaviorTreeManager.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
+#include "Robotik/Renderer/BehaviorTree/BTEditor.hpp"
+#include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "project_info.hpp"
 
 #include <algorithm>
@@ -259,19 +262,19 @@ void ImGuiView::loadRobotPanel()
     if (ImGuiFileDialog::Instance()->IsOk())
     {
         std::string urdf = ImGuiFileDialog::Instance()->GetFilePathName();
-        auto* robot = m_application_controller.getRobotManager()
-                          .loadRobot<ControlledRobot>(urdf);
+        auto* robot = m_application_controller.loadRobot(urdf);
         if (robot != nullptr)
         {
             std::cout << "✅ Loaded robot from: " << urdf << std::endl;
 
             // Create meshes for the display of the robot geometries
-            for (auto const& geom_ref : robot->blueprint().geometries())
+            if (auto* geom_manager = m_application_controller.getGeometryManager())
             {
-                robotik::Geometry const& geom = geom_ref.get();
-                // FIXME
-                // m_application_controller.getGeometryManager()
-                //     ->createMeshFromGeometry(geom, robot->name());
+                for (auto const& geom_ref : robot->blueprint().geometries())
+                {
+                    robotik::Geometry const& geom = geom_ref.get();
+                    geom_manager->createMeshFromGeometry(geom, robot->name());
+                }
             }
 
             setSelectedRobot(robot->name());
@@ -280,8 +283,7 @@ void ImGuiView::loadRobotPanel()
         else
         {
             std::cerr << "❌ Failed to load robot: "
-                      << m_application_controller.getRobotManager().error()
-                      << std::endl;
+                      << m_application_controller.error() << std::endl;
         }
     }
     ImGuiFileDialog::Instance()->Close();
@@ -1397,6 +1399,129 @@ void ImGuiView::drawSceneGraphNode(::robotik::Node const& p_node,
         }
 
         ImGui::TreePop();
+    }
+}
+
+// ----------------------------------------------------------------------------
+void ImGuiView::onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor)
+{
+    if (ImGui::Begin("Behavior Tree Controls"))
+    {
+        ImGui::Text("File Controls");
+
+        if (ImGui::Button("Load Tree"))
+        {
+            IGFD::FileDialogConfig cfg;
+            ImGuiFileDialog::Instance()->OpenDialog(
+                "ChooseBehaviorTree",
+                "Choose Behavior Tree YAML",
+                ".yaml,.yml",
+                cfg);
+            m_bt_file_dialog_open = true;
+        }
+
+        ImGui::SameLine();
+
+        if (!p_bt_editor.getFilePath().empty())
+        {
+            if (ImGui::Button("Save"))
+            {
+                p_bt_editor.saveToYaml(p_bt_editor.getFilePath());
+                m_bt_status_message = "Saved: " + p_bt_editor.getFilePath();
+            }
+        }
+
+        ImGui::Separator();
+
+        if (!m_bt_status_message.empty())
+        {
+            ImGui::TextWrapped("%s", m_bt_status_message.c_str());
+        }
+        if (!m_bt_error_message.empty())
+        {
+            ImGui::TextColored(
+                ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "%s", m_bt_error_message.c_str());
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Execution Controls");
+
+        auto& bt_manager = m_application_controller.getBehaviorTreeManager();
+
+        if (!bt_manager.hasTree())
+        {
+            ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "No tree loaded");
+        }
+        else
+        {
+            bool is_playing = bt_manager.isPlaying();
+
+            if (!is_playing)
+            {
+                if (ImGui::Button("Play", ImVec2(100, 0)))
+                {
+                    bt_manager.play();
+                }
+            }
+            else
+            {
+                if (ImGui::Button("Stop", ImVec2(100, 0)))
+                {
+                    bt_manager.stop();
+                }
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Step", ImVec2(100, 0)))
+            {
+                bt_manager.step(0.016f);
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Reset", ImVec2(100, 0)))
+            {
+                bt_manager.reset();
+            }
+
+            ImGui::Separator();
+            if (is_playing)
+            {
+                ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Status: Playing");
+            }
+            else
+            {
+                ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Status: Stopped");
+            }
+        }
+    }
+    ImGui::End();
+
+    // Handle file dialog
+    if (m_bt_file_dialog_open &&
+        ImGuiFileDialog::Instance()->Display("ChooseBehaviorTree"))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk())
+        {
+            std::string file_path =
+                ImGuiFileDialog::Instance()->GetFilePathName();
+
+            p_bt_editor.loadFromYaml(file_path);
+
+            if (!p_bt_editor.getNodes().empty())
+            {
+                m_bt_status_message = "Loaded: " + file_path;
+                m_bt_error_message.clear();
+            }
+            else
+            {
+                m_bt_error_message = "Failed to load: " + file_path;
+            }
+        }
+
+        ImGuiFileDialog::Instance()->Close();
+        m_bt_file_dialog_open = false;
     }
 }
 

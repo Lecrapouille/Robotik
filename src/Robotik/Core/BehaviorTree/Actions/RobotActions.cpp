@@ -10,6 +10,7 @@
 #include "Robotik/Core/BehaviorTree/Actions/RobotActions.hpp"
 
 #include "Robotik/Core/Common/Conversions.hpp"
+#include "Robotik/Core/Managers/RobotManager.hpp"
 #include "Robotik/Core/Robot/Robot.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
 #include "Robotik/Core/Solvers/IKSolver.hpp"
@@ -23,10 +24,10 @@ namespace robotik::bt {
 // HomingAction
 // ============================================================================
 
-HomingAction::HomingAction(Robot& p_robot,
+HomingAction::HomingAction(RobotManager& p_robot_manager,
                            TrajectoryController& p_trajectory_controller,
                            Blackboard::Ptr p_blackboard)
-    : m_robot(p_robot),
+    : m_robot_manager(p_robot_manager),
       m_trajectory_controller(p_trajectory_controller)
 {
     setBlackboard(p_blackboard);
@@ -34,19 +35,26 @@ HomingAction::HomingAction(Robot& p_robot,
 
 Status HomingAction::onRunning()
 {
+    Robot* robot = m_robot_manager.currentRobot();
+    if (!robot)
+    {
+        std::cerr << "Homing: no robot selected" << std::endl;
+        return Status::FAILURE;
+    }
+
     if (!m_started)
     {
-        auto const& home_positions = m_robot.homePosition();
+        auto const& home_positions = robot->homePosition();
         if (home_positions.empty())
         {
             std::cerr << "Homing: robot has no home position set" << std::endl;
             return Status::FAILURE;
         }
 
-        if (home_positions.size() != m_robot.blueprint().numJoints())
+        if (home_positions.size() != robot->blueprint().numJoints())
         {
             std::cerr << "Homing: home position size mismatch (expected "
-                      << m_robot.blueprint().numJoints() << ", got "
+                      << robot->blueprint().numJoints() << ", got "
                       << home_positions.size() << ")" << std::endl;
             return Status::FAILURE;
         }
@@ -54,7 +62,7 @@ Status HomingAction::onRunning()
         double duration = m_blackboard->getOrDefault<double>("movement_duration", 2.0);
 
         if (!m_trajectory_controller.goToWaypoint(
-                m_robot.states().joint_positions, home_positions, duration))
+                robot->states().joint_positions, home_positions, duration))
         {
             std::cerr << "Homing: failed to start trajectory" << std::endl;
             return Status::FAILURE;
@@ -90,10 +98,10 @@ void HomingAction::onHalt()
 // ============================================================================
 
 MoveToJointPoseAction::MoveToJointPoseAction(
-    Robot& p_robot,
+    RobotManager& p_robot_manager,
     TrajectoryController& p_trajectory_controller,
     Blackboard::Ptr p_blackboard)
-    : m_robot(p_robot),
+    : m_robot_manager(p_robot_manager),
       m_trajectory_controller(p_trajectory_controller)
 {
     setBlackboard(p_blackboard);
@@ -101,6 +109,13 @@ MoveToJointPoseAction::MoveToJointPoseAction(
 
 Status MoveToJointPoseAction::onRunning()
 {
+    Robot* robot = m_robot_manager.currentRobot();
+    if (!robot)
+    {
+        std::cerr << "MoveToJointPose: no robot selected" << std::endl;
+        return Status::FAILURE;
+    }
+
     if (!m_started)
     {
         auto joint_positions = m_blackboard->get<std::vector<double>>("joint_positions");
@@ -111,10 +126,10 @@ Status MoveToJointPoseAction::onRunning()
             return Status::FAILURE;
         }
 
-        if (joint_positions->size() != m_robot.blueprint().numJoints())
+        if (joint_positions->size() != robot->blueprint().numJoints())
         {
             std::cerr << "MoveToJointPose: joint_positions size mismatch (expected "
-                      << m_robot.blueprint().numJoints() << ", got "
+                      << robot->blueprint().numJoints() << ", got "
                       << joint_positions->size() << ")" << std::endl;
             return Status::FAILURE;
         }
@@ -122,7 +137,7 @@ Status MoveToJointPoseAction::onRunning()
         double duration = m_blackboard->getOrDefault<double>("movement_duration", 2.0);
 
         if (!m_trajectory_controller.goToWaypoint(
-                m_robot.states().joint_positions, *joint_positions, duration))
+                robot->states().joint_positions, *joint_positions, duration))
         {
             std::cerr << "MoveToJointPose: failed to start trajectory" << std::endl;
             return Status::FAILURE;
@@ -158,11 +173,11 @@ void MoveToJointPoseAction::onHalt()
 // ============================================================================
 
 MoveToCartesianPoseAction::MoveToCartesianPoseAction(
-    Robot& p_robot,
+    RobotManager& p_robot_manager,
     IKSolver& p_ik_solver,
     TrajectoryController& p_trajectory_controller,
     Blackboard::Ptr p_blackboard)
-    : m_robot(p_robot),
+    : m_robot_manager(p_robot_manager),
       m_ik_solver(p_ik_solver),
       m_trajectory_controller(p_trajectory_controller)
 {
@@ -171,6 +186,13 @@ MoveToCartesianPoseAction::MoveToCartesianPoseAction(
 
 Status MoveToCartesianPoseAction::onRunning()
 {
+    Robot* robot = m_robot_manager.currentRobot();
+    if (!robot)
+    {
+        std::cerr << "MoveToCartesianPose: no robot selected" << std::endl;
+        return Status::FAILURE;
+    }
+
     if (!m_started)
     {
         auto pose = m_blackboard->get<std::vector<double>>("pose");
@@ -195,7 +217,7 @@ Status MoveToCartesianPoseAction::onRunning()
                   << (*pose)[2] << ", " << (*pose)[3] << ", " << (*pose)[4] << ", "
                   << (*pose)[5] << "]" << std::endl;
 
-        auto const& end_effectors = m_robot.blueprint().endEffectors();
+        auto const& end_effectors = robot->blueprint().endEffectors();
         if (end_effectors.empty())
         {
             std::cerr << "MoveToCartesianPose: no end effector found" << std::endl;
@@ -204,7 +226,7 @@ Status MoveToCartesianPoseAction::onRunning()
 
         std::cout << "Using end effector: " << end_effectors[0].get().name() << std::endl;
 
-        auto current_positions = m_robot.states().joint_positions;
+        auto current_positions = robot->states().joint_positions;
 
         std::cout << "Current joint positions: [";
         for (size_t i = 0; i < current_positions.size(); ++i)
@@ -215,7 +237,7 @@ Status MoveToCartesianPoseAction::onRunning()
         }
         std::cout << "]" << std::endl;
 
-        if (!m_ik_solver.solve(m_robot, end_effectors[0].get(), target_pose))
+        if (!m_ik_solver.solve(*robot, end_effectors[0].get(), target_pose))
         {
             std::cerr << "MoveToCartesianPose: IK solver failed";
             if (m_ik_solver.converged())
@@ -241,14 +263,14 @@ Status MoveToCartesianPoseAction::onRunning()
                       << ", " << current_ee_pose(1, 3) << ", "
                       << current_ee_pose(2, 3) << "]" << std::endl;
 
-            m_robot.setJointPositions(current_positions);
+            robot->setJointPositions(current_positions);
             return Status::FAILURE;
         }
 
         std::cout << "IK solved successfully" << std::endl;
 
-        auto target_joint_positions = m_robot.states().joint_positions;
-        m_robot.setJointPositions(current_positions);
+        auto target_joint_positions = robot->states().joint_positions;
+        robot->setJointPositions(current_positions);
 
         double duration = m_blackboard->getOrDefault<double>("movement_duration", 2.0);
 
@@ -320,15 +342,22 @@ Status CloseGripperAction::onRunning()
 // IsAtPoseCondition
 // ============================================================================
 
-IsAtPoseCondition::IsAtPoseCondition(Robot& p_robot,
+IsAtPoseCondition::IsAtPoseCondition(RobotManager& p_robot_manager,
                                      Blackboard::Ptr p_blackboard)
-    : m_robot(p_robot)
+    : m_robot_manager(p_robot_manager)
 {
     setBlackboard(p_blackboard);
 }
 
 Status IsAtPoseCondition::onRunning()
 {
+    Robot* robot = m_robot_manager.currentRobot();
+    if (!robot)
+    {
+        std::cerr << "IsAtPose: no robot selected" << std::endl;
+        return Status::FAILURE;
+    }
+
     auto target_pose_vec = m_blackboard->get<std::vector<double>>("target_pose");
     if (!target_pose_vec || target_pose_vec->size() != 6)
     {
@@ -374,7 +403,7 @@ Status HasTargetCondition::onRunning()
 // ============================================================================
 
 void registerRobotActions(NodeFactory& p_factory,
-                          Robot& p_robot,
+                          RobotManager& p_robot_manager,
                           TeachPendant& /*p_teach_pendant*/,
                           IKSolver& p_ik_solver,
                           TrajectoryController& p_trajectory_controller,
@@ -382,26 +411,26 @@ void registerRobotActions(NodeFactory& p_factory,
 {
     p_factory.registerNode(
         "Homing",
-        [&p_robot, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
+        [&p_robot_manager, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
         {
             return std::make_unique<HomingAction>(
-                p_robot, p_trajectory_controller, p_blackboard);
+                p_robot_manager, p_trajectory_controller, p_blackboard);
         });
 
     p_factory.registerNode(
         "MoveToJointPose",
-        [&p_robot, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
+        [&p_robot_manager, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
         {
             return std::make_unique<MoveToJointPoseAction>(
-                p_robot, p_trajectory_controller, p_blackboard);
+                p_robot_manager, p_trajectory_controller, p_blackboard);
         });
 
     p_factory.registerNode(
         "MoveToCartesianPose",
-        [&p_robot, &p_ik_solver, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
+        [&p_robot_manager, &p_ik_solver, &p_trajectory_controller, p_blackboard]() -> Node::Ptr
         {
             return std::make_unique<MoveToCartesianPoseAction>(
-                p_robot, p_ik_solver, p_trajectory_controller, p_blackboard);
+                p_robot_manager, p_ik_solver, p_trajectory_controller, p_blackboard);
         });
 
     p_factory.registerNode(
@@ -416,8 +445,8 @@ void registerRobotActions(NodeFactory& p_factory,
 
     p_factory.registerNode(
         "IsAtPose",
-        [&p_robot, p_blackboard]() -> Node::Ptr
-        { return std::make_unique<IsAtPoseCondition>(p_robot, p_blackboard); });
+        [&p_robot_manager, p_blackboard]() -> Node::Ptr
+        { return std::make_unique<IsAtPoseCondition>(p_robot_manager, p_blackboard); });
 
     p_factory.registerNode(
         "HasTarget",
