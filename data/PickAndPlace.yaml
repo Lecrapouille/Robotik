@@ -1,0 +1,101 @@
+# Pick and Place behavior tree example for Robotik
+# This tree performs a simple pick-and-place operation:
+# 1. Go to home position
+# 2. Move to pick position (point A)
+# 3. Close gripper to grab object
+# 4. Move to place position (point B)
+# 5. Open gripper to release object
+# 6. Return to home position
+
+Blackboard:
+  # Pick position (point A) - where to grab the object
+  pick_pose:
+    position:
+      x: 0.4
+      y: 0.2
+      z: 0.1
+    orientation:
+      roll: 0.0
+      pitch: 1.57  # 90 degrees - gripper pointing down
+      yaw: 0.0
+
+  # Place position (point B) - where to release the object
+  place_pose:
+    position:
+      x: 0.4
+      y: -0.2
+      z: 0.15
+    orientation:
+      roll: 0.0
+      pitch: 1.57
+      yaw: 0.0
+
+  # Approach height above pick/place positions
+  approach_height: 0.1
+
+  # Tolerance for position checking (meters)
+  tolerance: 0.01
+
+BehaviorTree:
+  Sequence:
+    _id: 1
+    name: PickAndPlaceRoot
+    children:
+      # Step 1: Initialize - go home and open gripper
+      - Sequence:
+          _id: 2
+          name: Initialize
+          children:
+            - Action:
+                _id: 3
+                name: Homing
+            - Action:
+                _id: 4
+                name: OpenGripper
+
+      # Step 2: Pick operation
+      - Sequence:
+          _id: 5
+          name: PickObject
+          children:
+            - SetBlackboard:
+                _id: 6
+                name: SetPickPose
+                key: pose
+                value: ${pick_pose}
+            - Action:
+                _id: 7
+                name: MoveToCartesianPose
+            - Action:
+                _id: 8
+                name: CloseGripper
+            - Wait:
+                _id: 9
+                name: GripDelay
+                duration_ms: 500
+
+      # Step 3: Place operation
+      - Sequence:
+          _id: 10
+          name: PlaceObject
+          children:
+            - SetBlackboard:
+                _id: 11
+                name: SetPlacePose
+                key: pose
+                value: ${place_pose}
+            - Action:
+                _id: 12
+                name: MoveToCartesianPose
+            - Action:
+                _id: 13
+                name: OpenGripper
+            - Wait:
+                _id: 14
+                name: ReleaseDelay
+                duration_ms: 300
+
+      # Step 4: Return home
+      - Action:
+          _id: 15
+          name: Homing

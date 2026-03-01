@@ -23,6 +23,11 @@
 #include <memory>
 #include <string>
 
+namespace robotik::renderer
+{
+class GeometryManager;
+}
+
 namespace robotik::application
 {
 
@@ -100,10 +105,9 @@ public:
     // ----------------------------------------------------------------------------
     //! \brief Initialize behavior tree with robot actions.
     //! This registers all robot-specific actions in the behavior tree factory.
-    //! Should be called after loading a robot.
-    //! \param p_robot The robot to use for behavior tree actions.
+    //! Called once in constructor, actions use RobotManager::currentRobot().
     // ----------------------------------------------------------------------------
-    void initializeBehaviorTree(ControlledRobot& p_robot);
+    void initializeBehaviorTree();
 
     // ----------------------------------------------------------------------------
     //! \brief Set the Cartesian frame to use for the Cartesian control.
@@ -200,6 +204,24 @@ public:
     }
 
     // ----------------------------------------------------------------------------
+    //! \brief Get the geometry manager for creating meshes.
+    //! \return Pointer to the geometry manager (may be nullptr if not set).
+    // ----------------------------------------------------------------------------
+    renderer::GeometryManager* getGeometryManager() const
+    {
+        return m_geometry_manager;
+    }
+
+    // ----------------------------------------------------------------------------
+    //! \brief Set the geometry manager (called by MainApplication).
+    //! \param p_geometry_manager Pointer to the geometry manager.
+    // ----------------------------------------------------------------------------
+    void setGeometryManager(renderer::GeometryManager* p_geometry_manager)
+    {
+        m_geometry_manager = p_geometry_manager;
+    }
+
+    // ----------------------------------------------------------------------------
     //! \brief Get the error message.
     //! \return Error message.
     // ----------------------------------------------------------------------------
@@ -226,6 +248,8 @@ private:
     std::unique_ptr<TrajectoryController> m_trajectory_controller;
     //! \brief Behavior tree manager used to manage behavior trees.
     std::unique_ptr<BehaviorTreeManager> m_behavior_tree_manager;
+    //! \brief Geometry manager for creating meshes (owned by MainApplication).
+    renderer::GeometryManager* m_geometry_manager = nullptr;
     //! \brief Error message.
     std::string m_error;
 };

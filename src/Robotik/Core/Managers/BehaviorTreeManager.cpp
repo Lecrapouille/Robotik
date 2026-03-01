@@ -36,7 +36,7 @@ bool BehaviorTreeManager::loadTree(std::string const& p_filepath)
     auto result = bt::Builder::fromFile(*m_factory, p_filepath, m_blackboard);
     if (!result)
     {
-        m_error = "Failed to load behavior tree: " + result.getError();
+        m_error = result.getError();
         return false;
     }
 
@@ -168,14 +168,13 @@ bt::Status BehaviorTreeManager::step(float /*p_dt*/)
 
 // ----------------------------------------------------------------------------
 void BehaviorTreeManager::registerRobotActions(
-    Robot& p_robot,
+    RobotManager& p_robot_manager,
     TeachPendant& p_teach_pendant,
     IKSolver& p_ik_solver,
     TrajectoryController& p_trajectory_controller)
 {
-    // Use the helper function from RobotActions
     bt::registerRobotActions(*m_factory,
-                             p_robot,
+                             p_robot_manager,
                              p_teach_pendant,
                              p_ik_solver,
                              p_trajectory_controller,

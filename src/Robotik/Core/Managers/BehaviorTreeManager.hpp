@@ -20,6 +20,7 @@ namespace robotik
 
 // Forward declarations
 class Robot;
+class RobotManager;
 class TeachPendant;
 class IKSolver;
 class TrajectoryController;
@@ -149,12 +150,12 @@ public:
 
     // ------------------------------------------------------------------------
     //! \brief Register robot-specific actions in the factory.
-    //! \param p_robot Robot to control.
+    //! \param p_robot_manager Robot manager to get the current robot.
     //! \param p_teach_pendant Teach pendant for robot control.
     //! \param p_ik_solver IK solver for cartesian movements.
     //! \param p_trajectory_controller Trajectory controller for smooth movements.
     // ------------------------------------------------------------------------
-    void registerRobotActions(Robot& p_robot,
+    void registerRobotActions(RobotManager& p_robot_manager,
                               TeachPendant& p_teach_pendant,
                               IKSolver& p_ik_solver,
                               TrajectoryController& p_trajectory_controller);

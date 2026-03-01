@@ -57,6 +57,11 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branch
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
+# Set YAML-CPP library (for BTEditor)
+#
+PKG_LIBS += yaml-cpp
+
+###############################################################################
 # Set OpenGL library
 #
 PKG_LIBS += glfw3 glew gl

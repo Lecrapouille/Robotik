@@ -460,8 +460,9 @@ static robotik::Return<Node::Ptr> createAction(ParsingContext const& p_context,
     if (!node)
     {
         return robotik::Return<Node::Ptr>::error(
-            "Failed to create " + p_content.begin()->first.as<std::string>() +
-            " node: " + name);
+            "Unknown node '" + name + "' (not registered in NodeFactory). "
+            "Check spelling or register it with factory.registerNode(\"" +
+            name + "\", ...)");
     }
 
     // Set the blackboard for the node (now on Node base class)
@@ -627,8 +628,7 @@ static robotik::Return<Node::Ptr> createSubTree(ParsingContext const& p_context,
     if (!subtreeRoot)
     {
         return robotik::Return<Node::Ptr>::error(
-            "Failed to instantiate subtree '" + reference +
-            "': " + subtreeRoot.getError());
+            "In SubTree '" + reference + "': " + subtreeRoot.getError());
     }
 
     auto subtree = Tree::create();
@@ -964,7 +964,15 @@ parseYAMLNodeInternal(ParsingContext const& p_context, YAML::Node const& p_node)
     auto fn_it = creators.find(type);
     if (fn_it == creators.end())
     {
-        return robotik::Return<Node::Ptr>::error("Unknown node type: " + type);
+        std::string valid_types;
+        for (auto const& [name, _] : creators)
+        {
+            if (!valid_types.empty())
+                valid_types += ", ";
+            valid_types += name;
+        }
+        return robotik::Return<Node::Ptr>::error(
+            "Unknown node type '" + type + "'. Valid types: " + valid_types);
     }
 
     return fn_it->second(p_context, it->second);

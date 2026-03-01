@@ -10,12 +10,12 @@
 #pragma once
 
 #include "ApplicationController.hpp"
-#include "BehaviorTreeEditor.hpp"
 #include "Configuration.hpp"
 #include "ImGuiView.hpp"
 
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
+#include "Robotik/Renderer/BehaviorTree/BTEditor.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
@@ -75,6 +75,12 @@ private: // override OpenGLApplication methods
     //! last case, you can set the error message using the error() method.
     // ----------------------------------------------------------------------------
     bool onSetup() override;
+
+    // ----------------------------------------------------------------------------
+    //! \brief Release OpenGL resources before GLFW termination.
+    //! Called automatically when the application closes.
+    // ----------------------------------------------------------------------------
+    void onTeardown() override;
 
     // ----------------------------------------------------------------------------
     //! \brief Render the 3D scene. Called automatically within the viewport.
@@ -216,8 +222,8 @@ private:
     std::unique_ptr<ApplicationController> m_application_controller;
     //! \brief ImGui view for managing robot control and visualization.
     std::unique_ptr<ImGuiView> m_imgui_view;
-    //! \brief BehaviorTree editor for behavior tree visualization and control.
-    std::unique_ptr<BehaviorTreeEditor> m_behavior_tree_editor;
+    //! \brief Behavior tree editor for graphical editing.
+    std::unique_ptr<renderer::BTEditor> m_bt_editor;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.

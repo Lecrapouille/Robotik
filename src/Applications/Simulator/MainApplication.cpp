@@ -196,6 +196,7 @@ bool MainApplication::setupRobots()
     // Create the application controller
     m_application_controller =
         std::make_unique<ApplicationController>(m_config);
+    m_application_controller->setGeometryManager(m_geometry_manager.get());
 
     auto& robot_manager = m_application_controller->getRobotManager();
 
@@ -250,8 +251,8 @@ bool MainApplication::setupImGuiView()
     m_imgui_view = std::make_unique<ImGuiView>(*m_application_controller,
                                                [this]() { halt(); });
 
-    m_behavior_tree_editor = std::make_unique<BehaviorTreeEditor>(
-        *m_application_controller, [this]() { halt(); });
+    m_bt_editor = std::make_unique<renderer::BTEditor>();
+    m_bt_editor->init();
 
     return true;
 }
@@ -270,10 +271,9 @@ void MainApplication::onDrawMainPanel()
     m_imgui_view->onDrawCameraTargetWindow();
     m_imgui_view->onDrawTrajectoryWindow();
     m_imgui_view->onDrawTeachPendantWindow();
-    // Draw BehaviorTree windows (two separate windows)
-    m_behavior_tree_editor->onDrawControlsWindow();
-    m_behavior_tree_editor->onDrawEditorWindow();
-    m_behavior_tree_editor->loadTreePanel();
+    // Draw BehaviorTree windows
+    m_imgui_view->onDrawBTControlsWindow(*m_bt_editor);
+    m_bt_editor->draw("Behavior Tree Editor");
 }
 
 // ----------------------------------------------------------------------------
@@ -403,7 +403,6 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 void MainApplication::onUpdate(float const p_dt)
 {
     m_application_controller->update(p_dt);
-    m_behavior_tree_editor->update();
 }
 
 // ----------------------------------------------------------------------------
@@ -513,6 +512,15 @@ void MainApplication::onScroll(double xoffset, double yoffset)
 
     m_application_controller->getCameraController().handleScroll(xoffset,
                                                                  yoffset);
+}
+
+// ----------------------------------------------------------------------------
+void MainApplication::onTeardown()
+{
+    m_bt_editor->shutdown();
+    m_render.reset();
+    m_geometry_manager.reset();
+    m_shader_manager.reset();
 }
 
 } // namespace robotik::application
