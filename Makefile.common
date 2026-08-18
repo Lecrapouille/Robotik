@@ -2,3 +2,17 @@ PROJECT_NAME := Robotik
 PROJECT_VERSION := 0.1.0
 COMPILATION_MODE := debug
 CXX_STANDARD := --std=c++17
+
+###############################################################################
+# Eigen is header-only and is pulled here rather than through PKG_LIBS, which
+# feeds -I: under it Eigen 5 emits more than a thousand -Wdeprecated warnings
+# against the strict warning set. -isystem quiets the headers of the library
+# without weakening the diagnostics on our own code. Keeping Eigen out of
+# PKG_LIBS also stops a missing Eigen from making pkg-config fail as a whole,
+# which used to silently drop the flags of every other dependency.
+#
+EIGEN_CFLAGS := $(shell pkg-config --cflags eigen3 2> /dev/null)
+ifeq ($(strip $(EIGEN_CFLAGS)),)
+$(warning Eigen3 not found by pkg-config: see the Prerequisites section of README.md)
+endif
+USER_CXXFLAGS += $(patsubst -I%,-isystem %,$(EIGEN_CFLAGS))

@@ -14,8 +14,8 @@
 #include "ImGuiView.hpp"
 
 #include "Robotik/Core/Simulation/PhysicsSimulator.hpp"
+#include "Oakular/Oakular.hpp"
 #include "Robotik/Renderer/Application/OpenGLApplication.hpp"
-#include "Robotik/Renderer/BehaviorTree/BTEditor.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "Robotik/Renderer/Managers/ShaderManager.hpp"
 #include "Robotik/Renderer/RenderVisitor.hpp"
@@ -223,7 +223,7 @@ private:
     //! \brief ImGui view for managing robot control and visualization.
     std::unique_ptr<ImGuiView> m_imgui_view;
     //! \brief Behavior tree editor for graphical editing.
-    std::unique_ptr<renderer::BTEditor> m_bt_editor;
+    std::unique_ptr<oakular::Editor> m_bt_editor;
     //! \brief Shader manager for managing shaders.
     std::unique_ptr<renderer::ShaderManager> m_shader_manager;
     //! \brief Geometry manager for managing robot geometries and meshes.

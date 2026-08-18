@@ -50,16 +50,11 @@ LIB_FILES := $(call rwildcard,$(RENDERER_PATH),*.cpp)
 HEADER_FILES := $(call rwildcard,$(RENDERER_PATH),*.hpp)
 
 ###############################################################################
-# Set Eigen3 library
+# Eigen3 is set by Makefile.common. These relaxations remain needed by the
+# templates it expands inside our own code.
 #
-PKG_LIBS += eigen3
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
-
-###############################################################################
-# Set YAML-CPP library (for BTEditor)
-#
-PKG_LIBS += yaml-cpp
 
 ###############################################################################
 # Set OpenGL library
@@ -86,6 +81,21 @@ IMGUIFILEDIALOG_DIR := $(THIRD_PARTIES_DIR)/ImGuiFileDialog
 INCLUDES += $(IMGUIFILEDIALOG_DIR)
 VPATH += $(IMGUIFILEDIALOG_DIR)
 LIB_FILES += $(IMGUIFILEDIALOG_DIR)/ImGuiFileDialog.cpp
+
+###################################################
+# Set Oakular, the behavior tree editor of BlackThorn. It consumes Dear ImGui
+# as headers only: the copy compiled above is the one it renders into.
+#
+BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
+RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
+include $(BLACKTHORN_DIR)/BlackThorn.mk
+
+INCLUDES += $(OAKULAR_INCLUDES)
+VPATH += $(OAKULAR_VPATH)
+LIB_FILES += $(OAKULAR_SOURCES)
+DEFINES += $(OAKULAR_DEFINES)
+PKG_LIBS += $(OAKULAR_PKG_LIBS)
+USER_CXXFLAGS += $(OAKULAR_CXXFLAGS)
 
 ###############################################################################
 # Sharable information between all Makefiles

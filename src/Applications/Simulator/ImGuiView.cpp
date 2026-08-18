@@ -14,7 +14,7 @@
 #include "Robotik/Core/Managers/BehaviorTreeManager.hpp"
 #include "Robotik/Core/Robot/Blueprint/Blueprint.hpp"
 #include "Robotik/Core/Robot/TeachPendant.hpp"
-#include "Robotik/Renderer/BehaviorTree/BTEditor.hpp"
+#include "Oakular/Oakular.hpp"
 #include "Robotik/Renderer/Managers/GeometryManager.hpp"
 #include "project_info.hpp"
 
@@ -1403,7 +1403,7 @@ void ImGuiView::drawSceneGraphNode(::robotik::Node const& p_node,
 }
 
 // ----------------------------------------------------------------------------
-void ImGuiView::onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor)
+void ImGuiView::onDrawBTControlsWindow(oakular::Editor& p_bt_editor)
 {
     if (ImGui::Begin("Behavior Tree Controls"))
     {
@@ -1422,12 +1422,12 @@ void ImGuiView::onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor)
 
         ImGui::SameLine();
 
-        if (!p_bt_editor.getFilePath().empty())
+        if (!p_bt_editor.filepath().empty())
         {
             if (ImGui::Button("Save"))
             {
-                p_bt_editor.saveToYaml(p_bt_editor.getFilePath());
-                m_bt_status_message = "Saved: " + p_bt_editor.getFilePath();
+                p_bt_editor.saveToYaml(p_bt_editor.filepath());
+                m_bt_status_message = "Saved: " + p_bt_editor.filepath();
             }
         }
 
@@ -1509,7 +1509,8 @@ void ImGuiView::onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor)
 
             p_bt_editor.loadFromYaml(file_path);
 
-            if (!p_bt_editor.getNodes().empty())
+            // The editor only records the path once the tree is fully parsed.
+            if (p_bt_editor.filepath() == file_path)
             {
                 m_bt_status_message = "Loaded: " + file_path;
                 m_bt_error_message.clear();

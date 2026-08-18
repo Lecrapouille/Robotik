@@ -1,0 +1,25 @@
+#!/bin/bash -e
+### Compile third-party libraries that ship their own build system.
+### Sourced by .makefile/assets/scripts/compile-external-libs.sh from the
+### external/ folder, which provides print-compile, call-cmake and NPROC.
+
+### rapidyaml: YAML backend of BlackThorn. Built as a static PIC archive so it
+### can be linked into librobotik-core.so without polluting the system.
+RYML_DIR="rapidyaml"
+print-compile $RYML_DIR
+
+if [ ! -f "$RYML_DIR/ext/c4core/CMakeLists.txt" ]; then
+    (cd "$RYML_DIR" && git submodule update --init --recursive)
+fi
+
+call-cmake -S "$RYML_DIR" -B "$RYML_DIR/build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DRYML_BUILD_SHARED_LIBS=OFF \
+    -DRYML_BUILD_TESTS=OFF \
+    -DRYML_BUILD_BENCHMARKS=OFF \
+    -DRYML_BUILD_API=OFF
+
+call-cmake --build "$RYML_DIR/build" --target ryml -j"$NPROC"
+
+echo "Built external/$RYML_DIR/build/libryml.a"

@@ -251,8 +251,8 @@ bool MainApplication::setupImGuiView()
     m_imgui_view = std::make_unique<ImGuiView>(*m_application_controller,
                                                [this]() { halt(); });
 
-    m_bt_editor = std::make_unique<renderer::BTEditor>();
-    m_bt_editor->init();
+    m_bt_editor = std::make_unique<oakular::Editor>();
+    m_bt_editor->setup();
 
     return true;
 }
@@ -403,6 +403,12 @@ void MainApplication::renderWaypoints(ControlledRobot const& p_robot) const
 void MainApplication::onUpdate(float const p_dt)
 {
     m_application_controller->update(p_dt);
+
+    // Oakular expects its update outside of the ImGui frame.
+    if (m_bt_editor)
+    {
+        m_bt_editor->update(p_dt);
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -519,7 +525,7 @@ void MainApplication::onTeardown()
 {
     if (m_bt_editor)
     {
-        m_bt_editor->shutdown();
+        m_bt_editor->teardown();
         m_bt_editor.reset();
     }
     m_render.reset();
