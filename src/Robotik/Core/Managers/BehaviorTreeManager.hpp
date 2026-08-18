@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Core/BehaviorTree/BehaviorTree.hpp"
+#include "BlackThorn/BlackThorn.hpp"
 #include "Robotik/Core/Common/Signal.hpp"
 
 #include <memory>

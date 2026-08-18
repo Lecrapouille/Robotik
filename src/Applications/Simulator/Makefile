@@ -43,6 +43,24 @@ INCLUDES += $(CURRENT_DIR) $(THIRD_PARTIES_DIR) $(P)/src $(IMGUI_DIR) $(IMGUI_DI
 INCLUDES += $(IMGUIFILEDIALOG_DIR) $(IMGUIFILEDIALOG_DIR)/stb
 
 ###############################################################################
+# Reach the BlackThorn and Oakular headers. Their objects already live in the
+# robotik-core and robotik-renderer archives, so only the include root is
+# needed here.
+#
+BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
+RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
+include $(BLACKTHORN_DIR)/BlackThorn.mk
+
+INCLUDES += $(BLACKTHORN_INCLUDES) $(OAKULAR_INCLUDES)
+DEFINES += $(BLACKTHORN_DEFINES) $(OAKULAR_DEFINES)
+PKG_LIBS += $(BLACKTHORN_PKG_LIBS) $(OAKULAR_PKG_LIBS)
+USER_CXXFLAGS += $(OAKULAR_CXXFLAGS)
+
+# The Oakular headers reach imgui_internal.h, which demands the ImGui math
+# operators. Set for the whole target so every unit sees the same ImGui.
+DEFINES += -DIMGUI_DEFINE_MATH_OPERATORS
+
+###############################################################################
 # Inform Makefile where to find *.cpp files
 #
 VPATH += $(P)/src $(CURRENT_DIR)
@@ -64,7 +82,7 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ###############################################################################
 # Set operating system libraries.
 #
-PKG_LIBS += glfw3 glew gl eigen3 yaml-cpp sfml-network
+PKG_LIBS += glfw3 glew gl
 
 ###############################################################################
 # Sharable information between all Makefiles

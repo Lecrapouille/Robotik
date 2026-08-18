@@ -12,17 +12,49 @@ C++ robotics library for simulation and visualization of robot (libraries and st
 
 ## ⚙️ Compilation
 
-Prerequisites:
+### Prerequisites
+
+Debian / Ubuntu:
 
 ```bash
-sudo apt-get install libeigen3-dev libgl1-mesa-dev libglew-dev libglfw3-dev swi-prolog-dev swi-prolog
+sudo apt-get install build-essential cmake git \
+    libeigen3-dev libgl1-mesa-dev libglew-dev libglfw3-dev \
+    libsfml-dev swi-prolog-dev swi-prolog
+
+# Optional, for `make tests`:
+sudo apt-get install libgtest-dev libgmock-dev
 ```
 
-Compilation:
+Fedora:
+
+```bash
+sudo dnf install gcc-c++ make cmake git \
+    eigen3-devel libglvnd-devel glew-devel glfw-devel \
+    SFML-devel swi-prolog-core
+
+# Optional, for `make tests`:
+sudo dnf install gtest-devel gmock-devel
+```
+
+`cmake` is not used to build Robotik itself: it builds rapidyaml, the YAML
+backend that [BlackThorn](https://github.com/Lecrapouille/BlackThorn) pulls in.
+SFML is only needed for its network module, which carries the behavior tree
+state to the Oakular visualizer.
+
+> **Note:** the build resolves these through `pkg-config`, which fails as a
+> whole as soon as one module of the list is missing. A single absent package
+> therefore drops the flags of all the others, and the failure surfaces later as
+> unrelated missing headers or undefined OpenGL symbols. Check the whole set
+> with `pkg-config --exists eigen3 gl glew glfw3 sfml-network swipl` before
+> digging further.
+
+### Building
 
 ```bash
 git clone https://github.com/Lecrapouille/Robotik --recurse
 cd Robotik
+make download-external-libs
+make compile-external-libs
 make -j8
 make applications -j8
 sudo make install
@@ -30,6 +62,14 @@ sudo make install
 # Optional:
 make tests -j8
 ```
+
+`make download-external-libs` clones the third-party projects listed in
+[external/manifest](external/manifest), and is only needed on a fresh clone or
+after the manifest changes. `make compile-external-libs` runs
+[external/compilation](external/compilation), which builds the ones shipping
+their own build system, such as rapidyaml; the build triggers it by itself when
+the archives it produces are missing, so calling it by hand is only a way to
+rebuild them upfront.
 
 A `build` folder should have been created, it contains the created shared and static libraries (librobotik-core.so, librobotik-viewer.so, ...) as well as the stand-alone applications (Robotik-Viewer, ...). In the following sections we will explain them in more details.
 
@@ -130,6 +170,13 @@ Robotik/
 - Useful for behavior trees, decision making, and rule-based AI.
 - See [doc/Prolog-API.md](doc/Prolog-API.md) for the complete API reference.
 
+**🌲 BehaviorTreeManager**
+
+- Loads, ticks and controls behavior trees described in YAML.
+- Built on [BlackThorn](https://github.com/Lecrapouille/BlackThorn) (namespace `bt`), compiled into `librobotik-core` from `external/BlackThorn`.
+- Robot-specific nodes (`Homing`, `MoveToCartesianPose`, `OpenGripper`, ...) live in [src/Robotik/Core/Actions](src/Robotik/Core/Actions) and are registered through `registerRobotActions()`.
+- Example trees in the [data](data) folder.
+
 #### Viewer Module (robotik::renderer)
 
 **🖼️ Application**
@@ -179,6 +226,12 @@ Robotik/
 - Loads STL mesh files.
 - Supports ASCII and binary formats.
 - Extracts vertices, normals, and indices.
+
+**🌳 Oakular editor (oakular::Editor)**
+
+- Graphical behavior tree editor and runtime visualizer, shipped with BlackThorn and compiled into `librobotik-renderer`.
+- Embeddable Dear ImGui component: it draws inside the frame owned by the host and never creates a window nor an ImGui context.
+- The host provides the file browser through the `onFileDialogRequested` signal, wired to ImGuiFileDialog in `Robotik-Simulator`.
 
 ## robotik::core API 🔌
 

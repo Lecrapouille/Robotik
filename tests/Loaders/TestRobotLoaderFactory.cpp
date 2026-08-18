@@ -25,6 +25,10 @@ class MockLoader: public RobotLoader
 public:
 
     MOCK_METHOD(std::unique_ptr<Robot>, load, (const std::string&), (override));
+    MOCK_METHOD(std::optional<Blueprint>,
+                loadBlueprint,
+                (const std::string&, std::string&),
+                (override));
     MOCK_METHOD(std::string, error, (), (const, override));
 };
 

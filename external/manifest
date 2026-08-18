@@ -18,3 +18,11 @@ aiekick/ImGuiFileDialog
 ### Immediate Mode Plotting
 ### License: MIT
 epezent/implot
+
+### Behavior tree engine and its Dear ImGui editor Oakular
+### License: MIT
+Lecrapouille/BlackThorn
+
+### A library to parse and emit YAML, and do it fast. YAML backend of BlackThorn.
+### License: MIT
+biojppm/rapidyaml:recurse@v0.15.2

@@ -62,21 +62,28 @@ INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
 USER_CXXFLAGS += -Wno-switch-enum
 
 ###############################################################################
-# Set Eigen3 library
+# Eigen3 is set by Makefile.common. These relaxations remain needed by the
+# templates it expands inside our own code.
 #
-PKG_LIBS += eigen3
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
 USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 
 ###############################################################################
-# Set YAML-CPP library
+# Set BlackThorn behavior tree engine (from thirdparties). Its sources are
+# compiled straight into this library, as done for pugixml. rapidyaml, its YAML
+# backend, is cloned and built at the Robotik level: point BlackThorn at it.
 #
-PKG_LIBS += yaml-cpp
+BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
+RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
+include $(BLACKTHORN_DIR)/BlackThorn.mk
 
-###############################################################################
-# Set SFML Network library (for VisualizerClient)
-#
-PKG_LIBS += sfml-network
+INCLUDES += $(BLACKTHORN_INCLUDES)
+VPATH += $(BLACKTHORN_VPATH)
+LIB_FILES += $(BLACKTHORN_SOURCES)
+DEFINES += $(BLACKTHORN_DEFINES)
+PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
+USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
+THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 
 ###############################################################################
 # Set SWI-Prolog library
@@ -92,3 +99,13 @@ INCLUDES += $(THIRD_PARTIES_DIR)/units/include
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile
+
+###############################################################################
+# Build rapidyaml on demand. MyMakefile ignores the archives produced by
+# external/compilation, so a tree where they are missing fails late with an
+# opaque "ar: libryml.a: No such file" instead of building them.
+#
+$(BLACKTHORN_STATIC_DEPS):
+	@$(MAKE) --no-print-directory -C $(P) compile-external-libs
+
+$(TARGET_STATIC_LIB_NAME) $(TARGET_SHARED_LIB_NAME): $(BLACKTHORN_STATIC_DEPS)

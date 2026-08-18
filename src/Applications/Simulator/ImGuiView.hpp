@@ -18,9 +18,9 @@
 #include <string>
 #include <vector>
 
-namespace robotik::renderer
+namespace oakular
 {
-class BTEditor;
+class Editor;
 }
 
 namespace robotik::application
@@ -81,7 +81,7 @@ public:
     //! \brief Render the behavior tree controls window.
     //! \param p_bt_editor Reference to the behavior tree editor.
     // ----------------------------------------------------------------------------
-    void onDrawBTControlsWindow(renderer::BTEditor& p_bt_editor);
+    void onDrawBTControlsWindow(oakular::Editor& p_bt_editor);
 
     // ----------------------------------------------------------------------------
     //! \brief Signal emitted when user selects a robot in the UI.

@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "Robotik/Core/BehaviorTree/BehaviorTree.hpp"
+#include "BlackThorn/BlackThorn.hpp"
 
 // Forward declarations in robotik namespace
 namespace robotik {
@@ -19,24 +19,25 @@ class TeachPendant;
 class IKSolver;
 class TrajectoryController;
 
-namespace bt {
-
 // ****************************************************************************
 //! \brief Action node that moves the robot to home position.
 // ****************************************************************************
-class HomingAction final: public Leaf
+class HomingAction final: public bt::CallbackLeaf
 {
 public:
 
     HomingAction(RobotManager& p_robot_manager,
                  TrajectoryController& p_trajectory_controller,
-                 Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
+                 bt::Blackboard::Ptr p_blackboard);
     void onHalt() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
 
 private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
 
     RobotManager& m_robot_manager;
     TrajectoryController& m_trajectory_controller;
@@ -47,19 +48,22 @@ private:
 //! \brief Action node that moves the robot to a joint pose.
 //! Reads 'joint_positions' parameter from blackboard.
 // ****************************************************************************
-class MoveToJointPoseAction final: public Leaf
+class MoveToJointPoseAction final: public bt::CallbackLeaf
 {
 public:
 
     MoveToJointPoseAction(RobotManager& p_robot_manager,
                           TrajectoryController& p_trajectory_controller,
-                          Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
+                          bt::Blackboard::Ptr p_blackboard);
     void onHalt() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
 
 private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
 
     RobotManager& m_robot_manager;
     TrajectoryController& m_trajectory_controller;
@@ -70,20 +74,23 @@ private:
 //! \brief Action node that moves the robot to a cartesian pose.
 //! Reads 'pose' parameter from blackboard.
 // ****************************************************************************
-class MoveToCartesianPoseAction final: public Leaf
+class MoveToCartesianPoseAction final: public bt::CallbackLeaf
 {
 public:
 
     MoveToCartesianPoseAction(RobotManager& p_robot_manager,
                               IKSolver& p_ik_solver,
                               TrajectoryController& p_trajectory_controller,
-                              Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
+                              bt::Blackboard::Ptr p_blackboard);
     void onHalt() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
 
 private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
 
     RobotManager& m_robot_manager;
     IKSolver& m_ik_solver;
@@ -94,27 +101,39 @@ private:
 // ****************************************************************************
 //! \brief Action node that opens the gripper.
 // ****************************************************************************
-class OpenGripperAction final: public Leaf
+class OpenGripperAction final: public bt::CallbackLeaf
 {
 public:
 
-    explicit OpenGripperAction(Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    explicit OpenGripperAction(bt::Blackboard::Ptr p_blackboard);
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
+
+private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
+
 };
 
 // ****************************************************************************
 //! \brief Action node that closes the gripper.
 // ****************************************************************************
-class CloseGripperAction final: public Leaf
+class CloseGripperAction final: public bt::CallbackLeaf
 {
 public:
 
-    explicit CloseGripperAction(Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    explicit CloseGripperAction(bt::Blackboard::Ptr p_blackboard);
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
+
+private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
+
 };
 
 // ****************************************************************************
@@ -122,16 +141,19 @@ public:
 //! Uses calculatePoseError to check if within tolerance.
 //! Reads 'target_pose' and 'tolerance' from blackboard.
 // ****************************************************************************
-class IsAtPoseCondition final: public Leaf
+class IsAtPoseCondition final: public bt::CallbackLeaf
 {
 public:
 
-    IsAtPoseCondition(RobotManager& p_robot_manager, Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    IsAtPoseCondition(RobotManager& p_robot_manager, bt::Blackboard::Ptr p_blackboard);
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
 
 private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
 
     RobotManager& m_robot_manager;
 };
@@ -140,14 +162,20 @@ private:
 //! \brief Condition node that checks if a target exists in the blackboard.
 //! Reads 'target_name' from blackboard and checks if it exists.
 // ****************************************************************************
-class HasTargetCondition final: public Leaf
+class HasTargetCondition final: public bt::CallbackLeaf
 {
 public:
 
-    explicit HasTargetCondition(Blackboard::Ptr p_blackboard);
-    Status onRunning() override;
-    void accept(ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
-    void accept(BehaviorTreeVisitor& /*p_visitor*/) override {}
+    explicit HasTargetCondition(bt::Blackboard::Ptr p_blackboard);
+    void accept(bt::ConstBehaviorTreeVisitor& /*p_visitor*/) const override {}
+    void accept(bt::BehaviorTreeVisitor& /*p_visitor*/) override {}
+
+private:
+
+    //! \brief Tick logic, bound as the CallbackLeaf function by the
+    //! constructor.
+    bt::Status tick();
+
 };
 
 // ****************************************************************************
@@ -159,11 +187,11 @@ public:
 //! \param p_trajectory_controller Trajectory controller for smooth movements.
 //! \param p_blackboard Blackboard for sharing data.
 // ****************************************************************************
-void registerRobotActions(NodeFactory& p_factory,
+void registerRobotActions(bt::NodeFactory& p_factory,
                           RobotManager& p_robot_manager,
                           TeachPendant& p_teach_pendant,
                           IKSolver& p_ik_solver,
                           TrajectoryController& p_trajectory_controller,
-                          Blackboard::Ptr p_blackboard);
+                          bt::Blackboard::Ptr p_blackboard);
 
-} } // namespace robotik::bt
+} // namespace robotik
