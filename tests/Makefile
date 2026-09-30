@@ -11,7 +11,7 @@ include $(P)/Makefile.common
 TARGET_NAME := $(PROJECT_NAME)-tests
 TARGET_DESCRIPTION := Unit tests for $(PROJECT_NAME)
 COMPILATION_MODE := test
-CXX_STANDARD := --std=c++17
+CXX_STANDARD := --std=c++20
 include $(M)/project/Makefile
 
 ###############################################################################
@@ -24,12 +24,12 @@ USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ###############################################################################
 # Set units library
 #
-INCLUDES += $(THIRD_PARTIES_DIR) $(THIRD_PARTIES_DIR)/units/include
+INCLUDES += $(THIRD_PARTIES_DIR) $(P)/include $(P)/src
 
 ###############################################################################
-# Set OpenGL libraries (for Viewer)
+# Set OpenGL libraries pulled in by Compages.
 #
-PKG_LIBS += glfw3 glew
+PKG_LIBS += glfw3 glew gl
 
 ###############################################################################
 # Set SWI-Prolog library, needed by the Core sources compiled below
@@ -44,42 +44,21 @@ INCLUDES += $(THIRD_PARTIES_DIR)/pugixml/src
 USER_CXXFLAGS += -Wno-switch-enum -Wno-null-dereference
 
 ###################################################
-# Set third party Dear ImGui
-#
-IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
-INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
-VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
-SRC_FILES += $(IMGUI_DIR)/imgui_widgets.cpp $(IMGUI_DIR)/imgui_draw.cpp
-SRC_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui.cpp
-SRC_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
-SRC_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
-SRC_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-USER_CXXFLAGS += -Wno-conversion -Wno-arith-conversion -Wno-double-promotion -Wno-cast-qual
-
-###################################################
-# Set BlackThorn and its editor Oakular, mirroring what robotik-core and
-# robotik-renderer embed, since the tests compile their sources directly.
+# Set BlackThorn. Skill nodes are thin wrappers over it. The tests compile the
+# engine sources directly, the same way robotik-core does. Oakular and Dear
+# ImGui left with the old viewer.
 #
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
 RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
 include $(BLACKTHORN_DIR)/BlackThorn.mk
 
-INCLUDES += $(BLACKTHORN_INCLUDES) $(OAKULAR_INCLUDES)
-VPATH += $(BLACKTHORN_VPATH) $(OAKULAR_VPATH)
-SRC_FILES += $(BLACKTHORN_SOURCES) $(OAKULAR_SOURCES)
-DEFINES += $(BLACKTHORN_DEFINES) $(OAKULAR_DEFINES)
-PKG_LIBS += $(BLACKTHORN_PKG_LIBS) $(OAKULAR_PKG_LIBS)
-USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS) $(OAKULAR_CXXFLAGS)
+INCLUDES += $(BLACKTHORN_INCLUDES)
+VPATH += $(BLACKTHORN_VPATH)
+SRC_FILES += $(BLACKTHORN_SOURCES)
+DEFINES += $(BLACKTHORN_DEFINES)
+PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
+USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
 THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
-DEFINES += -DIMGUI_DEFINE_MATH_OPERATORS
-
-###################################################
-# Set third party ImGuiFileDialog
-#
-IMGUIFILEDIALOG_DIR := $(THIRD_PARTIES_DIR)/ImGuiFileDialog
-INCLUDES += $(IMGUIFILEDIALOG_DIR)
-VPATH += $(IMGUIFILEDIALOG_DIR)
-SRC_FILES += $(IMGUIFILEDIALOG_DIR)/ImGuiFileDialog.cpp
 
 ###############################################################################
 # GTest and GMock
@@ -90,7 +69,12 @@ PKG_LIBS += gtest gmock
 # Compile the unit tests
 #
 SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Core,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Renderer,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Backends,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Behavior,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Model,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Runtime,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Skills,*.cpp)
+SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Systems,*.cpp)
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 
 INCLUDES += $(P)/src $(P)/tests

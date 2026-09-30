@@ -39,10 +39,8 @@ include $(M)/project/Makefile
 # Internal libs to compile in the correct order
 #
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
-LIB_ROBOTIK_RENDERER := $(call internal-lib,robotik-renderer)
-INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_RENDERER)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core $(P)/src/Robotik/Renderer
-$(P)/src/Robotik/Renderer: $(P)/src/Robotik/Core
+INTERNAL_LIBS := $(LIB_ROBOTIK_CORE)
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core
 
 ###################################################
 # Generic Makefile rules

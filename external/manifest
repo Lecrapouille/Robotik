@@ -26,3 +26,7 @@ Lecrapouille/BlackThorn
 ### A library to parse and emit YAML, and do it fast. YAML backend of BlackThorn.
 ### License: MIT
 biojppm/rapidyaml:recurse@v0.15.2
+
+### World, spatial hierarchy and renderer. Replaces the homemade scene graph.
+### License: GPL-3.0
+Lecrapouille/Compages:recurse

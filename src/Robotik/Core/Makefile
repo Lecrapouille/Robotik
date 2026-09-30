@@ -35,7 +35,7 @@ include $(M)/project/Makefile
 ###############################################################################
 # Inform Makefile where to find header files
 #
-INCLUDES += $(P)/src $(THIRD_PARTIES_DIR)
+INCLUDES += $(P)/src $(P)/include $(THIRD_PARTIES_DIR)
 
 ###############################################################################
 # Inform Makefile where to find *.cpp files
@@ -52,7 +52,16 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Backends,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Behavior,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Model,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Perception,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Scenario,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Runtime,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Skills,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Systems,*.cpp)
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
+HEADER_FILES += $(call rwildcard,$(P)/include/Robotik,*.hpp)
 
 ###############################################################################
 # Set pugixml library (from thirdparties)
@@ -89,11 +98,6 @@ THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 # Set SWI-Prolog library
 #
 PKG_LIBS += swipl
-
-###############################################################################
-# Set units library
-#
-INCLUDES += $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # Sharable information between all Makefiles

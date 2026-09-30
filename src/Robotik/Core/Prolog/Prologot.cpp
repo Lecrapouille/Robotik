@@ -243,7 +243,7 @@ bool Prolog::initialize(Dictionary const& p_options)
         }
     }
 
-    // File search paths (-p alias=path)
+    // compages::core::File search paths (-p alias=path)
     if (has_option(p_options, "file search paths"))
     {
         try
@@ -400,7 +400,7 @@ bool Prolog::is_initialized() const
 }
 
 // =============================================================================
-// File and Code Consultation
+// compages::core::File and Code Consultation
 // =============================================================================
 
 bool Prolog::consult_file(String const& p_filename)
