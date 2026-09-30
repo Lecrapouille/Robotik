@@ -1,0 +1,31 @@
+# Actions are the skills of the simulation. Per object: Detect(o), Approach(o)
+# (10 cm above), Reach(o) (touching its top), Grasp(o). Robot wide: Home, Release.
+
+BehaviorTree:
+  Sequence:
+    name: PickAndPlace
+    children:
+      - Action:
+          name: Home
+      - Sequence:
+          name: Pick
+          children:
+            - Action:
+                name: Detect(red_cube)
+            - Action:
+                name: Approach(red_cube)
+            - Action:
+                name: Reach(red_cube)
+            - Action:
+                name: Grasp(red_cube)
+            - Action:
+                name: Approach(red_cube)
+      - Sequence:
+          name: Place
+          children:
+            - Action:
+                name: Approach(box)
+            - Action:
+                name: Release
+      - Action:
+          name: Home

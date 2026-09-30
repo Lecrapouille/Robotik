@@ -1,24 +1,10 @@
-###############################################################################
-## Robotik: A basic logger.
-## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
-##
-## This file is part of Robotik.
-##
-## Robotik is free software: you can redistribute it and/or modify it
-## under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## Robotik is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Robotik.  If not, see <http://www.gnu.org/licenses/>.
-###############################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+# Copyright (c) 2020-2026 Quentin Quadrat
+#
+# This file is part of RobotIK. It is available under the GNU GPL v3 or,
+# for users who cannot use the GPL, under a commercial license.
+# See LICENSING.md for details.
 
-###############################################################################
 # Location of the project directory and Makefiles
 #
 P := ../../..
@@ -35,7 +21,7 @@ include $(M)/project/Makefile
 ###############################################################################
 # Inform Makefile where to find header files
 #
-INCLUDES += $(P)/src $(THIRD_PARTIES_DIR)
+INCLUDES += $(P)/src $(P)/include $(THIRD_PARTIES_DIR)
 
 ###############################################################################
 # Inform Makefile where to find *.cpp files
@@ -52,7 +38,16 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Backends,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Behavior,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Model,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Perception,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Scenario,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Runtime,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Skills,*.cpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Systems,*.cpp)
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
+HEADER_FILES += $(call rwildcard,$(P)/include/Robotik,*.hpp)
 
 ###############################################################################
 # Set pugixml library (from thirdparties)
@@ -89,11 +84,6 @@ THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 # Set SWI-Prolog library
 #
 PKG_LIBS += swipl
-
-###############################################################################
-# Set units library
-#
-INCLUDES += $(THIRD_PARTIES_DIR)/units/include
 
 ###############################################################################
 # Sharable information between all Makefiles

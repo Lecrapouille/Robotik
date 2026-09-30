@@ -1,90 +1,48 @@
-###############################################################################
-## Robotik: A basic logger.
-## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
-##
-## This file is part of Robotik.
-##
-## Robotik is free software: you can redistribute it and/or modify it
-## under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## Robotik is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Robotik.  If not, see <http://www.gnu.org/licenses/>.
-###############################################################################
-
-###############################################################################
-# Location of the project directory and Makefiles
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+# Copyright (c) 2020-2026 Quentin Quadrat
 #
+# This file is part of RobotIK. It is available under the GNU GPL v3 or,
+# for users who cannot use the GPL, under a commercial license.
+# See LICENSING.md for details.
+
 P := ../../..
 M := $(P)/.makefile
 
-###############################################################################
-# Project definition
-#
 include $(P)/Makefile.common
 TARGET_NAME := Robotik-Simulator
-TARGET_DESCRIPTION := Robot simulation and control application
+TARGET_DESCRIPTION := Operator interface: world, robot camera, behavior tree and skills
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/src/Applications/Simulator
+INCLUDES += $(CURRENT_DIR) $(P)/include $(P)/src
+VPATH += $(CURRENT_DIR)
+INTERNAL_LIBS += $(call internal-lib,robotik-core)
+SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/Panels.cpp
+PKG_LIBS += glfw3
 
-###############################################################################
-# Inform Makefile where to find header files
-#
-IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
-IMGUIFILEDIALOG_DIR := $(THIRD_PARTIES_DIR)/ImGuiFileDialog
-INCLUDES += $(CURRENT_DIR) $(THIRD_PARTIES_DIR) $(P)/src $(IMGUI_DIR) $(IMGUI_DIR)/misc/cpp $(IMGUI_DIR)/backends
-INCLUDES += $(IMGUIFILEDIALOG_DIR) $(IMGUIFILEDIALOG_DIR)/stb
-
-###############################################################################
-# Reach the BlackThorn and Oakular headers. Their objects already live in the
-# robotik-core and robotik-renderer archives, so only the include root is
-# needed here.
-#
+# Headers only: BlackThorn is compiled into robotik-core.
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
 RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
 include $(BLACKTHORN_DIR)/BlackThorn.mk
+INCLUDES += $(BLACKTHORN_INCLUDES)
+DEFINES += $(BLACKTHORN_DEFINES)
+USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
+PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
 
-INCLUDES += $(BLACKTHORN_INCLUDES) $(OAKULAR_INCLUDES)
-DEFINES += $(BLACKTHORN_DEFINES) $(OAKULAR_DEFINES)
-PKG_LIBS += $(BLACKTHORN_PKG_LIBS) $(OAKULAR_PKG_LIBS)
-USER_CXXFLAGS += $(OAKULAR_CXXFLAGS)
+# Dear ImGui (docking branch) with the GLFW and OpenGL 3 backends.
+IMGUI_DIR := $(THIRD_PARTIES_DIR)/imgui
+IMGUI_FILES := $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_draw.cpp
+IMGUI_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
+IMGUI_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
+IMGUI_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+SRC_FILES += $(IMGUI_FILES)
+INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/backends
+VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/backends
 
-# The Oakular headers reach imgui_internal.h, which demands the ImGui math
-# operators. Set for the whole target so every unit sees the same ImGui.
-DEFINES += -DIMGUI_DEFINE_MATH_OPERATORS
+USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion
+USER_CXXFLAGS += -Wno-float-equal -Wno-undef -Wno-shadow -Wno-double-promotion
+USER_CXXFLAGS += -Wno-cast-qual -Wno-switch-default -Wno-useless-cast
+USER_CXXFLAGS += -Wno-zero-as-null-pointer-constant -Wno-format-nonliteral
+USER_CXXFLAGS += -Wno-suggest-attribute=noreturn
 
-###############################################################################
-# Inform Makefile where to find *.cpp files
-#
-VPATH += $(P)/src $(CURRENT_DIR)
-
-###################################################
-# Set third-party libraries. Order matters: dependencies last
-#
-INTERNAL_LIBS += $(call internal-lib,robotik-renderer)
-INTERNAL_LIBS += $(call internal-lib,robotik-core)
-
-###############################################################################
-# Make the list of files to compile
-#
-SRC_FILES := $(call rwildcard,$(CURRENT_DIR),*.cpp)
-SRC_FILES += $(IMGUIFILEDIALOG_DIR)/ImGuiFileDialog.cpp
-USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches
-USER_CXXFLAGS += -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
-
-###############################################################################
-# Set operating system libraries.
-#
-PKG_LIBS += glfw3 glew gl
-
-###############################################################################
-# Sharable information between all Makefiles
-#
 include $(M)/rules/Makefile

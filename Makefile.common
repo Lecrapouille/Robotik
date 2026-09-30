@@ -1,7 +1,23 @@
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+# Copyright (c) 2020-2026 Quentin Quadrat
+#
+# This file is part of RobotIK. It is available under the GNU GPL v3 or,
+# for users who cannot use the GPL, under a commercial license.
+# See LICENSING.md for details.
+
 PROJECT_NAME := Robotik
 PROJECT_VERSION := 0.1.0
 COMPILATION_MODE := debug
-CXX_STANDARD := --std=c++17
+CXX_STANDARD := --std=c++20
+
+###############################################################################
+# Pinocchio and MuJoCo live in a user-local prefix created by
+# external/compilation (make compile-external-libs). pkg-config must see it
+# before any dependency line below.
+FORGE_PKGCONFIG := $(shell find $(P)/external/forge -type d -name pkgconfig 2>/dev/null | paste -sd: -)
+ifneq ($(strip $(FORGE_PKGCONFIG)),)
+export PKG_CONFIG_PATH := $(FORGE_PKGCONFIG):$(PKG_CONFIG_PATH)
+endif
 
 ###############################################################################
 # Eigen is header-only and is pulled here rather than through PKG_LIBS, which
@@ -12,7 +28,37 @@ CXX_STANDARD := --std=c++17
 # which used to silently drop the flags of every other dependency.
 #
 EIGEN_CFLAGS := $(shell pkg-config --cflags eigen3 2> /dev/null)
+# The conda-forge Pinocchio was built against its own Eigen. Mixing it with
+# the system Eigen breaks the Model ABI, so the forge copy wins when present.
+ifneq ($(wildcard $(P)/external/forge/include/eigen3/Eigen/Core),)
+EIGEN_CFLAGS := -I$(abspath $(P)/external/forge/include/eigen3)
+endif
 ifeq ($(strip $(EIGEN_CFLAGS)),)
 $(warning Eigen3 not found by pkg-config: see the Prerequisites section of README.md)
 endif
 USER_CXXFLAGS += $(patsubst -I%,-isystem %,$(EIGEN_CFLAGS))
+
+###############################################################################
+# Compages is built from external/Compages and linked as a static archive
+# (see external/compilation). The clone headers must win over any system
+# install: the camera lookAt fix lives in those headers.
+#
+COMPAGES_DIR := $(abspath $(P)/external/Compages)
+COMPAGES_STATIC := $(COMPAGES_DIR)/build/libCompages.a
+USER_CXXFLAGS += -isystem $(COMPAGES_DIR)/include
+USER_CXXFLAGS += -isystem $(COMPAGES_DIR)/external/units/include
+USER_CXXFLAGS += -isystem $(COMPAGES_DIR)/external/entt/src
+USER_LDFLAGS += $(COMPAGES_STATIC)
+
+pre-build:: $(COMPAGES_STATIC)
+
+$(COMPAGES_STATIC):
+	$(MAKE) -C $(COMPAGES_DIR) download-external-libs
+	$(MAKE) -C $(COMPAGES_DIR) COMPILATION_MODE=release $(COMPAGES_STATIC)
+
+FORGE_PREFIX := $(abspath $(P)/external/forge)
+ifneq ($(wildcard $(FORGE_PREFIX)/include/pinocchio/parsers/urdf.hpp),)
+USER_CXXFLAGS += -isystem $(FORGE_PREFIX)/include
+USER_LDFLAGS += -L$(FORGE_PREFIX)/lib -Wl,-rpath,$(FORGE_PREFIX)/lib
+USER_LDFLAGS += -lpinocchio_parsers -lpinocchio_default -lmujoco
+endif

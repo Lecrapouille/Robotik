@@ -1,11 +1,9 @@
-/**
- * @file TestPath.cpp
- * @brief Unit tests for the Path class - Verification of path searching.
- *
- * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
- * distributed under MIT License
- * @see https://github.com/Lecrapouille/Robotik
- */
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
 
 #include "main.hpp"
 
@@ -13,7 +11,6 @@
 
 using namespace robotik;
 
-//--------------------------------------------------------------------------
 class PathTests: public ::testing::Test
 {
 protected:
@@ -29,7 +26,6 @@ protected:
     }
 };
 
-//--------------------------------------------------------------------------
 TEST_F(PathTests, EmptyConstructor)
 {
     Path path;
@@ -38,7 +34,6 @@ TEST_F(PathTests, EmptyConstructor)
     EXPECT_TRUE(path.toString() == ".:");
 }
 
-//--------------------------------------------------------------------------
 TEST_F(PathTests, SplitConstructor)
 {
     Path path("/a/b:c/d");
@@ -56,7 +51,6 @@ TEST_F(PathTests, SplitConstructor)
     EXPECT_TRUE(path.toString() == ".:a/b:");
 }
 
-//--------------------------------------------------------------------------
 TEST_F(PathTests, SplitDir)
 {
     Path path("/a//b\\d/:e\\d:");
@@ -80,7 +74,6 @@ TEST_F(PathTests, SplitDir)
     EXPECT_TRUE(path.toString() == ".:g/g:");
 }
 
-//--------------------------------------------------------------------------
 TEST_F(PathTests, FindAndExpand)
 {
     Path path("/bin:/usr/bin:/usr/local/bin");

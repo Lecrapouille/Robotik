@@ -1,12 +1,9 @@
-/**
- * @file Path.cpp
- * @brief Path class for searching files in the same idea of the Unix
- * environment variable $PATH.
- *
- * Copyright (c) 2025 Quentin Quadrat <lecrapouille@gmail.com>
- * distributed under MIT License
- * @see https://github.com/Lecrapouille/Robotik
- */
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
 
 #include "Robotik/Core/Common/Path.hpp"
 
@@ -16,14 +13,12 @@
 namespace robotik
 {
 
-//------------------------------------------------------------------------------
 Path::Path(std::string const& path, char const delimiter)
     : m_delimiter(delimiter)
 {
     add(path);
 }
 
-//------------------------------------------------------------------------------
 void Path::add(std::string const& path)
 {
     if (!path.empty())
@@ -32,33 +27,28 @@ void Path::add(std::string const& path)
     }
 }
 
-//------------------------------------------------------------------------------
 void Path::reset(std::string const& path)
 {
     m_search_paths.clear();
     split(path);
 }
 
-//------------------------------------------------------------------------------
 void Path::clear()
 {
     m_search_paths.clear();
 }
 
-//------------------------------------------------------------------------------
 void Path::remove(std::string const& path)
 {
     m_search_paths.remove(path);
 }
 
-//------------------------------------------------------------------------------
 bool Path::exist(std::string const& path) const
 {
     struct stat buffer;
     return stat(path.c_str(), &buffer) == 0;
 }
 
-//------------------------------------------------------------------------------
 std::pair<std::string, bool> Path::find(std::string const& filename) const
 {
     if (Path::exist(filename))
@@ -75,7 +65,6 @@ std::pair<std::string, bool> Path::find(std::string const& filename) const
     return std::make_pair(std::string(), false);
 }
 
-//------------------------------------------------------------------------------
 std::string Path::expand(std::string const& filename) const
 {
     for (auto const& it : m_search_paths)
@@ -88,7 +77,6 @@ std::string Path::expand(std::string const& filename) const
     return filename;
 }
 
-//------------------------------------------------------------------------------
 bool Path::open(std::string& filename,
                 std::ifstream& ifs,
                 std::ios_base::openmode mode) const
@@ -112,7 +100,6 @@ bool Path::open(std::string& filename,
     return false;
 }
 
-//------------------------------------------------------------------------------
 bool Path::open(std::string& filename,
                 std::ofstream& ofs,
                 std::ios_base::openmode mode) const
@@ -136,7 +123,6 @@ bool Path::open(std::string& filename,
     return false;
 }
 
-//------------------------------------------------------------------------------
 bool Path::open(std::string& filename,
                 std::fstream& fs,
                 std::ios_base::openmode mode) const
@@ -160,7 +146,6 @@ bool Path::open(std::string& filename,
     return false;
 }
 
-//------------------------------------------------------------------------------
 std::vector<std::string> Path::paths() const
 {
     std::vector<std::string> res;
@@ -173,7 +158,6 @@ std::vector<std::string> Path::paths() const
     return res;
 }
 
-//------------------------------------------------------------------------------
 std::string Path::toString() const
 {
     std::string string_path;
@@ -191,7 +175,6 @@ std::string Path::toString() const
     return string_path;
 }
 
-//------------------------------------------------------------------------------
 void Path::split(std::string const& path)
 {
     std::stringstream ss(path);

@@ -1,3 +1,10 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
 #include "Robotik/Core/Prolog/Prologot.hpp"
 
 #include <cstring>
@@ -243,7 +250,7 @@ bool Prolog::initialize(Dictionary const& p_options)
         }
     }
 
-    // File search paths (-p alias=path)
+    // compages::core::File search paths (-p alias=path)
     if (has_option(p_options, "file search paths"))
     {
         try
@@ -400,7 +407,7 @@ bool Prolog::is_initialized() const
 }
 
 // =============================================================================
-// File and Code Consultation
+// compages::core::File and Code Consultation
 // =============================================================================
 
 bool Prolog::consult_file(String const& p_filename)

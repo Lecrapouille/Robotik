@@ -23,3 +23,30 @@ call-cmake -S "$RYML_DIR" -B "$RYML_DIR/build" \
 call-cmake --build "$RYML_DIR/build" --target ryml -j"$NPROC"
 
 echo "Built external/$RYML_DIR/build/libryml.a"
+
+### Compages, static and position-independent, so it can be linked into
+### librobotik-core.so. The archive is private to this tree: the system
+### libCompages.so is not used.
+print-compile Compages
+(cd Compages && make download-external-libs && \
+    make COMPILATION_MODE=release -j"$NPROC" build/libCompages.a)
+
+### Pinocchio (analytical FK, Jacobians, IK) and MuJoCo (dynamics).
+### They are not practical to build from a bare git clone here: Pinocchio needs
+### Boost and urdfdom, which are not assumed to be installed. A user-local
+### conda-forge prefix avoids sudo and stays inside external/ (gitignored).
+FORGE_DIR="forge"
+PINOCCHIO_PC="$(find "$FORGE_DIR" -path '*/pkgconfig/pinocchio.pc' -print -quit 2>/dev/null || true)"
+MUJOCO_LIB="$(find "$FORGE_DIR" -name 'libmujoco.so*' -print -quit 2>/dev/null || true)"
+
+if [ -z "$PINOCCHIO_PC" ] || [ -z "$MUJOCO_LIB" ]; then
+    print-compile "pinocchio+mujoco"
+    MAMBA_ROOT=".micromamba"
+    mkdir -p "$MAMBA_ROOT"
+    if [ ! -x "$MAMBA_ROOT/bin/micromamba" ]; then
+        curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest \
+            | tar -xj -C "$MAMBA_ROOT" bin/micromamba
+    fi
+    "$MAMBA_ROOT/bin/micromamba" create -y -p "$FORGE_DIR" -c conda-forge \
+        pinocchio mujoco
+fi

@@ -1,24 +1,10 @@
-###############################################################################
-## Robotik: A basic logger.
-## Copyright 2025 Quentin Quadrat <lecrapouille@gmail.com>
-##
-## This file is part of Robotik.
-##
-## Robotik is free software: you can redistribute it and/or modify it
-## under the terms of the GNU General Public License as published by
-## the Free Software Foundation, either version 3 of the License, or
-## (at your option) any later version.
-##
-## Robotik is distributed in the hope that it will be useful, but
-## WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Robotik.  If not, see <http://www.gnu.org/licenses/>.
-###############################################################################
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+# Copyright (c) 2020-2026 Quentin Quadrat
+#
+# This file is part of RobotIK. It is available under the GNU GPL v3 or,
+# for users who cannot use the GPL, under a commercial license.
+# See LICENSING.md for details.
 
-###############################################################################
 # Location of the project directory and Makefiles
 #
 P := .
@@ -39,10 +25,8 @@ include $(M)/project/Makefile
 # Internal libs to compile in the correct order
 #
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
-LIB_ROBOTIK_RENDERER := $(call internal-lib,robotik-renderer)
-INTERNAL_LIBS := $(LIB_ROBOTIK_CORE) $(LIB_ROBOTIK_RENDERER)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core $(P)/src/Robotik/Renderer
-$(P)/src/Robotik/Renderer: $(P)/src/Robotik/Core
+INTERNAL_LIBS := $(LIB_ROBOTIK_CORE)
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core
 
 ###################################################
 # Generic Makefile rules
