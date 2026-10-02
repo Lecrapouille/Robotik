@@ -5,47 +5,52 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/**
- * @file MoveJointsSkill.hpp
- * @brief Multi-joint simultaneous position skill.
- */
-
+//! @file MoveJointsSkill.hpp
+//! @brief Multi-joint simultaneous position skill.
 #pragma once
 
+#include "Robotik/Runtime/RobotContext.hpp"
 #include "Robotik/Skills/Skill.hpp"
 
 #include <string>
-#include <unordered_map>
 
 namespace robotik
 {
 
-/**
- * @brief Commands several joints at once; succeeds when all are within tolerance.
- */
+// ****************************************************************************
+//! @brief Commands several joints at once; succeeds when all are within
+//! tolerance.
+//!
+//! Each goal uses @ref Radians for revolute joints or @ref Length for prismatic
+//! joints (same SI convention as @ref ecs::JointCommand::position).
+// ****************************************************************************
 class MoveJointsSkill final: public Skill
 {
 public:
 
-    /** @brief Map of joint name to target position. */
-    using Targets = std::unordered_map<std::string, double>;
+    //!< Map of joint name to target position.
+    using Targets = JointPosture;
 
-    /**
-     * @brief Creates the skill with a fixed target map.
-     * @param p_targets Joint names and goal positions.
-     * @param p_tolerance Per-joint success threshold.
-     */
-    explicit MoveJointsSkill(Targets p_targets, double p_tolerance = 1e-2);
+    // -------------------------------------------------------------------------
+    //! @brief Creates the skill with a fixed target map.
+    //! @param p_targets Joint names and goal positions.
+    //! @param p_angle_tolerance Success threshold on revolute joints.
+    //! @param p_linear_tolerance Success threshold on prismatic joints.
+    // -------------------------------------------------------------------------
+    explicit MoveJointsSkill(Targets p_targets,
+                             Radians p_angle_tolerance = Radians(1e-2),
+                             Length p_linear_tolerance = Length(1e-2));
 
-    Status tick(RobotContext& p_context, double p_dt) override;
+    Status tick(RobotContext& p_context, Seconds p_dt) override;
 
 private:
 
-    /** @brief Joint goals. */
+    //!< Joint goals.
     Targets m_targets;
-
-    /** @brief Position error threshold. */
-    double m_tolerance;
+    //!< |error| threshold for revolute joints.
+    Radians m_angle_tolerance;
+    //!< |error| threshold for prismatic joints.
+    Length m_linear_tolerance;
 };
 
 } // namespace robotik

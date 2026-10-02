@@ -17,7 +17,9 @@ CURRENT_DIR := $(P)/src/Applications/Simulator
 INCLUDES += $(CURRENT_DIR) $(P)/include $(P)/src
 VPATH += $(CURRENT_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
-SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/Panels.cpp
+SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
+SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
+SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
 PKG_LIBS += glfw3
 
 # Headers only: BlackThorn is compiled into robotik-core.
@@ -35,9 +37,10 @@ IMGUI_FILES := $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_draw.cpp
 IMGUI_FILES += $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 IMGUI_FILES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp
 IMGUI_FILES += $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
+IMGUI_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
 SRC_FILES += $(IMGUI_FILES)
-INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/backends
-VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/backends
+INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/backends $(IMGUI_DIR)/misc/cpp
+VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/backends $(IMGUI_DIR)/misc/cpp
 
 USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion
 USER_CXXFLAGS += -Wno-float-equal -Wno-undef -Wno-shadow -Wno-double-promotion

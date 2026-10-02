@@ -5,11 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/**
- * @file PickPlaceSkills.hpp
- * @brief Pick-and-place skills for vacuum gripper scenarios.
- */
-
+//! @file PickPlaceSkills.hpp
+//! @brief Pick-and-place skills for vacuum gripper scenarios.
 #pragma once
 
 #include "Robotik/Skills/MoveTCPSkill.hpp"
@@ -20,105 +17,108 @@
 namespace robotik
 {
 
-/**
- * @brief Moves the suction cup above an object with the tool pointing down.
- *
- * @p_clearance is added above the object top plus @ref ecs::VacuumGripper::tool_length.
- */
+// ****************************************************************************
+// @brief Moves the suction cup above an object with the tool pointing down.
+//
+// @p_clearance is added above the object top plus @ref
+// ecs::VacuumGripper::tool_length.
+// ****************************************************************************
 class ApproachSkill final: public Skill
 {
 public:
 
-    /**
-     * @brief Creates the approach skill.
-     * @param p_object @ref ecs::SceneObject name.
-     * @param p_clearance Extra height above the object top, in meters.
-     */
-    ApproachSkill(std::string p_object, double p_clearance);
+    // -------------------------------------------------------------------------
+    //! @brief Creates the approach skill.
+    //! @param p_object @ref ecs::SceneObject name.
+    //! @param p_clearance Extra height above the object top, in meters.
+    // -------------------------------------------------------------------------
+    ApproachSkill(std::string p_object, Length p_clearance);
 
     void reset() override;
-    Status tick(RobotContext& p_context, double p_dt) override;
+    Status tick(RobotContext& p_context, Seconds p_dt) override;
 
 private:
 
-    /** @brief Target object name. */
+    //!< Target object name.
     std::string m_object;
-
-    /** @brief Vertical offset above object top. */
-    double m_clearance;
-
-    /** @brief Internal Cartesian mover. */
+    //!< Vertical offset above object top (SI: m).
+    Length m_clearance;
+    //!< Internal Cartesian mover.
     MoveTCPSkill m_move;
-
-    /** @brief True after IK goal has been set for this approach. */
+    //!< True after IK goal has been set for this approach.
     bool m_planned = false;
 };
 
-/**
- * @brief Attaches the object to @ref ecs::VacuumGripper when the cup is close enough.
- */
+// ****************************************************************************
+//! @brief Attaches the object to @ref ecs::VacuumGripper when the cup is close
+//! enough.
+// ****************************************************************************
 class GraspSkill final: public Skill
 {
 public:
 
-    /**
-     * @brief Creates the grasp skill.
-     * @param p_object Object name to grasp.
-     */
-    explicit GraspSkill(std::string p_object) : m_object(std::move(p_object)) {}
+    // -------------------------------------------------------------------------
+    //! @brief Creates the grasp skill.
+    //! @param p_object Object name to grasp.
+    // -------------------------------------------------------------------------
+    explicit GraspSkill(std::string p_object) noexcept
+        : m_object(std::move(p_object))
+    {
+    }
 
-    Status tick(RobotContext& p_context, double p_dt) override;
+    Status tick(RobotContext& p_context, Seconds p_dt) override;
 
 private:
 
-    /** @brief Object to attach. */
+    //!< Object to attach.
     std::string m_object;
 };
 
-/**
- * @brief Releases @ref ecs::VacuumGripper::held and drops the object onto support below.
- */
+// ****************************************************************************
+//! @brief Releases @ref ecs::VacuumGripper::held and drops the object onto
+//! support below.
+// ****************************************************************************
 class ReleaseSkill final: public Skill
 {
 public:
 
-    Status tick(RobotContext& p_context, double p_dt) override;
+    Status tick(RobotContext& p_context, Seconds p_dt) override;
 };
 
-/**
- * @brief Waits until @ref ecs::DetectedObjects lists @p_object, or succeeds without camera.
- */
+// ****************************************************************************
+//! @brief Waits until @ref ecs::DetectedObjects lists @p_object, or succeeds
+//! without camera.
+// ****************************************************************************
 class DetectSkill final: public Skill
 {
 public:
 
-    /**
-     * @brief Creates the detect skill.
-     * @param p_object Label to look for in detections.
-     * @param p_timeout Seconds before @ref Status::failure if never seen.
-     */
-    explicit DetectSkill(std::string p_object, double p_timeout = 2.0)
+    // -------------------------------------------------------------------------
+    //! @brief Creates the detect skill.
+    //! @param p_object Label to look for in detections.
+    //! @param p_timeout Seconds before @ref Status::FAILURE if never seen.
+    // -------------------------------------------------------------------------
+    explicit DetectSkill(std::string p_object,
+                         Seconds p_timeout = Seconds(2.0)) noexcept
         : m_object(std::move(p_object)), m_timeout(p_timeout)
     {
     }
 
     void reset() override
     {
-        m_waited = 0.0;
+        m_waited = Seconds{};
     }
 
-    Status tick(RobotContext& p_context, double p_dt) override;
+    Status tick(RobotContext& p_context, Seconds p_dt) override;
 
 private:
 
-    /** @brief Expected detection label. */
+    //!< Expected detection label.
     std::string m_object;
-
-    /** @brief Maximum wait time when a camera is present. */
-    double m_timeout;
-
-    /** @brief Accumulated wait time in the current run. */
-    double m_waited = 0.0;
+    //!< Maximum wait time when a camera is present.
+    Seconds m_timeout;
+    //!< Accumulated wait time in the current run.
+    Seconds m_waited{};
 };
 
 } // namespace robotik

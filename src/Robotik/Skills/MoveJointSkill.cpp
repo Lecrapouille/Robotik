@@ -33,21 +33,25 @@ void MoveJointSkill::setGoal(std::string p_joint_name, double p_target)
     }
 }
 
-Status MoveJointSkill::tick(RobotContext& p_context, double /*p_dt*/)
+Status MoveJointSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
+    // Find the joint
     compages::world::Entity joint = findJoint(p_context.world, m_joint_name);
     if (!joint || !joint.has<ecs::JointState>() ||
         !joint.has<ecs::JointCommand>())
     {
-        return Status::failure;
+        return Status::FAILURE;
     }
 
+    // Set the command mode and position
     ecs::JointCommand& command = joint.get<ecs::JointCommand>();
-    command.mode = ecs::JointControlMode::Position;
-    command.position = m_target;
+    ecs::setCommandMode(command, ecs::JointControlMode::POSITION);
+    ecs::setCommandPosition(command, m_target);
 
-    double const error = joint.get<ecs::JointState>().position - m_target;
-    return std::abs(error) <= m_tolerance ? Status::Success : Status::Running;
+    // Check if the position is reached
+    double const error =
+        ecs::positionSi(joint.get<ecs::JointState>()) - m_target;
+    return std::abs(error) <= m_tolerance ? Status::SUCCESS : Status::RUNNING;
 }
 
 } // namespace robotik

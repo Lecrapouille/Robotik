@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/**
- * @file BackendComponents.hpp
- * @brief ECS indices linking entities to MuJoCo and Pinocchio (no ownership).
- */
-
+//! @file BackendComponents.hpp
+//! @brief ECS indices linking entities to MuJoCo and Pinocchio (no ownership).
+//! Joint *names* match URDF on both backends, but numeric indices differ: store
+//! @ref MujocoJointBinding and @ref PinocchioJointBinding separately on each
+//! link.
 #pragma once
 
 #include <cstddef>
@@ -17,54 +17,53 @@
 namespace robotik::ecs
 {
 
-/**
- * @brief MuJoCo joint indices for one actuated link entity.
- */
+// ****************************************************************************
+//! @brief MuJoCo joint indices for one actuated link entity.
+// ****************************************************************************
 struct MujocoJointBinding
 {
-    /** @brief @c mj_name2id(..., mjOBJ_JOINT, ...). */
+    //!< @c mj_name2id(..., mjOBJ_JOINT, ...).
     int joint_id = -1;
-
-    /** @brief Offset into @c mjData::qpos. */
+    //!< First index into @c mjData::qpos (generalized positions: rad, m, or
+    //!< quaternion parts depending on joint type).
     int qpos_index = -1;
-
-    /** @brief Offset into @c mjData::qvel. */
+    //!< First index into @c mjData::qvel (generalized velocities: rad/s or m/s
+    //!< per DOF; layout may differ from @c qpos for multi-DOF joints).
     int qvel_index = -1;
-
-    /** @brief DOF index for @c qfrc_applied. */
+    //!< DOF index for @c qfrc_applied.
     int dof_index = -1;
 };
 
-/**
- * @brief Optional named actuator for a joint (falls back to @c qfrc_applied).
- */
+// ****************************************************************************
+//! @brief Optional named actuator for a joint (falls back to @c qfrc_applied).
+// ****************************************************************************
 struct MujocoActuatorBinding
 {
-    /** @brief @c mj_name2id(..., mjOBJ_ACTUATOR, ...). */
+    //!< @c mj_name2id(..., mjOBJ_ACTUATOR, ...).
     int actuator_id = -1;
 };
 
-/**
- * @brief Pinocchio joint indices for configuration sync.
- */
+// ****************************************************************************
+//! @brief Pinocchio joint indices for configuration sync.
+// ****************************************************************************
 struct PinocchioJointBinding
 {
-    /** @brief Pinocchio joint index. */
+    //!< Pinocchio joint index.
     std::size_t joint_id = 0;
-
-    /** @brief Index in Pinocchio @c q. */
+    //!< First index in Pinocchio @c q (generalized coordinates: rad or m per
+    //!< joint; multi-DOF joints use several consecutive entries).
     int q_index = -1;
-
-    /** @brief Index in Pinocchio @c v. */
+    //!< First index in Pinocchio @c v (generalized velocities aligned with
+    //!< velocity DOFs; @c model.nv may differ from @c model.nq).
     int v_index = -1;
 };
 
-/**
- * @brief Pinocchio frame id for FK / IK on a link (e.g. tool flange).
- */
+// ****************************************************************************
+//! @brief Pinocchio frame id for FK / IK on a link (e.g. tool flange).
+// ****************************************************************************
 struct PinocchioFrameBinding
 {
-    /** @brief Pinocchio frame index. */
+    //!< Pinocchio frame index.
     std::size_t frame_id = 0;
 };
 

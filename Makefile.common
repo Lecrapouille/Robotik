@@ -6,7 +6,7 @@
 # See LICENSING.md for details.
 
 PROJECT_NAME := Robotik
-PROJECT_VERSION := 0.1.0
+PROJECT_VERSION := 0.2.0
 COMPILATION_MODE := debug
 CXX_STANDARD := --std=c++20
 

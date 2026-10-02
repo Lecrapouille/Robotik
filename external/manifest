@@ -3,6 +3,10 @@
 ### License: MIT
 nholthaus/units
 
+### A library to parse and emit YAML, and do it fast. YAML backend of BlackThorn.
+### License: MIT
+biojppm/rapidyaml:recurse@v0.15.2
+
 ### Light-weight, simple and fast XML parser for C++ with XPath support
 ### License: MIT
 zeux/pugixml
@@ -23,10 +27,6 @@ epezent/implot
 ### License: MIT
 Lecrapouille/BlackThorn
 
-### A library to parse and emit YAML, and do it fast. YAML backend of BlackThorn.
-### License: MIT
-biojppm/rapidyaml:recurse@v0.15.2
-
-### World, spatial hierarchy and renderer. Replaces the homemade scene graph.
+### World, spatial hierarchy and 3d renderer
 ### License: GPL-3.0
 Lecrapouille/Compages:recurse

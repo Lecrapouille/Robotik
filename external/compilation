@@ -3,6 +3,7 @@
 ### Sourced by .makefile/assets/scripts/compile-external-libs.sh from the
 ### external/ folder, which provides print-compile, call-cmake and NPROC.
 
+###############################################################################
 ### rapidyaml: YAML backend of BlackThorn. Built as a static PIC archive so it
 ### can be linked into librobotik-core.so without polluting the system.
 RYML_DIR="rapidyaml"
@@ -22,8 +23,7 @@ call-cmake -S "$RYML_DIR" -B "$RYML_DIR/build" \
 
 call-cmake --build "$RYML_DIR/build" --target ryml -j"$NPROC"
 
-echo "Built external/$RYML_DIR/build/libryml.a"
-
+###############################################################################
 ### Compages, static and position-independent, so it can be linked into
 ### librobotik-core.so. The archive is private to this tree: the system
 ### libCompages.so is not used.
@@ -31,6 +31,7 @@ print-compile Compages
 (cd Compages && make download-external-libs && \
     make COMPILATION_MODE=release -j"$NPROC" build/libCompages.a)
 
+###############################################################################
 ### Pinocchio (analytical FK, Jacobians, IK) and MuJoCo (dynamics).
 ### They are not practical to build from a bare git clone here: Pinocchio needs
 ### Boost and urdfdom, which are not assumed to be installed. A user-local

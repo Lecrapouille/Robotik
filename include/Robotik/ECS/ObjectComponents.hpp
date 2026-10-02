@@ -5,13 +5,15 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/**
- * @file ObjectComponents.hpp
- * @brief Scenario props and virtual suction gripper on the tool link.
- */
-
+// @file ObjectComponents.hpp
+// @brief Pick-and-place objects in the world and vacuum grasp on the tool.
+// @ref SceneObject — manipulable item from scenario YAML (name, shape, color,
+// size). @ref VacuumGripper — on the end-effector link: which @ref SceneObject
+// is currently stuck to the cup and how long the tool is (no parallel-jaw
+// URDF).
 #pragma once
 
+#include "Compages/Core/Units.hpp"
 #include "Compages/World/EntityId.hpp"
 
 #include <array>
@@ -20,46 +22,42 @@
 namespace robotik::ecs
 {
 
-/**
- * @brief Pick-and-place prop spawned from a scenario file.
- *
- * Pose is the Compages transform on an entity parented to the robot root
- * (coordinates in the robot base frame).
- */
+// ****************************************************************************
+// @brief Pick-and-place prop spawned from a scenario file.
+//
+// Pose is the Compages transform on an entity parented to the robot root
+// (coordinates in the robot base frame).
+// ****************************************************************************
 struct SceneObject
 {
-    /** @brief Primitive shape used for rendering. */
+    // ------------------------------------------------------------------------
+    // @brief Primitive shape used for rendering.
+    // ------------------------------------------------------------------------
     enum class Type
     {
-        Cube, ///< Single box mesh scaled by @ref size.
-        Box   ///< Open container: floor plus four walls in the scene loader.
+        CUBE, //!< Single box mesh scaled by @ref size.
+        BOX   //!< Open container: floor plus four walls in the scene loader.
     };
 
-    /** @brief Unique name referenced by skills and assertions. */
+    //!< Unique name referenced by skills and assertions.
     std::string name;
-
-    /** @brief Shape kind for @ref Simulation spawn. */
-    Type type = Type::Cube;
-
-    /** @brief Full extents in meters (X, Y, Z). */
-    std::array<float, 3> size{ 0.04f, 0.04f, 0.04f };
-
-    /** @brief RGB color in @c [0, 1] for rendering and color detection. */
+    //!< Shape kind for @ref Simulation spawn.
+    Type type = Type::CUBE;
+    //!< Full extents (SI: m) along X, Y, Z.
+    std::array<Length, 3> size{ Length(0.04), Length(0.04), Length(0.04) };
+    //!< RGB color in @c [0, 1] for rendering and color detection.
     std::array<float, 3> color{ 0.8f, 0.8f, 0.8f };
 };
 
-/**
- * @brief Virtual vacuum tool: at most one @ref SceneObject may be attached.
- */
+// ****************************************************************************
+// @brief Virtual vacuum tool: at most one @ref SceneObject may be attached.
+// ****************************************************************************
 struct VacuumGripper
 {
-    /** @brief Entity id of the grasped object, or invalid when empty. */
+    //!< Entity id of the grasped object, or invalid when empty.
     compages::world::EntityId held{};
-
-    /**
-     * @brief Distance from flange frame to cup tip along flange +Z, in meters.
-     */
-    double tool_length = 0.06;
+    //!< Distance from flange frame to cup tip along flange +Z (SI: m).
+    Length tool_length{ 0.06 };
 };
 
 } // namespace robotik::ecs

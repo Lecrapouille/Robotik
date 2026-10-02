@@ -25,7 +25,7 @@ Eigen::Matrix3d eulerToRotation(double p_rx, double p_ry, double p_rz)
 // ----------------------------------------------------------------------------
 Eigen::Vector3d rotationToEuler(const Eigen::Matrix3d& p_rot)
 {
-    return p_rot.eulerAngles(2, 1, 0).reverse();
+    return p_rot.canonicalEulerAngles(2, 1, 0).reverse();
 }
 
 // ----------------------------------------------------------------------------

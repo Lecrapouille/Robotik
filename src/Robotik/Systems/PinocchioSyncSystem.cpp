@@ -17,25 +17,30 @@ namespace robotik
 {
 
 void PinocchioSyncSystem::update(compages::world::World& p_world,
-                                 PinocchioBackend& p_pinocchio)
+                                 PinocchioBackend& p_pinocchio) const
 {
     std::vector<double> q = p_pinocchio.configuration();
     std::vector<double> v = p_pinocchio.velocity();
 
     p_world.each<ecs::JointState, ecs::PinocchioJointBinding>(
-        [&](compages::world::Entity,
-            ecs::JointState& p_state,
-            ecs::PinocchioJointBinding& p_binding)
+        [&q, &v](compages::world::Entity,
+                 ecs::JointState const& p_state,
+                 ecs::PinocchioJointBinding const& p_binding)
         {
+            // Write the position to the configuration
             if (p_binding.q_index >= 0 &&
                 p_binding.q_index < static_cast<int>(q.size()))
             {
-                q[static_cast<std::size_t>(p_binding.q_index)] = p_state.position;
+                auto const index = static_cast<std::size_t>(p_binding.q_index);
+                q[index] = ecs::positionSi(p_state);
             }
+
+            // Write the velocity to the velocity
             if (p_binding.v_index >= 0 &&
                 p_binding.v_index < static_cast<int>(v.size()))
             {
-                v[static_cast<std::size_t>(p_binding.v_index)] = p_state.velocity;
+                auto const index = static_cast<std::size_t>(p_binding.v_index);
+                v[index] = ecs::velocitySi(p_state);
             }
         });
 

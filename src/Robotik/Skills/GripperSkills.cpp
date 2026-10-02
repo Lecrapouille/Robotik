@@ -18,44 +18,51 @@
 namespace robotik
 {
 
-namespace
-{
-
-Status commandGrippers(RobotContext& p_context, bool p_open, double p_tolerance)
+static Status
+commandGrippers(RobotContext& p_context, bool p_open, Length p_tolerance)
 {
     bool reached = true;
     bool any = false;
+
     p_context.world.each<ecs::Gripper, ecs::JointCommand, ecs::JointState>(
-        [&](compages::world::Entity,
-            ecs::Gripper& p_gripper,
-            ecs::JointCommand& p_command,
-            ecs::JointState& p_state)
+        [&p_open, &reached, &any, p_tolerance](compages::world::Entity,
+                                               ecs::Gripper const& p_gripper,
+                                               ecs::JointCommand& p_command,
+                                               ecs::JointState const& p_state)
         {
             any = true;
+
+            // Set the command mode and position
             double const goal =
-                p_open ? p_gripper.max_opening : p_gripper.min_opening;
-            p_command.mode = ecs::JointControlMode::Position;
-            p_command.position = goal;
-            if (std::abs(p_state.position - goal) > p_tolerance)
+                (p_open ? p_gripper.max_opening : p_gripper.min_opening)
+                    .value();
+            ecs::setCommandMode(p_command, ecs::JointControlMode::POSITION);
+            ecs::setCommandPosition(p_command, goal);
+
+            // Check if the position is reached
+            if (ecs::exceedsTolerance(
+                    std::get<ecs::PrismaticJointState>(p_state).position,
+                    Length(goal),
+                    p_tolerance))
             {
                 reached = false;
             }
         });
+
+    // Check if any gripper is commanded
     if (!any)
     {
-        return Status::failure;
+        return Status::FAILURE;
     }
-    return reached ? Status::Success : Status::Running;
+    return reached ? Status::SUCCESS : Status::RUNNING;
 }
 
-} // namespace
-
-Status OpenGripperSkill::tick(RobotContext& p_context, double /*p_dt*/)
+Status OpenGripperSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
     return commandGrippers(p_context, true, m_tolerance);
 }
 
-Status CloseGripperSkill::tick(RobotContext& p_context, double /*p_dt*/)
+Status CloseGripperSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
 {
     return commandGrippers(p_context, false, m_tolerance);
 }
