@@ -19,13 +19,11 @@ struct MujocoBackend::Impl
     std::filesystem::path generated;
 };
 
-namespace
-{
-
 // MuJoCo rejects a moving body whose mass or inertia is missing or ~0.
 // URDF visuals often omit <inertial>. A small default keeps the same file
 // loadable without changing what Pinocchio or Compages see.
-std::filesystem::path withInertia(std::string const& p_filename)
+static std::filesystem::path
+withInertia(std::filesystem::path const& p_filename)
 {
     pugi::xml_document document;
     if (!document.load_file(p_filename.c_str()))
@@ -40,7 +38,8 @@ std::filesystem::path withInertia(std::string const& p_filename)
     {
         pugi::xml_node inertial = link.child("inertial");
         double const mass =
-            inertial ? inertial.child("mass").attribute("value").as_double(0.0) : 0.0;
+            inertial ? inertial.child("mass").attribute("value").as_double(0.0)
+                     : 0.0;
         if (!inertial || mass < 1e-8)
         {
             if (inertial)
@@ -72,7 +71,8 @@ std::filesystem::path withInertia(std::string const& p_filename)
         {
             continue;
         }
-        filename.set_value((directory / value).lexically_normal().string().c_str());
+        filename.set_value(
+            (directory / value).lexically_normal().string().c_str());
         changed = true;
     }
 
@@ -83,7 +83,7 @@ std::filesystem::path withInertia(std::string const& p_filename)
 
     std::filesystem::path const output =
         std::filesystem::temp_directory_path() /
-        ("robotik-" + std::filesystem::path(p_filename).filename().string());
+        ("robotik-" + p_filename.filename().string());
     if (!document.save_file(output.c_str()))
     {
         throw std::runtime_error("Cannot write a MuJoCo URDF copy to " +
@@ -92,13 +92,11 @@ std::filesystem::path withInertia(std::string const& p_filename)
     return output;
 }
 
-} // namespace
-
-MujocoBackend::MujocoBackend(std::string const& p_filename)
+MujocoBackend::MujocoBackend(std::filesystem::path const& p_filename)
     : m_impl(new Impl)
 {
     std::filesystem::path const source = withInertia(p_filename);
-    if (source != std::filesystem::path(p_filename))
+    if (source != p_filename)
     {
         m_impl->generated = source;
     }
@@ -109,15 +107,17 @@ MujocoBackend::MujocoBackend(std::string const& p_filename)
         std::string message = error;
         delete m_impl;
         m_impl = nullptr;
-        throw std::runtime_error("MuJoCo failed to load '" + p_filename + "': " +
-                                 message);
+        throw std::runtime_error("MuJoCo failed to load '" +
+                                 p_filename.string() + "': " + message);
     }
     // Reflected rotor inertia and viscous friction of real gear motors. Without
     // them a light wrist makes the explicit PD loop unstable at 1 ms.
     for (int dof = 0; dof < m_impl->model->nv; ++dof)
     {
-        m_impl->model->dof_armature[dof] = std::max(m_impl->model->dof_armature[dof], 0.1);
-        m_impl->model->dof_damping[dof] = std::max(m_impl->model->dof_damping[dof], 0.5);
+        m_impl->model->dof_armature[dof] =
+            std::max(m_impl->model->dof_armature[dof], 0.1);
+        m_impl->model->dof_damping[dof] =
+            std::max(m_impl->model->dof_damping[dof], 0.5);
     }
     m_impl->data = mj_makeData(m_impl->model);
     reset();
@@ -146,19 +146,20 @@ void MujocoBackend::reset()
     m_time = m_impl->data->time;
 }
 
-void MujocoBackend::step(double p_dt)
+void MujocoBackend::step(Seconds p_dt)
 {
-    if (p_dt > 0.0)
+    double const dt = p_dt.value();
+    if (dt > 0.0)
     {
-        m_impl->model->opt.timestep = p_dt;
+        m_impl->model->opt.timestep = dt;
     }
     mj_step(m_impl->model, m_impl->data);
     m_time = m_impl->data->time;
 }
 
-double MujocoBackend::time() const
+Seconds MujocoBackend::time() const
 {
-    return m_time;
+    return Seconds(m_time);
 }
 
 int MujocoBackend::jointId(std::string const& p_name) const
@@ -233,7 +234,8 @@ void MujocoBackend::setQpos(int p_index, double p_value)
 void MujocoBackend::compensateGravity()
 {
     // qfrc_bias holds gravity and Coriolis at the state of the last mj_forward.
-    mju_addTo(m_impl->data->qfrc_applied, m_impl->data->qfrc_bias,
+    mju_addTo(m_impl->data->qfrc_applied,
+              m_impl->data->qfrc_bias,
               static_cast<int>(m_impl->model->nv));
 }
 

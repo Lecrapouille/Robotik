@@ -4,21 +4,22 @@
 #include "Robotik/Runtime/RobotRuntime.hpp"
 #include "Robotik/Skills/MoveJointSkill.hpp"
 
+#include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"
 
+#include <filesystem>
 #include <fstream>
 #include <string>
 
-namespace
-{
+#define TEST_SIM_STEP_S 0.002
 
-std::string revoluteUrdf()
+static std::filesystem::path revoluteUrdf()
 {
-    char const* candidates[] = {
+    std::array<std::filesystem::path, 2> const candidates = {
         "data/simple_revolute_robot.urdf",
         "../data/simple_revolute_robot.urdf",
     };
-    for (char const* candidate : candidates)
+    for (std::filesystem::path const& candidate : candidates)
     {
         std::ifstream file(candidate);
         if (file)
@@ -28,8 +29,6 @@ std::string revoluteUrdf()
     }
     return candidates[0];
 }
-
-} // namespace
 
 TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
 {
@@ -47,14 +46,14 @@ TEST(RobotRuntime, MoveJointReachesTheCommand)
     robotik::RobotRuntime runtime(world, revoluteUrdf());
     robotik::MoveJointSkill skill("revolute_joint", 0.5, 0.05);
 
-    robotik::Status status = robotik::Status::Running;
-    for (int step = 0; step < 1500 && status == robotik::Status::Running;
-         ++step)
+    robotik::Status status = robotik::Status::RUNNING;
+    Seconds const sim_step(TEST_SIM_STEP_S);
+    for (int i = 0; i < 1500 && status == robotik::Status::RUNNING; ++i)
     {
         robotik::RobotContext context = runtime.context();
-        status = skill.tick(context, 0.002);
-        runtime.step(0.002);
+        status = skill.tick(context, sim_step);
+        runtime.step(sim_step);
     }
 
-    EXPECT_EQ(status, robotik::Status::Success);
+    EXPECT_EQ(status, robotik::Status::SUCCESS);
 }

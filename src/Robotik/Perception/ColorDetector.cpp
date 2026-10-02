@@ -3,16 +3,13 @@
 #include <algorithm>
 #include <cmath>
 
+#define COLOR_MAX_HUE_DISTANCE 15.0f
+#define COLOR_MIN_SATURATION 0.45f
+#define COLOR_MIN_VALUE 0.15f
+#define COLOR_MIN_PIXELS 20
+
 namespace robotik
 {
-
-namespace
-{
-
-constexpr float kMaxHueDistance = 15.0f;
-constexpr float kMinSaturation = 0.45f;
-constexpr float kMinValue = 0.15f;
-constexpr int kMinPixels = 20;
 
 struct Hsv
 {
@@ -22,7 +19,7 @@ struct Hsv
 };
 
 // Components in [0, 1], hue in degrees.
-Hsv hsv(float p_r, float p_g, float p_b)
+static Hsv hsv(float p_r, float p_g, float p_b)
 {
     float const high = std::max({ p_r, p_g, p_b });
     float const low = std::min({ p_r, p_g, p_b });
@@ -47,13 +44,11 @@ Hsv hsv(float p_r, float p_g, float p_b)
     return result;
 }
 
-float hueDistance(float p_a, float p_b)
+static float hueDistance(float p_a, float p_b)
 {
     float const distance = std::abs(p_a - p_b);
     return std::min(distance, 360.0f - distance);
 }
-
-} // namespace
 
 std::vector<ecs::Detection>
 ColorDetector::detect(std::span<const std::uint8_t> p_rgb, int p_width, int p_height) const
@@ -75,8 +70,9 @@ ColorDetector::detect(std::span<const std::uint8_t> p_rgb, int p_width, int p_he
             {
                 std::uint8_t const* pixel = &p_rgb[static_cast<std::size_t>((y * p_width + x) * 3)];
                 Hsv const have = hsv(pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
-                if (have.value < kMinValue || have.saturation < kMinSaturation ||
-                    hueDistance(have.hue, want.hue) > kMaxHueDistance)
+                if (have.value < COLOR_MIN_VALUE ||
+                    have.saturation < COLOR_MIN_SATURATION ||
+                    hueDistance(have.hue, want.hue) > COLOR_MAX_HUE_DISTANCE)
                 {
                     continue;
                 }
@@ -88,7 +84,7 @@ ColorDetector::detect(std::span<const std::uint8_t> p_rgb, int p_width, int p_he
                 ++pixels;
             }
         }
-        if (pixels >= kMinPixels)
+        if (pixels >= COLOR_MIN_PIXELS)
         {
             int const area = (box.x1 - box.x0 + 1) * (box.y1 - box.y0 + 1);
             box.confidence = static_cast<float>(pixels) / static_cast<float>(area);

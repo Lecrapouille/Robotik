@@ -1,28 +1,29 @@
 #include "Robotik/Runtime/RobotRuntime.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
+#include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"
+
+#include <filesystem>
 
 #include <iostream>
 #include <string>
 
-namespace
-{
+#define HEADLESS_DT_S 0.01
+#define HEADLESS_TIMEOUT_S 120.0
 
-char const* label(robotik::Status p_status)
+static char const* label(robotik::Status p_status)
 {
     switch (p_status)
     {
-        case robotik::Status::Success:
+        case robotik::Status::SUCCESS:
             return "success";
-        case robotik::Status::failure:
+        case robotik::Status::FAILURE:
             return "failure";
         default:
             return "running";
     }
 }
-
-} // namespace
 
 int main(int argc, char** argv)
 {
@@ -35,27 +36,32 @@ int main(int argc, char** argv)
     try
     {
         compages::world::World world;
-        robotik::Simulation simulation(world, nullptr, robotik::Scenario::load(argv[1]));
+        robotik::Simulation simulation(
+            world,
+            nullptr,
+            robotik::Scenario::load(std::filesystem::path(argv[1])));
 
-        constexpr double kDt = 0.01;
-        constexpr double kTimeout = 120.0;
-        while (!simulation.finished() && simulation.runtime().time() < kTimeout)
+        Seconds const dt(HEADLESS_DT_S);
+        Seconds const timeout(HEADLESS_TIMEOUT_S);
+        while (!simulation.finished() && simulation.runtime().time() < timeout)
         {
-            simulation.step(kDt);
+            simulation.step(dt);
         }
 
         for (auto const& entry : simulation.trace().entries)
         {
             std::cout << "  " << entry.start << "s  " << entry.name << "  "
-                      << label(entry.status) << "  (" << entry.end - entry.start << "s)\n";
+                      << label(entry.status) << "  (" << entry.end - entry.start
+                      << "s)\n";
         }
         bool passed = true;
         for (auto const& check : simulation.checks())
         {
-            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text << '\n';
+            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text
+                      << '\n';
             passed = passed && check.passed;
         }
-        std::cout << "time=" << simulation.runtime().time() << "s\n";
+        std::cout << "time=" << simulation.runtime().time().value() << "s\n";
         return passed ? 0 : 2;
     }
     catch (std::exception const& error)

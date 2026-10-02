@@ -10,35 +10,38 @@
 namespace robotik
 {
 
+//------------------------------------------------------------------------------
 void MujocoSyncSystem::readState(compages::world::World& p_world,
-                                 MujocoBackend& p_mujoco)
+                                 MujocoBackend& p_mujoco) const
 {
     p_world.each<ecs::JointState, ecs::MujocoJointBinding>(
-        [&](compages::world::Entity,
-            ecs::JointState& p_state,
-            ecs::MujocoJointBinding& p_binding)
+        [&p_mujoco](compages::world::Entity,
+                    ecs::JointState& p_state,
+                    ecs::MujocoJointBinding const& p_binding)
         {
             if (p_binding.qpos_index >= 0)
             {
-                p_state.position = p_mujoco.qpos(p_binding.qpos_index);
+                ecs::setPosition(p_state, p_mujoco.qpos(p_binding.qpos_index));
             }
             if (p_binding.qvel_index >= 0)
             {
-                p_state.velocity = p_mujoco.qvel(p_binding.qvel_index);
+                ecs::setVelocity(p_state, p_mujoco.qvel(p_binding.qvel_index));
             }
         });
 }
 
+//------------------------------------------------------------------------------
 void MujocoSyncSystem::writeCommands(compages::world::World& p_world,
-                                     MujocoBackend& p_mujoco)
+                                     MujocoBackend& p_mujoco) const
 {
     p_mujoco.clearAppliedForces();
     p_mujoco.compensateGravity();
     p_world.each<ecs::ActuatorCommand, ecs::MujocoJointBinding>(
-        [&](compages::world::Entity p_entity,
-            ecs::ActuatorCommand& p_command,
-            ecs::MujocoJointBinding& p_joint)
+        [&p_mujoco](compages::world::Entity p_entity,
+                    ecs::ActuatorCommand const& p_command,
+                    ecs::MujocoJointBinding const& p_joint)
         {
+            // Write the command to the actuator
             if (p_entity.has<ecs::MujocoActuatorBinding>())
             {
                 int const actuator =

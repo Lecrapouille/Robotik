@@ -9,6 +9,7 @@
 #include "Compages/World/World.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <vector>
@@ -29,7 +30,7 @@ struct RenderTarget
 // rebuilt from the scenario file on load and on reset.
 struct App
 {
-    std::string scenario_path;
+    std::filesystem::path scenario_path;
     std::string error;
 
     std::unique_ptr<compages::world::World> world;

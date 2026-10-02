@@ -27,6 +27,11 @@
 #include <memory>
 #include <stdexcept>
 
+#define IK_MAX_ITERATIONS 500
+#define IK_STEP 0.5
+#define IK_DAMPING 1e-4
+#define IK_TOLERANCE 1e-4
+
 namespace robotik
 {
 
@@ -38,25 +43,15 @@ struct PinocchioBackend::Impl
     Eigen::VectorXd v;
 };
 
-namespace
-{
-
-constexpr int kMaxIterations = 500;
-constexpr double kStep = 0.5;
-constexpr double kDamping = 1e-4;
-constexpr double kTolerance = 1e-4;
-
-std::vector<double> toVector(Eigen::VectorXd const& p_value)
+static std::vector<double> toVector(Eigen::VectorXd const& p_value)
 {
     return {p_value.data(), p_value.data() + p_value.size()};
 }
 
-} // namespace
-
-PinocchioBackend::PinocchioBackend(std::string const& p_urdf)
+PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf)
     : m_impl(std::make_unique<Impl>())
 {
-    pinocchio::urdf::buildModel(p_urdf, m_impl->model);
+    pinocchio::urdf::buildModel(p_urdf.string(), m_impl->model);
     m_impl->data = std::make_unique<pinocchio::Data>(m_impl->model);
     m_impl->q = pinocchio::neutral(m_impl->model);
     m_impl->v = Eigen::VectorXd::Zero(m_impl->model.nv);
@@ -209,14 +204,14 @@ PinocchioBackend::solveIK(std::string const& p_frame,
     pinocchio::Data data(m_impl->model);
     Eigen::MatrixXd jacobian(6, m_impl->model.nv);
 
-    for (int iteration = 0; iteration < kMaxIterations; ++iteration)
+    for (int iteration = 0; iteration < IK_MAX_ITERATIONS; ++iteration)
     {
         pinocchio::forwardKinematics(m_impl->model, data, q);
         pinocchio::updateFramePlacements(m_impl->model, data);
 
         pinocchio::SE3 const iMd = data.oMf[frame].actInv(oMdes);
         Eigen::Matrix<double, 6, 1> const error = pinocchio::log6(iMd).toVector();
-        if (error.norm() < kTolerance)
+        if (error.norm() < IK_TOLERANCE)
         {
             return toVector(q);
         }
@@ -228,9 +223,9 @@ PinocchioBackend::solveIK(std::string const& p_frame,
         jacobian = -jlog * jacobian;
 
         Eigen::Matrix<double, 6, 6> jjt = jacobian * jacobian.transpose();
-        jjt.diagonal().array() += kDamping;
+        jjt.diagonal().array() += IK_DAMPING;
         Eigen::VectorXd const velocity = -jacobian.transpose() * jjt.ldlt().solve(error);
-        q = pinocchio::integrate(m_impl->model, q, velocity * kStep);
+        q = pinocchio::integrate(m_impl->model, q, velocity * IK_STEP);
         // MuJoCo enforces the URDF limits: a target beyond them is never reached.
         q = q.cwiseMax(m_impl->model.lowerPositionLimit)
                 .cwiseMin(m_impl->model.upperPositionLimit);
