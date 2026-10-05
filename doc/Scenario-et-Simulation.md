@@ -1,108 +1,120 @@
 # Scénario YAML et Simulation
 
-Un **scénario** est le fichier de mission déclaratif de Robotik : il décrit *quel* robot charger, *quoi* placer dans la scène, *quelle* tâche exécuter via un behavior tree, et *comment* juger le résultat. Il ne contient pas la logique de mouvement (c’est le rôle des **skills** C++ et du YAML BlackThorn séparé).
+Un **scénario** décrit la mission de façon déclarative : quel robot avec quels capteurs et actionneurs, quels objets (et comment les placer aléatoirement), quelles pannes injecter, quel behavior tree exécuter, et comment juger le résultat. La logique de mouvement reste dans les **skills** C++.
 
 ## Où ça vit dans le code
 
 | Élément | Fichier / type | Rôle |
 |--------|----------------|------|
-| Schéma parsé | `robotik::Scenario` (`include/Robotik/Scenario/Scenario.hpp`) | Structure remplie par `Scenario::load` |
-| Chargement | `src/Robotik/Scenario/Scenario.cpp` | YAML → champs ; résolution des chemins relatifs |
-| Exécution | `robotik::Simulation` (`include/Robotik/Runtime/Simulation.hpp`) | Runtime, spawn, enregistrement des skills, tick du BT |
-| Entrée apps | `Robotik-Simulator`, `Robotik-Headless` | `Scenario::load(chemin)` puis boucle `Simulation::step` |
+| Schéma parsé | `robotik::Scenario` (`Scenario/Scenario.hpp`) | Rempli par `Scenario::load` |
+| Exécution | `robotik::Simulation` (`Runtime/Simulation.hpp`) | Robot, objets, skills, BT, pannes, assertions |
+| Applications | `Robotik-Headless`, `Robotik-Simulator` | `Scenario::load` puis boucle `Simulation::step` |
 
-```mermaid
-flowchart LR
-  YAML["pick_and_place.yml"]
-  BT["pick_and_place.bt.yml"]
-  Load["Scenario::load"]
-  Sim["Simulation"]
-  RT["RobotRuntime"]
-  Tree["bt::Tree"]
+## Structure du YAML
 
-  YAML --> Load --> Sim
-  Sim --> RT
-  Sim --> Tree
-  BT --> Tree
+Exemple de référence : `data/scenarios/pick_and_place.yml` ; variante avec pannes : `pick_and_place_faults.yml`.
+
+```yaml
+scenario: pick_and_place
+seed: 42                      # graine maître
+
+robot:
+  model: ../robot_6axis.urdf  # relatif au fichier scénario
+  home: { joint1: 0.0, joint2: 0.3, ... }   # radians / mètres
+  sensors:
+    wrist_camera:
+      type: camera            # camera | rgbd
+      parent: link6           # lien URDF porteur
+      position: [0.05, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]    # repère optique : z devant, x à droite, y en bas
+      fov: 70                 # vertical, degrés
+      resolution: [320, 240]
+      frequency: 15           # Hz
+      noise: 0.01             # bruit gaussien, fraction de la plage
+  actuators:
+    arm: { type: joint_group }                 # joints: [...] ; vide = tous
+    gripper: { type: vacuum, length: 0.06 }    # parent: lien (défaut : outil)
+    # wheel: { type: motor, joint: left_wheel_joint }
+
+world:
+  objects:
+    red_cube:
+      type: cube              # cube | box
+      size: [0.04, 0.04, 0.04]
+      color: [0.9, 0.1, 0.1]
+      position: [0.40, 0.20, 0.02]          # centre, repère base robot
+      randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
+
+faults:
+  - { at: 0.0, resource: wrist_camera, action: disable }
+  - { at: 1.0, resource: wrist_camera, action: restore }
+  - { resource: gripper, rate: 0.01 }       # panne aléatoire, taux par seconde
+
+execute:
+  task: Pick the red cube and put it in the box.
+  behavior_tree: pick_and_place.bt.yml
+
+assert:
+  - robot.success
+  - object("red_cube").inside("box")
+  - gripper.empty
+  - collisions == 0
 ```
 
-## Structure du YAML scénario
+Chaque capteur et actionneur est une **ressource** du même nom : les skills la réservent, les pannes la rendent indisponible. Sans section `actuators`, la simulation crée `arm` (tous les joints) et `gripper` (ventouse sur l’outil).
 
-Exemple réel : `data/scenarios/pick_and_place.yml`.
+### Assertions
 
-### `scenario:`
+Évaluées par `Simulation::checks()` :
 
-Identifiant court (champ `Scenario::name`), affiché dans l’UI.
+- `robot.success` : le BT a terminé en SUCCESS ;
+- `object("a").inside("b")` : boîte englobante ;
+- `gripper.empty` : la ventouse ne tient rien ;
+- `collisions == 0` : pic de contacts MuJoCo.
 
-### `world.robot`
+## Seeds et rejouabilité
 
-| Clé | C++ | Notes |
-|-----|-----|--------|
-| `model` | `robot_model` | Chemin URDF ; relatif au dossier du fichier scénario |
-| `home` | `home` (`JointPosture`) | Positions initiales en **radians** ; passées à `RobotRuntime::hold` |
-| `tool_length` | `tool_length` | Longueur ventouse le long de +Z flange (m) → `ecs::VacuumGripper` |
-| `camera` | `optional<Camera>` | Lien URDF, pose, FOV, résolution → entité caméra + `ecs::CameraSensor` |
+`Simulation::reset(Seed)` (par défaut la `seed` du scénario) dérive une graine par sous-système :
 
-### `world.objects`
+| Graine | Usage |
+|--------|-------|
+| `seed.derive("world")` | Placement aléatoire des objets (`randomize`) |
+| `seed.derive("faults")` | Pannes aléatoires (processus de Poisson) |
+| `seed.derive(<nom du capteur>)` | Bruit de chaque capteur |
 
-Liste d’objets manipulables. Chaque entrée devient un `Scenario::Object` :
-
-- `name` — utilisé par les skills (`Detect`, `Grasp`, …) et les assertions ;
-- `type` — `cube` ou `box` (`ecs::SceneObject::Type`) ;
-- `size`, `color`, `position` — centre dans le repère base robot (m).
-
-Au spawn, les entités sont **parentées à la racine du robot** (`Simulation::spawn`).
-
-### `execute`
-
-| Clé | C++ | Notes |
-|-----|-----|--------|
-| `task` | `task` | Texte libre pour l’opérateur (UI) |
-| `behavior_tree` | `behavior_tree` | Chemin vers le YAML BlackThorn (relatif au scénario) |
-
-Le fichier BT référence des **actions** par nom (`Home`, `Grasp(red_cube)`, …). Ces noms doivent correspondre aux enregistrements faits dans `Simulation::buildTree` via `registerSkill` — voir [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md).
-
-### `assert`
-
-Liste de chaînes évaluées **après** la mission par `Simulation::checks()` (simulateur, headless). Exemples supportés :
-
-- `robot.success` — le BT a terminé en SUCCESS ;
-- `object("red_cube").inside("box")` — boîte englobante ;
-- `gripper.empty` — pas d’objet sur `VacuumGripper::held` ;
-- `collisions == 0` — pic de contacts MuJoCo.
-
-## Chemins et unités
-
-- **Chemins** : `std::filesystem::path` en C++ ; les relatifs (`../robot_6axis.urdf`, `pick_and_place.bt.yml`) sont normalisés depuis le répertoire du fichier scénario.
-- **Home** : angles en radians dans le YAML (`Radians` après parse).
-- **Longueurs** : mètres (`tool_length`, tailles et positions des objets).
+Même seed, même scénario : même trace, au bit près (`Robotik-Headless scenario.yml --seed N`). Le robot ne connaît que les positions nominales des objets : son `WorldModel` part de ces a priori et les corrige par la perception.
 
 ## Cycle de vie d’une run
 
-1. `Scenario::load(path)` — parse et résolution des chemins.
-2. Constructeur `Simulation(world, scene?, scenario)` :
-   - crée `RobotRuntime` avec `robot_model` ;
-   - `hold(home)` ;
-   - `spawn` — gripper, objets, caméra ;
-   - `buildTree` — enregistre les skills pour chaque objet + charge le BT.
-3. Boucle : `Simulation::step(Seconds)` — tick BT, pipeline physique, mise à jour monde.
-4. Fin : `finished()` quand le BT est SUCCESS ou FAILURE ; puis `checks()`.
+1. `Scenario::load(path)` : parse et résolution des chemins.
+2. `Simulation(world, scenario, view = nullptr)` :
+   - `RobotSession` sur l’URDF, `MujocoBackend`, posture `home` ;
+   - capteurs et actionneurs ; avec une `SceneView`, chaque caméra reçoit sa source d’images rendue, branchée sur `PerceptionPipeline` → `WorldModel` ;
+   - objets (entités Compages `SceneObject`) ;
+   - skills enregistrées au scheduler, puis exposées au BT (`registerSkills`).
+3. `reset(seed)` : ressources restaurées, objets replacés, a priori du `WorldModel`, robot en `home`, BT rechargé.
+4. Boucle `step(dt)` : pannes → BT → scheduler → robot (physique, capteurs, perception) → ventouse.
+5. `finished()` quand le BT est en SUCCESS ou FAILURE ; puis `checks()`.
 
-**Headless** : `scene == nullptr` — pas de meshes ni détection caméra ; `DetectSkill` réussit sans caméra. **Simulateur** : scene Compages, rendu, `ColorDetector` alimenté depuis les objets du scénario.
+**Headless** : pas de vue, donc pas d’image ; le `WorldModel` reçoit la vérité terrain tant que la caméra est disponible (oracle de perception). **Simulateur** : rendu Compages de la caméra poignet, `ColorDetector` (application) dans la `PerceptionPipeline`, panneaux ressources / skills / pannes.
 
-## Fichiers liés
+## Skills disponibles dans le BT
 
-| Fichier | Rôle |
-|---------|------|
-| `data/scenarios/pick_and_place.yml` | Scénario de référence |
-| `data/scenarios/pick_and_place.bt.yml` | Arbre de comportement |
-| `data/robot_6axis.urdf` | Modèle robot (chemin depuis le scénario) |
+| Action | Ressources | Rôle |
+|--------|-----------|------|
+| `Home` | `arm` | Posture `home` |
+| `Detect(o)` | caméra (partagée) | Attend une observation récente de `o` |
+| `Approach(o)` | `arm` | 10 cm au-dessus de `o` (croyance du `WorldModel`) |
+| `Reach(o)` | `arm` | Ventouse au contact du dessus de `o` |
+| `Grasp(o)` | `gripper` | Aspiration ; précondition « gripper is empty » |
+| `Release` | `gripper` | Relâche |
+| `Stop` | tous les actionneurs | Arrêt d’urgence, priorité 1000 : préempte tout |
 
 ## Extension
 
-Pour une nouvelle mission :
+1. Copier le scénario et le BT ;
+2. ajouter capteurs, actionneurs, objets, pannes ;
+3. pour de nouvelles actions, enregistrer des skills dans `Simulation::addSkills` (`src/Robotik/Runtime/Simulation.cpp`), ou construire son propre `SkillScheduler` comme la démo LineFollower ;
+4. ajouter des `assert`, ou étendre `Simulation::checks`.
 
-1. Copier le YAML scénario et le BT ;
-2. Ajuster `world` et `execute.behavior_tree` ;
-3. Si de nouvelles actions apparaissent dans le BT, les enregistrer dans `Simulation::buildTree` (ou factoriser l’enregistrement) ;
-4. Ajouter des lignes `assert` si besoin, ou étendre `Simulation::checks` pour de nouveaux prédicats.
+Le parseur est en YAML aujourd’hui ; un lexer/parser maison avec AST est prévu pour plus tard, d’où la séparation nette entre `Scenario` (données) et `Simulation` (exécution).

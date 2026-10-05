@@ -1,67 +1,62 @@
 # Architecture `include/Robotik/`
 
-Robotik s’appuie sur **Compages** (`World`, entités, transforms), **Pinocchio** (cinématique), **MuJoCo** (dynamique), **BlackThorn** (behavior trees). Le code public vit surtout sous `include/Robotik/` ; les implémentations sont dans `src/Robotik/`.
+Robotik s’appuie sur **Compages** (`World`, entités, transforms), **Pinocchio** (cinématique), **MuJoCo** (dynamique) et **BlackThorn** (behavior trees). L’API publique vit sous `include/Robotik/`, les implémentations sous `src/Robotik/`. La bibliothèque ne dépend ni d’OpenCV ni d’un moteur de rendu : les images sont des `robotik::Image` (octets contigus) et le rendu passe par l’interface `SceneView`, implémentée par les applications.
 
-Liens entre les quatre bibliothèques tierces : [Ecosysteme.md](Ecosysteme.md).
+Liens entre les bibliothèques tierces : [Ecosysteme.md](Ecosysteme.md).
 
 ## Vue d’ensemble
 
 ```mermaid
 flowchart TB
-  subgraph declaratif [Déclaratif]
+  subgraph mission [Mission]
     SC[Scenario YAML]
-    BT[Behavior tree YAML]
-  end
-
-  subgraph runtime [Runtime]
-    SIM[Simulation]
-    RT[RobotRuntime]
-    CTX[RobotContext]
-  end
-
-  subgraph execution [Exécution]
+    BT[Behavior tree]
+    SCH[SkillScheduler]
     SK[Skills]
-    BN[Behavior / registerSkill]
   end
 
-  subgraph data [Données ECS]
-    ECS[Composants ecs::*]
-    Q[Queries findJoint / findTool]
+  subgraph robot [Robot]
+    RS[RobotSession]
+    JS[JointSet SoA]
+    SEN[SensorSet: Camera]
+    ACT[ActuatorSet: Motor, JointGroup, VacuumGripper]
+    RES[ResourceManager]
   end
 
-  subgraph adapters [Backends]
+  subgraph perception [Perception]
+    PP[PerceptionPipeline]
+    WM[WorldModel]
+    LOC[localize]
+  end
+
+  subgraph backends [Backends]
+    RB[RobotBackend: MujocoBackend, ...]
     PIN[PinocchioBackend]
-    MUJ[MujocoBackend]
   end
 
-  subgraph pipeline [Pipeline physique]
-    SYS[Systems]
-    LOAD[RobotLoader]
-  end
-
-  SC --> SIM
-  BT --> SIM
-  SIM --> RT
-  SIM --> BN
-  BN --> SK
-  SK --> CTX
-  CTX --> ECS
-  RT --> PIN
-  RT --> MUJ
-  RT --> SYS
-  LOAD --> ECS
-  SYS --> ECS
-  PIN --> ECS
-  MUJ --> ECS
-  Q --> ECS
+  SC --> BT
+  BT -->|request / cancel| SCH
+  SCH -->|leases| RES
+  SCH -->|tick| SK
+  SK --> ACT
+  ACT --> JS
+  RS --> RB
+  RB -->|measure| JS
+  RS --> PIN
+  SEN -->|CameraFrame| PP
+  PP --> WM
+  PP --> LOC
+  SK --> WM
+  FI[FaultInjector] -->|fail / restore| RES
 ```
 
-Ordre typique d’un pas de simulation (`RobotRuntime::pipeline`) :
+Un pas de `Simulation::step(dt)` :
 
-1. **ControllerSystem** — `JointCommand` → efforts (`ActuatorCommand`).
-2. **MujocoSyncSystem** — écrit les commandes, **MuJoCo** intègre, relit `JointState`.
-3. **PinocchioSyncSystem** + **JointProjectionSystem** — FK / projection sur la hiérarchie Compages.
-4. Côté mission : **Simulation** tick le BT → **Skills** mettent à jour l’ECS ; **GraspSystem** suit les objets saisis.
+1. **FaultInjector** — pannes programmées et aléatoires (ressources indisponibles).
+2. **Behavior tree** — chaque action demande ou annule une skill au scheduler.
+3. **SkillScheduler** — annulations, ressources perdues, admission par priorité (préemption éventuelle), puis tick des skills actives.
+4. **RobotSession::step** — actionneurs en panne désactivés, backend (MuJoCo : PD 1 kHz + intégration), cinématique Pinocchio, transforms Compages, capteurs disponibles (caméra → perception → `WorldModel`).
+5. **GraspSystem** — physique simplifiée de la ventouse.
 
 ---
 
@@ -69,79 +64,75 @@ Ordre typique d’un pas de simulation (`RobotRuntime::pipeline`) :
 
 | Dossier | Rôle | Fichiers repères |
 |---------|------|------------------|
-| [`Backends/`](../../include/Robotik/Backends/) | Adaptateurs **Pinocchio** et **MuJoCo** : un URDF, API stable (FK, IK, `step`, indices joints). Pas des composants ECS. | `PinocchioBackend.hpp`, `MujocoBackend.hpp` |
-| [`Model/`](../../include/Robotik/Model/) | **Chargement URDF** dans Compages + pose des composants ECS et bindings backends sur les liens. | `RobotLoader.hpp` |
-| [`ECS/`](../../include/Robotik/ECS/) | **Composants** sur les entités Compages : joints, contrôle, robot, objets, perception, liaisons backend. | `JointComponents.hpp`, `RobotComponents.hpp`, `ObjectComponents.hpp`, `Queries.hpp` |
-| [`Systems/`](../../include/Robotik/Systems/) | **Systèmes** stateless : une passe sur le `World` (PD, sync MuJoCo/Pinocchio, projection, grasp). | `ControllerSystem.hpp`, `MujocoSyncSystem.hpp`, `GraspSystem.hpp` |
-| [`Skills/`](../../include/Robotik/Skills/) | **Comportements** impératifs : une classe par capacité, `tick(RobotContext, Seconds)` → `Status`. | `Skill.hpp`, `MoveJointSkill.hpp`, `PickPlaceSkills.hpp` |
-| [`Behavior/`](../../include/Robotik/Behavior/) | **Pont BlackThorn** : enregistre une skill comme action BT, trace (`SkillTrace`), conversion `Status` ↔ `bt::Status`. | `SkillNodes.hpp` |
-| [`Runtime/`](../../include/Robotik/Runtime/) | **Boucle de simu** : `RobotRuntime`, `Simulation`, contexte par tick, statuts skills. | `RobotRuntime.hpp`, `Simulation.hpp`, `RobotContext.hpp` |
-| [`Scenario/`](../../include/Robotik/Scenario/) | **Mission YAML** parsée : robot, objets, BT, assertions. | `Scenario.hpp` |
+| `Math/` | `Vector3`, `Quaternion`, `Pose` (SI, double) ; `Seed` / `Random` (hiérarchie de seeds rejouables). | `Pose.hpp`, `Random.hpp` |
+| `Robot/` | **API robot** : `Robot` (joints, capteurs, actionneurs, ressources, IK), `RobotSession` (pas de temps), `RobotBackend`, `SceneView`, `JointSet` (SoA). | `Robot.hpp`, `Joints.hpp`, `Devices.hpp` |
+| `Sensors/` | `Sensor`, `Camera` (+ `CameraIntrinsics`, `CameraFrame`, `FrameSource`), `Image`. | `Camera.hpp`, `Image.hpp` |
+| `Actuators/` | `Motor`, `JointGroup`, `VacuumGripper`. | `Actuator.hpp` |
+| `Perception/` | `Detection(s)`, `Detector`, `PerceptionPipeline`, `DepthEstimator`, `WorldModel`, `Landmark` / `localize`. | `Detector.hpp`, `WorldModel.hpp`, `Localization.hpp` |
+| `Runtime/` | `ResourceManager` / `ResourceLease`, `SkillScheduler`, `FaultInjector`, `RobotContext`, `Simulation`. | `Resources.hpp`, `Scheduler.hpp`, `Faults.hpp`, `Simulation.hpp` |
+| `Skills/` | Interface `Skill` + `SkillDescription` (ressources, priorité, préconditions) ; skills de mouvement et de pick-and-place. | `Skill.hpp`, `MotionSkills.hpp`, `PickPlaceSkills.hpp` |
+| `Behavior/` | Pont BlackThorn : `registerSkills(factory, scheduler)`. | `SkillNodes.hpp` |
+| `Scenario/` | Mission YAML : seed, capteurs, actionneurs, objets, randomisation, pannes, BT, assertions. | `Scenario.hpp` |
+| `Environment/` | Apprentissage par renforcement : `Environment`, `EnvironmentPool` (N environnements en parallèle). | `Environment.hpp` |
+| `Backends/` | `PinocchioBackend` (FK/IK), `MujocoBackend` (dynamique, implémente `RobotBackend`). | `PinocchioBackend.hpp`, `MujocoBackend.hpp` |
+| `Systems/` | `GraspSystem` (ventouse). | `GraspSystem.hpp` |
+| `ECS/` | Composants restants dans Compages : `SceneObject`, `RobotTag`, `RobotIdentity`. | `ObjectComponents.hpp` |
 
-Dossiers voisins (hors liste demandée) : `Perception/` (`ColorDetector`), `Robotik.hpp` (umbrella).
+En-tête parapluie : `Robotik/Robotik.hpp`.
+
+---
+
+## Choix de conception
+
+### Cache friendly
+
+- **`JointSet`** stocke chaque grandeur dans son propre tableau (positions, vitesses, efforts, cibles, modes, gains…) indexé par `JointId` (`uint16_t`). Les boucles de contrôle et la copie vers Pinocchio/MuJoCo parcourent des tableaux contigus ; `positions()` / `velocities()` / `efforts()` sont des `std::span`.
+- **`ResourceManager`** : tableaux parallèles (nom, disponible, propriétaire, nombre d’utilisateurs). Un `ResourceLease` garde ses réservations dans un tableau fixe de 8 éléments, sans allocation.
+- **`SkillScheduler`** : états, raisons, bloqueurs et baux dans des tableaux parallèles indexés par `SkillId`.
+- **`EnvironmentPool`** : actions, observations, récompenses et fins d’épisode dans quatre buffers plats `float` / `uint8_t`, prêts à passer à un réseau.
+- Les images sont un seul buffer d’octets ; les caméras réutilisent leur allocation d’une image à l’autre.
+
+### Robot, capteurs, actionneurs, ressources
+
+Chaque capteur et chaque actionneur ajouté au robot devient une **ressource du même nom** :
+
+```cpp
+auto& camera = robot.sensors().add<robotik::Camera>("wrist_camera",
+                                                    robotik::CameraConfig{ .parent = "link6" });
+auto& arm = robot.actuators().add<robotik::JointGroup>("arm");
+auto& gripper = robot.actuators().add<robotik::VacuumGripper>("gripper");
+```
+
+Une ressource en panne (`resources().fail("wrist_camera")`) est simplement **indisponible** : la caméra ne produit plus d’images, un actionneur est désactivé (`disable`) à chaque pas, une skill qui en a besoin ne démarre pas (`Unavailable`) ou s’arrête (`ResourceLost`).
+
+### Backend et rendu hors bibliothèque
+
+- `RobotBackend` (`attach`, `reset`, `step`) : MuJoCo en simulation ; un driver matériel ou un backend cinématique (démo LineFollower) implémentent la même interface.
+- `SceneView` : le simulateur charge les meshes, dessine les objets et rend les caméras (Compages + OpenGL). Sans vue, la simulation est headless ; le `WorldModel` reçoit alors la vérité terrain (oracle).
 
 ---
 
 ## Structures importantes
 
-### Runtime et mission
-
 | Type | Fichier | Rôle |
 |------|---------|------|
-| **`Scenario`** | `Scenario/Scenario.hpp` | Contenu d’un YAML : `robot_model`, `home`, `objects`, `behavior_tree`, `asserts`. |
-| **`Simulation`** | `Runtime/Simulation.hpp` | Instance de mission : crée `RobotRuntime`, spawn, enregistre les skills, charge le BT, `step` / `checks`. |
-| **`RobotRuntime`** | `Runtime/RobotRuntime.hpp` | Propriétaire Pinocchio + MuJoCo, `hold`, `step`, pipeline physique. |
-| **`RobotContext`** | `Runtime/RobotContext.hpp` | Snapshot par tick : `world`, `kinematics`, `simulation`, `time`, `dt`. Passé aux skills. |
-| **`Status`** | `Runtime/Status.hpp` | `IDLE`, `RUNNING`, `SUCCESS`, `FAILURE` — retour skill et mapping BT. |
-| **`JointGoal` / `JointPosture`** | `RobotContext.hpp` | `variant<Radians, Length>` par nom de joint ; `hold`, `MoveJointsSkill`. |
-
-### Comportement
-
-| Type | Fichier | Rôle |
-|------|---------|------|
-| **`Skill`** | `Skills/Skill.hpp` | Interface abstraite `tick` + `reset`. |
-| **`SkillTrace`** | `Behavior/SkillNodes.hpp` | Historique des runs d’actions BT (frise UI, headless). |
-| **`registerSkill`** | `Behavior/SkillNodes.hpp` | Lie un nom YAML à une `shared_ptr<Skill>`. |
-
-### Backends
-
-| Type | Fichier | Rôle |
-|------|---------|------|
-| **`PinocchioBackend`** | `Backends/PinocchioBackend.hpp` | Modèle analytique, `framePose`, `solveIK`, vecteur `q`. |
-| **`MujocoBackend`** | `Backends/MujocoBackend.hpp` | `step(Seconds)`, `qpos` / `qvel`, contacts, forces appliquées. |
-| **`Pose`** | `PinocchioBackend.hpp` | Cible cartésienne (m + quaternion) pour IK / skills TCP. |
-
-### ECS — groupes de composants
-
-Les composants sont des **structs POD** sur les entités-liens ou caméra ; pas de logique.
-
-| Fichier | Contenu principal |
-|---------|-------------------|
-| **`JointComponents.hpp`** | `Joint`, `JointState`, `JointCommand`, `JointLimits`, `HomePosition`, `JointControlMode`. |
-| **`ActuatorComponents.hpp`** | `ActuatorCommand`, `PositionController`, `VelocityController`. |
-| **`RobotComponents.hpp`** | `RobotTag`, `Link`, `EndEffector`, `Gripper` (mâchoires). |
-| **`ObjectComponents.hpp`** | `SceneObject`, `VacuumGripper` (ventouse). |
-| **`BackendComponents.hpp`** | `MujocoJointBinding`, `PinocchioJointBinding`, actuateurs MuJoCo. |
-| **`PerceptionComponents.hpp`** | `CameraSensor`, `DetectedObjects`, `Detection`. |
-| **`Queries.hpp`** | `findJoint`, `findObject`, `findTool` (helpers inline). |
-
-Convention actuelle : champs **généralisés** joint (`JointState::position`, etc.) en `double` SI (rad ou m selon le joint URDF) ; longueurs et temps typés via **`Length`**, **`Seconds`**, **`Radians`** où l’API l’exige.
-
-### Model et systems
-
-| Type | Rôle |
-|------|------|
-| **`RobotLoader`** | `instantiate(world, scene?, pinocchio, mujoco?, urdf)` — entités Compages + ECS + heuristiques gripper/EE. |
-| **`ControllerSystem`** | PD position → `ActuatorCommand`. |
-| **`MujocoSyncSystem` / `PinocchioSyncSystem`** | Copie état/commandes entre ECS et backends. |
-| **`JointProjectionSystem`** | Aligne transforms Compages avec les joints. |
-| **`GraspSystem`** | Objet tenu collé à la ventouse (FK outil). |
+| `Robot` / `RobotSession` | `Robot/Robot.hpp` | Le robot et sa boucle (`connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`). |
+| `JointSet` | `Robot/Joints.hpp` | État et commandes des joints (SoA, SI). `moveTo`, `spin`, `push`, `hold`, `control(dt)`. |
+| `Camera` | `Sensors/Camera.hpp` | Fréquence, bruit seedé, `FrameSource` (rendu fourni par l’application), `onFrame`. |
+| `PerceptionPipeline` | `Perception/Detector.hpp` | Étapes `Detector` interchangeables (couleur, AprilTag, ligne, profondeur…). |
+| `WorldModel` | `Perception/WorldModel.hpp` | Croyances sur les objets (repère base), relèvement monoculaire, porte de plausibilité (`gate`). |
+| `ResourceManager` | `Runtime/Resources.hpp` | Réservations partagées/exclusives RAII, pannes. |
+| `SkillScheduler` | `Runtime/Scheduler.hpp` | Admission, priorités, préemption, annulation coopérative, trace. |
+| `FaultInjector` | `Runtime/Faults.hpp` | Pannes programmées et de Poisson, rejouables par seed. |
+| `Seed` / `Random` | `Math/Random.hpp` | `seed.derive("world")`, `seed.derive(index)` : une graine par sous-système. |
+| `Simulation` | `Runtime/Simulation.hpp` | Mission complète à partir d’un `Scenario`. |
+| `EnvironmentPool` | `Environment/Environment.hpp` | N environnements RL, auto-reset, résultats identiques quel que soit le nombre de threads. |
 
 ---
 
 ## Où commencer en code
 
 1. Lire un scénario : [Scenario-et-Simulation.md](Scenario-et-Simulation.md).
-2. Comprendre BT vs skills : [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md).
-3. Suivre un pas : `Simulation::step` → `RobotRuntime::pipeline` → `ControllerSystem` + MuJoCo.
-4. Ajouter une capacité : nouvelle classe `Skill`, enregistrement dans `Simulation::buildTree`, action dans le YAML BT.
+2. Comprendre BT, scheduler et skills : [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md).
+3. Exemples complets : `src/Applications/Headless/main.cpp`, `src/Applications/Demos/LineFollower/main.cpp`, `src/Applications/Demos/PickAndPlaceRL/`.
+4. Ajouter une capacité : une classe `Skill`, une `SkillDescription` (ressources, priorité, préconditions), `scheduler.add<MaSkill>(description, ...)`, puis `registerSkills` l’expose au behavior tree sous son nom.

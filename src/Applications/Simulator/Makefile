@@ -20,6 +20,7 @@ INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
+SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp $(CURRENT_DIR)/ColorDetector.cpp
 PKG_LIBS += glfw3
 
 # Headers only: BlackThorn is compiled into robotik-core.

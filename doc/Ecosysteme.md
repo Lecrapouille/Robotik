@@ -1,6 +1,6 @@
 # Écosystème : Compages, Pinocchio, MuJoCo, BlackThorn
 
-Robotik n’est pas un moteur de simulation monolithique : c’est une **couche d’orchestration** qui assemble quatre briques complémentaires autour d’un **monde ECS** (Entité–Composant–Système) hébergé par Compages.
+Robotik n’est pas un moteur de simulation monolithique : c’est une **couche d’orchestration** qui assemble des briques complémentaires derrière une API robot compacte (`Robot`, `JointSet`, capteurs, actionneurs, ressources, skills).
 
 ## Schéma des liens
 
@@ -12,101 +12,85 @@ flowchart TB
     URDF[URDF]
   end
 
-  subgraph compages [Compages]
-    W[World / entités]
-    SC[Scene + rendu]
-    TR[Transforms articulations]
+  subgraph robotik [Robotik — librobotik-core]
+    SIM[Simulation]
+    SES[RobotSession]
+    JS[JointSet]
+    DEV[Capteurs / actionneurs / ressources]
+    SCH[SkillScheduler]
+    SK[Skills]
+    PER[PerceptionPipeline + WorldModel]
+    BRG[registerSkills]
+    ENV[EnvironmentPool]
   end
 
   subgraph blackthorn [BlackThorn]
-    FAC[NodeFactory + Builder]
     TREE[bt::Tree]
-    BB[Blackboard]
-  end
-
-  subgraph robotik [Robotik — librobotik-core]
-    SIM[Simulation]
-    RT[RobotRuntime]
-    ECS[Composants ecs::*]
-    SYS[Systems]
-    SK[Skills]
-    BRG[registerSkill]
-    LOAD[RobotLoader]
   end
 
   subgraph pinocchio [Pinocchio]
-    PIN[Modèle analytique<br/>FK / Jacobienne / IK]
+    PIN[FK / IK]
   end
 
   subgraph mujoco [MuJoCo]
-    MUJ[Modèle contact<br/>intégration / actionneurs]
+    MUJ[MujocoBackend<br/>PD 1 kHz, contacts]
   end
 
-  URDF --> LOAD
+  subgraph compages [Compages]
+    W[World / entités / transforms]
+  end
+
+  subgraph apps [Applications]
+    VIEW[SceneView : rendu, caméras]
+    DET[Détecteurs : couleur, AprilTag, OpenCV]
+  end
+
+  URDF --> SES
   SCY --> SIM
-  BTY --> FAC
-  SCY --> BTY
-
-  LOAD --> W
-  LOAD --> ECS
-  LOAD --> PIN
-  LOAD --> MUJ
-
-  SIM --> RT
+  BTY --> TREE
+  SIM --> SES
   SIM --> TREE
-  SIM --> SK
-  FAC --> TREE
-  BRG --> FAC
-  SK --> BRG
-  TREE --> SK
-
-  RT --> SYS
-  SYS --> ECS
-  SK --> ECS
-
-  ECS -->|JointState / JointCommand| SYS
-  SYS -->|PinocchioSyncSystem| PIN
-  PIN -->|q, FK| ECS
-  SYS -->|MujocoSyncSystem| MUJ
-  MUJ -->|qpos, qvel, contacts| ECS
-  SYS -->|JointProjectionSystem| TR
-  TR --> W
-  W --> SC
-
-  RT --> PIN
-  RT --> MUJ
+  TREE --> BRG --> SCH --> SK
+  SK --> DEV --> JS
+  SK --> PER
+  SES -->|RobotBackend| MUJ
+  MUJ -->|positions, vitesses, efforts| JS
+  SES --> PIN
+  SES --> W
+  VIEW -->|FrameSource| DEV
+  DET -->|Detector| PER
+  ENV --> SIM
 ```
 
-Légende des **flux principaux** :
-
-| Lien | Sens | Rôle |
-|------|------|------|
-| **Compages ↔ Robotik** | bidirectionnel | Le `World` porte entités-liens, caméra, sol ; Robotik y attache l’ECS et projette les angles joints sur la hiérarchie pour le rendu. |
-| **Pinocchio ↔ ECS** | via `PinocchioBackend` + `PinocchioSyncSystem` | Copie des positions joints → `q` ; FK / IK pour skills cartésiens (`MoveTCPSkill`, `GraspSystem`). |
-| **MuJoCo ↔ ECS** | via `MujocoBackend` + `MujocoSyncSystem` | PD → efforts → pas physique ; relecture état pour les skills et la perception. |
-| **BlackThorn ↔ Skills** | via `registerSkill` | Le YAML BT nomme des **actions** ; chaque action appelle une **skill** C++ (`Skill::tick`) sans que BlackThorn connaisse MuJoCo ou Pinocchio. |
-| **Scenario YAML** | Robotik | Fichier mission (robot, objets, chemin BT, assertions) ; le parser réutilise le backend YAML de BlackThorn pour la lecture. |
+| Lien | Rôle |
+|------|------|
+| **Compages ↔ Robotik** | Le `World` porte les entités des liens et des objets ; `RobotSession` y projette les positions des joints. Le rendu (meshes, caméras) est dans les applications, via `SceneView`. |
+| **Pinocchio ↔ Robotik** | `PinocchioBackend` : poses des liens et IK (`Robot::pose`, `Robot::solve`) pour les skills cartésiennes et la ventouse. |
+| **MuJoCo ↔ Robotik** | `MujocoBackend` implémente `RobotBackend` : PD par joint à 1 kHz, intégration, contacts, mesure du `JointSet`. |
+| **BlackThorn ↔ Robotik** | `registerSkills` expose chaque skill du scheduler comme action ; BlackThorn ignore MuJoCo, Pinocchio et les ressources. |
+| **Applications** | OpenCV et AprilTag (démo LineFollower), détecteur couleur (simulateur) : branchés comme `Detector` / `FrameSource`, jamais dans la bibliothèque. |
 
 ## Qui fait quoi ?
 
-| Bibliothèque | Responsabilité dans Robotik | Ce que Robotik **n’** lui demande **pas** |
-|--------------|----------------------------|-------------------------------------------|
-| **[Compages](https://github.com/Lecrapouille/Compages)** | Scène 3D, entités, parents/enfants, caméra orbit, pipeline GPU | Planification de mission, IK, contacts |
-| **[Pinocchio](https://github.com/stack-of-tasks/pinocchio)** | Cinématique analytique, IK numérique, poses outil | Simulation contact, rendu |
-| **[MuJoCo](https://github.com/google-deepmind/mujoco)** | Dynamique, actionneurs, contacts, pas de temps | Behavior tree, chargement scénario |
-| **[BlackThorn](https://github.com/Lecrapouille/BlackThorn)** | Arbre de comportement, ticks `RUNNING`/`SUCCESS`/`FAILURE`, chargement BT YAML | Commande bas niveau des joints (délégué aux skills) |
+| Bibliothèque | Responsabilité | Ce que Robotik **ne** lui demande **pas** |
+|--------------|----------------|-------------------------------------------|
+| **[Compages](https://github.com/Lecrapouille/Compages)** | Entités, parents/enfants, rendu GPU, caméras | Mission, IK, contacts |
+| **[Pinocchio](https://github.com/stack-of-tasks/pinocchio)** | Cinématique analytique, IK | Contacts, rendu |
+| **[MuJoCo](https://github.com/google-deepmind/mujoco)** | Dynamique, contacts | Behavior tree, scénario |
+| **[BlackThorn](https://github.com/Lecrapouille/BlackThorn)** | Behavior tree, YAML | Commande des joints, arbitrage des ressources |
+| **[apriltag](https://github.com/AprilRobotics/apriltag)** | Détection de tags et pose (démo LineFollower) | — |
+| **OpenCV** | Traitement d’image des démos | Rien dans la bibliothèque |
 
-## Ordre d’un pas physique (rappel)
+## Ordre d’un pas
 
-Les skills et le BT tournent **dans le même pas** que la physique ; les systems synchronisent ensuite les backends :
+1. Pannes (`FaultInjector`).
+2. Behavior tree : demandes et annulations de skills.
+3. `SkillScheduler` : ressources, priorités, préemption, tick des skills.
+4. `RobotSession::step` : backend (MuJoCo), Pinocchio, transforms Compages, capteurs → perception → `WorldModel`.
+5. `GraspSystem` : objets tenus par la ventouse.
 
-1. **ControllerSystem** — `JointCommand` → `ActuatorCommand` (PD).
-2. **MujocoSyncSystem** — écrit les commandes, **MuJoCo** intègre, relit `JointState`.
-3. **PinocchioSyncSystem** + **JointProjectionSystem** — alignement Pinocchio et transforms Compages.
-4. **GraspSystem** — objets tenus (ventouse) suivent l’outil.
+Détail des dossiers : [Architecture-Robotik.md](Architecture-Robotik.md).
 
-Voir [Architecture-Robotik.md](Architecture-Robotik.md) pour le détail des dossiers `include/Robotik/`.
+## Visualisation
 
-## Visualisation optionnelle (Oakular)
-
-BlackThorn peut exposer l’état de l’arbre via SFML (réseau) vers **Oakular**. Le simulateur affiche aussi une frise `SkillTrace` côté ImGui — deux façons de suivre la même exécution BT.
+Le simulateur affiche la frise des skills (`SkillScheduler::trace`), l’état des ressources et des pannes. BlackThorn peut en plus exposer l’arbre à **Oakular** par le réseau (SFML).

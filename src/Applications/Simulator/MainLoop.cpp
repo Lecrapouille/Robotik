@@ -44,19 +44,8 @@ void runMainLoop(Window& p_window, App& p_app)
         // --- World simulation and 3D views (when scenario loaded) ---
         if (p_app.simulation && p_app.view.width > 0)
         {
-            bool const advance = p_app.playing || p_app.step_once;
-            p_app.step_once = false;
-            compages::world::ViewFrame frame =
-                viewFrame(p_app, advance ? elapsed * p_app.speed : 0.0f, total);
-            if (advance)
-            {
-                p_app.simulation->step(frame);
-            }
-            else
-            {
-                p_app.world->update(frame);
-            }
-            perceive(p_app);
+            p_app.advance(elapsed);
+            p_app.world->update(viewFrame(p_app, elapsed, total));
             compages::gpu::RenderPass pass(
                 p_app.view.framebuffer,
                 compages::gpu::PassDesc{ .color = viewClearColor() });

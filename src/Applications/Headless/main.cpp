@@ -5,61 +5,84 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Runtime/RobotRuntime.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"
 
 #include <filesystem>
-
 #include <iostream>
+#include <optional>
 #include <string>
 
 #define HEADLESS_DT_S 0.01
 #define HEADLESS_TIMEOUT_S 120.0
 
-static char const* label(robotik::Status p_status)
+static void usage()
 {
-    switch (p_status)
-    {
-        case robotik::Status::SUCCESS:
-            return "success";
-        case robotik::Status::FAILURE:
-            return "failure";
-        default:
-            return "running";
-    }
+    std::cerr << "usage: Robotik-Headless scenario.yml [--seed N]\n";
 }
 
 int main(int argc, char** argv)
 {
-    if (argc != 2)
+    std::optional<std::filesystem::path> path;
+    std::optional<std::uint64_t> seed;
+    for (int i = 1; i < argc; ++i)
     {
-        std::cerr << "usage: Robotik-Headless scenario.yml\n";
+        std::string const argument = argv[i];
+        if (argument == "--seed" && i + 1 < argc)
+        {
+            seed = std::stoull(argv[++i]);
+        }
+        else if (!path)
+        {
+            path = argument;
+        }
+        else
+        {
+            usage();
+            return 1;
+        }
+    }
+    if (!path)
+    {
+        usage();
         return 1;
     }
 
     try
     {
         compages::world::World world;
-        robotik::Simulation simulation(
-            world,
-            nullptr,
-            robotik::Scenario::load(std::filesystem::path(argv[1])));
+        robotik::Simulation simulation(world, robotik::Scenario::load(*path));
+        if (seed)
+        {
+            simulation.reset(robotik::Seed{ *seed });
+        }
 
         Seconds const dt(HEADLESS_DT_S);
         Seconds const timeout(HEADLESS_TIMEOUT_S);
-        while (!simulation.finished() && simulation.runtime().time() < timeout)
+        while (!simulation.finished() && simulation.time() < timeout)
         {
             simulation.step(dt);
         }
 
-        for (auto const& entry : simulation.trace().entries)
+        robotik::SkillScheduler const& skills = simulation.skills();
+        robotik::ResourceManager const& resources =
+            simulation.robot().resources();
+        for (robotik::SkillRun const& run : skills.trace())
         {
-            std::cout << "  " << entry.start << "s  " << entry.name << "  "
-                      << label(entry.status) << "  (" << entry.end - entry.start
-                      << "s)\n";
+            std::cout << "  " << run.start << "  " << skills.name(run.skill)
+                      << "  " << robotik::toString(run.state);
+            if (run.reason != robotik::SkillReason::None)
+            {
+                std::cout << " (" << robotik::toString(run.reason);
+                if (run.blocker != robotik::NO_RESOURCE)
+                {
+                    std::cout << ": " << resources.name(run.blocker);
+                }
+                std::cout << ')';
+            }
+            std::cout << "  (" << run.end - run.start << ")\n";
         }
         bool passed = true;
         for (auto const& check : simulation.checks())
@@ -68,7 +91,8 @@ int main(int argc, char** argv)
                       << '\n';
             passed = passed && check.passed;
         }
-        std::cout << "time=" << simulation.runtime().time().value() << "s\n";
+        std::cout << "seed=" << simulation.seed().value
+                  << " time=" << simulation.time().value() << "s\n";
         return passed ? 0 : 2;
     }
     catch (std::exception const& error)

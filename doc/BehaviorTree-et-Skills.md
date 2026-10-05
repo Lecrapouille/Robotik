@@ -1,107 +1,104 @@
-# Behavior tree : Action vs Skill
+# Behavior tree, scheduler et skills
 
-Dans Robotik, on manipule souvent deux mots proches qui ne désignent **pas** la même couche. Les confondre rend difficile la lecture du YAML et de `registerSkill`.
+Trois couches distinctes :
 
-## Deux vocabulaires
+| Couche | Où | Rôle |
+|--------|----|------|
+| **Action** (BlackThorn) | YAML : `Action: name: Grasp(red_cube)` | Feuille de l’arbre : *quand* faire quoi. |
+| **SkillScheduler** (Robotik) | `Runtime/Scheduler.hpp` | *Si* la skill peut tourner : ressources, priorités, préconditions, pannes. |
+| **Skill** (Robotik) | `Skills/*.hpp` | *Comment* : commande les actionneurs à chaque tick. |
 
-| Terme | Librairie / namespace | Où il apparaît | Rôle |
-|-------|--------|----------------|------|
-| Behavior tree **Action** | BlackThorn / bt | YAML : `Action: name: Home` | Nœud **feuille** de l’arbre. L’interpréteur BT l’appelle à chaque tick tant qu’il est actif. Retourne `RUNNING`, `SUCCESS` ou `FAILURE`. |
-| Robot **Skill** | Robotik / robotik | C++ : `HomeSkill`, `GraspSkill`, … | Unité de **comportement robot** : lit l’ECS via `RobotContext`, écrit des `JointCommand`, etc. Retourne `robotik::Status` (`RUNNING`, `SUCCESS`, `FAILURE`). |
-
-En bref :
-
-- L’**action** est le **nom et le slot** dans l’arbre (déclaratif, YAML).
-- La **skill** est le **code** qui fait bouger le robot (impératif, C++).
-
-Une action du BT ne « contient » pas magiquement une skill : on **lie** explicitement le nom YAML à une instance C++ avec `registerSkill`.
-
-## Chaîne d’exécution
+L’arbre ne tick jamais une skill directement : une action **demande** la skill au scheduler, puis lit son état.
 
 ```mermaid
 sequenceDiagram
-    participant Sim as Simulation::tick
     participant BT as bt::Tree
-    participant Leaf as bt::CallbackLeaf
-    participant Reg as lambda registerSkill
-    participant TS as tickSkillAction
-    participant Sk as Skill
+    participant Leaf as Action (registerSkills)
+    participant S as SkillScheduler
+    participant R as ResourceManager
+    participant K as Skill
 
-    Sim->>BT: tick (chaque pas de simu)
-    BT->>Leaf: tick nœud Action actif
-    Leaf->>Reg: std::function Status()
-    Reg->>TS: délégation
-    TS->>Sk: Skill::tick(context, dt)
-    Sk-->>TS: robotik::Status
-    TS-->>Reg: bt::Status
-    Reg-->>Leaf: RUNNING / SUCCESS / FAILURE
+    BT->>Leaf: tick
+    Leaf->>S: request(id) (premier tick)
+    Leaf-->>BT: RUNNING
+    S->>R: acquire (exclusif / partagé)
+    S->>K: reset() puis tick(context, dt)
+    K-->>S: SUCCESS
+    BT->>Leaf: tick
+    Leaf->>S: state(id) = Succeeded
+    Leaf-->>BT: SUCCESS
 ```
 
-Il n’y a pas de troisième callback cachée :
-
-1. `NodeFactory::registerAction` stocke ta lambda dans un `bt::CallbackLeaf` (voir `external/BlackThorn/.../Builder/Factory.hpp`).
-2. Au chargement du YAML, `Action: name: Home` instancie le nœud enregistré sous `"Home"`.
-3. La lambda passée à `registerSkill` **est** le point d’entrée BT ; elle appelle `tickSkillAction`, qui appelle `Skill::tick`.
-
-## Enregistrement : `registerSkill`
-
-Signature : `include/Robotik/Behavior/SkillNodes.hpp`.
-
-**Quand** : avant `bt::Builder::fromFile`, pendant la construction de la factory (ex. `Simulation::buildTree` dans `src/Robotik/Runtime/Simulation.cpp`).
-
-**Quoi** :
-
-- `@p_name` doit correspondre **exactement** au `name:` d’une action dans le YAML.
-- `@p_skill` est l’objet C++ exécuté à chaque tick de cette action.
-- `@p_context` et `@p_trace` sont capturés par référence : ils doivent vivre aussi longtemps que l’arbre (typiquement toute la `Simulation`).
-
-Exemple côté scénario (`data/scenarios/pick_and_place.bt.yml`) :
-
-```yaml
-- Action:
-    name: Grasp(red_cube)
-```
-
-Exemple côté C++ (enregistrement pour chaque objet du scénario) :
+## Décrire une skill
 
 ```cpp
-add("Grasp(" + name + ")", std::make_shared<GraspSkill>(name));
+robotik::SkillDescription grasp;
+grasp.name = "Grasp(red_cube)";
+grasp.resources = { resources.require("gripper") };              // exclusif
+grasp.priority = 100;
+grasp.wait = false;          // ressource occupée : échec immédiat au lieu d'attendre
+grasp.preconditions.push_back(
+    { "gripper is empty", [](robotik::RobotContext const& p_context) { return !gripperHolds(p_context); } });
+auto const id = scheduler.add<robotik::GraspSkill>(grasp, /* arguments du constructeur */);
+scheduler.request(id);
 ```
 
-Si le nom YAML ne figure pas dans la factory, le builder échoue ou le nœud n’existe pas — d’où la convention de générer `Detect(obj)`, `Approach(obj)`, etc. dans `buildTree`.
+`Skill` a trois méthodes : `reset()` (début de run), `tick(context, dt)` → `Status`, et `cancel(context)` (arrêt coopératif : remettre le matériel dans un état sûr).
+
+## Règles du scheduler
+
+À chaque `update(context)` :
+
+1. **Annulations** demandées (`cancel(id)`) : `Skill::cancel`, état `Cancelled`.
+2. **Ressources perdues** : une skill active dont une ressource est tombée en panne s’arrête (`Failed`, raison `ResourceLost`).
+3. **Admission** des skills en attente, par priorité décroissante puis ordre de demande :
+   - ressource en panne → `Failed (Unavailable)` ;
+   - précondition fausse → attente (ou échec si `wait = false`) ;
+   - ressource tenue par une skill **moins prioritaire et annulable** → **préemption** (`Cancelled (Preempted)`) ;
+   - sinon ressource occupée → attente `Busy` (ou échec si `wait = false`).
+4. **Tick** des skills actives, par priorité.
+
+Chaque run est enregistré dans `trace()` (`SkillRun` : skill, état, raison, ressource bloquante, début, fin) : frise du simulateur et sortie de `Robotik-Headless`.
+
+## Pont BlackThorn
+
+`registerSkills(factory, scheduler)` crée une action par skill, sous son nom :
+
+| État de la skill | Retour au BT |
+|------------------|--------------|
+| `Waiting`, `Running` | `RUNNING` |
+| `Succeeded` | `SUCCESS` |
+| `Failed`, `Cancelled` | `FAILURE` |
+
+Quand le BT abandonne une action (halt d’une branche), la skill est annulée. Une panne ne fait donc qu’échouer des actions : la reprise s’écrit dans l’arbre, par exemple :
+
+```yaml
+- UntilSuccess:          # la caméra peut être en panne : on réessaie
+    attempts: 1000
+    child:
+      - Action:
+          name: Detect(red_cube)
+```
 
 ## Statuts
 
-| `robotik::Status` | `bt::Status` | Signification pour l’arbre |
-|-------------------|--------------|----------------------------|
-| `RUNNING` | `RUNNING` | L’action reste active ; le BT retickera la feuille au prochain pas. |
-| `SUCCESS` | `SUCCESS` | Objectif atteint ; le composite parent (Sequence, etc.) peut avancer. |
-| `FAILURE` | `FAILURE` | Échec ; selon l’arbre, retry ou branche alternative. |
-| `IDLE` | `RUNNING` | Traitée comme en cours côté BT (peu utilisé une fois tick lancé). |
-
-La conversion est faite dans `toTree` (`src/Robotik/Behavior/SkillNodes.cpp`).
-
-## Trace : `SkillTrace`
-
-`SkillTrace` répond à : *quelles actions ont tourné, combien de temps, avec quel résultat ?* — pour la frise du simulateur et les sorties headless.
-
-- **Une entrée par exécution** d’une action (du démarrage jusqu’à `SUCCESS` / `FAILURE`), pas une ligne par tick de simulation.
-- Pendant un run `RUNNING`, la **même** entrée est mise à jour (`end` avance avec le temps de simu en secondes SI, type `Seconds` / `units::time::second_t`).
-- Une nouvelle visite du nœud après la fin ouvre une **nouvelle** entrée (`Skill::reset`, index `running` remis à `-1`).
-
-Ce n’est pas un logger général (pas de fichier, pas d’horloge murale).
+| `robotik::Status` | Sens |
+|-------------------|------|
+| `RUNNING` | La skill continue au prochain pas. |
+| `SUCCESS` | Objectif atteint ; ressources libérées. |
+| `FAILURE` | Échec ; ressources libérées. |
 
 ## Tester une skill sans behavior tree
 
-Les skills implémentent `Skill::tick(RobotContext&, double dt)` : tu peux les appeler depuis du code ou des tests sans YAML, en construisant un `RobotRuntime` et un `RobotContext`. Le behavior tree n’est qu’un **ordonnanceur** optionnel au-dessus des mêmes skills.
+Construire un `RobotSession`, un `ResourceManager` (celui du robot) et un `SkillScheduler`, puis appeler `request` / `update` (voir `tests/Runtime/TestScheduler.cpp`). Le BT n’est qu’un client du scheduler, comme le bouton d’arrêt d’urgence du simulateur ou une politique RL.
 
 ## Fichiers utiles
 
 | Fichier | Contenu |
 |---------|---------|
-| `include/Robotik/Behavior/SkillNodes.hpp` | `SkillTrace`, déclaration `registerSkill` |
-| `src/Robotik/Behavior/SkillNodes.cpp` | `tickSkillAction`, enregistrement CallbackLeaf |
-| `include/Robotik/Skills/Skill.hpp` | Interface skill |
-| `src/Robotik/Runtime/Simulation.cpp` | `buildTree`, liaison noms ↔ skills |
-| `data/scenarios/*.bt.yml` | Structure de l’arbre et noms d’actions |
-| `external/BlackThorn/.../Builder/Factory.hpp` | `registerAction` → `CallbackLeaf` |
+| `include/Robotik/Skills/Skill.hpp` | `Skill`, `SkillDescription`, `Precondition` |
+| `include/Robotik/Runtime/Scheduler.hpp` | `SkillScheduler`, `SkillState`, `SkillReason`, `SkillRun` |
+| `include/Robotik/Runtime/Resources.hpp` | `ResourceManager`, `ResourceLease` |
+| `include/Robotik/Behavior/SkillNodes.hpp` | `registerSkills` |
+| `src/Robotik/Runtime/Simulation.cpp` | Skills du pick-and-place |
+| `data/scenarios/*.bt.yml` | Arbres |

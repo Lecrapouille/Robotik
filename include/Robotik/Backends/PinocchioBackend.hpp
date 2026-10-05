@@ -9,9 +9,12 @@
 //! @brief Pinocchio kinematics and damped least-squares IK for one URDF.
 #pragma once
 
+#include "Robotik/Math/Pose.hpp"
+
 #include <filesystem>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -19,30 +22,12 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Position and orientation of a frame in the robot base.
-//!
-//! Translation in meters; quaternion @c (qw, qx, qy, qz) in scalar-first order.
-// ****************************************************************************
-struct Pose
-{
-    double px = 0.0; //!< X position in meters.
-    double py = 0.0; //!< Y position in meters.
-    double pz = 0.0; //!< Z position in meters.
-    double qw = 1.0; //!< Quaternion scalar part.
-    double qx = 0.0; //!< Quaternion X.
-    double qy = 0.0; //!< Quaternion Y.
-    double qz = 0.0; //!< Quaternion Z.
-};
-
-// ****************************************************************************
 //! @brief Analytical kinematics backend built on Pinocchio.
 //!
 //! A <em>backend</em> is a thin adapter around an external library that owns
 //! one URDF instance and exposes a stable API for the rest of the stack.
-//! Backends are not ECS components: @ref RobotRuntime holds this class for FK
-//! and IK, and @ref MujocoBackend for time-stepping contact dynamics. Skills
-//! and systems talk to the runtime; the runtime forwards work to the
-//! appropriate backend.
+//! @ref Robot owns this class for FK and IK; time stepping is done by a
+//! @ref RobotBackend such as @ref MujocoBackend.
 //!
 //! Pinocchio builds a rigid-body model from URDF and runs fast analytical
 //! kinematics (no contact simulation). This wrapper hides @c pinocchio::Model
@@ -53,10 +38,9 @@ struct Pose
 //! @li @b q — generalized coordinates (@c model.nq scalars). Revolute and
 //!     prismatic joints use one entry each (rad or m); floating bases and
 //!     spherical joints use several consecutive entries. Stored internally and
-//!     exposed via @ref setConfiguration / @ref configuration.
+//!     exposed via @ref configuration.
 //! @li @b v — generalized velocities (@c model.nv scalars), aligned with
-//!     velocity degrees of freedom. Updated with @ref setVelocity /
-//!     @ref velocity; used when differential kinematics or IK Jacobians are
+//!     velocity degrees of freedom. Updated through @ref velocity; used when differential kinematics or IK Jacobians are
 //!     needed.
 //! @li @b nq / @b nv — sizes of @b q and @b v (@ref nq, @ref nv). They differ
 //!     when the model uses quaternions or other redundant position parameters.
@@ -66,16 +50,13 @@ struct Pose
 //! @li @b IK — inverse kinematics: @ref solveIK iterates damped least squares
 //!     on the frame Jacobian toward a @ref Pose target.
 //!
-//! Joint and frame indices here may differ from MuJoCo—bind ECS links with
-//! @c ecs::PinocchioJointBinding when both backends are active.
-//!
 //! @example
 //! @code
 //! robotik::PinocchioBackend kin("arm.urdf");
-//! kin.setConfiguration(seed_q);
+//! std::ranges::copy(seed_q, kin.configuration().begin());
 //! kin.updateKinematics();
 //! robotik::Pose tcp = kin.framePose("link6");
-//! if (auto q = kin.solveIK("link6", target_pose, seed_q))
+//! if (auto q = kin.solveIK("link6", target_pose, kin.configuration()))
 //!     applyJointTargets(*q);
 //! @endcode
 // ****************************************************************************
@@ -109,26 +90,17 @@ public:
     [[nodiscard]] std::size_t nv() const;
 
     // -------------------------------------------------------------------------
-    //! @brief Copies @p_q into internal @b q (must match @ref nq).
-    //! @param p_q Joint configuration vector.
+    //! @brief Internal @b q (@ref nq entries), written in place before
+    //! @ref updateKinematics.
     // -------------------------------------------------------------------------
-    void setConfiguration(std::vector<double> const& p_q);
+    [[nodiscard]] std::span<double> configuration();
+    [[nodiscard]] std::span<double const> configuration() const;
 
     // -------------------------------------------------------------------------
-    //! @brief Copies @p_v into internal @b v (must match @ref nv).
-    //! @param p_v Joint velocity vector.
+    //! @brief Internal @b v (@ref nv entries).
     // -------------------------------------------------------------------------
-    void setVelocity(std::vector<double> const& p_v);
-
-    // -------------------------------------------------------------------------
-    //! @brief Current @b q vector.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<double> configuration() const;
-
-    // -------------------------------------------------------------------------
-    //! @brief Current @b v vector.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<double> velocity() const;
+    [[nodiscard]] std::span<double> velocity();
+    [[nodiscard]] std::span<double const> velocity() const;
 
     // -------------------------------------------------------------------------
     //! @brief Runs forward kinematics and updates frame placements.
@@ -183,7 +155,7 @@ public:
     [[nodiscard]] std::optional<std::vector<double>>
     solveIK(std::string const& p_frame,
             Pose const& p_target,
-            std::vector<double> const& p_seed) const;
+            std::span<double const> p_seed) const;
 
 private:
 

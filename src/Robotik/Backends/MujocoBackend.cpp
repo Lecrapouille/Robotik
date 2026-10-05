@@ -12,9 +12,13 @@
 #include <pugixml.hpp>
 
 #include <algorithm>
+#include <atomic>
+#include <cmath>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
+
+#include <unistd.h>
 
 namespace robotik
 {
@@ -24,6 +28,17 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::filesystem::path generated;
+
+    ~Impl()
+    {
+        mj_deleteData(data);
+        mj_deleteModel(model);
+        if (!generated.empty())
+        {
+            std::error_code ignored;
+            std::filesystem::remove(generated, ignored);
+        }
+    }
 };
 
 // MuJoCo rejects a moving body whose mass or inertia is missing or ~0.
@@ -88,9 +103,12 @@ withInertia(std::filesystem::path const& p_filename)
         return p_filename;
     }
 
+    // One file per instance: parallel environments load the same model.
+    static std::atomic<unsigned> s_counter{ 0u };
     std::filesystem::path const output =
         std::filesystem::temp_directory_path() /
-        ("robotik-" + p_filename.filename().string());
+        ("robotik-" + std::to_string(::getpid()) + "-" +
+         std::to_string(s_counter++) + "-" + p_filename.filename().string());
     if (!document.save_file(output.c_str()))
     {
         throw std::runtime_error("Cannot write a MuJoCo URDF copy to " +
@@ -99,11 +117,11 @@ withInertia(std::filesystem::path const& p_filename)
     return output;
 }
 
-MujocoBackend::MujocoBackend(std::filesystem::path const& p_filename)
-    : m_impl(new Impl)
+MujocoBackend::MujocoBackend(std::filesystem::path const& p_urdf)
+    : m_impl(std::make_unique<Impl>())
 {
-    std::filesystem::path const source = withInertia(p_filename);
-    if (source != p_filename)
+    std::filesystem::path const source = withInertia(p_urdf);
+    if (source != p_urdf)
     {
         m_impl->generated = source;
     }
@@ -111,11 +129,8 @@ MujocoBackend::MujocoBackend(std::filesystem::path const& p_filename)
     m_impl->model = mj_loadXML(source.c_str(), nullptr, error, sizeof(error));
     if (m_impl->model == nullptr)
     {
-        std::string message = error;
-        delete m_impl;
-        m_impl = nullptr;
-        throw std::runtime_error("MuJoCo failed to load '" +
-                                 p_filename.string() + "': " + message);
+        throw std::runtime_error("MuJoCo failed to load '" + p_urdf.string() +
+                                 "': " + error);
     }
     // Reflected rotor inertia and viscous friction of real gear motors. Without
     // them a light wrist makes the explicit PD loop unstable at 1 ms.
@@ -127,136 +142,93 @@ MujocoBackend::MujocoBackend(std::filesystem::path const& p_filename)
             std::max(m_impl->model->dof_damping[dof], 0.5);
     }
     m_impl->data = mj_makeData(m_impl->model);
-    reset();
 }
 
-MujocoBackend::~MujocoBackend()
+MujocoBackend::~MujocoBackend() = default;
+
+void MujocoBackend::attach(Robot& p_robot)
 {
-    if (m_impl == nullptr)
+    mjModel const* model = m_impl->model;
+    JointSet const& joints = p_robot.joints();
+    m_bindings.assign(joints.size(), Binding{});
+    for (JointId id = 0; id < joints.size(); ++id)
     {
-        return;
+        char const* name = joints.name(id).c_str();
+        int const joint = mj_name2id(model, mjOBJ_JOINT, name);
+        if (joint < 0)
+        {
+            continue;
+        }
+        m_bindings[id].qpos = model->jnt_qposadr[joint];
+        m_bindings[id].dof = model->jnt_dofadr[joint];
+        m_bindings[id].actuator = mj_name2id(model, mjOBJ_ACTUATOR, name);
     }
-    mj_deleteData(m_impl->data);
-    mj_deleteModel(m_impl->model);
-    if (!m_impl->generated.empty())
-    {
-        std::error_code ignored;
-        std::filesystem::remove(m_impl->generated, ignored);
-    }
-    delete m_impl;
 }
 
-void MujocoBackend::reset()
+void MujocoBackend::reset(Robot& p_robot)
 {
     mj_resetData(m_impl->model, m_impl->data);
+    JointSet const& joints = p_robot.joints();
+    for (JointId id = 0; id < m_bindings.size(); ++id)
+    {
+        if (m_bindings[id].qpos >= 0)
+        {
+            m_impl->data->qpos[m_bindings[id].qpos] = joints.position(id);
+        }
+    }
     mj_forward(m_impl->model, m_impl->data);
-    m_time = m_impl->data->time;
 }
 
-void MujocoBackend::step(Seconds p_dt)
+void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
 {
-    double const dt = p_dt.value();
-    if (dt > 0.0)
+    mjModel* model = m_impl->model;
+    mjData* data = m_impl->data;
+    JointSet& joints = p_robot.joints();
+
+    // The PD loop runs at the physics rate, not at the caller rate.
+    int const steps = std::clamp(
+        static_cast<int>(std::lround(p_dt.value() / m_timestep.value())), 1, 50);
+    model->opt.timestep = m_timestep.value();
+
+    for (int i = 0; i < steps; ++i)
     {
-        m_impl->model->opt.timestep = dt;
+        joints.control(m_timestep);
+
+        // qfrc_bias holds gravity and Coriolis at the last mj_forward state.
+        mju_copy(data->qfrc_applied, data->qfrc_bias, static_cast<int>(model->nv));
+        if (model->nu > 0)
+        {
+            mju_zero(data->ctrl, static_cast<int>(model->nu));
+        }
+        for (JointId id = 0; id < m_bindings.size(); ++id)
+        {
+            Binding const& binding = m_bindings[id];
+            if (binding.actuator >= 0)
+            {
+                data->ctrl[binding.actuator] = joints.effort(id);
+            }
+            else if (binding.dof >= 0)
+            {
+                data->qfrc_applied[binding.dof] += joints.effort(id);
+            }
+        }
+
+        mj_step(model, data);
+
+        for (JointId id = 0; id < m_bindings.size(); ++id)
+        {
+            Binding const& binding = m_bindings[id];
+            if (binding.qpos >= 0)
+            {
+                joints.measure(id, data->qpos[binding.qpos], data->qvel[binding.dof]);
+            }
+        }
     }
-    mj_step(m_impl->model, m_impl->data);
-    m_time = m_impl->data->time;
-}
-
-Seconds MujocoBackend::time() const
-{
-    return Seconds(m_time);
-}
-
-int MujocoBackend::jointId(std::string const& p_name) const
-{
-    return mj_name2id(m_impl->model, mjOBJ_JOINT, p_name.c_str());
-}
-
-int MujocoBackend::qposIndex(int p_joint_id) const
-{
-    if (p_joint_id < 0)
-    {
-        return -1;
-    }
-    return m_impl->model->jnt_qposadr[p_joint_id];
-}
-
-int MujocoBackend::qvelIndex(int p_joint_id) const
-{
-    if (p_joint_id < 0)
-    {
-        return -1;
-    }
-    return m_impl->model->jnt_dofadr[p_joint_id];
-}
-
-int MujocoBackend::dofIndex(int p_joint_id) const
-{
-    return qvelIndex(p_joint_id);
-}
-
-int MujocoBackend::actuatorId(std::string const& p_name) const
-{
-    return mj_name2id(m_impl->model, mjOBJ_ACTUATOR, p_name.c_str());
-}
-
-double MujocoBackend::qpos(int p_index) const
-{
-    return m_impl->data->qpos[p_index];
-}
-
-double MujocoBackend::qvel(int p_index) const
-{
-    return m_impl->data->qvel[p_index];
-}
-
-void MujocoBackend::clearAppliedForces()
-{
-    mju_zero(m_impl->data->qfrc_applied, static_cast<int>(m_impl->model->nv));
-    if (m_impl->model->nu > 0)
-    {
-        mju_zero(m_impl->data->ctrl, static_cast<int>(m_impl->model->nu));
-    }
-}
-
-void MujocoBackend::setCtrl(int p_actuator_id, double p_effort)
-{
-    if (p_actuator_id >= 0 && p_actuator_id < m_impl->model->nu)
-    {
-        m_impl->data->ctrl[p_actuator_id] = p_effort;
-    }
-}
-
-void MujocoBackend::setQpos(int p_index, double p_value)
-{
-    if (p_index >= 0 && p_index < m_impl->model->nq)
-    {
-        m_impl->data->qpos[p_index] = p_value;
-        mj_forward(m_impl->model, m_impl->data);
-    }
-}
-
-void MujocoBackend::compensateGravity()
-{
-    // qfrc_bias holds gravity and Coriolis at the state of the last mj_forward.
-    mju_addTo(m_impl->data->qfrc_applied,
-              m_impl->data->qfrc_bias,
-              static_cast<int>(m_impl->model->nv));
 }
 
 int MujocoBackend::contacts() const
 {
     return m_impl->data->ncon;
-}
-
-void MujocoBackend::addQfrc(int p_dof_index, double p_effort)
-{
-    if (p_dof_index >= 0 && p_dof_index < m_impl->model->nv)
-    {
-        m_impl->data->qfrc_applied[p_dof_index] += p_effort;
-    }
 }
 
 } // namespace robotik
