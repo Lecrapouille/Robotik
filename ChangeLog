@@ -1,3 +1,14 @@
+Version 0.2.0:
+    * Initial refactor:
+      - using personal OpenGL renderer as third party managing USRD/STL and kinematic chain
+      - using personal behavior tree as third party
+      - using Pinnochio and Mujoco as third parties for IK and phyical engine
+      - using behavior tree and robot skills
+      - introduce scenario file: constructing the world and assertions on robot/world states
+      - Standalone with pick and place demo using camera attached to the robot
+      - not integrated: teach pendant and trajectory, behavior tree editor
+      - evolution: compact display of behavior tree with color and timelines of skills
+
 Version 0.1.0:
     * Initial commit
     * Functional but naive librarie:
