@@ -1,0 +1,10 @@
+Version 0.1.0:
+    * Initial commit
+    * Functional but naive librarie:
+      - home made OpenGL rendering
+      - home made kinematic chain
+      - home made inverse kinematic
+      - URDF/STL loader
+      - behavior tree and Prolog integrated but not used
+    * Functional standalone application:
+      - dear imgui, displayed robot, teach pendant, trajectory ...
