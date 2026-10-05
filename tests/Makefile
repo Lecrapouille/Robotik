@@ -75,12 +75,9 @@ PKG_LIBS += gtest gmock
 # Compile the unit tests
 #
 SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Core,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Backends,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Behavior,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Model,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Runtime,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Skills,*.cpp)
-SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Systems,*.cpp)
+ROBOTIK_MODULES := Actuators Backends Behavior Environment Perception Robot
+ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
+SRC_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 
 INCLUDES += $(P)/src $(P)/tests

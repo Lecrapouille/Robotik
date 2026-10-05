@@ -77,34 +77,24 @@ std::size_t PinocchioBackend::nv() const
     return static_cast<std::size_t>(m_impl->model.nv);
 }
 
-void PinocchioBackend::setConfiguration(std::vector<double> const& p_q)
+std::span<double> PinocchioBackend::configuration()
 {
-    if (p_q.size() != nq())
-    {
-        throw std::invalid_argument("Pinocchio configuration size mismatch");
-    }
-    m_impl->q = Eigen::Map<Eigen::VectorXd const>(p_q.data(),
-                                                  static_cast<Eigen::Index>(p_q.size()));
+    return { m_impl->q.data(), static_cast<std::size_t>(m_impl->q.size()) };
 }
 
-void PinocchioBackend::setVelocity(std::vector<double> const& p_v)
+std::span<double const> PinocchioBackend::configuration() const
 {
-    if (p_v.size() != nv())
-    {
-        throw std::invalid_argument("Pinocchio velocity size mismatch");
-    }
-    m_impl->v = Eigen::Map<Eigen::VectorXd const>(p_v.data(),
-                                                  static_cast<Eigen::Index>(p_v.size()));
+    return { m_impl->q.data(), static_cast<std::size_t>(m_impl->q.size()) };
 }
 
-std::vector<double> PinocchioBackend::configuration() const
+std::span<double> PinocchioBackend::velocity()
 {
-    return toVector(m_impl->q);
+    return { m_impl->v.data(), static_cast<std::size_t>(m_impl->v.size()) };
 }
 
-std::vector<double> PinocchioBackend::velocity() const
+std::span<double const> PinocchioBackend::velocity() const
 {
-    return toVector(m_impl->v);
+    return { m_impl->v.data(), static_cast<std::size_t>(m_impl->v.size()) };
 }
 
 void PinocchioBackend::updateKinematics()
@@ -170,21 +160,16 @@ Pose PinocchioBackend::framePose(std::string const& p_frame) const
     auto const id = m_impl->model.getFrameId(p_frame);
     pinocchio::SE3 const& placement = m_impl->data->oMf[id];
     Eigen::Quaterniond const rotation(placement.rotation());
-    Pose pose;
-    pose.px = placement.translation().x();
-    pose.py = placement.translation().y();
-    pose.pz = placement.translation().z();
-    pose.qw = rotation.w();
-    pose.qx = rotation.x();
-    pose.qy = rotation.y();
-    pose.qz = rotation.z();
-    return pose;
+    return Pose{ { placement.translation().x(),
+                   placement.translation().y(),
+                   placement.translation().z() },
+                 { rotation.w(), rotation.x(), rotation.y(), rotation.z() } };
 }
 
 std::optional<std::vector<double>>
 PinocchioBackend::solveIK(std::string const& p_frame,
                           Pose const& p_target,
-                          std::vector<double> const& p_seed) const
+                          std::span<double const> p_seed) const
 {
     if (!hasFrame(p_frame))
     {
@@ -198,14 +183,19 @@ PinocchioBackend::solveIK(std::string const& p_frame,
                                               static_cast<Eigen::Index>(p_seed.size()));
     }
 
-    Eigen::Quaterniond rotation(p_target.qw, p_target.qx, p_target.qy, p_target.qz);
+    Eigen::Quaterniond rotation(p_target.rotation.w,
+                                p_target.rotation.x,
+                                p_target.rotation.y,
+                                p_target.rotation.z);
     if (rotation.norm() < 1e-12)
     {
         rotation = Eigen::Quaterniond::Identity();
     }
     rotation.normalize();
     pinocchio::SE3 const oMdes(rotation.toRotationMatrix(),
-                               Eigen::Vector3d(p_target.px, p_target.py, p_target.pz));
+                               Eigen::Vector3d(p_target.position.x,
+                                               p_target.position.y,
+                                               p_target.position.z));
 
     auto const frame = m_impl->model.getFrameId(p_frame);
     pinocchio::Data data(m_impl->model);

@@ -1,3 +1,21 @@
+Version 0.3.0:
+    * Architecture following ARCHI.md:
+      - compact robot API: Robot/RobotSession, SoA JointSet in SI units,
+        sensors, actuators and RobotBackend (MuJoCo, kinematic, hardware)
+      - every sensor and actuator is a resource; failures make it unavailable
+      - SkillScheduler: resources, priorities, preemption, cancellation,
+        preconditions and trace; behavior tree actions request skills
+      - perception: Camera/FrameSource, PerceptionPipeline of Detectors,
+        WorldModel with gating, landmark localization
+      - seed hierarchy: replayable worlds, faults and sensor noise
+      - scenario YAML: sensors, actuators, randomized objects, faults
+      - EnvironmentPool for parallel and deterministic reinforcement learning
+      - no OpenCV nor rendering in the library (SceneView hooks)
+    * Simulator: rendered wrist camera, color detector, resources/faults
+      panel, skill timeline with reasons, emergency stop, seed replay
+    * Demos: LineFollower (AprilTag localization, OpenCV line tracking) and
+      PickAndPlaceRL
+
 Version 0.2.0:
     * Initial refactor:
       - using personal OpenGL renderer as third party managing USRD/STL and kinematic chain

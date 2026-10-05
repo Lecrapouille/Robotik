@@ -15,7 +15,7 @@ M := $(P)/.makefile
 #
 include $(P)/Makefile.common
 TARGET_NAME := $(PROJECT_NAME)
-RUNNING_TARGET_NAME := Robotik-Viewer
+RUNNING_TARGET_NAME := Robotik-Simulator
 TARGET_DESCRIPTION := A robot library
 ORCHESTRATOR_MODE := 1
 
@@ -42,7 +42,7 @@ download-external-libs::
 ###################################################
 # Extra rules: compile applications after everything
 #
-APPLICATIONS = $(sort $(dir $(wildcard $(P)/src/Applications/*/.)))
+APPLICATIONS = $(sort $(dir $(wildcard $(P)/src/Applications/*/Makefile $(P)/src/Applications/Demos/*/Makefile)))
 
 .PHONY: applications
 applications: $(DIRS_WITH_MAKEFILE)

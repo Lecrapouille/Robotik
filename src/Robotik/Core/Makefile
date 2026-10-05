@@ -38,14 +38,9 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Backends,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Behavior,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Model,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Perception,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Scenario,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Runtime,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Skills,*.cpp)
-LIB_FILES += $(call rwildcard,$(P)/src/Robotik/Systems,*.cpp)
+ROBOTIK_MODULES := Actuators Backends Behavior Environment Perception Robot
+ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
+LIB_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
 HEADER_FILES += $(call rwildcard,$(P)/include/Robotik,*.hpp)
 

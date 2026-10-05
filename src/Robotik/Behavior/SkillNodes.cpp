@@ -7,87 +7,61 @@
 
 #include "Robotik/Behavior/SkillNodes.hpp"
 
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Skills/Skill.hpp"
+#include "Robotik/Runtime/Scheduler.hpp"
+
+#include <memory>
 
 namespace robotik
 {
 
-// -------------------------------------------------------------------------
-// @brief Converts a @ref robotik::Status to a @ref bt::Status.
-// -------------------------------------------------------------------------
-bt::Status toTree(Status p_status)
+static bt::Status tickSkill(SkillScheduler& p_scheduler, SkillId p_id, bool& p_active)
 {
-    switch (p_status)
+    if (!p_active)
     {
-        case Status::SUCCESS:
-            return bt::Status::SUCCESS;
-        case Status::FAILURE:
-            return bt::Status::FAILURE;
-        case Status::RUNNING:
-        case Status::IDLE:
+        p_scheduler.request(p_id);
+        p_active = true;
+        return bt::Status::RUNNING;
+    }
+    switch (p_scheduler.state(p_id))
+    {
+        case SkillState::Idle:
+        case SkillState::Waiting:
+        case SkillState::Running:
             return bt::Status::RUNNING;
+        case SkillState::Succeeded:
+            p_active = false;
+            return bt::Status::SUCCESS;
+        case SkillState::Failed:
+        case SkillState::Cancelled:
+            p_active = false;
+            return bt::Status::FAILURE;
     }
     return bt::Status::FAILURE;
 }
 
-// -------------------------------------------------------------------------
-//! @brief One BlackThorn action tick: trace, skill @ref Skill::tick, map
-//! status.
-// -------------------------------------------------------------------------
-static bt::Status tickSkillAction(std::string const& p_name,
-                                  std::shared_ptr<Skill> const& p_skill,
-                                  std::shared_ptr<long> const& p_running,
-                                  RobotContext& p_context,
-                                  SkillTrace& p_trace)
+void registerSkills(bt::NodeFactory& p_factory, SkillScheduler& p_scheduler)
 {
-    // New BT action run: idle since last SUCCESS/FAILURE (p_running == -1).
-    if (*p_running < 0)
+    for (SkillId id = 0; id < p_scheduler.size(); ++id)
     {
-        p_skill->reset();
-        *p_running = static_cast<long>(p_trace.entries.size());
-        p_trace.entries.emplace_back(
-            p_name, Status::RUNNING, p_context.time, p_context.time);
+        p_factory.registerNode(
+            p_scheduler.name(id),
+            [&p_scheduler, id]()
+            {
+                // One flag per tree node: the same skill may appear twice.
+                auto active = std::make_shared<bool>(false);
+                return std::make_unique<bt::CallbackLeaf>(
+                    [&p_scheduler, id, active]()
+                    { return tickSkill(p_scheduler, id, *active); },
+                    [&p_scheduler, id, active]()
+                    {
+                        if (*active)
+                        {
+                            p_scheduler.cancel(id);
+                            *active = false;
+                        }
+                    });
+            });
     }
-
-    // Advance skill one simulation step; context carries world, time, and dt.
-    Status const status = p_skill->tick(p_context, p_context.dt);
-
-    // Refresh the open trace row for this run (same index until the run ends).
-    SkillTrace::Entry& entry =
-        p_trace.entries[static_cast<std::size_t>(*p_running)];
-    entry.status = status;
-    entry.end = p_context.time;
-
-    // Run finished: next visit will reset the skill and append a new entry.
-    if (status != Status::RUNNING)
-    {
-        *p_running = -1;
-    }
-
-    return toTree(status);
-}
-
-void registerSkill(bt::NodeFactory& p_factory,
-                   std::string const& p_name,
-                   std::shared_ptr<Skill> p_skill,
-                   RobotContext& p_context,
-                   SkillTrace& p_trace)
-{
-    // Per-action state: index of the open SkillTrace row, or -1 between runs.
-    auto running = std::make_shared<long>(-1);
-
-    // BlackThorn stores this lambda inside bt::CallbackLeaf (see Factory.hpp:
-    // registerAction -> make_unique<CallbackLeaf>(func)). Each time the
-    // interpreter ticks the YAML Action named p_name, it invokes that function;
-    // the lambda below is therefore the BT action entry point.
-    p_factory.registerAction(
-        p_name,
-        [p_name, p_skill, running, &p_context, &p_trace]()
-        {
-            return tickSkillAction(
-                p_name, p_skill, running, p_context, p_trace);
-        });
 }
 
 } // namespace robotik

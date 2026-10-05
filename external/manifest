@@ -30,3 +30,7 @@ Lecrapouille/BlackThorn
 ### World, spatial hierarchy and 3d renderer
 ### License: GPL-3.0
 Lecrapouille/Compages:recurse
+
+### AprilTag fiducial detection (LineFollower demo only)
+### License: BSD-2-Clause
+AprilRobotics/apriltag

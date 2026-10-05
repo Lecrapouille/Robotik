@@ -1,5 +1,6 @@
-# Actions are the skills of the simulation. Per object: Detect(o), Approach(o)
-# (10 cm above), Reach(o) (touching its top), Grasp(o). Robot wide: Home, Release.
+# Actions are the skills of the simulation, run by the skill scheduler. Per
+# object: Detect(o), Approach(o) (10 cm above), Reach(o) (touching its top),
+# Grasp(o). Robot wide: Home, Release, Stop (emergency stop, highest priority).
 
 BehaviorTree:
   Sequence:
@@ -10,8 +11,13 @@ BehaviorTree:
       - Sequence:
           name: Pick
           children:
-            - Action:
-                name: Detect(red_cube)
+            # A failed camera makes Detect fail at once (resource
+            # unavailable): try again until it is back.
+            - UntilSuccess:
+                attempts: 1000
+                child:
+                  - Action:
+                      name: Detect(red_cube)
             - Action:
                 name: Approach(red_cube)
             - Action:

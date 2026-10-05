@@ -14,4 +14,19 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <filesystem>
+
 using namespace ::testing;
+
+//! @brief File of the data folder, whether tests run from the root or tests/.
+inline std::filesystem::path dataFile(std::filesystem::path const& p_file)
+{
+    for (char const* root : { "data", "../data" })
+    {
+        if (std::filesystem::exists(std::filesystem::path(root) / p_file))
+        {
+            return std::filesystem::path(root) / p_file;
+        }
+    }
+    return std::filesystem::path("data") / p_file;
+}

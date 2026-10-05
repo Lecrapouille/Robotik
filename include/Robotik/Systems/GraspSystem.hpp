@@ -5,48 +5,28 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// @file GraspSystem.hpp
-// @brief Vacuum grasp helpers: @ref toolTip for approach/grasp checks, and
-// @ref GraspSystem to move a held @ref ecs::SceneObject with the tool each
-// tick (FK + @ref ecs::VacuumGripper::tool_length, no object dynamics).
+//! @file GraspSystem.hpp
+//! @brief Simulated suction: what a @ref VacuumGripper holds.
+//!
+//! Plays the part of the vacuum sensor and of object physics in simulation:
+//! suction near the top of a cube attaches it, no suction drops it onto the
+//! floor of the container below (objects have no dynamics).
 #pragma once
-
-#include <array>
-
-namespace compages::world
-{
-class World;
-}
 
 namespace robotik
 {
 
-class PinocchioBackend;
-
-// -------------------------------------------------------------------------
-//! @brief Suction cup tip position in the robot base frame, meters.
-//! @param p_world ECS world containing the tool and @ref ecs::VacuumGripper.
-//! @param p_kinematics Kinematics after configuration sync.
-//! @return @c {x, y, z}; zeros if no tool is found.
-// -------------------------------------------------------------------------
-[[nodiscard]] std::array<double, 3>
-toolTip(compages::world::World& p_world, PinocchioBackend const& p_kinematics);
+class Robot;
 
 // ****************************************************************************
-// @brief Moves the held @ref ecs::SceneObject entity with the tool each frame.
+//! @brief Attaches, carries and drops @ref ecs::SceneObject entities.
 // ****************************************************************************
 class GraspSystem
 {
 public:
 
-    // -------------------------------------------------------------------------
-    //! @brief Updates grasped object transform from flange FK and gripper
-    //! offset.
-    //! @param p_world ECS world.
-    //! @param p_kinematics Pinocchio backend with up-to-date @c q.
-    // -------------------------------------------------------------------------
-    void update(compages::world::World& p_world,
-                PinocchioBackend const& p_kinematics) const;
+    //! @brief Updates every vacuum gripper of @p_robot after a robot step.
+    void update(Robot& p_robot) const;
 };
 
 } // namespace robotik

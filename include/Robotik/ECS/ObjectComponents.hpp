@@ -6,15 +6,10 @@
 // See LICENSING.md for details.
 
 // @file ObjectComponents.hpp
-// @brief Pick-and-place objects in the world and vacuum grasp on the tool.
-// @ref SceneObject — manipulable item from scenario YAML (name, shape, color,
-// size). @ref VacuumGripper — on the end-effector link: which @ref SceneObject
-// is currently stuck to the cup and how long the tool is (no parallel-jaw
-// URDF).
+// @brief Objects of the world spawned from a scenario (ground truth).
 #pragma once
 
 #include "Compages/Core/Units.hpp"
-#include "Compages/World/EntityId.hpp"
 
 #include <array>
 #include <string>
@@ -47,17 +42,6 @@ struct SceneObject
     std::array<Length, 3> size{ Length(0.04), Length(0.04), Length(0.04) };
     //!< RGB color in @c [0, 1] for rendering and color detection.
     std::array<float, 3> color{ 0.8f, 0.8f, 0.8f };
-};
-
-// ****************************************************************************
-// @brief Virtual vacuum tool: at most one @ref SceneObject may be attached.
-// ****************************************************************************
-struct VacuumGripper
-{
-    //!< Entity id of the grasped object, or invalid when empty.
-    compages::world::EntityId held{};
-    //!< Distance from flange frame to cup tip along flange +Z (SI: m).
-    Length tool_length{ 0.06 };
 };
 
 } // namespace robotik::ecs
