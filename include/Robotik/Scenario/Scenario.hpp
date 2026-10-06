@@ -15,7 +15,7 @@
 #pragma once
 
 #include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Faults.hpp"
 #include "Robotik/Sensors/Camera.hpp"

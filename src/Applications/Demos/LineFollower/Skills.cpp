@@ -39,7 +39,8 @@ bool Navigation::fix(robotik::Localization const& p_fix, Seconds p_stamp)
         return false;
     }
     streak = 0;
-    estimate = { p_fix.pose.position.x, p_fix.pose.position.y, p_fix.pose.rotation.yaw() };
+    estimate = { p_fix.pose.position.x, p_fix.pose.position.y,
+                 robotik::yawOf(p_fix.pose.rotation) };
     ++fixes;
     last_fix = p_stamp;
     return true;
@@ -58,8 +59,8 @@ void Wheels::drive(double p_speed, double p_yaw_rate)
     double left_speed = 0.0;
     double right_speed = 0.0;
     model.wheels(p_speed, p_yaw_rate, left_speed, right_speed);
-    left.spin(left_speed);
-    right.spin(right_speed);
+    left.spin(AngularVelocity(left_speed));
+    right.spin(AngularVelocity(right_speed));
 }
 
 void Wheels::stop()
@@ -185,8 +186,9 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context, Seconds 
     if (line != nullptr && detections.stamp > m_seen)
     {
         m_seen = detections.stamp;
-        robotik::Vector3 const ray = detections.camera.rotation.rotate(
-            detections.intrinsics.ray(line->center[0], line->center[1]));
+        robotik::Vector3 const ray =
+            detections.camera.rotation *
+            detections.intrinsics.ray(line->center[0], line->center[1]);
         double const floor = -m_wheels.model.height;
         if (ray.z < -1e-6)
         {

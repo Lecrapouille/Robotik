@@ -99,6 +99,12 @@ public:
                  float p_confidence,
                  Seconds p_stamp);
 
+    //! @brief Overwrites the belief (oracle / RL). No gate. Stamps
+    //! @p_stamp so Detect sees a fresh observation.
+    void place(std::string_view p_name,
+               Vector3 const& p_position,
+               Seconds p_stamp);
+
     // -------------------------------------------------------------------------
     //! @brief Folds the detections of one frame into the beliefs.
     // -------------------------------------------------------------------------

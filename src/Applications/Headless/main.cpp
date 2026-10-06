@@ -5,6 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
+#include "LineFollowerMission.hpp"
+#include "PickPlaceMission.hpp"
+
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include "Compages/Core/Units.hpp"
@@ -12,15 +15,26 @@
 
 #include <filesystem>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 
 #define HEADLESS_DT_S 0.01
-#define HEADLESS_TIMEOUT_S 120.0
+#define HEADLESS_TIMEOUT_S 150.0
 
 static void usage()
 {
     std::cerr << "usage: Robotik-Headless scenario.yml [--seed N]\n";
+}
+
+static std::unique_ptr<robotik::Mission>
+makeMission(robotik::Scenario const& p_scenario)
+{
+    if (p_scenario.name == "line_follower")
+    {
+        return std::make_unique<LineFollowerMission>();
+    }
+    return std::make_unique<PickPlaceMission>();
 }
 
 int main(int argc, char** argv)
@@ -52,8 +66,11 @@ int main(int argc, char** argv)
 
     try
     {
+        robotik::Scenario scenario = robotik::Scenario::load(*path);
+        std::unique_ptr<robotik::Mission> mission = makeMission(scenario);
         compages::world::World world;
-        robotik::Simulation simulation(world, robotik::Scenario::load(*path));
+        robotik::Simulation simulation(
+            world, std::move(scenario), nullptr, mission.get());
         if (seed)
         {
             simulation.reset(robotik::Seed{ *seed });
@@ -87,8 +104,12 @@ int main(int argc, char** argv)
         bool passed = true;
         for (auto const& check : simulation.checks())
         {
-            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text
-                      << '\n';
+            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text;
+            if (!check.detail.empty())
+            {
+                std::cout << "  (" << check.detail << ')';
+            }
+            std::cout << '\n';
             passed = passed && check.passed;
         }
         std::cout << "seed=" << simulation.seed().value

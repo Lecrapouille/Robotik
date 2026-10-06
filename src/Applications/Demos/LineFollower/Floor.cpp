@@ -91,7 +91,7 @@ FloorMap::FloorMap(Track const& p_track,
         m_landmarks.push_back(
             { tag.id,
               robotik::Pose{ { tag.x, tag.y, 0.0 },
-                             robotik::Quaternion::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi) } });
+                             robotik::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi) } });
     }
     tag36h11_destroy(family);
 }
@@ -149,7 +149,7 @@ bool FloorCamera::capture(robotik::Camera const& p_camera, robotik::CameraFrame&
         robotik::Vector3 const* ray = m_rays.data() + v * m_width;
         for (std::uint32_t u = 0; u < m_width; ++u, pixel += 3)
         {
-            robotik::Vector3 const direction = optical.rotation.rotate(ray[u]);
+            robotik::Vector3 const direction = optical.rotation * ray[u];
             if (direction.z > -1e-6)
             {
                 pixel[0] = SKY_R;

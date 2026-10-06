@@ -14,13 +14,20 @@ TARGET_DESCRIPTION := Operator interface: world, robot camera, behavior tree and
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/src/Applications/Simulator
-INCLUDES += $(CURRENT_DIR) $(P)/include $(P)/src
-VPATH += $(CURRENT_DIR)
+PICK_DIR := $(P)/src/Applications/Demos/PickAndPlace
+LINE_DIR := $(P)/src/Applications/Demos/LineFollower
+INCLUDES += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR) $(P)/include $(P)/src
+VPATH += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
-SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp $(CURRENT_DIR)/ColorDetector.cpp
+SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp
+SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
+SRC_FILES += $(PICK_DIR)/PickPlaceControl.cpp
+SRC_FILES += $(LINE_DIR)/Track.cpp $(LINE_DIR)/DiffDrive.cpp
+SRC_FILES += $(LINE_DIR)/Floor.cpp $(LINE_DIR)/Vision.cpp
+SRC_FILES += $(LINE_DIR)/Skills.cpp $(LINE_DIR)/LineFollowerMission.cpp
 PKG_LIBS += glfw3
 
 # Headers only: BlackThorn is compiled into robotik-core.
@@ -48,5 +55,12 @@ USER_CXXFLAGS += -Wno-float-equal -Wno-undef -Wno-shadow -Wno-double-promotion
 USER_CXXFLAGS += -Wno-cast-qual -Wno-switch-default -Wno-useless-cast
 USER_CXXFLAGS += -Wno-zero-as-null-pointer-constant -Wno-format-nonliteral
 USER_CXXFLAGS += -Wno-suggest-attribute=noreturn
+
+USER_CXXFLAGS += $(patsubst -I%,-isystem %,$(shell pkg-config --cflags-only-I opencv4))
+USER_LDFLAGS += -Wl,-rpath-link,$(shell pkg-config --variable=libdir opencv4)
+USER_LDFLAGS += $(shell pkg-config --libs-only-L opencv4) -lopencv_imgproc -lopencv_core
+APRILTAG_DIR := $(THIRD_PARTIES_DIR)/apriltag
+INCLUDES += $(APRILTAG_DIR)
+THIRD_PARTIES_LIBS += $(abspath $(APRILTAG_DIR)/build/libapriltag.a)
 
 include $(M)/rules/Makefile

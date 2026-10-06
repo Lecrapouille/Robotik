@@ -106,7 +106,7 @@ void GraspSystem::update(Robot& p_robot) const
         {
             compages::world::Entity held = world.entity(gripper->held());
             double const half = held.get<ecs::SceneObject>().size[2].value() * 0.5;
-            Vector3 const center = gripper->tip(p_robot, half);
+            Vector3 const center = gripper->tip(p_robot, Length(half));
             held.position(static_cast<float>(center.x),
                           static_cast<float>(center.y),
                           static_cast<float>(center.z));

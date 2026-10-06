@@ -13,7 +13,7 @@
 //! are.
 #pragma once
 
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Joints.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Skills/Skill.hpp"

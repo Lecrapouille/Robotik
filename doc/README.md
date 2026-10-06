@@ -10,18 +10,18 @@ Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, acti
 | [Architecture-Robotik.md](Architecture-Robotik.md) | Dossiers `include/Robotik/`, flux de données, types clés |
 | [Scenario-et-Simulation.md](Scenario-et-Simulation.md) | Scénario YAML, seeds, pannes, `Simulation`, assertions |
 | [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md) | Action BlackThorn, `SkillScheduler`, skills |
+| [Demos.md](Demos.md) | Buts, CLI, tutoriel Simulateur / Headless / LineFollower / RL |
 
 ## Carte rapide `include/Robotik/`
 
 | Dossier | Rôle |
 |---------|------|
-| **`Math/`** | `Pose`, `Quaternion`, `Seed` / `Random` |
-| **`Robot/`** | `Robot`, `RobotSession`, `RobotBackend`, `SceneView`, `JointSet` |
-| **`Sensors/`**, **`Actuators/`** | `Camera`, `Image` ; `Motor`, `JointGroup`, `VacuumGripper` |
+| **`Math/`** | Alias Compages (`Pose`, `Quat`, `Vector3`) dans `Geometry.hpp` ; `Seed` / `Random` |
+| **`Robot/`** | `Robot`, `RobotSession`, `JointSet` (SoA), `Actuators.hpp` |
+| **`Sensors/`** | `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, lectures ECS |
 | **`Perception/`** | `Detector`, `PerceptionPipeline`, `WorldModel`, `localize` |
-| **`Runtime/`** | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Simulation` |
-| **`Skills/`** | `Skill`, skills de mouvement et de pick-and-place |
-| **`Behavior/`** | Pont BlackThorn (`registerSkills`) |
+| **`Runtime/`** | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Mission`, `Metrics`, `Simulation` |
+| **`Skills/`** | `Skill`, skills de mouvement et de pick-and-place, `SkillNodes.hpp` (pont BT) |
 | **`Scenario/`** | Parser YAML de mission |
 | **`Environment/`** | `Environment`, `EnvironmentPool` (RL) |
 | **`Backends/`** | Pinocchio (FK/IK), MuJoCo (physique) |
@@ -30,9 +30,9 @@ En-tête unique : `include/Robotik/Robotik.hpp`.
 
 ## Applications
 
-- **Simulateur** : `src/Applications/Simulator/` — vue 3D, caméra poignet rendue, détection couleur, panneaux skills / ressources / pannes, arrêt d’urgence, rejeu par seed.
-- **Headless** : `src/Applications/Headless/` — même mission sans rendu (perception oracle), trace des skills.
-- **LineFollower** : `src/Applications/Demos/LineFollower/` — robot différentiel, suivi de ligne (OpenCV), localisation par AprilTags, odométrie biaisée.
-- **PickAndPlaceRL** : `src/Applications/Demos/PickAndPlaceRL/` — `EnvironmentPool`, politique experte / aléatoire, rejeu bit à bit.
+- **Simulateur** : `src/Applications/Simulator/` — hôte visuel (menu pick-and-place, line follower, RL random/convergé sur un env).
+- **Headless** : `src/Applications/Headless/` — n’importe quel scénario + mission, sans rendu.
+- **LineFollower** : `src/Applications/Demos/LineFollower/` — même mission, CLI pour le CI (`--save`).
+- **PickAndPlaceRL** : `src/Applications/Demos/PickAndPlaceRL/` — `EnvironmentPool` multi-thread, hors GUI.
 
 Exemple de trajectoire LineFollower (vert : vérité, rouge : estimation) : `Robotik-LineFollower --seed 4 --save map.png`.

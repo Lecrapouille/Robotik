@@ -67,6 +67,7 @@ void DiffDriveBackend::reset(robotik::Robot& p_robot)
     robotik::JointSet& joints = p_robot.joints();
     joints.measure(m_left, joints.position(m_left), 0.0);
     joints.measure(m_right, joints.position(m_right), 0.0);
+    p_robot.measureBase({ pose(), {} });
 }
 
 void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
@@ -87,10 +88,11 @@ void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
     double yaw_rate = 0.0;
     m_geometry.twist(m_speeds[0], m_speeds[1], speed, yaw_rate);
     m_truth = m_geometry.integrate(m_truth, speed, yaw_rate, dt);
+    p_robot.measureBase({ pose(), {} });
 }
 
 robotik::Pose DiffDriveBackend::pose() const
 {
     return { { m_truth.x, m_truth.y, m_geometry.height },
-             robotik::Quaternion::axisAngle({ 0.0, 0.0, 1.0 }, m_truth.yaw) };
+             robotik::axisAngle({ 0.0, 0.0, 1.0 }, m_truth.yaw) };
 }

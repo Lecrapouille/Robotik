@@ -28,7 +28,6 @@ struct UrdfJoint
     std::string name;
     std::string type;
     std::string child;
-    JointLimits limits;
 };
 
 struct UrdfRobot
@@ -51,37 +50,17 @@ UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
     UrdfRobot result{ robot.attribute("name").as_string(), {} };
     for (pugi::xml_node node : robot.children("joint"))
     {
-        UrdfJoint joint;
-        joint.name = node.attribute("name").as_string();
-        joint.type = node.attribute("type").as_string();
-        joint.child = node.child("child").attribute("link").as_string();
-        if (pugi::xml_node limit = node.child("limit"))
-        {
-            joint.limits.lower = limit.attribute("lower").as_double(0.0);
-            joint.limits.upper = limit.attribute("upper").as_double(0.0);
-            joint.limits.velocity = limit.attribute("velocity").as_double(0.0);
-            joint.limits.effort = limit.attribute("effort").as_double(0.0);
-        }
-        result.joints.push_back(std::move(joint));
+        result.joints.push_back({ node.attribute("name").as_string(),
+                                  node.attribute("type").as_string(),
+                                  node.child("child").attribute("link").as_string() });
     }
     return result;
 }
 
-std::optional<JointType> jointType(std::string_view p_type)
+bool moving(std::string_view p_type)
 {
-    if (p_type == "revolute")
-    {
-        return JointType::Revolute;
-    }
-    if (p_type == "continuous")
-    {
-        return JointType::Continuous;
-    }
-    if (p_type == "prismatic")
-    {
-        return JointType::Prismatic;
-    }
-    return std::nullopt;
+    return p_type == "revolute" || p_type == "continuous" ||
+           p_type == "prismatic";
 }
 
 compages::world::Entity findNamed(compages::world::Entity p_root,
@@ -101,6 +80,21 @@ compages::world::Entity findNamed(compages::world::Entity p_root,
             }
         });
     return found;
+}
+
+compages::core::Vector3f toFloat(Vector3 const& p_v)
+{
+    return { static_cast<float>(p_v.x),
+             static_cast<float>(p_v.y),
+             static_cast<float>(p_v.z) };
+}
+
+compages::core::Quatf toFloat(Quaternion const& p_q)
+{
+    return { static_cast<float>(p_q.w),
+             static_cast<float>(p_q.x),
+             static_cast<float>(p_q.y),
+             static_cast<float>(p_q.z) };
 }
 
 } // namespace
@@ -126,6 +120,7 @@ Robot::Robot(compages::world::World& p_world,
         }
         m_root = loaded.value();
     }
+    m_world_from_urdf = m_root.rotation();
 
     UrdfRobot const urdf = readUrdf(p_urdf);
     m_name = urdf.name;
@@ -135,8 +130,7 @@ Robot::Robot(compages::world::World& p_world,
     bool named_tool = false;
     for (UrdfJoint const& joint : urdf.joints)
     {
-        std::optional<JointType> const type = jointType(joint.type);
-        if (!type)
+        if (!moving(joint.type))
         {
             if (joint.child == "tool0" || joint.child == "end_effector" ||
                 joint.child == "tcp")
@@ -152,7 +146,7 @@ Robot::Robot(compages::world::World& p_world,
             throw std::runtime_error("Compages has no link '" + joint.child +
                                      "' for joint '" + joint.name + "'");
         }
-        m_joints.add(joint.name, *type, joint.limits, link);
+        m_joints.add(joint.name, link);
         m_q_indices.push_back(m_kinematics->qIndex(joint.name));
         m_v_indices.push_back(m_kinematics->vIndex(joint.name));
         if (!named_tool)
@@ -173,6 +167,11 @@ compages::world::Entity Robot::link(std::string_view p_name) const
 Pose Robot::framePose(std::string const& p_frame) const
 {
     return m_kinematics->framePose(p_frame);
+}
+
+Pose Robot::worldPose(std::string const& p_frame) const
+{
+    return p_frame.empty() ? m_base.pose : m_base.pose * framePose(p_frame);
 }
 
 std::optional<std::vector<double>>
@@ -211,18 +210,10 @@ void Robot::propagate()
     }
     m_kinematics->updateKinematics();
 
-    for (JointId id = 0; id < m_joints.size(); ++id)
-    {
-        compages::world::Entity link = m_joints.link(id);
-        if (link.has<compages::world::PrismaticJoint>())
-        {
-            link.offset(units::length::meter_t(m_joints.position(id)));
-        }
-        else if (link.has<compages::world::RevoluteJoint>())
-        {
-            link.angle(units::angle::radian_t(m_joints.position(id)));
-        }
-    }
+    m_joints.publish();
+    m_root.position(m_world_from_urdf * toFloat(m_base.pose.position))
+        .rotation(m_world_from_urdf * toFloat(m_base.pose.rotation));
+    m_root.set(m_base);
 }
 
 RobotSession::RobotSession(compages::world::World& p_world,
@@ -261,9 +252,21 @@ void RobotSession::hold(JointPosture const& p_posture)
     m_world.update();
 }
 
+void RobotSession::startPose(Pose const& p_pose)
+{
+    m_start = p_pose;
+    m_base = BaseState{ p_pose, {} };
+    if (m_backend)
+    {
+        m_backend->reset(*this);
+    }
+    propagate();
+}
+
 void RobotSession::reset()
 {
     m_time = Seconds{};
+    m_base = BaseState{ m_start, {} };
     for (JointId id = 0; id < m_joints.size(); ++id)
     {
         m_joints.place(id, m_joints.home(id));

@@ -13,26 +13,30 @@
  * skills run under the @ref robotik::SkillScheduler; a
  * @ref robotik::RobotBackend (MuJoCo in simulation) moves the joints. Kinematics
  * come from Pinocchio and the scene graph from Compages. Rendering stays out of
- * the library (@ref robotik::SceneView).
+ * the library (@ref robotik::SceneView). A @ref robotik::Simulation runs a
+ * scenario and the @ref robotik::Mission that a demo plugs in.
  */
 
 #pragma once
 
-#include "Robotik/Actuators/Actuator.hpp"
 #include "Robotik/Backends/MujocoBackend.hpp"
-#include "Robotik/Behavior/SkillNodes.hpp"
 #include "Robotik/Environment/Environment.hpp"
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/Localization.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Faults.hpp"
+#include "Robotik/Runtime/Metrics.hpp"
+#include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/Resources.hpp"
 #include "Robotik/Runtime/Scheduler.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 #include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Sensors/ForceTorqueSensor.hpp"
+#include "Robotik/Sensors/Imu.hpp"
+#include "Robotik/Sensors/RangeScanner.hpp"
 #include "Robotik/Skills/MotionSkills.hpp"
-#include "Robotik/Skills/PickPlaceSkills.hpp"
+#include "Robotik/Skills/SkillNodes.hpp"

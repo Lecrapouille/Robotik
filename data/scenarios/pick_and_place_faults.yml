@@ -50,3 +50,4 @@ assert:
   - object("red_cube").inside("box")
   - gripper.empty
   - collisions == 0
+  - time < 30

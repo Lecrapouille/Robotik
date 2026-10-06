@@ -8,19 +8,22 @@
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include "Robotik/Backends/MujocoBackend.hpp"
-#include "Robotik/Behavior/SkillNodes.hpp"
 #include "Robotik/ECS/Queries.hpp"
-#include "Robotik/Skills/PickPlaceSkills.hpp"
+#include "Robotik/Sensors/ForceTorqueSensor.hpp"
+#include "Robotik/Sensors/Imu.hpp"
+#include "Robotik/Sensors/RangeScanner.hpp"
+#include "Robotik/Skills/MotionSkills.hpp"
+#include "Robotik/Skills/SkillNodes.hpp"
 #include "Robotik/Systems/GraspSystem.hpp"
 
 #include "Compages/World/World.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <regex>
 #include <stdexcept>
 
-#define APPROACH_CLEARANCE_M 0.10
 #define SKILL_PRIORITY 100
 #define STOP_PRIORITY 1000
 #define WORLD_MODEL_GATE_M 0.10
@@ -56,18 +59,27 @@ static bool inside(compages::world::Entity p_object,
 
 Simulation::Simulation(compages::world::World& p_world,
                        Scenario p_scenario,
-                       SceneView* p_view)
+                       SceneView* p_view,
+                       Mission* p_mission)
     : m_world(p_world),
       m_scenario(std::move(p_scenario)),
+      m_mission(p_mission),
       m_robot(std::make_unique<RobotSession>(
           p_world, m_scenario.robot_model, p_view)),
       m_scheduler(std::make_unique<SkillScheduler>(m_robot->resources())),
       m_faults(m_scenario.faults, m_scenario.random_faults),
       m_context{ *m_robot, m_world_model, {}, {} }
 {
-    m_robot->connect(std::make_unique<MujocoBackend>(m_scenario.robot_model));
-    m_robot->hold(m_scenario.home);
     spawn(p_view);
+    if (m_mission != nullptr)
+    {
+        m_mission->setup(*this, p_view);
+    }
+    if (m_robot->backend() == nullptr)
+    {
+        m_robot->connect(std::make_unique<MujocoBackend>(m_scenario.robot_model));
+    }
+    m_robot->hold(m_scenario.home);
     if (!m_oracle)
     {
         m_world_model.gate(WORLD_MODEL_GATE_M);
@@ -147,16 +159,6 @@ void Simulation::addSkills()
     {
         arm.push_back(resources.require(group->name()));
     }
-    std::vector<ResourceRequirement> gripper;
-    if (auto const* vacuum = actuators.first<VacuumGripper>())
-    {
-        gripper.push_back(resources.require(vacuum->name()));
-    }
-    std::vector<ResourceRequirement> camera;
-    if (Camera const* found = this->camera())
-    {
-        camera.push_back(resources.require(found->name(), Access::Shared));
-    }
     std::vector<ResourceRequirement> everything;
     for (std::size_t i = 0; i < actuators.size(); ++i)
     {
@@ -174,33 +176,15 @@ void Simulation::addSkills()
     };
 
     SkillScheduler& skills = *m_scheduler;
-    skills.add<HomeSkill>(describe("Home", arm));
-    skills.add<ReleaseSkill>(describe("Release", gripper));
+    if (!arm.empty())
+    {
+        skills.add<HomeSkill>(describe("Home", arm));
+    }
     SkillDescription stop = describe("Stop", everything);
     stop.priority = STOP_PRIORITY;
-    skills.add<StopSkill>(std::move(stop));
-
-    for (Scenario::Object const& object : m_scenario.objects)
+    if (!everything.empty())
     {
-        std::string const& name = object.shape.name;
-        skills.add<DetectSkill>(describe("Detect(" + name + ")", camera), name);
-        skills.add<ApproachSkill>(describe("Approach(" + name + ")", arm),
-                                  name,
-                                  Length(APPROACH_CLEARANCE_M));
-        skills.add<ApproachSkill>(
-            describe("Reach(" + name + ")", arm), name, Length{});
-
-        SkillDescription grasp = describe("Grasp(" + name + ")", gripper);
-        grasp.wait = false;
-        grasp.preconditions.push_back(
-            { "gripper is empty",
-              [](RobotContext const& p_context)
-              {
-                  VacuumGripper const* vacuum =
-                      findGripper(p_context.robot, std::string{});
-                  return vacuum != nullptr && !vacuum->holding();
-              } });
-        skills.add<GraspSkill>(std::move(grasp), name);
+        skills.add<StopSkill>(std::move(stop));
     }
 }
 
@@ -248,6 +232,18 @@ void Simulation::reset(Seed p_seed)
         {
             camera->seed(p_seed.derive(camera->name()));
         }
+        else if (auto* imu = dynamic_cast<Imu*>(&sensors[i]))
+        {
+            imu->seed(p_seed.derive(imu->name()));
+        }
+        else if (auto* scanner = dynamic_cast<RangeScanner*>(&sensors[i]))
+        {
+            scanner->seed(p_seed.derive(scanner->name()));
+        }
+        else if (auto* force = dynamic_cast<ForceTorqueSensor*>(&sensors[i]))
+        {
+            force->seed(p_seed.derive(force->name()));
+        }
     }
 
     // The mission knows the nominal layout; the actual one is randomized.
@@ -268,6 +264,10 @@ void Simulation::reset(Seed p_seed)
 
     m_robot->reset();
     loadTree();
+    if (m_mission != nullptr)
+    {
+        m_mission->reset(*this, p_seed);
+    }
 }
 
 Camera* Simulation::camera() const
@@ -289,10 +289,9 @@ void Simulation::observe()
     }
     for (compages::world::Entity const& entity : m_objects)
     {
-        (void)m_world_model.observe(entity.get<ecs::SceneObject>().name,
-                                    positionOf(entity),
-                                    1.0f,
-                                    m_robot->time());
+        m_world_model.place(entity.get<ecs::SceneObject>().name,
+                            positionOf(entity),
+                            m_robot->time());
     }
 }
 
@@ -318,42 +317,65 @@ void Simulation::step(Seconds p_dt)
     {
         m_max_contacts = std::max(m_max_contacts, backend->contacts());
     }
+    if (m_mission != nullptr)
+    {
+        m_mission->step(*this, p_dt);
+        if (m_tree == nullptr)
+        {
+            switch (m_mission->status(*this))
+            {
+                case Status::SUCCESS:
+                    m_status = bt::Status::SUCCESS;
+                    break;
+                case Status::FAILURE:
+                    m_status = bt::Status::FAILURE;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
 }
 
-std::vector<Simulation::Check> Simulation::checks() const
+std::vector<Check> Simulation::checks() const
 {
     static std::regex const inside_assert_regex(OBJECT_INSIDE_ASSERT_REGEX);
 
-    std::vector<Check> result;
-    for (std::string const& text : m_scenario.asserts)
+    Metrics metrics;
+    metrics.set("time", time().value());
+    metrics.set("collisions", static_cast<double>(m_max_contacts));
+    metrics.set("robot.success", m_status == bt::Status::SUCCESS ? 1.0 : 0.0);
+    VacuumGripper const* vacuum = m_robot->actuators().first<VacuumGripper>();
+    if (vacuum != nullptr)
     {
-        Check check{ text, false };
+        metrics.set("gripper.empty", vacuum->holding() ? 0.0 : 1.0);
+    }
+    if (m_mission != nullptr)
+    {
+        m_mission->measure(*this, metrics);
+    }
+
+    MetricResolver resolver = [this](std::string_view p_name)
+        -> std::optional<double>
+    {
         std::smatch match;
-        if (text == "robot.success")
-        {
-            check.passed = m_status == bt::Status::SUCCESS;
-        }
-        else if (text == "gripper.empty")
-        {
-            VacuumGripper const* vacuum = findGripper(*m_robot, std::string{});
-            check.passed = vacuum != nullptr && !vacuum->holding();
-        }
-        else if (text == "collisions == 0")
-        {
-            check.passed = m_max_contacts == 0;
-        }
-        else if (std::regex_match(text, match, inside_assert_regex))
+        std::string const text(p_name);
+        if (std::regex_match(text, match, inside_assert_regex))
         {
             compages::world::Entity object = findObject(m_world, match[1].str());
             compages::world::Entity container =
                 findObject(m_world, match[2].str());
-            check.passed = object && container && inside(object, container);
+            return object && container && inside(object, container) ? 1.0
+                                                                   : 0.0;
         }
-        else
-        {
-            check.text += "  (unknown assertion)";
-        }
-        result.push_back(std::move(check));
+        return std::nullopt;
+    };
+
+    std::vector<Check> result;
+    result.reserve(m_scenario.asserts.size());
+    for (std::string const& text : m_scenario.asserts)
+    {
+        result.push_back(evaluate(text, metrics, resolver));
     }
     return result;
 }

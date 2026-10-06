@@ -7,7 +7,7 @@
 
 #include "App.hpp"
 
-#include "Robotik/Actuators/Actuator.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
 
 #include <imgui.h>
@@ -27,6 +27,8 @@ static char const* const SKILLS = "Skills";
 static char const* const RESOURCES = "Resources";
 static char const* const ROBOT = "Robot";
 static char const* const SCENARIO = "Scenario";
+static char const* const SCENARIO_FILE = "Scenario file";
+static char const* const RL = "RL";
 
 static char const* const STOP = "Stop";
 
@@ -155,12 +157,14 @@ static void layout(ImGuiID p_dock)
     ImGuiID const right_top = ImGui::DockBuilderSplitNode(
         right, ImGuiDir_Up, 0.45f, nullptr, &right_bottom);
     ImGui::DockBuilderDockWindow(SCENARIO, left);
+    ImGui::DockBuilderDockWindow(SCENARIO_FILE, left);
     ImGui::DockBuilderDockWindow(ROBOT, left);
     ImGui::DockBuilderDockWindow(WORLD, center);
     ImGui::DockBuilderDockWindow(SKILLS, bottom);
     ImGui::DockBuilderDockWindow(RESOURCES, bottom);
     ImGui::DockBuilderDockWindow(CAMERA, right_top);
     ImGui::DockBuilderDockWindow(TREE, right_bottom);
+    ImGui::DockBuilderDockWindow(RL, right_bottom);
     ImGui::DockBuilderFinish(p_dock);
 }
 
@@ -206,6 +210,15 @@ static void toolbar(App& p_app)
     {
         path = p_app.scenario_path.string();
     }
+    char const* const kinds[] = { "Pick-and-place", "Line follower",
+                                  "Pick-and-place RL" };
+    int kind = static_cast<int>(p_app.kind);
+    ImGui::SetNextItemWidth(180.0f);
+    if (ImGui::Combo("##mission", &kind, kinds, 3))
+    {
+        p_app.select(static_cast<HostedMission>(kind));
+        path = p_app.scenario_path.string();
+    }
     ImGui::SetNextItemWidth(280.0f);
     ImGui::InputText("##scenario", &path);
     if (ImGui::Button("Load"))
@@ -236,14 +249,36 @@ static void toolbar(App& p_app)
     }
     ImGui::SetNextItemWidth(110.0f);
     ImGui::SliderFloat("##speed", &p_app.speed, 0.1f, 3.0f, "speed x%.1f");
+    if (p_app.kind == HostedMission::PickPlaceRl)
+    {
+        if (ImGui::Checkbox("converged", &p_app.rl.converged))
+        {
+            p_app.rl.mix = p_app.rl.converged ? 1.0f : 0.0f;
+        }
+    }
     ImGui::Separator();
     if (p_app.simulation)
     {
         emergencyStop(p_app);
         ImGui::Text("t = %6.2f s", p_app.simulation->time().value());
-        ImGui::TextColored(colorOf(p_app.simulation->status()),
-                           "Mission %s",
-                           textOf(p_app.simulation->status()));
+        if (p_app.kind == HostedMission::PickPlaceRl)
+        {
+            ImGui::TextColored(p_app.rl.success ? GREEN
+                                                : (p_app.rl.done ? RED : ORANGE),
+                               "RL %s  R=%.1f  %u/%u",
+                               p_app.rl.success
+                                   ? "SUCCESS"
+                                   : (p_app.rl.done ? "DONE" : "RUN"),
+                               static_cast<double>(p_app.rl.episode_return),
+                               p_app.rl.steps,
+                               p_app.rl.max_steps);
+        }
+        else
+        {
+            ImGui::TextColored(colorOf(p_app.simulation->status()),
+                               "Mission %s",
+                               textOf(p_app.simulation->status()));
+        }
     }
     if (!p_app.error.empty())
     {
@@ -302,14 +337,18 @@ static void cameraPanel(App& p_app)
     }
     robotik::Camera* camera =
         p_app.simulation ? p_app.simulation->camera() : nullptr;
-    if (camera == nullptr || !p_app.scene_view ||
-        p_app.scene_view->cameras().empty())
+    if (camera == nullptr || !p_app.scene_view)
     {
         ImGui::TextDisabled("The scenario mounts no camera.");
         ImGui::End();
         return;
     }
-    RenderTarget const& picture = p_app.scene_view->cameras().front()->target();
+    bool const has_cpu = p_app.scene_view->showFrame(camera->frame());
+    RenderTarget const& picture =
+        has_cpu ? p_app.scene_view->frameTarget()
+                : (p_app.scene_view->cameras().empty()
+                       ? p_app.scene_view->frameTarget()
+                       : p_app.scene_view->cameras().front()->target());
     bool const available =
         p_app.simulation->robot().resources().available(camera->name());
     ImGui::Text("%s  %ux%u  fov %.0f deg  frame %llu",
@@ -662,14 +701,33 @@ static void robotPanel(App const& p_app)
         ImGui::TableHeadersRow();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
-            robotik::JointLimits const& limits = joints.limits(id);
-            bool const linear = joints.type(id) == robotik::JointType::Prismatic;
+            bool const linear = joints.isPrismatic(id);
+            double lower = 0.0;
+            double upper = 0.0;
+            double effort_limit = 0.0;
+            bool bounded = false;
+            if (linear)
+            {
+                auto const limits = joints.limits(joints.prismatic(id));
+                lower = limits.lower.value();
+                upper = limits.upper.value();
+                effort_limit = limits.effort.value();
+                bounded = limits.bounded();
+            }
+            else
+            {
+                auto const limits = joints.limits(joints.revolute(id));
+                lower = limits.lower.value();
+                upper = limits.upper.value();
+                effort_limit = limits.effort.value();
+                bounded = limits.bounded();
+            }
             double const unit = linear ? 1.0 : degrees;
             double const position = joints.position(id);
-            double const range = limits.upper - limits.lower;
+            double const range = upper - lower;
             float const ratio =
-                limits.bounded() && range > 0.0
-                    ? static_cast<float>((position - limits.lower) / range)
+                bounded && range > 0.0
+                    ? static_cast<float>((position - lower) / range)
                     : 0.5f;
             char const* label = nullptr;
             char const* label_end = nullptr;
@@ -694,7 +752,7 @@ static void robotPanel(App const& p_app)
             ImGui::TableNextColumn();
             double const effort = joints.effort(id);
             bool const saturated =
-                limits.effort > 0.0 && std::abs(effort) >= limits.effort;
+                effort_limit > 0.0 && std::abs(effort) >= effort_limit;
             ImGui::TextColored(
                 saturated ? RED : ImGui::GetStyle().Colors[ImGuiCol_Text],
                 "%.1f",
@@ -813,6 +871,152 @@ static void scenarioPanel(App const& p_app)
                            check.text.c_str());
     }
     ImGui::TextDisabled("Contacts seen: %d", simulation.maxContacts());
+    if (p_app.line_follower != nullptr)
+    {
+        LineFollowerMission const& line = *p_app.line_follower;
+        ImGui::SeparatorText("Line follower");
+        ImGui::Text("Fixes %u  rejected %u  error mean %.1f mm",
+                    line.navigation().fixes,
+                    line.navigation().rejected,
+                    1000.0 * line.fixErrorMean());
+        ImGui::Text("Laps %.2f  cross-track max %.1f mm",
+                    line.followProgress() / line.track().perimeter(),
+                    1000.0 * line.crossTrackMax());
+        auto const checks = simulation.checks();
+        for (auto const& check : checks)
+        {
+            if (check.text.find("cross_track") != std::string::npos)
+            {
+                ImGui::TextDisabled("%s", check.detail.c_str());
+            }
+        }
+        if (line.drive() != nullptr)
+        {
+            Pose2 const& truth = line.drive()->truth();
+            ImGui::Text("Truth  %.2f %.2f  yaw %.1f deg",
+                        truth.x,
+                        truth.y,
+                        truth.yaw * 180.0 / std::numbers::pi);
+            ImGui::Text("Estimate  %.2f %.2f",
+                        line.navigation().estimate.x,
+                        line.navigation().estimate.y);
+        }
+    }
+    ImGui::End();
+}
+
+//! @brief Raw YAML of the loaded scenario file.
+static void scenarioFilePanel(App& p_app)
+{
+    if (!ImGui::Begin(SCENARIO_FILE))
+    {
+        ImGui::End();
+        return;
+    }
+    ImGui::TextUnformatted(p_app.scenario_path.string().c_str());
+    ImGui::Separator();
+    if (p_app.scenario_text.empty())
+    {
+        ImGui::TextDisabled("No scenario file loaded.");
+    }
+    else
+    {
+        ImGui::InputTextMultiline("##yaml",
+                                  &p_app.scenario_text,
+                                  ImVec2(-1.0f, -1.0f),
+                                  ImGuiInputTextFlags_ReadOnly);
+    }
+    ImGui::End();
+}
+
+//! @brief One rendered RL environment: policy, return, success, steps.
+static void rlPanel(App& p_app)
+{
+    if (!ImGui::Begin(RL))
+    {
+        ImGui::End();
+        return;
+    }
+    if (p_app.kind != HostedMission::PickPlaceRl || !p_app.simulation)
+    {
+        ImGui::TextWrapped(
+            "Choose \"Pick-and-place RL\" in the toolbar. One environment "
+            "is rendered here (random converting to converged, or already "
+            "converged). The pool stays in Robotik-PickAndPlaceRL.");
+        ImGui::End();
+        return;
+    }
+    ImGui::TextWrapped(
+        "Converged is the finished recipe: the arm completes the "
+        "pick-and-place. Random always converts toward that recipe "
+        "(same mix as CLI --train). There is no pure-noise mode here.");
+    ImGui::Separator();
+    if (ImGui::RadioButton("Converged", p_app.rl.converged))
+    {
+        p_app.rl.converged = true;
+        p_app.rl.mix = 1.0f;
+    }
+    if (ImGui::RadioButton("Random", !p_app.rl.converged))
+    {
+        if (p_app.rl.converged)
+        {
+            p_app.rl.mix = 0.0f;
+        }
+        p_app.rl.converged = false;
+    }
+    ImGui::ProgressBar(p_app.rl.mix, ImVec2(-1.0f, 0.0f),
+                       p_app.rl.converged ? "converged" : "random → converged");
+    ImGui::Checkbox("repeat episodes", &p_app.rl.auto_repeat);
+    ImGui::SliderInt("max steps", &p_app.rl.max_steps, 40, 200);
+    if (ImGui::SliderFloat("cube spread (m)", &p_app.rl.spread, 0.0f, 0.12f,
+                           "%.3f"))
+    {
+        /* applied on next Load / New episode */
+    }
+    if (ImGui::Button("Apply spread"))
+    {
+        p_app.load();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("New episode"))
+    {
+        p_app.reset(p_app.seed + 1u);
+    }
+    ImGui::Separator();
+    ImGui::Text("Phase   %s", policyPhase(p_app.rl.observation));
+    ImGui::Text("Return  %.2f", static_cast<double>(p_app.rl.episode_return));
+    ImGui::Text("Steps   %u / %d", p_app.rl.steps, p_app.rl.max_steps);
+    ImGui::Text("Score   %u delivered / %u failed",
+                p_app.rl.delivered,
+                p_app.rl.failed);
+    ImGui::TextColored(p_app.rl.success ? GREEN
+                                        : (p_app.rl.done ? RED : ORANGE),
+                       "%s",
+                       p_app.rl.success
+                           ? "Delivered — cube is in the box"
+                           : (p_app.rl.done ? "Truncated — out of steps"
+                                            : "Running"));
+    ImGui::SeparatorText("Observation (m)");
+    ImGui::Text("tip   %.3f %.3f %.3f",
+                static_cast<double>(p_app.rl.observation[0]),
+                static_cast<double>(p_app.rl.observation[1]),
+                static_cast<double>(p_app.rl.observation[2]));
+    ImGui::Text("cube  %.3f %.3f %.3f",
+                static_cast<double>(p_app.rl.observation[3]),
+                static_cast<double>(p_app.rl.observation[4]),
+                static_cast<double>(p_app.rl.observation[5]));
+    ImGui::Text("box   %.3f %.3f %.3f",
+                static_cast<double>(p_app.rl.observation[6]),
+                static_cast<double>(p_app.rl.observation[7]),
+                static_cast<double>(p_app.rl.observation[8]));
+    ImGui::Text("hold %s   suction %s",
+                p_app.rl.observation[12] > 0.5f ? "yes" : "no",
+                p_app.rl.observation[13] > 0.5f ? "on" : "off");
+    ImGui::Text("action  dx %.2f  dy %.2f  dz %.2f  suck %.1f",
+                static_cast<double>(p_app.rl.action[0]),
+                static_cast<double>(p_app.rl.action[1]),
+                static_cast<double>(p_app.rl.action[2]),
+                static_cast<double>(p_app.rl.action[3]));
     ImGui::End();
 }
 
@@ -820,7 +1024,7 @@ static void scenarioPanel(App const& p_app)
 //! @param p_app The application.
 void drawPanels(App& p_app)
 {
-    ImGuiID const dock = ImGui::GetID("RobotikDock");
+    ImGuiID const dock = ImGui::GetID("RobotikDockV2");
     // A layout saved in imgui.ini wins over the default one.
     if (ImGui::DockBuilderGetNode(dock) == nullptr)
     {
@@ -834,5 +1038,7 @@ void drawPanels(App& p_app)
     skillsPanel(p_app);
     resourcesPanel(p_app);
     scenarioPanel(p_app);
+    scenarioFilePanel(p_app);
+    rlPanel(p_app);
     robotPanel(p_app);
 }

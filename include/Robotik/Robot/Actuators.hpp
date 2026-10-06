@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Actuator.hpp
+//! @file Actuators.hpp
 //! @brief Things that act on the robot or the world: motors, joint groups,
 //! grippers.
 //!
@@ -14,7 +14,7 @@
 //! resource of the same name, reserved by skills and disabled on failure.
 #pragma once
 
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Joints.hpp"
 
 #include "Compages/World/EntityId.hpp"
@@ -69,12 +69,12 @@ private:
 };
 
 // ****************************************************************************
-//! @brief One motor driving one joint (e.g. a wheel).
+//! @brief One rotary motor driving one revolute joint (a wheel, a pan axis).
 //!
 //! @code
 //! auto& left = robot.actuators().add<robotik::Motor>("left_motor",
 //!                                                    "left_wheel_joint");
-//! left.spin(4.0); // rad/s
+//! left.spin(AngularVelocity(4.0));
 //! @endcode
 // ****************************************************************************
 class Motor final: public Actuator
@@ -84,31 +84,36 @@ public:
     Motor(std::string p_name, std::string p_joint);
 
     void bind(Robot& p_robot) override;
-    //! @brief A failed motor delivers no effort.
+    //! @brief A failed motor delivers no torque.
     void disable(Robot& p_robot) override;
 
-    void moveTo(double p_position);
-    void spin(double p_velocity);
-    void push(double p_effort);
+    void moveTo(Radians p_position);
+    void spin(AngularVelocity p_velocity);
+    void push(Torque p_effort);
+    //! @brief Zero speed.
     void stop();
 
-    [[nodiscard]] JointId joint() const
+    [[nodiscard]] Revolute joint() const
     {
         return m_joint;
     }
 
-    [[nodiscard]] double position() const;
-    [[nodiscard]] double velocity() const;
+    [[nodiscard]] Radians position() const;
+    [[nodiscard]] AngularVelocity velocity() const;
+    [[nodiscard]] Torque effort() const;
 
 private:
 
     std::string m_joint_name;
-    JointId m_joint = NO_JOINT;
+    Revolute m_joint;
     JointSet* m_joints = nullptr;
 };
 
 // ****************************************************************************
 //! @brief A set of joints commanded together (an arm, a head...).
+//!
+//! Targets are given in the SI base unit of each joint (rad or m), in the
+//! order of @ref joints, like an IK solution.
 // ****************************************************************************
 class JointGroup final: public Actuator
 {
@@ -151,7 +156,7 @@ class VacuumGripper final: public Actuator
 public:
 
     //! @param p_link Flange link; empty uses the robot tool frame.
-    //! @param p_length Flange to cup tip distance along +Z (SI: m).
+    //! @param p_length Flange to cup tip distance along +Z.
     VacuumGripper(std::string p_name,
                   std::string p_link = {},
                   Length p_length = Length(0.06));
@@ -199,7 +204,8 @@ public:
     //! @brief Flange pose in the robot base frame.
     [[nodiscard]] Pose flange(Robot const& p_robot) const;
     //! @brief Cup tip in the robot base frame, @p_extra beyond the cup.
-    [[nodiscard]] Vector3 tip(Robot const& p_robot, double p_extra = 0.0) const;
+    [[nodiscard]] Vector3 tip(Robot const& p_robot,
+                              Length p_extra = Length(0.0)) const;
 
 private:
 

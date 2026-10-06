@@ -9,7 +9,7 @@
 //! @brief Pinocchio kinematics and damped least-squares IK for one URDF.
 #pragma once
 
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 
 #include <filesystem>
 #include <memory>

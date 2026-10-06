@@ -20,6 +20,7 @@ INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/Track.cpp
 SRC_FILES += $(CURRENT_DIR)/DiffDrive.cpp $(CURRENT_DIR)/Floor.cpp
 SRC_FILES += $(CURRENT_DIR)/Vision.cpp $(CURRENT_DIR)/Skills.cpp
+SRC_FILES += $(CURRENT_DIR)/LineFollowerMission.cpp
 
 # Headers only: BlackThorn is compiled into robotik-core.
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn

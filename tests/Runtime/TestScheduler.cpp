@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Behavior/SkillNodes.hpp"
+#include "Robotik/Skills/SkillNodes.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"

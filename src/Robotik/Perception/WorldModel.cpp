@@ -72,6 +72,19 @@ bool WorldModel::observe(std::string_view p_name,
     return true;
 }
 
+void WorldModel::place(std::string_view p_name,
+                       Vector3 const& p_position,
+                       Seconds p_stamp)
+{
+    if (WorldObject* object = find(p_name))
+    {
+        object->position = p_position;
+        object->confidence = 1.0f;
+        object->seen = p_stamp;
+        ++object->observations;
+    }
+}
+
 void WorldModel::update(Detections const& p_detections)
 {
     Pose const& camera = p_detections.camera;
@@ -95,8 +108,8 @@ void WorldModel::update(Detections const& p_detections)
         else
         {
             // Monocular: the center lies on the top plane of the object.
-            Vector3 const ray = camera.rotation.rotate(p_detections.intrinsics.ray(
-                detection.center[0], detection.center[1]));
+            Vector3 const ray = camera.rotation * p_detections.intrinsics.ray(
+                detection.center[0], detection.center[1]);
             double const height = object->top() - camera.position.z;
             if (std::abs(ray.z) < 1e-9 || height / ray.z <= 0.0)
             {
