@@ -10,14 +10,15 @@
 // on their own with seeds derived from a master seed, and a run replays
 // identically whatever the number of threads.
 //
-// No learning library here: a scripted expert and a random policy show the
-// loop a trainer would drive (and the reward gap between them).
+// Two policies share the same pool: random (noise) and converged (scripted).
+// --train raises a mix from random toward converged, like the Simulator.
 
 #include "PickPlaceEnvironment.hpp"
 
 #include "Robotik/Environment/Environment.hpp"
 #include "Robotik/Math/Random.hpp"
 
+#include <algorithm>
 #include <bit>
 #include <chrono>
 #include <cstdlib>
@@ -39,6 +40,7 @@ struct Options
     std::size_t episodes = 32;
     std::uint64_t seed = 1;
     bool random = false;
+    bool train = false;
     bool replay = true;
     bool trace = false;
 };
@@ -59,7 +61,18 @@ static bool parse(int argc, char** argv, Options& p_options)
         char const* value = nullptr;
         if (arg == "--policy" && (value = next()))
         {
-            p_options.random = std::string(value) == "random";
+            std::string const policy = value;
+            p_options.random = policy == "random";
+            if (policy != "random" && policy != "converged" && policy != "expert")
+            {
+                std::cerr << "Unknown --policy " << policy
+                          << " (converged|random)\n";
+                return false;
+            }
+        }
+        else if (arg == "--train")
+        {
+            p_options.train = true;
         }
         else if (arg == "--envs" && (value = next()))
         {
@@ -92,7 +105,7 @@ static bool parse(int argc, char** argv, Options& p_options)
         else
         {
             std::cerr << "Usage: " << argv[0]
-                      << " [--policy expert|random] [--envs N] [--threads T] [--episodes E]"
+                      << " [--policy converged|random] [--train] [--envs N] [--threads T] [--episodes E]"
                          " [--seed S] [--scenario file.yml] [--no-replay] [--trace]\n";
             return false;
         }
@@ -117,24 +130,17 @@ static Report run(Options const& p_options, std::size_t p_threads)
     }
 
     Report report;
+    float mix = p_options.random ? 0.0f : 1.0f;
     auto const begin = std::chrono::steady_clock::now();
     pool.reset();
     while (pool.episodes().size() < p_options.episodes)
     {
         for (std::size_t i = 0; i < pool.size(); ++i)
         {
-            std::span<float> action = pool.action(i);
-            if (p_options.random)
-            {
-                for (float& value : action)
-                {
-                    value = static_cast<float>(noise[i].uniform(-1.0, 1.0));
-                }
-            }
-            else
-            {
-                expertPolicy(pool.observation(i), action);
-            }
+            pickPlacePolicy(pool.observation(i),
+                            pool.action(i),
+                            mix,
+                            p_options.random ? &noise[i] : nullptr);
         }
         if (p_options.trace)
         {
@@ -152,6 +158,12 @@ static Report run(Options const& p_options, std::size_t p_threads)
         }
         pool.step();
         report.steps += pool.size();
+        if (p_options.train && p_options.random)
+        {
+            mix = std::min(1.0f,
+                           static_cast<float>(pool.episodes().size()) /
+                               static_cast<float>(PICK_PLACE_TRAIN_EPISODES));
+        }
     }
     report.wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
     auto const episodes = pool.episodes();
@@ -205,7 +217,9 @@ int main(int argc, char** argv)
         }
         double const count = static_cast<double>(report.episodes.size());
         double const simulated = static_cast<double>(report.steps) * 0.1;
-        std::cout << (options.random ? "random" : "expert") << " policy: " << successes << '/'
+        std::cout << (options.random ? (options.train ? "random→converged" : "random")
+                                     : "converged")
+                  << " policy: " << successes << '/'
                   << report.episodes.size() << " delivered, mean return " << total / count << '\n'
                   << options.envs << " environments on " << threads << " threads: " << report.steps
                   << " steps in " << report.wall << " s (" << static_cast<double>(report.steps) / report.wall

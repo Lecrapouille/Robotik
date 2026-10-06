@@ -15,6 +15,7 @@
 #include "Compages/Renderer/Scene.hpp"
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -41,6 +42,7 @@ public:
 
     bool capture(robotik::Camera const& p_camera,
                  robotik::CameraFrame& p_frame) override;
+    void sync(robotik::Camera const& p_camera);
 
     [[nodiscard]] RenderTarget const& target() const
     {
@@ -69,14 +71,33 @@ public:
                 robotik::ecs::SceneObject const& p_object) override;
     robotik::FrameSource* camera(robotik::Camera& p_camera,
                                  compages::world::Entity p_link) override;
+    void ground(robotik::Image const& p_image,
+                double p_width,
+                double p_height) override;
+
+    [[nodiscard]] bool hasGround() const override
+    {
+        return m_grounded;
+    }
 
     [[nodiscard]] std::vector<std::unique_ptr<RenderedCamera>> const& cameras() const
     {
         return m_cameras;
     }
 
+    // Last robot camera frame, uploaded for the ImGui panel.
+    bool showFrame(robotik::CameraFrame const& p_frame);
+
+    [[nodiscard]] RenderTarget const& frameTarget() const
+    {
+        return m_frame;
+    }
+
 private:
 
     compages::renderer::Scene& m_scene;
     std::vector<std::unique_ptr<RenderedCamera>> m_cameras;
+    RenderTarget m_frame;
+    bool m_grounded = false;
+    std::filesystem::path m_ground_file;
 };

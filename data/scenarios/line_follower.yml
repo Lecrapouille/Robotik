@@ -1,0 +1,28 @@
+scenario: line_follower
+seed: 1
+
+robot:
+  model: ../simple_diff_drive_robot.urdf
+  sensors:
+    front_camera:
+      type: camera
+      parent: base_link
+      position: [0.2, 0.0, 0.2]
+      fov: 60
+      resolution: [320, 240]
+      frequency: 20
+      noise: 0.02
+  actuators:
+    left_wheel: { type: motor, joint: left_wheel_joint }
+    right_wheel: { type: motor, joint: right_wheel_joint }
+
+execute:
+  task: |
+    Localize on the floor AprilTags, reach the line and follow it for one lap.
+  behavior_tree: line_follower.bt.yml
+
+assert:
+  - robot.success
+  - time < 150
+  - cross_track.max < 0.08
+  - laps >= 1

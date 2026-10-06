@@ -14,10 +14,13 @@ TARGET_DESCRIPTION := Demo: pick and place as N parallel reinforcement learning 
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/src/Applications/Demos/PickAndPlaceRL
-INCLUDES += $(CURRENT_DIR) $(P)/include $(P)/src
-VPATH += $(CURRENT_DIR)
+PICK_DIR := $(P)/src/Applications/Demos/PickAndPlace
+INCLUDES += $(CURRENT_DIR) $(PICK_DIR) $(P)/include $(P)/src
+VPATH += $(CURRENT_DIR) $(PICK_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/PickPlaceEnvironment.cpp
+SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
+SRC_FILES += $(PICK_DIR)/PickPlaceControl.cpp
 
 # Headers only: BlackThorn is compiled into robotik-core.
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn

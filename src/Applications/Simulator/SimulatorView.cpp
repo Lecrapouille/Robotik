@@ -10,12 +10,14 @@
 #include "SimulatorDisplay.hpp"
 
 #include "Robotik/ECS/ObjectComponents.hpp"
+#include "Robotik/Sensors/Image.hpp"
 
 #include "Compages/GPU/RenderPass.hpp"
 #include "Compages/World/Components/Camera.hpp"
 
 #include <cmath>
 #include <cstring>
+#include <fstream>
 #include <iostream>
 #include <numbers>
 #include <stdexcept>
@@ -63,26 +65,8 @@ RenderedCamera::RenderedCamera(compages::renderer::Scene& p_scene,
 {
     compages::world::Entity const active = p_scene.activeCamera();
 
-    // Compages cameras look down their -Z, optical frames down their +Z.
-    robotik::Pose const& mount = p_camera.config().mount;
-    robotik::Quaternion const rotation =
-        (mount.rotation *
-         robotik::Quaternion::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi))
-            .normalized();
-    double const half = std::acos(std::clamp(rotation.w, -1.0, 1.0));
-    double const s = std::sin(half);
-    compages::core::Vector3f const axis =
-        s > 1e-9 ? compages::core::Vector3f(static_cast<float>(rotation.x / s),
-                                            static_cast<float>(rotation.y / s),
-                                            static_cast<float>(rotation.z / s))
-                 : compages::core::Vector3f(1.0f, 0.0f, 0.0f);
-
-    m_entity = p_scene.camera(p_camera.name())
-                   .parent(p_link)
-                   .position(static_cast<float>(mount.position.x),
-                             static_cast<float>(mount.position.y),
-                             static_cast<float>(mount.position.z))
-                   .rotation(Radians(static_cast<float>(2.0 * half)), axis);
+    m_entity = p_scene.camera(p_camera.name()).parent(p_link);
+    sync(p_camera);
     auto& lens = m_entity.get<compages::world::Camera>();
     lens.fov = units::angle::radian_t(p_camera.intrinsics().fov().value());
     lens.near_plane = 0.01f;
@@ -101,6 +85,7 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
     {
         return false;
     }
+    sync(p_camera);
     {
         compages::gpu::RenderPass pass(
             m_target.framebuffer,
@@ -129,6 +114,24 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
                     stride);
     }
     return true;
+}
+
+void RenderedCamera::sync(robotik::Camera const& p_camera)
+{
+    // Compages cameras look down their -Z, optical frames down their +Z.
+    robotik::Pose const& mount = p_camera.config().mount;
+    robotik::Quaternion const rotation =
+        (mount.rotation *
+         robotik::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi))
+            .normalized();
+    m_entity
+        .position(static_cast<float>(mount.position.x),
+                  static_cast<float>(mount.position.y),
+                  static_cast<float>(mount.position.z))
+        .rotation(compages::core::Quatf(static_cast<float>(rotation.w),
+                                        static_cast<float>(rotation.x),
+                                        static_cast<float>(rotation.y),
+                                        static_cast<float>(rotation.z)));
 }
 
 compages::world::Entity SimulatorView::robot(compages::world::World& /*p_world*/,
@@ -176,4 +179,53 @@ robotik::FrameSource* SimulatorView::camera(robotik::Camera& p_camera,
 {
     m_cameras.push_back(std::make_unique<RenderedCamera>(m_scene, p_camera, p_link));
     return m_cameras.back().get();
+}
+
+void SimulatorView::ground(robotik::Image const& p_image,
+                           double p_width,
+                           double p_height)
+{
+    if (p_image.format() != robotik::PixelFormat::RGB8 || p_image.empty())
+    {
+        return;
+    }
+    m_ground_file = std::filesystem::temp_directory_path() / "robotik_ground.ppm";
+    std::ofstream file(m_ground_file, std::ios::binary);
+    file << "P6\n" << p_image.width() << ' ' << p_image.height() << "\n255\n";
+    file.write(reinterpret_cast<char const*>(p_image.data()),
+               static_cast<std::streamsize>(p_image.bytes().size()));
+    if (!file)
+    {
+        return;
+    }
+    file.close();
+    // Plane is XY facing +Z; Compages world is Y-up, URDF ground is Z-up.
+    m_scene.plane("Ground", compages::renderer::texture(m_ground_file.string()))
+        .rotation(Radians(-0.5f * std::numbers::pi_v<float>),
+                  compages::core::Vector3f(1.0f, 0.0f, 0.0f))
+        .position(0.0f, 0.0f, 0.0f)
+        .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0f);
+    m_grounded = true;
+}
+
+bool SimulatorView::showFrame(robotik::CameraFrame const& p_frame)
+{
+    robotik::Image const& image = p_frame.rgb;
+    if (image.format() != robotik::PixelFormat::RGB8 || image.empty())
+    {
+        return false;
+    }
+    if (!m_frame.resize(image.width(), image.height()))
+    {
+        return false;
+    }
+    std::vector<std::byte> pixels(image.bytes().size());
+    std::size_t const stride = image.stride();
+    for (std::uint32_t y = 0; y < image.height(); ++y)
+    {
+        std::memcpy(pixels.data() + (image.height() - 1u - y) * stride,
+                    image.row<std::uint8_t>(y),
+                    stride);
+    }
+    return static_cast<bool>(m_frame.color.write(pixels));
 }

@@ -73,9 +73,9 @@ TEST(RobotSession, FailedActuatorIsDisabled)
         "left_motor", robot.joints().name(0));
     EXPECT_TRUE(robot.resources().available("left_motor"));
 
-    motor.spin(2.0);
-    EXPECT_EQ(robot.joints().mode(motor.joint()), robotik::JointMode::Velocity);
+    motor.spin(AngularVelocity(2.0));
+    EXPECT_EQ(robot.joints().mode(motor.joint().id), robotik::JointMode::Velocity);
     robot.resources().fail("left_motor");
     robot.step(Seconds(0.01));
-    EXPECT_EQ(robot.joints().mode(motor.joint()), robotik::JointMode::Disabled);
+    EXPECT_EQ(robot.joints().mode(motor.joint().id), robotik::JointMode::Disabled);
 }

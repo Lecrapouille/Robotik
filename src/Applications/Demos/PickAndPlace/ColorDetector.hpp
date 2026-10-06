@@ -39,7 +39,6 @@ public:
 private:
 
     std::vector<Target> m_targets;
-    // Scratch buffers kept between frames.
     std::vector<std::uint8_t> m_mask;
     std::vector<std::uint32_t> m_stack;
 };

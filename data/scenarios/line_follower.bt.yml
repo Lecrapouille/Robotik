@@ -1,0 +1,15 @@
+BehaviorTree:
+  Sequence:
+    name: LineFollower
+    children:
+      - Action:
+          name: Localize
+      - UntilSuccess:
+          attempts: 3
+          child:
+            - Sequence:
+                children:
+                  - Action:
+                      name: ReachLine
+                  - Action:
+                      name: FollowLine

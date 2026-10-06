@@ -64,17 +64,16 @@ Un pas de `Simulation::step(dt)` :
 
 | Dossier | Rôle | Fichiers repères |
 |---------|------|------------------|
-| `Math/` | `Vector3`, `Quaternion`, `Pose` (SI, double) ; `Seed` / `Random` (hiérarchie de seeds rejouables). | `Pose.hpp`, `Random.hpp` |
-| `Robot/` | **API robot** : `Robot` (joints, capteurs, actionneurs, ressources, IK), `RobotSession` (pas de temps), `RobotBackend`, `SceneView`, `JointSet` (SoA). | `Robot.hpp`, `Joints.hpp`, `Devices.hpp` |
-| `Sensors/` | `Sensor`, `Camera` (+ `CameraIntrinsics`, `CameraFrame`, `FrameSource`), `Image`. | `Camera.hpp`, `Image.hpp` |
-| `Actuators/` | `Motor`, `JointGroup`, `VacuumGripper`. | `Actuator.hpp` |
+| `Math/` | Alias Compages (`Vector3`, `Quaternion`, `Pose`) ; `Seed` / `Random`. Pas de duplication : `Geometry.hpp` réexporte `Compages/Core/Pose.hpp`. | `Geometry.hpp`, `Random.hpp` |
+| `Robot/` | **API robot** : `Robot` / `RobotSession`, `JointSet` (SoA, commande), `Motor` / `JointGroup` / `VacuumGripper`. | `Robot.hpp`, `Joints.hpp`, `Actuators.hpp` |
+| `Sensors/` | `Sensor`, `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor` ; lectures ECS (`ImuReading`, `RangeScan`, `ForceTorqueReading`, `CameraReading`). | `Camera.hpp`, `Measurements.hpp` |
 | `Perception/` | `Detection(s)`, `Detector`, `PerceptionPipeline`, `DepthEstimator`, `WorldModel`, `Landmark` / `localize`. | `Detector.hpp`, `WorldModel.hpp`, `Localization.hpp` |
-| `Runtime/` | `ResourceManager` / `ResourceLease`, `SkillScheduler`, `FaultInjector`, `RobotContext`, `Simulation`. | `Resources.hpp`, `Scheduler.hpp`, `Faults.hpp`, `Simulation.hpp` |
+| `Runtime/` | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Mission`, `Metrics`, `Simulation`. | `Resources.hpp`, `Scheduler.hpp`, `Mission.hpp`, `Simulation.hpp` |
 | `Skills/` | Interface `Skill` + `SkillDescription` (ressources, priorité, préconditions) ; skills de mouvement et de pick-and-place. | `Skill.hpp`, `MotionSkills.hpp`, `PickPlaceSkills.hpp` |
-| `Behavior/` | Pont BlackThorn : `registerSkills(factory, scheduler)`. | `SkillNodes.hpp` |
+| `Skills/` (pont BT) | `registerSkills(factory, scheduler)`. | `SkillNodes.hpp` |
 | `Scenario/` | Mission YAML : seed, capteurs, actionneurs, objets, randomisation, pannes, BT, assertions. | `Scenario.hpp` |
 | `Environment/` | Apprentissage par renforcement : `Environment`, `EnvironmentPool` (N environnements en parallèle). | `Environment.hpp` |
-| `Backends/` | `PinocchioBackend` (FK/IK), `MujocoBackend` (dynamique, implémente `RobotBackend`). | `PinocchioBackend.hpp`, `MujocoBackend.hpp` |
+| `Backends/` | `RobotBackend` (physique / driver), `SceneView` (hooks de rendu), `PinocchioBackend` (FK/IK), `MujocoBackend` (dynamique). | `RobotBackend.hpp`, `SceneView.hpp`, `MujocoBackend.hpp` |
 | `Systems/` | `GraspSystem` (ventouse). | `GraspSystem.hpp` |
 | `ECS/` | Composants restants dans Compages : `SceneObject`, `RobotTag`, `RobotIdentity`. | `ObjectComponents.hpp` |
 
@@ -86,7 +85,8 @@ En-tête parapluie : `Robotik/Robotik.hpp`.
 
 ### Cache friendly
 
-- **`JointSet`** stocke chaque grandeur dans son propre tableau (positions, vitesses, efforts, cibles, modes, gains…) indexé par `JointId` (`uint16_t`). Les boucles de contrôle et la copie vers Pinocchio/MuJoCo parcourent des tableaux contigus ; `positions()` / `velocities()` / `efforts()` sont des `std::span`.
+- **`JointSet`** stocke chaque grandeur dans son propre tableau (positions, vitesses, efforts, cibles, modes, gains…) indexé par `JointId` (`uint16_t`). Les boucles de contrôle et la copie vers Pinocchio/MuJoCo parcourent des tableaux contigus ; `positions()` / `velocities()` / `efforts()` sont des `std::span`. L’API publique des poignées est typée SI (`Revolute` → rad, `Prismatic` → m) ; les `double` restent pour les boucles mixtes (IK, backends), toujours en unité SI de base.
+- **Joints vs Compages.** La commande vit uniquement dans le `JointSet`. Compages porte l’état typé sur les liens (`RevoluteJoint` / `PrismaticJoint`) pour le rendu et l’inspection : `JointSet::publish()` le met à jour. Il n’y a plus de second ECS de commande (`BasicJointState` / `BasicJointCommand`).
 - **`ResourceManager`** : tableaux parallèles (nom, disponible, propriétaire, nombre d’utilisateurs). Un `ResourceLease` garde ses réservations dans un tableau fixe de 8 éléments, sans allocation.
 - **`SkillScheduler`** : états, raisons, bloqueurs et baux dans des tableaux parallèles indexés par `SkillId`.
 - **`EnvironmentPool`** : actions, observations, récompenses et fins d’épisode dans quatre buffers plats `float` / `uint8_t`, prêts à passer à un réseau.
@@ -117,7 +117,8 @@ Une ressource en panne (`resources().fail("wrist_camera")`) est simplement **ind
 | Type | Fichier | Rôle |
 |------|---------|------|
 | `Robot` / `RobotSession` | `Robot/Robot.hpp` | Le robot et sa boucle (`connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`). |
-| `JointSet` | `Robot/Joints.hpp` | État et commandes des joints (SoA, SI). `moveTo`, `spin`, `push`, `hold`, `control(dt)`. |
+| `JointSet` | `Robot/Joints.hpp` | Commande et mesure (SoA, SI). `moveTo`, `spin`, `push`, `hold`, `control(dt)`, `publish()` vers Compages. |
+| `Mission` / `Metrics` | `Runtime/Mission.hpp`, `Metrics.hpp` | Plugin de tâche (skills, détecteurs, métriques) ; `Simulation::checks()` passe par `evaluate()`. |
 | `Camera` | `Sensors/Camera.hpp` | Fréquence, bruit seedé, `FrameSource` (rendu fourni par l’application), `onFrame`. |
 | `PerceptionPipeline` | `Perception/Detector.hpp` | Étapes `Detector` interchangeables (couleur, AprilTag, ligne, profondeur…). |
 | `WorldModel` | `Perception/WorldModel.hpp` | Croyances sur les objets (repère base), relèvement monoculaire, porte de plausibilité (`gate`). |

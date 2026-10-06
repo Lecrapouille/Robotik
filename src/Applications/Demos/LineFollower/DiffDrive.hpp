@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Robot.hpp"
 
 #include <string>

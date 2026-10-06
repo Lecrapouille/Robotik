@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include "PickPlaceMission.hpp"
+
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include "Compages/World/World.hpp"
@@ -64,9 +66,13 @@ TEST(Scenario, LoadsSensorsActuatorsObjectsAndFaults)
 
 TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 {
+    PickPlaceMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
-        world, robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")));
+        world,
+        robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")),
+        nullptr,
+        &mission);
 
     Outcome const first = run(simulation, robotik::Seed{ 11 });
     EXPECT_TRUE(first.passed);
@@ -79,9 +85,13 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 
 TEST(Simulation, SurvivesACameraFailure)
 {
+    PickPlaceMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
-        world, robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml")));
+        world,
+        robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml")),
+        nullptr,
+        &mission);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
     EXPECT_FALSE(simulation.robot().resources().available("wrist_camera"));
@@ -89,9 +99,13 @@ TEST(Simulation, SurvivesACameraFailure)
 
 TEST(Simulation, EmergencyStopPreemptsTheArm)
 {
+    PickPlaceMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
-        world, robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")));
+        world,
+        robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")),
+        nullptr,
+        &mission);
     robotik::SkillScheduler& skills = simulation.skills();
     robotik::SkillId const stop = skills.find("Stop");
     ASSERT_NE(stop, robotik::NO_SKILL);

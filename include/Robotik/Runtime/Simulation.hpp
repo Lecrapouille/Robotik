@@ -14,6 +14,8 @@
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Faults.hpp"
+#include "Robotik/Runtime/Metrics.hpp"
+#include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
 #include "Robotik/Runtime/Scheduler.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
@@ -56,19 +58,15 @@ class Simulation
 {
 public:
 
-    struct Check
-    {
-        std::string text;
-        bool passed = false;
-    };
-
     Simulation(Simulation const&) = delete;
     Simulation& operator=(Simulation const&) = delete;
 
     //! @param p_view Rendering hooks, or null for a headless run.
+    //! @param p_mission Task plugin (skills, detectors, metrics); not owned.
     Simulation(compages::world::World& p_world,
                Scenario p_scenario,
-               SceneView* p_view = nullptr);
+               SceneView* p_view = nullptr,
+               Mission* p_mission = nullptr);
     ~Simulation();
 
     // -------------------------------------------------------------------------
@@ -172,17 +170,29 @@ public:
     //! @brief Evaluates the @c assert entries of the scenario.
     [[nodiscard]] std::vector<Check> checks() const;
 
+    // -------------------------------------------------------------------------
+    //! @brief Copies the ground-truth object poses into the @ref WorldModel.
+    //! Used by the RL overlay (same observations as the headless env).
+    // -------------------------------------------------------------------------
+    void observe();
+
+    //! @brief Task plugin, or null.
+    [[nodiscard]] Mission* mission() const
+    {
+        return m_mission;
+    }
+
 private:
 
     void spawn(SceneView* p_view);
     void addSkills();
     void loadTree();
-    void observe();
 
 private:
 
     compages::world::World& m_world;
     Scenario m_scenario;
+    Mission* m_mission = nullptr;
     std::unique_ptr<RobotSession> m_robot;
     WorldModel m_world_model;
     PerceptionPipeline m_perception;

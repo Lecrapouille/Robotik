@@ -96,7 +96,7 @@ Artefacts dans `build/` : `librobotik-core.so`, `Robotik-Simulator`, `Robotik-He
 ./build/Robotik-Headless data/scenarios/pick_and_place_faults.yml
 ```
 
-**Simulateur** — même mission avec la caméra poignet rendue et un détecteur couleur ; panneaux skills (frise, raisons d’attente), ressources (pannes à la main), robot, scénario (vérité vs croyance) ; arrêt d’urgence ; rejeu ou nouvelle seed :
+**Simulateur** — hôte visuel des missions (menu pick-and-place, line follower, RL random/convergé sur un env) ; panneaux communs (monde, caméra, skills, ressources, assertions) ; arrêt d’urgence ; rejeu ou nouvelle seed :
 
 ```bash
 ./build/Robotik-Simulator data/scenarios/pick_and_place.yml
@@ -108,10 +108,11 @@ Artefacts dans `build/` : `librobotik-core.so`, `Robotik-Simulator`, `Robotik-He
 ./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # --view pour voir la caméra
 ```
 
-**PickAndPlaceRL** — pick-and-place en environnements parallèles, politique experte ou aléatoire, vérification du rejeu :
+**PickAndPlaceRL** — pick-and-place en environnements parallèles, politique convergée ou aléatoire (`--train` pour converger), vérification du rejeu :
 
 ```bash
-./build/Robotik-PickAndPlaceRL --policy expert --envs 16 --threads 8 --episodes 32
+./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
+./build/Robotik-PickAndPlaceRL --policy random --train --envs 8 --episodes 16
 ```
 
 ---
@@ -147,7 +148,7 @@ while (skills.state(move) != robotik::SkillState::Succeeded &&
 }
 ```
 
-Skills fournies : `Home`, `MoveJoint`, `MoveJoints`, `MoveTCP`, `Stop`, et pour le pick-and-place `Detect`, `Approach`, `Reach`, `Grasp`, `Release`. Exposition au BT : `registerSkills` dans [Behavior/SkillNodes.hpp](include/Robotik/Behavior/SkillNodes.hpp).
+Skills fournies : `Home`, `MoveJoint`, `MoveJoints`, `MoveTCP`, `Stop`, et pour le pick-and-place `Detect`, `Approach`, `Reach`, `Grasp`, `Release`. Exposition au BT : `registerSkills` dans [Skills/SkillNodes.hpp](include/Robotik/Skills/SkillNodes.hpp). Une mission (`Mission`) ajoute les skills de tâche ; le Simulateur les affiche via un menu (pick-and-place, line follower, RL).
 
 ---
 
@@ -160,6 +161,7 @@ Skills fournies : `Home`, `MoveJoint`, `MoveJoints`, `MoveTCP`, `Stop`, et pour 
 | [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Dossiers `include/Robotik/`, choix cache friendly |
 | [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | Scénario YAML, seeds, pannes |
 | [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BT, scheduler, skills |
+| [doc/Demos.md](doc/Demos.md) | Démos : buts, CLI, tutoriel |
 
 ---
 

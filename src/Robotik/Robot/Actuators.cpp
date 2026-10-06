@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Actuators/Actuator.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
 
@@ -23,42 +23,47 @@ Motor::Motor(std::string p_name, std::string p_joint)
 void Motor::bind(Robot& p_robot)
 {
     m_joints = &p_robot.joints();
-    m_joint = m_joints->require(m_joint_name);
+    m_joint = m_joints->revolute(m_joint_name);
 }
 
 void Motor::disable(Robot& /*p_robot*/)
 {
-    m_joints->release(m_joint);
+    m_joints->release(m_joint.id);
 }
 
-void Motor::moveTo(double p_position)
+void Motor::moveTo(Radians p_position)
 {
     m_joints->moveTo(m_joint, p_position);
 }
 
-void Motor::spin(double p_velocity)
+void Motor::spin(AngularVelocity p_velocity)
 {
     m_joints->spin(m_joint, p_velocity);
 }
 
-void Motor::push(double p_effort)
+void Motor::push(Torque p_effort)
 {
     m_joints->push(m_joint, p_effort);
 }
 
 void Motor::stop()
 {
-    m_joints->spin(m_joint, 0.0);
+    m_joints->spin(m_joint, AngularVelocity(0.0));
 }
 
-double Motor::position() const
+Radians Motor::position() const
 {
     return m_joints->position(m_joint);
 }
 
-double Motor::velocity() const
+AngularVelocity Motor::velocity() const
 {
     return m_joints->velocity(m_joint);
+}
+
+Torque Motor::effort() const
+{
+    return m_joints->effort(m_joint);
 }
 
 JointGroup::JointGroup(std::string p_name, std::vector<std::string> p_joints)
@@ -160,9 +165,10 @@ Pose VacuumGripper::flange(Robot const& p_robot) const
     return p_robot.framePose(m_link);
 }
 
-Vector3 VacuumGripper::tip(Robot const& p_robot, double p_extra) const
+Vector3 VacuumGripper::tip(Robot const& p_robot, Length p_extra) const
 {
-    return flange(p_robot) * Vector3{ 0.0, 0.0, m_length.value() + p_extra };
+    return flange(p_robot) *
+           Vector3(0.0, 0.0, (m_length + p_extra).value());
 }
 
 } // namespace robotik

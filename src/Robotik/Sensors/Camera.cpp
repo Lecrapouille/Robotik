@@ -9,6 +9,7 @@
 
 #include "Robotik/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Sensors/Measurements.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -37,7 +38,8 @@ Radians CameraIntrinsics::fov() const
 
 Vector3 CameraIntrinsics::ray(double p_u, double p_v) const
 {
-    return Vector3{ (p_u - cx) / fx, (p_v - cy) / fy, 1.0 }.normalized();
+    return compages::core::vector::normalize(
+        Vector3((p_u - cx) / fx, (p_v - cy) / fy, 1.0));
 }
 
 std::optional<std::array<double, 2>>
@@ -89,6 +91,18 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
     for (Callback const& callback : m_callbacks)
     {
         callback(m_frame);
+    }
+
+    compages::world::Entity holder =
+        m_config.parent.empty() ? p_robot.root()
+                                : p_robot.link(m_config.parent);
+    if (holder)
+    {
+        holder.set(CameraReading{ m_frame.pose,
+                                  m_frame.stamp,
+                                  m_frame.sequence,
+                                  m_frame.intrinsics.width,
+                                  m_frame.intrinsics.height });
     }
     return true;
 }

@@ -7,6 +7,8 @@
 
 #include "Robotik/Backends/MujocoBackend.hpp"
 
+#include "Robotik/Robot/Robot.hpp"
+
 #include <mujoco/mujoco.h>
 
 #include <pugixml.hpp>
@@ -20,6 +22,11 @@
 
 #include <unistd.h>
 
+#define ROTOR_ARMATURE 0.1
+#define JOINT_DAMPING 0.5
+#define MAX_SUBSTEPS 50
+#define MAX_RAY_HOPS 16
+
 namespace robotik
 {
 
@@ -28,6 +35,15 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::filesystem::path generated;
+    //!< Root body of the robot (child of the world body).
+    int root = -1;
+    //!< First qpos / DOF of the free joint, or -1 for a fixed base.
+    int free_qpos = -1;
+    int free_dof = -1;
+    //!< Floor geom, or -1.
+    int floor = -1;
+    //!< True when cfrc_int is older than the last step.
+    bool stale_wrenches = true;
 
     ~Impl()
     {
@@ -117,8 +133,51 @@ withInertia(std::filesystem::path const& p_filename)
     return output;
 }
 
-MujocoBackend::MujocoBackend(std::filesystem::path const& p_urdf)
-    : m_impl(std::make_unique<Impl>())
+//! Edits the parsed URDF: free joint, floor, friction, no body fusion.
+static void edit(mjSpec* p_spec, MujocoOptions const& p_options)
+{
+    // Fusing static bodies would merge links that skills and sensors name.
+    p_spec->compiler.fusestatic = 0;
+
+    mjsBody* world = mjs_findBody(p_spec, "world");
+    mjsElement* first = mjs_firstChild(world, mjOBJ_BODY, 0);
+    if (first == nullptr)
+    {
+        throw std::runtime_error("MuJoCo: the URDF has no link");
+    }
+    if (p_options.floating_base)
+    {
+        mjsJoint* joint = mjs_addFreeJoint(mjs_asBody(first));
+        mjs_setName(joint->element, "robotik_base");
+    }
+    if (p_options.floor)
+    {
+        mjsGeom* floor = mjs_addGeom(world, nullptr);
+        floor->type = mjGEOM_PLANE;
+        floor->size[0] = floor->size[1] = 0.0;
+        floor->size[2] = 1.0;
+        mjs_setName(floor->element, "robotik_floor");
+    }
+    for (auto const& [link, friction] : p_options.friction)
+    {
+        mjsBody* body = mjs_findBody(p_spec, link.c_str());
+        if (body == nullptr)
+        {
+            throw std::runtime_error("MuJoCo: no link '" + link +
+                                     "' for the friction option");
+        }
+        for (mjsElement* geom = mjs_firstChild(body, mjOBJ_GEOM, 0);
+             geom != nullptr;
+             geom = mjs_nextChild(body, geom, 0))
+        {
+            mjs_asGeom(geom)->friction[0] = friction;
+        }
+    }
+}
+
+MujocoBackend::MujocoBackend(std::filesystem::path const& p_urdf,
+                             MujocoOptions p_options)
+    : m_impl(std::make_unique<Impl>()), m_options(std::move(p_options))
 {
     std::filesystem::path const source = withInertia(p_urdf);
     if (source != p_urdf)
@@ -126,22 +185,62 @@ MujocoBackend::MujocoBackend(std::filesystem::path const& p_urdf)
         m_impl->generated = source;
     }
     char error[1024] = {};
-    m_impl->model = mj_loadXML(source.c_str(), nullptr, error, sizeof(error));
-    if (m_impl->model == nullptr)
+    mjSpec* spec = mj_parseXML(source.c_str(), nullptr, error, sizeof(error));
+    if (spec == nullptr)
     {
         throw std::runtime_error("MuJoCo failed to load '" + p_urdf.string() +
                                  "': " + error);
     }
-    // Reflected rotor inertia and viscous friction of real gear motors. Without
-    // them a light wrist makes the explicit PD loop unstable at 1 ms.
-    for (int dof = 0; dof < m_impl->model->nv; ++dof)
+    try
     {
-        m_impl->model->dof_armature[dof] =
-            std::max(m_impl->model->dof_armature[dof], 0.1);
-        m_impl->model->dof_damping[dof] =
-            std::max(m_impl->model->dof_damping[dof], 0.5);
+        edit(spec, m_options);
     }
-    m_impl->data = mj_makeData(m_impl->model);
+    catch (...)
+    {
+        mj_deleteSpec(spec);
+        throw;
+    }
+    m_impl->model = mj_compile(spec, nullptr);
+    std::string const compile_error = mjs_getError(spec);
+    mj_deleteSpec(spec);
+    if (m_impl->model == nullptr)
+    {
+        throw std::runtime_error("MuJoCo failed to compile '" +
+                                 p_urdf.string() + "': " + compile_error);
+    }
+
+    mjModel* model = m_impl->model;
+    // Reflected rotor inertia and viscous friction of real gear motors. Without
+    // them a light wrist makes the explicit PD loop unstable at 1 ms. The free
+    // joint of a floating base is not a motor.
+    for (int joint = 0; joint < model->njnt; ++joint)
+    {
+        if (model->jnt_type[joint] != mjJNT_HINGE &&
+            model->jnt_type[joint] != mjJNT_SLIDE)
+        {
+            continue;
+        }
+        int const dof = model->jnt_dofadr[joint];
+        model->dof_armature[dof] =
+            std::max(model->dof_armature[dof], ROTOR_ARMATURE);
+        model->dof_damping[dof] = std::max(model->dof_damping[dof], JOINT_DAMPING);
+    }
+    for (int body = 1; body < model->nbody; ++body)
+    {
+        if (model->body_parentid[body] == 0)
+        {
+            m_impl->root = body;
+            break;
+        }
+    }
+    if (int const joint = mj_name2id(model, mjOBJ_JOINT, "robotik_base");
+        joint >= 0)
+    {
+        m_impl->free_qpos = model->jnt_qposadr[joint];
+        m_impl->free_dof = model->jnt_dofadr[joint];
+    }
+    m_impl->floor = mj_name2id(model, mjOBJ_GEOM, "robotik_floor");
+    m_impl->data = mj_makeData(model);
 }
 
 MujocoBackend::~MujocoBackend() = default;
@@ -167,16 +266,36 @@ void MujocoBackend::attach(Robot& p_robot)
 
 void MujocoBackend::reset(Robot& p_robot)
 {
-    mj_resetData(m_impl->model, m_impl->data);
+    mjModel* model = m_impl->model;
+    mjData* data = m_impl->data;
+    mj_resetData(model, data);
+
+    Pose const& base = p_robot.base().pose;
+    double const position[3] = { base.position.x, base.position.y,
+                                 base.position.z };
+    double const quaternion[4] = { base.rotation.w, base.rotation.x,
+                                   base.rotation.y, base.rotation.z };
+    if (m_impl->free_qpos >= 0)
+    {
+        mju_copy(data->qpos + m_impl->free_qpos, position, 3);
+        mju_copy(data->qpos + m_impl->free_qpos + 3, quaternion, 4);
+    }
+    else if (m_impl->root >= 0)
+    {
+        mju_copy(model->body_pos + 3 * m_impl->root, position, 3);
+        mju_copy(model->body_quat + 4 * m_impl->root, quaternion, 4);
+    }
+
     JointSet const& joints = p_robot.joints();
     for (JointId id = 0; id < m_bindings.size(); ++id)
     {
         if (m_bindings[id].qpos >= 0)
         {
-            m_impl->data->qpos[m_bindings[id].qpos] = joints.position(id);
+            data->qpos[m_bindings[id].qpos] = joints.position(id);
         }
     }
-    mj_forward(m_impl->model, m_impl->data);
+    mj_forward(model, data);
+    m_impl->stale_wrenches = true;
 }
 
 void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
@@ -185,17 +304,19 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
     mjData* data = m_impl->data;
     JointSet& joints = p_robot.joints();
 
-    // The PD loop runs at the physics rate, not at the caller rate.
+    // The joint loops run at the physics rate, not at the caller rate.
+    double const timestep = m_options.timestep.value();
     int const steps = std::clamp(
-        static_cast<int>(std::lround(p_dt.value() / m_timestep.value())), 1, 50);
-    model->opt.timestep = m_timestep.value();
+        static_cast<int>(std::lround(p_dt.value() / timestep)), 1, MAX_SUBSTEPS);
+    model->opt.timestep = timestep;
 
     for (int i = 0; i < steps; ++i)
     {
-        joints.control(m_timestep);
+        joints.control(m_options.timestep);
 
         // qfrc_bias holds gravity and Coriolis at the last mj_forward state.
-        mju_copy(data->qfrc_applied, data->qfrc_bias, static_cast<int>(model->nv));
+        // Only the actuated joints are compensated: a floating base falls.
+        mju_zero(data->qfrc_applied, static_cast<int>(model->nv));
         if (model->nu > 0)
         {
             mju_zero(data->ctrl, static_cast<int>(model->nu));
@@ -203,11 +324,16 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
         for (JointId id = 0; id < m_bindings.size(); ++id)
         {
             Binding const& binding = m_bindings[id];
+            if (binding.dof < 0)
+            {
+                continue;
+            }
+            data->qfrc_applied[binding.dof] = data->qfrc_bias[binding.dof];
             if (binding.actuator >= 0)
             {
                 data->ctrl[binding.actuator] = joints.effort(id);
             }
-            else if (binding.dof >= 0)
+            else
             {
                 data->qfrc_applied[binding.dof] += joints.effort(id);
             }
@@ -224,11 +350,96 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
             }
         }
     }
+
+    if (m_impl->free_qpos >= 0)
+    {
+        double const* q = data->qpos + m_impl->free_qpos;
+        double const* v = data->qvel + m_impl->free_dof;
+        BaseState base;
+        base.pose.position = Vector3(q[0], q[1], q[2]);
+        base.pose.rotation = Quaternion(q[3], q[4], q[5], q[6]).normalized();
+        base.twist.linear = Vector3(v[0], v[1], v[2]);
+        base.twist.angular = base.pose.rotation * Vector3(v[3], v[4], v[5]);
+        p_robot.measureBase(base);
+    }
+    m_impl->stale_wrenches = true;
 }
 
 int MujocoBackend::contacts() const
 {
-    return m_impl->data->ncon;
+    mjData const* data = m_impl->data;
+    int count = 0;
+    for (int i = 0; i < data->ncon; ++i)
+    {
+        mjContact const& contact = data->contact[i];
+        if (contact.geom[0] != m_impl->floor && contact.geom[1] != m_impl->floor)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+std::optional<double> MujocoBackend::raycast(Vector3 const& p_origin,
+                                             Vector3 const& p_direction,
+                                             double p_max) const
+{
+    mjModel const* model = m_impl->model;
+    mjData const* data = m_impl->data;
+    double origin[3] = { p_origin.x, p_origin.y, p_origin.z };
+    double const direction[3] = { p_direction.x, p_direction.y, p_direction.z };
+    double travelled = 0.0;
+    for (int hop = 0; hop < MAX_RAY_HOPS; ++hop)
+    {
+        int geom = -1;
+        double const distance =
+            mj_ray(model, data, origin, direction, nullptr, 1, -1, &geom, nullptr);
+        if (distance < 0.0 || travelled + distance > p_max)
+        {
+            return std::nullopt;
+        }
+        int const body = model->geom_bodyid[geom];
+        if (m_impl->root < 0 || model->body_rootid[body] != m_impl->root)
+        {
+            return travelled + distance;
+        }
+        // Robot geom: continue the ray behind it.
+        double const skip = distance + 1e-4;
+        travelled += skip;
+        for (int k = 0; k < 3; ++k)
+        {
+            origin[k] += skip * direction[k];
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<Wrench> MujocoBackend::wrench(std::string const& p_link) const
+{
+    mjModel const* model = m_impl->model;
+    mjData* data = m_impl->data;
+    int const body = mj_name2id(model, mjOBJ_BODY, p_link.c_str());
+    if (body < 0)
+    {
+        return std::nullopt;
+    }
+    if (m_impl->stale_wrenches)
+    {
+        mj_rnePostConstraint(model, data);
+        m_impl->stale_wrenches = false;
+    }
+    // Same transform as the MuJoCo force and torque sensors.
+    double spatial[6];
+    mju_transformSpatial(spatial,
+                         data->cfrc_int + 6 * body,
+                         1,
+                         data->xpos + 3 * body,
+                         data->subtree_com + 3 * model->body_rootid[body],
+                         data->xmat + 9 * body);
+    Wrench result;
+    result.torque = Vector3(spatial[0], spatial[1], spatial[2]);
+    result.force = Vector3(spatial[3], spatial[4], spatial[5]);
+    return result;
 }
 
 } // namespace robotik

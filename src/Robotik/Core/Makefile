@@ -38,7 +38,7 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
-ROBOTIK_MODULES := Actuators Backends Behavior Environment Perception Robot
+ROBOTIK_MODULES := Backends Environment Perception Robot
 ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
 LIB_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)

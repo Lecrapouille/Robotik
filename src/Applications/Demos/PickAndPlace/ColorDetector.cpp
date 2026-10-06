@@ -25,7 +25,6 @@ struct Hsv
     float value;
 };
 
-// Components in [0, 1], hue in degrees.
 Hsv hsv(float p_r, float p_g, float p_b)
 {
     float const high = std::max({ p_r, p_g, p_b });
@@ -81,14 +80,15 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
             std::uint8_t* mask = m_mask.data() + y * width;
             for (std::uint32_t x = 0; x < width; ++x, pixel += 3)
             {
-                Hsv const have = hsv(pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
+                Hsv const have =
+                    hsv(pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
                 mask[x] = have.value >= COLOR_MIN_VALUE &&
                           have.saturation >= COLOR_MIN_SATURATION &&
-                          hueDistance(have.hue, want.hue) <= COLOR_MAX_HUE_DISTANCE;
+                          hueDistance(have.hue, want.hue) <=
+                              COLOR_MAX_HUE_DISTANCE;
             }
         }
 
-        // Largest 4-connected region; visited pixels are cleared from the mask.
         robotik::Detection best;
         std::uint32_t best_pixels = 0;
         for (std::uint32_t seed = 0; seed < count; ++seed)
@@ -127,10 +127,14 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
                         m_stack.push_back(p_next);
                     }
                 };
-                if (x > 0) visit(at - 1u);
-                if (x + 1 < static_cast<int>(width)) visit(at + 1u);
-                if (y > 0) visit(at - width);
-                if (y + 1 < static_cast<int>(height)) visit(at + width);
+                if (x > 0)
+                    visit(at - 1u);
+                if (x + 1 < static_cast<int>(width))
+                    visit(at + 1u);
+                if (y > 0)
+                    visit(at - width);
+                if (y + 1 < static_cast<int>(height))
+                    visit(at + width);
             }
             if (pixels <= best_pixels)
             {
@@ -141,7 +145,8 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
             best.center = { static_cast<float>(sum_x / pixels),
                             static_cast<float>(sum_y / pixels) };
             int const area = (x1 - x0 + 1) * (y1 - y0 + 1);
-            best.confidence = static_cast<float>(pixels) / static_cast<float>(area);
+            best.confidence =
+                static_cast<float>(pixels) / static_cast<float>(area);
         }
         if (best_pixels < COLOR_MIN_PIXELS)
         {

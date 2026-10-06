@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Behavior/SkillNodes.hpp"
+#include "Robotik/Skills/SkillNodes.hpp"
 
 #include "Robotik/Runtime/Scheduler.hpp"
 

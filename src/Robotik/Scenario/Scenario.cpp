@@ -89,8 +89,20 @@ Scenario::Camera camera(std::string_view p_name, bt::YamlNode const& p_node)
     CameraConfig& config = camera.config;
     config.parent = text(p_node, "parent");
     config.mount.position = vector(p_node.child("position"), {});
-    Vector3 const rpy = vector(p_node.child("rpy"), {});
-    config.mount.rotation = Quaternion::rpy(rpy.x, rpy.y, rpy.z);
+    Vector3 const euler = vector(p_node.child("rpy"), {});
+    bt::YamlNode const quaternion = p_node.child("quaternion");
+    if (quaternion.isSeq() && quaternion.size() == 4u)
+    {
+        config.mount.rotation = Quaternion(item(quaternion, 0u, 1.0),
+                                           item(quaternion, 1u, 0.0),
+                                           item(quaternion, 2u, 0.0),
+                                           item(quaternion, 3u, 0.0))
+                                    .normalized();
+    }
+    else
+    {
+        config.mount.rotation = rpy(euler.x, euler.y, euler.z);
+    }
     bt::YamlNode const resolution = p_node.child("resolution");
     double const fov = number(p_node, "fov", 70.0) * std::numbers::pi / 180.0;
     config.intrinsics = CameraIntrinsics::fromFov(

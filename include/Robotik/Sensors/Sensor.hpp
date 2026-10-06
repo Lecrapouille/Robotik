@@ -97,6 +97,7 @@ public:
         m_samples = 0;
         m_stamp = Seconds(-1.0);
         m_due = Seconds(0.0);
+        restart();
     }
 
 protected:
@@ -114,6 +115,9 @@ protected:
     //! @return False if no data was available (e.g. no source connected).
     // -------------------------------------------------------------------------
     virtual bool sample(Robot const& p_robot, Seconds p_now) = 0;
+
+    //! @brief Drops the state carried between samples (see @ref rewind).
+    virtual void restart() {}
 
 private:
 

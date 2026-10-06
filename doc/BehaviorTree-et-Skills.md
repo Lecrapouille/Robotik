@@ -99,6 +99,6 @@ Construire un `RobotSession`, un `ResourceManager` (celui du robot) et un `Skill
 | `include/Robotik/Skills/Skill.hpp` | `Skill`, `SkillDescription`, `Precondition` |
 | `include/Robotik/Runtime/Scheduler.hpp` | `SkillScheduler`, `SkillState`, `SkillReason`, `SkillRun` |
 | `include/Robotik/Runtime/Resources.hpp` | `ResourceManager`, `ResourceLease` |
-| `include/Robotik/Behavior/SkillNodes.hpp` | `registerSkills` |
+| `include/Robotik/Skills/SkillNodes.hpp` | `registerSkills` |
 | `src/Robotik/Runtime/Simulation.cpp` | Skills du pick-and-place |
 | `data/scenarios/*.bt.yml` | Arbres |

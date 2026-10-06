@@ -14,11 +14,14 @@
 //! behind is the business of the @ref RobotBackend plugged in the session.
 #pragma once
 
-#include "Robotik/Actuators/Actuator.hpp"
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Backends/RobotBackend.hpp"
+#include "Robotik/Backends/SceneView.hpp"
+#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Devices.hpp"
 #include "Robotik/Robot/Joints.hpp"
 #include "Robotik/Runtime/Resources.hpp"
+#include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
 
 #include "Compages/World/Entity.hpp"
@@ -38,77 +41,13 @@ class World;
 namespace robotik
 {
 
-class Camera;
-class FrameSource;
 class PinocchioBackend;
-class Robot;
-
-namespace ecs
-{
-struct SceneObject;
-}
 
 using SensorSet = DeviceSet<Sensor>;
 using ActuatorSet = DeviceSet<Actuator>;
 
-//! @brief Joint name to position (rad or m).
+//! @brief Joint name to position, in the SI base unit of the joint (rad or m).
 using JointPosture = std::unordered_map<std::string, double>;
-
-// ****************************************************************************
-//! @brief Physics, kinematic model or hardware driver behind a robot.
-// ****************************************************************************
-class RobotBackend
-{
-public:
-
-    virtual ~RobotBackend() = default;
-
-    //! @brief Binds the backend to the joints of @p_robot.
-    virtual void attach(Robot& p_robot) = 0;
-
-    //! @brief Puts the backend at rest on the current joint positions.
-    virtual void reset(Robot& p_robot) = 0;
-
-    //! @brief Applies the joint commands for @p_dt and measures the joints.
-    virtual void step(Robot& p_robot, Seconds p_dt) = 0;
-
-    //! @brief Contacts after the last step (simulation only).
-    [[nodiscard]] virtual int contacts() const
-    {
-        return 0;
-    }
-};
-
-// ****************************************************************************
-//! @brief Rendering hooks, implemented by graphical applications.
-//!
-//! The library stays headless: without a view, robots and objects are plain
-//! ECS entities and cameras have no image source.
-// ****************************************************************************
-class SceneView
-{
-public:
-
-    virtual ~SceneView() = default;
-
-    //! @brief Loads the URDF with its meshes. @throws std::runtime_error.
-    virtual compages::world::Entity robot(compages::world::World& p_world,
-                                          std::filesystem::path const& p_urdf) = 0;
-
-    //! @brief Adds the meshes of a scenario object to @p_entity.
-    virtual void object(compages::world::Entity /*p_entity*/,
-                        ecs::SceneObject const& /*p_object*/)
-    {
-        /* no-op */
-    }
-
-    //! @brief Image source of @p_camera mounted on @p_link, or null.
-    virtual FrameSource* camera(Camera& /*p_camera*/,
-                                compages::world::Entity /*p_link*/)
-    {
-        return nullptr;
-    }
-};
 
 // ****************************************************************************
 //! @brief Robot API used by skills.
@@ -131,7 +70,7 @@ public:
         return m_world;
     }
 
-    //! @brief Root entity: objects and cameras are expressed in its frame.
+    //! @brief Root entity, placed at the base pose in the world.
     [[nodiscard]] compages::world::Entity root() const
     {
         return m_root;
@@ -189,6 +128,28 @@ public:
         return m_time;
     }
 
+    // -------------------------------------------------------------------------
+    //! @brief Base pose and velocity in the world (see @ref BaseState: ground
+    //! truth in simulation, not an estimate).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] BaseState const& base() const
+    {
+        return m_base;
+    }
+
+    //! @brief Writes the measured base (backends, or the application for a
+    //! robot bolted somewhere else than the world origin).
+    void measureBase(BaseState const& p_base)
+    {
+        m_base = p_base;
+    }
+
+    //! @brief Backend moving the robot, or null.
+    [[nodiscard]] RobotBackend const* backend() const
+    {
+        return m_backend.get();
+    }
+
     //! @brief Link entity named @p_name, or an empty handle.
     [[nodiscard]] compages::world::Entity link(std::string_view p_name) const;
 
@@ -199,8 +160,15 @@ public:
     [[nodiscard]] Pose framePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
-    //! @brief Joint positions placing @p_frame at @p_target, indexed by
-    //! @ref JointId, or nothing if the solver does not converge.
+    //! @brief Pose of a link in the world frame (base pose times
+    //! @ref framePose; empty @p_frame for the base itself).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose worldPose(std::string const& p_frame) const;
+
+    // -------------------------------------------------------------------------
+    //! @brief Joint positions placing @p_frame at @p_target (base frame),
+    //! indexed by @ref JointId in the SI unit of each joint, or nothing if the
+    //! solver does not converge.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<std::vector<double>>
     inverseKinematics(std::string const& p_frame, Pose const& p_target) const;
@@ -217,13 +185,14 @@ protected:
           std::filesystem::path const& p_urdf,
           SceneView* p_view);
 
-    //! @brief Joint positions to kinematics, then to the rendered links.
+    //! @brief Joints and base to kinematics, then to the rendered entities.
     void propagate();
 
 protected:
 
     compages::world::World& m_world;
     std::unique_ptr<PinocchioBackend> m_kinematics;
+    std::unique_ptr<RobotBackend> m_backend;
     std::string m_name;
     std::string m_tool;
     compages::world::Entity m_root;
@@ -231,6 +200,11 @@ protected:
     ResourceManager m_resources;
     SensorSet m_sensors;
     ActuatorSet m_actuators;
+    BaseState m_base;
+    //!< Compages is Y-up; URDF / Pinocchio / MuJoCo stay Z-up. The loader
+    //!< hangs the robot under this rotation; @ref propagate composes it with
+    //!< the measured base instead of overwriting it.
+    compages::core::Quatf m_world_from_urdf{};
     //!< Pinocchio q / v index of each joint (-1 when not modeled).
     std::vector<int> m_q_indices;
     std::vector<int> m_v_indices;
@@ -243,8 +217,8 @@ protected:
 //! @code
 //! compages::world::World world;
 //! robotik::RobotSession robot(world, "arm.urdf");
-//! robot.connect(std::make_unique<robotik::MujocoBackend>("arm.urdf"));
 //! robot.actuators().add<robotik::JointGroup>("arm");
+//! robot.connect(std::make_unique<robotik::MujocoBackend>("arm.urdf"));
 //! robot.hold({ { "joint2", 0.3 } });
 //! while (running)
 //!     robot.step(Seconds(0.01));
@@ -260,6 +234,10 @@ public:
                  SceneView* p_view = nullptr);
     ~RobotSession() override;
 
+    // -------------------------------------------------------------------------
+    //! @brief Plugs the backend. Connect after adding the sensors a backend
+    //! may need to know (e.g. force/torque sensors for MuJoCo).
+    // -------------------------------------------------------------------------
     void connect(std::unique_ptr<RobotBackend> p_backend);
 
     [[nodiscard]] RobotBackend* backend() const
@@ -274,19 +252,25 @@ public:
     void hold(JointPosture const& p_posture = {});
 
     // -------------------------------------------------------------------------
+    //! @brief Base pose restored by @ref reset (world origin by default).
+    // -------------------------------------------------------------------------
+    void startPose(Pose const& p_pose);
+
+    // -------------------------------------------------------------------------
     //! @brief Backend step, kinematics, rendered links, then sensors.
     //! Failed actuators are kept in their safe state.
     // -------------------------------------------------------------------------
     void step(Seconds p_dt);
 
     // -------------------------------------------------------------------------
-    //! @brief Clock to zero, joints at home, sensors rewound.
+    //! @brief Clock to zero, joints at home, base at its start pose, sensors
+    //! rewound.
     // -------------------------------------------------------------------------
     void reset();
 
 private:
 
-    std::unique_ptr<RobotBackend> m_backend;
+    Pose m_start;
 };
 
 } // namespace robotik

@@ -70,7 +70,11 @@ Chaque capteur et actionneur est une **ressource** du même nom : les skills la 
 - `robot.success` : le BT a terminé en SUCCESS ;
 - `object("a").inside("b")` : boîte englobante ;
 - `gripper.empty` : la ventouse ne tient rien ;
-- `collisions == 0` : pic de contacts MuJoCo.
+- `collisions == 0` : pic de contacts MuJoCo ;
+- `time < T` : durée d’épisode ;
+- métriques de la mission (`cross_track.max`, `laps`, …).
+
+Autre exemple : `data/scenarios/line_follower.yml` (URDF différentiel, `time < 150`, `cross_track.max < 0.08`, `laps >= 1`).
 
 ## Seeds et rejouabilité
 
@@ -87,16 +91,18 @@ Même seed, même scénario : même trace, au bit près (`Robotik-Headless scena
 ## Cycle de vie d’une run
 
 1. `Scenario::load(path)` : parse et résolution des chemins.
-2. `Simulation(world, scenario, view = nullptr)` :
-   - `RobotSession` sur l’URDF, `MujocoBackend`, posture `home` ;
+2. `Simulation(world, scenario, view = nullptr, mission = nullptr)` :
+   - `RobotSession` sur l’URDF ; la `Mission::setup` peut brancher un backend (sinon MuJoCo) ;
    - capteurs et actionneurs ; avec une `SceneView`, chaque caméra reçoit sa source d’images rendue, branchée sur `PerceptionPipeline` → `WorldModel` ;
    - objets (entités Compages `SceneObject`) ;
-   - skills enregistrées au scheduler, puis exposées au BT (`registerSkills`).
-3. `reset(seed)` : ressources restaurées, objets replacés, a priori du `WorldModel`, robot en `home`, BT rechargé.
-4. Boucle `step(dt)` : pannes → BT → scheduler → robot (physique, capteurs, perception) → ventouse.
-5. `finished()` quand le BT est en SUCCESS ou FAILURE ; puis `checks()`.
+   - skills génériques (`Home`, `Stop`) dans `Simulation` ; skills de tâche dans la `Mission` ; exposition BT (`registerSkills`).
+3. `reset(seed)` : ressources restaurées, objets replacés, a priori du `WorldModel`, robot en `home`, BT rechargé, `Mission::reset`.
+4. Boucle `step(dt)` : pannes → BT → scheduler → robot (physique, capteurs, perception) → ventouse → `Mission::step`.
+5. `finished()` quand le BT (ou la mission sans arbre) est en SUCCESS ou FAILURE ; puis `checks()` via `Metrics`.
 
-**Headless** : pas de vue, donc pas d’image ; le `WorldModel` reçoit la vérité terrain tant que la caméra est disponible (oracle de perception). **Simulateur** : rendu Compages de la caméra poignet, `ColorDetector` (application) dans la `PerceptionPipeline`, panneaux ressources / skills / pannes.
+**Headless** : pas de vue, donc pas d’image ; le `WorldModel` reçoit la vérité terrain tant que la caméra est disponible (oracle de perception). **Simulateur** : hôte visuel des missions (`PickPlaceMission`, `LineFollowerMission`, overlay RL) ; le détecteur couleur et la piste restent dans `src/Applications/Demos/`.
+
+Les assertions passent par `Metrics` (`time`, `collisions`, `robot.success`, plus celles de la `Mission`, p.ex. `cross_track.max`).
 
 ## Skills disponibles dans le BT
 
@@ -114,7 +120,7 @@ Même seed, même scénario : même trace, au bit près (`Robotik-Headless scena
 
 1. Copier le scénario et le BT ;
 2. ajouter capteurs, actionneurs, objets, pannes ;
-3. pour de nouvelles actions, enregistrer des skills dans `Simulation::addSkills` (`src/Robotik/Runtime/Simulation.cpp`), ou construire son propre `SkillScheduler` comme la démo LineFollower ;
-4. ajouter des `assert`, ou étendre `Simulation::checks`.
+3. implémenter une `Mission` (skills, détecteurs, `measure`) ; `Simulation` ne garde que `Home` / `Stop` ;
+4. ajouter des `assert` évaluées par `Metrics`.
 
 Le parseur est en YAML aujourd’hui ; un lexer/parser maison avec AST est prévu pour plus tard, d’où la séparation nette entre `Scenario` (données) et `Simulation` (exécution).

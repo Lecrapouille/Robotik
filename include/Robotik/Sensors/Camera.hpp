@@ -17,7 +17,7 @@
 //! @c +X goes right in the image and @c +Y goes down.
 #pragma once
 
-#include "Robotik/Math/Pose.hpp"
+#include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Sensors/Image.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
@@ -143,6 +143,12 @@ public:
     [[nodiscard]] CameraConfig const& config() const
     {
         return m_config;
+    }
+
+    //! @brief Optical frame in the parent link (mission / calibration).
+    void mount(Pose const& p_mount)
+    {
+        m_config.mount = p_mount;
     }
 
     [[nodiscard]] CameraIntrinsics const& intrinsics() const

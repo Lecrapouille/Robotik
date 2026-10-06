@@ -10,7 +10,7 @@
 #include "DiffDrive.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Actuators/Actuator.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/Localization.hpp"
 #include "Robotik/Skills/Skill.hpp"

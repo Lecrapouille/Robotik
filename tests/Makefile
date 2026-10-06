@@ -75,12 +75,14 @@ PKG_LIBS += gtest gmock
 # Compile the unit tests
 #
 SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Core,*.cpp)
-ROBOTIK_MODULES := Actuators Backends Behavior Environment Perception Robot
+ROBOTIK_MODULES := Backends Environment Perception Robot
 ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
 SRC_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
+PICK_DIR := $(P)/src/Applications/Demos/PickAndPlace
+SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
 
-INCLUDES += $(P)/src $(P)/tests
+INCLUDES += $(P)/src $(P)/tests $(PICK_DIR)
 VPATH += $(P)/src
 
 ###################################################
