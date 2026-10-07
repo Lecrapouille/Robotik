@@ -2,7 +2,7 @@ scenario: line_follower
 seed: 1
 
 robot:
-  model: ../simple_diff_drive_robot.urdf
+  model: ../diff_drive_robot.urdf
   sensors:
     front_camera:
       type: camera

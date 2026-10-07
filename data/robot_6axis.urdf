@@ -5,11 +5,74 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <cylinder length="0.1" radius="0.15"/>
+        <cylinder length="0.012" radius="0.17"/>
       </geometry>
-      <origin xyz="0 0 0.05" rpy="0 0 0"/>
-      <material name="gray">
-        <color rgba="0.5 0.5 0.5 1"/>
+      <origin xyz="0 0 0.006" rpy="0 0 0"/>
+      <material name="anthracite">
+        <color rgba="0.28 0.29 0.32 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.078" radius="0.14"/>
+      </geometry>
+      <origin xyz="0 0 0.051" rpy="0 0 0"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.1425"/>
+      </geometry>
+      <origin xyz="0 0 0.075" rpy="0 0 0"/>
+      <material name="orange">
+        <color rgba="0.96 0.46 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.11"/>
+      </geometry>
+      <origin xyz="0 0 0.095" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.008"/>
+      </geometry>
+      <origin xyz="0.155 0 0.015" rpy="0 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.008"/>
+      </geometry>
+      <origin xyz="-0.155 0 0.015" rpy="0 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.008"/>
+      </geometry>
+      <origin xyz="0 0.155 0.015" rpy="0 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.008"/>
+      </geometry>
+      <origin xyz="0 -0.155 0.015" rpy="0 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
       </material>
     </visual>
     <collision>
@@ -29,11 +92,47 @@
   <link name="link1">
     <visual>
       <geometry>
-        <cylinder length="0.3" radius="0.08"/>
+        <cylinder length="0.02" radius="0.1"/>
       </geometry>
-      <origin xyz="0 0 0.15" rpy="0 0 0"/>
-      <material name="blue">
-        <color rgba="0.2 0.4 0.8 1"/>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.28" radius="0.075"/>
+      </geometry>
+      <origin xyz="0 0 0.16" rpy="0 0 0"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.01" radius="0.0765"/>
+      </geometry>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <material name="orange">
+        <color rgba="0.96 0.46 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.13" radius="0.09"/>
+      </geometry>
+      <origin xyz="0 0 0.30" rpy="1.5708 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.145" radius="0.06"/>
+      </geometry>
+      <origin xyz="0 0 0.30" rpy="1.5708 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
       </material>
     </visual>
     <collision>
@@ -63,11 +162,38 @@
   <link name="link2">
     <visual>
       <geometry>
-        <cylinder length="0.35" radius="0.06"/>
+        <cylinder length="0.27" radius="0.055"/>
       </geometry>
-      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <origin xyz="0 0 0.18" rpy="0 0 0"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.008" radius="0.0565"/>
+      </geometry>
+      <origin xyz="0 0 0.30" rpy="0 0 0"/>
       <material name="orange">
-        <color rgba="0.9 0.5 0.2 1"/>
+        <color rgba="0.96 0.46 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.12" radius="0.07"/>
+      </geometry>
+      <origin xyz="0 0 0.35" rpy="1.5708 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.135" radius="0.05"/>
+      </geometry>
+      <origin xyz="0 0 0.35" rpy="1.5708 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
       </material>
     </visual>
     <collision>
@@ -97,11 +223,29 @@
   <link name="link3">
     <visual>
       <geometry>
-        <cylinder length="0.3" radius="0.05"/>
+        <cylinder length="0.22" radius="0.045"/>
       </geometry>
       <origin xyz="0 0 0.15" rpy="0 0 0"/>
-      <material name="green">
-        <color rgba="0.3 0.8 0.3 1"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.006" radius="0.0455"/>
+      </geometry>
+      <origin xyz="0 0 0.255" rpy="0 0 0"/>
+      <material name="orange">
+        <color rgba="0.96 0.46 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.04" radius="0.042"/>
+      </geometry>
+      <origin xyz="0 0 0.28" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
       </material>
     </visual>
     <collision>
@@ -131,11 +275,29 @@
   <link name="link4">
     <visual>
       <geometry>
-        <cylinder length="0.08" radius="0.04"/>
+        <cylinder length="0.045" radius="0.04"/>
       </geometry>
-      <origin xyz="0 0 0.04" rpy="0 0 0"/>
-      <material name="red">
-        <color rgba="0.8 0.2 0.2 1"/>
+      <origin xyz="0 0 0.0225" rpy="0 0 0"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.085" radius="0.04"/>
+      </geometry>
+      <origin xyz="0 0 0.08" rpy="1.5708 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.098" radius="0.028"/>
+      </geometry>
+      <origin xyz="0 0 0.08" rpy="1.5708 0 0"/>
+      <material name="silver">
+        <color rgba="0.72 0.75 0.79 1"/>
       </material>
     </visual>
     <collision>
@@ -165,11 +327,29 @@
   <link name="link5">
     <visual>
       <geometry>
-        <cylinder length="0.08" radius="0.035"/>
+        <cylinder length="0.05" radius="0.032"/>
       </geometry>
       <origin xyz="0 0 0.04" rpy="0 0 0"/>
-      <material name="yellow">
-        <color rgba="0.9 0.9 0.2 1"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.005" radius="0.0335"/>
+      </geometry>
+      <origin xyz="0 0 0.0575" rpy="0 0 0"/>
+      <material name="orange">
+        <color rgba="0.96 0.46 0.1 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.02" radius="0.036"/>
+      </geometry>
+      <origin xyz="0 0 0.07" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
       </material>
     </visual>
     <collision>
@@ -195,27 +375,48 @@
     <dynamics damping="0.4" friction="0.15"/>
   </joint>
 
-  <!-- Link 6 (End Effector) -->
+  <!-- Link 6 : poignet (dernier corps du bras). Le plateau d'outil est exclu : il appartient a l'outil. -->
   <link name="link6">
     <visual>
-      <geometry>
-        <box size="0.06 0.03 0.03"/>
-      </geometry>
-      <origin xyz="0 0 0.03" rpy="0 0 0"/>
-      <material name="purple">
-        <color rgba="0.6 0.3 0.8 1"/>
-      </material>
+      <geometry><cylinder length="0.008" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.004" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.026" radius="0.028"/></geometry>
+      <origin xyz="0 0 0.021" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.004" radius="0.0285"/></geometry>
+      <origin xyz="0 0 0.036" rpy="0 0 0"/>
+      <material name="orange"><color rgba="0.96 0.46 0.1 1"/></material>
+    </visual>
+    <!-- Plateau de bride (face de montage de l'outil, plan z = 0.044) -->
+    <visual>
+      <geometry><cylinder length="0.006" radius="0.026"/></geometry>
+      <origin xyz="0 0 0.041" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <!-- Voyant / capteur lateral -->
+    <visual>
+      <geometry><box size="0.024 0.03 0.02"/></geometry>
+      <origin xyz="0.038 0 0.012" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.002" radius="0.008"/></geometry>
+      <origin xyz="0.049 0 0.012" rpy="0 1.5708 0"/>
+      <material name="glass"><color rgba="0.04 0.07 0.14 1"/></material>
     </visual>
     <collision>
-      <geometry>
-        <box size="0.06 0.03 0.03"/>
-      </geometry>
-      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <geometry><cylinder length="0.044" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.022" rpy="0 0 0"/>
     </collision>
     <inertial>
-      <mass value="0.5"/>
-      <origin xyz="0 0 0.03" rpy="0 0 0"/>
-      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.0005"/>
+      <mass value="0.4"/>
+      <origin xyz="0 0 0.022" rpy="0 0 0"/>
+      <inertia ixx="0.0004" ixy="0.0" ixz="0.0" iyy="0.0004" iyz="0.0" izz="0.0002"/>
     </inertial>
   </link>
 
@@ -227,6 +428,24 @@
     <axis xyz="0 0 1"/>
     <limit effort="30.0" velocity="3.0" lower="-3.14159" upper="3.14159"/>
     <dynamics damping="0.3" friction="0.1"/>
+  </joint>
+
+  <!-- ===== Interface outil =====
+       flange : bride mecanique du robot (ISO 9787 : origine au centre de la face de montage,
+                z = normale sortante, perpendiculaire a la face).
+       tool0  : repere ROS-Industrial, confondu avec flange (TCP par defaut = pas d'outil). -->
+  <link name="flange"/>
+  <joint name="link6_to_flange" type="fixed">
+    <parent link="link6"/>
+    <child link="flange"/>
+    <origin xyz="0 0 0.044" rpy="0 0 0"/>
+  </joint>
+
+  <link name="tool0"/>
+  <joint name="flange_to_tool0" type="fixed">
+    <parent link="flange"/>
+    <child link="tool0"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
   </joint>
 
 </robot>

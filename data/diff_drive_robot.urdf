@@ -1,0 +1,454 @@
+<?xml version="1.0"?>
+<robot name="simple_diff_drive_robot">
+
+  <!-- Main chassis -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.5 0.25 0.012"/>
+      </geometry>
+      <origin xyz="0 0 -0.044" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.5 0.25 0.048"/>
+      </geometry>
+      <origin xyz="0 0 -0.014" rpy="0 0 0"/>
+      <material name="blue">
+        <color rgba="0.15 0.45 0.85 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.44 0.23 0.04"/>
+      </geometry>
+      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <material name="white">
+        <color rgba="0.93 0.94 0.96 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.36 0.02 0.002"/>
+      </geometry>
+      <origin xyz="0 0 0.051" rpy="0 0 0"/>
+      <material name="orange">
+        <color rgba="0.95 0.55 0.12 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.02 0.24 0.03"/>
+      </geometry>
+      <origin xyz="0.245 0 -0.02" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.02 0.24 0.03"/>
+      </geometry>
+      <origin xyz="-0.245 0 -0.02" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.004 0.05 0.012"/>
+      </geometry>
+      <origin xyz="0.221 0.07 0.03" rpy="0 0 0"/>
+      <material name="light">
+        <color rgba="0.65 0.95 1.0 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.004 0.05 0.012"/>
+      </geometry>
+      <origin xyz="0.221 -0.07 0.03" rpy="0 0 0"/>
+      <material name="light">
+        <color rgba="0.65 0.95 1.0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.3 0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="2.0"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <!-- Left wheel -->
+  <link name="left_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.05" radius="0.1"/>
+      </geometry>
+      <material name="tire">
+        <color rgba="0.07 0.07 0.08 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.054" radius="0.068"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.95 0.55 0.12 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 1.0472"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 2.0944"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.064" radius="0.02"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.76 0.78 0.82 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.1000 0.0000 0" rpy="0 0 0.0000"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0866 0.0500 0" rpy="0 0 0.5236"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0500 0.0866 0" rpy="0 0 1.0472"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0000 0.1000 0" rpy="0 0 1.5708"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0500 0.0866 0" rpy="0 0 2.0944"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0866 0.0500 0" rpy="0 0 2.6180"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.1000 0.0000 0" rpy="0 0 3.1416"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0866 -0.0500 0" rpy="0 0 3.6652"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0500 -0.0866 0" rpy="0 0 4.1888"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0000 -0.1000 0" rpy="0 0 4.7124"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0500 -0.0866 0" rpy="0 0 5.2360"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0866 -0.0500 0" rpy="0 0 5.7596"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Right wheel -->
+  <link name="right_wheel">
+    <visual>
+      <geometry>
+        <cylinder length="0.05" radius="0.1"/>
+      </geometry>
+      <material name="tire">
+        <color rgba="0.07 0.07 0.08 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.054" radius="0.068"/>
+      </geometry>
+      <material name="orange">
+        <color rgba="0.95 0.55 0.12 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 1.0472"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.13 0.012 0.058"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 2.0944"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.064" radius="0.02"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.76 0.78 0.82 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.1000 0.0000 0" rpy="0 0 0.0000"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0866 0.0500 0" rpy="0 0 0.5236"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0500 0.0866 0" rpy="0 0 1.0472"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0000 0.1000 0" rpy="0 0 1.5708"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0500 0.0866 0" rpy="0 0 2.0944"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0866 0.0500 0" rpy="0 0 2.6180"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.1000 0.0000 0" rpy="0 0 3.1416"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0866 -0.0500 0" rpy="0 0 3.6652"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0500 -0.0866 0" rpy="0 0 4.1888"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="-0.0000 -0.1000 0" rpy="0 0 4.7124"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0500 -0.0866 0" rpy="0 0 5.2360"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <box size="0.008 0.012 0.04"/>
+      </geometry>
+      <origin xyz="0.0866 -0.0500 0" rpy="0 0 5.7596"/>
+      <material name="lug">
+        <color rgba="0.16 0.16 0.18 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <!-- Small rear wheel (caster) -->
+  <link name="caster_wheel">
+    <visual>
+      <geometry>
+        <sphere radius="0.02"/>
+      </geometry>
+      <material name="silver">
+        <color rgba="0.76 0.78 0.82 1"/>
+      </material>
+    </visual>
+    <visual>
+      <geometry>
+        <cylinder length="0.004" radius="0.022"/>
+      </geometry>
+      <origin xyz="0 0 -0.004" rpy="0 0 0"/>
+      <material name="graphite">
+        <color rgba="0.17 0.18 0.21 1"/>
+      </material>
+    </visual>
+  </link>
+
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel"/>
+    <origin xyz="-0.15 0.15 0.025" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel"/>
+    <origin xyz="-0.15 -0.15 0.025" rpy="1.5708 0 0"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+
+  <joint name="caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_wheel"/>
+    <origin xyz="0.15 0 -0.05" rpy="0 0 0"/>
+  </joint>
+
+</robot>

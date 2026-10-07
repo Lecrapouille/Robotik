@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!-- Outil : plateau d'interface caoutchouc (outil d'origine extrait de l'ancien link6).
+     Convention d'interface (commune a tous les outils) :
+       - tool_mount : lien RACINE, repere de montage, superpose a la bride (flange) du robot.
+       - tcp        : Tool Center Point, centre de la face caoutchouc. z = normale sortante. -->
+<robot name="tool_default">
+
+  <link name="tool_mount">
+    <visual>
+      <geometry><cylinder length="0.006" radius="0.012"/></geometry>
+      <origin xyz="0 0 0.003" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.007" radius="0.024"/></geometry>
+      <origin xyz="0 0 0.0095" rpy="0 0 0"/>
+      <material name="rubber"><color rgba="0.04 0.04 0.04 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.003" radius="0.026"/></geometry>
+      <origin xyz="0 0 0.0145" rpy="0 0 0"/>
+      <material name="rubber"><color rgba="0.04 0.04 0.04 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.016" radius="0.026"/></geometry>
+      <origin xyz="0 0 0.008" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0.008" rpy="0 0 0"/>
+      <inertia ixx="0.000018" ixy="0.0" ixz="0.0" iyy="0.000018" iyz="0.0" izz="0.000034"/>
+    </inertial>
+  </link>
+
+  <link name="tcp"/>
+  <joint name="tool_mount_to_tcp" type="fixed">
+    <parent link="tool_mount"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.016" rpy="0 0 0"/>
+  </joint>
+
+</robot>

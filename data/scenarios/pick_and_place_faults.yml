@@ -5,7 +5,7 @@ seed: 7
 # resource: Detect fails until the camera is repaired (the tree retries it),
 # then the camera fails for good and the robot goes on from its world model.
 robot:
-  model: ../robot_6axis.urdf
+  model: ../robot_6axis_vacuum.urdf
   home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
   sensors:
     wrist_camera:
