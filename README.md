@@ -1,170 +1,474 @@
-# Robotik
+# 🤖 RobotIK
 
-**Bibliothèque C++20 pour simuler, visualiser et piloter des robots** — avec la même logique de mission en mode graphique, headless, en apprentissage par renforcement ou (à terme) sur le robot réel.
+**RobotIK is a lightweight C++20 library for building robots that can be simulated, tested, trained, and eventually driven on real hardware—without rewriting their logic.**
 
-Démo : [vidéo YouTube](https://www.youtube.com/watch?v=BgFjewCz328)
+RobotIK is not meant to replace excellent existing robotics libraries. It aims to make them work together behind a simple API. RobotIK started as a personal project to deepen my knowledge of robotics and inverse kinematics (IK), then evolved into a lightweight architecture focused on simulation: a way to explore, with hindsight, how I would organize simulation, tests, and control around a clear API if I were building a robot today.
 
-> Projet actif en évolution : l’API et les scénarios peuvent changer ; les tests et les démos servent de référence.
+> **Write a mission once, then run it against a simulated robot or a real one.**
+
+The same behavior can start in a simulator, run headless in CI, feed an RL environment, and later connect to physical hardware. The idea is simple:
+
+> **Active project: the API is still evolving. Scenarios, demos, and tests are the best examples of the current API. Planned integrations include Prolog and PDDL.**
+
+```text
+                         Your application
+                               │
+                               ▼
+                         ┌───────────┐
+                         │  RobotIK  │
+                         └─────┬─────┘
+                               │
+             ┌─────────────────┼─────────────────┐
+             │                 │                 │
+          Perception         Skills          Scenarios
+             │                 │                 │
+          WorldModel      Behavior Tree       Tests
+             │                 │
+             └────────────┬────┘
+                          │
+                    Robot / Commands
+                          │
+              ┌───────────┴───────────┐
+              │                       │
+           MuJoCo                 Real robot
+          simulation              SO-101, ...
+```
+
+## ❓ Why RobotIK?
+
+Modern robotics already has strong specialized libraries:
+
+- **Pinocchio** for kinematics and dynamics;
+- **MuJoCo** for physics and contact simulation;
+- **Ruckig**, **OMPL**, etc. for trajectories and motion planning;
+- **OpenCV** for image processing;
+- **behaviortree.cpp** for behavior trees (a compact alternative to state machines);
+- **RViz** for 3D visualization.
+
+The interesting problem is not rewriting all of that, but:
+
+> **How do you build a simple autonomous robot by combining these building blocks?**
+
+RobotIK provides that orchestration layer and builds on [Pinocchio](https://github.com/stack-of-tasks/pinocchio), [MuJoCo](https://github.com/google-deepmind/mujoco), and other projects of mine:
+
+- [Compages](https://github.com/Lecrapouille/Compages) — a 3D engine split into three layers: ECS world, 3D rendering, and an OpenGL abstraction (shaders, CPU→GPU uploads).
+- [BlackThorn](https://github.com/Lecrapouille/BlackThorn) — a behavior-tree library designed to be clearer and faster than mainstream behaviortree.cpp.
+
+Some perception demos require OpenCV and AprilTag.
 
 ---
 
-## En quoi Robotik se distingue
+## 🛠️ A concrete example
 
-| Idée | Robotik |
-|------|---------|
-| **API robot compacte** | `Robot` = joints (`JointSet`, tableaux contigus en unités SI), capteurs, actionneurs, ressources, IK. Les skills ne connaissent ni MuJoCo ni le matériel : un `RobotBackend` est branché derrière. |
-| **Ressources et pannes** | Chaque capteur et actionneur est une ressource. Une panne la rend indisponible ; le `SkillScheduler` arbitre (priorités, préemption, annulation) et explique pourquoi une skill attend ou échoue. |
-| **Perception** | `Camera` → `PerceptionPipeline` (étapes `Detector` interchangeables) → `WorldModel` (croyances) ; localisation par amers (AprilTags). |
-| **Mission** | Scénario YAML (robot, capteurs, actionneurs, objets randomisés, pannes, BT, assertions) + arbre **BlackThorn**. |
-| **Rejouable** | Une seed maître dérive les graines du monde, des pannes et du bruit de chaque capteur : même seed, même run. |
-| **RL** | `EnvironmentPool` : N environnements en parallèle, buffers plats, résultats identiques quel que soit le nombre de threads. |
-| **Bibliothèque sans rendu** | Ni OpenCV ni OpenGL dans `librobotik-core` : le rendu passe par `SceneView`, les images par `FrameSource`. |
+Imagine a 6-DOF arm that must pick a red cube and place it in a box. You want to express:
 
-Schéma des dépendances : [doc/Ecosysteme.md](doc/Ecosysteme.md). Architecture : [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md).
-
----
-
-## Stack technique
-
-- **[Compages](https://github.com/Lecrapouille/Compages)** — monde, transforms, rendu OpenGL.
-- **[Pinocchio](https://github.com/stack-of-tasks/pinocchio)** — cinématique et IK.
-- **[MuJoCo](https://github.com/google-deepmind/mujoco)** — dynamique et contacts.
-- **[BlackThorn](https://github.com/Lecrapouille/BlackThorn)** — behavior trees et YAML.
-- Démos uniquement : **[apriltag](https://github.com/AprilRobotics/apriltag)** (BSD-2) et **OpenCV 4**.
-
----
-
-## Compilation
-
-### Prérequis
-
-Debian / Ubuntu :
-
-```bash
-sudo apt-get install build-essential cmake git \
-    libeigen3-dev libgl1-mesa-dev libglew-dev libglfw3-dev \
-    libsfml-dev swi-prolog-dev swi-prolog
-
-# Optionnel : démo LineFollower
-sudo apt-get install libopencv-dev
-# Optionnel, pour `make tests` :
-sudo apt-get install libgtest-dev libgmock-dev
+```text
+Detect the cube
+→ approach
+→ reach the cube
+→ grasp
+→ lift the cube
+→ move to the box
+→ release
+→ verify the cube is in the box
 ```
 
-Fedora :
+RobotIK breaks this mission into several levels:
 
-```bash
-sudo dnf install gcc-c++ make cmake git curl \
-    eigen3-devel libglvnd-devel glew-devel glfw-devel \
-    SFML-devel swi-prolog-core pkgconf-pkg-config
-
-# Optionnel : démo LineFollower
-sudo dnf install opencv-devel
-# Optionnel, pour `make tests` :
-sudo dnf install gtest-devel gmock-devel
+```text
+Mission
+   │
+   ▼
+Behavior Tree
+   │
+   ├── Detect(red_cube)
+   ├── Approach(red_cube)
+   ├── Reach(red_cube)
+   ├── Grasp(red_cube)
+   ├── MoveTo(box)
+   └── Release(red_cube)
+          │
+          ▼
+       Skills
+          │
+          ▼
+     Actuators
+          │
+          ▼
+       Robot
 ```
 
-Compages doit être disponible (`pkg-config --exists Compages`) ou cloné via [external/manifest](external/manifest). Pinocchio et MuJoCo sont récupérés dans `external/forge` par `make compile-external-libs` (conda-forge, sans root), qui compile aussi apriltag en bibliothèque statique.
+A `Skill` does not need to know whether the robot is simulated. In RobotIK, a **`Skill`** is the unit of action between the behavior tree and the robot.
 
-> **Astuce :** le build passe par `pkg-config`. Si un paquet manque, la chaîne échoue souvent avec des erreurs trompeuses. Vérifier :
-> `pkg-config --exists eigen3 gl glew glfw3 sfml-network swipl opencv4`
-
-### Build
-
-```bash
-git clone https://github.com/Lecrapouille/Robotik --recurse-submodules
-cd Robotik
-make download-external-libs
-make compile-external-libs
-make -j8            # bibliothèque, applications et démos
-
-# Optionnel :
-make tests -j8
-sudo make install
-```
-
-Artefacts dans `build/` : `librobotik-core.so`, `Robotik-Simulator`, `Robotik-Headless`, `Robotik-LineFollower`, `Robotik-PickAndPlaceRL`.
-
----
-
-## Applications et démos
-
-**Headless** — scénario complet (BT + physique + assertions) sans fenêtre, avec la trace des skills :
-
-```bash
-./build/Robotik-Headless data/scenarios/pick_and_place.yml --seed 7
-./build/Robotik-Headless data/scenarios/pick_and_place_faults.yml
-```
-
-**Simulateur** — hôte visuel des missions (menu pick-and-place, line follower, RL random/convergé sur un env) ; panneaux communs (monde, caméra, skills, ressources, assertions) ; arrêt d’urgence ; rejeu ou nouvelle seed :
-
-```bash
-./build/Robotik-Simulator data/scenarios/pick_and_place.yml
-```
-
-**LineFollower** — robot différentiel qui se localise sur des AprilTags au sol puis suit une ligne (OpenCV) avec une odométrie volontairement biaisée :
-
-```bash
-./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # --view pour voir la caméra
-```
-
-**PickAndPlaceRL** — pick-and-place en environnements parallèles, politique convergée ou aléatoire (`--train` pour converger), vérification du rejeu :
-
-```bash
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
-./build/Robotik-PickAndPlaceRL --policy random --train --envs 8 --episodes 16
+```text
+MoveTCP(target)
+       │
+       ▼
+   RobotIK API
+       │
+       ├───────────────┐
+       ▼               ▼
+    MuJoCo          SO-101
+   simulation        real
 ```
 
 ---
 
-## Exemple minimal (API)
+## 🧪 A mission can be a test
+
+A RobotIK scenario file describes not only the world and how the robot should behave, but also **how to tell whether the mission succeeded**—a contract that doubles as an integration test.
+
+For example:
+
+```yaml
+assert:
+  - robot.success
+  - object("red_cube").inside("box")
+  - gripper.empty
+  - collisions == 0
+  - time < 30
+```
+
+The same mission can be used as:
+
+- a demo;
+- a regression test;
+- a benchmark;
+- a perception experiment;
+- a learning environment;
+- a test bed for a new planning strategy.
+
+> **This part is still MVP-quality. Future work includes a proper assertion grammar and/or integration with tools such as OpenScenario.**
+
+---
+
+## 🏭 Simulation or real robot?
+
+This is a central idea in RobotIK. A skill must not contain:
 
 ```cpp
-#include "Robotik/Robotik.hpp"
-#include "Compages/World/World.hpp"
-
-compages::world::World world;
-robotik::RobotSession robot(world, "data/robot_6axis.urdf");
-robot.connect(std::make_unique<robotik::MujocoBackend>("data/robot_6axis.urdf"));
-robot.actuators().add<robotik::JointGroup>("arm");
-robot.hold({ { "joint2", 0.3 } });
-
-robotik::WorldModel beliefs;
-robotik::SkillScheduler skills(robot.resources());
-auto const move = skills.add<robotik::MoveJointSkill>(
-    { .name = "MoveJoint1", .resources = { robot.resources().require("arm") } },
-    "joint1", 0.5);
-skills.request(move);
-
-Seconds const dt(0.01);
-robotik::RobotContext context{ robot, beliefs };
-while (skills.state(move) != robotik::SkillState::Succeeded &&
-       skills.state(move) != robotik::SkillState::Failed)
+if (mujoco)
 {
-    context.time = robot.time();
-    context.dt = dt;
-    skills.update(context);   // admission, préemption, tick
-    robot.step(dt);           // MuJoCo, Pinocchio, capteurs
+    ...
+}
+else if (so101)
+{
+    ...
 }
 ```
 
-Skills fournies : `Home`, `MoveJoint`, `MoveJoints`, `MoveTCP`, `Stop`, et pour le pick-and-place `Detect`, `Approach`, `Reach`, `Grasp`, `Release`. Exposition au BT : `registerSkills` dans [Skills/SkillNodes.hpp](include/Robotik/Skills/SkillNodes.hpp). Une mission (`Mission`) ajoute les skills de tâche ; le Simulateur les affiche via un menu (pick-and-place, line follower, RL).
+It should drive the robot through a common API:
+
+```cpp
+robot.joint("shoulder").moveTo(target);
+robot.gripper().open();
+```
+
+Behind that API, a `RobotBackend` can be plugged in:
+
+```text
+RobotBackend
+   │
+   ├── MujocoBackend
+   ├── SO101Backend       ← future
+   └── other robot        ← future
+```
+
+The backend translates RobotIK commands to the simulator or hardware. That also enables a **digital twin** in Compages: the real robot publishes state, RobotIK updates the world, and Compages renders it.
+
+> **Note: no physical robot has been controlled with this library yet.**
 
 ---
 
-## Documentation
+## 🏗️ Architecture (work in progress)
 
-| Document | Contenu |
-|----------|---------|
-| [doc/README.md](doc/README.md) | Index de la doc |
-| [doc/Ecosysteme.md](doc/Ecosysteme.md) | Liens Compages / Pinocchio / MuJoCo / BlackThorn |
-| [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Dossiers `include/Robotik/`, choix cache friendly |
-| [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | Scénario YAML, seeds, pannes |
-| [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BT, scheduler, skills |
-| [doc/Demos.md](doc/Demos.md) | Démos : buts, CLI, tutoriel |
+```text
+                         RobotIK
+                            │
+       ┌────────────────────┼────────────────────┐
+       │                    │                    │
+ Robot / State          Autonomy            Scenarios
+       │                    │                    │
+       │              ┌─────┼─────┐              │
+       │              │     │     │              │
+       │             GOAP  PDDL  LLM             │
+       │              │     │     │              │
+       │              └─────┼─────┘              │
+       │                    ▼                    │
+       │              Behavior Tree              │
+       │                    │                    │
+       │                  Skills                 │
+       │                    │                    │
+       └─────────────── Robot API ───────────────┘
+                            │
+                            ▼
+                 ┌──────────┴──────────┐
+                 │                     │
+              MuJoCo               Hardware
+                 │                     │
+              Physics              SO-101...
+```
+
+The planning side is intentionally extensible. The long-term goal includes:
+
+- **PDDL** or **GOAP** for symbolic planning and action sequences;
+- **Prolog** to express and query world logic;
+- **LLM** to interpret intent or propose high-level plans;
+- **Behavior trees** to turn plans into reactive execution.
+
+One possible flow:
+
+```text
+"Pick the red cube and put it in the box"
+                  │
+                  ▼
+             LLM / user
+                  │
+                  ▼
+           GOAP / PDDL planner
+                  │
+            symbolic plan
+                  │
+                  ▼
+          Behavior Tree
+                  │
+                  ▼
+                Skills
+                  │
+                  ▼
+        control / motion
+```
+
+Prolog can run in parallel to answer questions such as:
+
+```text
+inside(red_cube, box).
+reachable(arm, red_cube).
+holding(gripper, red_cube).
+```
+
+None of these technologies is mandatory; they are interchangeable bricks.
 
 ---
 
-## Références
+## 👁️ Perception
 
-- [Cours robotique — Jacques Gangloff](https://www.youtube.com/playlist?list=PLMXdciyMZwAAUlCQ_9mVs_CqQ9YaRTptX)
+A RobotIK camera must not force OpenCV into the core library. The pattern is:
+
+```text
+Camera
+  │
+  ▼
+FrameSource
+  │
+  ▼
+PerceptionPipeline
+  │
+  ├── Detector
+  ├── Detector
+  └── DepthEstimator
+        │
+        ▼
+    WorldModel
+```
+
+For example:
+
+```cpp
+pipeline
+    .add<ColorDetector>()
+    .add<AprilTagDetector>()
+    .add<DepthEstimator>();
+```
+
+Applications may use OpenCV, AprilTag, or other libraries. RobotIK core stays independent of rendering and image processing.
+
+---
+
+## 🧩 Scenarios: the experimental core
+
+RobotIK uses declarative scenarios.
+
+Example:
+
+```yaml
+scenario: pick_and_place
+seed: 42
+
+robot:
+  model: robot_6axis.urdf
+
+world:
+  objects:
+    red_cube:
+      type: cube
+      position: [0.40, 0.20, 0.02]
+    box:
+      type: box
+      position: [0.40, -0.20, 0.04]
+
+execute:
+  task: Pick the red cube and put it in the box.
+  behavior_tree: pick_and_place.bt.yml
+
+assert:
+  - robot.success
+  - object("red_cube").inside("box")
+  - gripper.empty
+  - collisions == 0
+```
+
+The scenario does not spell out kinematics details; it describes **what you want to experiment with and verify**.
+
+---
+
+## 🌀 Reproducibility
+
+Robotics experiments are hard to reproduce when randomness is involved:
+
+- initial poses;
+- sensor noise;
+- faults;
+- RL policy;
+- environment.
+
+RobotIK uses a master seed:
+
+```yaml
+seed: 42
+```
+
+It can feed the various random generators:
+
+```text
+seed = 42
+     │
+     ├── world
+     ├── sensors
+     ├── faults
+     └── RL run
+```
+
+That helps debugging: the same seed should yield the same experiment under identical conditions.
+
+---
+
+## 🏆 Reinforcement learning
+
+RobotIK provides an `Environment` abstraction and an `EnvironmentPool`. You can run:
+
+```text
+Environment 0 ─┐
+Environment 1 ─┤
+Environment 2 ─┤
+Environment 3 ─┼──▶ RL policy
+...            │
+Environment N ─┘
+```
+
+without opening N windows. Rendering is an optional observation path for the user, not a core dependency. That keeps the loop:
+
+```text
+observation
+    ↓
+policy
+    ↓
+action
+    ↓
+physics
+    ↓
+reward
+    ↓
+observation
+```
+
+independent of environment count and thread count.
+
+---
+
+## ⚖️ RobotIK and SkiROS2
+
+RobotIK may look close to **SkiROS2**—both use skills, behavior trees, planning, and world knowledge.
+
+The positioning differs.
+
+**SkiROS2** is a robot control platform on ROS 2, with a semantic world model, skills with pre/post-conditions, behavior trees, and task planning. It fits distributed robotic systems in the ROS ecosystem well.
+
+RobotIK targets writing robotic programs in C++ without adopting a full middleware stack. Another emphasis is symmetry:
+
+```text
+             same mission
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+     simulation          hardware
+        │                   │
+      MuJoCo             SO-101
+```
+
+---
+
+## 🚀 Clone, build, and run
+
+**Note:** RobotIK does not use CMake and does not build on macOS (OpenGL > 4.1 requirement).
+
+```bash
+git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
+cd RobotIK
+
+make download-external-libs
+make compile-external-libs
+make -j"$(nproc --all)"
+```
+
+A `build` directory should contain static and shared libraries plus executables:
+
+```bash
+./build/RobotIK-Simulator data/scenarios/pick_and_place.yml
+```
+
+Headless:
+
+```bash
+./build/RobotIK-Headless data/scenarios/pick_and_place.yml --seed 7
+```
+
+Parallel RL demo:
+
+```bash
+./build/RobotIK-PickAndPlaceRL \
+    --policy converged \
+    --envs 16 \
+    --threads 8 \
+    --episodes 32
+```
+
+Optional install:
+
+```bash
+sudo make install
+```
+
+For developers, unit tests:
+
+```bash
+make tests -j"$(nproc --all)"
+```
+
+---
+
+## 📚 Documentation
+
+| Document | Contents |
+|----------|----------|
+| [doc/README.md](doc/README.md) | Reading order, beginner → advanced |
+| [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | YAML scenarios, seeds, faults, simulation, assertions |
+| [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BlackThorn actions, `SkillScheduler`, skills |
+| [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Layers, data flow, `include/Robotik/` layout |
+| [doc/Demos.md](doc/Demos.md) | Simulator, Headless, LineFollower, PickAndPlace RL |
+
+---
+
+## 📝 License
+
+See `LICENSE`.
