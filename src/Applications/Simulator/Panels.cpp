@@ -7,12 +7,12 @@
 
 #include "App.hpp"
 
-#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
-#include "imgui_stdlib.h" // after imgui.h (IMGUI_API)
+#include "imgui_stdlib.h"
 
 #include <algorithm>
 #include <cmath>
@@ -210,11 +210,13 @@ static void toolbar(App& p_app)
     {
         path = p_app.scenario_path.string();
     }
-    char const* const kinds[] = { "Pick-and-place", "Line follower",
+    char const* const kinds[] = { "Pick-and-place",
+                                  "Pick-and-place (faults)",
+                                  "Line follower",
                                   "Pick-and-place RL" };
     int kind = static_cast<int>(p_app.kind);
-    ImGui::SetNextItemWidth(180.0f);
-    if (ImGui::Combo("##mission", &kind, kinds, 3))
+    ImGui::SetNextItemWidth(220.0f);
+    if (ImGui::Combo("##mission", &kind, kinds, 4))
     {
         p_app.select(static_cast<HostedMission>(kind));
         path = p_app.scenario_path.string();
@@ -263,15 +265,13 @@ static void toolbar(App& p_app)
         ImGui::Text("t = %6.2f s", p_app.simulation->time().value());
         if (p_app.kind == HostedMission::PickPlaceRl)
         {
-            ImGui::TextColored(p_app.rl.success ? GREEN
-                                                : (p_app.rl.done ? RED : ORANGE),
-                               "RL %s  R=%.1f  %u/%u",
-                               p_app.rl.success
-                                   ? "SUCCESS"
-                                   : (p_app.rl.done ? "DONE" : "RUN"),
-                               static_cast<double>(p_app.rl.episode_return),
-                               p_app.rl.steps,
-                               p_app.rl.max_steps);
+            ImGui::TextColored(
+                p_app.rl.success ? GREEN : (p_app.rl.done ? RED : ORANGE),
+                "RL %s  R=%.1f  %u/%u",
+                p_app.rl.success ? "SUCCESS" : (p_app.rl.done ? "DONE" : "RUN"),
+                static_cast<double>(p_app.rl.episode_return),
+                p_app.rl.steps,
+                p_app.rl.max_steps);
         }
         else
         {
@@ -292,8 +292,10 @@ static void toolbar(App& p_app)
 static void worldPanel(App& p_app)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    bool const visible =
-        ImGui::Begin(WORLD, nullptr, ImGuiWindowFlags_NoScrollbar);
+    bool const visible = ImGui::Begin(WORLD,
+                                      nullptr,
+                                      ImGuiWindowFlags_NoScrollbar |
+                                          ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
     p_app.view_hovered = false;
     if (visible)
@@ -360,7 +362,10 @@ static void cameraPanel(App& p_app)
     if (!available)
     {
         ImGui::SameLine();
-        ImGui::TextColored(RED, "FAILED");
+        ImGui::TextColored(RED, "FAILED (resource)");
+        ImGui::TextDisabled(
+            "Sensor offline; overlays cleared. Mission may continue from the "
+            "world model after Detect succeeded.");
     }
     if (picture.width == 0)
     {
@@ -515,8 +520,8 @@ static void timeline(robotik::Simulation const& p_simulation)
     for (robotik::SkillRun const& run : runs)
     {
         float const y = at.y + static_cast<float>(run.skill) * row;
-        float const x0 = at.x + label +
-                         static_cast<float>(run.start.value() / span) * scale;
+        float const x0 =
+            at.x + label + static_cast<float>(run.start.value() / span) * scale;
         float const x1 =
             at.x + label + static_cast<float>(run.end.value() / span) * scale;
         draw->AddRectFilled(ImVec2(x0, y + 3.0f),
@@ -524,8 +529,7 @@ static void timeline(robotik::Simulation const& p_simulation)
                             ImGui::GetColorU32(colorOf(run.state)),
                             2.0f);
     }
-    ImGui::Dummy(
-        ImVec2(width, static_cast<float>(skills.size()) * row + 4.0f));
+    ImGui::Dummy(ImVec2(width, static_cast<float>(skills.size()) * row + 4.0f));
 }
 
 //! @brief Draw the skills panel: metadata, live state and manual requests.
@@ -556,17 +560,21 @@ static void skillsPanel(App& p_app)
         ImGui::TableHeadersRow();
         for (robotik::SkillId id = 0; id < skills.size(); ++id)
         {
-            robotik::SkillDescription const& description = skills.description(id);
+            robotik::SkillDescription const& description =
+                skills.description(id);
             robotik::SkillState const state = skills.state(id);
             ImGui::PushID(static_cast<int>(id));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(description.name.c_str());
             ImGui::TableNextColumn();
-            ImGui::Text("%d%s", description.priority, description.cancellable ? "" : " (locked)");
+            ImGui::Text("%d%s",
+                        description.priority,
+                        description.cancellable ? "" : " (locked)");
             ImGui::TableNextColumn();
             std::string needs;
-            for (robotik::ResourceRequirement const& need : description.resources)
+            for (robotik::ResourceRequirement const& need :
+                 description.resources)
             {
                 needs += needs.empty() ? "" : " ";
                 needs += resources.name(need.id);
@@ -630,11 +638,11 @@ static void resourcesPanel(App& p_app)
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(resources.name(id).c_str());
             ImGui::TableNextColumn();
-            ImGui::TextColored(available ? GREEN : RED,
-                               "%s",
-                               available ? "ok" : "FAILED");
+            ImGui::TextColored(
+                available ? GREEN : RED, "%s", available ? "ok" : "FAILED");
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(ownerName(skills, resources.owner(id)).c_str());
+            ImGui::TextUnformatted(
+                ownerName(skills, resources.owner(id)).c_str());
             ImGui::TableNextColumn();
             ImGui::Text("%u", static_cast<unsigned>(resources.users(id)));
             ImGui::TableNextColumn();
@@ -664,7 +672,8 @@ static void resourcesPanel(App& p_app)
     for (robotik::Fault const& fault : faults.scheduled())
     {
         bool const past = fault.at.value() <= now;
-        ImGui::TextColored(past ? GREY : ImGui::GetStyle().Colors[ImGuiCol_Text],
+        ImGui::TextColored(past ? GREY
+                                : ImGui::GetStyle().Colors[ImGuiCol_Text],
                            "t=%5.2f s  %s %s",
                            fault.at.value(),
                            fault.disable ? "disable" : "restore",
@@ -778,7 +787,9 @@ static void robotPanel(App const& p_app)
             ImGui::TextColored(
                 ORANGE,
                 "Holding %s",
-                compages::world::Entity(robot.world(), gripper->held()).name().c_str());
+                compages::world::Entity(robot.world(), gripper->held())
+                    .name()
+                    .c_str());
         }
         else
         {
@@ -802,8 +813,8 @@ static void scenarioPanel(App const& p_app)
     robotik::Scenario const& scenario = simulation.scenario();
     ImGui::Text("%s", scenario.name.c_str());
     ImGui::TextDisabled("%s", scenario.robot_model.string().c_str());
-    ImGui::TextDisabled("seed %llu",
-                        static_cast<unsigned long long>(simulation.seed().value));
+    ImGui::TextDisabled(
+        "seed %llu", static_cast<unsigned long long>(simulation.seed().value));
     ImGui::SeparatorText("Task");
     ImGui::TextWrapped("%s", scenario.task.c_str());
 
@@ -838,14 +849,20 @@ static void scenarioPanel(App const& p_app)
                             static_cast<double>(at.x),
                             static_cast<double>(at.y),
                             static_cast<double>(at.z));
-                robotik::WorldObject const* belief = beliefs.find(p_object.name);
+                robotik::WorldObject const* belief =
+                    beliefs.find(p_object.name);
                 ImGui::TableNextColumn();
                 if (belief != nullptr)
                 {
-                    double const dx = belief->position.x - static_cast<double>(at.x);
-                    double const dy = belief->position.y - static_cast<double>(at.y);
-                    double const dz = belief->position.z - static_cast<double>(at.z);
-                    ImGui::Text("%.1f", 1000.0 * std::sqrt(dx * dx + dy * dy + dz * dz));
+                    double const dx =
+                        belief->position.x - static_cast<double>(at.x);
+                    double const dy =
+                        belief->position.y - static_cast<double>(at.y);
+                    double const dz =
+                        belief->position.z - static_cast<double>(at.z);
+                    ImGui::Text("%.1f",
+                                1000.0 *
+                                    std::sqrt(dx * dx + dy * dy + dz * dz));
                 }
                 ImGui::TableNextColumn();
                 if (belief != nullptr && belief->observed())
@@ -964,12 +981,13 @@ static void rlPanel(App& p_app)
         }
         p_app.rl.converged = false;
     }
-    ImGui::ProgressBar(p_app.rl.mix, ImVec2(-1.0f, 0.0f),
+    ImGui::ProgressBar(p_app.rl.mix,
+                       ImVec2(-1.0f, 0.0f),
                        p_app.rl.converged ? "converged" : "random → converged");
     ImGui::Checkbox("repeat episodes", &p_app.rl.auto_repeat);
     ImGui::SliderInt("max steps", &p_app.rl.max_steps, 40, 200);
-    if (ImGui::SliderFloat("cube spread (m)", &p_app.rl.spread, 0.0f, 0.12f,
-                           "%.3f"))
+    if (ImGui::SliderFloat(
+            "cube spread (m)", &p_app.rl.spread, 0.0f, 0.12f, "%.3f"))
     {
         /* applied on next Load / New episode */
     }
@@ -989,13 +1007,12 @@ static void rlPanel(App& p_app)
     ImGui::Text("Score   %u delivered / %u failed",
                 p_app.rl.delivered,
                 p_app.rl.failed);
-    ImGui::TextColored(p_app.rl.success ? GREEN
-                                        : (p_app.rl.done ? RED : ORANGE),
-                       "%s",
-                       p_app.rl.success
-                           ? "Delivered — cube is in the box"
-                           : (p_app.rl.done ? "Truncated — out of steps"
-                                            : "Running"));
+    ImGui::TextColored(
+        p_app.rl.success ? GREEN : (p_app.rl.done ? RED : ORANGE),
+        "%s",
+        p_app.rl.success
+            ? "Delivered — cube is in the box"
+            : (p_app.rl.done ? "Truncated — out of steps" : "Running"));
     ImGui::SeparatorText("Observation (m)");
     ImGui::Text("tip   %.3f %.3f %.3f",
                 static_cast<double>(p_app.rl.observation[0]),

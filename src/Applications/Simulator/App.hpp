@@ -29,6 +29,7 @@
 enum class HostedMission
 {
     PickPlace,
+    PickPlaceFaults,
     LineFollower,
     PickPlaceRl,
 };

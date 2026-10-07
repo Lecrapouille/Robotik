@@ -21,4 +21,19 @@ struct Window
 
     bool open();
     ~Window();
+
+    //! @brief Scroll accumulated since the last beginInputFrame() (GLFW y offset).
+    [[nodiscard]] float scroll() const
+    {
+        return m_scroll;
+    }
+
+    //! @brief Call once per frame after glfwPollEvents().
+    void beginInputFrame();
+
+private:
+
+    static void onScroll(GLFWwindow* p_window, double p_x, double p_y);
+
+    float m_scroll = 0.0f;
 };
