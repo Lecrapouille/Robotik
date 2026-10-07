@@ -33,6 +33,9 @@ bool Window::open()
         return false;
     }
     glfwMakeContextCurrent(handle);
+    glfwSetWindowUserPointer(handle, this);
+    // Before ImGui: the GLFW backend chains this callback for the wheel.
+    glfwSetScrollCallback(handle, &Window::onScroll);
     glfwSwapInterval(1);
 
     auto ready = compages::gpu::init(
@@ -52,6 +55,20 @@ bool Window::open()
     ImGui_ImplOpenGL3_Init("#version 450");
     imgui_ready = true;
     return true;
+}
+
+void Window::beginInputFrame()
+{
+    m_scroll = 0.0f;
+}
+
+void Window::onScroll(GLFWwindow* p_window, double /*p_x*/, double p_y)
+{
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(p_window));
+    if (self != nullptr)
+    {
+        self->m_scroll += static_cast<float>(p_y);
+    }
 }
 
 Window::~Window()

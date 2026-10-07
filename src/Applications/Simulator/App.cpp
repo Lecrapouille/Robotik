@@ -15,6 +15,20 @@
 #include "Compages/Core/Units.hpp"
 #include "Compages/World/Controllers/Controls.hpp"
 
+namespace
+{
+void tuneViewOrbit(compages::world::World& p_world,
+                   compages::world::Entity p_camera)
+{
+    if (compages::world::Orbit* orbit =
+            p_world.behavior<compages::world::Orbit>(p_camera))
+    {
+        // Default 2.5f × raw scroll is harsh; Orbit::start() only raises this.
+        orbit->controller.zoom_sensitivity = 0.35f;
+    }
+}
+} // namespace
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -67,6 +81,9 @@ void App::select(HostedMission p_kind)
         case HostedMission::PickPlace:
         case HostedMission::PickPlaceRl:
             scenario_path = "data/scenarios/pick_and_place.yml";
+            break;
+        case HostedMission::PickPlaceFaults:
+            scenario_path = "data/scenarios/pick_and_place_faults.yml";
             break;
     }
     load();
@@ -172,6 +189,7 @@ void App::load()
             .add<compages::world::Orbit>(
                 compages::core::Vector3f(0.35f, 0.15f, 0.0f));
     }
+    tuneViewOrbit(*world, view_camera);
     if (kind == HostedMission::PickPlaceRl)
     {
         rl.arm = simulation->robot().actuators().find<robotik::JointGroup>("arm");

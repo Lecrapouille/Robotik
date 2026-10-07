@@ -28,6 +28,7 @@ void runMainLoop(Window& p_window, App& p_app)
     while (glfwWindowShouldClose(p_window.handle) == GLFW_FALSE)
     {
         // --- Input and frame timing ---
+        p_window.beginInputFrame();
         glfwPollEvents();
         double const now = glfwGetTime();
         float const elapsed = static_cast<float>(now - last);
@@ -39,18 +40,20 @@ void runMainLoop(Window& p_window, App& p_app)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
         drawPanels(p_app);
-        ImGui::Render();
 
         // --- World simulation and 3D views (when scenario loaded) ---
         if (p_app.simulation && p_app.view.width > 0)
         {
             p_app.advance(elapsed);
-            p_app.world->update(viewFrame(p_app, elapsed, total));
+            p_app.world->update(
+                viewFrame(p_app, p_window, elapsed, total));
             compages::gpu::RenderPass pass(
                 p_app.view.framebuffer,
                 compages::gpu::PassDesc{ .color = viewClearColor() });
             p_app.scene->render(p_app.view_camera);
         }
+
+        ImGui::Render();
 
         // --- Full-window clear and ImGui draw on top ---
         int width = 0;

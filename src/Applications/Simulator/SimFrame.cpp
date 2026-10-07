@@ -8,15 +8,18 @@
 #include "SimFrame.hpp"
 
 #include "App.hpp"
+#include "Window.hpp"
 
+#include <algorithm>
 #include <imgui.h>
 
-compages::world::ViewFrame
-viewFrame(App const& p_app, float p_elapsed, float p_total)
+compages::world::ViewFrame viewFrame(App const& p_app,
+                                     Window const& p_window,
+                                     float p_elapsed,
+                                     float p_total)
 {
     ImGuiIO const& io = ImGui::GetIO();
 
-    // Initialize the view frame
     compages::world::ViewFrame frame;
     frame.width = p_app.view.width;
     frame.height = p_app.view.height;
@@ -24,12 +27,11 @@ viewFrame(App const& p_app, float p_elapsed, float p_total)
     frame.total = p_total;
     frame.input.mouse_over = p_app.view_hovered;
 
-    // Set the mouse input if the view is hovered
     if (p_app.view_hovered)
     {
         frame.input.mouse_delta =
             compages::core::Vector2f(io.MouseDelta.x, -io.MouseDelta.y);
-        frame.input.scroll = io.MouseWheel;
+        frame.input.scroll = std::clamp(p_window.scroll(), -1.0f, 1.0f);
         frame.input.mouse_right = io.MouseDown[ImGuiMouseButton_Right];
     }
 

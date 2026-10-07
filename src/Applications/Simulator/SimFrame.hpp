@@ -8,6 +8,7 @@
 #pragma once
 
 struct App;
+struct Window;
 
 namespace compages::world
 {
@@ -19,5 +20,7 @@ struct ViewFrame;
 //! @param p_elapsed The elapsed time.
 //! @param p_total The total time.
 //! @return The view frame.
-compages::world::ViewFrame
-viewFrame(App const& p_app, float p_elapsed, float p_total);
+compages::world::ViewFrame viewFrame(App const& p_app,
+                                     Window const& p_window,
+                                     float p_elapsed,
+                                     float p_total);
