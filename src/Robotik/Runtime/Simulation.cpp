@@ -413,19 +413,22 @@ void Simulation::observe()
 
 void Simulation::step(Seconds p_dt)
 {
-    // Update the faults.
-    m_faults.update(m_robot->resources(), m_robot->time(), p_dt);
-
-    // Update the context.
-    m_context.time = m_robot->time();
-    m_context.dt = p_dt;
-
-    // Tick the behavior tree.
-    if (m_tree && !finished())
+    if (!m_suspended)
     {
-        m_status = m_tree->tick();
+        // Update the faults.
+        m_faults.update(m_robot->resources(), m_robot->time(), p_dt);
+
+        // Update the context.
+        m_context.time = m_robot->time();
+        m_context.dt = p_dt;
+
+        // Tick the behavior tree.
+        if (m_tree && !finished())
+        {
+            m_status = m_tree->tick();
+        }
+        m_scheduler->update(m_context);
     }
-    m_scheduler->update(m_context);
 
     // MuJoCo arm, then kinematic props (vacuum)
     m_robot->step(p_dt);
@@ -444,8 +447,7 @@ void Simulation::step(Seconds p_dt)
         m_max_contacts = std::max(m_max_contacts, backend->contacts());
     }
 
-    // Update the mission.
-    if (m_mission != nullptr)
+    if (!m_suspended && m_mission != nullptr)
     {
         m_mission->step(*this, p_dt);
         if (m_tree == nullptr)

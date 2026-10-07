@@ -159,6 +159,7 @@ static void layout(ImGuiID p_dock)
     ImGui::DockBuilderDockWindow(SCENARIO, left);
     ImGui::DockBuilderDockWindow(SCENARIO_FILE, left);
     ImGui::DockBuilderDockWindow(ROBOT, left);
+    ImGui::DockBuilderDockWindow(TEACH_PANEL, left);
     ImGui::DockBuilderDockWindow(WORLD, center);
     ImGui::DockBuilderDockWindow(SKILLS, bottom);
     ImGui::DockBuilderDockWindow(RESOURCES, bottom);
@@ -1058,4 +1059,5 @@ void drawPanels(App& p_app)
     scenarioFilePanel(p_app);
     rlPanel(p_app);
     robotPanel(p_app);
+    teachPanel(p_app);
 }

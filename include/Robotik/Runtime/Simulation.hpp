@@ -85,6 +85,21 @@ public:
 
     void step(Seconds p_dt);
 
+    // -------------------------------------------------------------------------
+    //! @brief Operator mode: physics and sensors keep running, the behavior
+    //! tree, the scheduler and the mission do not. Joint commands then come
+    //! from the teach pendant.
+    // -------------------------------------------------------------------------
+    void suspend(bool p_on)
+    {
+        m_suspended = p_on;
+    }
+
+    [[nodiscard]] bool suspended() const
+    {
+        return m_suspended;
+    }
+
     [[nodiscard]] Scenario const& scenario() const
     {
         return m_scenario;
@@ -213,6 +228,8 @@ private:
     int m_max_contacts = 0;
     //!< Kinematic props (cube vs container walls) while the gripper carries.
     bool m_prop_penetration = false;
+    //!< Teach pendant owns the joints; the mission is frozen.
+    bool m_suspended = false;
 };
 
 } // namespace robotik
