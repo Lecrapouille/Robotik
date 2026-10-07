@@ -1,6 +1,7 @@
 # Actions are the skills of the simulation, run by the skill scheduler. Per
-# object: Detect(o), Approach(o) (10 cm above), Reach(o) (touching its top),
-# Grasp(o). Robot wide: Home, Release, Stop (emergency stop, highest priority).
+# Per object: Detect(o), Approach(o) (10 cm above), Reach(o), Grasp(o).
+# Containers also get Transit(o) (carry height) before the final Approach(o).
+# Robot wide: Home, Release, Stop (emergency stop, highest priority).
 
 BehaviorTree:
   Sequence:
@@ -29,6 +30,8 @@ BehaviorTree:
       - Sequence:
           name: Place
           children:
+            - Action:
+                name: Transit(box)
             - Action:
                 name: Approach(box)
             - Action:

@@ -9,11 +9,18 @@
 
 #include "ColorDetector.hpp"
 
+#include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 #include "Robotik/Skills/PickPlaceSkills.hpp"
 
-#define APPROACH_CLEARANCE_M 0.10
-#define SKILL_PRIORITY 100
+namespace
+{
+
+constexpr double kApproachClearance = 0.10;
+constexpr double kTransitClearance = 0.22;
+constexpr int kSkillPriority = 100;
+
+} // namespace
 
 void PickPlaceMission::setup(robotik::Simulation& p_simulation,
                              robotik::SceneView* /*p_view*/)
@@ -23,6 +30,7 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         return;
     }
 
+    // Perception: map each scenario object colour to a Detect(label) target.
     for (robotik::Scenario::Object const& object :
          p_simulation.scenario().objects)
     {
@@ -33,7 +41,8 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         m_detector->add(object.shape.name, object.shape.color);
     }
 
-    robotik::ResourceManager& resources = p_simulation.robot().resources();
+    robotik::ResourceManager const& resources =
+        p_simulation.robot().resources();
     robotik::ActuatorSet const& actuators = p_simulation.robot().actuators();
     robotik::SkillScheduler& skills = p_simulation.skills();
 
@@ -50,7 +59,8 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
     std::vector<robotik::ResourceRequirement> camera;
     if (robotik::Camera const* found = p_simulation.camera())
     {
-        camera.push_back(resources.require(found->name(), robotik::Access::Shared));
+        camera.push_back(
+            resources.require(found->name(), robotik::Access::Shared));
     }
 
     auto describe = [](std::string p_name,
@@ -59,11 +69,14 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         robotik::SkillDescription description;
         description.name = std::move(p_name);
         description.resources = std::move(p_resources);
-        description.priority = SKILL_PRIORITY;
+        description.priority = kSkillPriority;
         return description;
     };
 
     skills.add<robotik::ReleaseSkill>(describe("Release", gripper));
+
+    // One skill family per scenario object; BOX types also get Transit (carry
+    // height).
     for (robotik::Scenario::Object const& object :
          p_simulation.scenario().objects)
     {
@@ -73,11 +86,12 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         skills.add<robotik::ApproachSkill>(
             describe("Approach(" + name + ")", arm),
             name,
-            Length(APPROACH_CLEARANCE_M));
+            Length(kApproachClearance));
         skills.add<robotik::ApproachSkill>(
             describe("Reach(" + name + ")", arm), name, Length{});
 
-        robotik::SkillDescription grasp = describe("Grasp(" + name + ")", gripper);
+        robotik::SkillDescription grasp =
+            describe("Grasp(" + name + ")", gripper);
         grasp.wait = false;
         grasp.preconditions.push_back(
             { "gripper is empty",
@@ -88,5 +102,12 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
                   return vacuum != nullptr && !vacuum->holding();
               } });
         skills.add<robotik::GraspSkill>(std::move(grasp), name);
+        if (object.shape.type == robotik::ecs::SceneObject::Type::BOX)
+        {
+            skills.add<robotik::ApproachSkill>(
+                describe("Transit(" + name + ")", arm),
+                name,
+                Length(kTransitClearance));
+        }
     }
 }

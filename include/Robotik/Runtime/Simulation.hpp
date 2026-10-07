@@ -211,6 +211,8 @@ private:
 
     Seed m_seed;
     int m_max_contacts = 0;
+    //!< Kinematic props (cube vs container walls) while the gripper carries.
+    bool m_prop_penetration = false;
 };
 
 } // namespace robotik
