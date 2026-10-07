@@ -3,7 +3,7 @@ scenario: pick_and_place
 seed: 42
 
 robot:
-  model: ../robot_6axis.urdf
+  model: ../robot_6axis_vacuum.urdf
   # Joint positions in radians. The tool points down.
   home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
 

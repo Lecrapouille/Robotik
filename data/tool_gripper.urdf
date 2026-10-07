@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<!-- Outil : pince parallele 2 doigts.
+     Convention d'interface (commune a tous les outils) :
+       - tool_mount : lien RACINE, repere de montage. Son origine/axes se superposent a la
+                      bride (flange) du robot : z sortant de la face de l'outil.
+       - tcp        : Tool Center Point, point de travail (ici milieu des bouts de doigts).
+     Joint actionne : gripper_finger_left_joint (prismatique, 0 = ferme, 0.04 m = ouvert par doigt).
+     Le doigt droit suit le gauche (mimic). -->
+<robot name="tool_gripper">
+
+  <link name="tool_mount">
+    <visual>
+      <geometry><cylinder length="0.008" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.004" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><box size="0.05 0.09 0.04"/></geometry>
+      <origin xyz="0 0 0.028" rpy="0 0 0"/>
+      <material name="white"><color rgba="0.93 0.94 0.96 1"/></material>
+    </visual>
+    <visual>
+      <geometry><box size="0.052 0.03 0.006"/></geometry>
+      <origin xyz="0 0 0.034" rpy="0 0 0"/>
+      <material name="orange"><color rgba="0.96 0.46 0.1 1"/></material>
+    </visual>
+    <visual>
+      <geometry><box size="0.03 0.05 0.012"/></geometry>
+      <origin xyz="0 0 0.054" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.05 0.09 0.048"/></geometry>
+      <origin xyz="0 0 0.024" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.35"/>
+      <origin xyz="0 0 0.026" rpy="0 0 0"/>
+      <inertia ixx="0.000303" ixy="0.0" ixz="0.0" iyy="0.000140" iyz="0.0" izz="0.000309"/>
+    </inertial>
+  </link>
+
+  <link name="gripper_finger_left">
+    <visual>
+      <geometry><box size="0.02 0.012 0.05"/></geometry>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><box size="0.018 0.003 0.026"/></geometry>
+      <origin xyz="0 -0.0005 0.035" rpy="0 0 0"/>
+      <material name="rubber"><color rgba="0.04 0.04 0.04 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.02 0.012 0.05"/></geometry>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+      <inertia ixx="0.000011" ixy="0.0" ixz="0.0" iyy="0.000012" iyz="0.0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <link name="gripper_finger_right">
+    <visual>
+      <geometry><box size="0.02 0.012 0.05"/></geometry>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><box size="0.018 0.003 0.026"/></geometry>
+      <origin xyz="0 -0.0005 0.035" rpy="0 0 0"/>
+      <material name="rubber"><color rgba="0.04 0.04 0.04 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.02 0.012 0.05"/></geometry>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.05"/>
+      <origin xyz="0 0.006 0.025" rpy="0 0 0"/>
+      <inertia ixx="0.000011" ixy="0.0" ixz="0.0" iyy="0.000012" iyz="0.0" izz="0.000002"/>
+    </inertial>
+  </link>
+
+  <joint name="gripper_finger_left_joint" type="prismatic">
+    <parent link="tool_mount"/>
+    <child link="gripper_finger_left"/>
+    <origin xyz="0 0 0.048" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="40.0" velocity="0.15" lower="0.0" upper="0.04"/>
+    <dynamics damping="2.0" friction="0.5"/>
+  </joint>
+
+  <!-- Doigt droit : repere tourne de 180 deg autour de z, son +y local pointe vers -y -->
+  <joint name="gripper_finger_right_joint" type="prismatic">
+    <parent link="tool_mount"/>
+    <child link="gripper_finger_right"/>
+    <origin xyz="0 0 0.048" rpy="0 0 3.14159"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="40.0" velocity="0.15" lower="0.0" upper="0.04"/>
+    <dynamics damping="2.0" friction="0.5"/>
+    <mimic joint="gripper_finger_left_joint" multiplier="1.0" offset="0.0"/>
+  </joint>
+
+  <!-- Point de travail : milieu des plaquettes, 0.04 m au-dessus de la base des doigts -->
+  <link name="tcp"/>
+  <joint name="tool_mount_to_tcp" type="fixed">
+    <parent link="tool_mount"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.088" rpy="0 0 0"/>
+  </joint>
+
+</robot>

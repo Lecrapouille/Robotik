@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!-- Outil : torche de soudage MIG/MAG a col de cygne (inclinaison 22 deg).
+     Convention d'interface (commune a tous les outils) :
+       - tool_mount : lien RACINE, repere de montage, superpose a la bride (flange) du robot.
+       - tcp        : Tool Center Point = bout du fil (stick-out). Son axe z suit l'axe du fil,
+                      donc il est INCLINE de 22 deg par rapport a tool_mount : c'est tout l'interet
+                      d'avoir un repere TCP distinct de la bride.
+     Pas de joint actionne : le col de cygne est fixe. -->
+<robot name="tool_welding">
+
+  <link name="tool_mount">
+    <visual>
+      <geometry><cylinder length="0.008" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.004" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.06" radius="0.028"/></geometry>
+      <origin xyz="0 0 0.038" rpy="0 0 0"/>
+      <material name="white"><color rgba="0.93 0.94 0.96 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.006" radius="0.0285"/></geometry>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <material name="orange"><color rgba="0.96 0.46 0.1 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.012" radius="0.02"/></geometry>
+      <origin xyz="0 0 0.074" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.08" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <inertia ixx="0.000379" ixy="0.0" ixz="0.0" iyy="0.000379" iyz="0.0" izz="0.000225"/>
+    </inertial>
+  </link>
+
+  <!-- Col de cygne : repere incline de 22 deg (0.384 rad) autour de y, z = axe du fil -->
+  <link name="welding_neck">
+    <visual>
+      <geometry><cylinder length="0.1" radius="0.01"/></geometry>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <material name="brass"><color rgba="0.78 0.5 0.22 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.04" radius="0.0125"/></geometry>
+      <origin xyz="0 0 0.12" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.012" radius="0.0008"/></geometry>
+      <origin xyz="0 0 0.146" rpy="0 0 0"/>
+      <material name="steel"><color rgba="0.55 0.57 0.6 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.14" radius="0.0125"/></geometry>
+      <origin xyz="0 0 0.07" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.15"/>
+      <origin xyz="0 0 0.07" rpy="0 0 0"/>
+      <inertia ixx="0.000251" ixy="0.0" ixz="0.0" iyy="0.000251" iyz="0.0" izz="0.000012"/>
+    </inertial>
+  </link>
+
+  <joint name="welding_neck_joint" type="fixed">
+    <parent link="tool_mount"/>
+    <child link="welding_neck"/>
+    <origin xyz="0 0 0.08" rpy="0 0.384 0"/>
+  </joint>
+
+  <!-- Bout du fil : 0.1 (col) + 0.04 (buse) + 0.012 (stick-out) = 0.152 m le long du col -->
+  <link name="tcp"/>
+  <joint name="welding_neck_to_tcp" type="fixed">
+    <parent link="welding_neck"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.152" rpy="0 0 0"/>
+  </joint>
+
+</robot>

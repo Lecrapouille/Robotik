@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!-- Outil : perceuse (broche motorisee).
+     Convention d'interface (commune a tous les outils) :
+       - tool_mount : lien RACINE, repere de montage, superpose a la bride (flange) du robot.
+       - tcp        : Tool Center Point, pointe du foret. Axe z = axe de percage (direction d'avance).
+     Joint actionne : drill_spindle_joint (continu, rotation de la broche autour de z). -->
+<robot name="tool_drill">
+
+  <link name="tool_mount">
+    <visual>
+      <geometry><cylinder length="0.008" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.004" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.07" radius="0.03"/></geometry>
+      <origin xyz="0 0 0.043" rpy="0 0 0"/>
+      <material name="white"><color rgba="0.93 0.94 0.96 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.006" radius="0.0305"/></geometry>
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+      <material name="orange"><color rgba="0.96 0.46 0.1 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.03" radius="0.031"/></geometry>
+      <origin xyz="0 0 0.055" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.025" radius="0.022"/></geometry>
+      <origin xyz="0 0 0.0905" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.095" radius="0.032"/></geometry>
+      <origin xyz="0 0 0.0475" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.75"/>
+      <origin xyz="0 0 0.045" rpy="0 0 0"/>
+      <inertia ixx="0.000380" ixy="0.0" ixz="0.0" iyy="0.000380" iyz="0.0" izz="0.000270"/>
+    </inertial>
+  </link>
+
+  <link name="drill_spindle">
+    <visual>
+      <geometry><cylinder length="0.025" radius="0.012"/></geometry>
+      <origin xyz="0 0 0.0125" rpy="0 0 0"/>
+      <material name="silver"><color rgba="0.72 0.75 0.79 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.004" radius="0.0135"/></geometry>
+      <origin xyz="0 0 0.012" rpy="0 0 0"/>
+      <material name="graphite"><color rgba="0.17 0.18 0.21 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.04" radius="0.003"/></geometry>
+      <origin xyz="0 0 0.045" rpy="0 0 0"/>
+      <material name="steel"><color rgba="0.55 0.57 0.6 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.065" radius="0.012"/></geometry>
+      <origin xyz="0 0 0.0325" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.06"/>
+      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <inertia ixx="0.000023" ixy="0.0" ixz="0.0" iyy="0.000023" iyz="0.0" izz="0.000004"/>
+    </inertial>
+  </link>
+
+  <joint name="drill_spindle_joint" type="continuous">
+    <parent link="tool_mount"/>
+    <child link="drill_spindle"/>
+    <origin xyz="0 0 0.103" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="2.0" velocity="100.0"/>
+    <dynamics damping="0.01" friction="0.0"/>
+  </joint>
+
+  <!-- Pointe du foret : 0.103 (broche) + 0.065 = 0.168 m depuis tool_mount -->
+  <link name="tcp"/>
+  <joint name="tool_mount_to_tcp" type="fixed">
+    <parent link="tool_mount"/>
+    <child link="tcp"/>
+    <origin xyz="0 0 0.168" rpy="0 0 0"/>
+  </joint>
+
+</robot>
