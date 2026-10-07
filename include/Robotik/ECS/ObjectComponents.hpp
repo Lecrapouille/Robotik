@@ -17,6 +17,10 @@
 namespace robotik::ecs
 {
 
+//! Wall thickness in metres for @ref SceneObject::Type::BOX (rendering, @ref
+//! Robotik/Scene/ContainerBounds.hpp).
+inline constexpr double CONTAINER_WALL_M = 0.005;
+
 // ****************************************************************************
 // @brief Pick-and-place prop spawned from a scenario file.
 //
@@ -31,7 +35,7 @@ struct SceneObject
     enum class Type
     {
         CUBE, //!< Single box mesh scaled by @ref size.
-        BOX   //!< Open container: floor plus four walls in the scene loader.
+        BOX   //!< Open-top bin; cavity from @ref scene::innerBounds.
     };
 
     //!< Unique name referenced by skills and assertions.

@@ -22,8 +22,6 @@
 #include <numbers>
 #include <stdexcept>
 
-#define WALL_THICKNESS 0.005f
-
 bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
 {
     if (p_width == width && p_height == height)
@@ -166,12 +164,13 @@ void SimulatorView::object(compages::world::Entity p_entity,
         part("_mesh", 0.0f, 0.0f, 0.0f, x, y, z);
         return;
     }
-    float const t = WALL_THICKNESS;
-    part("_floor", 0.0f, 0.0f, (t - z) * 0.5f, x, y, t);
-    part("_north", 0.0f, (y - t) * 0.5f, 0.0f, x, t, z);
-    part("_south", 0.0f, (t - y) * 0.5f, 0.0f, x, t, z);
-    part("_east", (x - t) * 0.5f, 0.0f, 0.0f, t, y, z);
-    part("_west", (t - x) * 0.5f, 0.0f, 0.0f, t, y, z);
+    // Open-top bin: same wall thickness (m) as scene::innerBounds / CONTAINER_WALL_M.
+    float const wall = static_cast<float>(robotik::ecs::CONTAINER_WALL_M);
+    part("_floor", 0.0f, 0.0f, (wall - z) * 0.5f, x, y, wall);
+    part("_north", 0.0f, (y - wall) * 0.5f, 0.0f, x, wall, z);
+    part("_south", 0.0f, (wall - y) * 0.5f, 0.0f, x, wall, z);
+    part("_east", (x - wall) * 0.5f, 0.0f, 0.0f, wall, y, z);
+    part("_west", (wall - x) * 0.5f, 0.0f, 0.0f, wall, y, z);
 }
 
 robotik::FrameSource* SimulatorView::camera(robotik::Camera& p_camera,

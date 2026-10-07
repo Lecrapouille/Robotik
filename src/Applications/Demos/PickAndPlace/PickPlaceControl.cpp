@@ -7,6 +7,7 @@
 
 #include "PickPlaceControl.hpp"
 
+#include "Robotik/Scene/ContainerBounds.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
@@ -29,6 +30,8 @@
 #define EXPERT_ALIGN_M 0.025
 #define EXPERT_TOUCH_M 0.020
 #define EXPERT_COMMIT_Z_M 0.06
+
+// --- Ground-truth layout (same frame as scenario objects) ---------------------
 
 static robotik::Vector3 objectCenter(robotik::Simulation const& p_simulation,
                                      std::string_view p_name)
@@ -53,6 +56,8 @@ static robotik::Vector3 clampWorkspace(robotik::Vector3 const& p_point)
              std::clamp(p_point.y, -0.40, 0.40),
              std::clamp(p_point.z, 0.02, 0.35) };
 }
+
+// --- Scripted ready pose before RL episodes -----------------------------------
 
 void readyPosture(robotik::RobotSession& p_robot,
                   robotik::VacuumGripper const& p_gripper,
@@ -96,6 +101,8 @@ void readyPosture(robotik::RobotSession& p_robot,
     }
 }
 
+// --- Low-level RL action: TCP delta + suction, then physics steps -------------
+
 void applyPickPlaceAction(robotik::Simulation& p_simulation,
                           robotik::JointGroup& p_arm,
                           robotik::VacuumGripper& p_gripper,
@@ -131,6 +138,8 @@ void applyPickPlaceAction(robotik::Simulation& p_simulation,
     }
 }
 
+// --- Reward / observation helpers (mirror scenario inside(box) semantics) ---
+
 bool cubeInBox(robotik::Simulation const& p_simulation,
                robotik::VacuumGripper const& p_gripper)
 {
@@ -138,15 +147,33 @@ bool cubeInBox(robotik::Simulation const& p_simulation,
     {
         return false;
     }
-    robotik::Vector3 const cube = objectCenter(p_simulation, PICK_PLACE_CUBE);
-    robotik::Vector3 const box = objectCenter(p_simulation, PICK_PLACE_BOX);
-    robotik::WorldModel const& beliefs = p_simulation.worldModel();
-    robotik::WorldObject const* box_belief = beliefs.find(PICK_PLACE_BOX);
-    double const hx = box_belief != nullptr ? 0.5 * box_belief->size.x : 0.08;
-    double const hy = box_belief != nullptr ? 0.5 * box_belief->size.y : 0.08;
-    double const hz = box_belief != nullptr ? 0.5 * box_belief->size.z : 0.04;
-    return std::abs(cube.x - box.x) < hx && std::abs(cube.y - box.y) < hy &&
-           cube.z < box.z + hz;
+    compages::world::Entity cube;
+    compages::world::Entity box;
+    p_simulation.robot().world().each<robotik::ecs::SceneObject>(
+        [&](compages::world::Entity p_entity,
+            robotik::ecs::SceneObject const& p_object)
+        {
+            if (p_object.name == PICK_PLACE_CUBE)
+            {
+                cube = p_entity;
+            }
+            else if (p_object.name == PICK_PLACE_BOX &&
+                     p_object.type == robotik::ecs::SceneObject::Type::BOX)
+            {
+                box = p_entity;
+            }
+        });
+    if (!cube || !box)
+    {
+        return false;
+    }
+    auto const cube_at = cube.position();
+    auto const box_at = box.position();
+    return robotik::scene::restsInside(
+        box.get<robotik::ecs::SceneObject>(),
+        { box_at.x, box_at.y, box_at.z },
+        { cube_at.x, cube_at.y, cube_at.z },
+        robotik::scene::halfExtents(cube.get<robotik::ecs::SceneObject>()));
 }
 
 void writePickPlaceObservation(robotik::Simulation const& p_simulation,
@@ -172,6 +199,8 @@ void writePickPlaceObservation(robotik::Simulation const& p_simulation,
     *out = cubeInBox(p_simulation, p_gripper) ? 1.0f : 0.0f;
 }
 
+// --- Expert policy (teacher for PickAndPlaceRL) -------------------------------
+
 void convergedPolicy(std::span<float const> p_observation,
                      std::span<float> p_action)
 {
@@ -187,6 +216,7 @@ void convergedPolicy(std::span<float const> p_observation,
     robotik::Vector3 goal;
     if (!holding)
     {
+        // Pick: align XY, then descend; latch suction near the cube top.
         double const top = cube.z + 0.02;
         double const xy = std::hypot(cube.x - tip.x, cube.y - tip.y);
         // Commit to the descent once low enough: IK leftover must not send
@@ -205,12 +235,14 @@ void convergedPolicy(std::span<float const> p_observation,
     }
     else if (std::hypot(box.x - tip.x, box.y - tip.y) > EXPERT_ALIGN_M)
     {
+        // Carry: stay high while moving toward the box footprint.
         goal = tip.z < EXPERT_CARRY_Z_M - 0.02
                    ? robotik::Vector3{ tip.x, tip.y, EXPERT_CARRY_Z_M }
                    : robotik::Vector3{ box.x, box.y, EXPERT_CARRY_Z_M };
     }
     else
     {
+        // Place: lower over the cavity centre, then release suction.
         goal = { box.x, box.y, EXPERT_DROP_Z_M };
         suction = tip.z > EXPERT_DROP_Z_M + 0.015;
     }

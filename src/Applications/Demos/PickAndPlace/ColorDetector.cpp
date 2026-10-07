@@ -18,6 +18,8 @@
 namespace
 {
 
+// RGB [0,1] to HSV for hue-based segmentation.
+
 struct Hsv
 {
     float hue;
@@ -73,6 +75,7 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
 
     for (Target const& target : m_targets)
     {
+        // Build a binary mask for pixels matching the registered object colour.
         Hsv const want = hsv(target.color[0], target.color[1], target.color[2]);
         for (std::uint32_t y = 0; y < height; ++y)
         {
@@ -89,6 +92,7 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
             }
         }
 
+        // Largest connected component → bounding box + image-space centre.
         robotik::Detection best;
         std::uint32_t best_pixels = 0;
         for (std::uint32_t seed = 0; seed < count; ++seed)

@@ -110,6 +110,7 @@ public:
     void reset() override
     {
         m_started = false;
+        m_observations_at_start = 0u;
     }
 
     Status tick(RobotContext& p_context, Seconds p_dt) override;
@@ -120,6 +121,7 @@ private:
     Seconds m_timeout;
     Seconds m_start{};
     bool m_started = false;
+    std::uint32_t m_observations_at_start = 0u;
 };
 
 //! @brief Gripper named @p_name, or the first one when empty.

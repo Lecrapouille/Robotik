@@ -83,6 +83,31 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
     EXPECT_DOUBLE_EQ(first.time, again.time);
 }
 
+TEST(Simulation, DetectWaitsUntilCameraIsRestored)
+{
+    PickPlaceMission mission;
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world,
+        robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml")),
+        nullptr,
+        &mission);
+    simulation.reset(robotik::Seed{ 7 });
+    robotik::SkillId const detect = simulation.skills().find("Detect(red_cube)");
+    ASSERT_NE(detect, robotik::NO_SKILL);
+    while (simulation.time() < Seconds(0.99))
+    {
+        simulation.step(Seconds(0.01));
+        EXPECT_NE(simulation.skills().state(detect),
+                  robotik::SkillState::Succeeded);
+    }
+    while (simulation.time() < Seconds(1.05))
+    {
+        simulation.step(Seconds(0.01));
+    }
+    EXPECT_EQ(simulation.skills().state(detect), robotik::SkillState::Succeeded);
+}
+
 TEST(Simulation, SurvivesACameraFailure)
 {
     PickPlaceMission mission;
