@@ -1,191 +1,492 @@
-# Démos Robotik
+# Les démos Robotik
 
-Les démos vivent sous `src/Applications/Demos/`. Le **Simulateur** les affiche ; les binaires CLI servent au CI et aux mesures sans fenêtre. OpenCV et AprilTag restent dans les démos, jamais dans `librobotik-core`.
+Les démos ont deux rôles qui se complètent :
 
-Une mission = un YAML (`data/scenarios/`) + un plugin C++ `Mission` (skills, détecteurs, métriques).
+1. vous montrer comment utiliser Robotik au quotidien ;
+2. servir de petits laboratoires pour essayer de nouvelles idées.
 
-## Compiler
-
-Depuis la racine du dépôt :
-
-```bash
-make -C src/Robotik/Core -j8
-make -C src/Applications/Simulator -j8
-make -C src/Applications/Headless -j8
-make -C src/Applications/Demos/LineFollower -j8
-make -C src/Applications/Demos/PickAndPlaceRL -j8
-```
-
-Les binaires sortent dans `build/` : `Robotik-Simulator`, `Robotik-Headless`, `Robotik-LineFollower`, `Robotik-PickAndPlaceRL`.
-
-Lancer les commandes depuis la racine pour que les chemins `data/...` se résolvent.
+Elles ne remplacent pas le cœur de la bibliothèque, qui reste **`librobotik-core`**.
 
 ---
 
-## Pick-and-place
+# 1. Ce qu'est une démo Robotik
 
-**But.** Un bras 6 axes (`data/robot_6axis.urdf`) saisit le cube rouge et le pose dans la boîte. Perception couleur (démo), ventouse simulée, behavior tree.
+Une démo typique assemble plusieurs briques :
 
-**Scénarios.**
+```text
+Scenario YAML
+     +
+Mission C++
+     +
+Robotik core
+     +
+backend / perception / affichage
+```
 
-| Fichier | Rôle |
-|---------|------|
-| `data/scenarios/pick_and_place.yml` | Mission nominale |
-| `data/scenarios/pick_and_place_faults.yml` | Caméra coupée puis rétablie, pannes aléatoires |
+Le YAML pose le cadre de l'expérience : le monde, le robot, la mission, et ce qui compte comme une réussite.
 
-**Assertions.** `robot.success`, `object("red_cube").inside("box")`, `gripper.empty`, `collisions == 0`, `time < 30`.
+Le C++ apporte ce qui est propre à la démo : skills, détecteurs, métriques, politiques RL ou intégrations externes.
 
-**Simulateur.** Menu *Pick-and-place*. Onglets Scenario (vérité / croyance), **Scenario file** (YAML), Robot, World, Robot camera, Behavior tree, Skills, Resources.
+---
+
+# 2. Les applications
+
+Le dépôt propose quatre exécutables :
+
+```text
+Robotik-Simulator
+Robotik-Headless
+Robotik-LineFollower
+Robotik-PickAndPlaceRL
+```
+
+**Robotik-Simulator** permet de regarder une mission se dérouler, avec une interface graphique.
+
+**Robotik-Headless** exécute exactement la même logique, mais sans fenêtre. Idéal pour l'intégration continue et les campagnes de tests.
+
+Les deux autres illustrent des usages plus ciblés : le suivi de ligne et le RL qui sont aussi présents dans Robotik-Simulator.
+
+---
+
+# 3. Pick and Place
+
+C'est la démo de référence : celle à regarder en premier pour comprendre l'architecture de bout en bout.
+
+Le but : amener le cube rouge dans la boîte.
+
+```text
+         red_cube
+             │
+             ▼
+        ┌─────────┐
+        │  boîte  │
+        └─────────┘
+```
+
+Le déroulé normal :
+
+```text
+Detect
+  ↓
+Approach
+  ↓
+Reach
+  ↓
+Grasp
+  ↓
+Lift
+  ↓
+MoveTo(box)
+  ↓
+Release
+```
+
+Elle met en jeu un bras six axes, une caméra, une chaîne de perception, des skills, un behavior tree, un gripper simulé, MuJoCo, et des assertions en fin de mission.
+
+---
+
+# 4. Le scénario nominal
+
+Le fichier :
+
+```text
+data/scenarios/pick_and_place.yml
+```
+
+Il décrit la mission « qui se passe bien », sans aucune panne.
+
+Pour la lancer avec l'interface :
 
 ```bash
-./build/Robotik-Simulator
+./build/Robotik-Simulator \
+    data/scenarios/pick_and_place.yml
+```
+
+Et le même scénario en headless, avec une graine reproductible :
+
+```bash
+./build/Robotik-Headless \
+    data/scenarios/pick_and_place.yml \
+    --seed 11
+```
+
+---
+
+# 5. Le scénario avec pannes
+
+Le fichier :
+
+```text
+data/scenarios/pick_and_place_faults.yml
+```
+
+Cette variante ajoute notamment une panne de caméra.
+
+Dans **Robotik-Simulator**, choisir la mission **Pick-and-place (faults)** dans la barre de menu, ou lancer :
+
+```bash
 ./build/Robotik-Simulator data/scenarios/pick_and_place_faults.yml
 ```
 
-**CLI (CI, oracle de perception si pas d’image).**
+Le but n'est pas simplement de constater que ça échoue. On veut vérifier que l'architecture réagit intelligemment : réessayer, se replier sur autre chose, ou abandonner.
 
-```bash
-./build/Robotik-Headless data/scenarios/pick_and_place.yml --seed 11
-./build/Robotik-Headless data/scenarios/pick_and_place_faults.yml
+```text
+Camera
+  │
+  ▼
+Detect
+  │
+  X panne
+  │
+  ▼
+FAILURE
+  │
+  ▼
+Behavior Tree
+  │
+  ├── retry
+  ├── fallback
+  └── abort
 ```
 
-`--seed N` rejoue le même placement, le même bruit et les mêmes pannes.
+Les pannes deviennent ainsi un moyen de tester le comportement autonome, et pas seulement la cinématique.
 
 ---
 
-## Line follower
+# 6. Les assertions du pick-and-place
 
-**But.** Robot différentiel (`data/simple_diff_drive_robot.urdf`) : se localiser sur des AprilTags au sol, rejoindre la ligne, en faire au moins un tour. L’odométrie est volontairement biaisée ; les tags corrigent la pose. La perception (AprilTag + ligne) tourne sur une caméra CPU (`FloorCamera`). Le GPU ne sert qu’à l’opérateur (`SceneView::ground()`).
+La mission peut exiger, entre autres :
 
-**Scénario.** `data/scenarios/line_follower.yml`  
-**Assertions.** `robot.success`, `time < 150`, `cross_track.max < 0.08`, `laps >= 1`.
-
-**Simulateur.** Menu *Line follower*. L’onglet Scenario montre les fixes, le cross-track et les tours.
-
-**CLI (CI, carte vérité / estimée).**
-
-```bash
-./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png
-./build/Robotik-LineFollower --view          # fenêtres OpenCV
-./build/Robotik-Headless data/scenarios/line_follower.yml --seed 4
+```text
+robot.success
+object("red_cube").inside("box")
+gripper.empty
+collisions == 0
+time < 30
 ```
 
-| Option | Défaut | Rôle |
-|--------|--------|------|
-| `--seed N` | 1 | Départ, bruit odométrie, tags |
-| `--laps X` | 1 | Distance à parcourir (tours de piste) |
-| `--view` | off | Caméra + carte en direct |
-| `--save map.png` | — | Écrit la carte (vert = vérité, rouge = estimée) |
-| `--scenario path` | `data/scenarios/line_follower.yml` | YAML |
+C'est bien plus pertinent que de tester des angles articulaires. Un autre contrôleur peut très bien suivre une trajectoire différente et pourtant remplir la mission.
 
 ---
 
-## Pick-and-place RL
+# 7. Le line follower
 
-Cette démo montre la **boucle** qu’utiliserait un vrai apprentissage par renforcement. Elle n’entraîne **aucun réseau**. Il n’y a pas de fichier de poids, pas de PPO, pas de SAC.
+Cette démo aborde une autre famille de problèmes : un robot mobile, de la perception et une boucle de contrôle.
 
-### La boucle, à chaque pas
-
-```
-observation  →  politique  →  action  →  physique  →  récompense
-     ↑                                                    │
-     └──────────── nouvel état (ou nouvel épisode) ───────┘
-```
-
-- **Observation** (16 nombres) : position de la ventouse, du cube, de la boîte, « est-ce que je tiens le cube ? », etc.
-- **Action** (4 nombres) : déplacer la ventouse en x, y, z, et allumer / éteindre l’aspiration.
-- **Récompense** : se rapprocher du cube ; +2 quand on saisit ; +10 quand le cube est dans la boîte. Le *return* d’un épisode est la somme de ces récompenses.
-- **Épisode** : on part d’une pose de départ, on joue jusqu’à succès (cube dans la boîte) ou jusqu’à *max steps* (échec).
-
-Deux programmes tournent **la même** boucle :
-
-| Où | Ce que tu vois |
-|----|----------------|
-| Simulateur → menu **Pick-and-place RL**, onglet **RL** | Un seul bras, à l’écran |
-| `./build/Robotik-PickAndPlaceRL` | N bras en parallèle, sans fenêtre, un tableau de scores |
-
-`--envs 4` ce n’est pas « 4 robots qui s’entraînent et on garde le meilleur ». C’est 4 **copies identiques** de la même politique, pour aller plus vite et vérifier que le rejeu est bit-à-bit.
-
-Ce n’est **pas** le pick-and-place à arbre de comportement (menu *Pick-and-place*, ou `Robotik-Headless`).
-
-### Qui décide l’action ? (`--policy`)
-
-| `--policy` | Qui calcule les 4 nombres | Résultat typique |
-|------------|---------------------------|------------------|
-| `converged` | Une **recette écrite en C++** (`convergedPolicy`) : va au-dessus du cube, descends, aspire, porte, lâche dans la boîte | Succès en ~50–60 pas, return ~41 |
-| `random` | Un tirage au hasard dans `[-1, 1]` | Le bras gigote, échec, return négatif |
-
-`converged` veut dire « déjà capable de finir la tâche », pas « un réseau qui a fini d’apprendre ». C’est le comportement qu’on aurait **après** un vrai entraînement.
-
-### À quoi sert `--train` ?
-
-`--train` **n’apprend rien**. Il ne met à jour aucun poids.
-
-Il fait un **fondu** entre le hasard et la recette, pour qu’on voie le taux de succès monter comme pendant un entraînement.
-
-L’action jouée est :
-
-```
-action = (1 − mix) × hasard  +  mix × recette
+```text
+             caméra
+                │
+                ▼
+           perception
+                │
+                ▼
+          localisation
+                │
+                ▼
+          contrôleur
+                │
+                ▼
+        robot différentiel
 ```
 
-| Moment | `mix` | Ce que fait le bras |
-|--------|-------|---------------------|
-| Début | 0 | 100 % hasard, ça échoue |
-| Après 4 épisodes finis | 0.5 | Moitié hasard, moitié recette |
-| Après 8 épisodes finis | 1 | 100 % recette : même chose que `--policy converged` |
+Le robot se repère grâce à des AprilTags posés au sol, puis suit une ligne.
 
-Huit, c’est `PICK_PLACE_TRAIN_EPISODES` dans le code.
-
-**`--train` ne sert qu’avec `--policy random`.** Avec `--policy converged`, `mix` vaut déjà 1 : le flag ne change rien.
-
-Sans `--train`, `--policy random` reste du hasard du premier au dernier épisode (baseline : « à quoi ressemble un agent qui ne sait rien »).
-
-Exemple de sortie avec `--policy random --train --episodes 12` : les premiers épisodes `success no`, les derniers `success yes`. Le résumé `random→convergé` compte les succès sur **tout** le run, donc pas 12/12 : le début a échoué exprès.
-
-Dans le Simulateur, **Random** fait toujours ce fondu (pas de bruit pur). La barre monte à chaque pas d’action (~400 pas pour arriver à 100 %). **Converged** = `--policy converged`. Le bruit pur sans fondu n’existe que sur le CLI : `--policy random` sans `--train`.
-
-### Commandes CLI
-
-Toujours depuis la racine du dépôt.
-
-```bash
-# Recette seule (déjà capable). Mesure le débit du pool.
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
-
-# Hasard qui fond vers la recette. Les derniers épisodes réussissent.
-./build/Robotik-PickAndPlaceRL --policy random --train --envs 4 --episodes 16 --seed 1
-
-# Hasard seul, ça n’arrive jamais (baseline).
-./build/Robotik-PickAndPlaceRL --policy random --envs 4 --episodes 8 --seed 1
-```
-
-| Option | Défaut | Rôle |
-|--------|--------|------|
-| `--policy converged\|random` | `converged` | Recette, ou hasard |
-| `--train` | off | Si `random` : monter `mix` de 0 à 1 en 8 épisodes. Inutile si `converged`. |
-| `--envs N` | 8 | Nombre de copies parallèles (même politique) |
-| `--threads T` | 0 = auto | Threads du pool |
-| `--episodes E` | 32 | Combien d’épisodes afficher dans le tableau |
-| `--seed S` | 1 | Graine maître (même seed = même run) |
-| `--scenario file.yml` | pick-and-place | Scène (l’arbre de comportement est coupé) |
-| `--no-replay` | — | Ne pas revérifier le rejeu sur 1 thread |
-| `--trace` | — | Afficher observation et action de la copie 0 |
-
-Le pool doit donner le **même** tableau quel que soit `--threads`. Pour brancher un vrai trainer, on remplace `pickPlacePolicy` par le `forward()` du réseau.
+L'odométrie simulée est volontairement faussée. On voit ainsi à quoi sert une observation extérieure : corriger l'estimation de la position.
 
 ---
 
-## Tutoriel rapide
+# 8. Pourquoi introduire une erreur exprès ?
 
-1. Compiler le cœur et le Simulateur (ci-dessus).
-2. `./build/Robotik-Simulator` — la mission pick-and-place démarre.
-3. Play / Pause / Step, *Replay* (même seed), *New seed*.
-4. **EMERGENCY STOP** préempte le bras (`Stop`, priorité 1000).
-5. Combo *Pick-and-place RL*, onglet **RL** : **Converged** = la recette (le cube arrive dans la boîte). **Random** = fondu hasard → recette (équivalent de `--train`). Le pool N copies est le CLI, pas la fenêtre.
-6. Onglet **Scenario file** : le YAML chargé. *Load* relit le chemin de la barre.
-7. Vérifier sans fenêtre : `./build/Robotik-Headless data/scenarios/pick_and_place.yml --seed 11` (codes : 0 = assertions OK, 2 = échec, 1 = erreur).
-8. CI line follower : `./build/Robotik-LineFollower --seed 4 --save map.png`.
-9. Mesure RL : `./build/Robotik-PickAndPlaceRL --policy converged --envs 8 --episodes 16`. Pour voir le fondu hasard → recette : `--policy random --train` (ce n’est pas un vrai entraînement).
+Une simulation parfaite cache souvent les vraies difficultés du terrain.
 
-Pour ajouter une mission : copier un YAML, implémenter `robotik::Mission` (`setup` / `reset` / `step` / `measure`), l’enregistrer dans le menu du Simulateur et dans `Robotik-Headless`.
+Si l'on posait :
+
+```text
+odométrie = vérité
+```
+
+la localisation ne prouverait plus grand-chose.
+
+Dans la démo, le simulateur donne la vérité terrain, pendant que l'odométrie dérive. Les AprilTags permettent de comparer l'estimation à la référence :
+
+```text
+vérité
+  │
+  ├── simulateur
+  │
+  └── odométrie volontairement biaisée
+              │
+              ▼
+          estimation
+              │
+              ▼
+           AprilTag
+              │
+              ▼
+        correction pose
+```
+
+On peut afficher côte à côte :
+
+```text
+ground truth
+estimated pose
+```
+
+---
+
+# 9. Les commandes du LineFollower
+
+Exécution avec sauvegarde de la carte :
+
+```bash
+./build/Robotik-LineFollower \
+    --seed 4 \
+    --laps 1 \
+    --save map.png
+```
+
+Avec le flux de la caméra à l'écran :
+
+```bash
+./build/Robotik-LineFollower \
+    --view
+```
+
+Ou via le binaire headless générique :
+
+```bash
+./build/Robotik-Headless \
+    data/scenarios/line_follower.yml \
+    --seed 4
+```
+
+---
+
+# 10. Pick and Place RL
+
+Cette démo met en place la boucle classique d'un environnement d'apprentissage :
+
+```text
+observation
+     │
+     ▼
+  policy
+     │
+     ▼
+   action
+     │
+     ▼
+  physics
+     │
+     ▼
+  reward
+     │
+     └──────────► observation
+```
+
+Pour l'instant, le but est surtout de valider l'infrastructure : `Environment`, pool parallèle, reproductibilité.
+
+Un vrai entraînement de type PPO ou SAC n'est pas l'objet de cette démo.
+
+---
+
+# 11. Environnements parallèles
+
+L'idée est d'alimenter plusieurs copies du même environnement en même temps :
+
+```text
+env 0 ─┐
+env 1 ─┤
+env 2 ─┤
+env 3 ─┼──► policy
+...    │
+env N ─┘
+```
+
+Un exemple de lancement :
+
+```bash
+./build/Robotik-PickAndPlaceRL \
+    --policy converged \
+    --envs 16 \
+    --threads 8 \
+    --episodes 32
+```
+
+On peut ainsi vérifier que les résultats restent identiques d'une exécution à l'autre, même avec de nombreux environnements en parallèle.
+
+---
+
+# 12. Pourquoi le rendu n'est pas obligatoire
+
+Avec 16, 100 ou 1000 environnements, afficher chaque robot n'apporte rien à l'entraînement.
+
+Robotik sépare donc la **simulation** (état, physique, capteurs, observations) :
+
+```text
+Simulation
+    │
+    ├── état
+    ├── physique
+    ├── capteurs
+    └── observation
+```
+
+de la **visualisation** :
+
+```text
+SceneView
+    │
+    └── affichage d'un ou plusieurs environnements
+```
+
+Le rendu devient un outil d'observation qu'on sort quand on en a besoin, pas une dépendance du cœur RL.
+
+---
+
+# 13. Écrire sa propre démo
+
+Une bonne démo part d'une question précise, à laquelle on peut répondre par oui ou par non. Par exemple :
+
+```text
+Puis-je détecter un objet avec une caméra ?
+Puis-je localiser un robot avec des AprilTags ?
+Puis-je faire échouer proprement une skill ?
+Puis-je replanifier après une panne ?
+Puis-je comparer deux stratégies de contrôle ?
+Puis-je exécuter le même scénario avec deux backends ?
+```
+
+Ensuite, concrètement :
+
+```text
+1. créer le scénario YAML
+2. créer les skills nécessaires
+3. brancher les détecteurs
+4. définir les assertions
+5. ajouter une application si nécessaire
+```
+
+---
+
+# 14. Une démo qui grandit devient un scénario
+
+Quand une démo est stable, on doit pouvoir la lancer indifféremment ainsi :
+
+```bash
+Robotik-Simulator scenario.yml
+```
+
+ou ainsi :
+
+```bash
+Robotik-Headless scenario.yml
+```
+
+C'est de cette façon qu'une démonstration se transforme peu à peu en test de non-régression.
+
+---
+
+# 15. Les démos comme laboratoire
+
+Robotik est fait pour expérimenter. Un même scénario peut servir de banc d'essai pour comparer des stratégies de haut niveau :
+
+```text
+                 même scénario
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+       BT            PDDL            GOAP
+        │              │              │
+        └──────────────┼──────────────┘
+                       ▼
+                     Skills
+```
+
+On peut alors comparer, sur des exécutions strictement identiques :
+
+- le temps d'exécution ;
+- les collisions ;
+- le nombre d'échecs ;
+- la précision ;
+- la consommation de ressources ;
+- la robustesse aux pannes.
+
+---
+
+# 16. Des démos à imaginer
+
+L'architecture laisse la place à plusieurs prolongements naturels.
+
+### SO-101
+
+```text
+simulation MuJoCo
+       │
+       ▼
+    Robotik
+       │
+       ▼
+  SO101Backend
+       │
+       ▼
+   robot réel
+```
+
+Le scénario YAML pourrait rester tel quel ; seul le backend changerait.
+
+### Perception RGB-D
+
+```text
+Camera
+ ↓
+Depth
+ ↓
+Open3D / OpenCV
+ ↓
+WorldModel
+ ↓
+Pick
+```
+
+### Planification
+
+```text
+Goal
+ ↓
+PDDL / GOAP
+ ↓
+BT
+ ↓
+Skills
+```
+
+### Raisonnement
+
+```text
+WorldModel
+ ↓
+Prolog
+ ↓
+facts / rules
+ ↓
+decision
+```
+
+Toutes ces variantes restent comparables, puisqu'elles partagent les mêmes fichiers de scénario.
+
+---
+
+# 17. L'esprit des démos
+
+Une bonne démo Robotik cherche à être :
+
+- **petite** : un seul concept par démo ;
+- **reproductible** : graine, assertions, mode headless ;
+- **lisible** : du YAML et peu de code métier ;
+- **observable** : simulateur ou traces quand c'est utile ;
+- **testable** : des critères de réussite explicites ;
+- **réutilisable** : le scénario survit à l'application de démonstration.
+
+L'objectif n'est pas de livrer une application finie, mais de mettre en lumière **une idée de robotique**, bien isolée.
