@@ -16,6 +16,7 @@
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Robot/TeachPendant.hpp"
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
@@ -25,6 +26,23 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
+
+inline constexpr char const* TEACH_PANEL = "Teach";
+
+struct TeachWatch
+{
+    bool manual = false;
+    bool loop = false;
+    float joint_step = 0.05f;
+    float linear_step = 0.01f;
+    float angular_step = 0.05f;
+    float duration = 2.0f;
+    std::string label;
+    robotik::TeachPendant pendant;
+    std::vector<compages::world::Entity> markers;
+    std::uint32_t marker_serial = 0;
+};
 
 enum class HostedMission
 {
@@ -70,6 +88,7 @@ struct App
     ColorDetector* detector = nullptr;
     LineFollowerMission* line_follower = nullptr;
     RlWatch rl;
+    TeachWatch teach;
     compages::world::Entity view_camera;
 
     RenderTarget view;
@@ -96,3 +115,4 @@ private:
 };
 
 void drawPanels(App& p_app);
+void teachPanel(App& p_app);

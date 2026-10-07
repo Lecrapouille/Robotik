@@ -95,6 +95,9 @@ void App::load()
     scenario_text.clear();
     detector = nullptr;
     line_follower = nullptr;
+    teach.manual = false;
+    teach.pendant.clear();
+    teach.markers.clear();
     RlWatch const keep = rl;
     rl = {};
     rl.converged = keep.converged;
@@ -355,6 +358,10 @@ void App::advance(double p_elapsed)
         }
         else
         {
+            if (teach.manual)
+            {
+                teach.pendant.update(simulation->robot(), Seconds(SIMULATOR_DT_S));
+            }
             simulation->step(Seconds(SIMULATOR_DT_S));
         }
         return;
@@ -384,6 +391,10 @@ void App::advance(double p_elapsed)
             }
             m_lag = 0.0;
             break;
+        }
+        if (teach.manual)
+        {
+            teach.pendant.update(simulation->robot(), Seconds(SIMULATOR_DT_S));
         }
         simulation->step(Seconds(SIMULATOR_DT_S));
         m_lag -= SIMULATOR_DT_S;

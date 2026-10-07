@@ -9,6 +9,7 @@
 // @brief ECS markers of a loaded robot root entity.
 #pragma once
 
+#include <cstddef>
 #include <filesystem>
 #include <string>
 
@@ -33,6 +34,17 @@ struct RobotIdentity
     std::string name;
     //!< URDF file.
     std::filesystem::path model_path;
+};
+
+// ****************************************************************************
+//! @brief Marker of a teach-pendant waypoint, parented to the robot root.
+//!
+//! The entity pose is the recorded tool pose in the robot base frame. The
+//! index matches @ref robotik::TeachPendant waypoints.
+// ****************************************************************************
+struct TeachMarker
+{
+    std::size_t index = 0;
 };
 
 } // namespace robotik::ecs
