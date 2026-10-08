@@ -31,13 +31,14 @@ Le C++ apporte ce qui est propre à la démo : skills, détecteurs, métriques, 
 
 # 2. Les applications
 
-Le dépôt propose quatre exécutables :
+Le dépôt propose cinq exécutables :
 
 ```text
 Robotik-Simulator
 Robotik-Headless
 Robotik-LineFollower
 Robotik-PickAndPlaceRL
+Robotik-Fly
 ```
 
 **Robotik-Simulator** permet de regarder une mission se dérouler, avec une interface graphique.
@@ -318,7 +319,27 @@ On peut ainsi vérifier que les résultats restent identiques d'une exécution �
 
 ---
 
-# 12. Pourquoi le rendu n'est pas obligatoire
+# 12. Fly brain
+
+This demo puts an agent on the same loop as the RL one: observation, action, environment, seed, headless execution, and several worlds in parallel.
+
+```text
+sensors → observation → brain → action → controller → body
+```
+
+The brain knows neither MuJoCo, nor Compages, nor the URDF. Two brains share that surface: a reflex rule, and the integrate-and-fire neuron of Shiu et al. 2024. The second can load the FlyWire connectome (`--edges`, `--binding`); without those files it runs on a small circuit that uses the same equations.
+
+The body is the ×100 model (`data/drosophila_x100.urdf`, about 28 cm). Flight is plain kinematics: the wings, the legs, and the neck are a posture, not a wind tunnel.
+
+```bash
+./build/Robotik-Fly --brain reflex
+./build/Robotik-Fly --view
+./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+```
+
+The scenario is `data/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles.
+
+# 13. Pourquoi le rendu n'est pas obligatoire
 
 Avec 16, 100 ou 1000 environnements, afficher chaque robot n'apporte rien à l'entraînement.
 
@@ -345,7 +366,7 @@ Le rendu devient un outil d'observation qu'on sort quand on en a besoin, pas une
 
 ---
 
-# 13. Écrire sa propre démo
+# 14. Écrire sa propre démo
 
 Une bonne démo part d'une question précise, à laquelle on peut répondre par oui ou par non. Par exemple :
 
@@ -370,7 +391,7 @@ Ensuite, concrètement :
 
 ---
 
-# 14. Une démo qui grandit devient un scénario
+# 15. Une démo qui grandit devient un scénario
 
 Quand une démo est stable, on doit pouvoir la lancer indifféremment ainsi :
 
@@ -388,7 +409,7 @@ C'est de cette façon qu'une démonstration se transforme peu à peu en test de 
 
 ---
 
-# 15. Les démos comme laboratoire
+# 16. Les démos comme laboratoire
 
 Robotik est fait pour expérimenter. Un même scénario peut servir de banc d'essai pour comparer des stratégies de haut niveau :
 
@@ -415,7 +436,7 @@ On peut alors comparer, sur des exécutions strictement identiques :
 
 ---
 
-# 16. Des démos à imaginer
+# 17. Des démos à imaginer
 
 L'architecture laisse la place à plusieurs prolongements naturels.
 
@@ -478,7 +499,7 @@ Toutes ces variantes restent comparables, puisqu'elles partagent les mêmes fich
 
 ---
 
-# 17. L'esprit des démos
+# 18. L'esprit des démos
 
 Une bonne démo Robotik cherche à être :
 

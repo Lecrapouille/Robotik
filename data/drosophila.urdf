@@ -1,0 +1,1366 @@
+<?xml version="1.0"?>
+<!-- Drosophila melanogaster (mouche du vinaigre) simplifiee, echelle REELLE (metres, kg) : corps ~2.8 mm, ~1 mg.
+     Repere : x = avant, y = gauche, z = haut (REP-103). Racine = thorax, origine au centre du thorax.
+     54 DDL : 6 pattes x 7 + 2 ailes x 3 + 2 halteres + cou 3 + abdomen 1.
+     Nommage : pattes LF/LM/LH/RF/RM/RH (Left/Right, Front/Middle/Hind), proche de NeuroMechFly.
+     Chaque patte : coxa_pitch, coxa_roll, coxa_yaw, femur_pitch, femur_roll, tibia_pitch, tarsus_pitch.
+       Axes locaux au repere du segment (z = axe du segment) : pitch=y, roll=x, yaw=z.
+     Symetrie : a signe de joint egal, gauche et droite font le MEME mouvement (miroir) -> un cerveau
+       peut piloter les deux cotes avec les memes commandes.
+     q = 0 : pose debout (voir bas des pattes : reperes *_tip). Les liens "_link" sont des reperes
+       intermediaires de masse negligeable (URDF impose un lien entre deux joints). -->
+<robot name="drosophila">
+
+  <link name="thorax">
+    <visual>
+      <geometry><cylinder length="0.0012" radius="0.00048"/></geometry>
+      <origin xyz="0 0 0" rpy="0 1.570796 0"/>
+      <material name="thorax_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="0.00048"/></geometry>
+      <origin xyz="0.0006 0 0" rpy="0 0 0"/>
+      <material name="thorax_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="0.00048"/></geometry>
+      <origin xyz="-0.0006 0 0" rpy="0 0 0"/>
+      <material name="thorax_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0012" radius="0.00048"/></geometry>
+      <origin xyz="0 0 0" rpy="0 1.570796 0"/>
+    </collision>
+    <inertial>
+      <mass value="4.5e-07"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="4.5e-14" ixy="0" ixz="0" iyy="4.5e-14" iyz="0" izz="4.5e-14"/>
+    </inertial>
+  </link>
+
+  <link name="neck_yaw_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="neck_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="neck_yaw" type="revolute">
+    <parent link="thorax"/>
+    <child link="neck_yaw_link"/>
+    <origin xyz="0.0007 0 0.00015" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="100" lower="-0.8" upper="0.8"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="neck_pitch" type="revolute">
+    <parent link="neck_yaw_link"/>
+    <child link="neck_pitch_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="100" lower="-0.8" upper="0.8"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="head">
+    <visual>
+      <geometry><sphere radius="0.00045"/></geometry>
+      <origin xyz="0.00035 0 0" rpy="0 0 0"/>
+      <material name="head_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="0.00028"/></geometry>
+      <origin xyz="0.0004 0.00032 8e-05" rpy="0 0 0"/>
+      <material name="eye_red"><color rgba="0.70 0.10 0.10 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="0.00028"/></geometry>
+      <origin xyz="0.0004 -0.00032 8e-05" rpy="0 0 0"/>
+      <material name="eye_red"><color rgba="0.70 0.10 0.10 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.0003" radius="8e-05"/></geometry>
+      <origin xyz="0.0006 0 -0.00035" rpy="0 0.9 0"/>
+      <material name="proboscis"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.0002" radius="6e-05"/></geometry>
+      <origin xyz="0.0008 0.00012 0.00022" rpy="0 1.2 0"/>
+      <material name="antenna"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.0002" radius="6e-05"/></geometry>
+      <origin xyz="0.0008 -0.00012 0.00022" rpy="0 1.2 0"/>
+      <material name="antenna"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <collision>
+      <geometry><sphere radius="0.00045"/></geometry>
+      <origin xyz="0.00035 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.5e-07"/>
+      <origin xyz="0.00035 0 0" rpy="0 0 0"/>
+      <inertia ixx="1.215e-14" ixy="0" ixz="0" iyy="1.215e-14" iyz="0" izz="1.215e-14"/>
+    </inertial>
+  </link>
+
+  <joint name="neck_roll" type="revolute">
+    <parent link="neck_pitch_link"/>
+    <child link="head"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-06" velocity="100" lower="-0.8" upper="0.8"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="eye_L">
+    <!-- repere sensoriel, axe optique = +x -->
+  </link>
+
+  <joint name="head_to_eye_L" type="fixed">
+    <parent link="head"/>
+    <child link="eye_L"/>
+    <origin xyz="0.0004 0.00055 8e-05" rpy="0 0 1"/>
+  </joint>
+
+  <link name="eye_R">
+    <!-- repere sensoriel, axe optique = +x -->
+  </link>
+
+  <joint name="head_to_eye_R" type="fixed">
+    <parent link="head"/>
+    <child link="eye_R"/>
+    <origin xyz="0.0004 -0.00055 8e-05" rpy="0 0 -1"/>
+  </joint>
+
+  <link name="abdomen">
+    <visual>
+      <geometry><cylinder length="0.0013" radius="0.00045"/></geometry>
+      <origin xyz="-0.00065 0 0" rpy="0 1.570796 0"/>
+      <material name="abd_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="0.00045"/></geometry>
+      <origin xyz="-0.0013 0 0" rpy="0 0 0"/>
+      <material name="abd_tan"><color rgba="0.72 0.52 0.25 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.00015" radius="0.000455"/></geometry>
+      <origin xyz="-0.0005 0 0" rpy="0 1.570796 0"/>
+      <material name="abd_band"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.00015" radius="0.000455"/></geometry>
+      <origin xyz="-0.0009 0 0" rpy="0 1.570796 0"/>
+      <material name="abd_band"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.00015" radius="0.000455"/></geometry>
+      <origin xyz="-0.0012 0 0" rpy="0 1.570796 0"/>
+      <material name="abd_band"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0013" radius="0.00045"/></geometry>
+      <origin xyz="-0.00065 0 0" rpy="0 1.570796 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-07"/>
+      <origin xyz="-0.00065 0 0" rpy="0 0 0"/>
+      <inertia ixx="5.74375e-14" ixy="0" ixz="0" iyy="5.74375e-14" iyz="0" izz="3.0375e-14"/>
+    </inertial>
+  </link>
+
+  <joint name="abdomen_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="abdomen"/>
+    <origin xyz="-0.0006 0 -0.0001" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-0.6" upper="0.6"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="wing_L_sweep_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="wing_L_dev_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="wing_L_sweep" type="revolute">
+    <parent link="thorax"/>
+    <child link="wing_L_sweep_link"/>
+    <origin xyz="-0.0001 0.0004 0.0005" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="5000" lower="-1.2" upper="1.9"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="wing_L_deviation" type="revolute">
+    <parent link="wing_L_sweep_link"/>
+    <child link="wing_L_dev_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-06" velocity="5000" lower="-0.6" upper="0.6"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="wing_L">
+    <visual>
+      <geometry><box size="0.0008 0.0025 2e-05"/></geometry>
+      <origin xyz="-0.0001 0.00125 0" rpy="0 0 0"/>
+      <material name="wing_clear"><color rgba="0.85 0.88 0.90 0.35"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.0025" radius="4e-05"/></geometry>
+      <origin xyz="0.0003 0.00125 0" rpy="1.570796 0 0"/>
+      <material name="wing_vein"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.0008 0.0025 2e-05"/></geometry>
+      <origin xyz="-0.0001 0.00125 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="2e-09"/>
+      <origin xyz="-0.0001 0.00125 0" rpy="0 0 0"/>
+      <inertia ixx="1.041667e-15" ixy="0" ixz="0" iyy="1.066667e-16" iyz="0" izz="1.148333e-15"/>
+    </inertial>
+  </link>
+
+  <joint name="wing_L_pitch" type="revolute">
+    <parent link="wing_L_dev_link"/>
+    <child link="wing_L"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="5000" lower="-1.6" upper="1.6"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="wing_R_sweep_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="wing_R_dev_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="wing_R_sweep" type="revolute">
+    <parent link="thorax"/>
+    <child link="wing_R_sweep_link"/>
+    <origin xyz="-0.0001 -0.0004 0.0005" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="5000" lower="-1.2" upper="1.9"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="wing_R_deviation" type="revolute">
+    <parent link="wing_R_sweep_link"/>
+    <child link="wing_R_dev_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1e-06" velocity="5000" lower="-0.6" upper="0.6"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="wing_R">
+    <visual>
+      <geometry><box size="0.0008 0.0025 2e-05"/></geometry>
+      <origin xyz="-0.0001 -0.00125 0" rpy="0 0 0"/>
+      <material name="wing_clear"><color rgba="0.85 0.88 0.90 0.35"/></material>
+    </visual>
+    <visual>
+      <geometry><cylinder length="0.0025" radius="4e-05"/></geometry>
+      <origin xyz="0.0003 -0.00125 0" rpy="1.570796 0 0"/>
+      <material name="wing_vein"><color rgba="0.08 0.07 0.06 1"/></material>
+    </visual>
+    <collision>
+      <geometry><box size="0.0008 0.0025 2e-05"/></geometry>
+      <origin xyz="-0.0001 -0.00125 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="2e-09"/>
+      <origin xyz="-0.0001 -0.00125 0" rpy="0 0 0"/>
+      <inertia ixx="1.041667e-15" ixy="0" ixz="0" iyy="1.066667e-16" iyz="0" izz="1.148333e-15"/>
+    </inertial>
+  </link>
+
+  <joint name="wing_R_pitch" type="revolute">
+    <parent link="wing_R_dev_link"/>
+    <child link="wing_R"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit effort="1e-06" velocity="5000" lower="-1.6" upper="1.6"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="haltere_L">
+    <visual>
+      <geometry><cylinder length="0.0005" radius="4e-05"/></geometry>
+      <origin xyz="0 0.00025 0" rpy="1.570796 0 0"/>
+      <material name="haltere"><color rgba="0.92 0.90 0.80 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="8e-05"/></geometry>
+      <origin xyz="0 0.0005 0" rpy="0 0 0"/>
+      <material name="haltere"><color rgba="0.92 0.90 0.80 1"/></material>
+    </visual>
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0.0004 0" rpy="0 0 0"/>
+      <inertia ixx="1e-17" ixy="0" ixz="0" iyy="1e-17" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="haltere_L_flap" type="revolute">
+    <parent link="thorax"/>
+    <child link="haltere_L"/>
+    <origin xyz="-0.00015 0.0004 0.0003" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-07" velocity="5000" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="haltere_R">
+    <visual>
+      <geometry><cylinder length="0.0005" radius="4e-05"/></geometry>
+      <origin xyz="0 -0.00025 0" rpy="1.570796 0 0"/>
+      <material name="haltere"><color rgba="0.92 0.90 0.80 1"/></material>
+    </visual>
+    <visual>
+      <geometry><sphere radius="8e-05"/></geometry>
+      <origin xyz="0 -0.0005 0" rpy="0 0 0"/>
+      <material name="haltere"><color rgba="0.92 0.90 0.80 1"/></material>
+    </visual>
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 -0.0004 0" rpy="0 0 0"/>
+      <inertia ixx="1e-17" ixy="0" ixz="0" iyy="1e-17" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="haltere_R_flap" type="revolute">
+    <parent link="thorax"/>
+    <child link="haltere_R"/>
+    <origin xyz="-0.00015 -0.0004 0.0003" rpy="0 0 0"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1e-07" velocity="5000" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="LF_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="LF_coxa_pitch_link"/>
+    <origin xyz="0.00055 0.0003 -0.0003" rpy="3.141593 -1.041326 1.212026"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="LF_coxa_roll" type="revolute">
+    <parent link="LF_coxa_pitch_link"/>
+    <child link="LF_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_coxa_yaw" type="revolute">
+    <parent link="LF_coxa_roll_link"/>
+    <child link="LF_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_femur_pitch" type="revolute">
+    <parent link="LF_coxa"/>
+    <child link="LF_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="-0.323811 0.4189901 0.04301473"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_femur">
+    <visual>
+      <geometry><cylinder length="0.0008" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0008" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+      <inertia ixx="6.547e-16" ixy="0" ixz="0" iyy="6.547e-16" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_femur_roll" type="revolute">
+    <parent link="LF_femur_pitch_link"/>
+    <child link="LF_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_tibia">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="5.45e-16" ixy="0" ixz="0" iyy="5.45e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_tibia_pitch" type="revolute">
+    <parent link="LF_femur"/>
+    <child link="LF_tibia"/>
+    <origin xyz="0 0 0.0008" rpy="0.2057534 -0.6708388 -0.1480619"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_tarsus">
+    <visual>
+      <geometry><cylinder length="0.000789033" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.000789033" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+      <inertia ixx="1.563183e-16" ixy="0" ixz="0" iyy="1.563183e-16" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LF_tarsus_pitch" type="revolute">
+    <parent link="LF_tibia"/>
+    <child link="LF_tarsus"/>
+    <origin xyz="0 0 0.0009" rpy="-0.08163514 -0.4961061 0.1129765"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LF_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="LF_tarsus_to_tip" type="fixed">
+    <parent link="LF_tarsus"/>
+    <child link="LF_tip"/>
+    <origin xyz="0 0 0.000789033" rpy="0 0 0"/>
+  </joint>
+
+  <link name="LM_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="LM_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="LM_coxa_pitch_link"/>
+    <origin xyz="0 0.00035 -0.00035" rpy="3.141593 -1.152572 1.570796"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="LM_coxa_roll" type="revolute">
+    <parent link="LM_coxa_pitch_link"/>
+    <child link="LM_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_coxa_yaw" type="revolute">
+    <parent link="LM_coxa_roll_link"/>
+    <child link="LM_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_femur_pitch" type="revolute">
+    <parent link="LM_coxa"/>
+    <child link="LM_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="0.1044761 0.2550114 -0.01865098"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_femur">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="8.247e-16" ixy="0" ixz="0" iyy="8.247e-16" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_femur_roll" type="revolute">
+    <parent link="LM_femur_pitch_link"/>
+    <child link="LM_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_tibia">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="5.45e-16" ixy="0" ixz="0" iyy="5.45e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_tibia_pitch" type="revolute">
+    <parent link="LM_femur"/>
+    <child link="LM_tibia"/>
+    <origin xyz="0 0 0.0009" rpy="-0.1640215 -0.8403381 0.140819"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_tarsus">
+    <visual>
+      <geometry><cylinder length="0.0005721193" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0005721193" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+      <inertia ixx="8.250512e-17" ixy="0" ixz="0" iyy="8.250512e-17" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LM_tarsus_pitch" type="revolute">
+    <parent link="LM_tibia"/>
+    <child link="LM_tarsus"/>
+    <origin xyz="0 0 0.0009" rpy="0 -0.3399304 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LM_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="LM_tarsus_to_tip" type="fixed">
+    <parent link="LM_tarsus"/>
+    <child link="LM_tip"/>
+    <origin xyz="0 0 0.0005721193" rpy="0 0 0"/>
+  </joint>
+
+  <link name="LH_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="LH_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="LH_coxa_pitch_link"/>
+    <origin xyz="-0.0005 0.0003 -0.0003" rpy="-3.141593 -1.041326 1.929567"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="LH_coxa_roll" type="revolute">
+    <parent link="LH_coxa_pitch_link"/>
+    <child link="LH_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_coxa_yaw" type="revolute">
+    <parent link="LH_coxa_roll_link"/>
+    <child link="LH_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_femur_pitch" type="revolute">
+    <parent link="LH_coxa"/>
+    <child link="LH_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="0.33112 0.4276145 -0.04062955"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_femur">
+    <visual>
+      <geometry><cylinder length="0.001" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.001" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+      <inertia ixx="1.0147e-15" ixy="0" ixz="0" iyy="1.0147e-15" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_femur_roll" type="revolute">
+    <parent link="LH_femur_pitch_link"/>
+    <child link="LH_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_tibia">
+    <visual>
+      <geometry><cylinder length="0.00115" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.00115" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+      <inertia ixx="8.866667e-16" ixy="0" ixz="0" iyy="8.866667e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_tibia_pitch" type="revolute">
+    <parent link="LH_femur"/>
+    <child link="LH_tibia"/>
+    <origin xyz="0 0 0.001" rpy="0.2456669 -0.7048683 -0.1814985"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_tarsus">
+    <visual>
+      <geometry><cylinder length="0.0005687721" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0005687721" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+      <inertia ixx="8.155042e-17" ixy="0" ixz="0" iyy="8.155042e-17" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="LH_tarsus_pitch" type="revolute">
+    <parent link="LH_tibia"/>
+    <child link="LH_tarsus"/>
+    <origin xyz="0 0 0.00115" rpy="-0.08217051 -0.4320575 0.1162741"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="LH_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="LH_tarsus_to_tip" type="fixed">
+    <parent link="LH_tarsus"/>
+    <child link="LH_tip"/>
+    <origin xyz="0 0 0.0005687721" rpy="0 0 0"/>
+  </joint>
+
+  <link name="RF_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="RF_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="RF_coxa_pitch_link"/>
+    <origin xyz="0.00055 -0.0003 -0.0003" rpy="3.141593 -1.041326 -1.212026"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="RF_coxa_roll" type="revolute">
+    <parent link="RF_coxa_pitch_link"/>
+    <child link="RF_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_coxa_yaw" type="revolute">
+    <parent link="RF_coxa_roll_link"/>
+    <child link="RF_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_femur_pitch" type="revolute">
+    <parent link="RF_coxa"/>
+    <child link="RF_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="0.323811 0.4189901 -0.04301473"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_femur">
+    <visual>
+      <geometry><cylinder length="0.0008" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0008" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.0004" rpy="0 0 0"/>
+      <inertia ixx="6.547e-16" ixy="0" ixz="0" iyy="6.547e-16" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_femur_roll" type="revolute">
+    <parent link="RF_femur_pitch_link"/>
+    <child link="RF_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_tibia">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="5.45e-16" ixy="0" ixz="0" iyy="5.45e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_tibia_pitch" type="revolute">
+    <parent link="RF_femur"/>
+    <child link="RF_tibia"/>
+    <origin xyz="0 0 0.0008" rpy="-0.2057534 -0.6708388 0.1480619"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_tarsus">
+    <visual>
+      <geometry><cylinder length="0.000789033" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.000789033" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0003945165" rpy="0 0 0"/>
+      <inertia ixx="1.563183e-16" ixy="0" ixz="0" iyy="1.563183e-16" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RF_tarsus_pitch" type="revolute">
+    <parent link="RF_tibia"/>
+    <child link="RF_tarsus"/>
+    <origin xyz="0 0 0.0009" rpy="0.08163514 -0.4961061 -0.1129765"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RF_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="RF_tarsus_to_tip" type="fixed">
+    <parent link="RF_tarsus"/>
+    <child link="RF_tip"/>
+    <origin xyz="0 0 0.000789033" rpy="0 0 0"/>
+  </joint>
+
+  <link name="RM_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="RM_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="RM_coxa_pitch_link"/>
+    <origin xyz="0 -0.00035 -0.00035" rpy="3.141593 -1.152572 -1.570796"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="RM_coxa_roll" type="revolute">
+    <parent link="RM_coxa_pitch_link"/>
+    <child link="RM_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_coxa_yaw" type="revolute">
+    <parent link="RM_coxa_roll_link"/>
+    <child link="RM_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_femur_pitch" type="revolute">
+    <parent link="RM_coxa"/>
+    <child link="RM_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="-0.1044761 0.2550114 0.01865098"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_femur">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="8.247e-16" ixy="0" ixz="0" iyy="8.247e-16" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_femur_roll" type="revolute">
+    <parent link="RM_femur_pitch_link"/>
+    <child link="RM_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_tibia">
+    <visual>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0009" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.00045" rpy="0 0 0"/>
+      <inertia ixx="5.45e-16" ixy="0" ixz="0" iyy="5.45e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_tibia_pitch" type="revolute">
+    <parent link="RM_femur"/>
+    <child link="RM_tibia"/>
+    <origin xyz="0 0 0.0009" rpy="0.1640215 -0.8403381 -0.140819"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_tarsus">
+    <visual>
+      <geometry><cylinder length="0.0005721193" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0005721193" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0002860597" rpy="0 0 0"/>
+      <inertia ixx="8.250512e-17" ixy="0" ixz="0" iyy="8.250512e-17" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RM_tarsus_pitch" type="revolute">
+    <parent link="RM_tibia"/>
+    <child link="RM_tarsus"/>
+    <origin xyz="0 0 0.0009" rpy="0 -0.3399304 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RM_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="RM_tarsus_to_tip" type="fixed">
+    <parent link="RM_tarsus"/>
+    <child link="RM_tip"/>
+    <origin xyz="0 0 0.0005721193" rpy="0 0 0"/>
+  </joint>
+
+  <link name="RH_coxa_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <link name="RH_coxa_roll_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_coxa_pitch" type="revolute">
+    <parent link="thorax"/>
+    <child link="RH_coxa_pitch_link"/>
+    <origin xyz="-0.0005 -0.0003 -0.0003" rpy="3.141593 -1.041326 -1.929567"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <joint name="RH_coxa_roll" type="revolute">
+    <parent link="RH_coxa_pitch_link"/>
+    <child link="RH_coxa_roll_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="-1 0 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.2" upper="1.2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_coxa">
+    <visual>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0002" radius="8e-05"/></geometry>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.0001" rpy="0 0 0"/>
+      <inertia ixx="1.48e-17" ixy="0" ixz="0" iyy="1.48e-17" iyz="0" izz="9.6e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_coxa_yaw" type="revolute">
+    <parent link="RH_coxa_roll_link"/>
+    <child link="RH_coxa"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1" upper="1"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_femur_pitch_link">
+    <inertial>
+      <mass value="1e-10"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-20" ixy="0" ixz="0" iyy="1e-20" iyz="0" izz="1e-20"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_femur_pitch" type="revolute">
+    <parent link="RH_coxa"/>
+    <child link="RH_femur_pitch_link"/>
+    <origin xyz="0 0 0.0002" rpy="-0.33112 0.4276145 0.04062955"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2" upper="2"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_femur">
+    <visual>
+      <geometry><cylinder length="0.001" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.001" radius="7e-05"/></geometry>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="1.2e-08"/>
+      <origin xyz="0 0 0.0005" rpy="0 0 0"/>
+      <inertia ixx="1.0147e-15" ixy="0" ixz="0" iyy="1.0147e-15" iyz="0" izz="2.94e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_femur_roll" type="revolute">
+    <parent link="RH_femur_pitch_link"/>
+    <child link="RH_femur"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <axis xyz="0 0 -1"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_tibia">
+    <visual>
+      <geometry><cylinder length="0.00115" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.00115" radius="5e-05"/></geometry>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="8e-09"/>
+      <origin xyz="0 0 0.000575" rpy="0 0 0"/>
+      <inertia ixx="8.866667e-16" ixy="0" ixz="0" iyy="8.866667e-16" iyz="0" izz="1e-17"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_tibia_pitch" type="revolute">
+    <parent link="RH_femur"/>
+    <child link="RH_tibia"/>
+    <origin xyz="0 0 0.001" rpy="-0.2456669 -0.7048683 0.1814985"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-2.5" upper="2.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_tarsus">
+    <visual>
+      <geometry><cylinder length="0.0005687721" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+      <material name="leg"><color rgba="0.80 0.66 0.42 1"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.0005687721" radius="3e-05"/></geometry>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="3e-09"/>
+      <origin xyz="0 0 0.000284386" rpy="0 0 0"/>
+      <inertia ixx="8.155042e-17" ixy="0" ixz="0" iyy="8.155042e-17" iyz="0" izz="1.35e-18"/>
+    </inertial>
+  </link>
+
+  <joint name="RH_tarsus_pitch" type="revolute">
+    <parent link="RH_tibia"/>
+    <child link="RH_tarsus"/>
+    <origin xyz="0 0 0.00115" rpy="0.08217051 -0.4320575 -0.1162741"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1e-06" velocity="50" lower="-1.5" upper="1.5"/>
+    <dynamics damping="1e-09" friction="0"/>
+  </joint>
+
+  <link name="RH_tip">
+    <!-- repere de contact (griffes/pulvilles) -->
+  </link>
+
+  <joint name="RH_tarsus_to_tip" type="fixed">
+    <parent link="RH_tarsus"/>
+    <child link="RH_tip"/>
+    <origin xyz="0 0 0.0005687721" rpy="0 0 0"/>
+  </joint>
+
+</robot>

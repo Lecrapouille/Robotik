@@ -1,0 +1,28 @@
+# Real FlyWire v783 pairs. The weight is "Excitatory x Connectivity".
+# Each input is a neuron with a small fan-out, each output its strongest
+# target. At 180 Hz that weight makes the target fire. These are not the
+# eye or wing neurons: the table does not name them.
+#
+# bias -> forward            9173 -> 92734      349
+# visual_left -> turn_right  123895 -> 102197   339
+# visual_right -> turn_left  22535 -> 39059     318
+# seek_left -> turn_left     128634 -> 109162   211
+# seek_right -> turn_right   3636 -> 101573     221
+# too_low -> lift_up         106472 -> 118763   301
+# too_high -> lift_down      128903 -> 25240    258
+# A repeated motor role sums the spikes: the eye and the food share a turn.
+
+bias 9173
+forward 92734
+visual_left 123895
+turn_right 102197
+visual_right 22535
+turn_left 39059
+seek_left 128634
+turn_left 109162
+seek_right 3636
+turn_right 101573
+too_low 106472
+lift_up 118763
+too_high 128903
+lift_down 25240

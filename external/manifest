@@ -34,3 +34,8 @@ Lecrapouille/Compages:recurse
 ### AprilTag fiducial detection (LineFollower demo only)
 ### License: BSD-2-Clause
 AprilRobotics/apriltag
+
+### Computational model of the whole adult fruit-fly brain (Shiu et al. 2024).
+### compile-external-libs extracts the FlyWire v783 tables into data/flywire.
+### License: MIT
+philshiu/Drosophila_brain_model
