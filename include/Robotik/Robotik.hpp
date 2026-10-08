@@ -14,11 +14,14 @@
  * @ref robotik::RobotBackend (MuJoCo in simulation) moves the joints. Kinematics
  * come from Pinocchio and the scene graph from Compages. Rendering stays out of
  * the library (@ref robotik::SceneView). A @ref robotik::Simulation runs a
- * scenario and the @ref robotik::Mission that a demo plugs in.
+ * scenario and the @ref robotik::Mission that a demo plugs in. An
+ * @ref robotik::Agent turns an @ref robotik::Observation into an
+ * @ref robotik::Action without knowing the simulator.
  */
 
 #pragma once
 
+#include "Robotik/Agents/Agent.hpp"
 #include "Robotik/Backends/MujocoBackend.hpp"
 #include "Robotik/Environment/Environment.hpp"
 #include "Robotik/Math/Geometry.hpp"

@@ -80,9 +80,14 @@ ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
 SRC_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 PICK_DIR := $(P)/src/Applications/Demos/PickAndPlace
+FLY_DIR := $(P)/src/Applications/Demos/FlyBrain
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
+SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
+SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
+SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp
+SRC_FILES += $(FLY_DIR)/FlyTrace.cpp
 
-INCLUDES += $(P)/src $(P)/tests $(PICK_DIR)
+INCLUDES += $(P)/src $(P)/tests $(PICK_DIR) $(FLY_DIR)
 VPATH += $(P)/src
 
 ###################################################

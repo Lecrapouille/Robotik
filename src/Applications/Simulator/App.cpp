@@ -7,6 +7,7 @@
 
 #include "App.hpp"
 
+#include "FlyHost.hpp"
 #include "SimulatorDisplay.hpp"
 
 #include "Robotik/Robot/Actuators.hpp"
@@ -85,6 +86,9 @@ void App::select(HostedMission p_kind)
         case HostedMission::PickPlaceFaults:
             scenario_path = "data/scenarios/pick_and_place_faults.yml";
             break;
+        case HostedMission::Fly:
+            scenario_path = "data/scenarios/fly_obstacle_avoidance.yml";
+            break;
     }
     load();
 }
@@ -98,6 +102,8 @@ void App::load()
     teach.manual = false;
     teach.pendant.clear();
     teach.markers.clear();
+    // The fly robot is parented in the world. Drop it before the world.
+    fly = {};
     RlWatch const keep = rl;
     rl = {};
     rl.converged = keep.converged;
@@ -126,6 +132,18 @@ void App::load()
         {
             scenario_text.assign(std::istreambuf_iterator<char>(file),
                                  std::istreambuf_iterator<char>());
+        }
+        if (kind == HostedMission::Fly)
+        {
+            view_camera.position(4.0f, 5.5f, 7.0f)
+                .add<compages::world::Orbit>(
+                    compages::core::Vector3f(4.0f, 1.2f, 0.0f));
+            tuneViewOrbit(*world, view_camera);
+            loadFly(*this);
+            m_lag = 0.0;
+            m_reported = false;
+            playing = true;
+            return;
         }
         robotik::Scenario scenario = robotik::Scenario::load(scenario_path);
         if (kind == HostedMission::PickPlaceRl)
@@ -166,6 +184,7 @@ void App::load()
     catch (std::exception const& failure)
     {
         error = failure.what();
+        fly = {};
         simulation.reset();
         return;
     }
@@ -239,6 +258,13 @@ void App::resetRl()
 
 void App::reset(std::uint64_t p_seed)
 {
+    if (kind == HostedMission::Fly)
+    {
+        resetFly(*this, p_seed);
+        m_lag = 0.0;
+        m_reported = false;
+        return;
+    }
     if (!simulation)
     {
         return;
@@ -337,8 +363,57 @@ void App::stepRl()
     }
 }
 
+void App::advanceFly(double p_elapsed)
+{
+    if (!fly.environment)
+    {
+        return;
+    }
+    if (step_once)
+    {
+        step_once = false;
+        stepFly(*this);
+        return;
+    }
+    if (!playing)
+    {
+        m_lag = 0.0;
+        return;
+    }
+    m_lag += p_elapsed * static_cast<double>(speed);
+    int steps = 0;
+    while (m_lag >= SIMULATOR_DT_S && steps < SIMULATOR_MAX_STEPS_PER_FRAME)
+    {
+        if (!fly.done)
+        {
+            stepFly(*this);
+        }
+        else
+        {
+            fly.pause += SIMULATOR_DT_S;
+            if (fly.pause >= RL_PAUSE_AFTER_S)
+            {
+                reset(seed + 1u);
+            }
+            m_lag = 0.0;
+            break;
+        }
+        m_lag -= SIMULATOR_DT_S;
+        ++steps;
+    }
+    if (steps == SIMULATOR_MAX_STEPS_PER_FRAME)
+    {
+        m_lag = 0.0;
+    }
+}
+
 void App::advance(double p_elapsed)
 {
+    if (kind == HostedMission::Fly)
+    {
+        advanceFly(p_elapsed);
+        return;
+    }
     if (!simulation)
     {
         return;

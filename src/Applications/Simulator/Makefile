@@ -16,18 +16,24 @@ include $(M)/project/Makefile
 CURRENT_DIR := $(P)/src/Applications/Simulator
 PICK_DIR := $(P)/src/Applications/Demos/PickAndPlace
 LINE_DIR := $(P)/src/Applications/Demos/LineFollower
-INCLUDES += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR) $(P)/include $(P)/src
-VPATH += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR)
+FLY_DIR := $(P)/src/Applications/Demos/FlyBrain
+INCLUDES += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR) $(FLY_DIR) $(P)/include $(P)/src
+VPATH += $(CURRENT_DIR) $(PICK_DIR) $(LINE_DIR) $(FLY_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
 SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp $(CURRENT_DIR)/TeachPanel.cpp
+SRC_FILES += $(CURRENT_DIR)/FlyHost.cpp
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
 SRC_FILES += $(PICK_DIR)/PickPlaceControl.cpp
 SRC_FILES += $(LINE_DIR)/Track.cpp $(LINE_DIR)/DiffDrive.cpp
 SRC_FILES += $(LINE_DIR)/Floor.cpp $(LINE_DIR)/Vision.cpp
 SRC_FILES += $(LINE_DIR)/Skills.cpp $(LINE_DIR)/LineFollowerMission.cpp
+SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
+SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
+SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp
+SRC_FILES += $(FLY_DIR)/FlyTrace.cpp $(FLY_DIR)/FlyDraw.cpp
 PKG_LIBS += glfw3
 
 # Headers only: BlackThorn is compiled into robotik-core.

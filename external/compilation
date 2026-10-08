@@ -65,3 +65,28 @@ call-cmake -S "$APRILTAG_DIR" -B "$APRILTAG_DIR/build" \
     -DBUILD_EXAMPLES=OFF \
     -DBUILD_TESTING=OFF
 call-cmake --build "$APRILTAG_DIR/build" --target apriltag -j"$NPROC"
+
+###############################################################################
+### Drosophila brain (Shiu et al. 2024). The clone vendors the FlyWire tables.
+### Write the public v783 edge list into data/flywire. Those files are
+### gitignored: the parquet alone is about 100 MB, the edge list is larger.
+FLY_SRC="Drosophila_brain_model"
+FLY_DATA="../data/flywire"
+FLY_CON="$FLY_SRC/Connectivity_783.parquet"
+FLY_COMP="$FLY_SRC/Completeness_783.csv"
+print-compile "flywire connectome"
+if [ ! -f "$FLY_CON" ] || [ ! -f "$FLY_COMP" ]; then
+    echo "Missing $FLY_CON or $FLY_COMP. Run make download-external-libs first."
+    exit 1
+fi
+mkdir -p "$FLY_DATA"
+if [ ! -f "$FLY_DATA/edges.csv" ] || [ "$FLY_CON" -nt "$FLY_DATA/edges.csv" ]; then
+    FLY_PY=".pydeps"
+    if ! PYTHONPATH="$FLY_PY" python3 -c "import pyarrow" 2>/dev/null; then
+        python3 -m pip install --target "$FLY_PY" pyarrow
+    fi
+    PYTHONPATH="$FLY_PY${PYTHONPATH:+:$PYTHONPATH}" \
+        python3 ../src/Applications/Demos/FlyBrain/prepare_edges.py \
+            "$FLY_CON" "$FLY_COMP" "$FLY_DATA/edges.csv"
+    cp -f "$FLY_COMP" "$FLY_DATA/completeness.csv"
+fi

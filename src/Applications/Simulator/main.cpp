@@ -22,9 +22,14 @@ int main(int argc, char** argv)
     }
 
     App app;
-    app.scenario_path =
-        (argc > 1) ? std::filesystem::path(argv[1])
-                   : std::filesystem::path("data/scenarios/pick_and_place.yml");
+    if (argc > 1)
+    {
+        app.scenario_path = std::filesystem::path(argv[1]);
+        if (app.scenario_path.filename() == "fly_obstacle_avoidance.yml")
+        {
+            app.kind = HostedMission::Fly;
+        }
+    }
     app.load();
 
     runMainLoop(window, app);
