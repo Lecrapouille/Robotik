@@ -61,7 +61,10 @@ enum class SkillReason : std::uint8_t
 [[nodiscard]] char const* toString(SkillReason p_reason);
 
 // ****************************************************************************
-//! @brief One run of a skill, for timelines and logs.
+//! @brief One phase of a skill run, for timelines and logs.
+//!
+//! A skill that waits, then runs, keeps the waiting phase: the next phase is a
+//! new entry. A running phase is updated in place until it ends.
 // ****************************************************************************
 struct SkillRun
 {

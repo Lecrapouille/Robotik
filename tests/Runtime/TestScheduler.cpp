@@ -140,6 +140,19 @@ TEST_F(SchedulerTest, BusyResourceMakesWait)
     update(3);
     EXPECT_EQ(skills.state(first), SkillState::Succeeded);
     EXPECT_EQ(skills.state(second), SkillState::Succeeded);
+    bool waited = false;
+    bool succeeded = false;
+    for (robotik::SkillRun const& run : skills.trace())
+    {
+        if (run.skill != second)
+        {
+            continue;
+        }
+        waited = waited || run.state == SkillState::Waiting;
+        succeeded = succeeded || run.state == SkillState::Succeeded;
+    }
+    EXPECT_TRUE(waited);
+    EXPECT_TRUE(succeeded);
 }
 
 TEST_F(SchedulerTest, SharedResourcesRunTogether)

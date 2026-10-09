@@ -18,9 +18,9 @@
 
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/TeachPendant.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Robot/TeachPendant.hpp"
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
@@ -33,6 +33,9 @@
 #include <vector>
 
 inline constexpr char const* TEACH_PANEL = "Teach";
+inline constexpr char const* TIMELINE_PANEL = "Timeline";
+inline constexpr char const* SKILL_LIST_PANEL = "Skill list";
+inline constexpr char const* SKILLS_PANEL = "Skills";
 
 struct TeachWatch
 {
@@ -146,3 +149,4 @@ private:
 
 void drawPanels(App& p_app);
 void teachPanel(App& p_app);
+void skillsBoard(App& p_app);

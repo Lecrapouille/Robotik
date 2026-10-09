@@ -7,6 +7,7 @@
 
 #include "App.hpp"
 #include "FlyHost.hpp"
+#include "SkillView.hpp"
 
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Robot/Actuators.hpp"
@@ -20,11 +21,11 @@
 #include <filesystem>
 #include <numbers>
 #include <string>
+#include <vector>
 
 static char const* const WORLD = "World";
 static char const* const CAMERA = "Robot camera";
 static char const* const TREE = "Behavior tree";
-static char const* const SKILLS = "Skills";
 static char const* const RESOURCES = "Resources";
 static char const* const ROBOT = "Robot";
 static char const* const SCENARIO = "Scenario";
@@ -33,12 +34,6 @@ static char const* const RL = "RL";
 static char const* const FLY_BRAIN = "Fly network";
 
 static char const* const STOP = "Stop";
-
-static ImVec4 const GREY(0.55f, 0.55f, 0.58f, 1.0f);
-static ImVec4 const ORANGE(1.00f, 0.70f, 0.20f, 1.0f);
-static ImVec4 const GREEN(0.35f, 0.85f, 0.40f, 1.0f);
-static ImVec4 const RED(0.95f, 0.35f, 0.35f, 1.0f);
-static ImVec4 const BLUE(0.45f, 0.65f, 1.00f, 1.0f);
 
 static ImVec4 colorOf(bt::Status p_status)
 {
@@ -72,75 +67,6 @@ static char const* textOf(bt::Status p_status)
     return "IDLE";
 }
 
-static ImVec4 colorOf(robotik::SkillState p_state)
-{
-    switch (p_state)
-    {
-        case robotik::SkillState::Idle:
-            return GREY;
-        case robotik::SkillState::Waiting:
-            return BLUE;
-        case robotik::SkillState::Running:
-            return ORANGE;
-        case robotik::SkillState::Succeeded:
-            return GREEN;
-        case robotik::SkillState::Failed:
-            return RED;
-        case robotik::SkillState::Cancelled:
-            return GREY;
-    }
-    return GREY;
-}
-
-//! @brief Name of the skill holding a lease, "-" when none.
-static std::string ownerName(robotik::SkillScheduler const& p_skills,
-                             robotik::OwnerId p_owner)
-{
-    if (p_owner == robotik::NO_OWNER)
-    {
-        return "-";
-    }
-    if (p_owner == robotik::ANONYMOUS || p_owner >= p_skills.size())
-    {
-        return "(external)";
-    }
-    return p_skills.name(p_owner);
-}
-
-//! @brief Why a skill waits or stopped, in operator words.
-static std::string whyOf(robotik::Simulation const& p_simulation,
-                         robotik::SkillId p_id)
-{
-    robotik::SkillScheduler const& skills = p_simulation.skills();
-    robotik::SkillReason const reason = skills.reason(p_id);
-    if (reason == robotik::SkillReason::None)
-    {
-        return {};
-    }
-    std::string text = robotik::toString(reason);
-    if (reason == robotik::SkillReason::Precondition)
-    {
-        if (robotik::Precondition const* failed = skills.precondition(p_id))
-        {
-            text += ": " + failed->text;
-        }
-        return text;
-    }
-    robotik::ResourceId const blocker = skills.blocker(p_id);
-    if (blocker != robotik::NO_RESOURCE)
-    {
-        robotik::ResourceManager const& resources =
-            p_simulation.robot().resources();
-        text += ": " + resources.name(blocker);
-        if (reason == robotik::SkillReason::Busy ||
-            reason == robotik::SkillReason::Preempted)
-        {
-            text += " (" + ownerName(skills, resources.owner(blocker)) + ")";
-        }
-    }
-    return text;
-}
-
 //! @brief Layout the docking nodes.
 //! @param p_dock The dock ID.
 static void layout(ImGuiID p_dock)
@@ -148,27 +74,32 @@ static void layout(ImGuiID p_dock)
     ImGui::DockBuilderRemoveNode(p_dock);
     ImGui::DockBuilderAddNode(p_dock, ImGuiDockNodeFlags_DockSpace);
     ImGui::DockBuilderSetNodeSize(p_dock, ImGui::GetMainViewport()->WorkSize);
-    ImGuiID center = p_dock;
-    ImGuiID const left = ImGui::DockBuilderSplitNode(
-        center, ImGuiDir_Left, 0.24f, nullptr, &center);
-    ImGuiID const right = ImGui::DockBuilderSplitNode(
-        center, ImGuiDir_Right, 0.30f, nullptr, &center);
-    ImGuiID const bottom = ImGui::DockBuilderSplitNode(
-        center, ImGuiDir_Down, 0.32f, nullptr, &center);
-    ImGuiID right_bottom = 0;
-    ImGuiID const right_top = ImGui::DockBuilderSplitNode(
-        right, ImGuiDir_Up, 0.45f, nullptr, &right_bottom);
-    ImGui::DockBuilderDockWindow(SCENARIO, left);
-    ImGui::DockBuilderDockWindow(SCENARIO_FILE, left);
-    ImGui::DockBuilderDockWindow(ROBOT, left);
-    ImGui::DockBuilderDockWindow(TEACH_PANEL, left);
-    ImGui::DockBuilderDockWindow(WORLD, center);
-    ImGui::DockBuilderDockWindow(SKILLS, bottom);
-    ImGui::DockBuilderDockWindow(RESOURCES, bottom);
-    ImGui::DockBuilderDockWindow(CAMERA, right_top);
-    ImGui::DockBuilderDockWindow(TREE, right_bottom);
-    ImGui::DockBuilderDockWindow(RL, right_bottom);
-    ImGui::DockBuilderDockWindow(FLY_BRAIN, right_bottom);
+    ImGuiID main = p_dock;
+    ImGuiID const tools = ImGui::DockBuilderSplitNode(
+        main, ImGuiDir_Down, 0.18f, nullptr, &main);
+    ImGuiID const timeline = ImGui::DockBuilderSplitNode(
+        main, ImGuiDir_Down, 0.30f, nullptr, &main);
+    ImGuiID const reference = ImGui::DockBuilderSplitNode(
+        main, ImGuiDir_Left, 0.22f, nullptr, &main);
+    ImGuiID world = 0;
+    ImGuiID const live = ImGui::DockBuilderSplitNode(
+        main, ImGuiDir_Right, 0.30f, nullptr, &world);
+    ImGuiID camera = 0;
+    ImGuiID const skills = ImGui::DockBuilderSplitNode(
+        live, ImGuiDir_Down, 0.58f, nullptr, &camera);
+    ImGui::DockBuilderDockWindow(SCENARIO, reference);
+    ImGui::DockBuilderDockWindow(SCENARIO_FILE, reference);
+    ImGui::DockBuilderDockWindow(TREE, reference);
+    ImGui::DockBuilderDockWindow(ROBOT, reference);
+    ImGui::DockBuilderDockWindow(TEACH_PANEL, reference);
+    ImGui::DockBuilderDockWindow(RL, reference);
+    ImGui::DockBuilderDockWindow(FLY_BRAIN, reference);
+    ImGui::DockBuilderDockWindow(WORLD, world);
+    ImGui::DockBuilderDockWindow(CAMERA, camera);
+    ImGui::DockBuilderDockWindow(SKILLS_PANEL, skills);
+    ImGui::DockBuilderDockWindow(TIMELINE_PANEL, timeline);
+    ImGui::DockBuilderDockWindow(SKILL_LIST_PANEL, tools);
+    ImGui::DockBuilderDockWindow(RESOURCES, tools);
     ImGui::DockBuilderFinish(p_dock);
 }
 
@@ -291,10 +222,10 @@ static void toolbar(App& p_app)
         ImGui::Text("t = %6.2f s",
                     static_cast<double>(snapshot.steps) *
                         p_app.fly.environment->dt());
-        ImGui::TextColored(p_app.fly.success ? GREEN
-                                             : (p_app.fly.done ? RED : ORANGE),
-                           "Fly %s",
-                           p_app.fly.success ? "FOOD" : (p_app.fly.done ? "TIME" : "FLY"));
+        ImGui::TextColored(
+            p_app.fly.success ? GREEN : (p_app.fly.done ? RED : ORANGE),
+            "Fly %s",
+            p_app.fly.success ? "FOOD" : (p_app.fly.done ? "TIME" : "FLY"));
         ImGui::Text("L %.2f  C %.2f  R %.2f",
                     static_cast<double>(snapshot.vision.left),
                     static_cast<double>(snapshot.vision.center),
@@ -391,7 +322,8 @@ static void cameraPanel(App& p_app)
             float const avail = ImGui::GetContentRegionAvail().x;
             float const zoom = avail / static_cast<float>(picture.width);
             ImGui::Image(
-                ImTextureRef(static_cast<ImTextureID>(picture.color.nativeId())),
+                ImTextureRef(
+                    static_cast<ImTextureID>(picture.color.nativeId())),
                 ImVec2(avail, static_cast<float>(picture.height) * zoom),
                 ImVec2(0.0f, 1.0f),
                 ImVec2(1.0f, 0.0f));
@@ -561,28 +493,126 @@ static void treePanel(App const& p_app)
     ImGui::End();
 }
 
+struct ControlFailure
+{
+    std::string label;
+    double time = 0.0;
+};
+
+//! @brief Failed composites and decorators. Skill leaves already have a row.
+static void collectControlFailures(bt::Node const& p_node,
+                                   std::vector<std::string>& p_labels)
+{
+    bool const control =
+        dynamic_cast<bt::Composite const*>(&p_node) != nullptr ||
+        dynamic_cast<bt::Decorator const*>(&p_node) != nullptr;
+    if (control && p_node.status() == bt::Status::FAILURE)
+    {
+        std::string label = p_node.typeName();
+        if (!p_node.name.empty())
+        {
+            label += ' ';
+            label += p_node.name;
+        }
+        p_labels.push_back(std::move(label));
+    }
+    if (auto const* composite = dynamic_cast<bt::Composite const*>(&p_node))
+    {
+        for (std::size_t i = 0; i < composite->childIndices().size(); ++i)
+        {
+            collectControlFailures(composite->childAt(i), p_labels);
+        }
+    }
+    else if (auto const* decorator =
+                 dynamic_cast<bt::Decorator const*>(&p_node);
+             decorator != nullptr && decorator->hasChild())
+    {
+        collectControlFailures(decorator->childNode(), p_labels);
+    }
+}
+
+//! @brief Remember when a control node first failed, so the mark stays put.
+static std::vector<ControlFailure> const&
+controlFailures(robotik::Simulation const& p_simulation)
+{
+    static std::vector<ControlFailure> marks;
+    static bt::Tree const* tree = nullptr;
+    static double last_time = 0.0;
+    double const now = p_simulation.time().value();
+    bt::Tree const* current = p_simulation.tree();
+    if (current != tree || now + 1e-6 < last_time)
+    {
+        marks.clear();
+        tree = current;
+    }
+    last_time = now;
+    if (current == nullptr || !current->hasRoot())
+    {
+        marks.clear();
+        return marks;
+    }
+
+    std::vector<std::string> labels;
+    collectControlFailures(current->getRoot(), labels);
+    std::vector<ControlFailure> next;
+    next.reserve(labels.size());
+    for (std::string const& label : labels)
+    {
+        auto const known = std::find_if(marks.begin(),
+                                        marks.end(),
+                                        [&](ControlFailure const& p_mark)
+                                        { return p_mark.label == label; });
+        next.push_back(known == marks.end() ? ControlFailure{ label, now }
+                                            : *known);
+    }
+    marks = std::move(next);
+    return marks;
+}
+
 //! @brief Draw the timeline of the skill runs on a common time axis.
 static void timeline(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
     std::span<robotik::SkillRun const> const runs = skills.trace();
+    std::vector<ControlFailure> const& failures = controlFailures(p_simulation);
     double const span = std::max(p_simulation.time().value(), 1.0);
     ImVec2 const at = ImGui::GetCursorScreenPos();
     float const width = ImGui::GetContentRegionAvail().x;
-    float const label = 120.0f;
+    float label = 120.0f;
+    for (ControlFailure const& failure : failures)
+    {
+        label = std::max(label,
+                         ImGui::CalcTextSize(failure.label.c_str()).x + 12.0f);
+    }
     float const row = 16.0f;
     float const scale = std::max(width - label - 10.0f, 10.0f);
+    float const head = static_cast<float>(failures.size()) * row;
     ImDrawList* draw = ImGui::GetWindowDrawList();
+    ImU32 const red = ImGui::GetColorU32(RED);
+    for (std::size_t i = 0; i < failures.size(); ++i)
+    {
+        float const y = at.y + static_cast<float>(i) * row;
+        draw->AddText(ImVec2(at.x, y), red, failures[i].label.c_str());
+        float const x0 =
+            at.x + label + static_cast<float>(failures[i].time / span) * scale;
+        float const x1 =
+            at.x + label +
+            static_cast<float>(p_simulation.time().value() / span) * scale;
+        draw->AddRectFilled(ImVec2(x0, y + 3.0f),
+                            ImVec2(std::max(x1, x0 + 6.0f), y + row - 3.0f),
+                            red,
+                            2.0f);
+    }
     for (std::size_t id = 0; id < skills.size(); ++id)
     {
-        float const y = at.y + static_cast<float>(id) * row;
+        float const y = at.y + head + static_cast<float>(id) * row;
         draw->AddText(ImVec2(at.x, y),
                       ImGui::GetColorU32(colorOf(skills.state(id))),
                       skills.name(id).c_str());
     }
     for (robotik::SkillRun const& run : runs)
     {
-        float const y = at.y + static_cast<float>(run.skill) * row;
+        float const y = at.y + head + static_cast<float>(run.skill) * row;
         float const x0 =
             at.x + label + static_cast<float>(run.start.value() / span) * scale;
         float const x1 =
@@ -592,14 +622,28 @@ static void timeline(robotik::Simulation const& p_simulation)
                             ImGui::GetColorU32(colorOf(run.state)),
                             2.0f);
     }
-    ImGui::Dummy(ImVec2(width, static_cast<float>(skills.size()) * row + 4.0f));
+    ImGui::Dummy(
+        ImVec2(width, head + static_cast<float>(skills.size()) * row + 4.0f));
 }
 
-//! @brief Draw the skills panel: metadata, live state and manual requests.
+//! @brief Draw the timeline panel.
 //! @param p_app The application.
-static void skillsPanel(App& p_app)
+static void skillsPanel(App const& p_app)
 {
-    if (!ImGui::Begin(SKILLS) || !p_app.simulation)
+    if (!ImGui::Begin(TIMELINE_PANEL) || !p_app.simulation)
+    {
+        ImGui::End();
+        return;
+    }
+    timeline(*p_app.simulation);
+    ImGui::End();
+}
+
+//! @brief Skill table: priority, resources, live state and manual requests.
+//! @param p_app The application.
+static void skillListPanel(App& p_app)
+{
+    if (!ImGui::Begin(SKILL_LIST_PANEL) || !p_app.simulation)
     {
         ImGui::End();
         return;
@@ -607,8 +651,6 @@ static void skillsPanel(App& p_app)
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::SkillScheduler& skills = simulation.skills();
     robotik::ResourceManager const& resources = simulation.robot().resources();
-    timeline(simulation);
-
     if (ImGui::BeginTable("skills",
                           6,
                           ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
@@ -641,16 +683,12 @@ static void skillsPanel(App& p_app)
             {
                 needs += needs.empty() ? "" : " ";
                 needs += resources.name(need.id);
-                if (need.access == robotik::Access::Shared)
-                {
-                    needs += "(s)";
-                }
             }
             ImGui::TextUnformatted(needs.c_str());
             ImGui::TableNextColumn();
             ImGui::TextColored(colorOf(state), "%s", robotik::toString(state));
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(whyOf(simulation, id).c_str());
+            ImGui::TextUnformatted(skillWhy(skills, resources, id).c_str());
             ImGui::TableNextColumn();
             if (state == robotik::SkillState::Running ||
                 state == robotik::SkillState::Waiting)
@@ -671,8 +709,52 @@ static void skillsPanel(App& p_app)
     ImGui::End();
 }
 
-//! @brief Draw the resources panel: availability, holders, failure buttons
-//! and the fault plan of the scenario.
+//! @brief Names of the skills currently holding @p_id.
+static std::string holdersOf(robotik::SkillScheduler const& p_skills,
+                             robotik::ResourceManager const& p_resources,
+                             robotik::ResourceId p_id)
+{
+    std::uint16_t const shared = p_resources.users(p_id);
+    if (shared > 0u)
+    {
+        std::string names;
+        for (robotik::SkillId id = 0; id < p_skills.size(); ++id)
+        {
+            if (p_skills.state(id) != robotik::SkillState::Running)
+            {
+                continue;
+            }
+            for (robotik::ResourceRequirement const& need :
+                 p_skills.description(id).resources)
+            {
+                if (need.id != p_id || need.access != robotik::Access::Shared)
+                {
+                    continue;
+                }
+                if (!names.empty())
+                {
+                    names += ", ";
+                }
+                names += p_skills.name(id);
+            }
+        }
+        if (names.empty())
+        {
+            names = "?";
+        }
+        names += " (";
+        names += std::to_string(shared);
+        names += ")";
+        return names;
+    }
+    if (p_resources.owner(p_id) != robotik::NO_OWNER)
+    {
+        return skillOwnerName(p_skills, p_resources.owner(p_id));
+    }
+    return "-";
+}
+
+//! @brief Draw the resources panel: lease mode, holders and failure buttons.
 //! @param p_app The application.
 static void resourcesPanel(App& p_app)
 {
@@ -688,26 +770,29 @@ static void resourcesPanel(App& p_app)
             "resources", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
     {
         ImGui::TableSetupColumn("Resource");
+        ImGui::TableSetupColumn("Type");
         ImGui::TableSetupColumn("Status");
-        ImGui::TableSetupColumn("Holder");
-        ImGui::TableSetupColumn("Users");
+        ImGui::TableSetupColumn("Holders", ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("");
         ImGui::TableHeadersRow();
         for (robotik::ResourceId id = 0; id < resources.size(); ++id)
         {
             bool const available = resources.available(id);
+            bool const shared = resources.users(id) > 0u;
+            bool const exclusive = resources.owner(id) != robotik::NO_OWNER;
             ImGui::PushID(static_cast<int>(id));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextUnformatted(resources.name(id).c_str());
             ImGui::TableNextColumn();
+            ImGui::TextUnformatted(shared      ? "shared"
+                                   : exclusive ? "exclusive"
+                                               : "-");
+            ImGui::TableNextColumn();
             ImGui::TextColored(
                 available ? GREEN : RED, "%s", available ? "ok" : "FAILED");
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(
-                ownerName(skills, resources.owner(id)).c_str());
-            ImGui::TableNextColumn();
-            ImGui::Text("%u", static_cast<unsigned>(resources.users(id)));
+            ImGui::TextUnformatted(holdersOf(skills, resources, id).c_str());
             ImGui::TableNextColumn();
             if (ImGui::SmallButton(available ? "Disable" : "Restore"))
             {
@@ -723,28 +808,6 @@ static void resourcesPanel(App& p_app)
             ImGui::PopID();
         }
         ImGui::EndTable();
-    }
-
-    robotik::FaultInjector const& faults = simulation.faults();
-    ImGui::SeparatorText("Scenario faults");
-    if (faults.scheduled().empty() && faults.random().empty())
-    {
-        ImGui::TextDisabled("None.");
-    }
-    double const now = simulation.time().value();
-    for (robotik::Fault const& fault : faults.scheduled())
-    {
-        bool const past = fault.at.value() <= now;
-        ImGui::TextColored(past ? GREY
-                                : ImGui::GetStyle().Colors[ImGuiCol_Text],
-                           "t=%5.2f s  %s %s",
-                           fault.at.value(),
-                           fault.disable ? "disable" : "restore",
-                           fault.resource.c_str());
-    }
-    for (robotik::RandomFault const& fault : faults.random())
-    {
-        ImGui::Text("random  %s  %.3f /s", fault.resource.c_str(), fault.rate);
     }
     ImGui::End();
 }
@@ -1155,7 +1218,7 @@ static void flyBrainPanel(App& p_app)
 //! @param p_app The application.
 void drawPanels(App& p_app)
 {
-    ImGuiID const dock = ImGui::GetID("RobotikDockV2");
+    ImGuiID const dock = ImGui::GetID("RobotikDockV5");
     // A layout saved in imgui.ini wins over the default one.
     if (ImGui::DockBuilderGetNode(dock) == nullptr)
     {
@@ -1167,6 +1230,8 @@ void drawPanels(App& p_app)
     cameraPanel(p_app);
     treePanel(p_app);
     skillsPanel(p_app);
+    skillListPanel(p_app);
+    skillsBoard(p_app);
     resourcesPanel(p_app);
     scenarioPanel(p_app);
     scenarioFilePanel(p_app);
