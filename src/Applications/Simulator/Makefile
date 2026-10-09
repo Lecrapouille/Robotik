@@ -24,6 +24,7 @@ SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
 SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp $(CURRENT_DIR)/TeachPanel.cpp
+SRC_FILES += $(CURRENT_DIR)/SkillsPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/FlyHost.cpp
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
 SRC_FILES += $(PICK_DIR)/PickPlaceControl.cpp

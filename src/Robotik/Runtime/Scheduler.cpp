@@ -170,6 +170,15 @@ void SkillScheduler::record(SkillId p_id, Seconds p_now)
         return;
     }
     SkillRun& run = m_trace[static_cast<std::size_t>(m_runs[p_id])];
+    // Keep the waiting interval on the timeline. The next phase starts here.
+    if (run.state == SkillState::Waiting && m_states[p_id] != SkillState::Waiting)
+    {
+        run.end = p_now;
+        m_runs[p_id] = static_cast<std::int32_t>(m_trace.size());
+        m_trace.push_back(
+            { p_id, m_states[p_id], m_reasons[p_id], m_blockers[p_id], p_now, p_now });
+        return;
+    }
     run.state = m_states[p_id];
     run.reason = m_reasons[p_id];
     run.blocker = m_blockers[p_id];
