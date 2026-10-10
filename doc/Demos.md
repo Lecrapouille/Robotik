@@ -53,7 +53,8 @@ Les deux autres illustrent des usages plus ciblés : le suivi de ligne et le RL 
 
 C'est la démo de référence : celle à regarder en premier pour comprendre l'architecture de bout en bout.
 
-Le but : amener le cube rouge dans la boîte.
+Le but : amener le cube rouge dans la boîte. [🎥 Démonstration vidéo sur YouTube](https://youtu.be/MuWdpaLvGoU?si=qjJWl1kZFv4DRHOo)
+
 
 ```text
          red_cube
@@ -173,6 +174,7 @@ C'est bien plus pertinent que de tester des angles articulaires. Un autre contr�
 # 7. Le line follower
 
 Cette démo aborde une autre famille de problèmes : un robot mobile, de la perception et une boucle de contrôle.
+[🎥 Démonstration vidéo sur YouTube](https://youtu.be/T0Oop_cmlPw?si=UKg83e5xunciYAZ1)
 
 ```text
              caméra
@@ -321,7 +323,7 @@ On peut ainsi vérifier que les résultats restent identiques d'une exécution �
 
 # 12. Fly brain
 
-This demo puts an agent on the same loop as the RL one: observation, action, environment, seed, headless execution, and several worlds in parallel.
+This demo puts an agent on the same loop as the RL one: observation, action, environment, seed, headless execution, and several worlds in parallel. [🎥 Démonstration vidéo sur YouTube](https://youtu.be/ao2lA3Rlmrc?si=DECtcn7l44Q-iMCo)
 
 ```text
 sensors → observation → brain → action → controller → body
