@@ -1,0 +1,8 @@
+id: robotik.slash
+name: Slash
+version: 1
+library: ../libevil.so
+scenarios:
+  - id: one
+    name: One
+    file: scenarios/one.yml

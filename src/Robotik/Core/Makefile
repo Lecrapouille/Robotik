@@ -38,7 +38,7 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
-ROBOTIK_MODULES := Backends Environment Perception Robot Scene
+ROBOTIK_MODULES := Backends Environment Perception Plugin Robot Scene
 ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
 LIB_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
@@ -79,6 +79,7 @@ THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 # Set SWI-Prolog library
 #
 PKG_LIBS += swipl
+USER_LDFLAGS += -ldl
 
 ###############################################################################
 # Sharable information between all Makefiles

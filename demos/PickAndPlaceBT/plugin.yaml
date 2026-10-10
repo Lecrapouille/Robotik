@@ -1,0 +1,13 @@
+id: robotik.pick_and_place
+name: Pick and place
+version: 1.0.0
+library: librobotik_pick_and_place.so
+category: Manipulation
+graphics: false
+scenarios:
+  - id: pick_and_place
+    name: Pick and place
+    file: scenarios/pick_and_place.yml
+  - id: pick_and_place_faults
+    name: Pick and place (faults)
+    file: scenarios/pick_and_place_faults.yml

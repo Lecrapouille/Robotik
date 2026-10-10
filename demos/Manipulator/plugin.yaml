@@ -1,0 +1,16 @@
+id: robotik.manipulator
+name: Manipulator
+version: 1.0.0
+library: librobotik_manipulator.so
+category: Kinematics
+graphics: false
+scenarios:
+  - id: forward_kinematics
+    name: Forward kinematics
+    file: scenarios/forward_kinematics.yml
+  - id: inverse_kinematics
+    name: Inverse kinematics
+    file: scenarios/inverse_kinematics.yml
+  - id: joint_limits
+    name: Joint limits
+    file: scenarios/joint_limits.yml

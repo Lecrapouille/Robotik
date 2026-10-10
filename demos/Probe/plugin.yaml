@@ -1,0 +1,13 @@
+id: robotik.probe
+name: Probe
+version: 1.0.0
+library: librobotik_probe.so
+category: Test
+graphics: false
+scenarios:
+  - id: alpha
+    name: Alpha
+    file: scenarios/alpha.yml
+  - id: beta
+    name: Beta
+    file: scenarios/beta.yml

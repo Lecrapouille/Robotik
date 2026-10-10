@@ -50,7 +50,7 @@ Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 TEST(Scenario, LoadsSensorsActuatorsObjectsAndFaults)
 {
     robotik::Scenario const scenario =
-        robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml"));
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place_faults.yml"));
     EXPECT_EQ(scenario.seed, 7u);
     ASSERT_EQ(scenario.cameras.size(), 1u);
     EXPECT_EQ(scenario.cameras[0].name, "wrist_camera");
@@ -70,7 +70,7 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")),
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place.yml")),
         nullptr,
         &mission);
 
@@ -89,7 +89,7 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml")),
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place_faults.yml")),
         nullptr,
         &mission);
     simulation.reset(robotik::Seed{ 7 });
@@ -114,12 +114,34 @@ TEST(Simulation, SurvivesACameraFailure)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(dataFile("scenarios/pick_and_place_faults.yml")),
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place_faults.yml")),
         nullptr,
         &mission);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
     EXPECT_FALSE(simulation.robot().resources().available("wrist_camera"));
+}
+
+TEST(Simulation, FailedAssertionDoesNotStopTheRun)
+{
+    PickPlaceMission mission;
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world,
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place.yml")),
+        nullptr,
+        &mission);
+    simulation.reset(robotik::Seed{ 11 });
+    simulation.step(Seconds(0.01));
+    bool failed = false;
+    for (auto const& check : simulation.checks())
+    {
+        failed = failed || !check.passed;
+    }
+    EXPECT_TRUE(failed);
+    EXPECT_FALSE(simulation.finished());
+    simulation.step(Seconds(0.01));
+    EXPECT_FALSE(simulation.finished());
 }
 
 TEST(Simulation, EmergencyStopPreemptsTheArm)
@@ -128,7 +150,7 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(dataFile("scenarios/pick_and_place.yml")),
+        robotik::Scenario::load(repoFile("demos/PickAndPlaceBT/scenarios/pick_and_place.yml")),
         nullptr,
         &mission);
     robotik::SkillScheduler& skills = simulation.skills();

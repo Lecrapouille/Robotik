@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <numbers>
 #include <stdexcept>
+#include <system_error>
 
 namespace robotik
 {
@@ -70,11 +71,82 @@ std::vector<std::string> strings(bt::YamlNode const& p_node)
     return result;
 }
 
+bool filenameOnly(std::string const& p_file)
+{
+    return p_file.find('/') == std::string::npos &&
+           p_file.find('\\') == std::string::npos;
+}
+
+std::filesystem::path regularFile(std::filesystem::path const& p_path)
+{
+    std::error_code error;
+    if (std::filesystem::is_regular_file(p_path, error))
+    {
+        return p_path;
+    }
+    return {};
+}
+
+//! @brief Shared robot models live in @c data/, not inside a plugin package.
+//! A bare file name is looked up there when it is not next to the scenario.
+std::filesystem::path findDataFile(std::filesystem::path const& p_directory,
+                                   std::string const& p_file)
+{
+    auto search = [&](std::filesystem::path const& p_data) {
+        if (std::filesystem::path const direct = regularFile(p_data / p_file);
+            !direct.empty())
+        {
+            return direct;
+        }
+        return regularFile(p_data / "scenarios" / p_file);
+    };
+    for (char const* root : { "data", "../data" })
+    {
+        if (std::filesystem::path const found = search(root); !found.empty())
+        {
+            return found;
+        }
+    }
+    std::filesystem::path directory = p_directory;
+    for (int hop = 0; hop < 8 && !directory.empty(); ++hop)
+    {
+        if (std::filesystem::path const found = search(directory / "data");
+            !found.empty())
+        {
+            return found;
+        }
+        std::filesystem::path const parent = directory.parent_path();
+        if (parent == directory)
+        {
+            break;
+        }
+        directory = parent;
+    }
+    return {};
+}
+
 std::filesystem::path resolve(std::filesystem::path const& p_directory,
                               std::string const& p_file)
 {
-    return p_file.empty() ? std::filesystem::path{}
-                          : (p_directory / p_file).lexically_normal();
+    if (p_file.empty())
+    {
+        return {};
+    }
+    std::filesystem::path const direct = (p_directory / p_file).lexically_normal();
+    if (!filenameOnly(p_file))
+    {
+        return direct;
+    }
+    if (std::filesystem::path const existing = regularFile(direct); !existing.empty())
+    {
+        return existing;
+    }
+    if (std::filesystem::path const found = findDataFile(p_directory, p_file);
+        !found.empty())
+    {
+        return found;
+    }
+    return direct;
 }
 
 Scenario::Camera camera(std::string_view p_name, bt::YamlNode const& p_node)
