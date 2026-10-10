@@ -1,3 +1,5 @@
+![RobotIK](doc/logos/RobotIK.png)
+
 # 🤖 RobotIK
 
 **RobotIK is a lightweight C++20 library for building robots that can be simulated, tested, trained, and eventually driven on real hardware—without rewriting their logic.**
