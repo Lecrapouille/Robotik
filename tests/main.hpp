@@ -18,6 +18,20 @@
 
 using namespace ::testing;
 
+//! @brief Repository file, whether tests run from the root or from tests/.
+inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
+{
+    for (char const* root : { ".", ".." })
+    {
+        std::filesystem::path const candidate = std::filesystem::path(root) / p_file;
+        if (std::filesystem::exists(candidate))
+        {
+            return candidate;
+        }
+    }
+    return p_file;
+}
+
 //! @brief File of the data folder, whether tests run from the root or tests/.
 inline std::filesystem::path dataFile(std::filesystem::path const& p_file)
 {

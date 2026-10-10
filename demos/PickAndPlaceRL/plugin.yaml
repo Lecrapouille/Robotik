@@ -1,0 +1,11 @@
+id: robotik.pick_and_place_rl
+name: Pick and place RL
+version: 1.0.0
+library: librobotik_pick_and_place_rl.so
+category: Learning
+graphics: false
+clock: plugin
+scenarios:
+  - id: pick_and_place_rl
+    name: Pick and place RL
+    file: scenarios/pick_and_place_rl.yml

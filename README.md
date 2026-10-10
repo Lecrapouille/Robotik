@@ -426,13 +426,15 @@ make -j"$(nproc --all)"
 A `build` directory should contain static and shared libraries plus executables:
 
 ```bash
-./build/RobotIK-Simulator data/scenarios/pick_and_place.yml
+./build/RobotIK-Simulator
 ```
 
-Headless:
+The **Demos** menu lists every package built under `build/plugins/`. The same scenario runs without a window:
 
 ```bash
-./build/RobotIK-Headless data/scenarios/pick_and_place.yml --seed 7
+./build/RobotIK-Headless \
+    build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml \
+    --seed 7
 ```
 
 Parallel RL demo:
@@ -468,6 +470,7 @@ make tests -j"$(nproc --all)"
 | [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BlackThorn actions, `SkillScheduler`, skills |
 | [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Layers, data flow, `include/Robotik/` layout |
 | [doc/Demos.md](doc/Demos.md) | Simulator, Headless, LineFollower, PickAndPlace RL |
+| [doc/Plugins.md](doc/Plugins.md) | Plugin packages, lifecycle, short tutorial |
 
 ---
 

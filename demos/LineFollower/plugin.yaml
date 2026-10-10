@@ -1,0 +1,13 @@
+id: robotik.line_follower
+name: Line follower
+version: 1.0.0
+library: librobotik_line_follower.so
+category: Mobile
+graphics: false
+view:
+  eye: [0.0, 7.0, 6.0]
+  target: [0.0, 0.0, 0.0]
+scenarios:
+  - id: line_follower
+    name: Line follower
+    file: scenarios/line_follower.yml

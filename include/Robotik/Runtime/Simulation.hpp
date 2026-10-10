@@ -46,7 +46,7 @@ namespace robotik
 //! @code
 //! compages::world::World world;
 //! robotik::Simulation sim(world,
-//!     robotik::Scenario::load("data/scenarios/pick_and_place.yml"));
+//!     robotik::Scenario::load("demos/PickAndPlaceBT/scenarios/pick_and_place.yml"));
 //! sim.reset(robotik::Seed{ 7 });
 //! while (!sim.finished())
 //!     sim.step(Seconds(0.01));

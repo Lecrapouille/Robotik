@@ -1,0 +1,8 @@
+id: robotik.escape
+name: Escape
+version: 1
+library: librobotik_probe.so
+scenarios:
+  - id: out
+    name: Out
+    file: ../../../../etc/passwd

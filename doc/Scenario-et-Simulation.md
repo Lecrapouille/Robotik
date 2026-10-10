@@ -548,7 +548,7 @@ Le même scénario peut tourner sans fenêtre :
 
 ```bash
 ./build/Robotik-Headless \
-    data/scenarios/pick_and_place.yml \
+    build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml \
     --seed 11
 ```
 

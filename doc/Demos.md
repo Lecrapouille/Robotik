@@ -41,11 +41,11 @@ Robotik-PickAndPlaceRL
 Robotik-Fly
 ```
 
-**Robotik-Simulator** permet de regarder une mission se dérouler, avec une interface graphique.
+**Robotik-Simulator** (`simulator/`) regarde une mission se dérouler. Son menu **Demos** liste les paquets compilés dans `build/plugins/`.
 
-**Robotik-Headless** exécute exactement la même logique, mais sans fenêtre. Idéal pour l'intégration continue et les campagnes de tests.
+**Robotik-Headless** (`headless/`) exécute le même scénario sans fenêtre.
 
-Les deux autres illustrent des usages plus ciblés : le suivi de ligne et le RL qui sont aussi présents dans Robotik-Simulator.
+Les sources des démos sont dans `demos/`. Chaque dossier est un plugin : `plugin.yaml`, le code C++, et `scenarios/` pour plusieurs exécutions du même code. Le fonctionnement et un tutoriel pour en ajouter un sont dans [Plugins.md](Plugins.md). Line follower, le pool RL et la mouche gardent en plus un exécutable (`demos/LineFollower/app`, `demos/PickAndPlaceRL/app`, `demos/FlyBrain/app`).
 
 ---
 
@@ -92,7 +92,7 @@ Elle met en jeu un bras six axes, une caméra, une chaîne de perception, des sk
 Le fichier :
 
 ```text
-data/scenarios/pick_and_place.yml
+demos/PickAndPlaceBT/scenarios/pick_and_place.yml
 ```
 
 Il décrit la mission « qui se passe bien », sans aucune panne.
@@ -100,15 +100,21 @@ Il décrit la mission « qui se passe bien », sans aucune panne.
 Pour la lancer avec l'interface :
 
 ```bash
+./build/Robotik-Simulator
+```
+
+Le menu **Demos → Pick and place** ouvre ce scénario. En ligne de commande, après compilation :
+
+```bash
 ./build/Robotik-Simulator \
-    data/scenarios/pick_and_place.yml
+    build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml
 ```
 
 Et le même scénario en headless, avec une graine reproductible :
 
 ```bash
 ./build/Robotik-Headless \
-    data/scenarios/pick_and_place.yml \
+    build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml \
     --seed 11
 ```
 
@@ -119,15 +125,15 @@ Et le même scénario en headless, avec une graine reproductible :
 Le fichier :
 
 ```text
-data/scenarios/pick_and_place_faults.yml
+demos/PickAndPlaceBT/scenarios/pick_and_place_faults.yml
 ```
 
 Cette variante ajoute notamment une panne de caméra.
 
-Dans **Robotik-Simulator**, choisir la mission **Pick-and-place (faults)** dans la barre de menu, ou lancer :
+Dans **Robotik-Simulator**, choisir **Demos → Pick and place → Pick and place (faults)**, ou lancer :
 
 ```bash
-./build/Robotik-Simulator data/scenarios/pick_and_place_faults.yml
+./build/Robotik-Simulator build/plugins/PickAndPlaceBT/scenarios/pick_and_place_faults.yml
 ```
 
 Le but n'est pas simplement de constater que ça échoue. On veut vérifier que l'architecture réagit intelligemment : réessayer, se replier sur autre chose, ou abandonner.
@@ -260,7 +266,7 @@ Ou via le binaire headless générique :
 
 ```bash
 ./build/Robotik-Headless \
-    data/scenarios/line_follower.yml \
+    build/plugins/LineFollower/scenarios/line_follower.yml \
     --seed 4
 ```
 
@@ -339,7 +345,7 @@ The body is the ×100 model (`data/drosophila_x100.urdf`, about 28 cm). Flight i
 ./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
-The scenario is `data/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles.
+The scenario is `demos/FlyBrain/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles. In the simulator, open it from **Demos → Fly**.
 
 # 13. Pourquoi le rendu n'est pas obligatoire
 

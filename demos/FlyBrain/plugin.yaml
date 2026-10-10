@@ -1,0 +1,10 @@
+id: robotik.fly
+name: Fly
+version: 1.0.0
+library: librobotik_fly.so
+category: Perception
+graphics: true
+scenarios:
+  - id: fly_obstacle_avoidance
+    name: Fly brain
+    file: scenarios/fly_obstacle_avoidance.yml

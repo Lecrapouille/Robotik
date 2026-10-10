@@ -1,0 +1,59 @@
+scenario: pick_and_place
+# Master seed: object layout, sensor noise and random faults derive from it.
+seed: 42
+
+robot:
+  model: robot_6axis_vacuum.urdf
+  # Joint positions in radians. The tool points down.
+  home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+
+  # Each sensor and actuator is a resource of the same name, reserved by the
+  # skills and disabled by faults.
+  sensors:
+    wrist_camera:
+      type: camera            # camera | rgbd
+      parent: link6
+      # Optical frame (z forward, x right, y down) in the parent link frame.
+      position: [0.05, 0.0, 0.0]
+      rpy: [0.0, 0.0, 0.0]
+      fov: 70                 # vertical, degrees
+      resolution: [320, 240]
+      frequency: 15           # Hz
+      noise: 0.01             # gaussian, fraction of the color range
+
+  actuators:
+    arm:
+      type: joint_group       # empty joints: every joint
+    gripper:
+      type: vacuum
+      length: 0.06            # flange to cup tip along the flange Z axis (m)
+
+world:
+  # Positions are object centers in the robot base frame, meters. The robot
+  # only knows the nominal positions; randomize shifts the real ones at each
+  # reset (uniform offsets drawn from the seed).
+  objects:
+    red_cube:
+      type: cube
+      size: [0.04, 0.04, 0.04]
+      color: [0.9, 0.1, 0.1]
+      position: [0.40, 0.20, 0.02]
+      randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
+
+    box:
+      type: box
+      size: [0.16, 0.16, 0.08]
+      color: [0.2, 0.4, 0.9]
+      position: [0.40, -0.20, 0.04]
+
+execute:
+  task: |
+    Pick the red cube and put it in the box.
+  behavior_tree: pick_and_place.bt.yml
+
+assert:
+  - robot.success
+  - object("red_cube").inside("box")
+  - gripper.empty
+  - collisions == 0
+  - time < 30
