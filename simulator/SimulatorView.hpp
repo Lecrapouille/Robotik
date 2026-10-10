@@ -67,6 +67,8 @@ public:
 
     compages::world::Entity robot(compages::world::World& p_world,
                                   std::filesystem::path const& p_urdf) override;
+    compages::world::Entity model(compages::world::World& p_world,
+                                  std::filesystem::path const& p_urdf) override;
     void object(compages::world::Entity p_entity,
                 robotik::ecs::SceneObject const& p_object) override;
     robotik::FrameSource* camera(robotik::Camera& p_camera,

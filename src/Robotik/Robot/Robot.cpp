@@ -97,13 +97,56 @@ compages::core::Quatf toFloat(Quaternion const& p_q)
              static_cast<float>(p_q.z) };
 }
 
+compages::world::Entity loadTool(compages::world::World& p_world,
+                                 std::filesystem::path const& p_urdf,
+                                 SceneView* p_view)
+{
+    if (p_view != nullptr)
+    {
+        return p_view->model(p_world, p_urdf);
+    }
+    auto loaded = compages::renderer::loadUrdf(p_world, p_urdf.string());
+    if (!loaded)
+    {
+        throw std::runtime_error(loaded.error());
+    }
+    return loaded.value();
+}
+
+void mountTool(compages::world::World& p_world,
+               compages::world::Entity p_robot,
+               std::filesystem::path const& p_tool,
+               SceneView* p_view)
+{
+    compages::world::Entity const wrapper = loadTool(p_world, p_tool, p_view);
+    compages::world::Entity const mount = findNamed(wrapper, "tool_mount");
+    compages::world::Entity const flange = findNamed(p_robot, "flange");
+    if (!mount || !flange)
+    {
+        throw std::runtime_error("Tool '" + p_tool.string() +
+                                 "' must hang from flange by tool_mount");
+    }
+    if (!mount.setParent(flange))
+    {
+        throw std::runtime_error("Tool '" + p_tool.string() +
+                                 "' could not be mounted on flange");
+    }
+    // The loader's root only carries the Z-up to Y-up rotation. tool_mount
+    // now hangs from the flange, which already lives in that frame.
+    if (wrapper.id() != mount.id())
+    {
+        wrapper.destroy();
+    }
+}
+
 } // namespace
 
 Robot::Robot(compages::world::World& p_world,
              std::filesystem::path const& p_urdf,
-             SceneView* p_view)
+             SceneView* p_view,
+             std::filesystem::path const& p_tool)
     : m_world(p_world),
-      m_kinematics(std::make_unique<PinocchioBackend>(p_urdf)),
+      m_kinematics(std::make_unique<PinocchioBackend>(p_urdf, p_tool)),
       m_sensors(*this, m_resources),
       m_actuators(*this, m_resources)
 {
@@ -127,32 +170,72 @@ Robot::Robot(compages::world::World& p_world,
     m_root.add<ecs::RobotTag>();
     m_root.set(ecs::RobotIdentity{ m_name, p_urdf });
 
-    bool named_tool = false;
-    for (UrdfJoint const& joint : urdf.joints)
+    std::string tcp;
+    std::string tool0;
+    std::string end_effector;
+    // Moving joints of a chain join this robot. A mounted tool therefore adds
+    // its own axes (a finger, a spindle). Detach drops the chain, and with it
+    // those joints; attaching it again brings the same count back.
+    auto adopt = [&](UrdfRobot const& p_chain, bool p_frames)
     {
-        if (!moving(joint.type))
+        for (UrdfJoint const& joint : p_chain.joints)
         {
-            if (joint.child == "tool0" || joint.child == "end_effector" ||
-                joint.child == "tcp")
+            if (!moving(joint.type))
+            {
+                if (!p_frames)
+                {
+                    continue;
+                }
+                if (joint.child == "tcp")
+                {
+                    tcp = joint.child;
+                }
+                else if (joint.child == "tool0")
+                {
+                    tool0 = joint.child;
+                }
+                else if (joint.child == "end_effector")
+                {
+                    end_effector = joint.child;
+                }
+                continue;
+            }
+            compages::world::Entity link = findNamed(m_root, joint.child);
+            if (!link)
+            {
+                throw std::runtime_error("Compages has no link '" + joint.child +
+                                         "' for joint '" + joint.name + "'");
+            }
+            m_joints.add(joint.name, link);
+            m_q_indices.push_back(m_kinematics->qIndex(joint.name));
+            m_v_indices.push_back(m_kinematics->vIndex(joint.name));
+            if (p_frames)
             {
                 m_tool = joint.child;
-                named_tool = true;
             }
-            continue;
         }
-        compages::world::Entity link = findNamed(m_root, joint.child);
-        if (!link)
+    };
+    adopt(urdf, true);
+    if (!tcp.empty())
+    {
+        m_tool = tcp;
+    }
+    else if (!tool0.empty())
+    {
+        m_tool = tool0;
+    }
+    else if (!end_effector.empty())
+    {
+        m_tool = end_effector;
+    }
+    if (!p_tool.empty())
+    {
+        mountTool(p_world, m_root, p_tool, p_view);
+        if (compages::world::Entity const tip = link("tcp"))
         {
-            throw std::runtime_error("Compages has no link '" + joint.child +
-                                     "' for joint '" + joint.name + "'");
+            m_tool = tip.name();
         }
-        m_joints.add(joint.name, link);
-        m_q_indices.push_back(m_kinematics->qIndex(joint.name));
-        m_v_indices.push_back(m_kinematics->vIndex(joint.name));
-        if (!named_tool)
-        {
-            m_tool = joint.child;
-        }
+        adopt(readUrdf(p_tool), false);
     }
     propagate();
 }
@@ -218,8 +301,9 @@ void Robot::propagate()
 
 RobotSession::RobotSession(compages::world::World& p_world,
                            std::filesystem::path const& p_urdf,
-                           SceneView* p_view)
-    : Robot(p_world, p_urdf, p_view)
+                           SceneView* p_view,
+                           std::filesystem::path const& p_tool)
+    : Robot(p_world, p_urdf, p_view, p_tool)
 {
 }
 

@@ -265,10 +265,17 @@ Un scénario peut déclarer :
 actuators:
   arm:
     type: joint_group
-
   gripper:
     type: vacuum
-    length: 0.06
+```
+
+`type: vacuum` est à la fois la ventouse et la clé `vacuum` de `robot.tools`. L’outil est accroché par `tool_mount` sur `flange`. Le point de travail est `tcp`, décrit dans [Tools.md](Tools.md).
+
+```yaml
+robot:
+  model: robot_6axis.urdf
+  tools:
+    vacuum: tool_vacuum.urdf
 ```
 
 Les actionneurs deviennent aussi des ressources.

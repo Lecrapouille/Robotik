@@ -132,6 +132,17 @@ void RenderedCamera::sync(robotik::Camera const& p_camera)
                                         static_cast<float>(rotation.z)));
 }
 
+compages::world::Entity SimulatorView::model(compages::world::World& /*p_world*/,
+                                             std::filesystem::path const& p_urdf)
+{
+    auto loaded = m_scene.load(p_urdf.string());
+    if (!loaded)
+    {
+        throw std::runtime_error(loaded.error());
+    }
+    return loaded.value();
+}
+
 compages::world::Entity SimulatorView::robot(compages::world::World& /*p_world*/,
                                              std::filesystem::path const& p_urdf)
 {

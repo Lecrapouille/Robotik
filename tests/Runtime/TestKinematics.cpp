@@ -15,7 +15,10 @@
 #include "Robotik/Skills/MotionSkills.hpp"
 
 #include "Compages/Core/Units.hpp"
+#include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
+
+#include <stdexcept>
 
 #define TEST_SIM_STEP_S 0.002
 
@@ -40,12 +43,109 @@ TEST(RobotSession, LoadsJointsFromUrdf)
     EXPECT_TRUE(robot.link(robot.tool()));
 }
 
+TEST(RobotSession, GripperJointsJoinTheArm)
+{
+    compages::world::World world;
+    robotik::RobotSession robot(world,
+                                dataFile("robot_6axis.urdf"),
+                                nullptr,
+                                dataFile("tool_gripper.urdf"));
+    EXPECT_EQ(robot.joints().size(), 8u);
+    EXPECT_NE(robot.joints().find("gripper_finger_left_joint"),
+              robotik::NO_JOINT);
+    EXPECT_NE(robot.joints().find("gripper_finger_right_joint"),
+              robotik::NO_JOINT);
+    EXPECT_EQ(robot.tool(), "tcp");
+}
+
+//! The simulator loads meshes through a scene. That path must keep the fingers.
+class SceneToolView : public robotik::SceneView
+{
+public:
+
+    explicit SceneToolView(compages::renderer::Scene& p_scene) : m_scene(p_scene)
+    {
+    }
+
+    compages::world::Entity robot(compages::world::World& /*p_world*/,
+                                  std::filesystem::path const& p_urdf) override
+    {
+        return load(p_urdf);
+    }
+
+    compages::world::Entity model(compages::world::World& /*p_world*/,
+                                  std::filesystem::path const& p_urdf) override
+    {
+        return load(p_urdf);
+    }
+
+private:
+
+    compages::world::Entity load(std::filesystem::path const& p_urdf)
+    {
+        auto loaded = m_scene.load(p_urdf.string());
+        if (!loaded)
+        {
+            throw std::runtime_error(loaded.error());
+        }
+        return loaded.value();
+    }
+
+    compages::renderer::Scene& m_scene;
+};
+
+TEST(RobotSession, GripperJointsJoinTheArmInTheScene)
+{
+    compages::world::World world;
+    compages::renderer::Scene scene(world);
+    SceneToolView view(scene);
+    robotik::RobotSession robot(world,
+                                dataFile("robot_6axis.urdf"),
+                                &view,
+                                dataFile("tool_gripper.urdf"));
+    EXPECT_EQ(robot.joints().size(), 8u);
+    EXPECT_TRUE(robot.joints().isPrismatic(
+        robot.joints().find("gripper_finger_left_joint")));
+    EXPECT_TRUE(robot.joints().isPrismatic(
+        robot.joints().find("gripper_finger_right_joint")));
+}
+
+TEST(MujocoBackend, AttachesAndDetachesAToolChain)
+{
+    compages::world::World world;
+    auto physics = std::make_unique<robotik::MujocoBackend>();
+    std::string const arm = physics->load(dataFile("robot_6axis.urdf"));
+    std::string const tool = physics->load(dataFile("tool_gripper.urdf"));
+    EXPECT_THROW(physics->attach(arm, "missing", tool, "tool_mount"),
+                 std::runtime_error);
+    physics->attach(arm, "flange", tool, "tool_mount");
+    robotik::MujocoBackend* const backend = physics.get();
+
+    robotik::RobotSession robot(world, dataFile("robot_6axis.urdf"));
+    robot.connect(std::move(physics));
+    ASSERT_TRUE(robot.backend()->wrench("tcp").has_value());
+    ASSERT_TRUE(robot.backend()->wrench("flange").has_value());
+
+    backend->detach(arm, "flange", tool, "tool_mount");
+    EXPECT_THROW(backend->detach(arm, "flange", tool, "tool_mount"),
+                 std::runtime_error);
+    EXPECT_TRUE(robot.backend()->wrench("tcp").has_value());
+    EXPECT_TRUE(robot.backend()->wrench("flange").has_value());
+    robot.step(Seconds(0.01));
+
+    backend->attach(arm, "joint6", tool, "tool_mount");
+    EXPECT_TRUE(robot.backend()->wrench("tool_mount").has_value());
+    robot.step(Seconds(0.01));
+}
+
 TEST(RobotSession, MoveJointReachesTheCommand)
 {
     compages::world::World world;
     std::filesystem::path const urdf = dataFile("simple_revolute_robot.urdf");
     robotik::RobotSession robot(world, urdf);
-    robot.connect(std::make_unique<robotik::MujocoBackend>(urdf));
+    auto physics = std::make_unique<robotik::MujocoBackend>();
+    (void)physics->load(urdf);
+    robot.connect(std::move(physics));
     robotik::WorldModel beliefs;
     robotik::RobotContext context{ robot, beliefs, {}, {} };
     robotik::MoveJointSkill skill("revolute_joint", 0.5, 0.05);

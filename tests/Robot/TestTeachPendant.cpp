@@ -40,7 +40,9 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
     compages::world::World world;
     std::filesystem::path const urdf = dataFile("robot_6axis.urdf");
     robotik::RobotSession robot(world, urdf);
-    robot.connect(std::make_unique<robotik::MujocoBackend>(urdf));
+    auto physics = std::make_unique<robotik::MujocoBackend>();
+    (void)physics->load(urdf);
+    robot.connect(std::move(physics));
     robot.hold({ { "joint1", 0.0 },
                  { "joint2", 0.3 },
                  { "joint3", 1.3 },

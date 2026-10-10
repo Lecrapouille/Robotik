@@ -9,9 +9,11 @@
 //! @brief Rendering hooks, implemented by graphical applications.
 #pragma once
 
+#include "Compages/Renderer/Assets/UrdfLoader.hpp"
 #include "Compages/World/Entity.hpp"
 
 #include <filesystem>
+#include <stdexcept>
 
 namespace compages::world
 {
@@ -46,6 +48,18 @@ public:
     //! @brief Loads the URDF with its meshes. @throws std::runtime_error.
     virtual compages::world::Entity robot(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf) = 0;
+
+    //! @brief Loads a URDF on its own. The caller parents @c tool_mount.
+    virtual compages::world::Entity model(compages::world::World& p_world,
+                                          std::filesystem::path const& p_urdf)
+    {
+        auto loaded = compages::renderer::loadUrdf(p_world, p_urdf.string());
+        if (!loaded)
+        {
+            throw std::runtime_error(loaded.error());
+        }
+        return loaded.value();
+    }
 
     //! @brief Adds the meshes of a scenario object to @p_entity.
     virtual void object(compages::world::Entity /*p_entity*/,

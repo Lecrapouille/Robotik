@@ -165,11 +165,9 @@ robotik::RobotSession robot(
     "data/robot_6axis.urdf"
 );
 
-robot.connect(
-    std::make_unique<robotik::MujocoBackend>(
-        "data/robot_6axis.urdf"
-    )
-);
+auto physics = std::make_unique<robotik::MujocoBackend>();
+physics->load("data/robot_6axis.urdf");
+robot.connect(std::move(physics));
 ```
 
 Puis la boucle de simulation peut avancer :
@@ -645,9 +643,10 @@ Capacités du robot :
 ```text
 Skill
 MotionSkills
-PickPlaceSkills
 SkillNodes
 ```
+
+Les skills de pick-and-place vivent dans `demos/PickAndPlaceBT`.
 
 ### `Scenario/`
 

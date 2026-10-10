@@ -23,6 +23,7 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -37,12 +38,15 @@ namespace robotik
 //! seed: 42
 //! robot:
 //!   model: ../robot_6axis.urdf
+//!   tools:
+//!     vacuum: tool_vacuum.urdf
+//!     drill: tool_drill.urdf
 //!   home: { joint2: 0.3, joint3: 1.3, joint5: 1.54 }
 //!   sensors:
 //!     wrist_camera: { type: camera, parent: link6, fov: 70, noise: 0.02 }
 //!   actuators:
 //!     arm: { type: joint_group }
-//!     gripper: { type: vacuum, length: 0.06 }
+//!     gripper: { type: vacuum }
 //! world:
 //!   objects:
 //!     red_cube:
@@ -79,7 +83,7 @@ struct Scenario
         std::vector<std::string> joints;
         //!< Vacuum flange link (empty: robot tool frame).
         std::string link;
-        Length length{ 0.06 };
+        Length length{ 0.0 };
     };
 
     struct Object
@@ -96,6 +100,10 @@ struct Scenario
     //!< Master seed of the run; every random stream derives from it.
     std::uint64_t seed = 0;
     std::filesystem::path robot_model;
+    //!< Tool name to its URDF. An actuator type names the mounted entry.
+    std::map<std::string, std::filesystem::path> tools;
+    //!< Key of @ref tools currently fixed on @c flange. Empty: no tool.
+    std::string mounted_tool;
     JointPosture home;
     std::vector<Camera> cameras;
     //!< Empty: an @c arm group of all joints and a vacuum @c gripper.
@@ -105,6 +113,17 @@ struct Scenario
     std::vector<RandomFault> random_faults;
     std::filesystem::path behavior_tree;
     std::vector<std::string> asserts;
+
+    //! @brief URDF of @ref mounted_tool, or empty when none is mounted.
+    [[nodiscard]] std::filesystem::path toolFile() const
+    {
+        if (mounted_tool.empty())
+        {
+            return {};
+        }
+        auto const found = tools.find(mounted_tool);
+        return found == tools.end() ? std::filesystem::path{} : found->second;
+    }
 };
 
 } // namespace robotik

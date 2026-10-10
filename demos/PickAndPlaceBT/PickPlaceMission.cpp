@@ -11,7 +11,7 @@
 
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Skills/PickPlaceSkills.hpp"
+#include "PickPlaceSkills.hpp"
 
 namespace
 {

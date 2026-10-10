@@ -16,6 +16,6 @@ PLUGIN_DIR := $(P)/demos/PickAndPlaceBT
 include $(M)/project/Makefile
 
 LIB_FILES := $(PLUGIN_DIR)/Plugin.cpp $(PLUGIN_DIR)/ColorDetector.cpp
-LIB_FILES += $(PLUGIN_DIR)/PickPlaceMission.cpp
+LIB_FILES += $(PLUGIN_DIR)/PickPlaceMission.cpp $(PLUGIN_DIR)/PickPlaceSkills.cpp
 
 include $(PLUGIN_DIR)/../plugin.mk
