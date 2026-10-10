@@ -69,7 +69,7 @@ static void report(robotik::Simulation const& p_simulation)
               << passed << '/' << checks.size() << std::endl;
 }
 
-void App::load()
+void App::load(bool p_keep_tool)
 {
     error.clear();
     scenario_title.clear();
@@ -78,6 +78,11 @@ void App::load()
     teach.manual = false;
     teach.pendant.clear();
     teach.markers.clear();
+    if (!p_keep_tool)
+    {
+        tool_override = false;
+        tool_override_name.clear();
+    }
     // The fly robot is parented in the world. Drop it before the world.
     fly = {};
     plugins.stop();
@@ -126,10 +131,14 @@ void App::load()
             loadFly(*this);
             m_lag = 0.0;
             m_reported = false;
-            playing = true;
+            playing = false;
             return;
         }
         robotik::Scenario scenario = robotik::Scenario::load(scenario_path);
+        if (tool_override)
+        {
+            scenario.mounted_tool = tool_override_name;
+        }
         robotik::PluginPrepare const prepared = plugins.prepare(scenario_path);
         if (prepared != robotik::PluginPrepare::Ready)
         {
@@ -190,7 +199,7 @@ void App::load()
     }
     m_lag = 0.0;
     m_reported = false;
-    playing = true;
+    playing = false;
 }
 
 void App::reset(std::uint64_t p_seed)

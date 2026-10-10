@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 //! @file MujocoBackend.hpp
-//! @brief MuJoCo dynamics backend for one robot loaded from URDF.
+//! @brief MuJoCo dynamics backend. Each loaded URDF is its own kinematic chain.
 #pragma once
 
 #include "Robotik/Backends/RobotBackend.hpp"
@@ -40,20 +40,21 @@ struct MujocoOptions
 //! @brief Time-stepping physics backend built on MuJoCo.
 //!
 //! A <em>backend</em> is a thin adapter around an external library that owns
-//! one URDF instance and exposes a stable API for the rest of the stack (see
-//! @ref RobotBackend). Backends are not ECS components: the @ref RobotSession
-//! holds them, next to the @ref PinocchioBackend that every robot owns for
-//! analytical FK/IK. Skills talk to the robot; the robot forwards work to its
-//! backends.
+//! the simulated bodies and exposes a stable API for the rest of the stack
+//! (see @ref RobotBackend). Backends are not ECS components: the
+//! @ref RobotSession holds them, next to the @ref PinocchioBackend that every
+//! robot owns for analytical FK/IK. Skills talk to the robot; the robot
+//! forwards work to its backends.
 //!
 //! MuJoCo (Multi-Joint dynamics with Contact) integrates rigid-body motion,
 //! actuators and contacts. This wrapper hides @c mjModel (constants) and
 //! @c mjData (state) and maps Robotik joint names to MuJoCo indices. URDF
 //! files missing inertial data are copied to a private temporary file with
 //! defaults, so MuJoCo can load them without changing what Pinocchio or
-//! Compages see. The URDF is loaded as an @c mjSpec, edited (free joint,
-//! floor, friction) then compiled. Instances are independent: one per
-//! parallel environment.
+//! Compages see. @ref load keeps each file as its own chain. @ref attach
+//! hangs one chain on a link of another; @ref detach puts it back in the
+//! world. The assembled spec is edited (free joint, floor, friction) then
+//! compiled. Instances are independent: one per parallel environment.
 //!
 //! @par MuJoCo state and indexing
 //! @li @b qpos — generalized positions @c mjData.qpos. One scalar per entry
@@ -79,20 +80,51 @@ struct MujocoOptions
 //!     by @ref wrench after @c mj_rnePostConstraint.
 //!
 //! @code
-//! robotik::RobotSession robot(world, "diff_drive.urdf");
-//! robot.connect(std::make_unique<robotik::MujocoBackend>(
-//!     "diff_drive.urdf",
-//!     robotik::MujocoOptions{ .floating_base = true, .floor = true }));
+//! auto physics = std::make_unique<robotik::MujocoBackend>(
+//!     robotik::MujocoOptions{ .floating_base = true, .floor = true });
+//! std::string const arm = physics->load("robot_6axis.urdf");
+//! std::string const tool = physics->load("tool_gripper.urdf");
+//! physics->attach(arm, "flange", tool, "tool_mount");
+//! robot.connect(std::move(physics));
 //! @endcode
 // ****************************************************************************
 class MujocoBackend final: public RobotBackend
 {
 public:
 
-    //! @throws std::runtime_error if MuJoCo cannot parse or compile the file.
-    explicit MujocoBackend(std::filesystem::path const& p_urdf,
-                           MujocoOptions p_options = {});
+    explicit MujocoBackend(MujocoOptions p_options = {});
     ~MujocoBackend() override;
+
+    // -------------------------------------------------------------------------
+    //! @brief Loads one URDF as its own kinematic chain.
+    //! @return The chain name (the URDF @c robot name, made unique if needed).
+    //! @throws std::runtime_error if MuJoCo cannot parse the file.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::string load(std::filesystem::path const& p_urdf);
+
+    // -------------------------------------------------------------------------
+    //! @brief Hangs @p_robot2 on @p_robot1.
+    //!
+    //! @p_joint1 and @p_joint2 name a link, or a joint (the link that joint
+    //! moves). The named link of @p_robot2 and every body under it become
+    //! children of the named link of @p_robot1. The chain can be separated
+    //! again with @ref detach.
+    //! @throws std::runtime_error if a chain or a link is unknown, or if
+    //! @p_robot2 is already attached.
+    // -------------------------------------------------------------------------
+    void attach(std::string const& p_robot1,
+                std::string const& p_joint1,
+                std::string const& p_robot2,
+                std::string const& p_joint2);
+
+    // -------------------------------------------------------------------------
+    //! @brief Undoes @ref attach. @p_robot2 is a chain of its own again,
+    //! standing in the world.
+    // -------------------------------------------------------------------------
+    void detach(std::string const& p_robot1,
+                std::string const& p_joint1,
+                std::string const& p_robot2,
+                std::string const& p_joint2);
 
     // -------------------------------------------------------------------------
     //! @brief Maps the joints of @p_robot to MuJoCo @b qpos, @b DOF and
@@ -135,6 +167,10 @@ private:
 
     struct Impl;
     std::unique_ptr<Impl> m_impl;
+
+    void invalidate();
+    void compile();
+    void bind(Robot& p_robot);
 
     struct Binding
     {

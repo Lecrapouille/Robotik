@@ -72,7 +72,9 @@ public:
     //! @param p_urdf Path to URDF file.
     //! @throws std::runtime_error if Pinocchio cannot parse the file.
     // -------------------------------------------------------------------------
-    explicit PinocchioBackend(std::filesystem::path const& p_urdf);
+    //! @param p_tool Tool URDF attached at the @c flange frame, or empty.
+    explicit PinocchioBackend(std::filesystem::path const& p_urdf,
+                              std::filesystem::path const& p_tool = {});
 
     // -------------------------------------------------------------------------
     //! @brief Releases model and data.

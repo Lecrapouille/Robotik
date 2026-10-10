@@ -23,9 +23,11 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 #include <optional>
 #include <regex>
 #include <stdexcept>
+#include <string>
 
 #define SKILL_PRIORITY 100
 #define STOP_PRIORITY 1000
@@ -126,7 +128,8 @@ Simulation::Simulation(compages::world::World& p_world,
       m_mission(p_mission),
       m_robot(std::make_unique<RobotSession>(p_world,
                                              m_scenario.robot_model,
-                                             p_view)),
+                                             p_view,
+                                             m_scenario.toolFile())),
       m_scheduler(std::make_unique<SkillScheduler>(m_robot->resources())),
       m_faults(m_scenario.faults, m_scenario.random_faults),
       m_context{ *m_robot, m_world_model, {}, {} }
@@ -143,8 +146,15 @@ Simulation::Simulation(compages::world::World& p_world,
     // Connect the backend.
     if (m_robot->backend() == nullptr)
     {
-        m_robot->connect(
-            std::make_unique<MujocoBackend>(m_scenario.robot_model));
+        auto physics = std::make_unique<MujocoBackend>();
+        std::string const arm = physics->load(m_scenario.robot_model);
+        if (std::filesystem::path const tool = m_scenario.toolFile();
+            !tool.empty())
+        {
+            std::string const mounted = physics->load(tool);
+            physics->attach(arm, "flange", mounted, "tool_mount");
+        }
+        m_robot->connect(std::move(physics));
     }
 
     // Hold the home position.
@@ -188,8 +198,15 @@ void Simulation::spawn(SceneView* p_view)
                 actuators.add<Motor>(actuator.name, actuator.joints.front());
                 break;
             case Scenario::Actuator::Type::Vacuum:
-                actuators.add<VacuumGripper>(
-                    actuator.name, actuator.link, actuator.length);
+                // Suction is the vacuum tool. A drill or a finger gripper
+                // keeps the same actuator name in the scenario, but must not
+                // stick objects to the flange.
+                if (m_scenario.mounted_tool.empty() ||
+                    m_scenario.mounted_tool == "vacuum")
+                {
+                    actuators.add<VacuumGripper>(
+                        actuator.name, actuator.link, actuator.length);
+                }
                 break;
         }
     }

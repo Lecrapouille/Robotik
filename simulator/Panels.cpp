@@ -786,9 +786,8 @@ static void resourcesPanel(App& p_app)
     ImGui::End();
 }
 
-//! @brief Draw the robot panel.
 //! @param p_app The application.
-static void robotPanel(App const& p_app)
+static void robotPanel(App& p_app)
 {
     if (!ImGui::Begin(ROBOT) || !p_app.simulation)
     {
@@ -873,10 +872,10 @@ static void robotPanel(App const& p_app)
     auto const* gripper = robot.actuators().first<robotik::VacuumGripper>();
     if (gripper != nullptr)
     {
-        ImGui::SeparatorText("Tool");
+        ImGui::SeparatorText("Vacuum");
         robotik::Pose const flange = gripper->flange(robot);
         robotik::Vector3 const tip = gripper->tip(robot);
-        ImGui::Text("Flange %s", robot.tool().c_str());
+        ImGui::Text("Frame %s", gripper->link().c_str());
         ImGui::Text("  xyz  %.3f %.3f %.3f m",
                     flange.position.x,
                     flange.position.y,

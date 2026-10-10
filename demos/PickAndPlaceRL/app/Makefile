@@ -20,7 +20,7 @@ VPATH += $(APP_DIR) $(PICK_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(wildcard $(APP_DIR)/*.cpp)
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
-SRC_FILES += $(PICK_DIR)/PickPlaceControl.cpp
+SRC_FILES += $(PICK_DIR)/PickPlaceSkills.cpp $(PICK_DIR)/PickPlaceControl.cpp
 
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
 RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml

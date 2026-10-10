@@ -38,11 +38,6 @@ INCLUDES += $(THIRD_PARTIES_DIR) $(P)/include $(P)/src
 PKG_LIBS += glfw3 glew gl
 
 ###############################################################################
-# Set SWI-Prolog library, needed by the Core sources compiled below
-#
-PKG_LIBS += swipl
-
-###############################################################################
 # Set pugixml library
 #
 SRC_FILES += $(THIRD_PARTIES_DIR)/pugixml/src/pugixml.cpp
@@ -83,6 +78,7 @@ SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 PICK_DIR := $(P)/demos/PickAndPlaceBT
 FLY_DIR := $(P)/demos/FlyBrain
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
+SRC_FILES += $(PICK_DIR)/PickPlaceSkills.cpp
 SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
 SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
 SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp

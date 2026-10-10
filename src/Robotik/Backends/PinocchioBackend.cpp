@@ -55,10 +55,50 @@ static std::vector<double> toVector(Eigen::VectorXd const& p_value)
     return {p_value.data(), p_value.data() + p_value.size()};
 }
 
-PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf)
+//! Pose of tcp in the tool_mount frame. The mount itself is the identity
+//! on the robot flange, so this is also the pose of tcp on the flange.
+static pinocchio::SE3 tcpInMount(std::filesystem::path const& p_tool)
+{
+    pinocchio::Model tool;
+    pinocchio::urdf::buildModel(p_tool.string(), tool);
+    if (!tool.existFrame("tool_mount") || !tool.existFrame("tcp"))
+    {
+        throw std::runtime_error("Tool '" + p_tool.string() +
+                                 "' needs frames tool_mount and tcp");
+    }
+    pinocchio::Data data(tool);
+    Eigen::VectorXd const q = pinocchio::neutral(tool);
+    pinocchio::forwardKinematics(tool, data, q);
+    pinocchio::updateFramePlacements(tool, data);
+    return data.oMf[tool.getFrameId("tool_mount")].inverse() *
+           data.oMf[tool.getFrameId("tcp")];
+}
+
+PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf,
+                                   std::filesystem::path const& p_tool)
     : m_impl(std::make_unique<Impl>())
 {
     pinocchio::urdf::buildModel(p_urdf.string(), m_impl->model);
+    if (!p_tool.empty())
+    {
+        if (!m_impl->model.existFrame("flange"))
+        {
+            throw std::runtime_error("Robot '" + p_urdf.string() +
+                                     "' has no flange frame");
+        }
+        pinocchio::SE3 const tcp = tcpInMount(p_tool);
+        pinocchio::FrameIndex const flange_id =
+            m_impl->model.getFrameId("flange");
+        pinocchio::Frame const& flange = m_impl->model.frames[flange_id];
+        pinocchio::JointIndex const parent = flange.parentJoint;
+        pinocchio::SE3 const placement = flange.placement * tcp;
+        m_impl->model.addFrame(pinocchio::Frame("tcp",
+                                               parent,
+                                               flange_id,
+                                               placement,
+                                               pinocchio::OP_FRAME),
+                              false);
+    }
     m_impl->data = std::make_unique<pinocchio::Data>(m_impl->model);
     m_impl->q = pinocchio::neutral(m_impl->model);
     m_impl->v = Eigen::VectorXd::Zero(m_impl->model.nv);

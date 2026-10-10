@@ -75,10 +75,6 @@ PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
 USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
 THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 
-###############################################################################
-# Set SWI-Prolog library
-#
-PKG_LIBS += swipl
 USER_LDFLAGS += -ldl
 
 ###############################################################################

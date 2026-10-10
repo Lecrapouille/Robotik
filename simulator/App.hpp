@@ -92,12 +92,15 @@ struct App
     RenderTarget view;
     bool view_hovered = false;
 
-    bool playing = true;
+    bool playing = false;
     bool step_once = false;
     float speed = 1.0f;
     std::uint64_t seed = 0;
+    //! @brief When set, replaces @c robot.tool read from the scenario file.
+    bool tool_override = false;
+    std::string tool_override_name;
 
-    void load();
+    void load(bool p_keep_tool = false);
     void reset(std::uint64_t p_seed);
     void advance(double p_elapsed);
 

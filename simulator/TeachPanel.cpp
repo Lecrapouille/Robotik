@@ -15,8 +15,12 @@
 #include <imgui.h>
 #include "imgui_stdlib.h"
 
+#include <algorithm>
+#include <cmath>
+#include <filesystem>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -77,6 +81,153 @@ void syncMarkers(App& p_app)
     }
 }
 
+//! @brief Mounted tool. A change reloads the scenario with that URDF.
+//! @return True when the simulation was reloaded. The caller must stop using
+//! the previous robot.
+bool changeTool(App& p_app)
+{
+    auto const& tools = p_app.simulation->scenario().tools;
+    std::string const current = p_app.simulation->scenario().mounted_tool;
+    std::string const label = current.empty() ? std::string("None") : current;
+
+    bool changed = false;
+    std::string chosen;
+    if (!ImGui::BeginCombo("Tool", label.c_str()))
+    {
+        return false;
+    }
+    if (ImGui::Selectable("None", current.empty()))
+    {
+        changed = !current.empty();
+    }
+    for (auto const& [name, file] : tools)
+    {
+        bool const selected = name == current;
+        if (ImGui::Selectable(name.c_str(), selected) && !selected)
+        {
+            changed = true;
+            chosen = name;
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s", file.filename().string().c_str());
+        }
+    }
+    ImGui::EndCombo();
+    if (!changed)
+    {
+        return false;
+    }
+    p_app.tool_override = true;
+    p_app.tool_override_name = std::move(chosen);
+    p_app.load(true);
+    return true;
+}
+
+//! @brief Actuates the mounted tool: suction, finger close, or spindle.
+void triggerTool(App& p_app, robotik::RobotSession& p_robot)
+{
+    std::string const mounted = p_app.simulation->scenario().mounted_tool;
+    robotik::JointSet& joints = p_robot.joints();
+    if (mounted == "vacuum")
+    {
+        robotik::VacuumGripper* gripper =
+            p_robot.actuators().first<robotik::VacuumGripper>();
+        if (gripper == nullptr)
+        {
+            ImGui::TextDisabled("Trigger: no suction cup");
+            return;
+        }
+        bool on = gripper->suction();
+        if (ImGui::Checkbox("Trigger", &on))
+        {
+            takeArm(p_app);
+            gripper->suction(on);
+        }
+        return;
+    }
+    if (mounted == "gripper")
+    {
+        bool closed = true;
+        bool any = false;
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
+        {
+            if (!joints.isPrismatic(id))
+            {
+                continue;
+            }
+            any = true;
+            auto const limits = joints.limits(joints.prismatic(id));
+            double const mid =
+                0.5 * (limits.lower.value() + limits.upper.value());
+            double const commanded = joints.mode(id) == robotik::JointMode::Position
+                                         ? joints.target(id)
+                                         : joints.position(id);
+            closed = closed && commanded <= mid;
+        }
+        if (!any)
+        {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Checkbox("Trigger", &closed))
+        {
+            takeArm(p_app);
+            for (robotik::JointId id = 0; id < joints.size(); ++id)
+            {
+                if (!joints.isPrismatic(id))
+                {
+                    continue;
+                }
+                auto const limits = joints.limits(joints.prismatic(id));
+                joints.moveTo(id,
+                              closed ? limits.lower.value()
+                                     : limits.upper.value());
+            }
+        }
+        if (!any)
+        {
+            ImGui::EndDisabled();
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled(any ? (closed ? "closed" : "open")
+                                : "the gripper has no finger joint");
+        return;
+    }
+    if (mounted == "drill")
+    {
+        robotik::JointId const spindle = joints.find("drill_spindle_joint");
+        if (spindle == robotik::NO_JOINT)
+        {
+            ImGui::TextDisabled("Trigger: no spindle");
+            return;
+        }
+        bool spinning = joints.mode(spindle) == robotik::JointMode::Velocity &&
+                        std::abs(joints.target(spindle)) > 1e-3;
+        if (ImGui::Checkbox("Trigger", &spinning))
+        {
+            takeArm(p_app);
+            if (!spinning)
+            {
+                joints.hold(spindle);
+            }
+            else
+            {
+                double speed =
+                    joints.limits(joints.revolute(spindle)).velocity.value();
+                if (!(speed > 0.0))
+                {
+                    speed = 20.0;
+                }
+                joints.spin(spindle, std::min(speed, 20.0));
+            }
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled(spinning ? "spinning" : "stopped");
+        return;
+    }
+    ImGui::TextDisabled("Trigger: this tool has none");
+}
+
 } // namespace
 
 void teachPanel(App& p_app)
@@ -122,18 +273,13 @@ void teachPanel(App& p_app)
     ImGui::TextDisabled(p_app.teach.manual ? "mission suspended"
                                            : "mission running");
 
-    if (robotik::VacuumGripper* gripper =
-            robot.actuators().first<robotik::VacuumGripper>())
-    {
-        bool suction = gripper->suction();
-        if (ImGui::Checkbox("Suction", &suction))
-        {
-            takeArm(p_app);
-            gripper->suction(suction);
-        }
-    }
-
     ImGui::SeparatorText("Tool");
+    if (changeTool(p_app))
+    {
+        ImGui::End();
+        return;
+    }
+    triggerTool(p_app, robot);
     if (!robot.tool().empty())
     {
         robotik::Pose const tool = robot.framePose(robot.tool());

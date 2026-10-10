@@ -12,6 +12,7 @@ Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, acti
 | [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md) | Action BlackThorn, `SkillScheduler`, skills |
 | [Demos.md](Demos.md) | Buts, CLI, tutoriel Simulateur / Headless / LineFollower / RL |
 | [Plugins.md](Plugins.md) | Pourquoi un plugin, cycle de vie, tutoriel pour en ajouter un |
+| [Tools.md](Tools.md) | Robot flange, tool URDF, TCP (English) |
 
 ## Carte rapide `include/Robotik/`
 
@@ -22,7 +23,7 @@ Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, acti
 | **`Sensors/`** | `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, lectures ECS |
 | **`Perception/`** | `Detector`, `PerceptionPipeline`, `WorldModel`, `localize` |
 | **`Runtime/`** | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Mission`, `Metrics`, `Simulation` |
-| **`Skills/`** | `Skill`, skills de mouvement et de pick-and-place, `SkillNodes.hpp` (pont BT) |
+| **`Skills/`** | `Skill`, skills de mouvement, `SkillNodes.hpp` (pont BT) |
 | **`Scenario/`** | Parser YAML de mission |
 | **`Environment/`** | `Environment`, `EnvironmentPool` (RL) |
 | **`Backends/`** | Pinocchio (FK/IK), MuJoCo (physique) |

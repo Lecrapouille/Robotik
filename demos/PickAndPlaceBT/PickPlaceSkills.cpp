@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Skills/PickPlaceSkills.hpp"
+#include "PickPlaceSkills.hpp"
 
 #include "Robotik/Scene/ContainerBounds.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"

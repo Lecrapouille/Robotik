@@ -211,7 +211,7 @@ Scenario::Actuator actuator(std::string_view p_name, bt::YamlNode const& p_node)
     {
         actuator.type = Scenario::Actuator::Type::Vacuum;
         actuator.link = text(p_node, "parent");
-        actuator.length = Length(number(p_node, "length", 0.06));
+        actuator.length = Length(number(p_node, "length", 0.0));
     }
     else
     {
@@ -302,6 +302,21 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
         throw std::runtime_error("Scenario '" + p_path.string() +
                                  "' has no robot.model");
     }
+    if (robot.hasKey("tools"))
+    {
+        robot.child("tools").forEachMap(
+            [&](std::string_view p_name, bt::YamlNode p_node)
+            {
+                std::filesystem::path const file =
+                    resolve(directory, p_node.scalar());
+                if (file.empty())
+                {
+                    throw std::runtime_error("Tool '" + std::string(p_name) +
+                                             "' has no URDF");
+                }
+                scenario.tools.emplace(std::string(p_name), file);
+            });
+    }
     if (robot.hasKey("home"))
     {
         robot.child("home").forEachMap(
@@ -320,7 +335,20 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
     {
         robot.child("actuators").forEachMap(
             [&](std::string_view p_name, bt::YamlNode p_node)
-            { scenario.actuators.push_back(actuator(p_name, p_node)); });
+            {
+                scenario.actuators.push_back(actuator(p_name, p_node));
+                std::string const type = text(p_node, "type");
+                if (type == "vacuum" && !scenario.tools.contains(type))
+                {
+                    throw std::runtime_error(
+                        "Actuator '" + std::string(p_name) +
+                        "': type 'vacuum' needs robot.tools.vacuum");
+                }
+                if (scenario.tools.contains(type))
+                {
+                    scenario.mounted_tool = type;
+                }
+            });
     }
 
     bt::YamlNode const world = root.child("world");

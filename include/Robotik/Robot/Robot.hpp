@@ -76,7 +76,8 @@ public:
         return m_root;
     }
 
-    //! @brief Tool frame (tool0, tcp, or the last moving link).
+    //! @brief Work frame: @c tcp when a tool is mounted, otherwise @c tool0,
+    //! @c end_effector, or the last moving link.
     [[nodiscard]] std::string const& tool() const
     {
         return m_tool;
@@ -183,7 +184,8 @@ protected:
 
     Robot(compages::world::World& p_world,
           std::filesystem::path const& p_urdf,
-          SceneView* p_view);
+          SceneView* p_view,
+          std::filesystem::path const& p_tool = {});
 
     //! @brief Joints and base to kinematics, then to the rendered entities.
     void propagate();
@@ -218,7 +220,9 @@ protected:
 //! compages::world::World world;
 //! robotik::RobotSession robot(world, "arm.urdf");
 //! robot.actuators().add<robotik::JointGroup>("arm");
-//! robot.connect(std::make_unique<robotik::MujocoBackend>("arm.urdf"));
+//! auto physics = std::make_unique<robotik::MujocoBackend>();
+//! physics->load("arm.urdf");
+//! robot.connect(std::move(physics));
 //! robot.hold({ { "joint2", 0.3 } });
 //! while (running)
 //!     robot.step(Seconds(0.01));
@@ -231,7 +235,8 @@ public:
     //! @param p_view Rendering hooks, or null for a headless robot.
     RobotSession(compages::world::World& p_world,
                  std::filesystem::path const& p_urdf,
-                 SceneView* p_view = nullptr);
+                 SceneView* p_view = nullptr,
+                 std::filesystem::path const& p_tool = {});
     ~RobotSession() override;
 
     // -------------------------------------------------------------------------
