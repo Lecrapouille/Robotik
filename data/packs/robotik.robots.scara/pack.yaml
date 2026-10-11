@@ -1,0 +1,7 @@
+id: robotik.robots.scara
+version: 1.0.0
+# Origin of the reference picture not recorded.
+license: NOASSERTION
+description: SCARA arm and its reference picture.
+models:
+  scara_robot: scara_robot.urdf

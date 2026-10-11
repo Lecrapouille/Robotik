@@ -1,0 +1,7 @@
+id: robotik.painter
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: Easel of the painter demonstration (floating rigid body).
+models:
+  easel: chevalet.urdf

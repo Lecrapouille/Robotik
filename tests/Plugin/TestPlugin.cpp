@@ -70,7 +70,7 @@ std::string drawPanel(robotik::PluginHost const& p_host)
 TEST(PluginCatalog, OnePluginListsSeveralScenarios)
 {
     robotik::PluginCatalog catalog;
-    std::vector<std::filesystem::path> const roots{ repo("demos/Manipulator") };
+    std::vector<std::filesystem::path> const roots{ repo("plugins/Manipulator") };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 1u);
     robotik::PluginPackage const& package = catalog.packages().front();
@@ -87,7 +87,7 @@ TEST(PluginCatalog, OnePluginListsSeveralScenarios)
 TEST(PluginCatalog, ProbeOwnsTwoScenarios)
 {
     robotik::PluginCatalog catalog;
-    std::vector<std::filesystem::path> const roots{ repo("demos/Probe") };
+    std::vector<std::filesystem::path> const roots{ repo("plugins/Probe") };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 1u);
     EXPECT_EQ(catalog.packages().front().scenarios.size(), 2u);
@@ -103,13 +103,54 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
     EXPECT_GE(catalog.errors().size(), 2u);
 }
 
-TEST(Scenario, BareModelNameResolvesFromPluginScenario)
+TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repo("demos/Manipulator/scenarios/forward_kinematics.yml"));
+        repo("plugins/Manipulator/scenarios/forward_kinematics.yml"), testAssets());
     EXPECT_EQ(scenario.name, "forward_kinematics");
     EXPECT_EQ(scenario.robot_model.filename(), "robot_6axis.urdf");
     EXPECT_TRUE(std::filesystem::exists(scenario.robot_model));
+}
+
+TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
+{
+    robotik::PluginCatalog catalog;
+    std::vector<std::filesystem::path> const roots{ repo("plugins/Painter"),
+                                                    repo("plugins/PickAndPlaceRL") };
+    catalog.scan(roots);
+    ASSERT_EQ(catalog.packages().size(), 2u) << (catalog.errors().empty() ? "" : catalog.errors().front());
+    robotik::PluginPackage const* painter = catalog.findPackage("robotik.painter");
+    ASSERT_NE(painter, nullptr);
+    EXPECT_EQ(painter->api_version, ROBOTIK_PLUGIN_ABI_VERSION);
+    EXPECT_EQ(painter->version.toString(), "1.0.0");
+    EXPECT_EQ(painter->resources.filename(), "data");
+    ASSERT_EQ(painter->packs.size(), 2u);
+    EXPECT_EQ(painter->packs[0].id, "robotik.robots");
+    EXPECT_EQ(painter->packs[0].version.toString(), "1.0.0");
+    EXPECT_FALSE(painter->owns_clock);
+    robotik::PluginPackage const* rl = catalog.findPackage("robotik.pick_and_place_rl");
+    ASSERT_NE(rl, nullptr);
+    EXPECT_TRUE(rl->owns_clock);
+}
+
+TEST(PluginCatalog, RejectsAnotherPluginApi)
+{
+    robotik::PluginCatalog catalog;
+    std::vector<std::filesystem::path> const roots{ repo("tests/Plugin/fixtures/api") };
+    catalog.scan(roots);
+    EXPECT_TRUE(catalog.packages().empty());
+    ASSERT_EQ(catalog.errors().size(), 1u);
+    EXPECT_NE(catalog.errors().front().find("plugin API 99"), std::string::npos);
+}
+
+TEST(PluginSession, RefusesAPackageWhosePackIsMissing)
+{
+    robotik::PluginSession session;
+    session.scan(repo("tests/Plugin/fixtures/nopack"));
+    std::filesystem::path const scenario =
+        repo("tests/Plugin/fixtures/nopack/scenarios/one.yml");
+    EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Failed);
+    EXPECT_NE(session.error().find("robotik.unknown"), std::string::npos) << session.error();
 }
 
 TEST(PluginManager, MissingLibraryAndIncompatibleAbi)
@@ -202,7 +243,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 
     compages::world::World world;
     robotik::Simulation simulation(
-        world, robotik::Scenario::load(scenario), nullptr, session.mission());
+        world, robotik::Scenario::load(scenario, session.assets()), nullptr, session.mission());
     session.attach(&simulation);
     ASSERT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
 

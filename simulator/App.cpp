@@ -134,7 +134,8 @@ void App::load(bool p_keep_tool)
             playing = false;
             return;
         }
-        robotik::Scenario scenario = robotik::Scenario::load(scenario_path);
+        robotik::Scenario scenario =
+            robotik::Scenario::load(scenario_path, plugins.assets());
         if (tool_override)
         {
             scenario.mounted_tool = tool_override_name;

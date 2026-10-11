@@ -13,6 +13,7 @@
 //! deletes the mission. @ref unload closes the library after that.
 #pragma once
 
+#include "Robotik/Assets/AssetResolver.hpp"
 #include "Robotik/Plugin/PluginCatalog.hpp"
 #include "Robotik/Plugin/PluginHost.hpp"
 #include "Robotik/Plugin/PluginManager.hpp"
@@ -52,6 +53,8 @@ public:
     PluginSession& operator=(PluginSession const&) = delete;
     ~PluginSession();
 
+    //! @brief Lists the packages, then the asset packs: the standard roots
+    //! and the own pack of every package.
     void scan(std::filesystem::path const& p_extra = {});
 
     //! @brief Refuse packages that declare @c graphics: true.
@@ -63,6 +66,12 @@ public:
     [[nodiscard]] PluginCatalog const& catalog() const
     {
         return m_catalog;
+    }
+
+    //! @brief Asset packs visible to the scenarios of the catalog.
+    [[nodiscard]] AssetResolver const& assets() const
+    {
+        return m_assets;
     }
 
     [[nodiscard]] PluginHost& host()
@@ -95,8 +104,9 @@ public:
                m_manager.state() == PluginState::Stopped;
     }
 
-    //! @brief Loads the owning plugin and runs @c setup. The simulation does
-    //! not exist yet: the returned mission is what the host passes to it.
+    //! @brief Checks the asset packs and plugins the package depends on,
+    //! loads the owning plugin and runs @c setup. The simulation does not
+    //! exist yet: the returned mission is what the host passes to it.
     PluginPrepare prepare(std::filesystem::path const& p_scenario);
 
     [[nodiscard]] Mission* mission() const
@@ -126,11 +136,13 @@ public:
 
 private:
 
+    [[nodiscard]] bool dependenciesMet(PluginPackage const& p_package);
     void publishKind(RobotikEventKind p_kind, std::string_view p_name, std::int32_t p_flag);
     void emitRuntimeEvents();
     void fallback(std::string p_text) const;
 
     PluginCatalog m_catalog;
+    AssetResolver m_assets;
     PluginHost m_host;
     PluginManager m_manager;
     std::string m_package_id;

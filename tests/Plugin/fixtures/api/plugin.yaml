@@ -1,0 +1,9 @@
+plugin:
+  id: robotik.api
+  name: Future API
+  version: 1
+  api_version: 99
+library:
+  entrypoint: librobotik_probe.so
+scenarios:
+  directory: scenarios

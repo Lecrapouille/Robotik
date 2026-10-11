@@ -1,0 +1,22 @@
+plugin:
+  id: robotik.fly
+  name: Fly
+  version: 1.0.0
+  api_version: 1
+  category: Perception
+
+library:
+  entrypoint: librobotik_fly.so
+
+resources:
+  packs:
+    - { id: robotik.fly, version: "1.0" }
+
+# The fly view is compiled in the simulator: no headless run.
+host:
+  graphics: true
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: fly_obstacle_avoidance, name: Fly brain, file: fly_obstacle_avoidance.yml }

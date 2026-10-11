@@ -1,0 +1,14 @@
+id: robotik.robots
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: Robots modelled for RobotIK (arms, mobile bases, test chains).
+models:
+  robot_6axis: robot_6axis.urdf
+  robot_6axis_vacuum: robot_6axis_vacuum.urdf
+  simple_robot_6axis: simple_robot_6axis.urdf
+  simple_revolute_robot: simple_revolute_robot.urdf
+  simple_revolute_robot_with_inertia: simple_revolute_robot_with_inertia.urdf
+  simple_prismatic_robot: simple_prismatic_robot.urdf
+  diff_drive_robot: diff_drive_robot.urdf
+  simple_diff_drive_robot: simple_diff_drive_robot.urdf

@@ -1,0 +1,21 @@
+plugin:
+  id: robotik.painter
+  name: Robotic painter
+  version: 1.0.0
+  api_version: 1
+  category: Manipulation
+
+library:
+  entrypoint: librobotik_painter.so
+
+# Runtime assets. data/ is this plugin's own pack (the easel).
+resources:
+  directory: data
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+    - { id: robotik.tools, version: "1.0" }
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: painter, name: Robotic painter, file: painter.yml }

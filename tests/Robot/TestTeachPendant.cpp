@@ -16,7 +16,7 @@
 TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, dataFile("simple_revolute_robot.urdf"));
+    robotik::RobotSession robot(world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::TeachPendant pendant;
 
     std::size_t const home = pendant.record(robot, "home", 1.0);
@@ -38,7 +38,7 @@ TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 TEST(TeachPendant, ToolJogSolvesInverseKinematics)
 {
     compages::world::World world;
-    std::filesystem::path const urdf = dataFile("robot_6axis.urdf");
+    std::filesystem::path const urdf = assetFile("robotik.robots.robot_6axis");
     robotik::RobotSession robot(world, urdf);
     auto physics = std::make_unique<robotik::MujocoBackend>();
     (void)physics->load(urdf);

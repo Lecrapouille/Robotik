@@ -20,7 +20,7 @@ namespace
 std::filesystem::path scenarioFile()
 {
     return std::filesystem::path(__FILE__).parent_path() /
-           "../../demos/FlyBrain/scenarios/fly_obstacle_avoidance.yml";
+           "../../plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml";
 }
 
 robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)

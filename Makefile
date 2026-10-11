@@ -42,7 +42,7 @@ download-external-libs::
 ###################################################
 # Extra rules: compile applications after everything
 #
-APPLICATIONS = $(sort $(dir $(wildcard $(P)/simulator/Makefile $(P)/headless/Makefile $(P)/demos/*/Makefile $(P)/demos/*/app/Makefile)))
+APPLICATIONS = $(sort $(dir $(wildcard $(P)/simulator/Makefile $(P)/headless/Makefile $(P)/plugins/*/Makefile $(P)/plugins/*/app/Makefile)))
 
 .PHONY: applications
 applications: $(DIRS_WITH_MAKEFILE)
