@@ -30,3 +30,4 @@ PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
 USER_LDFLAGS += -ldl
 
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink

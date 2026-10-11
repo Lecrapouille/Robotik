@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+# Copyright (c) 2020-2026 Quentin Quadrat
+#
+# This file is part of RobotIK. It is available under the GNU GPL v3 or,
+# for users who cannot use the GPL, under a commercial license.
+# See LICENSING.md for details.
+
+# Include after $(M)/rules/Makefile.
+#
+# MyMakefile relinks a target when its objects change, not when a static
+# archive it links does. A binary built before libCompages.a or
+# librobotik-core.a was rebuilt then mixes two versions of the same structs
+# (seen as garbled joint limits and a std::clamp assertion at run time).
+
+ifneq ($(strip $(TARGET_BINARY_NAME)),)
+$(TARGET_BINARY_NAME): $(COMPAGES_STATIC) $(INTERNAL_LIBS)
+endif
+
+ifneq ($(strip $(TARGET_SHARED_LIB_NAME)),)
+$(TARGET_SHARED_LIB_NAME): $(COMPAGES_STATIC)
+endif
