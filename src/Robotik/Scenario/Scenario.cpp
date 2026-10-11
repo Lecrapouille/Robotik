@@ -135,6 +135,7 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         }
         scenario.timeout = Seconds(node.number("timeout", 0.0));
         scenario.stop_when = node.text("stop_when");
+        scenario.parameters = node.at("parameters");
         for (ConfigNode const& item : node.at("assertions").items())
         {
             scenario.assertions.push_back(AssertionSpec::read(item));

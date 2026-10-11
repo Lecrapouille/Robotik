@@ -23,6 +23,10 @@ Version 0.4.0 (in progress):
         dimensions flagged), SimulationEnvironment from an observation
         builder, an action adapter and a reward evaluator, episode ends
         (success, failure, time limit, aborted), JSON episode log
+    * FlyBrain: a regular plugin. World file (fly, eyes, blocks, food),
+      flight model as the robot backend, brain as the agent; runs
+      headless. The simulator no longer hosts the fly; beams and trail
+      are decorations ignored by grasp, range sensors and ground truth
     * Painter: the easel and the canvas are world entities; the scenario
       proves the easel did not move
     * PickAndPlaceRL: one observation/action/reward shared by the pool and

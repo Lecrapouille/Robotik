@@ -30,6 +30,8 @@
 //!   perception: { oracle: when_blind }     # never (default) | when_blind | always
 //!   timeout: 30
 //!   stop_when: inside(red_cube, box)       # optional
+//!   parameters:                            # free, read by the mission
+//!     approach_height: 0.10
 //!   assertions:
 //!     - controller.success
 //!     - inside(red_cube, box)
@@ -134,6 +136,9 @@ struct Scenario
     //!< Condition ending the run as soon as it holds; empty for none.
     std::string stop_when;
     std::vector<AssertionSpec> assertions;
+    //!< Values the mission reads (gains, model choices...). An experiment
+    //!< overrides them as scenario.parameters.<name>.
+    ConfigNode parameters;
     //!< Packs the scenario was resolved with; missions resolve their own
     //!< models with it.
     AssetResolver assets;

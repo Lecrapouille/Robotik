@@ -8,7 +8,6 @@
 #include "MainLoop.hpp"
 
 #include "App.hpp"
-#include "FlyHost.hpp"
 #include "SimFrame.hpp"
 #include "SimulatorDisplay.hpp"
 #include "Window.hpp"
@@ -47,7 +46,7 @@ void runMainLoop(Window& p_window, App& p_app)
         drawPanels(p_app);
 
         // --- World simulation and 3D views (when scenario loaded) ---
-        if ((p_app.simulation || p_app.fly.environment) && p_app.view.width > 0)
+        if (p_app.simulation && p_app.view.width > 0)
         {
             p_app.advance(elapsed);
             p_app.world->update(
@@ -56,7 +55,6 @@ void runMainLoop(Window& p_window, App& p_app)
                 p_app.view.framebuffer,
                 compages::gpu::PassDesc{ .color = viewClearColor() });
             p_app.scene->render(p_app.view_camera);
-            renderFlyEyes(p_app);
         }
 
         ImGui::Render();
