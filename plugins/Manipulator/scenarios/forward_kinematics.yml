@@ -1,9 +1,0 @@
-scenario:
-  id: forward_kinematics
-  description: Sweep the base joint and publish the tool pose from forward kinematics.
-  world: ../worlds/arm_cell.yaml
-  seed: 1
-  timeout: 60
-  assertions:
-    - fk.samples > 0
-    - time < 30

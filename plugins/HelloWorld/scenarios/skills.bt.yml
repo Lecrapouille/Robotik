@@ -1,0 +1,12 @@
+# Each Action is a skill of the scheduler, called by its name.
+# Home and Stop come with every simulation; Wave comes from the plugin.
+BehaviorTree:
+  Sequence:
+    name: HelloSkills
+    children:
+      - Action:
+          name: Home
+      - Action:
+          name: Wave
+      - Action:
+          name: Home

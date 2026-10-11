@@ -1,0 +1,11 @@
+# Lesson 2: command a joint and read where the tool goes (forward kinematics).
+scenario:
+  id: wave
+  description: Swing the base joint left and right for six seconds.
+  world: ../worlds/arm.yaml
+  seed: 1
+  timeout: 30
+  assertions:
+    - controller.success
+    - wave.swing > 0.4
+    - { condition: "joint_limits_respected(robot)", phase: always }

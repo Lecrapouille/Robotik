@@ -70,27 +70,19 @@ std::string drawPanel(robotik::PluginHost const& p_host)
 TEST(PluginCatalog, OnePluginListsSeveralScenarios)
 {
     robotik::PluginCatalog catalog;
-    std::vector<std::filesystem::path> const roots{ repo("plugins/Manipulator") };
+    std::vector<std::filesystem::path> const roots{ repo("plugins/HelloWorld") };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 1u);
     robotik::PluginPackage const& package = catalog.packages().front();
-    EXPECT_EQ(package.id, "robotik.manipulator");
-    ASSERT_EQ(package.scenarios.size(), 3u);
-    EXPECT_EQ(package.scenarios[0].id, "forward_kinematics");
-    EXPECT_EQ(package.scenarios[1].id, "inverse_kinematics");
-    EXPECT_EQ(package.scenarios[2].id, "joint_limits");
-    EXPECT_EQ(package.library.filename(), "librobotik_manipulator.so");
+    EXPECT_EQ(package.id, "robotik.hello_world");
+    ASSERT_EQ(package.scenarios.size(), 4u);
+    EXPECT_EQ(package.scenarios[0].id, "hello");
+    EXPECT_EQ(package.scenarios[1].id, "wave");
+    EXPECT_EQ(package.scenarios[2].id, "reach");
+    EXPECT_EQ(package.scenarios[3].id, "skills");
+    EXPECT_EQ(package.library.filename(), "librobotik_hello_world.so");
     EXPECT_EQ(catalog.findScenario(package.scenarios[0].file), &package);
-    EXPECT_EQ(catalog.findScenario(package.scenarios[2].file)->id, package.id);
-}
-
-TEST(PluginCatalog, ProbeOwnsTwoScenarios)
-{
-    robotik::PluginCatalog catalog;
-    std::vector<std::filesystem::path> const roots{ repo("plugins/Probe") };
-    catalog.scan(roots);
-    ASSERT_EQ(catalog.packages().size(), 1u);
-    EXPECT_EQ(catalog.packages().front().scenarios.size(), 2u);
+    EXPECT_EQ(catalog.findScenario(package.scenarios[3].file)->id, package.id);
 }
 
 TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
@@ -106,8 +98,8 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repo("plugins/Manipulator/scenarios/forward_kinematics.yml"), testAssets());
-    EXPECT_EQ(scenario.id, "forward_kinematics");
+        repo("plugins/HelloWorld/scenarios/hello.yml"), testAssets());
+    EXPECT_EQ(scenario.id, "hello");
     EXPECT_EQ(scenario.world.robot().model.filename(), "robot_6axis.urdf");
     EXPECT_TRUE(std::filesystem::exists(scenario.world.robot().model));
 }
@@ -181,44 +173,41 @@ TEST(PluginManager, MissingLibraryAndIncompatibleAbi)
     EXPECT_EQ(abi.state(), robotik::PluginState::Unloaded);
 }
 
-TEST(PluginSession, ProbeLifecycleKeepsTheLibraryAcrossScenarios)
+TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
 {
-    std::filesystem::path const library =
-        buildRoot() / "plugins" / "Probe" / "librobotik_probe.so";
+    std::filesystem::path const package = buildRoot() / "plugins" / "HelloWorld";
+    std::filesystem::path const library = package / "librobotik_hello_world.so";
     if (!std::filesystem::is_regular_file(library))
     {
-        GTEST_SKIP() << "probe plugin is not built";
+        GTEST_SKIP() << "hello world plugin is not built";
     }
     robotik::PluginSession session;
-    session.scan(buildRoot() / "plugins" / "Probe");
-    std::filesystem::path const alpha =
-        buildRoot() / "plugins" / "Probe" / "scenarios" / "alpha.yml";
-    std::filesystem::path const beta =
-        buildRoot() / "plugins" / "Probe" / "scenarios" / "beta.yml";
-    ASSERT_EQ(session.prepare(alpha), robotik::PluginPrepare::Ready);
+    session.scan(package);
+    std::filesystem::path const hello = package / "scenarios" / "hello.yml";
+    std::filesystem::path const wave = package / "scenarios" / "wave.yml";
+    ASSERT_EQ(session.prepare(hello), robotik::PluginPrepare::Ready);
     EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
+    // 'H' is a key press and a home request.
     session.publishKey('H');
     session.afterStep(0.01);
-    EXPECT_NE(drawPanel(session.host()).find("alpha"), std::string::npos);
-    EXPECT_NE(drawPanel(session.host()).find("keys=1"), std::string::npos);
+    EXPECT_NE(drawPanel(session.host()).find("scenario hello"), std::string::npos);
+    EXPECT_NE(drawPanel(session.host()).find("updates=1 keys=1 homes=1"), std::string::npos);
     ASSERT_FALSE(session.host().menus().empty());
     session.host().menus().front().callback(session.host().menus().front().user);
-    EXPECT_NE(drawPanel(session.host()).find("homes=1"), std::string::npos);
+    EXPECT_NE(drawPanel(session.host()).find("homes=2"), std::string::npos);
 
-    ASSERT_EQ(session.prepare(beta), robotik::PluginPrepare::Ready);
-    EXPECT_EQ(session.scenarioName(), "Beta");
-    EXPECT_EQ(drawPanel(session.host()).find("alpha"), std::string::npos);
+    ASSERT_EQ(session.prepare(wave), robotik::PluginPrepare::Ready);
+    EXPECT_EQ(session.scenarioName(), "2. Move a joint");
+    EXPECT_EQ(drawPanel(session.host()).find("hello"), std::string::npos);
     session.host().menus().front().callback(session.host().menus().front().user);
 
-    robotik::PluginSession broken;
-    broken.scan(buildRoot() / "plugins" / "Probe");
     // Setup failure is requested through the manager after a normal load.
     robotik::PluginManager manager;
     ASSERT_EQ(manager.load(library.string()), ROBOTIK_PLUGIN_OK);
     robotik::PluginHost host;
     ASSERT_EQ(manager.create(host.api()), ROBOTIK_PLUGIN_OK);
     EXPECT_EQ(manager.setup("broken"), ROBOTIK_PLUGIN_ERR_SETUP);
-    EXPECT_EQ(host.error(), "broken scenario");
+    EXPECT_EQ(host.error(), "unknown hello world scenario: broken");
     EXPECT_TRUE(host.menus().empty());
     manager.shutdown();
     manager.destroy();
@@ -230,11 +219,11 @@ TEST(PluginSession, ProbeLifecycleKeepsTheLibraryAcrossScenarios)
 TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 {
     std::filesystem::path const scenario =
-        buildRoot() / "plugins" / "Manipulator" / "scenarios" / "inverse_kinematics.yml";
+        buildRoot() / "plugins" / "HelloWorld" / "scenarios" / "reach.yml";
     if (!std::filesystem::is_regular_file(
-            buildRoot() / "plugins" / "Manipulator" / "librobotik_manipulator.so"))
+            buildRoot() / "plugins" / "HelloWorld" / "librobotik_hello_world.so"))
     {
-        GTEST_SKIP() << "manipulator plugin is not built";
+        GTEST_SKIP() << "hello world plugin is not built";
     }
     robotik::PluginSession session;
     session.setHeadless(true);
@@ -251,7 +240,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     EXPECT_FALSE(simulation.finished());
     for (auto const& check : simulation.checks())
     {
-        if (check.text.find("ik.error") != std::string::npos && !check.ok())
+        if (check.text.find("reach.error") != std::string::npos && !check.ok())
         {
             saw_failure = true;
         }
@@ -267,7 +256,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     bool recovered = false;
     for (auto const& check : simulation.checks())
     {
-        if (check.text.find("ik.error") != std::string::npos)
+        if (check.text.find("reach.error") != std::string::npos)
         {
             recovered = check.verdict == robotik::Check::Verdict::Passed;
         }

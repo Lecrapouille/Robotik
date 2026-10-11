@@ -1,0 +1,12 @@
+# Lesson 1: the smallest mission. It counts simulation steps and stops
+# after two seconds.
+scenario:
+  id: hello
+  description: Count the simulation steps, then stop after two seconds.
+  world: ../worlds/arm.yaml
+  seed: 1
+  timeout: 30
+  assertions:
+    - controller.success
+    - hello.ticks > 100
+    - time < 3
