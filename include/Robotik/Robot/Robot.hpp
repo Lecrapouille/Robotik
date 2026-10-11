@@ -151,6 +151,13 @@ public:
         return m_backend.get();
     }
 
+    //! @brief Rotation from the URDF frame (Z-up, the world frame of
+    //! Robotik) to the Compages frame (Y-up) the entities are drawn in.
+    [[nodiscard]] compages::core::Quatf const& urdfFrame() const
+    {
+        return m_world_from_urdf;
+    }
+
     //! @brief Link entity named @p_name, or an empty handle.
     [[nodiscard]] compages::world::Entity link(std::string_view p_name) const;
 

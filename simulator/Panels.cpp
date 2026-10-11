@@ -452,7 +452,7 @@ static void treePanel(App const& p_app)
         {
             ImGui::TextDisabled(
                 "%s",
-                p_app.simulation->scenario().behavior_tree.string().c_str());
+                p_app.simulation->scenario().controller.behavior_tree.string().c_str());
             ImGui::TextColored(GREY, "idle");
             ImGui::SameLine();
             ImGui::TextColored(ORANGE, "running");
@@ -910,12 +910,15 @@ static void scenarioPanel(App const& p_app)
     }
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::Scenario const& scenario = simulation.scenario();
-    ImGui::Text("%s", scenario.name.c_str());
-    ImGui::TextDisabled("%s", scenario.robot_model.string().c_str());
-    ImGui::TextDisabled(
-        "seed %llu", static_cast<unsigned long long>(simulation.seed().value));
-    ImGui::SeparatorText("Task");
-    ImGui::TextWrapped("%s", scenario.task.c_str());
+    ImGui::Text("%s", scenario.id.c_str());
+    ImGui::TextDisabled("world %s, robot %s",
+                        scenario.world.id.c_str(),
+                        scenario.world.robot().model_ref.c_str());
+    ImGui::TextDisabled("seed %llu, %s",
+                        static_cast<unsigned long long>(simulation.seed().value),
+                        robotik::toString(simulation.outcome()));
+    ImGui::SeparatorText("Description");
+    ImGui::TextWrapped("%s", scenario.description.c_str());
 
     ImGui::SeparatorText("Objects: truth / belief");
     if (ImGui::BeginTable(
@@ -931,7 +934,8 @@ static void scenarioPanel(App const& p_app)
             [&](compages::world::Entity p_entity,
                 robotik::ecs::SceneObject const& p_object)
             {
-                auto const at = p_entity.position();
+                (void)p_entity;
+                robotik::Vector3 const at = simulation.pose(p_object.name).position;
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
                 ImGui::ColorButton("##color",
@@ -944,24 +948,16 @@ static void scenarioPanel(App const& p_app)
                 ImGui::SameLine();
                 ImGui::TextUnformatted(p_object.name.c_str());
                 ImGui::TableNextColumn();
-                ImGui::Text("%.3f %.3f %.3f",
-                            static_cast<double>(at.x),
-                            static_cast<double>(at.y),
-                            static_cast<double>(at.z));
+                ImGui::Text("%.3f %.3f %.3f", at.x, at.y, at.z);
                 robotik::WorldObject const* belief =
                     beliefs.find(p_object.name);
                 ImGui::TableNextColumn();
                 if (belief != nullptr)
                 {
-                    double const dx =
-                        belief->position.x - static_cast<double>(at.x);
-                    double const dy =
-                        belief->position.y - static_cast<double>(at.y);
-                    double const dz =
-                        belief->position.z - static_cast<double>(at.z);
-                    ImGui::Text("%.1f",
-                                1000.0 *
-                                    std::sqrt(dx * dx + dy * dy + dz * dz));
+                    // Beliefs are in the robot base frame.
+                    robotik::Vector3 const believed =
+                        simulation.robot().base().pose * belief->position;
+                    ImGui::Text("%.1f", 1000.0 * robotik::norm(believed - at));
                 }
                 ImGui::TableNextColumn();
                 if (belief != nullptr && belief->observed())
@@ -977,17 +973,32 @@ static void scenarioPanel(App const& p_app)
     }
 
     ImGui::SeparatorText("Assertions");
-    for (auto const& check : simulation.checks())
+    for (robotik::Check const& check : simulation.checks())
     {
-        ImVec4 const color = check.passed ? GREEN : RED;
-        ImGui::TextColored(color,
-                           "%s  %s",
-                           check.passed ? "[ok]" : "[ko]",
-                           check.text.c_str());
-        if (!check.passed && !check.detail.empty())
+        // A failed assertion stays red; a pending one shows its live value.
+        char const* badge = check.verdict == robotik::Check::Verdict::Passed   ? "[pass]"
+                            : check.verdict == robotik::Check::Verdict::Failed ? "[FAIL]"
+                            : check.holds                                      ? "[ ok ]"
+                                                                               : "[ ko ]";
+        ImGui::TextColored(check.ok() ? GREEN : RED,
+                           "%s  %s  (%s)",
+                           badge,
+                           check.text.c_str(),
+                           robotik::toString(check.phase));
+        if (!check.ok() && !check.detail.empty())
         {
             ImGui::SameLine();
-            ImGui::TextDisabled("%s", check.detail.c_str());
+            if (check.verdict == robotik::Check::Verdict::Failed)
+            {
+                ImGui::TextDisabled("%s, expected %s, at %.2f s",
+                                    check.detail.c_str(),
+                                    check.expected.c_str(),
+                                    check.time.value());
+            }
+            else
+            {
+                ImGui::TextDisabled("%s", check.detail.c_str());
+            }
         }
     }
     ImGui::TextDisabled("Contacts seen: %d", simulation.maxContacts());

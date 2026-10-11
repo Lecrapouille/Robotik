@@ -47,7 +47,9 @@ struct ChainOptions
     //!< Free joint on the chain root. The robot chain stays fixed unless
     //!< @ref MujocoOptions::floating_base is set.
     bool floating = false;
-    //!< World pose of the root link when @ref floating is set (URDF Z-up).
+    //!< World pose of the root link (URDF Z-up): its start pose when
+    //!< @ref floating, where it is bolted otherwise. Ignored for the first
+    //!< chain, which follows the robot base.
     Pose pose{ zero3(), Quaternion{} };
     //!< Sliding friction of every geom of the chain. Negative keeps the URDF.
     double friction = -1.0;
@@ -144,7 +146,10 @@ public:
     // -------------------------------------------------------------------------
     //! @brief World pose of a body after the last step or reset.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::optional<Pose> bodyPose(std::string const& p_body) const;
+    [[nodiscard]] std::optional<Pose> bodyPose(std::string const& p_body) const override;
+
+    //! @brief @c mjData.contact with the names of the bodies of both geoms.
+    [[nodiscard]] std::vector<Contact> contactList() const override;
 
     // -------------------------------------------------------------------------
     //! @brief Hangs @p_robot2 on @p_robot1.

@@ -14,11 +14,26 @@
 
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace robotik
 {
 
 class Robot;
+
+// ****************************************************************************
+//! @brief Two bodies touching after a step.
+// ****************************************************************************
+struct Contact
+{
+    //!< Body names in the backend; @ref GROUND for the floor plane.
+    std::string first;
+    std::string second;
+    //!< Contact point in the world frame (m).
+    Vector3 position = zero3();
+
+    static constexpr char const* GROUND = "world";
+};
 
 // ****************************************************************************
 //! @brief Time-stepping side of a robot.
@@ -69,6 +84,23 @@ public:
     [[nodiscard]] virtual int contacts() const
     {
         return 0;
+    }
+
+    // -------------------------------------------------------------------------
+    //! @brief Every contact after the last step, floor included (simulation
+    //! only). Ground-truth queries build on it; skills never see it.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] virtual std::vector<Contact> contactList() const
+    {
+        return {};
+    }
+
+    // -------------------------------------------------------------------------
+    //! @brief World pose of a body after the last step (simulation only).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] virtual std::optional<Pose> bodyPose(std::string const& /*p_body*/) const
+    {
+        return std::nullopt;
     }
 
     // -------------------------------------------------------------------------

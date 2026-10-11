@@ -6,10 +6,10 @@
 // See LICENSING.md for details.
 
 //! @file ContainerBounds.hpp
-//! @brief Axis-aligned inner cavity of open box containers (@ref ecs::SceneObject::Type::BOX).
+//! @brief Axis-aligned inner cavity of open box containers (@ref ecs::SceneObject::Type::CONTAINER).
 //!
 //! @par Scope
-//! Helpers for scenario props whose @ref ecs::SceneObject::Type is @c BOX: an
+//! Helpers for scenario props whose @ref ecs::SceneObject::Type is @c CONTAINER: an
 //! open-top bin (floor slab + four walls). Not arbitrary meshes, not MuJoCo
 //! collision shapes.
 //!
@@ -46,7 +46,7 @@
 namespace robotik::scene
 {
 
-//! @brief Inner cavity of a @ref ecs::SceneObject::Type::BOX container.
+//! @brief Inner cavity of a @ref ecs::SceneObject::Type::CONTAINER container.
 struct ContainerInner
 {
     Vector3 center{};    //!< XY centre of the cavity (entity position).

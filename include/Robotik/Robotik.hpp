@@ -22,6 +22,7 @@
 #pragma once
 
 #include "Robotik/Agents/Agent.hpp"
+#include "Robotik/Assets/AssetResolver.hpp"
 #include "Robotik/Backends/MujocoBackend.hpp"
 #include "Robotik/Environment/Environment.hpp"
 #include "Robotik/Math/Geometry.hpp"

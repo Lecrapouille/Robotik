@@ -6,14 +6,13 @@
 // See LICENSING.md for details.
 
 //! @file PainterScene.hpp
-//! @brief Easel, free canvas and paint pots of the painter demo.
+//! @brief What the painter robot knows of its workplace.
 //!
-//! The easel URDF is one rigid body (fixed joints) with a free joint at
-//! @c easel_base, so it can slide or tip. The canvas is not in that file: the
-//! simulation adds it as its own free box, 1 mm clear of the ledge. The robot
-//! stays at the origin; the mast is 0.65 m in front of it (the skids reach
-//! 0.45 m toward the robot). Frames here are URDF Z-up, the same frame MuJoCo
-//! uses.
+//! The world (worlds/painting_lab.yaml) builds the easel, the canvas and the
+//! pots. These constants are the robot's prior on where the easel stands, from
+//! which the strokes are planned; they must agree with the world file. The
+//! robot stays at the origin; the mast is 0.65 m in front of it. Frames here
+//! are URDF Z-up, the world frame of Robotik.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -26,13 +25,11 @@ namespace painter
 {
 
 inline constexpr double kEaselDistance = 0.65;
-inline constexpr double kEaselFriction = 0.6;
-inline constexpr double kFloorFriction = 0.8;
 inline constexpr double kCanvasPitch = -0.1745;
 
-inline constexpr char const* kEaselModel = "robotik.painter.easel";
+//! World entity ids.
 inline constexpr char const* kCanvas = "canvas";
-inline constexpr char const* kEaselRoot = "easel_base";
+inline constexpr char const* kEasel = "easel";
 
 inline robotik::Vector3 cross(robotik::Vector3 const& p_a, robotik::Vector3 const& p_b)
 {

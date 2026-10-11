@@ -25,7 +25,7 @@ SceneObject makeBox()
 {
     SceneObject box;
     box.name = "box";
-    box.type = SceneObject::Type::BOX;
+    box.type = SceneObject::Type::CONTAINER;
     box.size = { Length(0.16), Length(0.16), Length(0.08) };
     return box;
 }
@@ -34,7 +34,7 @@ SceneObject makeCube()
 {
     SceneObject cube;
     cube.name = "red_cube";
-    cube.type = SceneObject::Type::CUBE;
+    cube.type = SceneObject::Type::BOX;
     cube.size = { Length(0.04), Length(0.04), Length(0.04) };
     return cube;
 }

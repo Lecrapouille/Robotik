@@ -6,26 +6,43 @@
 // See LICENSING.md for details.
 
 //! @file Scenario.hpp
-//! @brief Declarative mission file: robot, sensors, actuators, world layout,
-//! randomization, faults, behavior tree and checks.
+//! @brief What happens in a world, and how to tell whether it went well.
 //!
-//! @ref Scenario::load parses the YAML into plain data; @ref Simulation builds
-//! and runs it. Models are asset identifiers (see @ref AssetResolver); other
-//! files are relative to the scenario directory.
-//! See @c doc/Scenario-et-Simulation.md for the schema.
+//! The scenario names its world (@ref World.hpp), the events applied during
+//! the run (faults), when the run stops and what is checked
+//! (@ref Assertions.hpp). It does not say how the robot solves the task: the
+//! @c controller section only gives the default strategy, which an
+//! experiment may replace.
+//!
+//! @code
+//! scenario:
+//!   id: pick_and_place
+//!   description: Pick the red cube and put it in the box.
+//!   world: ../worlds/manipulation_cell.yaml
+//!   seed: 42
+//!   controller:
+//!     behavior_tree: pick_and_place.bt.yml
+//!   faults:
+//!     - { at: 4.0, resource: wrist_camera, action: disable }
+//!     - { resource: gripper, rate: 0.01 }
+//!   timeout: 30
+//!   stop_when: inside(red_cube, box)       # optional
+//!   assertions:
+//!     - controller.success
+//!     - inside(red_cube, box)
+//! @endcode
+//!
+//! Files are relative to the file that names them.
 #pragma once
 
 #include "Robotik/Assets/AssetResolver.hpp"
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Math/Geometry.hpp"
-#include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Faults.hpp"
-#include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Scenario/Assertions.hpp"
+#include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Scenario/World.hpp"
 
-#include <array>
 #include <cstdint>
 #include <filesystem>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -33,105 +50,70 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief In-memory scenario.
-//!
-//! @code
-//! scenario: pick_and_place
-//! seed: 42
-//! robot:
-//!   model: robotik.robots.robot_6axis
-//!   tools:
-//!     vacuum: robotik.tools.vacuum
-//!     drill: robotik.tools.drill
-//!   mounted: vacuum
-//!   home: { joint2: 0.3, joint3: 1.3, joint5: 1.54 }
-//!   sensors:
-//!     wrist_camera: { type: camera, parent: link6, fov: 70, noise: 0.02 }
-//!   actuators:
-//!     arm: { type: joint_group }
-//!     gripper: { type: vacuum }
-//! world:
-//!   objects:
-//!     red_cube:
-//!       type: cube
-//!       position: [0.40, 0.20, 0.02]
-//!       randomize: { x: [-0.03, 0.03], y: [-0.03, 0.03] }
-//! faults:
-//!   - { at: 4.0, resource: wrist_camera, action: disable }
-//! @endcode
+//! @brief The two files of a scenario, still editable (see @ref ConfigNode).
+// ****************************************************************************
+struct ScenarioSource
+{
+    //!< Root of the scenario file (holds @c scenario:).
+    ConfigNode scenario;
+    std::filesystem::path scenario_file;
+    //!< Root of the world file (holds @c world:).
+    ConfigNode world;
+    std::filesystem::path world_file;
+
+    //! @brief Reads the scenario file and the world file it names.
+    //! @throws std::runtime_error when a file is missing or unreadable.
+    [[nodiscard]] static ScenarioSource load(std::filesystem::path const& p_scenario);
+
+    // -------------------------------------------------------------------------
+    //! @brief Changes one value before interpretation. @p_path starts with
+    //! @c scenario. or @c world., e.g. @c world.entities.easel.friction.
+    //! @throws std::runtime_error for another prefix or a broken path.
+    // -------------------------------------------------------------------------
+    void override(std::string_view p_path, ConfigNode p_value);
+};
+
+// ****************************************************************************
+//! @brief The strategy driving the robot. Empty: the mission drives it.
+// ****************************************************************************
+struct ControllerSpec
+{
+    std::filesystem::path behavior_tree;
+};
+
+// ****************************************************************************
+//! @brief Interpreted scenario.
 // ****************************************************************************
 struct Scenario
 {
-    //! @throws std::runtime_error if the file or required fields are invalid,
-    //! or if a model is missing from @p_assets.
-    [[nodiscard]] static Scenario load(std::filesystem::path const& p_path,
+    //! @throws std::runtime_error naming the file and the field at fault, or
+    //! a model missing from @p_assets.
+    [[nodiscard]] static Scenario read(ScenarioSource const& p_source,
                                        AssetResolver const& p_assets);
 
-    struct Camera
+    [[nodiscard]] static Scenario load(std::filesystem::path const& p_path,
+                                       AssetResolver const& p_assets)
     {
-        std::string name;
-        CameraConfig config;
-    };
+        return read(ScenarioSource::load(p_path), p_assets);
+    }
 
-    struct Actuator
-    {
-        enum class Type : std::uint8_t
-        {
-            JointGroup,
-            Motor,
-            Vacuum,
-        };
-
-        std::string name;
-        Type type = Type::JointGroup;
-        //!< Joint group members (empty: all) or the motor joint.
-        std::vector<std::string> joints;
-        //!< Vacuum flange link (empty: robot tool frame).
-        std::string link;
-        Length length{ 0.0 };
-    };
-
-    struct Object
-    {
-        ecs::SceneObject shape;
-        //!< Nominal center in the robot base frame (m).
-        Vector3 position;
-        //!< Uniform offset ranges [min, max] per axis, drawn at each reset.
-        std::array<std::array<double, 2>, 3> randomize{};
-    };
-
-    std::string name;
-    std::string task;
+    std::string id;
+    std::string description;
+    std::filesystem::path file;
     //!< Master seed of the run; every random stream derives from it.
     std::uint64_t seed = 0;
-    std::filesystem::path robot_model;
-    //!< Tool name to its URDF. An actuator type names the mounted entry.
-    std::map<std::string, std::filesystem::path> tools;
-    //!< Key of @ref tools currently fixed on @c flange. Empty: no tool.
-    std::string mounted_tool;
-    JointPosture home;
-    std::vector<Camera> cameras;
-    //!< Empty: an @c arm group of all joints and a vacuum @c gripper.
-    std::vector<Actuator> actuators;
-    std::vector<Object> objects;
+    WorldDescription world;
+    ControllerSpec controller;
     std::vector<Fault> faults;
     std::vector<RandomFault> random_faults;
-    std::filesystem::path behavior_tree;
-    std::vector<std::string> asserts;
+    //!< Simulated time limit; zero means none.
+    Seconds timeout{};
+    //!< Condition ending the run as soon as it holds; empty for none.
+    std::string stop_when;
+    std::vector<AssertionSpec> assertions;
     //!< Packs the scenario was resolved with; missions resolve their own
     //!< models with it.
     AssetResolver assets;
-
-    //! @brief URDF of @ref mounted_tool, or empty when none is mounted.
-    [[nodiscard]] std::filesystem::path toolFile() const
-    {
-        if (mounted_tool.empty())
-        {
-            return {};
-        }
-        auto const found = tools.find(mounted_tool);
-        return found == tools.end() ? std::filesystem::path{} : found->second;
-    }
 };
 
 } // namespace robotik

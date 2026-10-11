@@ -158,7 +158,7 @@ bool cubeInBox(robotik::Simulation const& p_simulation,
                 cube = p_entity;
             }
             else if (p_object.name == PICK_PLACE_BOX &&
-                     p_object.type == robotik::ecs::SceneObject::Type::BOX)
+                     p_object.type == robotik::ecs::SceneObject::Type::CONTAINER)
             {
                 box = p_entity;
             }

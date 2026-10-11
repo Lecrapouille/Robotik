@@ -1,0 +1,68 @@
+# The arm faces a floating easel. The canvas is a free box resting on the
+# easel ledge, 1 mm clear of it; the paint pots and the water bucket are
+# props the robot only dips into. Z-up, metres, radians.
+world:
+  id: painting_lab
+  floor: { friction: 0.8 }
+
+  entities:
+    - id: robot
+      type: robot
+      model: robotik.robots.robot_6axis
+      # Tool pointing down, clear of the easel.
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        arm: { type: joint_group }
+
+    - id: brush
+      type: tool
+      model: robotik.tools.default
+      attach: { parent: robot.flange, frame: tool_mount }
+
+    # One rigid body with a free joint: it can slide or tip if pushed.
+    - id: easel
+      type: body
+      model: robotik.painter.easel
+      physics: free
+      friction: 0.6
+      # Mast 0.65 m in front of the robot, painted face looking back at it.
+      pose: { position: [0.65, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
+
+    - id: canvas
+      type: body
+      shape: { type: box, size: [0.02, 0.40, 0.50] }
+      color: [0.95, 0.95, 0.93]
+      mass: 0.5
+      friction: 0.6
+      physics: free
+      # Half the thickness off the mount plus 1 mm, half the height above
+      # the ledge plus 1 mm.
+      attach:
+        parent: easel.canvas_mount
+        transform: { position: [0.011, 0.0, 0.251] }
+
+    - id: red
+      type: prop
+      shape: { type: box, size: [0.07, 0.07, 0.07] }
+      color: [0.82, 0.18, 0.18]
+      pose: { position: [0.42, 0.22, 0.035] }
+    - id: black
+      type: prop
+      shape: { type: box, size: [0.07, 0.07, 0.07] }
+      color: [0.10, 0.10, 0.12]
+      pose: { position: [0.42, 0.08, 0.035] }
+    - id: blue
+      type: prop
+      shape: { type: box, size: [0.07, 0.07, 0.07] }
+      color: [0.10, 0.18, 0.47]
+      pose: { position: [0.42, -0.08, 0.035] }
+    - id: gold
+      type: prop
+      shape: { type: box, size: [0.07, 0.07, 0.07] }
+      color: [0.86, 0.67, 0.16]
+      pose: { position: [0.42, -0.22, 0.035] }
+    - id: water
+      type: prop
+      shape: { type: box, size: [0.11, 0.11, 0.08] }
+      color: [0.55, 0.78, 0.88]
+      pose: { position: [0.30, 0.0, 0.04] }

@@ -279,14 +279,14 @@ void PluginSession::emitRuntimeEvents()
     {
         return;
     }
-    std::vector<Check> const checks = m_simulation->checks();
+    std::vector<Check> const& checks = m_simulation->checks();
     if (m_checks.size() != checks.size())
     {
         m_checks.assign(checks.size(), 2u);
     }
     for (std::size_t i = 0; i < checks.size(); ++i)
     {
-        std::uint8_t const passed = checks[i].passed ? 1u : 0u;
+        std::uint8_t const passed = checks[i].ok() ? 1u : 0u;
         if (m_checks[i] != passed)
         {
             m_checks[i] = passed;
