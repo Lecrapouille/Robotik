@@ -9,13 +9,15 @@ P := ../..
 M := $(P)/.makefile
 
 include $(P)/Makefile.common
-TARGET_NAME := robotik_manipulator
-TARGET_DESCRIPTION := Manipulator demonstrations sharing one plugin
-PLUGIN_NAME := Manipulator
-PLUGIN_DIR := $(P)/plugins/Manipulator
+TARGET_NAME := robotik_hello_world
+TARGET_DESCRIPTION := Tutorial plugin: one small lesson per scenario
+PLUGIN_NAME := HelloWorld
+PLUGIN_DIR := $(P)/plugins/HelloWorld
 PLUGIN_SRC := $(PLUGIN_DIR)/src
 include $(M)/project/Makefile
 
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/ManipulatorMission.cpp
+LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/HelloMission.cpp
+LIB_FILES += $(PLUGIN_SRC)/WaveMission.cpp $(PLUGIN_SRC)/ReachMission.cpp
+LIB_FILES += $(PLUGIN_SRC)/WaveSkill.cpp
 
 include $(P)/plugins/plugin.mk

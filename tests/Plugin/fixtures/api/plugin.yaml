@@ -4,6 +4,6 @@ plugin:
   version: 1
   api_version: 99
 library:
-  entrypoint: librobotik_probe.so
+  entrypoint: librobotik_fixture.so
 scenarios:
   directory: scenarios

@@ -1,0 +1,15 @@
+# Same as skills.bt.yml, but Wave is tried again until it succeeds: a fault
+# on the arm makes it fail at once, the retry waits for the arm to come back.
+BehaviorTree:
+  Sequence:
+    name: HelloSkillsRetry
+    children:
+      - Action:
+          name: Home
+      - UntilSuccess:
+          attempts: 1000
+          child:
+            - Action:
+                name: Wave
+      - Action:
+          name: Home

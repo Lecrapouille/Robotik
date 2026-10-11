@@ -4,7 +4,7 @@ plugin:
   version: 1
   api_version: 1
 library:
-  entrypoint: librobotik_probe.so
+  entrypoint: librobotik_fixture.so
 scenarios:
   entries:
     - { id: out, name: Out, file: ../../../../etc/passwd }

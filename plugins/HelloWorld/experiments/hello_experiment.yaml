@@ -1,0 +1,27 @@
+# Runs the lessons as variants and compares them. Each case rebuilds its world.
+experiment:
+  id: hello_experiment
+  seeds: [1, 2]
+
+  cases:
+    - id: wave
+      scenario: ../scenarios/wave.yml
+
+    - id: skills
+      scenario: ../scenarios/skills.yml
+
+    # Same scenario, the arm in fault for one second, and another strategy:
+    # a behavior tree that retries Wave. The assertions do not change.
+    - id: skills_arm_fault
+      scenario: ../scenarios/skills.yml
+      controller: { behavior_tree: ../scenarios/skills_retry.bt.yml }
+      setup:
+        - inject_fault: { resource: arm, at: 1.0, action: disable }
+        - inject_fault: { resource: arm, at: 2.0, action: restore }
+
+  evaluation:
+    # Added to the assertions of every scenario.
+    assertions:
+      - { condition: "joint_limits_respected(robot)", phase: always }
+    # Read at the end of each run, written in the report.
+    metrics: [ time ]

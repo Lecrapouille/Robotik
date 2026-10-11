@@ -1,0 +1,15 @@
+# Lesson 4: a skill of the plugin, run by a behavior tree.
+scenario:
+  id: skills
+  description: Go home, wave twice, go home again.
+  world: ../worlds/arm.yaml
+  seed: 1
+  controller:
+    behavior_tree: skills.bt.yml
+  timeout: 30
+  assertions:
+    - controller.success
+    - skill_succeeded(Wave)
+    - { condition: "joint_limits_respected(robot)", phase: always }
+    - name: home before waving
+      sequence: [ "skill_succeeded(Home)", "skill_started(Wave)" ]
