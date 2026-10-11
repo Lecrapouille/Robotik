@@ -9,6 +9,13 @@ scenario:
   controller:
     behavior_tree: painter.bt.yml
 
+  # One stroke per colour, read by the Mark gesture.
+  trajectories:
+    red: trajectories/red_stroke.yaml
+    black: trajectories/black_stroke.yaml
+    blue: trajectories/blue_stroke.yaml
+    gold: trajectories/gold_stroke.yaml
+
   timeout: 120
 
   assertions:

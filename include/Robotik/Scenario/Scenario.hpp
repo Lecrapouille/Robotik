@@ -22,6 +22,8 @@
 //!   seed: 42
 //!   controller:
 //!     behavior_tree: pick_and_place.bt.yml
+//!   trajectories:                          # see Trajectory.hpp
+//!     drop: trajectories/drop.yaml
 //!   faults:
 //!     - { at: 4.0, resource: wrist_camera, action: disable }
 //!     - { resource: gripper, rate: 0.01 }
@@ -45,10 +47,12 @@
 #include "Robotik/Runtime/Faults.hpp"
 #include "Robotik/Scenario/Assertions.hpp"
 #include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Scenario/Trajectory.hpp"
 #include "Robotik/Scenario/World.hpp"
 
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -120,6 +124,8 @@ struct Scenario
     std::uint64_t seed = 0;
     WorldDescription world;
     ControllerSpec controller;
+    //!< Paths named by the scenario, read from their own files.
+    std::map<std::string, Trajectory, std::less<>> trajectories;
     std::vector<Fault> faults;
     std::vector<RandomFault> random_faults;
     OraclePolicy oracle = OraclePolicy::Never;

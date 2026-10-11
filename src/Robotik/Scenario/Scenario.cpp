@@ -107,6 +107,14 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
         scenario.controller.behavior_tree =
             relative(directory, node.at("controller").text("behavior_tree"));
+        for (auto const& [name, file] : node.at("trajectories").entries())
+        {
+            if (!file.isScalar())
+            {
+                throw std::runtime_error("trajectories." + name + " must be a file name");
+            }
+            scenario.trajectories.emplace(name, Trajectory::load(relative(directory, file.scalar())));
+        }
         readFaults(scenario, node.at("faults"));
         std::string const oracle = node.at("perception").text("oracle", "never");
         if (oracle == "never")

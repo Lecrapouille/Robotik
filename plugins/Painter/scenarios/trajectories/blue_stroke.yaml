@@ -1,0 +1,15 @@
+# Stroke of the blue layer, in the canvas mount frame of the easel: +x
+# toward the robot, +z up the canvas. The brush stays 4 cm off the board so
+# it does not push the free canvas. First and last points approach and
+# leave; the brush paints between them.
+trajectory:
+  type: cartesian
+  frame: easel.canvas_mount
+  # Brush pointing into the canvas (-x of the mount), its +y up the canvas.
+  orientation: { rpy: [1.5707963267948966, 0.0, -1.5707963267948966] }
+  points:
+    - [0.18, -0.04, 0.16]
+    - [0.08, -0.08, 0.16]
+    - [0.06, -0.08, 0.16]
+    - [0.06, 0.00, 0.16]
+    - [0.18, -0.04, 0.16]

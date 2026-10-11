@@ -51,8 +51,8 @@ struct NoiseModel
 
     [[nodiscard]] bool ideal() const
     {
-        return sigma <= 0.0 && bias == 0.0 && resolution <= 0.0 && std::isinf(min) &&
-               std::isinf(max);
+        return sigma <= 0.0 && std::fpclassify(bias) == FP_ZERO && resolution <= 0.0 &&
+               std::isinf(min) && std::isinf(max);
     }
 
     [[nodiscard]] double apply(double p_value, Random& p_random) const

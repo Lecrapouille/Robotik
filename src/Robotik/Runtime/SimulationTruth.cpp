@@ -224,6 +224,62 @@ Pose Simulation::initialPose(std::string_view p_id) const
     return require(p_id).initial;
 }
 
+Pose Simulation::described(std::string_view p_reference) const
+{
+    auto const [id, frame] = splitReference(p_reference);
+    Record const& record = require(id);
+    switch (record.spec->type)
+    {
+        case EntitySpec::Type::Robot:
+        case EntitySpec::Type::Tool:
+            // The robot knows its own body.
+            return framePose(record, frame);
+        case EntitySpec::Type::Prop:
+            if (!frame.empty())
+            {
+                throw std::invalid_argument("prop '" + record.spec->id + "' has no frame '" +
+                                            std::string(frame) + "'");
+            }
+            return record.nominal;
+        case EntitySpec::Type::Body:
+            break;
+    }
+    if (frame.empty())
+    {
+        return record.nominal;
+    }
+    std::string const link(frame);
+    if (record.frames == nullptr || !record.frames->hasFrame(link))
+    {
+        throw std::invalid_argument("'" + record.spec->id + "' has no frame '" + link + "'");
+    }
+    return record.nominal * record.frames->framePose(link);
+}
+
+std::vector<Pose> Simulation::waypoints(std::string_view p_name) const
+{
+    auto const found = m_scenario.trajectories.find(p_name);
+    if (found == m_scenario.trajectories.end())
+    {
+        throw std::invalid_argument("the scenario has no trajectory '" + std::string(p_name) + "'");
+    }
+    Trajectory const& trajectory = found->second;
+    if (trajectory.type != Trajectory::Type::Cartesian)
+    {
+        throw std::invalid_argument("trajectory '" + std::string(p_name) + "' is not cartesian");
+    }
+    Pose const frame = trajectory.frame.empty() ? Pose{ zero3(), Quaternion{} }
+                                                : described(trajectory.frame);
+    Pose const to_base = m_robot->base().pose.inverse() * frame;
+    std::vector<Pose> result;
+    result.reserve(trajectory.poses.size());
+    for (Pose const& point : trajectory.poses)
+    {
+        result.push_back(to_base * point);
+    }
+    return result;
+}
+
 int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p_contacts) const
 {
     bool const robot_side = p_record.spec->type == EntitySpec::Type::Robot ||
