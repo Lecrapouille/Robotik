@@ -30,19 +30,31 @@ double gap(robotik::Pose const& p_a, robotik::Pose const& p_b)
 
 } // namespace
 
-TEST(Painter, WorldAgreesWithWhatTheRobotKnows)
+TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
 {
     compages::world::World world;
     PainterMission mission;
     robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
 
-    // The skills plan from PainterScene.hpp; the world file builds the scene.
-    EXPECT_LT(gap(simulation.pose("easel"), painter::easelPose()), 1e-3);
-    EXPECT_LT(gap(simulation.pose("easel.canvas_mount"),
-                  painter::compose(painter::easelPose(), painter::canvasMountInEasel())),
+    // The easel stands where the world file puts it, its canvas on the mount.
+    EXPECT_LT(gap(simulation.pose("easel"),
+                  robotik::Pose{ robotik::Vector3(0.65, 0.0, 0.0), robotik::Quaternion{} }),
               1e-3);
-    EXPECT_LT(gap(simulation.pose("canvas"), painter::canvasPose()), 1e-3);
+    EXPECT_LT(gap(simulation.described("canvas"), simulation.pose("canvas")), 1e-6);
     EXPECT_EQ(simulation.query("tool_is_attached(brush, robot.flange)"), 1.0);
+
+    // The red stroke paints 4 cm in front of the canvas face, in its upper half.
+    std::vector<robotik::Pose> const red = simulation.waypoints("red");
+    ASSERT_EQ(red.size(), 5u);
+    robotik::Vector3 const local = simulation.pose("canvas").inverse() * red[2].position;
+    EXPECT_NEAR(local.x, 0.06 - 0.011, 1e-6);
+    EXPECT_NEAR(local.z, 0.16 - 0.251, 1e-6);
+    // The brush points into the canvas: its axis is the canvas -x.
+    robotik::Vector3 const axis = red[2].rotation * robotik::Vector3(0.0, 0.0, 1.0);
+    robotik::Vector3 const into =
+        simulation.pose("canvas").rotation * robotik::Vector3(-1.0, 0.0, 0.0);
+    EXPECT_NEAR(robotik::norm(axis - into), 0.0, 1e-6);
+    EXPECT_THROW((void)simulation.waypoints("purple"), std::invalid_argument);
 }
 
 TEST(Painter, CanvasRestsOnTheEasel)
