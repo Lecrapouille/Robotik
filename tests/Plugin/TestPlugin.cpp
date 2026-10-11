@@ -107,9 +107,9 @@ TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
         repo("plugins/Manipulator/scenarios/forward_kinematics.yml"), testAssets());
-    EXPECT_EQ(scenario.name, "forward_kinematics");
-    EXPECT_EQ(scenario.robot_model.filename(), "robot_6axis.urdf");
-    EXPECT_TRUE(std::filesystem::exists(scenario.robot_model));
+    EXPECT_EQ(scenario.id, "forward_kinematics");
+    EXPECT_EQ(scenario.world.robot().model.filename(), "robot_6axis.urdf");
+    EXPECT_TRUE(std::filesystem::exists(scenario.world.robot().model));
 }
 
 TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
@@ -251,7 +251,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     EXPECT_FALSE(simulation.finished());
     for (auto const& check : simulation.checks())
     {
-        if (check.text.find("ik.error") != std::string::npos && !check.passed)
+        if (check.text.find("ik.error") != std::string::npos && !check.ok())
         {
             saw_failure = true;
         }
@@ -269,7 +269,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     {
         if (check.text.find("ik.error") != std::string::npos)
         {
-            recovered = check.passed;
+            recovered = check.verdict == robotik::Check::Verdict::Passed;
         }
     }
     EXPECT_TRUE(recovered);

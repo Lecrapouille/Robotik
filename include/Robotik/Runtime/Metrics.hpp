@@ -6,18 +6,18 @@
 // See LICENSING.md for details.
 
 //! @file Metrics.hpp
-//! @brief Named numbers published by a run, and the scenario assertions
-//! checked against them.
+//! @brief Named numbers published by a run, and the conditions measured on
+//! them.
 //!
-//! A mission publishes what it measures (@c laps, @c cross_track.max,
-//! @c success_rate...), the simulation adds @c time, @c collisions and
-//! @c robot.success. A scenario then asserts on them without the library
-//! knowing what they mean:
+//! A mission publishes what it measures (@c laps, @c cross_track.max...),
+//! the simulation adds @c time and @c controller.success, and answers queries
+//! on the world such as @c inside(red_cube, box). A condition compares one of
+//! them to a number, without the library knowing what they mean:
 //! @code
-//! assert:
-//!   - robot.success
-//!   - time < 60
-//!   - cross_track.max < 0.08
+//! controller.success
+//! time < 60
+//! cross_track.max < 0.08
+//! pose_error(easel) < 0.002
 //! @endcode
 #pragma once
 
@@ -66,28 +66,36 @@ private:
     std::vector<double> m_values;
 };
 
+//! @brief Values that are not stored in a @ref Metrics table (e.g. queries
+//! with arguments such as @c inside(red_cube, box)). Throws
+//! std::invalid_argument for a query it knows but cannot answer (unknown
+//! entity), returns nothing for a name it does not know.
+using MetricResolver = std::function<std::optional<double>(std::string_view)>;
+
 // ****************************************************************************
-//! @brief Outcome of one assertion.
+//! @brief One evaluation of a condition.
 // ****************************************************************************
-struct Check
+struct Measurement
 {
-    std::string text;
-    bool passed = false;
-    //!< Measured value, or why the assertion could not be evaluated.
+    //!< False when the value could not be obtained (see @ref detail).
+    bool known = false;
+    //!< The condition is true.
+    bool holds = false;
+    //!< Measured value of the left-hand side.
+    double value = 0.0;
+    //!< Right-hand side, e.g. "< 0.002", or "!= 0" for a bare value.
+    std::string expected;
+    //!< "name = value", or why nothing was measured.
     std::string detail;
 };
 
-//! @brief Values that are not stored in a @ref Metrics table (e.g. queries
-//! with arguments such as @c object("a").inside("b")).
-using MetricResolver = std::function<std::optional<double>(std::string_view)>;
-
 // ----------------------------------------------------------------------------
-//! @brief Evaluates @p_assertion: @c "<metric> <op> <number>" with @c op one
-//! of @c == @c != @c < @c <= @c > @c >=, or a bare @c "<metric>" which passes
-//! when the value is not zero. Unknown metrics fail with a detail.
+//! @brief Measures @p_condition: @c "<value> <op> <number>" with @c op one of
+//! @c == @c != @c < @c <= @c > @c >=, or a bare @c "<value>" which holds when
+//! the value is not zero. A value is a metric or a resolver query.
 // ----------------------------------------------------------------------------
-[[nodiscard]] Check evaluate(std::string_view p_assertion,
-                             Metrics const& p_metrics,
-                             MetricResolver const& p_resolver = {});
+[[nodiscard]] Measurement measure(std::string_view p_condition,
+                                  Metrics const& p_metrics,
+                                  MetricResolver const& p_resolver = {});
 
 } // namespace robotik

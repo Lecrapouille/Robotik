@@ -30,15 +30,22 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         return;
     }
 
-    // Perception: map each scenario object colour to a Detect(label) target.
-    for (robotik::Scenario::Object const& object :
-         p_simulation.scenario().objects)
+    // Perception: map each prop colour to a Detect(label) target.
+    std::vector<robotik::EntitySpec const*> props;
+    for (robotik::EntitySpec const& entity : p_simulation.scenario().world.entities)
+    {
+        if (entity.type == robotik::EntitySpec::Type::Prop)
+        {
+            props.push_back(&entity);
+        }
+    }
+    for (robotik::EntitySpec const* prop : props)
     {
         if (m_detector == nullptr)
         {
             m_detector = &p_simulation.perception().add<ColorDetector>();
         }
-        m_detector->add(object.shape.name, object.shape.color);
+        m_detector->add(prop->id, prop->shape->color);
     }
 
     robotik::ResourceManager const& resources =
@@ -75,12 +82,10 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
 
     skills.add<robotik::ReleaseSkill>(describe("Release", gripper));
 
-    // One skill family per scenario object; BOX types also get Transit (carry
-    // height).
-    for (robotik::Scenario::Object const& object :
-         p_simulation.scenario().objects)
+    // One skill family per prop; containers also get Transit (carry height).
+    for (robotik::EntitySpec const* prop : props)
     {
-        std::string const& name = object.shape.name;
+        std::string const& name = prop->id;
         skills.add<robotik::DetectSkill>(
             describe("Detect(" + name + ")", camera), name);
         skills.add<robotik::ApproachSkill>(
@@ -102,7 +107,7 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
                   return vacuum != nullptr && !vacuum->holding();
               } });
         skills.add<robotik::GraspSkill>(std::move(grasp), name);
-        if (object.shape.type == robotik::ecs::SceneObject::Type::BOX)
+        if (prop->shape->type == robotik::ShapeSpec::Type::Container)
         {
             skills.add<robotik::ApproachSkill>(
                 describe("Transit(" + name + ")", arm),

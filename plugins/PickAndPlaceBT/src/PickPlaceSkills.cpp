@@ -75,7 +75,7 @@ tcpHeightOverOpenBox(compages::world::World& p_world,
     }
 
     ecs::SceneObject const* scene = box.find<ecs::SceneObject>();
-    if (scene == nullptr || scene->type != ecs::SceneObject::Type::BOX)
+    if (scene == nullptr || scene->type != ecs::SceneObject::Type::CONTAINER)
     {
         return std::nullopt;
     }

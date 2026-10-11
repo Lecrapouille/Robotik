@@ -23,17 +23,19 @@ PickPlaceEnvironment::PickPlaceEnvironment(
 {
     robotik::Scenario scenario =
         robotik::Scenario::load(p_scenario, robotik::AssetResolver::standard());
-    scenario.behavior_tree.clear();
+    // The policy drives the arm: no behavior tree, no fault. The reward
+    // judges the episode, not the scenario assertions.
+    scenario.controller.behavior_tree.clear();
     scenario.faults.clear();
     scenario.random_faults.clear();
-    for (auto& object : scenario.objects)
+    scenario.assertions.clear();
+    scenario.timeout = Seconds(0.0);
+    for (robotik::EntitySpec& entity : scenario.world.entities)
     {
-        if (object.shape.name == PICK_PLACE_CUBE)
+        if (entity.id == PICK_PLACE_CUBE)
         {
-            object.randomize[0][0] = -p_spread;
-            object.randomize[0][1] = p_spread;
-            object.randomize[1][0] = -p_spread;
-            object.randomize[1][1] = p_spread;
+            entity.randomize[0] = { -p_spread, p_spread };
+            entity.randomize[1] = { -p_spread, p_spread };
         }
     }
     m_mission = std::make_unique<PickPlaceMission>(false);

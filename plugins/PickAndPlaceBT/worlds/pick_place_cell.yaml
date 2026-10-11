@@ -1,0 +1,52 @@
+# A 6-axis arm, a wrist camera and a vacuum cup, a cube to move and an open
+# box. Each sensor and actuator is a resource of the same name, reserved by
+# the skills and disabled by faults. Z-up, metres, radians.
+world:
+  id: pick_place_cell
+
+  entities:
+    - id: robot
+      type: robot
+      model: robotik.robots.robot_6axis
+      # The tool points down.
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      sensors:
+        wrist_camera:
+          type: camera            # camera | rgbd
+          parent: link6
+          # Optical frame (z forward, x right, y down) in the parent link frame.
+          position: [0.05, 0.0, 0.0]
+          rpy: [0.0, 0.0, 0.0]
+          fov: 70                 # vertical, degrees
+          resolution: [320, 240]
+          frequency: 15           # Hz
+          noise: 0.01             # gaussian, fraction of the color range
+      actuators:
+        arm: { type: joint_group }   # no joints listed: every joint
+
+    # The mounted tool brings its actuator. The others wait in storage; the
+    # simulator can swap them.
+    - id: vacuum
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: robot.flange, frame: tool_mount }
+      actuators:
+        gripper: { type: vacuum }
+    - { id: plain, type: tool, model: robotik.tools.default }
+    - { id: drill, type: tool, model: robotik.tools.drill }
+    - { id: fingers, type: tool, model: robotik.tools.gripper }
+    - { id: welder, type: tool, model: robotik.tools.welding }
+
+    # Props: the robot only knows the nominal positions; randomize shifts the
+    # real ones at each reset (uniform offsets drawn from the seed).
+    - id: red_cube
+      type: prop
+      shape: { type: box, size: [0.04, 0.04, 0.04] }
+      color: [0.9, 0.1, 0.1]
+      pose: { position: [0.40, 0.20, 0.02] }
+      randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
+    - id: box
+      type: prop
+      shape: { type: container, size: [0.16, 0.16, 0.08] }
+      color: [0.2, 0.4, 0.9]
+      pose: { position: [0.40, -0.20, 0.04] }

@@ -9,8 +9,9 @@
 //! @brief Simulated suction: what a @ref VacuumGripper holds.
 //!
 //! Plays the part of the vacuum sensor and of object physics in simulation:
-//! suction near the top of a cube attaches it, no suction drops it onto the
-//! floor of the container below (objects have no dynamics).
+//! suction near the top of a box prop attaches it, no suction drops it onto
+//! the floor of the container below (props have no dynamics). Props live in
+//! the world frame; bodies of the physics backend are left alone.
 #pragma once
 
 namespace robotik

@@ -1,18 +1,12 @@
-scenario: inverse_kinematics
-seed: 1
-
-robot:
-  model: robotik.robots.robot_6axis
-  home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
-  actuators:
-    arm: { type: joint_group }
-
-execute:
-  task: |
-    Move the tool a few centimetres using inverse kinematics.
-    The position error starts out of tolerance and becomes green without
-    the assertion itself stopping the run.
-
-assert:
-  - ik.error < 0.02
-  - time < 30
+scenario:
+  id: inverse_kinematics
+  description: |
+    Move the tool a few centimetres using inverse kinematics. The position
+    error starts out of tolerance and becomes green without the assertion
+    itself stopping the run.
+  world: ../worlds/arm_cell.yaml
+  seed: 1
+  timeout: 60
+  assertions:
+    - ik.error < 0.02
+    - time < 30

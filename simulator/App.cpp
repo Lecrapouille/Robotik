@@ -56,14 +56,12 @@ static void report(robotik::Simulation const& p_simulation)
                   << '\n';
     }
     std::size_t passed = 0;
-    auto const checks = p_simulation.checks();
-    for (auto const& check : checks)
+    auto const& checks = p_simulation.checks();
+    for (robotik::Check const& check : checks)
     {
-        passed += check.passed ? 1u : 0u;
+        passed += check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
     }
-    std::cout << "Mission "
-              << (p_simulation.status() == bt::Status::SUCCESS ? "SUCCESS"
-                                                              : "FAILURE")
+    std::cout << "Run " << robotik::toString(p_simulation.outcome())
               << " seed=" << p_simulation.seed().value
               << " time=" << p_simulation.time().value() << " s checks="
               << passed << '/' << checks.size() << std::endl;
@@ -138,7 +136,7 @@ void App::load(bool p_keep_tool)
             robotik::Scenario::load(scenario_path, plugins.assets());
         if (tool_override)
         {
-            scenario.mounted_tool = tool_override_name;
+            scenario.world.mount(tool_override_name);
         }
         robotik::PluginPrepare const prepared = plugins.prepare(scenario_path);
         if (prepared != robotik::PluginPrepare::Ready)

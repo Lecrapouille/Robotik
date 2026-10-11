@@ -223,17 +223,17 @@ int main(int argc, char** argv)
                                 mission.estimatePath()));
         }
 
-        bool passed = true;
-        for (auto const& check : simulation.checks())
+        simulation.conclude();
+        for (robotik::Check const& check : simulation.checks())
         {
-            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text;
+            std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text;
             if (!check.detail.empty())
             {
                 std::cout << "  (" << check.detail << ')';
             }
             std::cout << '\n';
-            passed = passed && check.passed;
         }
+        bool const passed = simulation.passed();
         Pose2 const& truth = mission.drive()->truth();
         double const final_error =
             std::hypot(mission.navigation().estimate.x - truth.x,

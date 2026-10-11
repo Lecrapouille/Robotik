@@ -1,0 +1,20 @@
+# A differential-drive robot with a front camera. The track, the floor tags
+# and the floor texture are drawn by the mission.
+world:
+  id: line_track
+  entities:
+    - id: robot
+      type: robot
+      model: robotik.robots.diff_drive_robot
+      sensors:
+        front_camera:
+          type: camera
+          parent: base_link
+          position: [0.2, 0.0, 0.2]
+          fov: 60
+          resolution: [320, 240]
+          frequency: 20
+          noise: 0.02
+      actuators:
+        left_wheel: { type: motor, joint: left_wheel_joint }
+        right_wheel: { type: motor, joint: right_wheel_joint }

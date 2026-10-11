@@ -18,7 +18,7 @@ static constexpr double kFloorContactEpsilonM = 1e-3;
 std::optional<ContainerInner> innerBounds(ecs::SceneObject const& p_object,
                                           Vector3 const& p_center)
 {
-    if (p_object.type != ecs::SceneObject::Type::BOX)
+    if (p_object.type != ecs::SceneObject::Type::CONTAINER)
     {
         return std::nullopt;
     }
@@ -87,7 +87,7 @@ bool penetratesContainer(ecs::SceneObject const& p_container,
                          Vector3 const& p_cube_center,
                          Vector3 const& p_cube_half)
 {
-    if (p_container.type != ecs::SceneObject::Type::BOX)
+    if (p_container.type != ecs::SceneObject::Type::CONTAINER)
     {
         return false;
     }

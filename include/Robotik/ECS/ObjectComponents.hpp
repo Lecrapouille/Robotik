@@ -17,15 +17,14 @@
 namespace robotik::ecs
 {
 
-//! Wall thickness in metres for @ref SceneObject::Type::BOX (rendering, @ref
+//! Wall thickness in metres for @ref SceneObject::Type::CONTAINER (rendering, @ref
 //! Robotik/Scene/ContainerBounds.hpp).
 inline constexpr double CONTAINER_WALL_M = 0.005;
 
 // ****************************************************************************
-// @brief Pick-and-place prop spawned from a scenario file.
-//
-// Pose is the Compages transform on an entity parented to the robot root
-// (coordinates in the robot base frame).
+// @brief Primitive object of the world (prop or primitive body).
+// Pose is the Compages transform on an entity parented to the Z-up world
+// frame (coordinates in the world frame).
 // ****************************************************************************
 struct SceneObject
 {
@@ -34,18 +33,28 @@ struct SceneObject
     // ------------------------------------------------------------------------
     enum class Type
     {
-        CUBE, //!< Single box mesh scaled by @ref size.
-        BOX   //!< Open-top bin; cavity from @ref scene::innerBounds.
+        BOX,      //!< Solid box scaled by @ref size.
+        CONTAINER //!< Open-top bin; cavity from @ref scene::innerBounds.
     };
 
-    //!< Unique name referenced by skills and assertions.
+    //!< World entity id, referenced by skills and assertions.
     std::string name;
-    //!< Shape kind for @ref Simulation spawn.
-    Type type = Type::CUBE;
+    //!< Shape kind for rendering and the grasp rules.
+    Type type = Type::BOX;
     //!< Full extents (SI: m) along X, Y, Z.
     std::array<Length, 3> size{ Length(0.04), Length(0.04), Length(0.04) };
     //!< RGB color in @c [0, 1] for rendering and color detection.
     std::array<float, 3> color{ 0.8f, 0.8f, 0.8f };
+};
+
+// ****************************************************************************
+//! @brief Marks a @ref SceneObject moved by the physics backend: the grasp
+//! system and the container rules leave it alone.
+// ****************************************************************************
+struct PhysicsBody
+{
+    //!< Body name in the backend.
+    std::string body;
 };
 
 } // namespace robotik::ecs

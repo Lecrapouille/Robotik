@@ -10,31 +10,46 @@
 #include "PainterMission.hpp"
 #include "PainterScene.hpp"
 
-#include "Robotik/Backends/MujocoBackend.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include <cmath>
+
+namespace
+{
+
+robotik::Scenario painterScenario()
+{
+    return robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"),
+                                   testAssets());
+}
+
+double gap(robotik::Pose const& p_a, robotik::Pose const& p_b)
+{
+    return robotik::norm(p_a.position - p_b.position);
+}
+
+} // namespace
+
+TEST(Painter, WorldAgreesWithWhatTheRobotKnows)
+{
+    compages::world::World world;
+    PainterMission mission;
+    robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
+
+    // The skills plan from PainterScene.hpp; the world file builds the scene.
+    EXPECT_LT(gap(simulation.pose("easel"), painter::easelPose()), 1e-3);
+    EXPECT_LT(gap(simulation.pose("easel.canvas_mount"),
+                  painter::compose(painter::easelPose(), painter::canvasMountInEasel())),
+              1e-3);
+    EXPECT_LT(gap(simulation.pose("canvas"), painter::canvasPose()), 1e-3);
+    EXPECT_EQ(simulation.query("tool_is_attached(brush, robot.flange)"), 1.0);
+}
 
 TEST(Painter, CanvasRestsOnTheEasel)
 {
     compages::world::World world;
     PainterMission mission;
-    robotik::Simulation simulation(
-        world,
-        robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"), testAssets()),
-        nullptr,
-        &mission);
-
-    auto const* physics =
-        dynamic_cast<robotik::MujocoBackend const*>(simulation.robot().backend());
-    ASSERT_NE(physics, nullptr);
-    std::optional<robotik::Pose> const easel0 = physics->bodyPose(painter::kEaselRoot);
-    std::optional<robotik::Pose> const canvas0 = physics->bodyPose(painter::kCanvas);
-    ASSERT_TRUE(easel0.has_value());
-    ASSERT_TRUE(canvas0.has_value());
-    EXPECT_NEAR(easel0->position.x, painter::kEaselDistance, 1e-3);
-    EXPECT_NEAR(easel0->position.z, 0.0, 1e-3);
-    EXPECT_NEAR(canvas0->position.z, painter::canvasPose().position.z, 1e-2);
+    robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
 
     // The mission is suspended: nothing pushes. The canvas may settle 1 mm.
     simulation.suspend(true);
@@ -42,50 +57,30 @@ TEST(Painter, CanvasRestsOnTheEasel)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    std::optional<robotik::Pose> const easel = physics->bodyPose(painter::kEaselRoot);
-    std::optional<robotik::Pose> const canvas = physics->bodyPose(painter::kCanvas);
-    ASSERT_TRUE(easel.has_value());
-    ASSERT_TRUE(canvas.has_value());
-    EXPECT_NEAR(easel->position.x, easel0->position.x, 2e-3);
-    EXPECT_NEAR(easel->position.y, easel0->position.y, 2e-3);
-    EXPECT_NEAR(easel->position.z, easel0->position.z, 2e-3);
-    double const drift = std::hypot(canvas->position.x - canvas0->position.x,
-                                    canvas->position.y - canvas0->position.y,
-                                    canvas->position.z - canvas0->position.z);
-    EXPECT_LT(drift, 5e-3);
+    EXPECT_LT(*simulation.query("pose_error(easel)"), 2e-3);
+    EXPECT_LT(*simulation.query("pose_error(canvas)"), 5e-3);
+    EXPECT_EQ(simulation.query("on(canvas, easel)"), 1.0);
+    EXPECT_EQ(simulation.query("touching(easel, canvas)"), 1.0);
+    EXPECT_EQ(simulation.query("collision_count(robot)"), 0.0);
 }
 
 TEST(Painter, PortraitDipsAndMarks)
 {
     compages::world::World world;
     PainterMission mission;
-    robotik::Simulation simulation(
-        world,
-        robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"), testAssets()),
-        nullptr,
-        &mission);
+    robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
 
-    for (int i = 0; i < 80000 && !simulation.finished(); ++i)
+    for (int i = 0; i < 20000 && !simulation.finished(); ++i)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    if (simulation.status() != bt::Status::SUCCESS)
+    EXPECT_EQ(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded)
+        << robotik::toString(simulation.outcome());
+    for (robotik::Check const& check : simulation.checks())
     {
-        robotik::SkillScheduler const& skills = simulation.skills();
-        for (robotik::SkillRun const& run : skills.trace())
-        {
-            ADD_FAILURE() << skills.name(run.skill) << " "
-                          << robotik::toString(run.state) << " "
-                          << robotik::toString(run.reason)
-                          << " contacts=" << simulation.maxContacts();
-        }
+        EXPECT_EQ(check.verdict, robotik::Check::Verdict::Passed)
+            << check.text << ": " << check.detail << " at " << check.time.value() << " s";
     }
-    EXPECT_EQ(simulation.status(), bt::Status::SUCCESS);
-
-    auto const* physics =
-        dynamic_cast<robotik::MujocoBackend const*>(simulation.robot().backend());
-    ASSERT_NE(physics, nullptr);
-    std::optional<robotik::Pose> const canvas = physics->bodyPose(painter::kCanvas);
-    ASSERT_TRUE(canvas.has_value());
-    EXPECT_GT(canvas->position.z, 0.5);
+    EXPECT_TRUE(simulation.passed());
+    EXPECT_GT(simulation.pose("canvas").position.z, 0.5);
 }
