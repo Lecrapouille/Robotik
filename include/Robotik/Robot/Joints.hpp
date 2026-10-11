@@ -24,7 +24,7 @@
 //! SI base unit of each joint (rad or m), as Pinocchio and MuJoCo do.
 #pragma once
 
-#include "Compages/Core/Units.hpp"
+#include "Robotik/Math/Si.hpp"
 #include "Compages/World/Entity.hpp"
 #include "Compages/World/Spatial/Joint.hpp"
 
@@ -71,18 +71,22 @@ template <>
 struct JointUnits<Radians>
 {
     using State = compages::world::RevoluteState;
+    using Velocity = AngularVelocity;
+    using Effort = Torque;
 };
 
 template <>
 struct JointUnits<Length>
 {
     using State = compages::world::PrismaticState;
+    using Velocity = LinearVelocity;
+    using Effort = Force;
 };
 
 template <class Position>
-using VelocityOf = typename JointUnits<Position>::State::Velocity;
+using VelocityOf = typename JointUnits<Position>::Velocity;
 template <class Position>
-using EffortOf = typename JointUnits<Position>::State::Effort;
+using EffortOf = typename JointUnits<Position>::Effort;
 
 // ****************************************************************************
 //! @brief URDF limits of a joint. Infinite values mean unlimited.

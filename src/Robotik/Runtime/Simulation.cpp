@@ -146,13 +146,30 @@ Simulation::Simulation(compages::world::World& p_world,
     // Connect the backend.
     if (m_robot->backend() == nullptr)
     {
-        auto physics = std::make_unique<MujocoBackend>();
+        MujocoOptions options;
+        options.floor = m_floor;
+        options.floor_friction = m_floor_friction;
+        auto physics = std::make_unique<MujocoBackend>(options);
         std::string const arm = physics->load(m_scenario.robot_model);
         if (std::filesystem::path const tool = m_scenario.toolFile();
             !tool.empty())
         {
             std::string const mounted = physics->load(tool);
             physics->attach(arm, "flange", mounted, "tool_mount");
+        }
+        for (StagedChain const& chain : m_chains)
+        {
+            physics->load(chain.file,
+                          ChainOptions{ chain.floating, chain.pose, chain.friction });
+        }
+        for (StagedBox const& box : m_boxes)
+        {
+            physics->addBox(FreeBox{ box.name,
+                                     box.size,
+                                     box.mass,
+                                     box.inertia,
+                                     box.pose,
+                                     box.friction });
         }
         m_robot->connect(std::move(physics));
     }
@@ -174,6 +191,43 @@ Simulation::Simulation(compages::world::World& p_world,
 }
 
 Simulation::~Simulation() = default;
+
+void Simulation::loadChain(std::filesystem::path const& p_urdf,
+                           bool p_floating,
+                           Pose const& p_pose,
+                           double p_friction)
+{
+    if (m_robot->backend() != nullptr)
+    {
+        throw std::runtime_error("A chain cannot be loaded after the backend");
+    }
+    m_chains.push_back(StagedChain{ p_urdf, p_floating, p_pose, p_friction });
+}
+
+void Simulation::loadBox(std::string const& p_name,
+                         Vector3 const& p_size,
+                         double p_mass,
+                         Vector3 const& p_inertia,
+                         Pose const& p_pose,
+                         double p_friction)
+{
+    if (m_robot->backend() != nullptr)
+    {
+        throw std::runtime_error("A box cannot be loaded after the backend");
+    }
+    m_boxes.push_back(
+        StagedBox{ p_name, p_size, p_mass, p_inertia, p_pose, p_friction });
+}
+
+void Simulation::loadFloor(double p_friction)
+{
+    if (m_robot->backend() != nullptr)
+    {
+        throw std::runtime_error("The floor cannot be added after the backend");
+    }
+    m_floor = true;
+    m_floor_friction = p_friction;
+}
 
 void Simulation::spawn(SceneView* p_view)
 {

@@ -94,5 +94,5 @@ void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
 robotik::Pose DiffDriveBackend::pose() const
 {
     return { { m_truth.x, m_truth.y, m_geometry.height },
-             robotik::axisAngle({ 0.0, 0.0, 1.0 }, m_truth.yaw) };
+             robotik::axisAngle({ 0.0, 0.0, 1.0 }, Radians(m_truth.yaw)) };
 }

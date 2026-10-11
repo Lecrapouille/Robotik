@@ -10,6 +10,7 @@
 #pragma once
 
 #include "Robotik/Backends/RobotBackend.hpp"
+#include "Robotik/Math/Geometry.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -32,8 +33,39 @@ struct MujocoOptions
     bool floor = false;
     //!< Sliding friction per link name (default 1): e.g. a caster ball.
     std::unordered_map<std::string, double> friction;
+    //!< Sliding friction of the ground plane when @ref floor is set.
+    double floor_friction = 1.0;
     //!< Physics step; the joint loops run at this rate.
     Seconds timestep{ 0.001 };
+};
+
+// ****************************************************************************
+//! @brief How one loaded URDF chain is placed.
+// ****************************************************************************
+struct ChainOptions
+{
+    //!< Free joint on the chain root. The robot chain stays fixed unless
+    //!< @ref MujocoOptions::floating_base is set.
+    bool floating = false;
+    //!< World pose of the root link when @ref floating is set (URDF Z-up).
+    Pose pose{ zero3(), Quaternion{} };
+    //!< Sliding friction of every geom of the chain. Negative keeps the URDF.
+    double friction = -1.0;
+};
+
+// ****************************************************************************
+//! @brief One free box, not part of a URDF. Its origin is the centre.
+// ****************************************************************************
+struct FreeBox
+{
+    std::string name;
+    //!< Full extents (m) along the box axes.
+    Vector3 size = zero3();
+    double mass = 1.0;
+    //!< Diagonal inertia (kg·m²) at the centre, in the box frame.
+    Vector3 inertia = zero3();
+    Pose pose{ zero3(), Quaternion{} };
+    double friction = 1.0;
 };
 
 // ****************************************************************************
@@ -100,7 +132,19 @@ public:
     //! @return The chain name (the URDF @c robot name, made unique if needed).
     //! @throws std::runtime_error if MuJoCo cannot parse the file.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::string load(std::filesystem::path const& p_urdf);
+    [[nodiscard]] std::string load(std::filesystem::path const& p_urdf,
+                                   ChainOptions const& p_options = {});
+
+    // -------------------------------------------------------------------------
+    //! @brief Adds a free box compiled with the chains. The origin is the
+    //! centre. Call it before the backend is attached to a robot.
+    // -------------------------------------------------------------------------
+    void addBox(FreeBox const& p_box);
+
+    // -------------------------------------------------------------------------
+    //! @brief World pose of a body after the last step or reset.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::optional<Pose> bodyPose(std::string const& p_body) const;
 
     // -------------------------------------------------------------------------
     //! @brief Hangs @p_robot2 on @p_robot1.

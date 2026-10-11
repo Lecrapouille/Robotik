@@ -25,7 +25,7 @@ namespace
 robotik::Pose downward()
 {
     return { { 0.0, 0.0, 1.0 },
-             robotik::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi) };
+             robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)) };
 }
 
 //! @brief Gray image of the right size, counts captures.
@@ -91,14 +91,17 @@ TEST(Random, SeedsAreReplayableAndIndependent)
 
 TEST(Pose, ComposeAndInvert)
 {
-    robotik::Pose const pose{ { 1.0, 2.0, 3.0 }, robotik::rpy(0.1, 0.2, 0.3) };
+    robotik::Pose const pose{ { 1.0, 2.0, 3.0 },
+                               robotik::rpy(Radians(0.1), Radians(0.2), Radians(0.3)) };
     robotik::Pose const identity = pose * pose.inverse();
     EXPECT_NEAR(robotik::norm(identity.position), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(identity.rotation.w), 1.0, 1e-12);
     robotik::Vector3 const point{ 0.5, -0.2, 0.1 };
     robotik::Vector3 const back = pose.inverse() * (pose * point);
     EXPECT_NEAR(robotik::norm(back - point), 0.0, 1e-12);
-    EXPECT_NEAR(robotik::yawOf(robotik::rpy(0.0, 0.0, 0.7)), 0.7, 1e-12);
+    EXPECT_NEAR(robotik::yawOf(robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.7))),
+                0.7,
+                1e-12);
 }
 
 TEST(CameraIntrinsics, RayAndProjectAreInverse)
@@ -193,8 +196,11 @@ TEST(WorldModel, GateRejectsOutliers)
 
 TEST(Localization, RecoversTheRobotPoseFromALandmark)
 {
-    robotik::Pose const robot{ { 1.0, -0.5, 0.0 }, robotik::rpy(0.0, 0.0, 0.4) };
-    robotik::Pose const camera{ { 0.1, 0.0, 0.2 }, robotik::rpy(-2.0, 0.0, -1.57) };
+    robotik::Pose const robot{ { 1.0, -0.5, 0.0 },
+                                robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.4)) };
+    robotik::Pose const camera{
+        { 0.1, 0.0, 0.2 },
+        robotik::rpy(Radians(-2.0), Radians(0.0), Radians(-1.57)) };
     robotik::Landmark const tag{ 3, { { 1.4, -0.3, 0.0 }, robotik::Quaternion{} } };
 
     robotik::Detections detections;

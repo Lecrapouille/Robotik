@@ -12,6 +12,7 @@
 
 #include "Compages/GPU/Framebuffer.hpp"
 #include "Compages/GPU/Texture.hpp"
+#include "Compages/Renderer/Assets/CanvasTexture.hpp"
 #include "Compages/Renderer/Scene.hpp"
 
 #include <cstdint>
@@ -76,6 +77,10 @@ public:
     void ground(robotik::Image const& p_image,
                 double p_width,
                 double p_height) override;
+    bool openCanvas(compages::world::Entity p_parent,
+                    double p_width,
+                    double p_height) override;
+    void ink(double p_y, double p_z, float p_red, float p_green, float p_blue) override;
 
     [[nodiscard]] bool hasGround() const override
     {
@@ -102,4 +107,9 @@ private:
     RenderTarget m_frame;
     bool m_grounded = false;
     std::filesystem::path m_ground_file;
+    compages::renderer::CanvasTexture m_paint;
+    compages::world::Entity m_sheet;
+    double m_sheet_width = 1.0;
+    double m_sheet_height = 1.0;
+    bool m_sheet_ready = false;
 };

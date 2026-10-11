@@ -173,7 +173,7 @@ Scenario::Camera camera(std::string_view p_name, bt::YamlNode const& p_node)
     }
     else
     {
-        config.mount.rotation = rpy(euler.x, euler.y, euler.z);
+        config.mount.rotation = rpy(Radians(euler.x), Radians(euler.y), Radians(euler.z));
     }
     bt::YamlNode const resolution = p_node.child("resolution");
     double const fov = number(p_node, "fov", 70.0) * std::numbers::pi / 180.0;
@@ -349,6 +349,20 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
                     scenario.mounted_tool = type;
                 }
             });
+    }
+    if (robot.hasKey("mounted"))
+    {
+        std::string const mounted = text(robot, "mounted");
+        if (!mounted.empty())
+        {
+            if (!scenario.tools.contains(mounted))
+            {
+                throw std::runtime_error("Scenario '" + p_path.string() +
+                                         "': robot.mounted '" + mounted +
+                                         "' is not a tool");
+            }
+            scenario.mounted_tool = mounted;
+        }
     }
 
     bt::YamlNode const world = root.child("world");
