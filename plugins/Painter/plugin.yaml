@@ -19,3 +19,8 @@ scenarios:
   directory: scenarios
   entries:
     - { id: painter, name: Robotic painter, file: painter.yml }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: painting_benchmark, name: Painting benchmark, file: painting_benchmark.yaml }
