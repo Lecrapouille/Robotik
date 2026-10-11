@@ -1,0 +1,27 @@
+# Tutorial package. Each scenario is one lesson, see doc/04-Your-First-Plugin.md.
+plugin:
+  id: robotik.hello_world
+  name: Hello world
+  version: 1.0.0
+  api_version: 1
+  category: Tutorial
+
+library:
+  entrypoint: librobotik_hello_world.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: hello, name: 1. Hello, file: hello.yml }
+    - { id: wave, name: 2. Move a joint, file: wave.yml }
+    - { id: reach, name: 3. Reach a point, file: reach.yml }
+    - { id: skills, name: 4. Skill and behavior tree, file: skills.yml }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: hello_experiment, name: Hello experiment, file: hello_experiment.yaml }

@@ -1,0 +1,11 @@
+# Lesson 3: ask for a tool position, let inverse kinematics find the joints.
+# The assertion is red at the start and turns green: it does not stop the run.
+scenario:
+  id: reach
+  description: Move the tool three centimetres forward with inverse kinematics.
+  world: ../worlds/arm.yaml
+  seed: 1
+  timeout: 30
+  assertions:
+    - controller.success
+    - { condition: "reach.error < 0.02", within: 5.0 }

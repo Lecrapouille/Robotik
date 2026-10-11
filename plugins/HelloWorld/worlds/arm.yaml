@@ -1,0 +1,13 @@
+# A bare 6-axis arm on the floor. Nothing else.
+world:
+  id: arm
+  entities:
+    - id: robot
+      type: robot
+      # Asset id: <pack>.<model>, found in data/packs by the asset resolver.
+      model: robotik.robots.robot_6axis
+      # Joint angles (rad) the robot holds at start and goes back to on Home.
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        # One actuator commanding every joint. It is also the resource "arm".
+        arm: { type: joint_group }

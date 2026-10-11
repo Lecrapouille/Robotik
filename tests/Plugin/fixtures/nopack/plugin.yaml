@@ -4,7 +4,7 @@ plugin:
   version: 1
   api_version: 1
 library:
-  entrypoint: librobotik_probe.so
+  entrypoint: librobotik_fixture.so
 resources:
   packs:
     - { id: robotik.unknown, version: "1.0" }
