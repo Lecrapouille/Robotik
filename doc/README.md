@@ -11,6 +11,7 @@ Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, acti
 | [Scenario-et-Simulation.md](Scenario-et-Simulation.md) | Monde, scénario, expérience, assertions, trajectoires, vérité terrain |
 | [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md) | Action BlackThorn, `SkillScheduler`, skills |
 | [Demos.md](Demos.md) | Buts, CLI, tutoriel Simulateur / Headless / LineFollower / RL |
+| [Apprentissage.md](Apprentissage.md) | Environnements RL : espaces, observation / action / récompense, fins d’épisode, pool, journal |
 | [Plugins.md](Plugins.md) | Pourquoi un plugin, manifeste, packs d’assets, cycle de vie, tutoriel |
 | [Tools.md](Tools.md) | Robot flange, tool URDF, TCP (English) |
 
@@ -26,7 +27,7 @@ Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, acti
 | **`Runtime/`** | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Mission`, `Metrics`, `Simulation`, `RunReport` |
 | **`Skills/`** | `Skill`, skills de mouvement, `SkillNodes.hpp` (pont BT) |
 | **`Scenario/`** | Monde, scénario, expérience, moteur d’assertions, trajectoires |
-| **`Environment/`** | `Environment`, `EnvironmentPool` (RL) |
+| **`Environment/`** | `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` (RL) |
 | **`Backends/`** | Pinocchio (FK/IK), MuJoCo (physique) |
 | **`Plugin/`** | Contrat C, aide C++, catalogue et session chargés par les hôtes |
 

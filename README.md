@@ -423,7 +423,7 @@ reward
 observation
 ```
 
-independent of environment count and thread count.
+independent of environment count and thread count. A `SimulationEnvironment` turns any scenario into an environment from three swappable parts (observation builder, action adapter, reward evaluator); spaces are named and bounded, observations read from the ground truth are flagged as privileged, and an episode ends in success, failure, time limit or technical abort. See [doc/Apprentissage.md](doc/Apprentissage.md).
 
 ---
 
@@ -513,6 +513,7 @@ make tests -j"$(nproc --all)"
 | [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Layers, data flow, `include/Robotik/` layout |
 | [doc/Demos.md](doc/Demos.md) | Simulator, Headless, LineFollower, PickAndPlace RL |
 | [doc/Plugins.md](doc/Plugins.md) | Plugin packages, manifest, asset packs, lifecycle, short tutorial |
+| [doc/Apprentissage.md](doc/Apprentissage.md) | Reinforcement learning environments, spaces, episode ends, pool, episode log |
 
 ---
 

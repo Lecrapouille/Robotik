@@ -332,8 +332,14 @@ robotik::StepResult FlyEnvironment::step(std::span<float const> p_action,
     // Create the result.
     robotik::StepResult result;
     result.reward = static_cast<float>(reward);
-    result.terminated = reached;
-    result.truncated = !reached && m_snapshot.steps >= m_max_steps;
+    if (reached)
+    {
+        result.end = robotik::EpisodeEnd::Success;
+    }
+    else if (m_snapshot.steps >= m_max_steps)
+    {
+        result.end = robotik::EpisodeEnd::TimeLimit;
+    }
     return result;
 }
 

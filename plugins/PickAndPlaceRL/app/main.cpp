@@ -13,16 +13,20 @@
 // Two policies share the same pool: random (noise) and converged (scripted).
 // --train raises a mix from random toward converged, like the Simulator.
 
-#include "PickPlaceEnvironment.hpp"
+#include "PickPlaceControl.hpp"
 
-#include "Robotik/Environment/Environment.hpp"
+#include "Robotik/Environment/EpisodeLog.hpp"
+#include "Robotik/Environment/SimulationEnvironment.hpp"
 #include "Robotik/Math/Random.hpp"
+#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Scenario/Scenario.hpp"
 
 #include <algorithm>
 #include <bit>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -43,6 +47,7 @@ struct Options
     bool train = false;
     bool replay = true;
     bool trace = false;
+    std::filesystem::path log;
 };
 
 struct Report
@@ -90,6 +95,10 @@ static bool parse(int argc, char** argv, Options& p_options)
         {
             p_options.seed = std::strtoull(value, nullptr, 10);
         }
+        else if (arg == "--log" && (value = next()))
+        {
+            p_options.log = value;
+        }
         else if (arg == "--scenario" && (value = next()))
         {
             p_options.scenario = value;
@@ -106,11 +115,33 @@ static bool parse(int argc, char** argv, Options& p_options)
         {
             std::cerr << "Usage: " << argv[0]
                       << " [--policy converged|random] [--train] [--envs N] [--threads T] [--episodes E]"
-                         " [--seed S] [--scenario file.yml] [--no-replay] [--trace]\n";
+                         " [--seed S] [--scenario file.yml] [--no-replay] [--trace]"
+                         " [--log episodes.json]\n";
             return false;
         }
     }
     return p_options.envs > 0u;
+}
+
+// The scenario world, the cube spread wider, the three parts of the task.
+static std::unique_ptr<robotik::SimulationEnvironment> makeEnvironment(Options const& p_options)
+{
+    robotik::Scenario scenario =
+        robotik::Scenario::load(p_options.scenario, robotik::AssetResolver::standard());
+    for (robotik::EntitySpec& entity : scenario.world.entities)
+    {
+        if (entity.id == PICK_PLACE_CUBE)
+        {
+            entity.randomize[0] = { -CUBE_SPREAD_M, CUBE_SPREAD_M };
+            entity.randomize[1] = { -CUBE_SPREAD_M, CUBE_SPREAD_M };
+        }
+    }
+    robotik::EnvironmentTiming timing;
+    timing.physics_step = Seconds(PICK_PLACE_PHYSICS_STEP_S);
+    timing.control_period = Seconds(PICK_PLACE_CONTROL_PERIOD_S);
+    timing.max_steps = MAX_STEPS;
+    return std::make_unique<robotik::SimulationEnvironment>(
+        std::move(scenario), pickPlaceParts(), timing);
 }
 
 // Steps the pool until @p_options.episodes episodes are over.
@@ -118,7 +149,7 @@ static Report run(Options const& p_options, std::size_t p_threads)
 {
     robotik::EnvironmentPool pool(
         p_options.envs,
-        [&](std::size_t) { return std::make_unique<PickPlaceEnvironment>(p_options.scenario, CUBE_SPREAD_M, MAX_STEPS); },
+        [&](std::size_t) { return makeEnvironment(p_options); },
         robotik::Seed{ p_options.seed },
         p_threads);
 
@@ -183,7 +214,7 @@ static bool same(std::vector<robotik::Episode> const& p_a, std::vector<robotik::
         if (p_a[i].environment != p_b[i].environment || p_a[i].index != p_b[i].index ||
             p_a[i].seed.value != p_b[i].seed.value ||
             std::bit_cast<std::uint64_t>(p_a[i].reward) != std::bit_cast<std::uint64_t>(p_b[i].reward) ||
-            p_a[i].steps != p_b[i].steps || p_a[i].terminated != p_b[i].terminated)
+            p_a[i].steps != p_b[i].steps || p_a[i].end != p_b[i].end)
         {
             return false;
         }
@@ -205,15 +236,15 @@ int main(int argc, char** argv)
 
         std::size_t successes = 0;
         double total = 0.0;
-        std::cout << " env  episode  seed                  return   steps  success\n";
+        std::cout << " env  episode  seed                  return   steps  end\n";
         for (robotik::Episode const& episode : report.episodes)
         {
-            successes += episode.terminated ? 1u : 0u;
+            successes += episode.end == robotik::EpisodeEnd::Success ? 1u : 0u;
             total += episode.reward;
             std::cout << std::setw(4) << episode.environment << std::setw(9) << episode.index << "  "
                       << std::setw(20) << episode.seed.value << std::fixed << std::setprecision(2)
                       << std::setw(9) << episode.reward << std::setw(8) << episode.steps << "  "
-                      << (episode.terminated ? "yes" : "no") << '\n';
+                      << robotik::toString(episode.end) << '\n';
         }
         double const count = static_cast<double>(report.episodes.size());
         double const simulated = static_cast<double>(report.steps) * 0.1;
@@ -224,6 +255,23 @@ int main(int argc, char** argv)
                   << options.envs << " environments on " << threads << " threads: " << report.steps
                   << " steps in " << report.wall << " s (" << static_cast<double>(report.steps) / report.wall
                   << " steps/s, " << simulated / report.wall << "x real time)\n";
+
+        if (!options.log.empty())
+        {
+            std::unique_ptr<robotik::SimulationEnvironment> const sample = makeEnvironment(options);
+            robotik::EpisodeLog log;
+            log.scenario = sample->simulation().scenario().id;
+            log.policy = options.random ? (options.train ? "random-to-converged" : "random")
+                                        : "converged";
+            log.master_seed = options.seed;
+            log.observation = sample->observationSpace();
+            log.action = sample->actionSpace();
+            log.control_period = sample->timing().control_period.value();
+            log.max_steps = sample->timing().max_steps;
+            std::ofstream file(options.log);
+            log.write(file, report.episodes);
+            std::cout << "episodes: " << options.log.string() << '\n';
+        }
 
         if (options.replay)
         {

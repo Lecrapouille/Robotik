@@ -13,6 +13,24 @@
 namespace robotik
 {
 
+char const* toString(EpisodeEnd p_end)
+{
+    switch (p_end)
+    {
+        case EpisodeEnd::None:
+            return "running";
+        case EpisodeEnd::Success:
+            return "success";
+        case EpisodeEnd::Failure:
+            return "failure";
+        case EpisodeEnd::TimeLimit:
+            return "time limit";
+        case EpisodeEnd::Aborted:
+            return "aborted";
+    }
+    return "?";
+}
+
 EnvironmentPool::EnvironmentPool(std::size_t p_count,
                                  Factory const& p_factory,
                                  Seed p_master,
@@ -97,7 +115,7 @@ void EnvironmentPool::advance(std::size_t p_index)
                                          seed(p_index),
                                          m_returns[p_index],
                                          m_steps[p_index],
-                                         result.terminated };
+                                         result.end };
         ++m_indices[p_index];
         restart(p_index);
     }

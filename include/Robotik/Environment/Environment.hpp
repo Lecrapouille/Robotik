@@ -11,9 +11,16 @@
 //!
 //! Observations and actions are flat float vectors written in place: an
 //! environment step allocates nothing, and the pool stores all of them in
-//! contiguous row-major buffers ready to hand to a learner.
+//! contiguous row-major buffers ready to hand to a learner. Their layout is
+//! described by a @ref Space: a name, bounds and a unit per dimension.
+//!
+//! An environment is one simulated world; an agent is something that acts in
+//! it. Several environments (@ref EnvironmentPool) collect experience faster
+//! or compare conditions; several agents in one environment interact. The
+//! two combine, and are not to be confused.
 #pragma once
 
+#include "Robotik/Environment/Space.hpp"
 #include "Robotik/Math/Random.hpp"
 
 #include <condition_variable>
@@ -29,19 +36,43 @@ namespace robotik
 {
 
 // ****************************************************************************
+//! @brief Why an episode ended. Completion, time limit and technical stop are
+//! different events, for learning (bootstrap or not) and for evaluation.
+// ****************************************************************************
+enum class EpisodeEnd : std::uint8_t
+{
+    None,      //!< Still running.
+    Success,   //!< The task is done: a terminal state.
+    Failure,   //!< The task cannot be done any more: a terminal state.
+    TimeLimit, //!< Cut by the step budget: not a terminal state.
+    Aborted,   //!< Technical stop (invalid state, solver error): discard.
+};
+
+[[nodiscard]] char const* toString(EpisodeEnd p_end);
+
+// ****************************************************************************
 //! @brief Outcome of one environment step.
 // ****************************************************************************
 struct StepResult
 {
     float reward = 0.0f;
-    //!< The task ended (success or unrecoverable failure).
-    bool terminated = false;
-    //!< The episode was cut (time limit), the task did not end.
-    bool truncated = false;
+    EpisodeEnd end = EpisodeEnd::None;
+
+    //! @brief The task ended (success or unrecoverable failure).
+    [[nodiscard]] bool terminated() const
+    {
+        return end == EpisodeEnd::Success || end == EpisodeEnd::Failure;
+    }
+
+    //! @brief The episode was cut; the task did not end.
+    [[nodiscard]] bool truncated() const
+    {
+        return end == EpisodeEnd::TimeLimit || end == EpisodeEnd::Aborted;
+    }
 
     [[nodiscard]] bool done() const
     {
-        return terminated || truncated;
+        return end != EpisodeEnd::None;
     }
 };
 
@@ -58,6 +89,18 @@ public:
 
     [[nodiscard]] virtual std::size_t observationSize() const = 0;
     [[nodiscard]] virtual std::size_t actionSize() const = 0;
+
+    //! @brief Layout of the observation; unnamed and unbounded by default.
+    [[nodiscard]] virtual Space observationSpace() const
+    {
+        return Space::unnamed("o", observationSize());
+    }
+
+    //! @brief Layout of the action; unnamed and unbounded by default.
+    [[nodiscard]] virtual Space actionSpace() const
+    {
+        return Space::unnamed("a", actionSize());
+    }
 
     //! @brief Starts an episode and writes its first observation.
     virtual void reset(Seed p_seed, std::span<float> p_observation) = 0;
@@ -78,7 +121,12 @@ struct Episode
     Seed seed;
     double reward = 0.0;
     std::uint32_t steps = 0;
-    bool terminated = false;
+    EpisodeEnd end = EpisodeEnd::None;
+
+    [[nodiscard]] bool terminated() const
+    {
+        return end == EpisodeEnd::Success || end == EpisodeEnd::Failure;
+    }
 };
 
 // ****************************************************************************

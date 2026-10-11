@@ -701,11 +701,14 @@ Trajectory           chemins cartésiens ou articulaires
 
 ### `Environment/`
 
-Abstraction destinée aux expériences RL :
+Abstraction destinée aux expériences RL, voir [Apprentissage.md](Apprentissage.md) :
 
 ```text
-Environment
-EnvironmentPool
+Environment             reset, step, espaces
+Space                   dimensions nommées, bornées, privilégiées ou non
+SimulationEnvironment   un scénario + ObservationBuilder, ActionAdapter, RewardEvaluator
+EnvironmentPool         N environnements sur des threads, graines dérivées
+EpisodeLog              journal JSON des épisodes
 ```
 
 ### `Backends/`

@@ -13,32 +13,36 @@
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #define RL_PAUSE_AFTER_S 1.2
 
 void RlMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 {
-    m_arm = p_simulation.robot().actuators().find<robotik::JointGroup>("arm");
-    m_gripper = p_simulation.robot().actuators().first<robotik::VacuumGripper>();
-    ready = m_arm != nullptr && m_gripper != nullptr;
     steps = 0;
     episode_return = 0.0f;
-    m_grasped = false;
     done = false;
     success = false;
     m_pause = 0.0;
     m_noise = robotik::Random(p_seed.derive("policy"));
-    if (!ready)
+    try
     {
+        // Every episode starts again from the ready posture.
+        m_action.setup(p_simulation);
+        m_observation.setup(p_simulation);
+        m_reward.setup(p_simulation);
+        ready = true;
+    }
+    catch (std::exception const&)
+    {
+        ready = false;
         return;
     }
-    readyPosture(p_simulation.robot(), *m_gripper);
+    m_reward.reset(p_simulation);
     p_simulation.observe();
-    writePickPlaceObservation(p_simulation,
-                              *m_gripper,
-                              0,
-                              static_cast<std::uint32_t>(max_steps),
-                              observation);
+    m_observation.observe(p_simulation,
+                          { 0u, static_cast<std::uint32_t>(max_steps) },
+                          observation);
 }
 
 robotik::Status RlMission::status(robotik::Simulation const& /*p_simulation*/) const
@@ -58,7 +62,7 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
 {
     if (!ready)
     {
-        p_simulation.step(Seconds(0.01));
+        p_simulation.step(Seconds(PICK_PLACE_PHYSICS_STEP_S));
         return;
     }
     if (done)
@@ -88,47 +92,25 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
             converged = true;
         }
     }
-    applyPickPlaceAction(p_simulation, *m_arm, *m_gripper, action);
+    m_action.apply(action, p_simulation);
+    auto const substeps = static_cast<int>(
+        std::lround(PICK_PLACE_CONTROL_PERIOD_S / PICK_PLACE_PHYSICS_STEP_S));
+    for (int i = 0; i < substeps; ++i)
+    {
+        p_simulation.step(Seconds(PICK_PLACE_PHYSICS_STEP_S));
+    }
     p_simulation.observe();
     ++steps;
-    writePickPlaceObservation(p_simulation,
-                              *m_gripper,
-                              steps,
-                              static_cast<std::uint32_t>(max_steps),
-                              observation);
-
-    float reward = 0.0f;
-    robotik::WorldModel const& beliefs = p_simulation.worldModel();
-    if (auto const* cube = beliefs.find(PICK_PLACE_CUBE))
+    robotik::StepResult const result = m_reward.evaluate(p_simulation);
+    m_observation.observe(p_simulation,
+                          { steps, static_cast<std::uint32_t>(max_steps) },
+                          observation);
+    episode_return += result.reward;
+    if (result.end == robotik::EpisodeEnd::Success)
     {
-        robotik::Vector3 const tip = m_gripper->tip(p_simulation.robot());
-        if (m_gripper->holding())
-        {
-            auto const* box = beliefs.find(PICK_PLACE_BOX);
-            robotik::Vector3 const above =
-                box != nullptr
-                    ? robotik::Vector3{ box->position.x, box->position.y, box->position.z + 0.1 }
-                    : tip;
-            reward = 1.0f - static_cast<float>(robotik::norm(cube->position - above));
-            if (!m_grasped)
-            {
-                m_grasped = true;
-                reward += 2.0f;
-            }
-        }
-        else
-        {
-            robotik::Vector3 const top{ cube->position.x, cube->position.y, cube->position.z + 0.02 };
-            reward = -static_cast<float>(robotik::norm(tip - top));
-        }
-    }
-    if (cubeInBox(p_simulation, *m_gripper))
-    {
-        reward += 10.0f;
         done = true;
         success = true;
     }
-    episode_return += reward;
     if (!done && steps >= static_cast<std::uint32_t>(max_steps))
     {
         done = true;
