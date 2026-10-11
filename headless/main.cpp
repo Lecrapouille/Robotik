@@ -18,7 +18,8 @@
 #include <string>
 
 #define HEADLESS_DT_S 0.01
-#define HEADLESS_TIMEOUT_S 150.0
+//! Safety net for scenarios without a timeout of their own.
+#define HEADLESS_TIMEOUT_S 600.0
 
 static void usage()
 {
@@ -113,19 +114,26 @@ int main(int argc, char** argv)
             }
             std::cout << "  (" << run.end - run.start << ")\n";
         }
-        bool passed = true;
-        for (auto const& check : simulation.checks())
+        simulation.conclude();
+        for (robotik::Check const& check : simulation.checks())
         {
-            std::cout << (check.passed ? "[PASS] " : "[FAIL] ") << check.text;
+            std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text;
             if (!check.detail.empty())
             {
-                std::cout << "  (" << check.detail << ')';
+                std::cout << "  (" << check.detail;
+                if (check.verdict == robotik::Check::Verdict::Failed)
+                {
+                    std::cout << ", expected " << check.expected << ", at "
+                              << check.time.value() << " s";
+                }
+                std::cout << ')';
             }
             std::cout << '\n';
-            passed = passed && check.passed;
         }
-        std::cout << "seed=" << simulation.seed().value
+        std::cout << "outcome=" << robotik::toString(simulation.outcome())
+                  << " seed=" << simulation.seed().value
                   << " time=" << simulation.time().value() << "s\n";
+        bool const passed = simulation.passed();
         return passed ? 0 : 2;
     }
     catch (std::exception const& error)

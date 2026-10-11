@@ -1,17 +1,9 @@
-scenario: forward_kinematics
-seed: 1
-
-robot:
-  # Asset id: <pack>.<model>, found by the asset resolver (data/packs).
-  model: robotik.robots.robot_6axis
-  home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
-  actuators:
-    arm: { type: joint_group }
-
-execute:
-  task: |
-    Sweep the base joint and publish the tool pose from forward kinematics.
-
-assert:
-  - fk.samples > 0
-  - time < 30
+scenario:
+  id: forward_kinematics
+  description: Sweep the base joint and publish the tool pose from forward kinematics.
+  world: ../worlds/arm_cell.yaml
+  seed: 1
+  timeout: 60
+  assertions:
+    - fk.samples > 0
+    - time < 30

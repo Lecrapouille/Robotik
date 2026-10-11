@@ -9,7 +9,7 @@
 # The including Makefile sets TARGET_NAME, PLUGIN_NAME, PLUGIN_DIR,
 # PLUGIN_SRC and LIB_FILES, then includes this file. The staged package is
 # build/plugins/$(PLUGIN_NAME)/: plugin.yaml, the .so, and the content
-# folders the package has (scenarios/, data/ with its asset pack).
+# folders the package has (worlds/, scenarios/, data/ with its asset pack).
 
 INCLUDES += $(PLUGIN_SRC) $(P)/include $(P)/src
 VPATH += $(PLUGIN_SRC)
@@ -29,7 +29,7 @@ include $(M)/rules/Makefile
 include $(P)/Makefile.relink
 
 PLUGIN_STAGE := $(BUILD_PATH)/plugins/$(PLUGIN_NAME)
-PLUGIN_CONTENT := $(notdir $(wildcard $(addprefix $(PLUGIN_DIR)/,scenarios data)))
+PLUGIN_CONTENT := $(notdir $(wildcard $(addprefix $(PLUGIN_DIR)/,worlds scenarios data)))
 
 # Content folders are copied whole: a file removed from the sources must not
 # survive in the stage.

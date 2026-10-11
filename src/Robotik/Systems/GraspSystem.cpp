@@ -31,6 +31,12 @@ static Vector3 positionOf(compages::world::Entity p_entity)
     return { at.x, at.y, at.z };
 }
 
+//! Bodies of the physics backend are not props: suction does not move them.
+static bool simulated(compages::world::Entity p_entity)
+{
+    return p_entity.find<ecs::PhysicsBody>() != nullptr;
+}
+
 //! Height of the support below @p_at: a container floor or the ground (z = 0).
 static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
 {
@@ -39,6 +45,10 @@ static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
         [&floor, &p_at](compages::world::Entity p_entity,
                         ecs::SceneObject const& p_object)
         {
+            if (simulated(p_entity))
+            {
+                return;
+            }
             Vector3 const center = positionOf(p_entity);
             if (std::optional<scene::ContainerInner> const inner =
                     scene::innerBounds(p_object, center))
@@ -69,7 +79,7 @@ static Vector3 settle(compages::world::World& p_world,
     p_world.each<ecs::SceneObject>(
         [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
         {
-            if (p_entity.id() == p_held.id())
+            if (p_entity.id() == p_held.id() || simulated(p_entity))
             {
                 return;
             }
@@ -111,7 +121,7 @@ static compages::world::EntityId touched(compages::world::World& p_world,
     p_world.each<ecs::SceneObject>(
         [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
         {
-            if (p_object.type != ecs::SceneObject::Type::CUBE)
+            if (p_object.type != ecs::SceneObject::Type::BOX || simulated(p_entity))
             {
                 return;
             }
@@ -146,7 +156,7 @@ void GraspSystem::update(Robot& p_robot) const
 
         if (gripper->suction() && !gripper->holding())
         {
-            gripper->held(touched(world, gripper->tip(p_robot)));
+            gripper->held(touched(world, p_robot.base().pose * gripper->tip(p_robot)));
         }
         else if (!gripper->suction() && gripper->holding())
         {
@@ -168,7 +178,7 @@ void GraspSystem::update(Robot& p_robot) const
                 continue;
             }
             Length const half = shape->size[2] * 0.5;
-            Vector3 const center = gripper->tip(p_robot, half);
+            Vector3 const center = p_robot.base().pose * gripper->tip(p_robot, half);
             held.position(static_cast<float>(center.x),
                           static_cast<float>(center.y),
                           static_cast<float>(center.z));

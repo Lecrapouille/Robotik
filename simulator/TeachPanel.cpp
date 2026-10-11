@@ -86,8 +86,9 @@ void syncMarkers(App& p_app)
 //! the previous robot.
 bool changeTool(App& p_app)
 {
-    auto const& tools = p_app.simulation->scenario().tools;
-    std::string const current = p_app.simulation->scenario().mounted_tool;
+    robotik::WorldDescription const& world = p_app.simulation->scenario().world;
+    robotik::EntitySpec const* mounted = world.mountedTool();
+    std::string const current = mounted != nullptr ? mounted->id : std::string{};
     std::string const label = current.empty() ? std::string("None") : current;
 
     bool changed = false;
@@ -100,17 +101,21 @@ bool changeTool(App& p_app)
     {
         changed = !current.empty();
     }
-    for (auto const& [name, file] : tools)
+    for (robotik::EntitySpec const& tool : world.entities)
     {
-        bool const selected = name == current;
-        if (ImGui::Selectable(name.c_str(), selected) && !selected)
+        if (tool.type != robotik::EntitySpec::Type::Tool)
+        {
+            continue;
+        }
+        bool const selected = tool.id == current;
+        if (ImGui::Selectable(tool.id.c_str(), selected) && !selected)
         {
             changed = true;
-            chosen = name;
+            chosen = tool.id;
         }
         if (ImGui::IsItemHovered())
         {
-            ImGui::SetTooltip("%s", file.filename().string().c_str());
+            ImGui::SetTooltip("%s", tool.model_ref.c_str());
         }
     }
     ImGui::EndCombo();
@@ -127,7 +132,13 @@ bool changeTool(App& p_app)
 //! @brief Actuates the mounted tool: suction, finger close, or spindle.
 void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 {
-    std::string const mounted = p_app.simulation->scenario().mounted_tool;
+    // Kind of tool: the model key of its asset id (robotik.tools.vacuum).
+    robotik::EntitySpec const* tool = p_app.simulation->scenario().world.mountedTool();
+    std::string mounted;
+    if (tool != nullptr)
+    {
+        mounted = tool->model_ref.substr(tool->model_ref.find_last_of('.') + 1u);
+    }
     robotik::JointSet& joints = p_robot.joints();
     if (mounted == "vacuum")
     {

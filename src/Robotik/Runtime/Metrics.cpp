@@ -11,6 +11,7 @@
 #include <charconv>
 #include <cmath>
 #include <sstream>
+#include <stdexcept>
 
 namespace robotik
 {
@@ -117,43 +118,57 @@ std::optional<double> Metrics::get(std::string_view p_name) const
     return std::nullopt;
 }
 
-Check evaluate(std::string_view p_assertion,
-               Metrics const& p_metrics,
-               MetricResolver const& p_resolver)
+Measurement measure(std::string_view p_condition,
+                    Metrics const& p_metrics,
+                    MetricResolver const& p_resolver)
 {
-    Check check{ std::string(p_assertion), false, {} };
-    std::optional<Comparison> const comparison = split(p_assertion);
+    Measurement result;
+    std::optional<Comparison> const comparison = split(p_condition);
     std::string_view const metric =
-        comparison ? comparison->metric : trim(p_assertion);
+        comparison ? comparison->metric : trim(p_condition);
+    result.expected = comparison ? std::string(comparison->op) + " " +
+                                       std::string(comparison->number)
+                                 : std::string("!= 0");
 
     std::optional<double> value = p_metrics.get(metric);
-    if (!value && p_resolver)
+    try
     {
-        value = p_resolver(metric);
+        if (!value && p_resolver)
+        {
+            value = p_resolver(metric);
+        }
+    }
+    catch (std::invalid_argument const& error)
+    {
+        result.detail = error.what();
+        return result;
     }
     if (!value)
     {
-        check.detail = "unknown metric '" + std::string(metric) + "'";
-        return check;
+        result.detail = "unknown value '" + std::string(metric) + "'";
+        return result;
     }
-    check.detail = std::string(metric) + " = " + format(*value);
+    result.known = true;
+    result.value = *value;
+    result.detail = std::string(metric) + " = " + format(*value);
 
     if (!comparison)
     {
-        check.passed = *value != 0.0;
-        return check;
+        result.holds = *value != 0.0;
+        return result;
     }
     double reference = 0.0;
     std::string_view const number = comparison->number;
-    auto const [end, error] =
+    auto const [end_, error] =
         std::from_chars(number.data(), number.data() + number.size(), reference);
-    if (error != std::errc{} || end != number.data() + number.size())
+    if (error != std::errc{} || end_ != number.data() + number.size())
     {
-        check.detail = "not a number: '" + std::string(number) + "'";
-        return check;
+        result.known = false;
+        result.detail = "not a number: '" + std::string(number) + "'";
+        return result;
     }
-    check.passed = compare(*value, comparison->op, reference);
-    return check;
+    result.holds = compare(*value, comparison->op, reference);
+    return result;
 }
 
 } // namespace robotik

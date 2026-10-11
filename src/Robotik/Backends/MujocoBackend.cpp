@@ -689,11 +689,14 @@ void MujocoBackend::compile()
             throw std::runtime_error("MuJoCo: chain '" + chain.name +
                                      "' lost its root '" + chain.root + "'");
         }
-        if (chain.options.floating && chain.name != host_chain->name)
+        if (chain.name != host_chain->name)
         {
             writePose(root, chain.options.pose);
-            mjsJoint* const joint = mjs_addFreeJoint(root);
-            mjs_setName(joint->element, (chain.name + "_free").c_str());
+            if (chain.options.floating)
+            {
+                mjsJoint* const joint = mjs_addFreeJoint(root);
+                mjs_setName(joint->element, (chain.name + "_free").c_str());
+            }
         }
         if (chain.options.friction >= 0.0)
         {
@@ -880,6 +883,32 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
         p_robot.measureBase(base);
     }
     m_impl->stale_wrenches = true;
+}
+
+std::vector<Contact> MujocoBackend::contactList() const
+{
+    std::vector<Contact> result;
+    mjModel const* const model = m_impl->model;
+    mjData const* const data = m_impl->data;
+    if (model == nullptr || data == nullptr)
+    {
+        return result;
+    }
+    auto bodyName = [model](int p_geom) -> std::string
+    {
+        int const body = model->geom_bodyid[p_geom];
+        char const* const name = mj_id2name(model, mjOBJ_BODY, body);
+        return name != nullptr ? std::string(name) : std::string(Contact::GROUND);
+    };
+    result.reserve(static_cast<std::size_t>(data->ncon));
+    for (int i = 0; i < data->ncon; ++i)
+    {
+        mjContact const& contact = data->contact[i];
+        result.push_back(Contact{ bodyName(contact.geom[0]),
+                                  bodyName(contact.geom[1]),
+                                  Vector3(contact.pos[0], contact.pos[1], contact.pos[2]) });
+    }
+    return result;
 }
 
 int MujocoBackend::contacts() const

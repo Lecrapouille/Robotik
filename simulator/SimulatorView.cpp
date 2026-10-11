@@ -171,7 +171,7 @@ void SimulatorView::object(compages::world::Entity p_entity,
             .position(p_px, p_py, p_pz)
             .scale(p_sx, p_sy, p_sz);
     };
-    if (p_object.type == robotik::ecs::SceneObject::Type::CUBE)
+    if (p_object.type == robotik::ecs::SceneObject::Type::BOX)
     {
         part("_mesh", 0.0f, 0.0f, 0.0f, x, y, z);
         return;
