@@ -1,6 +1,21 @@
-# Tools
+# 10. Tools and frames
 
-A robot URDF and a tool URDF stay separate files. Nothing is concatenated into a third URDF. Each file is one kinematic chain. `MujocoBackend::load` reads a chain, `attach(robot, link, tool, "tool_mount")` hangs the tool on the robot's `flange` link, and `detach` puts the tool back in the world as its own chain. A link name or a joint name both work: a joint names the link it moves.
+This page explains how a tool (vacuum cup, gripper, drill, brush) is mounted
+on a robot, and the names of the frames involved. Read
+[01-Introduction.md §2](01-Introduction.md#the-tool-and-the-tcp) first if
+*flange* and *TCP* are new words.
+
+## Two files, never merged
+
+A robot URDF and a tool URDF stay **separate files**. Nothing is concatenated
+into a third URDF. Each file is one kinematic chain:
+
+- `MujocoBackend::load` reads a chain;
+- `attach(robot, link, tool, "tool_mount")` hangs the tool on the robot
+  `flange` link;
+- `detach` puts the tool back in the world as its own chain.
+
+A link name or a joint name both work: a joint names the link it moves.
 
 ## Frames
 
@@ -51,7 +66,7 @@ Every tool uses the same interface:
 
 The simulator **Teach** panel lists the tool entities of the world and reloads the scenario with the chosen one. **None** leaves `tool0` as the work frame.
 
-## Checks at zero joints
+## Check: heights at zero joints
 
 With every axis at zero, the TCP height is 1.27 m for the flat pad (`tool_default`), 1.342 m for the gripper and 1.422 m for the drill. Those values match the stacked link lengths.
 

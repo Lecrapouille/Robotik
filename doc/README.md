@@ -1,43 +1,39 @@
-# Documentation Robotik
+# Robotik documentation
 
-Ce dossier décrit l’architecture actuelle : API robot (joints, capteurs, actionneurs, ressources), perception, scheduler de skills, behavior trees BlackThorn, scénarios rejouables et environnements RL.
+Read the chapters in order: each one uses the words of the previous ones.
+Chapters 1 to 5 are for everybody, even without any robotics background.
+Chapters 6 to 10 are references: open them when you need them.
 
-## Sommaire
+## Learn
 
-| Document | Sujet |
-|----------|--------|
-| [Ecosysteme.md](Ecosysteme.md) | Diagramme et rôles de Compages, Pinocchio, MuJoCo, BlackThorn |
-| [Architecture-Robotik.md](Architecture-Robotik.md) | Dossiers `include/Robotik/`, flux de données, types clés |
-| [Scenario-et-Simulation.md](Scenario-et-Simulation.md) | Monde, scénario, expérience, assertions, trajectoires, vérité terrain |
-| [BehaviorTree-et-Skills.md](BehaviorTree-et-Skills.md) | Action BlackThorn, `SkillScheduler`, skills |
-| [Demos.md](Demos.md) | Buts, CLI, tutoriel Simulateur / Headless / LineFollower / RL |
-| [Apprentissage.md](Apprentissage.md) | Environnements RL : espaces, observation / action / récompense, fins d’épisode, pool, journal |
-| [Plugins.md](Plugins.md) | Pourquoi un plugin, manifeste, packs d’assets, cycle de vie, tutoriel |
-| [Tools.md](Tools.md) | Robot flange, tool URDF, TCP (English) |
+| # | Chapter | You will learn | Time |
+|---|---------|----------------|------|
+| 1 | [Introduction](01-Introduction.md) | Robotics words (joint, frame, TCP, kinematics, skill, behavior tree…) and what Robotik does | 10 min |
+| 2 | [Getting started](02-Getting-Started.md) | Build, run the simulator and Headless, read a report, break a test on purpose | 20 min |
+| 3 | [Worlds and scenarios](03-Worlds-and-Scenarios.md) | Describe a world, a task, its checks and its variants in YAML — no C++ | 30 min |
+| 4 | [Your first plugin](04-Your-First-Plugin.md) | Write C++: the HelloWorld plugin lesson by lesson, then your own plugin | 45 min |
+| 5 | [Skills and behavior trees](05-Skills-and-Behavior-Trees.md) | Skills, resources, the scheduler, trees, recovering from faults | 30 min |
 
-## Carte rapide `include/Robotik/`
+## Reference
 
-| Dossier | Rôle |
-|---------|------|
-| **`Assets/`** | Packs d’assets versionnés, `AssetResolver` (`robotik.tools.vacuum` → fichier) |
-| **`Math/`** | Alias Compages (`Pose`, `Quat`, `Vector3`) dans `Geometry.hpp` ; `Seed` / `Random` |
-| **`Robot/`** | `Robot`, `RobotSession`, `JointSet` (SoA), `Actuators.hpp` |
-| **`Sensors/`** | `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, en-tête `Measurement`, `NoiseModel`, latence |
-| **`Perception/`** | `Detector`, `PerceptionPipeline`, `WorldModel`, `localize` |
-| **`Runtime/`** | `ResourceManager`, `SkillScheduler`, `FaultInjector`, `Mission`, `Metrics`, `Simulation`, `RunReport` |
-| **`Skills/`** | `Skill`, skills de mouvement, `SkillNodes.hpp` (pont BT) |
-| **`Scenario/`** | Monde, scénario, expérience, moteur d’assertions, trajectoires |
-| **`Environment/`** | `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` (RL) |
-| **`Backends/`** | Pinocchio (FK/IK), MuJoCo (physique) |
-| **`Plugin/`** | Contrat C, aide C++, catalogue et session chargés par les hôtes |
+| # | Chapter | Contents |
+|---|---------|----------|
+| 6 | [Architecture](06-Architecture.md) | Layers, one simulation step, backends, truth vs belief, source layout |
+| 7 | [API reference](07-API-Reference.md) | The classes a plugin uses, grouped by task |
+| 8 | [Reinforcement learning](08-Reinforcement-Learning.md) | Environments, spaces, episode ends, parallel pool, episode log |
+| 9 | [Demos](09-Demos.md) | Every plugin of the repository, and how to write a good demo |
+| 10 | [Tools and frames](10-Tools-and-Frames.md) | Flange, `tool0`, `tool_mount`, TCP; mounting a tool |
 
-En-tête unique : `include/Robotik/Robotik.hpp`.
+## Quick paths
 
-## Hôtes et démos
+- *"I just want to see something move."* → [2. Getting started](02-Getting-Started.md)
+- *"I want to change a test without compiling."* → [3. Worlds and scenarios](03-Worlds-and-Scenarios.md)
+- *"I want to write my own robot program."* → [4. Your first plugin](04-Your-First-Plugin.md)
+- *"Which method do I call?"* → [7. API reference](07-API-Reference.md)
+- *"I want to change Robotik itself."* → [6. Architecture](06-Architecture.md), and [AGENTS.md](../AGENTS.md) for the conventions
 
-- **Simulateur** : `simulator/` — fenêtre, menus, panneaux. Le menu **Demos** charge les paquets de `build/plugins/`.
-- **Headless** : `headless/` — le même scénario, ou une expérience entière, sans rendu (`Robotik-Headless`).
-- **Démos** : `plugins/<Nom>/` — un plugin C++ (`src/`), un `plugin.yaml`, ses mondes, scénarios et expériences, éventuellement son pack d’assets (`data/`). Line follower, le pool RL et la mouche gardent un exécutable dans `plugins/<Nom>/app` pour le CI et les environnements parallèles.
-- **Assets** : `data/packs/<id>/` — robots et outils partagés, chacun avec son `pack.yaml`.
+## A note on the language
 
-Exemple de trajectoire LineFollower (vert : vérité, rouge : estimation) : `Robotik-LineFollower --seed 4 --save map.png`.
+This documentation is written in simple English, with short sentences and
+common words, so that readers whose first language is not English (French
+readers in particular) can follow it easily.
