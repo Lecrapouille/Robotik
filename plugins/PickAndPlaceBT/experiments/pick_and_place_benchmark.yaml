@@ -1,0 +1,31 @@
+# One world, several conditions: nominal, the cube anywhere in a wider
+# area, the camera down when the robot starts. The same assertions judge
+# every case. Headless runs have no image: the camera noise only matters in
+# the simulator.
+experiment:
+  id: pick_and_place_benchmark
+  description: Pick and place against a wider cube layout and a camera failure.
+  seeds: [11, 12, 13]
+
+  cases:
+    - id: nominal
+      scenario: ../scenarios/pick_and_place.yml
+
+    - id: wide_layout
+      scenario: ../scenarios/pick_and_place.yml
+      overrides:
+        world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
+
+    - id: camera_down_at_start
+      scenario: ../scenarios/pick_and_place.yml
+      setup:
+        - inject_fault: { resource: wrist_camera, at: 0.0, action: disable }
+        - inject_fault: { resource: wrist_camera, at: 1.5, action: restore }
+
+  evaluation:
+    assertions:
+      - { condition: "joint_limits_respected(robot)", phase: always }
+    metrics:
+      - time
+      - collision_count(robot)
+      - distance(red_cube, box)

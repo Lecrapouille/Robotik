@@ -130,6 +130,87 @@ std::string titleFromStem(std::string p_stem)
     return p_stem;
 }
 
+//! Entries of a "scenarios:" or "experiments:" section: listed, or every
+//! *.yml / *.yaml of the folder (behavior trees excepted). Files must stay in
+//! the package. False, with @p_why set, on an invalid section or file.
+bool readEntries(bt::YamlNode const& p_section,
+                 std::filesystem::path const& p_root,
+                 std::vector<PluginScenario>& p_out,
+                 std::string& p_why)
+{
+    if (!p_section.valid())
+    {
+        return true;
+    }
+    std::string const folder_name = field(p_section, "directory");
+    if (!folder_name.empty() && folder_name != "." && !relativeInside(folder_name))
+    {
+        p_why = "a directory must stay inside the package";
+        return false;
+    }
+    std::filesystem::path const folder =
+        folder_name.empty() ? p_root : (p_root / folder_name).lexically_normal();
+    if (p_section.hasKey("entries"))
+    {
+        bool entries_ok = true;
+        p_section.child("entries").forEachSeq([&](bt::YamlNode p_item) {
+            PluginScenario entry;
+            entry.id = field(p_item, "id");
+            entry.name = field(p_item, "name");
+            std::string const file = field(p_item, "file");
+            if (entry.id.empty() || entry.name.empty() || file.empty())
+            {
+                entries_ok = false;
+                return;
+            }
+            entry.file = (folder / file).lexically_normal();
+            p_out.push_back(std::move(entry));
+        });
+        if (!entries_ok)
+        {
+            p_why = "invalid entry (id, name and file are required)";
+            return false;
+        }
+    }
+    else
+    {
+        std::vector<std::filesystem::path> files;
+        std::error_code error;
+        std::filesystem::directory_iterator cursor(folder, error);
+        for (; !error && cursor != std::filesystem::directory_iterator();
+             cursor.increment(error))
+        {
+            std::filesystem::path const file = cursor->path();
+            std::string const name = file.filename().string();
+            bool const yaml = name.ends_with(".yml") || name.ends_with(".yaml");
+            // Behavior trees live beside the scenarios but are not runnable.
+            if (yaml && !name.ends_with(".bt.yml") && !name.ends_with(".bt.yaml"))
+            {
+                files.push_back(file);
+            }
+        }
+        std::sort(files.begin(), files.end());
+        for (std::filesystem::path const& file : files)
+        {
+            PluginScenario entry;
+            entry.id = file.stem().string();
+            entry.name = titleFromStem(entry.id);
+            entry.file = file;
+            p_out.push_back(std::move(entry));
+        }
+    }
+    for (PluginScenario const& entry : p_out)
+    {
+        std::error_code error;
+        if (!std::filesystem::is_regular_file(entry.file, error) || !contained(p_root, entry.file))
+        {
+            p_why = entry.file.string() + " is outside the plugin package or missing";
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 void PluginCatalog::scan(std::filesystem::path const& p_extra)
@@ -414,81 +495,21 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         package.has_view = true;
     }
 
-    // --- scenarios ----------------------------------------------------------
-    bt::YamlNode const scenarios = node.child("scenarios");
-    std::string const folder_name = field(scenarios, "directory");
-    if (!folder_name.empty() && folder_name != "." && !relativeInside(folder_name))
+    // --- scenarios and experiments -----------------------------------------
+    std::string why;
+    if (!readEntries(node.child("scenarios"), p_root, package.scenarios, why) ||
+        !readEntries(node.child("experiments"), p_root, package.experiments, why))
     {
-        reject("scenarios.directory must stay inside the package");
+        if (!why.empty())
+        {
+            reject(why);
+        }
         return;
     }
-    std::filesystem::path const folder =
-        folder_name.empty() ? p_root : (p_root / folder_name).lexically_normal();
-    if (scenarios.hasKey("entries"))
-    {
-        bool entries_ok = true;
-        scenarios.child("entries").forEachSeq([&](bt::YamlNode p_item) {
-            PluginScenario scenario;
-            scenario.id = field(p_item, "id");
-            scenario.name = field(p_item, "name");
-            std::string const file = field(p_item, "file");
-            if (scenario.id.empty() || scenario.name.empty() || file.empty())
-            {
-                entries_ok = false;
-                return;
-            }
-            scenario.file = (folder / file).lexically_normal();
-            package.scenarios.push_back(std::move(scenario));
-        });
-        if (!entries_ok)
-        {
-            reject("invalid scenario entry");
-            return;
-        }
-    }
-    else
-    {
-        std::vector<std::filesystem::path> files;
-        std::error_code error;
-        std::filesystem::directory_iterator cursor(folder, error);
-        for (; !error && cursor != std::filesystem::directory_iterator();
-             cursor.increment(error))
-        {
-            std::filesystem::path const file = cursor->path();
-            std::string const name = file.filename().string();
-            bool const yaml = name.ends_with(".yml") || name.ends_with(".yaml");
-            // Behavior trees live beside the scenarios but are not runnable.
-            if (yaml && !name.ends_with(".bt.yml") && !name.ends_with(".bt.yaml"))
-            {
-                files.push_back(file);
-            }
-        }
-        std::sort(files.begin(), files.end());
-        for (std::filesystem::path const& file : files)
-        {
-            PluginScenario scenario;
-            scenario.id = file.stem().string();
-            scenario.name = titleFromStem(scenario.id);
-            scenario.file = file;
-            package.scenarios.push_back(std::move(scenario));
-        }
-    }
-
     if (package.scenarios.empty())
     {
         reject("no scenario file");
         return;
-    }
-    for (PluginScenario const& scenario : package.scenarios)
-    {
-        std::error_code error;
-        if (!std::filesystem::is_regular_file(scenario.file, error) ||
-            !contained(p_root, scenario.file))
-        {
-            m_errors.push_back(scenario.file.string() +
-                               " is outside the plugin package or missing");
-            return;
-        }
     }
     m_roots_seen.push_back(root);
     m_packages.push_back(std::move(package));

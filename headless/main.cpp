@@ -5,15 +5,23 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
+//! @file main.cpp
+//! @brief Runs a scenario, or every case of an experiment, without a window.
+//!
+//! Exit code: 0 when every run passed its assertions, 2 when one failed, 1
+//! when a file or a plugin could not be loaded.
+
 #include "Robotik/Plugin/PluginSession.hpp"
+#include "Robotik/Runtime/RunReport.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Scenario/Experiment.hpp"
 
 #include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <string>
 
@@ -21,33 +29,141 @@
 //! Safety net for scenarios without a timeout of their own.
 #define HEADLESS_TIMEOUT_S 600.0
 
-static void usage()
+namespace
 {
-    std::cerr << "usage: Robotik-Headless scenario.yml [--seed N]\n";
+
+struct Options
+{
+    std::filesystem::path file;
+    std::optional<std::uint64_t> seed;
+    std::filesystem::path report;
+    bool trace = false;
+};
+
+void usage()
+{
+    std::cerr << "usage: Robotik-Headless <scenario.yml | experiment.yaml> [--seed N]\n"
+                 "                        [--report report.json] [--trace]\n";
 }
 
-int main(int argc, char** argv)
+std::optional<Options> parse(int argc, char** argv)
 {
-    std::optional<std::filesystem::path> path;
-    std::optional<std::uint64_t> seed;
+    Options options;
     for (int i = 1; i < argc; ++i)
     {
         std::string const argument = argv[i];
         if (argument == "--seed" && i + 1 < argc)
         {
-            seed = std::stoull(argv[++i]);
+            options.seed = std::stoull(argv[++i]);
         }
-        else if (!path)
+        else if (argument == "--report" && i + 1 < argc)
         {
-            path = argument;
+            options.report = argv[++i];
+        }
+        else if (argument == "--trace")
+        {
+            options.trace = true;
+        }
+        else if (options.file.empty())
+        {
+            options.file = argument;
         }
         else
         {
-            usage();
-            return 1;
+            return std::nullopt;
         }
     }
-    if (!path)
+    if (options.file.empty())
+    {
+        return std::nullopt;
+    }
+    return options;
+}
+
+void printTrace(robotik::Simulation const& p_simulation)
+{
+    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::ResourceManager const& resources = p_simulation.robot().resources();
+    for (robotik::SkillRun const& run : skills.trace())
+    {
+        std::cout << "  " << run.start << "  " << skills.name(run.skill) << "  "
+                  << robotik::toString(run.state);
+        if (run.reason != robotik::SkillReason::None)
+        {
+            std::cout << " (" << robotik::toString(run.reason);
+            if (run.blocker != robotik::NO_RESOURCE)
+            {
+                std::cout << ": " << resources.name(run.blocker);
+            }
+            std::cout << ')';
+        }
+        std::cout << "  (" << run.end - run.start << ")\n";
+    }
+}
+
+// ----------------------------------------------------------------------------
+//! One run: the plugin owning @p_file brings the mission, the world is built
+//! from @p_scenario, the run goes until the scenario says it ends.
+// ----------------------------------------------------------------------------
+robotik::RunRecord run(robotik::PluginSession& p_session,
+                       std::filesystem::path const& p_file,
+                       robotik::Scenario p_scenario,
+                       std::string const& p_case,
+                       std::optional<std::uint64_t> p_seed,
+                       std::vector<std::string> const& p_metrics,
+                       bool p_trace)
+{
+    robotik::RunRecord failed;
+    failed.case_id = p_case;
+    failed.scenario = p_scenario.id;
+    failed.seed = p_seed.value_or(p_scenario.seed);
+    if (p_session.prepare(p_file) != robotik::PluginPrepare::Ready)
+    {
+        failed.error = p_session.error().empty() ? "scenario is not in a plugin package"
+                                                 : p_session.error();
+        return failed;
+    }
+    compages::world::World world;
+    robotik::Simulation simulation(world, std::move(p_scenario), nullptr, p_session.mission());
+    p_session.attach(&simulation);
+    if (p_session.start() != ROBOTIK_PLUGIN_OK)
+    {
+        failed.error = p_session.error();
+        p_session.detach();
+        return failed;
+    }
+    if (p_seed)
+    {
+        simulation.reset(robotik::Seed{ *p_seed });
+    }
+
+    Seconds const dt(HEADLESS_DT_S);
+    Seconds const limit(HEADLESS_TIMEOUT_S);
+    while (!simulation.finished() && simulation.time() < limit)
+    {
+        if (!p_session.ownsClock())
+        {
+            simulation.step(dt);
+        }
+        p_session.afterStep(HEADLESS_DT_S);
+    }
+    simulation.conclude();
+    if (p_trace)
+    {
+        printTrace(simulation);
+    }
+    robotik::RunRecord record = robotik::RunRecord::capture(simulation, p_case, p_metrics);
+    p_session.stop();
+    p_session.detach();
+    return record;
+}
+
+} // namespace
+
+int main(int argc, char** argv)
+{
+    std::optional<Options> const options = parse(argc, argv);
+    if (!options)
     {
         usage();
         return 1;
@@ -58,83 +174,96 @@ int main(int argc, char** argv)
         robotik::PluginSession session;
         session.setHeadless(true);
         session.scan();
-        robotik::PluginPrepare const prepared = session.prepare(*path);
-        if (prepared != robotik::PluginPrepare::Ready)
+        robotik::RunReport report;
+
+        if (robotik::Experiment::describes(options->file))
         {
-            std::cerr << (session.error().empty() ? "scenario is not a demo package"
-                                                  : session.error())
-                      << '\n';
-            return 1;
+            robotik::Experiment const experiment = robotik::Experiment::load(options->file);
+            report.experiment = experiment.id;
+            std::vector<std::optional<std::uint64_t>> seeds;
+            if (options->seed)
+            {
+                seeds.emplace_back(*options->seed);
+            }
+            for (std::uint64_t seed : experiment.seeds)
+            {
+                if (!options->seed)
+                {
+                    seeds.emplace_back(seed);
+                }
+            }
+            if (seeds.empty())
+            {
+                seeds.emplace_back(std::nullopt);
+            }
+            for (robotik::ExperimentCase const& item : experiment.cases)
+            {
+                for (std::optional<std::uint64_t> const seed : seeds)
+                {
+                    // A scenario outside the catalog brings its package (and
+                    // its asset pack) along.
+                    if (session.catalog().matchScenario(item.scenario).package == nullptr)
+                    {
+                        (void)session.prepare(item.scenario);
+                    }
+                    // Each run reads its files again: a case never inherits the
+                    // world of the previous one.
+                    robotik::Scenario scenario = experiment.scenario(item, session.assets());
+                    report.runs.push_back(run(session,
+                                              item.scenario,
+                                              std::move(scenario),
+                                              item.id,
+                                              seed,
+                                              experiment.metrics,
+                                              options->trace));
+                    robotik::RunRecord const& last = report.runs.back();
+                    std::cout << (last.passed ? "[PASS] " : "[FAIL] ") << item.id << " seed="
+                              << last.seed << std::endl;
+                }
+            }
         }
-        robotik::Scenario scenario = robotik::Scenario::load(*path, session.assets());
-        compages::world::World world;
-        robotik::Simulation simulation(
-            world, std::move(scenario), nullptr, session.mission());
-        session.attach(&simulation);
-        if (session.start() != ROBOTIK_PLUGIN_OK)
+        else
         {
-            std::cerr << session.error() << '\n';
-            return 1;
-        }
-        if (seed)
-        {
-            simulation.reset(robotik::Seed{ *seed });
+            if (session.prepare(options->file) != robotik::PluginPrepare::Ready)
+            {
+                std::cerr << (session.error().empty() ? "scenario is not in a plugin package"
+                                                      : session.error())
+                          << '\n';
+                return 1;
+            }
+            robotik::Scenario scenario =
+                robotik::Scenario::load(options->file, session.assets());
+            report.experiment = scenario.id;
+            report.runs.push_back(run(session,
+                                      options->file,
+                                      std::move(scenario),
+                                      "default",
+                                      options->seed,
+                                      { "time" },
+                                      true));
+            for (robotik::Check const& check : report.runs.back().checks)
+            {
+                std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text
+                          << "  (" << check.detail << ")\n";
+            }
         }
 
-        Seconds const dt(HEADLESS_DT_S);
-        Seconds const timeout(HEADLESS_TIMEOUT_S);
-        while (!simulation.finished() && simulation.time() < timeout)
+        session.release();
+        report.writeText(std::cout);
+        if (!options->report.empty())
         {
-            if (session.ownsClock())
+            std::ofstream file(options->report);
+            report.writeJson(file);
+            std::cout << "report: " << options->report.string() << '\n';
+        }
+        for (robotik::RunRecord const& record : report.runs)
+        {
+            if (!record.error.empty())
             {
-                session.afterStep(HEADLESS_DT_S);
-            }
-            else
-            {
-                simulation.step(dt);
-                session.afterStep(HEADLESS_DT_S);
+                return 1;
             }
         }
-
-        robotik::SkillScheduler const& skills = simulation.skills();
-        robotik::ResourceManager const& resources =
-            simulation.robot().resources();
-        for (robotik::SkillRun const& run : skills.trace())
-        {
-            std::cout << "  " << run.start << "  " << skills.name(run.skill)
-                      << "  " << robotik::toString(run.state);
-            if (run.reason != robotik::SkillReason::None)
-            {
-                std::cout << " (" << robotik::toString(run.reason);
-                if (run.blocker != robotik::NO_RESOURCE)
-                {
-                    std::cout << ": " << resources.name(run.blocker);
-                }
-                std::cout << ')';
-            }
-            std::cout << "  (" << run.end - run.start << ")\n";
-        }
-        simulation.conclude();
-        for (robotik::Check const& check : simulation.checks())
-        {
-            std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text;
-            if (!check.detail.empty())
-            {
-                std::cout << "  (" << check.detail;
-                if (check.verdict == robotik::Check::Verdict::Failed)
-                {
-                    std::cout << ", expected " << check.expected << ", at "
-                              << check.time.value() << " s";
-                }
-                std::cout << ')';
-            }
-            std::cout << '\n';
-        }
-        std::cout << "outcome=" << robotik::toString(simulation.outcome())
-                  << " seed=" << simulation.seed().value
-                  << " time=" << simulation.time().value() << "s\n";
-        bool const passed = simulation.passed();
-        return passed ? 0 : 2;
+        return report.passed() ? 0 : 2;
     }
     catch (std::exception const& error)
     {

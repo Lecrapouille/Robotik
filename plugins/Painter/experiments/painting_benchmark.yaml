@@ -1,0 +1,28 @@
+# The same portrait under several conditions. Whatever the friction or the
+# canvas mass, painting must not move the easel.
+experiment:
+  id: painting_benchmark
+  description: Painting must not move the easel, whatever its grip on the floor.
+  seeds: [7, 8]
+
+  cases:
+    - id: nominal
+      scenario: ../scenarios/painter.yml
+
+    - id: slippery_floor
+      scenario: ../scenarios/painter.yml
+      overrides:
+        world.floor.friction: 0.1
+        world.entities.easel.friction: 0.1
+
+    - id: heavy_canvas
+      scenario: ../scenarios/painter.yml
+      overrides:
+        world.entities.canvas.mass: 2.0
+
+  evaluation:
+    metrics:
+      - time
+      - pose_error(easel)
+      - pose_error(canvas)
+      - collision_count(robot)
