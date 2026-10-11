@@ -181,7 +181,8 @@ void DipSkill::cancel(robotik::RobotContext& p_context)
     m_move.cancel(p_context);
 }
 
-MarkSkill::MarkSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
+MarkSkill::MarkSkill(Stroke& p_stroke, Strokes p_strokes)
+    : m_stroke(&p_stroke), m_strokes(std::move(p_strokes))
 {
 }
 
@@ -204,26 +205,19 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
 {
     if (!m_ready)
     {
-        // The color picks the line: red is the upper stroke, gold the lower one.
-        // The brush stays 4 cm off the board so it does not push the free canvas.
-        double const y = 0.12 - 0.08 * static_cast<double>(colorIndex(m_color));
-        double const z = 0.16;
-        robotik::Quaternion const aim = brushAim();
-        auto at = [&](double p_x, double p_y) {
-            return robotik::Pose{ canvasPoint(p_x, p_y, z), aim };
-        };
-        m_path = {
-            at(0.18, y),
-            at(0.08, y - 0.04),
-            at(0.06, y - 0.04),
-            at(0.06, y + 0.04),
-            at(0.18, y),
-        };
+        auto const stroke = m_strokes.find(m_color);
+        if (stroke == m_strokes.end() || stroke->second.size() < 3u)
+        {
+            return robotik::Status::FAILURE;
+        }
+        m_path = stroke->second;
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_stroke->color = m_color;
         m_ready = true;
     }
-    m_stroke->painting = m_index >= 1 && m_index <= 3;
+    // The first point approaches, the last one leaves: the brush paints in
+    // between.
+    m_stroke->painting = m_index >= 1 && m_index + 1u < m_path.size();
     robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
     if (status != robotik::Status::RUNNING)
     {

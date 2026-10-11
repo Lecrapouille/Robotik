@@ -16,6 +16,7 @@
 
 #include "BlackThorn/BlackThorn.hpp"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -44,11 +45,15 @@ private:
     bool m_ready = false;
 };
 
+//! @brief Follows the stroke of the chosen colour: the scenario trajectory of
+//! that name, already in the robot base frame.
 class MarkSkill final: public robotik::Skill
 {
 public:
 
-    explicit MarkSkill(Stroke& p_stroke);
+    using Strokes = std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
+
+    MarkSkill(Stroke& p_stroke, Strokes p_strokes);
 
     void use(std::string p_color);
 
@@ -59,6 +64,7 @@ public:
 private:
 
     Stroke* m_stroke = nullptr;
+    Strokes m_strokes;
     std::string m_color = "red";
     std::vector<robotik::Pose> m_path;
     std::size_t m_index = 0;

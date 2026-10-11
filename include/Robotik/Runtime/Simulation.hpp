@@ -280,6 +280,23 @@ public:
     //! @brief Evaluates a condition (see @ref evaluate in Metrics.hpp).
     [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const;
 
+    // --- Described world (what the robot was told) ---------------------------
+
+    // -------------------------------------------------------------------------
+    //! @brief Pose of @c entity or @c entity.frame as the world file
+    //! describes it at the start, not as it is now: a prior the robot may
+    //! plan from. Robot frames come from its own kinematics.
+    //! @throws std::invalid_argument for an unknown entity or frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose described(std::string_view p_reference) const;
+
+    // -------------------------------------------------------------------------
+    //! @brief Points of the cartesian trajectory @p_name of the scenario, in
+    //! the robot base frame (its frame placed where the world file says).
+    //! @throws std::invalid_argument for an unknown or non cartesian one.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<Pose> waypoints(std::string_view p_name) const;
+
     // -------------------------------------------------------------------------
     //! @brief Copies the ground-truth prop positions into the @ref WorldModel.
     //! Used by the RL overlay (same observations as the headless env).

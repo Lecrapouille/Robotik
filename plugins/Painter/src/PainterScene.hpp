@@ -6,13 +6,12 @@
 // See LICENSING.md for details.
 
 //! @file PainterScene.hpp
-//! @brief What the painter robot knows of its workplace.
+//! @brief Conventions of the painter demonstration.
 //!
 //! The world (worlds/painting_lab.yaml) builds the easel, the canvas and the
-//! pots. These constants are the robot's prior on where the easel stands, from
-//! which the strokes are planned; they must agree with the world file. The
-//! robot stays at the origin; the mast is 0.65 m in front of it. Frames here
-//! are URDF Z-up, the world frame of Robotik.
+//! pots; the strokes are trajectories of the scenario, in the frame of the
+//! easel. What is left here are the entity ids, the brush orientation over a
+//! pot and the paint colours. Frames are URDF Z-up, the world frame.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -24,83 +23,9 @@
 namespace painter
 {
 
-inline constexpr double kEaselDistance = 0.65;
-inline constexpr double kCanvasPitch = -0.1745;
-
 //! World entity ids.
 inline constexpr char const* kCanvas = "canvas";
 inline constexpr char const* kEasel = "easel";
-
-inline robotik::Vector3 cross(robotik::Vector3 const& p_a, robotik::Vector3 const& p_b)
-{
-    return { p_a.y * p_b.z - p_a.z * p_b.y,
-             p_a.z * p_b.x - p_a.x * p_b.z,
-             p_a.x * p_b.y - p_a.y * p_b.x };
-}
-
-inline robotik::Vector3 rotate(robotik::Quaternion const& p_q, robotik::Vector3 const& p_v)
-{
-    robotik::Vector3 const q(p_q.x, p_q.y, p_q.z);
-    robotik::Vector3 const uv = cross(q, p_v);
-    robotik::Vector3 const uuv = cross(q, uv);
-    return { p_v.x + 2.0 * p_q.w * uv.x + 2.0 * uuv.x,
-             p_v.y + 2.0 * p_q.w * uv.y + 2.0 * uuv.y,
-             p_v.z + 2.0 * p_q.w * uv.z + 2.0 * uuv.z };
-}
-
-inline robotik::Pose compose(robotik::Pose const& p_parent, robotik::Pose const& p_local)
-{
-    return { p_parent.position + rotate(p_parent.rotation, p_local.position),
-             p_parent.rotation * p_local.rotation };
-}
-
-//! Mast 0.65 m in front of the robot, painted face looking back at it.
-inline robotik::Pose easelPose()
-{
-    return { { kEaselDistance, 0.0, 0.0 },
-             robotik::rpy(Radians(0.0), Radians(0.0), Radians(std::numbers::pi)) };
-}
-
-//! Canvas centre in the easel base frame (1 mm off the ledge).
-inline robotik::Pose canvasInEasel()
-{
-    return { { -0.1123, 0.0, 0.8893 },
-             robotik::rpy(Radians(0.0), Radians(kCanvasPitch), Radians(0.0)) };
-}
-
-inline robotik::Pose canvasPose()
-{
-    return compose(easelPose(), canvasInEasel());
-}
-
-//! @c canvas_mount in the easel base: origin on the ledge, +x toward the robot
-//! once the easel yaw is applied, +z up the canvas.
-inline robotik::Pose canvasMountInEasel()
-{
-    return { { -0.0796, 0.0, 0.6402 },
-             robotik::rpy(Radians(0.0), Radians(kCanvasPitch), Radians(0.0)) };
-}
-
-inline robotik::Vector3 canvasPoint(double p_x, double p_y, double p_z)
-{
-    robotik::Pose const mount = compose(easelPose(), canvasMountInEasel());
-    return mount.position + rotate(mount.rotation, { p_x, p_y, p_z });
-}
-
-//! Brush pointing into the canvas (opposite the painted-face normal).
-inline robotik::Quaternion brushAim()
-{
-    robotik::Pose const mount = compose(easelPose(), canvasMountInEasel());
-    robotik::Vector3 const into = rotate(mount.rotation, { -1.0, 0.0, 0.0 });
-    robotik::Vector3 const up = rotate(mount.rotation, { 0.0, 0.0, 1.0 });
-    double const length = robotik::norm(into);
-    robotik::Vector3 const z{ into.x / length, into.y / length, into.z / length };
-    robotik::Vector3 x = cross(up, z);
-    double const xl = robotik::norm(x);
-    x = { x.x / xl, x.y / xl, x.z / xl };
-    robotik::Vector3 const y = cross(z, x);
-    return robotik::basis(x, y, z);
-}
 
 //! Tool straight down, for dipping into a pot.
 inline robotik::Quaternion brushDown()

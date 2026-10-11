@@ -1,0 +1,4 @@
+trajectory:
+  type: cartesian
+  points:
+    - [0.0, 0.3]

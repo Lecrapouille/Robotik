@@ -36,7 +36,14 @@ void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView
     };
     robotik::SkillScheduler& skills = p_simulation.skills();
     skills.add<painter::DipSkill>(describe("dip"), m_stroke);
-    skills.add<painter::MarkSkill>(describe("mark"), m_stroke);
+    // The strokes are trajectories of the scenario, drawn in the frame of the
+    // easel the world file describes.
+    painter::MarkSkill::Strokes strokes;
+    for (auto const& entry : p_simulation.scenario().trajectories)
+    {
+        strokes.emplace(entry.first, p_simulation.waypoints(entry.first));
+    }
+    skills.add<painter::MarkSkill>(describe("mark"), m_stroke, std::move(strokes));
     skills.add<painter::RinseSkill>(describe("rinse"), m_stroke);
     painter::registerNodes(p_simulation.factory(), skills);
 
