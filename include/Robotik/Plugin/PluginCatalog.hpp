@@ -36,6 +36,8 @@
 //!   directory: scenarios
 //!   entries:                  # optional: every *.yml of the folder otherwise
 //!     - { id: painter, name: Robotic painter, file: painter.yml }
+//! experiments:                # optional, same format
+//!   directory: experiments
 //! @endcode
 //!
 //! The manifest describes the package; it does not build it.
@@ -52,6 +54,7 @@
 namespace robotik
 {
 
+//! @brief A runnable file of a package: a scenario or an experiment.
 struct PluginScenario
 {
     std::string id;
@@ -91,6 +94,8 @@ struct PluginPackage
     float target[3] = { 0.35f, 0.15f, 0.0f };
     std::filesystem::path library;
     std::vector<PluginScenario> scenarios;
+    //!< Experiment files (cases over the scenarios), same entry format.
+    std::vector<PluginScenario> experiments;
 };
 
 struct PluginMatch

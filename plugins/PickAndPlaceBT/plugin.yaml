@@ -18,3 +18,8 @@ scenarios:
   entries:
     - { id: pick_and_place, name: Pick and place, file: pick_and_place.yml }
     - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.yml }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: pick_and_place_benchmark, name: Pick and place benchmark, file: pick_and_place_benchmark.yaml }
