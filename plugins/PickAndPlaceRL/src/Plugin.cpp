@@ -88,8 +88,8 @@ public:
         mix << (m_mission->converged ? "converged" : "random to converged")
             << "  mix " << m_mission->mix;
         p_canvas.text(mix.str());
-        p_canvas.checkbox("Repeat episodes", m_mission->repeat);
-        p_canvas.sliderInt("Max steps", m_mission->max_steps, 40, 200);
+        (void)p_canvas.checkbox("Repeat episodes", m_mission->repeat);
+        (void)p_canvas.sliderInt("Max steps", m_mission->max_steps, 40, 200);
         if (p_canvas.button("New episode"))
         {
             if (robotik::Simulation* simulation = m_host.simulation())

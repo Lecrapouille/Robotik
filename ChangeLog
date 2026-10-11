@@ -19,9 +19,18 @@ Version 0.4.0 (in progress):
       - sensors: Measurement header, NoiseModel (bias, noise, resolution,
         saturation), latency, every sensor type in YAML
       - trajectories in their own files, in the frame of a world entity
+      - reinforcement learning: named and bounded spaces (privileged
+        dimensions flagged), SimulationEnvironment from an observation
+        builder, an action adapter and a reward evaluator, episode ends
+        (success, failure, time limit, aborted), JSON episode log
     * Painter: the easel and the canvas are world entities; the scenario
       proves the easel did not move
-    * Build: binaries relink when a static archive changes
+    * PickAndPlaceRL: one observation/action/reward shared by the pool and
+      the simulator plugin; the observation reads the robot's beliefs
+    * Headless: runs of a plugin that owns the clock end on the simulated
+      time summed across episodes
+    * Build: binaries relink when a static archive changes; the recorded
+      git commit follows HEAD
 
 Version 0.3.0:
     * Architecture following ARCHI.md:

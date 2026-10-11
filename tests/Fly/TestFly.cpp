@@ -94,7 +94,7 @@ TEST(FlyBrain, ReflexReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Reflex, end);
-    EXPECT_TRUE(result.terminated) << "x=" << end.plant.x << " y=" << end.plant.y
+    EXPECT_TRUE(result.terminated()) << "x=" << end.plant.x << " y=" << end.plant.y
                                    << " yaw=" << end.plant.yaw
                                    << " steps=" << end.steps;
 }
@@ -103,7 +103,7 @@ TEST(FlyBrain, ShiuReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Shiu, end);
-    EXPECT_TRUE(result.terminated) << "x=" << end.plant.x << " y=" << end.plant.y
+    EXPECT_TRUE(result.terminated()) << "x=" << end.plant.x << " y=" << end.plant.y
                                    << " yaw=" << end.plant.yaw
                                    << " steps=" << end.steps;
 }
