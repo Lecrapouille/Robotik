@@ -17,6 +17,24 @@ ForceTorqueSensor::ForceTorqueSensor(std::string p_name,
     : Sensor(std::move(p_name), p_config.frequency),
       m_config(std::move(p_config))
 {
+    m_readings.latency(m_config.latency);
+}
+
+void ForceTorqueSensor::restart()
+{
+    m_readings.clear();
+}
+
+void ForceTorqueSensor::deliver(Seconds p_now)
+{
+    if (!m_readings.advance(p_now))
+    {
+        return;
+    }
+    if (compages::world::Entity holder = m_holder)
+    {
+        holder.set(m_readings.current());
+    }
 }
 
 bool ForceTorqueSensor::sample(Robot const& p_robot, Seconds p_now)
@@ -32,23 +50,15 @@ bool ForceTorqueSensor::sample(Robot const& p_robot, Seconds p_now)
         return false;
     }
 
-    m_reading.wrench = *wrench;
-    m_reading.stamp = p_now;
-    auto noisy = [this](Vector3 const& p_v, double p_sigma)
-    {
-        return p_sigma > 0.0 ? Vector3(m_random.normal(p_v.x, p_sigma),
-                                       m_random.normal(p_v.y, p_sigma),
-                                       m_random.normal(p_v.z, p_sigma))
-                             : p_v;
-    };
-    m_reading.wrench.force = noisy(m_reading.wrench.force, m_config.force_noise);
-    m_reading.wrench.torque =
-        noisy(m_reading.wrench.torque, m_config.torque_noise);
-
-    if (compages::world::Entity link = p_robot.link(m_config.link))
-    {
-        link.set(m_reading);
-    }
+    ForceTorqueReading reading;
+    reading.stamp = p_now;
+    reading.frame = m_config.link;
+    reading.sequence = samples() + 1u;
+    reading.valid = true;
+    reading.wrench.force = m_config.force.apply(wrench->force, m_random);
+    reading.wrench.torque = m_config.torque.apply(wrench->torque, m_random);
+    m_readings.push(p_now, std::move(reading));
+    m_holder = p_robot.link(m_config.link);
     return true;
 }
 

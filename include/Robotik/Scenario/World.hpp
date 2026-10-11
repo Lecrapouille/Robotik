@@ -55,6 +55,9 @@
 #include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Sensors/ForceTorqueSensor.hpp"
+#include "Robotik/Sensors/Imu.hpp"
+#include "Robotik/Sensors/RangeScanner.hpp"
 
 #include <array>
 #include <cstdint>
@@ -70,11 +73,38 @@ class ConfigNode;
 
 // ****************************************************************************
 //! @brief A sensor carried by a robot or a tool.
+//!
+//! @code
+//! sensors:
+//!   wrist_camera: { type: camera, parent: link6, position: [0.05, 0, 0],
+//!                   fov: 70, resolution: [320, 240], frequency: 15, noise: 0.01 }
+//!   imu: { type: imu, parent: base_link, frequency: 200, latency: 0.002,
+//!          accelerometer: { sigma: 0.02, bias: 0.05, saturation: [-160, 160] },
+//!          gyroscope: 0.001 }
+//!   lidar: { type: range, parent: base_link, beams: 180, fov: 360,
+//!            max_range: 10, frequency: 10, noise: { sigma: 0.01, resolution: 0.001 } }
+//!   wrist_ft: { type: force_torque, link: link6, frequency: 500,
+//!               force: 0.5, torque: 0.02 }
+//! @endcode
+//! A noise channel is a standard deviation, or a @ref NoiseModel map.
+//! Angles are in degrees (fov), times in seconds, lengths in metres.
 // ****************************************************************************
 struct SensorSpec
 {
+    enum class Type : std::uint8_t
+    {
+        Camera,
+        Imu,
+        Range,
+        ForceTorque,
+    };
+
     std::string name;
+    Type type = Type::Camera;
     CameraConfig camera;
+    ImuConfig imu;
+    RangeScannerConfig range;
+    ForceTorqueConfig force_torque;
 };
 
 // ****************************************************************************

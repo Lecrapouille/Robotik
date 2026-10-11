@@ -47,9 +47,9 @@ class PinocchioBackend;
 //!
 //! Each @ref step: faults, behavior tree tick (requests skills), scheduler
 //! update (admits and ticks skills), robot step (physics, sensors, perception
-//! into the @ref WorldModel), simulated suction, mission, assertions. Without
-//! a camera image source, an oracle feeds the world model with the ground
-//! truth while a camera resource is available.
+//! into the @ref WorldModel), simulated suction, mission, assertions. When
+//! the scenario allows it (@ref OraclePolicy), an oracle feeds the world
+//! model with the ground truth while a sensor resource is available.
 //!
 //! The run ends when the controller finishes, the @c stop_when condition
 //! holds, the @c timeout elapses or an assertion marked @c stop fails. The
@@ -193,6 +193,12 @@ public:
     //! @brief First camera of the robot, or null.
     [[nodiscard]] Camera* camera() const;
 
+    //! @brief The ground truth feeds the world model (see @ref OraclePolicy).
+    [[nodiscard]] bool oracle() const
+    {
+        return m_oracle;
+    }
+
     //! @brief Behavior tree, or null if the controller has none.
     [[nodiscard]] bt::Tree const* tree() const
     {
@@ -271,8 +277,8 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<double> query(std::string_view p_term) const;
 
-    //! @brief Measures a condition (see @ref measure in Metrics.hpp).
-    [[nodiscard]] Measurement measure(std::string_view p_condition) const;
+    //! @brief Evaluates a condition (see @ref evaluate in Metrics.hpp).
+    [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const;
 
     // -------------------------------------------------------------------------
     //! @brief Copies the ground-truth prop positions into the @ref WorldModel.
@@ -345,8 +351,8 @@ private:
     compages::world::Entity m_frame;
     //!< One per world entity, in file order (a tool in storage has none).
     std::vector<Record> m_records;
-    //!< True when no camera has an image source.
-    bool m_oracle = true;
+    //!< The ground truth feeds the world model.
+    bool m_oracle = false;
 
     bt::NodeFactory m_factory;
     bt::Blackboard::Ptr m_blackboard;

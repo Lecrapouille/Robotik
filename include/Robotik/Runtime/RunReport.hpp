@@ -36,6 +36,8 @@ struct RunRecord
     //!< Simulated time at the end (s).
     double time = 0.0;
     bool passed = false;
+    //!< The ground truth stood in for perception (see @ref OraclePolicy).
+    bool oracle = false;
     std::vector<Check> checks;
     //!< Name and value; nothing when it could not be measured.
     std::vector<std::pair<std::string, std::optional<double>>> metrics;

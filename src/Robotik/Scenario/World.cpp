@@ -28,43 +28,133 @@ constexpr char const* TOOL_MOUNT = "tool_mount";
     throw std::runtime_error(p_where + ": " + p_what);
 }
 
+//! A noise channel: a standard deviation, or { sigma, bias, resolution,
+//! saturation: [min, max] }.
+NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
+{
+    ConfigNode const& node = p_node.at(p_key);
+    NoiseModel model;
+    if (node.isNull())
+    {
+        return model;
+    }
+    if (node.isScalar())
+    {
+        model.sigma = p_node.number(p_key, 0.0);
+        return model;
+    }
+    model.sigma = node.number("sigma", 0.0);
+    model.bias = node.number("bias", 0.0);
+    model.resolution = node.number("resolution", 0.0);
+    if (node.has("saturation"))
+    {
+        std::array<double, 2> const bounds = node.range("saturation");
+        model.min = bounds[0];
+        model.max = bounds[1];
+    }
+    if (model.sigma < 0.0 || model.resolution < 0.0)
+    {
+        throw std::runtime_error("'" + std::string(p_key) +
+                                 "': sigma and resolution must not be negative");
+    }
+    return model;
+}
+
+CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
+{
+    CameraConfig config;
+    config.parent = p_node.text("parent");
+    // Optical frame (z forward, x right, y down) in the parent link.
+    config.mount = p_node.asPose();
+    ConfigNode const& resolution = p_node.at("resolution");
+    double width = 320.0;
+    double height = 240.0;
+    if (!resolution.isNull())
+    {
+        if (!resolution.isSequence() || resolution.items().size() != 2u ||
+            !resolution.items()[0].asNumber() || !resolution.items()[1].asNumber())
+        {
+            fail(p_where, "resolution must be [width, height]");
+        }
+        width = *resolution.items()[0].asNumber();
+        height = *resolution.items()[1].asNumber();
+    }
+    double const fov = p_node.number("fov", 70.0) * std::numbers::pi / 180.0;
+    config.intrinsics = CameraIntrinsics::fromFov(static_cast<std::uint32_t>(width),
+                                                  static_cast<std::uint32_t>(height),
+                                                  Radians(fov));
+    config.frequency = p_node.number("frequency", 30.0);
+    config.depth = p_depth;
+    config.noise = p_node.number("noise", 0.0);
+    return config;
+}
+
 SensorSpec sensor(std::string const& p_where,
                   std::string const& p_name,
                   ConfigNode const& p_node)
 {
     std::string const where = p_where + ", sensor '" + p_name + "'";
     std::string const type = p_node.text("type");
-    if (type != "camera" && type != "rgbd")
-    {
-        fail(where, "unknown type '" + type + "' (camera, rgbd)");
-    }
     try
     {
-        SensorSpec spec{ p_name, {} };
-        CameraConfig& config = spec.camera;
-        config.parent = p_node.text("parent");
-        // Optical frame (z forward, x right, y down) in the parent link.
-        config.mount = p_node.asPose();
-        ConfigNode const& resolution = p_node.at("resolution");
-        double width = 320.0;
-        double height = 240.0;
-        if (!resolution.isNull())
+        SensorSpec spec;
+        spec.name = p_name;
+        Seconds const latency(p_node.number("latency", 0.0));
+        if (latency.value() < 0.0)
         {
-            if (!resolution.isSequence() || resolution.items().size() != 2u ||
-                !resolution.items()[0].asNumber() || !resolution.items()[1].asNumber())
-            {
-                fail(where, "resolution must be [width, height]");
-            }
-            width = *resolution.items()[0].asNumber();
-            height = *resolution.items()[1].asNumber();
+            fail(where, "latency must not be negative");
         }
-        double const fov = p_node.number("fov", 70.0) * std::numbers::pi / 180.0;
-        config.intrinsics = CameraIntrinsics::fromFov(static_cast<std::uint32_t>(width),
-                                                      static_cast<std::uint32_t>(height),
-                                                      Radians(fov));
-        config.frequency = p_node.number("frequency", 30.0);
-        config.depth = type == "rgbd";
-        config.noise = p_node.number("noise", 0.0);
+        if (type == "camera" || type == "rgbd")
+        {
+            if (p_node.has("latency"))
+            {
+                fail(where, "cameras have no latency model");
+            }
+            spec.type = SensorSpec::Type::Camera;
+            spec.camera = cameraConfig(where, p_node, type == "rgbd");
+        }
+        else if (type == "imu")
+        {
+            spec.type = SensorSpec::Type::Imu;
+            spec.imu.parent = p_node.text("parent");
+            spec.imu.mount = p_node.asPose();
+            spec.imu.frequency = p_node.number("frequency", spec.imu.frequency);
+            spec.imu.latency = latency;
+            spec.imu.accelerometer = noise(p_node, "accelerometer");
+            spec.imu.gyroscope = noise(p_node, "gyroscope");
+        }
+        else if (type == "range")
+        {
+            spec.type = SensorSpec::Type::Range;
+            RangeScannerConfig& range = spec.range;
+            range.parent = p_node.text("parent");
+            range.mount = p_node.asPose();
+            range.beams = static_cast<std::uint32_t>(p_node.number("beams", range.beams));
+            range.field_of_view =
+                Radians(p_node.number("fov", 360.0) * std::numbers::pi / 180.0);
+            range.max_range = Length(p_node.number("max_range", range.max_range.value()));
+            range.frequency = p_node.number("frequency", range.frequency);
+            range.latency = latency;
+            range.noise = noise(p_node, "noise");
+        }
+        else if (type == "force_torque")
+        {
+            spec.type = SensorSpec::Type::ForceTorque;
+            ForceTorqueConfig& force = spec.force_torque;
+            force.link = p_node.text("link");
+            if (force.link.empty())
+            {
+                fail(where, "a force/torque sensor needs the link it measures");
+            }
+            force.frequency = p_node.number("frequency", force.frequency);
+            force.latency = latency;
+            force.force = noise(p_node, "force");
+            force.torque = noise(p_node, "torque");
+        }
+        else
+        {
+            fail(where, "unknown type '" + type + "' (camera, rgbd, imu, range, force_torque)");
+        }
         return spec;
     }
     catch (std::runtime_error const& error)

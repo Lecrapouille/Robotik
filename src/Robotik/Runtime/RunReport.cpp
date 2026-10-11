@@ -81,10 +81,11 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     record.outcome = toString(p_simulation.outcome());
     record.time = p_simulation.time().value();
     record.passed = p_simulation.passed();
+    record.oracle = p_simulation.oracle();
     record.checks = p_simulation.checks();
     for (std::string const& name : p_metrics)
     {
-        Measurement const measured = p_simulation.measure(name);
+        Evaluation const measured = p_simulation.evaluate(name);
         record.metrics.emplace_back(name,
                                     measured.known ? std::optional<double>(measured.value)
                                                    : std::nullopt);
@@ -111,7 +112,8 @@ void RunReport::writeText(std::ostream& p_out) const
             p_out << " error: " << run.error << '\n';
             continue;
         }
-        p_out << " " << run.outcome << " at " << run.time << " s";
+        p_out << " " << run.outcome << " at " << run.time << " s"
+              << (run.oracle ? " (oracle perception)" : "");
         for (auto const& [name, value] : run.metrics)
         {
             p_out << "  " << name << '=';
@@ -151,7 +153,9 @@ void RunReport::writeJson(std::ostream& p_out) const
               << "      \"seed\": " << run.seed << ",\n"
               << "      \"outcome\": " << quoted(run.outcome) << ",\n"
               << "      \"time\": " << number(run.time) << ",\n"
-              << "      \"passed\": " << (run.passed ? "true" : "false") << ",\n";
+              << "      \"passed\": " << (run.passed ? "true" : "false") << ",\n"
+              << "      \"perception\": " << (run.oracle ? "\"oracle\"" : "\"sensors\"")
+              << ",\n";
         if (!run.error.empty())
         {
             p_out << "      \"error\": " << quoted(run.error) << ",\n";
