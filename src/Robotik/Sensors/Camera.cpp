@@ -72,11 +72,13 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
             ? m_config.mount
             : p_robot.kinematics().framePose(m_config.parent) * m_config.mount;
     m_frame.stamp = p_now;
+    m_frame.frame = name();
     if (!m_source->capture(*this, m_frame))
     {
         return false;
     }
-    ++m_frame.sequence;
+    m_frame.sequence = samples() + 1u;
+    m_frame.valid = true;
 
     if (m_config.noise > 0.0 && m_frame.rgb.format() != PixelFormat::Depth32F)
     {
@@ -98,11 +100,12 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
                                 : p_robot.link(m_config.parent);
     if (holder)
     {
-        holder.set(CameraReading{ m_frame.pose,
-                                  m_frame.stamp,
-                                  m_frame.sequence,
-                                  m_frame.intrinsics.width,
-                                  m_frame.intrinsics.height });
+        CameraReading reading;
+        static_cast<Measurement&>(reading) = static_cast<Measurement const&>(m_frame);
+        reading.pose = m_frame.pose;
+        reading.width = m_frame.intrinsics.width;
+        reading.height = m_frame.intrinsics.height;
+        holder.set(std::move(reading));
     }
     return true;
 }

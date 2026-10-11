@@ -111,8 +111,8 @@ struct Check
 
 [[nodiscard]] char const* toString(Check::Verdict p_verdict);
 
-//! @brief Measures one condition on the current state.
-using ConditionProbe = std::function<Measurement(std::string_view)>;
+//! @brief Evaluates one condition on the current state.
+using ConditionProbe = std::function<Evaluation(std::string_view)>;
 
 // ****************************************************************************
 //! @brief Judges a scenario's assertions over a run.

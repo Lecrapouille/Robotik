@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 //! @file Metrics.hpp
-//! @brief Named numbers published by a run, and the conditions measured on
+//! @brief Named numbers published by a run, and the conditions evaluated on
 //! them.
 //!
 //! A mission publishes what it measures (@c laps, @c cross_track.max...),
@@ -75,7 +75,7 @@ using MetricResolver = std::function<std::optional<double>(std::string_view)>;
 // ****************************************************************************
 //! @brief One evaluation of a condition.
 // ****************************************************************************
-struct Measurement
+struct Evaluation
 {
     //!< False when the value could not be obtained (see @ref detail).
     bool known = false;
@@ -90,11 +90,11 @@ struct Measurement
 };
 
 // ----------------------------------------------------------------------------
-//! @brief Measures @p_condition: @c "<value> <op> <number>" with @c op one of
+//! @brief Evaluates @p_condition: @c "<value> <op> <number>" with @c op one of
 //! @c == @c != @c < @c <= @c > @c >=, or a bare @c "<value>" which holds when
 //! the value is not zero. A value is a metric or a resolver query.
 // ----------------------------------------------------------------------------
-[[nodiscard]] Measurement measure(std::string_view p_condition,
+[[nodiscard]] Evaluation evaluate(std::string_view p_condition,
                                   Metrics const& p_metrics,
                                   MetricResolver const& p_resolver = {});
 

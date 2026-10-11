@@ -43,12 +43,26 @@ Imu::Imu(std::string p_name, ImuConfig p_config)
     : Sensor(std::move(p_name), p_config.frequency),
       m_config(std::move(p_config))
 {
+    m_readings.latency(m_config.latency);
 }
 
 void Imu::restart()
 {
     m_history = 0;
     m_previous_velocity = zero3();
+    m_readings.clear();
+}
+
+void Imu::deliver(Seconds p_now)
+{
+    if (!m_readings.advance(p_now))
+    {
+        return;
+    }
+    if (compages::world::Entity holder = m_holder)
+    {
+        holder.set(m_readings.current());
+    }
 }
 
 bool Imu::sample(Robot const& p_robot, Seconds p_now)
@@ -76,38 +90,22 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     Vector3 const specific_force =
         to_sensor * (acceleration + Vector3(0.0, 0.0, STANDARD_GRAVITY));
 
-    m_reading.acceleration = specific_force;
-    m_reading.angular_velocity = angular_velocity;
-    m_reading.orientation = pose.rotation;
-    m_reading.stamp = p_now;
-    if (m_config.accelerometer_noise > 0.0)
-    {
-        double const sigma = m_config.accelerometer_noise;
-        m_reading.acceleration = m_reading.acceleration +
-                                 Vector3(m_random.normal(0.0, sigma),
-                                         m_random.normal(0.0, sigma),
-                                         m_random.normal(0.0, sigma));
-    }
-    if (m_config.gyroscope_noise > 0.0)
-    {
-        double const sigma = m_config.gyroscope_noise;
-        m_reading.angular_velocity = m_reading.angular_velocity +
-                                     Vector3(m_random.normal(0.0, sigma),
-                                             m_random.normal(0.0, sigma),
-                                             m_random.normal(0.0, sigma));
-    }
+    ImuReading reading;
+    reading.stamp = p_now;
+    reading.frame = name();
+    reading.sequence = samples() + 1u;
+    reading.valid = true;
+    reading.acceleration = m_config.accelerometer.apply(specific_force, m_random);
+    reading.angular_velocity = m_config.gyroscope.apply(angular_velocity, m_random);
+    reading.orientation = pose.rotation;
+    m_readings.push(p_now, std::move(reading));
 
     m_previous_pose = pose;
     m_previous_velocity = velocity;
     m_previous_stamp = p_now;
     m_history = std::min(m_history + 1, 2);
 
-    compages::world::Entity holder =
-        m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
-    if (holder)
-    {
-        holder.set(m_reading);
-    }
+    m_holder = m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
     return true;
 }
 

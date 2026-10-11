@@ -108,6 +108,23 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         scenario.controller.behavior_tree =
             relative(directory, node.at("controller").text("behavior_tree"));
         readFaults(scenario, node.at("faults"));
+        std::string const oracle = node.at("perception").text("oracle", "never");
+        if (oracle == "never")
+        {
+            scenario.oracle = OraclePolicy::Never;
+        }
+        else if (oracle == "when_blind")
+        {
+            scenario.oracle = OraclePolicy::WhenBlind;
+        }
+        else if (oracle == "always")
+        {
+            scenario.oracle = OraclePolicy::Always;
+        }
+        else
+        {
+            throw std::runtime_error("perception.oracle must be never, when_blind or always");
+        }
         scenario.timeout = Seconds(node.number("timeout", 0.0));
         scenario.stop_when = node.text("stop_when");
         for (ConfigNode const& item : node.at("assertions").items())

@@ -20,6 +20,7 @@
 #include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Sensors/Image.hpp"
+#include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
 
 #include <array>
@@ -67,7 +68,7 @@ struct CameraIntrinsics
 // ****************************************************************************
 //! @brief One capture: images plus where and when they were taken.
 // ****************************************************************************
-struct CameraFrame
+struct CameraFrame : Measurement
 {
     //!< Color image (@ref PixelFormat::RGB8 or Gray8).
     Image rgb;
@@ -77,10 +78,6 @@ struct CameraFrame
     CameraIntrinsics intrinsics;
     //!< Optical frame in the robot base frame at capture time.
     Pose pose;
-    //!< Capture time on the robot clock.
-    Seconds stamp{};
-    //!< Monotonic capture counter.
-    std::uint64_t sequence = 0;
 };
 
 class Camera;
@@ -119,6 +116,8 @@ struct CameraConfig
     //!< Gaussian noise on color channels, as a fraction of 255 (0: none).
     double noise = 0.0;
 };
+//! Frames are handed to the callbacks as soon as they are captured: a
+//! camera has no latency model (it would have to queue images).
 
 // ****************************************************************************
 //! @brief A camera of the robot.
@@ -191,6 +190,11 @@ public:
     void seed(Seed p_seed)
     {
         m_random = Random(p_seed);
+    }
+
+    void invalidate() override
+    {
+        m_frame.valid = false;
     }
 
 protected:

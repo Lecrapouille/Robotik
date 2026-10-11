@@ -391,6 +391,10 @@ void RobotSession::step(Seconds p_dt)
         {
             m_sensors[i].update(*this, m_time);
         }
+        else
+        {
+            m_sensors[i].invalidate();
+        }
     }
 }
 

@@ -118,11 +118,11 @@ std::optional<double> Metrics::get(std::string_view p_name) const
     return std::nullopt;
 }
 
-Measurement measure(std::string_view p_condition,
+Evaluation evaluate(std::string_view p_condition,
                     Metrics const& p_metrics,
                     MetricResolver const& p_resolver)
 {
-    Measurement result;
+    Evaluation result;
     std::optional<Comparison> const comparison = split(p_condition);
     std::string_view const metric =
         comparison ? comparison->metric : trim(p_condition);

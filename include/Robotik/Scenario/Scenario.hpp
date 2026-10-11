@@ -25,12 +25,18 @@
 //!   faults:
 //!     - { at: 4.0, resource: wrist_camera, action: disable }
 //!     - { resource: gripper, rate: 0.01 }
+//!   perception: { oracle: when_blind }     # never (default) | when_blind | always
 //!   timeout: 30
 //!   stop_when: inside(red_cube, box)       # optional
 //!   assertions:
 //!     - controller.success
 //!     - inside(red_cube, box)
 //! @endcode
+//!
+//! The oracle copies the true pose of the props into what the robot believes.
+//! It is off unless the scenario asks for it: @c when_blind turns it on when
+//! no camera has an image source (a headless run), @c always regardless.
+//! Results obtained with it are labelled as such.
 //!
 //! Files are relative to the file that names them.
 #pragma once
@@ -82,6 +88,16 @@ struct ControllerSpec
 };
 
 // ****************************************************************************
+//! @brief When the ground truth may stand in for perception.
+// ****************************************************************************
+enum class OraclePolicy : std::uint8_t
+{
+    Never,
+    WhenBlind,
+    Always,
+};
+
+// ****************************************************************************
 //! @brief Interpreted scenario.
 // ****************************************************************************
 struct Scenario
@@ -106,6 +122,7 @@ struct Scenario
     ControllerSpec controller;
     std::vector<Fault> faults;
     std::vector<RandomFault> random_faults;
+    OraclePolicy oracle = OraclePolicy::Never;
     //!< Simulated time limit; zero means none.
     Seconds timeout{};
     //!< Condition ending the run as soon as it holds; empty for none.

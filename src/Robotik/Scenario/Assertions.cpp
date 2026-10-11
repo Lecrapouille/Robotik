@@ -186,7 +186,7 @@ void AssertionEngine::judge(std::size_t p_index,
         // become true first.
         while (next < spec.sequence.size())
         {
-            Measurement const step = p_probe(spec.sequence[next]);
+            Evaluation const step = p_probe(spec.sequence[next]);
             if (!step.known)
             {
                 fail(check, p_now, step.detail);
@@ -228,7 +228,7 @@ void AssertionEngine::judge(std::size_t p_index,
     {
         return;
     }
-    Measurement const measured = p_probe(spec.condition);
+    Evaluation const measured = p_probe(spec.condition);
     check.holds = measured.holds;
     check.value = measured.value;
     check.expected = measured.expected;
