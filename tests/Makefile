@@ -93,6 +93,7 @@ VPATH += $(P)/src
 # Generic Makefile rules
 #
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink
 
 ###################################################
 # Build rapidyaml on demand, as done by src/Robotik/Core/Makefile.

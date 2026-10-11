@@ -25,6 +25,7 @@ DEFINES += $(BLACKTHORN_DEFINES)
 USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
 
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink
 
 PLUGIN_STAGE := $(BUILD_PATH)/plugins/$(PLUGIN_NAME)
 

@@ -57,3 +57,4 @@ USER_CXXFLAGS += -Wno-suggest-attribute=noreturn
 USER_LDFLAGS += -ldl
 
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink

@@ -39,3 +39,4 @@ USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion
 USER_CXXFLAGS += -Wno-double-promotion -Wno-useless-cast
 
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink

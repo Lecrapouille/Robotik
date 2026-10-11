@@ -31,3 +31,4 @@ USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
 PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
 
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink
