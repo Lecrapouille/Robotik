@@ -84,7 +84,7 @@ SRC_FILES += $(PAINT_DIR)/PainterMission.cpp $(PAINT_DIR)/PainterSkills.cpp
 SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
 SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
 SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp
-SRC_FILES += $(FLY_DIR)/FlyTrace.cpp
+SRC_FILES += $(FLY_DIR)/FlyTrace.cpp $(FLY_DIR)/FlyMission.cpp
 
 INCLUDES += $(P)/src $(P)/tests $(PICK_DIR) $(FLY_DIR) $(PAINT_DIR)
 VPATH += $(P)/src

@@ -57,4 +57,15 @@ struct PhysicsBody
     std::string body;
 };
 
+// ****************************************************************************
+//! @brief Marks a @ref SceneObject drawn for the eye only (a sensor beam, a
+//! trail): not a world entity. Grasp, range sensing and the ground truth
+//! ignore it. Not empty: EnTT stores no instance of an empty type, and the
+//! Compages entity API returns references to its components.
+// ****************************************************************************
+struct Decoration
+{
+    bool decorative = true;
+};
+
 } // namespace robotik::ecs

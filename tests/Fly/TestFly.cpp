@@ -12,20 +12,27 @@
 #include "FlyTrace.hpp"
 #include "ShiuNetwork.hpp"
 
+#include "FlyMission.hpp"
+
+#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Scenario/Scenario.hpp"
+
+#include "Compages/World/World.hpp"
+
 #include <filesystem>
 
 namespace
 {
 
-std::filesystem::path scenarioFile()
+FlyScenario flyScenario()
 {
-    return std::filesystem::path(__FILE__).parent_path() /
-           "../../plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml";
+    return FlyScenario::from(robotik::Scenario::load(
+        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml"), testAssets()));
 }
 
 robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
 {
-    FlyScenario const scenario = FlyScenario::load(scenarioFile());
+    FlyScenario const scenario = flyScenario();
     std::uint32_t const limit =
         static_cast<std::uint32_t>(scenario.horizon / scenario.dt);
     FlyEnvironment environment(scenario, limit);
@@ -55,7 +62,7 @@ robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
 
 TEST(FlyScenario, LoadsObstacleAvoidance)
 {
-    FlyScenario const scenario = FlyScenario::load(scenarioFile());
+    FlyScenario const scenario = flyScenario();
     EXPECT_EQ(scenario.seed, 123456u);
     EXPECT_EQ(scenario.obstacles.size(), 2u);
     EXPECT_NEAR(scenario.target.x, 8.0, 1.0e-9);
@@ -137,4 +144,28 @@ TEST(FlyTrace, RoundTrip)
     EXPECT_NEAR(loaded.actions[0].turn, -0.2f, 1.0e-5f);
     ASSERT_EQ(loaded.observations.size(), 1u);
     EXPECT_NEAR(loaded.observations[0].visual_center, 0.2f, 1.0e-5f);
+}
+
+TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
+{
+    robotik::Scenario const scenario = robotik::Scenario::load(
+        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml"), testAssets());
+    compages::world::World world;
+    FlyMission mission;
+    robotik::Simulation simulation(world, scenario, nullptr, &mission);
+
+    // The fly starts where the world file puts it.
+    EXPECT_NEAR(simulation.pose("fly").position.x, 0.5, 1e-6);
+    for (int i = 0; i < 4000 && !simulation.finished(); ++i)
+    {
+        simulation.step(robotik::Seconds(0.01));
+    }
+    EXPECT_TRUE(simulation.finished()) << robotik::toString(simulation.outcome());
+    for (robotik::Check const& check : simulation.checks())
+    {
+        EXPECT_EQ(check.verdict, robotik::Check::Verdict::Passed)
+            << check.text << ": " << check.detail << " at " << check.time.value() << " s";
+    }
+    EXPECT_TRUE(simulation.passed());
+    EXPECT_LT(simulation.time().value(), 40.0);
 }

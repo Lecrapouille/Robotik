@@ -13,7 +13,9 @@
 #include "FlyTrace.hpp"
 #include "FlyView.hpp"
 
+#include "Robotik/Assets/AssetResolver.hpp"
 #include "Robotik/Environment/Environment.hpp"
+#include "Robotik/Scenario/Scenario.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -347,7 +349,8 @@ int main(int p_argc, char** p_argv)
     }
     try
     {
-        FlyScenario scenario = FlyScenario::load(options.scenario);
+        FlyScenario scenario = FlyScenario::from(
+            robotik::Scenario::load(options.scenario, robotik::AssetResolver::standard()));
         if (!options.replay.empty())
         {
             options.envs = 1;

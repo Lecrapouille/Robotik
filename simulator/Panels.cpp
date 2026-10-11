@@ -6,7 +6,6 @@
 // See LICENSING.md for details.
 
 #include "App.hpp"
-#include "FlyHost.hpp"
 #include "PluginUi.hpp"
 #include "SkillView.hpp"
 
@@ -31,7 +30,6 @@ static char const* const RESOURCES = "Resources";
 static char const* const ROBOT = "Robot";
 static char const* const SCENARIO = "Scenario";
 static char const* const SCENARIO_FILE = "Scenario file";
-static char const* const FLY_BRAIN = "Fly network";
 
 static char const* const STOP = "Stop";
 
@@ -92,7 +90,6 @@ static void layout(ImGuiID p_dock)
     ImGui::DockBuilderDockWindow(TREE, reference);
     ImGui::DockBuilderDockWindow(ROBOT, reference);
     ImGui::DockBuilderDockWindow(TEACH_PANEL, reference);
-    ImGui::DockBuilderDockWindow(FLY_BRAIN, reference);
     ImGui::DockBuilderDockWindow(WORLD, world);
     ImGui::DockBuilderDockWindow(CAMERA, camera);
     ImGui::DockBuilderDockWindow(SKILLS_PANEL, skills);
@@ -190,25 +187,6 @@ static void toolbar(App& p_app)
                            "Mission %s",
                            textOf(p_app.simulation->status()));
     }
-    else if (p_app.fly.environment)
-    {
-        FlySnapshot const& snapshot = p_app.fly.environment->snapshot();
-        ImGui::Text("t = %6.2f s",
-                    static_cast<double>(snapshot.steps) *
-                        p_app.fly.environment->dt());
-        ImGui::TextColored(
-            p_app.fly.success ? GREEN : (p_app.fly.done ? RED : ORANGE),
-            "Fly %s",
-            p_app.fly.success ? "FOOD" : (p_app.fly.done ? "TIME" : "FLY"));
-        ImGui::Text("L %.2f  C %.2f  R %.2f",
-                    static_cast<double>(snapshot.vision.left),
-                    static_cast<double>(snapshot.vision.center),
-                    static_cast<double>(snapshot.vision.right));
-        ImGui::Text("F %.2f  T %+.2f  Z %+.2f",
-                    static_cast<double>(p_app.fly.action[0]),
-                    static_cast<double>(p_app.fly.action[1]),
-                    static_cast<double>(p_app.fly.action[2]));
-    }
     if (!p_app.error.empty())
     {
         ImGui::TextColored(RED, "%s", p_app.error.c_str());
@@ -253,21 +231,6 @@ static void worldPanel(App& p_app)
         }
         ImGui::SetCursorScreenPos(ImVec2(at.x + 8.0f, at.y + 6.0f));
         ImGui::TextDisabled("Right drag: orbit   Wheel: zoom");
-        if (p_app.fly.environment)
-        {
-            ImGui::SetCursorScreenPos(ImVec2(at.x + 8.0f, at.y + 24.0f));
-            ImGui::TextColored(ImVec4(0.95f, 0.75f, 0.20f, 1.0f), "Yellow");
-            ImGui::SameLine();
-            ImGui::TextDisabled("left eye");
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.95f, 0.25f, 0.20f, 1.0f), "Red");
-            ImGui::SameLine();
-            ImGui::TextDisabled("ahead");
-            ImGui::SameLine();
-            ImGui::TextColored(ImVec4(0.25f, 0.45f, 1.00f, 1.0f), "Blue");
-            ImGui::SameLine();
-            ImGui::TextDisabled("right eye. Sphere = start, tip = end.");
-        }
     }
     ImGui::End();
 }
@@ -278,31 +241,6 @@ static void cameraPanel(App& p_app)
 {
     if (!ImGui::Begin(CAMERA))
     {
-        ImGui::End();
-        return;
-    }
-    if (p_app.fly.environment)
-    {
-        char const* const titles[2] = { "Oeil gauche", "Oeil droit" };
-        for (int eye = 0; eye < 2; ++eye)
-        {
-            ImGui::SeparatorText(titles[eye]);
-            RenderTarget const& picture = p_app.fly.eye_picture[eye];
-            if (!p_app.fly.eyes[eye] || picture.width == 0)
-            {
-                ImGui::TextDisabled("Pas d'image.");
-                continue;
-            }
-            float const avail = ImGui::GetContentRegionAvail().x;
-            float const zoom = avail / static_cast<float>(picture.width);
-            ImGui::Image(
-                ImTextureRef(
-                    static_cast<ImTextureID>(picture.color.nativeId())),
-                ImVec2(avail, static_cast<float>(picture.height) * zoom),
-                ImVec2(0.0f, 1.0f),
-                ImVec2(1.0f, 0.0f));
-        }
-        ImGui::TextDisabled("Axe optique +X de eye_L et eye_R, champ 70 deg.");
         ImGui::End();
         return;
     }
@@ -934,7 +872,10 @@ static void scenarioPanel(App const& p_app)
             [&](compages::world::Entity p_entity,
                 robotik::ecs::SceneObject const& p_object)
             {
-                (void)p_entity;
+                if (p_entity.find<robotik::ecs::Decoration>() != nullptr)
+                {
+                    return;
+                }
                 robotik::Vector3 const at = simulation.pose(p_object.name).position;
                 ImGui::TableNextRow();
                 ImGui::TableNextColumn();
@@ -1029,57 +970,6 @@ static void scenarioFilePanel(App& p_app)
     ImGui::End();
 }
 
-//! @brief Thirteen-neuron circuit, or the extracted FlyWire connectome.
-static void flyBrainPanel(App& p_app)
-{
-    if (!ImGui::Begin(FLY_BRAIN))
-    {
-        ImGui::End();
-        return;
-    }
-    if (!p_app.fly.brain)
-    {
-        ImGui::TextWrapped(
-            "Open Fly brain from the Demos menu. This panel switches the "
-            "network.");
-        ImGui::End();
-        return;
-    }
-
-    bool const connectome = p_app.fly.connectome;
-    if (ImGui::RadioButton("13 neurons", !connectome))
-    {
-        if (connectome)
-        {
-            selectFlyBrain(p_app, false);
-        }
-    }
-    if (ImGui::RadioButton("Connectome", connectome))
-    {
-        if (!connectome)
-        {
-            selectFlyBrain(p_app, true);
-        }
-    }
-    ImGui::Text("%u neurons, %llu synapses",
-                p_app.fly.brain->neurons(),
-                static_cast<unsigned long long>(p_app.fly.brain->synapses()));
-    if (p_app.fly.connectome)
-    {
-        ImGui::TextDisabled("%s", FLYWIRE_EDGES);
-        ImGui::TextWrapped(
-            "binding.txt: each output is a real target of its input, "
-            "heavy enough to pass a spike. Not the eye neurons.");
-    }
-    else
-    {
-        ImGui::TextWrapped(
-            "Synapses written in the code. The connectome is "
-            "data/flywire/edges.csv, extracted by make compile-external-libs.");
-    }
-    ImGui::End();
-}
-
 //! @brief Draw the panels.
 //! @param p_app The application.
 void drawPanels(App& p_app)
@@ -1101,7 +991,6 @@ void drawPanels(App& p_app)
     resourcesPanel(p_app);
     scenarioPanel(p_app);
     scenarioFilePanel(p_app);
-    flyBrainPanel(p_app);
     robotPanel(p_app);
     teachPanel(p_app);
     drawPluginPanels(p_app);

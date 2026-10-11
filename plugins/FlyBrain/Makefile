@@ -16,7 +16,10 @@ PLUGIN_DIR := $(P)/plugins/FlyBrain
 PLUGIN_SRC := $(PLUGIN_DIR)/src
 include $(M)/project/Makefile
 
-# The view stays out of the shared library: Compages is a static archive.
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp
+# FlyView and FlyDraw belong to the standalone Robotik-Fly window only.
+LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/FlyMission.cpp
+LIB_FILES += $(PLUGIN_SRC)/FlyScenario.cpp $(PLUGIN_SRC)/FlyVision.cpp
+LIB_FILES += $(PLUGIN_SRC)/FlyController.cpp $(PLUGIN_SRC)/FlyEnvironment.cpp
+LIB_FILES += $(PLUGIN_SRC)/FlyBrain.cpp $(PLUGIN_SRC)/ShiuNetwork.cpp
 
 include $(P)/plugins/plugin.mk

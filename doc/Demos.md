@@ -378,7 +378,11 @@ The body is the ×100 model (`data/drosophila_x100.urdf`, about 28 cm). Flight i
 ./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
-The scenario is `plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles. In the simulator, open it from **Demos → Fly**.
+The scenario is `plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles. In the simulator, open it from **Demos → Fly**: the panel *Fly brain* shows the state and switches to the FlyWire connectome. Headless runs it like any scenario:
+
+```bash
+./build/Robotik-Headless build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml
+```
 
 # 13. Pourquoi le rendu n'est pas obligatoire
 

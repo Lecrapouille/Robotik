@@ -7,44 +7,9 @@
 
 #include "FlyTypes.hpp"
 
-#include "Robotik/Assets/AssetResolver.hpp"
-
-#include "BlackThorn/Builder/Yaml.hpp"
-
 #include <filesystem>
 #include <stdexcept>
 #include <string>
-
-namespace
-{
-
-//! @brief Scalar child, or @p_default when the key is missing.
-double
-number(bt::YamlNode const& p_node, std::string_view p_key, double p_default)
-{
-    return p_node.child(p_key).asDouble().value_or(p_default);
-}
-
-//! @brief Scalar child, or an empty string when the key is missing.
-std::string text(bt::YamlNode const& p_node, std::string_view p_key)
-{
-    bt::YamlNode const child = p_node.child(p_key);
-    return child.valid() ? child.scalar() : std::string{};
-}
-
-//! @brief Three-number sequence, or @p_default when the node is not one.
-robotik::Vector3 vector3(bt::YamlNode const& p_node, robotik::Vector3 p_default)
-{
-    if (!p_node.isSeq() || p_node.size() != 3u)
-    {
-        return p_default;
-    }
-    return { p_node.child(0u).asDouble().value_or(p_default.x),
-             p_node.child(1u).asDouble().value_or(p_default.y),
-             p_node.child(2u).asDouble().value_or(p_default.z) };
-}
-
-} // namespace
 
 FlyObservation FlyObservation::from(std::span<float const> p_values)
 {
@@ -112,102 +77,53 @@ void FlyAction::write(std::span<float> p_values) const
     p_values[2] = lift;
 }
 
-FlyScenario FlyScenario::load(std::filesystem::path const& p_path)
+FlyScenario FlyScenario::from(robotik::Scenario const& p_scenario)
 {
-    // Parse the YAML file.
-    auto parsed = bt::YamlDocument::parseFile(p_path.string());
-    if (!parsed)
-    {
-        throw std::runtime_error("Cannot read scenario '" + p_path.string() +
-                                 "': " + parsed.getError());
-    }
-
-    // Get the root node and the directory.
-    bt::YamlNode const root = parsed.getValue().root();
-    std::filesystem::path const directory =
-        std::filesystem::absolute(p_path).parent_path();
-
-    // Create the scenario.
     FlyScenario scenario;
-    scenario.name = text(root, "scenario");
-    if (scenario.name.empty())
+    scenario.name = p_scenario.id;
+    scenario.seed = p_scenario.seed;
+    if (p_scenario.timeout.value() > 0.0)
     {
-        scenario.name = "fly_obstacle_avoidance";
+        scenario.horizon = p_scenario.timeout.value();
     }
-
-    // Set the scenario parameters.
-    scenario.seed = static_cast<std::uint64_t>(number(root, "seed", 123456.0));
-    scenario.dt = number(root, "dt", 0.01);
-    scenario.horizon = number(root, "horizon", 40.0);
-    scenario.sensor_noise = number(root, "sensor_noise", 0.01);
-    scenario.layout_jitter = number(root, "layout_jitter", 0.02);
-
-    // Set the agent type.
-    bt::YamlNode const agent = root.child("agent");
-    if (agent.valid())
+    robotik::ConfigNode const& parameters = p_scenario.parameters;
+    scenario.agent = parameters.text("brain", scenario.agent);
+    if (scenario.agent != "shiu" && scenario.agent != "reflex")
     {
-        std::string const type = text(agent, "type");
-        if (!type.empty())
+        throw std::runtime_error("parameters.brain must be shiu or reflex");
+    }
+    scenario.dt = parameters.number("dt", scenario.dt);
+    scenario.sensor_noise = parameters.number("sensor_noise", scenario.sensor_noise);
+    scenario.layout_jitter = parameters.number("layout_jitter", scenario.layout_jitter);
+    scenario.arena = parameters.vector3("arena", scenario.arena);
+
+    robotik::EntitySpec const& fly = p_scenario.world.robot();
+    scenario.robot_model = fly.model;
+    scenario.fly.x = fly.pose.position.x;
+    scenario.fly.y = fly.pose.position.y;
+    scenario.fly.z = fly.pose.position.z;
+    scenario.fly.yaw = robotik::yawOf(fly.pose.rotation);
+
+    bool food = false;
+    for (robotik::EntitySpec const& entity : p_scenario.world.entities)
+    {
+        if (entity.type != robotik::EntitySpec::Type::Prop)
         {
-            scenario.agent = type;
+            continue;
+        }
+        if (entity.id == "food")
+        {
+            scenario.target = entity.pose.position;
+            food = true;
+        }
+        else if (entity.id.starts_with("obstacle"))
+        {
+            scenario.obstacles.push_back({ entity.pose.position, entity.shape->size });
         }
     }
-
-    // Arena, start pose, obstacles and food live under "environment".
-    bt::YamlNode const environment = root.child("environment");
-    if (environment.valid())
+    if (!food)
     {
-        scenario.arena = vector3(environment.child("size"), scenario.arena);
-        bt::YamlNode const fly = environment.child("fly");
-        if (fly.valid())
-        {
-            // Set the fly position and orientation.
-            robotik::Vector3 const position =
-                vector3(fly.child("position"),
-                        { scenario.fly.x, scenario.fly.y, scenario.fly.z });
-            robotik::Vector3 const orientation =
-                vector3(fly.child("orientation"), robotik::zero3());
-
-            scenario.fly.x = position.x;
-            scenario.fly.y = position.y;
-            scenario.fly.z = position.z;
-            scenario.fly.yaw = orientation.z;
-        }
-
-        // Set the obstacles.
-        if (environment.hasKey("obstacles"))
-        {
-            environment.child("obstacles")
-                .forEachSeq(
-                    [&](bt::YamlNode p_node)
-                    {
-                        FlyBox box;
-                        box.position =
-                            vector3(p_node.child("position"), robotik::zero3());
-                        box.size =
-                            vector3(p_node.child("size"), { 1.0, 1.0, 1.0 });
-                        scenario.obstacles.push_back(box);
-                    });
-        }
-
-        // Set the target.
-        bt::YamlNode const target = environment.child("target");
-        if (target.valid())
-        {
-            scenario.target =
-                vector3(target.child("position"), scenario.target);
-        }
+        throw std::runtime_error("The fly world needs a prop named food");
     }
-
-    // Asset id of the body (see robotik::AssetResolver), or a path relative
-    // to the scenario file.
-    bt::YamlNode const robot = root.child("robot");
-    std::string model = text(robot, "model");
-    if (model.empty())
-    {
-        model = "robotik.fly.drosophila_x100";
-    }
-    scenario.robot_model = std::filesystem::weakly_canonical(
-        robotik::AssetResolver::standard().resolve(model, directory));
     return scenario;
 }
