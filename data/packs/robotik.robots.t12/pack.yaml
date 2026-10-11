@@ -1,0 +1,7 @@
+id: robotik.robots.t12
+version: 1.0.0
+# Origin of the STL meshes not recorded.
+license: NOASSERTION
+description: T12 hexapod.
+models:
+  t12: T12.urdf

@@ -1,0 +1,5 @@
+id: robotik.robots.abb
+version: 1.0.0
+license: NOASSERTION
+models:
+  irb: irb.urdf

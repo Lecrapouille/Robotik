@@ -14,7 +14,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include "Robotik/Assets/AssetResolver.hpp"
+
 #include <filesystem>
+#include <string_view>
 
 using namespace ::testing;
 
@@ -32,15 +35,23 @@ inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
     return p_file;
 }
 
-//! @brief File of the data folder, whether tests run from the root or tests/.
-inline std::filesystem::path dataFile(std::filesystem::path const& p_file)
+//! @brief Asset packs of the repository: data/packs and the plugins' own.
+inline robotik::AssetResolver const& testAssets()
 {
-    for (char const* root : { "data", "../data" })
+    static robotik::AssetResolver const assets = []()
     {
-        if (std::filesystem::exists(std::filesystem::path(root) / p_file))
+        robotik::AssetResolver resolver = robotik::AssetResolver::standard();
+        for (auto const& entry : std::filesystem::directory_iterator(repoFile("plugins")))
         {
-            return std::filesystem::path(root) / p_file;
+            resolver.addRoot(entry.path() / "data");
         }
-    }
-    return std::filesystem::path("data") / p_file;
+        return resolver;
+    }();
+    return assets;
+}
+
+//! @brief File of the model @p_id of the repository packs.
+inline std::filesystem::path assetFile(std::string_view p_id)
+{
+    return testAssets().model(p_id);
 }

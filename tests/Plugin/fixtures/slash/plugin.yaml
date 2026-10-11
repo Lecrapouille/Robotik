@@ -1,8 +1,11 @@
-id: robotik.slash
-name: Slash
-version: 1
-library: ../libevil.so
+plugin:
+  id: robotik.slash
+  name: Slash
+  version: 1
+  api_version: 1
+library:
+  entrypoint: ../libevil.so
 scenarios:
-  - id: one
-    name: One
-    file: scenarios/one.yml
+  directory: scenarios
+  entries:
+    - { id: one, name: One, file: one.yml }

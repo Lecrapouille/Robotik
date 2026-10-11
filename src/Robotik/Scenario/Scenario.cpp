@@ -12,7 +12,6 @@
 #include <filesystem>
 #include <numbers>
 #include <stdexcept>
-#include <system_error>
 
 namespace robotik
 {
@@ -71,82 +70,11 @@ std::vector<std::string> strings(bt::YamlNode const& p_node)
     return result;
 }
 
-bool filenameOnly(std::string const& p_file)
+std::filesystem::path relative(std::filesystem::path const& p_directory,
+                               std::string const& p_file)
 {
-    return p_file.find('/') == std::string::npos &&
-           p_file.find('\\') == std::string::npos;
-}
-
-std::filesystem::path regularFile(std::filesystem::path const& p_path)
-{
-    std::error_code error;
-    if (std::filesystem::is_regular_file(p_path, error))
-    {
-        return p_path;
-    }
-    return {};
-}
-
-//! @brief Shared robot models live in @c data/, not inside a plugin package.
-//! A bare file name is looked up there when it is not next to the scenario.
-std::filesystem::path findDataFile(std::filesystem::path const& p_directory,
-                                   std::string const& p_file)
-{
-    auto search = [&](std::filesystem::path const& p_data) {
-        if (std::filesystem::path const direct = regularFile(p_data / p_file);
-            !direct.empty())
-        {
-            return direct;
-        }
-        return regularFile(p_data / "scenarios" / p_file);
-    };
-    for (char const* root : { "data", "../data" })
-    {
-        if (std::filesystem::path const found = search(root); !found.empty())
-        {
-            return found;
-        }
-    }
-    std::filesystem::path directory = p_directory;
-    for (int hop = 0; hop < 8 && !directory.empty(); ++hop)
-    {
-        if (std::filesystem::path const found = search(directory / "data");
-            !found.empty())
-        {
-            return found;
-        }
-        std::filesystem::path const parent = directory.parent_path();
-        if (parent == directory)
-        {
-            break;
-        }
-        directory = parent;
-    }
-    return {};
-}
-
-std::filesystem::path resolve(std::filesystem::path const& p_directory,
-                              std::string const& p_file)
-{
-    if (p_file.empty())
-    {
-        return {};
-    }
-    std::filesystem::path const direct = (p_directory / p_file).lexically_normal();
-    if (!filenameOnly(p_file))
-    {
-        return direct;
-    }
-    if (std::filesystem::path const existing = regularFile(direct); !existing.empty())
-    {
-        return existing;
-    }
-    if (std::filesystem::path const found = findDataFile(p_directory, p_file);
-        !found.empty())
-    {
-        return found;
-    }
-    return direct;
+    return p_file.empty() ? std::filesystem::path{}
+                          : (p_directory / p_file).lexically_normal();
 }
 
 Scenario::Camera camera(std::string_view p_name, bt::YamlNode const& p_node)
@@ -279,7 +207,7 @@ void readFaults(Scenario& p_scenario, bt::YamlNode const& p_node)
 
 } // namespace
 
-Scenario Scenario::load(std::filesystem::path const& p_path)
+Scenario Scenario::load(std::filesystem::path const& p_path, AssetResolver const& p_assets)
 {
     auto parsed = bt::YamlDocument::parseFile(p_path.string());
     if (!parsed)
@@ -292,11 +220,12 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
         std::filesystem::absolute(p_path).parent_path();
 
     Scenario scenario;
+    scenario.assets = p_assets;
     scenario.name = text(root, "scenario");
     scenario.seed = static_cast<std::uint64_t>(number(root, "seed", 0.0));
 
     bt::YamlNode const robot = root.child("robot");
-    scenario.robot_model = resolve(directory, text(robot, "model"));
+    scenario.robot_model = p_assets.resolve(text(robot, "model"), directory);
     if (scenario.robot_model.empty())
     {
         throw std::runtime_error("Scenario '" + p_path.string() +
@@ -308,7 +237,7 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
             [&](std::string_view p_name, bt::YamlNode p_node)
             {
                 std::filesystem::path const file =
-                    resolve(directory, p_node.scalar());
+                    p_assets.resolve(p_node.scalar(), directory);
                 if (file.empty())
                 {
                     throw std::runtime_error("Tool '" + std::string(p_name) +
@@ -380,7 +309,7 @@ Scenario Scenario::load(std::filesystem::path const& p_path)
 
     bt::YamlNode const execute = root.child("execute");
     scenario.task = text(execute, "task");
-    scenario.behavior_tree = resolve(directory, text(execute, "behavior_tree"));
+    scenario.behavior_tree = relative(directory, text(execute, "behavior_tree"));
 
     if (root.hasKey("assert"))
     {

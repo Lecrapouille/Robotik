@@ -65,7 +65,7 @@ int main(int argc, char** argv)
                       << '\n';
             return 1;
         }
-        robotik::Scenario scenario = robotik::Scenario::load(*path);
+        robotik::Scenario scenario = robotik::Scenario::load(*path, session.assets());
         compages::world::World world;
         robotik::Simulation simulation(
             world, std::move(scenario), nullptr, session.mission());

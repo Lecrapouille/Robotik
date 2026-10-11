@@ -1,0 +1,7 @@
+id: robotik.robots.cartesian
+version: 1.0.0
+# Origin of the reference pictures not recorded.
+license: NOASSERTION
+description: Cartesian (gantry) robot and its reference pictures.
+models:
+  cartesian_robot: cartesian_robot.urdf

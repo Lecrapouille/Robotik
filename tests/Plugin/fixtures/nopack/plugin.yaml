@@ -1,0 +1,12 @@
+plugin:
+  id: robotik.nopack
+  name: No pack
+  version: 1
+  api_version: 1
+library:
+  entrypoint: librobotik_probe.so
+resources:
+  packs:
+    - { id: robotik.unknown, version: "1.0" }
+scenarios:
+  directory: scenarios

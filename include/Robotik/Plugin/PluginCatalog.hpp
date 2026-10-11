@@ -8,12 +8,42 @@
 //! @file PluginCatalog.hpp
 //! @brief Discovers plugin packages without loading their libraries.
 //!
-//! A package is a directory with @c plugin.yaml, the shared library and a
-//! @c scenarios/ folder. One plugin owns several scenario files. The catalog
-//! reads the manifest only; the library is opened later, for the chosen
-//! scenario.
+//! A package is a directory with @c plugin.yaml, the shared library, its
+//! scenario files and optionally a @c data/ asset pack. The catalog reads the
+//! manifest only; the library is opened later, for the chosen scenario.
+//!
+//! @code
+//! plugin:
+//!   id: robotik.painter
+//!   name: Robotic painter
+//!   version: 1.0.0
+//!   api_version: 1            # ROBOTIK_PLUGIN_ABI_VERSION it was built for
+//!   category: Manipulation
+//! library:
+//!   entrypoint: librobotik_painter.so
+//! resources:                  # runtime dependencies
+//!   directory: data           # this package's own asset pack
+//!   packs:
+//!     - { id: robotik.robots, version: "1.0" }
+//! dependencies:
+//!   plugins: [ robotik.other ]  # must be in the catalog to run
+//!   thirdparties: [ opencv ]    # build time, resolved by the Makefile
+//! host:                       # hints for the simulator
+//!   graphics: false
+//!   clock: simulation         # or plugin: its update advances time
+//!   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
+//! scenarios:
+//!   directory: scenarios
+//!   entries:                  # optional: every *.yml of the folder otherwise
+//!     - { id: painter, name: Robotic painter, file: painter.yml }
+//! @endcode
+//!
+//! The manifest describes the package; it does not build it.
 #pragma once
 
+#include "Robotik/Assets/Version.hpp"
+
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -29,13 +59,30 @@ struct PluginScenario
     std::filesystem::path file;
 };
 
+//! @brief An asset pack the package needs at run time.
+struct PackRequirement
+{
+    std::string id;
+    //!< Oldest compatible version (same major).
+    Version version;
+};
+
 struct PluginPackage
 {
     std::filesystem::path root;
     std::string id;
     std::string name;
-    std::string version;
+    Version version;
     std::string category;
+    //!< @c ROBOTIK_PLUGIN_ABI_VERSION the library was built against.
+    std::uint32_t api_version = 0;
+    //!< The package's own asset pack, or empty.
+    std::filesystem::path resources;
+    std::vector<PackRequirement> packs;
+    //!< Plugin ids that must be in the catalog for this one to run.
+    std::vector<std::string> plugins;
+    //!< Build-time libraries, informative only.
+    std::vector<std::string> thirdparties;
     bool graphics = false;
     //! @brief The plugin update replaces @c Simulation::step for this package.
     bool owns_clock = false;
@@ -59,8 +106,14 @@ class PluginCatalog
 {
 public:
 
-    //! @brief Default search roots: @c ROBOTIK_PLUGINS, @c build/plugins, @c plugins.
+    //! @brief @p_extra, then the default roots: each directory of
+    //! @c ROBOTIK_PLUGINS (colon separated), @c plugins/ next to the
+    //! executable, @c lib/robotik/plugins of its install prefix.
     void scan(std::filesystem::path const& p_extra = {});
+
+    //! @brief Adds the package holding @p_scenario (its folder or one of the
+    //! two above) and returns it, or null when there is none.
+    PluginPackage const* add(std::filesystem::path const& p_scenario);
 
     //! @brief Scans exactly these directories. Each one is either a package
     //! or a folder of packages.

@@ -26,13 +26,16 @@ class Simulation;
 
 // ****************************************************************************
 //! @brief Identity published by @c robotik_plugin_query, before any instance.
+//!
+//! @c plugin.yaml is the description of the package: the host only checks
+//! that @ref id matches it. The other fields are optional.
 // ****************************************************************************
 struct PluginInfo
 {
-    std::string id;
-    std::string name;
-    std::string version;
-    std::string category;
+    std::string id{};
+    std::string name{};
+    std::string version{};
+    std::string category{};
 };
 
 // ****************************************************************************
@@ -579,7 +582,8 @@ void destroyPlugin(RobotikPlugin* p_plugin)
 // ****************************************************************************
 //! @brief Exports the C ABI for @p Type. Use it in one translation unit.
 //!
-//! @p Type is default-constructible and provides @c static PluginInfo describe().
+//! @p Type is default-constructible and provides @c static PluginInfo describe(),
+//! e.g. @code return { .id = "robotik.painter" }; @endcode
 // ****************************************************************************
 #define ROBOTIK_EXPORT_PLUGIN(Type)                                                  \
     extern "C"                                                                       \

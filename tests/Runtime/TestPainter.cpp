@@ -21,7 +21,7 @@ TEST(Painter, CanvasRestsOnTheEasel)
     PainterMission mission;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(repoFile("demos/Painter/scenarios/painter.yml")),
+        robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"), testAssets()),
         nullptr,
         &mission);
 
@@ -61,7 +61,7 @@ TEST(Painter, PortraitDipsAndMarks)
     PainterMission mission;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(repoFile("demos/Painter/scenarios/painter.yml")),
+        robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"), testAssets()),
         nullptr,
         &mission);
 

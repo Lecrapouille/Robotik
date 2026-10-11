@@ -14,7 +14,7 @@ TARGET_DESCRIPTION := Operator interface: world, robot camera, behavior tree and
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/simulator
-FLY_DIR := $(P)/demos/FlyBrain
+FLY_DIR := $(P)/plugins/FlyBrain/src
 INCLUDES += $(CURRENT_DIR) $(FLY_DIR) $(P)/include $(P)/src
 VPATH += $(CURRENT_DIR) $(FLY_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
