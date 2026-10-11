@@ -81,6 +81,7 @@ USER_LDFLAGS += -ldl
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile
+include $(P)/Makefile.relink
 
 ###############################################################################
 # Build rapidyaml on demand. MyMakefile ignores the archives produced by
