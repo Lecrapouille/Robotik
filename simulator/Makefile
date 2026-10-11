@@ -14,21 +14,15 @@ TARGET_DESCRIPTION := Operator interface: world, robot camera, behavior tree and
 include $(M)/project/Makefile
 
 CURRENT_DIR := $(P)/simulator
-FLY_DIR := $(P)/plugins/FlyBrain/src
-INCLUDES += $(CURRENT_DIR) $(FLY_DIR) $(P)/include $(P)/src
-VPATH += $(CURRENT_DIR) $(FLY_DIR)
+INCLUDES += $(CURRENT_DIR) $(P)/include $(P)/src
+VPATH += $(CURRENT_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/Panels.cpp
 SRC_FILES += $(CURRENT_DIR)/SimulatorView.cpp $(CURRENT_DIR)/TeachPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/SkillsPanel.cpp
-SRC_FILES += $(CURRENT_DIR)/FlyHost.cpp
 SRC_FILES += $(CURRENT_DIR)/PluginUi.cpp
-SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
-SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
-SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp
-SRC_FILES += $(FLY_DIR)/FlyTrace.cpp $(FLY_DIR)/FlyDraw.cpp
 PKG_LIBS += glfw3
 
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn

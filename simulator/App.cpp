@@ -7,7 +7,6 @@
 
 #include "App.hpp"
 
-#include "FlyHost.hpp"
 #include "SimulatorDisplay.hpp"
 
 #include "Robotik/Scenario/Scenario.hpp"
@@ -35,7 +34,6 @@ void tuneViewOrbit(compages::world::World& p_world,
 
 #define SIMULATOR_DT_S 0.01
 #define SIMULATOR_MAX_STEPS_PER_FRAME 8
-#define RL_PAUSE_AFTER_S 1.2
 
 static void report(robotik::Simulation const& p_simulation)
 {
@@ -81,8 +79,6 @@ void App::load(bool p_keep_tool)
         tool_override = false;
         tool_override_name.clear();
     }
-    // The fly robot is parented in the world. Drop it before the world.
-    fly = {};
     plugins.stop();
     plugins.detach();
     simulation.reset();
@@ -117,19 +113,8 @@ void App::load(bool p_keep_tool)
         }
         if (matched.package != nullptr && matched.package->graphics)
         {
-            if (matched.package->id != "robotik.fly")
-            {
-                error = "this graphics demo has no viewer";
-                return;
-            }
-            view_camera.position(4.0f, 5.5f, 7.0f)
-                .add<compages::world::Orbit>(
-                    compages::core::Vector3f(4.0f, 1.2f, 0.0f));
-            tuneViewOrbit(*world, view_camera);
-            loadFly(*this);
-            m_lag = 0.0;
-            m_reported = false;
-            playing = false;
+            // The package draws with an API this host does not offer.
+            error = "this graphics demo has no viewer";
             return;
         }
         robotik::Scenario scenario =
@@ -161,7 +146,6 @@ void App::load(bool p_keep_tool)
     catch (std::exception const& failure)
     {
         error = failure.what();
-        fly = {};
         plugins.detach();
         simulation.reset();
         plugins.release();
@@ -203,13 +187,6 @@ void App::load(bool p_keep_tool)
 
 void App::reset(std::uint64_t p_seed)
 {
-    if (fly.environment)
-    {
-        resetFly(*this, p_seed);
-        m_lag = 0.0;
-        m_reported = false;
-        return;
-    }
     if (!simulation)
     {
         return;
@@ -220,57 +197,8 @@ void App::reset(std::uint64_t p_seed)
     m_reported = false;
 }
 
-void App::advanceFly(double p_elapsed)
-{
-    if (!fly.environment)
-    {
-        return;
-    }
-    if (step_once)
-    {
-        step_once = false;
-        stepFly(*this);
-        return;
-    }
-    if (!playing)
-    {
-        m_lag = 0.0;
-        return;
-    }
-    m_lag += p_elapsed * static_cast<double>(speed);
-    int steps = 0;
-    while (m_lag >= SIMULATOR_DT_S && steps < SIMULATOR_MAX_STEPS_PER_FRAME)
-    {
-        if (!fly.done)
-        {
-            stepFly(*this);
-        }
-        else
-        {
-            fly.pause += SIMULATOR_DT_S;
-            if (fly.pause >= RL_PAUSE_AFTER_S)
-            {
-                reset(seed + 1u);
-            }
-            m_lag = 0.0;
-            break;
-        }
-        m_lag -= SIMULATOR_DT_S;
-        ++steps;
-    }
-    if (steps == SIMULATOR_MAX_STEPS_PER_FRAME)
-    {
-        m_lag = 0.0;
-    }
-}
-
 void App::advance(double p_elapsed)
 {
-    if (fly.environment)
-    {
-        advanceFly(p_elapsed);
-        return;
-    }
     if (!simulation)
     {
         return;

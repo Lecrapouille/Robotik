@@ -13,6 +13,7 @@
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Scenario/Scenario.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -183,16 +184,20 @@ struct FlyScenario
     double sensor_noise = 0.01;
     //!< Half-width of the uniform jitter applied to each obstacle (SI: m).
     double layout_jitter = 0.02;
-    //!< Agent name recorded in the file. The demo does not branch on it.
-    std::string agent = "fly_brain";
-    //!< URDF path, resolved against the scenario directory.
+    //!< Brain driving the fly: "shiu" (13 neurons, or the connectome) or
+    //!< "reflex".
+    std::string agent = "shiu";
+    //!< URDF of the body.
     std::filesystem::path robot_model;
 
     // ------------------------------------------------------------------------
-    //! @brief Parses @p_path. Paths inside the file are relative to its
-    //! directory.
+    //! @brief Reads a Robotik scenario: the robot entity is the fly (its pose
+    //! is the start), the props named @c obstacle* are the blocks, the prop
+    //! @c food is the target, the timeout is the horizon, and
+    //! @c parameters gives brain, sensor_noise, layout_jitter and arena.
+    //! @throws std::runtime_error when the world has no food.
     // ------------------------------------------------------------------------
-    [[nodiscard]] static FlyScenario load(std::filesystem::path const& p_path);
+    [[nodiscard]] static FlyScenario from(robotik::Scenario const& p_scenario);
 };
 
 //!< URDF prefixes of the six legs, fore to hind, left then right.

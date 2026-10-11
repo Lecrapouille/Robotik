@@ -144,7 +144,8 @@ void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
         [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
         {
             if (p_flag || p_object.type != ecs::SceneObject::Type::CONTAINER ||
-                p_entity.id() == held.id() || p_entity.find<ecs::PhysicsBody>() != nullptr)
+                p_entity.id() == held.id() || p_entity.find<ecs::PhysicsBody>() != nullptr ||
+                p_entity.find<ecs::Decoration>() != nullptr)
             {
                 return;
             }

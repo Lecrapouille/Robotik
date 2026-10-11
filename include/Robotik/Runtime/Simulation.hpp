@@ -42,6 +42,11 @@ namespace robotik
 
 class PinocchioBackend;
 
+namespace ecs
+{
+struct SceneObject;
+}
+
 // ****************************************************************************
 //! @brief One scenario instance, replayable from a seed.
 //!
@@ -263,6 +268,14 @@ public:
     //! @brief ECS entity of @p_id (props, primitive bodies, rendered models),
     //! or an empty handle.
     [[nodiscard]] compages::world::Entity entity(std::string_view p_id) const;
+
+    // -------------------------------------------------------------------------
+    //! @brief A primitive drawn for the eye only (beam, trail), in the Z-up
+    //! world frame: its position and rotation are world coordinates. It is
+    //! not an entity of the world: nothing collides with it, and assertions
+    //! cannot name it. The mission moves it.
+    // -------------------------------------------------------------------------
+    compages::world::Entity decorate(ecs::SceneObject const& p_object);
 
     // -------------------------------------------------------------------------
     //! @brief Value of a metric or of a world query, as used in conditions:

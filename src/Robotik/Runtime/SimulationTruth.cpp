@@ -168,6 +168,17 @@ Simulation::Record const& Simulation::require(std::string_view p_id) const
     throw std::invalid_argument("unknown entity '" + std::string(p_id) + "'");
 }
 
+compages::world::Entity Simulation::decorate(ecs::SceneObject const& p_object)
+{
+    compages::world::Entity entity = m_world.entity(p_object.name);
+    entity.parent(m_frame).set(p_object).set(ecs::Decoration{});
+    if (m_view != nullptr)
+    {
+        m_view->object(entity, p_object);
+    }
+    return entity;
+}
+
 compages::world::Entity Simulation::entity(std::string_view p_id) const
 {
     Record const* found = record(p_id);

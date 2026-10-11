@@ -117,7 +117,7 @@ Ce sont deux notions différentes, qu’il ne faut pas confondre :
 
 Les deux se combinent : plusieurs environnements, chacun avec un essaim. Un agent n’est pas forcément appris : un modèle neuronal existant (le cerveau de mouche), un comportement classique ou une politique entraînée partagent la même surface, `robotik::Agent` (`include/Robotik/Agents/Agent.hpp`), qui reçoit une observation et rend une action.
 
-Aujourd’hui, `SimulationEnvironment` pilote un seul robot. La démo de la mouche a son propre environnement (`FlyEnvironment`) avec une seule mouche ; plusieurs mouches dans un monde partagé restent à faire.
+Aujourd’hui, `SimulationEnvironment` pilote un seul robot. La mouche est décrite par un fichier monde et tourne comme plugin ordinaire (simulateur et headless) ; son exécutable garde son propre environnement (`FlyEnvironment`) pour le pool. Plusieurs mouches dans un monde partagé restent à faire.
 
 ---
 
@@ -137,5 +137,4 @@ Aujourd’hui, `SimulationEnvironment` pilote un seul robot. La démo de la mouc
 ## Ce qui reste
 
 - Une passerelle stable vers un processus Python (API C au-dessus du pool, ou bindings).
-- Plusieurs agents dans un même environnement, et la mouche décrite par un fichier monde.
-- La vue 3D de la mouche reste compilée dans le simulateur : Compages est une archive statique, et un plugin chargé par `dlopen` en aurait une seconde copie (chargeur OpenGL et registres ECS distincts). La sortir demande une Compages partagée (`libCompages.so`).
+- Plusieurs agents dans un même environnement.

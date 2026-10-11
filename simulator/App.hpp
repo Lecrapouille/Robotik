@@ -9,9 +9,6 @@
 
 #include "SimulatorView.hpp"
 
-#include "FlyBrain.hpp"
-#include "FlyEnvironment.hpp"
-
 #include "Robotik/Robot/TeachPendant.hpp"
 #include "Robotik/Plugin/PluginSession.hpp"
 #include "Robotik/Runtime/Mission.hpp"
@@ -46,29 +43,6 @@ struct TeachWatch
     std::uint32_t marker_serial = 0;
 };
 
-struct FlyWatch
-{
-    std::unique_ptr<FlyEnvironment> environment;
-    std::unique_ptr<FlyBrain> brain;
-    std::unique_ptr<robotik::RobotSession> robot;
-    std::array<float, FlyObservation::SIZE> observation{};
-    std::array<float, FlyAction::SIZE> action{};
-    float episode_return = 0.0f;
-    bool done = false;
-    bool success = false;
-    double pause = 0.0;
-    std::vector<compages::world::Entity> obstacles;
-    compages::world::Entity beams[3];
-    compages::world::Entity beam_from[3];
-    compages::world::Entity beam_to[3];
-    std::vector<compages::world::Entity> trail;
-    //!< Left eye, then right eye. Empty when the URDF has no such link.
-    compages::world::Entity eyes[2];
-    RenderTarget eye_picture[2];
-    //!< True when @ref brain was loaded from the FlyWire edge list.
-    bool connectome = false;
-};
-
 struct App
 {
     std::filesystem::path scenario_path;
@@ -86,7 +60,6 @@ struct App
     std::unique_ptr<robotik::Mission> mission;
     std::unique_ptr<robotik::Simulation> simulation;
     TeachWatch teach;
-    FlyWatch fly;
     compages::world::Entity view_camera;
 
     RenderTarget view;
@@ -105,8 +78,6 @@ struct App
     void advance(double p_elapsed);
 
 private:
-
-    void advanceFly(double p_elapsed);
 
     double m_lag = 0.0;
     bool m_reported = false;

@@ -221,7 +221,7 @@ Les assertions sont jugées par le moteur du scénario, pas par le plugin : le p
 
 Le panneau est dessiné par l’hôte. Le plugin appelle `Canvas` : texte, bouton, case à cocher, curseur entier. Ces appels ne sont valables que pendant le dessin.
 
-La mouche déclare `host.graphics: true`. Sa vue 3D est compilée dans le simulateur, parce que Compages est une archive statique. Le menu la liste quand même. Headless refuse ce paquet.
+La mouche est un plugin comme les autres : son modèle de vol est le backend du robot (`FlyBackend`), son cerveau est l’agent que la mission fait tourner. Le monde (`worlds/fly_arena.yaml`) décrit la mouche, ses deux yeux, les blocs et la nourriture ; les faisceaux des yeux et la trace sont des décorations (`ecs::Decoration`), ignorées par la préhension, les capteurs de distance et la vérité terrain. Elle tourne donc aussi en headless.
 
 ---
 
@@ -431,7 +431,7 @@ Un second fichier dans `scenarios/`, déclaré dans `plugin.yaml`, réutilise la
 | `PickAndPlaceRL` | politique | | `host.clock: plugin`, réutilise `PickPlaceControl.cpp` du paquet BT |
 | `LineFollower` | suivi de ligne | | Mission, vision, panneau |
 | `Manipulator` | directe, inverse, limites | | Une mission, trois scénarios, un monde |
-| `FlyBrain` | évitement | | `host.graphics: true`, vue dans le simulateur |
+| `FlyBrain` | évitement | | Le modèle de vol comme backend, le cerveau comme agent |
 | `Probe` | alpha, beta | | Essai du cycle de vie pour les tests |
 
 Line follower, le pool RL et la mouche ont aussi un exécutable dans `plugins/<Nom>/app` pour les usages hors du couple simulateur / headless. Le détail de ces démos est dans [Demos.md](Demos.md).

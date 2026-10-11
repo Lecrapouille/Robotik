@@ -34,7 +34,8 @@ static Vector3 positionOf(compages::world::Entity p_entity)
 //! Bodies of the physics backend are not props: suction does not move them.
 static bool simulated(compages::world::Entity p_entity)
 {
-    return p_entity.find<ecs::PhysicsBody>() != nullptr;
+    return p_entity.find<ecs::PhysicsBody>() != nullptr ||
+           p_entity.find<ecs::Decoration>() != nullptr;
 }
 
 //! Height of the support below @p_at: a container floor or the ground (z = 0).

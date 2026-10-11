@@ -108,6 +108,10 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
         [&boxes](compages::world::Entity p_entity,
                  ecs::SceneObject const& p_object)
         {
+            if (p_entity.find<ecs::Decoration>() != nullptr)
+            {
+                return;
+            }
             auto const center = p_entity.worldPosition();
             Vector3 const half(0.5 * p_object.size[0].value(),
                                0.5 * p_object.size[1].value(),

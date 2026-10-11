@@ -1,33 +1,18 @@
 # Reach the food while skirting the blocks.
-# Lengths are metres of robotik.fly.drosophila_x100 (about 28 cm, 1 kg):
-# the real fly is a hundred times smaller and a million times lighter.
-scenario: fly_obstacle_avoidance
+scenario:
+  id: fly_obstacle_avoidance
+  description: Reach the food while skirting the blocks.
+  world: ../worlds/fly_arena.yaml
+  seed: 123456
+  timeout: 40
 
-seed: 123456
-dt: 0.01
-horizon: 40
-sensor_noise: 0.01
-layout_jitter: 0.02
+  parameters:
+    brain: shiu            # shiu (13 neurons, or the FlyWire connectome) | reflex
+    dt: 0.01               # fly model step, equal to the host step
+    sensor_noise: 0.01     # gaussian noise on each eye
+    layout_jitter: 0.02    # uniform shift of each block per episode (m)
+    arena: [10.0, 10.0, 5.0]
 
-agent:
-  type: fly_brain
-
-environment:
-  type: fly
-  size: [10.0, 10.0, 5.0]
-
-  fly:
-    position: [0.5, 0.0, 1.0]
-    orientation: [0.0, 0.0, 0.0]
-
-  obstacles:
-    - position: [3.2, 0.40, 1.0]
-      size: [1.0, 1.3, 2.0]
-    - position: [5.7, -0.45, 1.0]
-      size: [0.8, 1.1, 3.0]
-
-  target:
-    position: [8.0, -1.5, 1.75]
-
-robot:
-  model: robotik.fly.drosophila_x100
+  assertions:
+    - fly.reached
+    - time < 40
