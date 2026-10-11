@@ -19,3 +19,12 @@ endif
 ifneq ($(strip $(TARGET_SHARED_LIB_NAME)),)
 $(TARGET_SHARED_LIB_NAME): $(COMPAGES_STATIC)
 endif
+
+# project_info.hpp records the git commit (episode logs, reports), but
+# MyMakefile only regenerates it when a Makefile changes. Regenerate it when
+# HEAD moves too.
+GIT_REFERENCES := $(wildcard $(P)/.git/HEAD $(P)/.git/packed-refs)
+GIT_REFERENCES += $(shell find $(P)/.git/refs/heads -type f 2>/dev/null)
+ifneq ($(strip $(GENERATED_HEADER_PROJECT_INFO)),)
+$(GENERATED_HEADER_PROJECT_INFO): $(GIT_REFERENCES)
+endif

@@ -42,9 +42,15 @@ public:
         ++m_steps;
         write(p_observation);
         robotik::StepResult result;
-        result.terminated = m_position >= 1.0;
-        result.truncated = !result.terminated && m_steps >= 50;
-        result.reward = result.terminated ? 1.0f : -0.01f;
+        if (m_position >= 1.0)
+        {
+            result.end = robotik::EpisodeEnd::Success;
+        }
+        else if (m_steps >= 50)
+        {
+            result.end = robotik::EpisodeEnd::TimeLimit;
+        }
+        result.reward = result.terminated() ? 1.0f : -0.01f;
         return result;
     }
 
@@ -102,7 +108,8 @@ TEST(EnvironmentPool, AutoResetsWithDerivedSeeds)
         pool.step();
     }
     ASSERT_EQ(pool.episodes().size(), 3u);
-    EXPECT_FALSE(pool.episodes()[0].terminated);
+    EXPECT_FALSE(pool.episodes()[0].terminated());
+    EXPECT_EQ(pool.episodes()[0].end, robotik::EpisodeEnd::TimeLimit);
     EXPECT_EQ(pool.episodes()[0].steps, 50u);
     EXPECT_EQ(pool.dones()[1], 1u);
     EXPECT_EQ(pool.observation(1)[1], 0.0f) << "restarted at once";

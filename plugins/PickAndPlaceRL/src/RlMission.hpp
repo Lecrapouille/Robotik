@@ -7,26 +7,24 @@
 
 #pragma once
 
+#include "PickPlaceControl.hpp"
+
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 
 #include <array>
 #include <cstdint>
 
-inline constexpr std::size_t RL_OBSERVATIONS = 16;
-inline constexpr std::size_t RL_ACTIONS = 4;
-
-namespace robotik
-{
-class JointGroup;
-class VacuumGripper;
-} // namespace robotik
+inline constexpr std::size_t RL_OBSERVATIONS = PICK_PLACE_OBSERVATIONS;
+inline constexpr std::size_t RL_ACTIONS = PICK_PLACE_ACTIONS;
 
 // ****************************************************************************
 //! @brief One rendered pick-and-place episode driven by the scripted policy.
 //!
-//! @c step stays empty: the action itself calls @c Simulation::step, and a
-//! policy step from inside that call would recurse.
+//! Same observation, action and reward as Robotik-PickAndPlaceRL (see
+//! PickPlaceControl.hpp). @c step stays empty: @ref act holds the action for
+//! the control period itself, and a policy step from inside a simulation
+//! step would recurse.
 // ****************************************************************************
 class RlMission final: public robotik::Mission
 {
@@ -56,8 +54,8 @@ public:
 private:
 
     robotik::Random m_noise{ robotik::Seed{ 1 } };
-    robotik::JointGroup* m_arm = nullptr;
-    robotik::VacuumGripper* m_gripper = nullptr;
-    bool m_grasped = false;
+    PickPlaceObservation m_observation;
+    PickPlaceAction m_action;
+    PickPlaceReward m_reward;
     double m_pause = 0.0;
 };

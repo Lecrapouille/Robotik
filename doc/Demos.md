@@ -327,6 +327,8 @@ observation
 
 Pour l'instant, le but est surtout de valider l'infrastructure : `Environment`, pool parallèle, reproductibilité.
 
+L'observation, l'action et la récompense sont trois pièces (`PickPlaceObservation`, `PickPlaceAction`, `PickPlaceReward`), partagées par le pool en ligne de commande et par le plugin du simulateur. L'observation lit ce que le robot croit savoir ; seul l'indicateur « livré » vient de la vérité terrain, et il est marqué comme tel. Le détail est dans [Apprentissage.md](Apprentissage.md).
+
 Un vrai entraînement de type PPO ou SAC n'est pas l'objet de cette démo.
 
 ---
@@ -354,7 +356,7 @@ Un exemple de lancement :
     --episodes 32
 ```
 
-On peut ainsi vérifier que les résultats restent identiques d'une exécution à l'autre, même avec de nombreux environnements en parallèle.
+On peut ainsi vérifier que les résultats restent identiques d'une exécution à l'autre, même avec de nombreux environnements en parallèle. La dernière colonne donne l'issue de chaque épisode : `success`, `failure`, `time limit` (budget de pas épuisé) ou `aborted` (arrêt technique). `--log episodes.json` écrit le journal des épisodes, avec la version et le commit de Robotik.
 
 ---
 

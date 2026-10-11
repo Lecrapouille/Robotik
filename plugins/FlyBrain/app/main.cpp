@@ -209,7 +209,7 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
         robotik::StepResult const result = environment.step(action, observation);
         if (result.done())
         {
-            reached = result.terminated;
+            reached = result.terminated();
             std::cout << (reached ? "Target reached" : "Time up")
                       << " in " << environment.snapshot().steps << " steps, reward "
                       << environment.snapshot().reward << '\n';
@@ -303,7 +303,7 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
     std::size_t const shown = std::min(finished.size(), p_options.episodes);
     for (std::size_t i = 0; i < shown; ++i)
     {
-        if (finished[i].terminated)
+        if (finished[i].terminated())
         {
             ++successes;
         }
