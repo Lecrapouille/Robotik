@@ -29,7 +29,16 @@ class Robot;
 //!
 //! Concrete sensors produce typed data (@ref Camera produces @ref
 //! CameraFrame) and get it from a pluggable source, so the same sensor works
-//! in simulation, on hardware and in RL environments.
+//! in simulation, on hardware and in RL environments. Each one has three
+//! layers:
+//! @li the model: its configuration (mount, rate, a @ref NoiseModel per
+//!     channel, latency);
+//! @li the simulation: @ref sample, which measures the true value on the
+//!     robot and its backend, then degrades it;
+//! @li the measurement: the reading, a @ref Measurement header plus typed
+//!     data, published once its latency has elapsed.
+//!
+//! A sensor never knows which algorithm consumes it.
 // ****************************************************************************
 class Sensor
 {
@@ -70,24 +79,28 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Samples the sensor if its period elapsed since the last sample.
+    //! @brief Samples the sensor if its period elapsed since the last sample,
+    //! then publishes what its latency lets through.
     //! @param p_robot Robot carrying the sensor (kinematics for the mount).
     //! @param p_now Robot clock.
     // -------------------------------------------------------------------------
     void update(Robot const& p_robot, Seconds p_now)
     {
-        if (p_now < m_due)
-        {
-            return;
-        }
-        if (sample(p_robot, p_now))
+        if (p_now >= m_due && sample(p_robot, p_now))
         {
             ++m_samples;
             m_stamp = p_now;
             m_due = m_frequency > 0.0 ? p_now + Seconds(1.0 / m_frequency)
                                       : p_now;
         }
+        deliver(p_now);
     }
+
+    // -------------------------------------------------------------------------
+    //! @brief The sensor resource failed: the published reading becomes
+    //! invalid until the next sample.
+    // -------------------------------------------------------------------------
+    virtual void invalidate() {}
 
     // -------------------------------------------------------------------------
     //! @brief Forgets the sampling history (episode reset).
@@ -118,6 +131,12 @@ protected:
 
     //! @brief Drops the state carried between samples (see @ref rewind).
     virtual void restart() {}
+
+    // -------------------------------------------------------------------------
+    //! @brief Publishes the samples whose latency has elapsed at @p_now.
+    //! Called at every update, sampled or not.
+    // -------------------------------------------------------------------------
+    virtual void deliver(Seconds /*p_now*/) {}
 
 private:
 

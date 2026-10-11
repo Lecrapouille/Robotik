@@ -34,7 +34,7 @@ struct Board
             {
                 metrics.set(name, value);
             }
-            return robotik::measure(p_condition, metrics);
+            return robotik::evaluate(p_condition, metrics);
         };
     }
 };
@@ -205,5 +205,5 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     EXPECT_GT(*simulation.query("pose_error(canvas)"), 0.05);
     EXPECT_EQ(simulation.query("collision_count(robot)"), 0.0);
     EXPECT_THROW((void)simulation.query("pose_error(nobody)"), std::invalid_argument);
-    EXPECT_FALSE(simulation.measure("pose_error(nobody) < 1").known);
+    EXPECT_FALSE(simulation.evaluate("pose_error(nobody) < 1").known);
 }

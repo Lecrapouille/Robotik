@@ -8,6 +8,10 @@ scenario:
   controller:
     behavior_tree: pick_and_place.bt.yml
 
+  # Headless runs render no image: the true cube pose stands in for the
+  # camera there. The simulator renders it and uses real perception.
+  perception: { oracle: when_blind }
+
   timeout: 60
 
   assertions:

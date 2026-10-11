@@ -274,10 +274,10 @@ Metrics Simulation::metrics() const
     return metrics;
 }
 
-Measurement Simulation::measure(std::string_view p_condition) const
+Evaluation Simulation::evaluate(std::string_view p_condition) const
 {
     Metrics const table = metrics();
-    return robotik::measure(p_condition,
+    return robotik::evaluate(p_condition,
                             table,
                             [this](std::string_view p_term) { return query(p_term); });
 }

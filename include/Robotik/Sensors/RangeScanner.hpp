@@ -11,7 +11,10 @@
 
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
+#include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
+
+#include "Compages/World/Entity.hpp"
 
 #include <cstdint>
 #include <numbers>
@@ -35,8 +38,11 @@ struct RangeScannerConfig
     Length max_range{ 10.0 };
     //!< Scan rate in Hz.
     double frequency = 10.0;
-    //!< Standard deviation of the range noise (SI: m).
-    double noise = 0.0;
+    //!< Delay between a scan and its delivery.
+    Seconds latency{ 0.0 };
+    //!< Range channel (SI: m), applied to hits only and saturated to
+    //!< [0, max_range].
+    NoiseModel noise;
 };
 
 // ****************************************************************************
@@ -60,9 +66,15 @@ public:
         return m_config;
     }
 
+    //! @brief Last delivered scan.
     [[nodiscard]] RangeScan const& scan() const
     {
-        return m_scan;
+        return m_scans.current();
+    }
+
+    void invalidate() override
+    {
+        m_scans.current().valid = false;
     }
 
     void seed(Seed p_seed)
@@ -73,11 +85,15 @@ public:
 protected:
 
     bool sample(Robot const& p_robot, Seconds p_now) override;
+    void restart() override;
+    void deliver(Seconds p_now) override;
 
 private:
 
     RangeScannerConfig m_config;
-    RangeScan m_scan;
+    LatencyBuffer<RangeScan> m_scans;
+    //!< Link entity the delivered scan is attached to.
+    compages::world::Entity m_holder;
     Random m_random;
 };
 

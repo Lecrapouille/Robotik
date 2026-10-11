@@ -68,6 +68,26 @@ RangeScanner::RangeScanner(std::string p_name, RangeScannerConfig p_config)
       m_config(std::move(p_config))
 {
     m_config.beams = std::max(m_config.beams, 1u);
+    m_config.noise.min = std::max(m_config.noise.min, 0.0);
+    m_config.noise.max = std::min(m_config.noise.max, m_config.max_range.value());
+    m_scans.latency(m_config.latency);
+}
+
+void RangeScanner::restart()
+{
+    m_scans.clear();
+}
+
+void RangeScanner::deliver(Seconds p_now)
+{
+    if (!m_scans.advance(p_now))
+    {
+        return;
+    }
+    if (compages::world::Entity holder = m_holder)
+    {
+        holder.set(m_scans.current());
+    }
 }
 
 bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
@@ -97,7 +117,8 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
         });
 
     RobotBackend const* backend = p_robot.backend();
-    m_scan.ranges.resize(m_config.beams);
+    RangeScan scan;
+    scan.ranges.resize(m_config.beams);
     for (std::uint32_t i = 0; i < m_config.beams; ++i)
     {
         double const angle = angle_min + i * increment;
@@ -114,24 +135,22 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
         {
             range = std::min(range, hit(box, pose.position, direction));
         }
-        if (m_config.noise > 0.0 && range < max_range)
+        // A miss stays at max_range: nothing was there to be noisy about.
+        if (range < max_range)
         {
-            range = std::clamp(m_random.normal(range, m_config.noise), 0.0,
-                               max_range);
+            range = m_config.noise.apply(range, m_random);
         }
-        m_scan.ranges[i] = static_cast<float>(range);
+        scan.ranges[i] = static_cast<float>(range);
     }
-    m_scan.angle_min = Radians(angle_min);
-    m_scan.increment = Radians(increment);
-    m_scan.max_range = m_config.max_range;
-    m_scan.stamp = p_now;
-
-    compages::world::Entity holder =
-        m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
-    if (holder)
-    {
-        holder.set(m_scan);
-    }
+    scan.angle_min = Radians(angle_min);
+    scan.increment = Radians(increment);
+    scan.max_range = m_config.max_range;
+    scan.stamp = p_now;
+    scan.frame = name();
+    scan.sequence = samples() + 1u;
+    scan.valid = true;
+    m_scans.push(p_now, std::move(scan));
+    m_holder = m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
     return true;
 }
 

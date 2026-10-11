@@ -259,31 +259,55 @@ void Simulation::build(SceneView* p_view)
         }
     }
 
-    // --- Cameras: render source in the simulator, oracle when headless. ------
+    // --- Sensors: cameras get a render source in the simulator. -------------
     std::vector<SensorSpec> sensors = robot.sensors;
     if (tool != nullptr)
     {
         sensors.insert(sensors.end(), tool->sensors.begin(), tool->sensors.end());
     }
+    bool blind = true;
+    auto requireFrame = [this](SensorSpec const& p_spec, std::string const& p_frame)
+    {
+        if (!p_frame.empty() && !m_robot->link(p_frame))
+        {
+            throw std::runtime_error("Sensor '" + p_spec.name + "': unknown link '" + p_frame +
+                                     "'");
+        }
+    };
     for (SensorSpec const& spec : sensors)
     {
+        switch (spec.type)
+        {
+            case SensorSpec::Type::Imu:
+                requireFrame(spec, spec.imu.parent);
+                m_robot->sensors().add<Imu>(spec.name, spec.imu);
+                continue;
+            case SensorSpec::Type::Range:
+                requireFrame(spec, spec.range.parent);
+                m_robot->sensors().add<RangeScanner>(spec.name, spec.range);
+                continue;
+            case SensorSpec::Type::ForceTorque:
+                requireFrame(spec, spec.force_torque.link);
+                m_robot->sensors().add<ForceTorqueSensor>(spec.name, spec.force_torque);
+                continue;
+            case SensorSpec::Type::Camera:
+                break;
+        }
+        requireFrame(spec, spec.camera.parent);
         Camera& camera = m_robot->sensors().add<Camera>(spec.name, spec.camera);
         compages::world::Entity link = spec.camera.parent.empty()
                                            ? m_robot->root()
                                            : m_robot->link(spec.camera.parent);
-        if (!link)
-        {
-            throw std::runtime_error("Camera '" + spec.name + "': unknown link '" +
-                                     spec.camera.parent + "'");
-        }
         if (p_view != nullptr)
         {
             camera.source(p_view->camera(camera, link));
         }
-        m_oracle = m_oracle && camera.source() == nullptr;
+        blind = blind && camera.source() == nullptr;
         camera.onFrame([this](CameraFrame const& p_frame)
                        { m_world_model.update(m_perception.process(p_frame)); });
     }
+    m_oracle = m_scenario.oracle == OraclePolicy::Always ||
+               (m_scenario.oracle == OraclePolicy::WhenBlind && blind);
 
     // --- Entities: one record each, in file order. ---------------------------
     m_frame = m_world.entity(WORLD_FRAME_ENTITY);
@@ -690,7 +714,7 @@ void Simulation::settle()
         return;
     }
     m_assertions.update(time(),
-                        [this](std::string_view p_condition) { return measure(p_condition); });
+                        [this](std::string_view p_condition) { return evaluate(p_condition); });
 
     if (m_status == bt::Status::SUCCESS)
     {
@@ -704,7 +728,7 @@ void Simulation::settle()
     {
         finish(Outcome::AssertionFailed);
     }
-    else if (!m_scenario.stop_when.empty() && measure(m_scenario.stop_when).holds)
+    else if (!m_scenario.stop_when.empty() && evaluate(m_scenario.stop_when).holds)
     {
         finish(Outcome::StopCondition);
     }
@@ -718,7 +742,7 @@ void Simulation::finish(Outcome p_outcome)
 {
     m_outcome = p_outcome;
     m_assertions.conclude(time(),
-                          [this](std::string_view p_condition) { return measure(p_condition); });
+                          [this](std::string_view p_condition) { return evaluate(p_condition); });
 }
 
 void Simulation::conclude()

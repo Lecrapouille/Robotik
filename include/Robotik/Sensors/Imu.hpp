@@ -12,7 +12,10 @@
 
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
+#include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
+
+#include "Compages/World/Entity.hpp"
 
 #include <string>
 
@@ -30,10 +33,12 @@ struct ImuConfig
     Pose mount;
     //!< Sampling rate in Hz.
     double frequency = 100.0;
-    //!< Standard deviation of the accelerometer noise (SI: m/s^2).
-    double accelerometer_noise = 0.0;
-    //!< Standard deviation of the gyroscope noise (SI: rad/s).
-    double gyroscope_noise = 0.0;
+    //!< Delay between a capture and its delivery.
+    Seconds latency{ 0.0 };
+    //!< Specific force channels (SI: m/s^2).
+    NoiseModel accelerometer;
+    //!< Angular velocity channels (SI: rad/s).
+    NoiseModel gyroscope;
 };
 
 // ****************************************************************************
@@ -58,9 +63,15 @@ public:
         return m_config;
     }
 
+    //! @brief Last delivered reading.
     [[nodiscard]] ImuReading const& reading() const
     {
-        return m_reading;
+        return m_readings.current();
+    }
+
+    void invalidate() override
+    {
+        m_readings.current().valid = false;
     }
 
     void seed(Seed p_seed)
@@ -72,11 +83,14 @@ protected:
 
     bool sample(Robot const& p_robot, Seconds p_now) override;
     void restart() override;
+    void deliver(Seconds p_now) override;
 
 private:
 
     ImuConfig m_config;
-    ImuReading m_reading;
+    LatencyBuffer<ImuReading> m_readings;
+    //!< Link entity the delivered reading is attached to.
+    compages::world::Entity m_holder;
     Random m_random;
     Pose m_previous_pose;
     Vector3 m_previous_velocity = zero3();

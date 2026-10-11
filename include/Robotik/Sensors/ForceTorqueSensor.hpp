@@ -11,7 +11,10 @@
 
 #include "Robotik/Math/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
+#include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
+
+#include "Compages/World/Entity.hpp"
 
 #include <string>
 
@@ -27,10 +30,12 @@ struct ForceTorqueConfig
     std::string link;
     //!< Sampling rate in Hz.
     double frequency = 500.0;
-    //!< Standard deviation of the force noise (SI: N).
-    double force_noise = 0.0;
-    //!< Standard deviation of the torque noise (SI: N.m).
-    double torque_noise = 0.0;
+    //!< Delay between a capture and its delivery.
+    Seconds latency{ 0.0 };
+    //!< Force channels (SI: N).
+    NoiseModel force;
+    //!< Torque channels (SI: N.m).
+    NoiseModel torque;
 };
 
 // ****************************************************************************
@@ -48,9 +53,15 @@ public:
         return m_config;
     }
 
+    //! @brief Last delivered reading, in the frame of the measured link.
     [[nodiscard]] ForceTorqueReading const& reading() const
     {
-        return m_reading;
+        return m_readings.current();
+    }
+
+    void invalidate() override
+    {
+        m_readings.current().valid = false;
     }
 
     void seed(Seed p_seed)
@@ -61,11 +72,15 @@ public:
 protected:
 
     bool sample(Robot const& p_robot, Seconds p_now) override;
+    void restart() override;
+    void deliver(Seconds p_now) override;
 
 private:
 
     ForceTorqueConfig m_config;
-    ForceTorqueReading m_reading;
+    LatencyBuffer<ForceTorqueReading> m_readings;
+    //!< Link entity the delivered reading is attached to.
+    compages::world::Entity m_holder;
     Random m_random;
 };
 

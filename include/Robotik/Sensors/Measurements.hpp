@@ -9,9 +9,11 @@
 //! @brief Physical quantities measured on a robot, in SI units.
 //!
 //! These plain structs are what sensors produce and what backends report.
-//! Sensors also attach their last reading to the entity of their link, as an
-//! ECS component, so a viewer or a logger can query the world without knowing
-//! the sensors:
+//! Every sensor reading starts with a @ref Measurement header: when it was
+//! captured, in which frame its data are expressed, its rank and whether it
+//! is valid. Sensors also attach their last reading to the entity of their
+//! link, as an ECS component, so a viewer or a logger can query the world
+//! without knowing the sensors:
 //! @code
 //! world.each<robotik::ImuReading>([](auto p_link, auto const& p_imu) { ... });
 //! @endcode
@@ -19,10 +21,29 @@
 
 #include "Robotik/Math/Geometry.hpp"
 
+#include <cstdint>
+#include <string>
 #include <vector>
 
 namespace robotik
 {
+
+// ****************************************************************************
+//! @brief Header shared by every sensor reading.
+// ****************************************************************************
+struct Measurement
+{
+    //!< Capture time on the robot clock. With latency, the reading is
+    //!< delivered later but keeps this stamp.
+    Seconds stamp{};
+    //!< Frame the data are expressed in: the sensor frame, named after the
+    //!< sensor, unless the reading says otherwise.
+    std::string frame;
+    //!< Samples captured since the last reset, this one included.
+    std::uint64_t sequence = 0;
+    //!< False before the first sample and while the sensor is unavailable.
+    bool valid = false;
+};
 
 // ****************************************************************************
 //! @brief Velocity of a frame.
@@ -62,49 +83,46 @@ struct BaseState
 // ****************************************************************************
 //! @brief One inertial measurement, in the sensor frame.
 // ****************************************************************************
-struct ImuReading
+struct ImuReading : Measurement
 {
     //!< Specific force: acceleration minus gravity, so +9.81 along the up
-    //!< axis at rest (SI: m/s^2).
+    //!< axis at rest (SI: m/s^2), in the sensor frame.
     Vector3 acceleration = zero3();
-    //!< Angular velocity (SI: rad/s).
+    //!< Angular velocity (SI: rad/s), in the sensor frame.
     Vector3 angular_velocity = zero3();
     //!< Sensor frame in the world frame (fused attitude).
     Quaternion orientation;
-    Seconds stamp{};
 };
 
 // ****************************************************************************
-//! @brief One planar range scan (2D lidar), counter-clockwise about +Z of the
-//! sensor, 0 rad along +X.
+//! @brief One sweep of a planar range scanner.
 // ****************************************************************************
-struct RangeScan
+struct RangeScan : Measurement
 {
     //!< One distance per beam (SI: m); max_range when nothing was hit.
     std::vector<float> ranges;
+    //!< Beam angles in the scan plane (XY of the sensor frame).
     Radians angle_min{};
     Radians increment{};
     Length max_range{};
-    Seconds stamp{};
 };
 
 // ****************************************************************************
-//! @brief Wrench measured by a force/torque sensor, in its link frame.
+//! @brief Wrench a link receives from its parent link.
 // ****************************************************************************
-struct ForceTorqueReading
+struct ForceTorqueReading : Measurement
 {
+    //!< In the frame of the measured link.
     Wrench wrench;
-    Seconds stamp{};
 };
 
 // ****************************************************************************
-//! @brief Last camera capture, without the pixels (those stay on @ref Camera).
+//! @brief What a camera publishes on its link entity (no pixels).
 // ****************************************************************************
-struct CameraReading
+struct CameraReading : Measurement
 {
+    //!< Optical frame in the robot base frame.
     Pose pose;
-    Seconds stamp{};
-    std::uint64_t sequence = 0;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
 };
