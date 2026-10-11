@@ -123,13 +123,16 @@ A RobotIK scenario file describes not only the world and how the robot should be
 For example:
 
 ```yaml
-assert:
-  - robot.success
-  - object("red_cube").inside("box")
-  - gripper.empty
-  - collisions == 0
+assertions:
+  - controller.success
+  - inside(red_cube, box)
+  - holding(gripper) == 0
+  - { condition: "collision_count(robot) == 0", phase: always }
+  - { condition: "pose_error(easel) < 0.002", phase: always }
   - time < 30
 ```
+
+A failed assertion keeps the measured value, the expected bound and the simulated time. Zero collision does not prove that nothing moved: measure it.
 
 The same mission can be used as:
 
@@ -140,7 +143,7 @@ The same mission can be used as:
 - a learning environment;
 - a test bed for a new planning strategy.
 
-> **This part is still MVP-quality. Future work includes a proper assertion grammar and/or integration with tools such as OpenScenario.**
+> **Assertions are judged at every step (`always`), at the end, at a given time, within a deadline, eventually, or as an ordered sequence. The grammar borrows ideas from OpenSCENARIO without depending on it.**
 
 ---
 
@@ -287,40 +290,76 @@ Applications may use OpenCV, AprilTag, or other libraries. RobotIK core stays in
 
 ---
 
-## 🧩 Scenarios: the experimental core
+## 🧩 World, scenario, experiment
 
-RobotIK uses declarative scenarios.
+RobotIK describes an experiment in three files that do not talk about the same thing:
 
-Example:
+| File | Says |
+|------|------|
+| **World** | What physically exists: the robot, its tool, bodies, props, sensors |
+| **Scenario** | What happens, when it stops, and what is checked |
+| **Experiment** | Which variants to run and compare, with which seeds and metrics |
 
 ```yaml
-scenario: pick_and_place
-seed: 42
-
-robot:
-  model: robot_6axis.urdf
-
+# worlds/pick_place_cell.yaml
 world:
-  objects:
-    red_cube:
-      type: cube
-      position: [0.40, 0.20, 0.02]
-    box:
-      type: box
-      position: [0.40, -0.20, 0.04]
-
-execute:
-  task: Pick the red cube and put it in the box.
-  behavior_tree: pick_and_place.bt.yml
-
-assert:
-  - robot.success
-  - object("red_cube").inside("box")
-  - gripper.empty
-  - collisions == 0
+  id: pick_place_cell
+  entities:
+    - id: robot
+      type: robot
+      model: robotik.robots.robot_6axis      # asset id, resolved in data/packs
+      sensors:
+        wrist_camera: { type: camera, parent: link6, fov: 70, frequency: 15 }
+      actuators:
+        arm: { type: joint_group }
+    - id: vacuum
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: robot.flange, frame: tool_mount }
+      actuators:
+        gripper: { type: vacuum }
+    - id: red_cube
+      type: prop
+      shape: { type: box, size: [0.04, 0.04, 0.04] }
+      pose: { position: [0.40, 0.20, 0.02] }
+      randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
+    - id: box
+      type: prop
+      shape: { type: container, size: [0.16, 0.16, 0.08] }
+      pose: { position: [0.40, -0.20, 0.04] }
 ```
 
-The scenario does not spell out kinematics details; it describes **what you want to experiment with and verify**.
+```yaml
+# scenarios/pick_and_place.yml
+scenario:
+  id: pick_and_place
+  world: ../worlds/pick_place_cell.yaml
+  seed: 42
+  controller:
+    behavior_tree: pick_and_place.bt.yml
+  timeout: 60
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - { condition: "collision_count(robot) == 0", phase: always }
+```
+
+```yaml
+# experiments/pick_and_place_benchmark.yaml
+experiment:
+  id: pick_and_place_benchmark
+  seeds: [11, 12, 13]
+  cases:
+    - { id: nominal, scenario: ../scenarios/pick_and_place.yml }
+    - id: wide_layout
+      scenario: ../scenarios/pick_and_place.yml
+      overrides:
+        world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
+  evaluation:
+    metrics: [ time, collision_count(robot) ]
+```
+
+The scenario does not say how the robot solves the task: the controller is only the default strategy, and the same assertions judge any other one. Details in [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md).
 
 ---
 
@@ -426,21 +465,24 @@ make -j"$(nproc --all)"
 A `build` directory should contain static and shared libraries plus executables:
 
 ```bash
-./build/RobotIK-Simulator
+./build/Robotik-Simulator
 ```
 
-The **Demos** menu lists every package built under `build/plugins/`. The same scenario runs without a window:
+The **Demos** menu lists every package built under `build/plugins/`. The same scenario runs without a window, and so does a whole experiment, with a JSON report:
 
 ```bash
-./build/RobotIK-Headless \
+./build/Robotik-Headless \
     build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml \
     --seed 7
+./build/Robotik-Headless \
+    build/plugins/Painter/experiments/painting_benchmark.yaml \
+    --report painting.json
 ```
 
 Parallel RL demo:
 
 ```bash
-./build/RobotIK-PickAndPlaceRL \
+./build/Robotik-PickAndPlaceRL \
     --policy converged \
     --envs 16 \
     --threads 8 \
@@ -466,11 +508,11 @@ make tests -j"$(nproc --all)"
 | Document | Contents |
 |----------|----------|
 | [doc/README.md](doc/README.md) | Reading order, beginner → advanced |
-| [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | YAML scenarios, seeds, faults, simulation, assertions |
+| [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | World, scenario and experiment files, assertions, trajectories, ground truth |
 | [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BlackThorn actions, `SkillScheduler`, skills |
 | [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Layers, data flow, `include/Robotik/` layout |
 | [doc/Demos.md](doc/Demos.md) | Simulator, Headless, LineFollower, PickAndPlace RL |
-| [doc/Plugins.md](doc/Plugins.md) | Plugin packages, lifecycle, short tutorial |
+| [doc/Plugins.md](doc/Plugins.md) | Plugin packages, manifest, asset packs, lifecycle, short tutorial |
 
 ---
 

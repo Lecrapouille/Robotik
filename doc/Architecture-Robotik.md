@@ -159,16 +159,17 @@ Un usage minimal ressemble à :
 
 ```cpp
 compages::world::World world;
+robotik::AssetResolver const assets = robotik::AssetResolver::standard();
+std::filesystem::path const urdf = assets.model("robotik.robots.robot_6axis");
 
-robotik::RobotSession robot(
-    world,
-    "data/robot_6axis.urdf"
-);
+robotik::RobotSession robot(world, urdf);
 
 auto physics = std::make_unique<robotik::MujocoBackend>();
-physics->load("data/robot_6axis.urdf");
+(void)physics->load(urdf);
 robot.connect(std::move(physics));
 ```
+
+Un modèle se désigne par son identifiant d’asset ; le chemin réel est trouvé par `AssetResolver` dans les packs (voir [Plugins.md](Plugins.md) §5). En pratique, une `Simulation` construit tout cela à partir d’un fichier monde.
 
 Puis la boucle de simulation peut avancer :
 
@@ -374,6 +375,16 @@ Skill
 
 Cela évite de tricher en donnant directement aux skills les positions parfaites du simulateur.
 
+Une troisième notion se glisse entre les deux : la **description**, c’est-à-dire le monde tel que le fichier le déclare au départ. Une mission peut planifier à partir d’elle (`Simulation::described`, les trajectoires de `Simulation::waypoints`), comme un robot réel à qui l’on donne un plan de l’atelier. Si le chevalet glisse pendant la course, la description ne le sait pas ; la vérité terrain, si.
+
+| | Accès | Utilisée par |
+|--|-------|--------------|
+| Vérité terrain | `Simulation::pose`, `Simulation::query` | assertions, rapports, environnement RL |
+| Description | `Simulation::described`, `Simulation::waypoints` | mission, pour planifier |
+| Croyance | `WorldModel` via `RobotContext` | skills |
+
+La vérité ne passe dans la croyance que par l’oracle, et seulement si le scénario le demande (`perception: { oracle: when_blind }`), ce que les rapports signalent.
+
 ---
 
 # 10. `SkillScheduler`
@@ -452,12 +463,17 @@ Simulation::step(dt)
        │
        ├── perception
        │
-       └── WorldModel
+       ├── WorldModel
+       │
+       ├── Mission (métriques, rendu propre à la démo)
+       │
+       └── assertions
+               └── fin de course : contrôleur, stop_when, timeout, stop: true
 ```
 
 L'ordre exact dépend des composants, mais l'idée est toujours la même :
 
-> **les décisions produisent des commandes ; le robot évolue ; les capteurs observent ; la perception met à jour les croyances.**
+> **les décisions produisent des commandes ; le robot évolue ; les capteurs observent ; la perception met à jour les croyances ; les assertions jugent sur la vérité terrain.**
 
 ---
 
@@ -574,17 +590,35 @@ L'organisation actuelle suit les responsabilités :
 
 ```text
 include/Robotik/
+├── Assets/        packs d'assets versionnés, résolution des modèles
 ├── Math/
 ├── Robot/
 ├── Sensors/
 ├── Perception/
 ├── Runtime/
 ├── Skills/
-├── Scenario/
+├── Scenario/      monde, scénario, expérience, assertions, trajectoires
 ├── Environment/
 ├── Backends/
+├── Plugin/
 ├── Systems/
 └── ECS/
+```
+
+Et autour de la bibliothèque :
+
+```text
+data/packs/<id>/          packs partagés (robots, outils)
+plugins/<Nom>/            un plugin : src/, worlds/, scenarios/, experiments/, data/
+simulator/, headless/     les deux hôtes
+```
+
+### `Assets/`
+
+```text
+Version          majeur.mineur.correctif, règle de compatibilité
+AssetPack        un pack.yaml : id, version, licence SPDX, modèles
+AssetResolver    racines de recherche, robotik.tools.vacuum → fichier
 ```
 
 ### `Robot/`
@@ -609,6 +643,9 @@ Camera
 Imu
 RangeScanner
 ForceTorqueSensor
+Measurement      en-tête commun : horodatage, repère, séquence, validité
+NoiseModel       biais, bruit blanc, résolution, saturation
+LatencyBuffer    livraison retardée, horodatage de capture conservé
 ```
 
 ### `Perception/`
@@ -628,12 +665,13 @@ Localization
 Exécution :
 
 ```text
-Simulation
+Simulation       construit le monde, vérité terrain, fin de course
 SkillScheduler
 ResourceManager
 FaultInjector
 Mission
-Metrics
+Metrics          valeurs nommées, evaluate()
+RunReport        résultat d'une course, texte et JSON
 ```
 
 ### `Skills/`
@@ -646,21 +684,19 @@ MotionSkills
 SkillNodes
 ```
 
-Les skills de pick-and-place vivent dans `demos/PickAndPlaceBT`.
+Les skills de pick-and-place vivent dans `plugins/PickAndPlaceBT/src`.
 
 ### `Scenario/`
 
-Description déclarative d'une expérience :
+Description déclarative d'une expérience, voir [Scenario-et-Simulation.md](Scenario-et-Simulation.md) :
 
 ```text
-robot
-world
-sensors
-actuators
-faults
-behavior tree
-assertions
-seed
+ConfigNode           arbre YAML modifiable (surcharges)
+WorldDescription     entités : robot, outils, corps, props, capteurs, actionneurs
+Scenario             monde, contrôleur, trajectoires, pannes, fin, assertions
+Experiment           cas, graines, surcharges, évaluation
+AssertionEngine      phases always, end, at, within, eventually, sequence
+Trajectory           chemins cartésiens ou articulaires
 ```
 
 ### `Environment/`
@@ -677,10 +713,19 @@ EnvironmentPool
 Adaptateurs vers des systèmes externes :
 
 ```text
-RobotBackend
+RobotBackend     dont contactList et bodyPose, pour la vérité terrain
 MujocoBackend
 PinocchioBackend
 SceneView
+```
+
+### `Plugin/`
+
+```text
+PluginABI.h      frontière C
+PluginAPI.hpp    aide C++ pour écrire un plugin
+PluginCatalog    lecture des plugin.yaml
+PluginSession    chargement, packs, dépendances, cycle de vie
 ```
 
 ---
