@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<!-- Chevalet de peintre (sans tableau). Repère de base : origine au sol au centre de l'empreinte,
+     x = vers le peintre/robot (face du tableau), y = latéral, z = haut. Unités : SI. -->
+<robot name="chevalet">
+  <material name="bois"><color rgba="0.72 0.52 0.30 1"/></material>
+  <material name="bois_fonce"><color rgba="0.55 0.38 0.20 1"/></material>
+
+  <link name="easel_base">
+    <inertial>
+      <origin xyz="0.00000 0.00000 0.02500" rpy="0 0 0"/>
+      <mass value="5.2650"/>
+      <inertia ixx="0.360696" ixy="0.000000" ixz="0.000000" iyy="0.239484" iyz="0.000000" izz="0.597987"/>
+    </inertial>
+    <visual>
+      <!-- patin_gauche -->
+      <origin xyz="0.0000 0.3000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.9000 0.0600 0.0500"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- patin_gauche -->
+      <origin xyz="0.0000 0.3000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.9000 0.0600 0.0500"/></geometry>
+    </collision>
+    <visual>
+      <!-- patin_droit -->
+      <origin xyz="0.0000 -0.3000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.9000 0.0600 0.0500"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- patin_droit -->
+      <origin xyz="0.0000 -0.3000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.9000 0.0600 0.0500"/></geometry>
+    </collision>
+    <visual>
+      <!-- traverse -->
+      <origin xyz="0.0000 0.0000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.1000 0.5400 0.0500"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- traverse -->
+      <origin xyz="0.0000 0.0000 0.0250" rpy="0 0 0"/>
+      <geometry><box size="0.1000 0.5400 0.0500"/></geometry>
+    </collision>
+  </link>
+
+  <link name="mast">
+    <inertial>
+      <origin xyz="0.00000 0.00000 0.80000" rpy="0 0 0"/>
+      <mass value="4.1600"/>
+      <inertia ixx="0.889685" ixy="0.000000" ixz="0.000000" iyy="0.888333" iyz="0.000000" izz="0.003085"/>
+    </inertial>
+    <visual>
+      <!-- mat -->
+      <origin xyz="0.0000 0.0000 0.8000" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0800 1.6000"/></geometry>
+      <material name="bois"/>
+    </visual>
+    <collision>
+      <!-- mat -->
+      <origin xyz="0.0000 0.0000 0.8000" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0800 1.6000"/></geometry>
+    </collision>
+  </link>
+
+  <link name="ledge">
+    <inertial>
+      <origin xyz="0.09121 0.00000 0.58782" rpy="0 0 0"/>
+      <mass value="1.5129"/>
+      <inertia ixx="0.032348" ixy="0.000000" ixz="0.000150" iyy="0.002664" iyz="0.000000" izz="0.034563"/>
+    </inertial>
+    <visual>
+      <!-- tablette -->
+      <origin xyz="0.0950 0.0000 0.5850" rpy="0 0 0"/>
+      <geometry><box size="0.1400 0.5000 0.0300"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- tablette -->
+      <origin xyz="0.0950 0.0000 0.5850" rpy="0 0 0"/>
+      <geometry><box size="0.1400 0.5000 0.0300"/></geometry>
+    </collision>
+    <visual>
+      <!-- rebord -->
+      <origin xyz="0.0575 0.0000 0.6125" rpy="0 0 0"/>
+      <geometry><box size="0.0150 0.5000 0.0250"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- rebord -->
+      <origin xyz="0.0575 0.0000 0.6125" rpy="0 0 0"/>
+      <geometry><box size="0.0150 0.5000 0.0250"/></geometry>
+    </collision>
+    <visual>
+      <!-- butee_gauche -->
+      <origin xyz="0.0500 0.2100 0.6200" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0100 0.0400"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- butee_gauche -->
+      <origin xyz="0.0500 0.2100 0.6200" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0100 0.0400"/></geometry>
+    </collision>
+    <visual>
+      <!-- butee_droite -->
+      <origin xyz="0.0500 -0.2100 0.6200" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0100 0.0400"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- butee_droite -->
+      <origin xyz="0.0500 -0.2100 0.6200" rpy="0 0 0"/>
+      <geometry><box size="0.0500 0.0100 0.0400"/></geometry>
+    </collision>
+  </link>
+
+  <link name="top_clamp">
+    <inertial>
+      <origin xyz="0.05036 0.00000 1.10214" rpy="0 0 0"/>
+      <mass value="0.1092"/>
+      <inertia ixx="0.000163" ixy="0.000000" ixz="0.000010" iyy="0.000046" iyz="0.000000" izz="0.000144"/>
+    </inertial>
+    <visual>
+      <!-- plaque -->
+      <origin xyz="0.0450 0.0000 1.1150" rpy="0 0 0"/>
+      <geometry><box size="0.0400 0.1200 0.0200"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- plaque -->
+      <origin xyz="0.0450 0.0000 1.1150" rpy="0 0 0"/>
+      <geometry><box size="0.0400 0.1200 0.0200"/></geometry>
+    </collision>
+    <visual>
+      <!-- retour -->
+      <origin xyz="0.0575 0.0000 1.0850" rpy="0 0 0"/>
+      <geometry><box size="0.0150 0.1200 0.0400"/></geometry>
+      <material name="bois_fonce"/>
+    </visual>
+    <collision>
+      <!-- retour -->
+      <origin xyz="0.0575 0.0000 1.0850" rpy="0 0 0"/>
+      <geometry><box size="0.0150 0.1200 0.0400"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== LINK D'ACCUEIL DU TABLEAU (repère sans masse) =====
+       Origine : milieu de l'arête basse du dos du tableau, posée sur la tablette, dos contre le mât.
+       Axes (inclinés de 10° avec le mât) : +x = normale de la face peinte (vers le robot),
+       +y = largeur du tableau, +z = hauteur du tableau (dans son plan). -->
+  <!-- Repère sans masse utile. Une inertie infinitésimale empêche le chargeur
+       de lui substituer 1 kg (un lien sans <inertial> est sinon lesté). -->
+  <link name="canvas_mount">
+    <inertial>
+      <mass value="1e-6"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-9" ixy="0" ixz="0" iyy="1e-9" iyz="0" izz="1e-9"/>
+    </inertial>
+  </link>
+
+  <joint name="mast_joint" type="fixed">
+    <parent link="easel_base"/><child link="mast"/>
+    <origin xyz="0 0 0.045" rpy="0 -0.174533 0"/>
+  </joint>
+  <joint name="ledge_joint" type="fixed">
+    <parent link="mast"/><child link="ledge"/><origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="top_clamp_joint" type="fixed">
+    <parent link="mast"/><child link="top_clamp"/><origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <joint name="canvas_mount_joint" type="fixed">
+    <parent link="mast"/><child link="canvas_mount"/>
+    <origin xyz="0.025 0 0.6" rpy="0 0 0"/>
+  </joint>
+</robot>

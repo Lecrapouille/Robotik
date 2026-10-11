@@ -86,7 +86,7 @@ void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot)
     robotik::Pose pose;
     pose.position = robotik::Vector3(
         p_snapshot.plant.x, p_snapshot.plant.y, p_snapshot.plant.z);
-    pose.rotation = robotik::rpy(0.0, 0.0, p_snapshot.plant.yaw);
+    pose.rotation = robotik::rpy(Radians(0.0), Radians(0.0), Radians(p_snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 

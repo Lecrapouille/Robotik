@@ -74,7 +74,7 @@ FLY_SRC="Drosophila_brain_model"
 FLY_DATA="../data/flywire"
 FLY_CON="$FLY_SRC/Connectivity_783.parquet"
 FLY_COMP="$FLY_SRC/Completeness_783.csv"
-print-compile "flywire connectome"
+print-compile "$FLY_SRC"
 if [ ! -f "$FLY_CON" ] || [ ! -f "$FLY_COMP" ]; then
     echo "Missing $FLY_CON or $FLY_COMP. Run make download-external-libs first."
     exit 1
@@ -86,7 +86,7 @@ if [ ! -f "$FLY_DATA/edges.csv" ] || [ "$FLY_CON" -nt "$FLY_DATA/edges.csv" ]; t
         python3 -m pip install --target "$FLY_PY" pyarrow
     fi
     PYTHONPATH="$FLY_PY${PYTHONPATH:+:$PYTHONPATH}" \
-        python3 ../src/Applications/Demos/FlyBrain/prepare_edges.py \
+        python3 ../demos/FlyBrain/prepare_edges.py \
             "$FLY_CON" "$FLY_COMP" "$FLY_DATA/edges.csv"
     cp -f "$FLY_COMP" "$FLY_DATA/completeness.csv"
 fi

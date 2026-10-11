@@ -13,6 +13,7 @@
 #include "Robotik/Sensors/Image.hpp"
 
 #include "Compages/GPU/RenderPass.hpp"
+#include "Compages/Renderer/Assets/CanvasTexture.hpp"
 #include "Compages/World/Components/Camera.hpp"
 
 #include <cmath>
@@ -120,7 +121,7 @@ void RenderedCamera::sync(robotik::Camera const& p_camera)
     robotik::Pose const& mount = p_camera.config().mount;
     robotik::Quaternion const rotation =
         (mount.rotation *
-         robotik::axisAngle({ 1.0, 0.0, 0.0 }, std::numbers::pi))
+         robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)))
             .normalized();
     m_entity
         .position(static_cast<float>(mount.position.x),
@@ -216,6 +217,55 @@ void SimulatorView::ground(robotik::Image const& p_image,
         .position(0.0f, 0.0f, 0.0f)
         .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0f);
     m_grounded = true;
+}
+
+bool SimulatorView::openCanvas(compages::world::Entity p_parent,
+                              double p_width,
+                              double p_height)
+{
+    if (!p_parent || p_width < 1e-4 || p_height < 1e-4)
+    {
+        return false;
+    }
+    if (!m_paint.create(512u, 512u))
+    {
+        return false;
+    }
+    if (!m_paint.bind(m_scene.assets(), "painter_canvas"))
+    {
+        return false;
+    }
+    // Unit plane faces +Z and lies in XY. This quaternion sends that +Z onto
+    // the parent's +X (the painted normal) and the plane's +Y onto +Z.
+    m_sheet = m_scene.plane("CanvasPaint")
+                  .parent(p_parent)
+                  .position(0.012f, 0.0f, 0.0f)
+                  .rotation(compages::core::Quatf(0.5f, 0.5f, 0.5f, 0.5f))
+                  .scale(static_cast<float>(p_width),
+                         static_cast<float>(p_height),
+                         1.0f);
+    m_paint.applyLook(m_scene, m_sheet.id());
+    m_sheet_width = p_width;
+    m_sheet_height = p_height;
+    m_sheet_ready = true;
+    return true;
+}
+
+void SimulatorView::ink(double p_y, double p_z, float p_red, float p_green, float p_blue)
+{
+    if (!m_sheet_ready)
+    {
+        return;
+    }
+    auto const color = compages::renderer::CanvasTexture::Color::rgb(
+        static_cast<std::uint8_t>(p_red * 255.0f),
+        static_cast<std::uint8_t>(p_green * 255.0f),
+        static_cast<std::uint8_t>(p_blue * 255.0f));
+    // Mapping covers the unit plane (-0.5..0.5). Scale turns that into metres.
+    float const u = static_cast<float>(p_y / m_sheet_width);
+    float const v = static_cast<float>(p_z / m_sheet_height);
+    m_paint.paintLocal({ u, v, 0.0f }, color, 0.035f);
+    (void)m_paint.sync();
 }
 
 bool SimulatorView::showFrame(robotik::CameraFrame const& p_frame)

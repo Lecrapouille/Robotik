@@ -9,7 +9,7 @@
 //! @brief Base class of every robot sensor: name, sampling rate and counters.
 #pragma once
 
-#include "Compages/Core/Units.hpp"
+#include "Robotik/Math/Si.hpp"
 
 #include <cstdint>
 #include <string>

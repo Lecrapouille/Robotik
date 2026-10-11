@@ -1,0 +1,10 @@
+id: robotik.painter
+name: Robotic painter
+version: 1.0.0
+library: librobotik_painter.so
+category: Manipulation
+graphics: false
+scenarios:
+  - id: painter
+    name: Robotic painter
+    file: scenarios/painter.yml

@@ -136,9 +136,9 @@ bool TeachPendant::jogTool(Robot& p_robot,
     if (std::abs(p_rotation.x) + std::abs(p_rotation.y) + std::abs(p_rotation.z) >
         0.0)
     {
-        target.rotation = axisAngle(Vector3(1.0, 0.0, 0.0), p_rotation.x) *
-                          axisAngle(Vector3(0.0, 1.0, 0.0), p_rotation.y) *
-                          axisAngle(Vector3(0.0, 0.0, 1.0), p_rotation.z) *
+        target.rotation = axisAngle(Vector3(1.0, 0.0, 0.0), Radians(p_rotation.x)) *
+                          axisAngle(Vector3(0.0, 1.0, 0.0), Radians(p_rotation.y)) *
+                          axisAngle(Vector3(0.0, 0.0, 1.0), Radians(p_rotation.z)) *
                           target.rotation;
     }
 

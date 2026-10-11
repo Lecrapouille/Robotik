@@ -79,12 +79,14 @@ PICK_DIR := $(P)/demos/PickAndPlaceBT
 FLY_DIR := $(P)/demos/FlyBrain
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
 SRC_FILES += $(PICK_DIR)/PickPlaceSkills.cpp
+PAINT_DIR := $(P)/demos/Painter
+SRC_FILES += $(PAINT_DIR)/PainterMission.cpp $(PAINT_DIR)/PainterSkills.cpp
 SRC_FILES += $(FLY_DIR)/FlyScenario.cpp $(FLY_DIR)/FlyVision.cpp
 SRC_FILES += $(FLY_DIR)/FlyController.cpp $(FLY_DIR)/ShiuNetwork.cpp
 SRC_FILES += $(FLY_DIR)/FlyBrain.cpp $(FLY_DIR)/FlyEnvironment.cpp
 SRC_FILES += $(FLY_DIR)/FlyTrace.cpp
 
-INCLUDES += $(P)/src $(P)/tests $(PICK_DIR) $(FLY_DIR)
+INCLUDES += $(P)/src $(P)/tests $(PICK_DIR) $(FLY_DIR) $(PAINT_DIR)
 VPATH += $(P)/src
 
 ###################################################

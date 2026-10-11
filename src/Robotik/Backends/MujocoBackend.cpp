@@ -38,8 +38,10 @@ struct MujocoBackend::Impl
     struct Chain
     {
         std::string name;
+        std::string root;
         std::filesystem::path source;
         std::filesystem::path parsed;
+        ChainOptions options;
     };
 
     //! @brief @c child_mount of @c child hangs on @c parent_mount of @c parent.
@@ -66,6 +68,7 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::vector<Chain> chains;
+    std::vector<FreeBox> boxes;
     std::vector<Graft> grafts;
     //!< True until @ref MujocoBackend::compile has consumed @c chains.
     bool dirty = true;
@@ -258,6 +261,7 @@ static void edit(mjSpec* p_spec,
         floor->type = mjGEOM_PLANE;
         floor->size[0] = floor->size[1] = 0.0;
         floor->size[2] = 1.0;
+        floor->friction[0] = p_options.floor_friction;
         mjs_setName(floor->element, "robotik_floor");
     }
     for (auto const& [link, friction] : p_options.friction)
@@ -370,13 +374,68 @@ MujocoBackend::MujocoBackend(MujocoOptions p_options)
 
 MujocoBackend::~MujocoBackend() = default;
 
-std::string MujocoBackend::load(std::filesystem::path const& p_urdf)
+static void writePose(mjsBody* p_body, Pose const& p_pose)
+{
+    p_body->pos[0] = p_pose.position.x;
+    p_body->pos[1] = p_pose.position.y;
+    p_body->pos[2] = p_pose.position.z;
+    p_body->quat[0] = p_pose.rotation.w;
+    p_body->quat[1] = p_pose.rotation.x;
+    p_body->quat[2] = p_pose.rotation.y;
+    p_body->quat[3] = p_pose.rotation.z;
+}
+
+static void setFriction(mjsBody* p_body, double p_friction)
+{
+    for (mjsElement* geom = mjs_firstChild(p_body, mjOBJ_GEOM, 0); geom != nullptr;
+         geom = mjs_nextChild(p_body, geom, 0))
+    {
+        mjs_asGeom(geom)->friction[0] = p_friction;
+    }
+    for (mjsElement* child = mjs_firstChild(p_body, mjOBJ_BODY, 0); child != nullptr;
+         child = mjs_nextChild(p_body, child, 0))
+    {
+        setFriction(mjs_asBody(child), p_friction);
+    }
+}
+
+static void addFreeBox(mjSpec* p_host, FreeBox const& p_box)
+{
+    mjsBody* const world = mjs_findBody(p_host, "world");
+    mjsBody* const body = mjs_addBody(world, nullptr);
+    mjs_setName(body->element, p_box.name.c_str());
+    writePose(body, p_box.pose);
+    body->mass = p_box.mass;
+    body->inertia[0] = p_box.inertia.x;
+    body->inertia[1] = p_box.inertia.y;
+    body->inertia[2] = p_box.inertia.z;
+    body->explicitinertial = 1;
+    mjsJoint* const joint = mjs_addFreeJoint(body);
+    mjs_setName(joint->element, (p_box.name + "_free").c_str());
+    mjsGeom* const geom = mjs_addGeom(body, nullptr);
+    geom->type = mjGEOM_BOX;
+    geom->size[0] = 0.5 * p_box.size.x;
+    geom->size[1] = 0.5 * p_box.size.y;
+    geom->size[2] = 0.5 * p_box.size.z;
+    geom->friction[0] = p_box.friction;
+    mjs_setName(geom->element, (p_box.name + "_geom").c_str());
+}
+
+std::string MujocoBackend::load(std::filesystem::path const& p_urdf,
+                                ChainOptions const& p_options)
 {
     std::filesystem::path const parsed = withInertia(p_urdf);
+    std::string root_name;
     try
     {
         SpecPtr const spec = parseSpec(parsed);
-        (void)spec;
+        std::vector<mjsBody*> const roots = rootBodies(spec.get());
+        if (roots.empty())
+        {
+            throw std::runtime_error("MuJoCo: '" + p_urdf.string() +
+                                     "' has no root link");
+        }
+        root_name = mjs_getString(mjs_getName(roots.front()->element));
     }
     catch (...)
     {
@@ -401,9 +460,44 @@ std::string MujocoBackend::load(std::filesystem::path const& p_urdf)
             }
         }
     }
-    m_impl->chains.push_back(Impl::Chain{ name, p_urdf, parsed });
+    m_impl->chains.push_back(
+        Impl::Chain{ name, std::move(root_name), p_urdf, parsed, p_options });
     invalidate();
     return name;
+}
+
+void MujocoBackend::addBox(FreeBox const& p_box)
+{
+    if (p_box.name.empty())
+    {
+        throw std::runtime_error("MuJoCo: a free box needs a name");
+    }
+    m_impl->boxes.push_back(p_box);
+    invalidate();
+}
+
+std::optional<Pose> MujocoBackend::bodyPose(std::string const& p_body) const
+{
+    mjModel const* const model = m_impl->model;
+    mjData const* const data = m_impl->data;
+    if (model == nullptr || data == nullptr)
+    {
+        return std::nullopt;
+    }
+    int const body = mj_name2id(model, mjOBJ_BODY, p_body.c_str());
+    if (body < 0)
+    {
+        return std::nullopt;
+    }
+    Pose pose{ zero3(), Quaternion{} };
+    pose.position = Vector3(data->xpos[3 * body],
+                            data->xpos[3 * body + 1],
+                            data->xpos[3 * body + 2]);
+    pose.rotation = Quaternion(data->xquat[4 * body],
+                               data->xquat[4 * body + 1],
+                               data->xquat[4 * body + 2],
+                               data->xquat[4 * body + 3]);
+    return pose;
 }
 
 void MujocoBackend::attach(std::string const& p_robot1,
@@ -583,6 +677,33 @@ void MujocoBackend::compile()
     }
 
     edit(host, m_options, host_root);
+    for (Impl::Chain const& chain : m_impl->chains)
+    {
+        if (children.contains(chain.name))
+        {
+            continue;
+        }
+        mjsBody* const root = mjs_findBody(host, chain.root.c_str());
+        if (root == nullptr)
+        {
+            throw std::runtime_error("MuJoCo: chain '" + chain.name +
+                                     "' lost its root '" + chain.root + "'");
+        }
+        if (chain.options.floating && chain.name != host_chain->name)
+        {
+            writePose(root, chain.options.pose);
+            mjsJoint* const joint = mjs_addFreeJoint(root);
+            mjs_setName(joint->element, (chain.name + "_free").c_str());
+        }
+        if (chain.options.friction >= 0.0)
+        {
+            setFriction(root, chain.options.friction);
+        }
+    }
+    for (FreeBox const& box : m_impl->boxes)
+    {
+        addFreeBox(host, box);
+    }
     mjModel* const fresh = mj_compile(host, nullptr);
     std::string const compile_error = mjs_getError(host);
     if (fresh == nullptr)

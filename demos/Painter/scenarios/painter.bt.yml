@@ -1,0 +1,50 @@
+# One subtree per colour. The parameter is the pot name and the stroke:
+# Mark lays the line that belongs to that colour. Rinse stirs the brush
+# in the water bucket before the next colour.
+
+SubTrees:
+  Layer:
+    Sequence:
+      name: Layer
+      children:
+        - Action:
+            name: Dip
+        - Action:
+            name: Home
+        - Action:
+            name: Mark
+        - Action:
+            name: Home
+        - Action:
+            name: Rinse
+        - Action:
+            name: Home
+
+BehaviorTree:
+  Sequence:
+    name: Portrait
+    children:
+      - Action:
+          name: Home
+      - SubTree:
+          name: Red
+          reference: Layer
+          parameters:
+            color: red
+      - SubTree:
+          name: Black
+          reference: Layer
+          parameters:
+            color: black
+      - SubTree:
+          name: Blue
+          reference: Layer
+          parameters:
+            color: blue
+      - SubTree:
+          name: Gold
+          reference: Layer
+          parameters:
+            color: gold
+      - Action:
+          name: Home

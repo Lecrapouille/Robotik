@@ -1,0 +1,307 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+#include "PainterSkills.hpp"
+
+#include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Runtime/RobotContext.hpp"
+#include "Robotik/Runtime/Scheduler.hpp"
+
+#include <cmath>
+#include <memory>
+#include <numbers>
+
+namespace painter
+{
+
+namespace
+{
+
+robotik::Status follow(std::vector<robotik::Pose> const& p_path,
+                       std::size_t& p_index,
+                       robotik::MoveTCPSkill& p_move,
+                       robotik::RobotContext& p_context,
+                       robotik::Seconds p_dt)
+{
+    if (p_index >= p_path.size())
+    {
+        return robotik::Status::SUCCESS;
+    }
+    robotik::Status const status = p_move.tick(p_context, p_dt);
+    if (status == robotik::Status::RUNNING)
+    {
+        return status;
+    }
+    if (status == robotik::Status::FAILURE)
+    {
+        return status;
+    }
+    ++p_index;
+    if (p_index >= p_path.size())
+    {
+        return robotik::Status::SUCCESS;
+    }
+    p_move.goal(p_path[p_index]);
+    return robotik::Status::RUNNING;
+}
+
+enum class Gesture
+{
+    Dip,
+    Mark,
+    Rinse,
+};
+
+class GestureNode final: public bt::CallbackLeaf
+{
+public:
+
+    GestureNode(robotik::SkillScheduler& p_scheduler,
+                robotik::SkillId p_id,
+                Gesture p_gesture)
+        : CallbackLeaf([]() noexcept { return bt::Status::FAILURE; }),
+          m_scheduler(p_scheduler),
+          m_id(p_id),
+          m_gesture(p_gesture)
+    {
+    }
+
+    void fillConfig(bt::NodeConfig& p_config) const override
+    {
+        GestureNode* self = const_cast<GestureNode*>(this);
+        p_config.callback = [self]() { return self->onTick(); };
+        p_config.on_reset = [self]() {
+            if (self->m_active)
+            {
+                self->m_scheduler.cancel(self->m_id);
+                self->m_active = false;
+            }
+        };
+    }
+
+private:
+
+    bt::Status onTick()
+    {
+        if (!m_active)
+        {
+            if (m_gesture != Gesture::Rinse)
+            {
+                auto const color = blackboard() ? blackboard()->get<std::string>("color")
+                                                : std::nullopt;
+                if (!color || color->empty())
+                {
+                    return bt::Status::FAILURE;
+                }
+                if (m_gesture == Gesture::Dip)
+                {
+                    dynamic_cast<DipSkill&>(m_scheduler.skill(m_id)).use(*color);
+                }
+                else
+                {
+                    dynamic_cast<MarkSkill&>(m_scheduler.skill(m_id)).use(*color);
+                }
+            }
+            m_scheduler.request(m_id);
+            m_active = true;
+            return bt::Status::RUNNING;
+        }
+        switch (m_scheduler.state(m_id))
+        {
+            case robotik::SkillState::Idle:
+            case robotik::SkillState::Waiting:
+            case robotik::SkillState::Running:
+                return bt::Status::RUNNING;
+            case robotik::SkillState::Succeeded:
+                m_active = false;
+                return bt::Status::SUCCESS;
+            case robotik::SkillState::Failed:
+            case robotik::SkillState::Cancelled:
+                m_active = false;
+                return bt::Status::FAILURE;
+        }
+        return bt::Status::FAILURE;
+    }
+
+    robotik::SkillScheduler& m_scheduler;
+    robotik::SkillId m_id = robotik::NO_SKILL;
+    Gesture m_gesture = Gesture::Dip;
+    bool m_active = false;
+};
+
+} // namespace
+
+DipSkill::DipSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
+{
+}
+
+void DipSkill::use(std::string p_color)
+{
+    m_color = std::move(p_color);
+}
+
+void DipSkill::reset()
+{
+    m_path.clear();
+    m_index = 0;
+    m_ready = false;
+    m_move.reset();
+    m_stroke->painting = false;
+}
+
+robotik::Status DipSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+{
+    if (!m_ready)
+    {
+        robotik::WorldObject const* pot = p_context.world_model.find(m_color);
+        if (pot == nullptr)
+        {
+            return robotik::Status::FAILURE;
+        }
+        robotik::Quaternion const down = brushDown();
+        double const top = pot->top();
+        m_path = {
+            { { pot->position.x, pot->position.y, top + 0.20 }, down },
+            { { pot->position.x, pot->position.y, top - 0.01 }, down },
+            { { pot->position.x, pot->position.y, top + 0.20 }, down },
+        };
+        m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
+        m_ready = true;
+    }
+    return follow(m_path, m_index, m_move, p_context, p_dt);
+}
+
+void DipSkill::cancel(robotik::RobotContext& p_context)
+{
+    m_stroke->painting = false;
+    m_move.cancel(p_context);
+}
+
+MarkSkill::MarkSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
+{
+}
+
+void MarkSkill::use(std::string p_color)
+{
+    m_color = std::move(p_color);
+    m_stroke->color = m_color;
+}
+
+void MarkSkill::reset()
+{
+    m_path.clear();
+    m_index = 0;
+    m_ready = false;
+    m_move.reset();
+    m_stroke->painting = false;
+}
+
+robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+{
+    if (!m_ready)
+    {
+        // The color picks the line: red is the upper stroke, gold the lower one.
+        // The brush stays 4 cm off the board so it does not push the free canvas.
+        double const y = 0.12 - 0.08 * static_cast<double>(colorIndex(m_color));
+        double const z = 0.16;
+        robotik::Quaternion const aim = brushAim();
+        auto at = [&](double p_x, double p_y) {
+            return robotik::Pose{ canvasPoint(p_x, p_y, z), aim };
+        };
+        m_path = {
+            at(0.18, y),
+            at(0.08, y - 0.04),
+            at(0.06, y - 0.04),
+            at(0.06, y + 0.04),
+            at(0.18, y),
+        };
+        m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
+        m_stroke->color = m_color;
+        m_ready = true;
+    }
+    m_stroke->painting = m_index >= 1 && m_index <= 3;
+    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    if (status != robotik::Status::RUNNING)
+    {
+        m_stroke->painting = false;
+    }
+    return status;
+}
+
+void MarkSkill::cancel(robotik::RobotContext& p_context)
+{
+    m_stroke->painting = false;
+    m_move.cancel(p_context);
+}
+
+RinseSkill::RinseSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
+{
+}
+
+void RinseSkill::reset()
+{
+    m_path.clear();
+    m_index = 0;
+    m_ready = false;
+    m_move.reset();
+    m_stroke->painting = false;
+}
+
+robotik::Status RinseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+{
+    if (!m_ready)
+    {
+        robotik::WorldObject const* water = p_context.world_model.find("water");
+        if (water == nullptr)
+        {
+            return robotik::Status::FAILURE;
+        }
+        robotik::Quaternion const down = brushDown();
+        double const x = water->position.x;
+        double const y = water->position.y;
+        double const wet = water->top() - 0.01;
+        m_path.push_back({ { x, y, water->top() + 0.18 }, down });
+        constexpr int kSteps = 8;
+        for (int turn = 0; turn < 2; ++turn)
+        {
+            for (int i = 0; i < kSteps; ++i)
+            {
+                double const angle = (turn * kSteps + i) * (2.0 * std::numbers::pi / kSteps);
+                m_path.push_back({ { x + 0.02 * std::cos(angle),
+                                     y + 0.02 * std::sin(angle),
+                                     wet },
+                                   down });
+            }
+        }
+        m_path.push_back({ { x, y, water->top() + 0.18 }, down });
+        m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
+        m_ready = true;
+    }
+    return follow(m_path, m_index, m_move, p_context, p_dt);
+}
+
+void RinseSkill::cancel(robotik::RobotContext& p_context)
+{
+    m_move.cancel(p_context);
+}
+
+void registerNodes(bt::NodeFactory& p_factory,
+                   robotik::SkillScheduler& p_scheduler)
+{
+    auto bind = [&](char const* p_node, char const* p_skill, Gesture p_gesture) {
+        p_factory.registerNode(
+            p_node, [&p_scheduler, name = std::string(p_skill), p_gesture]() {
+                return std::make_unique<GestureNode>(
+                    p_scheduler, p_scheduler.find(name), p_gesture);
+            });
+    };
+    bind("Dip", "dip", Gesture::Dip);
+    bind("Mark", "mark", Gesture::Mark);
+    bind("Rinse", "rinse", Gesture::Rinse);
+}
+
+} // namespace painter

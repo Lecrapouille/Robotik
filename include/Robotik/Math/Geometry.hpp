@@ -13,7 +13,7 @@
 #pragma once
 
 #include "Compages/Core/Pose.hpp"
-#include "Compages/Core/Units.hpp"
+#include "Robotik/Math/Si.hpp"
 
 #include <cmath>
 
@@ -40,28 +40,40 @@ inline double norm(Vector3 const& p_v)
 }
 
 //! @brief Roll about X, pitch about Y, yaw about Z (URDF convention).
-[[nodiscard]] inline Quaternion rpy(double p_roll, double p_pitch, double p_yaw)
+[[nodiscard]] inline Quaternion rpy(Radians p_roll, Radians p_pitch, Radians p_yaw)
 {
-    return Quaternion::fromRpy(
-        Radians(p_roll), Radians(p_pitch), Radians(p_yaw));
+    Quaternion const rx = Quaternion::rotation(p_roll, 1.0, 0.0, 0.0);
+    Quaternion const ry = Quaternion::rotation(p_pitch, 0.0, 1.0, 0.0);
+    Quaternion const rz = Quaternion::rotation(p_yaw, 0.0, 0.0, 1.0);
+    return rz * ry * rx;
 }
 
 //! @brief Rotation whose columns are the given orthonormal axes.
 [[nodiscard]] inline Quaternion
 basis(Vector3 const& p_x, Vector3 const& p_y, Vector3 const& p_z)
 {
-    return Quaternion::fromAxes(p_x, p_y, p_z);
+    compages::core::Matrix<double, 4u, 4u> m(compages::core::matrix::Identity);
+    m(0, 0) = p_x.x;
+    m(1, 0) = p_x.y;
+    m(2, 0) = p_x.z;
+    m(0, 1) = p_y.x;
+    m(1, 1) = p_y.y;
+    m(2, 1) = p_y.z;
+    m(0, 2) = p_z.x;
+    m(1, 2) = p_z.y;
+    m(2, 2) = p_z.z;
+    return Quaternion::fromMatrix(m);
 }
 
-//! @brief Rotation of @p_angle rad about @p_axis.
-[[nodiscard]] inline Quaternion axisAngle(Vector3 const& p_axis, double p_angle)
+//! @brief Rotation of @p_angle about @p_axis.
+[[nodiscard]] inline Quaternion axisAngle(Vector3 const& p_axis, Radians p_angle)
 {
     double const length = norm(p_axis);
     if (length < 1e-12)
     {
         return {};
     }
-    return Quaternion::rotation(Radians(p_angle),
+    return Quaternion::rotation(p_angle,
                                 p_axis.x / length,
                                 p_axis.y / length,
                                 p_axis.z / length);
@@ -70,7 +82,9 @@ basis(Vector3 const& p_x, Vector3 const& p_y, Vector3 const& p_z)
 //! @brief Heading about Z (rad).
 [[nodiscard]] inline double yawOf(Quaternion const& p_q)
 {
-    return p_q.yaw().to<double>();
+    double const siny = 2.0 * (p_q.w * p_q.z + p_q.x * p_q.y);
+    double const cosy = 1.0 - 2.0 * (p_q.y * p_q.y + p_q.z * p_q.z);
+    return std::atan2(siny, cosy);
 }
 
 } // namespace robotik

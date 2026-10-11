@@ -41,6 +41,7 @@ namespace robotik
 //!   tools:
 //!     vacuum: tool_vacuum.urdf
 //!     drill: tool_drill.urdf
+//!   mounted: vacuum
 //!   home: { joint2: 0.3, joint3: 1.3, joint5: 1.54 }
 //!   sensors:
 //!     wrist_camera: { type: camera, parent: link6, fov: 70, noise: 0.02 }

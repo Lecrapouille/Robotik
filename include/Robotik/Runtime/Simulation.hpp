@@ -146,6 +146,13 @@ public:
         return *m_scheduler;
     }
 
+    //! @brief Factory the behavior tree is built from. Skills registered
+    //! later under the same name replace a node added here.
+    [[nodiscard]] bt::NodeFactory& factory()
+    {
+        return m_factory;
+    }
+
     [[nodiscard]] FaultInjector& faults()
     {
         return m_faults;
@@ -197,6 +204,29 @@ public:
         return m_mission;
     }
 
+    // -------------------------------------------------------------------------
+    //! @brief Extra URDF chain compiled with the robot. Call from
+    //! @ref Mission::setup, before the physics backend exists.
+    //! @param p_friction Sliding friction of every geom; negative keeps the URDF.
+    // -------------------------------------------------------------------------
+    void loadChain(std::filesystem::path const& p_urdf,
+                   bool p_floating,
+                   Pose const& p_pose,
+                   double p_friction = -1.0);
+
+    // -------------------------------------------------------------------------
+    //! @brief Free box compiled with the chains. The origin is the centre.
+    // -------------------------------------------------------------------------
+    void loadBox(std::string const& p_name,
+                 Vector3 const& p_size,
+                 double p_mass,
+                 Vector3 const& p_inertia,
+                 Pose const& p_pose,
+                 double p_friction = 1.0);
+
+    //! @brief Infinite ground plane at z = 0. Call from @ref Mission::setup.
+    void loadFloor(double p_friction = 1.0);
+
 private:
 
     void spawn(SceneView* p_view);
@@ -230,6 +260,29 @@ private:
     bool m_prop_penetration = false;
     //!< Teach pendant owns the joints; the mission is frozen.
     bool m_suspended = false;
+
+    struct StagedChain
+    {
+        std::filesystem::path file;
+        bool floating = false;
+        Pose pose{ zero3(), Quaternion{} };
+        double friction = -1.0;
+    };
+
+    struct StagedBox
+    {
+        std::string name;
+        Vector3 size = zero3();
+        double mass = 1.0;
+        Vector3 inertia = zero3();
+        Pose pose{ zero3(), Quaternion{} };
+        double friction = 1.0;
+    };
+
+    std::vector<StagedChain> m_chains;
+    std::vector<StagedBox> m_boxes;
+    bool m_floor = false;
+    double m_floor_friction = 1.0;
 };
 
 } // namespace robotik

@@ -92,6 +92,27 @@ public:
     {
         return false;
     }
+
+    // -------------------------------------------------------------------------
+    //! @brief A paintable sheet on the +X face of @p_parent. @p_width is the
+    //! parent's Y extent (m), @p_height its Z extent. Headless views ignore it.
+    // -------------------------------------------------------------------------
+    virtual bool openCanvas(compages::world::Entity /*p_parent*/,
+                            double /*p_width*/,
+                            double /*p_height*/)
+    {
+        return false;
+    }
+
+    //! @brief Stamp ink at a point of the sheet. Y and Z are metres from the
+    //! parent origin, in the parent frame.
+    virtual void ink(double /*p_y*/,
+                     double /*p_z*/,
+                     float /*p_red*/,
+                     float /*p_green*/,
+                     float /*p_blue*/)
+    {
+    }
 };
 
 } // namespace robotik
