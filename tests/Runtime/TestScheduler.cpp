@@ -66,7 +66,7 @@ class SchedulerTest: public ::testing::Test
 protected:
 
     SchedulerTest()
-        : robot(world, dataFile("simple_revolute_robot.urdf")),
+        : robot(world, assetFile("robotik.robots.simple_revolute_robot")),
           context{ robot, beliefs, {}, Seconds(0.01) },
           skills(robot.resources())
     {

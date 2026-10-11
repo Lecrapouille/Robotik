@@ -1,0 +1,9 @@
+id: robotik.robots.abb
+version: 1.0.0
+# Third-party meshes: the license of the upstream package was not checked.
+license: NOASSERTION
+source: https://github.com/andrewneill/abb_irb1600id_support
+description: ABB IRB 1600ID and IRB 2400 industrial arms (see Credits.txt).
+models:
+  irb1600id: irb1600id.urdf
+  irb2400: irb2400.urdf

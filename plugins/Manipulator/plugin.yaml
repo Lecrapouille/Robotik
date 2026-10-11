@@ -1,0 +1,20 @@
+plugin:
+  id: robotik.manipulator
+  name: Manipulator
+  version: 1.0.0
+  api_version: 1
+  category: Kinematics
+
+library:
+  entrypoint: librobotik_manipulator.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: forward_kinematics, name: Forward kinematics, file: forward_kinematics.yml }
+    - { id: inverse_kinematics, name: Inverse kinematics, file: inverse_kinematics.yml }
+    - { id: joint_limits, name: Joint limits, file: joint_limits.yml }

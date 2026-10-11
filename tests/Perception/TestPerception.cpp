@@ -120,7 +120,7 @@ TEST(CameraIntrinsics, RayAndProjectAreInverse)
 TEST(Camera, SamplesAtItsFrequencyFromItsSource)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, dataFile("simple_revolute_robot.urdf"));
+    robotik::RobotSession robot(world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::CameraConfig config;
     config.frequency = 10.0;
     config.mount = downward();

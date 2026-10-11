@@ -7,10 +7,14 @@
 
 #include "Robotik/Plugin/PluginCatalog.hpp"
 
+#include "Robotik/Assets/AssetResolver.hpp"
+#include "Robotik/Plugin/PluginABI.h"
+
 #include "BlackThorn/Builder/Yaml.hpp"
 
 #include <algorithm>
 #include <cstdlib>
+#include <optional>
 #include <system_error>
 
 namespace robotik
@@ -92,6 +96,8 @@ bool contained(std::filesystem::path const& p_root, std::filesystem::path const&
     return true;
 }
 
+//! Beside the manifest (staged package), else next to the executable (a
+//! package read from the sources while its library sits in build/).
 std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
                                      std::string const& p_name)
 {
@@ -101,9 +107,9 @@ std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
     {
         return beside;
     }
-    for (char const* build : { "build", "../build" })
+    if (std::filesystem::path const exe = executableDirectory(); !exe.empty())
     {
-        std::filesystem::path const candidate(std::filesystem::path(build) / p_name);
+        std::filesystem::path const candidate = exe / p_name;
         if (std::filesystem::is_regular_file(candidate, error))
         {
             return candidate;
@@ -133,17 +139,44 @@ void PluginCatalog::scan(std::filesystem::path const& p_extra)
     {
         roots.push_back(p_extra);
     }
-    if (char const* env = std::getenv("ROBOTIK_PLUGINS"))
+    if (char const* env = std::getenv("ROBOTIK_PLUGINS"); env != nullptr)
     {
-        if (env[0] != '\0')
+        std::string_view paths(env);
+        while (!paths.empty())
         {
-            roots.emplace_back(env);
+            std::size_t const colon = paths.find(':');
+            if (std::string_view const item = paths.substr(0, colon); !item.empty())
+            {
+                roots.emplace_back(item);
+            }
+            paths = colon == std::string_view::npos ? std::string_view{}
+                                                    : paths.substr(colon + 1u);
         }
     }
-    roots.emplace_back("build/plugins");
-    roots.emplace_back("plugins");
-    roots.emplace_back("../build/plugins");
+    // Build tree (build/Robotik-Headless, build/plugins) and install prefix
+    // (bin/, lib/robotik/plugins).
+    if (std::filesystem::path const exe = executableDirectory(); !exe.empty())
+    {
+        roots.push_back(exe / "plugins");
+        roots.push_back(exe.parent_path() / "lib" / "robotik" / "plugins");
+    }
     scan(roots);
+}
+
+PluginPackage const* PluginCatalog::add(std::filesystem::path const& p_scenario)
+{
+    std::filesystem::path directory = canonicalOf(p_scenario).parent_path();
+    for (int hop = 0; hop < 3 && !directory.empty(); ++hop)
+    {
+        std::error_code error;
+        if (std::filesystem::is_regular_file(directory / "plugin.yaml", error))
+        {
+            loadPackage(directory);
+            return findScenario(p_scenario);
+        }
+        directory = directory.parent_path();
+    }
+    return nullptr;
 }
 
 void PluginCatalog::scan(std::vector<std::filesystem::path> const& p_roots)
@@ -276,28 +309,92 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         m_errors.push_back(manifest.string() + ": " + parsed.getError());
         return;
     }
+    auto reject = [&](std::string const& p_why) {
+        m_errors.push_back(manifest.string() + ": " + p_why);
+    };
     bt::YamlNode const node = parsed.getValue().root();
+
+    // --- plugin: identity ---------------------------------------------------
+    bt::YamlNode const plugin = node.child("plugin");
     PluginPackage package;
     package.root = root;
-    package.id = field(node, "id");
-    package.name = field(node, "name");
-    package.version = field(node, "version");
-    package.category = field(node, "category");
+    package.id = field(plugin, "id");
+    package.name = field(plugin, "name");
+    package.category = field(plugin, "category");
     if (package.category.empty())
     {
         package.category = "Demo";
     }
-    if (node.hasKey("graphics"))
+    std::optional<Version> const version = Version::parse(field(plugin, "version"));
+    if (package.id.empty() || package.name.empty() || !version)
     {
-        package.graphics = node.child("graphics").asBool().value_or(false);
+        reject("plugin.id, plugin.name and plugin.version are required");
+        return;
     }
-    if (field(node, "clock") == "plugin")
+    package.version = *version;
+    package.api_version =
+        static_cast<std::uint32_t>(plugin.child("api_version").asDouble().value_or(0.0));
+    if (package.api_version != ROBOTIK_PLUGIN_ABI_VERSION)
     {
-        package.owns_clock = true;
+        reject("built for plugin API " + std::to_string(package.api_version) +
+               ", this host speaks " + std::to_string(ROBOTIK_PLUGIN_ABI_VERSION));
+        return;
     }
-    if (node.hasKey("view"))
+
+    // --- library ------------------------------------------------------------
+    std::string const library = field(node.child("library"), "entrypoint");
+    if (!libraryName(library))
     {
-        bt::YamlNode const view = node.child("view");
+        reject("library.entrypoint must be a file name ending in .so");
+        return;
+    }
+    package.library = resolveLibrary(p_root, library);
+
+    // --- resources: own pack and required packs ------------------------------
+    bt::YamlNode const resources = node.child("resources");
+    if (std::string const directory = field(resources, "directory"); !directory.empty())
+    {
+        if (!relativeInside(directory))
+        {
+            reject("resources.directory must stay inside the package");
+            return;
+        }
+        package.resources = (p_root / directory).lexically_normal();
+    }
+    bool packs_ok = true;
+    resources.child("packs").forEachSeq([&](bt::YamlNode p_item) {
+        PackRequirement requirement;
+        requirement.id = p_item.isMap() ? field(p_item, "id") : p_item.scalar();
+        std::string const wanted = p_item.isMap() ? field(p_item, "version") : "0";
+        std::optional<Version> const minimum = Version::parse(wanted.empty() ? "0" : wanted);
+        if (requirement.id.empty() || !minimum)
+        {
+            packs_ok = false;
+            return;
+        }
+        requirement.version = *minimum;
+        package.packs.push_back(std::move(requirement));
+    });
+    if (!packs_ok)
+    {
+        reject("resources.packs entries need an id and a version such as \"1.0\"");
+        return;
+    }
+
+    // --- dependencies -------------------------------------------------------
+    bt::YamlNode const dependencies = node.child("dependencies");
+    dependencies.child("plugins").forEachSeq(
+        [&](bt::YamlNode p_item) { package.plugins.push_back(p_item.scalar()); });
+    dependencies.child("thirdparties").forEachSeq(
+        [&](bt::YamlNode p_item) { package.thirdparties.push_back(p_item.scalar()); });
+
+    // --- host hints ---------------------------------------------------------
+    bt::YamlNode const host = node.child("host");
+    package.graphics = host.child("graphics").asBool().value_or(false);
+    package.owns_clock = field(host, "clock") == "plugin";
+    if (host.hasKey("view"))
+    {
+        bt::YamlNode const view = host.child("view");
         auto read3 = [](bt::YamlNode const& p_node, float p_out[3]) {
             if (!p_node.isSeq())
             {
@@ -316,75 +413,70 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         read3(view.child("target"), package.target);
         package.has_view = true;
     }
-    std::string const library = field(node, "library");
-    if (package.id.empty() || package.name.empty() || package.version.empty())
-    {
-        m_errors.push_back(manifest.string() + ": id, name and version are required");
-        return;
-    }
-    if (!libraryName(library))
-    {
-        m_errors.push_back(manifest.string() +
-                           ": library must be a file name ending in .so");
-        return;
-    }
-    package.library = resolveLibrary(p_root, library);
 
-    if (node.hasKey("scenarios"))
+    // --- scenarios ----------------------------------------------------------
+    bt::YamlNode const scenarios = node.child("scenarios");
+    std::string const folder_name = field(scenarios, "directory");
+    if (!folder_name.empty() && folder_name != "." && !relativeInside(folder_name))
     {
-        bt::YamlNode const scenarios = node.child("scenarios");
-        if (!scenarios.isSeq())
-        {
-            m_errors.push_back(manifest.string() + ": scenarios must be a list");
-            return;
-        }
-        scenarios.forEachSeq([&](bt::YamlNode p_item) {
+        reject("scenarios.directory must stay inside the package");
+        return;
+    }
+    std::filesystem::path const folder =
+        folder_name.empty() ? p_root : (p_root / folder_name).lexically_normal();
+    if (scenarios.hasKey("entries"))
+    {
+        bool entries_ok = true;
+        scenarios.child("entries").forEachSeq([&](bt::YamlNode p_item) {
             PluginScenario scenario;
             scenario.id = field(p_item, "id");
             scenario.name = field(p_item, "name");
             std::string const file = field(p_item, "file");
-            if (scenario.id.empty() || scenario.name.empty() || !relativeInside(file))
+            if (scenario.id.empty() || scenario.name.empty() || file.empty())
             {
-                m_errors.push_back(manifest.string() + ": invalid scenario entry");
+                entries_ok = false;
                 return;
             }
-            scenario.file = (p_root / file).lexically_normal();
+            scenario.file = (folder / file).lexically_normal();
             package.scenarios.push_back(std::move(scenario));
         });
+        if (!entries_ok)
+        {
+            reject("invalid scenario entry");
+            return;
+        }
     }
     else
     {
-        std::filesystem::path const folder = p_root / "scenarios";
+        std::vector<std::filesystem::path> files;
         std::error_code error;
-        if (std::filesystem::is_directory(folder, error))
+        std::filesystem::directory_iterator cursor(folder, error);
+        for (; !error && cursor != std::filesystem::directory_iterator();
+             cursor.increment(error))
         {
-            std::vector<std::filesystem::path> files;
-            std::filesystem::directory_iterator cursor(folder, error);
-            for (; !error && cursor != std::filesystem::directory_iterator();
-                 cursor.increment(error))
+            std::filesystem::path const file = cursor->path();
+            std::string const name = file.filename().string();
+            bool const yaml = name.ends_with(".yml") || name.ends_with(".yaml");
+            // Behavior trees live beside the scenarios but are not runnable.
+            if (yaml && !name.ends_with(".bt.yml") && !name.ends_with(".bt.yaml"))
             {
-                std::filesystem::path const file = cursor->path();
-                std::string const extension = file.extension().string();
-                if (extension == ".yml" || extension == ".yaml")
-                {
-                    files.push_back(file);
-                }
+                files.push_back(file);
             }
-            std::sort(files.begin(), files.end());
-            for (std::filesystem::path const& file : files)
-            {
-                PluginScenario scenario;
-                scenario.id = file.stem().string();
-                scenario.name = titleFromStem(scenario.id);
-                scenario.file = file;
-                package.scenarios.push_back(std::move(scenario));
-            }
+        }
+        std::sort(files.begin(), files.end());
+        for (std::filesystem::path const& file : files)
+        {
+            PluginScenario scenario;
+            scenario.id = file.stem().string();
+            scenario.name = titleFromStem(scenario.id);
+            scenario.file = file;
+            package.scenarios.push_back(std::move(scenario));
         }
     }
 
     if (package.scenarios.empty())
     {
-        m_errors.push_back(manifest.string() + ": no scenario file");
+        reject("no scenario file");
         return;
     }
     for (PluginScenario const& scenario : package.scenarios)

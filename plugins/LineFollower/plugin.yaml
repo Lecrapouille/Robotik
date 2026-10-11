@@ -1,0 +1,29 @@
+plugin:
+  id: robotik.line_follower
+  name: Line follower
+  version: 1.0.0
+  api_version: 1
+  category: Mobile
+
+library:
+  entrypoint: librobotik_line_follower.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+
+# Build-time libraries, resolved by the Makefile. Listed for the record.
+dependencies:
+  thirdparties:
+    - opencv
+    - apriltag
+
+host:
+  view:
+    eye: [0.0, 7.0, 6.0]
+    target: [0.0, 0.0, 0.0]
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: line_follower, name: Line follower, file: line_follower.yml }

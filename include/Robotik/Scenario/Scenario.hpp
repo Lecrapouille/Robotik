@@ -10,10 +10,12 @@
 //! randomization, faults, behavior tree and checks.
 //!
 //! @ref Scenario::load parses the YAML into plain data; @ref Simulation builds
-//! and runs it. Relative paths are resolved against the scenario directory.
+//! and runs it. Models are asset identifiers (see @ref AssetResolver); other
+//! files are relative to the scenario directory.
 //! See @c doc/Scenario-et-Simulation.md for the schema.
 #pragma once
 
+#include "Robotik/Assets/AssetResolver.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Robot/Robot.hpp"
@@ -37,10 +39,10 @@ namespace robotik
 //! scenario: pick_and_place
 //! seed: 42
 //! robot:
-//!   model: ../robot_6axis.urdf
+//!   model: robotik.robots.robot_6axis
 //!   tools:
-//!     vacuum: tool_vacuum.urdf
-//!     drill: tool_drill.urdf
+//!     vacuum: robotik.tools.vacuum
+//!     drill: robotik.tools.drill
 //!   mounted: vacuum
 //!   home: { joint2: 0.3, joint3: 1.3, joint5: 1.54 }
 //!   sensors:
@@ -60,8 +62,10 @@ namespace robotik
 // ****************************************************************************
 struct Scenario
 {
-    //! @throws std::runtime_error if the file or required fields are invalid.
-    [[nodiscard]] static Scenario load(std::filesystem::path const& p_path);
+    //! @throws std::runtime_error if the file or required fields are invalid,
+    //! or if a model is missing from @p_assets.
+    [[nodiscard]] static Scenario load(std::filesystem::path const& p_path,
+                                       AssetResolver const& p_assets);
 
     struct Camera
     {
@@ -114,6 +118,9 @@ struct Scenario
     std::vector<RandomFault> random_faults;
     std::filesystem::path behavior_tree;
     std::vector<std::string> asserts;
+    //!< Packs the scenario was resolved with; missions resolve their own
+    //!< models with it.
+    AssetResolver assets;
 
     //! @brief URDF of @ref mounted_tool, or empty when none is mounted.
     [[nodiscard]] std::filesystem::path toolFile() const

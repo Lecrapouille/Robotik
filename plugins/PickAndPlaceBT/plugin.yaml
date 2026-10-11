@@ -1,0 +1,20 @@
+plugin:
+  id: robotik.pick_and_place
+  name: Pick and place
+  version: 1.0.0
+  api_version: 1
+  category: Manipulation
+
+library:
+  entrypoint: librobotik_pick_and_place.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+    - { id: robotik.tools, version: "1.0" }
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: pick_and_place, name: Pick and place, file: pick_and_place.yml }
+    - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.yml }

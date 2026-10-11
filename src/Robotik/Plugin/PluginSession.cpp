@@ -45,6 +45,36 @@ PluginSession::~PluginSession()
 void PluginSession::scan(std::filesystem::path const& p_extra)
 {
     m_catalog.scan(p_extra);
+    m_assets = AssetResolver::standard();
+    for (PluginPackage const& package : m_catalog.packages())
+    {
+        if (!package.resources.empty())
+        {
+            m_assets.addRoot(package.resources);
+        }
+    }
+}
+
+bool PluginSession::dependenciesMet(PluginPackage const& p_package)
+{
+    for (PackRequirement const& pack : p_package.packs)
+    {
+        std::string why;
+        if (m_assets.require(pack.id, pack.version, why) == nullptr)
+        {
+            fallback(p_package.id + ": " + why);
+            return false;
+        }
+    }
+    for (std::string const& plugin : p_package.plugins)
+    {
+        if (m_catalog.findPackage(plugin) == nullptr)
+        {
+            fallback(p_package.id + ": plugin '" + plugin + "' is not installed");
+            return false;
+        }
+    }
+    return true;
 }
 
 std::string const& PluginSession::error() const
@@ -74,7 +104,19 @@ PluginPrepare PluginSession::prepare(std::filesystem::path const& p_scenario)
     {
         scan();
     }
-    PluginMatch const matched = m_catalog.matchScenario(p_scenario);
+    PluginMatch matched = m_catalog.matchScenario(p_scenario);
+    if (matched.package == nullptr)
+    {
+        // A scenario given by path: its own package, wherever it is.
+        if (PluginPackage const* found = m_catalog.add(p_scenario))
+        {
+            if (!found->resources.empty())
+            {
+                m_assets.addRoot(found->resources);
+            }
+            matched = m_catalog.matchScenario(p_scenario);
+        }
+    }
     PluginPackage const* package = matched.package;
     if (package == nullptr)
     {
@@ -94,6 +136,11 @@ PluginPrepare PluginSession::prepare(std::filesystem::path const& p_scenario)
     {
         unload();
         fallback("this plugin requires the simulator");
+        return PluginPrepare::Failed;
+    }
+    if (!dependenciesMet(copy))
+    {
+        unload();
         return PluginPrepare::Failed;
     }
     if (m_manager.loaded() && m_manager.id() != copy.id)

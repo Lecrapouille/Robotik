@@ -1,0 +1,11 @@
+id: robotik.tools
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: Tools hanging from a flange by their tool_mount link, working point tcp.
+models:
+  default: tool_default.urdf
+  drill: tool_drill.urdf
+  gripper: tool_gripper.urdf
+  vacuum: tool_vacuum.urdf
+  welding: tool_welding.urdf

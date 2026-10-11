@@ -86,7 +86,7 @@ if [ ! -f "$FLY_DATA/edges.csv" ] || [ "$FLY_CON" -nt "$FLY_DATA/edges.csv" ]; t
         python3 -m pip install --target "$FLY_PY" pyarrow
     fi
     PYTHONPATH="$FLY_PY${PYTHONPATH:+:$PYTHONPATH}" \
-        python3 ../demos/FlyBrain/prepare_edges.py \
+        python3 ../plugins/FlyBrain/prepare_edges.py \
             "$FLY_CON" "$FLY_COMP" "$FLY_DATA/edges.csv"
     cp -f "$FLY_COMP" "$FLY_DATA/completeness.csv"
 fi
