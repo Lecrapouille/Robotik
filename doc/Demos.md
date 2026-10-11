@@ -14,7 +14,7 @@ Elles ne remplacent pas le cœur de la bibliothèque, qui reste **`librobotik-co
 Une démo typique assemble plusieurs briques :
 
 ```text
-Scenario YAML
+Monde + scénario + expérience (YAML)
      +
 Mission C++
      +
@@ -23,7 +23,7 @@ Robotik core
 backend / perception / affichage
 ```
 
-Le YAML pose le cadre de l'expérience : le monde, le robot, la mission, et ce qui compte comme une réussite.
+Le YAML pose le cadre de l'expérience : le monde et ses entités, ce qui se passe, ce qui compte comme une réussite, et les variantes à comparer ([Scenario-et-Simulation.md](Scenario-et-Simulation.md)).
 
 Le C++ apporte ce qui est propre à la démo : skills, détecteurs, métriques, politiques RL ou intégrations externes.
 
@@ -43,9 +43,9 @@ Robotik-Fly
 
 **Robotik-Simulator** (`simulator/`) regarde une mission se dérouler. Son menu **Demos** liste les paquets compilés dans `build/plugins/`.
 
-**Robotik-Headless** (`headless/`) exécute le même scénario sans fenêtre.
+**Robotik-Headless** (`headless/`) exécute le même scénario sans fenêtre, ou toute une expérience, et écrit un rapport (`--report rapport.json`).
 
-Les sources des démos sont dans `demos/`. Chaque dossier est un plugin : `plugin.yaml`, le code C++, et `scenarios/` pour plusieurs exécutions du même code. Le fonctionnement et un tutoriel pour en ajouter un sont dans [Plugins.md](Plugins.md). Line follower, le pool RL et la mouche gardent en plus un exécutable (`demos/LineFollower/app`, `demos/PickAndPlaceRL/app`, `demos/FlyBrain/app`).
+Les sources des démos sont dans `plugins/`. Chaque dossier est un plugin : `plugin.yaml`, le code C++ dans `src/`, puis `worlds/`, `scenarios/` et `experiments/`. Le fonctionnement et un tutoriel pour en ajouter un sont dans [Plugins.md](Plugins.md). Line follower, le pool RL et la mouche gardent en plus un exécutable (`plugins/LineFollower/app`, `plugins/PickAndPlaceRL/app`, `plugins/FlyBrain/app`).
 
 ---
 
@@ -92,10 +92,10 @@ Elle met en jeu un bras six axes, une caméra, une chaîne de perception, des sk
 Le fichier :
 
 ```text
-demos/PickAndPlaceBT/scenarios/pick_and_place.yml
+plugins/PickAndPlaceBT/scenarios/pick_and_place.yml
 ```
 
-Il décrit la mission « qui se passe bien », sans aucune panne.
+Il décrit la mission « qui se passe bien », sans aucune panne, dans le monde `plugins/PickAndPlaceBT/worlds/pick_place_cell.yaml` : le bras, sa caméra, la ventouse montée et quatre outils rangés, le cube et le bac.
 
 Pour la lancer avec l'interface :
 
@@ -125,7 +125,7 @@ Et le même scénario en headless, avec une graine reproductible :
 Le fichier :
 
 ```text
-demos/PickAndPlaceBT/scenarios/pick_and_place_faults.yml
+plugins/PickAndPlaceBT/scenarios/pick_and_place_faults.yml
 ```
 
 Cette variante ajoute notamment une panne de caméra.
@@ -163,17 +163,48 @@ Les pannes deviennent ainsi un moyen de tester le comportement autonome, et pas 
 
 # 6. Les assertions du pick-and-place
 
-La mission peut exiger, entre autres :
+La mission exige :
 
-```text
-robot.success
-object("red_cube").inside("box")
-gripper.empty
-collisions == 0
-time < 30
+```yaml
+assertions:
+  - controller.success
+  - inside(red_cube, box)
+  - holding(gripper) == 0
+  - { condition: "collision_count(robot) == 0", phase: always }
+  - time < 30
 ```
 
 C'est bien plus pertinent que de tester des angles articulaires. Un autre contrôleur peut très bien suivre une trajectoire différente et pourtant remplir la mission.
+
+En headless, aucune image n'est rendue : le scénario demande `perception: { oracle: when_blind }`, et la position vraie du cube remplace la caméra. Les rapports le signalent (`oracle perception`). Le simulateur, lui, rend l'image et utilise le détecteur de couleur.
+
+L'expérience `plugins/PickAndPlaceBT/experiments/pick_and_place_benchmark.yaml` rejoue la mission sur trois graines, avec un cube plus dispersé et avec une caméra en panne au démarrage :
+
+```bash
+./build/Robotik-Headless \
+    build/plugins/PickAndPlaceBT/experiments/pick_and_place_benchmark.yaml \
+    --report pick.json
+```
+
+---
+
+# 6 bis. Le peintre
+
+Un bras trempe un pinceau dans quatre pots, peint un trait par couleur sur un tableau posé sur un chevalet, et rince le pinceau entre deux couleurs.
+
+Le chevalet est un corps libre : s'il est poussé, il glisse ou bascule. Le tableau est une boîte libre posée sur son rebord. Tous deux sont des entités de `plugins/Painter/worlds/painting_lab.yaml` ; les traits sont des trajectoires de `plugins/Painter/scenarios/trajectories/`, exprimées dans le repère du chevalet.
+
+Zéro collision ne prouve pas que le chevalet est resté en place. Le scénario le mesure :
+
+```yaml
+  - { condition: "pose_error(easel) < 0.002", phase: always }
+  - { condition: "pose_error(canvas) < 0.005", phase: always }
+  - { condition: "on(canvas, easel)", phase: end }
+  - name: brush loaded before the first stroke
+    sequence: [ "skill_succeeded(dip)", "skill_started(mark)" ]
+```
+
+L'expérience `painting_benchmark` reprend le portrait sur un sol glissant et avec un tableau quatre fois plus lourd.
 
 ---
 
@@ -345,7 +376,7 @@ The body is the ×100 model (`data/drosophila_x100.urdf`, about 28 cm). Flight i
 ./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
-The scenario is `demos/FlyBrain/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles. In the simulator, open it from **Demos → Fly**.
+The scenario is `plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml`: reach the food while avoiding the obstacles. In the simulator, open it from **Demos → Fly**.
 
 # 13. Pourquoi le rendu n'est pas obligatoire
 

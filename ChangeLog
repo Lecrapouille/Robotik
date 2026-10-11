@@ -1,3 +1,28 @@
+Version 0.4.0 (in progress):
+    * Architecture following "Architecture logicielle Robotik" (2026-10-11):
+      - plugins/<Name>/{plugin.yaml, src, worlds, scenarios, experiments,
+        data}; manifest v2: api_version checked before dlopen, runtime asset
+        packs and plugin dependencies checked before setup
+      - versioned asset packs (data/packs/<id>/pack.yaml, SPDX license),
+        models named robotik.tools.vacuum, no lookup relative to the
+        current directory
+      - world files: robot, tools keeping their identity and actuators,
+        simulated bodies (free/fixed URDF, free boxes), props, attachments
+        to a frame of another entity
+      - scenario files: world, controller, trajectories, faults, timeout,
+        stop_when, assertions; oracle perception only when asked
+      - assertion engine: always, end, at, within, eventually, sequence;
+        verdicts keep the measured value, the bound and the time; world
+        queries (pose_error, on, inside, collision_count...)
+      - experiments: cases, seeds, overrides, injected faults, common
+        evaluation; headless runner with a JSON report
+      - sensors: Measurement header, NoiseModel (bias, noise, resolution,
+        saturation), latency, every sensor type in YAML
+      - trajectories in their own files, in the frame of a world entity
+    * Painter: the easel and the canvas are world entities; the scenario
+      proves the easel did not move
+    * Build: binaries relink when a static archive changes
+
 Version 0.3.0:
     * Architecture following ARCHI.md:
       - compact robot API: Robot/RobotSession, SoA JointSet in SI units,

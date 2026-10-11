@@ -14,25 +14,32 @@ A robot URDF and a tool URDF stay separate files. Nothing is concatenated into a
 
 `robot_6axis.urdf` publishes `flange` and `tool0`. Inverse kinematics uses `tcp` when a tool is mounted, and `tool0` otherwise. The TCP is the working point of the tool. It is not the mount: the mount is `flange` against `tool_mount`.
 
-## Scenario
+## World file
 
-`robot.tools` names the URDF of each tool. An actuator whose `type` is one of those names mounts that tool. `type: vacuum` is the suction gripper and the key `vacuum`.
+A tool is an entity of the world, with its own identity. The mounted one hangs from `robot.flange` by its `tool_mount` link; it brings its own actuators (and sensors). Tools declared without `attach` are in storage: they are not built, but the simulator can mount one instead.
 
 ```yaml
-robot:
-  model: robot_6axis.urdf
-  tools:
-    default: tool_default.urdf
-    drill: tool_drill.urdf
-    gripper: tool_gripper.urdf
-    vacuum: tool_vacuum.urdf
-    welding: tool_welding.urdf
-  actuators:
-    arm: { type: joint_group }
-    gripper: { type: vacuum }
+world:
+  id: pick_place_cell
+  entities:
+    - id: robot
+      type: robot
+      model: robotik.robots.robot_6axis
+      actuators:
+        arm: { type: joint_group }
+    - id: vacuum
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: robot.flange, frame: tool_mount }
+      actuators:
+        gripper: { type: vacuum }
+    - { id: plain, type: tool, model: robotik.tools.default }
+    - { id: drill, type: tool, model: robotik.tools.drill }
+    - { id: fingers, type: tool, model: robotik.tools.gripper }
+    - { id: welder, type: tool, model: robotik.tools.welding }
 ```
 
-Bare names are resolved from `data/`, like robot models. The fixed joint between `flange` and `tool_mount` is the identity.
+Models are asset ids: the tools live in the pack `data/packs/robotik.tools`. The fixed joint between `flange` and `tool_mount` is the identity. Mounting the drill removes the vacuum and its `gripper` actuator: nothing sticks to the flange any more. A scenario checks the assembly with `tool_is_attached(vacuum, robot.flange)`.
 
 Every tool uses the same interface:
 
@@ -42,7 +49,7 @@ Every tool uses the same interface:
 
 `tool_mount` and `tcp` are not prefixed. One tool is mounted at a time, so those names do not collide.
 
-The simulator **Teach** panel lists the keys of `robot.tools` and reloads the scenario with that tool. **None** leaves `tool0` as the work frame.
+The simulator **Teach** panel lists the tool entities of the world and reloads the scenario with the chosen one. **None** leaves `tool0` as the work frame.
 
 ## Checks at zero joints
 
