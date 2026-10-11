@@ -359,7 +359,7 @@ experiment:
     metrics: [ time, collision_count(robot) ]
 ```
 
-The scenario does not say how the robot solves the task: the controller is only the default strategy, and the same assertions judge any other one. Details in [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md).
+The scenario does not say how the robot solves the task: the controller is only the default strategy, and the same assertions judge any other one. Details in [doc/03-Worlds-and-Scenarios.md](doc/03-Worlds-and-Scenarios.md).
 
 ---
 
@@ -423,7 +423,7 @@ reward
 observation
 ```
 
-independent of environment count and thread count. A `SimulationEnvironment` turns any scenario into an environment from three swappable parts (observation builder, action adapter, reward evaluator); spaces are named and bounded, observations read from the ground truth are flagged as privileged, and an episode ends in success, failure, time limit or technical abort. See [doc/Apprentissage.md](doc/Apprentissage.md).
+independent of environment count and thread count. A `SimulationEnvironment` turns any scenario into an environment from three swappable parts (observation builder, action adapter, reward evaluator); spaces are named and bounded, observations read from the ground truth are flagged as privileged, and an episode ends in success, failure, time limit or technical abort. See [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md).
 
 ---
 
@@ -468,6 +468,8 @@ A `build` directory should contain static and shared libraries plus executables:
 ./build/Robotik-Simulator
 ```
 
+New to robotics or to RobotIK? Read [doc/01-Introduction.md](doc/01-Introduction.md), then follow the **HelloWorld** tutorial in [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md).
+
 The **Demos** menu lists every package built under `build/plugins/`. The same scenario runs without a window, and so does a whole experiment, with a JSON report:
 
 ```bash
@@ -508,12 +510,16 @@ make tests -j"$(nproc --all)"
 | Document | Contents |
 |----------|----------|
 | [doc/README.md](doc/README.md) | Reading order, beginner → advanced |
-| [doc/Scenario-et-Simulation.md](doc/Scenario-et-Simulation.md) | World, scenario and experiment files, assertions, trajectories, ground truth |
-| [doc/BehaviorTree-et-Skills.md](doc/BehaviorTree-et-Skills.md) | BlackThorn actions, `SkillScheduler`, skills |
-| [doc/Architecture-Robotik.md](doc/Architecture-Robotik.md) | Layers, data flow, `include/Robotik/` layout |
-| [doc/Demos.md](doc/Demos.md) | Simulator, Headless, LineFollower, PickAndPlace RL |
-| [doc/Plugins.md](doc/Plugins.md) | Plugin packages, manifest, asset packs, lifecycle, short tutorial |
-| [doc/Apprentissage.md](doc/Apprentissage.md) | Reinforcement learning environments, spaces, episode ends, pool, episode log |
+| [doc/01-Introduction.md](doc/01-Introduction.md) | Robotics in ten minutes, and what RobotIK does |
+| [doc/02-Getting-Started.md](doc/02-Getting-Started.md) | Build, simulator, headless, reports |
+| [doc/03-Worlds-and-Scenarios.md](doc/03-Worlds-and-Scenarios.md) | World, scenario and experiment files, assertions, trajectories, ground truth |
+| [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md) | The HelloWorld tutorial, writing a plugin, manifest, asset packs |
+| [doc/05-Skills-and-Behavior-Trees.md](doc/05-Skills-and-Behavior-Trees.md) | Skills, resources, `SkillScheduler`, BlackThorn trees, faults |
+| [doc/06-Architecture.md](doc/06-Architecture.md) | Layers, data flow, `include/Robotik/` layout |
+| [doc/07-API-Reference.md](doc/07-API-Reference.md) | The classes a plugin uses |
+| [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md) | Environments, spaces, episode ends, pool, episode log |
+| [doc/09-Demos.md](doc/09-Demos.md) | HelloWorld, pick and place, painter, line follower, RL, fly brain |
+| [doc/10-Tools-and-Frames.md](doc/10-Tools-and-Frames.md) | Flange, tool, TCP |
 
 ---
 
