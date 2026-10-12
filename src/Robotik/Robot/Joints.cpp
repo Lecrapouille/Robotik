@@ -218,12 +218,19 @@ void JointSet::control(Seconds p_dt)
             case JointMode::Position:
             {
                 // Slewing the reference avoids a torque step on a new target.
-                double const speed = std::isfinite(bounds.velocity)
-                                         ? bounds.velocity * gains.speed_ratio
-                                         : DEFAULT_SLEW_RATE;
-                double const step = speed * dt;
-                m_references[i] += std::clamp(
-                    m_targets[i] - m_references[i], -step, step);
+                if (std::isinf(gains.speed_ratio))
+                {
+                    m_references[i] = m_targets[i];
+                }
+                else
+                {
+                    double const speed = std::isfinite(bounds.velocity)
+                                             ? bounds.velocity * gains.speed_ratio
+                                             : DEFAULT_SLEW_RATE;
+                    double const step = speed * dt;
+                    m_references[i] += std::clamp(
+                        m_targets[i] - m_references[i], -step, step);
+                }
                 effort = gains.kp * (m_references[i] - m_positions[i]) -
                          gains.kd * m_velocities[i];
                 break;

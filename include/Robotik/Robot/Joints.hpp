@@ -140,6 +140,8 @@ struct JointGains
     //!< Position loop damping (N.m.s/rad or N.s/m).
     double kd = 15.0;
     //!< Largest reference slew as a fraction of the velocity limit.
+    //!< Infinity: no slew, the PD loop aims at the target at once (targets
+    //!< already smooth, e.g. from a learned policy).
     double speed_ratio = 0.5;
     //!< Velocity loop gain (N.m.s/rad or N.s/m).
     double velocity_kp = 5.0;

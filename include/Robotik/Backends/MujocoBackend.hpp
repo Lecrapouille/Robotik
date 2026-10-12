@@ -37,6 +37,13 @@ struct MujocoOptions
     double floor_friction = 1.0;
     //!< Physics step; the joint loops run at this rate.
     Seconds timestep{ 0.001 };
+    //!< Adds gravity and Coriolis (@c qfrc_bias) to the actuated joints, as
+    //!< an industrial drive does. A legged robot runs by a learned policy
+    //!< turns it off: the policy was trained without it.
+    bool gravity_compensation = true;
+    //!< Reflected rotor inertia per joint name (kg.m²): rotor inertia times
+    //!< the gear ratio squared. URDF cannot carry it.
+    std::unordered_map<std::string, double> armature;
 };
 
 // ****************************************************************************
@@ -105,7 +112,8 @@ struct FreeBox
 //!     coincide; multi-DOF joints (free, ball) do not share the @b qpos layout.
 //! @li @c qfrc_applied — external generalized forces added each step: the
 //!     joint loop efforts (@ref JointSet::control) plus the gravity
-//!     compensation of the actuated joints (@c qfrc_bias).
+//!     compensation of the actuated joints (@c qfrc_bias), unless
+//!     @ref MujocoOptions::gravity_compensation is off.
 //! @li @c ctrl — actuator commands @c mjData.ctrl, used instead of
 //!     @c qfrc_applied for joints that the URDF wires to a MuJoCo actuator.
 //! @li @c mj_forward — recomputes kinematics and forces from the current

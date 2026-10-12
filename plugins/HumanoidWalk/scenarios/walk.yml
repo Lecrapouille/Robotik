@@ -1,0 +1,19 @@
+# The humanoid stands, then walks until the run is stopped. The panel
+# "Humanoid" changes the command while it walks: forward, left, turn.
+scenario:
+  id: walk
+  description: Stand one second, then walk with the command of the panel.
+  world: ../worlds/flat_ground.yaml
+  seed: 1
+  controller:
+    behavior_tree: walk_circle.bt.yml
+
+  parameters:
+    stand_duration: 1.0    # s
+    walk_duration: 0.0     # s, 0: walk until the run is stopped
+    vx: 0.3                # m/s, forward
+    vy: 0.0                # m/s, to the left
+    yaw_rate: 0.3          # rad/s, counter-clockwise
+
+  assertions:
+    - { condition: "humanoid.height_min > 0.7", phase: always }
