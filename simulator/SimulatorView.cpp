@@ -268,14 +268,25 @@ void SimulatorView::ink(double p_y, double p_z, float p_red, float p_green, floa
     (void)m_paint.sync();
 }
 
-bool SimulatorView::showFrame(robotik::CameraFrame const& p_frame)
+RenderTarget const& SimulatorView::frameTarget(std::size_t p_index)
+{
+    while (m_frames.size() <= p_index)
+    {
+        m_frames.push_back(std::make_unique<RenderTarget>());
+    }
+    return *m_frames[p_index];
+}
+
+bool SimulatorView::showFrame(std::size_t p_index, robotik::CameraFrame const& p_frame)
 {
     robotik::Image const& image = p_frame.rgb;
     if (image.format() != robotik::PixelFormat::RGB8 || image.empty())
     {
         return false;
     }
-    if (!m_frame.resize(image.width(), image.height()))
+    (void)frameTarget(p_index);
+    RenderTarget& target = *m_frames[p_index];
+    if (!target.resize(image.width(), image.height()))
     {
         return false;
     }
@@ -287,5 +298,5 @@ bool SimulatorView::showFrame(robotik::CameraFrame const& p_frame)
                     image.row<std::uint8_t>(y),
                     stride);
     }
-    return static_cast<bool>(m_frame.color.write(pixels));
+    return static_cast<bool>(target.color.write(pixels));
 }

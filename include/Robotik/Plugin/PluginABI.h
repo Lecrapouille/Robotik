@@ -99,6 +99,8 @@ typedef struct RobotikCanvas
                       int min_value,
                       int max_value);
     void (*separator)(RobotikCanvas const* canvas);
+    /* Appended: check size before use. Returns 1 when clicked. */
+    int (*radio)(RobotikCanvas const* canvas, char const* label, int active);
 } RobotikCanvas;
 
 typedef struct RobotikPluginVTable

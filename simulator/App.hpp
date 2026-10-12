@@ -24,10 +24,66 @@
 #include <string>
 #include <vector>
 
-inline constexpr char const* TEACH_PANEL = "Teach";
-inline constexpr char const* TIMELINE_PANEL = "Timeline";
-inline constexpr char const* SKILL_LIST_PANEL = "Skill list";
-inline constexpr char const* SKILLS_PANEL = "Skills";
+// ****************************************************************************
+//! @brief A workspace groups the panels of one task. Each one has its own
+//! dock layout, saved in imgui.ini.
+// ****************************************************************************
+enum class Workspace : std::uint8_t
+{
+    Plugin,   //!< What is loaded: package, scenarios, world, assertions, files.
+    Robot,    //!< Joints, limits, plots, teach pendant, cameras.
+    Mission,  //!< Behavior tree, skills, timeline, resources.
+    Autonomy, //!< Beliefs against truth, perception.
+};
+
+inline constexpr std::size_t WORKSPACE_COUNT = 4u;
+
+// ****************************************************************************
+//! @brief Recent joint states, for the plots. A ring buffer per series.
+// ****************************************************************************
+struct JointHistory
+{
+    static constexpr std::size_t CAPACITY = 3000u;
+
+    std::vector<float> time;
+    std::vector<std::vector<float>> position;
+    std::vector<std::vector<float>> velocity;
+    std::vector<std::vector<float>> acceleration;
+    std::vector<std::vector<float>> effort;
+    //!< Index of the oldest sample once the buffer is full.
+    std::size_t head = 0;
+    std::size_t count = 0;
+
+    void clear();
+    void record(robotik::Simulation const& p_simulation);
+    //! @brief Index of the latest sample, or CAPACITY when empty.
+    [[nodiscard]] std::size_t latest() const;
+};
+
+// ****************************************************************************
+//! @brief Operator interface state, kept across scenario loads.
+// ****************************************************************************
+struct UiState
+{
+    Workspace workspace = Workspace::Mission;
+    //!< Rebuild the dock layout of the current workspace.
+    bool reset_layout = false;
+    //!< Dock the plugin panels in the current workspace, then focus them.
+    bool place_plugin_panels = false;
+    bool focus_plugin_panel = false;
+    bool show_shortcuts = false;
+    bool show_open = false;
+    //!< Scenario to load at the start of the next frame.
+    std::filesystem::path pending_scenario;
+    std::string open_path;
+    //!< Skills panel: cards (false) or a table (true).
+    bool skills_table = false;
+    //!< Joints drawn in the plots.
+    std::vector<bool> plotted;
+    float plot_window_s = 10.0f;
+    //!< Simulated seconds per real second, smoothed.
+    float realtime_factor = 0.0f;
+};
 
 struct TeachWatch
 {
@@ -48,6 +104,9 @@ struct App
     std::filesystem::path scenario_path;
     std::string scenario_title;
     std::string scenario_text;
+    std::filesystem::path world_path;
+    std::string world_text;
+    std::string tree_text;
     std::string error;
     //! @brief The loaded package advances time inside its own update.
     bool owns_clock = false;
@@ -60,6 +119,8 @@ struct App
     std::unique_ptr<robotik::Mission> mission;
     std::unique_ptr<robotik::Simulation> simulation;
     TeachWatch teach;
+    UiState ui;
+    JointHistory history;
     compages::world::Entity view_camera;
 
     RenderTarget view;
@@ -79,10 +140,10 @@ struct App
 
 private:
 
+    void step(double p_elapsed);
+
     double m_lag = 0.0;
     bool m_reported = false;
 };
 
 void drawPanels(App& p_app);
-void teachPanel(App& p_app);
-void skillsBoard(App& p_app);

@@ -110,6 +110,19 @@ public:
     // -------------------------------------------------------------------------
     void useConnectome(bool p_connectome);
 
+    // -------------------------------------------------------------------------
+    //! @brief Builds a brain without touching the mission: safe on another
+    //! thread. Loading the connectome reads large files (seconds).
+    //! @throws std::runtime_error when the tables cannot be read.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] static std::unique_ptr<FlyBrain> buildBrain(bool p_connectome, float p_cruise);
+
+    //! @brief Cruise height given to a new brain.
+    [[nodiscard]] float cruise() const;
+
+    //! @brief Replaces the brain and restarts the episode.
+    void installBrain(std::unique_ptr<FlyBrain> p_brain);
+
     [[nodiscard]] FlyBrain const* brain() const
     {
         return m_brain.get();

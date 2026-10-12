@@ -64,7 +64,10 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
         return fail(ROBOTIK_PLUGIN_ERR_STATE, "plugin is already loaded");
     }
     m_error.clear();
-    m_library = dlopen(p_path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    // NODELETE: dlclose must not unmap the code. A plugin's dependencies
+    // (OpenCV and its thread pool) keep threads alive after the plugin is
+    // gone; unmapping them crashes the host at the next library switch.
+    m_library = dlopen(p_path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
     if (m_library == nullptr)
     {
         char const* failure = dlerror();

@@ -76,7 +76,7 @@ _SCENARIO_STOPPED | _SKILL_COMPLETED | _SKILL_FAILED | _ASSERTION_CHANGED)`,
 `addPanel(id, title, void(*)(void*, RobotikCanvas const*), this)`.
 Callbacks are static functions casting `user` back; wrap the canvas as
 `robotik::Canvas(p_canvas)` (`text`, `textColored`, `button`, `checkbox`,
-`sliderInt`, `separator`), valid only during the draw.
+`radio`, `sliderInt`, `separator`), valid only during the draw.
 
 ## Rules
 

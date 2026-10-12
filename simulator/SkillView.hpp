@@ -9,17 +9,14 @@
 
 #include "Robotik/Runtime/Scheduler.hpp"
 
+#include "Colors.hpp"
+
 #include <imgui.h>
 
 #include <algorithm>
 #include <string>
 #include <vector>
 
-inline ImVec4 const GREY(0.55f, 0.55f, 0.58f, 1.0f);
-inline ImVec4 const ORANGE(1.00f, 0.70f, 0.20f, 1.0f);
-inline ImVec4 const GREEN(0.35f, 0.85f, 0.40f, 1.0f);
-inline ImVec4 const RED(0.95f, 0.35f, 0.35f, 1.0f);
-inline ImVec4 const BLUE(0.45f, 0.65f, 1.00f, 1.0f);
 
 inline ImVec4 colorOf(robotik::SkillState p_state)
 {

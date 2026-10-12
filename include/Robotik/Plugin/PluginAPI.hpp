@@ -11,6 +11,7 @@
 
 #include "Robotik/Plugin/PluginABI.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -105,6 +106,19 @@ public:
         }
         std::string label(p_label);
         return m_canvas->slider_int(m_canvas, label.c_str(), &p_value, p_min, p_max) != 0;
+    }
+
+    //! @brief Radio button: drawn selected when @p_active. True when clicked.
+    [[nodiscard]] bool radio(std::string_view p_label, bool p_active) const
+    {
+        if (m_canvas == nullptr ||
+            m_canvas->size < offsetof(RobotikCanvas, radio) + sizeof(m_canvas->radio) ||
+            m_canvas->radio == nullptr)
+        {
+            return false;
+        }
+        std::string label(p_label);
+        return m_canvas->radio(m_canvas, label.c_str(), p_active ? 1 : 0) != 0;
     }
 
     void separator() const

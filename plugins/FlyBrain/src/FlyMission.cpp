@@ -309,18 +309,32 @@ robotik::Status FlyMission::status(robotik::Simulation const& /*p_simulation*/) 
     return m_backend->done() ? robotik::Status::FAILURE : robotik::Status::RUNNING;
 }
 
-void FlyMission::useConnectome(bool p_connectome)
+std::unique_ptr<FlyBrain> FlyMission::buildBrain(bool p_connectome, float p_cruise)
 {
-    float const cruise = static_cast<float>(m_environment->scenario().target.z);
-    auto brain = std::make_unique<FlyBrain>(FlyBrain::Kind::Shiu, cruise);
+    auto brain = std::make_unique<FlyBrain>(FlyBrain::Kind::Shiu, p_cruise);
     if (p_connectome)
     {
         brain->loadConnectome(flywire("edges.csv"), flywire("binding.txt"));
     }
-    m_brain = std::move(brain);
+    return brain;
+}
+
+float FlyMission::cruise() const
+{
+    return static_cast<float>(m_environment->scenario().target.z);
+}
+
+void FlyMission::installBrain(std::unique_ptr<FlyBrain> p_brain)
+{
+    m_brain = std::move(p_brain);
     m_kind = FlyBrain::Kind::Shiu;
     if (m_simulation != nullptr)
     {
         m_simulation->reset(m_seed);
     }
+}
+
+void FlyMission::useConnectome(bool p_connectome)
+{
+    installBrain(buildBrain(p_connectome, cruise()));
 }
