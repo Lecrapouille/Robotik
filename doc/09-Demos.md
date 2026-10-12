@@ -187,8 +187,9 @@ grasping, range sensors and ground truth.
 ./build/Robotik-Headless build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml
 ```
 
-In the simulator, the **Fly brain** panel shows the state and switches to the
-FlyWire connectome.
+In the simulator, the **Fly brain** panel shows the state and chooses the
+brain: the small circuit, or the FlyWire connectome (loaded in the
+background, a few seconds). The **Cameras** panel shows both eyes.
 
 ---
 

@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "App.hpp"
 #include "SkillView.hpp"
+#include "Ui.hpp"
 
 #include <imgui.h>
 
@@ -660,12 +660,102 @@ robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
     return last;
 }
 
+//! @brief Every skill in one table: priority, resources, state, reason.
+void skillTable(App& p_app)
+{
+    robotik::Simulation& simulation = *p_app.simulation;
+    robotik::SkillScheduler& skills = simulation.skills();
+    robotik::ResourceManager const& resources = simulation.robot().resources();
+    if (ImGui::BeginTable("skills",
+                          6,
+                          ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
+                              ImGuiTableFlags_ScrollY))
+    {
+        ImGui::TableSetupColumn("Skill");
+        ImGui::TableSetupColumn("Priority");
+        ImGui::TableSetupColumn("Resources");
+        ImGui::TableSetupColumn("State");
+        ImGui::TableSetupColumn("Why", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("");
+        ImGui::TableHeadersRow();
+        for (robotik::SkillId id = 0; id < skills.size(); ++id)
+        {
+            robotik::SkillDescription const& description =
+                skills.description(id);
+            robotik::SkillState const state = skills.state(id);
+            ImGui::PushID(static_cast<int>(id));
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(description.name.c_str());
+            ImGui::TableNextColumn();
+            ImGui::Text("%d%s",
+                        description.priority,
+                        description.cancellable ? "" : " (locked)");
+            ImGui::TableNextColumn();
+            std::string needs;
+            for (robotik::ResourceRequirement const& need :
+                 description.resources)
+            {
+                needs += needs.empty() ? "" : " ";
+                needs += resources.name(need.id);
+            }
+            ImGui::TextUnformatted(needs.c_str());
+            ImGui::TableNextColumn();
+            ImGui::TextColored(colorOf(state), "%s", robotik::toString(state));
+            ImGui::TableNextColumn();
+            ImGui::TextUnformatted(skillWhy(skills, resources, id).c_str());
+            ImGui::TableNextColumn();
+            if (state == robotik::SkillState::Running ||
+                state == robotik::SkillState::Waiting)
+            {
+                if (ImGui::SmallButton("Cancel"))
+                {
+                    skills.cancel(id);
+                }
+            }
+            else if (ImGui::SmallButton("Request"))
+            {
+                skills.request(id);
+            }
+            ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+}
+
 } // namespace
 
-void skillsBoard(App& p_app)
+void skillsPanel(App& p_app)
 {
-    if (!ImGui::Begin(SKILLS_PANEL) || !p_app.simulation)
+    if (!ImGui::Begin("Skills"))
     {
+        ImGui::End();
+        return;
+    }
+    if (!p_app.simulation)
+    {
+        emptyState("No scenario loaded.");
+        ImGui::End();
+        return;
+    }
+    // One panel, two views of the same skills.
+    if (ImGui::RadioButton("Cards", !p_app.ui.skills_table))
+    {
+        p_app.ui.skills_table = false;
+    }
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Table", p_app.ui.skills_table))
+    {
+        p_app.ui.skills_table = true;
+    }
+    ImGui::SameLine();
+    helpMarker("Cards group the skills by state (running, waiting, last run, idle). "
+               "The table lists them all with their resources. Request runs a skill by hand; "
+               "Cancel stops it.");
+    ImGui::Separator();
+    if (p_app.ui.skills_table)
+    {
+        skillTable(p_app);
         ImGui::End();
         return;
     }

@@ -503,8 +503,8 @@ always: a `static` function that casts `user` back to your object.
     }
 ```
 
-`Canvas` offers `text`, `textColored`, `button`, `checkbox`, `sliderInt` and
-`separator`. It is valid **only during the draw call**: never keep it.
+`Canvas` offers `text`, `textColored`, `button`, `checkbox`, `radio`,
+`sliderInt` and `separator`. It is valid **only during the draw call**: never keep it.
 
 The menu entry **Hello world → Home** (and the key **H**) asks the
 simulation to run the built-in skill `Home`:

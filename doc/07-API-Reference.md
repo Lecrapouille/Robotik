@@ -87,7 +87,8 @@ your method throws: the exception is caught and reported).
 Valid only during the draw callback.
 
 `text(line)`, `textColored(r, g, b, line)`, `bool button(label)`,
-`bool checkbox(label, bool&)`, `bool sliderInt(label, int&, min, max)`,
+`bool checkbox(label, bool&)`, `bool radio(label, bool active)`,
+`bool sliderInt(label, int&, min, max)`,
 `separator()`. The `bool` results are true when the user acted.
 
 ---

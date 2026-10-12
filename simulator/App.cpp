@@ -35,6 +35,82 @@ void tuneViewOrbit(compages::world::World& p_world,
 #define SIMULATOR_DT_S 0.01
 #define SIMULATOR_MAX_STEPS_PER_FRAME 8
 
+static std::string readText(std::filesystem::path const& p_path)
+{
+    std::ifstream file(p_path);
+    if (!file)
+    {
+        return {};
+    }
+    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+}
+
+void JointHistory::clear()
+{
+    time.clear();
+    position.clear();
+    velocity.clear();
+    acceleration.clear();
+    effort.clear();
+    head = 0;
+    count = 0;
+}
+
+std::size_t JointHistory::latest() const
+{
+    if (count == 0)
+    {
+        return CAPACITY;
+    }
+    return (head + count - 1u) % CAPACITY;
+}
+
+void JointHistory::record(robotik::Simulation const& p_simulation)
+{
+    robotik::JointSet const& joints = p_simulation.robot().joints();
+    std::size_t const size = joints.size();
+    if (position.size() != size || time.size() != CAPACITY)
+    {
+        clear();
+        time.assign(CAPACITY, 0.0f);
+        position.assign(size, std::vector<float>(CAPACITY, 0.0f));
+        velocity.assign(size, std::vector<float>(CAPACITY, 0.0f));
+        acceleration.assign(size, std::vector<float>(CAPACITY, 0.0f));
+        effort.assign(size, std::vector<float>(CAPACITY, 0.0f));
+    }
+    std::size_t const previous = latest();
+    float const now = static_cast<float>(p_simulation.time().value());
+    if (previous != CAPACITY && now <= time[previous])
+    {
+        return;
+    }
+    std::size_t slot = 0;
+    if (count < CAPACITY)
+    {
+        slot = (head + count) % CAPACITY;
+        ++count;
+    }
+    else
+    {
+        slot = head;
+        head = (head + 1u) % CAPACITY;
+    }
+    time[slot] = now;
+    for (robotik::JointId id = 0; id < size; ++id)
+    {
+        float const speed = static_cast<float>(joints.velocity(id));
+        position[id][slot] = static_cast<float>(joints.position(id));
+        velocity[id][slot] = speed;
+        effort[id][slot] = static_cast<float>(joints.effort(id));
+        float accel = 0.0f;
+        if (previous != CAPACITY && now > time[previous])
+        {
+            accel = (speed - velocity[id][previous]) / (now - time[previous]);
+        }
+        acceleration[id][slot] = accel;
+    }
+}
+
 static void report(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
@@ -70,6 +146,11 @@ void App::load(bool p_keep_tool)
     error.clear();
     scenario_title.clear();
     scenario_text.clear();
+    world_path.clear();
+    world_text.clear();
+    tree_text.clear();
+    history.clear();
+    ui.realtime_factor = 0.0f;
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
@@ -97,11 +178,7 @@ void App::load(bool p_keep_tool)
     scene_view = std::make_unique<SimulatorView>(*scene);
     try
     {
-        if (std::ifstream file(scenario_path); file)
-        {
-            scenario_text.assign(std::istreambuf_iterator<char>(file),
-                                 std::istreambuf_iterator<char>());
-        }
+        scenario_text = readText(scenario_path);
         if (plugins.catalog().packages().empty())
         {
             plugins.scan();
@@ -119,6 +196,9 @@ void App::load(bool p_keep_tool)
         }
         robotik::Scenario scenario =
             robotik::Scenario::load(scenario_path, plugins.assets());
+        world_path = robotik::ScenarioSource::load(scenario_path).world_file;
+        world_text = readText(world_path);
+        tree_text = readText(scenario.controller.behavior_tree);
         if (tool_override)
         {
             scenario.world.mount(tool_override_name);
@@ -152,6 +232,11 @@ void App::load(bool p_keep_tool)
         return;
     }
     seed = simulation->seed().value;
+    ui.plotted.assign(simulation->robot().joints().size(),
+                      simulation->robot().joints().size() <= 8u);
+    ui.place_plugin_panels = true;
+    ui.focus_plugin_panel = true;
+    history.record(*simulation);
 
     if (!scene_view->hasGround())
     {
@@ -193,6 +278,8 @@ void App::reset(std::uint64_t p_seed)
     }
     seed = p_seed;
     simulation->reset(robotik::Seed{ p_seed });
+    history.clear();
+    history.record(*simulation);
     m_lag = 0.0;
     m_reported = false;
 }
@@ -203,6 +290,26 @@ void App::advance(double p_elapsed)
     {
         return;
     }
+    double const before = simulation->time().value();
+    step(p_elapsed);
+    if (simulation)
+    {
+        history.record(*simulation);
+        if (playing && p_elapsed > 0.0)
+        {
+            float const rate =
+                static_cast<float>((simulation->time().value() - before) / p_elapsed);
+            ui.realtime_factor = 0.9f * ui.realtime_factor + 0.1f * rate;
+        }
+        else
+        {
+            ui.realtime_factor = 0.0f;
+        }
+    }
+}
+
+void App::step(double p_elapsed)
+{
     if (owns_clock)
     {
         if (step_once)
@@ -256,6 +363,7 @@ void App::advance(double p_elapsed)
         }
         simulation->step(Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);
+        history.record(*simulation);
         m_lag -= SIMULATOR_DT_S;
         ++steps;
     }

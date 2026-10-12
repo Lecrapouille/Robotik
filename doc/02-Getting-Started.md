@@ -51,19 +51,49 @@ Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
 scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and
 right for six seconds.
 
-Useful things in the window:
+The window has four parts:
 
-| Element | What it does |
-|---------|--------------|
-| **Demos** menu | Loads a scenario |
-| **Scenario file** panel | Path of the scenario, **Play / Pause**, **Step** (one step), the **seed**, **Replay**, **New seed** |
-| **Scenario** panel | The assertions: `[pass]` in green, `[FAIL]` in red, or the current value while waiting. Also truth against belief |
-| **Skills** panel | Which skills run, wait or failed, and why |
-| **Behavior tree** panel | The tree, with the state of each node |
-| **Robot camera** panel | What the robot camera sees |
-| **Resources** panel | Which skill holds which resource, which resource is in fault |
-| **Teach** panel | Moves the joints by hand, changes the tool |
-| Plugin panel | Each plugin can add its own panel (here: **Hello world**) |
+```text
+┌ File  Demos  View  <plugin menus>  Help      [Plugin] [Robot] [Mission] [Autonomy] ┐  menu + workspaces
+├──────────────┬───────────────────────────────────────────────┬─────────────────────┤
+│              │ [Play] [Step] [Replay] seed [Next seed] speed │                     │
+│  panels of   │               3D scene        [EMERGENCY STOP]│  panels of the      │
+│  the         │                                               │  workspace, and the │
+│  workspace   ├───────────────────────────────────────────────┤  plugin panel       │
+│              │  panels of the workspace                      │                     │
+├──────────────┴───────────────────────────────────────────────┴─────────────────────┤
+│ RUNNING  Pick and place  seed 42  Assertions 3/5            t 4.2 s  x1.0 real time │  status bar
+└─────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+The run controls are on the 3D scene. The **status bar** always says what is
+happening: the state of the run, the scenario, the seed, how many assertions
+pass (click it to see them), the simulated time and the real-time factor.
+
+A **workspace** is a set of panels for one task. Switch with the buttons at
+the top, or with **Ctrl+1** to **Ctrl+4**:
+
+| Workspace | Panels | Use it to |
+|-----------|--------|-----------|
+| **Plugin** | Plugin (package, scenarios, experiments, this scenario), World (entity tree), Assertions (table), Files (scenario, world and tree YAML) | See what is loaded and whether it passes |
+| **Robot** | Robot (joints with limits, velocity, effort, manual moves), Joint plots, Teach (tool, Cartesian moves, waypoints), Cameras | Look at the body, move it by hand |
+| **Mission** | Behavior tree, Timeline (with the resources), Assertions, Skills (cards or table) | Debug the execution |
+| **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |
+
+The panel of the plugin (here **Hello world**) opens by itself next to the
+panels of the workspace. You can move and dock every panel; the layout of
+each workspace is saved in `~/.config/robotik/simulator.ini`. **View → Reset
+layout** puts it back.
+
+Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
+
+| Key | Does |
+|-----|------|
+| Space | Play / pause |
+| `.` | One step, when paused |
+| Ctrl+R / Ctrl+N | Replay with the same seed / the next seed |
+| Ctrl+E | Emergency stop, or release it |
+| F5 | Reload the scenario file (after you edit it) |
 
 You can also give a scenario file directly:
 
@@ -152,7 +182,8 @@ The goal: see that a scenario *is* a test.
    The failure keeps the **measured value**, the **expected bound** and the
    **time**: you know immediately the joint turned 0.6 rad, not 0.9.
 4. Open the same file in the simulator. The assertion is red in the
-   **Scenario** panel, but the simulation **does not stop**: a failed
+   **Assertions** panel (Plugin workspace) and the status bar says
+   `Assertions 2/3`, but the simulation **does not stop**: a failed
    assertion is a verdict, not an emergency stop.
 5. Put back `0.4` (or run `make` again: it copies the sources over `build/`).
 
