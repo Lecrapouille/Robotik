@@ -1,0 +1,41 @@
+# A LimX HU_D04_01 humanoid (1.6 m, 47 kg, 31 joints) standing on a flat
+# floor. Only the feet collide. Z-up, metres, radians.
+world:
+  id: flat_ground
+  floor: { friction: 1.0 }
+  entities:
+    - id: humanoid
+      type: robot
+      model: robotik.limx.hu_d04_01
+      # Feet on the floor in the home posture, facing +x: a left turn of
+      # 1 m radius circles the origin.
+      pose: { position: [0.0, -1.0, 0.905] }
+      # Default posture of the walking policy (walk.yaml default_angle).
+      home:
+        left_hip_pitch_joint: -0.15
+        left_hip_roll_joint: 0.0
+        left_hip_yaw_joint: -0.05
+        left_knee_joint: 0.3
+        left_ankle_pitch_joint: -0.16
+        left_ankle_roll_joint: 0.0
+        right_hip_pitch_joint: -0.15
+        right_hip_roll_joint: 0.0
+        right_hip_yaw_joint: 0.05
+        right_knee_joint: 0.3
+        right_ankle_pitch_joint: -0.16
+        right_ankle_roll_joint: 0.0
+        left_shoulder_pitch_joint: 0.1
+        left_shoulder_roll_joint: 0.1
+        left_shoulder_yaw_joint: -0.2
+        left_elbow_joint: -0.2
+        right_shoulder_pitch_joint: 0.1
+        right_shoulder_roll_joint: -0.1
+        right_shoulder_yaw_joint: 0.2
+        right_elbow_joint: -0.2
+      sensors:
+        # On the pelvis, as on the real robot. Sampled at the physics rate:
+        # the angular velocity is a finite difference of the attitude.
+        imu: { type: imu, parent: base_link, frequency: 1000 }
+      actuators:
+        # Every joint: the resource reserved by the Stand and Walk skills.
+        body: { type: joint_group }

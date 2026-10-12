@@ -39,3 +39,13 @@ AprilRobotics/apriltag
 ### compile-external-libs extracts the FlyWire v783 tables into data/flywire.
 ### License: MIT
 philshiu/Drosophila_brain_model
+
+### LimX HU_D04 humanoid: URDF and meshes (HumanoidWalk plugin only).
+### compile-external-libs copies what walking needs into plugins/HumanoidWalk/data.
+### License: Apache-2.0
+limxdynamics/humanoid-description
+
+### LimX humanoid controllers: the trained walking policy (HumanoidWalk only).
+### Nothing is compiled: only policy.onnx and param.yaml are read.
+### License: Apache-2.0
+limxdynamics/humanoid-rl-deploy-cpp

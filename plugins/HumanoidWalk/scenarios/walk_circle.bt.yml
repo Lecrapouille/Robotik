@@ -1,0 +1,9 @@
+# Stand and Walk are skills of the plugin (WalkMission).
+BehaviorTree:
+  Sequence:
+    name: WalkCircle
+    children:
+      - Action:
+          name: Stand
+      - Action:
+          name: Walk
