@@ -34,7 +34,7 @@ external/    third-party sources (do not edit)      build/  outputs (generated)
 ```
 
 Plugins: HelloWorld (tutorial + test fixture), PickAndPlaceBT (reference),
-Painter, LineFollower, PickAndPlaceRL, FlyBrain.
+Painter, LineFollower, PickAndPlaceRL, FlyBrain, HumanoidWalk (ONNX policy).
 
 ## Commands
 

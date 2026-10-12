@@ -90,3 +90,27 @@ if [ ! -f "$FLY_DATA/edges.csv" ] || [ "$FLY_CON" -nt "$FLY_DATA/edges.csv" ]; t
             "$FLY_CON" "$FLY_COMP" "$FLY_DATA/edges.csv"
     cp -f "$FLY_COMP" "$FLY_DATA/completeness.csv"
 fi
+
+###############################################################################
+### ONNX Runtime: inference of the HumanoidWalk policy. The prebuilt release
+### of Microsoft, private to this tree.
+ORT_VERSION="1.20.1"
+ORT_DIR="onnxruntime"
+print-compile "$ORT_DIR"
+if [ ! -f "$ORT_DIR/include/onnxruntime_cxx_api.h" ]; then
+    case "$(uname -m)" in
+        x86_64) ORT_ARCH="x64" ;;
+        aarch64) ORT_ARCH="aarch64" ;;
+        *) echo "No ONNX Runtime release for $(uname -m)"; exit 1 ;;
+    esac
+    ORT_NAME="onnxruntime-linux-$ORT_ARCH-$ORT_VERSION"
+    curl -Ls "https://github.com/microsoft/onnxruntime/releases/download/v$ORT_VERSION/$ORT_NAME.tgz" | tar -xz
+    rm -rf "$ORT_DIR" && mv "$ORT_NAME" "$ORT_DIR"
+fi
+
+###############################################################################
+### LimX HU_D04_01 humanoid: the serial URDF, its meshes and the walking policy
+### go into the pack of the HumanoidWalk plugin. Those files are gitignored.
+print-compile "humanoid-description"
+python3 -I ../plugins/HumanoidWalk/prepare_assets.py \
+    humanoid-description humanoid-rl-deploy-cpp ../plugins/HumanoidWalk/data

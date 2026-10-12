@@ -279,6 +279,16 @@ static void edit(mjSpec* p_spec,
             mjs_asGeom(geom)->friction[0] = friction;
         }
     }
+    for (auto const& [name, armature] : p_options.armature)
+    {
+        mjsElement* joint = mjs_findElement(p_spec, mjOBJ_JOINT, name.c_str());
+        if (joint == nullptr)
+        {
+            throw std::runtime_error("MuJoCo: no joint '" + name +
+                                     "' for the armature option");
+        }
+        mjs_asJoint(joint)->armature = armature;
+    }
 }
 
 namespace
@@ -836,6 +846,7 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
 
         // qfrc_bias holds gravity and Coriolis at the last mj_forward state.
         // Only the actuated joints are compensated: a floating base falls.
+        bool const compensate = m_options.gravity_compensation;
         mju_zero(data->qfrc_applied, static_cast<int>(model->nv));
         if (model->nu > 0)
         {
@@ -848,7 +859,7 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
             {
                 continue;
             }
-            data->qfrc_applied[binding.dof] = data->qfrc_bias[binding.dof];
+            data->qfrc_applied[binding.dof] = compensate ? data->qfrc_bias[binding.dof] : 0.0;
             if (binding.actuator >= 0)
             {
                 data->ctrl[binding.actuator] = joints.effort(id);

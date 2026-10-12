@@ -1,0 +1,24 @@
+# The humanoid stands, then walks in a circle: a forward speed and a yaw
+# rate draw a circle of radius vx / yaw_rate (1 m here, one turn in 21 s).
+scenario:
+  id: walk_circle
+  description: Stand one second, then walk in a circle of one metre.
+  world: ../worlds/flat_ground.yaml
+  seed: 1
+  controller:
+    behavior_tree: walk_circle.bt.yml
+  timeout: 40
+
+  parameters:
+    stand_duration: 1.0    # s
+    walk_duration: 25.0    # s, a bit more than one turn
+    vx: 0.3                # m/s, forward
+    vy: 0.0                # m/s, to the left
+    yaw_rate: 0.3          # rad/s, counter-clockwise
+
+  assertions:
+    - controller.success
+    - { condition: "humanoid.height_min > 0.7", phase: always }
+    - humanoid.turns > 1
+    - humanoid.radius > 0.6
+    - humanoid.radius < 1.4
