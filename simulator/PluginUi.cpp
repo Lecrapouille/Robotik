@@ -5,13 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "PluginUi.hpp"
+#include "Ui.hpp"
 
-#include "App.hpp"
-#include "SkillView.hpp"
+#include <imgui_internal.h>
 
 #include <imgui.h>
 
+#include <algorithm>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -64,6 +65,11 @@ int canvasSlider(RobotikCanvas const* /*p_canvas*/,
     return ImGui::SliderInt(p_label != nullptr ? p_label : "", p_value, p_min, p_max) ? 1 : 0;
 }
 
+int canvasRadio(RobotikCanvas const* /*p_canvas*/, char const* p_label, int p_active)
+{
+    return ImGui::RadioButton(p_label != nullptr ? p_label : "", p_active != 0) ? 1 : 0;
+}
+
 void canvasSeparator(RobotikCanvas const* /*p_canvas*/)
 {
     ImGui::Separator();
@@ -79,46 +85,52 @@ RobotikCanvas makeCanvas()
     canvas.checkbox = &canvasCheckbox;
     canvas.slider_int = &canvasSlider;
     canvas.separator = &canvasSeparator;
+    canvas.radio = &canvasRadio;
     return canvas;
 }
 
 } // namespace
 
-void drawPluginMenus(App& p_app)
+void requestScenario(App& p_app, std::filesystem::path const& p_file)
 {
-    if (ImGui::BeginMenu("Demos"))
+    p_app.ui.pending_scenario = p_file;
+}
+
+void drawDemosMenu(App& p_app)
+{
+    if (!ImGui::BeginMenu("Demos"))
     {
-        if (p_app.plugins.catalog().packages().empty())
+        return;
+    }
+    if (p_app.plugins.catalog().packages().empty())
+    {
+        ImGui::TextDisabled("No plugin package found in build/plugins");
+    }
+    for (robotik::PluginPackage const& package : p_app.plugins.catalog().packages())
+    {
+        if (!ImGui::BeginMenu(package.name.c_str()))
         {
-            ImGui::TextDisabled("No plugin package");
+            continue;
         }
-        for (robotik::PluginPackage const& package : p_app.plugins.catalog().packages())
+        for (robotik::PluginScenario const& scenario : package.scenarios)
         {
-            if (ImGui::BeginMenu(package.name.c_str()))
+            bool const current = scenario.file == p_app.scenario_path;
+            if (ImGui::MenuItem(scenario.name.c_str(), nullptr, current))
             {
-                for (robotik::PluginScenario const& scenario : package.scenarios)
-                {
-                    if (ImGui::MenuItem(scenario.name.c_str()))
-                    {
-                        p_app.scenario_path = scenario.file;
-                        p_app.load();
-                    }
-                }
-                ImGui::EndMenu();
+                requestScenario(p_app, scenario.file);
             }
         }
         ImGui::EndMenu();
     }
+    ImGui::EndMenu();
+}
 
+void drawPluginMenus(App& p_app)
+{
     std::vector<std::string> menus;
     for (robotik::PluginMenuItem const& item : p_app.plugins.host().menus())
     {
-        bool known = false;
-        for (std::string const& menu : menus)
-        {
-            known = known || menu == item.menu;
-        }
-        if (!known)
+        if (std::find(menus.begin(), menus.end(), item.menu) == menus.end())
         {
             menus.push_back(item.menu);
         }
@@ -131,8 +143,7 @@ void drawPluginMenus(App& p_app)
         }
         for (robotik::PluginMenuItem const& item : p_app.plugins.host().menus())
         {
-            if (item.menu == menu && ImGui::MenuItem(item.label.c_str()) &&
-                item.callback != nullptr)
+            if (item.menu == menu && ImGui::MenuItem(item.label.c_str()) && item.callback != nullptr)
             {
                 item.callback(item.user);
             }
@@ -141,10 +152,20 @@ void drawPluginMenus(App& p_app)
     }
 }
 
-void drawPluginPanels(App& p_app)
+void drawPluginPanels(App& p_app, ImGuiID p_dock, bool p_focus)
 {
+    bool first = true;
     for (robotik::PluginPanel const& panel : p_app.plugins.host().panels())
     {
+        if (p_dock != 0)
+        {
+            ImGui::DockBuilderDockWindow(panel.title.c_str(), p_dock);
+        }
+        if (p_focus && first)
+        {
+            ImGui::SetNextWindowFocus();
+        }
+        first = false;
         if (!ImGui::Begin(panel.title.c_str()))
         {
             ImGui::End();

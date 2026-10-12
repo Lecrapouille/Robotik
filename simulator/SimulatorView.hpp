@@ -92,19 +92,17 @@ public:
         return m_cameras;
     }
 
-    // Last robot camera frame, uploaded for the ImGui panel.
-    bool showFrame(robotik::CameraFrame const& p_frame);
+    // Last frame of robot camera @p_index, uploaded for the ImGui panel.
+    bool showFrame(std::size_t p_index, robotik::CameraFrame const& p_frame);
 
-    [[nodiscard]] RenderTarget const& frameTarget() const
-    {
-        return m_frame;
-    }
+    // Picture of robot camera @p_index uploaded by showFrame.
+    [[nodiscard]] RenderTarget const& frameTarget(std::size_t p_index);
 
 private:
 
     compages::renderer::Scene& m_scene;
     std::vector<std::unique_ptr<RenderedCamera>> m_cameras;
-    RenderTarget m_frame;
+    std::vector<std::unique_ptr<RenderTarget>> m_frames;
     bool m_grounded = false;
     std::filesystem::path m_ground_file;
     compages::renderer::CanvasTexture m_paint;

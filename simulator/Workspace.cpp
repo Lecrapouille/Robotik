@@ -1,0 +1,548 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+#include "Ui.hpp"
+
+#include <GLFW/glfw3.h>
+#include <imgui.h>
+#include <imgui_internal.h>
+#include "imgui_stdlib.h"
+
+#include <array>
+#include <cstdio>
+#include <filesystem>
+#include <string>
+
+namespace
+{
+
+struct WorkspaceInfo
+{
+    char const* name;
+    char const* key;
+    char const* shortcut;
+    //!< A panel of the column where the plugin panels go.
+    char const* anchor;
+    char const* hint;
+};
+
+std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
+    { "Plugin", "plugin", "Ctrl+1", "Files",
+      "What is loaded: the package, its scenarios and experiments, the world, "
+      "the assertions and the source files." },
+    { "Robot", "robot", "Ctrl+2", "Teach",
+      "The robot body: joints and their limits, plots, manual moves, cameras." },
+    { "Mission", "mission", "Ctrl+3", "Skills",
+      "The execution: behavior tree, skills, resources and their timeline." },
+    { "Autonomy", "autonomy", "Ctrl+4", "World model",
+      "What the robot believes against the ground truth, and what it perceives." },
+} };
+
+WorkspaceInfo const& infoOf(Workspace p_workspace)
+{
+    return WORKSPACES[static_cast<std::size_t>(p_workspace)];
+}
+
+void select(App& p_app, Workspace p_workspace)
+{
+    if (p_app.ui.workspace != p_workspace)
+    {
+        p_app.ui.workspace = p_workspace;
+        p_app.ui.place_plugin_panels = true;
+    }
+}
+
+// --- Layouts ----------------------------------------------------------------
+
+//! @brief Splits @p_node; the first returned id is the new side.
+ImGuiID split(ImGuiID& p_node, ImGuiDir p_dir, float p_ratio)
+{
+    return ImGui::DockBuilderSplitNode(p_node, p_dir, p_ratio, nullptr, &p_node);
+}
+
+void dock(std::string const& p_window, ImGuiID p_node)
+{
+    ImGui::DockBuilderDockWindow(p_window.c_str(), p_node);
+}
+
+void layout(Workspace p_workspace, ImGuiID p_dock)
+{
+    ImGui::DockBuilderRemoveNode(p_dock);
+    ImGui::DockBuilderAddNode(p_dock, ImGuiDockNodeFlags_DockSpace);
+    ImGui::DockBuilderSetNodeSize(p_dock, ImGui::GetMainViewport()->WorkSize);
+    char const* key = infoOf(p_workspace).key;
+    ImGuiID center = p_dock;
+    switch (p_workspace)
+    {
+        case Workspace::Plugin:
+        {
+            ImGuiID left = split(center, ImGuiDir_Left, 0.24f);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.32f);
+            ImGuiID const world = split(left, ImGuiDir_Down, 0.50f);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.36f);
+            dock("Plugin", left);
+            dock("World", world);
+            dock(panelTitle("Scene", key), center);
+            dock(panelTitle("Assertions", key), bottom);
+            dock("Files", right);
+            break;
+        }
+        case Workspace::Robot:
+        {
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.36f);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.28f);
+            ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42f);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
+            dock("Robot", left);
+            dock(panelTitle("Scene", key), center);
+            dock("Joint plots", bottom);
+            dock("Teach", right);
+            dock(panelTitle("Cameras", key), cameras);
+            break;
+        }
+        case Workspace::Mission:
+        {
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.22f);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.32f);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
+            dock("Behavior tree", left);
+            dock(panelTitle("Scene", key), center);
+            dock(panelTitle("Assertions", key), bottom);
+            dock("Timeline", bottom);
+            dock("Skills", right);
+            break;
+        }
+        case Workspace::Autonomy:
+        {
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.30f);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.32f);
+            ImGuiID const perception = split(right, ImGuiDir_Down, 0.45f);
+            dock("World model", left);
+            dock(panelTitle("Scene", key), center);
+            dock(panelTitle("Cameras", key), right);
+            dock("Perception", perception);
+            break;
+        }
+    }
+    ImGui::DockBuilderFinish(p_dock);
+}
+
+// --- Commands ---------------------------------------------------------------
+
+void reload(App& p_app)
+{
+    if (!p_app.scenario_path.empty())
+    {
+        p_app.load(true);
+    }
+}
+
+void quit()
+{
+    if (GLFWwindow* window = glfwGetCurrentContext())
+    {
+        glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+}
+
+void shortcuts(App& p_app)
+{
+    ImGuiIO const& io = ImGui::GetIO();
+    if (io.WantTextInput)
+    {
+        return;
+    }
+    bool const ctrl = io.KeyCtrl;
+    for (std::size_t i = 0; i < WORKSPACE_COUNT; ++i)
+    {
+        if (ctrl && ImGui::IsKeyPressed(static_cast<ImGuiKey>(ImGuiKey_1 + static_cast<int>(i)), false))
+        {
+            select(p_app, static_cast<Workspace>(i));
+        }
+    }
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_O, false))
+    {
+        p_app.ui.show_open = true;
+    }
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Q, false))
+    {
+        quit();
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_F5, false))
+    {
+        reload(p_app);
+    }
+    if (ImGui::IsKeyPressed(ImGuiKey_F1, false))
+    {
+        p_app.ui.show_shortcuts = true;
+    }
+    if (!p_app.simulation)
+    {
+        return;
+    }
+    if (!ctrl && ImGui::IsKeyPressed(ImGuiKey_Space, false))
+    {
+        p_app.playing = !p_app.playing;
+    }
+    if (!ctrl && !p_app.playing && ImGui::IsKeyPressed(ImGuiKey_Period, true))
+    {
+        p_app.step_once = true;
+    }
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_R, false))
+    {
+        p_app.reset(p_app.seed);
+    }
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_N, false))
+    {
+        p_app.reset(p_app.seed + 1u);
+    }
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_E, false))
+    {
+        toggleEmergency(p_app);
+    }
+}
+
+// --- Menu bar ---------------------------------------------------------------
+
+void workspaceTabs(App& p_app)
+{
+    // Centred in the free part of the menu bar.
+    float width = 0.0f;
+    for (WorkspaceInfo const& info : WORKSPACES)
+    {
+        width += ImGui::CalcTextSize(info.name).x + ImGui::GetStyle().FramePadding.x * 4.0f;
+    }
+    float const center = (ImGui::GetWindowWidth() - width) * 0.5f;
+    if (center > ImGui::GetCursorPosX())
+    {
+        ImGui::SetCursorPosX(center);
+    }
+    for (std::size_t i = 0; i < WORKSPACE_COUNT; ++i)
+    {
+        WorkspaceInfo const& info = WORKSPACES[i];
+        bool const current = p_app.ui.workspace == static_cast<Workspace>(i);
+        ImGui::PushStyleColor(ImGuiCol_Button, current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
+                                                       : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        ImGui::PushStyleColor(ImGuiCol_Text, current ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+                                                     : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        if (ImGui::Button(info.name))
+        {
+            select(p_app, static_cast<Workspace>(i));
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::SetItemTooltip("%s  (%s)", info.hint, info.shortcut);
+    }
+}
+
+void mainMenu(App& p_app)
+{
+    if (!ImGui::BeginMainMenuBar())
+    {
+        return;
+    }
+    if (ImGui::BeginMenu("File"))
+    {
+        if (ImGui::MenuItem("Open scenario...", "Ctrl+O"))
+        {
+            p_app.ui.show_open = true;
+        }
+        if (ImGui::MenuItem("Reload", "F5", false, !p_app.scenario_path.empty()))
+        {
+            reload(p_app);
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Quit", "Ctrl+Q"))
+        {
+            quit();
+        }
+        ImGui::EndMenu();
+    }
+    drawDemosMenu(p_app);
+    if (ImGui::BeginMenu("View"))
+    {
+        for (std::size_t i = 0; i < WORKSPACE_COUNT; ++i)
+        {
+            WorkspaceInfo const& info = WORKSPACES[i];
+            if (ImGui::MenuItem(info.name, info.shortcut,
+                                p_app.ui.workspace == static_cast<Workspace>(i)))
+            {
+                select(p_app, static_cast<Workspace>(i));
+            }
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Reset layout"))
+        {
+            p_app.ui.reset_layout = true;
+            p_app.ui.place_plugin_panels = true;
+        }
+        ImGui::EndMenu();
+    }
+    drawPluginMenus(p_app);
+    if (ImGui::BeginMenu("Help"))
+    {
+        if (ImGui::MenuItem("Keyboard shortcuts", "F1"))
+        {
+            p_app.ui.show_shortcuts = true;
+        }
+        ImGui::Separator();
+        ImGui::TextDisabled("Documentation: doc/README.md");
+        ImGui::TextDisabled("Tutorial: doc/04-Your-First-Plugin.md");
+        ImGui::EndMenu();
+    }
+    workspaceTabs(p_app);
+    ImGui::EndMainMenuBar();
+}
+
+// --- Status bar -------------------------------------------------------------
+
+struct Outcome
+{
+    char const* text;
+    ImVec4 color;
+};
+
+Outcome outcomeOf(App const& p_app)
+{
+    if (!p_app.simulation)
+    {
+        return { p_app.error.empty() ? "NO SCENARIO" : "ERROR",
+                 p_app.error.empty() ? GREY : RED };
+    }
+    robotik::Simulation const& simulation = *p_app.simulation;
+    switch (simulation.outcome())
+    {
+        case robotik::Simulation::Outcome::Running:
+            return { p_app.playing ? "RUNNING" : "PAUSED", p_app.playing ? ORANGE : BLUE };
+        case robotik::Simulation::Outcome::ControllerSucceeded:
+        case robotik::Simulation::Outcome::StopCondition:
+            return { simulation.passed() ? "SUCCEEDED" : "ENDED", simulation.passed() ? GREEN : RED };
+        case robotik::Simulation::Outcome::ControllerFailed:
+            return { "FAILED", RED };
+        case robotik::Simulation::Outcome::Timeout:
+            return { "TIMEOUT", RED };
+        case robotik::Simulation::Outcome::AssertionFailed:
+            return { "ASSERTION FAILED", RED };
+        case robotik::Simulation::Outcome::Interrupted:
+            return { "INTERRUPTED", GREY };
+    }
+    return { "", GREY };
+}
+
+void statusBar(App& p_app)
+{
+    float const height = ImGui::GetFrameHeight() + 4.0f;
+    ImGuiWindowFlags const flags =
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
+    if (!ImGui::BeginViewportSideBar("##status", ImGui::GetMainViewport(), ImGuiDir_Down, height, flags))
+    {
+        ImGui::End();
+        return;
+    }
+    if (ImGui::BeginMenuBar())
+    {
+        Outcome const outcome = outcomeOf(p_app);
+        badge(outcome.text, outcome.color);
+        if (p_app.simulation)
+        {
+            if (!p_app.scenario_title.empty())
+            {
+                ImGui::TextUnformatted(p_app.scenario_title.c_str());
+            }
+            ImGui::TextDisabled("seed %llu", static_cast<unsigned long long>(p_app.seed));
+            std::size_t passed = 0;
+            std::size_t failed = 0;
+            auto const& checks = p_app.simulation->checks();
+            for (robotik::Check const& check : checks)
+            {
+                passed += check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
+                failed += check.verdict == robotik::Check::Verdict::Failed ? 1u : 0u;
+            }
+            char text[64];
+            std::snprintf(text, sizeof text, "Assertions %zu/%zu%s", passed, checks.size(),
+                          failed > 0u ? "  failed" : "");
+            ImGui::PushStyleColor(ImGuiCol_Text, failed > 0u ? RED : passed == checks.size() ? GREEN : GREY);
+            if (ImGui::Selectable(text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0f)))
+            {
+                select(p_app, Workspace::Plugin);
+            }
+            ImGui::PopStyleColor();
+            ImGui::SetItemTooltip("Open the Plugin workspace to see every assertion.");
+            if (emergencyEngaged(p_app))
+            {
+                badge("EMERGENCY STOP", RED);
+            }
+        }
+        if (!p_app.error.empty())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, RED);
+            ImGui::TextUnformatted(p_app.error.c_str());
+            ImGui::PopStyleColor();
+        }
+        if (p_app.simulation)
+        {
+            char right[96];
+            std::snprintf(right, sizeof right, "t %.2f s   x%.2f real time   %.0f fps",
+                          p_app.simulation->time().value(),
+                          static_cast<double>(p_app.ui.realtime_factor),
+                          static_cast<double>(ImGui::GetIO().Framerate));
+            float const width = ImGui::CalcTextSize(right).x + ImGui::GetStyle().WindowPadding.x;
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowWidth() - width));
+            ImGui::TextDisabled("%s", right);
+        }
+        ImGui::EndMenuBar();
+    }
+    ImGui::End();
+}
+
+// --- Dialogs ----------------------------------------------------------------
+
+void openDialog(App& p_app)
+{
+    if (p_app.ui.show_open)
+    {
+        p_app.ui.show_open = false;
+        p_app.ui.open_path = p_app.scenario_path.string();
+        ImGui::OpenPopup("Open scenario");
+    }
+    ImGui::SetNextWindowSize(ImVec2(620.0f, 0.0f), ImGuiCond_Appearing);
+    if (!ImGui::BeginPopupModal("Open scenario", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+    ImGui::TextUnformatted("Scenario file (.yml), listed in the plugin.yaml of its package:");
+    ImGui::SetNextItemWidth(600.0f);
+    if (ImGui::IsWindowAppearing())
+    {
+        ImGui::SetKeyboardFocusHere();
+    }
+    bool const enter = ImGui::InputText("##path", &p_app.ui.open_path, ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::TextDisabled("Tip: the Demos menu lists every scenario of the built plugins.");
+    if (ImGui::Button("Open") || enter)
+    {
+        requestScenario(p_app, std::filesystem::path(p_app.ui.open_path));
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Cancel") || ImGui::IsKeyPressed(ImGuiKey_Escape))
+    {
+        ImGui::CloseCurrentPopup();
+    }
+    ImGui::EndPopup();
+}
+
+void shortcutsWindow(App& p_app)
+{
+    if (!p_app.ui.show_shortcuts)
+    {
+        return;
+    }
+    ImGui::SetNextWindowSize(ImVec2(420.0f, 0.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::Begin("Keyboard shortcuts", &p_app.ui.show_shortcuts,
+                     ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        static constexpr char const* ROWS[][2] = {
+            { "Space", "Play / pause" },
+            { ".", "One step (when paused)" },
+            { "Ctrl+R", "Replay with the same seed" },
+            { "Ctrl+N", "Replay with the next seed" },
+            { "Ctrl+E", "Emergency stop / release" },
+            { "F5", "Reload the scenario file" },
+            { "Ctrl+O", "Open a scenario file" },
+            { "Ctrl+1 ... Ctrl+4", "Plugin, Robot, Mission, Autonomy" },
+            { "H", "Sent to the plugin (Home in most demos)" },
+            { "Right drag / wheel", "Orbit / zoom the 3D view" },
+            { "F1", "This window" },
+        };
+        if (ImGui::BeginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
+        {
+            for (auto const& row : ROWS)
+            {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::TextColored(BLUE, "%s", row[0]);
+                ImGui::TableNextColumn();
+                ImGui::TextUnformatted(row[1]);
+            }
+            ImGui::EndTable();
+        }
+    }
+    ImGui::End();
+}
+
+} // namespace
+
+void drawPanels(App& p_app)
+{
+    if (!p_app.ui.pending_scenario.empty())
+    {
+        p_app.scenario_path = p_app.ui.pending_scenario;
+        p_app.ui.pending_scenario.clear();
+        p_app.load();
+    }
+    shortcuts(p_app);
+    mainMenu(p_app);
+    statusBar(p_app);
+
+    Workspace const workspace = p_app.ui.workspace;
+    WorkspaceInfo const& info = infoOf(workspace);
+    ImGuiID const dock = ImGui::GetID((std::string("RobotikWorkspace/") + info.key).c_str());
+    if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
+    {
+        layout(workspace, dock);
+        p_app.ui.reset_layout = false;
+    }
+    ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());
+
+    scenePanel(p_app, info.key);
+    switch (workspace)
+    {
+        case Workspace::Plugin:
+            pluginPanel(p_app);
+            worldPanel(p_app);
+            filesPanel(p_app);
+            assertionsPanel(p_app, info.key);
+            break;
+        case Workspace::Robot:
+            robotPanel(p_app);
+            plotsPanel(p_app);
+            teachPanel(p_app);
+            camerasPanel(p_app, info.key);
+            break;
+        case Workspace::Mission:
+            treePanel(p_app);
+            timelinePanel(p_app);
+            assertionsPanel(p_app, info.key);
+            skillsPanel(p_app);
+            break;
+        case Workspace::Autonomy:
+            worldModelPanel(p_app);
+            camerasPanel(p_app, info.key);
+            perceptionPanel(p_app);
+            break;
+    }
+
+    // Plugin panels follow the workspace: they join its side column.
+    ImGuiID target = 0;
+    if (p_app.ui.place_plugin_panels)
+    {
+        ImGuiWindow const* anchor = ImGui::FindWindowByName(info.anchor);
+        if (anchor != nullptr && anchor->DockId != 0)
+        {
+            target = anchor->DockId;
+            p_app.ui.place_plugin_panels = false;
+        }
+    }
+    bool const focus = p_app.ui.focus_plugin_panel && target != 0;
+    if (focus)
+    {
+        p_app.ui.focus_plugin_panel = false;
+    }
+    drawPluginPanels(p_app, target, focus);
+
+    openDialog(p_app);
+    shortcutsWindow(p_app);
+}
