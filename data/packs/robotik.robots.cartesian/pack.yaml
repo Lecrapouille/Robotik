@@ -1,7 +1,7 @@
 id: robotik.robots.cartesian
 version: 1.0.0
-# Origin of the reference pictures not recorded.
-license: NOASSERTION
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
 description: Cartesian (gantry) robot and its reference pictures.
 models:
   cartesian_robot: cartesian_robot.urdf

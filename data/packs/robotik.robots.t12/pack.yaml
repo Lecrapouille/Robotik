@@ -1,7 +1,7 @@
 id: robotik.robots.t12
 version: 1.0.0
-# Origin of the STL meshes not recorded.
-license: NOASSERTION
-description: T12 hexapod.
+license: Apache-2.0
+source: https://github.com/rapyuta-robotics/urdf-js
+description: T12 hexapod (see Credits.txt).
 models:
   t12: T12.urdf

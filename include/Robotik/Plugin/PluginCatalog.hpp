@@ -19,6 +19,7 @@
 //!   version: 1.0.0
 //!   api_version: 1            # ROBOTIK_PLUGIN_ABI_VERSION it was built for
 //!   category: Manipulation
+//!   description: A robot arm paints strokes on an easel.   # optional
 //! library:
 //!   entrypoint: librobotik_painter.so
 //! resources:                  # runtime dependencies
@@ -27,7 +28,8 @@
 //!     - { id: robotik.robots, version: "1.0" }
 //! dependencies:
 //!   plugins: [ robotik.other ]  # must be in the catalog to run
-//!   thirdparties: [ opencv ]    # build time, resolved by the Makefile
+//!   system: [ { name: opencv4, license: Apache-2.0 } ]
+//!   thirdparties: [ { repo: AprilRobotics/apriltag, license: BSD-2-Clause } ]
 //! host:                       # hints for the simulator
 //!   graphics: false
 //!   clock: simulation         # or plugin: its update advances time
@@ -40,7 +42,9 @@
 //!   directory: experiments
 //! @endcode
 //!
-//! The manifest describes the package; it does not build it.
+//! The manifest describes the package; it does not build it. Its
+//! @c dependencies (see @ref ThirdParty) are read by the Makefile of the
+//! plugin too (plugins/dependencies.awk): it clones and builds them.
 #pragma once
 
 #include "Robotik/Assets/Version.hpp"
@@ -70,6 +74,29 @@ struct PackRequirement
     Version version;
 };
 
+//! @brief A library the plugin is built with, from @c dependencies.system
+//! or @c dependencies.thirdparties of @c plugin.yaml:
+//! @code
+//! dependencies:
+//!   system:
+//!     - { name: opencv4, license: Apache-2.0 }           # pkg-config name
+//!   thirdparties:
+//!     - { repo: AprilRobotics/apriltag@v3.4.2, license: BSD-2-Clause,
+//!         description: AprilTag fiducial detection }     # cloned and built
+//!     - { name: onnxruntime, url: "https://...", license: MIT }  # no repo
+//! @endcode
+struct ThirdParty
+{
+    //!< GitHub @c user/repo (without @c :recurse nor @c @ref), or a name.
+    std::string name;
+    //!< Branch, tag or commit after @c @ in @c repo, or empty.
+    std::string reference;
+    //!< Home page: the GitHub page of a repo, or the @c url field.
+    std::string url;
+    std::string license;
+    std::string description;
+};
+
 struct PluginPackage
 {
     std::filesystem::path root;
@@ -77,6 +104,8 @@ struct PluginPackage
     std::string name;
     Version version;
     std::string category;
+    //!< One or two sentences for the user, or empty.
+    std::string description;
     //!< @c ROBOTIK_PLUGIN_ABI_VERSION the library was built against.
     std::uint32_t api_version = 0;
     //!< The package's own asset pack, or empty.
@@ -84,8 +113,10 @@ struct PluginPackage
     std::vector<PackRequirement> packs;
     //!< Plugin ids that must be in the catalog for this one to run.
     std::vector<std::string> plugins;
-    //!< Build-time libraries, informative only.
-    std::vector<std::string> thirdparties;
+    //!< Libraries of the system (pkg-config), for the credits.
+    std::vector<ThirdParty> system;
+    //!< Libraries cloned and built with the plugin, for the credits.
+    std::vector<ThirdParty> thirdparties;
     bool graphics = false;
     //! @brief The plugin update replaces @c Simulation::step for this package.
     bool owns_clock = false;
@@ -110,6 +141,7 @@ struct PluginMatch
 class PluginCatalog
 {
 public:
+
 
     //! @brief @p_extra, then the default roots: each directory of
     //! @c ROBOTIK_PLUGINS (colon separated), @c plugins/ next to the

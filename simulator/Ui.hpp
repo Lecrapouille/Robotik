@@ -37,6 +37,19 @@ void helpMarker(char const* p_text);
 //! @brief Text shown when a panel has nothing to display.
 void emptyState(char const* p_text);
 
+//! @brief ImGui::BeginTable with a smaller font and tighter cells, so that
+//! columns are not cut. Call endTable() only when it returns true.
+bool beginTable(char const* p_id, int p_columns, ImGuiTableFlags p_flags = 0,
+                ImVec2 const& p_size = ImVec2(0.0f, 0.0f));
+void endTable();
+
+//! @brief The monospace font (Cousine), or null when it is not loaded.
+ImFont* monoFont();
+
+//! @brief Read-only view of a text file: line numbers, monospace font,
+//! a button to copy the path and one to copy the text.
+void textView(std::filesystem::path const& p_path, std::string const& p_text);
+
 //! @brief Horizontal bar from @p_lower to @p_upper with @p_value filled,
 //! an optional target tick, and a centred label.
 void rangeBar(double p_value,
@@ -63,11 +76,34 @@ void toggleEmergency(App& p_app);
 void camerasPanel(App& p_app, char const* p_key);
 //! @brief Assertions of the scenario, as a table (OverviewPanels.cpp).
 void assertionsPanel(App& p_app, char const* p_key);
+//! @brief The behavior tree with the last status of each node
+//! (MissionPanels.cpp).
+void treePanel(App& p_app, char const* p_key);
+//! @brief Contents of these two panels, without their window.
+void treeView(App& p_app);
+void assertionsView(App& p_app);
 
-// --- Plugin workspace (OverviewPanels.cpp) ----------------------------------
+// --- Plugin workspace (PackagePanels.cpp, OverviewPanels.cpp) ---------------
 
+//! @brief The loaded plugin: description, files, dependencies and the
+//! scenario running.
 void pluginPanel(App& p_app);
-void worldPanel(App& p_app);
+//! @brief One panel for the view of the file being read: Scenario (its
+//! settings and assertions), World, Behavior tree or Experiment.
+void viewPanel(App& p_app);
+//! @brief Switches the view panel; with @p_editor, Files shows that tab too.
+void showView(App& p_app, FileTab p_view, bool p_editor);
+//! @brief Contents of the views (no window of their own).
+void scenarioView(App& p_app);
+void worldView(App& p_app);
+void experimentView(App& p_app);
+//! @brief Shows @p_path in the tab of its kind. A scenario of the package is
+//! loaded, an experiment becomes the one of the Experiment panel.
+void showFile(App& p_app, std::filesystem::path const& p_path);
+//! @brief Makes @p_path the experiment of the Experiment panel.
+void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_focus);
+//! @brief Every asset pack found: models, version, license, source.
+void assetsPanel(App& p_app);
 void filesPanel(App& p_app);
 
 // --- Robot workspace (RobotPanel.cpp, TeachPanel.cpp) -----------------------
@@ -80,7 +116,6 @@ void takeArm(App& p_app);
 
 // --- Mission workspace (MissionPanels.cpp, SkillsPanel.cpp) -----------------
 
-void treePanel(App& p_app);
 void timelinePanel(App& p_app);
 void skillsPanel(App& p_app);
 

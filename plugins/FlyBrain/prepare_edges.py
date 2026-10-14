@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the edge list read by Robotik-Fly --edges.
 
-Called from external/compilation after the Shiu repository is cloned.
+Called by the Makefile of the plugin once its external/ clone is there.
 Column names are those of model.py: Presynaptic_Index, Postsynaptic_Index,
 "Excitatory x Connectivity". The completeness file is only checked: its row
 order is the neuron index.

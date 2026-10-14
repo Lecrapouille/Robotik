@@ -199,7 +199,7 @@ void jointsTable(App& p_app)
     // A new robot has other joint names: give the table a new id so the
     // name column is sized again.
     ImGui::PushID(robot.name().c_str());
-    if (!ImGui::BeginTable("joints", 9, flags))
+    if (!beginTable("joints", 9, flags))
     {
         ImGui::PopID();
         return;
@@ -322,7 +322,7 @@ void jointsTable(App& p_app)
         ImGui::EndDisabled();
         ImGui::PopID();
     }
-    ImGui::EndTable();
+    endTable();
     ImGui::PopID();
 }
 

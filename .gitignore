@@ -4,10 +4,6 @@ doc/code-coverage/*
 doc/doxygen/*
 external/*/
 
-# FlyWire tables extracted by make compile-external-libs (Shiu et al. 2024).
-data/flywire/edges.csv
-data/flywire/completeness.csv
-
 # Python
 __pycache__
 
@@ -43,3 +39,4 @@ __pycache__
 *.exe
 *.out
 *.app
+

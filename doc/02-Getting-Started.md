@@ -15,9 +15,9 @@ macOS: the display needs OpenGL 4.3 or more.
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
 
-make download-external-libs      # once: fetch MuJoCo, Pinocchio, ...
-make compile-external-libs       # once: compile them
-make -j"$(nproc --all)"          # Robotik, the two hosts and all plugins
+make download-external-libs      # once: fetch MuJoCo, Pinocchio, ... and the
+                                 # libraries of each plugin
+make -j"$(nproc --all)"          # the libraries, Robotik, the two hosts and all plugins
 ```
 
 After the build, the `build/` folder contains:
@@ -75,7 +75,7 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 
 | Workspace | Panels | Use it to |
 |-----------|--------|-----------|
-| **Plugin** | Plugin (package, scenarios, experiments, this scenario), World (entity tree), Assertions (table), Files (scenario, world and tree YAML) | See what is loaded and whether it passes |
+| **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, one tab per kind: Scenario, World, Behavior tree, Experiment, and one for any other file), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree), Behavior tree or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, version, license, source). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
 | **Robot** | Robot (joints with limits, velocity, effort, manual moves), Joint plots, Teach (tool, Cartesian moves, waypoints), Cameras | Look at the body, move it by hand |
 | **Mission** | Behavior tree, Timeline (with the resources), Assertions, Skills (cards or table) | Debug the execution |
 | **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |

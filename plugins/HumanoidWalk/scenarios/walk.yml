@@ -3,10 +3,10 @@
 scenario:
   id: walk
   description: Stand one second, then walk with the command of the panel.
-  world: ../worlds/flat_ground.yaml
+  world: worlds/flat_ground.yaml
   seed: 1
   controller:
-    behavior_tree: walk_circle.bt.yml
+    behavior_tree: scenarios/walk_circle.bt.yml
 
   parameters:
     stand_duration: 1.0    # s

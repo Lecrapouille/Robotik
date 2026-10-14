@@ -22,4 +22,21 @@ LIB_FILES += $(PLUGIN_SRC)/FlyScenario.cpp $(PLUGIN_SRC)/FlyVision.cpp
 LIB_FILES += $(PLUGIN_SRC)/FlyController.cpp $(PLUGIN_SRC)/FlyEnvironment.cpp
 LIB_FILES += $(PLUGIN_SRC)/FlyBrain.cpp $(PLUGIN_SRC)/ShiuNetwork.cpp
 
+# FlyWire v783 tables (Shiu et al. 2024, dependencies of plugin.yaml), written
+# into the pack as data/flywire/. Optional: without the clone, the plugin is
+# built anyway and only the 13-neuron circuit is available. The parquet is
+# read with pyarrow, installed in external/.pydeps when the system lacks it.
+FLY_SRC := $(THIRD_PARTIES_DIR)/Drosophila_brain_model
+FLY_DATA := $(abspath $(PLUGIN_DIR)/data/flywire)
+FLY_PY := $(THIRD_PARTIES_DIR)/.pydeps
+ifneq ($(wildcard $(FLY_SRC)/Connectivity_783.parquet),)
+PLUGIN_DEPENDS := $(FLY_DATA)/edges.csv
+endif
+
 include $(P)/plugins/plugin.mk
+
+$(FLY_DATA)/edges.csv: $(FLY_SRC)/Connectivity_783.parquet $(FLY_SRC)/Completeness_783.csv
+	@PYTHONPATH=$(FLY_PY) python3 -c "import pyarrow" 2> /dev/null || \
+	    python3 -m pip install --target $(FLY_PY) pyarrow
+	PYTHONPATH=$(FLY_PY) python3 $(PLUGIN_DIR)/prepare_edges.py $^ $@
+	cp -f $(FLY_SRC)/Completeness_783.csv $(FLY_DATA)/completeness.csv

@@ -3,7 +3,7 @@
 scenario:
   id: hello
   description: Count the simulation steps, then stop after two seconds.
-  world: ../worlds/arm.yaml
+  world: worlds/arm.yaml
   seed: 1
   timeout: 30
   assertions:

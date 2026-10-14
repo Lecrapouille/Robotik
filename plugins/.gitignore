@@ -1,0 +1,3 @@
+# Third-party sources of a plugin, cloned by make download-external-libs
+# from the dependencies of its plugin.yaml (external/manifest is generated).
+*/external/

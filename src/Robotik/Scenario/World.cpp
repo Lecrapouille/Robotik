@@ -8,6 +8,7 @@
 #include "Robotik/Scenario/World.hpp"
 
 #include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Scenario/PackagePath.hpp"
 
 #include <algorithm>
 #include <numbers>
@@ -269,7 +270,11 @@ EntitySpec entity(std::string const& p_world,
         spec.model_ref = p_node.text("model");
         if (!spec.model_ref.empty())
         {
-            spec.model = p_assets.resolve(spec.model_ref, p_directory);
+            // A file name (not a model id) stays in the package.
+            bool const file = spec.model_ref.find('/') != std::string::npos ||
+                              spec.model_ref.ends_with(".urdf");
+            spec.model = file ? packageFile(p_directory, spec.model_ref)
+                              : p_assets.model(spec.model_ref);
         }
         if (p_node.has("shape"))
         {
@@ -483,7 +488,7 @@ WorldDescription WorldDescription::load(std::filesystem::path const& p_path,
     {
         throw std::runtime_error(p_path.string() + ": no 'world:' section");
     }
-    return read(file.at("world"), std::filesystem::absolute(p_path).parent_path(), p_assets);
+    return read(file.at("world"), packageRoot(p_path), p_assets);
 }
 
 EntitySpec const* WorldDescription::find(std::string_view p_id) const

@@ -14,8 +14,8 @@ connectome. `Robotik-Fly` does the same with `--edges` and `--binding`.
 The neuron is the one from Shiu et al. 2024
 ([Drosophila_brain_model](https://github.com/philshiu/Drosophila_brain_model)):
 the same equations as `model.py`, the same constants, Poisson activation, and
-silencing. The graph is FlyWire v783, extracted into `data/flywire/` by
-`make compile-external-libs`. Those tables are not versioned.
+silencing. The graph is FlyWire v783, extracted into `data/flywire/` (in the
+pack of the plugin) by the Makefile of the plugin. Those tables are not versioned.
 
 `--brain reflex` has no neurons. It is a formula, used to check the
 observation → action loop.
@@ -115,11 +115,14 @@ Reading output rates is not a third manipulation. It is the measurement, as in t
 
 The connectome is the FlyWire v783 synapse list: for each edge, the presynaptic index, the postsynaptic index, and "Excitatory x Connectivity". A neuron index is its row number in `Completeness_783.csv`, as in `model.py`.
 
-The repository is listed in `external/manifest`. Extraction is in `external/compilation`:
+The repository is listed in `dependencies.thirdparties` of `plugins/FlyBrain/plugin.yaml`. It is
+optional: without it, the plugin builds with the 13-neuron circuit only. The
+Makefile of the plugin extracts the tables (`prepare_edges.py`, which needs
+pandas and pyarrow) when the clone is there:
 
 ```bash
-make download-external-libs
-make compile-external-libs
+make -C plugins/FlyBrain download-external-libs
+make -C plugins/FlyBrain
 ```
 
 That writes `data/flywire/edges.csv` and `data/flywire/completeness.csv`. Both are in `.gitignore`: the parquet is about 100 MB, and the edge list is larger. `data/flywire/binding.txt` is versioned. It is the role file: which indices receive activation, which are read, and which are silenced.
@@ -130,8 +133,8 @@ A line `silence 50` removes neuron 50. Several such lines are allowed. A role ab
 
 ```bash
 ./build/Robotik-Fly \
-    --edges data/flywire/edges.csv \
-    --binding data/flywire/binding.txt \
+    --edges plugins/FlyBrain/data/flywire/edges.csv \
+    --binding plugins/FlyBrain/data/flywire/binding.txt \
     --headless
 ```
 

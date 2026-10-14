@@ -1,0 +1,2 @@
+* T12.urdf and T12/*.STL:
+	https://github.com/rapyuta-robotics/urdf-js (Apache-2.0)

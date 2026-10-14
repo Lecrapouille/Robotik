@@ -4,6 +4,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Manipulation
+  description: A robot arm picks a cube and puts it in a box, driven by a behavior tree, with faults to recover from.
 
 library:
   entrypoint: librobotik_pick_and_place.so

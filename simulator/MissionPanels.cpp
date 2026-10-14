@@ -340,19 +340,13 @@ void resourceChip(App& p_app, robotik::ResourceId p_id)
 
 } // namespace
 
-void treePanel(App& p_app)
+void treeView(App& p_app)
 {
-    if (!ImGui::Begin("Behavior tree"))
-    {
-        ImGui::End();
-        return;
-    }
     bt::Tree const* tree = p_app.simulation ? p_app.simulation->tree() : nullptr;
     if (tree == nullptr)
     {
         emptyState(p_app.simulation ? "This scenario has no behavior tree:\nthe plugin mission drives the robot."
                                     : "No scenario loaded.");
-        ImGui::End();
         return;
     }
     ImGui::TextDisabled("%s", p_app.simulation->scenario().controller.behavior_tree.filename().string().c_str());
@@ -371,6 +365,15 @@ void treePanel(App& p_app)
         treeNode(tree->getRoot());
     }
     ImGui::EndChild();
+}
+
+void treePanel(App& p_app, char const* p_key)
+{
+    std::string const title = panelTitle("Behavior tree", p_key);
+    if (ImGui::Begin(title.c_str()))
+    {
+        treeView(p_app);
+    }
     ImGui::End();
 }
 

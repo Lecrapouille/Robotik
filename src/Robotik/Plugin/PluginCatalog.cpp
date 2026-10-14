@@ -49,7 +49,9 @@ bool libraryName(std::string const& p_name)
     return true;
 }
 
-bool relativeInside(std::string const& p_file)
+//! A relative name. Whether it stays in the package is checked on its
+//! canonical path (".." and symbolic links are followed).
+bool relativeName(std::string const& p_file)
 {
     if (p_file.empty())
     {
@@ -60,14 +62,7 @@ bool relativeInside(std::string const& p_file)
     {
         return false;
     }
-    for (std::filesystem::path const& part : path)
-    {
-        if (part == "..")
-        {
-            return false;
-        }
-    }
-    return true;
+    return !path.has_root_name() && !path.has_root_directory();
 }
 
 std::filesystem::path canonicalOf(std::filesystem::path const& p_path)
@@ -143,7 +138,8 @@ bool readEntries(bt::YamlNode const& p_section,
         return true;
     }
     std::string const folder_name = field(p_section, "directory");
-    if (!folder_name.empty() && folder_name != "." && !relativeInside(folder_name))
+    if (!folder_name.empty() && folder_name != "." &&
+        (!relativeName(folder_name) || !contained(p_root, p_root / folder_name)))
     {
         p_why = "a directory must stay inside the package";
         return false;
@@ -209,6 +205,39 @@ bool readEntries(bt::YamlNode const& p_section,
         }
     }
     return true;
+}
+
+//! An entry of dependencies.system or dependencies.thirdparties: a map, or
+//! a scalar (the repo or the name).
+ThirdParty libraryOf(bt::YamlNode const& p_item)
+{
+    ThirdParty entry;
+    std::string repo = p_item.isMap() ? field(p_item, "repo") : std::string{};
+    entry.name = p_item.isMap() ? field(p_item, "name") : p_item.scalar();
+    if (!repo.empty())
+    {
+        if (std::size_t const at = repo.find('@'); at != std::string::npos)
+        {
+            entry.reference = repo.substr(at + 1u);
+            repo.resize(at);
+        }
+        if (std::size_t const option = repo.find(':'); option != std::string::npos)
+        {
+            repo.resize(option);
+        }
+        entry.name = repo;
+        entry.url = "https://github.com/" + repo;
+    }
+    if (p_item.isMap())
+    {
+        if (std::string const url = field(p_item, "url"); !url.empty())
+        {
+            entry.url = url;
+        }
+        entry.license = field(p_item, "license");
+        entry.description = field(p_item, "description");
+    }
+    return entry;
 }
 
 } // namespace
@@ -402,6 +431,7 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     package.id = field(plugin, "id");
     package.name = field(plugin, "name");
     package.category = field(plugin, "category");
+    package.description = field(plugin, "description");
     if (package.category.empty())
     {
         package.category = "Demo";
@@ -435,12 +465,13 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     bt::YamlNode const resources = node.child("resources");
     if (std::string const directory = field(resources, "directory"); !directory.empty())
     {
-        if (!relativeInside(directory))
+        if (!relativeName(directory) || !contained(p_root, p_root / directory))
         {
             reject("resources.directory must stay inside the package");
             return;
         }
-        package.resources = (p_root / directory).lexically_normal();
+        // Canonical, like the root of the packs it holds.
+        package.resources = canonicalOf(p_root / directory);
     }
     bool packs_ok = true;
     resources.child("packs").forEachSeq([&](bt::YamlNode p_item) {
@@ -466,8 +497,10 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     bt::YamlNode const dependencies = node.child("dependencies");
     dependencies.child("plugins").forEachSeq(
         [&](bt::YamlNode p_item) { package.plugins.push_back(p_item.scalar()); });
+    dependencies.child("system").forEachSeq(
+        [&](bt::YamlNode p_item) { package.system.push_back(libraryOf(p_item)); });
     dependencies.child("thirdparties").forEachSeq(
-        [&](bt::YamlNode p_item) { package.thirdparties.push_back(p_item.scalar()); });
+        [&](bt::YamlNode p_item) { package.thirdparties.push_back(libraryOf(p_item)); });
 
     // --- host hints ---------------------------------------------------------
     bt::YamlNode const host = node.child("host");

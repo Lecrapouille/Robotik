@@ -1,11 +1,11 @@
 scenario:
   id: line_follower
   description: Localize on the floor AprilTags, reach the line and follow it for one lap.
-  world: ../worlds/line_track.yaml
+  world: worlds/line_track.yaml
   seed: 1
 
   controller:
-    behavior_tree: line_follower.bt.yml
+    behavior_tree: scenarios/line_follower.bt.yml
 
   timeout: 200
 

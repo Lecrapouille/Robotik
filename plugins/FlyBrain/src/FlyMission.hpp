@@ -27,6 +27,7 @@
 #include "Compages/World/Entity.hpp"
 
 #include <array>
+#include <filesystem>
 #include <memory>
 #include <vector>
 
@@ -112,10 +113,19 @@ public:
 
     // -------------------------------------------------------------------------
     //! @brief Builds a brain without touching the mission: safe on another
-    //! thread. Loading the connectome reads large files (seconds).
+    //! thread. Loading the connectome reads large files (seconds) from
+    //! @p_tables (see @ref tables).
     //! @throws std::runtime_error when the tables cannot be read.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static std::unique_ptr<FlyBrain> buildBrain(bool p_connectome, float p_cruise);
+    [[nodiscard]] static std::unique_ptr<FlyBrain>
+    buildBrain(bool p_connectome, float p_cruise, std::filesystem::path const& p_tables);
+
+    //! @brief Folder of the FlyWire tables: @c flywire/ in the pack
+    //! @c robotik.fly. Empty before @c setup.
+    [[nodiscard]] std::filesystem::path const& tables() const
+    {
+        return m_tables;
+    }
 
     //! @brief Cruise height given to a new brain.
     [[nodiscard]] float cruise() const;
@@ -147,6 +157,7 @@ private:
     std::unique_ptr<FlyBrain> m_brain;
     FlyBackend* m_backend = nullptr;
     robotik::Simulation* m_simulation = nullptr;
+    std::filesystem::path m_tables;
     FlyBrain::Kind m_kind = FlyBrain::Kind::Shiu;
     robotik::Seed m_seed;
     FlyAction m_action{};

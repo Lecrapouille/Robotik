@@ -13,6 +13,7 @@
 #include "Robotik/Plugin/PluginSession.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Scenario/Experiment.hpp"
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
@@ -21,6 +22,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -61,6 +63,42 @@ struct JointHistory
 };
 
 // ****************************************************************************
+//! @brief A file or a folder of the loaded package (Package panel).
+// ****************************************************************************
+struct PackageEntry
+{
+    std::string name;
+    std::filesystem::path path;
+    std::uintmax_t size = 0;
+    bool folder = false;
+    std::vector<PackageEntry> children;
+};
+
+// ****************************************************************************
+//! @brief Tabs of the Files panel: one per kind of file.
+// ****************************************************************************
+enum class FileTab : std::uint8_t
+{
+    Scenario,
+    World,
+    Tree,
+    Experiment,
+    //!< Any other file of the package (plugin.yaml, a URDF...).
+    Other,
+};
+
+inline constexpr std::size_t FILE_TAB_COUNT = 5u;
+
+// ****************************************************************************
+//! @brief A file shown read-only in the Files panel.
+// ****************************************************************************
+struct ShownFile
+{
+    std::filesystem::path path;
+    std::string text;
+};
+
+// ****************************************************************************
 //! @brief Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
@@ -76,6 +114,28 @@ struct UiState
     //!< Scenario to load at the start of the next frame.
     std::filesystem::path pending_scenario;
     std::string open_path;
+    //!< Package panel: the files of the package, read once per package.
+    std::filesystem::path package_root;
+    PackageEntry package_tree;
+    //!< Files panel: a file shown in a tab instead of the loaded one (empty
+    //!< path: the loaded one). Scenario, World and Tree are reset when
+    //!< another scenario is loaded.
+    std::array<ShownFile, FILE_TAB_COUNT> shown_files;
+    std::filesystem::path shown_for;
+    //!< Tab to bring to the front on the next frame.
+    std::optional<FileTab> select_tab;
+    //!< Experiment panel: the experiment chosen in Files, read once.
+    std::filesystem::path experiment_root;
+    std::filesystem::path experiment_path;
+    std::optional<robotik::Experiment> experiment;
+    std::string experiment_error;
+    //!< The panel beside Files shows one view: Scenario, World, Tree or
+    //!< Experiment. It follows the tab chosen in Files.
+    FileTab view = FileTab::Scenario;
+    std::optional<FileTab> active_tab;
+    //!< Assets panel: text filter, and only the packs of the running scenario.
+    std::array<char, 64> asset_filter{};
+    bool assets_in_use = false;
     //!< Skills panel: cards (false) or a table (true).
     bool skills_table = false;
     //!< Joints drawn in the plots.

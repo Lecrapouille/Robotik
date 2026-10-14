@@ -333,10 +333,10 @@ world:
 # scenarios/pick_and_place.yml
 scenario:
   id: pick_and_place
-  world: ../worlds/pick_place_cell.yaml
+  world: worlds/pick_place_cell.yaml           # paths start at the plugin folder
   seed: 42
   controller:
-    behavior_tree: pick_and_place.bt.yml
+    behavior_tree: scenarios/pick_and_place.bt.yml
   timeout: 60
   assertions:
     - controller.success
@@ -350,9 +350,9 @@ experiment:
   id: pick_and_place_benchmark
   seeds: [11, 12, 13]
   cases:
-    - { id: nominal, scenario: ../scenarios/pick_and_place.yml }
+    - { id: nominal, scenario: scenarios/pick_and_place.yml }
     - id: wide_layout
-      scenario: ../scenarios/pick_and_place.yml
+      scenario: scenarios/pick_and_place.yml
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
   evaluation:
@@ -458,7 +458,6 @@ git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
 
 make download-external-libs
-make compile-external-libs
 make -j"$(nproc --all)"
 ```
 

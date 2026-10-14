@@ -294,14 +294,14 @@ A complete example (the repository file does not use every key):
 scenario:
   id: pick_and_place
   description: Pick the red cube and put it in the box.
-  world: ../worlds/pick_place_cell.yaml       # relative to this file
+  world: worlds/pick_place_cell.yaml          # relative to the package root
   seed: 42
 
   controller:
-    behavior_tree: pick_and_place.bt.yml      # the default strategy
+    behavior_tree: scenarios/pick_and_place.bt.yml   # the default strategy
 
   trajectories:
-    drop: trajectories/drop.yaml
+    drop: scenarios/trajectories/drop.yaml
 
   perception: { oracle: when_blind }
 
@@ -321,7 +321,7 @@ scenario:
 
 | Key | Role |
 |-----|------|
-| `world` | The world file, relative to the scenario |
+| `world` | The world file, relative to the package root (see below) |
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
 | `controller` | The default strategy: a behavior tree. Without it, the plugin mission drives the robot |
 | `trajectories` | Named paths, one file each (§8) |
@@ -330,6 +330,25 @@ scenario:
 | `timeout` | Maximum simulated time, in seconds |
 | `stop_when` | A condition that ends the run as soon as it is true |
 | `assertions` | What is checked (§6) |
+
+**File names.** Every file named in a world, scenario or experiment file
+(`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is
+relative to the **package root**: the folder of `plugin.yaml`. It is the same
+in every file, whatever the folder of the file:
+
+```text
+plugins/HelloWorld/            <- package root
+├── plugin.yaml
+├── worlds/arm.yaml            "worlds/arm.yaml"
+├── scenarios/skills.yml       "scenarios/skills.yml"
+└── experiments/hello.yaml     names "scenarios/skills.yml" too
+```
+
+A name may not leave the package. `..` and symbolic links are allowed, but
+the real file (its canonical path) must be inside the package folder; an
+absolute path is refused. Otherwise the load fails with the reason. So a
+package is a closed folder: you can copy or install it as a whole. A model of an asset pack is named by its id
+(`robotik.tools.vacuum`), not by a path.
 
 ### When does a run end?
 
@@ -497,16 +516,16 @@ experiment:
 
   cases:
     - id: wave
-      scenario: ../scenarios/wave.yml
+      scenario: scenarios/wave.yml
 
     - id: skills
-      scenario: ../scenarios/skills.yml
+      scenario: scenarios/skills.yml
 
     # Same scenario, the arm in fault for one second, and another strategy:
     # a behavior tree that retries Wave. The assertions do not change.
     - id: skills_arm_fault
-      scenario: ../scenarios/skills.yml
-      controller: { behavior_tree: ../scenarios/skills_retry.bt.yml }
+      scenario: scenarios/skills.yml
+      controller: { behavior_tree: scenarios/skills_retry.bt.yml }
       setup:
         - inject_fault: { resource: arm, at: 1.0, action: disable }
         - inject_fault: { resource: arm, at: 2.0, action: restore }
@@ -547,7 +566,7 @@ list, a segment names the element with this `id` (or this index):
 
 ```yaml
     - id: wide_layout
-      scenario: ../scenarios/pick_and_place.yml
+      scenario: scenarios/pick_and_place.yml
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
         scenario.timeout: 90

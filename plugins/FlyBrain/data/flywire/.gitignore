@@ -1,0 +1,4 @@
+# FlyWire v783 tables generated from Drosophila_brain_model (Shiu et al. 2024)
+# by the plugin Makefile. Only binding.txt (the role file) is versioned.
+edges.csv
+completeness.csv

@@ -24,19 +24,6 @@ namespace
 
 constexpr std::size_t TRAIL = 240;
 
-//! Edge list and role file extracted by external/compilation (gitignored).
-std::filesystem::path flywire(char const* p_file)
-{
-    std::filesystem::path const beside =
-        robotik::executableDirectory().parent_path() / "data" / "flywire" / p_file;
-    std::error_code error;
-    if (std::filesystem::is_regular_file(beside, error))
-    {
-        return beside;
-    }
-    return std::filesystem::path("data") / "flywire" / p_file;
-}
-
 compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x), static_cast<float>(p_v.y), static_cast<float>(p_v.z) };
@@ -150,6 +137,11 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
 void FlyMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view)
 {
     m_simulation = &p_simulation;
+    // The FlyWire tables sit in the pack of the fly body (the plugin's own).
+    if (robotik::AssetPack const* pack = p_simulation.scenario().assets.find("robotik.fly"))
+    {
+        m_tables = pack->root / "flywire";
+    }
     FlyScenario scenario = FlyScenario::from(p_simulation.scenario());
     m_dt = scenario.dt;
     m_kind = scenario.agent == "reflex" ? FlyBrain::Kind::Reflex : FlyBrain::Kind::Shiu;
@@ -309,12 +301,14 @@ robotik::Status FlyMission::status(robotik::Simulation const& /*p_simulation*/) 
     return m_backend->done() ? robotik::Status::FAILURE : robotik::Status::RUNNING;
 }
 
-std::unique_ptr<FlyBrain> FlyMission::buildBrain(bool p_connectome, float p_cruise)
+std::unique_ptr<FlyBrain> FlyMission::buildBrain(bool p_connectome,
+                                                 float p_cruise,
+                                                 std::filesystem::path const& p_tables)
 {
     auto brain = std::make_unique<FlyBrain>(FlyBrain::Kind::Shiu, p_cruise);
     if (p_connectome)
     {
-        brain->loadConnectome(flywire("edges.csv"), flywire("binding.txt"));
+        brain->loadConnectome(p_tables / "edges.csv", p_tables / "binding.txt");
     }
     return brain;
 }
@@ -336,5 +330,5 @@ void FlyMission::installBrain(std::unique_ptr<FlyBrain> p_brain)
 
 void FlyMission::useConnectome(bool p_connectome)
 {
-    installBrain(buildBrain(p_connectome, cruise()));
+    installBrain(buildBrain(p_connectome, cruise(), m_tables));
 }

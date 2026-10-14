@@ -2,7 +2,7 @@
 scenario:
   id: fly_obstacle_avoidance
   description: Reach the food while skirting the blocks.
-  world: ../worlds/fly_arena.yaml
+  world: worlds/fly_arena.yaml
   seed: 123456
   timeout: 40
 
