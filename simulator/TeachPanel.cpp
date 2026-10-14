@@ -288,7 +288,7 @@ void cartesianJog(App& p_app)
     float const linear = p_app.teach.linear_step;
     float const angular = p_app.teach.angular_step;
     robotik::Vector3 const none = robotik::zero3();
-    if (ImGui::BeginTable("jog", 7, ImGuiTableFlags_SizingStretchSame))
+    if (beginTable("jog", 7, ImGuiTableFlags_SizingStretchSame))
     {
         // Two blocks of three columns: translation, then rotation.
         for (int column = 0; column < 7; ++column)
@@ -307,7 +307,7 @@ void cartesianJog(App& p_app)
         jogRow(p_app, "Z", { 0.0, 0.0, linear }, none);
         ImGui::TableNextColumn();
         jogRow(p_app, "Rz", none, { 0.0, 0.0, angular });
-        ImGui::EndTable();
+        endTable();
     }
     float const half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
     ImGui::SetNextItemWidth(half);
@@ -345,7 +345,7 @@ void waypoints(App& p_app)
     {
         ImGui::TextDisabled("No waypoint yet.");
     }
-    else if (ImGui::BeginTable("waypoints", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
+    else if (beginTable("waypoints", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
     {
         ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthStretch);
@@ -380,7 +380,7 @@ void waypoints(App& p_app)
             }
             ImGui::PopID();
         }
-        ImGui::EndTable();
+        endTable();
         if (erase >= 0)
         {
             pendant.erase(static_cast<std::size_t>(erase));

@@ -7,6 +7,8 @@
 
 #include "Robotik/Scenario/Experiment.hpp"
 
+#include "Robotik/Scenario/PackagePath.hpp"
+
 #include <algorithm>
 #include <stdexcept>
 
@@ -15,13 +17,6 @@ namespace robotik
 
 namespace
 {
-
-std::filesystem::path relative(std::filesystem::path const& p_directory,
-                               std::string const& p_file)
-{
-    return p_file.empty() ? std::filesystem::path{}
-                          : (p_directory / p_file).lexically_normal();
-}
 
 void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
 {
@@ -64,11 +59,11 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
 {
     Experiment experiment;
     experiment.file = std::filesystem::absolute(p_path).lexically_normal();
-    std::filesystem::path const directory = experiment.file.parent_path();
-    ConfigNode const root = ConfigNode::load(experiment.file);
-    ConfigNode const& node = root.at("experiment");
+    ConfigNode const document = ConfigNode::load(experiment.file);
+    ConfigNode const& node = document.at("experiment");
     try
     {
+        std::filesystem::path const root = packageRoot(experiment.file);
         if (!node.isMap())
         {
             throw std::runtime_error("no 'experiment:' section");
@@ -79,7 +74,7 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
             throw std::runtime_error("experiment.id is required");
         }
         experiment.description = node.text("description");
-        experiment.world = relative(directory, node.text("world"));
+        experiment.world = packageFile(root, node.text("world"));
         for (std::string const& seed : node.strings("seeds"))
         {
             std::optional<double> const value = ConfigNode(seed).asNumber();
@@ -97,7 +92,7 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
         {
             ExperimentCase run;
             run.id = item.text("id");
-            run.scenario = relative(directory, item.text("scenario"));
+            run.scenario = packageFile(root, item.text("scenario"));
             if (run.id.empty() || run.scenario.empty())
             {
                 throw std::runtime_error("every case needs an id and a scenario");
@@ -109,7 +104,7 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
                     throw std::runtime_error("case '" + run.id + "' is declared twice");
                 }
             }
-            run.behavior_tree = relative(directory, item.at("controller").text("behavior_tree"));
+            run.behavior_tree = packageFile(root, item.at("controller").text("behavior_tree"));
             for (auto const& [path, value] : item.at("overrides").entries())
             {
                 run.overrides.emplace_back(path, value);

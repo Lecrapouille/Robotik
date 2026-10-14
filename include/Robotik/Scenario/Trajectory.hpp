@@ -28,11 +28,11 @@
 //!     - [0.5, 0.3]
 //! @endcode
 //!
-//! The scenario names them, relative to its file:
+//! The scenario names them, relative to the package root:
 //! @code
 //! scenario:
 //!   trajectories:
-//!     red: trajectories/red_stroke.yaml
+//!     red: scenarios/trajectories/red_stroke.yaml
 //! @endcode
 #pragma once
 

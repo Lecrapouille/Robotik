@@ -4,13 +4,23 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Perception
+  description: A fly flies to a food source and avoids obstacles. Its brain is a 13-neuron circuit or the FlyWire connectome.
 
 library:
   entrypoint: librobotik_fly.so
 
+# Own pack: the fly body (robotik.fly) and, in data/flywire, the FlyWire
+# tables of the connectome (edges.csv is generated from the model below).
 resources:
-  packs:
-    - { id: robotik.fly, version: "1.0" }
+  directory: data
+
+# Libraries the plugin is built with, and their license. thirdparties with a
+# repo are cloned into external/ by make download-external-libs and built by
+# the Makefile; system ones come from the system (pkg-config name).
+# The fly brain model is optional: without it, only the 13-neuron circuit.
+dependencies:
+  thirdparties:
+    - { repo: philshiu/Drosophila_brain_model, license: MIT, description: "Whole adult fly brain model (Shiu et al. 2024)" }
 
 host:
   view:

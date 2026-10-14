@@ -4,6 +4,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Manipulation
+  description: A robot arm paints colored strokes on an easel.
 
 library:
   entrypoint: librobotik_painter.so

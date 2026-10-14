@@ -48,14 +48,25 @@ make tests -j"$(nproc)"                   # builds and runs build/Robotik-tests
 
 Headless exit code: 0 pass, 2 a run failed, 1 load error. `make` copies
 `worlds/ scenarios/ experiments/ data/` over `build/plugins/<Name>/`: edit
-sources, not `build/`. First build only: `make download-external-libs &&
-make compile-external-libs`.
+sources, not `build/`. First build only: `make download-external-libs`
+(core `external/manifest`, then the `dependencies.thirdparties` of each
+`plugin.yaml`);
+libraries are then built by Make rules, there is no `external/compilation`.
 
 ## Rules that are easy to break
 
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
   give them ground truth (`Simulation::pose/query`); that is for metrics,
   assertions, RL reward.
+- Paths in world/scenario/experiment YAML start at the package root (folder
+  of `plugin.yaml`): `world: worlds/arm.yaml`. `..` and symlinks are allowed
+  but the canonical path must stay in the package; absolute paths are
+  refused (`PackagePath.hpp`).
+- A library used by one plugin goes in `dependencies:` of its `plugin.yaml`
+  (`system:` pkg-config names, `thirdparties:` `{ repo, license, description }`;
+  the license is required for the credits) and is built by a rule of its
+  Makefile (`PLUGIN_REQUIRES`, `PLUGIN_DEPENDS`, see
+  `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
 - Plugins publish metrics (`Mission::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
 - `Mission::status` ends a run only when the scenario has no behavior tree.

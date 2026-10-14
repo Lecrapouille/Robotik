@@ -6,7 +6,7 @@ description: Write or fix RobotIK world (worlds/*.yaml), scenario (scenarios/*.y
 # RobotIK YAML
 
 World = what exists. Scenario = what happens, when it stops, what is
-checked. Experiment = variants × seeds. Paths are relative to the file.
+checked. Experiment = variants × seeds. Paths are relative to the package root (folder of plugin.yaml); `..` and symlinks are allowed but the canonical path must stay in the package; absolute paths are refused.
 Scenario/experiment files must be listed in the plugin `plugin.yaml`.
 Edit `plugins/...`, then `make -C plugins/<Name>` (it overwrites `build/`).
 
@@ -66,10 +66,10 @@ drift ~1 cm: prefer `prop` for exact tutorials/tests.
 scenario:
   id: main                             # = plugin.yaml entry id = Plugin::setup string
   description: ...
-  world: ../worlds/cell.yaml
+  world: worlds/cell.yaml
   seed: 42
-  controller: { behavior_tree: main.bt.yml }   # omit → Mission::status ends the run
-  trajectories: { red: trajectories/red.yaml }
+  controller: { behavior_tree: scenarios/main.bt.yml }   # omit → Mission::status ends the run
+  trajectories: { red: scenarios/trajectories/red.yaml }
   perception: { oracle: when_blind }   # never (default) | when_blind | always
   faults:
     - { at: 1.0, resource: arm, action: disable }
@@ -120,12 +120,12 @@ trajectory:
 experiment:
   id: bench
   seeds: [1, 2, 3]
-  world: ../worlds/other.yaml          # optional: replaces every world
+  world: worlds/other.yaml          # optional: replaces every world
   cases:
-    - { id: nominal, scenario: ../scenarios/main.yml }
+    - { id: nominal, scenario: scenarios/main.yml }
     - id: variant
-      scenario: ../scenarios/main.yml
-      controller: { behavior_tree: ../scenarios/retry.bt.yml }
+      scenario: scenarios/main.yml
+      controller: { behavior_tree: scenarios/retry.bt.yml }
       overrides:                       # dotted paths, list segment = element id
         world.entities.cube.randomize: { x: [-0.05, 0.05] }
         scenario.timeout: 90

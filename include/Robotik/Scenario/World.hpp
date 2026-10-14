@@ -211,8 +211,9 @@ struct EntitySpec
 struct WorldDescription
 {
     // -------------------------------------------------------------------------
-    //! @brief Reads the @c world: node of a file. Paths are relative to
-    //! @p_directory, models are resolved through @p_assets.
+    //! @brief Reads the @c world: node of a file. File names are relative
+    //! to @p_directory, the package root; models are resolved through
+    //! @p_assets.
     //! @throws std::runtime_error naming the entity and the field at fault.
     // -------------------------------------------------------------------------
     [[nodiscard]] static WorldDescription read(ConfigNode const& p_world,

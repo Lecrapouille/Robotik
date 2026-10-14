@@ -9,6 +9,7 @@
 
 #include "Robotik/Runtime/RunReport.hpp"
 #include "Robotik/Scenario/Experiment.hpp"
+#include "Robotik/Scenario/PackagePath.hpp"
 #include "Robotik/Scenario/Trajectory.hpp"
 
 #include <fstream>
@@ -30,9 +31,14 @@ robotik::ExperimentCase const& find(robotik::Experiment const& p_experiment,
     throw std::invalid_argument(p_id);
 }
 
+//! @brief Writes @p_text in experiments/ of a throwaway package.
 std::filesystem::path write(std::string const& p_name, std::string const& p_text)
 {
-    std::filesystem::path const path = std::filesystem::temp_directory_path() / p_name;
+    std::filesystem::path const package =
+        std::filesystem::temp_directory_path() / "robotik_package";
+    std::filesystem::create_directories(package / "experiments");
+    std::ofstream(package / "plugin.yaml") << "plugin: { id: test }\n";
+    std::filesystem::path const path = package / "experiments" / p_name;
     std::ofstream(path) << p_text;
     return path;
 }
@@ -93,6 +99,40 @@ TEST(Experiment, InvalidFilesAreRefused)
         "experiment:\n  id: x\n  cases:\n    - id: a\n      scenario: s.yml\n"
         "      setup:\n        - reboot: now\n");
     EXPECT_THROW((void)robotik::Experiment::load(setup), std::runtime_error);
+}
+
+TEST(PackagePath, NamesStartAtThePackageRootAndStayInside)
+{
+    std::filesystem::path const file = write("robotik_root.yaml", "experiment: {}\n");
+    std::filesystem::path const root =
+        std::filesystem::canonical(robotik::packageRoot(file));
+    EXPECT_EQ(root, std::filesystem::canonical(file.parent_path().parent_path()));
+    EXPECT_EQ(robotik::packageFile(root, "scenarios/a.yml"), root / "scenarios" / "a.yml");
+    EXPECT_EQ(robotik::packageFile(root, "./worlds/b.yaml"), root / "worlds" / "b.yaml");
+    // ".." is followed: what counts is where the file really is.
+    EXPECT_EQ(robotik::packageFile(root, "experiments/../worlds/b.yaml"),
+              root / "worlds" / "b.yaml");
+    EXPECT_TRUE(robotik::packageFile(root, "").empty());
+    EXPECT_THROW((void)robotik::packageFile(root, "../scenarios/a.yml"), std::runtime_error);
+    EXPECT_THROW((void)robotik::packageFile(root, "scenarios/../../a.yml"), std::runtime_error);
+    EXPECT_THROW((void)robotik::packageFile(root, ".."), std::runtime_error);
+    EXPECT_THROW((void)robotik::packageFile(root, "/etc/passwd"), std::runtime_error);
+    EXPECT_THROW((void)robotik::packageRoot("/robotik_no_package/a.yml"), std::runtime_error);
+
+    // A symbolic link is followed too: inside the package it is accepted,
+    // pointing out of it, refused.
+    std::error_code error;
+    std::filesystem::remove(root / "inside", error);
+    std::filesystem::remove(root / "outside", error);
+    std::filesystem::create_directory_symlink(root / "experiments", root / "inside");
+    std::filesystem::create_directory_symlink(root.parent_path(), root / "outside");
+    EXPECT_EQ(robotik::packageFile(root, "inside/robotik_root.yaml"), file);
+    EXPECT_THROW((void)robotik::packageFile(root, "outside/x.yml"), std::runtime_error);
+
+    std::filesystem::path const escape = write(
+        "robotik_escape.yaml",
+        "experiment:\n  id: x\n  cases:\n    - { id: a, scenario: ../scenarios/s.yml }\n");
+    EXPECT_THROW((void)robotik::Experiment::load(escape), std::runtime_error);
 }
 
 TEST(RunReport, JsonEscapesAndCountsRuns)

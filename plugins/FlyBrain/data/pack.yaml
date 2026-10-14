@@ -1,0 +1,11 @@
+id: robotik.fly
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: >
+  Drosophila body, real size and scaled a hundred times. flywire/ holds the
+  FlyWire v783 connectome tables (Shiu et al. 2024, MIT): binding.txt is
+  versioned, edges.csv and completeness.csv are generated.
+models:
+  drosophila: drosophila.urdf
+  drosophila_x100: drosophila_x100.urdf

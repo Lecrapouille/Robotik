@@ -84,11 +84,7 @@ include $(M)/rules/Makefile
 include $(P)/Makefile.relink
 
 ###############################################################################
-# Build rapidyaml on demand. MyMakefile ignores the archives produced by
-# external/compilation, so a tree where they are missing fails late with an
-# opaque "ar: libryml.a: No such file" instead of building them.
+# Build rapidyaml on demand (rule in Makefile.common): a tree where it is
+# missing would otherwise fail late with "ar: libryml.a: No such file".
 #
-$(BLACKTHORN_STATIC_DEPS):
-	@$(MAKE) --no-print-directory -C $(P) compile-external-libs
-
 $(TARGET_STATIC_LIB_NAME) $(TARGET_SHARED_LIB_NAME): $(BLACKTHORN_STATIC_DEPS)

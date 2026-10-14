@@ -4,6 +4,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Mobile
+  description: A mobile robot follows a line and localizes itself with AprilTag markers (OpenCV).
 
 library:
   entrypoint: librobotik_line_follower.so
@@ -12,11 +13,14 @@ resources:
   packs:
     - { id: robotik.robots, version: "1.0" }
 
-# Build-time libraries, resolved by the Makefile. Listed for the record.
+# Libraries the plugin is built with, and their license. thirdparties with a
+# repo are cloned into external/ by make download-external-libs and built by
+# the Makefile; system ones come from the system (pkg-config name).
 dependencies:
+  system:
+    - { name: opencv4, license: Apache-2.0 }
   thirdparties:
-    - opencv
-    - apriltag
+    - { repo: AprilRobotics/apriltag, license: BSD-2-Clause, description: AprilTag fiducial detection }
 
 host:
   view:

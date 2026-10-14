@@ -11,6 +11,8 @@
 #include <imgui.h>
 
 #include <cstdio>
+#include <fstream>
+#include <iterator>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -62,34 +64,6 @@ char const* typeOf(robotik::ActuatorSpec::Type p_type)
             return "vacuum";
     }
     return "";
-}
-
-char const* oracleOf(robotik::OraclePolicy p_policy)
-{
-    switch (p_policy)
-    {
-        case robotik::OraclePolicy::Never:
-            return "never";
-        case robotik::OraclePolicy::WhenBlind:
-            return "when blind";
-        case robotik::OraclePolicy::Always:
-            return "always";
-    }
-    return "";
-}
-
-//! @brief Two-column "key  value" rows.
-void field(char const* p_key, char const* p_format, ...) IM_FMTARGS(2);
-void field(char const* p_key, char const* p_format, ...)
-{
-    ImGui::TableNextRow();
-    ImGui::TableNextColumn();
-    ImGui::TextDisabled("%s", p_key);
-    ImGui::TableNextColumn();
-    va_list args;
-    va_start(args, p_format);
-    ImGui::TextWrappedV(p_format, args);
-    va_end(args);
 }
 
 std::string parentOf(robotik::EntitySpec const& p_entity)
@@ -192,134 +166,36 @@ void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::En
     ImGui::TreePop();
 }
 
-void textFile(char const* p_tab, std::filesystem::path const& p_path, std::string& p_text)
+//! @brief Text of @p_path, or a short note for a binary or a large file.
+std::string readShown(std::filesystem::path const& p_path)
 {
-    if (p_text.empty() || !ImGui::BeginTabItem(p_tab))
+    constexpr std::uintmax_t LIMIT = 2u * 1024u * 1024u;
+    std::error_code error;
+    std::uintmax_t const size = std::filesystem::file_size(p_path, error);
+    if (error)
     {
-        return;
+        return "# Cannot read this file: " + error.message();
     }
-    ImGui::TextDisabled("%s", p_path.string().c_str());
-    ImGui::SameLine();
-    if (ImGui::SmallButton("Copy path"))
+    if (size > LIMIT)
     {
-        ImGui::SetClipboardText(p_path.string().c_str());
+        return "# " + std::to_string(size / (1024u * 1024u)) + " MB: too large to show here.";
     }
-    ImGui::InputTextMultiline("##text", p_text.data(), p_text.size() + 1u, ImVec2(-1.0f, -1.0f),
-                              ImGuiInputTextFlags_ReadOnly);
-    ImGui::EndTabItem();
+    std::ifstream file(p_path, std::ios::binary);
+    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    if (text.find('\0') != std::string::npos)
+    {
+        return "# Binary file, " + std::to_string(size) + " bytes.";
+    }
+    return text;
 }
 
 } // namespace
 
-void pluginPanel(App& p_app)
+void worldView(App& p_app)
 {
-    if (!ImGui::Begin("Plugin"))
-    {
-        ImGui::End();
-        return;
-    }
-    robotik::PluginMatch const match = p_app.plugins.catalog().matchScenario(p_app.scenario_path);
-    robotik::PluginPackage const* package = match.package;
-    if (package == nullptr)
-    {
-        emptyState("No plugin loaded.\nChoose a scenario in the Demos menu.");
-        ImGui::End();
-        return;
-    }
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.25f);
-    ImGui::TextUnformatted(package->name.c_str());
-    ImGui::PopFont();
-    ImGui::TextDisabled("%s  ·  v%s  ·  %s", package->id.c_str(), package->version.toString().c_str(),
-                        package->category.c_str());
-    if (!package->packs.empty())
-    {
-        std::string packs;
-        for (robotik::PackRequirement const& pack : package->packs)
-        {
-            packs += packs.empty() ? "" : ", ";
-            packs += pack.id + " " + pack.version.toString();
-        }
-        ImGui::TextDisabled("Asset packs: %s", packs.c_str());
-    }
-
-    ImGui::SeparatorText("Scenarios");
-    for (robotik::PluginScenario const& scenario : package->scenarios)
-    {
-        bool const current = match.scenario != nullptr && match.scenario->id == scenario.id;
-        if (ImGui::Selectable(scenario.name.c_str(), current) && !current)
-        {
-            requestScenario(p_app, scenario.file);
-        }
-        ImGui::SetItemTooltip("%s\nClick to load.", scenario.file.string().c_str());
-    }
-
-    if (!package->experiments.empty())
-    {
-        ImGui::SeparatorText("Experiments");
-        ImGui::SameLine();
-        helpMarker("An experiment runs several variants and seeds without window, and writes a "
-                   "report. Copy the command and run it in a terminal.");
-        for (robotik::PluginScenario const& experiment : package->experiments)
-        {
-            ImGui::PushID(experiment.id.c_str());
-            ImGui::BulletText("%s", experiment.name.c_str());
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Copy command"))
-            {
-                std::string const command = "./build/Robotik-Headless " + experiment.file.string() +
-                                            " --report " + experiment.id + ".json";
-                ImGui::SetClipboardText(command.c_str());
-            }
-            ImGui::PopID();
-        }
-    }
-
-    if (p_app.simulation)
-    {
-        robotik::Scenario const& scenario = p_app.simulation->scenario();
-        ImGui::SeparatorText("This scenario");
-        if (!scenario.description.empty())
-        {
-            ImGui::TextWrapped("%s", scenario.description.c_str());
-            ImGui::Spacing();
-        }
-        if (ImGui::BeginTable("scenario", 2, ImGuiTableFlags_SizingStretchProp))
-        {
-            ImGui::TableSetupColumn("key", ImGuiTableColumnFlags_WidthFixed);
-            ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
-            field("id", "%s", scenario.id.c_str());
-            field("world", "%s", scenario.world.id.c_str());
-            field("robot", "%s", scenario.world.robot().model_ref.c_str());
-            field("controller", "%s",
-                  scenario.controller.behavior_tree.empty()
-                      ? "plugin mission (C++)"
-                      : scenario.controller.behavior_tree.filename().string().c_str());
-            field("seed", "%llu", static_cast<unsigned long long>(scenario.seed));
-            field("timeout", "%.0f s", scenario.timeout.value());
-            if (!scenario.stop_when.empty())
-            {
-                field("stop when", "%s", scenario.stop_when.c_str());
-            }
-            field("faults", "%zu planned, %zu random", scenario.faults.size(), scenario.random_faults.size());
-            field("oracle", "%s%s", oracleOf(scenario.oracle),
-                  p_app.simulation->oracle() ? " (active: ground truth feeds the beliefs)" : "");
-            ImGui::EndTable();
-        }
-    }
-    ImGui::End();
-}
-
-void worldPanel(App& p_app)
-{
-    if (!ImGui::Begin("World"))
-    {
-        ImGui::End();
-        return;
-    }
     if (!p_app.simulation)
     {
         emptyState("No scenario loaded.");
-        ImGui::End();
         return;
     }
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
@@ -327,7 +203,7 @@ void worldPanel(App& p_app)
                         world.floor ? "physical floor" : "no physical floor");
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (ImGui::BeginTable("entities", 4, flags))
+    if (beginTable("entities", 4, flags))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("Entity", ImGuiTableColumnFlags_WidthStretch, 1.5f);
@@ -343,9 +219,198 @@ void worldPanel(App& p_app)
                 entityRow(p_app, world, entity);
             }
         }
-        ImGui::EndTable();
+        endTable();
     }
-    ImGui::End();
+}
+
+namespace
+{
+
+bool same(std::filesystem::path const& p_a, std::filesystem::path const& p_b)
+{
+    std::error_code error;
+    return !p_a.empty() && !p_b.empty() && std::filesystem::equivalent(p_a, p_b, error);
+}
+
+//! @brief Kind of a YAML file, from its first top-level key.
+FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
+{
+    std::string const name = p_path.filename().string();
+    if (name.ends_with(".bt.yml") || name.ends_with(".bt.yaml"))
+    {
+        return FileTab::Tree;
+    }
+    if (!name.ends_with(".yml") && !name.ends_with(".yaml"))
+    {
+        return FileTab::Other;
+    }
+    std::string_view rest(p_text);
+    while (!rest.empty())
+    {
+        std::size_t const end = rest.find('\n');
+        std::string_view const line = rest.substr(0, end);
+        rest = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1u);
+        if (line.empty() || line.front() == '#' || line.front() == ' ')
+        {
+            continue;
+        }
+        if (line.starts_with("world:"))
+        {
+            return FileTab::World;
+        }
+        if (line.starts_with("scenario:"))
+        {
+            return FileTab::Scenario;
+        }
+        if (line.starts_with("experiment:"))
+        {
+            return FileTab::Experiment;
+        }
+        if (line.starts_with("BehaviorTree:"))
+        {
+            return FileTab::Tree;
+        }
+        break;
+    }
+    return FileTab::Other;
+}
+
+//! @brief The file a tab shows: the one chosen in Files, else the loaded one.
+ShownFile shownIn(App const& p_app, FileTab p_tab)
+{
+    ShownFile const& chosen = p_app.ui.shown_files[static_cast<std::size_t>(p_tab)];
+    if (!chosen.path.empty())
+    {
+        return chosen;
+    }
+    switch (p_tab)
+    {
+        case FileTab::Scenario:
+            return { p_app.scenario_path, p_app.scenario_text };
+        case FileTab::World:
+            return { p_app.world_path, p_app.world_text };
+        case FileTab::Tree:
+            if (p_app.simulation)
+            {
+                return { p_app.simulation->scenario().controller.behavior_tree, p_app.tree_text };
+            }
+            return {};
+        case FileTab::Experiment:
+        case FileTab::Other:
+            return {};
+    }
+    return {};
+}
+
+void fileTab(App& p_app, FileTab p_tab, char const* p_label)
+{
+    std::size_t const index = static_cast<std::size_t>(p_tab);
+    ShownFile const shown = shownIn(p_app, p_tab);
+    if (shown.path.empty())
+    {
+        return;
+    }
+    bool const loaded = p_app.ui.shown_files[index].path.empty();
+    bool keep = true;
+    // The Other tab may be closed; the others follow the loaded scenario.
+    bool* const closable = p_tab == FileTab::Other ? &keep : nullptr;
+    ImGuiTabItemFlags flags = 0;
+    if (p_app.ui.select_tab == p_tab)
+    {
+        flags |= ImGuiTabItemFlags_SetSelected;
+        p_app.ui.select_tab.reset();
+    }
+    std::string const label = p_tab == FileTab::Other
+                                  ? shown.path.filename().string() + "###other"
+                                  : std::string(p_label) + "###" + p_label;
+    if (ImGui::BeginTabItem(label.c_str(), closable, flags))
+    {
+        // The view panel follows the tab read here.
+        if (p_app.ui.active_tab != p_tab)
+        {
+            p_app.ui.active_tab = p_tab;
+            if (p_tab != FileTab::Other)
+            {
+                p_app.ui.view = p_tab;
+            }
+        }
+        if (!loaded && p_tab != FileTab::Experiment && p_tab != FileTab::Other)
+        {
+            ImGui::TextColored(ORANGE, "Not the file of the loaded scenario.");
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Show the loaded one"))
+            {
+                p_app.ui.shown_files[index] = {};
+            }
+        }
+        textView(shown.path, shown.text);
+        ImGui::EndTabItem();
+    }
+    if (!keep)
+    {
+        p_app.ui.shown_files[index] = {};
+    }
+}
+
+} // namespace
+
+void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_focus)
+{
+    UiState& ui = p_app.ui;
+    ui.experiment_path = p_path;
+    ui.experiment.reset();
+    ui.experiment_error.clear();
+    try
+    {
+        ui.experiment = robotik::Experiment::load(p_path);
+    }
+    catch (std::exception const& error)
+    {
+        ui.experiment_error = error.what();
+    }
+    ui.shown_files[static_cast<std::size_t>(FileTab::Experiment)] = { p_path, readShown(p_path) };
+    if (p_focus)
+    {
+        showView(p_app, FileTab::Experiment, true);
+    }
+}
+
+void showFile(App& p_app, std::filesystem::path const& p_path)
+{
+    robotik::PluginPackage const* package =
+        p_app.plugins.catalog().matchScenario(p_app.scenario_path).package;
+    if (package != nullptr)
+    {
+        // A scenario of the package: load it, as the Demos menu does.
+        for (robotik::PluginScenario const& scenario : package->scenarios)
+        {
+            if (same(scenario.file, p_path))
+            {
+                if (!same(scenario.file, p_app.scenario_path))
+                {
+                    requestScenario(p_app, scenario.file);
+                }
+                p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
+                showView(p_app, FileTab::Scenario, true);
+                return;
+            }
+        }
+    }
+    std::string text = readShown(p_path);
+    FileTab const tab = kindOf(p_path, text);
+    if (tab == FileTab::Experiment)
+    {
+        selectExperiment(p_app, p_path, true);
+        return;
+    }
+    ShownFile& shown = p_app.ui.shown_files[static_cast<std::size_t>(tab)];
+    shown = {};
+    // The file the scenario loaded is shown as such, not as a choice.
+    if (tab == FileTab::Other || !same(shownIn(p_app, tab).path, p_path))
+    {
+        shown = { p_path, std::move(text) };
+    }
+    showView(p_app, tab, true);
 }
 
 void filesPanel(App& p_app)
@@ -355,37 +420,40 @@ void filesPanel(App& p_app)
         ImGui::End();
         return;
     }
-    if (p_app.scenario_text.empty())
+    UiState& ui = p_app.ui;
+    if (ui.shown_for != p_app.scenario_path)
     {
-        emptyState("No scenario file loaded.");
+        ui.shown_for = p_app.scenario_path;
+        for (FileTab const tab : { FileTab::Scenario, FileTab::World, FileTab::Tree })
+        {
+            ui.shown_files[static_cast<std::size_t>(tab)] = {};
+        }
+    }
+    if (p_app.scenario_text.empty() && ui.shown_files[static_cast<std::size_t>(FileTab::Other)].path.empty())
+    {
+        emptyState("No file loaded.\nClick a file in the Plugin panel.");
         ImGui::End();
         return;
     }
-    if (ImGui::BeginTabBar("files"))
+    if (ImGui::BeginTabBar("files", ImGuiTabBarFlags_FittingPolicyScroll))
     {
-        textFile("Scenario", p_app.scenario_path, p_app.scenario_text);
-        textFile("World", p_app.world_path, p_app.world_text);
-        if (p_app.simulation)
-        {
-            textFile("Behavior tree", p_app.simulation->scenario().controller.behavior_tree, p_app.tree_text);
-        }
+        fileTab(p_app, FileTab::Scenario, "Scenario");
+        fileTab(p_app, FileTab::World, "World");
+        fileTab(p_app, FileTab::Tree, "Behavior tree");
+        fileTab(p_app, FileTab::Experiment, "Experiment");
+        fileTab(p_app, FileTab::Other, "File");
         ImGui::EndTabBar();
     }
+    // A tab that has nothing to show is not waited for.
+    ui.select_tab.reset();
     ImGui::End();
 }
 
-void assertionsPanel(App& p_app, char const* p_key)
+void assertionsView(App& p_app)
 {
-    std::string const title = panelTitle("Assertions", p_key);
-    if (!ImGui::Begin(title.c_str()))
-    {
-        ImGui::End();
-        return;
-    }
     if (!p_app.simulation)
     {
         emptyState("No scenario loaded.");
-        ImGui::End();
         return;
     }
     robotik::Simulation const& simulation = *p_app.simulation;
@@ -412,7 +480,7 @@ void assertionsPanel(App& p_app, char const* p_key)
 
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (ImGui::BeginTable("assertions", 6, flags))
+    if (beginTable("assertions", 6, flags))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed);
@@ -454,7 +522,16 @@ void assertionsPanel(App& p_app, char const* p_key)
             ImGui::TableNextColumn();
             ImGui::Text("%.2f s", check.time.value());
         }
-        ImGui::EndTable();
+        endTable();
+    }
+}
+
+void assertionsPanel(App& p_app, char const* p_key)
+{
+    std::string const title = panelTitle("Assertions", p_key);
+    if (ImGui::Begin(title.c_str()))
+    {
+        assertionsView(p_app);
     }
     ImGui::End();
 }

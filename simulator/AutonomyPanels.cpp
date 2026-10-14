@@ -58,7 +58,7 @@ void worldModelPanel(App& p_app)
     std::unordered_set<std::string> shown;
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (ImGui::BeginTable("objects", 6, flags, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing() * 2.0f)))
+    if (beginTable("objects", 6, flags, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing() * 2.0f)))
     {
         ImGui::TableSetupScrollFreeze(1, 1);
         ImGui::TableSetupColumn("Object", ImGuiTableColumnFlags_WidthStretch, 1.0f);
@@ -132,7 +132,7 @@ void worldModelPanel(App& p_app)
             ImGui::Text("%.0f%%", static_cast<double>(belief.confidence) * 100.0);
             ImGui::TableNextColumn();
         }
-        ImGui::EndTable();
+        endTable();
     }
     ImGui::TextDisabled("Symbolic layer (facts, PDDL / Prolog planning): planned, see doc/05 §9.");
     ImGui::End();
@@ -176,7 +176,7 @@ void perceptionPanel(App& p_app)
     }
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (ImGui::BeginTable("detections", 5, flags))
+    if (beginTable("detections", 5, flags))
     {
         ImGui::TableSetupScrollFreeze(1, 1);
         ImGui::TableSetupColumn("Label");
@@ -213,7 +213,7 @@ void perceptionPanel(App& p_app)
                 ImGui::TextDisabled("-");
             }
         }
-        ImGui::EndTable();
+        endTable();
     }
     ImGui::End();
 }

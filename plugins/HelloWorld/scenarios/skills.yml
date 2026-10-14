@@ -2,10 +2,10 @@
 scenario:
   id: skills
   description: Go home, wave twice, go home again.
-  world: ../worlds/arm.yaml
+  world: worlds/arm.yaml
   seed: 1
   controller:
-    behavior_tree: skills.bt.yml
+    behavior_tree: scenarios/skills.bt.yml
   timeout: 30
   assertions:
     - controller.success
