@@ -14,6 +14,7 @@
 #include "FlyView.hpp"
 
 #include "Robotik/Assets/AssetResolver.hpp"
+#include "Robotik/Scenario/PackagePath.hpp"
 #include "Robotik/Environment/Environment.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
@@ -349,8 +350,11 @@ int main(int p_argc, char** p_argv)
     }
     try
     {
-        FlyScenario scenario = FlyScenario::from(
-            robotik::Scenario::load(options.scenario, robotik::AssetResolver::standard()));
+        // The fly body is in the package's own pack (data/).
+        robotik::AssetResolver assets = robotik::AssetResolver::standard();
+        assets.addRoot(robotik::packageRoot(options.scenario) / "data");
+        FlyScenario scenario =
+            FlyScenario::from(robotik::Scenario::load(options.scenario, assets));
         if (!options.replay.empty())
         {
             options.envs = 1;

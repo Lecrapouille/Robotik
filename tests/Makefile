@@ -96,9 +96,6 @@ include $(M)/rules/Makefile
 include $(P)/Makefile.relink
 
 ###################################################
-# Build rapidyaml on demand, as done by src/Robotik/Core/Makefile.
+# Build rapidyaml on demand (rule in Makefile.common).
 #
-$(BLACKTHORN_STATIC_DEPS):
-	@$(MAKE) --no-print-directory -C $(P) compile-external-libs
-
 $(TARGET_BINARY_NAME): $(BLACKTHORN_STATIC_DEPS)

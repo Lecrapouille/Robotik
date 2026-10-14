@@ -18,12 +18,12 @@
 //! scenario:
 //!   id: pick_and_place
 //!   description: Pick the red cube and put it in the box.
-//!   world: ../worlds/manipulation_cell.yaml
+//!   world: worlds/manipulation_cell.yaml
 //!   seed: 42
 //!   controller:
-//!     behavior_tree: pick_and_place.bt.yml
+//!     behavior_tree: scenarios/pick_and_place.bt.yml
 //!   trajectories:                          # see Trajectory.hpp
-//!     drop: trajectories/drop.yaml
+//!     drop: scenarios/trajectories/drop.yaml
 //!   faults:
 //!     - { at: 4.0, resource: wrist_camera, action: disable }
 //!     - { resource: gripper, rate: 0.01 }
@@ -42,7 +42,8 @@
 //! no camera has an image source (a headless run), @c always regardless.
 //! Results obtained with it are labelled as such.
 //!
-//! Files are relative to the file that names them.
+//! Files are relative to the package root and stay inside it
+//! (@ref PackagePath.hpp).
 #pragma once
 
 #include "Robotik/Assets/AssetResolver.hpp"
@@ -69,6 +70,8 @@ struct ScenarioSource
     //!< Root of the scenario file (holds @c scenario:).
     ConfigNode scenario;
     std::filesystem::path scenario_file;
+    //!< Package root: the folder of @c plugin.yaml. File names start there.
+    std::filesystem::path package;
     //!< Root of the world file (holds @c world:).
     ConfigNode world;
     std::filesystem::path world_file;

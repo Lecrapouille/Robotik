@@ -114,7 +114,7 @@ private:
         catch (std::exception const& error)
         {
             m_error = std::string(error.what()) +
-                      ". Run make download-external-libs && make compile-external-libs";
+                      ". Run make -C plugins/FlyBrain download-external-libs, then make";
         }
         m_loading = {};
     }
@@ -125,7 +125,8 @@ private:
         m_target = p_connectome;
         m_started = std::chrono::steady_clock::now();
         // Reading the FlyWire tables takes seconds: not on the UI thread.
-        m_loading = std::async(std::launch::async, &FlyMission::buildBrain, p_connectome, m_mission->cruise());
+        m_loading = std::async(std::launch::async, &FlyMission::buildBrain, p_connectome,
+                               m_mission->cruise(), m_mission->tables());
     }
 
     void brainChoice(robotik::Canvas const& p_canvas, FlyBrain const& p_brain)

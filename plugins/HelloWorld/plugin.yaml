@@ -5,6 +5,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Tutorial
+  description: Tutorial. A 6-axis arm waves, reaches a point and runs skills from a behavior tree.
 
 library:
   entrypoint: librobotik_hello_world.so

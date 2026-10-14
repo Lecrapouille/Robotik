@@ -34,10 +34,34 @@ DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core
 include $(M)/rules/Makefile
 
 ###################################################
-# Post-download setup
+# Post-download setup. external/manifest is cloned by MyMakefile; then:
+# - units gets the header name the code includes;
+# - Compages downloads its own libraries (units, entt...): its headers need
+#   them before anything is compiled;
+# - Pinocchio and MuJoCo come from conda-forge in a user-local prefix
+#   (external/forge): they need Boost and urdfdom, which are not assumed to
+#   be installed. No sudo, nothing outside external/;
+# - every plugin with dependencies.thirdparties in its plugin.yaml downloads
+#   its own libraries (into plugins/<Name>/external).
+# Then plain make builds everything: each library has a Make rule.
 #
+FORGE_DIR := $(THIRD_PARTIES_DIR)/forge
+MAMBA_ROOT := $(THIRD_PARTIES_DIR)/.micromamba
+PLUGINS_WITH_LIBS := $(dir $(shell grep -l '^  thirdparties:' $(P)/plugins/*/plugin.yaml))
+
 download-external-libs::
 	@cp $(THIRD_PARTIES_DIR)/units/include/units.h $(THIRD_PARTIES_DIR)/units/units.hpp
+	@$(MAKE) --no-print-directory -C $(THIRD_PARTIES_DIR)/Compages download-external-libs
+	@if [ -z "$$(find $(FORGE_DIR) -path '*/pkgconfig/pinocchio.pc' -print -quit 2>/dev/null)" ] || \
+	    [ -z "$$(find $(FORGE_DIR) -name 'libmujoco.so*' -print -quit 2>/dev/null)" ]; then \
+	    mkdir -p $(MAMBA_ROOT) && \
+	    ( [ -x $(MAMBA_ROOT)/bin/micromamba ] || \
+	      curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C $(MAMBA_ROOT) bin/micromamba ) && \
+	    $(MAMBA_ROOT)/bin/micromamba create -y -p $(FORGE_DIR) -c conda-forge pinocchio mujoco; \
+	fi
+	@for d in $(PLUGINS_WITH_LIBS); do \
+	    $(MAKE) --no-print-directory -C $$d download-external-libs || exit 1; \
+	done
 
 ###################################################
 # Extra rules: compile applications after everything

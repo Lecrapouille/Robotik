@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the asset pack of the HumanoidWalk plugin from the LimX repositories.
 
-Called from external/compilation after make download-external-libs. Only the
+Called by the Makefile of the plugin once its external/ clones are there. Only the
 files needed for walking are copied (the clones also hold USD files):
 
   - the serial URDF of HU_D04_01 (the ankles and the waist are plain joints,

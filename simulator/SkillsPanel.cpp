@@ -666,7 +666,7 @@ void skillTable(App& p_app)
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::SkillScheduler& skills = simulation.skills();
     robotik::ResourceManager const& resources = simulation.robot().resources();
-    if (ImGui::BeginTable("skills",
+    if (beginTable("skills",
                           6,
                           ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
                               ImGuiTableFlags_ScrollY))
@@ -719,7 +719,7 @@ void skillTable(App& p_app)
             }
             ImGui::PopID();
         }
-        ImGui::EndTable();
+        endTable();
     }
 }
 

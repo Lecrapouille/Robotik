@@ -67,6 +67,32 @@ std::string drawPanel(robotik::PluginHost const& p_host)
 
 } // namespace
 
+TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
+{
+    robotik::PluginCatalog catalog;
+    std::vector<std::filesystem::path> const roots{ repo("plugins/LineFollower"),
+                                                    repo("plugins/HumanoidWalk") };
+    catalog.scan(roots);
+    robotik::PluginPackage const* follower = catalog.findPackage("robotik.line_follower");
+    ASSERT_NE(follower, nullptr);
+    ASSERT_EQ(follower->system.size(), 1u);
+    EXPECT_EQ(follower->system[0].name, "opencv4");
+    EXPECT_EQ(follower->system[0].license, "Apache-2.0");
+    ASSERT_EQ(follower->thirdparties.size(), 1u);
+    EXPECT_EQ(follower->thirdparties[0].name, "AprilRobotics/apriltag");
+    EXPECT_EQ(follower->thirdparties[0].url, "https://github.com/AprilRobotics/apriltag");
+    EXPECT_EQ(follower->thirdparties[0].license, "BSD-2-Clause");
+
+    robotik::PluginPackage const* walk = catalog.findPackage("robotik.humanoid_walk");
+    ASSERT_NE(walk, nullptr);
+    ASSERT_EQ(walk->thirdparties.size(), 3u);
+    // A quoted value keeps its colon; an entry without repo keeps its url.
+    EXPECT_EQ(walk->thirdparties[0].description, "LimX HU_D04 humanoid: URDF and meshes");
+    EXPECT_EQ(walk->thirdparties[2].name, "onnxruntime");
+    EXPECT_EQ(walk->thirdparties[2].url, "https://github.com/microsoft/onnxruntime");
+    EXPECT_EQ(walk->thirdparties[2].license, "MIT");
+}
+
 TEST(PluginCatalog, OnePluginListsSeveralScenarios)
 {
     robotik::PluginCatalog catalog;

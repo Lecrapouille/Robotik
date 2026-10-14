@@ -1,7 +1,7 @@
 id: robotik.robots.scara
 version: 1.0.0
-# Origin of the reference picture not recorded.
-license: NOASSERTION
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
 description: SCARA arm and its reference picture.
 models:
   scara_robot: scara_robot.urdf

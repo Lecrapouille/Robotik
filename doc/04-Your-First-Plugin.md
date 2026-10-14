@@ -78,7 +78,7 @@ So there are **two classes** to know:
 scenario:
   id: hello
   description: Count the simulation steps, then stop after two seconds.
-  world: ../worlds/arm.yaml
+  world: worlds/arm.yaml      # relative to the package root
   seed: 1
   timeout: 30
   assertions:
@@ -638,8 +638,9 @@ The first one wins; another pack with the same id and another version is
 reported as a conflict.
 
 `license` is an SPDX expression. `NOASSERTION` means nobody checked the
-license yet: this is the case of third-party meshes (ABB, T12, cartesian and
-SCARA robots). Check before you redistribute them.
+license yet: this is the case of the ABB meshes. Check before you
+redistribute them. The Assets panel of the simulator shows every pack with
+its license.
 
 ---
 
@@ -652,6 +653,7 @@ plugin:
   version: 1.0.0                   # major.minor.patch
   api_version: 1                   # C ABI version the library was built for
   category: Manipulation
+  description: A robot arm paints colored strokes on an easel.   # optional
 
 library:
   entrypoint: librobotik_painter.so
@@ -664,7 +666,8 @@ resources:
 
 dependencies:
   plugins: []                      # other plugins that must be in the catalog
-  thirdparties: [ opencv ]         # build-time libraries, for information
+  system: []                       # system libraries, with license (see below)
+  thirdparties: []                 # cloned libraries, with license (see below)
 
 host:
   graphics: false                  # true: simulator only, Headless refuses it
@@ -688,6 +691,60 @@ experiments:
 | `resources.packs` | A missing pack, or one with an incompatible version: the scenario is refused with the reason. Version `"1.2"` accepts 1.2.0 and any newer 1.x, not 2.0 |
 | `host.clock: plugin` | The host does not call `Simulation::step`: `update(dt)` advances the simulation (used by the RL plugin) |
 | `scenarios.entries` | Without `entries`, every `*.yml` and `*.yaml` of the folder is taken, behavior trees excepted |
+
+### Third-party libraries of a plugin
+
+A library that only one plugin uses is not listed in the `external/manifest`
+of the core, but in `dependencies:` of the `plugin.yaml` of the plugin, with
+its license (the Plugin panel of the simulator shows them as credits). One
+entry per line:
+
+```yaml
+dependencies:
+  system:                          # installed on the system: pkg-config names
+    - { name: opencv4, license: Apache-2.0 }
+  thirdparties:                    # cloned into external/ and built by the Makefile
+    - { repo: AprilRobotics/apriltag, license: BSD-2-Clause, description: AprilTag fiducial detection }
+    - { name: onnxruntime, url: "https://github.com/microsoft/onnxruntime", license: MIT }
+```
+
+| Field | Notes |
+|-------|-------|
+| `repo` | GitHub `user/repo[:recurse][@ref]`, the syntax of `external/manifest` |
+| `name`, `url` | A library without a repository to clone (a release the Makefile downloads) |
+| `license` | SPDX name. Required: without it the library shows "not checked" |
+| `description` | Optional. Put a value with a comma between quotes |
+
+`make download-external-libs` writes the `repo` entries as a manifest
+(`build/manifests/<Name>`, made by `plugins/dependencies.awk`) and
+clones them into `plugins/<Name>/external/`. Nothing in `external/` is
+versioned. When a `system` library is not found by `pkg-config`, `make`
+skips the plugin and says why. The Makefile of the plugin builds a cloned
+library with a normal Make rule, the first time it is needed; there is no
+compilation script:
+
+```make
+APRILTAG_DIR := $(THIRD_PARTIES_DIR)/apriltag      # the plugin's external/
+APRILTAG_LIB := $(APRILTAG_DIR)/build/libapriltag.a
+THIRD_PARTIES_LIBS += $(APRILTAG_LIB)
+PLUGIN_REQUIRES := $(APRILTAG_DIR)/apriltag.h      # missing: plugin skipped
+PLUGIN_DEPENDS := $(APRILTAG_LIB)                  # made before the link
+
+include $(P)/plugins/plugin.mk
+
+$(APRILTAG_LIB):
+	cmake -S $(APRILTAG_DIR) -B $(APRILTAG_DIR)/build ...
+	cmake --build $(APRILTAG_DIR)/build --target apriltag
+```
+
+| Variable | Notes |
+|----------|-------|
+| `THIRD_PARTIES_DIR` | In a plugin Makefile: `plugins/<Name>/external`. The core one is `ROBOTIK_EXTERNAL` |
+| `PLUGIN_REQUIRES` | Files that must exist. When one is missing, `make` skips the plugin and says how to download it |
+| `PLUGIN_DEPENDS` | Files made by the rules of the plugin (an archive, generated data). They are made before the library is linked and the package is staged |
+
+`make -C plugins/<Name> download-external-libs` downloads the libraries of
+one plugin only.
 
 ---
 

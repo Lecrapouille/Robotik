@@ -52,8 +52,14 @@ void loadFonts()
 #ifdef ROBOTIK_FONTS_DIR
     std::filesystem::path const fonts(ROBOTIK_FONTS_DIR);
     std::filesystem::path const text = fonts / "Roboto-Medium.ttf";
+    std::filesystem::path const mono = fonts / "Cousine-Regular.ttf";
     if (std::filesystem::exists(text) && io.Fonts->AddFontFromFileTTF(text.string().c_str(), 15.0f) != nullptr)
     {
+        // Second font, for the file viewer (see monoFont).
+        if (std::filesystem::exists(mono))
+        {
+            io.Fonts->AddFontFromFileTTF(mono.string().c_str(), 14.0f);
+        }
         return;
     }
 #endif

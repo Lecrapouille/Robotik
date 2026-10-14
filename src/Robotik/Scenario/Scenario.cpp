@@ -7,6 +7,8 @@
 
 #include "Robotik/Scenario/Scenario.hpp"
 
+#include "Robotik/Scenario/PackagePath.hpp"
+
 #include <stdexcept>
 
 namespace robotik
@@ -14,13 +16,6 @@ namespace robotik
 
 namespace
 {
-
-std::filesystem::path relative(std::filesystem::path const& p_directory,
-                               std::string const& p_file)
-{
-    return p_file.empty() ? std::filesystem::path{}
-                          : (p_directory / p_file).lexically_normal();
-}
 
 void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
 {
@@ -54,6 +49,7 @@ ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
 {
     ScenarioSource source;
     source.scenario_file = std::filesystem::absolute(p_scenario).lexically_normal();
+    source.package = packageRoot(source.scenario_file);
     source.scenario = ConfigNode::load(source.scenario_file);
     ConfigNode const& scenario = source.scenario.at("scenario");
     if (!scenario.isMap())
@@ -65,7 +61,14 @@ ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
     {
         throw std::runtime_error(p_scenario.string() + ": scenario.world is required");
     }
-    source.world_file = relative(source.scenario_file.parent_path(), world);
+    try
+    {
+        source.world_file = packageFile(source.package, world);
+    }
+    catch (std::runtime_error const& error)
+    {
+        throw std::runtime_error(p_scenario.string() + ": scenario.world " + error.what());
+    }
     source.world = ConfigNode::load(source.world_file);
     return source;
 }
@@ -90,7 +93,7 @@ void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
 Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_assets)
 {
     ConfigNode const& node = p_source.scenario.at("scenario");
-    std::filesystem::path const directory = p_source.scenario_file.parent_path();
+    std::filesystem::path const& root = p_source.package;
     std::string const where = p_source.scenario_file.string();
 
     Scenario scenario;
@@ -106,14 +109,14 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         scenario.description = node.text("description");
         scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
         scenario.controller.behavior_tree =
-            relative(directory, node.at("controller").text("behavior_tree"));
+            packageFile(root, node.at("controller").text("behavior_tree"));
         for (auto const& [name, file] : node.at("trajectories").entries())
         {
             if (!file.isScalar())
             {
                 throw std::runtime_error("trajectories." + name + " must be a file name");
             }
-            scenario.trajectories.emplace(name, Trajectory::load(relative(directory, file.scalar())));
+            scenario.trajectories.emplace(name, Trajectory::load(packageFile(root, file.scalar())));
         }
         readFaults(scenario, node.at("faults"));
         std::string const oracle = node.at("perception").text("oracle", "never");
@@ -154,7 +157,7 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
     try
     {
         scenario.world =
-            WorldDescription::read(world, p_source.world_file.parent_path(), p_assets);
+            WorldDescription::read(world, root, p_assets);
     }
     catch (std::runtime_error const& error)
     {

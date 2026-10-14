@@ -31,8 +31,8 @@ struct WorkspaceInfo
 
 std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
     { "Plugin", "plugin", "Ctrl+1", "Files",
-      "What is loaded: the package, its scenarios and experiments, the world, "
-      "the assertions and the source files." },
+      "Read the loaded plugin: its files, dependencies and licenses, the scenario, "
+      "its behavior tree, the experiments, the world and the asset packs. No 3D view." },
     { "Robot", "robot", "Ctrl+2", "Teach",
       "The robot body: joints and their limits, plots, manual moves, cameras." },
     { "Mission", "mission", "Ctrl+3", "Skills",
@@ -79,15 +79,16 @@ void layout(Workspace p_workspace, ImGuiID p_dock)
     {
         case Workspace::Plugin:
         {
-            ImGuiID left = split(center, ImGuiDir_Left, 0.24f);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.32f);
-            ImGuiID const world = split(left, ImGuiDir_Down, 0.50f);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.36f);
+            // No 3D view: this workspace reads the package. The plugin on
+            // the left, the files in the middle, beside them one panel for
+            // the view of the file read (scenario, world, tree, experiment).
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.24f);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.40f);
+            ImGuiID const assets = split(right, ImGuiDir_Down, 0.30f);
             dock("Plugin", left);
-            dock("World", world);
-            dock(panelTitle("Scene", key), center);
-            dock(panelTitle("Assertions", key), bottom);
-            dock("Files", right);
+            dock("Files", center);
+            dock("###View", right);
+            dock("Assets", assets);
             break;
         }
         case Workspace::Robot:
@@ -108,7 +109,7 @@ void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID const left = split(center, ImGuiDir_Left, 0.22f);
             ImGuiID const right = split(center, ImGuiDir_Right, 0.32f);
             ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
-            dock("Behavior tree", left);
+            dock(panelTitle("Behavior tree", key), left);
             dock(panelTitle("Scene", key), center);
             dock(panelTitle("Assertions", key), bottom);
             dock("Timeline", bottom);
@@ -457,7 +458,7 @@ void shortcutsWindow(App& p_app)
             { "Right drag / wheel", "Orbit / zoom the 3D view" },
             { "F1", "This window" },
         };
-        if (ImGui::BeginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
+        if (beginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
         {
             for (auto const& row : ROWS)
             {
@@ -467,7 +468,7 @@ void shortcutsWindow(App& p_app)
                 ImGui::TableNextColumn();
                 ImGui::TextUnformatted(row[1]);
             }
-            ImGui::EndTable();
+            endTable();
         }
     }
     ImGui::End();
@@ -489,7 +490,11 @@ void drawPanels(App& p_app)
 
     Workspace const workspace = p_app.ui.workspace;
     WorkspaceInfo const& info = infoOf(workspace);
-    ImGuiID const dock = ImGui::GetID((std::string("RobotikWorkspace/") + info.key).c_str());
+    // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
+    // the ini file are then rebuilt once.
+    constexpr char const* LAYOUT_VERSION = "/4";
+    ImGuiID const dock =
+        ImGui::GetID((std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
     {
         layout(workspace, dock);
@@ -497,14 +502,17 @@ void drawPanels(App& p_app)
     }
     ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());
 
-    scenePanel(p_app, info.key);
+    if (workspace != Workspace::Plugin)
+    {
+        scenePanel(p_app, info.key);
+    }
     switch (workspace)
     {
         case Workspace::Plugin:
             pluginPanel(p_app);
-            worldPanel(p_app);
             filesPanel(p_app);
-            assertionsPanel(p_app, info.key);
+            viewPanel(p_app);
+            assetsPanel(p_app);
             break;
         case Workspace::Robot:
             robotPanel(p_app);
@@ -513,7 +521,7 @@ void drawPanels(App& p_app)
             camerasPanel(p_app, info.key);
             break;
         case Workspace::Mission:
-            treePanel(p_app);
+            treePanel(p_app, info.key);
             timelinePanel(p_app);
             assertionsPanel(p_app, info.key);
             skillsPanel(p_app);
