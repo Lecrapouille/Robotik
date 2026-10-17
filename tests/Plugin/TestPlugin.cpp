@@ -126,7 +126,7 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repo("plugins/HelloWorld/scenarios/hello.yml"), testAssets());
+        repo("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
     EXPECT_EQ(scenario.id, "hello");
     EXPECT_EQ(scenario.world.robot().model.filename(), "robot_6axis.urdf");
     EXPECT_TRUE(std::filesystem::exists(scenario.world.robot().model));
@@ -179,7 +179,7 @@ TEST(PluginSession, RefusesAPackageWhosePackIsMissing)
     robotik::PluginSession session;
     session.scan(repo("tests/Plugin/fixtures/nopack"));
     std::filesystem::path const scenario =
-        repo("tests/Plugin/fixtures/nopack/scenarios/one.yml");
+        repo("tests/Plugin/fixtures/nopack/scenarios/one.scenario.yaml");
     EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Failed);
     EXPECT_NE(session.error().find("robotik.unknown"), std::string::npos) << session.error();
 }
@@ -222,8 +222,8 @@ TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
     }
     robotik::PluginSession session;
     session.scan(package);
-    std::filesystem::path const hello = package / "scenarios" / "hello.yml";
-    std::filesystem::path const wave = package / "scenarios" / "wave.yml";
+    std::filesystem::path const hello = package / "scenarios" / "hello.scenario.yaml";
+    std::filesystem::path const wave = package / "scenarios" / "wave.scenario.yaml";
     ASSERT_EQ(session.prepare(hello), robotik::PluginPrepare::Ready);
     EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
     // 'H' is a key press and a home request.
@@ -258,7 +258,7 @@ TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
 TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 {
     std::filesystem::path const scenario =
-        buildRoot() / "plugins" / "HelloWorld" / "scenarios" / "reach.yml";
+        buildRoot() / "plugins" / "HelloWorld" / "scenarios" / "reach.scenario.yaml";
     if (!std::filesystem::is_regular_file(
             buildRoot() / "plugins" / "HelloWorld" / "librobotik_hello_world.so"))
     {

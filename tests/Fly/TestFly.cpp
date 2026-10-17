@@ -27,7 +27,7 @@ namespace
 FlyScenario flyScenario()
 {
     return FlyScenario::from(robotik::Scenario::load(
-        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml"), testAssets()));
+        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"), testAssets()));
 }
 
 robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
@@ -149,7 +149,7 @@ TEST(FlyTrace, RoundTrip)
 TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml"), testAssets());
+        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"), testAssets());
     compages::world::World world;
     FlyMission mission;
     robotik::Simulation simulation(world, scenario, nullptr, &mission);

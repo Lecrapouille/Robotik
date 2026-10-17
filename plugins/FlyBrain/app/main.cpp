@@ -30,7 +30,7 @@
 //! @brief Command line. The scenario seed is used until --seed replaces it.
 struct Options
 {
-    std::filesystem::path scenario = "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml";
+    std::filesystem::path scenario = "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml";
     std::filesystem::path edges;
     std::filesystem::path binding;
     std::filesystem::path record;
@@ -132,7 +132,7 @@ bool parse(int p_argc, char** p_argv, Options& p_options)
 void usage(char const* p_program)
 {
     std::cerr << "Usage : " << p_program
-              << " [--scenario file.yml] [--seed S] [--brain reflex|shiu]\n"
+              << " [--scenario file.scenario.yaml] [--seed S] [--brain reflex|shiu]\n"
               << "       [--edges edges.csv --binding roles.txt]\n"
               << "       [--view] [--envs N] [--threads T] [--episodes E]\n"
               << "       [--record fly_run.json] [--replay fly_run.json]\n";

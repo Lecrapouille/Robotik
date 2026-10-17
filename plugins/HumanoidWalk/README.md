@@ -11,8 +11,8 @@ the robot with [humanoid-description](https://github.com/limxdynamics/humanoid-d
 ```bash
 make -C plugins/HumanoidWalk download-external-libs   # LimX repositories (dependencies of plugin.yaml) + ONNX Runtime release
 make -C plugins/HumanoidWalk -j"$(nproc)"             # runs prepare_assets.py once, then builds
-./build/Robotik-Simulator build/plugins/HumanoidWalk/scenarios/walk.yml   # Space: play
-./build/Robotik-Headless build/plugins/HumanoidWalk/scenarios/walk_circle.yml --trace
+./build/Robotik-Simulator build/plugins/HumanoidWalk/scenarios/walk.scenario.yaml   # Space: play
+./build/Robotik-Headless build/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
 ```
 
 Two scenarios:

@@ -1,11 +1,11 @@
-# The portrait of painter.yml, with no behavior tree: the planner finds the
+# The portrait of painter.scenario.yaml, with no behavior tree: the planner finds the
 # dips, strokes and rinses from the goal, in the order of the layers.
 scenario:
   id: painter_pddl
   description: |
     Plan the dips, strokes and rinses that paint the four layers, then do
     them, without moving the easel.
-  world: worlds/painting_lab.yaml
+  world: worlds/painting_lab.world.yaml
   seed: 7
 
   controller:
@@ -24,10 +24,10 @@ scenario:
 
   # One stroke per colour, read by the Mark gesture.
   trajectories:
-    red: scenarios/trajectories/red_stroke.yaml
-    black: scenarios/trajectories/black_stroke.yaml
-    blue: scenarios/trajectories/blue_stroke.yaml
-    gold: scenarios/trajectories/gold_stroke.yaml
+    red: scenarios/trajectories/red_stroke.trajectory.yaml
+    black: scenarios/trajectories/black_stroke.trajectory.yaml
+    blue: scenarios/trajectories/blue_stroke.trajectory.yaml
+    gold: scenarios/trajectories/gold_stroke.trajectory.yaml
 
   timeout: 160
 

@@ -98,7 +98,7 @@ Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 You can also give a scenario file directly:
 
 ```bash
-./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/wave.yml
+./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
@@ -111,7 +111,7 @@ a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 The same scenario, in a terminal:
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.yml
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
 Output:
@@ -141,7 +141,7 @@ Options:
 | `--trace` | Prints the history of the skills |
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.yml --trace
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -158,7 +158,7 @@ Options:
 
 The goal: see that a scenario *is* a test.
 
-1. Open `build/plugins/HelloWorld/scenarios/wave.yml` in an editor (this is a
+1. Open `build/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a
    copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`).
    Do not create a new file there yet: a scenario must be listed in
    `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
@@ -166,7 +166,7 @@ The goal: see that a scenario *is* a test.
 3. Run it again:
 
    ```bash
-   ./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.yml; echo "exit code: $?"
+   ./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.scenario.yaml; echo "exit code: $?"
    ```
 
    ```text
@@ -196,7 +196,7 @@ and compares them.
 
 ```bash
 ./build/Robotik-Headless \
-    build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.yaml \
+    build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.experiment.yaml \
     --report pick.json
 ```
 

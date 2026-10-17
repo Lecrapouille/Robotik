@@ -3,10 +3,10 @@
 scenario:
   id: walk_circle
   description: Stand one second, then walk in a circle of one metre.
-  world: worlds/flat_ground.yaml
+  world: worlds/flat_ground.world.yaml
   seed: 1
   controller:
-    behavior_tree: scenarios/walk_circle.bt.yml
+    behavior_tree: scenarios/walk_circle.bt.yaml
   timeout: 40
 
   parameters:

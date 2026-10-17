@@ -38,7 +38,7 @@ struct Options
     double laps = 1.0;
     bool view = false;
     std::filesystem::path save;
-    std::filesystem::path scenario = "plugins/LineFollower/scenarios/line_follower.yml";
+    std::filesystem::path scenario = "plugins/LineFollower/scenarios/line_follower.scenario.yaml";
 };
 
 static bool parse(int argc, char** argv, Options& p_options)

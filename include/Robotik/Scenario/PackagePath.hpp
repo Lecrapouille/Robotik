@@ -14,9 +14,9 @@
 //! the file that names them:
 //!
 //! @code
-//! # plugins/HelloWorld/experiments/hello.yaml
+//! # plugins/HelloWorld/experiments/hello.experiment.yaml
 //! cases:
-//!   - { id: wave, scenario: scenarios/wave.yml }
+//!   - { id: wave, scenario: scenarios/wave.scenario.yaml }
 //! @endcode
 //!
 //! A name may hold @c .. and cross symbolic links, but the real file (the

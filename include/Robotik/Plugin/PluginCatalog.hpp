@@ -36,10 +36,10 @@
 //!   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
 //! scenarios:
 //!   directory: scenarios
-//!   entries:                  # optional: every *.yml of the folder otherwise
-//!     - { id: painter, name: Robotic painter, file: painter.yml }
+//!   entries:                  # optional: every runnable file of the folder otherwise
+//!     - { id: painter, name: Robotic painter, file: painter.scenario.yaml }
 //!     # optional: submenu of the Demos menu, clock overriding host.clock
-//!     - { id: rl, name: RL, file: rl.yml, menu: Learning, clock: plugin }
+//!     - { id: rl, name: RL, file: rl.rl.yaml, menu: Learning, clock: plugin }
 //! experiments:                # optional, same format
 //!   directory: experiments
 //! @endcode

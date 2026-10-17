@@ -14,14 +14,14 @@
 //!   seeds: [7, 8]                      # every case, every seed
 //!   cases:
 //!     - id: nominal
-//!       scenario: scenarios/painter.yml
+//!       scenario: scenarios/painter.scenario.yaml
 //!     - id: slippery_easel
-//!       scenario: scenarios/painter.yml
+//!       scenario: scenarios/painter.scenario.yaml
 //!       overrides:                     # applied before the files are read
 //!         world.entities.easel.friction: 0.05
 //!     - id: camera_failure
-//!       scenario: scenarios/pick_and_place.yml
-//!       controller: { behavior_tree: scenarios/other.bt.yml }
+//!       scenario: scenarios/pick_and_place.scenario.yaml
+//!       controller: { behavior_tree: scenarios/other.bt.yaml }
 //!       setup:
 //!         - inject_fault: { resource: wrist_camera, at: 2.0, action: disable }
 //!   evaluation:

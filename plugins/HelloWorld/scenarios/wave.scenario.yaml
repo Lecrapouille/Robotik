@@ -2,7 +2,7 @@
 scenario:
   id: wave
   description: Swing the base joint left and right for six seconds.
-  world: worlds/arm.yaml
+  world: worlds/arm.world.yaml
   seed: 1
   timeout: 30
   assertions:

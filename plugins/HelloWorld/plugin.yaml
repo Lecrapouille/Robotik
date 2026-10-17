@@ -17,12 +17,12 @@ resources:
 scenarios:
   directory: scenarios
   entries:
-    - { id: hello, name: 1. Hello, file: hello.yml }
-    - { id: wave, name: 2. Move a joint, file: wave.yml }
-    - { id: reach, name: 3. Reach a point, file: reach.yml }
-    - { id: skills, name: 4. Skill and behavior tree, file: skills.yml }
+    - { id: hello, name: 1. Hello, file: hello.scenario.yaml }
+    - { id: wave, name: 2. Move a joint, file: wave.scenario.yaml }
+    - { id: reach, name: 3. Reach a point, file: reach.scenario.yaml }
+    - { id: skills, name: 4. Skill and behavior tree, file: skills.scenario.yaml }
 
 experiments:
   directory: experiments
   entries:
-    - { id: hello_experiment, name: Hello experiment, file: hello_experiment.yaml }
+    - { id: hello_experiment, name: Hello experiment, file: hello.experiment.yaml }

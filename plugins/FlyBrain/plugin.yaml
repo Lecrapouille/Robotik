@@ -30,4 +30,4 @@ host:
 scenarios:
   directory: scenarios
   entries:
-    - { id: fly_obstacle_avoidance, name: Fly brain, file: fly_obstacle_avoidance.yml }
+    - { id: fly_obstacle_avoidance, name: Fly brain, file: fly_obstacle_avoidance.scenario.yaml }

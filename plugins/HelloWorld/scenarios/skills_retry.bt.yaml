@@ -1,4 +1,4 @@
-# Same as skills.bt.yml, but Wave is tried again until it succeeds: a fault
+# Same as skills.bt.yaml, but Wave is tried again until it succeeds: a fault
 # on the arm makes it fail at once, the retry waits for the arm to come back.
 BehaviorTree:
   Sequence:

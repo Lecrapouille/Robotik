@@ -35,5 +35,5 @@ host:
 scenarios:
   directory: scenarios
   entries:
-    - { id: walk, name: Walk (panel), file: walk.yml }
-    - { id: walk_circle, name: Walk in a circle, file: walk_circle.yml }
+    - { id: walk, name: Walk (panel), file: walk.scenario.yaml }
+    - { id: walk_circle, name: Walk in a circle, file: walk_circle.scenario.yaml }

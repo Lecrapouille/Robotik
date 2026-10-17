@@ -16,7 +16,7 @@ Headless.
 All demos open from the simulator **Demos** menu, and run with:
 
 ```bash
-./build/Robotik-Headless build/plugins/<Plugin>/scenarios/<scenario>.yml
+./build/Robotik-Headless build/plugins/<Plugin>/scenarios/<scenario>.scenario.yaml
 ```
 
 ---
@@ -50,11 +50,11 @@ Home → Detect → Approach → Reach → Grasp → Approach → Transit(box) �
 ```
 
 Files: `plugins/PickAndPlace/`
-- `worlds/pick_place_cell.yaml`: the arm, its camera, the vacuum cup and four
+- `worlds/pick_place_cell.world.yaml`: the arm, its camera, the vacuum cup and four
   stored tools, the cube (randomized), the box;
-- `scenarios/pick_and_place.yml`: nominal run;
-- `scenarios/pick_and_place_faults.yml`: the camera fails during the run;
-- `scenarios/pick_and_place.bt.yml`: the tree (`UntilSuccess` around `Detect`
+- `scenarios/pick_and_place.scenario.yaml`: nominal run;
+- `scenarios/pick_and_place_faults.scenario.yaml`: the camera fails during the run;
+- `scenarios/pick_and_place.bt.yaml`: the tree (`UntilSuccess` around `Detect`
   waits for the camera to come back);
 - `src/`: `ColorDetector` (perception), the skills, `PickPlaceMission`.
 
@@ -78,16 +78,16 @@ The fault scenario does not only check that things fail: it checks that the
 architecture **reacts** (retry, fall back, abort).
 
 ```bash
-./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.yml --seed 11
-./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.yaml \
+./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --seed 11
+./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.experiment.yaml \
     --report pick.json
 ```
 
 The experiment runs three seeds, a wider cube layout, and a camera down at
 start.
 
-**With the PDDL planner** (`scenarios/pick_and_place_pddl.yml` and
-`pick_and_place_pddl_faults.yml`, menu **PDDL planner**): no tree, only the
+**With the PDDL planner** (`scenarios/pick_and_place_pddl.scenario.yaml` and
+`pick_and_place_pddl_faults.scenario.yaml`, menu **PDDL planner**): no tree, only the
 goal `in(red_cube, box)`. The domain is
 `scenarios/pick_and_place.domain.pddl`; `src/PickPlacePlanning.cpp` reads
 the state on the beliefs and binds each action to the same skills. With the
@@ -103,7 +103,7 @@ canvas standing on an easel, and rinses the brush between colours.
 
 - The easel is a **free body**: pushed, it slides or tips over. The canvas is
   a free box resting on it. Both are entities of
-  `plugins/Painter/worlds/painting_lab.yaml`; the mission finds them by id and
+  `plugins/Painter/worlds/painting_lab.world.yaml`; the mission finds them by id and
   only brings the gestures.
 - The strokes are **trajectories** in `scenarios/trajectories/`, written in
   the easel frame.
@@ -123,7 +123,7 @@ measures it:
 The experiment `painting_benchmark` paints again on a slippery floor and with
 a canvas four times heavier.
 
-**With the PDDL planner** (`scenarios/painter_pddl.yml`): the goal is the
+**With the PDDL planner** (`scenarios/painter_pddl.scenario.yaml`): the goal is the
 four layers painted and a clean brush. The facts `before(red, black)`… give
 the order of the layers; the planner finds the twelve gestures (dip, mark,
 rinse per colour). The robot cannot see the paint: the observers read what
@@ -148,7 +148,7 @@ estimate, and you can draw the truth against the estimate:
 ```bash
 ./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # green: truth, red: estimate
 ./build/Robotik-LineFollower --view                              # camera on screen
-./build/Robotik-Headless build/plugins/LineFollower/scenarios/line_follower.yml --seed 4
+./build/Robotik-Headless build/plugins/LineFollower/scenarios/line_follower.scenario.yaml --seed 4
 ```
 
 Tree: `Localize`, then `UntilSuccess` (3 attempts) of `ReachLine` +
@@ -201,7 +201,7 @@ grasping, range sensors and ground truth.
 ./build/Robotik-Fly --brain reflex
 ./build/Robotik-Fly --view
 ./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
-./build/Robotik-Headless build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml
+./build/Robotik-Headless build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 In the simulator, the **Fly brain** panel shows the state and chooses the
@@ -231,7 +231,7 @@ And it is:
 - **testable**: explicit success criteria.
 
 When a demo is stable, it runs both ways —
-`Robotik-Simulator scenario.yml` and `Robotik-Headless scenario.yml` — and it
+`Robotik-Simulator x.scenario.yaml` and `Robotik-Headless x.scenario.yaml` — and it
 becomes a regression test.
 
 ### Ideas for new demos

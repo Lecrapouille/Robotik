@@ -5,16 +5,16 @@ experiment:
 
   cases:
     - id: wave
-      scenario: scenarios/wave.yml
+      scenario: scenarios/wave.scenario.yaml
 
     - id: skills
-      scenario: scenarios/skills.yml
+      scenario: scenarios/skills.scenario.yaml
 
     # Same scenario, the arm in fault for one second, and another strategy:
     # a behavior tree that retries Wave. The assertions do not change.
     - id: skills_arm_fault
-      scenario: scenarios/skills.yml
-      controller: { behavior_tree: scenarios/skills_retry.bt.yml }
+      scenario: scenarios/skills.scenario.yaml
+      controller: { behavior_tree: scenarios/skills_retry.bt.yaml }
       setup:
         - inject_fault: { resource: arm, at: 1.0, action: disable }
         - inject_fault: { resource: arm, at: 2.0, action: restore }

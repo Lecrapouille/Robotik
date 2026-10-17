@@ -3,7 +3,7 @@
 scenario:
   id: reach
   description: Move the tool three centimetres forward with inverse kinematics.
-  world: worlds/arm.yaml
+  world: worlds/arm.world.yaml
   seed: 1
   timeout: 30
   assertions:

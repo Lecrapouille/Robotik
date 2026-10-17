@@ -47,7 +47,7 @@ make -j"$(nproc)"                         # core, hosts, every plugins/*/Makefil
 make -C plugins/<Name> -j"$(nproc)"       # one plugin; stages build/plugins/<Name>/
 make tests -j"$(nproc)"                   # builds and runs build/Robotik-tests
 ./build/Robotik-tests --gtest_filter='Plugin*'
-./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.yml [--seed N] [--trace] [--report r.json]
+./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```
 
 Headless exit code: 0 pass, 2 a run failed, 1 load error. `make` copies
@@ -62,8 +62,11 @@ libraries are then built by Make rules, there is no `external/compilation`.
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
   give them ground truth (`Simulation::pose/query`); that is for metrics,
   assertions, RL reward.
+- File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
+  `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
+  `x.experiment.yaml` (doc/03 §1); `x` = the scenario id.
 - Paths in world/scenario/experiment YAML start at the package root (folder
-  of `plugin.yaml`): `world: worlds/arm.yaml`. `..` and symlinks are allowed
+  of `plugin.yaml`): `world: worlds/arm.world.yaml`. `..` and symlinks are allowed
   but the canonical path must stay in the package; absolute paths are
   refused (`PackagePath.hpp`).
 - A library used by one plugin goes in `dependencies:` of its `plugin.yaml`

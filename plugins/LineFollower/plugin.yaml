@@ -30,4 +30,4 @@ host:
 scenarios:
   directory: scenarios
   entries:
-    - { id: line_follower, name: Line follower, file: line_follower.yml }
+    - { id: line_follower, name: Line follower, file: line_follower.scenario.yaml }
