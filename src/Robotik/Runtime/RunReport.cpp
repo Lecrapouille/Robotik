@@ -83,6 +83,12 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     record.time = p_simulation.time().value();
     record.passed = p_simulation.passed();
     record.oracle = p_simulation.oracle();
+    PhysicsSpec const& physics = p_simulation.scenario().physics;
+    record.physics = toString(physics.fidelity);
+    for (auto const& [id, level] : physics.overrides)
+    {
+        record.physics += ", " + id + ": " + toString(level);
+    }
     record.checks = p_simulation.checks();
     if (PlanExecutor const* planner = p_simulation.planner())
     {
@@ -136,7 +142,8 @@ void RunReport::writeText(std::ostream& p_out) const
             continue;
         }
         p_out << " " << run.outcome << " at " << run.time << " s"
-              << (run.oracle ? " (oracle perception)" : "");
+              << (run.oracle ? " (oracle perception)" : "")
+              << (run.physics.empty() || run.physics == "abstract" ? "" : " (physics " + run.physics + ")");
         for (auto const& [name, value] : run.metrics)
         {
             p_out << "  " << name << '=';
@@ -188,7 +195,8 @@ void RunReport::writeJson(std::ostream& p_out) const
               << "      \"time\": " << number(run.time) << ",\n"
               << "      \"passed\": " << (run.passed ? "true" : "false") << ",\n"
               << "      \"perception\": " << (run.oracle ? "\"oracle\"" : "\"sensors\"")
-              << ",\n";
+              << ",\n"
+              << "      \"physics\": " << quoted(run.physics) << ",\n";
         if (!run.error.empty())
         {
             p_out << "      \"error\": " << quoted(run.error) << ",\n";

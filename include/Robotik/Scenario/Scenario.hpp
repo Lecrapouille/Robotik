@@ -59,11 +59,13 @@
 #include "Robotik/Scenario/Trajectory.hpp"
 #include "Robotik/Scenario/World.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace robotik
@@ -159,6 +161,52 @@ enum class OraclePolicy : std::uint8_t
 };
 
 // ****************************************************************************
+//! @brief How finely the physics simulates an interaction (FIDELITY.md).
+// ****************************************************************************
+enum class Fidelity : std::uint8_t
+{
+    //!< A held object follows the tool, a released one is put down where it
+    //!< belongs: no contact, no fall. Checks the logic and the plan.
+    Abstract,
+    //!< Objects are rigid bodies of the physics engine: a grasp welds the
+    //!< object to the tool, a release lets it fall for real.
+    Rigid,
+    //!< No weld: the tool holds by force (suction, friction). Not built yet.
+    Contact,
+};
+
+[[nodiscard]] char const* toString(Fidelity p_fidelity);
+
+// ****************************************************************************
+//! @brief Section @c physics: of a scenario.
+//!
+//! @code{.yaml}
+//! physics:
+//!   fidelity: abstract        # abstract (default) | rigid | contact
+//!   overrides:                # per world entity or actuator
+//!     red_cube: rigid
+//! @endcode
+// ****************************************************************************
+struct PhysicsSpec
+{
+    Fidelity fidelity = Fidelity::Abstract;
+    std::map<std::string, Fidelity, std::less<>> overrides;
+
+    //! @brief Level of the entity or actuator @p_id.
+    [[nodiscard]] Fidelity of(std::string_view p_id) const
+    {
+        auto const found = overrides.find(p_id);
+        return found == overrides.end() ? fidelity : found->second;
+    }
+
+    //! @brief Level of an interaction: the most detailed of its two sides.
+    [[nodiscard]] Fidelity between(std::string_view p_a, std::string_view p_b) const
+    {
+        return std::max(of(p_a), of(p_b));
+    }
+};
+
+// ****************************************************************************
 //! @brief Interpreted scenario.
 // ****************************************************************************
 struct Scenario
@@ -186,6 +234,8 @@ struct Scenario
     std::vector<Fault> faults;
     std::vector<RandomFault> random_faults;
     OraclePolicy oracle = OraclePolicy::Never;
+    //!< Fidelity of the physics, per entity.
+    PhysicsSpec physics;
     //!< Simulated time limit; zero means none.
     Seconds timeout{};
     //!< Condition ending the run as soon as it holds; empty for none.

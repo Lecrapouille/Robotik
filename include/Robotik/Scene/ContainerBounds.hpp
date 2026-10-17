@@ -17,7 +17,7 @@
 //! @ref ecs::Shape is an ECS component (data on entities). This file is
 //! layout math on that component: cavity size, placement checks, penetration
 //! while carried. Same rules drive rendering (@ref SimulatorView) and
-//! kinematic props (@ref GraspSystem) without duplicating wall thickness.
+//! kinematic props (@ref AbstractGrasp) without duplicating wall thickness.
 //!
 //! @par Coordinates
 //! Robot base frame (entities parented to the robot root). Metres.

@@ -287,7 +287,7 @@ external/                 third-party sources (downloaded)
 | `Scene/` | Container geometry (`inside`) |
 | `Sensors/` | `Sensor`, `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, `Measurement`, `NoiseModel`, `Image` |
 | `Skills/` | `Skill`, `MotionSkills` (`Home`, `MoveJoint(s)`, `MoveTCP`, `Stop`), `SkillNodes` (BT bridge) |
-| `Systems/` | `GraspSystem` (what the vacuum holds) |
+| `Systems/` | `GraspModel`: how a gripper holds an object, per physics fidelity (`AbstractGrasp`, `RigidGrasp`) |
 
 ---
 
