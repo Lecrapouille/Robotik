@@ -156,6 +156,7 @@ void App::load(bool p_keep_tool)
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
+    teach.pendant.frame({});
     teach.markers.clear();
     if (!p_keep_tool)
     {
@@ -337,6 +338,9 @@ void App::step(double p_elapsed)
     {
         m_reported = true;
         report(*simulation);
+        // The run is over: freeze the scene on its last state. Manual mode
+        // (Joints, Teach Pendant) still moves the robot.
+        playing = false;
     }
     if (step_once)
     {
@@ -349,14 +353,16 @@ void App::step(double p_elapsed)
         plugins.afterStep(SIMULATOR_DT_S);
         return;
     }
-    if (!playing)
+    // In Manual mode the mission is suspended and the robot is live: the
+    // operator moves it without pressing Play.
+    if (!playing && !teach.manual)
     {
         plugins.setPaused(true);
         m_lag = 0.0;
         return;
     }
     plugins.setPaused(false);
-    m_lag += p_elapsed * static_cast<double>(speed);
+    m_lag += p_elapsed * static_cast<double>(playing ? speed : 1.0f);
     int steps = 0;
     while (m_lag >= SIMULATOR_DT_S && steps < SIMULATOR_MAX_STEPS_PER_FRAME)
     {

@@ -118,18 +118,24 @@ bool TeachPendant::jogJoint(Robot& p_robot, JointId p_joint, double p_delta)
     return true;
 }
 
+std::string const& TeachPendant::frame(Robot const& p_robot) const
+{
+    return m_frame.empty() ? p_robot.tool() : m_frame;
+}
+
 bool TeachPendant::jogTool(Robot& p_robot,
                            Vector3 const& p_translation,
                            Vector3 const& p_rotation)
 {
     m_playing = false;
-    if (p_robot.tool().empty())
+    std::string const& moved = frame(p_robot);
+    if (moved.empty())
     {
         m_error = "Robot has no tool frame";
         return false;
     }
 
-    Pose target = p_robot.framePose(p_robot.tool());
+    Pose target = p_robot.framePose(moved);
     target.position.x += p_translation.x;
     target.position.y += p_translation.y;
     target.position.z += p_translation.z;
@@ -143,7 +149,7 @@ bool TeachPendant::jogTool(Robot& p_robot,
     }
 
     std::optional<std::vector<double>> const solution =
-        p_robot.inverseKinematics(p_robot.tool(), target);
+        p_robot.inverseKinematics(moved, target);
     if (!solution)
     {
         m_error = "IK did not converge";
@@ -167,7 +173,7 @@ std::size_t TeachPendant::record(Robot const& p_robot,
     waypoint.joints.assign(p_robot.joints().positions().begin(),
                            p_robot.joints().positions().end());
     waypoint.pose =
-        p_robot.tool().empty() ? Pose{} : p_robot.framePose(p_robot.tool());
+        frame(p_robot).empty() ? Pose{} : p_robot.framePose(frame(p_robot));
     waypoint.duration = std::max(p_duration, 0.05);
     m_waypoints.push_back(std::move(waypoint));
     m_error.clear();

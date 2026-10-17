@@ -231,7 +231,7 @@ and on what it depends.
 
 A tool is always mounted by its link `tool_mount` on the robot flange
 (`robot.flange`). Only one tool is mounted at a time. Tools declared without
-`attach` are **in storage**: not built, but the simulator **Teach** panel can
+`attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can
 mount one instead. Details in [10-Tools-and-Frames.md](10-Tools-and-Frames.md).
 
 ```yaml

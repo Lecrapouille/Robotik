@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace robotik
@@ -71,6 +72,18 @@ public:
     {
         return m_error;
     }
+
+    // -------------------------------------------------------------------------
+    //! @brief Frame moved by @ref jogTool and stored by @ref record: any link
+    //! of the robot (a foot, a leg tip...). Empty: the work frame of the
+    //! robot (@ref Robot::tool).
+    // -------------------------------------------------------------------------
+    void frame(std::string p_frame)
+    {
+        m_frame = std::move(p_frame);
+    }
+
+    [[nodiscard]] std::string const& frame(Robot const& p_robot) const;
 
     //! @brief Shift one joint by @p_delta (rad or m). Stops playback.
     bool jogJoint(Robot& p_robot, JointId p_joint, double p_delta);
@@ -129,6 +142,7 @@ private:
     bool m_sequence = false;
     bool m_loop = false;
     int m_cursor = -1;
+    std::string m_frame;
     std::string m_error;
 };
 

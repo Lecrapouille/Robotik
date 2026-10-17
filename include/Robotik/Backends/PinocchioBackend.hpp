@@ -135,6 +135,11 @@ public:
     [[nodiscard]] bool hasFrame(std::string const& p_name) const;
 
     // -------------------------------------------------------------------------
+    //! @brief Names of the link frames, in model order (the root excluded).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<std::string> linkFrames() const;
+
+    // -------------------------------------------------------------------------
     //! @brief Pinocchio frame index for @p_name.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::size_t frameId(std::string const& p_name) const;
