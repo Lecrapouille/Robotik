@@ -187,7 +187,7 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     // floor: it falls far from everything. Zero robot collision, yet the
     // scene is wrong.
     robotik::ScenarioSource source = robotik::ScenarioSource::load(
-        repoFile("plugins/Painter/scenarios/painter.yml"));
+        repoFile("plugins/Painter/scenarios/painter.scenario.yaml"));
     source.override("world.entities.canvas.attach.parent", robotik::ConfigNode("easel"));
     source.override("world.entities.canvas.attach.transform.position",
                     robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]"));

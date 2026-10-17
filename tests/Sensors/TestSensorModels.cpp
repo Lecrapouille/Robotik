@@ -145,7 +145,7 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
     auto build = [](char const* p_policy)
     {
         robotik::ScenarioSource source = robotik::ScenarioSource::load(
-            repoFile("plugins/PickAndPlace/scenarios/pick_and_place.yml"));
+            repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
         source.override("scenario.perception.oracle", robotik::ConfigNode(p_policy));
         return robotik::Scenario::read(source, testAssets());
     };

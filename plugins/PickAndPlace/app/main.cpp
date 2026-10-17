@@ -38,7 +38,7 @@
 
 struct Options
 {
-    std::filesystem::path scenario = "plugins/PickAndPlace/scenarios/pick_and_place.yml";
+    std::filesystem::path scenario = "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml";
     std::size_t envs = 8;
     std::size_t threads = 0;
     std::size_t episodes = 32;
@@ -115,7 +115,7 @@ static bool parse(int argc, char** argv, Options& p_options)
         {
             std::cerr << "Usage: " << argv[0]
                       << " [--policy converged|random] [--train] [--envs N] [--threads T] [--episodes E]"
-                         " [--seed S] [--scenario file.yml] [--no-replay] [--trace]"
+                         " [--seed S] [--scenario file.scenario.yaml] [--no-replay] [--trace]"
                          " [--log episodes.json]\n";
             return false;
         }

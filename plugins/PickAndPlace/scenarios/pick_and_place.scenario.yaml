@@ -1,12 +1,12 @@
 scenario:
   id: pick_and_place
   description: Pick the red cube and put it in the box.
-  world: worlds/pick_place_cell.yaml
+  world: worlds/pick_place_cell.world.yaml
   # Master seed: prop layout, sensor noise and random faults derive from it.
   seed: 42
 
   controller:
-    behavior_tree: scenarios/pick_and_place.bt.yml
+    behavior_tree: scenarios/pick_and_place.bt.yaml
 
   # Headless runs render no image: the true cube pose stands in for the
   # camera there. The simulator renders it and uses real perception.

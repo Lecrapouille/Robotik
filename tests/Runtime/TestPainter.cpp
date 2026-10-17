@@ -19,7 +19,7 @@ namespace
 
 robotik::Scenario painterScenario()
 {
-    return robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.yml"),
+    return robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
                                    testAssets());
 }
 

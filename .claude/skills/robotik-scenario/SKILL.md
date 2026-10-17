@@ -1,6 +1,6 @@
 ---
 name: robotik-scenario
-description: Write or fix RobotIK world (worlds/*.yaml), scenario (scenarios/*.yml) and experiment (experiments/*.yaml) files — entities, sensors, actuators, faults, assertions, trajectories, seeds, overrides. Use for any YAML under plugins/*/worlds|scenarios|experiments.
+description: Write or fix RobotIK world (worlds/*.world.yaml), scenario (scenarios/*.scenario.yaml) and experiment (experiments/*.experiment.yaml) files — entities, sensors, actuators, faults, assertions, trajectories, seeds, overrides. Use for any YAML under plugins/*/worlds|scenarios|experiments.
 ---
 
 # RobotIK YAML
@@ -9,6 +9,10 @@ World = what exists. Scenario = what happens, when it stops, what is
 checked. Experiment = variants × seeds. Paths are relative to the package root (folder of plugin.yaml); `..` and symlinks are allowed but the canonical path must stay in the package; absolute paths are refused.
 Scenario/experiment files must be listed in the plugin `plugin.yaml`.
 Edit `plugins/...`, then `make -C plugins/<Name>` (it overwrites `build/`).
+File names carry their role (doc/03 §1): `x.world.yaml`, `x.scenario.yaml`,
+`x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
+`x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`; `x` = the
+scenario id. Roles are read by `robotik::fileRole` (FileRole.hpp).
 
 ## World
 
@@ -66,9 +70,9 @@ drift ~1 cm: prefer `prop` for exact tutorials/tests.
 scenario:
   id: main                             # = plugin.yaml entry id = Plugin::setup string
   description: ...
-  world: worlds/cell.yaml
+  world: worlds/cell.world.yaml
   seed: 42
-  controller: { behavior_tree: scenarios/main.bt.yml }   # omit → Mission::status ends the run
+  controller: { behavior_tree: scenarios/main.bt.yaml }   # omit → Mission::status ends the run
   # or instead of a tree (doc/11-PDDL-Planner.md); entities need `kind: <pddl type>`:
   # controller:
   #   planner:
@@ -77,7 +81,7 @@ scenario:
   #     goal:
   #       - in(red_cube, box)
   #     replan: { max: 3, delay: 0.5 }   # verify: true, search: lama, timeout: 10
-  trajectories: { red: scenarios/trajectories/red.yaml }
+  trajectories: { red: scenarios/trajectories/red.trajectory.yaml }
   perception: { oracle: when_blind }   # never (default) | when_blind | always
   faults:
     - { at: 1.0, resource: arm, action: disable }
@@ -128,12 +132,12 @@ trajectory:
 experiment:
   id: bench
   seeds: [1, 2, 3]
-  world: worlds/other.yaml          # optional: replaces every world
+  world: worlds/other.world.yaml          # optional: replaces every world
   cases:
-    - { id: nominal, scenario: scenarios/main.yml }
+    - { id: nominal, scenario: scenarios/main.scenario.yaml }
     - id: variant
-      scenario: scenarios/main.yml
-      controller: { behavior_tree: scenarios/retry.bt.yml }
+      scenario: scenarios/main.scenario.yaml
+      controller: { behavior_tree: scenarios/retry.bt.yaml }
       overrides:                       # dotted paths, list segment = element id
         world.entities.cube.randomize: { x: [-0.05, 0.05] }
         scenario.timeout: 90
@@ -147,6 +151,6 @@ experiment:
 ## Verify
 
 ```bash
-./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.yml --trace
-./build/Robotik-Headless build/plugins/<Name>/experiments/<e>.yaml --report r.json
+./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
+./build/Robotik-Headless build/plugins/<Name>/experiments/<e>.experiment.yaml --report r.json
 ```

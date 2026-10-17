@@ -10,17 +10,17 @@ to create your own plugin from zero.
 
 | Lesson | Scenario | You learn |
 |--------|----------|-----------|
-| 1 | `hello.yml` | The smallest mission: count steps, publish a metric, end the run |
-| 2 | `wave.yml` | Command a joint, read the tool pose (forward kinematics) |
-| 3 | `reach.yml` | Reach a point with inverse kinematics |
-| 4 | `skills.yml` | Write a skill, call it from a behavior tree |
+| 1 | `hello.scenario.yaml` | The smallest mission: count steps, publish a metric, end the run |
+| 2 | `wave.scenario.yaml` | Command a joint, read the tool pose (forward kinematics) |
+| 3 | `reach.scenario.yaml` | Reach a point with inverse kinematics |
+| 4 | `skills.scenario.yaml` | Write a skill, call it from a behavior tree |
 | — | all | The plugin class: menus, panels, keyboard |
 
 Run them first, to know what you are reading:
 
 ```bash
 ./build/Robotik-Simulator          # Demos → Hello world → ...
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.yml
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 ---
@@ -37,7 +37,7 @@ plugins/HelloWorld/
 │   ├── WaveMission.*        lesson 2
 │   ├── ReachMission.*       lesson 3
 │   └── WaveSkill.*          lesson 4
-├── worlds/arm.yaml      what exists: one 6-axis arm
+├── worlds/arm.world.yaml      what exists: one 6-axis arm
 ├── scenarios/           what happens and what is checked
 └── experiments/         variants to compare
 ```
@@ -55,7 +55,7 @@ Who calls what:
  HelloWorldPlugin::setup("wave")   ← your Plugin class
         │ creates a WaveMission, gives it to the host
         ▼
- Simulation (built from worlds/arm.yaml + scenarios/wave.yml)
+ Simulation (built from worlds/arm.world.yaml + scenarios/wave.scenario.yaml)
         │ at each step:
         ▼
  WaveMission::step()               ← your Mission class
@@ -72,13 +72,13 @@ So there are **two classes** to know:
 
 ## 2. Lesson 1 — the smallest mission
 
-`scenarios/hello.yml`:
+`scenarios/hello.scenario.yaml`:
 
 ```yaml
 scenario:
   id: hello
   description: Count the simulation steps, then stop after two seconds.
-  world: worlds/arm.yaml      # relative to the package root
+  world: worlds/arm.world.yaml      # relative to the package root
   seed: 1
   timeout: 30
   assertions:
@@ -313,7 +313,7 @@ void SkillsMission::setup(robotik::Simulation& p_simulation, robotik::SceneView*
 ```
 
 Every registered skill becomes a behavior tree **Action** with the same
-name. `scenarios/skills.bt.yml`:
+name. `scenarios/skills.bt.yaml`:
 
 ```yaml
 BehaviorTree:
@@ -332,7 +332,7 @@ And the scenario uses it as its controller:
 
 ```yaml
   controller:
-    behavior_tree: skills.bt.yml
+    behavior_tree: skills.bt.yaml
   assertions:
     - controller.success
     - skill_succeeded(Wave)
@@ -341,7 +341,7 @@ And the scenario uses it as its controller:
 ```
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.yml --trace
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -546,7 +546,7 @@ the package.
 | `plugins/MyRobot/Makefile` | `TARGET_NAME := robotik_my_robot`, `PLUGIN_NAME := MyRobot`, `PLUGIN_DIR := $(P)/plugins/MyRobot`, `TARGET_DESCRIPTION` |
 | `plugins/MyRobot/plugin.yaml` | `plugin.id: robotik.my_robot`, `plugin.name`, `library.entrypoint: librobotik_my_robot.so`, the scenario list |
 | `plugins/MyRobot/src/Plugin.cpp` | `describe()` returns `{ .id = "robotik.my_robot" }`; rename the class |
-| `plugins/MyRobot/scenarios/*.yml` | Keep only what you need; the `id` of each file must match an entry of `plugin.yaml` |
+| `plugins/MyRobot/scenarios/*.scenario.yaml` | Keep only what you need; the `id` of each file must match an entry of `plugin.yaml` |
 
 The rules:
 
@@ -575,7 +575,7 @@ LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/PatrolMission.cpp
 
 ```bash
 make -C plugins/MyRobot -j"$(nproc)"
-./build/Robotik-Headless build/plugins/MyRobot/scenarios/patrol.yml
+./build/Robotik-Headless build/plugins/MyRobot/scenarios/patrol.scenario.yaml
 ./build/Robotik-Simulator          # Demos → My robot → ...
 ```
 
@@ -677,14 +677,14 @@ host:
 scenarios:
   directory: scenarios
   entries:
-    - { id: painter, name: Robotic painter, file: painter.yml }
+    - { id: painter, name: Robotic painter, file: painter.scenario.yaml }
     # optional: a submenu of the Demos menu, and a clock for this scenario only
-    # - { id: painter_rl, name: Painter RL, file: painter_rl.yml, menu: Learning, clock: plugin }
+    # - { id: painter_rl, name: Painter RL, file: painter_rl.rl.yaml, menu: Learning, clock: plugin }
 
 experiments:
   directory: experiments
   entries:
-    - { id: painting_benchmark, name: Painting benchmark, file: painting_benchmark.yaml }
+    - { id: painting_benchmark, name: Painting benchmark, file: painting_benchmark.experiment.yaml }
 ```
 
 | Key | Notes |
@@ -693,7 +693,7 @@ experiments:
 | `resources.packs` | A missing pack, or one with an incompatible version: the scenario is refused with the reason. Version `"1.2"` accepts 1.2.0 and any newer 1.x, not 2.0 |
 | `host.clock: plugin` | The host does not call `Simulation::step`: `update(dt)` advances the simulation. Default for every scenario; an entry can change it with its own `clock:` (the RL scenario of PickAndPlace) |
 | `entries[].menu` | Groups the scenario in a submenu of the **Demos** menu (PickAndPlace: Behavior tree, Reinforcement learning) |
-| `scenarios.entries` | Without `entries`, every `*.yml` and `*.yaml` of the folder is taken, behavior trees excepted |
+| `scenarios.entries` | Without `entries`, every runnable file of the folder is taken: `*.scenario.yaml`, `*.rl.yaml`, `*.experiment.yaml`, and an older YAML file without a role. Trees, domains and trajectories are skipped. The id is the name without the double extension |
 
 ### Third-party libraries of a plugin
 
@@ -761,7 +761,7 @@ Nothing depends on the current folder. Both hosts search, in this order:
 4. `lib/robotik/plugins` of the install prefix.
 
 A scenario given by its path brings its package with it:
-`Robotik-Headless plugins/Painter/scenarios/painter.yml` works from the
+`Robotik-Headless plugins/Painter/scenarios/painter.scenario.yaml` works from the
 sources; the library is searched next to the manifest, then next to the
 executable.
 

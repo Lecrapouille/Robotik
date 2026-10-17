@@ -32,7 +32,7 @@
 //! @code
 //! scenario:
 //!   trajectories:
-//!     red: scenarios/trajectories/red_stroke.yaml
+//!     red: scenarios/trajectories/red_stroke.trajectory.yaml
 //! @endcode
 #pragma once
 

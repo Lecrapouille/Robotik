@@ -80,7 +80,7 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario("plugins/PickAndPlace/scenarios/pick_and_place_pddl.yml"),
+        scenario("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
         &mission);
     ASSERT_NE(simulation.planner(), nullptr);
@@ -116,7 +116,7 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     robotik::Simulation simulation(
         world,
         scenario(
-            "plugins/PickAndPlace/scenarios/pick_and_place_pddl_faults.yml"),
+            "plugins/PickAndPlace/scenarios/pick_and_place_pddl_faults.scenario.yaml"),
         nullptr,
         &mission);
 
@@ -138,7 +138,7 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario("plugins/Painter/scenarios/painter_pddl.yml"),
+        scenario("plugins/Painter/scenarios/painter_pddl.scenario.yaml"),
         nullptr,
         &mission);
 
@@ -163,9 +163,9 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(
-        repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.yml"));
+        repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"));
     source.override("scenario.controller.behavior_tree",
-                    robotik::ConfigNode("scenarios/pick_and_place.bt.yml"));
+                    robotik::ConfigNode("scenarios/pick_and_place.bt.yaml"));
     EXPECT_THROW((void)robotik::Scenario::read(source, testAssets()),
                  std::runtime_error);
 }

@@ -23,13 +23,13 @@ perception + BT: `plugins/PickAndPlace/`.
    - `src/Plugin.cpp`: `describe()` returns `{ .id = "robotik.<snake>" }`;
      `setup(host, scenario)` handles every scenario `id`, else
      `host.error(...)` + `return ROBOTIK_PLUGIN_ERR_SETUP`.
-   - each `scenarios/<s>.yml`: `scenario.id` = the entry id.
+   - each `scenarios/<s>.scenario.yaml`: `scenario.id` = the entry id.
 3. One `.cpp` ends with `ROBOTIK_EXPORT_PLUGIN(<Class>)`.
 4. Every new file starts with the SPDX header (copy from HelloWorld).
 5. Build + run:
    ```bash
    make -C plugins/<Name> -j"$(nproc)"
-   ./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.yml --trace
+   ./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
    ```
    No list to update: the root Makefile builds every `plugins/*/Makefile`.
 

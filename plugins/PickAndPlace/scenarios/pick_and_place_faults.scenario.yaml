@@ -4,11 +4,11 @@
 scenario:
   id: pick_and_place_faults
   description: Pick the red cube and put it in the box, with a camera failure.
-  world: worlds/pick_place_cell.yaml
+  world: worlds/pick_place_cell.world.yaml
   seed: 7
 
   controller:
-    behavior_tree: scenarios/pick_and_place.bt.yml
+    behavior_tree: scenarios/pick_and_place.bt.yaml
 
   # Headless runs render no image: the true cube pose stands in for the
   # camera there. The simulator renders it and uses real perception.

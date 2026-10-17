@@ -13,7 +13,7 @@
 //! copied into this tree, edited, then read.
 //!
 //! @code
-//! robotik::ConfigNode world = robotik::ConfigNode::load("painting_lab.yaml");
+//! robotik::ConfigNode world = robotik::ConfigNode::load("painting_lab.world.yaml");
 //! world.set("world.entities.easel.friction", robotik::ConfigNode("0.3"));
 //! double const friction = world.at("world").at("entities")
 //!                              .item("easel").number("friction", 1.0);

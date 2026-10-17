@@ -19,13 +19,13 @@ resources:
 scenarios:
   directory: scenarios
   entries:
-    - { id: pick_and_place, name: Pick and place, file: pick_and_place.yml, menu: Behavior tree }
-    - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.yml, menu: Behavior tree }
-    - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.yml, menu: PDDL planner }
-    - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.yml, menu: PDDL planner }
-    - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place_rl.yml, menu: Reinforcement learning, clock: plugin }
+    - { id: pick_and_place, name: Pick and place, file: pick_and_place.scenario.yaml, menu: Behavior tree }
+    - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.scenario.yaml, menu: Behavior tree }
+    - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place_rl.rl.yaml, menu: Reinforcement learning, clock: plugin }
 
 experiments:
   directory: experiments
   entries:
-    - { id: pick_and_place_benchmark, name: Pick and place benchmark, file: pick_and_place_benchmark.yaml }
+    - { id: pick_and_place_benchmark, name: Pick and place benchmark, file: pick_and_place_benchmark.experiment.yaml }

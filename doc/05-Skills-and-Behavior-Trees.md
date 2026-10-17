@@ -218,7 +218,7 @@ files, named in the scenario:
 ```yaml
 scenario:
   controller:
-    behavior_tree: skills.bt.yml
+    behavior_tree: skills.bt.yaml
 ```
 
 Each tick, the tree is evaluated from the root. Each node returns
@@ -287,7 +287,7 @@ BehaviorTree:
 
 ## 6. Tutorial: recover from a fault
 
-Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.yml`,
+Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`,
 add a fault that takes the arm away between 1 s and 2 s:
 
 ```yaml
@@ -300,7 +300,7 @@ add a fault that takes the arm away between 1 s and 2 s:
 
 ```bash
 make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.yml --trace
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -310,7 +310,7 @@ make -C plugins/HelloWorld
 ```
 
 **Step 2: retry.** Change the tree to retry `Wave` until it works. This is
-exactly `scenarios/skills_retry.bt.yml`:
+exactly `scenarios/skills_retry.bt.yaml`:
 
 ```yaml
       - UntilSuccess:

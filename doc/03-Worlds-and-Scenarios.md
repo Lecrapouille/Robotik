@@ -18,9 +18,9 @@ The answer is split into three files. Each one talks about one thing only.
 
 | File | Question | Example |
 |------|----------|---------|
-| **World** (`worlds/*.yaml`) | *What exists, and where?* | the arm, its tool, a cube, a box |
-| **Scenario** (`scenarios/*.yml`) | *What happens, when does it stop, what do we check?* | "put the cube in the box, in less than 30 s, without collision" |
-| **Experiment** (`experiments/*.yaml`) | *Which variants do we run and compare?* | 3 layouts × 3 seeds |
+| **World** (`worlds/*.world.yaml`) | *What exists, and where?* | the arm, its tool, a cube, a box |
+| **Scenario** (`scenarios/*.scenario.yaml`) | *What happens, when does it stop, what do we check?* | "put the cube in the box, in less than 30 s, without collision" |
+| **Experiment** (`experiments/*.experiment.yaml`) | *Which variants do we run and compare?* | 3 layouts × 3 seeds |
 
 ```text
 experiment ──uses──► scenario ──uses──► world
@@ -36,16 +36,42 @@ The files live in a plugin folder:
 ```text
 plugins/HelloWorld/
 ├── plugin.yaml                     lists the scenarios and experiments
-├── worlds/arm.yaml
+├── worlds/arm.world.yaml
 ├── scenarios/
-│   ├── hello.yml  wave.yml  reach.yml  skills.yml
-│   ├── skills.bt.yml               a behavior tree
-│   └── skills_retry.bt.yml
-└── experiments/hello_experiment.yaml
+│   ├── hello.scenario.yaml  wave.scenario.yaml  reach.scenario.yaml  skills.scenario.yaml
+│   ├── skills.bt.yaml               a behavior tree
+│   └── skills_retry.bt.yaml
+└── experiments/hello.experiment.yaml
 ```
 
 > **Important.** A scenario or an experiment must be listed in `plugin.yaml`.
 > Otherwise Headless answers `scenario is not in a plugin package`.
+
+### File names: the double extension
+
+The name of a file says its role: `<name>.<role>.yaml`. You see what a file
+is without opening it, and tools (the simulator Files panel, the catalog)
+use it.
+
+| Double extension | Role | Example |
+|------------------|------|---------|
+| `.world.yaml` | world | `worlds/arm.world.yaml` |
+| `.scenario.yaml` | scenario | `scenarios/wave.scenario.yaml` |
+| `.rl.yaml` | scenario driven by a learned policy (reinforcement learning) | `scenarios/pick_and_place_rl.rl.yaml` |
+| `.bt.yaml` | behavior tree | `scenarios/skills.bt.yaml` |
+| `.domain.pddl` | PDDL domain of the planner ([chapter 11](11-PDDL-Planner.md)) | `scenarios/pick_and_place.domain.pddl` |
+| `.trajectory.yaml` | trajectory (§8) | `scenarios/trajectories/red_stroke.trajectory.yaml` |
+| `.experiment.yaml` | experiment | `experiments/hello.experiment.yaml` |
+
+Rules:
+
+- Use `.yaml`, not `.yml`.
+- Keep `<name>` equal to the `id` of the scenario: `wave.scenario.yaml` has
+  `id: wave`. Without `entries:` in `plugin.yaml`, the id is read from the
+  name (`wave`).
+- `plugin.yaml` and `pack.yaml` keep their fixed names.
+- It is a convention: the loaders read the content and do not refuse a file
+  for its name. An older `wave.yml` still loads.
 
 ---
 
@@ -54,7 +80,7 @@ plugins/HelloWorld/
 You will add two objects to the HelloWorld world and check a fact about them.
 Work in the sources, then run `make` to copy them to `build/`.
 
-**Step 1.** Open `plugins/HelloWorld/worlds/arm.yaml`. It has one entity, the
+**Step 1.** Open `plugins/HelloWorld/worlds/arm.world.yaml`. It has one entity, the
 robot. Add a red cube and a box at the end of the `entities` list:
 
 ```yaml
@@ -74,7 +100,7 @@ A `prop` is an object that does not move by itself (no physics), unless the
 robot grasps it. Positions are in metres, z up. The position is the **centre**
 of the object: the cube is 4 cm high, so its centre is at z = 0.02.
 
-**Step 2.** Open `plugins/HelloWorld/scenarios/hello.yml` and add two
+**Step 2.** Open `plugins/HelloWorld/scenarios/hello.scenario.yaml` and add two
 assertions:
 
 ```yaml
@@ -90,7 +116,7 @@ assertions:
 
 ```bash
 make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.yml
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 ```text
@@ -116,7 +142,7 @@ hello: 1/1 runs passed
 **Step 5.** Open it in the simulator to see the scene:
 
 ```bash
-./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/hello.yml
+./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 Of course, a real mission would ask the robot to *move* the cube. This is
@@ -143,7 +169,7 @@ The random numbers come from the **seed** of the scenario (`seed: 1`). Same
 seed, same run, always. Another seed, another layout:
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.yml --seed 7
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml --seed 7
 ```
 
 The robot knows only the *nominal* position (the one written in the file).
@@ -298,14 +324,14 @@ A complete example (the repository file does not use every key):
 scenario:
   id: pick_and_place
   description: Pick the red cube and put it in the box.
-  world: worlds/pick_place_cell.yaml          # relative to the package root
+  world: worlds/pick_place_cell.world.yaml          # relative to the package root
   seed: 42
 
   controller:
-    behavior_tree: scenarios/pick_and_place.bt.yml   # the default strategy
+    behavior_tree: scenarios/pick_and_place.bt.yaml   # the default strategy
 
   trajectories:
-    drop: scenarios/trajectories/drop.yaml
+    drop: scenarios/trajectories/drop.trajectory.yaml
 
   perception: { oracle: when_blind }
 
@@ -343,9 +369,9 @@ in every file, whatever the folder of the file:
 ```text
 plugins/HelloWorld/            <- package root
 ├── plugin.yaml
-├── worlds/arm.yaml            "worlds/arm.yaml"
-├── scenarios/skills.yml       "scenarios/skills.yml"
-└── experiments/hello.yaml     names "scenarios/skills.yml" too
+├── worlds/arm.world.yaml            "worlds/arm.world.yaml"
+├── scenarios/skills.scenario.yaml       "scenarios/skills.scenario.yaml"
+└── experiments/hello.yaml     names "scenarios/skills.scenario.yaml" too
 ```
 
 A name may not leave the package. `..` and symbolic links are allowed, but
@@ -368,7 +394,7 @@ on (the simulator keeps the image alive), but the verdicts are frozen.
 
 ### Tutorial: inject a fault
 
-In `plugins/HelloWorld/scenarios/skills.yml`, add a fault on the arm, just
+In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just
 before `timeout`:
 
 ```yaml
@@ -378,7 +404,7 @@ before `timeout`:
 
 ```bash
 make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.yml --trace
+./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -487,7 +513,7 @@ perception. Reports mark the runs made with the oracle (`oracle perception`).
 A trajectory is a path, in its own file. The scenario gives it a name.
 
 ```yaml
-# scenarios/trajectories/red_stroke.yaml
+# scenarios/trajectories/red_stroke.trajectory.yaml
 trajectory:
   type: cartesian
   frame: easel.canvas_mount
@@ -511,7 +537,7 @@ if the easel slides during the run, the robot does not know.
 
 ## 9. The experiment file
 
-HelloWorld ships `experiments/hello_experiment.yaml`:
+HelloWorld ships `experiments/hello.experiment.yaml`:
 
 ```yaml
 experiment:
@@ -520,16 +546,16 @@ experiment:
 
   cases:
     - id: wave
-      scenario: scenarios/wave.yml
+      scenario: scenarios/wave.scenario.yaml
 
     - id: skills
-      scenario: scenarios/skills.yml
+      scenario: scenarios/skills.scenario.yaml
 
     # Same scenario, the arm in fault for one second, and another strategy:
     # a behavior tree that retries Wave. The assertions do not change.
     - id: skills_arm_fault
-      scenario: scenarios/skills.yml
-      controller: { behavior_tree: scenarios/skills_retry.bt.yml }
+      scenario: scenarios/skills.scenario.yaml
+      controller: { behavior_tree: scenarios/skills_retry.bt.yaml }
       setup:
         - inject_fault: { resource: arm, at: 1.0, action: disable }
         - inject_fault: { resource: arm, at: 2.0, action: restore }
@@ -541,7 +567,7 @@ experiment:
 ```
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/experiments/hello_experiment.yaml \
+./build/Robotik-Headless build/plugins/HelloWorld/experiments/hello.experiment.yaml \
     --report hello.json
 ```
 
@@ -570,7 +596,7 @@ list, a segment names the element with this `id` (or this index):
 
 ```yaml
     - id: wide_layout
-      scenario: scenarios/pick_and_place.yml
+      scenario: scenarios/pick_and_place.scenario.yaml
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
         scenario.timeout: 90

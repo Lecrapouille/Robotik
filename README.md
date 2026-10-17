@@ -301,7 +301,7 @@ RobotIK describes an experiment in three files that do not talk about the same t
 | **Experiment** | Which variants to run and compare, with which seeds and metrics |
 
 ```yaml
-# worlds/pick_place_cell.yaml
+# worlds/pick_place_cell.world.yaml
 world:
   id: pick_place_cell
   entities:
@@ -330,13 +330,13 @@ world:
 ```
 
 ```yaml
-# scenarios/pick_and_place.yml
+# scenarios/pick_and_place.scenario.yaml
 scenario:
   id: pick_and_place
-  world: worlds/pick_place_cell.yaml           # paths start at the plugin folder
+  world: worlds/pick_place_cell.world.yaml           # paths start at the plugin folder
   seed: 42
   controller:
-    behavior_tree: scenarios/pick_and_place.bt.yml
+    behavior_tree: scenarios/pick_and_place.bt.yaml
   timeout: 60
   assertions:
     - controller.success
@@ -345,14 +345,14 @@ scenario:
 ```
 
 ```yaml
-# experiments/pick_and_place_benchmark.yaml
+# experiments/pick_and_place_benchmark.experiment.yaml
 experiment:
   id: pick_and_place_benchmark
   seeds: [11, 12, 13]
   cases:
-    - { id: nominal, scenario: scenarios/pick_and_place.yml }
+    - { id: nominal, scenario: scenarios/pick_and_place.scenario.yaml }
     - id: wide_layout
-      scenario: scenarios/pick_and_place.yml
+      scenario: scenarios/pick_and_place.scenario.yaml
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
   evaluation:
@@ -473,10 +473,10 @@ The **Demos** menu lists every package built under `build/plugins/`. The same sc
 
 ```bash
 ./build/Robotik-Headless \
-    build/plugins/PickAndPlace/scenarios/pick_and_place.yml \
+    build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml \
     --seed 7
 ./build/Robotik-Headless \
-    build/plugins/Painter/experiments/painting_benchmark.yaml \
+    build/plugins/Painter/experiments/painting_benchmark.experiment.yaml \
     --report painting.json
 ```
 

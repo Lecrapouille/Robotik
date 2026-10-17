@@ -18,7 +18,7 @@
 
 void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view)
 {
-    // The easel and the canvas are entities of painting_lab.yaml: the
+    // The easel and the canvas are entities of painting_lab.world.yaml: the
     // simulation builds them. The mission brings the gestures.
     robotik::ResourceManager const& resources = p_simulation.robot().resources();
     robotik::ActuatorSet const& actuators = p_simulation.robot().actuators();

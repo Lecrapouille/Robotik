@@ -196,7 +196,7 @@ switches to the connectome (`data/flywire/edges.csv` and `binding.txt`) and
 restarts the episode. Both eyes are in the "Robot camera" panel.
 
 ```bash
-./build/Robotik-Simulator build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.yml
+./build/Robotik-Simulator build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 ## Colored rays

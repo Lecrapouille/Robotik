@@ -1,11 +1,11 @@
-# The same task as pick_and_place.yml, with no behavior tree: the PDDL
+# The same task as pick_and_place.scenario.yaml, with no behavior tree: the PDDL
 # planner finds the steps from the goal. The domain lists the actions; the
 # world gives the objects (entities with a kind); the mission reads the
 # state on the beliefs and runs each action with its skills.
 scenario:
   id: pick_and_place_pddl
   description: Plan how to put the red cube in the box, then do it.
-  world: worlds/pick_place_cell.yaml
+  world: worlds/pick_place_cell.world.yaml
   seed: 42
 
   controller:

@@ -1,6 +1,6 @@
 ---
 name: robotik-skill
-description: Write a RobotIK skill (robotik::Skill), register it on the SkillScheduler with resources/priority/preconditions, call it from a BlackThorn behavior tree (.bt.yml), or make a tree react to faults. Use for skill code, *.bt.yml files, preemption and fault-recovery questions.
+description: Write a RobotIK skill (robotik::Skill), register it on the SkillScheduler with resources/priority/preconditions, call it from a BlackThorn behavior tree (.bt.yaml), or make a tree react to faults. Use for skill code, *.bt.yaml files, preemption and fault-recovery questions.
 ---
 
 # RobotIK skills and behavior trees
@@ -85,7 +85,7 @@ headless and simulator. Put durations in skills (use `dt`).
 
 Faults: declare in scenario `faults:` or experiment `setup: inject_fault`.
 No fault code in skills; the tree reacts (retry, fallback, abort).
-Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yml`.
+Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yaml`.
 
 ## PDDL planner instead of a tree
 

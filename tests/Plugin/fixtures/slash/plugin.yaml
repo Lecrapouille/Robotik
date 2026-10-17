@@ -8,4 +8,4 @@ library:
 scenarios:
   directory: scenarios
   entries:
-    - { id: one, name: One, file: one.yml }
+    - { id: one, name: One, file: one.scenario.yaml }

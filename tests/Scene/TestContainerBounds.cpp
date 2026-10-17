@@ -20,7 +20,7 @@ using robotik::scene::restsInside;
 namespace
 {
 
-// Same layout as data/scenarios/pick_and_place.yml.
+// Same layout as data/scenarios/pick_and_place.scenario.yaml.
 SceneObject makeBox()
 {
     SceneObject box;

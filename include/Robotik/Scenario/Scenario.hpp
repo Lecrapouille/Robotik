@@ -18,17 +18,17 @@
 //! scenario:
 //!   id: pick_and_place
 //!   description: Pick the red cube and put it in the box.
-//!   world: worlds/manipulation_cell.yaml
+//!   world: worlds/manipulation_cell.world.yaml
 //!   seed: 42
 //!   controller:
-//!     behavior_tree: scenarios/pick_and_place.bt.yml
+//!     behavior_tree: scenarios/pick_and_place.bt.yaml
 //!     # or, instead of a tree, a goal for the PDDL planner (PlannerSpec):
 //!     # planner:
 //!     #   domain: scenarios/pick_and_place.domain.pddl
 //!     #   goal:
 //!     #     - in(red_cube, box)
 //!   trajectories:                          # see Trajectory.hpp
-//!     drop: scenarios/trajectories/drop.yaml
+//!     drop: scenarios/trajectories/drop.trajectory.yaml
 //!   faults:
 //!     - { at: 4.0, resource: wrist_camera, action: disable }
 //!     - { resource: gripper, rate: 0.01 }

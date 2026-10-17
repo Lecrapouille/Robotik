@@ -3,18 +3,18 @@ scenario:
   description: |
     Dip the brush in each pot and lay a stroke on the canvas, rinsing it in
     between, without moving the easel.
-  world: worlds/painting_lab.yaml
+  world: worlds/painting_lab.world.yaml
   seed: 7
 
   controller:
-    behavior_tree: scenarios/painter.bt.yml
+    behavior_tree: scenarios/painter.bt.yaml
 
   # One stroke per colour, read by the Mark gesture.
   trajectories:
-    red: scenarios/trajectories/red_stroke.yaml
-    black: scenarios/trajectories/black_stroke.yaml
-    blue: scenarios/trajectories/blue_stroke.yaml
-    gold: scenarios/trajectories/gold_stroke.yaml
+    red: scenarios/trajectories/red_stroke.trajectory.yaml
+    black: scenarios/trajectories/black_stroke.trajectory.yaml
+    blue: scenarios/trajectories/blue_stroke.trajectory.yaml
+    gold: scenarios/trajectories/gold_stroke.trajectory.yaml
 
   timeout: 120
 
