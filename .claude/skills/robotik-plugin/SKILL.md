@@ -89,6 +89,33 @@ Callbacks are static functions casting `user` back; wrap the canvas as
   plugin-local pack goes in `plugins/<Name>/data/pack.yaml` +
   `resources.directory: data`.
 
+## Core stays agnostic of the demos
+
+The demo plugins exist to prove that RobotIK fits **any** robot project
+(arm, humanoid, fly, mobile robot, hexapod...). So the core (`src/`,
+`include/`) and the hosts (`simulator/`, `headless/`) must not know a demo:
+
+- no demo name, object id, joint name, tool kind or task in core code
+  (`red_cube`, `drill_spindle_joint`, "painting"...);
+- a feature one demo needs goes in its plugin; it goes in the core only as
+  a generic concept that a second, different project could use too;
+- a core concept keeps a generic name (`ecs::Shape`, not `SceneObject` of a
+  pick and place).
+
+When you meet a leak, fix it or list it below and tell the user.
+
+Known leaks (October 2026), to fix:
+
+| Where | Leak | Generic direction |
+|-------|------|-------------------|
+| `Systems/GraspSystem`, `Simulation.cpp` `trackPropPenetration` | vacuum + box + container rules of the pick and place | `GraspModel` per fidelity level (FIDELITY.md) |
+| `SimulationTruth.cpp` `holding(g)` | only for `VacuumGripper` | a gripper interface (`holding`, `held`) for any grasping actuator |
+| `Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
+| `Simulation.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
+| `simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |
+| `ecs::Shape` | box and container only | sphere, cylinder, mesh |
+| `Perception/WorldModel.cpp` monocular estimate | objects on a known top plane (tabletop) | a depth source or a declared support |
+
 ## Errors
 
 | Message | Fix |

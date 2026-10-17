@@ -42,6 +42,9 @@ scenario YAML, and the simulator only shows or triggers it.
   (`Simulation::pose`) to compare with beliefs.
 - Manual mode (`App::teach.manual`): the mission is suspended and the robot
   steps even when paused. Any manual command calls `takeArm(App&)` first.
+- The simulator knows no demo: no object id, tool kind or joint name of a
+  plugin in a panel (see "Core stays agnostic" in robotik-plugin). A panel
+  for one demo is a plugin panel (`addPanel`).
 - Update doc/02-Getting-Started.md (workspace table) when a panel changes.
 
 ## Toward a scenario editor (planned, not built)
