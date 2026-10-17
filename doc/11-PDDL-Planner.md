@@ -268,13 +268,17 @@ right one".
 ### Debugging
 
 - **Simulator**: the **Planner** panel (Mission workspace, beside Skills;
-  it comes to the front when a planned scenario is loaded) shows the state,
-  the plan and the status of each step (done, skipped, failed with its
-  reason in the tooltip), the **Beliefs** (every
-  observed atom, live), the **History** of the plans and why each was made,
-  and the texts: **Domain**, generated **Problem**, planner **Output**,
-  generated **Tree**. **Replan** drops the plan; **Save PDDL** writes all the
-  texts in `planner/<scenario id>/` of the current folder.
+  it comes to the front when a planned scenario is loaded) shows the
+  **goal** on top, the state with a progress bar, then the **Plan** (each
+  step done, skipped, running or failed with its reason in the tooltip), the
+  **Beliefs** (every observed atom, live; tick *Only true* to hide the
+  others) and the **History** of the plans and why each was made.
+  **Replan** drops the plan. The same symbolic beliefs are in the
+  **World model** panel of the Autonomy workspace.
+- **Texts**: **Plugin → Files → Planner** shows the **Domain**, the
+  generated **Problem**, the planner **Output** and the **Generated tree** of
+  one plan (the last one, or the one picked in History). **Save PDDL**
+  writes all the texts in `planner/<scenario id>/` of the current folder.
 - **Headless**: `--trace` prints one line per plan, as in §2.
 
 ---
