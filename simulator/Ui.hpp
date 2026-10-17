@@ -68,6 +68,10 @@ void drawPanels(App& p_app);
 
 //! @brief The 3D view with the run controls on top (ScenePanel.cpp).
 void scenePanel(App& p_app, char const* p_key);
+//! @brief Color of the frame around the 3D view: orange while the run goes
+//! on, green when it succeeded, red when it failed. False without a run, or
+//! before it starts.
+bool runColor(App const& p_app, ImVec4& p_color);
 //! @brief True while the Stop skill holds the robot.
 bool emergencyEngaged(App const& p_app);
 //! @brief Engages the Stop skill, or releases it.
