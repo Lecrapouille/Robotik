@@ -110,8 +110,8 @@ void header(App& p_app)
     }
     else
     {
-        ImGui::TextDisabled(manual ? "mission suspended: drag a position to move a joint"
-                                   : "jog a joint, or press Manual, to take the robot");
+        ImGui::TextDisabled(manual ? "mission suspended: the robot moves even when paused"
+                                   : "drag a position (Ctrl+click to type it) to take the robot");
     }
 
     std::string const tool = robot.tool();
@@ -148,15 +148,21 @@ void positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
     char label[48];
     std::snprintf(label, sizeof label, p_info.linear ? "%.3f %s" : "%.1f%s", position * p_info.unit,
                   p_info.position_unit);
-    if (p_app.teach.manual && !p_app.owns_clock)
+    if (!p_app.owns_clock)
     {
-        // Manual: the bar becomes the command.
-        float value = static_cast<float>(target * p_info.unit);
+        // The bar is the command: dragging it, or Ctrl+click to type a value,
+        // takes the robot from the mission (Manual mode).
+        double const shown = p_app.teach.manual ? target : position;
+        float value = static_cast<float>(shown * p_info.unit);
         ImGui::SetNextItemWidth(-1.0f);
         if (ImGui::SliderFloat("##target", &value, static_cast<float>(lower * p_info.unit),
-                               static_cast<float>(upper * p_info.unit), label))
+                               static_cast<float>(upper * p_info.unit), label,
+                               ImGuiSliderFlags_AlwaysClamp))
         {
-            p_app.teach.pendant.jogJoint(robot, p_id, static_cast<double>(value) / p_info.unit - target);
+            takeArm(p_app);
+            double const from = joints.mode(p_id) == robotik::JointMode::Position ? joints.target(p_id)
+                                                                                   : joints.position(p_id);
+            p_app.teach.pendant.jogJoint(robot, p_id, static_cast<double>(value) / p_info.unit - from);
         }
     }
     else
@@ -167,6 +173,10 @@ void positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
     if (ImGui::BeginItemTooltip())
     {
         ImGui::Text("position %.4f %s", position * p_info.unit, p_info.position_unit);
+        if (!p_app.owns_clock)
+        {
+            ImGui::TextDisabled("Drag, or Ctrl+click to type a value.");
+        }
         if (commanded)
         {
             ImGui::Text("target   %.4f %s  (orange tick)", target * p_info.unit, p_info.position_unit);
@@ -348,7 +358,7 @@ ImPlotPoint sample(int p_index, void* p_data)
 
 void robotPanel(App& p_app)
 {
-    if (!ImGui::Begin("Robot"))
+    if (!ImGui::Begin("Joints"))
     {
         ImGui::End();
         return;

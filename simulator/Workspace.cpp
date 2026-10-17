@@ -33,7 +33,7 @@ std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
     { "Plugin", "plugin", "Ctrl+1", "Files",
       "Read the loaded plugin: its files, dependencies and licenses, the scenario, "
       "its behavior tree, the experiments, the world and the asset packs. No 3D view." },
-    { "Robot", "robot", "Ctrl+2", "Teach",
+    { "Robot", "robot", "Ctrl+2", "Teach Pendant",
       "The robot body: joints and their limits, plots, manual moves, cameras." },
     { "Mission", "mission", "Ctrl+3", "Skills",
       "The execution: behavior tree, skills, resources and their timeline, the PDDL planner." },
@@ -97,10 +97,10 @@ void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID right = split(center, ImGuiDir_Right, 0.28f);
             ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42f);
             ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
-            dock("Robot", left);
+            dock("Joints", left);
             dock(panelTitle("Scene", key), center);
             dock("Joint plots", bottom);
-            dock("Teach", right);
+            dock("Teach Pendant", right);
             dock(panelTitle("Cameras", key), cameras);
             break;
         }
@@ -392,6 +392,10 @@ Outcome outcomeOf(App const& p_app)
     switch (simulation.outcome())
     {
         case robotik::Simulation::Outcome::Running:
+            if (p_app.teach.manual)
+            {
+                return { "MANUAL", ORANGE };
+            }
             return { p_app.playing ? "RUNNING" : "PAUSED", p_app.playing ? ORANGE : BLUE };
         case robotik::Simulation::Outcome::ControllerSucceeded:
         case robotik::Simulation::Outcome::StopCondition:
@@ -568,7 +572,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/6";
+    constexpr char const* LAYOUT_VERSION = "/7";
     ImGuiID const dock =
         ImGui::GetID((std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)

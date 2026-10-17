@@ -64,7 +64,7 @@ Every tool uses the same interface:
 
 `tool_mount` and `tcp` are not prefixed. One tool is mounted at a time, so those names do not collide.
 
-The simulator **Teach** panel lists the tool entities of the world and reloads the scenario with the chosen one. **None** leaves `tool0` as the work frame.
+The simulator **Teach Pendant** panel lists the tool entities of the world and reloads the scenario with the chosen one. **None** leaves `tool0` as the work frame.
 
 ## Check: heights at zero joints
 

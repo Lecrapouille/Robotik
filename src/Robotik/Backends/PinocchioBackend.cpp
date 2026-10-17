@@ -186,6 +186,19 @@ bool PinocchioBackend::hasFrame(std::string const& p_name) const
     return m_impl->model.existFrame(p_name);
 }
 
+std::vector<std::string> PinocchioBackend::linkFrames() const
+{
+    std::vector<std::string> names;
+    for (pinocchio::Frame const& frame : m_impl->model.frames)
+    {
+        if (frame.type == pinocchio::BODY && frame.parentJoint != 0)
+        {
+            names.push_back(frame.name);
+        }
+    }
+    return names;
+}
+
 std::size_t PinocchioBackend::frameId(std::string const& p_name) const
 {
     return static_cast<std::size_t>(m_impl->model.getFrameId(p_name));

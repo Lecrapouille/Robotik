@@ -76,7 +76,7 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 | Workspace | Panels | Use it to |
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, one tab per kind: Scenario, World, Behavior tree, Experiment, and one for any other file), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree), Behavior tree or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, version, license, source). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
-| **Robot** | Robot (joints with limits, velocity, effort, manual moves), Joint plots, Teach (tool, Cartesian moves, waypoints), Cameras | Look at the body, move it by hand |
+| **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints), Cameras | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
 | **Mission** | Behavior tree, Timeline (with the resources), Resources (who holds what, faults by hand), Assertions, Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
 | **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |
 

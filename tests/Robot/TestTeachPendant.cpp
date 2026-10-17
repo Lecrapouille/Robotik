@@ -8,6 +8,7 @@
 #include "main.hpp"
 
 #include "Robotik/Backends/MujocoBackend.hpp"
+#include "Robotik/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Robot/TeachPendant.hpp"
 
@@ -65,4 +66,30 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
     EXPECT_NEAR(after.position.x, before.position.x + 0.02, 0.01);
     EXPECT_NEAR(after.position.y, before.position.y, 0.01);
     EXPECT_NEAR(after.position.z, before.position.z, 0.01);
+}
+
+TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
+{
+    compages::world::World world;
+    robotik::RobotSession robot(world, assetFile("robotik.robots.robot_6axis"));
+    robot.hold({ { "joint1", 0.0 },
+                 { "joint2", 0.3 },
+                 { "joint3", 1.3 },
+                 { "joint4", 0.0 },
+                 { "joint5", 1.54 },
+                 { "joint6", 0.0 } });
+    std::vector<std::string> const links = robot.kinematics().linkFrames();
+    ASSERT_NE(std::find(links.begin(), links.end(), "link3"), links.end());
+
+    robotik::TeachPendant pendant;
+    EXPECT_EQ(pendant.frame(robot), robot.tool());
+    pendant.frame("link3");
+    EXPECT_EQ(pendant.frame(robot), "link3");
+    pendant.record(robot, "elbow", 1.0);
+    robotik::Pose const elbow = robot.framePose("link3");
+    EXPECT_NEAR(pendant.waypoints()[0].pose.position.x, elbow.position.x, 1e-9);
+    EXPECT_NEAR(pendant.waypoints()[0].pose.position.z, elbow.position.z, 1e-9);
+
+    pendant.frame({});
+    EXPECT_EQ(pendant.frame(robot), robot.tool());
 }

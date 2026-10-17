@@ -7,6 +7,7 @@
 
 #include "Ui.hpp"
 
+#include "Robotik/Backends/PinocchioBackend.hpp"
 #include "Robotik/ECS/RobotComponents.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 
@@ -271,19 +272,53 @@ void jogRow(App& p_app,
     ImGui::PopID();
 }
 
+//! @brief The frame to move: the work frame of the robot (its tool), or any
+//! other link: a foot of a humanoid, a leg tip of a hexapod...
+void frameChoice(App& p_app)
+{
+    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::TeachPendant& pendant = p_app.teach.pendant;
+    std::string const& current = pendant.frame(robot);
+    std::string const work = robot.tool().empty() ? std::string("(none)") : robot.tool() + "  (tool)";
+    ImGui::SetNextItemWidth(-1.0f);
+    if (!ImGui::BeginCombo("##frame", current == robot.tool() ? work.c_str() : current.c_str()))
+    {
+        return;
+    }
+    if (ImGui::Selectable(work.c_str(), current == robot.tool()))
+    {
+        pendant.frame({});
+    }
+    ImGui::Separator();
+    for (std::string const& link : robot.kinematics().linkFrames())
+    {
+        if (link == robot.tool())
+        {
+            continue;
+        }
+        if (ImGui::Selectable(link.c_str(), link == current))
+        {
+            pendant.frame(link);
+        }
+    }
+    ImGui::EndCombo();
+}
+
 void cartesianJog(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
-    ImGui::SeparatorText("Move the tool");
+    ImGui::SeparatorText("Move a frame");
     ImGui::SameLine();
-    helpMarker("Each press moves the tool frame by one step in the robot base frame. "
-               "Inverse kinematics (Pinocchio) finds the joint angles. "
-               "Moving takes the robot from the mission (Manual mode).");
-    if (!robot.tool().empty())
+    helpMarker("Each press moves the chosen frame by one step in the robot base frame: the "
+               "tool (TCP), or any link of the robot. Inverse kinematics (Pinocchio) finds "
+               "the joint angles. Moving takes the robot from the mission (Manual mode).");
+    frameChoice(p_app);
+    std::string const& frame = p_app.teach.pendant.frame(robot);
+    if (!frame.empty())
     {
-        robotik::Pose const tool = robot.framePose(robot.tool());
-        ImGui::TextDisabled("%s at  x %.3f  y %.3f  z %.3f m", robot.tool().c_str(), tool.position.x,
-                            tool.position.y, tool.position.z);
+        robotik::Pose const pose = robot.framePose(frame);
+        ImGui::TextDisabled("%s at  x %.3f  y %.3f  z %.3f m", frame.c_str(), pose.position.x,
+                            pose.position.y, pose.position.z);
     }
     float const linear = p_app.teach.linear_step;
     float const angular = p_app.teach.angular_step;
@@ -317,7 +352,7 @@ void cartesianJog(App& p_app)
     ImGui::SliderFloat("##angular", &p_app.teach.angular_step, 0.01f, 0.30f, "step %.2f rad");
     ImGui::SetNextItemWidth(half);
     ImGui::SliderFloat("##joint", &p_app.teach.joint_step, 0.01f, 0.40f, "joint step %.2f rad");
-    ImGui::SetItemTooltip("Step of the - and + buttons of the Robot panel.");
+    ImGui::SetItemTooltip("Step of the - and + buttons of the Joints panel.");
 }
 
 void waypoints(App& p_app)
@@ -405,10 +440,6 @@ void waypoints(App& p_app)
         pendant.clear();
     }
     ImGui::EndDisabled();
-    if (pendant.playing() && !p_app.playing)
-    {
-        ImGui::TextColored(ORANGE, "Press Play (Space) to run the motion.");
-    }
     if (!pendant.error().empty())
     {
         ImGui::TextColored(RED, "%s", pendant.error().c_str());
@@ -419,7 +450,7 @@ void waypoints(App& p_app)
 
 void teachPanel(App& p_app)
 {
-    if (!ImGui::Begin("Teach"))
+    if (!ImGui::Begin("Teach Pendant"))
     {
         ImGui::End();
         return;
@@ -437,13 +468,21 @@ void teachPanel(App& p_app)
         return;
     }
 
-    ImGui::SeparatorText("Tool");
-    if (changeTool(p_app))
+    // A humanoid or a fly has no tool to mount: no Tool section.
+    robotik::WorldDescription const& world = p_app.simulation->scenario().world;
+    bool const tools = std::any_of(world.entities.begin(), world.entities.end(),
+                                   [](robotik::EntitySpec const& p_entity)
+                                   { return p_entity.type == robotik::EntitySpec::Type::Tool; });
+    if (tools)
     {
-        ImGui::End();
-        return;
+        ImGui::SeparatorText("Tool");
+        if (changeTool(p_app))
+        {
+            ImGui::End();
+            return;
+        }
+        triggerTool(p_app, p_app.simulation->robot());
     }
-    triggerTool(p_app, p_app.simulation->robot());
 
     cartesianJog(p_app);
     waypoints(p_app);
