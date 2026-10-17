@@ -303,12 +303,6 @@ void beliefsView(App& p_app)
         return;
     }
     bool& only_true = p_app.ui.beliefs_only_true;
-    ImGui::Checkbox("Only true", &only_true);
-    ImGui::SameLine();
-    helpMarker("Atoms read now on the beliefs by the observers of the mission. True atoms go "
-               "into the :init of the next problem. Unknown counts as false for the planner, "
-               "but an effect read as unknown is not a failure: not seen does not mean false. "
-               "Facts come from the scenario and never change.");
     std::vector<robotik::ObservedAtom> const atoms = executor->observe(p_app.simulation->context());
     if (!beginTable("beliefs", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
     {
@@ -316,7 +310,23 @@ void beliefsView(App& p_app)
     }
     ImGui::TableSetupColumn("Atom", ImGuiTableColumnFlags_WidthStretch);
     ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableHeadersRow();
+    // Headers drawn by hand: a click on Value is the filter, so it takes no
+    // line of its own.
+    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+    ImGui::TableNextColumn();
+    ImGui::TableHeader("Atom");
+    ImGui::SetItemTooltip("Atoms read now on the beliefs by the observers of the mission. True "
+                          "atoms go into the :init of the next problem. Unknown counts as false "
+                          "for the planner, but an effect read as unknown is not a failure: not "
+                          "seen does not mean false. Facts come from the scenario and never "
+                          "change.");
+    ImGui::TableNextColumn();
+    ImGui::TableHeader(only_true ? "True only" : "Value");
+    if (ImGui::IsItemClicked())
+    {
+        only_true = !only_true;
+    }
+    ImGui::SetItemTooltip(only_true ? "Click to show every atom" : "Click to show the true atoms only");
     for (auto const& [atom, value] : atoms)
     {
         if (only_true && value != robotik::Truth::True)
