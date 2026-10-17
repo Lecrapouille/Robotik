@@ -109,7 +109,7 @@ the episode as `Aborted`; the reason is in `abortReason()`.
 `reset(seed)` rebuilds the full initial state: joints, base, sensors (random
 streams included), resources, faults, object layout.
 
-The three pick-and-place parts live in `plugins/PickAndPlaceRL/src/RlMission.*`
+The three pick-and-place parts live in `plugins/PickAndPlace/src/RlMission.*`
 and are shared by the command-line pool and the simulator plugin.
 
 ---

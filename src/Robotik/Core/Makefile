@@ -38,8 +38,8 @@ DEFINES +=
 #
 ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
 LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
-ROBOTIK_MODULES := Assets Backends Environment Perception Plugin Robot Scene
-ROBOTIK_MODULES += Runtime Scenario Sensors Skills Systems
+ROBOTIK_MODULES := Assets Backends Environment Perception Planning Plugin Robot
+ROBOTIK_MODULES += Scene Runtime Scenario Sensors Skills Systems
 LIB_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
 HEADER_FILES += $(call rwildcard,$(P)/include/Robotik,*.hpp)
@@ -78,6 +78,14 @@ THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 USER_LDFLAGS += -ldl
 
 ###############################################################################
+# Kairos PDDL planner (from thirdparties, built by Makefile.common).
+#
+# Link flags in Makefile.common: whoever links the core links Kairos too.
+USER_CXXFLAGS += -isystem $(KAIROS_SRC)/include -isystem $(KAIROS_BUILD)/include
+# Its generated headers (version, export) must exist before our objects.
+pre-build:: $(KAIROS_SHARED)
+
+###############################################################################
 # Sharable information between all Makefiles
 #
 include $(M)/rules/Makefile
@@ -87,4 +95,8 @@ include $(P)/Makefile.relink
 # Build rapidyaml on demand (rule in Makefile.common): a tree where it is
 # missing would otherwise fail late with "ar: libryml.a: No such file".
 #
-$(TARGET_STATIC_LIB_NAME) $(TARGET_SHARED_LIB_NAME): $(BLACKTHORN_STATIC_DEPS)
+$(TARGET_STATIC_LIB_NAME) $(TARGET_SHARED_LIB_NAME): $(BLACKTHORN_STATIC_DEPS) $(KAIROS_SHARED)
+
+# The Kairos adapter includes headers its CMake generates: order-only, so a
+# parallel build cannot compile it first.
+$(filter %/Planning/Kairos/KairosPlanner.o,$(LIB_OBJS)): | $(KAIROS_SHARED)

@@ -7,7 +7,7 @@ description: Create, rename or extend a RobotIK plugin (plugins/<Name>/ with plu
 
 Template to copy: `plugins/HelloWorld/` (4 lessons: Mission only, joints/FK,
 IK, skill + behavior tree; panel, menu, key 'H'). Reference demo with
-perception + BT: `plugins/PickAndPlaceBT/`.
+perception + BT: `plugins/PickAndPlace/`.
 
 ## New plugin checklist
 
@@ -84,7 +84,7 @@ Callbacks are static functions casting `user` back; wrap the canvas as
 - Do not keep pointers to world entities across resets/shutdown; use
   `simulation.entity("id")`, `simulation.pose("id")`.
 - Must run headless (no view, no camera image → `perception: {oracle: when_blind}`).
-- `host.clock: plugin` → `update(dt)` must advance the simulation itself.
+- `host.clock: plugin` (or `clock: plugin` on one scenario entry) → `update(dt)` must advance the simulation itself.
 - Models are asset ids (`robotik.robots.robot_6axis`), never paths; a
   plugin-local pack goes in `plugins/<Name>/data/pack.yaml` +
   `resources.directory: data`.

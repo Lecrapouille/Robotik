@@ -31,4 +31,8 @@ Lecrapouille/BlackThorn
 ### License: GPL-3.0
 Lecrapouille/Compages:recurse
 
+### Temporal and numeric PDDL planner, behind the Planning module
+### License: Apache-2.0
+PlanSys2/kairos@1.0.0
+
 ### Libraries used by one plugin only are listed in the dependencies of its plugin.yaml.

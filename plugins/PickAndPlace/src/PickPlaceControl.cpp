@@ -270,7 +270,7 @@ robotik::SimulationEnvironment::Parts pickPlaceParts()
     return parts;
 }
 
-// --- Expert policy (teacher for PickAndPlaceRL) -------------------------------
+// --- Expert policy (teacher for the RL scenario) ----------------------------
 
 void convergedPolicy(std::span<float const> p_observation,
                      std::span<float> p_action)

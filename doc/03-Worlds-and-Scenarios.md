@@ -120,7 +120,7 @@ hello: 1/1 runs passed
 ```
 
 Of course, a real mission would ask the robot to *move* the cube. This is
-what `plugins/PickAndPlaceBT` does, with the same world entities and the same
+what `plugins/PickAndPlace` does, with the same world entities and the same
 `inside(red_cube, box)` assertion. When you are done, put the files back with
 `git checkout plugins/HelloWorld`.
 
@@ -206,6 +206,10 @@ world:
 
 Use a `prop` when you want a simple, exact scene. Use a `body` when physics
 matters: "does the easel slide when the brush pushes it?".
+
+Any entity may also have a `kind`: its type for the PDDL planner
+(`kind: cube`). Only entities with a `kind` are objects of the planning
+problem ([11. The PDDL planner](11-PDDL-Planner.md#3-the-four-pieces)).
 
 ### Models are asset ids
 
@@ -323,7 +327,7 @@ scenario:
 |-----|------|
 | `world` | The world file, relative to the package root (see below) |
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
-| `controller` | The default strategy: a behavior tree. Without it, the plugin mission drives the robot |
+| `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([chapter 11](11-PDDL-Planner.md#5-reference)). Without it, the plugin mission drives the robot |
 | `trajectories` | Named paths, one file each (§8) |
 | `perception.oracle` | When the ground truth may replace perception (§7) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |

@@ -38,6 +38,8 @@
 //!   directory: scenarios
 //!   entries:                  # optional: every *.yml of the folder otherwise
 //!     - { id: painter, name: Robotic painter, file: painter.yml }
+//!     # optional: submenu of the Demos menu, clock overriding host.clock
+//!     - { id: rl, name: RL, file: rl.yml, menu: Learning, clock: plugin }
 //! experiments:                # optional, same format
 //!   directory: experiments
 //! @endcode
@@ -64,6 +66,11 @@ struct PluginScenario
     std::string id;
     std::string name;
     std::filesystem::path file;
+    //!< Submenu of the Demos menu, or empty (directly under the package).
+    std::string menu;
+    //!< The plugin update advances time for this scenario: its @c clock
+    //!< field, else @c host.clock of the package.
+    bool owns_clock = false;
 };
 
 //! @brief An asset pack the package needs at run time.
@@ -118,7 +125,7 @@ struct PluginPackage
     //!< Libraries cloned and built with the plugin, for the credits.
     std::vector<ThirdParty> thirdparties;
     bool graphics = false;
-    //! @brief The plugin update replaces @c Simulation::step for this package.
+    //! @brief Default of @ref PluginScenario::owns_clock (@c host.clock).
     bool owns_clock = false;
     bool has_view = false;
     float eye[3] = { 1.6f, 1.2f, 1.6f };

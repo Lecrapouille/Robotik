@@ -61,10 +61,16 @@ public:
     void reset() override
     {
         m_waited = Seconds{};
+        m_why.clear();
     }
 
     Status tick(RobotContext& p_context, Seconds p_dt) override;
     void cancel(RobotContext& p_context) override;
+
+    [[nodiscard]] std::string why() const override
+    {
+        return m_why;
+    }
 
 private:
 
@@ -72,6 +78,7 @@ private:
     std::string m_gripper;
     Seconds m_timeout;
     Seconds m_waited{};
+    std::string m_why;
 };
 
 // ****************************************************************************
@@ -87,15 +94,22 @@ public:
     void reset() override
     {
         m_waited = Seconds{};
+        m_why.clear();
     }
 
     Status tick(RobotContext& p_context, Seconds p_dt) override;
+
+    [[nodiscard]] std::string why() const override
+    {
+        return m_why;
+    }
 
 private:
 
     std::string m_gripper;
     Seconds m_timeout;
     Seconds m_waited{};
+    std::string m_why;
 };
 
 // ****************************************************************************
@@ -111,11 +125,19 @@ public:
     {
         m_started = false;
         m_observations_at_start = 0u;
+        m_why.clear();
     }
 
     Status tick(RobotContext& p_context, Seconds p_dt) override;
 
+    [[nodiscard]] std::string why() const override
+    {
+        return m_why;
+    }
+
 private:
+
+    std::string m_why;
 
     std::string m_object;
     Seconds m_timeout;
@@ -127,5 +149,9 @@ private:
 //! @brief Gripper named @p_name, or the first one when empty.
 [[nodiscard]] VacuumGripper* findGripper(Robot const& p_robot,
                                          std::string const& p_name);
+
+//! @brief Id of the object the gripper @p_name holds, as the vacuum sensor
+//! reports it, or empty.
+[[nodiscard]] std::string heldObject(Robot const& p_robot, std::string const& p_name = {});
 
 } // namespace robotik

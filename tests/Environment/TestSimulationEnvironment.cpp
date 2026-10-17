@@ -30,7 +30,7 @@ robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
 
 robotik::Scenario scenario()
 {
-    return robotik::Scenario::load(repoFile("plugins/PickAndPlaceBT/scenarios/pick_and_place.yml"),
+    return robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/pick_and_place.yml"),
                                    testAssets());
 }
 

@@ -99,6 +99,26 @@ void printTrace(robotik::Simulation const& p_simulation)
         }
         std::cout << "  (" << run.end - run.start << ")\n";
     }
+    // The plans of the PDDL planner: when, why, what.
+    if (robotik::PlanExecutor const* planner = p_simulation.planner())
+    {
+        std::size_t index = 0u;
+        for (robotik::PlanningRecord const& record : planner->history())
+        {
+            std::cout << "  plan " << index++ << " at " << record.time << " (" << record.cause
+                      << "): " << robotik::toString(record.result.status);
+            for (robotik::GroundAction const& step : record.result.steps)
+            {
+                std::cout << ' ' << step.toPddl();
+            }
+            std::cout << '\n';
+        }
+        if (planner->state() == robotik::PlanState::Failed)
+        {
+            std::cout << "  planner: " << robotik::toString(planner->state()) << ", "
+                      << planner->failure() << '\n';
+        }
+    }
 }
 
 // ----------------------------------------------------------------------------

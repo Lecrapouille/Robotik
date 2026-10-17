@@ -26,7 +26,7 @@ SRC_FILES += $(CURRENT_DIR)/OverviewPanels.cpp $(CURRENT_DIR)/PackagePanels.cpp
 SRC_FILES += $(CURRENT_DIR)/RobotPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/TeachPanel.cpp $(CURRENT_DIR)/MissionPanels.cpp
 SRC_FILES += $(CURRENT_DIR)/SkillsPanel.cpp $(CURRENT_DIR)/AutonomyPanels.cpp
-SRC_FILES += $(CURRENT_DIR)/PluginUi.cpp
+SRC_FILES += $(CURRENT_DIR)/PluginUi.cpp $(CURRENT_DIR)/PlannerPanel.cpp
 PKG_LIBS += glfw3
 
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn

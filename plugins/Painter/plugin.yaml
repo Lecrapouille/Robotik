@@ -19,7 +19,8 @@ resources:
 scenarios:
   directory: scenarios
   entries:
-    - { id: painter, name: Robotic painter, file: painter.yml }
+    - { id: painter, name: Robotic painter, file: painter.yml, menu: Behavior tree }
+    - { id: painter_pddl, name: Robotic painter, file: painter_pddl.yml, menu: PDDL planner }
 
 experiments:
   directory: experiments

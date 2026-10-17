@@ -22,6 +22,11 @@
 //!   seed: 42
 //!   controller:
 //!     behavior_tree: scenarios/pick_and_place.bt.yml
+//!     # or, instead of a tree, a goal for the PDDL planner (PlannerSpec):
+//!     # planner:
+//!     #   domain: scenarios/pick_and_place.domain.pddl
+//!     #   goal:
+//!     #     - in(red_cube, box)
 //!   trajectories:                          # see Trajectory.hpp
 //!     drop: scenarios/trajectories/drop.yaml
 //!   faults:
@@ -47,6 +52,7 @@
 #pragma once
 
 #include "Robotik/Assets/AssetResolver.hpp"
+#include "Robotik/Planning/Pddl.hpp"
 #include "Robotik/Runtime/Faults.hpp"
 #include "Robotik/Scenario/Assertions.hpp"
 #include "Robotik/Scenario/Config.hpp"
@@ -56,6 +62,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -91,9 +98,54 @@ struct ScenarioSource
 // ****************************************************************************
 //! @brief The strategy driving the robot. Empty: the mission drives it.
 // ****************************************************************************
+struct PlannerSpec
+{
+    //!< PDDL domain of the plugin: types, predicates, actions.
+    std::filesystem::path domain;
+    //!< What cannot be observed and does not change: compatible(vacuum, cube).
+    std::vector<Literal> facts;
+    //!< Conjunction to reach.
+    std::vector<Literal> goal;
+    //!< Goal in PDDL, for what a list of literals cannot say (forall...).
+    //!< Replaces @ref goal; not checked against the beliefs.
+    std::string goal_pddl;
+    //!< New plans allowed after the first one (failure, effect not seen).
+    std::uint32_t max_replans = 3u;
+    //!< Simulated time waited before a new plan.
+    Seconds replan_delay{ 0.5 };
+    //!< Checks the effects of each action on the beliefs once it is done.
+    bool verify = true;
+    //!< Search preset of the planner.
+    std::string search = "lama";
+    //!< Wall-clock safety net of one search (s).
+    Seconds timeout{ 10.0 };
+};
+
+// ****************************************************************************
+//! @brief The strategy driving the robot: a behavior tree, a planner goal,
+//! or neither (the mission drives it).
+//!
+//! @code
+//! controller:
+//!   planner:
+//!     domain: scenarios/pick_and_place.domain.pddl
+//!     facts:                              # block lists: a flow list [a(x, y)]
+//!       - compatible(vacuum, cube)        # would split at the comma
+//!     goal:
+//!       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
+//!     replan: { max: 3, delay: 0.5 }      # new plans, simulated seconds before each
+//!     verify: true                        # check the effects on the beliefs
+//!     search: lama                        # planner search preset
+//!     timeout: 10                         # wall-clock safety net (s)
+//! @endcode
+//!
+//! The objects of the problem are the world entities with a @c kind; the
+//! state comes from the observers of the plugin (@ref PlanningDomain).
+// ****************************************************************************
 struct ControllerSpec
 {
     std::filesystem::path behavior_tree;
+    std::optional<PlannerSpec> planner;
 };
 
 // ****************************************************************************

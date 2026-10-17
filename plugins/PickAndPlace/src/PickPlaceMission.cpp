@@ -11,6 +11,7 @@
 
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
+#include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
 
 namespace
@@ -114,5 +115,10 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
                 name,
                 Length(kTransitClearance));
         }
+    }
+
+    if (m_planner)
+    {
+        registerPlanning(p_simulation.planning());
     }
 }

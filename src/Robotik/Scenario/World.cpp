@@ -7,6 +7,7 @@
 
 #include "Robotik/Scenario/World.hpp"
 
+#include "Robotik/Planning/Pddl.hpp"
 #include "Robotik/Scenario/Config.hpp"
 #include "Robotik/Scenario/PackagePath.hpp"
 
@@ -267,6 +268,7 @@ EntitySpec entity(std::string const& p_world,
     try
     {
         spec.type = entityType(where, p_node.text("type"));
+        spec.kind = lowerCase(p_node.text("kind"));
         spec.model_ref = p_node.text("model");
         if (!spec.model_ref.empty())
         {

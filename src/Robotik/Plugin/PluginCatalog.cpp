@@ -130,6 +130,7 @@ std::string titleFromStem(std::string p_stem)
 //! the package. False, with @p_why set, on an invalid section or file.
 bool readEntries(bt::YamlNode const& p_section,
                  std::filesystem::path const& p_root,
+                 bool p_owns_clock,
                  std::vector<PluginScenario>& p_out,
                  std::string& p_why)
 {
@@ -160,6 +161,9 @@ bool readEntries(bt::YamlNode const& p_section,
                 return;
             }
             entry.file = (folder / file).lexically_normal();
+            entry.menu = field(p_item, "menu");
+            std::string const clock = field(p_item, "clock");
+            entry.owns_clock = clock.empty() ? p_owns_clock : clock == "plugin";
             p_out.push_back(std::move(entry));
         });
         if (!entries_ok)
@@ -192,6 +196,7 @@ bool readEntries(bt::YamlNode const& p_section,
             entry.id = file.stem().string();
             entry.name = titleFromStem(entry.id);
             entry.file = file;
+            entry.owns_clock = p_owns_clock;
             p_out.push_back(std::move(entry));
         }
     }
@@ -530,8 +535,8 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
 
     // --- scenarios and experiments -----------------------------------------
     std::string why;
-    if (!readEntries(node.child("scenarios"), p_root, package.scenarios, why) ||
-        !readEntries(node.child("experiments"), p_root, package.experiments, why))
+    if (!readEntries(node.child("scenarios"), p_root, package.owns_clock, package.scenarios, why) ||
+        !readEntries(node.child("experiments"), p_root, package.owns_clock, package.experiments, why))
     {
         if (!why.empty())
         {

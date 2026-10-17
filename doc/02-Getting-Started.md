@@ -29,7 +29,7 @@ build/
 ├── librobotik-core.so     the library
 └── plugins/               one folder per plugin (demo), ready to run
     ├── HelloWorld/
-    ├── PickAndPlaceBT/
+    ├── PickAndPlace/
     └── ...
 ```
 
@@ -77,7 +77,7 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, one tab per kind: Scenario, World, Behavior tree, Experiment, and one for any other file), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree), Behavior tree or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, version, license, source). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
 | **Robot** | Robot (joints with limits, velocity, effort, manual moves), Joint plots, Teach (tool, Cartesian moves, waypoints), Cameras | Look at the body, move it by hand |
-| **Mission** | Behavior tree, Timeline (with the resources), Assertions, Skills (cards or table) | Debug the execution |
+| **Mission** | Behavior tree, Timeline (with the resources), Assertions, Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
 | **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the
@@ -196,7 +196,7 @@ and compares them.
 
 ```bash
 ./build/Robotik-Headless \
-    build/plugins/PickAndPlaceBT/experiments/pick_and_place_benchmark.yaml \
+    build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.yaml \
     --report pick.json
 ```
 

@@ -112,14 +112,36 @@ void drawDemosMenu(App& p_app)
         {
             continue;
         }
+        // Entries with a menu are grouped in a submenu, in order of first use.
+        std::vector<std::string> submenus;
         for (robotik::PluginScenario const& scenario : package.scenarios)
         {
-            bool const current = scenario.file == p_app.scenario_path;
-            if (ImGui::MenuItem(scenario.name.c_str(), nullptr, current))
+            if (!scenario.menu.empty() &&
+                std::find(submenus.begin(), submenus.end(), scenario.menu) == submenus.end())
             {
-                requestScenario(p_app, scenario.file);
+                submenus.push_back(scenario.menu);
             }
         }
+        auto items = [&](std::string const& p_menu) {
+            for (robotik::PluginScenario const& scenario : package.scenarios)
+            {
+                bool const current = scenario.file == p_app.scenario_path;
+                if (scenario.menu == p_menu &&
+                    ImGui::MenuItem(scenario.name.c_str(), nullptr, current))
+                {
+                    requestScenario(p_app, scenario.file);
+                }
+            }
+        };
+        for (std::string const& submenu : submenus)
+        {
+            if (ImGui::BeginMenu(submenu.c_str()))
+            {
+                items(submenu);
+                ImGui::EndMenu();
+            }
+        }
+        items({});
         ImGui::EndMenu();
     }
     ImGui::EndMenu();

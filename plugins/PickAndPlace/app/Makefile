@@ -13,14 +13,15 @@ TARGET_NAME := Robotik-PickAndPlaceRL
 TARGET_DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
 include $(M)/project/Makefile
 
-APP_DIR := $(P)/plugins/PickAndPlaceRL/app
-PICK_DIR := $(P)/plugins/PickAndPlaceBT/src
+APP_DIR := $(P)/plugins/PickAndPlace/app
+PICK_DIR := $(P)/plugins/PickAndPlace/src
 INCLUDES += $(APP_DIR) $(PICK_DIR) $(P)/include $(P)/src
 VPATH += $(APP_DIR) $(PICK_DIR)
 INTERNAL_LIBS += $(call internal-lib,robotik-core)
 SRC_FILES := $(wildcard $(APP_DIR)/*.cpp)
 SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
 SRC_FILES += $(PICK_DIR)/PickPlaceSkills.cpp $(PICK_DIR)/PickPlaceControl.cpp
+SRC_FILES += $(PICK_DIR)/PickPlacePlanning.cpp
 
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
 RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml

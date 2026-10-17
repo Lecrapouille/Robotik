@@ -345,8 +345,19 @@ void treeView(App& p_app)
     bt::Tree const* tree = p_app.simulation ? p_app.simulation->tree() : nullptr;
     if (tree == nullptr)
     {
-        emptyState(p_app.simulation ? "This scenario has no behavior tree:\nthe plugin mission drives the robot."
-                                    : "No scenario loaded.");
+        if (!p_app.simulation)
+        {
+            emptyState("No scenario loaded.");
+        }
+        else if (p_app.simulation->planner() != nullptr)
+        {
+            emptyState("The PDDL planner builds the tree of its plan\nwhen the run starts "
+                       "(see the Planner panel).");
+        }
+        else
+        {
+            emptyState("This scenario has no behavior tree:\nthe plugin mission drives the robot.");
+        }
         return;
     }
     ImGui::TextDisabled("%s", p_app.simulation->scenario().controller.behavior_tree.filename().string().c_str());

@@ -7,6 +7,8 @@
 
 #include "main.hpp"
 
+#include <algorithm>
+
 #include "Robotik/Plugin/PluginSession.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
@@ -134,7 +136,7 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
 {
     robotik::PluginCatalog catalog;
     std::vector<std::filesystem::path> const roots{ repo("plugins/Painter"),
-                                                    repo("plugins/PickAndPlaceRL") };
+                                                    repo("plugins/PickAndPlace") };
     catalog.scan(roots);
     ASSERT_EQ(catalog.packages().size(), 2u) << (catalog.errors().empty() ? "" : catalog.errors().front());
     robotik::PluginPackage const* painter = catalog.findPackage("robotik.painter");
@@ -146,9 +148,20 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
     EXPECT_EQ(painter->packs[0].id, "robotik.robots");
     EXPECT_EQ(painter->packs[0].version.toString(), "1.0.0");
     EXPECT_FALSE(painter->owns_clock);
-    robotik::PluginPackage const* rl = catalog.findPackage("robotik.pick_and_place_rl");
-    ASSERT_NE(rl, nullptr);
+    robotik::PluginPackage const* pick = catalog.findPackage("robotik.pick_and_place");
+    ASSERT_NE(pick, nullptr);
+    EXPECT_FALSE(pick->owns_clock);
+    // The clock and the submenu are chosen per scenario.
+    ASSERT_FALSE(pick->scenarios.empty());
+    EXPECT_FALSE(pick->scenarios.front().owns_clock);
+    EXPECT_EQ(pick->scenarios.front().menu, "Behavior tree");
+    auto const rl = std::find_if(pick->scenarios.begin(), pick->scenarios.end(),
+                                 [](robotik::PluginScenario const& p_scenario) {
+                                     return p_scenario.id == "pick_and_place_rl";
+                                 });
+    ASSERT_NE(rl, pick->scenarios.end());
     EXPECT_TRUE(rl->owns_clock);
+    EXPECT_EQ(rl->menu, "Reinforcement learning");
 }
 
 TEST(PluginCatalog, RejectsAnotherPluginApi)

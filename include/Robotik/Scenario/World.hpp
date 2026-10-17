@@ -182,6 +182,9 @@ struct EntitySpec
 
     std::string id;
     Type type = Type::Prop;
+    //!< Type of the entity for the planner (a type of the PDDL domain), or
+    //!< empty: the planner does not see it.
+    std::string kind;
     //!< Asset id or path, as written.
     std::string model_ref;
     //!< URDF file, empty for a primitive.

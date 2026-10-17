@@ -2,8 +2,8 @@
 
 RobotIK: C++20 library to write a robot mission once and run it in a 3D
 simulator, headless (CI), in RL environments, and later on hardware. It glues
-MuJoCo (physics), Pinocchio (kinematics), Compages (ECS world + rendering)
-and BlackThorn (behavior trees). Linux only, plain `make` (no CMake).
+MuJoCo (physics), Pinocchio (kinematics), Compages (ECS world + rendering),
+BlackThorn (behavior trees) and Kairos (PDDL planner). Linux only, plain `make` (no CMake).
 
 Read only what the task needs. Load a skill instead of reading the docs:
 
@@ -12,6 +12,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 | Create / change a plugin (C++ + manifest) | `robotik-plugin` | doc/04-Your-First-Plugin.md |
 | Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/03-Worlds-and-Scenarios.md |
 | Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/05-Skills-and-Behavior-Trees.md |
+| Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/11-PDDL-Planner.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
 | Find a class or method | — | doc/07-API-Reference.md |
 | Change the core | — | doc/06-Architecture.md |
@@ -20,6 +21,8 @@ Read only what the task needs. Load a skill instead of reading the docs:
 
 ```text
 include/Robotik/<Module>/   public headers; src/Robotik/<Module>/ implementation
+  Planning/  PDDL symbols, PlanningDomain (observers, bindings), Kairos engine,
+             PlanExecutor (plan -> behavior tree, checks, replans)
   Runtime/   Simulation (step loop, truth, end of run), Mission, SkillScheduler,
              ResourceManager, FaultInjector, Metrics, RobotContext, RunReport
   Robot/     Robot, RobotSession, JointSet (SoA), actuators
@@ -33,8 +36,8 @@ tests/       GoogleTest; tests/Plugin uses plugins/HelloWorld as fixture
 external/    third-party sources (do not edit)      build/  outputs (generated)
 ```
 
-Plugins: HelloWorld (tutorial + test fixture), PickAndPlaceBT (reference),
-Painter, LineFollower, PickAndPlaceRL, FlyBrain, HumanoidWalk (ONNX policy).
+Plugins: HelloWorld (tutorial + test fixture), PickAndPlace (reference: BT,
+faults, RL scenario), Painter, LineFollower, FlyBrain, HumanoidWalk (ONNX policy).
 
 ## Commands
 
@@ -69,7 +72,11 @@ libraries are then built by Make rules, there is no `external/compilation`.
   `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
 - Plugins publish metrics (`Mission::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
-- `Mission::status` ends a run only when the scenario has no behavior tree.
+- `Mission::status` ends a run only when the scenario has no behavior tree
+  and no planner.
+- Planner: the PDDL domain is the only place of actions and effects (no
+  symbolic effects in C++); observers read beliefs, never the truth; only
+  `src/Robotik/Planning/Kairos/` includes Kairos headers.
 - Names must match: `TARGET_NAME robotik_x` → `librobotik_x.so` =
   `library.entrypoint`; `plugin.id` = `describe().id`; scenario `id` in
   `plugin.yaml` = string tested in `Plugin::setup`. A scenario not listed in

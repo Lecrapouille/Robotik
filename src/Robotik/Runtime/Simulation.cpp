@@ -222,6 +222,12 @@ Simulation::Simulation(compages::world::World& p_world,
 
     addSkills();
     registerSkills(m_factory, *m_scheduler);
+    if (m_scenario.controller.planner)
+    {
+        m_executor = std::make_unique<PlanExecutor>(*m_scenario.controller.planner,
+                                                    m_scenario.world, m_planning, m_scenario.id,
+                                                    m_factory, *m_scheduler);
+    }
     reset();
 }
 
@@ -579,6 +585,10 @@ void Simulation::reset(Seed p_seed)
     }
 
     loadTree();
+    if (m_executor)
+    {
+        m_executor->reset(p_seed);
+    }
     if (m_mission != nullptr)
     {
         m_mission->reset(*this, p_seed);
@@ -665,7 +675,11 @@ void Simulation::step(Seconds p_dt)
         m_faults.update(m_robot->resources(), m_robot->time(), p_dt);
         m_context.time = m_robot->time();
         m_context.dt = p_dt;
-        if (m_tree && !finished())
+        if (m_executor && !finished())
+        {
+            m_status = m_executor->tick(m_context);
+        }
+        else if (m_tree && !finished())
         {
             m_status = m_tree->tick();
         }
@@ -690,7 +704,7 @@ void Simulation::step(Seconds p_dt)
     if (m_mission != nullptr)
     {
         m_mission->step(*this, p_dt);
-        if (m_tree == nullptr)
+        if (m_tree == nullptr && m_executor == nullptr)
         {
             switch (m_mission->status(*this))
             {

@@ -17,8 +17,12 @@ class PickPlaceMission final: public robotik::Mission
 {
 public:
 
-    // @p_skills false keeps only the detector (RL overlay).
-    explicit PickPlaceMission(bool p_skills = true) : m_skills(p_skills) {}
+    // @p_skills false keeps only the detector (RL overlay). @p_planner links
+    // the PDDL domain to the skills (scenarios with a planner controller).
+    explicit PickPlaceMission(bool p_skills = true, bool p_planner = false)
+        : m_skills(p_skills), m_planner(p_planner)
+    {
+    }
 
     void setup(robotik::Simulation& p_simulation,
                robotik::SceneView* p_view) override;
@@ -31,5 +35,6 @@ public:
 private:
 
     bool m_skills = true;
+    bool m_planner = false;
     ColorDetector* m_detector = nullptr;
 };
