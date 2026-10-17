@@ -79,9 +79,10 @@ Nodes: `Sequence`, `Selector` (not "Fallback"), `Parallel`
 (one-element list). Action maps Waiting/Running→RUNNING,
 Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels it.
 
-**Do not use `Timeout`, `Delay`, `Wait`, `Cooldown`**: BlackThorn measures
-them with `std::chrono::steady_clock` (wall time), so results differ between
-headless and simulator. Put durations in skills (use `dt`).
+`Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `Simulation`
+and `PlanExecutor` give the tree their clock (`bt::Tree::clock`), so they
+are reproducible. A tree you build yourself keeps the wall clock unless you
+call `clock()`.
 
 Faults: declare in scenario `faults:` or experiment `setup: inject_fault`.
 No fault code in skills; the tree reacts (retry, fallback, abort).

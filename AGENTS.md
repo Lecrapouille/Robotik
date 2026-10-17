@@ -91,8 +91,9 @@ libraries are then built by Make rules, there is no `external/compilation`.
 - SI units, z up; typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`).
 - Code must work headless (`SceneView*` null, no camera image; see
   `perception.oracle`).
-- BlackThorn `Timeout`/`Delay`/`Wait`/`Cooldown` use wall-clock time: not
-  reproducible in simulation; avoid them in scenario trees.
+- BlackThorn `Timeout`/`Delay`/`Wait`/`Cooldown` read the simulated time
+  (`bt::Tree::clock`, set by `Simulation` and `PlanExecutor`). A tree built
+  elsewhere keeps the wall clock unless you give it one.
 
 ## Style
 

@@ -278,10 +278,19 @@ BehaviorTree:
                 name: Home          # grasp failed: go back home (and the Sequence fails)
 ```
 
-> **Warning.** BlackThorn's `Timeout`, `Delay`, `Wait` and `Cooldown` count
-> **real (wall-clock) time**, not simulated time. Headless runs faster than
-> real time, so these nodes do not give reproducible results. Put durations in
-> your skills (they receive `dt`) instead.
+> **Time in trees.** BlackThorn's `Timeout`, `Delay`, `Wait` and `Cooldown`
+> count **simulated time**: the simulation gives its clock to the tree. They
+> stop when the run is paused, follow the speed slider, and give the same
+> result in headless and in the simulator. Example: fail a grasp that takes
+> more than 3 simulated seconds:
+>
+> ```yaml
+> - Timeout:
+>     milliseconds: 3000
+>     child:
+>       - Action:
+>           name: Grasp(red_cube)
+> ```
 
 ---
 
