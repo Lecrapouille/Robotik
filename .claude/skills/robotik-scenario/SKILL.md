@@ -89,6 +89,7 @@ scenario:
     - { at: 1.0, resource: arm, action: disable }
     - { at: 2.0, resource: arm, action: restore }
     - { resource: gripper, rate: 0.01 }          # random, per second
+  physics: { fidelity: abstract, overrides: { red_cube: rigid } }   # abstract (default) | rigid; rigid props need a real mass:
   timeout: 60
   stop_when: inside(cube, box)
   assertions: [...]

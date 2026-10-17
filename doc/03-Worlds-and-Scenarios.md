@@ -365,6 +365,7 @@ scenario:
 | `trajectories` | Named paths, one file each (§8) |
 | `perception.oracle` | When the ground truth may replace perception (§7) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
+| `physics` | Physics fidelity: `abstract` (default) or `rigid`, per entity (see below) |
 | `timeout` | Maximum simulated time, in seconds |
 | `stop_when` | A condition that ends the run as soon as it is true |
 | `assertions` | What is checked (§6) |
@@ -387,6 +388,48 @@ the real file (its canonical path) must be inside the package folder; an
 absolute path is refused. Otherwise the load fails with the reason. So a
 package is a closed folder: you can copy or install it as a whole. A model of an asset pack is named by its id
 (`robotik.tools.vacuum`), not by a path.
+
+### Physics fidelity
+
+How finely the physics simulates the objects. The same skills, tree,
+planner and assertions work at every level.
+
+| Level | Grasp | Release | Use |
+|-------|-------|---------|-----|
+| `abstract` (default) | the object follows the tool | the object is put on the floor of the container below, at its centre (no fall) | check the logic and the plan, fast |
+| `rigid` | the object is a rigid body; a weld holds it to the tool | the weld goes: the object **falls for real** and stops where it lands | check the task with real positions |
+| `contact` | (not available yet) the tool holds by force: it may slip | | study the grasp itself |
+
+```yaml
+scenario:
+  physics:
+    fidelity: abstract        # for every entity
+    overrides:                # per entity or actuator
+      red_cube: rigid
+```
+
+Rules:
+
+- A prop at `rigid`, or every box when a gripper is at `rigid`, becomes a
+  free body of MuJoCo. Its `mass:` matters then (the arm carries it): give a
+  real value, for example `0.05` kg for a 4 cm wooden cube.
+- When an object is rigid, the containers are rigid too (static walls),
+  otherwise it would fall through them. A rigid container cannot be
+  randomized.
+- A world with rigid props gets a floor even without `floor:`.
+- The level does not change during a run.
+- Keep the scenario at `abstract` and add the realistic level in an
+  **experiment** case: the same task is then judged at both levels.
+
+  ```yaml
+  - id: rigid
+    scenario: scenarios/pick_and_place.scenario.yaml
+    overrides:
+      scenario.physics.fidelity: rigid
+  ```
+
+  The report gives the level of each run (`physics` in `--report`): do not
+  compare metrics of two levels.
 
 ### When does a run end?
 

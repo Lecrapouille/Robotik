@@ -18,7 +18,7 @@
 #include "Robotik/Sensors/RangeScanner.hpp"
 #include "Robotik/Skills/MotionSkills.hpp"
 #include "Robotik/Skills/SkillNodes.hpp"
-#include "Robotik/Systems/GraspSystem.hpp"
+#include "Robotik/Systems/GraspModel.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -122,9 +122,9 @@ void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
     }
     compages::world::Entity const held = world.entity(gripper->held());
     ecs::Shape const* prop = held.find<ecs::Shape>();
-    if (prop == nullptr)
+    if (prop == nullptr || held.find<ecs::PhysicsBody>() != nullptr)
     {
-        return;
+        return; // A rigid body: the physics sees its contacts.
     }
     Vector3 const at = positionOf(held);
     Vector3 const half = scene::halfExtents(*prop);
@@ -224,6 +224,10 @@ Simulation::~Simulation() = default;
 
 void Simulation::build(SceneView* p_view)
 {
+    // Objects without physics; the rigid ones get their model with the backend.
+    m_grasps.clear();
+    m_grasps.push_back(std::make_unique<AbstractGrasp>());
+
     WorldDescription const& world = m_scenario.world;
     EntitySpec const& robot = world.robot();
     EntitySpec const* tool = world.mountedTool();
@@ -339,6 +343,22 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
             ecs::Shape const object = shapeOf(spec);
             p_record.entity = m_world.entity(spec.id);
             p_record.entity.parent(m_frame).set(object);
+            if (rigidProp(spec))
+            {
+                // A body of the physics backend: the abstract grasp leaves it
+                // alone. A box moves (free body), a container does not (walls).
+                p_record.entity.set(ecs::PhysicsBody{ spec.id });
+                if (object.type == ecs::Shape::Type::BOX)
+                {
+                    p_record.body = spec.id;
+                    p_record.links = { spec.id };
+                }
+                else
+                {
+                    p_record.links = { spec.id + "_floor", spec.id + "_wall_x0", spec.id + "_wall_x1",
+                                       spec.id + "_wall_y0", spec.id + "_wall_y1" };
+                }
+            }
             if (p_view != nullptr)
             {
                 p_view->object(p_record.entity, object);
@@ -413,7 +433,11 @@ void Simulation::connectBackend()
 {
     WorldDescription const& world = m_scenario.world;
     MujocoOptions options;
-    options.floor = world.floor;
+    // Rigid props rest on the ground: they need a floor.
+    bool const rigid = std::any_of(world.entities.begin(), world.entities.end(),
+                                   [this](EntitySpec const& p_entity)
+                                   { return p_entity.type == EntitySpec::Type::Prop && rigidProp(p_entity); });
+    options.floor = world.floor || rigid;
     options.floor_friction = world.floor_friction;
     auto physics = std::make_unique<MujocoBackend>(options);
     std::string const arm = physics->load(world.robot().model);
@@ -444,7 +468,117 @@ void Simulation::connectBackend()
             (void)physics->load(spec.model, ChainOptions{ free, record.nominal, spec.friction });
         }
     }
+    addRigidProps(*physics);
     m_robot->connect(std::move(physics));
+}
+
+bool Simulation::rigidProp(EntitySpec const& p_prop) const
+{
+    PhysicsSpec const& physics = m_scenario.physics;
+    if (p_prop.type != EntitySpec::Type::Prop || !p_prop.shape)
+    {
+        return false;
+    }
+    if (physics.of(p_prop.id) == Fidelity::Rigid)
+    {
+        return true;
+    }
+    bool const box = p_prop.shape->type == ShapeSpec::Type::Box;
+    bool rigid_gripper = false;
+    bool rigid_box = false;
+    for (EntitySpec const& entity : m_scenario.world.entities)
+    {
+        for (ActuatorSpec const& actuator : entity.actuators)
+        {
+            rigid_gripper = rigid_gripper || (actuator.type == ActuatorSpec::Type::Vacuum &&
+                                              physics.of(actuator.name) == Fidelity::Rigid);
+        }
+        rigid_box = rigid_box || (entity.type == EntitySpec::Type::Prop && entity.shape &&
+                                  entity.shape->type == ShapeSpec::Type::Box &&
+                                  physics.of(entity.id) == Fidelity::Rigid);
+    }
+    // A box a rigid gripper may take; a container a rigid object may fall in.
+    return box ? rigid_gripper : (rigid_gripper || rigid_box);
+}
+
+void Simulation::addRigidProps(MujocoBackend& p_physics)
+{
+    std::vector<RigidGrasp::Graspable> graspable;
+    for (Record const& record : m_records)
+    {
+        EntitySpec const& spec = *record.spec;
+        if (spec.type != EntitySpec::Type::Prop || !rigidProp(spec))
+        {
+            continue;
+        }
+        double const friction = spec.friction < 0.0 ? 1.0 : spec.friction;
+        Vector3 const size = spec.shape->size;
+        if (spec.shape->type == ShapeSpec::Type::Box)
+        {
+            p_physics.addBox(FreeBox{ spec.id, size, spec.mass, boxInertia(spec.mass, size),
+                                      record.nominal, friction });
+            graspable.push_back({ spec.id, 0.5 * size.z });
+            continue;
+        }
+        // An open container: a floor and four walls, static, of the wall
+        // thickness of the abstract level (scene::innerBounds).
+        if (spec.randomize != decltype(spec.randomize){})
+        {
+            throw std::runtime_error("Prop '" + spec.id +
+                                     "': a rigid container cannot be randomized (its walls are static)");
+        }
+        double const wall = ecs::CONTAINER_WALL_M;
+        Pose const& at = record.nominal;
+        auto add = [&](std::string const& p_name, Vector3 const& p_size, Vector3 const& p_offset)
+        {
+            FreeBox part{ p_name, p_size, 1.0, zero3(), at * Pose{ p_offset, Quaternion{} }, friction };
+            part.fixed = true;
+            p_physics.addBox(part);
+        };
+        add(spec.id + "_floor", Vector3(size.x, size.y, wall), Vector3(0.0, 0.0, -0.5 * size.z + 0.5 * wall));
+        add(spec.id + "_wall_x0", Vector3(wall, size.y, size.z), Vector3(-0.5 * size.x + 0.5 * wall, 0.0, 0.0));
+        add(spec.id + "_wall_x1", Vector3(wall, size.y, size.z), Vector3(0.5 * size.x - 0.5 * wall, 0.0, 0.0));
+        add(spec.id + "_wall_y0", Vector3(size.x, wall, size.z), Vector3(0.0, -0.5 * size.y + 0.5 * wall, 0.0));
+        add(spec.id + "_wall_y1", Vector3(size.x, wall, size.z), Vector3(0.0, 0.5 * size.y - 0.5 * wall, 0.0));
+    }
+
+    if (graspable.empty())
+    {
+        return;
+    }
+    // One weld per gripper and object; the object never collides with the
+    // links of the tool that holds it.
+    std::vector<std::string> tool_links;
+    for (Record const& record : m_records)
+    {
+        if (record.spec->type == EntitySpec::Type::Tool)
+        {
+            tool_links.insert(tool_links.end(), record.links.begin(), record.links.end());
+        }
+    }
+    for (EntitySpec const& entity : m_scenario.world.entities)
+    {
+        for (ActuatorSpec const& actuator : entity.actuators)
+        {
+            if (actuator.type != ActuatorSpec::Type::Vacuum)
+            {
+                continue;
+            }
+            std::string const link = actuator.link.empty() ? m_robot->tool() : actuator.link;
+            for (RigidGrasp::Graspable const& object : graspable)
+            {
+                p_physics.addWeld(RigidGrasp::weldName(actuator.name, object.id), link, object.id);
+                for (std::string const& tool_link : tool_links)
+                {
+                    if (tool_link != link)
+                    {
+                        p_physics.excludeContacts(tool_link, object.id);
+                    }
+                }
+            }
+        }
+    }
+    m_grasps.push_back(std::make_unique<RigidGrasp>(std::move(graspable)));
 }
 
 void Simulation::addSkills()
@@ -576,7 +710,13 @@ void Simulation::reset(Seed p_seed)
         at.x += random.uniform(spec.randomize[0][0], spec.randomize[0][1]);
         at.y += random.uniform(spec.randomize[1][0], spec.randomize[1][1]);
         at.z += random.uniform(spec.randomize[2][0], spec.randomize[2][1]);
-        record.entity.position(toFloat(at)).rotation(toFloat(record.nominal.rotation));
+        // A rigid box is a free body: the backend moves it, syncBodies copies.
+        RobotBackend* backend = m_robot->backend();
+        if (record.body.empty() || backend == nullptr ||
+            !backend->placeBody(record.body, Pose{ at, record.nominal.rotation }))
+        {
+            record.entity.position(toFloat(at)).rotation(toFloat(record.nominal.rotation));
+        }
         m_world_model.add(spec.id, to_base * record.nominal.position, spec.shape->size);
     }
     syncBodies();
@@ -688,9 +828,12 @@ void Simulation::step(Seconds p_dt)
         m_scheduler->update(m_context);
     }
 
-    // MuJoCo arm, then kinematic props (vacuum).
+    // MuJoCo arm and rigid bodies, then what the grippers hold.
     m_robot->step(p_dt);
-    GraspSystem{}.update(*m_robot);
+    for (std::unique_ptr<GraspModel> const& grasp : m_grasps)
+    {
+        grasp->update(*m_robot);
+    }
     trackPropPenetration(*m_robot, m_prop_penetration);
     if (m_oracle)
     {

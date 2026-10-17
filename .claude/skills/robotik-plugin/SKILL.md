@@ -108,7 +108,7 @@ Known leaks (October 2026), to fix:
 
 | Where | Leak | Generic direction |
 |-------|------|-------------------|
-| `Systems/GraspSystem`, `Simulation.cpp` `trackPropPenetration` | vacuum + box + container rules of the pick and place | `GraspModel` per fidelity level (FIDELITY.md) |
+| `Systems/AbstractGrasp.cpp`, `Simulation.cpp` `trackPropPenetration` | the abstract level puts a released box at the centre of the container below (vacuum only) | done for `rigid` (`RigidGrasp`); a gripper interface for fingers (`contact`, FIDELITY.md) |
 | `SimulationTruth.cpp` `holding(g)` | only for `VacuumGripper` | a gripper interface (`holding`, `held`) for any grasping actuator |
 | `Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
 | `Simulation.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |

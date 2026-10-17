@@ -43,6 +43,8 @@ namespace robotik
 {
 
 class PinocchioBackend;
+class MujocoBackend;
+class GraspModel;
 
 namespace ecs
 {
@@ -365,6 +367,12 @@ private:
 
     void build(SceneView* p_view);
     void buildRecord(Record& p_record, SceneView* p_view);
+    //! @brief True when @p_prop is a body of the physics backend: its level
+    //! is rigid, or it is a box a rigid gripper may take, or a container a
+    //! rigid object may fall into (FIDELITY.md).
+    [[nodiscard]] bool rigidProp(EntitySpec const& p_prop) const;
+    //! @brief Free boxes, container walls and grasp welds of the rigid props.
+    void addRigidProps(MujocoBackend& p_physics);
     void connectBackend();
     void addSkills();
     void loadTree();
@@ -416,6 +424,8 @@ private:
     int m_max_contacts = 0;
     //!< A carried prop went through container walls. Sticky until reset.
     bool m_prop_penetration = false;
+    //!< How the grippers hold objects, one model per level in use.
+    std::vector<std::unique_ptr<GraspModel>> m_grasps;
     //!< Teach pendant owns the joints; the mission is frozen.
     bool m_suspended = false;
     PlanningDomain m_planning;

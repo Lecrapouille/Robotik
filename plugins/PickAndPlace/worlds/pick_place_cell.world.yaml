@@ -44,6 +44,7 @@ world:
       kind: cube                # type of the PDDL planner (scenarios/*.domain.pddl)
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       color: [0.9, 0.1, 0.1]
+      mass: 0.05                # kg, wood; used at the rigid physics level
       pose: { position: [0.40, 0.20, 0.02] }
       randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
     - id: box

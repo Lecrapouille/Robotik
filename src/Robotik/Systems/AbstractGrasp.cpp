@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Systems/GraspSystem.hpp"
+#include "Robotik/Systems/GraspModel.hpp"
 
 #include "Robotik/Scene/ContainerBounds.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
@@ -138,7 +138,7 @@ static compages::world::EntityId touched(compages::world::World& p_world,
     return found;
 }
 
-void GraspSystem::update(Robot& p_robot) const
+void AbstractGrasp::update(Robot& p_robot)
 {
     compages::world::World& world = p_robot.world();
     ActuatorSet const& actuators = p_robot.actuators();
@@ -153,6 +153,11 @@ void GraspSystem::update(Robot& p_robot) const
         if (gripper->holding() && !world.alive(gripper->held()))
         {
             gripper->held({});
+        }
+        // An object of the physics backend is the job of another model.
+        if (gripper->holding() && simulated(world.entity(gripper->held())))
+        {
+            continue;
         }
 
         if (gripper->suction() && !gripper->holding())

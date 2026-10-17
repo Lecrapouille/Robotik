@@ -70,6 +70,9 @@ struct RunRecord
     bool passed = false;
     //!< The ground truth stood in for perception (see @ref OraclePolicy).
     bool oracle = false;
+    //!< Physics fidelity, e.g. "abstract" or "abstract, red_cube: rigid":
+    //!< never compare metrics of runs at different levels.
+    std::string physics;
     std::vector<Check> checks;
     //!< Name and value; nothing when it could not be measured.
     std::vector<std::pair<std::string, std::optional<double>>> metrics;

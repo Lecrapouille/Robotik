@@ -16,6 +16,13 @@ experiment:
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
 
+    # Same task with real physics: the cube is a rigid body, the vacuum
+    # welds it, and it falls into the box on release (FIDELITY.md).
+    - id: rigid
+      scenario: scenarios/pick_and_place.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+
     - id: camera_down_at_start
       scenario: scenarios/pick_and_place.scenario.yaml
       setup:

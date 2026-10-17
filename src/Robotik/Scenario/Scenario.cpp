@@ -142,6 +142,80 @@ void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
     }
 }
 
+namespace
+{
+
+Fidelity readFidelity(std::string const& p_text, std::string const& p_where)
+{
+    if (p_text == "abstract")
+    {
+        return Fidelity::Abstract;
+    }
+    if (p_text == "rigid")
+    {
+        return Fidelity::Rigid;
+    }
+    if (p_text == "contact")
+    {
+        throw std::runtime_error(p_where + ": contact is not available yet (abstract or rigid)");
+    }
+    throw std::runtime_error(p_where + " must be abstract, rigid or contact");
+}
+
+void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
+{
+    if (!p_node.isMap())
+    {
+        return;
+    }
+    p_scenario.physics.fidelity = readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity");
+    for (auto const& [id, level] : p_node.at("overrides").entries())
+    {
+        if (!level.isScalar())
+        {
+            throw std::runtime_error("physics.overrides." + id + " must be a level");
+        }
+        p_scenario.physics.overrides.emplace(id, readFidelity(level.scalar(), "physics.overrides." + id));
+    }
+}
+
+//! Every override names an entity or an actuator of the world.
+void checkPhysics(Scenario const& p_scenario)
+{
+    for (auto const& [id, level] : p_scenario.physics.overrides)
+    {
+        bool known = p_scenario.world.find(id) != nullptr;
+        for (EntitySpec const& entity : p_scenario.world.entities)
+        {
+            for (ActuatorSpec const& actuator : entity.actuators)
+            {
+                known = known || actuator.name == id;
+            }
+        }
+        if (!known)
+        {
+            throw std::runtime_error("physics.overrides: '" + id +
+                                     "' is no entity nor actuator of the world");
+        }
+    }
+}
+
+} // namespace
+
+char const* toString(Fidelity p_fidelity)
+{
+    switch (p_fidelity)
+    {
+        case Fidelity::Abstract:
+            return "abstract";
+        case Fidelity::Rigid:
+            return "rigid";
+        case Fidelity::Contact:
+            return "contact";
+    }
+    return "?";
+}
+
 Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_assets)
 {
     ConfigNode const& node = p_source.scenario.at("scenario");
@@ -196,6 +270,7 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         {
             throw std::runtime_error("perception.oracle must be never, when_blind or always");
         }
+        readPhysics(scenario, node.at("physics"));
         scenario.timeout = Seconds(node.number("timeout", 0.0));
         scenario.stop_when = node.text("stop_when");
         scenario.parameters = node.at("parameters");
@@ -222,6 +297,14 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
     catch (std::runtime_error const& error)
     {
         throw std::runtime_error(p_source.world_file.string() + ": " + error.what());
+    }
+    try
+    {
+        checkPhysics(scenario);
+    }
+    catch (std::runtime_error const& error)
+    {
+        throw std::runtime_error(where + ": " + error.what());
     }
     return scenario;
 }
