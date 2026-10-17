@@ -13,6 +13,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 | Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/03-Worlds-and-Scenarios.md |
 | Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/05-Skills-and-Behavior-Trees.md |
 | Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/11-PDDL-Planner.md |
+| Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/02-Getting-Started.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
 | Find a class or method | — | doc/07-API-Reference.md |
 | Change the core | — | doc/06-Architecture.md |
