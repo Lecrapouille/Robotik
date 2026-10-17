@@ -24,6 +24,7 @@
 #include <pugixml.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <stdexcept>
 #include <string>
 
@@ -227,6 +228,7 @@ Simulation::Simulation(compages::world::World& p_world,
         m_executor = std::make_unique<PlanExecutor>(*m_scenario.controller.planner,
                                                     m_scenario.world, m_planning, m_scenario.id,
                                                     m_factory, *m_scheduler);
+        m_executor->clock(simulatedClock());
     }
     reset();
 }
@@ -511,6 +513,19 @@ void Simulation::loadTree()
         throw std::runtime_error("Behavior tree '" + file.string() + "': " + built.getError());
     }
     m_tree = std::move(built.getValue());
+    m_tree->clock(simulatedClock());
+}
+
+bt::Tree::ClockFunction Simulation::simulatedClock() const
+{
+    // Timeout, Delay, Wait and Cooldown read the simulated time: they follow
+    // pause, speed and the step, and a run is reproducible.
+    return [this]
+    {
+        std::chrono::duration<double> const elapsed(m_robot->time().value());
+        return std::chrono::steady_clock::time_point(
+            std::chrono::duration_cast<std::chrono::steady_clock::duration>(elapsed));
+    };
 }
 
 void Simulation::reset(Seed p_seed)

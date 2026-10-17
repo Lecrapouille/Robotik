@@ -404,6 +404,9 @@ private:
     bool m_oracle = false;
 
     bt::NodeFactory m_factory;
+    //! @brief Clock of the behavior trees: the simulated time.
+    [[nodiscard]] bt::Tree::ClockFunction simulatedClock() const;
+
     bt::Blackboard::Ptr m_blackboard;
     bt::Tree::Ptr m_tree;
     bt::Status m_status = bt::Status::INVALID;

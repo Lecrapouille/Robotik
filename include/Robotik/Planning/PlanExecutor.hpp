@@ -125,6 +125,15 @@ public:
     ~PlanExecutor();
 
     // -------------------------------------------------------------------------
+    //! @brief Clock of the trees built from the plans (the simulated time):
+    //! their timed nodes then follow it. Empty: the wall clock.
+    // -------------------------------------------------------------------------
+    void clock(bt::Tree::ClockFunction p_clock)
+    {
+        m_clock = std::move(p_clock);
+    }
+
+    // -------------------------------------------------------------------------
     //! @brief New episode: forgets the plans; the next tick plans.
     // -------------------------------------------------------------------------
     void reset(Seed p_seed);
@@ -275,6 +284,7 @@ private:
     RobotContext const* m_context = nullptr;
     bt::Blackboard::Ptr m_blackboard;
     bt::Tree::Ptr m_tree;
+    bt::Tree::ClockFunction m_clock;
 };
 
 } // namespace robotik

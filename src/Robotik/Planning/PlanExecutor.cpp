@@ -570,6 +570,7 @@ void PlanExecutor::compile()
         return;
     }
     m_tree = std::move(built.getValue());
+    m_tree->clock(m_clock);
     m_state = PlanState::Executing;
 }
 
