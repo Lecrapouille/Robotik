@@ -152,7 +152,8 @@ bool TeachPendant::jogTool(Robot& p_robot,
         p_robot.inverseKinematics(moved, target);
     if (!solution)
     {
-        m_error = "IK did not converge";
+        m_error = moved + " cannot reach this pose: its joints do not allow this move "
+                          "(IK did not converge)";
         return false;
     }
     apply(p_robot, *solution);

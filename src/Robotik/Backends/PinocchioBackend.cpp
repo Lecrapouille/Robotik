@@ -38,6 +38,8 @@
 #define IK_STEP 0.5
 #define IK_DAMPING 1e-4
 #define IK_TOLERANCE 1e-4
+//! Largest joint move of one iteration (rad or m, norm over the joints).
+#define IK_MAX_JOINT_STEP 0.2
 
 namespace robotik
 {
@@ -272,9 +274,23 @@ PinocchioBackend::solveIK(std::string const& p_frame,
         pinocchio::Jlog6(iMd.inverse(), jlog);
         jacobian = -jlog * jacobian;
 
-        Eigen::Matrix<double, 6, 6> jjt = jacobian * jacobian.transpose();
-        jjt.diagonal().array() += IK_DAMPING;
-        Eigen::VectorXd const velocity = -jacobian.transpose() * jjt.ldlt().solve(error);
+        // Damped least squares in joint space: stable when the frame has
+        // fewer joints than the 6 degrees of the error (link1 of an arm
+        // cannot translate along X). The 6x6 form amplifies the error
+        // that no joint can reduce by 1 / damping.
+        Eigen::MatrixXd jtj = jacobian.transpose() * jacobian;
+        jtj.diagonal().array() += IK_DAMPING;
+        Eigen::VectorXd velocity = -jtj.ldlt().solve(jacobian.transpose() * error);
+        if (!velocity.allFinite())
+        {
+            return std::nullopt;
+        }
+        // A bounded step per iteration: far targets are approached, not jumped to.
+        double const norm = velocity.norm() * IK_STEP;
+        if (norm > IK_MAX_JOINT_STEP)
+        {
+            velocity *= IK_MAX_JOINT_STEP / norm;
+        }
         q = pinocchio::integrate(m_impl->model, q, velocity * IK_STEP);
         // MuJoCo enforces the URDF limits: a target beyond them is never reached.
         q = q.cwiseMax(m_impl->model.lowerPositionLimit)
