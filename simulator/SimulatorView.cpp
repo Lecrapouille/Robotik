@@ -172,7 +172,7 @@ compages::world::Entity SimulatorView::robot(compages::world::World& /*p_world*/
 }
 
 void SimulatorView::object(compages::world::Entity p_entity,
-                           robotik::ecs::SceneObject const& p_object)
+                           robotik::ecs::Shape const& p_object)
 {
     auto const look = compages::renderer::color(
         p_object.color[0], p_object.color[1], p_object.color[2]);
@@ -187,7 +187,7 @@ void SimulatorView::object(compages::world::Entity p_entity,
             .position(p_px, p_py, p_pz)
             .scale(p_sx, p_sy, p_sz);
     };
-    if (p_object.type == robotik::ecs::SceneObject::Type::BOX)
+    if (p_object.type == robotik::ecs::Shape::Type::BOX)
     {
         part("_mesh", 0.0f, 0.0f, 0.0f, x, y, z);
         return;

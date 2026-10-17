@@ -46,11 +46,11 @@ void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, double p_
     }
 }
 
-robotik::ecs::SceneObject decoration(std::string p_name,
+robotik::ecs::Shape decoration(std::string p_name,
                                      robotik::Vector3 const& p_size,
                                      std::array<float, 3> const& p_color)
 {
-    robotik::ecs::SceneObject object;
+    robotik::ecs::Shape object;
     object.name = std::move(p_name);
     object.size = { Length(p_size.x), Length(p_size.y), Length(p_size.z) };
     object.color = p_color;

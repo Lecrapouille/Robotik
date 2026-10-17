@@ -21,7 +21,7 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-//! @brief Attaches, carries and drops @ref ecs::SceneObject entities.
+//! @brief Attaches, carries and drops @ref ecs::Shape entities.
 // ****************************************************************************
 class GraspSystem
 {

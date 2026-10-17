@@ -72,8 +72,8 @@ void worldModelPanel(App& p_app)
         ImGui::TableSetupColumn("Conf.", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Seen", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
-        p_app.world->each<robotik::ecs::SceneObject>(
-            [&](compages::world::Entity p_entity, robotik::ecs::SceneObject const& p_object)
+        p_app.world->each<robotik::ecs::Shape>(
+            [&](compages::world::Entity p_entity, robotik::ecs::Shape const& p_object)
             {
                 if (p_entity.find<robotik::ecs::Decoration>() != nullptr)
                 {

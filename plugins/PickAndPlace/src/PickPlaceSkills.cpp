@@ -37,8 +37,8 @@ static Length carriedCubeHalfHeight(compages::world::World& p_world,
     {
         return kDefaultCubeHalfHeight;
     }
-    ecs::SceneObject const* shape =
-        p_world.entity(p_gripper.held()).find<ecs::SceneObject>();
+    ecs::Shape const* shape =
+        p_world.entity(p_gripper.held()).find<ecs::Shape>();
     if (shape == nullptr)
     {
         return kDefaultCubeHalfHeight;
@@ -74,8 +74,8 @@ tcpHeightOverOpenBox(compages::world::World& p_world,
         return std::nullopt;
     }
 
-    ecs::SceneObject const* scene = box.find<ecs::SceneObject>();
-    if (scene == nullptr || scene->type != ecs::SceneObject::Type::CONTAINER)
+    ecs::Shape const* scene = box.find<ecs::Shape>();
+    if (scene == nullptr || scene->type != ecs::Shape::Type::CONTAINER)
     {
         return std::nullopt;
     }
@@ -221,7 +221,7 @@ std::string heldObject(Robot const& p_robot, std::string const& p_name)
     }
     compages::world::World& world = p_robot.world();
     auto const* held = world.alive(gripper->held())
-                           ? world.entity(gripper->held()).find<ecs::SceneObject>()
+                           ? world.entity(gripper->held()).find<ecs::Shape>()
                            : nullptr;
     return held != nullptr ? held->name : std::string{};
 }

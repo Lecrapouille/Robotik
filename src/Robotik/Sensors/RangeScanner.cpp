@@ -104,9 +104,9 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
 
     // Scene objects are axis-aligned boxes at their world position.
     std::vector<Box> boxes;
-    p_robot.world().each<ecs::SceneObject>(
+    p_robot.world().each<ecs::Shape>(
         [&boxes](compages::world::Entity p_entity,
-                 ecs::SceneObject const& p_object)
+                 ecs::Shape const& p_object)
         {
             if (p_entity.find<ecs::Decoration>() != nullptr)
             {

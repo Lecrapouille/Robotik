@@ -151,7 +151,7 @@ a scenario; the mission receives it.
 | `query("distance(a, b)")` | Any value of the assertion grammar, or nothing if unknown |
 | `evaluate("inside(a, b)")` | A full condition, with value and verdict |
 | `entity("id")` | The Compages ECS entity, or an empty handle |
-| `decorate(SceneObject)` | Adds a visual-only object (no collision, unknown to assertions) |
+| `decorate(Shape)` | Adds a visual-only object (no collision, unknown to assertions) |
 
 **Description** (what the world file says; for planning)
 
