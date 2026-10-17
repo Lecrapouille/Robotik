@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
+#include "Robotik/Scenario/FileRole.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
 #include <imgui.h>
@@ -232,14 +233,28 @@ bool same(std::filesystem::path const& p_a, std::filesystem::path const& p_b)
     return !p_a.empty() && !p_b.empty() && std::filesystem::equivalent(p_a, p_b, error);
 }
 
-//! @brief Kind of a YAML file, from its first top-level key.
+//! @brief Kind of a file: from its double extension (FileRole.hpp), else
+//! from the first top-level key of a YAML file.
 FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
 {
-    std::string const name = p_path.filename().string();
-    if (name.ends_with(".bt.yml") || name.ends_with(".bt.yaml"))
+    switch (robotik::fileRole(p_path))
     {
-        return FileTab::Tree;
+        case robotik::FileRole::World:
+            return FileTab::World;
+        case robotik::FileRole::Scenario:
+        case robotik::FileRole::Rl:
+            return FileTab::Scenario;
+        case robotik::FileRole::Tree:
+            return FileTab::Tree;
+        case robotik::FileRole::Experiment:
+            return FileTab::Experiment;
+        case robotik::FileRole::Domain:
+        case robotik::FileRole::Trajectory:
+            return FileTab::Other;
+        case robotik::FileRole::Unknown:
+            break;
     }
+    std::string const name = p_path.filename().string();
     if (!name.ends_with(".yml") && !name.ends_with(".yaml"))
     {
         return FileTab::Other;
