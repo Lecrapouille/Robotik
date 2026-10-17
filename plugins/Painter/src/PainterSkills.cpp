@@ -186,8 +186,8 @@ void DipSkill::cancel(robotik::RobotContext& p_context)
     m_move.cancel(p_context);
 }
 
-MarkSkill::MarkSkill(Stroke& p_stroke, Strokes p_strokes)
-    : m_stroke(&p_stroke), m_strokes(std::move(p_strokes))
+MarkSkill::MarkSkill(Stroke& p_stroke, Strokes p_strokes, Settings p_settings)
+    : m_stroke(&p_stroke), m_strokes(std::move(p_strokes)), m_settings(p_settings)
 {
 }
 
@@ -215,14 +215,39 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
         {
             return robotik::Status::FAILURE;
         }
-        m_path = stroke->second;
-        m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
+        // Straight lines in Cartesian space: cut each segment into small
+        // steps, each one solved by IK.
+        std::vector<robotik::Pose> const& points = stroke->second;
+        m_path.assign(1u, points.front());
+        for (std::size_t i = 1; i < points.size(); ++i)
+        {
+            robotik::Vector3 const from = points[i - 1].position;
+            robotik::Vector3 const to = points[i].position;
+            double const length = (to - from).norm();
+            std::size_t const steps =
+                m_settings.step > 0.0 ? std::max<std::size_t>(1u, static_cast<std::size_t>(std::ceil(length / m_settings.step)))
+                                      : 1u;
+            for (std::size_t k = 1; k <= steps; ++k)
+            {
+                double const t = static_cast<double>(k) / static_cast<double>(steps);
+                m_path.push_back(robotik::Pose{ from + (to - from) * t, points[i].rotation });
+            }
+            if (i == 1u)
+            {
+                m_paint_begin = m_path.size() - steps;
+            }
+            if (i + 2u == points.size())
+            {
+                m_paint_end = m_path.size() - 1u;
+            }
+        }
+        m_move = robotik::MoveTCPSkill({}, m_path.front(), m_settings.tolerance);
         m_stroke->color = m_color;
         m_ready = true;
     }
     // The first point approaches, the last one leaves: the brush paints in
     // between.
-    m_stroke->painting = m_index >= 1 && m_index + 1u < m_path.size();
+    m_stroke->painting = m_index >= m_paint_begin && m_index <= m_paint_end;
     robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
     if (status != robotik::Status::RUNNING)
     {

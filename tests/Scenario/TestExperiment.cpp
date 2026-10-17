@@ -56,7 +56,7 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
     EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7u, 8u }));
     ASSERT_EQ(experiment.cases.size(), 3u);
     EXPECT_EQ(experiment.cases[1].overrides.size(), 2u);
-    EXPECT_EQ(experiment.metrics.size(), 4u);
+    EXPECT_EQ(experiment.metrics.size(), 6u);
 }
 
 TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)

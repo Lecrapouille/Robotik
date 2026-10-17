@@ -29,9 +29,19 @@ scenario:
     blue: scenarios/trajectories/blue_stroke.trajectory.yaml
     gold: scenarios/trajectories/gold_stroke.trajectory.yaml
 
+  # The brush follows each stroke in 2 mm Cartesian steps (each one an IK
+  # target), with stiff joints: the strokes are straight lines (deviation
+  # about 1.5 mm). Joint gains alone do not do it: between two far targets
+  # each joint moves on its own and the brush draws an arc (about 2 cm).
+  parameters:
+    stroke_step: 0.002      # m, longest step between two IK targets
+    stroke_tolerance: 0.02  # rad, joint error to go on to the next target
+    arm_gains: { kp: 1500, kd: 80 }   # N.m/rad, N.m.s/rad, every arm joint
+
   timeout: 160
 
   assertions:
+    - { condition: "painter.stroke_deviation < 0.003", phase: end }   # straight strokes (m)
     - controller.success
     - planner.replans == 0
     - { condition: "tool_is_attached(brush, robot.flange)", phase: always }
