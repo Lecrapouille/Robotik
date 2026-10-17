@@ -124,8 +124,15 @@ void timelinePanel(App& p_app);
 //! @brief Who holds each resource, and faults injected by hand.
 void resourcesPanel(App& p_app);
 void skillsPanel(App& p_app);
-//! @brief The PDDL planner: state, plan, beliefs, history, texts (PlannerPanel.cpp).
+//! @brief The PDDL planner: goal, plan, beliefs, history (PlannerPanel.cpp).
 void plannerPanel(App& p_app);
+//! @brief Contents of the Planner panel, without its window.
+void plannerView(App& p_app);
+//! @brief Texts behind a plan: domain, problem, output, generated tree
+//! (Files > Planner).
+void plannerTexts(App& p_app);
+//! @brief Symbolic beliefs: the atoms the observers read now.
+void beliefsView(App& p_app);
 
 // --- Autonomy workspace (AutonomyPanels.cpp) --------------------------------
 

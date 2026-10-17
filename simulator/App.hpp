@@ -82,12 +82,14 @@ enum class FileTab : std::uint8_t
     Scenario,
     World,
     Tree,
+    //!< The texts of the PDDL planner: domain, problem, output, tree.
+    Planner,
     Experiment,
     //!< Any other file of the package (plugin.yaml, a URDF...).
     Other,
 };
 
-inline constexpr std::size_t FILE_TAB_COUNT = 5u;
+inline constexpr std::size_t FILE_TAB_COUNT = 6u;
 
 // ****************************************************************************
 //! @brief A file shown read-only in the Files panel.
@@ -141,13 +143,18 @@ struct UiState
     std::filesystem::path experiment_path;
     std::optional<robotik::Experiment> experiment;
     std::string experiment_error;
-    //!< The panel beside Files shows one view: Scenario, World, Tree or
-    //!< Experiment. It follows the tab chosen in Files.
+    //!< The panel beside Files shows one view: Scenario, World, Tree,
+    //!< Planner or Experiment. It follows the tab chosen in Files.
     FileTab view = FileTab::Scenario;
     std::optional<FileTab> active_tab;
     //!< Assets panel: text filter, and only the packs of the running scenario.
     std::array<char, 64> asset_filter{};
     bool assets_in_use = false;
+    //!< Planner: plan whose texts are shown (-1: the last one), result of
+    //!< Save PDDL, and the beliefs filter.
+    int planner_record = -1;
+    std::string planner_saved;
+    bool beliefs_only_true = false;
     //!< Skills panel: cards (false) or a table (true).
     bool skills_table = false;
     //!< Resources panel: resources ticked for the next fault, its duration

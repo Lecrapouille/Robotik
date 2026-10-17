@@ -58,7 +58,11 @@ void worldModelPanel(App& p_app)
     std::unordered_set<std::string> shown;
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (beginTable("objects", 6, flags, ImVec2(0.0f, -ImGui::GetFrameHeightWithSpacing() * 2.0f)))
+    // With a planner, the symbolic beliefs share the panel with the objects.
+    bool const symbolic = simulation.planner() != nullptr;
+    float const objects_height = symbolic ? ImGui::GetContentRegionAvail().y * 0.5f
+                                          : -ImGui::GetFrameHeightWithSpacing();
+    if (beginTable("objects", 6, flags, ImVec2(0.0f, objects_height)))
     {
         ImGui::TableSetupScrollFreeze(1, 1);
         ImGui::TableSetupColumn("Object", ImGuiTableColumnFlags_WidthStretch, 1.0f);
@@ -134,7 +138,22 @@ void worldModelPanel(App& p_app)
         }
         endTable();
     }
-    ImGui::TextDisabled("Symbolic layer (facts, PDDL / Prolog planning): planned, see doc/05 §9.");
+    if (symbolic)
+    {
+        ImGui::SeparatorText("Symbolic beliefs");
+        ImGui::SameLine();
+        helpMarker("The same beliefs as atoms of the PDDL domain, read by the observers. "
+                   "The planner plans from them.");
+        if (ImGui::BeginChild("symbolic"))
+        {
+            beliefsView(p_app);
+        }
+        ImGui::EndChild();
+    }
+    else
+    {
+        ImGui::TextDisabled("No planner in this scenario: no symbolic beliefs.");
+    }
     ImGui::End();
 }
 

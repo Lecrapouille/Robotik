@@ -295,11 +295,38 @@ ShownFile shownIn(App const& p_app, FileTab p_tab)
                 return { p_app.simulation->scenario().controller.behavior_tree, p_app.tree_text };
             }
             return {};
+        case FileTab::Planner:
         case FileTab::Experiment:
         case FileTab::Other:
             return {};
     }
     return {};
+}
+
+//! @brief Planner tab: not one file but the texts of the planner. Only for
+//! a scenario that plans.
+void plannerTab(App& p_app)
+{
+    if (!p_app.simulation || p_app.simulation->planner() == nullptr)
+    {
+        return;
+    }
+    ImGuiTabItemFlags flags = 0;
+    if (p_app.ui.select_tab == FileTab::Planner)
+    {
+        flags |= ImGuiTabItemFlags_SetSelected;
+        p_app.ui.select_tab.reset();
+    }
+    if (ImGui::BeginTabItem("Planner###Planner", nullptr, flags))
+    {
+        if (p_app.ui.active_tab != FileTab::Planner)
+        {
+            p_app.ui.active_tab = FileTab::Planner;
+            p_app.ui.view = FileTab::Planner;
+        }
+        plannerTexts(p_app);
+        ImGui::EndTabItem();
+    }
 }
 
 void fileTab(App& p_app, FileTab p_tab, char const* p_label)
@@ -396,6 +423,14 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
             }
         }
     }
+    // The domain of the running planner: the Planner tab shows it with the
+    // problems and plans made from it.
+    if (p_app.simulation && p_app.simulation->planner() != nullptr &&
+        same(p_app.simulation->planner()->spec().domain, p_path))
+    {
+        showView(p_app, FileTab::Planner, true);
+        return;
+    }
     std::string text = readShown(p_path);
     FileTab const tab = kindOf(p_path, text);
     if (tab == FileTab::Experiment)
@@ -440,6 +475,7 @@ void filesPanel(App& p_app)
         fileTab(p_app, FileTab::Scenario, "Scenario");
         fileTab(p_app, FileTab::World, "World");
         fileTab(p_app, FileTab::Tree, "Behavior tree");
+        plannerTab(p_app);
         fileTab(p_app, FileTab::Experiment, "Experiment");
         fileTab(p_app, FileTab::Other, "File");
         ImGui::EndTabBar();

@@ -578,6 +578,8 @@ char const* viewName(FileTab p_view)
             return "World";
         case FileTab::Tree:
             return "Behavior tree";
+        case FileTab::Planner:
+            return "Planner";
         case FileTab::Experiment:
             return "Experiment";
         case FileTab::Other:
@@ -627,7 +629,8 @@ void viewPanel(App& p_app)
         ImGui::End();
         return;
     }
-    for (FileTab const tab : { FileTab::Scenario, FileTab::World, FileTab::Tree, FileTab::Experiment })
+    for (FileTab const tab :
+         { FileTab::Scenario, FileTab::World, FileTab::Tree, FileTab::Planner, FileTab::Experiment })
     {
         if (tab != FileTab::Scenario)
         {
@@ -658,6 +661,9 @@ void viewPanel(App& p_app)
             break;
         case FileTab::Tree:
             treeView(p_app);
+            break;
+        case FileTab::Planner:
+            plannerView(p_app);
             break;
         case FileTab::Experiment:
             experimentView(p_app);
