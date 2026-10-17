@@ -137,7 +137,7 @@ Options:
 | Option | Effect |
 |--------|--------|
 | `--seed N` | Replaces the seed of the scenario (random layout, sensor noise, faults) |
-| `--report file.json` | Writes a full JSON report |
+| `--report file.json` | Writes a full JSON report: outcome, metrics, assertions, and the plans of the PDDL planner |
 | `--trace` | Prints the history of the skills |
 
 ```bash

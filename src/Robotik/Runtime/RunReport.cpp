@@ -7,6 +7,7 @@
 
 #include "Robotik/Runtime/RunReport.hpp"
 
+#include "Robotik/Planning/PlanExecutor.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include <algorithm>
@@ -83,6 +84,28 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     record.passed = p_simulation.passed();
     record.oracle = p_simulation.oracle();
     record.checks = p_simulation.checks();
+    if (PlanExecutor const* planner = p_simulation.planner())
+    {
+        PlannerSummary& summary = record.planner;
+        summary.used = true;
+        summary.state = toString(planner->state());
+        summary.replans = planner->replans();
+        summary.failure = planner->failure();
+        for (PlanningRecord const& plan : planner->history())
+        {
+            PlanSummary entry;
+            entry.time = plan.time.value();
+            entry.cause = plan.cause;
+            entry.result = toString(plan.result.status);
+            for (GroundAction const& step : plan.result.steps)
+            {
+                entry.steps.push_back(Atom{ step.name, step.args }.toString());
+            }
+            entry.expanded = plan.result.expanded;
+            entry.milliseconds = plan.result.milliseconds;
+            summary.plans.push_back(std::move(entry));
+        }
+    }
     for (std::string const& name : p_metrics)
     {
         Evaluation const measured = p_simulation.evaluate(name);
@@ -127,6 +150,16 @@ void RunReport::writeText(std::ostream& p_out) const
             }
         }
         p_out << '\n';
+        if (run.planner.used)
+        {
+            p_out << "         planner " << run.planner.state << ": " << run.planner.plans.size()
+                  << " plan(s), " << run.planner.replans << " replan(s)";
+            if (!run.planner.failure.empty())
+            {
+                p_out << "  (" << run.planner.failure << ')';
+            }
+            p_out << '\n';
+        }
         for (Check const& check : run.checks)
         {
             if (check.verdict != Check::Verdict::Passed)
@@ -159,6 +192,30 @@ void RunReport::writeJson(std::ostream& p_out) const
         if (!run.error.empty())
         {
             p_out << "      \"error\": " << quoted(run.error) << ",\n";
+        }
+        if (run.planner.used)
+        {
+            PlannerSummary const& planner = run.planner;
+            p_out << "      \"planner\": {\n"
+                  << "        \"state\": " << quoted(planner.state) << ",\n"
+                  << "        \"replans\": " << planner.replans << ",\n"
+                  << "        \"failure\": " << quoted(planner.failure) << ",\n"
+                  << "        \"plans\": [";
+            for (std::size_t p = 0; p < planner.plans.size(); ++p)
+            {
+                PlanSummary const& plan = planner.plans[p];
+                p_out << (p == 0u ? "\n" : ",\n") << "          { \"time\": " << number(plan.time)
+                      << ", \"cause\": " << quoted(plan.cause)
+                      << ", \"result\": " << quoted(plan.result)
+                      << ", \"expanded\": " << plan.expanded
+                      << ", \"milliseconds\": " << number(plan.milliseconds) << ", \"steps\": [";
+                for (std::size_t k = 0; k < plan.steps.size(); ++k)
+                {
+                    p_out << (k == 0u ? "" : ", ") << quoted(plan.steps[k]);
+                }
+                p_out << "] }";
+            }
+            p_out << (planner.plans.empty() ? "]\n" : "\n        ]\n") << "      },\n";
         }
         p_out << "      \"metrics\": {";
         for (std::size_t m = 0; m < run.metrics.size(); ++m)

@@ -279,7 +279,23 @@ right one".
   generated **Problem**, the planner **Output** and the **Generated tree** of
   one plan (the last one, or the one picked in History). **Save PDDL**
   writes all the texts in `planner/<scenario id>/` of the current folder.
-- **Headless**: `--trace` prints one line per plan, as in §2.
+- **Headless**: `--trace` prints one line per plan, as in §2. The summary
+  line of each run gives the final state of the planner, the number of plans
+  and of replans. `--report r.json` adds a `planner` object to each run:
+
+  ```json
+  "planner": {
+    "state": "succeeded", "replans": 2,
+    "failure": "1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)",
+    "plans": [
+      { "time": 0, "cause": "start", "result": "solved", "expanded": 3,
+        "milliseconds": 0.77, "steps": ["detect(red_cube)", "pick(red_cube)", "place(red_cube, box)"] }
+    ]
+  }
+  ```
+
+  `milliseconds` is wall-clock time of the search: it changes from one
+  machine to another. Everything else is the same for the same seed.
 
 ---
 
