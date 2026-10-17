@@ -376,27 +376,42 @@ void resourceTooltip(robotik::SkillScheduler const& p_skills,
 }
 
 //! @brief One resource as a chip: free (outline), held (orange), shared
-//! (blue), in fault (red). It shows the number of holders, not their names:
-//! the tooltip and the Resources panel list them.
+//! (blue), in fault (red), with the number of holders. Its width is fixed and
+//! the last holders stay shown a moment: the chip does not flicker when
+//! skills take and release it within a few steps. The tooltip and the
+//! Resources panel list the holders.
 void resourceChip(App& p_app, robotik::ResourceId p_id)
 {
+    constexpr double HOLD_S = 0.4;
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::ResourceManager const& resources = simulation.robot().resources();
     robotik::SkillScheduler const& skills = simulation.skills();
-    bool const available = resources.available(p_id);
+    std::vector<ChipHold>& holds = p_app.ui.chip_hold;
+    holds.resize(resources.size());
+    ChipHold& hold = holds[p_id];
+    double const now = ImGui::GetTime();
     std::size_t const holders = holdersOf(skills, resources, p_id).size();
-    std::string text = resources.name(p_id);
+    if (holders > 0u || now >= hold.until)
+    {
+        hold = { holders, resources.owner(p_id) != robotik::NO_OWNER, now + HOLD_S };
+    }
+
+    bool const available = resources.available(p_id);
+    std::string const& name = resources.name(p_id);
+    std::string text = name;
     if (!available)
     {
         text += "  FAULT";
     }
-    else if (holders > 0u)
+    else if (hold.holders > 0u)
     {
-        text += "  " + std::to_string(holders);
+        text += "  " + std::to_string(hold.holders);
     }
-    ImVec4 const color = colorOf(resources, p_id);
+    ImVec4 const color = !available ? RED : hold.holders == 0u ? GREY : hold.exclusive ? ORANGE : BLUE;
     ImVec2 const pad(8.0f, 2.0f);
-    ImVec2 const size(ImGui::CalcTextSize(text.c_str()).x + 2.0f * pad.x, ImGui::GetFrameHeight());
+    float const widest = std::max(ImGui::CalcTextSize((name + "  FAULT").c_str()).x,
+                                  ImGui::CalcTextSize((name + "  99").c_str()).x);
+    ImVec2 const size(widest + 2.0f * pad.x, ImGui::GetFrameHeight());
     if (ImGui::GetContentRegionAvail().x < size.x)
     {
         ImGui::NewLine();
@@ -407,7 +422,7 @@ void resourceChip(App& p_app, robotik::ResourceId p_id)
     bool const hovered = ImGui::IsItemHovered();
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec4 fill = color;
-    fill.w = (available && holders == 0u) ? (hovered ? 0.12f : 0.0f) : (hovered ? 0.45f : 0.30f);
+    fill.w = (available && hold.holders == 0u) ? (hovered ? 0.12f : 0.0f) : (hovered ? 0.45f : 0.30f);
     draw->AddRectFilled(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(fill), size.y * 0.5f);
     draw->AddRect(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(color), size.y * 0.5f, 0, 1.2f);
     draw->AddText(ImVec2(at.x + pad.x, at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5f),
@@ -473,48 +488,93 @@ void expireFaults(App& p_app)
                   });
 }
 
-//! @brief Inject faults on purpose: pick one or more resources, then apply.
+//! @brief Inject faults on purpose: tick one or more resources, then apply.
 //! Nothing happens on a single click on a resource.
 void faultForm(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::ResourceManager& resources = simulation.robot().resources();
+    std::vector<ManualFault>& manual = p_app.ui.manual_faults;
     std::vector<bool>& picked = p_app.ui.fault_pick;
     picked.resize(resources.size(), false);
+    double const now = simulation.time().value();
 
-    ImGui::TextDisabled("Pick the resources to fail:");
-    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    // One row per resource: tick, name, fault state, restore.
+    if (beginTable("faults", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+                                    ImGuiTableFlags_SizingFixedFit))
     {
-        bool value = picked[id];
-        ImGui::PushStyleColor(ImGuiCol_Text, resources.available(id) ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-                                                                      : RED);
-        std::string const label = resources.name(id) + "##pick";
-        if (ImGui::Checkbox(label.c_str(), &value))
+        ImGui::TableSetupColumn("##pick", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Resource");
+        ImGui::TableSetupColumn("Fault", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("##restore", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableHeadersRow();
+        for (robotik::ResourceId id = 0; id < resources.size(); ++id)
         {
-            picked[id] = value;
+            std::string const& name = resources.name(id);
+            bool const available = resources.available(id);
+            auto const by_hand = std::find_if(manual.begin(), manual.end(),
+                                              [&](ManualFault const& p_fault) { return p_fault.resource == name; });
+            ImGui::PushID(static_cast<int>(id));
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            bool value = picked[id];
+            ImGui::BeginDisabled(!available);
+            if (ImGui::Checkbox("##pick", &value))
+            {
+                picked[id] = value;
+            }
+            ImGui::EndDisabled();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextColored(available ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : RED, "%s", name.c_str());
+            ImGui::TableNextColumn();
+            if (available)
+            {
+                ImGui::TextDisabled("-");
+            }
+            else if (by_hand == manual.end())
+            {
+                ImGui::TextColored(RED, "by the scenario");
+            }
+            else if (by_hand->until > 0.0)
+            {
+                ImGui::TextColored(RED, "by hand, %.1f s left", by_hand->until - now);
+            }
+            else
+            {
+                ImGui::TextColored(RED, "by hand");
+            }
+            ImGui::TableNextColumn();
+            if (!available && ImGui::SmallButton("Restore"))
+            {
+                resources.restore(id);
+                if (by_hand != manual.end())
+                {
+                    manual.erase(by_hand);
+                }
+            }
+            ImGui::PopID();
         }
-        ImGui::PopStyleColor();
-        ImGui::SameLine();
-        if (ImGui::GetContentRegionAvail().x < 120.0f)
-        {
-            ImGui::NewLine();
-        }
+        endTable();
     }
-    ImGui::NewLine();
-    ImGui::SetNextItemWidth(120.0f);
-    ImGui::InputFloat("duration (s)", &p_app.ui.fault_duration, 0.5f, 1.0f, "%.1f");
-    p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0f);
-    ImGui::SameLine();
-    helpMarker("0: until restored by hand. Otherwise the resources come back after this time "
-               "of simulation.");
+
+    // Actions on the ticked resources.
     std::size_t const count = static_cast<std::size_t>(std::count(picked.begin(), picked.end(), true));
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("For");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(110.0f);
+    ImGui::InputFloat("##duration", &p_app.ui.fault_duration, 0.5f, 1.0f,
+                      p_app.ui.fault_duration > 0.0f ? "%.1f s" : "ever");
+    p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0f);
+    ImGui::SetItemTooltip("Simulated time before the resources come back. 0: until restored by hand.");
+    ImGui::SameLine();
     ImGui::BeginDisabled(count == 0u);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.15f, 0.15f, 1.0f));
     char apply[48];
     std::snprintf(apply, sizeof apply, "Inject %zu fault%s", count, count > 1u ? "s" : "");
     if (ImGui::Button(apply))
     {
-        double const now = simulation.time().value();
         double const duration = static_cast<double>(p_app.ui.fault_duration);
         for (robotik::ResourceId id = 0; id < resources.size(); ++id)
         {
@@ -523,10 +583,8 @@ void faultForm(App& p_app)
                 continue;
             }
             resources.fail(id);
-            std::erase_if(p_app.ui.manual_faults,
-                          [&](ManualFault const& p_fault) { return p_fault.resource == resources.name(id); });
-            p_app.ui.manual_faults.push_back(
-                { resources.name(id), now, duration > 0.0 ? now + duration : 0.0 });
+            std::erase_if(manual, [&](ManualFault const& p_fault) { return p_fault.resource == resources.name(id); });
+            manual.push_back({ resources.name(id), now, duration > 0.0 ? now + duration : 0.0 });
             picked[id] = false;
         }
     }
@@ -542,47 +600,9 @@ void faultForm(App& p_app)
     if (ImGui::Button("Restore all"))
     {
         resources.restoreAll();
-        p_app.ui.manual_faults.clear();
+        manual.clear();
     }
     ImGui::EndDisabled();
-
-    // Resources in fault now, with a button each to restore it.
-    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
-    {
-        if (resources.available(id))
-        {
-            continue;
-        }
-        ImGui::PushID(static_cast<int>(id));
-        ImGui::Bullet();
-        ImGui::TextColored(RED, "%s", resources.name(id).c_str());
-        auto const manual = std::find_if(p_app.ui.manual_faults.begin(), p_app.ui.manual_faults.end(),
-                                         [&](ManualFault const& p_fault)
-                                         { return p_fault.resource == resources.name(id); });
-        ImGui::SameLine();
-        if (manual == p_app.ui.manual_faults.end())
-        {
-            ImGui::TextDisabled("(scenario)");
-        }
-        else if (manual->until > 0.0)
-        {
-            ImGui::TextDisabled("(by hand, %.1f s left)", manual->until - simulation.time().value());
-        }
-        else
-        {
-            ImGui::TextDisabled("(by hand)");
-        }
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Restore"))
-        {
-            resources.restore(id);
-            if (manual != p_app.ui.manual_faults.end())
-            {
-                p_app.ui.manual_faults.erase(manual);
-            }
-        }
-        ImGui::PopID();
-    }
 }
 
 //! @brief The fault plan of the scenario: past entries greyed out.

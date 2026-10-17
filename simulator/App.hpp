@@ -113,6 +113,19 @@ struct ManualFault
 };
 
 // ****************************************************************************
+//! @brief What a resource chip of the Timeline shows. Skills take and give
+//! back resources within a few steps: the last holders stay shown a short
+//! time so the chip does not flicker.
+// ****************************************************************************
+struct ChipHold
+{
+    std::size_t holders = 0;
+    bool exclusive = false;
+    //!< Wall-clock time (ImGui::GetTime) until which it is kept.
+    double until = 0.0;
+};
+
+// ****************************************************************************
 //! @brief Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
@@ -162,6 +175,8 @@ struct UiState
     std::vector<bool> fault_pick;
     float fault_duration = 0.0f;
     std::vector<ManualFault> manual_faults;
+    //!< Timeline: what each resource chip shows.
+    std::vector<ChipHold> chip_hold;
     //!< Joints drawn in the plots.
     std::vector<bool> plotted;
     float plot_window_s = 10.0f;

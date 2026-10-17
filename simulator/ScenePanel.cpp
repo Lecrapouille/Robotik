@@ -48,7 +48,7 @@ void runControls(App& p_app, ImVec2 p_at)
     {
         p_app.reset(p_app.seed);
     }
-    ImGui::SetItemTooltip("Start again with this seed  (Ctrl+R)");
+    ImGui::SetItemTooltip("Start again with this seed and play  (Ctrl+R)");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(96.0f);
     ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
