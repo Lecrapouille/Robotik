@@ -46,7 +46,7 @@ class PinocchioBackend;
 
 namespace ecs
 {
-struct SceneObject;
+struct Shape;
 }
 
 // ****************************************************************************
@@ -294,7 +294,7 @@ public:
     //! not an entity of the world: nothing collides with it, and assertions
     //! cannot name it. The mission moves it.
     // -------------------------------------------------------------------------
-    compages::world::Entity decorate(ecs::SceneObject const& p_object);
+    compages::world::Entity decorate(ecs::Shape const& p_object);
 
     // -------------------------------------------------------------------------
     //! @brief Value of a metric or of a world query, as used in conditions:

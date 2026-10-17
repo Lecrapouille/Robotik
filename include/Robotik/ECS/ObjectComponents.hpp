@@ -17,7 +17,7 @@
 namespace robotik::ecs
 {
 
-//! Wall thickness in metres for @ref SceneObject::Type::CONTAINER (rendering, @ref
+//! Wall thickness in metres for @ref Shape::Type::CONTAINER (rendering, @ref
 //! Robotik/Scene/ContainerBounds.hpp).
 inline constexpr double CONTAINER_WALL_M = 0.005;
 
@@ -26,7 +26,7 @@ inline constexpr double CONTAINER_WALL_M = 0.005;
 // Pose is the Compages transform on an entity parented to the Z-up world
 // frame (coordinates in the world frame).
 // ****************************************************************************
-struct SceneObject
+struct Shape
 {
     // ------------------------------------------------------------------------
     // @brief Primitive shape used for rendering.
@@ -48,7 +48,7 @@ struct SceneObject
 };
 
 // ****************************************************************************
-//! @brief Marks a @ref SceneObject moved by the physics backend: the grasp
+//! @brief Marks a @ref Shape moved by the physics backend: the grasp
 //! system and the container rules leave it alone.
 // ****************************************************************************
 struct PhysicsBody
@@ -58,7 +58,7 @@ struct PhysicsBody
 };
 
 // ****************************************************************************
-//! @brief Marks a @ref SceneObject drawn for the eye only (a sensor beam, a
+//! @brief Marks a @ref Shape drawn for the eye only (a sensor beam, a
 //! trail): not a world entity. Grasp, range sensing and the ground truth
 //! ignore it. Not empty: EnTT stores no instance of an empty type, and the
 //! Compages entity API returns references to its components.

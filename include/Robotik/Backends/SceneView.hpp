@@ -29,7 +29,7 @@ class Image;
 
 namespace ecs
 {
-struct SceneObject;
+struct Shape;
 }
 
 // ****************************************************************************
@@ -63,7 +63,7 @@ public:
 
     //! @brief Adds the meshes of a scenario object to @p_entity.
     virtual void object(compages::world::Entity /*p_entity*/,
-                        ecs::SceneObject const& /*p_object*/)
+                        ecs::Shape const& /*p_object*/)
     {
         /* no-op */
     }

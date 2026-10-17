@@ -15,10 +15,10 @@ namespace robotik::scene
 
 static constexpr double kFloorContactEpsilonM = 1e-3;
 
-std::optional<ContainerInner> innerBounds(ecs::SceneObject const& p_object,
+std::optional<ContainerInner> innerBounds(ecs::Shape const& p_object,
                                           Vector3 const& p_center)
 {
-    if (p_object.type != ecs::SceneObject::Type::CONTAINER)
+    if (p_object.type != ecs::Shape::Type::CONTAINER)
     {
         return std::nullopt;
     }
@@ -42,7 +42,7 @@ bool insideInner(ContainerInner const& p_inner,
            std::abs(p_point.y - p_inner.center.y) <= p_inner.half_y - p_margin;
 }
 
-bool overOuterFootprint(ecs::SceneObject const& p_object,
+bool overOuterFootprint(ecs::Shape const& p_object,
                         Vector3 const& p_center,
                         Vector3 const& p_point,
                         double p_slack)
@@ -64,7 +64,7 @@ bool fitsInside(ContainerInner const& p_inner,
            p_point.z - p_half.z >= p_inner.floor_z - kFloorContactEpsilonM;
 }
 
-bool restsInside(ecs::SceneObject const& p_container,
+bool restsInside(ecs::Shape const& p_container,
                  Vector3 const& p_container_center,
                  Vector3 const& p_object_center,
                  Vector3 const& p_object_half)
@@ -82,12 +82,12 @@ bool restsInside(ecs::SceneObject const& p_container,
            bottom <= inner->floor_z + kFloorContactEpsilonM;
 }
 
-bool penetratesContainer(ecs::SceneObject const& p_container,
+bool penetratesContainer(ecs::Shape const& p_container,
                          Vector3 const& p_container_center,
                          Vector3 const& p_cube_center,
                          Vector3 const& p_cube_half)
 {
-    if (p_container.type != ecs::SceneObject::Type::CONTAINER)
+    if (p_container.type != ecs::Shape::Type::CONTAINER)
     {
         return false;
     }
@@ -109,7 +109,7 @@ bool penetratesContainer(ecs::SceneObject const& p_container,
     return !fitsInside(*inner, p_cube_center, p_cube_half);
 }
 
-std::optional<Vector3> dropInto(ecs::SceneObject const& p_container,
+std::optional<Vector3> dropInto(ecs::Shape const& p_container,
                                 Vector3 const& p_container_center,
                                 Vector3 const& p_point,
                                 double p_half_z,

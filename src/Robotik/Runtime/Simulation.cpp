@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Runtime/Simulation.hpp"
+#include "ShapeOf.hpp"
 
 #include "Robotik/Backends/MujocoBackend.hpp"
 #include "Robotik/Backends/PinocchioBackend.hpp"
@@ -101,20 +102,6 @@ Vector3 boxInertia(double p_mass, Vector3 const& p_size)
     return { p_mass * (y2 + z2) / 12.0, p_mass * (x2 + z2) / 12.0, p_mass * (x2 + y2) / 12.0 };
 }
 
-ecs::SceneObject sceneObject(EntitySpec const& p_spec)
-{
-    ecs::SceneObject object;
-    object.name = p_spec.id;
-    object.type = p_spec.shape->type == ShapeSpec::Type::Container
-                      ? ecs::SceneObject::Type::CONTAINER
-                      : ecs::SceneObject::Type::BOX;
-    object.size = { Length(p_spec.shape->size.x),
-                    Length(p_spec.shape->size.y),
-                    Length(p_spec.shape->size.z) };
-    object.color = p_spec.shape->color;
-    return object;
-}
-
 //! While the vacuum holds a prop, flag wall penetration (counts as a robot
 //! collision). Sticky until @ref Simulation::reset.
 void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
@@ -134,17 +121,17 @@ void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
         return;
     }
     compages::world::Entity const held = world.entity(gripper->held());
-    ecs::SceneObject const* prop = held.find<ecs::SceneObject>();
+    ecs::Shape const* prop = held.find<ecs::Shape>();
     if (prop == nullptr)
     {
         return;
     }
     Vector3 const at = positionOf(held);
     Vector3 const half = scene::halfExtents(*prop);
-    world.each<ecs::SceneObject>(
-        [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
+    world.each<ecs::Shape>(
+        [&](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
-            if (p_flag || p_object.type != ecs::SceneObject::Type::CONTAINER ||
+            if (p_flag || p_object.type != ecs::Shape::Type::CONTAINER ||
                 p_entity.id() == held.id() || p_entity.find<ecs::PhysicsBody>() != nullptr ||
                 p_entity.find<ecs::Decoration>() != nullptr)
             {
@@ -349,7 +336,7 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
             return;
         case EntitySpec::Type::Prop:
         {
-            ecs::SceneObject const object = sceneObject(spec);
+            ecs::Shape const object = shapeOf(spec);
             p_record.entity = m_world.entity(spec.id);
             p_record.entity.parent(m_frame).set(object);
             if (p_view != nullptr)
@@ -368,7 +355,7 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
     {
         p_record.body = spec.id;
         p_record.links = { spec.id };
-        ecs::SceneObject const object = sceneObject(spec);
+        ecs::Shape const object = shapeOf(spec);
         p_record.entity = m_world.entity(spec.id);
         p_record.entity.parent(m_frame).set(object).set(ecs::PhysicsBody{ spec.id });
         if (p_view != nullptr)

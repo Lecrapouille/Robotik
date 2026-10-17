@@ -10,7 +10,7 @@
 #include "Robotik/Scene/ContainerBounds.hpp"
 
 using robotik::Vector3;
-using robotik::ecs::SceneObject;
+using robotik::ecs::Shape;
 using robotik::scene::dropInto;
 using robotik::scene::halfExtents;
 using robotik::scene::innerBounds;
@@ -21,20 +21,20 @@ namespace
 {
 
 // Same layout as data/scenarios/pick_and_place.scenario.yaml.
-SceneObject makeBox()
+Shape makeBox()
 {
-    SceneObject box;
+    Shape box;
     box.name = "box";
-    box.type = SceneObject::Type::CONTAINER;
+    box.type = Shape::Type::CONTAINER;
     box.size = { Length(0.16), Length(0.16), Length(0.08) };
     return box;
 }
 
-SceneObject makeCube()
+Shape makeCube()
 {
-    SceneObject cube;
+    Shape cube;
     cube.name = "red_cube";
-    cube.type = SceneObject::Type::BOX;
+    cube.type = Shape::Type::BOX;
     cube.size = { Length(0.04), Length(0.04), Length(0.04) };
     return cube;
 }
@@ -59,8 +59,8 @@ TEST(ContainerBounds, CavityMatchesTheRenderedWalls)
 
 TEST(ContainerBounds, RestsInsideUsesRealExtentsAndTheRim)
 {
-    SceneObject const box = makeBox();
-    SceneObject const cube = makeCube();
+    Shape const box = makeBox();
+    Shape const cube = makeCube();
     Vector3 const half = halfExtents(cube);
     double const resting_z = 0.005 + half.z;
 
@@ -76,7 +76,7 @@ TEST(ContainerBounds, RestsInsideUsesRealExtentsAndTheRim)
     // would have counted this as a delivery.
     EXPECT_FALSE(restsInside(box, kBoxCenter, kPickCenter, half));
 
-    SceneObject slab = cube;
+    Shape slab = cube;
     slab.size[0] = Length(0.10);
     Vector3 const wide = halfExtents(slab);
     EXPECT_TRUE(restsInside(
@@ -87,7 +87,7 @@ TEST(ContainerBounds, RestsInsideUsesRealExtentsAndTheRim)
 
 TEST(ContainerBounds, DropStaysOnTheFootprint)
 {
-    SceneObject const box = makeBox();
+    Shape const box = makeBox();
     double constexpr kHalfZ = 0.02;
     double constexpr kLift = 1e-4;
 
@@ -108,7 +108,7 @@ TEST(ContainerBounds, DropStaysOnTheFootprint)
 
 TEST(ContainerBounds, PenetrationIsAWallCrossingBelowTheRim)
 {
-    SceneObject const box = makeBox();
+    Shape const box = makeBox();
     Vector3 const half = halfExtents(makeCube());
     Vector3 const through_wall{ 0.47, -0.20, 0.025 };
 

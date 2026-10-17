@@ -10,6 +10,7 @@
 //! measure. World frame, metres and radians.
 
 #include "Robotik/Runtime/Simulation.hpp"
+#include "ShapeOf.hpp"
 
 #include "Robotik/Backends/PinocchioBackend.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
@@ -114,19 +115,6 @@ Vector3 halfSize(EntitySpec const& p_spec)
                         : zero3();
 }
 
-ecs::SceneObject shapeOf(EntitySpec const& p_spec)
-{
-    ecs::SceneObject object;
-    object.name = p_spec.id;
-    object.type = p_spec.shape->type == ShapeSpec::Type::Container
-                      ? ecs::SceneObject::Type::CONTAINER
-                      : ecs::SceneObject::Type::BOX;
-    object.size = { Length(p_spec.shape->size.x),
-                    Length(p_spec.shape->size.y),
-                    Length(p_spec.shape->size.z) };
-    return object;
-}
-
 void arity(std::string const& p_name,
            std::vector<std::string> const& p_args,
            std::size_t p_min,
@@ -168,7 +156,7 @@ Simulation::Record const& Simulation::require(std::string_view p_id) const
     throw std::invalid_argument("unknown entity '" + std::string(p_id) + "'");
 }
 
-compages::world::Entity Simulation::decorate(ecs::SceneObject const& p_object)
+compages::world::Entity Simulation::decorate(ecs::Shape const& p_object)
 {
     compages::world::Entity entity = m_world.entity(p_object.name);
     entity.parent(m_frame).set(p_object).set(ecs::Decoration{});

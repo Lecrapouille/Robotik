@@ -42,9 +42,9 @@ static bool simulated(compages::world::Entity p_entity)
 static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
 {
     Length floor{ 0.0 };
-    p_world.each<ecs::SceneObject>(
+    p_world.each<ecs::Shape>(
         [&floor, &p_at](compages::world::Entity p_entity,
-                        ecs::SceneObject const& p_object)
+                        ecs::Shape const& p_object)
         {
             if (simulated(p_entity))
             {
@@ -69,7 +69,7 @@ static Vector3 settle(compages::world::World& p_world,
                       compages::world::Entity p_held,
                       Vector3 p_at)
 {
-    ecs::SceneObject const* shape = p_held.find<ecs::SceneObject>();
+    ecs::Shape const* shape = p_held.find<ecs::Shape>();
     if (shape == nullptr)
     {
         return p_at;
@@ -77,8 +77,8 @@ static Vector3 settle(compages::world::World& p_world,
     double const half_z = (shape->size[2] * 0.5).value();
     std::optional<Vector3> best;
     double best_distance = 0.0;
-    p_world.each<ecs::SceneObject>(
-        [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
+    p_world.each<ecs::Shape>(
+        [&](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
             if (p_entity.id() == p_held.id() || simulated(p_entity))
             {
@@ -119,10 +119,10 @@ static compages::world::EntityId touched(compages::world::World& p_world,
 {
     compages::world::EntityId found{};
     Length best = kVacuumContactDistance;
-    p_world.each<ecs::SceneObject>(
-        [&](compages::world::Entity p_entity, ecs::SceneObject const& p_object)
+    p_world.each<ecs::Shape>(
+        [&](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
-            if (p_object.type != ecs::SceneObject::Type::BOX || simulated(p_entity))
+            if (p_object.type != ecs::Shape::Type::BOX || simulated(p_entity))
             {
                 return;
             }
@@ -173,7 +173,7 @@ void GraspSystem::update(Robot& p_robot) const
         if (gripper->holding())
         {
             compages::world::Entity held = world.entity(gripper->held());
-            ecs::SceneObject const* shape = held.find<ecs::SceneObject>();
+            ecs::Shape const* shape = held.find<ecs::Shape>();
             if (shape == nullptr)
             {
                 continue;
