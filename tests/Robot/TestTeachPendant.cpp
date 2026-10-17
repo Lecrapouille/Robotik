@@ -93,3 +93,26 @@ TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
     pendant.frame({});
     EXPECT_EQ(pendant.frame(robot), robot.tool());
 }
+
+TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
+{
+    compages::world::World world;
+    robotik::RobotSession robot(world, assetFile("robotik.robots.robot_6axis"));
+    robot.hold({ { "joint1", 0.0 },
+                 { "joint2", 0.3 },
+                 { "joint3", 1.3 },
+                 { "joint4", 0.0 },
+                 { "joint5", 1.54 },
+                 { "joint6", 0.0 } });
+    robotik::TeachPendant pendant;
+    pendant.frame("link1");
+    // link1 only turns about z: it cannot translate along x.
+    EXPECT_FALSE(pendant.jogTool(robot, robotik::Vector3(0.01, 0.0, 0.0), robotik::zero3()));
+    EXPECT_FALSE(pendant.error().empty());
+    for (robotik::JointId id = 0; id < robot.joints().size(); ++id)
+    {
+        EXPECT_TRUE(std::isfinite(robot.joints().target(id)));
+    }
+    // A rotation about z is possible.
+    EXPECT_TRUE(pendant.jogTool(robot, robotik::zero3(), robotik::Vector3(0.0, 0.0, 0.1)));
+}
