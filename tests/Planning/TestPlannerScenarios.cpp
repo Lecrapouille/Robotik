@@ -12,9 +12,12 @@
 #include "PainterMission.hpp"
 #include "PickPlaceMission.hpp"
 
+#include "Robotik/Runtime/RunReport.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
 #include "Compages/World/World.hpp"
+
+#include <sstream>
 
 namespace
 {
@@ -130,6 +133,18 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     EXPECT_NE(result.causes[1].find("unavailable"), std::string::npos)
         << result.causes[1];
     EXPECT_GE(simulation.planner()->replans(), 1u);
+
+    // --report: the plans and the replans are in the run record.
+    robotik::RunRecord const record = robotik::RunRecord::capture(simulation, "default", {});
+    EXPECT_TRUE(record.planner.used);
+    EXPECT_EQ(record.planner.plans.size(), result.plans.size());
+    EXPECT_EQ(record.planner.replans, simulation.planner()->replans());
+    EXPECT_EQ(record.planner.plans[1].cause, result.causes[1]);
+    ASSERT_FALSE(record.planner.plans.front().steps.empty());
+    EXPECT_EQ(record.planner.plans.front().steps.front(), "detect(red_cube)");
+    std::ostringstream json;
+    robotik::RunReport{ "x", { record } }.writeJson(json);
+    EXPECT_NE(json.str().find("\"replans\": "), std::string::npos) << json.str();
 }
 
 TEST(PlannerScenario, PainterLaysTheLayersInOrder)
