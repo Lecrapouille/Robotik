@@ -23,9 +23,9 @@ scenarios:
     - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.scenario.yaml, menu: Behavior tree }
     - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.scenario.yaml, menu: PDDL planner }
     - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.scenario.yaml, menu: PDDL planner }
-    - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place_rl.rl.yaml, menu: Reinforcement learning, clock: plugin }
+    - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place.rl.yaml, menu: Reinforcement learning, clock: plugin }
 
 experiments:
   directory: experiments
   entries:
-    - { id: pick_and_place_benchmark, name: Pick and place benchmark, file: pick_and_place_benchmark.experiment.yaml }
+    - { id: pick_and_place_experiment, name: Pick and place benchmark, file: pick_and_place.experiment.yaml }

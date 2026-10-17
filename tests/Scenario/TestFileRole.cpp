@@ -25,10 +25,11 @@ TEST(FileRole, DoubleExtensionGivesTheRole)
     EXPECT_EQ(robotik::fileRole("scenarios/.scenario.yaml"), FileRole::Unknown);
 }
 
-TEST(FileRole, StemDropsTheRole)
+TEST(FileRole, IdFromTheFileName)
 {
     EXPECT_EQ(robotik::roleStem("scenarios/wave.scenario.yaml"), "wave");
-    EXPECT_EQ(robotik::roleStem("scenarios/pick_and_place_rl.rl.yaml"), "pick_and_place_rl");
+    EXPECT_EQ(robotik::roleStem("scenarios/pick_and_place.rl.yaml"), "pick_and_place_rl");
+    EXPECT_EQ(robotik::roleStem("experiments/hello.experiment.yaml"), "hello_experiment");
     EXPECT_EQ(robotik::roleStem("scenarios/wave.yml"), "wave");
     EXPECT_STREQ(robotik::roleExtension(robotik::FileRole::World), ".world.yaml");
 }

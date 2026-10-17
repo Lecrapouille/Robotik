@@ -7,8 +7,8 @@ Headless.
 | Plugin | Idea | Scenarios | Experiment | Extra program |
 |--------|------|-----------|------------|---------------|
 | [HelloWorld](#1-helloworld) | Learn the API, one lesson per scenario | hello, wave, reach, skills | `hello_experiment` | — |
-| [PickAndPlace](#2-pick-and-place) | Perception + skills + behavior tree or PDDL planner + faults | nominal, faults, pddl, pddl_faults | `pick_and_place_benchmark` | — |
-| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved", planned layers | painter, painter_pddl | `painting_benchmark` | — |
+| [PickAndPlace](#2-pick-and-place) | Perception + skills + behavior tree or PDDL planner + faults | nominal, faults, pddl, pddl_faults | `pick_and_place_experiment` | — |
+| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved", planned layers | painter, painter_pddl | `painter_experiment` | — |
 | [LineFollower](#4-line-follower) | Mobile robot, localisation, control loop | line_follower | — | `Robotik-LineFollower` |
 | [PickAndPlace](#5-pick-and-place-rl) | RL environment, parallel pool | pick_and_place_rl | — | `Robotik-PickAndPlaceRL` |
 | [FlyBrain](#6-fly-brain) | A biological brain as an agent | fly_obstacle_avoidance | — | `Robotik-Fly` |
@@ -79,7 +79,7 @@ architecture **reacts** (retry, fall back, abort).
 
 ```bash
 ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --seed 11
-./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.experiment.yaml \
+./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
     --report pick.json
 ```
 
@@ -120,7 +120,7 @@ measures it:
     sequence: [ "skill_succeeded(dip)", "skill_started(mark)" ]
 ```
 
-The experiment `painting_benchmark` paints again on a slippery floor and with
+The experiment `painter_experiment` paints again on a slippery floor and with
 a canvas four times heavier.
 
 **With the PDDL planner** (`scenarios/painter_pddl.scenario.yaml`): the goal is the

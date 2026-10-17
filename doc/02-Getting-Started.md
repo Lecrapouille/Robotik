@@ -196,7 +196,7 @@ and compares them.
 
 ```bash
 ./build/Robotik-Headless \
-    build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.experiment.yaml \
+    build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
     --report pick.json
 ```
 
@@ -204,7 +204,7 @@ and compares them.
 [PASS] nominal                  seed=11     controller succeeded at 7.4 s (oracle perception)  time=7.4  ...
 [PASS] wide_layout              seed=11     ...
 [PASS] camera_down_at_start     seed=11     controller succeeded at 8.9 s (oracle perception)  time=8.9  ...
-pick_and_place_benchmark: 9/9 runs passed
+pick_and_place_experiment: 9/9 runs passed
 ```
 
 3 variants × 3 seeds = 9 runs. `pick.json` contains every run, every

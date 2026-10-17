@@ -345,9 +345,9 @@ scenario:
 ```
 
 ```yaml
-# experiments/pick_and_place_benchmark.experiment.yaml
+# experiments/pick_and_place.experiment.yaml
 experiment:
-  id: pick_and_place_benchmark
+  id: pick_and_place_experiment
   seeds: [11, 12, 13]
   cases:
     - { id: nominal, scenario: scenarios/pick_and_place.scenario.yaml }
@@ -476,7 +476,7 @@ The **Demos** menu lists every package built under `build/plugins/`. The same sc
     build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml \
     --seed 7
 ./build/Robotik-Headless \
-    build/plugins/Painter/experiments/painting_benchmark.experiment.yaml \
+    build/plugins/Painter/experiments/painter.experiment.yaml \
     --report painting.json
 ```
 

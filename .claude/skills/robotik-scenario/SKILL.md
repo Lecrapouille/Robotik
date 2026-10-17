@@ -11,8 +11,10 @@ Scenario/experiment files must be listed in the plugin `plugin.yaml`.
 Edit `plugins/...`, then `make -C plugins/<Name>` (it overwrites `build/`).
 File names carry their role (doc/03 §1): `x.world.yaml`, `x.scenario.yaml`,
 `x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
-`x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`; `x` = the
-scenario id. Roles are read by `robotik::fileRole` (FileRole.hpp).
+`x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`. id = name without `.yaml`
+and `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`,
+`hello.experiment.yaml` → `hello_experiment`). `robotik::fileRole` /
+`roleStem` (FileRole.hpp).
 
 ## World
 

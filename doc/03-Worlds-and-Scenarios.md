@@ -57,7 +57,7 @@ use it.
 |------------------|------|---------|
 | `.world.yaml` | world | `worlds/arm.world.yaml` |
 | `.scenario.yaml` | scenario | `scenarios/wave.scenario.yaml` |
-| `.rl.yaml` | scenario driven by a learned policy (reinforcement learning) | `scenarios/pick_and_place_rl.rl.yaml` |
+| `.rl.yaml` | scenario driven by a learned policy (reinforcement learning) | `scenarios/pick_and_place.rl.yaml` |
 | `.bt.yaml` | behavior tree | `scenarios/skills.bt.yaml` |
 | `.domain.pddl` | PDDL domain of the planner ([chapter 11](11-PDDL-Planner.md)) | `scenarios/pick_and_place.domain.pddl` |
 | `.trajectory.yaml` | trajectory (§8) | `scenarios/trajectories/red_stroke.trajectory.yaml` |
@@ -66,9 +66,17 @@ use it.
 Rules:
 
 - Use `.yaml`, not `.yml`.
-- Keep `<name>` equal to the `id` of the scenario: `wave.scenario.yaml` has
-  `id: wave`. Without `entries:` in `plugin.yaml`, the id is read from the
-  name (`wave`).
+- The file name gives the `id`: drop `.yaml`, drop `.scenario` (the default
+  role), and change every other `.` into `_`. Write this id in the file and
+  in `plugin.yaml`:
+
+  | File | id |
+  |------|----|
+  | `wave.scenario.yaml` | `wave` |
+  | `pick_and_place.rl.yaml` | `pick_and_place_rl` |
+  | `hello.experiment.yaml` | `hello_experiment` |
+
+  Without `entries:` in `plugin.yaml`, the catalog reads the id this way.
 - `plugin.yaml` and `pack.yaml` keep their fixed names.
 - It is a convention: the loaders read the content and do not refuse a file
   for its name. An older `wave.yml` still loads.
