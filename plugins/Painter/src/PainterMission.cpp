@@ -14,6 +14,7 @@
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view)
@@ -42,8 +43,27 @@ void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView
     for (auto const& entry : p_simulation.scenario().trajectories)
     {
         strokes.emplace(entry.first, p_simulation.waypoints(entry.first));
+        m_paths[entry.first] = p_simulation.waypoints(entry.first);
     }
-    skills.add<painter::MarkSkill>(describe("mark"), m_stroke, std::move(strokes));
+    // How the brush follows a stroke, and the gains of the arm joints: a
+    // scenario (or an experiment) tunes them in parameters.
+    robotik::ConfigNode const& parameters = p_simulation.scenario().parameters;
+    painter::MarkSkill::Settings settings;
+    settings.step = parameters.number("stroke_step", settings.step);
+    settings.tolerance = parameters.number("stroke_tolerance", settings.tolerance);
+    skills.add<painter::MarkSkill>(describe("mark"), m_stroke, std::move(strokes), settings);
+    robotik::ConfigNode const& gains = parameters.at("arm_gains");
+    if (gains.isMap())
+    {
+        robotik::JointSet& joints = p_simulation.robot().joints();
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
+        {
+            robotik::JointGains& gain = joints.gains(id);
+            gain.kp = gains.number("kp", gain.kp);
+            gain.kd = gains.number("kd", gain.kd);
+            gain.speed_ratio = gains.number("speed_ratio", gain.speed_ratio);
+        }
+    }
     skills.add<painter::RinseSkill>(describe("rinse"), m_stroke);
     painter::registerNodes(p_simulation.factory(), skills);
     if (m_planner)
@@ -67,6 +87,14 @@ void PainterMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed 
 {
     m_stroke.brush.clear();
     m_stroke.painted.clear();
+    m_deviation = 0.0;
+    m_inked = 0;
+}
+
+void PainterMission::measure(robotik::Simulation const& /*p_simulation*/, robotik::Metrics& p_metrics) const
+{
+    p_metrics.set("painter.stroke_deviation", m_deviation);
+    p_metrics.set("painter.inked", static_cast<double>(m_inked));
 }
 
 // The robot cannot see the paint: what the planner knows of the brush and
@@ -94,7 +122,7 @@ void PainterMission::registerPlanning(robotik::Simulation& p_simulation)
 
 void PainterMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
 {
-    if (m_view == nullptr || !m_stroke.painting)
+    if (!m_stroke.painting)
     {
         return;
     }
@@ -109,6 +137,24 @@ void PainterMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*
     constexpr double kFace = 0.01;
     if (local.x < kFace || local.x > kFace + 0.05 || std::abs(local.y) > 0.19 ||
         std::abs(local.z) > 0.24)
+    {
+        return;
+    }
+    // The ink lands here: how far from the straight line of the stroke (its
+    // third and fourth waypoints), in the plane of the canvas?
+    ++m_inked;
+    if (auto const path = m_paths.find(m_stroke.color); path != m_paths.end() && path->second.size() >= 4u)
+    {
+        robotik::Vector3 const a = board.inverse() * path->second[2].position;
+        robotik::Vector3 const b = board.inverse() * path->second[3].position;
+        double const dy = b.y - a.y;
+        double const dz = b.z - a.z;
+        double const length2 = dy * dy + dz * dz;
+        double const t = length2 > 0.0 ? std::clamp(((local.y - a.y) * dy + (local.z - a.z) * dz) / length2, 0.0, 1.0)
+                                       : 0.0;
+        m_deviation = std::max(m_deviation, std::hypot(local.y - (a.y + t * dy), local.z - (a.z + t * dz)));
+    }
+    if (m_view == nullptr)
     {
         return;
     }

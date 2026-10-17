@@ -53,7 +53,18 @@ public:
 
     using Strokes = std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
 
-    MarkSkill(Stroke& p_stroke, Strokes p_strokes);
+    //! @brief How the brush follows a stroke.
+    struct Settings
+    {
+        //!< Longest Cartesian step (m) between two IK targets. Each target
+        //!< is reached in joint space: without small steps the brush draws
+        //!< arcs, not lines. Zero: the waypoints only.
+        double step = 0.002;
+        //!< Joint tolerance (rad) to go on to the next target.
+        double tolerance = 2e-2;
+    };
+
+    MarkSkill(Stroke& p_stroke, Strokes p_strokes, Settings p_settings);
 
     void use(std::string p_color);
 
@@ -66,7 +77,12 @@ private:
     Stroke* m_stroke = nullptr;
     Strokes m_strokes;
     std::string m_color = "red";
+    Settings m_settings;
     std::vector<robotik::Pose> m_path;
+    //!< Targets of the path that lay paint: from the second waypoint to the
+    //!< one before last.
+    std::size_t m_paint_begin = 0;
+    std::size_t m_paint_end = 0;
     std::size_t m_index = 0;
     robotik::MoveTCPSkill m_move;
     bool m_ready = false;
