@@ -59,6 +59,11 @@ libraries are then built by Make rules, there is no `external/compilation`.
 
 ## Rules that are easy to break
 
+- The core and the hosts stay agnostic of the demos: no demo object, joint,
+  tool or task in `src/`, `include/`, `simulator/`, `headless/`. The demos
+  prove RobotIK fits any robot project. Known leaks and the rule:
+  `robotik-plugin` skill, "Core stays agnostic". Report a new leak.
+
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
   give them ground truth (`Simulation::pose/query`); that is for metrics,
   assertions, RL reward.
