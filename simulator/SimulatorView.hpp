@@ -37,9 +37,12 @@ class RenderedCamera final: public robotik::FrameSource
 {
 public:
 
+    //! @p_overlays: entities only the operator sees (teach axes, waypoint
+    //! markers), hidden while this camera renders.
     RenderedCamera(compages::renderer::Scene& p_scene,
                    robotik::Camera const& p_camera,
-                   compages::world::Entity p_link);
+                   compages::world::Entity p_link,
+                   std::vector<compages::world::EntityId> const& p_overlays);
 
     bool capture(robotik::Camera const& p_camera,
                  robotik::CameraFrame& p_frame) override;
@@ -53,6 +56,7 @@ public:
 private:
 
     compages::renderer::Scene& m_scene;
+    std::vector<compages::world::EntityId> const& m_overlays;
     compages::world::Entity m_entity;
     RenderTarget m_target;
 };
@@ -82,6 +86,13 @@ public:
                     double p_height) override;
     void ink(double p_y, double p_z, float p_red, float p_green, float p_blue) override;
 
+    //! @brief Marks @p_entity as a help for the operator: the 3D view shows
+    //! it, the robot cameras never see it (it would fool perception).
+    void overlay(compages::world::Entity p_entity)
+    {
+        m_overlays.push_back(p_entity.id());
+    }
+
     [[nodiscard]] bool hasGround() const override
     {
         return m_grounded;
@@ -103,6 +114,7 @@ private:
     compages::renderer::Scene& m_scene;
     std::vector<std::unique_ptr<RenderedCamera>> m_cameras;
     std::vector<std::unique_ptr<RenderTarget>> m_frames;
+    std::vector<compages::world::EntityId> m_overlays;
     bool m_grounded = false;
     std::filesystem::path m_ground_file;
     compages::renderer::CanvasTexture m_paint;

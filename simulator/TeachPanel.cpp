@@ -37,7 +37,7 @@ void takeArm(App& p_app)
 
 void syncTeachAxes(App& p_app, bool p_visible)
 {
-    if (!p_app.simulation || !p_app.scene || !p_app.world)
+    if (!p_app.simulation || !p_app.scene || !p_app.world || !p_app.scene_view)
     {
         return;
     }
@@ -61,6 +61,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
             teach.axes[i] = p_app.scene->box(
                 NAMES[i], compages::renderer::color(COLORS[i][0], COLORS[i][1], COLORS[i][2]));
             teach.axes[i].parent(robot.root());
+            p_app.scene_view->overlay(teach.axes[i]);
         }
         teach.axes_made = true;
     }
@@ -102,7 +103,7 @@ namespace
 
 void syncMarkers(App& p_app)
 {
-    if (!p_app.simulation || !p_app.scene || !p_app.world)
+    if (!p_app.simulation || !p_app.scene || !p_app.world || !p_app.scene_view)
     {
         return;
     }
@@ -118,6 +119,7 @@ void syncMarkers(App& p_app)
                 "teach_" + std::to_string(++p_app.teach.marker_serial),
                 compages::renderer::color(1.0f, 0.72f, 0.15f));
             marker.parent(root).scale(0.02f);
+            p_app.scene_view->overlay(marker);
             if (i == markers.size())
             {
                 markers.push_back(marker);
