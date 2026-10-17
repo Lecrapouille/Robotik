@@ -100,7 +100,53 @@ void stopButton(App& p_app, ImVec2 p_at, float p_width)
     ImGui::SetItemTooltip("The Stop skill takes every actuator  (Ctrl+E)");
 }
 
+//! @brief Colored frame around the view: the state of the run at a glance.
+void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
+{
+    ImVec4 color;
+    if (!runColor(p_app, color))
+    {
+        return;
+    }
+    constexpr float THICKNESS = 3.0f;
+    float const half = THICKNESS * 0.5f;
+    ImGui::GetWindowDrawList()->AddRect(ImVec2(p_at.x + half, p_at.y + half),
+                                        ImVec2(p_at.x + p_size.x - half, p_at.y + p_size.y - half),
+                                        ImGui::GetColorU32(color), 0.0f, 0, THICKNESS);
+}
+
 } // namespace
+
+bool runColor(App const& p_app, ImVec4& p_color)
+{
+    if (!p_app.simulation)
+    {
+        return false;
+    }
+    robotik::Simulation const& simulation = *p_app.simulation;
+    switch (simulation.outcome())
+    {
+        case robotik::Simulation::Outcome::Running:
+            if (simulation.time().value() <= 0.0)
+            {
+                return false;
+            }
+            p_color = ORANGE;
+            return true;
+        case robotik::Simulation::Outcome::ControllerSucceeded:
+        case robotik::Simulation::Outcome::StopCondition:
+            p_color = simulation.passed() ? GREEN : RED;
+            return true;
+        case robotik::Simulation::Outcome::ControllerFailed:
+        case robotik::Simulation::Outcome::Timeout:
+        case robotik::Simulation::Outcome::AssertionFailed:
+            p_color = RED;
+            return true;
+        case robotik::Simulation::Outcome::Interrupted:
+            return false;
+    }
+    return false;
+}
 
 bool emergencyEngaged(App const& p_app)
 {
@@ -179,6 +225,7 @@ void scenePanel(App& p_app, char const* p_key)
             ImTextureRef(static_cast<ImTextureID>(p_app.view.color.nativeId())), at,
             ImVec2(at.x + size.x, at.y + size.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
     }
+    runFrame(p_app, at, size);
     runControls(p_app, at);
     stopButton(p_app, at, size.x);
     char const* hint = "Right drag: orbit   Wheel: zoom";
