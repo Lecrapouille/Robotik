@@ -283,11 +283,24 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
 {
     bool const robot_side = p_record.spec->type == EntitySpec::Type::Robot ||
                             p_record.spec->type == EntitySpec::Type::Tool;
+    // The robot answers for its mounted tool: a tool hitting the world is a
+    // robot collision too.
+    auto mine = [&](std::string const& p_body)
+    {
+        if (p_record.links.contains(p_body))
+        {
+            return true;
+        }
+        return p_record.spec->type == EntitySpec::Type::Robot &&
+               std::any_of(m_records.begin(), m_records.end(),
+                           [&](Record const& p_peer)
+                           { return p_peer.spec->type == EntitySpec::Type::Tool && p_peer.links.contains(p_body); });
+    };
     int count = 0;
     for (Contact const& contact : p_contacts)
     {
-        bool const first = p_record.links.contains(contact.first);
-        bool const second = p_record.links.contains(contact.second);
+        bool const first = mine(contact.first);
+        bool const second = mine(contact.second);
         // Self contacts and the floor do not count.
         if (first == second || contact.first == Contact::GROUND ||
             contact.second == Contact::GROUND)
