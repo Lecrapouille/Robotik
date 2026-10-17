@@ -35,6 +35,68 @@ void takeArm(App& p_app)
     p_app.simulation->robot().joints().hold();
 }
 
+void syncTeachAxes(App& p_app, bool p_visible)
+{
+    if (!p_app.simulation || !p_app.scene || !p_app.world)
+    {
+        return;
+    }
+    TeachWatch& teach = p_app.teach;
+    robotik::RobotSession& robot = p_app.simulation->robot();
+    std::string const& frame = teach.pendant.frame(robot);
+    bool const show = p_visible && teach.show_axes && !frame.empty() && !p_app.owns_clock;
+    if (!teach.axes_made || !p_app.world->alive(teach.axes[0].id()))
+    {
+        if (!show)
+        {
+            return;
+        }
+        // Red X, green Y, blue Z, as in 3D modelling tools.
+        constexpr float COLORS[3][3] = { { 0.95f, 0.20f, 0.20f },
+                                         { 0.25f, 0.85f, 0.30f },
+                                         { 0.25f, 0.45f, 1.00f } };
+        constexpr char const* NAMES[3] = { "teach_axis_x", "teach_axis_y", "teach_axis_z" };
+        for (std::size_t i = 0; i < 3u; ++i)
+        {
+            teach.axes[i] = p_app.scene->box(
+                NAMES[i], compages::renderer::color(COLORS[i][0], COLORS[i][1], COLORS[i][2]));
+            teach.axes[i].parent(robot.root());
+        }
+        teach.axes_made = true;
+    }
+    if (!show)
+    {
+        for (compages::world::Entity& axis : teach.axes)
+        {
+            axis.enable(false);
+        }
+        return;
+    }
+    // Each arrow is a thin box from the frame origin along its axis. Poses
+    // are in the robot base frame, like the waypoint markers.
+    constexpr double LENGTH = 0.10;
+    constexpr float THICKNESS = 0.004f;
+    robotik::Pose const pose = robot.framePose(frame);
+    compages::core::Quatf const rotation(static_cast<float>(pose.rotation.w),
+                                         static_cast<float>(pose.rotation.x),
+                                         static_cast<float>(pose.rotation.y),
+                                         static_cast<float>(pose.rotation.z));
+    for (std::size_t i = 0; i < 3u; ++i)
+    {
+        robotik::Vector3 half = robotik::zero3();
+        half[static_cast<int>(i)] = 0.5 * LENGTH;
+        robotik::Vector3 const center = pose * half;
+        float const length = static_cast<float>(LENGTH);
+        teach.axes[i]
+            .enable(true)
+            .position(static_cast<float>(center.x), static_cast<float>(center.y),
+                      static_cast<float>(center.z))
+            .rotation(rotation)
+            .scale(i == 0u ? length : THICKNESS, i == 1u ? length : THICKNESS,
+                   i == 2u ? length : THICKNESS);
+    }
+}
+
 namespace
 {
 
@@ -280,7 +342,6 @@ void frameChoice(App& p_app)
     robotik::TeachPendant& pendant = p_app.teach.pendant;
     std::string const& current = pendant.frame(robot);
     std::string const work = robot.tool().empty() ? std::string("(none)") : robot.tool() + "  (tool)";
-    ImGui::SetNextItemWidth(-1.0f);
     if (!ImGui::BeginCombo("##frame", current == robot.tool() ? work.c_str() : current.c_str()))
     {
         return;
@@ -312,7 +373,13 @@ void cartesianJog(App& p_app)
     helpMarker("Each press moves the chosen frame by one step in the robot base frame: the "
                "tool (TCP), or any link of the robot. Inverse kinematics (Pinocchio) finds "
                "the joint angles. Moving takes the robot from the mission (Manual mode).");
+    float const axes_width = ImGui::CalcTextSize("Axes").x + ImGui::GetFrameHeight() +
+                             ImGui::GetStyle().ItemInnerSpacing.x;
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - axes_width - ImGui::GetStyle().ItemSpacing.x);
     frameChoice(p_app);
+    ImGui::SameLine();
+    ImGui::Checkbox("Axes", &p_app.teach.show_axes);
+    ImGui::SetItemTooltip("Show the frame in the 3D view: X red, Y green, Z blue.");
     std::string const& frame = p_app.teach.pendant.frame(robot);
     if (!frame.empty())
     {

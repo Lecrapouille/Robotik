@@ -181,6 +181,10 @@ struct TeachWatch
     robotik::TeachPendant pendant;
     std::vector<compages::world::Entity> markers;
     std::uint32_t marker_serial = 0;
+    //!< X, Y, Z arrows on the frame the pendant moves (Robot workspace).
+    bool show_axes = true;
+    bool axes_made = false;
+    std::array<compages::world::Entity, 3> axes{};
 };
 
 struct App

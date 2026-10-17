@@ -115,6 +115,9 @@ void filesPanel(App& p_app);
 void robotPanel(App& p_app);
 void plotsPanel(App& p_app);
 void teachPanel(App& p_app);
+//! @brief Draws X, Y, Z axes on the frame the Teach Pendant moves, or hides
+//! them. Called every frame.
+void syncTeachAxes(App& p_app, bool p_visible);
 //! @brief Takes the arm from the mission for manual moves.
 void takeArm(App& p_app);
 

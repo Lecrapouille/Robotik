@@ -158,6 +158,7 @@ void App::load(bool p_keep_tool)
     teach.pendant.clear();
     teach.pendant.frame({});
     teach.markers.clear();
+    teach.axes_made = false;
     if (!p_keep_tool)
     {
         tool_override = false;
