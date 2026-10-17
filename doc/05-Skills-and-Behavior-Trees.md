@@ -138,8 +138,11 @@ Grasp                    LookAround
 - Two skills can share a camera stream (`Shared`).
 
 In the simulator, the **Timeline** panel (Mission workspace) shows each
-resource as a chip: grey when free, orange when a skill holds it, red when
-it is in fault. Click a chip to inject a fault or to clear it.
+resource as a chip: grey when free, orange when a skill holds it, blue when
+skills share it, red when it is in fault. The number on the chip counts the
+holders; hover it to read their names. The **Resources** panel lists who
+holds what, and injects faults by hand: tick one or more resources, give a
+duration (0: until you restore them), then press *Inject*.
 
 ---
 

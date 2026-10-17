@@ -121,6 +121,8 @@ void takeArm(App& p_app);
 // --- Mission workspace (MissionPanels.cpp, SkillsPanel.cpp) -----------------
 
 void timelinePanel(App& p_app);
+//! @brief Who holds each resource, and faults injected by hand.
+void resourcesPanel(App& p_app);
 void skillsPanel(App& p_app);
 //! @brief The PDDL planner: state, plan, beliefs, history, texts (PlannerPanel.cpp).
 void plannerPanel(App& p_app);
