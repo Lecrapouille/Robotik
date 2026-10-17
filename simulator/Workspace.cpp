@@ -209,6 +209,71 @@ void shortcuts(App& p_app)
 
 // --- Menu bar ---------------------------------------------------------------
 
+//! @brief Why a workspace tab is drawn in red, one reason per line; empty
+//! when all is well. Plugin: the scenario did not load, or a package of the
+//! catalog is broken. Mission: the run failed, the robot is stopped, or a
+//! resource is in fault.
+std::string alertOf(App const& p_app, Workspace p_workspace)
+{
+    std::string alert;
+    auto line = [&alert](std::string const& p_text)
+    {
+        alert += alert.empty() ? "" : "\n";
+        alert += p_text;
+    };
+    if (p_workspace == Workspace::Plugin)
+    {
+        if (!p_app.error.empty())
+        {
+            line(p_app.error);
+        }
+        for (std::string const& error : p_app.plugins.catalog().errors())
+        {
+            line(error);
+        }
+    }
+    else if (p_workspace == Workspace::Mission && p_app.simulation)
+    {
+        robotik::Simulation const& simulation = *p_app.simulation;
+        switch (simulation.outcome())
+        {
+            case robotik::Simulation::Outcome::ControllerFailed:
+                line("The controller failed.");
+                break;
+            case robotik::Simulation::Outcome::Timeout:
+                line("The run timed out.");
+                break;
+            case robotik::Simulation::Outcome::AssertionFailed:
+                line("An assertion failed.");
+                break;
+            case robotik::Simulation::Outcome::ControllerSucceeded:
+            case robotik::Simulation::Outcome::StopCondition:
+                if (!simulation.passed())
+                {
+                    line("The run ended without passing its assertions.");
+                }
+                break;
+            case robotik::Simulation::Outcome::Running:
+            case robotik::Simulation::Outcome::Interrupted:
+                break;
+        }
+        if (emergencyEngaged(p_app))
+        {
+            line("Emergency stop engaged.");
+        }
+        robotik::ResourceManager const& resources = simulation.robot().resources();
+        for (std::size_t i = 0; i < resources.size(); ++i)
+        {
+            robotik::ResourceId const id = static_cast<robotik::ResourceId>(i);
+            if (!resources.available(id))
+            {
+                line("Resource in fault: " + resources.name(id));
+            }
+        }
+    }
+    return alert;
+}
+
 void workspaceTabs(App& p_app)
 {
     // Centred in the free part of the menu bar.
@@ -226,16 +291,25 @@ void workspaceTabs(App& p_app)
     {
         WorkspaceInfo const& info = WORKSPACES[i];
         bool const current = p_app.ui.workspace == static_cast<Workspace>(i);
+        std::string const alert = alertOf(p_app, static_cast<Workspace>(i));
         ImGui::PushStyleColor(ImGuiCol_Button, current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
                                                        : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, current ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-                                                     : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::PushStyleColor(ImGuiCol_Text, !alert.empty() ? RED
+                                             : current     ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+                                                           : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         if (ImGui::Button(info.name))
         {
             select(p_app, static_cast<Workspace>(i));
         }
         ImGui::PopStyleColor(2);
-        ImGui::SetItemTooltip("%s  (%s)", info.hint, info.shortcut);
+        if (alert.empty())
+        {
+            ImGui::SetItemTooltip("%s  (%s)", info.hint, info.shortcut);
+        }
+        else
+        {
+            ImGui::SetItemTooltip("%s  (%s)\n\n%s", info.hint, info.shortcut, alert.c_str());
+        }
     }
 }
 

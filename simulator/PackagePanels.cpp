@@ -677,6 +677,24 @@ void pluginPanel(App& p_app)
     }
     robotik::PluginPackage const* package = loadedPackage(p_app);
     followPackage(p_app, package);
+    std::vector<std::string> const& broken = p_app.plugins.catalog().errors();
+    if (!p_app.error.empty() || !broken.empty())
+    {
+        // A broken plugin.yaml leaves its package out of the Demos menu:
+        // this is the only place that says why.
+        ImGui::SeparatorText("Errors");
+        ImGui::PushStyleColor(ImGuiCol_Text, RED);
+        if (!p_app.error.empty())
+        {
+            ImGui::TextWrapped("%s", p_app.error.c_str());
+        }
+        for (std::string const& error : broken)
+        {
+            ImGui::TextWrapped("%s", error.c_str());
+        }
+        ImGui::PopStyleColor();
+        ImGui::Spacing();
+    }
     if (package == nullptr)
     {
         emptyState("No plugin loaded.\nChoose a scenario in the Demos menu.");
