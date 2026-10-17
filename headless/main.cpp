@@ -42,7 +42,7 @@ struct Options
 
 void usage()
 {
-    std::cerr << "usage: Robotik-Headless <scenario.yml | experiment.yaml> [--seed N]\n"
+    std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | x.experiment.yaml> [--seed N]\n"
                  "                        [--report report.json] [--trace]\n";
 }
 

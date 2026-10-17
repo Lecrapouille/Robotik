@@ -493,7 +493,7 @@ void openDialog(App& p_app)
     {
         return;
     }
-    ImGui::TextUnformatted("Scenario file (.yml), listed in the plugin.yaml of its package:");
+    ImGui::TextUnformatted("Scenario file (.scenario.yaml), listed in the plugin.yaml of its package:");
     ImGui::SetNextItemWidth(600.0f);
     if (ImGui::IsWindowAppearing())
     {

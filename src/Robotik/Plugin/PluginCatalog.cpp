@@ -9,6 +9,7 @@
 
 #include "Robotik/Assets/AssetResolver.hpp"
 #include "Robotik/Plugin/PluginABI.h"
+#include "Robotik/Scenario/FileRole.hpp"
 
 #include "BlackThorn/Builder/Yaml.hpp"
 
@@ -126,7 +127,8 @@ std::string titleFromStem(std::string p_stem)
 }
 
 //! Entries of a "scenarios:" or "experiments:" section: listed, or every
-//! *.yml / *.yaml of the folder (behavior trees excepted). Files must stay in
+//! runnable file of the folder (*.scenario.yaml, *.rl.yaml,
+//! *.experiment.yaml, or a YAML file without a role). Files must stay in
 //! the package. False, with @p_why set, on an invalid section or file.
 bool readEntries(bt::YamlNode const& p_section,
                  std::filesystem::path const& p_root,
@@ -181,10 +183,9 @@ bool readEntries(bt::YamlNode const& p_section,
              cursor.increment(error))
         {
             std::filesystem::path const file = cursor->path();
-            std::string const name = file.filename().string();
-            bool const yaml = name.ends_with(".yml") || name.ends_with(".yaml");
-            // Behavior trees live beside the scenarios but are not runnable.
-            if (yaml && !name.ends_with(".bt.yml") && !name.ends_with(".bt.yaml"))
+            // Trees, domains and trajectories live beside the scenarios but
+            // are not runnable (FileRole.hpp).
+            if (runnableRole(file))
             {
                 files.push_back(file);
             }
@@ -193,7 +194,7 @@ bool readEntries(bt::YamlNode const& p_section,
         for (std::filesystem::path const& file : files)
         {
             PluginScenario entry;
-            entry.id = file.stem().string();
+            entry.id = roleStem(file);
             entry.name = titleFromStem(entry.id);
             entry.file = file;
             entry.owns_clock = p_owns_clock;
@@ -339,7 +340,7 @@ PluginMatch PluginCatalog::matchScenario(std::filesystem::path const& p_scenario
     {
         return { exact, scenarioOf(*exact, p_scenario) };
     }
-    std::string const stem = p_scenario.stem().string();
+    std::string const stem = roleStem(p_scenario);
     if (stem.empty())
     {
         return {};
