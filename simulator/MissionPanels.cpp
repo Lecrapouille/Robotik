@@ -36,6 +36,17 @@ ImVec4 colorOf(bt::Status p_status)
     return GREY;
 }
 
+//! @brief Root of the nested tree of a SubTree node, else null.
+bt::Node const* subtreeRoot(bt::Node const& p_node)
+{
+    auto const* subtree = dynamic_cast<bt::SubTreeNode const*>(&p_node);
+    if (subtree == nullptr || !subtree->subtree().hasRoot())
+    {
+        return nullptr;
+    }
+    return &subtree->subtree().getRoot();
+}
+
 //! @brief Draw a tree node.
 //! @param p_node The node.
 void treeNode(bt::Node const& p_node)
@@ -43,7 +54,8 @@ void treeNode(bt::Node const& p_node)
     ImGui::PushID(&p_node);
     auto const* composite = dynamic_cast<bt::Composite const*>(&p_node);
     auto const* decorator = dynamic_cast<bt::Decorator const*>(&p_node);
-    bool const leaf = composite == nullptr &&
+    bt::Node const* nested = subtreeRoot(p_node);
+    bool const leaf = composite == nullptr && nested == nullptr &&
                       (decorator == nullptr || !decorator->hasChild());
     ImGuiTreeNodeFlags flags =
         ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -68,6 +80,10 @@ void treeNode(bt::Node const& p_node)
             {
                 treeNode(composite->childAt(i));
             }
+        }
+        else if (nested != nullptr)
+        {
+            treeNode(*nested);
         }
         else
         {
@@ -113,6 +129,10 @@ void collectControlFailures(bt::Node const& p_node,
              decorator != nullptr && decorator->hasChild())
     {
         collectControlFailures(decorator->childNode(), p_labels);
+    }
+    else if (bt::Node const* nested = subtreeRoot(p_node))
+    {
+        collectControlFailures(*nested, p_labels);
     }
 }
 
