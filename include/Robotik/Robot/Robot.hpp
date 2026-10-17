@@ -151,6 +151,11 @@ public:
         return m_backend.get();
     }
 
+    [[nodiscard]] RobotBackend* backend()
+    {
+        return m_backend.get();
+    }
+
     //! @brief Rotation from the URDF frame (Z-up, the world frame of
     //! Robotik) to the Compages frame (Y-up) the entities are drawn in.
     [[nodiscard]] compages::core::Quatf const& urdfFrame() const

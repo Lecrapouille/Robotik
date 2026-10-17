@@ -104,6 +104,25 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    //! @brief Moves a free body to @p_pose, at rest (simulation only).
+    //! @return False if the backend has no such free body.
+    // -------------------------------------------------------------------------
+    virtual bool placeBody(std::string const& /*p_body*/, Pose const& /*p_pose*/)
+    {
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
+    //! @brief Turns on or off a weld declared before the backend was built:
+    //! on, the second body keeps its current pose relative to the first.
+    //! @return False if the backend has no such weld.
+    // -------------------------------------------------------------------------
+    virtual bool weld(std::string const& /*p_name*/, bool /*p_on*/)
+    {
+        return false;
+    }
+
+    // -------------------------------------------------------------------------
     //! @brief Distance to the first surface hit by a ray, ignoring the robot.
     //! @param p_origin Ray origin in the world frame (m).
     //! @param p_direction Unit direction in the world frame.

@@ -68,7 +68,18 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::vector<Chain> chains;
+    //! @brief A weld between two bodies, off until @ref MujocoBackend::weld.
+    struct Weld
+    {
+        std::string name;
+        std::string body1;
+        std::string body2;
+    };
+
     std::vector<FreeBox> boxes;
+    std::vector<Weld> welds;
+    //!< Pairs of bodies that never collide.
+    std::vector<std::pair<std::string, std::string>> excluded;
     std::vector<Graft> grafts;
     //!< True until @ref MujocoBackend::compile has consumed @c chains.
     bool dirty = true;
@@ -416,12 +427,20 @@ static void addFreeBox(mjSpec* p_host, FreeBox const& p_box)
     mjs_setName(body->element, p_box.name.c_str());
     writePose(body, p_box.pose);
     body->mass = p_box.mass;
+    // The centre of mass is the box centre. Without it, an explicit inertia
+    // takes the body position as centre of mass: the box tips over.
+    body->ipos[0] = body->ipos[1] = body->ipos[2] = 0.0;
+    body->iquat[0] = 1.0;
+    body->iquat[1] = body->iquat[2] = body->iquat[3] = 0.0;
     body->inertia[0] = p_box.inertia.x;
     body->inertia[1] = p_box.inertia.y;
     body->inertia[2] = p_box.inertia.z;
     body->explicitinertial = 1;
-    mjsJoint* const joint = mjs_addFreeJoint(body);
-    mjs_setName(joint->element, (p_box.name + "_free").c_str());
+    if (!p_box.fixed)
+    {
+        mjsJoint* const joint = mjs_addFreeJoint(body);
+        mjs_setName(joint->element, (p_box.name + "_free").c_str());
+    }
     mjsGeom* const geom = mjs_addGeom(body, nullptr);
     geom->type = mjGEOM_BOX;
     geom->size[0] = 0.5 * p_box.size.x;
@@ -484,6 +503,83 @@ void MujocoBackend::addBox(FreeBox const& p_box)
     }
     m_impl->boxes.push_back(p_box);
     invalidate();
+}
+
+void MujocoBackend::addWeld(std::string p_name, std::string p_body1, std::string p_body2)
+{
+    if (p_name.empty() || p_body1.empty() || p_body2.empty())
+    {
+        throw std::runtime_error("MuJoCo: a weld needs a name and two bodies");
+    }
+    m_impl->welds.push_back(Impl::Weld{ std::move(p_name), std::move(p_body1), std::move(p_body2) });
+    invalidate();
+}
+
+void MujocoBackend::excludeContacts(std::string p_body1, std::string p_body2)
+{
+    m_impl->excluded.emplace_back(std::move(p_body1), std::move(p_body2));
+    invalidate();
+}
+
+bool MujocoBackend::weld(std::string const& p_name, bool p_on)
+{
+    mjModel* const model = m_impl->model;
+    mjData* const data = m_impl->data;
+    if (model == nullptr || data == nullptr)
+    {
+        return false;
+    }
+    int const id = mj_name2id(model, mjOBJ_EQUALITY, p_name.c_str());
+    if (id < 0)
+    {
+        return false;
+    }
+    if (p_on)
+    {
+        // Keep the pose of body2 in the frame of body1 as it is now:
+        // anchor (0..2) zero, relpos (3..5), relquat (6..9).
+        int const body1 = model->eq_obj1id[id];
+        int const body2 = model->eq_obj2id[id];
+        mjtNum offset[3];
+        mju_sub3(offset, data->xpos + 3 * body2, data->xpos + 3 * body1);
+        mjtNum* const relation = model->eq_data + mjNEQDATA * id;
+        mju_zero3(relation);
+        mju_mulMatTVec3(relation + 3, data->xmat + 9 * body1, offset);
+        mjtNum inverse[4];
+        mju_negQuat(inverse, data->xquat + 4 * body1);
+        mju_mulQuat(relation + 6, inverse, data->xquat + 4 * body2);
+        relation[10] = 1.0;
+    }
+    data->eq_active[id] = p_on ? 1 : 0;
+    return true;
+}
+
+bool MujocoBackend::placeBody(std::string const& p_body, Pose const& p_pose)
+{
+    mjModel* const model = m_impl->model;
+    mjData* const data = m_impl->data;
+    if (model == nullptr || data == nullptr)
+    {
+        return false;
+    }
+    int const body = mj_name2id(model, mjOBJ_BODY, p_body.c_str());
+    if (body < 0 || model->body_jntnum[body] != 1 ||
+        model->jnt_type[model->body_jntadr[body]] != mjJNT_FREE)
+    {
+        return false;
+    }
+    int const joint = model->body_jntadr[body];
+    mjtNum* const qpos = data->qpos + model->jnt_qposadr[joint];
+    qpos[0] = p_pose.position.x;
+    qpos[1] = p_pose.position.y;
+    qpos[2] = p_pose.position.z;
+    qpos[3] = p_pose.rotation.w;
+    qpos[4] = p_pose.rotation.x;
+    qpos[5] = p_pose.rotation.y;
+    qpos[6] = p_pose.rotation.z;
+    mju_zero(data->qvel + model->jnt_dofadr[joint], 6);
+    mj_forward(model, data);
+    return true;
 }
 
 std::optional<Pose> MujocoBackend::bodyPose(std::string const& p_body) const
@@ -716,6 +812,28 @@ void MujocoBackend::compile()
     for (FreeBox const& box : m_impl->boxes)
     {
         addFreeBox(host, box);
+    }
+    for (Impl::Weld const& weld : m_impl->welds)
+    {
+        mjsEquality* const equality = mjs_addEquality(host, nullptr);
+        mjs_setName(equality->element, weld.name.c_str());
+        equality->type = mjEQ_WELD;
+        equality->objtype = mjOBJ_BODY;
+        mjs_setString(equality->name1, weld.body1.c_str());
+        mjs_setString(equality->name2, weld.body2.c_str());
+        equality->active = 0;
+        // Relative pose set when turned on; torque scale 1.
+        equality->data[6] = 1.0;
+        equality->data[10] = 1.0;
+        mjsExclude* const exclude = mjs_addExclude(host);
+        mjs_setString(exclude->bodyname1, weld.body1.c_str());
+        mjs_setString(exclude->bodyname2, weld.body2.c_str());
+    }
+    for (auto const& [body1, body2] : m_impl->excluded)
+    {
+        mjsExclude* const exclude = mjs_addExclude(host);
+        mjs_setString(exclude->bodyname1, body1.c_str());
+        mjs_setString(exclude->bodyname2, body2.c_str());
     }
     mjModel* const fresh = mj_compile(host, nullptr);
     std::string const compile_error = mjs_getError(host);
