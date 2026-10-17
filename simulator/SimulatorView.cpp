@@ -59,8 +59,9 @@ bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
 
 RenderedCamera::RenderedCamera(compages::renderer::Scene& p_scene,
                                robotik::Camera const& p_camera,
-                               compages::world::Entity p_link)
-    : m_scene(p_scene)
+                               compages::world::Entity p_link,
+                               std::vector<compages::world::EntityId> const& p_overlays)
+    : m_scene(p_scene), m_overlays(p_overlays)
 {
     compages::world::Entity const active = p_scene.activeCamera();
 
@@ -85,11 +86,26 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
         return false;
     }
     sync(p_camera);
+    // The robot does not see the helps drawn for the operator.
+    compages::world::World& world = m_scene.world();
+    std::vector<compages::world::EntityId> hidden;
+    for (compages::world::EntityId const id : m_overlays)
+    {
+        if (world.alive(id) && compages::world::Entity(world, id).enabled())
+        {
+            compages::world::Entity(world, id).enable(false);
+            hidden.push_back(id);
+        }
+    }
     {
         compages::gpu::RenderPass pass(
             m_target.framebuffer,
             compages::gpu::PassDesc{ .color = viewClearColor() });
         m_scene.render(m_entity);
+    }
+    for (compages::world::EntityId const id : hidden)
+    {
+        compages::world::Entity(world, id).enable(true);
     }
     auto pixels = m_target.color.read();
     if (!pixels)
@@ -188,7 +204,7 @@ void SimulatorView::object(compages::world::Entity p_entity,
 robotik::FrameSource* SimulatorView::camera(robotik::Camera& p_camera,
                                             compages::world::Entity p_link)
 {
-    m_cameras.push_back(std::make_unique<RenderedCamera>(m_scene, p_camera, p_link));
+    m_cameras.push_back(std::make_unique<RenderedCamera>(m_scene, p_camera, p_link, m_overlays));
     return m_cameras.back().get();
 }
 
