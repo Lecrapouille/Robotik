@@ -254,72 +254,147 @@ void timeline(robotik::Simulation const& p_simulation)
         ImVec2(width, head + static_cast<float>(skills.size()) * row + 4.0f));
 }
 
-//! @brief Names of the skills currently holding @p_id.
-std::string holdersOf(robotik::SkillScheduler const& p_skills,
-                             robotik::ResourceManager const& p_resources,
-                             robotik::ResourceId p_id)
+//! @brief Names of the skills currently holding @p_id, exclusive or shared.
+std::vector<std::string> holdersOf(robotik::SkillScheduler const& p_skills,
+                                   robotik::ResourceManager const& p_resources,
+                                   robotik::ResourceId p_id)
 {
-    std::uint16_t const shared = p_resources.users(p_id);
-    if (shared > 0u)
-    {
-        std::string names;
-        for (robotik::SkillId id = 0; id < p_skills.size(); ++id)
-        {
-            if (p_skills.state(id) != robotik::SkillState::Running)
-            {
-                continue;
-            }
-            for (robotik::ResourceRequirement const& need :
-                 p_skills.description(id).resources)
-            {
-                if (need.id != p_id || need.access != robotik::Access::Shared)
-                {
-                    continue;
-                }
-                if (!names.empty())
-                {
-                    names += ", ";
-                }
-                names += p_skills.name(id);
-            }
-        }
-        if (names.empty())
-        {
-            names = "?";
-        }
-        names += " (";
-        names += std::to_string(shared);
-        names += ")";
-        return names;
-    }
+    std::vector<std::string> names;
     if (p_resources.owner(p_id) != robotik::NO_OWNER)
     {
-        return skillOwnerName(p_skills, p_resources.owner(p_id));
+        names.push_back(skillOwnerName(p_skills, p_resources.owner(p_id)));
+        return names;
     }
-    return "-";
+    std::uint16_t const shared = p_resources.users(p_id);
+    if (shared == 0u)
+    {
+        return names;
+    }
+    for (robotik::SkillId id = 0; id < p_skills.size(); ++id)
+    {
+        if (p_skills.state(id) != robotik::SkillState::Running)
+        {
+            continue;
+        }
+        for (robotik::ResourceRequirement const& need : p_skills.description(id).resources)
+        {
+            if (need.id == p_id && need.access == robotik::Access::Shared)
+            {
+                names.push_back(p_skills.name(id));
+            }
+        }
+    }
+    // Users that are not skills of the scheduler (a plugin, the teach pendant).
+    while (names.size() < shared)
+    {
+        names.emplace_back("(external)");
+    }
+    return names;
+}
+
+//! @brief Skills that need @p_id, whether they run or not.
+std::vector<std::string> neededBy(robotik::SkillScheduler const& p_skills, robotik::ResourceId p_id)
+{
+    std::vector<std::string> names;
+    for (robotik::SkillId id = 0; id < p_skills.size(); ++id)
+    {
+        for (robotik::ResourceRequirement const& need : p_skills.description(id).resources)
+        {
+            if (need.id == p_id)
+            {
+                names.push_back(p_skills.name(id));
+                break;
+            }
+        }
+    }
+    return names;
+}
+
+//! @brief "a, b, c", or @p_none when empty.
+std::string joined(std::vector<std::string> const& p_names, char const* p_none)
+{
+    if (p_names.empty())
+    {
+        return p_none;
+    }
+    std::string text;
+    for (std::string const& name : p_names)
+    {
+        text += text.empty() ? "" : ", ";
+        text += name;
+    }
+    return text;
+}
+
+char const* accessOf(robotik::ResourceManager const& p_resources, robotik::ResourceId p_id)
+{
+    return !p_resources.available(p_id)                 ? "in fault"
+           : p_resources.owner(p_id) != robotik::NO_OWNER ? "exclusive"
+           : p_resources.users(p_id) > 0u                 ? "shared"
+                                                          : "free";
+}
+
+ImVec4 colorOf(robotik::ResourceManager const& p_resources, robotik::ResourceId p_id)
+{
+    return !p_resources.available(p_id)                 ? RED
+           : p_resources.owner(p_id) != robotik::NO_OWNER ? ORANGE
+           : p_resources.users(p_id) > 0u                 ? BLUE
+                                                          : GREY;
+}
+
+//! @brief Tooltip of a resource: one fact per row.
+void resourceTooltip(robotik::SkillScheduler const& p_skills,
+                     robotik::ResourceManager const& p_resources,
+                     robotik::ResourceId p_id)
+{
+    if (!ImGui::BeginTooltip())
+    {
+        return;
+    }
+    ImGui::TextUnformatted(p_resources.name(p_id).c_str());
+    ImGui::Separator();
+    if (beginTable("tip", 2, ImGuiTableFlags_SizingFixedFit))
+    {
+        auto row = [](char const* p_key, ImVec4 const& p_color, std::string const& p_value)
+        {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextDisabled("%s", p_key);
+            ImGui::TableNextColumn();
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 320.0f);
+            ImGui::TextColored(p_color, "%s", p_value.c_str());
+            ImGui::PopTextWrapPos();
+        };
+        ImVec4 const text = ImGui::GetStyleColorVec4(ImGuiCol_Text);
+        row("State", colorOf(p_resources, p_id), accessOf(p_resources, p_id));
+        row("Held by", text, joined(holdersOf(p_skills, p_resources, p_id), "nobody"));
+        row("Needed by", text, joined(neededBy(p_skills, p_id), "no skill"));
+        endTable();
+    }
+    ImGui::TextDisabled("Faults: Resources panel.");
+    ImGui::EndTooltip();
 }
 
 //! @brief One resource as a chip: free (outline), held (orange), shared
-//! (blue), in fault (red). A click injects or clears a fault.
+//! (blue), in fault (red). It shows the number of holders, not their names:
+//! the tooltip and the Resources panel list them.
 void resourceChip(App& p_app, robotik::ResourceId p_id)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager& resources = simulation.robot().resources();
+    robotik::ResourceManager const& resources = simulation.robot().resources();
     robotik::SkillScheduler const& skills = simulation.skills();
     bool const available = resources.available(p_id);
-    bool const shared = resources.users(p_id) > 0u;
-    bool const exclusive = resources.owner(p_id) != robotik::NO_OWNER;
-    std::string const holder = holdersOf(skills, resources, p_id);
+    std::size_t const holders = holdersOf(skills, resources, p_id).size();
     std::string text = resources.name(p_id);
     if (!available)
     {
         text += "  FAULT";
     }
-    else if (exclusive || shared)
+    else if (holders > 0u)
     {
-        text += "  ·  " + holder;
+        text += "  " + std::to_string(holders);
     }
-    ImVec4 const color = !available ? RED : exclusive ? ORANGE : shared ? BLUE : GREY;
+    ImVec4 const color = colorOf(resources, p_id);
     ImVec2 const pad(8.0f, 2.0f);
     ImVec2 const size(ImGui::CalcTextSize(text.c_str()).x + 2.0f * pad.x, ImGui::GetFrameHeight());
     if (ImGui::GetContentRegionAvail().x < size.x)
@@ -328,34 +403,211 @@ void resourceChip(App& p_app, robotik::ResourceId p_id)
     }
     ImGui::PushID(static_cast<int>(p_id));
     ImVec2 const at = ImGui::GetCursorScreenPos();
-    bool const clicked = ImGui::InvisibleButton("##chip", size);
+    ImGui::Dummy(size);
     bool const hovered = ImGui::IsItemHovered();
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec4 fill = color;
-    fill.w = (available && !exclusive && !shared) ? (hovered ? 0.12f : 0.0f) : (hovered ? 0.45f : 0.30f);
+    fill.w = (available && holders == 0u) ? (hovered ? 0.12f : 0.0f) : (hovered ? 0.45f : 0.30f);
     draw->AddRectFilled(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(fill), size.y * 0.5f);
     draw->AddRect(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(color), size.y * 0.5f, 0, 1.2f);
     draw->AddText(ImVec2(at.x + pad.x, at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5f),
                   ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
     if (hovered)
     {
-        ImGui::SetTooltip("%s\n%s\nHolders: %s\nClick to %s.", resources.name(p_id).c_str(),
-                          !available ? "In fault" : shared ? "Shared" : exclusive ? "Exclusive" : "Free",
-                          holder.c_str(), available ? "inject a fault" : "restore it");
-    }
-    if (clicked)
-    {
-        if (available)
-        {
-            resources.fail(p_id);
-        }
-        else
-        {
-            resources.restore(p_id);
-        }
+        resourceTooltip(skills, resources, p_id);
     }
     ImGui::PopID();
     ImGui::SameLine(0.0f, 6.0f);
+}
+
+//! @brief Who holds what: one row per resource.
+void resourceTable(App& p_app)
+{
+    robotik::Simulation& simulation = *p_app.simulation;
+    robotik::ResourceManager const& resources = simulation.robot().resources();
+    robotik::SkillScheduler const& skills = simulation.skills();
+    if (!beginTable("resources", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+                                         ImGuiTableFlags_SizingFixedFit))
+    {
+        return;
+    }
+    ImGui::TableSetupColumn("Resource");
+    ImGui::TableSetupColumn("State");
+    ImGui::TableSetupColumn("Held by", ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableSetupColumn("Needed by", ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableHeadersRow();
+    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextUnformatted(resources.name(id).c_str());
+        ImGui::TableNextColumn();
+        ImGui::TextColored(colorOf(resources, id), "%s", accessOf(resources, id));
+        ImGui::TableNextColumn();
+        ImGui::TextWrapped("%s", joined(holdersOf(skills, resources, id), "-").c_str());
+        ImGui::TableNextColumn();
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::TextWrapped("%s", joined(neededBy(skills, id), "-").c_str());
+        ImGui::PopStyleColor();
+    }
+    endTable();
+}
+
+//! @brief Restores the resources whose timed fault is over.
+void expireFaults(App& p_app)
+{
+    double const now = p_app.simulation->time().value();
+    robotik::ResourceManager& resources = p_app.simulation->robot().resources();
+    std::vector<ManualFault>& faults = p_app.ui.manual_faults;
+    // A replay rewinds the clock: the faults of the old run are forgotten.
+    std::erase_if(faults, [&](ManualFault const& p_fault) { return p_fault.since > now + 1e-9; });
+    std::erase_if(faults,
+                  [&](ManualFault const& p_fault)
+                  {
+                      if (p_fault.until > 0.0 && now >= p_fault.until)
+                      {
+                          resources.restore(p_fault.resource);
+                          return true;
+                      }
+                      return false;
+                  });
+}
+
+//! @brief Inject faults on purpose: pick one or more resources, then apply.
+//! Nothing happens on a single click on a resource.
+void faultForm(App& p_app)
+{
+    robotik::Simulation& simulation = *p_app.simulation;
+    robotik::ResourceManager& resources = simulation.robot().resources();
+    std::vector<bool>& picked = p_app.ui.fault_pick;
+    picked.resize(resources.size(), false);
+
+    ImGui::TextDisabled("Pick the resources to fail:");
+    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    {
+        bool value = picked[id];
+        ImGui::PushStyleColor(ImGuiCol_Text, resources.available(id) ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+                                                                      : RED);
+        std::string const label = resources.name(id) + "##pick";
+        if (ImGui::Checkbox(label.c_str(), &value))
+        {
+            picked[id] = value;
+        }
+        ImGui::PopStyleColor();
+        ImGui::SameLine();
+        if (ImGui::GetContentRegionAvail().x < 120.0f)
+        {
+            ImGui::NewLine();
+        }
+    }
+    ImGui::NewLine();
+    ImGui::SetNextItemWidth(120.0f);
+    ImGui::InputFloat("duration (s)", &p_app.ui.fault_duration, 0.5f, 1.0f, "%.1f");
+    p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0f);
+    ImGui::SameLine();
+    helpMarker("0: until restored by hand. Otherwise the resources come back after this time "
+               "of simulation.");
+    std::size_t const count = static_cast<std::size_t>(std::count(picked.begin(), picked.end(), true));
+    ImGui::BeginDisabled(count == 0u);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.15f, 0.15f, 1.0f));
+    char apply[48];
+    std::snprintf(apply, sizeof apply, "Inject %zu fault%s", count, count > 1u ? "s" : "");
+    if (ImGui::Button(apply))
+    {
+        double const now = simulation.time().value();
+        double const duration = static_cast<double>(p_app.ui.fault_duration);
+        for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+        {
+            if (!picked[id])
+            {
+                continue;
+            }
+            resources.fail(id);
+            std::erase_if(p_app.ui.manual_faults,
+                          [&](ManualFault const& p_fault) { return p_fault.resource == resources.name(id); });
+            p_app.ui.manual_faults.push_back(
+                { resources.name(id), now, duration > 0.0 ? now + duration : 0.0 });
+            picked[id] = false;
+        }
+    }
+    ImGui::PopStyleColor();
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    bool any = false;
+    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    {
+        any = any || !resources.available(id);
+    }
+    ImGui::BeginDisabled(!any);
+    if (ImGui::Button("Restore all"))
+    {
+        resources.restoreAll();
+        p_app.ui.manual_faults.clear();
+    }
+    ImGui::EndDisabled();
+
+    // Resources in fault now, with a button each to restore it.
+    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    {
+        if (resources.available(id))
+        {
+            continue;
+        }
+        ImGui::PushID(static_cast<int>(id));
+        ImGui::Bullet();
+        ImGui::TextColored(RED, "%s", resources.name(id).c_str());
+        auto const manual = std::find_if(p_app.ui.manual_faults.begin(), p_app.ui.manual_faults.end(),
+                                         [&](ManualFault const& p_fault)
+                                         { return p_fault.resource == resources.name(id); });
+        ImGui::SameLine();
+        if (manual == p_app.ui.manual_faults.end())
+        {
+            ImGui::TextDisabled("(scenario)");
+        }
+        else if (manual->until > 0.0)
+        {
+            ImGui::TextDisabled("(by hand, %.1f s left)", manual->until - simulation.time().value());
+        }
+        else
+        {
+            ImGui::TextDisabled("(by hand)");
+        }
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Restore"))
+        {
+            resources.restore(id);
+            if (manual != p_app.ui.manual_faults.end())
+            {
+                p_app.ui.manual_faults.erase(manual);
+            }
+        }
+        ImGui::PopID();
+    }
+}
+
+//! @brief The fault plan of the scenario: past entries greyed out.
+void scenarioFaults(App& p_app)
+{
+    robotik::FaultInjector& injector = p_app.simulation->faults();
+    if (injector.scheduled().empty() && injector.random().empty())
+    {
+        ImGui::TextDisabled("The scenario injects no fault.");
+        return;
+    }
+    double const now = p_app.simulation->time().value();
+    for (robotik::Fault const& fault : injector.scheduled())
+    {
+        bool const past = fault.at.value() <= now;
+        ImGui::PushStyleColor(ImGuiCol_Text, past ? ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)
+                                                  : ImGui::GetStyleColorVec4(ImGuiCol_Text));
+        ImGui::BulletText("%6.2f s  %s  %s", fault.at.value(), fault.disable ? "disable" : "restore",
+                          fault.resource.c_str());
+        ImGui::PopStyleColor();
+    }
+    for (robotik::RandomFault const& fault : injector.random())
+    {
+        ImGui::BulletText("random  %s  %.3f / s", fault.resource.c_str(), fault.rate);
+    }
 }
 
 } // namespace
@@ -436,5 +688,28 @@ void timelinePanel(App& p_app)
         timeline(*p_app.simulation);
     }
     ImGui::EndChild();
+    ImGui::End();
+}
+
+void resourcesPanel(App& p_app)
+{
+    if (!ImGui::Begin("Resources"))
+    {
+        ImGui::End();
+        return;
+    }
+    if (!p_app.simulation)
+    {
+        emptyState("No scenario loaded.");
+        ImGui::End();
+        return;
+    }
+    expireFaults(p_app);
+    ImGui::SeparatorText("Who holds what");
+    resourceTable(p_app);
+    ImGui::SeparatorText("Inject faults");
+    faultForm(p_app);
+    ImGui::SeparatorText("Faults of the scenario");
+    scenarioFaults(p_app);
     ImGui::End();
 }

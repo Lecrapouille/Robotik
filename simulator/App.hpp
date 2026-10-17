@@ -99,6 +99,18 @@ struct ShownFile
 };
 
 // ****************************************************************************
+//! @brief A fault injected by hand in the Resources panel.
+// ****************************************************************************
+struct ManualFault
+{
+    std::string resource;
+    //!< Simulation time of the injection.
+    double since = 0.0;
+    //!< Simulation time of the automatic restore; 0: none.
+    double until = 0.0;
+};
+
+// ****************************************************************************
 //! @brief Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
@@ -138,6 +150,11 @@ struct UiState
     bool assets_in_use = false;
     //!< Skills panel: cards (false) or a table (true).
     bool skills_table = false;
+    //!< Resources panel: resources ticked for the next fault, its duration
+    //!< and the faults injected by hand.
+    std::vector<bool> fault_pick;
+    float fault_duration = 0.0f;
+    std::vector<ManualFault> manual_faults;
     //!< Joints drawn in the plots.
     std::vector<bool> plotted;
     float plot_window_s = 10.0f;

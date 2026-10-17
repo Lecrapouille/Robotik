@@ -113,6 +113,7 @@ void layout(Workspace p_workspace, ImGuiID p_dock)
             dock(panelTitle("Scene", key), center);
             dock(panelTitle("Assertions", key), bottom);
             dock("Timeline", bottom);
+            dock("Resources", bottom);
             dock("Skills", right);
             dock("Planner", right);
             break;
@@ -567,7 +568,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/5";
+    constexpr char const* LAYOUT_VERSION = "/6";
     ImGuiID const dock =
         ImGui::GetID((std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
@@ -598,6 +599,7 @@ void drawPanels(App& p_app)
         case Workspace::Mission:
             treePanel(p_app, info.key);
             timelinePanel(p_app);
+            resourcesPanel(p_app);
             assertionsPanel(p_app, info.key);
             skillsPanel(p_app);
             plannerPanel(p_app);

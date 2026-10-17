@@ -151,6 +151,8 @@ void App::load(bool p_keep_tool)
     tree_text.clear();
     history.clear();
     ui.realtime_factor = 0.0f;
+    ui.manual_faults.clear();
+    ui.fault_pick.clear();
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
@@ -277,6 +279,7 @@ void App::reset(std::uint64_t p_seed)
         return;
     }
     seed = p_seed;
+    ui.manual_faults.clear();
     simulation->reset(robotik::Seed{ p_seed });
     history.clear();
     history.record(*simulation);
