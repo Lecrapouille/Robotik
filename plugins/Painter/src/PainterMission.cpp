@@ -46,6 +46,10 @@ void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView
     skills.add<painter::MarkSkill>(describe("mark"), m_stroke, std::move(strokes));
     skills.add<painter::RinseSkill>(describe("rinse"), m_stroke);
     painter::registerNodes(p_simulation.factory(), skills);
+    if (m_planner)
+    {
+        registerPlanning(p_simulation);
+    }
 
     m_view = p_view;
     if (p_view != nullptr)
@@ -57,6 +61,35 @@ void PainterMission::setup(robotik::Simulation& p_simulation, robotik::SceneView
         }
         p_view->openCanvas(canvas, 0.40, 0.50);
     }
+}
+
+void PainterMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
+{
+    m_stroke.brush.clear();
+    m_stroke.painted.clear();
+}
+
+// The robot cannot see the paint: what the planner knows of the brush and
+// the canvas is what the gestures did (Stroke::brush, Stroke::painted).
+void PainterMission::registerPlanning(robotik::Simulation& p_simulation)
+{
+    using robotik::Args;
+    using robotik::RobotContext;
+    robotik::PlanningDomain& domain = p_simulation.planning();
+    painter::Stroke const& stroke = m_stroke;
+    domain.observe("clean", [&stroke](RobotContext const&, Args) noexcept {
+        return robotik::truth(stroke.brush.empty());
+    });
+    domain.observe("loaded", [&stroke](RobotContext const&, Args p_args) noexcept {
+        return robotik::truth(stroke.brush == p_args[0]);
+    });
+    domain.observe("painted", [&stroke](RobotContext const&, Args p_args) {
+        return robotik::truth(stroke.painted.contains(p_args[0]));
+    });
+    // The gesture nodes read the colour on the blackboard of the step.
+    domain.bind("dip", { "Dip", "Home" }, { { "color", "{0}" } });
+    domain.bind("mark", { "Mark", "Home" }, { { "color", "{0}" } });
+    domain.bind("rinse", { "Rinse", "Home" }, { { "color", "{0}" } });
 }
 
 void PainterMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)

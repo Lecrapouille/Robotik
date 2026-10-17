@@ -115,6 +115,16 @@ public:
     {
         /* no-op */
     }
+
+    // -------------------------------------------------------------------------
+    //! @brief Why the last run returned @ref Status::FAILURE, in words for
+    //! the user ("red_cube not seen within 2 s"), or empty when the skill
+    //! does not say. Shown by the simulator and the planner.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] virtual std::string why() const
+    {
+        return {};
+    }
 };
 
 } // namespace robotik

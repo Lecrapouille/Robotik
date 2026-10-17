@@ -678,6 +678,8 @@ scenarios:
   directory: scenarios
   entries:
     - { id: painter, name: Robotic painter, file: painter.yml }
+    # optional: a submenu of the Demos menu, and a clock for this scenario only
+    # - { id: painter_rl, name: Painter RL, file: painter_rl.yml, menu: Learning, clock: plugin }
 
 experiments:
   directory: experiments
@@ -689,7 +691,8 @@ experiments:
 |-----|-------|
 | `library.entrypoint` | A file name ending in `.so`, with no folder and no `..` |
 | `resources.packs` | A missing pack, or one with an incompatible version: the scenario is refused with the reason. Version `"1.2"` accepts 1.2.0 and any newer 1.x, not 2.0 |
-| `host.clock: plugin` | The host does not call `Simulation::step`: `update(dt)` advances the simulation (used by the RL plugin) |
+| `host.clock: plugin` | The host does not call `Simulation::step`: `update(dt)` advances the simulation. Default for every scenario; an entry can change it with its own `clock:` (the RL scenario of PickAndPlace) |
+| `entries[].menu` | Groups the scenario in a submenu of the **Demos** menu (PickAndPlace: Behavior tree, Reinforcement learning) |
 | `scenarios.entries` | Without `entries`, every `*.yml` and `*.yaml` of the folder is taken, behavior trees excepted |
 
 ### Third-party libraries of a plugin

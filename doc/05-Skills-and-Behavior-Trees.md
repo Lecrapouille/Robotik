@@ -79,7 +79,7 @@ must work on a real robot.
 | — | `MoveTCPSkill(frame)` + `goal(pose)` | A frame to a pose (IK once per goal). Useful **inside** your own skills |
 
 Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`,
-`ReleaseSkill`) are in `plugins/PickAndPlaceBT/src`.
+`ReleaseSkill`) are in `plugins/PickAndPlace/src`.
 
 ---
 

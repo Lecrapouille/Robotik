@@ -43,6 +43,58 @@ void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
     }
 }
 
+std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string const& p_key)
+{
+    std::vector<Literal> literals;
+    for (ConfigNode const& item : p_node.at(p_key).items())
+    {
+        if (!item.isScalar())
+        {
+            throw std::runtime_error("planner." + p_key + ": each item is a literal such as in(a, b)");
+        }
+        try
+        {
+            literals.push_back(Literal::parse(item.scalar()));
+        }
+        catch (std::runtime_error const& error)
+        {
+            throw std::runtime_error("planner." + p_key + ": " + error.what() +
+                                     " (write one literal per line: a flow list [a(x, y)] "
+                                     "splits at the comma)");
+        }
+    }
+    return literals;
+}
+
+PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode const& p_node)
+{
+    PlannerSpec spec;
+    spec.domain = packageFile(p_root, p_node.text("domain"));
+    if (spec.domain.empty())
+    {
+        throw std::runtime_error("planner.domain is required (a PDDL file of the package)");
+    }
+    spec.facts = readLiterals(p_node, "facts");
+    spec.goal = readLiterals(p_node, "goal");
+    spec.goal_pddl = p_node.text("goal_pddl");
+    if (spec.goal.empty() == spec.goal_pddl.empty())
+    {
+        throw std::runtime_error("planner: give a goal (list of literals) or a goal_pddl");
+    }
+    ConfigNode const& replan = p_node.at("replan");
+    double const max = replan.number("max", spec.max_replans);
+    if (max < 0.0)
+    {
+        throw std::runtime_error("planner.replan.max must be positive");
+    }
+    spec.max_replans = static_cast<std::uint32_t>(max);
+    spec.replan_delay = Seconds(replan.number("delay", spec.replan_delay.value()));
+    spec.verify = p_node.flag("verify", spec.verify);
+    spec.search = p_node.text("search", spec.search);
+    spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
+    return spec;
+}
+
 } // namespace
 
 ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
@@ -108,8 +160,16 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         }
         scenario.description = node.text("description");
         scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
-        scenario.controller.behavior_tree =
-            packageFile(root, node.at("controller").text("behavior_tree"));
+        ConfigNode const& controller = node.at("controller");
+        scenario.controller.behavior_tree = packageFile(root, controller.text("behavior_tree"));
+        if (controller.has("planner"))
+        {
+            if (!scenario.controller.behavior_tree.empty())
+            {
+                throw std::runtime_error("controller: give a behavior_tree or a planner, not both");
+            }
+            scenario.controller.planner = readPlanner(root, controller.at("planner"));
+        }
         for (auto const& [name, file] : node.at("trajectories").entries())
         {
             if (!file.isScalar())

@@ -7,10 +7,10 @@ Headless.
 | Plugin | Idea | Scenarios | Experiment | Extra program |
 |--------|------|-----------|------------|---------------|
 | [HelloWorld](#1-helloworld) | Learn the API, one lesson per scenario | hello, wave, reach, skills | `hello_experiment` | — |
-| [PickAndPlaceBT](#2-pick-and-place) | Perception + skills + behavior tree + faults | nominal, faults | `pick_and_place_benchmark` | — |
-| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved" | painter | `painting_benchmark` | — |
+| [PickAndPlace](#2-pick-and-place) | Perception + skills + behavior tree or PDDL planner + faults | nominal, faults, pddl, pddl_faults | `pick_and_place_benchmark` | — |
+| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved", planned layers | painter, painter_pddl | `painting_benchmark` | — |
 | [LineFollower](#4-line-follower) | Mobile robot, localisation, control loop | line_follower | — | `Robotik-LineFollower` |
-| [PickAndPlaceRL](#5-pick-and-place-rl) | RL environment, parallel pool | pick_and_place_rl | — | `Robotik-PickAndPlaceRL` |
+| [PickAndPlace](#5-pick-and-place-rl) | RL environment, parallel pool | pick_and_place_rl | — | `Robotik-PickAndPlaceRL` |
 | [FlyBrain](#6-fly-brain) | A biological brain as an agent | fly_obstacle_avoidance | — | `Robotik-Fly` |
 
 All demos open from the simulator **Demos** menu, and run with:
@@ -49,7 +49,7 @@ it in a box:
 Home → Detect → Approach → Reach → Grasp → Approach → Transit(box) → Approach(box) → Release → Home
 ```
 
-Files: `plugins/PickAndPlaceBT/`
+Files: `plugins/PickAndPlace/`
 - `worlds/pick_place_cell.yaml`: the arm, its camera, the vacuum cup and four
   stored tools, the cube (randomized), the box;
 - `scenarios/pick_and_place.yml`: nominal run;
@@ -78,13 +78,21 @@ The fault scenario does not only check that things fail: it checks that the
 architecture **reacts** (retry, fall back, abort).
 
 ```bash
-./build/Robotik-Headless build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml --seed 11
-./build/Robotik-Headless build/plugins/PickAndPlaceBT/experiments/pick_and_place_benchmark.yaml \
+./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.yml --seed 11
+./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place_benchmark.yaml \
     --report pick.json
 ```
 
 The experiment runs three seeds, a wider cube layout, and a camera down at
 start.
+
+**With the PDDL planner** (`scenarios/pick_and_place_pddl.yml` and
+`pick_and_place_pddl_faults.yml`, menu **PDDL planner**): no tree, only the
+goal `in(red_cube, box)`. The domain is
+`scenarios/pick_and_place.domain.pddl`; `src/PickPlacePlanning.cpp` reads
+the state on the beliefs and binds each action to the same skills. With the
+camera down, the executor plans again until it can go on. See
+[11. The PDDL planner](11-PDDL-Planner.md#2-tutorial-run-a-planned-pick-and-place).
 
 ---
 
@@ -114,6 +122,13 @@ measures it:
 
 The experiment `painting_benchmark` paints again on a slippery floor and with
 a canvas four times heavier.
+
+**With the PDDL planner** (`scenarios/painter_pddl.yml`): the goal is the
+four layers painted and a clean brush. The facts `before(red, black)`… give
+the order of the layers; the planner finds the twelve gestures (dip, mark,
+rinse per colour). The robot cannot see the paint: the observers read what
+the gestures did (`Stroke::brush`, `Stroke::painted` in
+`src/PainterScene.hpp`).
 
 ---
 
@@ -154,8 +169,10 @@ here: it validates the infrastructure.
     --log episodes.json
 ```
 
-The plugin uses `host.clock: plugin` (its `update` advances the simulation)
-and reuses `PickPlaceControl.cpp` of the BT plugin. Details in
+This scenario lives in the PickAndPlace plugin, beside the behavior tree
+ones (submenus of the **Demos** menu). Its entry in `plugin.yaml` has
+`clock: plugin`: the plugin `update` advances the simulation. The pool and
+the plugin share `PickPlaceControl.cpp`. Details in
 [08-Reinforcement-Learning.md](08-Reinforcement-Learning.md).
 
 ---

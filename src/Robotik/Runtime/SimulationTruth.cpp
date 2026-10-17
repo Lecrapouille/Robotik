@@ -334,6 +334,13 @@ Metrics Simulation::metrics() const
     Metrics metrics;
     metrics.set("time", time().value());
     metrics.set("controller.success", m_status == bt::Status::SUCCESS ? 1.0 : 0.0);
+    if (m_executor)
+    {
+        metrics.set("planner.plans", static_cast<double>(m_executor->history().size()));
+        metrics.set("planner.replans", static_cast<double>(m_executor->replans()));
+        metrics.set("planner.steps", static_cast<double>(m_executor->plan().size()));
+        metrics.set("planner.done", static_cast<double>(m_executor->done()));
+    }
     if (m_mission != nullptr)
     {
         m_mission->measure(*this, metrics);

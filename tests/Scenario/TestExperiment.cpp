@@ -72,7 +72,7 @@ TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
     EXPECT_DOUBLE_EQ(nominal.world.floor_friction, 0.8);
 
     robotik::Experiment const picking = robotik::Experiment::load(
-        repoFile("plugins/PickAndPlaceBT/experiments/pick_and_place_benchmark.yaml"));
+        repoFile("plugins/PickAndPlace/experiments/pick_and_place_benchmark.yaml"));
     robotik::Scenario const camera =
         picking.scenario(find(picking, "camera_down_at_start"), testAssets());
     ASSERT_EQ(camera.faults.size(), 2u);

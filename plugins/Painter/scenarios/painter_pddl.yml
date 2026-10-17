@@ -1,0 +1,46 @@
+# The portrait of painter.yml, with no behavior tree: the planner finds the
+# dips, strokes and rinses from the goal, in the order of the layers.
+scenario:
+  id: painter_pddl
+  description: |
+    Plan the dips, strokes and rinses that paint the four layers, then do
+    them, without moving the easel.
+  world: worlds/painting_lab.yaml
+  seed: 7
+
+  controller:
+    planner:
+      domain: scenarios/painter.domain.pddl
+      facts:
+        - before(red, black)
+        - before(black, blue)
+        - before(blue, gold)
+      goal:
+        - painted(red)
+        - painted(black)
+        - painted(blue)
+        - painted(gold)
+        - clean
+
+  # One stroke per colour, read by the Mark gesture.
+  trajectories:
+    red: scenarios/trajectories/red_stroke.yaml
+    black: scenarios/trajectories/black_stroke.yaml
+    blue: scenarios/trajectories/blue_stroke.yaml
+    gold: scenarios/trajectories/gold_stroke.yaml
+
+  timeout: 160
+
+  assertions:
+    - controller.success
+    - planner.replans == 0
+    - { condition: "tool_is_attached(brush, robot.flange)", phase: always }
+    - { condition: "joint_limits_respected(robot)", phase: always }
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - { condition: "pose_error(easel) < 0.002", phase: always }
+    - { condition: "pose_error(canvas) < 0.005", phase: always }
+    - { condition: "on(canvas, easel)", phase: end }
+    - name: brush loaded before the first stroke
+      sequence:
+        - skill_succeeded(dip)
+        - skill_started(mark)

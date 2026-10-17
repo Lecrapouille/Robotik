@@ -69,6 +69,14 @@ scenario:
   world: worlds/cell.yaml
   seed: 42
   controller: { behavior_tree: scenarios/main.bt.yml }   # omit → Mission::status ends the run
+  # or instead of a tree (doc/11-PDDL-Planner.md); entities need `kind: <pddl type>`:
+  # controller:
+  #   planner:
+  #     domain: scenarios/x.domain.pddl
+  #     facts: [...]                  # block list! [a(x, y)] splits at the comma
+  #     goal:
+  #       - in(red_cube, box)
+  #     replan: { max: 3, delay: 0.5 }   # verify: true, search: lama, timeout: 10
   trajectories: { red: scenarios/trajectories/red.yaml }
   perception: { oracle: when_blind }   # never (default) | when_blind | always
   faults:

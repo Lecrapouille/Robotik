@@ -127,6 +127,8 @@ a scenario; the mission receives it.
 | `camera()` | `Camera*`: the first camera, or null |
 | `scenario()` | `Scenario const&`: the parsed files (trajectories, world, …) |
 | `mission()` | `Mission*` |
+| `planning()` | `PlanningDomain&`: observers and bindings of the PDDL planner ([chapter 11](11-PDDL-Planner.md#5-reference)) |
+| `planner()` | `PlanExecutor*`: the planner controller, or null |
 
 **Time and run**
 
@@ -225,7 +227,7 @@ auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
 |-------|-------------|--------------|
 | `JointGroup` | `joint_group` | `joints()`, `contains(id)`, `moveTo(span<double>)`, `hold()`, `reached(tol)` |
 | `Motor` | `motor` | `moveTo(Radians)`, `spin(AngularVelocity)`, `push(Torque)`, `stop()`, `position()` |
-| `VacuumGripper` | `vacuum` | grasp / release what touches the suction face (see `plugins/PickAndPlaceBT`) |
+| `VacuumGripper` | `vacuum` | grasp / release what touches the suction face (see `plugins/PickAndPlace`) |
 
 ---
 
@@ -240,6 +242,7 @@ class Skill
     virtual void reset();
     virtual Status tick(RobotContext& p_context, Seconds p_dt) = 0;
     virtual void cancel(RobotContext& p_context);
+    virtual std::string why() const;   // why the last run failed, for the user; empty by default
 };
 
 struct RobotContext { Robot& robot; WorldModel& world_model; Seconds time; Seconds dt; };

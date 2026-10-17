@@ -1,0 +1,34 @@
+# The planner against a camera failure. Detect fails while the camera is
+# down: the executor waits replan.delay (simulated seconds) and plans again
+# from what the robot believes. Once the cube is seen, the camera fails for
+# good and the robot goes on from its world model: an effect it can no
+# longer observe is unknown, not false.
+scenario:
+  id: pick_and_place_pddl_faults
+  description: Plan and put the red cube in the box, with a camera failure.
+  world: worlds/pick_place_cell.yaml
+  seed: 7
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      goal:
+        - in(red_cube, box)
+      replan: { max: 5, delay: 0.5 }
+
+  perception: { oracle: when_blind }
+
+  faults:
+    - { at: 0.0, resource: wrist_camera, action: disable }
+    - { at: 1.0, resource: wrist_camera, action: restore }
+    - { at: 3.0, resource: wrist_camera, action: disable }
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans >= 1
+    - time < 30

@@ -118,6 +118,8 @@ void takeArm(App& p_app);
 
 void timelinePanel(App& p_app);
 void skillsPanel(App& p_app);
+//! @brief The PDDL planner: state, plan, beliefs, history, texts (PlannerPanel.cpp).
+void plannerPanel(App& p_app);
 
 // --- Autonomy workspace (AutonomyPanels.cpp) --------------------------------
 

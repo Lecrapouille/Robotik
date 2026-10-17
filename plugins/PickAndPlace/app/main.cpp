@@ -38,7 +38,7 @@
 
 struct Options
 {
-    std::filesystem::path scenario = "plugins/PickAndPlaceBT/scenarios/pick_and_place.yml";
+    std::filesystem::path scenario = "plugins/PickAndPlace/scenarios/pick_and_place.yml";
     std::size_t envs = 8;
     std::size_t threads = 0;
     std::size_t episodes = 32;

@@ -17,6 +17,7 @@
 #include "Robotik/Math/Geometry.hpp"
 
 #include <cmath>
+#include <set>
 #include <string>
 #include <string_view>
 
@@ -34,10 +35,16 @@ inline robotik::Quaternion brushDown()
 }
 
 //! @brief Shared with the mission so a stroke can tint the canvas texture.
+//! @c brush and @c painted are the memory of the robot (it cannot see the
+//! paint): set by the gestures that succeed, read by the planner.
 struct Stroke
 {
     std::string color = "red";
     bool painting = false;
+    //!< Colour on the brush, empty when clean.
+    std::string brush;
+    //!< Colours already laid on the canvas.
+    std::set<std::string, std::less<>> painted;
 };
 
 inline int colorIndex(std::string_view p_name)

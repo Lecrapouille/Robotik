@@ -175,7 +175,7 @@ PluginPrepare PluginSession::prepare(std::filesystem::path const& p_scenario)
     m_scenario_id = chosen.id;
     m_scenario_name = chosen.name;
     m_graphics = copy.graphics;
-    m_owns_clock = copy.owns_clock;
+    m_owns_clock = chosen.owns_clock;
     if (m_manager.create(m_host.api()) != ROBOTIK_PLUGIN_OK)
     {
         return PluginPrepare::Failed;

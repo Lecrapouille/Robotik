@@ -146,10 +146,13 @@ void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     field("id", "%s", scenario.id.c_str());
     field("world", "%s", scenario.world.id.c_str());
     field("robot", "%s", scenario.world.robot().model_ref.c_str());
-    field("controller", "%s",
-          scenario.controller.behavior_tree.empty()
-              ? "plugin mission (C++)"
-              : scenario.controller.behavior_tree.filename().string().c_str());
+    std::string const controller =
+        scenario.controller.planner
+            ? "PDDL planner, " + scenario.controller.planner->domain.filename().string()
+            : scenario.controller.behavior_tree.empty()
+                  ? std::string("plugin mission (C++)")
+                  : scenario.controller.behavior_tree.filename().string();
+    field("controller", "%s", controller.c_str());
     field("seed", "%llu", static_cast<unsigned long long>(scenario.seed));
     field("timeout", "%.0f s", scenario.timeout.value());
     if (!scenario.stop_when.empty())
@@ -161,7 +164,7 @@ void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
           p_app.simulation->oracle() ? " (active: ground truth feeds the beliefs)" : "");
     if (p_package != nullptr)
     {
-        field("clock", "%s", p_package->owns_clock ? "the plugin advances time" : "the simulation");
+        field("clock", "%s", p_app.owns_clock ? "the plugin advances time" : "the simulation");
         field("graphics", "%s", p_package->graphics ? "needs a window" : "works headless");
     }
     endTable();

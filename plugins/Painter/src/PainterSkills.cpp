@@ -172,7 +172,12 @@ robotik::Status DipSkill::tick(robotik::RobotContext& p_context, robotik::Second
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_ready = true;
     }
-    return follow(m_path, m_index, m_move, p_context, p_dt);
+    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    if (status == robotik::Status::SUCCESS)
+    {
+        m_stroke->brush = m_color;
+    }
+    return status;
 }
 
 void DipSkill::cancel(robotik::RobotContext& p_context)
@@ -222,6 +227,10 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
     if (status != robotik::Status::RUNNING)
     {
         m_stroke->painting = false;
+    }
+    if (status == robotik::Status::SUCCESS)
+    {
+        m_stroke->painted.insert(m_color);
     }
     return status;
 }
@@ -275,7 +284,12 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context, robotik::Seco
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_ready = true;
     }
-    return follow(m_path, m_index, m_move, p_context, p_dt);
+    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    if (status == robotik::Status::SUCCESS)
+    {
+        m_stroke->brush.clear();
+    }
+    return status;
 }
 
 void RinseSkill::cancel(robotik::RobotContext& p_context)

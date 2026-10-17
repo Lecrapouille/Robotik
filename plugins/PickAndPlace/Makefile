@@ -11,12 +11,11 @@ M := $(P)/.makefile
 include $(P)/Makefile.common
 TARGET_NAME := robotik_pick_and_place
 TARGET_DESCRIPTION := Pick and place demonstrations
-PLUGIN_NAME := PickAndPlaceBT
-PLUGIN_DIR := $(P)/plugins/PickAndPlaceBT
+PLUGIN_NAME := PickAndPlace
+PLUGIN_DIR := $(P)/plugins/PickAndPlace
 PLUGIN_SRC := $(PLUGIN_DIR)/src
 include $(M)/project/Makefile
 
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/ColorDetector.cpp
-LIB_FILES += $(PLUGIN_SRC)/PickPlaceMission.cpp $(PLUGIN_SRC)/PickPlaceSkills.cpp
+LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
 
 include $(P)/plugins/plugin.mk

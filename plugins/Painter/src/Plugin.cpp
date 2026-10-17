@@ -27,12 +27,12 @@ public:
     RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
         m_mission.reset();
-        if (p_scenario != "painter")
+        if (p_scenario != "painter" && p_scenario != "painter_pddl")
         {
             p_host.error("unknown painter scenario");
             return ROBOTIK_PLUGIN_ERR_SETUP;
         }
-        m_mission = std::make_unique<PainterMission>();
+        m_mission = std::make_unique<PainterMission>(p_scenario == "painter_pddl");
         p_host.bindMission(*m_mission);
         return ROBOTIK_PLUGIN_OK;
     }

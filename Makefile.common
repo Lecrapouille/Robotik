@@ -83,6 +83,23 @@ $(RYML_STATIC):
 	    -DRYML_BUILD_TESTS=OFF -DRYML_BUILD_BENCHMARKS=OFF -DRYML_BUILD_API=OFF
 	cmake --build $(RYML_SRC)/build --target ryml -j$(shell nproc)
 
+###############################################################################
+# Kairos, the PDDL planner of the Planning module: a shared library built by
+# its CMake. Only src/Robotik/Planning/Kairos includes its headers, but every
+# program linking the core (static or shared) links it, found by its rpath.
+#
+KAIROS_SRC := $(ROBOTIK_EXTERNAL)/kairos
+KAIROS_BUILD := $(KAIROS_SRC)/build
+KAIROS_SHARED := $(KAIROS_BUILD)/src/libkairos.so
+USER_LDFLAGS += -L$(KAIROS_BUILD)/src -Wl,-rpath,$(KAIROS_BUILD)/src -lkairos
+
+$(KAIROS_SHARED):
+	@test -f $(KAIROS_SRC)/CMakeLists.txt || \
+	    (echo "Missing $(KAIROS_SRC): run make download-external-libs" && false)
+	cmake -S $(KAIROS_SRC) -B $(KAIROS_BUILD) -DCMAKE_BUILD_TYPE=Release \
+	    -DKAIROS_BUILD_TESTS=OFF -DKAIROS_BUILD_CLI=ON
+	cmake --build $(KAIROS_BUILD) -j$(shell nproc)
+
 FORGE_PREFIX := $(abspath $(P)/external/forge)
 ifneq ($(wildcard $(FORGE_PREFIX)/include/pinocchio/parsers/urdf.hpp),)
 USER_CXXFLAGS += -isystem $(FORGE_PREFIX)/include

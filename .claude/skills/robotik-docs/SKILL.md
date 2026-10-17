@@ -1,6 +1,6 @@
 ---
 name: robotik-docs
-description: Edit or extend the RobotIK documentation in doc/ (numbered chapters 01–10, README index). Use when documenting a new feature, plugin, assertion, API change, or when asked to fix or rewrite docs.
+description: Edit or extend the RobotIK documentation in doc/ (numbered chapters 01–11, README index). Use when documenting a new feature, plugin, assertion, API change, or when asked to fix or rewrite docs.
 ---
 
 # RobotIK documentation
@@ -25,6 +25,7 @@ verbs when a plain verb exists, define each robotics word once
 | 08-Reinforcement-Learning.md | environments, pool, log |
 | 09-Demos.md | one section per plugin |
 | 10-Tools-and-Frames.md | flange/tool0/tool_mount/tcp |
+| 11-PDDL-Planner.md | planner controller, domain/observers/bindings, replanning, Planner panel |
 
 Put a fact in one place and link to it (`[text](03-Worlds-and-Scenarios.md#6-assertions)`).
 Root README.md has a doc table: keep it in sync when a chapter is added or renamed.

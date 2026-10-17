@@ -16,6 +16,7 @@ public:
     void reset() override;                                                    // each new run
     robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override; // RUNNING/SUCCESS/FAILURE
     void cancel(robotik::RobotContext& p_context) override;                   // safe stop: joints().hold()
+    std::string why() const override;   // optional: why the last FAILURE ("cube not seen within 2 s")
 };
 ```
 
@@ -85,3 +86,15 @@ headless and simulator. Put durations in skills (use `dt`).
 Faults: declare in scenario `faults:` or experiment `setup: inject_fault`.
 No fault code in skills; the tree reacts (retry, fallback, abort).
 Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yml`.
+
+## PDDL planner instead of a tree
+
+Scenario `controller.planner` (goal) + `scenarios/<x>.domain.pddl` + world
+`kind:`. In `Mission::setup`: `p_simulation.planning().observe("holding",
+[](RobotContext const&, Args a){ return truth(...); })` per predicate
+(beliefs only; `Truth::Unknown` when not observable), and
+`bind("pick", {"Approach({0})", "Grasp({0})"}, {{"color", "{0}"}})` per
+action (BT node names; parameters go to the step blackboard). Missing
+observer/binding/kind → scenario refused with the list. Examples:
+`plugins/PickAndPlace/src/PickPlacePlanning.cpp`, Painter `registerPlanning`.
+Metrics `planner.plans|replans|steps|done`. Details: doc/11-PDDL-Planner.md.

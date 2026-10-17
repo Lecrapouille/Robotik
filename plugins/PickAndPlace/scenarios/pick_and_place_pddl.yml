@@ -1,0 +1,29 @@
+# The same task as pick_and_place.yml, with no behavior tree: the PDDL
+# planner finds the steps from the goal. The domain lists the actions; the
+# world gives the objects (entities with a kind); the mission reads the
+# state on the beliefs and runs each action with its skills.
+scenario:
+  id: pick_and_place_pddl
+  description: Plan how to put the red cube in the box, then do it.
+  world: worlds/pick_place_cell.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      goal:
+        - in(red_cube, box)
+
+  # Headless runs render no image: the true cube pose stands in for the
+  # camera there. The simulator renders it and uses real perception.
+  perception: { oracle: when_blind }
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans == 0
+    - time < 30

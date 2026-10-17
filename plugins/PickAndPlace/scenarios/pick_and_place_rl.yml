@@ -4,7 +4,7 @@
 scenario:
   id: pick_and_place_rl
   description: Reach, grasp and deliver the red cube with a learned policy.
-  world: worlds/pick_place_cell.yaml
+  world: worlds/pick_place_rl_cell.yaml
   seed: 42
   timeout: 150
 

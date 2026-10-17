@@ -43,26 +43,31 @@ world:
 
     - id: red
       type: prop
+      kind: pot                 # type of the PDDL planner (painter.domain.pddl)
       shape: { type: box, size: [0.07, 0.07, 0.07] }
       color: [0.82, 0.18, 0.18]
       pose: { position: [0.42, 0.22, 0.035] }
     - id: black
       type: prop
+      kind: pot
       shape: { type: box, size: [0.07, 0.07, 0.07] }
       color: [0.10, 0.10, 0.12]
       pose: { position: [0.42, 0.08, 0.035] }
     - id: blue
       type: prop
+      kind: pot
       shape: { type: box, size: [0.07, 0.07, 0.07] }
       color: [0.10, 0.18, 0.47]
       pose: { position: [0.42, -0.08, 0.035] }
     - id: gold
       type: prop
+      kind: pot
       shape: { type: box, size: [0.07, 0.07, 0.07] }
       color: [0.86, 0.67, 0.16]
       pose: { position: [0.42, -0.22, 0.035] }
     - id: water
       type: prop
+      kind: bucket
       shape: { type: box, size: [0.11, 0.11, 0.08] }
       color: [0.55, 0.78, 0.88]
       pose: { position: [0.30, 0.0, 0.04] }

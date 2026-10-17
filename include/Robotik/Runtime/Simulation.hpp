@@ -13,6 +13,8 @@
 
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Planning/PlanExecutor.hpp"
+#include "Robotik/Planning/PlanningDomain.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/Faults.hpp"
 #include "Robotik/Runtime/Metrics.hpp"
@@ -204,10 +206,27 @@ public:
         return m_oracle;
     }
 
-    //! @brief Behavior tree, or null if the controller has none.
+    //! @brief Behavior tree, or null if the controller has none. With a
+    //! planner: the tree of the current plan.
     [[nodiscard]] bt::Tree const* tree() const
     {
-        return m_tree.get();
+        return m_executor ? m_executor->tree() : m_tree.get();
+    }
+
+    // -------------------------------------------------------------------------
+    //! @brief Observers and bindings of the PDDL planner. The mission fills
+    //! them in @ref Mission::setup; they are used when the scenario
+    //! controller is a @c planner (see @ref PlanningDomain).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] PlanningDomain& planning()
+    {
+        return m_planning;
+    }
+
+    //! @brief The planner controller, or null when the scenario has none.
+    [[nodiscard]] PlanExecutor* planner() const
+    {
+        return m_executor.get();
     }
 
     //! @brief Controller status (behavior tree, or mission without one).
@@ -396,6 +415,9 @@ private:
     bool m_prop_penetration = false;
     //!< Teach pendant owns the joints; the mission is frozen.
     bool m_suspended = false;
+    PlanningDomain m_planning;
+    //!< After the factory and the scheduler it uses.
+    std::unique_ptr<PlanExecutor> m_executor;
 };
 
 [[nodiscard]] char const* toString(Simulation::Outcome p_outcome);

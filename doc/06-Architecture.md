@@ -279,6 +279,7 @@ external/                 third-party sources (downloaded)
 | `Environment/` | RL: `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` |
 | `Math/` | `Geometry.hpp` (`Pose`, `Quat`, `Vector3`), `Random.hpp` (`Seed`), `Si.hpp` (units) |
 | `Perception/` | `Detector`, `PerceptionPipeline`, `Detection`, `WorldModel`, `Localization` |
+| `Planning/` | `Pddl` (symbols, domain schema), `PlanningDomain` (observers, bindings), `PlanningEngine` (Kairos behind it), `PlanExecutor` (plan → behavior tree, checks, replans) |
 | `Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |
 | `Robot/` | `Robot`, `RobotSession`, `JointSet`, actuators (`Motor`, `JointGroup`, `VacuumGripper`), `TeachPendant` |
 | `Runtime/` | `Simulation`, `Mission`, `SkillScheduler`, `ResourceManager`, `FaultInjector`, `Metrics`, `RobotContext`, `RunReport`, `Status` |

@@ -473,7 +473,7 @@ The **Demos** menu lists every package built under `build/plugins/`. The same sc
 
 ```bash
 ./build/Robotik-Headless \
-    build/plugins/PickAndPlaceBT/scenarios/pick_and_place.yml \
+    build/plugins/PickAndPlace/scenarios/pick_and_place.yml \
     --seed 7
 ./build/Robotik-Headless \
     build/plugins/Painter/experiments/painting_benchmark.yaml \
@@ -519,6 +519,7 @@ make tests -j"$(nproc --all)"
 | [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md) | Environments, spaces, episode ends, pool, episode log |
 | [doc/09-Demos.md](doc/09-Demos.md) | HelloWorld, pick and place, painter, line follower, RL, fly brain |
 | [doc/10-Tools-and-Frames.md](doc/10-Tools-and-Frames.md) | Flange, tool, TCP |
+| [doc/11-PDDL-Planner.md](doc/11-PDDL-Planner.md) | The PDDL planner (Kairos): a goal instead of a behavior tree |
 
 ---
 
