@@ -615,6 +615,8 @@ void drawPanels(App& p_app)
             break;
     }
 
+    syncTeachAxes(p_app, workspace == Workspace::Robot);
+
     // Plugin panels follow the workspace: they join its side column.
     ImGuiID target = 0;
     if (p_app.ui.place_plugin_panels)
