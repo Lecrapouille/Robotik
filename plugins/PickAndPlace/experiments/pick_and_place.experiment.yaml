@@ -3,7 +3,7 @@
 # every case. Headless runs have no image: the camera noise only matters in
 # the simulator.
 experiment:
-  id: pick_and_place_benchmark
+  id: pick_and_place_experiment
   description: Pick and place against a wider cube layout and a camera failure.
   seeds: [11, 12, 13]
 

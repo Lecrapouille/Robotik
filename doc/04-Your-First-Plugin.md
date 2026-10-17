@@ -684,7 +684,7 @@ scenarios:
 experiments:
   directory: experiments
   entries:
-    - { id: painting_benchmark, name: Painting benchmark, file: painting_benchmark.experiment.yaml }
+    - { id: painter_experiment, name: Painting benchmark, file: painter.experiment.yaml }
 ```
 
 | Key | Notes |

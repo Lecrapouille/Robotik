@@ -10,7 +10,7 @@
 //!
 //! @code
 //! experiment:
-//!   id: painting_benchmark
+//!   id: painter_experiment
 //!   seeds: [7, 8]                      # every case, every seed
 //!   cases:
 //!     - id: nominal

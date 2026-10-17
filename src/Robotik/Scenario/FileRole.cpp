@@ -7,6 +7,7 @@
 
 #include "Robotik/Scenario/FileRole.hpp"
 
+#include <algorithm>
 #include <array>
 #include <string_view>
 #include <utility>
@@ -74,15 +75,23 @@ char const* roleExtension(FileRole p_role)
 
 std::string roleStem(std::filesystem::path const& p_file)
 {
-    std::string const name = p_file.filename().string();
-    for (Spelling const& spelling : SPELLINGS)
+    std::string name = p_file.filename().string();
+    for (std::string_view const extension : { ".yaml", ".yml", ".pddl" })
     {
-        if (name.ends_with(spelling.extension) && name.size() > spelling.extension.size())
+        if (name.ends_with(extension) && name.size() > extension.size())
         {
-            return name.substr(0, name.size() - spelling.extension.size());
+            name.resize(name.size() - extension.size());
+            break;
         }
     }
-    return p_file.stem().string();
+    // A scenario is the default role: its id is the bare name.
+    constexpr std::string_view SCENARIO = ".scenario";
+    if (name.ends_with(SCENARIO) && name.size() > SCENARIO.size())
+    {
+        name.resize(name.size() - SCENARIO.size());
+    }
+    std::replace(name.begin(), name.end(), '.', '_');
+    return name;
 }
 
 bool runnableRole(std::filesystem::path const& p_file)

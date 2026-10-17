@@ -11,7 +11,7 @@
 //! @code{.text}
 //! worlds/arm.world.yaml                   world
 //! scenarios/wave.scenario.yaml            scenario
-//! scenarios/pick.rl.yaml                  scenario driven by a learned policy
+//! scenarios/pick.rl.yaml                  scenario driven by a learned policy (id pick_rl)
 //! scenarios/wave.bt.yaml                  behavior tree
 //! scenarios/pick.domain.pddl              PDDL domain
 //! scenarios/trajectories/red.trajectory.yaml
@@ -48,8 +48,10 @@ enum class FileRole
 //! @brief Double extension of @p_role, e.g. ".world.yaml"; empty for Unknown.
 [[nodiscard]] char const* roleExtension(FileRole p_role);
 
-//! @brief Name without the role nor the extension: @c wave for
-//! @c wave.scenario.yaml, @c wave for an older @c wave.yml.
+//! @brief Id given by a file name: the extension is dropped, the default
+//! role @c .scenario too, and every other dot becomes @c _.
+//! @c wave.scenario.yaml -> @c wave, @c pick.rl.yaml -> @c pick_rl,
+//! @c hello.experiment.yaml -> @c hello_experiment, @c wave.yml -> @c wave.
 [[nodiscard]] std::string roleStem(std::filesystem::path const& p_file);
 
 //! @brief True for a file the scenario list may hold: a scenario, an RL

@@ -64,7 +64,8 @@ libraries are then built by Make rules, there is no `external/compilation`.
   assertions, RL reward.
 - File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
   `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
-  `x.experiment.yaml` (doc/03 §1); `x` = the scenario id.
+  `x.experiment.yaml` (doc/03 §1). id = name without `.yaml` and
+  `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`).
 - Paths in world/scenario/experiment YAML start at the package root (folder
   of `plugin.yaml`): `world: worlds/arm.world.yaml`. `..` and symlinks are allowed
   but the canonical path must stay in the package; absolute paths are

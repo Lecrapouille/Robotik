@@ -1,7 +1,7 @@
 # The same portrait under several conditions. Whatever the friction or the
 # canvas mass, painting must not move the easel.
 experiment:
-  id: painting_benchmark
+  id: painter_experiment
   description: Painting must not move the easel, whatever its grip on the floor.
   seeds: [7, 8]
 

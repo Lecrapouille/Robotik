@@ -48,11 +48,11 @@ std::filesystem::path write(std::string const& p_name, std::string const& p_text
 TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 {
     std::filesystem::path const file =
-        repoFile("plugins/Painter/experiments/painting_benchmark.experiment.yaml");
+        repoFile("plugins/Painter/experiments/painter.experiment.yaml");
     EXPECT_TRUE(robotik::Experiment::describes(file));
     EXPECT_FALSE(robotik::Experiment::describes(repoFile("plugins/Painter/scenarios/painter.scenario.yaml")));
     robotik::Experiment const experiment = robotik::Experiment::load(file);
-    EXPECT_EQ(experiment.id, "painting_benchmark");
+    EXPECT_EQ(experiment.id, "painter_experiment");
     EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7u, 8u }));
     ASSERT_EQ(experiment.cases.size(), 3u);
     EXPECT_EQ(experiment.cases[1].overrides.size(), 2u);
@@ -62,7 +62,7 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
 {
     robotik::Experiment const painting =
-        robotik::Experiment::load(repoFile("plugins/Painter/experiments/painting_benchmark.experiment.yaml"));
+        robotik::Experiment::load(repoFile("plugins/Painter/experiments/painter.experiment.yaml"));
     robotik::Scenario const slippery =
         painting.scenario(find(painting, "slippery_floor"), testAssets());
     EXPECT_DOUBLE_EQ(slippery.world.floor_friction, 0.1);
@@ -72,7 +72,7 @@ TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
     EXPECT_DOUBLE_EQ(nominal.world.floor_friction, 0.8);
 
     robotik::Experiment const picking = robotik::Experiment::load(
-        repoFile("plugins/PickAndPlace/experiments/pick_and_place_benchmark.experiment.yaml"));
+        repoFile("plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml"));
     robotik::Scenario const camera =
         picking.scenario(find(picking, "camera_down_at_start"), testAssets());
     ASSERT_EQ(camera.faults.size(), 2u);
