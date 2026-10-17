@@ -75,6 +75,8 @@ struct FreeBox
     Vector3 inertia = zero3();
     Pose pose{ zero3(), Quaternion{} };
     double friction = 1.0;
+    //!< True: a static body (a wall), false: a free body.
+    bool fixed = false;
 };
 
 // ****************************************************************************
@@ -150,6 +152,23 @@ public:
     //! centre. Call it before the backend is attached to a robot.
     // -------------------------------------------------------------------------
     void addBox(FreeBox const& p_box);
+
+    // -------------------------------------------------------------------------
+    //! @brief Declares a weld between two bodies, off, compiled with the
+    //! chains: @ref weld turns it on. The two bodies never collide with
+    //! each other. Call it before the backend is attached to a robot.
+    // -------------------------------------------------------------------------
+    void addWeld(std::string p_name, std::string p_body1, std::string p_body2);
+
+    // -------------------------------------------------------------------------
+    //! @brief The two bodies never collide with each other. Call it before
+    //! the backend is attached to a robot.
+    // -------------------------------------------------------------------------
+    void excludeContacts(std::string p_body1, std::string p_body2);
+
+    bool weld(std::string const& p_name, bool p_on) override;
+
+    bool placeBody(std::string const& p_body, Pose const& p_pose) override;
 
     // -------------------------------------------------------------------------
     //! @brief World pose of a body after the last step or reset.
