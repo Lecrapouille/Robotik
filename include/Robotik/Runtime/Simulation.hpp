@@ -183,6 +183,16 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    /// @brief Entity of the Z-up frame of the world, at its origin: the parent
+    /// of the props. Hang on it what stays in the world (a floor), not on the
+    /// root of a robot, which moves with a floating base.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] compages::world::Entity worldFrame() const
+    {
+        return m_frame;
+    }
+
+    // -------------------------------------------------------------------------
     /// @brief Options of the physics the core builds after
     /// @ref Mission::setup: a mission may tune them there (a floating base,
     /// no gravity compensation, the step and the rotors of a legged robot).

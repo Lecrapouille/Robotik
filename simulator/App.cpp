@@ -247,7 +247,8 @@ void App::load(bool p_keep_tool)
         // A grid on the floor: distances and heights read at a glance.
         static std::filesystem::path const grid = floorGrid();
         compages::world::Entity floor = scene->plane("Floor", compages::renderer::texture(grid.string()));
-        floor.parent(simulation->robot().root()).position(0.0f, 0.0f, -0.001f).scale(3.0f);
+        // In the world, not on the robot: a floating base would carry it.
+        floor.parent(simulation->worldFrame()).position(0.0f, 0.0f, -0.001f).scale(3.0f);
         noShadow(floor);
     }
     // Compages world is Y-up. The robot stands on XZ after the URDF
