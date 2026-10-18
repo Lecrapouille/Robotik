@@ -21,7 +21,8 @@
     (reaches ?r - arm ?z - zone)       ; static: the arm can pick there
     (near ?r - arm ?b - bin))          ; static: the arm can drop there
 
-  ; The belt brings a part from the feeder to a free pick zone.
+  ; The belt brings a part from the feeder to a free pick zone: off the
+  ; infeed table, across to the lane of the zone, down to its end stop.
   (:action convey
     :parameters (?p - part ?f - feeder ?z - zone)
     :precondition (and (at ?p ?f) (zone_free ?z))
@@ -33,8 +34,9 @@
     :precondition (and (free ?r) (at ?p ?z) (reaches ?r ?z))
     :effect (and (holding ?r ?p) (not (free ?r)) (not (at ?p ?z)) (zone_free ?z)))
 
-  ; Carry above the bin and release.
+  ; Carry above the bin, release, and come back over the pick zone: the
+  ; arm waits where the next part arrives.
   (:action place
-    :parameters (?r - arm ?p - part ?b - bin)
-    :precondition (and (holding ?r ?p) (near ?r ?b))
+    :parameters (?r - arm ?p - part ?b - bin ?z - zone)
+    :precondition (and (holding ?r ?p) (near ?r ?b) (reaches ?r ?z))
     :effect (and (at ?p ?b) (free ?r) (not (holding ?r ?p)))))

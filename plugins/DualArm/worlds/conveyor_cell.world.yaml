@@ -1,11 +1,13 @@
 # Two 6-axis arms side by side, each with a vacuum cup and a wrist camera.
-# A conveyor brings the parts from a feeder, far in front of both arms, to
-# two pick zones, one per arm; each arm drops its parts in its own bin.
-# Z-up, metres, radians. Seen from above:
+# A conveyor of two lanes runs between them. The parts wait on its infeed
+# table, far in front of both arms; the belt pushes one onto a lane and
+# carries it to the end stop, on the pick zone of that lane. Each arm drops
+# its parts in its own bin. Z-up, metres, radians. Seen from above:
 #
-#            bin_left (0.05, -0.75)            bin_right (0.05, 0.75)
-#   left (0, -0.35)   zone_left (0.40, -0.20)   zone_right (0.40, 0.20)   right (0, 0.35)
-#                           feeder (0.92, 0): p1 p2 p3 p4
+#     bin_left (0.05, -0.75)                          bin_right (0.05, 0.75)
+#   left (0, -0.35)                                          right (0, 0.35)
+#        end stop (0.30)  zone_left (0.40, -0.13)  ... lane ...  infeed (1.37): p1 p2 p3 p4
+#                         zone_right (0.40, 0.13)  ... lane ...
 world:
   id: conveyor_cell
 
@@ -57,52 +59,61 @@ world:
       actuators:
         right_gripper: { type: vacuum }
 
-    # Places on the belt: flat open trays the parts rest in.
+    # The conveyor: a fixed body, its belt top 0.10 m high. The belt runs
+    # from x = 0.30 (end stop) to x = 1.30, then the infeed table to 1.44.
+    - id: conveyor
+      type: body
+      model: robotik.dual_arm.conveyor
+      physics: fixed
+      pose: { position: [0.30, 0.0, 0.0] }
+
+    # Places on the belt: flat frames, their floor 1 mm above the belt (not
+    # at the same height: the two surfaces would flicker).
     - id: feeder
       type: prop
       kind: feeder
-      shape: { type: container, size: [0.34, 0.10, 0.01] }
+      shape: { type: container, size: [0.10, 0.48, 0.01] }
       color: [0.25, 0.25, 0.25]
-      pose: { position: [0.92, 0.0, 0.005] }
+      pose: { position: [1.37, 0.0, 0.101] }
     - id: zone_left
       type: prop
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
-      color: [0.35, 0.35, 0.35]
-      pose: { position: [0.40, -0.20, 0.005] }
+      color: [0.95, 0.75, 0.10]
+      pose: { position: [0.40, -0.13, 0.101] }
     - id: zone_right
       type: prop
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
-      color: [0.35, 0.35, 0.35]
-      pose: { position: [0.40, 0.20, 0.005] }
+      color: [0.95, 0.75, 0.10]
+      pose: { position: [0.40, 0.13, 0.101] }
 
-    # Parts waiting on the feeder, out of reach of both arms. They rest on
-    # the floor of the tray (5 mm).
+    # Parts waiting on the infeed table, out of reach of both arms, red and
+    # blue mixed: the belt sends each one to the lane of its arm.
     - id: p1
       type: prop
       kind: part
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       color: [0.9, 0.1, 0.1]
-      pose: { position: [0.80, 0.0, 0.025] }
+      pose: { position: [1.37, -0.18, 0.12] }
     - id: p2
       type: prop
       kind: part
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       color: [0.1, 0.3, 0.9]
-      pose: { position: [0.88, 0.0, 0.025] }
+      pose: { position: [1.37, -0.06, 0.12] }
     - id: p3
       type: prop
       kind: part
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       color: [0.9, 0.1, 0.1]
-      pose: { position: [0.96, 0.0, 0.025] }
+      pose: { position: [1.37, 0.06, 0.12] }
     - id: p4
       type: prop
       kind: part
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       color: [0.1, 0.3, 0.9]
-      pose: { position: [1.04, 0.0, 0.025] }
+      pose: { position: [1.37, 0.18, 0.12] }
 
     - id: bin_left
       type: prop

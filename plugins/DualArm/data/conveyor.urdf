@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+     Copyright (c) 2020-2026 Quentin Quadrat
+     Conveyor of the DualArm cell: a belt of two lanes split by a divider,
+     an end stop on the near side, an infeed table on the far side.
+     Base frame: origin on the floor at the middle of the end stop, x along
+     the belt toward the infeed table, z up. The belt top is 0.10 m high. -->
+<robot name="conveyor">
+  <material name="belt"><color rgba="0.10 0.10 0.11 1"/></material>
+  <material name="steel"><color rgba="0.55 0.57 0.60 1"/></material>
+  <material name="aluminium"><color rgba="0.78 0.80 0.83 1"/></material>
+  <material name="yellow"><color rgba="0.95 0.75 0.10 1"/></material>
+  <material name="blue"><color rgba="0.15 0.30 0.70 1"/></material>
+
+  <link name="conveyor_base">
+    <inertial>
+      <origin xyz="0.5 0 0.05" rpy="0 0 0"/>
+      <mass value="40.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <!-- belt -->
+      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
+      <material name="belt"/>
+    </visual>
+    <collision>
+      <!-- belt -->
+      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
+    </collision>
+    <visual>
+      <!-- infeed_table -->
+      <origin xyz="1.0700 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.1400 0.5000 0.0100"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <!-- infeed_table -->
+      <origin xyz="1.0700 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.1400 0.5000 0.0100"/></geometry>
+    </collision>
+    <visual>
+      <!-- back_stop -->
+      <origin xyz="1.1500 0.0000 0.1050" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0200 0.5800 0.0300"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <collision>
+      <!-- back_stop -->
+      <origin xyz="1.1500 0.0000 0.1050" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0200 0.5800 0.0300"/></geometry>
+    </collision>
+    <visual>
+      <!-- end_stop -->
+      <origin xyz="0.0100 0.0000 0.1150" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0200 0.5000 0.0300"/></geometry>
+      <material name="yellow"/>
+    </visual>
+    <collision>
+      <!-- end_stop -->
+      <origin xyz="0.0100 0.0000 0.1150" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0200 0.5000 0.0300"/></geometry>
+    </collision>
+    <visual>
+      <!-- divider -->
+      <origin xyz="0.4200 0.0000 0.1100" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.8000 0.0150 0.0200"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <collision>
+      <!-- divider -->
+      <origin xyz="0.4200 0.0000 0.1100" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.8000 0.0150 0.0200"/></geometry>
+    </collision>
+    <visual>
+      <!-- side_left -->
+      <origin xyz="0.5700 -0.2650 0.0800" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.1400 0.0300 0.0600"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <collision>
+      <!-- side_left -->
+      <origin xyz="0.5700 -0.2650 0.0800" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.1400 0.0300 0.0600"/></geometry>
+    </collision>
+    <visual>
+      <!-- leg -->
+      <origin xyz="0.0500 -0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- leg -->
+      <origin xyz="0.5000 -0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- leg -->
+      <origin xyz="1.0900 -0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- side_right -->
+      <origin xyz="0.5700 0.2650 0.0800" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.1400 0.0300 0.0600"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <collision>
+      <!-- side_right -->
+      <origin xyz="0.5700 0.2650 0.0800" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="1.1400 0.0300 0.0600"/></geometry>
+    </collision>
+    <visual>
+      <!-- leg -->
+      <origin xyz="0.0500 0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- leg -->
+      <origin xyz="0.5000 0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- leg -->
+      <origin xyz="1.0900 0.2650 0.0250" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.0400 0.0400 0.0500"/></geometry>
+      <material name="aluminium"/>
+    </visual>
+    <visual>
+      <!-- roller -->
+      <origin xyz="0.0000 0.0000 0.0640" rpy="1.5708 0.0000 0.0000"/>
+      <geometry><cylinder radius="0.0300" length="0.5000"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <visual>
+      <!-- roller -->
+      <origin xyz="1.0000 0.0000 0.0640" rpy="1.5708 0.0000 0.0000"/>
+      <geometry><cylinder radius="0.0300" length="0.5000"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <visual>
+      <!-- motor -->
+      <origin xyz="0.9200 -0.3200 0.0700" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.1000 0.0800 0.0800"/></geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+</robot>

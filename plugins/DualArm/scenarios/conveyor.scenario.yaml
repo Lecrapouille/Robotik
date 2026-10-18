@@ -1,7 +1,8 @@
 # Two arms sort four parts that a conveyor brings, with no behavior tree:
 # the PDDL planner finds the steps from the goal, and the executor runs
 # together the steps that do not depend on each other. The conveyor brings
-# the next part while an arm carries the last one to its bin.
+# the next part while an arm carries the last one to its bin, and the arm
+# comes back over its pick zone to wait for it.
 scenario:
   id: conveyor
   description: Sort the red parts to the left bin, the blue ones to the right bin, both arms at once.
@@ -40,5 +41,5 @@ scenario:
     - planner.replans == 0
     # Both arms moved at the same time for a while.
     - dual_arm.overlap > 2
-    # The plan run step by step takes about 29 s (conveyor_sequential).
+    # The plan run step by step takes about 33 s (conveyor_sequential).
     - time < 20

@@ -6,14 +6,15 @@
 // See LICENSING.md for details.
 
 /// @file Conveyor.hpp
-/// @brief A belt of the cell: the skill commands it, the mission moves the
-/// part it carries (abstract physics: the part slides at a fixed speed).
+/// @brief The conveyor of the cell: the skill commands it, the mission moves
+/// the part it carries (abstract physics: the part rides at the belt speed).
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
 #include "Robotik/Skills/Skill.hpp"
 
 #include <string>
+#include <vector>
 
 namespace robotik
 {
@@ -24,7 +25,8 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// @brief The belt: carries one part at a time to a point of the world.
+/// @brief The belt: carries one part at a time along a path of the world
+/// (off the infeed table, across to a lane, down the lane).
 // ****************************************************************************
 class Conveyor
 {
@@ -33,8 +35,8 @@ public:
     /// Resource of the belt: the skill holds it alone, a fault stops it.
     static constexpr char const* RESOURCE = "conveyor";
 
-    /// @brief Starts carrying @p_part to @p_goal (world frame, x and y).
-    void carry(std::string p_part, robotik::Vector3 const& p_goal);
+    /// @brief Starts carrying @p_part through @p_path (world frame, x and y).
+    void carry(std::string p_part, std::vector<robotik::Vector3> p_path);
 
     /// @brief Stops the belt where it is.
     void stop();
@@ -57,19 +59,21 @@ private:
 
     std::string m_part;
     std::string m_delivered;
-    robotik::Vector3 m_goal = robotik::zero3();
+    /// Points left to reach, the next one first.
+    std::vector<robotik::Vector3> m_path;
     bool m_running = false;
 };
 
 // ****************************************************************************
-/// @brief Convey(part, zone): the belt brings the part to the believed
+/// @brief Convey(part, feeder, zone): the belt pushes the part off the
+/// feeder, across to the lane of the zone, and down the lane to the believed
 /// centre of the zone.
 // ****************************************************************************
 class ConveySkill final: public robotik::Skill
 {
 public:
 
-    ConveySkill(Conveyor& p_conveyor, std::string p_part, std::string p_zone);
+    ConveySkill(Conveyor& p_conveyor, std::string p_part, std::string p_feeder, std::string p_zone);
 
     void reset() override
     {
@@ -89,6 +93,7 @@ private:
 
     Conveyor& m_conveyor;
     std::string m_part;
+    std::string m_feeder;
     std::string m_zone;
     bool m_started = false;
     std::string m_why;

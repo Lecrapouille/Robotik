@@ -44,6 +44,7 @@ private:
     Conveyor m_conveyor;
     /// World entities of each kind (ids).
     std::vector<std::string> m_parts;
+    std::vector<std::string> m_feeders;
     std::vector<std::string> m_zones;
     std::vector<std::string> m_bins;
     double m_overlap = 0.0;

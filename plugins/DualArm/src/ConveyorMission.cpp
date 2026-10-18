@@ -28,6 +28,9 @@ static constexpr double kHover = 0.08;
 static constexpr double kContact = 0.012;
 /// Height of the cup over the walls of a bin when it drops a part (m).
 static constexpr double kOverBin = 0.12;
+/// Height of a part (m): an arm waits over its pick zone at the height it
+/// takes the next part from, kHover above its top.
+static constexpr double kPartHeight = 0.04;
 static constexpr int kPriority = 100;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
@@ -51,6 +54,10 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation, robotik::SceneVie
         {
             m_parts.push_back(entity.id);
         }
+        else if (entity.kind == "feeder")
+        {
+            m_feeders.push_back(entity.id);
+        }
         else if (entity.kind == "zone")
         {
             m_zones.push_back(entity.id);
@@ -68,10 +75,14 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation, robotik::SceneVie
     };
     for (std::string const& part : m_parts)
     {
-        for (std::string const& zone : m_zones)
+        for (std::string const& feeder : m_feeders)
         {
-            p_simulation.skills().add<ConveySkill>(
-                describe("Convey(" + part + ", " + zone + ")", {}, belt), m_conveyor, part, zone);
+            for (std::string const& zone : m_zones)
+            {
+                p_simulation.skills().add<ConveySkill>(
+                    describe("Convey(" + part + ", " + feeder + ", " + zone + ")", {}, belt),
+                    m_conveyor, part, feeder, zone);
+            }
         }
     }
     for (std::unique_ptr<robotik::RobotSession> const& robot : p_simulation.robots())
@@ -112,6 +123,12 @@ void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation, robotik::R
     for (std::string const& bin : m_bins)
     {
         skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm), bin, Length(kOverBin));
+    }
+    // Back over a pick zone, where the next part arrives.
+    for (std::string const& zone : m_zones)
+    {
+        skills.add<HoverSkill>(describe(scope + "Ready(" + zone + ")", id, arm), zone,
+                               Length(kPartHeight + kHover));
     }
 }
 
@@ -197,9 +214,9 @@ void ConveyorMission::addPlanning(robotik::Simulation& p_simulation)
                    });
 
     // --- Actions, as skills of each robot ----------------------------------
-    domain.bind("convey", { "Convey({0}, {2})" });
+    domain.bind("convey", { "Convey({0}, {1}, {2})" });
     domain.bind("pick", { "{0}.Hover({1})", "{0}.Reach({1})", "{0}.Grasp({1})", "{0}.Hover({1})" });
-    domain.bind("place", { "{0}.Over({2})", "{0}.Release" });
+    domain.bind("place", { "{0}.Over({2})", "{0}.Release", "{0}.Ready({3})" });
 }
 
 void ConveyorMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)

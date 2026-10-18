@@ -9,7 +9,9 @@ plugin:
 library:
   entrypoint: librobotik_dual_arm.so
 
+# Runtime assets. data/ is this plugin's own pack (the conveyor).
 resources:
+  directory: data
   packs:
     - { id: robotik.robots, version: "1.0" }
     - { id: robotik.tools, version: "1.0" }

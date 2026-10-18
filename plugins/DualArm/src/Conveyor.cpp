@@ -19,14 +19,17 @@ namespace dual_arm
 {
 
 /// Belt speed (m/s).
-static constexpr double kSpeed = 0.25;
+static constexpr double kSpeed = 0.40;
+/// The part crosses to its lane this far in front of the feeder, where the
+/// belt has no divider (m).
+static constexpr double kTransfer = 0.11;
 
-void Conveyor::carry(std::string p_part, robotik::Vector3 const& p_goal)
+void Conveyor::carry(std::string p_part, std::vector<robotik::Vector3> p_path)
 {
     m_part = std::move(p_part);
-    m_goal = p_goal;
+    m_path = std::move(p_path);
     m_delivered.clear();
-    m_running = true;
+    m_running = !m_path.empty();
 }
 
 void Conveyor::stop()
@@ -38,6 +41,7 @@ void Conveyor::reset()
 {
     m_part.clear();
     m_delivered.clear();
+    m_path.clear();
     m_running = false;
 }
 
@@ -53,30 +57,47 @@ void Conveyor::step(robotik::Simulation& p_simulation, Seconds p_dt)
         m_running = false;
         return;
     }
-    // Child of the Z-up frame of the world: its local position is the world one.
+    // Child of the Z-up frame of the world: its local position is the world
+    // one. The belt keeps its speed through the corners of the path.
     auto at = part.position();
-    double const dx = m_goal.x - at.x;
-    double const dy = m_goal.y - at.y;
-    double const left = std::hypot(dx, dy);
-    double const travel = kSpeed * p_dt.value();
-    if (left <= travel)
+    double travel = kSpeed * p_dt.value();
+    while (travel > 0.0 && !m_path.empty())
     {
-        at.x = static_cast<float>(m_goal.x);
-        at.y = static_cast<float>(m_goal.y);
+        robotik::Vector3 const& goal = m_path.front();
+        double const dx = goal.x - at.x;
+        double const dy = goal.y - at.y;
+        double const left = std::hypot(dx, dy);
+        if (left <= travel)
+        {
+            at.x = static_cast<float>(goal.x);
+            at.y = static_cast<float>(goal.y);
+            travel -= left;
+            m_path.erase(m_path.begin());
+        }
+        else
+        {
+            at.x += static_cast<float>(travel * dx / left);
+            at.y += static_cast<float>(travel * dy / left);
+            travel = 0.0;
+        }
+    }
+    part.position(at);
+    if (m_path.empty())
+    {
         m_delivered = m_part;
         m_running = false;
     }
-    else
-    {
-        at.x += static_cast<float>(travel * dx / left);
-        at.y += static_cast<float>(travel * dy / left);
-    }
-    part.position(at);
 }
 
 // ----------------------------------------------------------------------------
-ConveySkill::ConveySkill(Conveyor& p_conveyor, std::string p_part, std::string p_zone)
-    : m_conveyor(p_conveyor), m_part(std::move(p_part)), m_zone(std::move(p_zone))
+ConveySkill::ConveySkill(Conveyor& p_conveyor,
+                         std::string p_part,
+                         std::string p_feeder,
+                         std::string p_zone)
+    : m_conveyor(p_conveyor),
+      m_part(std::move(p_part)),
+      m_feeder(std::move(p_feeder)),
+      m_zone(std::move(p_zone))
 {
 }
 
@@ -85,13 +106,21 @@ robotik::Status ConveySkill::tick(robotik::RobotContext& p_context, Seconds /*p_
     if (!m_started)
     {
         // The belt runs in the world frame, as the shared beliefs.
-        robotik::WorldObject const* zone = p_context.world_model.find(m_zone);
-        if (zone == nullptr)
+        robotik::WorldModel const& beliefs = p_context.world_model;
+        robotik::WorldObject const* part = beliefs.find(m_part);
+        robotik::WorldObject const* feeder = beliefs.find(m_feeder);
+        robotik::WorldObject const* zone = beliefs.find(m_zone);
+        if (part == nullptr || feeder == nullptr || zone == nullptr)
         {
-            m_why = m_zone + " is not in the beliefs";
+            m_why = (part == nullptr ? m_part : feeder == nullptr ? m_feeder : m_zone) +
+                    " is not in the beliefs";
             return robotik::Status::FAILURE;
         }
-        m_conveyor.carry(m_part, zone->position);
+        // Off the feeder, across to the lane of the zone, down the lane.
+        double const transfer = feeder->position.x - 0.5 * feeder->size.x - kTransfer;
+        m_conveyor.carry(m_part, { robotik::Vector3(transfer, part->position.y, 0.0),
+                                   robotik::Vector3(transfer, zone->position.y, 0.0),
+                                   robotik::Vector3(zone->position.x, zone->position.y, 0.0) });
         m_started = true;
     }
     return m_conveyor.delivered() == m_part ? robotik::Status::SUCCESS : robotik::Status::RUNNING;
