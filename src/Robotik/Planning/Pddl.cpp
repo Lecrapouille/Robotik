@@ -238,6 +238,60 @@ static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
 }
 
 // ----------------------------------------------------------------------------
+/// @brief True for the words of a PDDL formula that are not atoms: logic,
+/// time, comparison, arithmetic and assignment.
+// ----------------------------------------------------------------------------
+static bool connective(std::string_view p_head)
+{
+    static constexpr std::string_view WORDS[] = {
+        "and",      "or",       "not",      "imply",     "forall",     "exists",
+        "when",     "at",       "over",     "=",         "<",          ">",
+        "<=",       ">=",       "+",        "-",         "*",          "/",
+        "increase", "decrease", "assign",   "scale-up",  "scale-down", "preference",
+    };
+    for (std::string_view const word : WORDS)
+    {
+        if (p_head == word)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// ----------------------------------------------------------------------------
+/// @brief Every atom named in a formula, at any depth: @c (p ?a b) and
+/// @c (f ?a) inside a comparison or an assignment. The variable lists of
+/// @c forall / @c exists are skipped.
+// ----------------------------------------------------------------------------
+static void collectAtoms(Sexpr const& p_node, std::vector<Atom>& p_atoms)
+{
+    if (!p_node.is_list || p_node.list.empty())
+    {
+        return;
+    }
+    std::string_view const head = p_node.head();
+    // (at ?r ?room) is an atom; (at start φ) and (over all φ) are not.
+    bool const timed = p_node.list.size() == 3u && !p_node.list[1].is_list &&
+                       (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
+                        p_node.list[1].isAtom("all"));
+    bool const word = (head == "at" || head == "over") ? timed : connective(head);
+    if (head.empty() || !word)
+    {
+        if (!head.empty())
+        {
+            p_atoms.push_back(atomOf(p_node));
+        }
+        return;
+    }
+    std::size_t const first = head == "forall" || head == "exists" || timed ? 2u : 1u;
+    for (std::size_t i = first; i < p_node.list.size(); ++i)
+    {
+        collectAtoms(p_node.list[i], p_atoms);
+    }
+}
+
+// ----------------------------------------------------------------------------
 /// @brief Value following @p_key in a flat list (@c :parameters (...)).
 // ----------------------------------------------------------------------------
 static Sexpr const* keyed(Sexpr const& p_node, std::string_view p_key)
@@ -514,6 +568,14 @@ DomainSchema DomainSchema::parse(std::string_view p_text)
             if (Sexpr const* effect = keyed(section, ":effect"))
             {
                 collectEffects(*effect, action);
+                collectAtoms(*effect, action.writes);
+            }
+            for (std::string_view const key : { ":precondition", ":condition" })
+            {
+                if (Sexpr const* condition = keyed(section, key))
+                {
+                    collectAtoms(*condition, action.reads);
+                }
             }
             schema.actions[action.name] = std::move(action);
         }

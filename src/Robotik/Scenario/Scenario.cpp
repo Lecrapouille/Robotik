@@ -90,6 +90,7 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode c
     spec.max_replans = static_cast<std::uint32_t>(max);
     spec.replan_delay = Seconds(replan.number("delay", spec.replan_delay.value()));
     spec.verify = p_node.flag("verify", spec.verify);
+    spec.parallel = p_node.flag("parallel", spec.parallel);
     spec.search = p_node.text("search", spec.search);
     spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
     return spec;

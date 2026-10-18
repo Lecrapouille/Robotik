@@ -12,6 +12,7 @@
 /// @code
 /// state of the beliefs (observers) + facts + objects (kind) + goal
 ///   -> problem.pddl -> planner -> plan -> behavior tree (one subtree per step)
+/// steps that do not depend on each other run together (PlanGraph.hpp)
 /// each step: its nodes (skills), then Check: its effects hold in the beliefs
 /// a step fails, an effect is false, the goal is not reached
 ///   -> cancel, wait replan.delay (simulated), plan again (replan.max times)
@@ -195,10 +196,21 @@ public:
         return m_plan;
     }
 
-    /// @brief Steps of the current plan already done and checked.
+    /// @brief Count of steps of the current plan done (or skipped) and
+    /// checked; with parallel steps, not always the first ones.
     [[nodiscard]] std::size_t done() const
     {
         return m_done;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @brief Direct predecessors of each step of the current plan: a step
+    /// starts once they are done (see PlanGraph.hpp). A chain when the plan
+    /// runs step by step.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<std::vector<std::size_t>> const& after() const
+    {
+        return m_after;
     }
 
     /// @brief Status of each step of the current plan.
@@ -244,6 +256,15 @@ private:
                                    RobotContext const& p_context);
     [[nodiscard]] bt::Status skip(std::size_t p_step,
                                   RobotContext const& p_context);
+    /// @brief SUCCESS once the predecessors of @p_step are done, else RUNNING.
+    [[nodiscard]] bt::Status ready(std::size_t p_step) const;
+    /// @brief Marks @p_step finished (done or skipped) and counts it.
+    void finish(std::size_t p_step, StepStatus p_status);
+    /// @brief Step a failed tree failed at: one with a failed skill, else
+    /// the first one running.
+    [[nodiscard]] std::size_t failingStep() const;
+    /// @brief Partial order of @ref m_plan (a chain unless spec.parallel).
+    [[nodiscard]] std::vector<std::vector<std::size_t>> order() const;
     /// @brief Plain effects of a step, as ground literals (PDDL names).
     [[nodiscard]] std::vector<Literal> effects(std::size_t p_step,
                                                bool& p_partial) const;
@@ -278,6 +299,7 @@ private:
     std::vector<GroundAction> m_plan;
     std::size_t m_done = 0u;
     std::vector<StepStatus> m_steps;
+    std::vector<std::vector<std::size_t>> m_after;
     /// Set by a failed check: why the tree failed.
     std::string m_check_failure;
     /// Context of the tick in progress, for the check nodes.

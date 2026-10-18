@@ -117,6 +117,9 @@ struct PlannerSpec
     Seconds replan_delay{ 0.5 };
     /// Checks the effects of each action on the beliefs once it is done.
     bool verify = true;
+    /// Runs together the steps that do not depend on each other (see
+    /// PlanGraph.hpp); false runs the plan step by step.
+    bool parallel = true;
     /// Search preset of the planner.
     std::string search = "lama";
     /// Wall-clock safety net of one search (s).
@@ -137,6 +140,7 @@ struct PlannerSpec
 ///       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
 ///     replan: { max: 3, delay: 0.5 }      # new plans, simulated seconds before each
 ///     verify: true                        # check the effects on the beliefs
+///     parallel: true                      # independent steps run together
 ///     search: lama                        # planner search preset
 ///     timeout: 10                         # wall-clock safety net (s)
 /// @endcode

@@ -122,6 +122,13 @@ struct ActionSchema
     /// Some effects are conditional, quantified or numeric: not checked.
     bool partial = false;
     bool durative = false;
+    /// Every atom the precondition (or the condition of a durative action)
+    /// names, whatever its polarity or nesting; numeric fluents included.
+    /// A quantified variable stays @c ?x: it matches any object.
+    std::vector<Atom> reads;
+    /// Every atom an effect may change, conditional, quantified, numeric or
+    /// at start included. Used to tell which steps of a plan are independent.
+    std::vector<Atom> writes;
 };
 
 // ****************************************************************************

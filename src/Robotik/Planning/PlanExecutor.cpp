@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Planning/PlanExecutor.hpp"
+#include "Robotik/Planning/PlanGraph.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
@@ -354,6 +355,7 @@ void PlanExecutor::reset(Seed p_seed)
     m_plan.clear();
     m_done = 0u;
     m_steps.clear();
+    m_after.clear();
     m_check_failure.clear();
     m_tree.reset();
 }
@@ -403,9 +405,9 @@ bt::Status PlanExecutor::tick(RobotContext const& p_context)
                 std::string cause = m_check_failure.empty()
                                         ? stepFailure(p_context)
                                         : m_check_failure;
-                if (m_done < m_steps.size())
+                if (std::size_t const failed = failingStep(); failed < m_steps.size())
                 {
-                    m_steps[m_done] = StepStatus::Failed;
+                    m_steps[failed] = StepStatus::Failed;
                 }
                 m_tree->halt();
                 m_skills.cancelAll();
@@ -488,21 +490,57 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
 // ----------------------------------------------------------------------------
 void PlanExecutor::compile()
 {
+    m_after = order();
+    bool const chain = sequential(m_after);
     std::ostringstream yaml;
-    yaml << "BehaviorTree:\n  Sequence:\n    name: \"Plan\"\n    children:\n";
+    if (chain)
+    {
+        yaml << "BehaviorTree:\n  Sequence:\n    name: \"Plan\"\n    children:\n";
+    }
+    else
+    {
+        // Every step at once; each waits for its predecessors, runs once,
+        // and the first failure fails the plan.
+        yaml << "BehaviorTree:\n  Parallel:\n    name: \"Plan\"\n"
+             << "    success_on_all: true\n    fail_on_all: false\n    children:\n";
+    }
     for (std::size_t k = 0u; k < m_plan.size(); ++k)
     {
         GroundAction const& step = m_plan[k];
         std::string const title = std::to_string(k + 1u) + ". " + label(step);
-        yaml << "      - SubTree:\n          name: " << yamlQuoted(title)
-             << "\n          reference: step_" << k << "\n";
+        std::string indent = "      ";
+        if (!chain)
+        {
+            std::string wait = "After";
+            for (std::size_t const before : m_after[k])
+            {
+                wait += (wait.size() > 5u ? ", " : " ") + std::to_string(before + 1u);
+            }
+            wait = m_after[k].empty() ? "Start " + title : wait + ": " + title;
+            m_factory.registerNode(wait,
+                                   [this, k]()
+                                   {
+                                       return std::make_unique<bt::CallbackLeaf>(
+                                           [this, k]() { return ready(k); });
+                                   });
+            yaml << indent << "- RunOnce:\n"
+                 << indent << "    child:\n"
+                 << indent << "      - Sequence:\n"
+                 << indent << "          name: " << yamlQuoted(title) << "\n"
+                 << indent << "          children:\n"
+                 << indent << "            - Action:\n"
+                 << indent << "                name: " << yamlQuoted(wait) << "\n";
+            indent += "            ";
+        }
+        yaml << indent << "- SubTree:\n" << indent << "    name: " << yamlQuoted(title) << "\n"
+             << indent << "    reference: step_" << k << "\n";
         ActionBinding const* binding = m_domain.binding(step.name);
         if (binding != nullptr && !binding->parameters.empty())
         {
-            yaml << "          parameters:\n";
+            yaml << indent << "    parameters:\n";
             for (auto const& [key, value] : binding->parameters)
             {
-                yaml << "            " << key << ": "
+                yaml << indent << "      " << key << ": "
                      << yamlQuoted(expand(value, step.args)) << "\n";
             }
         }
@@ -649,8 +687,7 @@ bt::Status PlanExecutor::check(std::size_t p_step,
             }
         }
     }
-    m_steps[p_step] = StepStatus::Done;
-    m_done = std::max(m_done, p_step + 1u);
+    finish(p_step, StepStatus::Done);
     return bt::Status::SUCCESS;
 }
 
@@ -673,9 +710,91 @@ bt::Status PlanExecutor::skip(std::size_t p_step,
             return bt::Status::FAILURE;
         }
     }
-    m_steps[p_step] = StepStatus::Skipped;
-    m_done = std::max(m_done, p_step + 1u);
+    finish(p_step, StepStatus::Skipped);
     return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::ready(std::size_t p_step) const
+{
+    for (std::size_t const before : m_after[p_step])
+    {
+        if (m_steps[before] != StepStatus::Done && m_steps[before] != StepStatus::Skipped)
+        {
+            return bt::Status::RUNNING;
+        }
+    }
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::finish(std::size_t p_step, StepStatus p_status)
+{
+    m_steps[p_step] = p_status;
+    m_done = static_cast<std::size_t>(
+        std::count_if(m_steps.begin(), m_steps.end(), [](StepStatus p_s)
+                      { return p_s == StepStatus::Done || p_s == StepStatus::Skipped; }));
+}
+
+// ----------------------------------------------------------------------------
+std::size_t PlanExecutor::failingStep() const
+{
+    std::size_t first = m_plan.size();
+    for (std::size_t k = 0u; k < m_plan.size(); ++k)
+    {
+        if (m_steps[k] != StepStatus::Pending)
+        {
+            continue;
+        }
+        for (std::string const& node : nodes(m_plan[k]))
+        {
+            SkillId const id = m_skills.find(node);
+            if (id != NO_SKILL && (m_skills.state(id) == SkillState::Failed ||
+                                   m_skills.state(id) == SkillState::Cancelled))
+            {
+                return k;
+            }
+        }
+        if (first == m_plan.size() && (m_after.size() <= k || ready(k) == bt::Status::SUCCESS))
+        {
+            first = k;
+        }
+    }
+    return first;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<std::vector<std::size_t>> PlanExecutor::order() const
+{
+    std::vector<std::vector<std::size_t>> chain(m_plan.size());
+    for (std::size_t k = 1u; k < m_plan.size(); ++k)
+    {
+        chain[k] = { k - 1u };
+    }
+    if (!m_spec.parallel)
+    {
+        return chain;
+    }
+    std::vector<StepFootprint> prints;
+    for (GroundAction const& step : m_plan)
+    {
+        auto const action = m_schema.actions.find(step.name);
+        if (action == m_schema.actions.end())
+        {
+            return chain; // Unknown to RobotIK: keep the plan as it is.
+        }
+        StepFootprint print = footprint(action->second, step);
+        for (std::string const& node : nodes(step))
+        {
+            if (SkillId const id = m_skills.find(node); id != NO_SKILL)
+            {
+                std::vector<ResourceRequirement> const& needed = m_skills.description(id).resources;
+                print.resources.insert(print.resources.end(), needed.begin(), needed.end());
+            }
+        }
+        prints.push_back(std::move(print));
+    }
+    return orderSteps(prints);
 }
 
 // ----------------------------------------------------------------------------
@@ -717,12 +836,13 @@ std::string PlanExecutor::goalReached(RobotContext const& p_context) const
 // ----------------------------------------------------------------------------
 std::string PlanExecutor::stepFailure(RobotContext const& p_context) const
 {
-    if (m_done >= m_plan.size())
+    std::size_t const failed = failingStep();
+    if (failed >= m_plan.size())
     {
         return "the plan failed";
     }
-    GroundAction const& step = m_plan[m_done];
-    std::string const title = std::to_string(m_done + 1u) + ". " + label(step);
+    GroundAction const& step = m_plan[failed];
+    std::string const title = std::to_string(failed + 1u) + ". " + label(step);
     for (std::string const& node : nodes(step))
     {
         SkillId const id = m_skills.find(node);
