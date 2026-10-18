@@ -890,6 +890,25 @@ void MujocoBackend::compile()
         fresh->dof_damping[dof] =
             std::max(fresh->dof_damping[dof], JOINT_DAMPING);
     }
+    // A caller that knows its rotors (a small servo, far below the floors)
+    // keeps its values.
+    if (m_options.exact_inertia)
+    {
+        auto keep = [&](std::unordered_map<std::string, double> const& p_values, mjtNum* p_field)
+        {
+            for (auto const& [name, value] : p_values)
+            {
+                int const joint = mj_name2id(fresh, mjOBJ_JOINT, name.c_str());
+                if (joint < 0)
+                {
+                    throw std::runtime_error("MuJoCo: no joint '" + name + "' for the inertia option");
+                }
+                p_field[fresh->jnt_dofadr[joint]] = value;
+            }
+        };
+        keep(m_options.armature, fresh->dof_armature);
+        keep(m_options.damping, fresh->dof_damping);
+    }
     m_impl->floor = mj_name2id(fresh, mjOBJ_GEOM, "robotik_floor");
     m_impl->data = mj_makeData(fresh);
     restorePose(fresh, m_impl->data, held);

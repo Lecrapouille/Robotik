@@ -42,8 +42,16 @@ struct MujocoOptions
     /// turns it off: the policy was trained without it.
     bool gravity_compensation = true;
     /// Reflected rotor inertia per joint name (kg.m²): rotor inertia times
-    /// the gear ratio squared. URDF cannot carry it.
+    /// the gear ratio squared. URDF cannot carry it. Values below the default
+    /// rotor floor are raised, unless @ref exact_inertia is set.
     std::unordered_map<std::string, double> armature;
+    /// Viscous joint damping per joint name (N·m·s/rad). Used only when
+    /// @ref exact_inertia is set.
+    std::unordered_map<std::string, double> damping;
+    /// The joints of @ref armature and @ref damping keep these values, even
+    /// below the default floors (a small servo). The floors stay for every
+    /// other joint: they stand in for a URDF that declares no rotor inertia.
+    bool exact_inertia = false;
 };
 
 // ****************************************************************************
