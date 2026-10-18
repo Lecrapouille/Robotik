@@ -547,7 +547,12 @@ static void shortcutsWindow(App& p_app)
             { "Ctrl+O", "Open a scenario file" },
             { "Ctrl+1 ... Ctrl+4", "Plugin, Robot, Mission, Autonomy" },
             { "H", "Sent to the plugin (Home in most demos)" },
-            { "Right drag / wheel", "Orbit / zoom the 3D view" },
+            { "Left drag", "Drag the ground of the 3D view" },
+            { "Right or middle drag", "Turn the 3D view" },
+            { "Wheel, R / F", "Zoom the 3D view" },
+            { "W A S D, arrows", "Move the 3D view (over the view)" },
+            { "Q / E", "Turn the 3D view (over the view)" },
+            { "Shift", "Faster" },
             { "F1", "This window" },
         };
         if (beginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))

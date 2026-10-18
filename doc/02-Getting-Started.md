@@ -95,6 +95,22 @@ Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 | Ctrl+E | Emergency stop, or release it |
 | F5 | Reload the scenario file (after you edit it) |
 
+The 3D view moves like the camera of a strategy game: it looks at a point
+of the floor. The mouse acts only over the view; the keys too, and not
+while you type in a text field.
+
+| Mouse or key | Does |
+|--------------|------|
+| Left drag | Drag the floor: the point under the mouse stays under it |
+| Right or middle drag | Turn around the point looked at, and up or down |
+| Wheel, R / F | Zoom in / out |
+| W A S D, arrows | Move along the floor |
+| Q / E | Turn |
+| Shift | Faster |
+
+The camera glides to where you send it, at the same speed whatever the
+frame rate.
+
 You can also give a scenario file directly:
 
 ```bash

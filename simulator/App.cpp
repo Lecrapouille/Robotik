@@ -14,15 +14,14 @@
 #include "Robotik/Math/Si.hpp"
 #include "Compages/World/Controllers/Controls.hpp"
 
-/// Slows the scroll zoom of the orbit controller.
-static void tuneViewOrbit(compages::world::World& p_world,
-                   compages::world::Entity p_camera)
+/// Limits of the camera rig for a robot cell: from a few centimetres to
+/// a few metres.
+static void tuneViewRig(compages::world::World& p_world, compages::world::Entity p_camera)
 {
-    if (compages::world::Orbit* orbit =
-            p_world.behavior<compages::world::Orbit>(p_camera))
+    if (compages::world::Rig* rig = p_world.behavior<compages::world::Rig>(p_camera))
     {
-        // Default 2.5f × raw scroll is harsh; Orbit::start() only raises this.
-        orbit->controller.zoom_sensitivity = 0.35f;
+        rig->controller.min_distance = 0.15f;
+        rig->controller.max_distance = 20.0f;
     }
 }
 
@@ -254,16 +253,16 @@ void App::load(bool p_keep_tool)
     if (package != nullptr && package->has_view)
     {
         view_camera.position(package->eye[0], package->eye[1], package->eye[2])
-            .add<compages::world::Orbit>(compages::core::Vector3f(
+            .add<compages::world::Rig>(compages::core::Vector3f(
                 package->target[0], package->target[1], package->target[2]));
     }
     else
     {
         view_camera.position(1.6f, 1.2f, 1.6f)
-            .add<compages::world::Orbit>(
+            .add<compages::world::Rig>(
                 compages::core::Vector3f(0.35f, 0.15f, 0.0f));
     }
-    tuneViewOrbit(*world, view_camera);
+    tuneViewRig(*world, view_camera);
     if (auto prepared = scene->prepare(); !prepared)
     {
         error = prepared.error();

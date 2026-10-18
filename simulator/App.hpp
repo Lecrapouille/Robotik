@@ -228,6 +228,12 @@ struct App
 
     RenderTarget view;
     bool view_hovered = false;
+    /// Top-left corner and size of the 3D view on the screen (ImGui pixels):
+    /// the camera rig turns the mouse into a point of the ground.
+    float view_x = 0.0f;
+    float view_y = 0.0f;
+    float view_w = 1.0f;
+    float view_h = 1.0f;
 
     bool playing = false;
     bool step_once = false;

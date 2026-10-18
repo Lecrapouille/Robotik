@@ -209,10 +209,15 @@ void scenePanel(App& p_app, char const* p_key)
     p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
                       static_cast<std::uint32_t>(size.y * scale.y));
     ImVec2 const at = ImGui::GetCursorScreenPos();
+    p_app.view_x = at.x;
+    p_app.view_y = at.y;
+    p_app.view_w = size.x;
+    p_app.view_h = size.y;
     // The controls drawn on top must win the mouse over the view.
     ImGui::SetNextItemAllowOverlap();
     ImGui::InvisibleButton("##view", size,
-                           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+                           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
+                               ImGuiButtonFlags_MouseButtonMiddle);
     p_app.view_hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
     if (p_app.view.width > 0)
     {
@@ -224,7 +229,7 @@ void scenePanel(App& p_app, char const* p_key)
     runFrame(p_app, at, size);
     runControls(p_app, at);
     stopButton(p_app, at, size.x);
-    char const* hint = "Right drag: orbit   Wheel: zoom";
+    char const* hint = "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);
     ImVec2 const corner(at.x + 10.0f, at.y + size.y - text.y - 12.0f);
     ImDrawList* draw = ImGui::GetWindowDrawList();
