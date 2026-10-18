@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
+#include "Robotik/Scenario/Config.hpp"
 #include "Robotik/Scenario/FileRole.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
@@ -417,6 +418,31 @@ void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_fo
     }
 }
 
+/// @brief First scenario of @p_package whose planner reads the domain
+/// @p_domain, or null.
+static std::filesystem::path const* scenarioOfDomain(robotik::PluginPackage const& p_package,
+                                                     std::filesystem::path const& p_domain)
+{
+    for (robotik::PluginScenario const& scenario : p_package.scenarios)
+    {
+        try
+        {
+            robotik::ConfigNode const node = robotik::ConfigNode::load(scenario.file);
+            std::string const domain =
+                node.at("scenario").at("controller").at("planner").text("domain");
+            if (!domain.empty() && same(p_package.root / domain, p_domain))
+            {
+                return &scenario.file;
+            }
+        }
+        catch (std::exception const&)
+        {
+            // A broken scenario reads no domain; the Demos menu says why.
+        }
+    }
+    return nullptr;
+}
+
 void showFile(App& p_app, std::filesystem::path const& p_path)
 {
     robotik::PluginPackage const* package =
@@ -445,6 +471,18 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
     {
         showView(p_app, FileTab::Planner, true);
         return;
+    }
+    // The domain of another scenario of the package: load that scenario, the
+    // Planner tab then shows the domain with its plans.
+    if (package != nullptr && robotik::fileRole(p_path) == robotik::FileRole::Domain)
+    {
+        if (std::filesystem::path const* scenario = scenarioOfDomain(*package, p_path))
+        {
+            requestScenario(p_app, *scenario);
+            p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
+            showView(p_app, FileTab::Planner, true);
+            return;
+        }
     }
     std::string text = readShown(p_path);
     FileTab const tab = kindOf(p_path, text);
