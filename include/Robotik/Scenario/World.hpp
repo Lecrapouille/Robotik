@@ -234,18 +234,25 @@ struct WorldDescription
 
     [[nodiscard]] EntitySpec const* find(std::string_view p_id) const;
 
-    /// @brief The robot entity (validated to exist).
+    /// @brief The first robot entity (validated to exist).
     [[nodiscard]] EntitySpec const& robot() const;
 
-    /// @brief Tool attached to the robot flange, or null.
+    /// @brief Every robot entity, in file order (one at least).
+    [[nodiscard]] std::vector<EntitySpec const*> robots() const;
+
+    /// @brief Tool attached to the flange of the first robot, or null.
     [[nodiscard]] EntitySpec const* mountedTool() const;
 
+    /// @brief Tool attached to the flange of robot @p_robot, or null.
+    [[nodiscard]] EntitySpec const* mountedTool(std::string_view p_robot) const;
+
     // -------------------------------------------------------------------------
-    /// @brief Puts tool @p_id on the robot flange (empty: no tool). The
-    /// previous tool goes back to storage.
-    /// @throws std::invalid_argument for an unknown tool.
+    /// @brief Puts tool @p_id on the flange of robot @p_robot (empty: the
+    /// first robot), or removes its tool when @p_id is empty. The previous
+    /// tool of that robot goes back to storage.
+    /// @throws std::invalid_argument for an unknown tool or robot.
     // -------------------------------------------------------------------------
-    void mount(std::string_view p_id);
+    void mount(std::string_view p_id, std::string_view p_robot = {});
 };
 
 } // namespace robotik

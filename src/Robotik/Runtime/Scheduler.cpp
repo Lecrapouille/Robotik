@@ -7,6 +7,7 @@
 
 #include "Robotik/Runtime/Scheduler.hpp"
 
+#include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
 
 #include <algorithm>
@@ -197,21 +198,35 @@ void SkillScheduler::finish(SkillId p_id,
     record(p_id, p_now);
 }
 
-void SkillScheduler::stop(SkillId p_id,
-                          SkillState p_state,
-                          SkillReason p_reason,
-                          RobotContext& p_context)
+RobotContext& SkillScheduler::contextOf(SkillId p_id) const
 {
-    if (m_states[p_id] == SkillState::Running)
+    std::string const& robot = m_descriptions[p_id].robot;
+    if (robot.empty())
     {
-        m_skills[p_id]->cancel(p_context);
+        return m_contexts.front();
     }
-    finish(p_id, p_state, p_reason, p_context.time);
+    for (RobotContext& context : m_contexts)
+    {
+        if (context.robot.id() == robot)
+        {
+            return context;
+        }
+    }
+    throw std::runtime_error("Skill '" + m_descriptions[p_id].name + "' drives robot '" + robot +
+                             "', which is not in the world");
 }
 
-bool SkillScheduler::preempt(SkillId p_by,
-                             Conflict const& p_conflict,
-                             RobotContext& p_context)
+void SkillScheduler::stop(SkillId p_id, SkillState p_state, SkillReason p_reason)
+{
+    RobotContext& context = contextOf(p_id);
+    if (m_states[p_id] == SkillState::Running)
+    {
+        m_skills[p_id]->cancel(context);
+    }
+    finish(p_id, p_state, p_reason, context.time);
+}
+
+bool SkillScheduler::preempt(SkillId p_by, Conflict const& p_conflict)
 {
     Priority const priority = m_descriptions[p_by].priority;
     auto preemptible = [&](SkillId p_victim)
@@ -230,7 +245,7 @@ bool SkillScheduler::preempt(SkillId p_by,
             return false;
         }
         m_blockers[p_conflict.owner] = p_conflict.resource;
-        stop(p_conflict.owner, SkillState::Cancelled, SkillReason::Preempted, p_context);
+        stop(p_conflict.owner, SkillState::Cancelled, SkillReason::Preempted);
         return true;
     }
 
@@ -253,13 +268,14 @@ bool SkillScheduler::preempt(SkillId p_by,
     for (SkillId const victim : victims)
     {
         m_blockers[victim] = p_conflict.resource;
-        stop(victim, SkillState::Cancelled, SkillReason::Preempted, p_context);
+        stop(victim, SkillState::Cancelled, SkillReason::Preempted);
     }
     return !victims.empty();
 }
 
-void SkillScheduler::admit(SkillId p_id, RobotContext& p_context)
+void SkillScheduler::admit(SkillId p_id)
 {
+    RobotContext& p_context = contextOf(p_id);
     SkillDescription const& description = m_descriptions[p_id];
     Seconds const now = p_context.time;
 
@@ -308,7 +324,7 @@ void SkillScheduler::admit(SkillId p_id, RobotContext& p_context)
             record(p_id, now);
             return;
         }
-        if (!preempt(p_id, conflict, p_context))
+        if (!preempt(p_id, conflict))
         {
             break;
         }
@@ -328,12 +344,22 @@ void SkillScheduler::admit(SkillId p_id, RobotContext& p_context)
 
 void SkillScheduler::update(RobotContext& p_context)
 {
+    update(std::span<RobotContext>(&p_context, 1u));
+}
+
+void SkillScheduler::update(std::span<RobotContext> p_contexts)
+{
+    if (p_contexts.empty())
+    {
+        throw std::invalid_argument("SkillScheduler::update needs a robot context");
+    }
+    m_contexts = p_contexts;
     // Explicit cancellations.
     for (SkillId id = 0; id < m_skills.size(); ++id)
     {
         if (m_cancels[id] != 0u)
         {
-            stop(id, SkillState::Cancelled, SkillReason::Cancelled, p_context);
+            stop(id, SkillState::Cancelled, SkillReason::Cancelled);
         }
     }
 
@@ -349,7 +375,7 @@ void SkillScheduler::update(RobotContext& p_context)
             if (!m_resources.available(requirement.id))
             {
                 m_blockers[id] = requirement.id;
-                stop(id, SkillState::Failed, SkillReason::ResourceLost, p_context);
+                stop(id, SkillState::Failed, SkillReason::ResourceLost);
                 break;
             }
         }
@@ -375,7 +401,7 @@ void SkillScheduler::update(RobotContext& p_context)
     {
         if (m_states[id] == SkillState::Waiting)
         {
-            admit(id, p_context);
+            admit(id);
         }
     }
 
@@ -395,18 +421,19 @@ void SkillScheduler::update(RobotContext& p_context)
         {
             continue;
         }
-        Status const status = m_skills[id]->tick(p_context, p_context.dt);
+        RobotContext& context = contextOf(id);
+        Status const status = m_skills[id]->tick(context, context.dt);
         if (status == Status::SUCCESS)
         {
-            finish(id, SkillState::Succeeded, SkillReason::None, p_context.time);
+            finish(id, SkillState::Succeeded, SkillReason::None, context.time);
         }
         else if (status == Status::FAILURE)
         {
-            finish(id, SkillState::Failed, SkillReason::Failed, p_context.time);
+            finish(id, SkillState::Failed, SkillReason::Failed, context.time);
         }
         else
         {
-            record(id, p_context.time);
+            record(id, context.time);
         }
     }
 }

@@ -138,6 +138,14 @@ public:
     void update(RobotContext& p_context);
 
     // -------------------------------------------------------------------------
+    /// @brief Same, for a world of several robots: each skill gets the
+    /// context of the robot it drives (@ref SkillDescription::robot, the
+    /// first context when empty).
+    /// @throws std::runtime_error for a skill driving an unknown robot.
+    // -------------------------------------------------------------------------
+    void update(std::span<RobotContext> p_contexts);
+
+    // -------------------------------------------------------------------------
     /// @brief Forgets every run and releases every resource (episode reset).
     // -------------------------------------------------------------------------
     void reset();
@@ -186,13 +194,12 @@ public:
 
 private:
 
-    void admit(SkillId p_id, RobotContext& p_context);
-    bool preempt(SkillId p_by, Conflict const& p_conflict, RobotContext& p_context);
+    /// @brief Context of the robot skill @p_id drives (during @ref update).
+    [[nodiscard]] RobotContext& contextOf(SkillId p_id) const;
+    void admit(SkillId p_id);
+    bool preempt(SkillId p_by, Conflict const& p_conflict);
     void finish(SkillId p_id, SkillState p_state, SkillReason p_reason, Seconds p_now);
-    void stop(SkillId p_id,
-              SkillState p_state,
-              SkillReason p_reason,
-              RobotContext& p_context);
+    void stop(SkillId p_id, SkillState p_state, SkillReason p_reason);
     void record(SkillId p_id, Seconds p_now);
 
 private:
@@ -210,6 +217,8 @@ private:
     std::vector<std::int32_t> m_runs;
     std::vector<ResourceLease> m_leases;
 
+    /// Contexts of the @ref update in progress.
+    std::span<RobotContext> m_contexts;
     std::vector<SkillRun> m_trace;
     std::vector<SkillId> m_queue;
     std::uint64_t m_order = 0;

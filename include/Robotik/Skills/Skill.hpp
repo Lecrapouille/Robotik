@@ -62,6 +62,9 @@ struct SkillDescription
     /// False forbids preemption by a higher priority skill.
     bool cancellable = true;
     std::vector<Precondition> preconditions{};
+    /// Id of the robot the skill drives (world entity); empty: the first
+    /// robot. The skill gets the @ref RobotContext of that robot.
+    std::string robot{};
 };
 
 // ****************************************************************************

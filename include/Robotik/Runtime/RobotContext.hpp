@@ -11,6 +11,8 @@
 
 #include "Robotik/Math/Si.hpp"
 
+#include <span>
+
 namespace robotik
 {
 
@@ -32,6 +34,10 @@ struct RobotContext
     Seconds time{};
     /// Duration of the tick.
     Seconds dt{};
+    /// Every robot of the world, @ref robot included, in world file order:
+    /// what they measure of themselves (joints, base, sensors), as a real
+    /// cell shares it on its network. Empty for a robot alone.
+    std::span<Robot* const> team{};
 };
 
 } // namespace robotik

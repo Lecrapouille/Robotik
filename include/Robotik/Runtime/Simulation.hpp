@@ -151,9 +151,22 @@ public:
         return m_robot->time();
     }
 
+    /// @brief The first robot of the world file.
     [[nodiscard]] RobotSession& robot() const
     {
         return *m_robot;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @brief Robot of entity id @p_id, or null. The robots of a world share
+    /// one physics, one resource manager, one scheduler and the beliefs.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] RobotSession* robot(std::string_view p_id) const;
+
+    /// @brief Every robot, in world file order (the first is @ref robot()).
+    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const& robots() const
+    {
+        return m_robots;
     }
 
     [[nodiscard]] WorldModel& worldModel()
@@ -194,12 +207,16 @@ public:
         return m_faults;
     }
 
+    /// @brief Context of the first robot.
     [[nodiscard]] RobotContext& context()
     {
-        return m_context;
+        return m_contexts.front();
     }
 
-    /// @brief First camera of the robot, or null.
+    /// @brief Context of robot @p_id. @throws std::invalid_argument if none.
+    [[nodiscard]] RobotContext& context(std::string_view p_id);
+
+    /// @brief First camera of the robots, or null.
     [[nodiscard]] Camera* camera() const;
 
     /// @brief The ground truth feeds the world model (see @ref OraclePolicy).
@@ -366,6 +383,13 @@ private:
     };
 
     void build(SceneView* p_view);
+    /// @brief Actuators and sensors of one robot and of its mounted tool.
+    /// @p_blind turns false when a camera gets a render source.
+    void buildDevices(RobotSession& p_robot,
+                      EntitySpec const& p_spec,
+                      EntitySpec const* p_tool,
+                      SceneView* p_view,
+                      bool& p_blind);
     void buildRecord(Record& p_record, SceneView* p_view);
     /// @brief True when @p_prop is a body of the physics backend: its level
     /// is rigid, or it is a box a rigid gripper may take, or a container a
@@ -375,6 +399,11 @@ private:
     void addRigidProps(MujocoBackend& p_physics);
     void connectBackend();
     void addSkills();
+    /// @brief Robot that carries @p_spec: a robot itself, the robot a tool
+    /// is mounted on, else the first robot.
+    [[nodiscard]] RobotSession& ownerOf(EntitySpec const& p_spec) const;
+    /// @brief MuJoCo prefix of the names of robot @p_id (empty for the first).
+    [[nodiscard]] std::string prefixOf(std::string_view p_id) const;
     void loadTree();
     void syncBodies();
     void track();
@@ -397,12 +426,19 @@ private:
     Scenario m_scenario;
     Mission* m_mission = nullptr;
     SceneView* m_view = nullptr;
-    std::unique_ptr<RobotSession> m_robot;
+    /// One for all the robots of the world.
+    std::shared_ptr<ResourceManager> m_resources;
+    std::vector<std::unique_ptr<RobotSession>> m_robots;
+    /// The first robot.
+    RobotSession* m_robot = nullptr;
+    /// @ref RobotContext::team: every robot when there are several.
+    std::vector<Robot*> m_team;
     WorldModel m_world_model;
     PerceptionPipeline m_perception;
     std::unique_ptr<SkillScheduler> m_scheduler;
     FaultInjector m_faults;
-    RobotContext m_context;
+    /// One per robot, in the order of @ref m_robots.
+    std::vector<RobotContext> m_contexts;
     AssertionEngine m_assertions;
     /// Z-up frame of the world entities (Compages is Y-up).
     compages::world::Entity m_frame;

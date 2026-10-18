@@ -148,11 +148,13 @@ static void mountTool(compages::world::World& p_world,
 Robot::Robot(compages::world::World& p_world,
              std::filesystem::path const& p_urdf,
              SceneView* p_view,
-             std::filesystem::path const& p_tool)
+             std::filesystem::path const& p_tool,
+             std::shared_ptr<ResourceManager> p_resources)
     : m_world(p_world),
       m_kinematics(std::make_unique<PinocchioBackend>(p_urdf, p_tool)),
-      m_sensors(*this, m_resources),
-      m_actuators(*this, m_resources)
+      m_resources(p_resources ? std::move(p_resources) : std::make_shared<ResourceManager>()),
+      m_sensors(*this, *m_resources),
+      m_actuators(*this, *m_resources)
 {
     if (p_view != nullptr)
     {
@@ -171,6 +173,7 @@ Robot::Robot(compages::world::World& p_world,
 
     UrdfRobot const urdf = readUrdf(p_urdf);
     m_name = urdf.name;
+    m_id = m_name;
     m_root.add<ecs::RobotTag>();
     m_root.set(ecs::RobotIdentity{ m_name, p_urdf });
 
@@ -306,8 +309,9 @@ void Robot::propagate()
 RobotSession::RobotSession(compages::world::World& p_world,
                            std::filesystem::path const& p_urdf,
                            SceneView* p_view,
-                           std::filesystem::path const& p_tool)
-    : Robot(p_world, p_urdf, p_view, p_tool)
+                           std::filesystem::path const& p_tool,
+                           std::shared_ptr<ResourceManager> p_resources)
+    : Robot(p_world, p_urdf, p_view, p_tool, std::move(p_resources))
 {
 }
 
@@ -373,6 +377,13 @@ void RobotSession::reset()
 
 void RobotSession::step(Seconds p_dt)
 {
+    prepare(p_dt);
+    advance(p_dt);
+    sense();
+}
+
+void RobotSession::prepare(Seconds p_dt)
+{
     for (std::size_t i = 0; i < m_actuators.size(); ++i)
     {
         if (!m_actuators.available(i))
@@ -380,12 +391,19 @@ void RobotSession::step(Seconds p_dt)
             m_actuators[i].disable(*this);
         }
     }
-
     m_time = m_time + p_dt;
+}
+
+void RobotSession::advance(Seconds p_dt)
+{
     if (m_backend)
     {
         m_backend->step(*this, p_dt);
     }
+}
+
+void RobotSession::sense()
+{
     propagate();
     m_world.update();
 

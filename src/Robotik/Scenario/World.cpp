@@ -12,6 +12,7 @@
 #include "Robotik/Scenario/PackagePath.hpp"
 
 #include <algorithm>
+#include <map>
 #include <numbers>
 #include <stdexcept>
 
@@ -425,16 +426,12 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
     }
 
     // --- Relations ------------------------------------------------------------
-    long const robots = std::count_if(world.entities.begin(),
-                                      world.entities.end(),
-                                      [](EntitySpec const& p_entity)
-                                      { return p_entity.type == EntitySpec::Type::Robot; });
-    if (robots != 1)
+    std::vector<EntitySpec const*> const robots = world.robots();
+    if (robots.empty())
     {
-        fail(where, "exactly one entity of type robot is required");
+        fail(where, "an entity of type robot is required");
     }
-    std::string const& robot = world.robot().id;
-    int mounted = 0;
+    std::map<std::string, int> mounted;
     for (EntitySpec const& spec : world.entities)
     {
         if (!spec.attach)
@@ -449,16 +446,19 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
         }
         if (spec.type == EntitySpec::Type::Tool)
         {
-            if (spec.attach->parent != robot || spec.attach->parent_frame != FLANGE ||
+            if (parent->type != EntitySpec::Type::Robot || spec.attach->parent_frame != FLANGE ||
                 spec.attach->frame != TOOL_MOUNT)
             {
-                fail(entity, "a tool attaches with { parent: " + robot + ".flange, frame: tool_mount }");
+                fail(entity, "a tool attaches with { parent: <robot>.flange, frame: tool_mount }");
             }
-            ++mounted;
+            if (++mounted[parent->id] > 1)
+            {
+                fail(where, "only one tool can be mounted on robot '" + parent->id + "'");
+            }
         }
         else if (spec.type == EntitySpec::Type::Robot)
         {
-            fail(entity, "the robot cannot be attached; give it a pose");
+            fail(entity, "a robot cannot be attached; give it a pose");
         }
         else if (!spec.attach->frame.empty())
         {
@@ -477,9 +477,28 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
             }
         }
     }
-    if (mounted > 1)
+
+    // Robots share one resource manager: device names are unique in the world.
+    std::map<std::string, std::string> devices;
+    for (EntitySpec const& spec : world.entities)
     {
-        fail(where, "only one tool can be mounted on the robot");
+        auto declare = [&](std::string const& p_name)
+        {
+            auto const [found, inserted] = devices.emplace(p_name, spec.id);
+            if (!inserted && found->second != spec.id)
+            {
+                fail(where, "device '" + p_name + "' is declared by '" + found->second +
+                                "' and by '" + spec.id + "': names are unique in the world");
+            }
+        };
+        for (ActuatorSpec const& actuator : spec.actuators)
+        {
+            declare(actuator.name);
+        }
+        for (SensorSpec const& sensor : spec.sensors)
+        {
+            declare(sensor.name);
+        }
     }
     return world;
 }
@@ -516,11 +535,29 @@ EntitySpec const& WorldDescription::robot() const
     throw std::logic_error("World '" + id + "' has no robot");
 }
 
+std::vector<EntitySpec const*> WorldDescription::robots() const
+{
+    std::vector<EntitySpec const*> result;
+    for (EntitySpec const& spec : entities)
+    {
+        if (spec.type == EntitySpec::Type::Robot)
+        {
+            result.push_back(&spec);
+        }
+    }
+    return result;
+}
+
 EntitySpec const* WorldDescription::mountedTool() const
+{
+    return mountedTool(robot().id);
+}
+
+EntitySpec const* WorldDescription::mountedTool(std::string_view p_robot) const
 {
     for (EntitySpec const& spec : entities)
     {
-        if (spec.type == EntitySpec::Type::Tool && spec.attach)
+        if (spec.type == EntitySpec::Type::Tool && spec.attach && spec.attach->parent == p_robot)
         {
             return &spec;
         }
@@ -528,8 +565,14 @@ EntitySpec const* WorldDescription::mountedTool() const
     return nullptr;
 }
 
-void WorldDescription::mount(std::string_view p_id)
+void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
 {
+    std::string const robot_id = p_robot.empty() ? robot().id : std::string(p_robot);
+    EntitySpec const* owner = find(robot_id);
+    if (owner == nullptr || owner->type != EntitySpec::Type::Robot)
+    {
+        throw std::invalid_argument("World '" + id + "' has no robot '" + robot_id + "'");
+    }
     EntitySpec* chosen = nullptr;
     if (!p_id.empty())
     {
@@ -548,14 +591,15 @@ void WorldDescription::mount(std::string_view p_id)
     }
     for (EntitySpec& spec : entities)
     {
-        if (spec.type == EntitySpec::Type::Tool)
+        if (spec.type == EntitySpec::Type::Tool && spec.attach &&
+            (spec.attach->parent == robot_id || &spec == chosen))
         {
             spec.attach.reset();
         }
     }
     if (chosen != nullptr)
     {
-        chosen->attach = Attachment{ robot().id, FLANGE, TOOL_MOUNT, Pose{ zero3(), Quaternion{} } };
+        chosen->attach = Attachment{ robot_id, FLANGE, TOOL_MOUNT, Pose{ zero3(), Quaternion{} } };
     }
 }
 

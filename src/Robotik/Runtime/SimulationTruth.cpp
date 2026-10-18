@@ -179,11 +179,12 @@ Pose Simulation::framePose(Record const& p_record, std::string_view p_frame) con
     switch (spec.type)
     {
         case EntitySpec::Type::Robot:
-            return m_robot->worldPose(frame);
+            return ownerOf(spec).worldPose(frame);
         case EntitySpec::Type::Tool:
             // A mounted tool is part of the robot chain; its tool_mount lands
             // on the flange (Pinocchio merges the two).
-            return m_robot->worldPose(frame.empty() ? p_record.spec->attach->parent_frame : frame);
+            return ownerOf(spec).worldPose(frame.empty() ? p_record.spec->attach->parent_frame
+                                                         : frame);
         case EntitySpec::Type::Prop:
         {
             if (!frame.empty())
@@ -468,7 +469,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
         {
             throw std::invalid_argument("'" + p_args[0] + "' is not a tool");
         }
-        EntitySpec const* mounted = m_scenario.world.mountedTool();
+        EntitySpec const* mounted =
+            tool->attach ? m_scenario.world.mountedTool(tool->attach->parent) : nullptr;
         bool const attached = mounted == tool &&
                               p_args[1] == mounted->attach->parent + "." + mounted->attach->parent_frame;
         return boolean(attached);
@@ -476,11 +478,12 @@ std::optional<double> Simulation::call(std::string const& p_name,
     if (p_name == "joint_limits_respected")
     {
         arity(p_name, p_args, 1u, 1u);
-        if (require(p_args[0]).spec->type != EntitySpec::Type::Robot)
+        EntitySpec const& spec = *require(p_args[0]).spec;
+        if (spec.type != EntitySpec::Type::Robot)
         {
-            throw std::invalid_argument("'" + p_args[0] + "' is not the robot");
+            throw std::invalid_argument("'" + p_args[0] + "' is not a robot");
         }
-        JointSet const& joints = m_robot->joints();
+        JointSet const& joints = ownerOf(spec).joints();
         for (JointId id = 0; id < joints.size(); ++id)
         {
             double lower = 0.0;
@@ -508,7 +511,12 @@ std::optional<double> Simulation::call(std::string const& p_name,
     if (p_name == "holding")
     {
         arity(p_name, p_args, 1u, 2u);
-        auto const* gripper = m_robot->actuators().find<VacuumGripper>(p_args[0]);
+        VacuumGripper const* gripper = nullptr;
+        for (std::unique_ptr<RobotSession> const& robot : m_robots)
+        {
+            gripper = gripper != nullptr ? gripper
+                                         : robot->actuators().find<VacuumGripper>(p_args[0]);
+        }
         if (gripper == nullptr)
         {
             throw std::invalid_argument("'" + p_args[0] + "' is not a vacuum gripper");

@@ -60,9 +60,25 @@ public:
     Robot& operator=(Robot const&) = delete;
     virtual ~Robot();
 
+    /// @brief Name of the URDF robot.
     [[nodiscard]] std::string const& name() const
     {
         return m_name;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @brief Id of the robot in its world (the entity id of the world
+    /// file); the URDF name until @ref identify. Two copies of a model share
+    /// the name, not the id.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::string const& id() const
+    {
+        return m_id;
+    }
+
+    void identify(std::string p_id)
+    {
+        m_id = std::move(p_id);
     }
 
     [[nodiscard]] compages::world::World& world() const
@@ -113,14 +129,16 @@ public:
         return m_actuators;
     }
 
+    /// @brief Resources of the robot; shared with the other robots of a
+    /// world (a skill may take an arm of each).
     [[nodiscard]] ResourceManager& resources()
     {
-        return m_resources;
+        return *m_resources;
     }
 
     [[nodiscard]] ResourceManager const& resources() const
     {
-        return m_resources;
+        return *m_resources;
     }
 
     /// @brief Robot clock.
@@ -194,10 +212,12 @@ public:
 
 protected:
 
+    /// @param p_resources Shared with other robots, or null for its own.
     Robot(compages::world::World& p_world,
           std::filesystem::path const& p_urdf,
           SceneView* p_view,
-          std::filesystem::path const& p_tool = {});
+          std::filesystem::path const& p_tool = {},
+          std::shared_ptr<ResourceManager> p_resources = {});
 
     /// @brief Joints and base to kinematics, then to the rendered entities.
     void propagate();
@@ -208,10 +228,11 @@ protected:
     std::unique_ptr<PinocchioBackend> m_kinematics;
     std::unique_ptr<RobotBackend> m_backend;
     std::string m_name;
+    std::string m_id;
     std::string m_tool;
     compages::world::Entity m_root;
     JointSet m_joints;
-    ResourceManager m_resources;
+    std::shared_ptr<ResourceManager> m_resources;
     SensorSet m_sensors;
     ActuatorSet m_actuators;
     BaseState m_base;
@@ -245,10 +266,12 @@ class RobotSession final: public Robot
 public:
 
     /// @param p_view Rendering hooks, or null for a headless robot.
+    /// @param p_resources Shared with the other robots of the world, or null.
     RobotSession(compages::world::World& p_world,
                  std::filesystem::path const& p_urdf,
                  SceneView* p_view = nullptr,
-                 std::filesystem::path const& p_tool = {});
+                 std::filesystem::path const& p_tool = {},
+                 std::shared_ptr<ResourceManager> p_resources = {});
     ~RobotSession() override;
 
     // -------------------------------------------------------------------------
@@ -275,9 +298,19 @@ public:
 
     // -------------------------------------------------------------------------
     /// @brief Backend step, kinematics, rendered links, then sensors.
-    /// Failed actuators are kept in their safe state.
+    /// Failed actuators are kept in their safe state. Same as @ref prepare,
+    /// @ref advance, then @ref sense.
     // -------------------------------------------------------------------------
     void step(Seconds p_dt);
+
+    // -------------------------------------------------------------------------
+    /// @brief The three parts of @ref step. Robots sharing a backend do each
+    /// part in turn, so a failed actuator is safe before the physics step
+    /// and every robot senses after it.
+    // -------------------------------------------------------------------------
+    void prepare(Seconds p_dt);
+    void advance(Seconds p_dt);
+    void sense();
 
     // -------------------------------------------------------------------------
     /// @brief Clock to zero, joints at home, base at its start pose, sensors

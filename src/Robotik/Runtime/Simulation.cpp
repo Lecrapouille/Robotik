@@ -175,17 +175,37 @@ Simulation::Simulation(compages::world::World& p_world,
       m_scenario(std::move(p_scenario)),
       m_mission(p_mission),
       m_view(p_view),
-      m_robot([&]() {
+      m_resources(std::make_shared<ResourceManager>()),
+      m_robots([&]() {
           WorldDescription const& world = m_scenario.world;
-          EntitySpec const* tool = world.mountedTool();
-          return std::make_unique<RobotSession>(
-              p_world, world.robot().model, p_view, tool != nullptr ? tool->model : std::filesystem::path{});
+          std::vector<std::unique_ptr<RobotSession>> robots;
+          for (EntitySpec const* spec : world.robots())
+          {
+              EntitySpec const* tool = world.mountedTool(spec->id);
+              robots.push_back(std::make_unique<RobotSession>(
+                  p_world, spec->model, p_view,
+                  tool != nullptr ? tool->model : std::filesystem::path{}, m_resources));
+              robots.back()->identify(spec->id);
+          }
+          return robots;
       }()),
-      m_scheduler(std::make_unique<SkillScheduler>(m_robot->resources())),
+      m_robot(m_robots.front().get()),
+      m_scheduler(std::make_unique<SkillScheduler>(*m_resources)),
       m_faults(m_scenario.faults, m_scenario.random_faults),
-      m_context{ *m_robot, m_world_model, {}, {} },
       m_assertions(m_scenario.assertions)
 {
+    if (m_robots.size() > 1u)
+    {
+        for (std::unique_ptr<RobotSession> const& robot : m_robots)
+        {
+            m_team.push_back(robot.get());
+        }
+    }
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        m_contexts.push_back(RobotContext{ *robot, m_world_model, {}, {}, m_team });
+    }
+
     // Robot devices, props and bodies of the world file.
     build(p_view);
 
@@ -195,13 +215,19 @@ Simulation::Simulation(compages::world::World& p_world,
     {
         m_mission->setup(*this, p_view);
     }
-    if (m_robot->backend() == nullptr)
+    bool const plugged = std::any_of(m_robots.begin(), m_robots.end(),
+                                     [](std::unique_ptr<RobotSession> const& p_robot)
+                                     { return p_robot->backend() != nullptr; });
+    if (!plugged)
     {
         connectBackend();
     }
 
     // Hold the home position, now with the backend.
-    m_robot->hold(m_scenario.world.robot().home);
+    for (EntitySpec const* spec : m_scenario.world.robots())
+    {
+        robot(spec->id)->hold(spec->home);
+    }
     if (!m_oracle)
     {
         m_world_model.gate(WORLD_MODEL_GATE_M);
@@ -228,82 +254,12 @@ void Simulation::build(SceneView* p_view)
     m_grasps.push_back(std::make_unique<AbstractGrasp>());
 
     WorldDescription const& world = m_scenario.world;
-    EntitySpec const& robot = world.robot();
-    EntitySpec const* tool = world.mountedTool();
-
-    m_robot->startPose(robot.pose);
-    // Robot frames of the attachments are taken at home.
-    m_robot->hold(robot.home);
-
-    // --- Actuators: the robot's, then those of the mounted tool. ------------
-    ActuatorSet& actuators = m_robot->actuators();
-    std::vector<ActuatorSpec> specs = robot.actuators;
-    if (tool != nullptr)
-    {
-        specs.insert(specs.end(), tool->actuators.begin(), tool->actuators.end());
-    }
-    for (ActuatorSpec const& actuator : specs)
-    {
-        switch (actuator.type)
-        {
-            case ActuatorSpec::Type::JointGroup:
-                actuators.add<JointGroup>(actuator.name, actuator.joints);
-                break;
-            case ActuatorSpec::Type::Motor:
-                actuators.add<Motor>(actuator.name, actuator.joints.front());
-                break;
-            case ActuatorSpec::Type::Vacuum:
-                actuators.add<VacuumGripper>(actuator.name, actuator.link, actuator.length);
-                break;
-        }
-    }
-
-    // --- Sensors: cameras get a render source in the simulator. -------------
-    std::vector<SensorSpec> sensors = robot.sensors;
-    if (tool != nullptr)
-    {
-        sensors.insert(sensors.end(), tool->sensors.begin(), tool->sensors.end());
-    }
     bool blind = true;
-    auto requireFrame = [this](SensorSpec const& p_spec, std::string const& p_frame)
+    for (EntitySpec const* robot_spec : world.robots())
     {
-        if (!p_frame.empty() && !m_robot->link(p_frame))
-        {
-            throw std::runtime_error("Sensor '" + p_spec.name + "': unknown link '" + p_frame +
-                                     "'");
-        }
-    };
-    for (SensorSpec const& spec : sensors)
-    {
-        switch (spec.type)
-        {
-            case SensorSpec::Type::Imu:
-                requireFrame(spec, spec.imu.parent);
-                m_robot->sensors().add<Imu>(spec.name, spec.imu);
-                continue;
-            case SensorSpec::Type::Range:
-                requireFrame(spec, spec.range.parent);
-                m_robot->sensors().add<RangeScanner>(spec.name, spec.range);
-                continue;
-            case SensorSpec::Type::ForceTorque:
-                requireFrame(spec, spec.force_torque.link);
-                m_robot->sensors().add<ForceTorqueSensor>(spec.name, spec.force_torque);
-                continue;
-            case SensorSpec::Type::Camera:
-                break;
-        }
-        requireFrame(spec, spec.camera.parent);
-        Camera& camera = m_robot->sensors().add<Camera>(spec.name, spec.camera);
-        compages::world::Entity link = spec.camera.parent.empty()
-                                           ? m_robot->root()
-                                           : m_robot->link(spec.camera.parent);
-        if (p_view != nullptr)
-        {
-            camera.source(p_view->camera(camera, link));
-        }
-        blind = blind && camera.source() == nullptr;
-        camera.onFrame([this](CameraFrame const& p_frame)
-                       { m_world_model.update(m_perception.process(p_frame)); });
+        RobotSession& robot = *this->robot(robot_spec->id);
+        EntitySpec const* tool = world.mountedTool(robot_spec->id);
+        buildDevices(robot, *robot_spec, tool, p_view, blind);
     }
     m_oracle = m_scenario.oracle == OraclePolicy::Always ||
                (m_scenario.oracle == OraclePolicy::WhenBlind && blind);
@@ -324,19 +280,109 @@ void Simulation::build(SceneView* p_view)
     }
 }
 
+void Simulation::buildDevices(RobotSession& p_robot,
+                              EntitySpec const& p_spec,
+                              EntitySpec const* p_tool,
+                              SceneView* p_view,
+                              bool& p_blind)
+{
+    p_robot.startPose(p_spec.pose);
+    // Robot frames of the attachments are taken at home.
+    p_robot.hold(p_spec.home);
+
+    // --- Actuators: the robot's, then those of the mounted tool. ------------
+    ActuatorSet& actuators = p_robot.actuators();
+    std::vector<ActuatorSpec> specs = p_spec.actuators;
+    if (p_tool != nullptr)
+    {
+        specs.insert(specs.end(), p_tool->actuators.begin(), p_tool->actuators.end());
+    }
+    for (ActuatorSpec const& actuator : specs)
+    {
+        switch (actuator.type)
+        {
+            case ActuatorSpec::Type::JointGroup:
+                actuators.add<JointGroup>(actuator.name, actuator.joints);
+                break;
+            case ActuatorSpec::Type::Motor:
+                actuators.add<Motor>(actuator.name, actuator.joints.front());
+                break;
+            case ActuatorSpec::Type::Vacuum:
+                actuators.add<VacuumGripper>(actuator.name, actuator.link, actuator.length);
+                break;
+        }
+    }
+
+    // --- Sensors: cameras get a render source in the simulator. -------------
+    std::vector<SensorSpec> sensors = p_spec.sensors;
+    if (p_tool != nullptr)
+    {
+        sensors.insert(sensors.end(), p_tool->sensors.begin(), p_tool->sensors.end());
+    }
+    auto requireFrame = [&p_robot](SensorSpec const& p_sensor, std::string const& p_frame)
+    {
+        if (!p_frame.empty() && !p_robot.link(p_frame))
+        {
+            throw std::runtime_error("Sensor '" + p_sensor.name + "': unknown link '" + p_frame +
+                                     "'");
+        }
+    };
+    for (SensorSpec const& spec : sensors)
+    {
+        switch (spec.type)
+        {
+            case SensorSpec::Type::Imu:
+                requireFrame(spec, spec.imu.parent);
+                p_robot.sensors().add<Imu>(spec.name, spec.imu);
+                continue;
+            case SensorSpec::Type::Range:
+                requireFrame(spec, spec.range.parent);
+                p_robot.sensors().add<RangeScanner>(spec.name, spec.range);
+                continue;
+            case SensorSpec::Type::ForceTorque:
+                requireFrame(spec, spec.force_torque.link);
+                p_robot.sensors().add<ForceTorqueSensor>(spec.name, spec.force_torque);
+                continue;
+            case SensorSpec::Type::Camera:
+                break;
+        }
+        requireFrame(spec, spec.camera.parent);
+        Camera& camera = p_robot.sensors().add<Camera>(spec.name, spec.camera);
+        compages::world::Entity link = spec.camera.parent.empty()
+                                           ? p_robot.root()
+                                           : p_robot.link(spec.camera.parent);
+        if (p_view != nullptr)
+        {
+            camera.source(p_view->camera(camera, link));
+        }
+        p_blind = p_blind && camera.source() == nullptr;
+        camera.onFrame([this](CameraFrame const& p_frame)
+                       { m_world_model.update(m_perception.process(p_frame)); });
+    }
+}
+
 void Simulation::buildRecord(Record& p_record, SceneView* p_view)
 {
     EntitySpec const& spec = *p_record.spec;
     switch (spec.type)
     {
         case EntitySpec::Type::Robot:
-            p_record.links = readLinks(spec.model).names;
-            p_record.entity = m_robot->root();
-            p_record.nominal = spec.pose;
-            return;
         case EntitySpec::Type::Tool:
-            p_record.links = readLinks(spec.model).names;
+        {
+            // Names of the physics backend: the robot prefix in a shared world.
+            RobotSession& owner = ownerOf(spec);
+            std::string const prefix = prefixOf(owner.id());
+            for (std::string const& link : readLinks(spec.model).names)
+            {
+                p_record.links.insert(prefix + link);
+            }
+            if (spec.type == EntitySpec::Type::Robot)
+            {
+                p_record.entity = owner.root();
+                p_record.nominal = spec.pose;
+            }
             return;
+        }
         case EntitySpec::Type::Prop:
         {
             ecs::Shape const object = shapeOf(spec);
@@ -404,7 +450,7 @@ Pose Simulation::resolveNominal(EntitySpec const& p_spec) const
     Pose base{ zero3(), Quaternion{} };
     if (parent->type == EntitySpec::Type::Robot)
     {
-        base = m_robot->worldPose(attach.parent_frame);
+        base = robot(parent->id)->worldPose(attach.parent_frame);
     }
     else
     {
@@ -438,12 +484,23 @@ void Simulation::connectBackend()
                                    { return p_entity.type == EntitySpec::Type::Prop && rigidProp(p_entity); });
     options.floor = world.floor || rigid;
     options.floor_friction = world.floor_friction;
-    auto physics = std::make_unique<MujocoBackend>(options);
-    std::string const arm = physics->load(world.robot().model);
-    if (EntitySpec const* tool = world.mountedTool())
+    auto physics = std::make_shared<MujocoBackend>(options);
+    // The first robot is the host chain; the others stand in the world with
+    // a prefix of their own, their tool with the same prefix.
+    for (EntitySpec const* robot_spec : world.robots())
     {
-        std::string const mounted = physics->load(tool->model);
-        physics->attach(arm, "flange", mounted, "tool_mount");
+        std::string const prefix = prefixOf(robot_spec->id);
+        ChainOptions chain;
+        chain.pose = robot_spec->pose;
+        chain.prefix = prefix;
+        std::string const arm = physics->load(robot_spec->model, chain);
+        if (EntitySpec const* tool = world.mountedTool(robot_spec->id))
+        {
+            ChainOptions mount;
+            mount.prefix = prefix;
+            std::string const mounted = physics->load(tool->model, mount);
+            physics->attach(arm, "flange", mounted, "tool_mount");
+        }
     }
     for (Record const& record : m_records)
     {
@@ -468,7 +525,11 @@ void Simulation::connectBackend()
         }
     }
     addRigidProps(*physics);
-    m_robot->connect(std::move(physics));
+    // One physics for the cell; each robot reaches it through its names.
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        robot->connect(MujocoBackend::member(physics, prefixOf(robot->id())));
+    }
 }
 
 bool Simulation::rigidProp(EntitySpec const& p_prop) const
@@ -563,7 +624,9 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
             {
                 continue;
             }
-            std::string const link = actuator.link.empty() ? m_robot->tool() : actuator.link;
+            RobotSession const& owner = ownerOf(entity);
+            std::string const link =
+                prefixOf(owner.id()) + (actuator.link.empty() ? owner.tool() : actuator.link);
             for (RigidGrasp::Graspable const& object : graspable)
             {
                 p_physics.addWeld(RigidGrasp::weldName(actuator.name, object.id), link, object.id);
@@ -582,19 +645,6 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
 
 void Simulation::addSkills()
 {
-    ResourceManager const& resources = m_robot->resources();
-    ActuatorSet const& actuators = m_robot->actuators();
-
-    std::vector<ResourceRequirement> arm;
-    if (auto const* group = actuators.first<JointGroup>())
-    {
-        arm.push_back(resources.require(group->name()));
-    }
-    std::vector<ResourceRequirement> everything;
-    for (std::size_t i = 0; i < actuators.size(); ++i)
-    {
-        everything.push_back({ actuators.resource(i), Access::Exclusive });
-    }
     auto describe = [](std::string p_name, std::vector<ResourceRequirement> p_resources)
     {
         SkillDescription description;
@@ -604,17 +654,77 @@ void Simulation::addSkills()
         return description;
     };
 
+    // Home and Stop of each robot; "left.Home" when the world has several.
     SkillScheduler& skills = *m_scheduler;
-    if (!arm.empty())
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        skills.add<HomeSkill>(describe("Home", arm));
+        ResourceManager const& resources = robot->resources();
+        ActuatorSet const& actuators = robot->actuators();
+        std::string const scope = m_robots.size() > 1u ? robot->id() + "." : std::string();
+
+        std::vector<ResourceRequirement> arm;
+        if (auto const* group = actuators.first<JointGroup>())
+        {
+            arm.push_back(resources.require(group->name()));
+        }
+        std::vector<ResourceRequirement> everything;
+        for (std::size_t i = 0; i < actuators.size(); ++i)
+        {
+            everything.push_back({ actuators.resource(i), Access::Exclusive });
+        }
+        if (!arm.empty())
+        {
+            SkillDescription home = describe(scope + "Home", arm);
+            home.robot = robot->id();
+            skills.add<HomeSkill>(std::move(home));
+        }
+        if (!everything.empty())
+        {
+            SkillDescription stop = describe(scope + "Stop", everything);
+            stop.priority = STOP_PRIORITY;
+            stop.robot = robot->id();
+            skills.add<StopSkill>(std::move(stop));
+        }
     }
-    SkillDescription stop = describe("Stop", everything);
-    stop.priority = STOP_PRIORITY;
-    if (!everything.empty())
+}
+
+RobotSession* Simulation::robot(std::string_view p_id) const
+{
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        skills.add<StopSkill>(std::move(stop));
+        if (robot->id() == p_id)
+        {
+            return robot.get();
+        }
     }
+    return nullptr;
+}
+
+RobotContext& Simulation::context(std::string_view p_id)
+{
+    for (RobotContext& context : m_contexts)
+    {
+        if (context.robot.id() == p_id)
+        {
+            return context;
+        }
+    }
+    throw std::invalid_argument("The world has no robot '" + std::string(p_id) + "'");
+}
+
+RobotSession& Simulation::ownerOf(EntitySpec const& p_spec) const
+{
+    std::string_view const id =
+        p_spec.type == EntitySpec::Type::Robot ? std::string_view(p_spec.id)
+        : p_spec.type == EntitySpec::Type::Tool && p_spec.attach ? std::string_view(p_spec.attach->parent)
+                                                                  : std::string_view();
+    RobotSession* const found = id.empty() ? nullptr : robot(id);
+    return found != nullptr ? *found : *m_robot;
+}
+
+std::string Simulation::prefixOf(std::string_view p_id) const
+{
+    return p_id == m_robot->id() ? std::string() : std::string(p_id) + "/";
 }
 
 void Simulation::loadTree()
@@ -655,21 +765,26 @@ void Simulation::reset(Seed p_seed)
     m_prop_penetration = false;
     m_outcome = Outcome::Running;
 
-    m_robot->resources().restoreAll();
+    m_resources->restoreAll();
     m_scheduler->reset();
     m_faults.reset(p_seed.derive("faults"));
 
-    ActuatorSet const& actuators = m_robot->actuators();
-    for (std::size_t i = 0; i < actuators.size(); ++i)
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
+        ActuatorSet const& actuators = robot->actuators();
+        for (std::size_t i = 0; i < actuators.size(); ++i)
         {
-            vacuum->suction(false);
-            vacuum->held({});
+            if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
+            {
+                vacuum->suction(false);
+                vacuum->held({});
+            }
         }
     }
 
-    SensorSet const& sensors = m_robot->sensors();
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+    SensorSet const& sensors = robot->sensors();
     for (std::size_t i = 0; i < sensors.size(); ++i)
     {
         if (auto* camera = dynamic_cast<Camera*>(&sensors[i]))
@@ -689,8 +804,12 @@ void Simulation::reset(Seed p_seed)
             force->seed(p_seed.derive(force->name()));
         }
     }
+    }
 
-    m_robot->reset();
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        robot->reset();
+    }
 
     // Props: the robot only knows the nominal layout (in its base frame); the
     // true positions are randomized.
@@ -739,17 +858,31 @@ void Simulation::reset(Seed p_seed)
 
 Camera* Simulation::camera() const
 {
-    return m_robot->sensors().first<Camera>();
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        if (Camera* camera = robot->sensors().first<Camera>())
+        {
+            return camera;
+        }
+    }
+    return nullptr;
 }
 
 void Simulation::observe()
 {
-    SensorSet const& sensors = m_robot->sensors();
-    bool sees = sensors.size() == 0u;
-    for (std::size_t i = 0; i < sensors.size() && !sees; ++i)
+    // No sensor at all, or one of some robot still works.
+    bool any = false;
+    bool sees = false;
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        sees = sensors.available(i);
+        SensorSet const& sensors = robot->sensors();
+        for (std::size_t i = 0; i < sensors.size(); ++i)
+        {
+            any = true;
+            sees = sees || sensors.available(i);
+        }
     }
+    sees = sees || !any;
     if (!sees)
     {
         return;
@@ -813,27 +946,45 @@ void Simulation::step(Seconds p_dt)
 {
     if (!m_suspended)
     {
-        m_faults.update(m_robot->resources(), m_robot->time(), p_dt);
-        m_context.time = m_robot->time();
-        m_context.dt = p_dt;
+        m_faults.update(*m_resources, m_robot->time(), p_dt);
+        for (RobotContext& context : m_contexts)
+        {
+            context.time = context.robot.time();
+            context.dt = p_dt;
+        }
         if (m_executor && !finished())
         {
-            m_status = m_executor->tick(m_context);
+            m_status = m_executor->tick(m_contexts.front());
         }
         else if (m_tree && !finished())
         {
             m_status = m_tree->tick();
         }
-        m_scheduler->update(m_context);
+        m_scheduler->update(m_contexts);
     }
 
-    // MuJoCo arm and rigid bodies, then what the grippers hold.
-    m_robot->step(p_dt);
-    for (std::unique_ptr<GraspModel> const& grasp : m_grasps)
+    // MuJoCo arms and rigid bodies (one step for all), then what the grippers
+    // hold.
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        grasp->update(*m_robot);
+        robot->prepare(p_dt);
     }
-    trackPropPenetration(*m_robot, m_prop_penetration);
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        robot->advance(p_dt);
+    }
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        robot->sense();
+    }
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        for (std::unique_ptr<GraspModel> const& grasp : m_grasps)
+        {
+            grasp->update(*robot);
+        }
+        trackPropPenetration(*robot, m_prop_penetration);
+    }
     if (m_oracle)
     {
         observe();

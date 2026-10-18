@@ -60,6 +60,11 @@ struct ChainOptions
     Pose pose{ zero3(), Quaternion{} };
     /// Sliding friction of every geom of the chain. Negative keeps the URDF.
     double friction = -1.0;
+    /// Put before every MuJoCo name of the chain (bodies, joints, geoms,
+    /// meshes), so two copies of a model can share the world. The robot and
+    /// its tool use the same prefix; Robotik names stay local (see
+    /// @ref MujocoBackend::join). Ignored for the first chain.
+    std::string prefix;
 };
 
 // ****************************************************************************
@@ -204,20 +209,40 @@ public:
 
     // -------------------------------------------------------------------------
     /// @brief Maps the joints of @p_robot to MuJoCo @b qpos, @b DOF and
-    /// actuator indices.
+    /// actuator indices: the robot of the first chain (@ref join with no
+    /// prefix).
     // -------------------------------------------------------------------------
     void attach(Robot& p_robot) override;
 
     // -------------------------------------------------------------------------
-    /// @brief Resets @c mjData, writes the joint positions and the base pose,
-    /// then runs @c mj_forward.
+    /// @brief Binds one more robot of the world: its chain was loaded with
+    /// @ref ChainOptions::prefix @p_prefix (empty: the first chain). Its
+    /// joint @c j is the MuJoCo joint @c p_prefix + j. Binding the same
+    /// robot again replaces its binding.
+    /// @throws std::runtime_error if no chain was loaded with @p_prefix.
+    // -------------------------------------------------------------------------
+    void join(Robot& p_robot, std::string const& p_prefix);
+
+    // -------------------------------------------------------------------------
+    /// @brief A backend for the robot of chain prefix @p_prefix, sharing
+    /// @p_physics with the other robots of the world. Connect one per robot
+    /// (@ref RobotSession::connect); stepping the first robot steps them all.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] static std::unique_ptr<RobotBackend>
+    member(std::shared_ptr<MujocoBackend> p_physics, std::string p_prefix);
+
+    // -------------------------------------------------------------------------
+    /// @brief Resets @c mjData, writes the joint positions and the base pose
+    /// of every bound robot, then runs @c mj_forward.
     // -------------------------------------------------------------------------
     void reset(Robot& p_robot) override;
 
     // -------------------------------------------------------------------------
     /// @brief Integrates @p_dt in steps of @ref MujocoOptions::timestep. Each
-    /// physics step runs the joint loops, applies their efforts with gravity
-    /// compensation, then measures the joints and the base.
+    /// physics step runs the joint loops of every bound robot, applies their
+    /// efforts with gravity compensation, then measures the joints and the
+    /// bases. Only the first bound robot steps the world: the call is a no-op
+    /// for the others (their measures are already written).
     // -------------------------------------------------------------------------
     void step(Robot& p_robot, Seconds p_dt) override;
 
@@ -232,6 +257,12 @@ public:
                                                 Vector3 const& p_direction,
                                                 double p_max) const override;
 
+    /// @brief @ref raycast ignoring the robot of chain prefix @p_prefix.
+    [[nodiscard]] std::optional<double> raycast(Vector3 const& p_origin,
+                                                Vector3 const& p_direction,
+                                                double p_max,
+                                                std::string const& p_prefix) const;
+
     // -------------------------------------------------------------------------
     /// @brief @c cfrc_int of the body of @p_link, moved to the link origin and
     /// expressed in the link frame.
@@ -244,19 +275,12 @@ private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;
 
+    struct Member;
+
     void invalidate();
     void compile();
-    void bind(Robot& p_robot);
+    void bind(Member& p_member);
 
-    struct Binding
-    {
-        int qpos = -1;
-        int dof = -1;
-        int actuator = -1;
-    };
-
-    /// Indexed by @ref JointId.
-    std::vector<Binding> m_bindings;
     MujocoOptions m_options;
 };
 
