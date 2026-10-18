@@ -515,7 +515,9 @@ static void faultForm(App& p_app)
             bool const available = resources.available(id);
             auto const by_hand = std::find_if(manual.begin(), manual.end(),
                                               [&](ManualFault const& p_fault) { return p_fault.resource == name; });
-            ImGui::PushID(static_cast<int>(id));
+            // Keyed by name: an index would clash with the IDs of the header
+            // cells (column index + label).
+            ImGui::PushID(name.c_str());
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             bool value = picked[id];
