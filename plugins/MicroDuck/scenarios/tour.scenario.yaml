@@ -1,0 +1,33 @@
+# The duck walks into the toy box and pushes it, turns left, walks along
+# the sofa, turns left again and walks back. The room and the box are
+# rigid bodies of MuJoCo: the duck really pushes the box, and a wall would
+# really stop it. The policy reads only the IMU and the joint encoders.
+scenario:
+  id: tour
+  description: Push the toy box, then walk around the room.
+  world: worlds/playground.world.yaml
+  seed: 1
+  controller:
+    behavior_tree: scenarios/tour.bt.yaml
+  timeout: 40
+
+  # The toy box is a free body (a prop at the rigid level).
+  physics:
+    fidelity: abstract
+    overrides:
+      toy: rigid
+
+  parameters:
+    stand_duration: 0.02   # s
+    forward_speed: 0.4     # m/s asked; the duck makes about 0.14 m/s
+    forward_duration: 5.0  # s
+    turn_rate: 0.8         # rad/s, to the left
+    turn_duration: 2.0     # s
+
+  assertions:
+    - controller.success
+    # Never fallen: the trunk stays above 9 cm.
+    - { condition: "duck.height_min > 0.09", phase: always }
+    # The box moved: pushed by the duck.
+    - pose_error(toy) > 0.15
+    - duck.distance > 2.0

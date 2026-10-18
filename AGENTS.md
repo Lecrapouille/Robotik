@@ -40,7 +40,8 @@ external/    third-party sources (do not edit)      build/  outputs (generated)
 
 Plugins: HelloWorld (tutorial + test fixture), PickAndPlace (reference: BT,
 faults, RL scenario), Painter, LineFollower, FlyBrain, HumanoidWalk (ONNX policy),
-DualArm (two robots, parallel and temporal PDDL plans).
+DualArm (two robots, parallel and temporal PDDL plans), MicroDuck (a small
+walking robot pushing a box in a room, ONNX policy).
 
 ## Commands
 

@@ -1,0 +1,26 @@
+# The duck stands, then walks straight for 8 s on an empty floor. With the
+# PD actuators of this plugin the duck walks slower than asked: 0.4 m/s
+# gives about 0.14 m/s, 0.25 m/s about 0.09 m/s, and 0.15 m/s only holds
+# the stand. Stand is one IMU sample: holding the home posture with no
+# policy sits the duck down.
+scenario:
+  id: walk_forward
+  description: Walk forward for eight seconds on an empty floor.
+  world: worlds/flat.world.yaml
+  seed: 1
+  controller:
+    behavior_tree: scenarios/walk.bt.yaml
+  timeout: 20
+
+  parameters:
+    stand_duration: 0.02   # s
+    walk_duration: 8.0     # s
+    vx: 0.4                # m/s, forward
+    vy: 0.0
+    yaw_rate: 0.0
+
+  assertions:
+    - controller.success
+    - { condition: "duck.height_min > 0.09", phase: always }
+    # From the start to the end, not the path length (the trunk sways).
+    - duck.displacement > 0.8

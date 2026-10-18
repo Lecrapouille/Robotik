@@ -1,0 +1,7 @@
+id: robotik.microduck
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: The room the Microduck walks in (walls, sofa, pouf, shelf, rug).
+models:
+  playground: playground.urdf

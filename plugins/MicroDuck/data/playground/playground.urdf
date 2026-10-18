@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+     Copyright (c) 2020-2026 Quentin Quadrat
+     Playground of the Microduck: a room of 2.4 m by 2.4 m with low walls,
+     a sofa, a pouf, a shelf and a rug (drawn only: the duck walks on it).
+     Base frame: origin on the floor at the middle of the room, z up.
+     Generated once; edit the boxes here. -->
+<robot name="playground">
+  <material name="wood"><color rgba="0.80 0.66 0.48 1"/></material>
+  <material name="rug"><color rgba="0.30 0.42 0.55 1"/></material>
+  <material name="sofa"><color rgba="0.62 0.32 0.26 1"/></material>
+  <material name="pouf"><color rgba="0.88 0.70 0.30 1"/></material>
+  <material name="shelf"><color rgba="0.45 0.35 0.28 1"/></material>
+
+  <link name="playground_base">
+    <inertial>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <mass value="50.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <!-- wall_x -->
+      <origin xyz="-1.2200 0.0000 0.0750" rpy="0 0 0"/>
+      <geometry><box size="0.0400 2.4800 0.1500"/></geometry>
+      <material name="wood"/>
+    </visual>
+    <collision>
+      <!-- wall_x -->
+      <origin xyz="-1.2200 0.0000 0.0750" rpy="0 0 0"/>
+      <geometry><box size="0.0400 2.4800 0.1500"/></geometry>
+    </collision>
+    <visual>
+      <!-- wall_y -->
+      <origin xyz="0.0000 -1.2200 0.0750" rpy="0 0 0"/>
+      <geometry><box size="2.4000 0.0400 0.1500"/></geometry>
+      <material name="wood"/>
+    </visual>
+    <collision>
+      <!-- wall_y -->
+      <origin xyz="0.0000 -1.2200 0.0750" rpy="0 0 0"/>
+      <geometry><box size="2.4000 0.0400 0.1500"/></geometry>
+    </collision>
+    <visual>
+      <!-- wall_x -->
+      <origin xyz="1.2200 0.0000 0.0750" rpy="0 0 0"/>
+      <geometry><box size="0.0400 2.4800 0.1500"/></geometry>
+      <material name="wood"/>
+    </visual>
+    <collision>
+      <!-- wall_x -->
+      <origin xyz="1.2200 0.0000 0.0750" rpy="0 0 0"/>
+      <geometry><box size="0.0400 2.4800 0.1500"/></geometry>
+    </collision>
+    <visual>
+      <!-- wall_y -->
+      <origin xyz="0.0000 1.2200 0.0750" rpy="0 0 0"/>
+      <geometry><box size="2.4000 0.0400 0.1500"/></geometry>
+      <material name="wood"/>
+    </visual>
+    <collision>
+      <!-- wall_y -->
+      <origin xyz="0.0000 1.2200 0.0750" rpy="0 0 0"/>
+      <geometry><box size="2.4000 0.0400 0.1500"/></geometry>
+    </collision>
+    <visual>
+      <!-- rug -->
+      <origin xyz="0.0000 0.0000 0.0010" rpy="0 0 0"/>
+      <geometry><box size="1.3000 0.9000 0.0020"/></geometry>
+      <material name="rug"/>
+    </visual>
+    <visual>
+      <!-- sofa_seat -->
+      <origin xyz="0.0000 0.9500 0.0700" rpy="0 0 0"/>
+      <geometry><box size="0.7000 0.2800 0.1400"/></geometry>
+      <material name="sofa"/>
+    </visual>
+    <collision>
+      <!-- sofa_seat -->
+      <origin xyz="0.0000 0.9500 0.0700" rpy="0 0 0"/>
+      <geometry><box size="0.7000 0.2800 0.1400"/></geometry>
+    </collision>
+    <visual>
+      <!-- sofa_back -->
+      <origin xyz="0.0000 1.1300 0.2000" rpy="0 0 0"/>
+      <geometry><box size="0.7000 0.0800 0.1200"/></geometry>
+      <material name="sofa"/>
+    </visual>
+    <collision>
+      <!-- sofa_back -->
+      <origin xyz="0.0000 1.1300 0.2000" rpy="0 0 0"/>
+      <geometry><box size="0.7000 0.0800 0.1200"/></geometry>
+    </collision>
+    <visual>
+      <!-- pouf -->
+      <origin xyz="-0.8000 -0.7500 0.0600" rpy="0 0 0"/>
+      <geometry><box size="0.2200 0.2200 0.1200"/></geometry>
+      <material name="pouf"/>
+    </visual>
+    <collision>
+      <!-- pouf -->
+      <origin xyz="-0.8000 -0.7500 0.0600" rpy="0 0 0"/>
+      <geometry><box size="0.2200 0.2200 0.1200"/></geometry>
+    </collision>
+    <visual>
+      <!-- shelf -->
+      <origin xyz="1.0400 -0.5500 0.1500" rpy="0 0 0"/>
+      <geometry><box size="0.2500 0.6000 0.3000"/></geometry>
+      <material name="shelf"/>
+    </visual>
+    <collision>
+      <!-- shelf -->
+      <origin xyz="1.0400 -0.5500 0.1500" rpy="0 0 0"/>
+      <geometry><box size="0.2500 0.6000 0.3000"/></geometry>
+    </collision>
+  </link>
+</robot>

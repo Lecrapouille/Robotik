@@ -1,0 +1,53 @@
+# The Microduck in its playground: a room of 2.4 m by 2.4 m with low walls,
+# a sofa, a pouf and a shelf (one fixed body: the duck bumps into them for
+# real), and a light toy box it can push. Z-up, metres, radians. Seen from
+# above:
+#
+#                              sofa (0, 0.95)
+#
+#                     duck (-0.4, -0.4) -->  toy (0.0, -0.4)    shelf (1.04, -0.55)
+#        pouf (-0.8, -0.75)
+world:
+  id: playground
+  floor: { friction: 1.0 }
+
+  entities:
+    - id: duck
+      type: robot
+      model: robotik.pollen.microduck
+      # Facing +x, at a corner of the free middle of the room.
+      pose: { position: [-0.4, -0.4, 0.12] }
+      home:
+        left_hip_yaw: 0.0
+        left_hip_roll: -0.087266463
+        left_hip_pitch: -0.457924
+        left_knee: -0.00494
+        left_ankle: 0.452984
+        neck_pitch: 0.34906585
+        head_pitch: 0.34906585
+        head_yaw: 0.0
+        head_roll: 0.0
+        right_hip_yaw: 0.0
+        right_hip_roll: 0.087266463
+        right_hip_pitch: 0.457924
+        right_knee: 0.00494
+        right_ankle: -0.452984
+      sensors:
+        imu: { type: imu, parent: trunk_base, frequency: 200 }
+      actuators:
+        body: { type: joint_group }
+
+    - id: room
+      type: body
+      model: robotik.microduck.playground
+      physics: fixed
+
+    # A light cardboard box, 12 cm: a free body when the scenario makes it
+    # rigid (physics.overrides), else drawn only.
+    - id: toy
+      type: prop
+      shape: { type: box, size: [0.12, 0.12, 0.12] }
+      color: [0.85, 0.35, 0.30]
+      mass: 0.08
+      friction: 0.6
+      pose: { position: [0.0, -0.4, 0.06] }

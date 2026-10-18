@@ -1,0 +1,18 @@
+# A tour of the room: push the toy box ahead, then turn left twice. Forward
+# and TurnLeft are walks of the policy with a fixed command (DuckMission).
+BehaviorTree:
+  Sequence:
+    name: Tour
+    children:
+      - Action:
+          name: Stand
+      - Action:
+          name: Forward
+      - Action:
+          name: TurnLeft
+      - Action:
+          name: Forward
+      - Action:
+          name: TurnLeft
+      - Action:
+          name: Forward

@@ -1,0 +1,9 @@
+# Stand and Walk are skills of the plugin (DuckMission).
+BehaviorTree:
+  Sequence:
+    name: Walk
+    children:
+      - Action:
+          name: Stand
+      - Action:
+          name: Walk

@@ -1,0 +1,25 @@
+# Drive the duck in its room from the panel "Micro Duck": forward, left and
+# turn speeds, applied at once. The run lasts until you stop it. Below about
+# 0.2 m/s forward, the PD actuators only hold the stand.
+scenario:
+  id: drive
+  description: Drive the duck in its room from the panel.
+  world: worlds/playground.world.yaml
+  seed: 1
+  controller:
+    behavior_tree: scenarios/walk.bt.yaml
+
+  physics:
+    fidelity: abstract
+    overrides:
+      toy: rigid
+
+  parameters:
+    stand_duration: 0.02   # s
+    walk_duration: 0.0     # s, 0: until the run is stopped
+    vx: 0.0                # m/s: the duck waits for the panel
+    vy: 0.0
+    yaw_rate: 0.0
+
+  assertions:
+    - { condition: "duck.height_min > 0.09", phase: always }

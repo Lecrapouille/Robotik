@@ -1,0 +1,4 @@
+# Made by the plugin Makefile (prepare_assets.py): the pack of the duck
+# (URDF, meshes, walk.onnx, walk.yaml, pack.yaml). The meshes are
+# CC BY-NC-SA: they are not committed. data/playground/ is ours.
+microduck/
