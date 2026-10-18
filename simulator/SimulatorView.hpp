@@ -15,12 +15,21 @@
 #include "Compages/Renderer/Assets/CanvasTexture.hpp"
 #include "Compages/Renderer/Scene.hpp"
 
+#include <filesystem>
+
 #include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <vector>
 
 // Offscreen picture shown in an ImGui panel.
+/// @brief The entity casts no shadow (a floor, a ground picture).
+void noShadow(compages::world::Entity p_entity);
+
+/// @brief A grey floor picture with a grid (a line every 10 cm on 3 m),
+/// written once into the temporary directory; its path.
+[[nodiscard]] std::filesystem::path floorGrid();
+
 struct RenderTarget
 {
     compages::gpu::Texture color;

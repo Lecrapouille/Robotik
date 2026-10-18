@@ -173,8 +173,10 @@ void App::load(bool p_keep_tool)
     scene = std::make_unique<compages::renderer::Scene>(*world);
     auto const clear = viewClearColor();
     scene->background(clear.x, clear.y, clear.z).ambient(0.35f, 0.35f, 0.38f);
-    scene->sun("Sun").rotation(Radians(-0.9f),
-                               compages::core::Vector3f(1.0f, 0.3f, 0.0f));
+    // A sun about 40 degrees high, from the side: the shadows stretch on
+    // the floor and show where each object stands.
+    scene->sun("Sun").rotation(Radians(-0.75f),
+                               compages::core::Vector3f(1.0f, 0.0f, 0.6f));
     view_camera = scene->camera("ViewCamera");
     scene->activeCamera(view_camera);
     scene_view = std::make_unique<SimulatorView>(*scene);
@@ -242,10 +244,11 @@ void App::load(bool p_keep_tool)
 
     if (!scene_view->hasGround())
     {
-        scene->plane("Floor", compages::renderer::color(0.32f, 0.33f, 0.35f))
-            .parent(simulation->robot().root())
-            .position(0.0f, 0.0f, -0.001f)
-            .scale(3.0f);
+        // A grid on the floor: distances and heights read at a glance.
+        static std::filesystem::path const grid = floorGrid();
+        compages::world::Entity floor = scene->plane("Floor", compages::renderer::texture(grid.string()));
+        floor.parent(simulation->robot().root()).position(0.0f, 0.0f, -0.001f).scale(3.0f);
+        noShadow(floor);
     }
     // Compages world is Y-up. The robot stands on XZ after the URDF
     // conversion; look at the table from above-front. A package may override it.
