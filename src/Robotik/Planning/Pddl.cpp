@@ -259,12 +259,21 @@ static bool connective(std::string_view p_head)
     return false;
 }
 
+/// @brief When a part of a formula applies.
+enum class When
+{
+    Untimed, ///< Plain action: conditions at start, effects at end.
+    Start,
+    End,
+    Always, ///< over all: conditions at both ends.
+};
+
 // ----------------------------------------------------------------------------
 /// @brief Every atom named in a formula, at any depth: @c (p ?a b) and
-/// @c (f ?a) inside a comparison or an assignment. The variable lists of
-/// @c forall / @c exists are skipped.
+/// @c (f ?a) inside a comparison or an assignment, sorted by the phase it
+/// applies to. The variable lists of @c forall / @c exists are skipped.
 // ----------------------------------------------------------------------------
-static void collectAtoms(Sexpr const& p_node, std::vector<Atom>& p_atoms)
+static void collectAtoms(Sexpr const& p_node, ActionSchema& p_action, bool p_effect, When p_when)
 {
     if (!p_node.is_list || p_node.list.empty())
     {
@@ -276,18 +285,45 @@ static void collectAtoms(Sexpr const& p_node, std::vector<Atom>& p_atoms)
                        (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
                         p_node.list[1].isAtom("all"));
     bool const word = (head == "at" || head == "over") ? timed : connective(head);
-    if (head.empty() || !word)
+    if (head.empty())
     {
-        if (!head.empty())
+        return;
+    }
+    if (!word)
+    {
+        Atom atom = atomOf(p_node);
+        auto add = [&](ActionSchema::Phase& p_phase)
+        { (p_effect ? p_phase.writes : p_phase.reads).push_back(atom); };
+        switch (p_when)
         {
-            p_atoms.push_back(atomOf(p_node));
+            case When::Untimed:
+                add(p_effect ? p_action.end : p_action.start);
+                break;
+            case When::Start:
+                add(p_action.start);
+                break;
+            case When::End:
+                add(p_action.end);
+                break;
+            case When::Always:
+                add(p_action.start);
+                add(p_action.end);
+                break;
         }
         return;
     }
-    std::size_t const first = head == "forall" || head == "exists" || timed ? 2u : 1u;
+    if (timed)
+    {
+        When const when = p_node.list[1].isAtom("start") ? When::Start
+                          : p_node.list[1].isAtom("end") ? When::End
+                                                         : When::Always;
+        collectAtoms(p_node.list[2], p_action, p_effect, when);
+        return;
+    }
+    std::size_t const first = head == "forall" || head == "exists" ? 2u : 1u;
     for (std::size_t i = first; i < p_node.list.size(); ++i)
     {
-        collectAtoms(p_node.list[i], p_atoms);
+        collectAtoms(p_node.list[i], p_action, p_effect, p_when);
     }
 }
 
@@ -568,13 +604,13 @@ DomainSchema DomainSchema::parse(std::string_view p_text)
             if (Sexpr const* effect = keyed(section, ":effect"))
             {
                 collectEffects(*effect, action);
-                collectAtoms(*effect, action.writes);
+                collectAtoms(*effect, action, true, When::Untimed);
             }
             for (std::string_view const key : { ":precondition", ":condition" })
             {
                 if (Sexpr const* condition = keyed(section, key))
                 {
-                    collectAtoms(*condition, action.reads);
+                    collectAtoms(*condition, action, false, When::Untimed);
                 }
             }
             schema.actions[action.name] = std::move(action);

@@ -8,6 +8,7 @@
 #include "main.hpp"
 
 #include "Robotik/Planning/PlanGraph.hpp"
+#include "Robotik/Planning/PlanningEngine.hpp"
 
 /// Arms that pick and place; one hand each.
 static char const* const ARMS = R"(
@@ -21,17 +22,32 @@ static char const* const ARMS = R"(
     :effect (and (holding ?r ?p) (not (free ?r)) (not (loose ?p))))
   (:action place :parameters (?r - arm ?p - part ?b - bin)
     :precondition (holding ?r ?p)
-    :effect (and (at ?p ?b) (free ?r) (not (holding ?r ?p))))
-  (:durative-action wait :parameters (?r - arm)
-    :duration (= ?duration 1)
-    :condition (over all (free ?r))
-    :effect (at end (free ?r))))
+    :effect (and (at ?p ?b) (free ?r) (not (holding ?r ?p)))))
 )";
 
-/// Footprints of @p_steps in the domain @ref ARMS.
-static std::vector<robotik::StepFootprint> prints(std::vector<robotik::GroundAction> const& p_steps)
+/// One arm carries a tray while the other one visits the glasses on it:
+/// visit needs the tray held all along (required concurrency).
+static char const* const TRAY = R"(
+(define (domain tray)
+  (:requirements :typing :durative-actions)
+  (:types arm tray glass)
+  (:predicates (held ?t - tray) (carried ?t - tray) (visited ?g - glass)
+               (on ?g - glass ?t - tray))
+  (:durative-action carry :parameters (?r - arm ?t - tray)
+    :duration (= ?duration 10)
+    :condition (at start (on g1 ?t))
+    :effect (and (at start (held ?t)) (at end (not (held ?t))) (at end (carried ?t))))
+  (:durative-action visit :parameters (?r - arm ?g - glass ?t - tray)
+    :duration (= ?duration 2)
+    :condition (and (over all (held ?t)) (over all (on ?g ?t)))
+    :effect (at end (visited ?g))))
+)";
+
+/// Footprints of @p_steps in @p_domain.
+static std::vector<robotik::StepFootprint> prints(char const* p_domain,
+                                                  std::vector<robotik::GroundAction> const& p_steps)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(ARMS);
+    robotik::DomainSchema const schema = robotik::DomainSchema::parse(p_domain);
     std::vector<robotik::StepFootprint> result;
     for (robotik::GroundAction const& step : p_steps)
     {
@@ -40,62 +56,120 @@ static std::vector<robotik::StepFootprint> prints(std::vector<robotik::GroundAct
     return result;
 }
 
-TEST(PlanGraph, SchemaReadsPreconditionsAndWrites)
+/// A step of a sequential plan, at position @p_at.
+static robotik::GroundAction at(std::size_t p_at, std::string p_name, std::vector<std::string> p_args)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(ARMS);
-    robotik::ActionSchema const& pick = schema.actions.at("pick");
-    ASSERT_EQ(pick.reads.size(), 2u);
-    EXPECT_EQ(pick.reads[0].predicate, "free");
-    EXPECT_EQ(pick.writes.size(), 3u);
-    // (at ?p ?b) is an atom, (over all ...) and (at end ...) are not.
-    EXPECT_EQ(schema.actions.at("place").writes[0].predicate, "at");
-    ASSERT_EQ(schema.actions.at("wait").reads.size(), 1u);
-    EXPECT_EQ(schema.actions.at("wait").reads[0].predicate, "free");
-    EXPECT_EQ(schema.actions.at("wait").writes[0].predicate, "free");
+    return { std::move(p_name), std::move(p_args), static_cast<double>(p_at), 0.0 };
+}
+
+/// End of step @p_step.
+static robotik::PlanEvent end(std::size_t p_step)
+{
+    return { p_step, true };
+}
+
+TEST(PlanGraph, SchemaReadsEachEnd)
+{
+    robotik::DomainSchema const arms = robotik::DomainSchema::parse(ARMS);
+    robotik::ActionSchema const& pick = arms.actions.at("pick");
+    // A plain action reads at its start and changes at its end.
+    ASSERT_EQ(pick.start.reads.size(), 2u);
+    EXPECT_EQ(pick.start.reads[0].predicate, "free");
+    EXPECT_TRUE(pick.start.writes.empty());
+    EXPECT_EQ(pick.end.writes.size(), 3u);
+    // (at ?p ?b) is an atom, not a time.
+    EXPECT_EQ(arms.actions.at("place").end.writes[0].predicate, "at");
+
+    robotik::DomainSchema const tray = robotik::DomainSchema::parse(TRAY);
+    robotik::ActionSchema const& carry = tray.actions.at("carry");
+    ASSERT_EQ(carry.start.writes.size(), 1u);
+    EXPECT_EQ(carry.start.writes[0].predicate, "held");
+    EXPECT_EQ(carry.end.writes.size(), 2u);
+    // over all: read at both ends.
+    robotik::ActionSchema const& visit = tray.actions.at("visit");
+    EXPECT_EQ(visit.start.reads.size(), 2u);
+    EXPECT_EQ(visit.end.reads.size(), 2u);
 }
 
 TEST(PlanGraph, OneArmStaysInOrder)
 {
-    auto const after = robotik::orderSteps(prints({ { "pick", { "left", "a" } },
-                                                    { "place", { "left", "a", "bin" } },
-                                                    { "pick", { "left", "b" } },
-                                                    { "place", { "left", "b", "bin" } } }));
-    EXPECT_TRUE(robotik::sequential(after));
+    auto const order = robotik::orderSteps(prints(ARMS, { at(0, "pick", { "left", "a" }),
+                                                         at(1, "place", { "left", "a", "bin" }),
+                                                         at(2, "pick", { "left", "b" }),
+                                                         at(3, "place", { "left", "b", "bin" }) }));
+    EXPECT_TRUE(robotik::sequential(order));
 }
 
 TEST(PlanGraph, TwoArmsWorkTogether)
 {
     // left: 0 -> 2, right: 1 -> 3; the two chains are independent.
-    auto const after = robotik::orderSteps(prints({ { "pick", { "left", "a" } },
-                                                    { "pick", { "right", "b" } },
-                                                    { "place", { "left", "a", "bin" } },
-                                                    { "place", { "right", "b", "bin" } } }));
-    ASSERT_EQ(after.size(), 4u);
-    EXPECT_TRUE(after[0].empty());
-    EXPECT_TRUE(after[1].empty());
-    EXPECT_EQ(after[2], std::vector<std::size_t>{ 0u });
-    EXPECT_EQ(after[3], std::vector<std::size_t>{ 1u });
-    EXPECT_FALSE(robotik::sequential(after));
+    auto const order = robotik::orderSteps(prints(ARMS, { at(0, "pick", { "left", "a" }),
+                                                         at(1, "pick", { "right", "b" }),
+                                                         at(2, "place", { "left", "a", "bin" }),
+                                                         at(3, "place", { "right", "b", "bin" }) }));
+    ASSERT_EQ(order.size(), 4u);
+    EXPECT_TRUE(order[0].start_after.empty());
+    EXPECT_TRUE(order[1].start_after.empty());
+    EXPECT_EQ(order[2].start_after, std::vector<robotik::PlanEvent>{ end(0) });
+    EXPECT_EQ(order[3].start_after, std::vector<robotik::PlanEvent>{ end(1) });
+    EXPECT_FALSE(robotik::sequential(order));
 }
 
 TEST(PlanGraph, SharedResourceKeepsTheOrder)
 {
-    std::vector<robotik::StepFootprint> steps = prints({ { "pick", { "left", "a" } },
-                                                         { "pick", { "right", "b" } } });
-    // Both skills need the camera alone: no overlap.
+    std::vector<robotik::StepFootprint> steps =
+        prints(ARMS, { at(0, "pick", { "left", "a" }), at(1, "pick", { "right", "b" }) });
+    // One needs the camera alone: no overlap.
     steps[0].resources = { { 3u, robotik::Access::Exclusive } };
     steps[1].resources = { { 3u, robotik::Access::Shared } };
-    EXPECT_EQ(robotik::orderSteps(steps)[1], std::vector<std::size_t>{ 0u });
+    EXPECT_EQ(robotik::orderSteps(steps)[1].start_after, std::vector<robotik::PlanEvent>{ end(0) });
     // Both only watch the stream: they may share it.
     steps[0].resources = { { 3u, robotik::Access::Shared } };
-    EXPECT_TRUE(robotik::orderSteps(steps)[1].empty());
+    EXPECT_TRUE(robotik::orderSteps(steps)[1].start_after.empty());
 }
 
 TEST(PlanGraph, ImpliedPairsAreLeftOut)
 {
     // 0 -> 1 -> 2 with left; 0 -> 2 is implied, not listed.
-    auto const after = robotik::orderSteps(prints({ { "pick", { "left", "a" } },
-                                                    { "place", { "left", "a", "bin" } },
-                                                    { "pick", { "left", "b" } } }));
-    EXPECT_EQ(after[2], std::vector<std::size_t>{ 1u });
+    auto const order = robotik::orderSteps(prints(ARMS, { at(0, "pick", { "left", "a" }),
+                                                         at(1, "place", { "left", "a", "bin" }),
+                                                         at(2, "pick", { "left", "b" }) }));
+    EXPECT_EQ(order[2].start_after, std::vector<robotik::PlanEvent>{ end(1) });
+}
+
+TEST(PlanGraph, HeldAllAlongTheVisit)
+{
+    // carry [0, 10], visit [1, 3]: visit starts once carry started, and
+    // carry ends once visit ended.
+    auto const order = robotik::orderSteps(
+        prints(TRAY, { { "carry", { "left", "tray" }, 0.0, 10.0 },
+                       { "visit", { "right", "g1", "tray" }, 1.0, 2.0 } }));
+    EXPECT_EQ(order[1].start_after, (std::vector<robotik::PlanEvent>{ { 0u, false } }));
+    EXPECT_EQ(order[0].end_after, (std::vector<robotik::PlanEvent>{ end(1) }));
+    EXPECT_FALSE(robotik::sequential(order));
+}
+
+TEST(PlanGraph, KairosGivesTheTimesOfATemporalPlan)
+{
+    std::unique_ptr<robotik::PlanningEngine> engine = robotik::makeKairosPlanner();
+    ASSERT_EQ(engine->load(TRAY, "tray.pddl"), "");
+    robotik::PlanningResult const result = engine->solve(R"(
+(define (problem serve) (:domain tray)
+  (:objects left right - arm tray - tray g1 g2 - glass)
+  (:init (on g1 tray) (on g2 tray))
+  (:goal (and (visited g1) (visited g2) (carried tray))))
+)",
+                                                          {});
+    ASSERT_TRUE(result.solved()) << result.diagnostics << result.report;
+    ASSERT_EQ(result.steps.size(), 3u);
+    robotik::GroundAction const& carry = result.steps.front();
+    EXPECT_EQ(carry.name, "carry");
+    EXPECT_DOUBLE_EQ(carry.duration, 10.0);
+    for (std::size_t k = 1u; k < 3u; ++k)
+    {
+        // Each visit lies within the carry.
+        EXPECT_EQ(result.steps[k].name, "visit");
+        EXPECT_GE(result.steps[k].start, carry.start);
+        EXPECT_LT(result.steps[k].start + result.steps[k].duration, carry.start + carry.duration);
+    }
 }

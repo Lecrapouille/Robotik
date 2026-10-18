@@ -88,11 +88,20 @@ struct GroundAction
 {
     std::string name;
     std::vector<std::string> args;
+    /// Start in the plan: the time of a temporal plan (s, as the domain
+    /// counts it), the position in a sequential one (0, 1, 2...).
+    double start = 0.0;
+    /// Duration in a temporal plan; 0 for a plain action.
+    double duration = 0.0;
 
     /// @brief @c "(pick red_cube)".
     [[nodiscard]] std::string toPddl() const;
 
-    bool operator==(GroundAction const&) const = default;
+    /// @brief Same action and arguments (the timing is not compared).
+    bool operator==(GroundAction const& p_other) const
+    {
+        return name == p_other.name && args == p_other.args;
+    }
 };
 
 /// @brief A typed parameter of a predicate or an action (name without @c ?).
@@ -122,13 +131,23 @@ struct ActionSchema
     /// Some effects are conditional, quantified or numeric: not checked.
     bool partial = false;
     bool durative = false;
-    /// Every atom the precondition (or the condition of a durative action)
-    /// names, whatever its polarity or nesting; numeric fluents included.
-    /// A quantified variable stays @c ?x: it matches any object.
-    std::vector<Atom> reads;
-    /// Every atom an effect may change, conditional, quantified, numeric or
-    /// at start included. Used to tell which steps of a plan are independent.
-    std::vector<Atom> writes;
+    // ------------------------------------------------------------------------
+    /// @brief Atoms one end of the action reads and changes, whatever their
+    /// polarity or nesting (numeric fluents included). A quantified variable
+    /// stays @c ?x: it matches any object. Used to tell which steps of a plan
+    /// are independent (PlanGraph.hpp).
+    // ------------------------------------------------------------------------
+    struct Phase
+    {
+        std::vector<Atom> reads;
+        std::vector<Atom> writes;
+    };
+    /// Start: the precondition, or @c at @c start and @c over @c all
+    /// conditions and @c at @c start effects of a durative action.
+    Phase start;
+    /// End: the effects, or @c at @c end and @c over @c all conditions and
+    /// @c at @c end effects of a durative action.
+    Phase end;
 };
 
 // ****************************************************************************

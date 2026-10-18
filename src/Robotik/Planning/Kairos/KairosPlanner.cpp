@@ -116,7 +116,7 @@ public:
             report << kairos::to_string(*solved.plan, kairos::PlanFormat::Ipc);
             for (kairos::PlanStep const& step : solved.plan->steps)
             {
-                result.steps.push_back({ step.name, step.args });
+                result.steps.push_back({ step.name, step.args, step.time, step.duration });
             }
         }
         result.report = report.str();

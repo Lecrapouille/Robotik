@@ -23,6 +23,7 @@
 #pragma once
 
 #include "Robotik/Math/Random.hpp"
+#include "Robotik/Planning/PlanGraph.hpp"
 #include "Robotik/Planning/PlanningDomain.hpp"
 #include "Robotik/Planning/PlanningEngine.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
@@ -204,13 +205,20 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Direct predecessors of each step of the current plan: a step
-    /// starts once they are done (see PlanGraph.hpp). A chain when the plan
+    /// @brief Steps each step of the current plan waits for before it starts
+    /// (their end, or their start in a temporal plan). A chain when the plan
     /// runs step by step.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<std::vector<std::size_t>> const& after() const
     {
         return m_after;
+    }
+
+    /// @brief Events each step waits for before it starts and before it ends
+    /// (see PlanGraph.hpp).
+    [[nodiscard]] std::vector<StepOrder> const& order() const
+    {
+        return m_order;
     }
 
     /// @brief Status of each step of the current plan.
@@ -256,15 +264,20 @@ private:
                                    RobotContext const& p_context);
     [[nodiscard]] bt::Status skip(std::size_t p_step,
                                   RobotContext const& p_context);
-    /// @brief SUCCESS once the predecessors of @p_step are done, else RUNNING.
-    [[nodiscard]] bt::Status ready(std::size_t p_step) const;
+    /// @brief SUCCESS once @p_step may start (marks it started), else RUNNING.
+    [[nodiscard]] bt::Status ready(std::size_t p_step);
+    /// @brief SUCCESS once @p_step may end, else RUNNING.
+    [[nodiscard]] bt::Status mayEnd(std::size_t p_step) const;
+    /// @brief The event happened: a start once the step started, an end once
+    /// it is done or skipped.
+    [[nodiscard]] bool reached(PlanEvent const& p_event) const;
     /// @brief Marks @p_step finished (done or skipped) and counts it.
     void finish(std::size_t p_step, StepStatus p_status);
     /// @brief Step a failed tree failed at: one with a failed skill, else
     /// the first one running.
     [[nodiscard]] std::size_t failingStep() const;
     /// @brief Partial order of @ref m_plan (a chain unless spec.parallel).
-    [[nodiscard]] std::vector<std::vector<std::size_t>> order() const;
+    [[nodiscard]] std::vector<StepOrder> partialOrder() const;
     /// @brief Plain effects of a step, as ground literals (PDDL names).
     [[nodiscard]] std::vector<Literal> effects(std::size_t p_step,
                                                bool& p_partial) const;
@@ -300,6 +313,9 @@ private:
     std::size_t m_done = 0u;
     std::vector<StepStatus> m_steps;
     std::vector<std::vector<std::size_t>> m_after;
+    std::vector<StepOrder> m_order;
+    /// The start of each step happened.
+    std::vector<bool> m_started;
     /// Set by a failed check: why the tree failed.
     std::string m_check_failure;
     /// Context of the tick in progress, for the check nodes.

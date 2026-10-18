@@ -356,6 +356,8 @@ void PlanExecutor::reset(Seed p_seed)
     m_done = 0u;
     m_steps.clear();
     m_after.clear();
+    m_order.clear();
+    m_started.clear();
     m_check_failure.clear();
     m_tree.reset();
 }
@@ -453,7 +455,7 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     {
         for (GroundAction const& step : record.result.steps)
         {
-            m_plan.push_back({ step.name, ids(step.args) });
+            m_plan.push_back({ step.name, ids(step.args), step.start, step.duration });
         }
     }
     m_steps.assign(m_plan.size(), StepStatus::Pending);
@@ -490,8 +492,28 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
 // ----------------------------------------------------------------------------
 void PlanExecutor::compile()
 {
-    m_after = order();
-    bool const chain = sequential(m_after);
+    m_order = partialOrder();
+    m_started.assign(m_plan.size(), false);
+    m_after.assign(m_plan.size(), {});
+    for (std::size_t k = 0u; k < m_order.size(); ++k)
+    {
+        for (PlanEvent const& event : m_order[k].start_after)
+        {
+            m_after[k].push_back(event.step);
+        }
+    }
+    bool const chain = sequential(m_order);
+    // "1" for the end of step 1, "start of 1" for its start.
+    auto events = [](std::vector<PlanEvent> const& p_events)
+    {
+        std::string text;
+        for (PlanEvent const& event : p_events)
+        {
+            text += (text.empty() ? "" : ", ") + std::string(event.end ? "" : "start of ") +
+                    std::to_string(event.step + 1u);
+        }
+        return text;
+    };
     std::ostringstream yaml;
     if (chain)
     {
@@ -511,12 +533,9 @@ void PlanExecutor::compile()
         std::string indent = "      ";
         if (!chain)
         {
-            std::string wait = "After";
-            for (std::size_t const before : m_after[k])
-            {
-                wait += (wait.size() > 5u ? ", " : " ") + std::to_string(before + 1u);
-            }
-            wait = m_after[k].empty() ? "Start " + title : wait + ": " + title;
+            std::string const wait = m_order[k].start_after.empty()
+                                         ? "Start " + title
+                                         : "After " + events(m_order[k].start_after) + ": " + title;
             m_factory.registerNode(wait,
                                    [this, k]()
                                    {
@@ -575,7 +594,21 @@ void PlanExecutor::compile()
             yaml << "              - Action:\n                  name: "
                  << yamlQuoted(node) << "\n";
         }
-        // The check node marks the step done: always there, it only reads
+        // A step of a temporal plan may have to last until others end (a
+        // tray held while the other arm works).
+        if (!m_order[k].end_after.empty())
+        {
+            std::string const until = "Until " + events(m_order[k].end_after) + ": " + title;
+            m_factory.registerNode(until,
+                                   [this, k]()
+                                   {
+                                       return std::make_unique<bt::CallbackLeaf>(
+                                           [this, k]() { return mayEnd(k); });
+                                   });
+            yaml << "              - Action:\n                  name: " << yamlQuoted(until)
+                 << "\n";
+        }
+                // The check node marks the step done: always there, it only reads
         // the beliefs when verify is on.
         std::string const check = "Check " + title;
         m_factory.registerNode(
@@ -715,11 +748,33 @@ bt::Status PlanExecutor::skip(std::size_t p_step,
 }
 
 // ----------------------------------------------------------------------------
-bt::Status PlanExecutor::ready(std::size_t p_step) const
+bool PlanExecutor::reached(PlanEvent const& p_event) const
 {
-    for (std::size_t const before : m_after[p_step])
+    StepStatus const status = m_steps[p_event.step];
+    bool const over = status == StepStatus::Done || status == StepStatus::Skipped;
+    return p_event.end ? over : over || m_started[p_event.step];
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::ready(std::size_t p_step)
+{
+    for (PlanEvent const& event : m_order[p_step].start_after)
     {
-        if (m_steps[before] != StepStatus::Done && m_steps[before] != StepStatus::Skipped)
+        if (!reached(event))
+        {
+            return bt::Status::RUNNING;
+        }
+    }
+    m_started[p_step] = true;
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::mayEnd(std::size_t p_step) const
+{
+    for (PlanEvent const& event : m_order[p_step].end_after)
+    {
+        if (!reached(event))
         {
             return bt::Status::RUNNING;
         }
@@ -755,7 +810,11 @@ std::size_t PlanExecutor::failingStep() const
                 return k;
             }
         }
-        if (first == m_plan.size() && (m_after.size() <= k || ready(k) == bt::Status::SUCCESS))
+        bool const going =
+            k < m_order.size() &&
+            std::all_of(m_order[k].start_after.begin(), m_order[k].start_after.end(),
+                        [this](PlanEvent const& p_event) { return reached(p_event); });
+        if (first == m_plan.size() && going)
         {
             first = k;
         }
@@ -764,12 +823,12 @@ std::size_t PlanExecutor::failingStep() const
 }
 
 // ----------------------------------------------------------------------------
-std::vector<std::vector<std::size_t>> PlanExecutor::order() const
+std::vector<StepOrder> PlanExecutor::partialOrder() const
 {
-    std::vector<std::vector<std::size_t>> chain(m_plan.size());
+    std::vector<StepOrder> chain(m_plan.size());
     for (std::size_t k = 1u; k < m_plan.size(); ++k)
     {
-        chain[k] = { k - 1u };
+        chain[k].start_after = { { k - 1u, true } };
     }
     if (!m_spec.parallel)
     {
