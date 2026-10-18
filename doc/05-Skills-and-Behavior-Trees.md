@@ -61,6 +61,7 @@ struct RobotContext
     WorldModel& world_model;   // what the robot believes about the objects
     Seconds time{};            // robot clock at the start of the tick
     Seconds dt{};              // duration of the tick
+    std::span<Robot* const> team{}; // every robot of the world; empty for a robot alone
 };
 ```
 
@@ -72,8 +73,8 @@ must work on a real robot.
 
 | Skill | Class | Notes |
 |-------|-------|-------|
-| `Home` | `HomeSkill` | Added by every simulation that has a `joint_group` actuator. Moves the joints to `home` |
-| `Stop` | `StopSkill` | Added by every simulation. Reserves **all** actuators with the highest priority and holds the joints: an emergency stop. It never ends by itself (always `RUNNING`) |
+| `Home` | `HomeSkill` | Added by every simulation that has a `joint_group` actuator. Moves the joints to `home`. One per robot, `left.Home`, when the world has several |
+| `Stop` | `StopSkill` | Added by every simulation. Reserves **all** actuators with the highest priority and holds the joints: an emergency stop. It never ends by itself (always `RUNNING`). One per robot, `left.Stop`, when the world has several |
 | — | `MoveJointSkill(joint, target)` | One joint to an angle |
 | — | `MoveJointsSkill(posture)` | Several joints, `{ "joint1": 0.5, ... }` |
 | — | `MoveTCPSkill(frame)` + `goal(pose)` | A frame to a pose (IK once per goal). Useful **inside** your own skills |
@@ -116,6 +117,29 @@ tree action with the same name.
 | `wait` | `true`: wait while a resource is busy or a precondition is false. `false`: fail at once |
 | `cancellable` | `false` forbids preemption |
 | `preconditions` | Conditions checked before the start. The text is shown when the skill is blocked |
+| `robot` | Id of the robot the skill drives (`left`); empty: the first robot. The skill gets the `RobotContext` of that robot |
+
+### Several robots
+
+In a world of several robots ([03 §4](03-Worlds-and-Scenarios.md#several-robots)),
+each skill drives the robot of its `robot` field: `p_context.robot` is that
+robot. Name the skills after the robot (`left.Hover(p3)`), so that a
+behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one.
+From `plugins/DualArm/src/ConveyorMission.cpp`:
+
+```cpp
+std::string const& id = p_robot.id();
+skills.add<HoverSkill>(describe(id + ".Hover(" + part + ")", id, arm), part, Length(kHover));
+```
+
+- The resources are shared by the robots: a skill may hold an arm of each
+  (a move of both arms at once).
+- `p_context.team` lists every robot: a skill reads what the others measure
+  of themselves (joints, tool pose), as a real cell shares it on its
+  network. The tray visit of DualArm follows the tool of the carrying arm
+  this way. Command another robot only with its resources held.
+- The beliefs are in the world frame: bring them into the base of your
+  robot with `p_context.robot.base().pose.inverse() * belief`.
 
 ---
 

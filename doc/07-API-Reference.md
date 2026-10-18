@@ -117,12 +117,14 @@ a scenario; the mission receives it.
 
 | Method | Returns |
 |--------|---------|
-| `robot()` | `RobotSession&`: joints, sensors, actuators, resources, kinematics |
+| `robot()` | `RobotSession&` of the first robot: joints, sensors, actuators, resources, kinematics |
+| `robot(id)`, `robots()` | One robot by its entity id (or null), every robot in file order |
 | `skills()` | `SkillScheduler&` |
 | `worldModel()` | `WorldModel&`: the beliefs |
 | `perception()` | `PerceptionPipeline&`: add detectors here |
 | `faults()` | `FaultInjector&` |
-| `context()` | `RobotContext&`: what skills receive |
+| `context()`, `context(id)` | `RobotContext&`: what skills receive (first robot, or robot `id`) |
+| `beliefFrame()` | Frame of the beliefs: the robot base when alone, the world with several robots |
 | `factory()` | `bt::NodeFactory&`: register custom tree nodes |
 | `camera()` | `Camera*`: the first camera, or null |
 | `scenario()` | `Scenario const&`: the parsed files (trajectories, world, …) |
@@ -245,13 +247,15 @@ class Skill
     virtual std::string why() const;   // why the last run failed, for the user; empty by default
 };
 
-struct RobotContext { Robot& robot; WorldModel& world_model; Seconds time; Seconds dt; };
+struct RobotContext { Robot& robot; WorldModel& world_model; Seconds time; Seconds dt;
+                      std::span<Robot* const> team; };   // team: every robot, empty when alone
 ```
 
 `Status`: `IDLE`, `RUNNING`, `SUCCESS`, `FAILURE`.
 
 `SkillDescription`: `name`, `resources`, `priority`, `wait`, `cancellable`,
-`preconditions` (`{ text, std::function<bool(RobotContext const&)> }`).
+`preconditions` (`{ text, std::function<bool(RobotContext const&)> }`),
+`robot` (id of the robot it drives; empty: the first one).
 
 Built-in: `HomeSkill(group)`, `MoveJointSkill(joint, target)`,
 `MoveJointsSkill(posture)`, `MoveTCPSkill(frame, target)` + `goal(pose)`,

@@ -99,3 +99,12 @@ action (BT node names; parameters go to the step blackboard). Missing
 observer/binding/kind → scenario refused with the list. Examples:
 `plugins/PickAndPlace/src/PickPlacePlanning.cpp`, Painter `registerPlanning`.
 Metrics `planner.plans|replans|steps|done`. Details: doc/11-PDDL-Planner.md.
+
+Independent steps run together (`planner.parallel: true`, default): order
+from what each end of an action reads/changes + exclusive resources of the
+bound skills; durative actions give required concurrency (`over all`).
+Several robots: `SkillDescription::robot = "left"`, name skills `left.X(...)`,
+bind `"{0}.X({1})"` with the arm as first PDDL argument; observers see the
+other robots in `context.team`; beliefs are in the world frame (bring them
+into the base: `context.robot.base().pose.inverse() * p`). Example:
+`plugins/DualArm/src/ConveyorMission.cpp`, `TrayMission.cpp`.

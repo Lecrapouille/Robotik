@@ -13,6 +13,7 @@ Headless.
 | [PickAndPlace](#5-pick-and-place-rl) | RL environment, parallel pool | pick_and_place_rl | — | `Robotik-PickAndPlaceRL` |
 | [FlyBrain](#6-fly-brain) | A biological brain as an agent | fly_obstacle_avoidance | — | `Robotik-Fly` |
 | [HumanoidWalk](#7-humanoid-walk) | A walking policy learned elsewhere (ONNX), on a floating base | walk, walk_circle | — | — |
+| [DualArm](#8-dual-arm) | Two robots, one plan: steps in parallel, required concurrency | conveyor, conveyor_sequential, tray | — | — |
 
 All demos open from the simulator **Demos** menu, and run with:
 
@@ -269,7 +270,95 @@ More details in [plugins/HumanoidWalk/README.md](../plugins/HumanoidWalk/README.
 
 ---
 
-## 8. Write a good demo
+## 8. Dual arm
+
+**Two robots in one world, planned together.** Two 6-axis arms share one
+physics, one scheduler and their beliefs ([03 §4](03-Worlds-and-Scenarios.md#several-robots)).
+The PDDL planner plans for both, and the executor runs at the same time the
+steps that do not depend on each other ([11 §4](11-PDDL-Planner.md#steps-that-run-together)).
+No behavior tree is written.
+
+```bash
+make -C plugins/DualArm -j"$(nproc)"
+./build/Robotik-Headless build/plugins/DualArm/scenarios/conveyor.scenario.yaml --trace
+```
+
+| Scenario | What happens |
+|----------|--------------|
+| `conveyor` | A conveyor brings four parts from a feeder (out of reach) to two pick zones; each arm takes the parts of its zone and drops them in its bin. The belt brings the next part while an arm carries the last one |
+| `conveyor_sequential` | The same plan, step by step (`planner.parallel: false`), to compare |
+| `tray` | The left arm lifts a tray with four glasses, carries it to another stand and puts it down; the right arm brings its tool above each glass **while the tray moves**. A temporal domain (durative actions) |
+
+**Conveyor.** One plan of 12 steps; the times show the overlap:
+
+```text
+  0 s  Convey(p4, zone_right)  SUCCEEDED  (2.69 s)
+  2.7 s  right.Hover(p4)  SUCCEEDED  (1.08 s)
+  2.7 s  Convey(p3, zone_left)  SUCCEEDED  (2.38 s)
+  3.79 s  right.Reach(p4)  SUCCEEDED  (0.43 s)
+  4.23 s  right.Grasp(p4)  SUCCEEDED  (0.01 s)
+  4.25 s  right.Hover(p4)  SUCCEEDED  (0.45 s)
+  4.71 s  right.Over(bin_right)  SUCCEEDED  (1.94 s)
+  5.09 s  left.Hover(p3)  SUCCEEDED  (1.08 s)
+  5.09 s  Convey(p2, zone_right)  SUCCEEDED  (2.08 s)
+  ...
+[PASS] dual_arm.overlap > 2  (dual_arm.overlap = 6.25)
+[PASS] time < 20  (time = 13.91)
+```
+
+Run step by step, the same plan ends at 26.61 s instead of 13.91 s. The
+conveyor is a device of the plugin with its resource `conveyor`: the
+`Convey(part, zone)` skill holds it alone, so two conveys never overlap, and
+a fault on `conveyor` stops the belt.
+
+**Tray.** The plan holds the tray during the visits: `visit` needs the tray
+`in_motion` over all its duration, a token `carry` adds at its start and
+removes at its end.
+
+```text
+  plan 0 at 0 s (start): solved (lift left tray pad_a) (carry left tray pad_a pad_b) (visit right g1 tray) (visit right g2 tray) (visit right g3 tray) (visit right g4 tray) (set_down left tray pad_b)
+  4.53 s  left.Carry(pad_b)  SUCCEEDED  (10 s)
+  4.53 s  right.Visit(g1, tray)  SUCCEEDED  (3.66 s)
+  8.2 s  right.Visit(g2, tray)  SUCCEEDED  (1.85 s)
+  10.06 s  right.Visit(g3, tray)  SUCCEEDED  (1.72 s)
+  11.79 s  right.Visit(g4, tray)  SUCCEEDED  (1.81 s)
+[PASS] on(g1, tray)  (on(g1, tray) = 1)
+...
+[PASS] collision_count(left) == 0  (collision_count(left) = 0)
+[PASS] collision_count(right) == 0  (collision_count(right) = 0)
+```
+
+How it works:
+
+- **Synchronized arms.** `Visit(glass, tray)` keeps its tool above the glass
+  **in the frame of the tool of the carrying arm**, read through
+  `RobotContext::team` (what that arm measures of itself), not through the
+  camera.
+- **Real glasses.** The cup is at the `rigid` physics level, so the tray and
+  the glasses are free bodies of MuJoCo; `on(g1, tray)` with `phase: always`
+  is a real contact at every step. Dropped instead of put down, the glasses
+  fall and these assertions fail.
+- **Gentle moves.** The tray moves along straight lines with a smooth
+  profile (`PathSkill`), and the speed limits of the joints keep it slow.
+  The arms have stiffer joint gains than the default: the gravity
+  compensation of the drives does not know the 0.7 kg of the tray.
+- **No crossing.** The visiting tool comes from 20 cm above the glass, then
+  goes down: from far, the joints would cut through the other arm.
+
+Files: `plugins/DualArm/`
+- `worlds/conveyor_cell.world.yaml`, `worlds/tray_cell.world.yaml`;
+- `scenarios/conveyor.domain.pddl` (classical), `scenarios/tray.domain.pddl` (temporal);
+- `src/ConveyorMission.cpp`, `src/TrayMission.cpp`: skills of each robot,
+  observers, bindings; `src/Conveyor.cpp`: the belt; `src/ArmSkills.cpp`,
+  `src/TraySkills.cpp`: the skills.
+
+Limits: the parts and glasses are boxes (the only free shape); the parts
+are found by the oracle (`perception: { oracle: always }`), as the plugin
+has no detector yet; the arms are the generic `robot_6axis`.
+
+---
+
+## 9. Write a good demo
 
 A good demo answers **one yes/no question**:
 

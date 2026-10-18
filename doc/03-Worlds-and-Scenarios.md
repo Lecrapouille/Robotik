@@ -233,7 +233,7 @@ world:
 
 | Type | What it is | Physics |
 |------|------------|---------|
-| `robot` | The robot you control (only one). Keys: `home`, `sensors`, `actuators` | Its chain, fixed at its `pose` |
+| `robot` | A robot you control (one or more, see [Several robots](#several-robots)). Keys: `home`, `sensors`, `actuators` | Its chain, fixed at its `pose` |
 | `tool` | A tool. It keeps its identity once mounted and brings its own actuators and sensors | Hangs on the flange |
 | `body` | A simulated rigid body: a URDF model (`physics: free` or `fixed`) or a box (`free`, with `mass`) | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
@@ -264,7 +264,7 @@ and on what it depends.
 ### Tools
 
 A tool is always mounted by its link `tool_mount` on the robot flange
-(`robot.flange`). Only one tool is mounted at a time. Tools declared without
+(`robot.flange`). Only one tool is mounted on a robot at a time. Tools declared without
 `attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can
 mount one instead. Details in [10-Tools-and-Frames.md](10-Tools-and-Frames.md).
 
@@ -277,6 +277,57 @@ mount one instead. Details in [10-Tools-and-Frames.md](10-Tools-and-Frames.md).
         gripper: { type: vacuum }
     - { id: drill, type: tool, model: robotik.tools.drill }    # in storage
 ```
+
+### Several robots
+
+A world may have several entities of type `robot`: two arms of a cell, an
+arm and a mobile base. They share **one** physics (MuJoCo), **one** resource
+manager, **one** skill scheduler and **the beliefs**. From the DualArm tray
+cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
+
+```yaml
+    - id: left
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      ...
+      actuators:
+        left_arm: { type: joint_group }
+    - id: left_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: left.flange, frame: tool_mount }
+      actuators:
+        left_gripper: { type: vacuum }
+
+    - id: right
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.80, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
+      ...
+```
+
+Rules:
+
+- Each robot has its own tool: `attach: { parent: <robot>.flange, frame: tool_mount }`.
+- The names of the sensors and actuators are **unique in the world**
+  (`left_arm`, `right_arm`): they are the names of the resources, and the
+  robots share the resource manager. A second `gripper` is refused when the
+  world is loaded.
+- Each robot keeps the names of its own URDF: both arms have a `joint1`.
+- The first robot of the file is `Simulation::robot()`. The others are
+  `Simulation::robot("right")`; all of them are `Simulation::robots()`.
+- The skills of the core are named after the robot: `left.Home`,
+  `right.Stop`. With one robot they stay `Home` and `Stop`.
+- The queries take the robot id: `pose(right.tcp)`, `collision_count(left)`,
+  `joint_limits_respected(right)`. A contact with the other robot is a
+  collision.
+- The shared beliefs are in the **world frame** (with one robot, they stay
+  in its base frame: see [§7](#7-truth-description-and-belief)).
+
+How a skill drives one robot of the cell:
+[05-Skills-and-Behavior-Trees.md](05-Skills-and-Behavior-Trees.md#several-robots).
 
 ### Sensors and actuators
 
@@ -556,6 +607,13 @@ perception: { oracle: when_blind }    # never (default) | when_blind | always
 `when_blind` uses the oracle when no camera has an image source, that is, in
 headless mode (no rendering). The simulator renders the image and uses real
 perception. Reports mark the runs made with the oracle (`oracle perception`).
+
+**Frame of the beliefs.** With one robot, the beliefs are in its base frame.
+With several robots, they share the beliefs in the **world frame**: each
+camera turns its detections into the world with the base pose of its robot,
+and a skill brings a belief into its own base with
+`context.robot.base().pose.inverse() * belief` (`Simulation::beliefFrame()`
+says which frame is used).
 
 ---
 

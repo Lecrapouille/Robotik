@@ -219,6 +219,71 @@ The generated tree is the tree of the run: the **Behavior tree** panel shows it,
 
 **Unknown is not false.** For the planner, an atom that is not true is false (PDDL works like that). But when the executor checks an effect or the goal, `Unknown` is accepted: "not seen" does not mean "false". In the fault scenario the camera is down at the end, so the robot cannot see that the cube is in the box: `in` says `Unknown`, the plan ends, and the **assertions** (ground truth) say whether it really worked.
 
+### Steps that run together
+
+The planner gives a list of actions. Many of them do not depend on each
+other: the conveyor can bring the next part while an arm carries the last
+one. The executor finds these steps alone; the domain says nothing about
+parallelism.
+
+Each step has two **events**: its **start** (its skills begin; its
+precondition must hold) and its **end** (its skills are done; its effects
+hold). Two events of different steps keep the order of the plan when:
+
+- one changes an atom the other reads, or both change it;
+- their skills need the same resource and one of them alone (an arm, a cup,
+  the conveyor): the first step ends before the second one starts.
+
+Every other pair may happen in any order. The executor then builds one
+`Parallel` node with every step; each step waits for the end of the steps
+it needs (`After 2, 4: 7. convey(p2, feeder, zone_right)`), runs once, and
+the first failure fails
+the plan (cancel, plan again, as before). A plan where each step waits for
+the previous one keeps its `Sequence`: the PickAndPlace and Painter plans do
+not change.
+
+The DualArm conveyor ([09-Demos.md](09-Demos.md#8-dual-arm)) plans 12 steps
+for two arms and one conveyor. The same plan, run both ways:
+
+```text
+conveyor (parallel: true)
+  0 s  Convey(p4, zone_right)  SUCCEEDED  (2.69 s)
+  2.7 s  right.Hover(p4)  SUCCEEDED  (1.08 s)
+  2.7 s  Convey(p3, zone_left)  SUCCEEDED  (2.38 s)
+  ...
+  5.09 s  left.Hover(p3)  SUCCEEDED  (1.08 s)
+  5.09 s  Convey(p2, zone_right)  SUCCEEDED  (2.08 s)
+  ...
+[PASS] default                  seed=42     controller succeeded at 13.91 s (oracle perception)  time=13.91
+
+conveyor_sequential (parallel: false)
+[PASS] default                  seed=42     controller succeeded at 26.61 s (oracle perception)  time=26.61
+```
+
+**Durative actions.** In a temporal domain (`:durative-action`), the
+planner gives a start time and a duration to each action. The start event
+reads the `at start` and `over all` conditions and changes the `at start`
+effects; the end event reads the `at end` and `over all` conditions and
+changes the `at end` effects. This gives **required concurrency**: in the
+DualArm tray scenario, `visit` needs `(over all (in_motion ?t))`, which
+`carry` adds at its start and removes at its end. So the first visit starts once
+the carry has started (`After start of 2: 3. visit(right, g1, tray)`), and
+the carry ends only once the last visit has ended (`Until 6: 2.
+carry(left, tray, pad_a, pad_b)`, a node before its Check; the other visits
+end before the last one, so they are not listed):
+
+```text
+  4.53 s  left.Carry(pad_b)  SUCCEEDED  (10 s)
+  4.53 s  right.Visit(g1, tray)  SUCCEEDED  (3.66 s)
+  8.2 s  right.Visit(g2, tray)  SUCCEEDED  (1.85 s)
+  10.06 s  right.Visit(g3, tray)  SUCCEEDED  (1.72 s)
+  11.79 s  right.Visit(g4, tray)  SUCCEEDED  (1.81 s)
+```
+
+The durations of the domain only order the plan: the executor waits for the
+skills, not for the clock. A skill that ends early does not wait for its
+planned duration.
+
 **Reproducible.** The planner runs inside a simulation step: simulated time does not move during the search. It uses one thread, a fixed search (`search: lama`) and no "anytime" improvement. The same seed gives the same plans. `timeout` is only a safety net on the wall clock.
 
 ---
@@ -236,6 +301,7 @@ The generated tree is the tree of the run: the **Behavior tree** panel shows it,
 | `replan.max` | 3 | New plans allowed after the first one |
 | `replan.delay` | 0.5 | Simulated seconds waited before a new plan |
 | `verify` | true | Check the effects of each action on the beliefs |
+| `parallel` | true | Run together the steps that do not depend on each other ([§4](#steps-that-run-together)); `false` runs the plan step by step |
 | `search` | `lama` | Kairos search: `ff`, `lama`, `eager-lama`, `novelty`, `lama-novelty`, `ehc`, `goals` |
 | `timeout` | 10 | Wall-clock limit of one search, in seconds |
 
@@ -258,7 +324,8 @@ right one".
 | Class (header) | Role |
 |----------------|------|
 | `PlanningDomain` (`Robotik/Planning/PlanningDomain.hpp`) | `observe(predicate, observer)`, `bind(action, nodes, parameters)` |
-| `PlanExecutor` (`Robotik/Planning/PlanExecutor.hpp`) | The planner controller: `plan()`, `done()`, `history()`, `observe(context)`, `problem(context)`, `replan(cause)` |
+| `PlanExecutor` (`Robotik/Planning/PlanExecutor.hpp`) | The planner controller: `plan()`, `done()` (steps finished), `running(step)`, `after()` and `order()` (what each step waits for), `history()`, `observe(context)`, `problem(context)`, `replan(cause)` |
+| `orderSteps`, `StepFootprint`, `StepOrder` (`Robotik/Planning/PlanGraph.hpp`) | The partial order of a plan: start and end events, what each one waits for |
 | `PlanningEngine` (`Robotik/Planning/PlanningEngine.hpp`) | The planner interface; `makeKairosPlanner()`. No Kairos type leaves `src/Robotik/Planning/Kairos/` |
 | `Literal`, `Atom`, `DomainSchema` (`Robotik/Planning/Pddl.hpp`) | Symbols, and what RobotIK reads of a domain |
 
@@ -301,12 +368,16 @@ right one".
 
 ## 6. Limits
 
-- Plans run **one action at a time**. Actions that could run in parallel
-  (two robots, or a camera and a conveyor) are not run in parallel yet.
-- Durative actions (`:durative-action`) are planned, but run in sequence: the
-  times of the plan are not used.
-- The PickAndPlace and Painter demos have a PDDL scenario. LineFollower and
-  HumanoidWalk do not.
+- The order between steps is read from the atoms each end of an action
+  names. A quantified variable (`forall (?y - zone) ...`) matches any
+  object, so a step with a `forall` waits for more steps than needed.
+- Two steps that overlap in a temporal plan and need the same exclusive
+  resource are not ordered by the executor: the scheduler makes the second
+  one wait for the resource.
+- Two steps running together share the blackboard of the tree: two
+  `parameters` of the same name in parallel bindings would clash.
+- The PickAndPlace, Painter and DualArm demos have PDDL scenarios.
+  LineFollower and HumanoidWalk do not.
 
 ## Next
 

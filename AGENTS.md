@@ -23,7 +23,8 @@ Read only what the task needs. Load a skill instead of reading the docs:
 ```text
 include/Robotik/<Module>/   public headers; src/Robotik/<Module>/ implementation
   Planning/  PDDL symbols, PlanningDomain (observers, bindings), Kairos engine,
-             PlanExecutor (plan -> behavior tree, checks, replans)
+             PlanExecutor (plan -> behavior tree, checks, replans),
+             PlanGraph (which steps run together)
   Runtime/   Simulation (step loop, truth, end of run), Mission, SkillScheduler,
              ResourceManager, FaultInjector, Metrics, RobotContext, RunReport
   Robot/     Robot, RobotSession, JointSet (SoA), actuators
@@ -38,7 +39,8 @@ external/    third-party sources (do not edit)      build/  outputs (generated)
 ```
 
 Plugins: HelloWorld (tutorial + test fixture), PickAndPlace (reference: BT,
-faults, RL scenario), Painter, LineFollower, FlyBrain, HumanoidWalk (ONNX policy).
+faults, RL scenario), Painter, LineFollower, FlyBrain, HumanoidWalk (ONNX policy),
+DualArm (two robots, parallel and temporal PDDL plans).
 
 ## Commands
 
@@ -84,6 +86,14 @@ libraries are then built by Make rules, there is no `external/compilation`.
   YAML assertions. No pass/fail logic in C++.
 - `Mission::status` ends a run only when the scenario has no behavior tree
   and no planner.
+- Several robots in a world share one physics, one `ResourceManager`, one
+  `SkillScheduler` and the beliefs: device names are unique in the world;
+  `SkillDescription::robot` says which robot a skill drives; with several
+  robots the beliefs are in the world frame (`Simulation::beliefFrame`), a
+  robot alone keeps its base frame. `Simulation::robot()` is the first one.
+- Plans run their independent steps together (`planner.parallel`, default
+  true): the order comes from what each end of an action reads and changes,
+  and from the resources of its skills. Do not add ordering in C++.
 - Planner: the PDDL domain is the only place of actions and effects (no
   symbolic effects in C++); observers read beliefs, never the truth; only
   `src/Robotik/Planning/Kairos/` includes Kairos headers.

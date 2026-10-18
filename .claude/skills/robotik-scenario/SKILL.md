@@ -23,7 +23,7 @@ world:
   id: cell
   floor: { friction: 0.8 }            # needed for free bodies (else they fall forever)
   entities:
-    - id: robot                        # exactly one robot
+    - id: robot                        # one or more robots (see below)
       type: robot
       model: robotik.robots.robot_6axis    # <pack>.<key> from data/packs/*/pack.yaml
       pose: { position: [0, 0, 0], rpy: [0, 0, 0] }
@@ -38,7 +38,7 @@ world:
       actuators:
         arm: { type: joint_group }                  # all joints if none listed
         wheel: { type: motor, joint: left_wheel_joint }
-    - id: vacuum                       # mounted tool (one at a time)
+    - id: vacuum                       # mounted tool (one per robot at a time)
       type: tool
       model: robotik.tools.vacuum
       attach: { parent: robot.flange, frame: tool_mount }
@@ -66,6 +66,13 @@ disable it). Noise: a sigma, or `{sigma, bias, resolution, saturation}`.
 A free `body` settles at start (initial pose taken after settling) and may
 drift ~1 cm: prefer `prop` for exact tutorials/tests.
 
+
+Several robots (`plugins/DualArm/worlds/*.world.yaml`): one entity
+`type: robot` each, each with its tool (`attach: { parent: <robot>.flange,
+frame: tool_mount }`); sensor/actuator names unique in the world
+(`left_arm`, `right_arm`), refused otherwise. Queries take the robot id:
+`collision_count(left)`, `pose(right.tcp)`; a contact with another robot is
+a collision. Core skills become `left.Home`, `left.Stop`.
 ## Scenario
 
 ```yaml
