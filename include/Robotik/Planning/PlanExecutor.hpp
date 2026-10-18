@@ -214,6 +214,10 @@ public:
         return m_after;
     }
 
+    /// @brief The step has started and is not over: several at once when
+    /// the plan runs steps together.
+    [[nodiscard]] bool running(std::size_t p_step) const;
+
     /// @brief Events each step waits for before it starts and before it ends
     /// (see PlanGraph.hpp).
     [[nodiscard]] std::vector<StepOrder> const& order() const

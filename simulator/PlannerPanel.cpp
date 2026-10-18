@@ -166,7 +166,8 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     }
 }
 
-/// @brief The plan as a list of steps, the current one highlighted.
+/// @brief The plan as a list of steps, the running ones highlighted (several
+/// at once when steps run together).
 static void planSteps(robotik::PlanExecutor const& p_executor)
 {
     std::vector<robotik::GroundAction> const& plan = p_executor.plan();
@@ -177,7 +178,6 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
                                 : "No plan yet.");
         return;
     }
-    bool const running = p_executor.state() == robotik::PlanState::Executing;
     if (!beginTable("plan", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
     {
         return;
@@ -189,7 +189,7 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
     {
         robotik::StepStatus const status =
             i < p_executor.steps().size() ? p_executor.steps()[i] : robotik::StepStatus::Pending;
-        bool const current = status == robotik::StepStatus::Pending && i == p_executor.done() && running;
+        bool const current = p_executor.running(i);
         ImGui::TableNextRow();
         if (current)
         {
@@ -219,6 +219,15 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
                 else
                 {
                     ImGui::TextDisabled("%2zu", i + 1u);
+                }
+                if (i < p_executor.after().size() && !p_executor.after()[i].empty())
+                {
+                    std::string after = "Waits for step";
+                    for (std::size_t const step : p_executor.after()[i])
+                    {
+                        after += " " + std::to_string(step + 1u);
+                    }
+                    ImGui::SetItemTooltip("%s", after.c_str());
                 }
                 break;
         }

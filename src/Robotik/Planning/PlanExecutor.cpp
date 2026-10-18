@@ -756,6 +756,18 @@ bool PlanExecutor::reached(PlanEvent const& p_event) const
 }
 
 // ----------------------------------------------------------------------------
+bool PlanExecutor::running(std::size_t p_step) const
+{
+    if (m_state != PlanState::Executing || p_step >= m_steps.size() ||
+        p_step >= m_order.size() || m_steps[p_step] != StepStatus::Pending)
+    {
+        return false;
+    }
+    return std::all_of(m_order[p_step].start_after.begin(), m_order[p_step].start_after.end(),
+                       [this](PlanEvent const& p_event) { return reached(p_event); });
+}
+
+// ----------------------------------------------------------------------------
 bt::Status PlanExecutor::ready(std::size_t p_step)
 {
     for (PlanEvent const& event : m_order[p_step].start_after)
