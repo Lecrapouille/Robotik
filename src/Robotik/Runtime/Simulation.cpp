@@ -627,15 +627,8 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
         return;
     }
     // One weld per gripper and object; the object never collides with the
-    // links of the tool that holds it.
-    std::vector<std::string> tool_links;
-    for (Record const& record : m_records)
-    {
-        if (record.spec->type == EntitySpec::Type::Tool)
-        {
-            tool_links.insert(tool_links.end(), record.links.begin(), record.links.end());
-        }
-    }
+    // links of the tool that holds it (the tool of another robot, a drill,
+    // still touches it).
     for (EntitySpec const& entity : m_scenario.world.entities)
     {
         for (ActuatorSpec const& actuator : entity.actuators)
@@ -647,6 +640,14 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
             RobotSession const& owner = ownerOf(entity);
             std::string const link =
                 prefixOf(owner.id()) + (actuator.link.empty() ? owner.tool() : actuator.link);
+            std::vector<std::string> tool_links;
+            for (Record const& record : m_records)
+            {
+                if (record.spec->type == EntitySpec::Type::Tool && &ownerOf(*record.spec) == &owner)
+                {
+                    tool_links.insert(tool_links.end(), record.links.begin(), record.links.end());
+                }
+            }
             for (RigidGrasp::Graspable const& object : graspable)
             {
                 p_physics.addWeld(RigidGrasp::weldName(actuator.name, object.id), link, object.id);
