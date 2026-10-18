@@ -47,7 +47,8 @@ void endTable();
 ImFont* monoFont();
 
 /// @brief Read-only view of a text file: line numbers, monospace font,
-/// a button to copy the path and one to copy the text.
+/// a button to copy the path and one to copy the text. YAML and PDDL
+/// are coloured by syntax.
 void textView(std::filesystem::path const& p_path, std::string const& p_text);
 
 /// @brief Horizontal bar from @p_lower to @p_upper with @p_value filled,

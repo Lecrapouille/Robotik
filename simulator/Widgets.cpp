@@ -4,6 +4,7 @@
 // This file is part of RobotIK. It is available under the GNU GPL v3 or,
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
+#include "Syntax.hpp"
 #include "Ui.hpp"
 
 #include <algorithm>
@@ -114,33 +115,34 @@ void textView(std::filesystem::path const& p_path, std::string const& p_text)
         rest = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1u);
     }
 
+    SyntaxPainter painter(p_path);
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.09f, 0.10f, 1.0f));
     if (ImGui::BeginChild("##text", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None,
                           ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGui::PushFont(monoFont(), 0.0f);
         int const digits = static_cast<int>(std::to_string(lines.size()).size());
+        int seen = 0;
         ImGuiListClipper clipper;
         clipper.Begin(static_cast<int>(lines.size()));
         while (clipper.Step())
         {
+            if (clipper.DisplayStart < seen)
+            {
+                seen = 0;
+                painter.reset();
+            }
+            while (seen < clipper.DisplayStart)
+            {
+                painter.skip(lines[static_cast<std::size_t>(seen)]);
+                ++seen;
+            }
             for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
             {
                 ImGui::TextDisabled("%*d", digits, row + 1);
                 ImGui::SameLine();
-                std::string_view const line = lines[static_cast<std::size_t>(row)];
-                // YAML comments in grey, the rest in the normal color.
-                std::size_t const first = line.find_first_not_of(' ');
-                bool const comment = first != std::string_view::npos && line[first] == '#';
-                if (comment)
-                {
-                    ImGui::PushStyleColor(ImGuiCol_Text, GREY);
-                }
-                ImGui::TextUnformatted(line.data(), line.data() + line.size());
-                if (comment)
-                {
-                    ImGui::PopStyleColor();
-                }
+                painter.draw(lines[static_cast<std::size_t>(row)]);
+                ++seen;
             }
         }
         ImGui::PopFont();

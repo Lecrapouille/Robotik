@@ -21,6 +21,7 @@ SRC_FILES := $(CURRENT_DIR)/main.cpp $(CURRENT_DIR)/App.cpp
 SRC_FILES += $(CURRENT_DIR)/Window.cpp $(CURRENT_DIR)/SimFrame.cpp
 SRC_FILES += $(CURRENT_DIR)/MainLoop.cpp $(CURRENT_DIR)/SimulatorView.cpp
 SRC_FILES += $(CURRENT_DIR)/Workspace.cpp $(CURRENT_DIR)/Widgets.cpp
+SRC_FILES += $(CURRENT_DIR)/Syntax.cpp
 SRC_FILES += $(CURRENT_DIR)/ScenePanel.cpp $(CURRENT_DIR)/CameraPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/OverviewPanels.cpp $(CURRENT_DIR)/PackagePanels.cpp
 SRC_FILES += $(CURRENT_DIR)/RobotPanel.cpp
