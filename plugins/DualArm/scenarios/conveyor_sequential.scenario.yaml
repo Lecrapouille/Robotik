@@ -1,0 +1,40 @@
+# The same cell as conveyor.scenario.yaml, the plan run step by step: one
+# arm or the conveyor moves at a time. Compare the end time of both runs.
+scenario:
+  id: conveyor_sequential
+  description: Sort the red parts to the left bin, the blue ones to the right bin, one step at a time.
+  world: worlds/conveyor_cell.world.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/conveyor.domain.pddl
+      facts:
+        - reaches(left, zone_left)
+        - reaches(right, zone_right)
+        - near(left, bin_left)
+        - near(right, bin_right)
+      goal:
+        - at(p1, bin_left)
+        - at(p2, bin_right)
+        - at(p3, bin_left)
+        - at(p4, bin_right)
+      parallel: false
+
+  # The parts are found by their true pose (no color detector in this
+  # plugin); the wrist cameras still render in the simulator.
+  perception: { oracle: always }
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1, bin_left)
+    - inside(p2, bin_right)
+    - inside(p3, bin_left)
+    - inside(p4, bin_right)
+    - { condition: "collision_count(left) == 0", phase: always }
+    - { condition: "collision_count(right) == 0", phase: always }
+    - planner.replans == 0
+    # Never two arms at once.
+    - dual_arm.overlap == 0

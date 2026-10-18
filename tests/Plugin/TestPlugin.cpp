@@ -301,3 +301,49 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     EXPECT_TRUE(recovered);
     session.detach();
 }
+
+/// Runs a scenario of the DualArm plugin to its end; false when not built.
+static bool runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
+{
+    std::filesystem::path const scenario =
+        buildRoot() / "plugins" / "DualArm" / "scenarios" / (p_scenario + ".scenario.yaml");
+    if (!std::filesystem::is_regular_file(buildRoot() / "plugins" / "DualArm" / "librobotik_dual_arm.so"))
+    {
+        return false;
+    }
+    robotik::PluginSession session;
+    session.setHeadless(true);
+    session.scan(buildRoot() / "plugins");
+    EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready) << session.error();
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world, robotik::Scenario::load(scenario, session.assets()), nullptr, session.mission());
+    session.attach(&simulation);
+    EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
+    for (int step = 0; step < 6000 && !simulation.finished(); ++step)
+    {
+        simulation.step(Seconds(0.01));
+        session.afterStep(0.01);
+    }
+    EXPECT_TRUE(simulation.passed()) << p_scenario;
+    p_time = simulation.time().value();
+    p_overlap = simulation.query("dual_arm.overlap").value_or(-1.0);
+    session.detach();
+    return true;
+}
+
+TEST(PluginSession, TwoArmsSortFasterWithAParallelPlan)
+{
+    double parallel = 0.0;
+    double sequential = 0.0;
+    double overlap = 0.0;
+    double none = 0.0;
+    if (!runDualArm("conveyor", parallel, overlap) ||
+        !runDualArm("conveyor_sequential", sequential, none))
+    {
+        GTEST_SKIP() << "dual arm plugin is not built";
+    }
+    EXPECT_GT(overlap, 2.0);
+    EXPECT_DOUBLE_EQ(none, 0.0);
+    EXPECT_LT(parallel, 0.7 * sequential);
+}

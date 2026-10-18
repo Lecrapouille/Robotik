@@ -1,0 +1,21 @@
+plugin:
+  id: robotik.dual_arm
+  name: Dual arm
+  version: 1.0.0
+  api_version: 1
+  category: Manipulation
+  description: Two arms work at the same time, planned by PDDL. A conveyor brings parts that both arms sort into their bins.
+
+library:
+  entrypoint: librobotik_dual_arm.so
+
+resources:
+  packs:
+    - { id: robotik.robots, version: "1.0" }
+    - { id: robotik.tools, version: "1.0" }
+
+scenarios:
+  directory: scenarios
+  entries:
+    - { id: conveyor, name: Conveyor (parallel), file: conveyor.scenario.yaml, menu: PDDL planner }
+    - { id: conveyor_sequential, name: Conveyor (step by step), file: conveyor_sequential.scenario.yaml, menu: PDDL planner }

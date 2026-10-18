@@ -1,0 +1,44 @@
+# Two arms sort four parts that a conveyor brings, with no behavior tree:
+# the PDDL planner finds the steps from the goal, and the executor runs
+# together the steps that do not depend on each other. The conveyor brings
+# the next part while an arm carries the last one to its bin.
+scenario:
+  id: conveyor
+  description: Sort the red parts to the left bin, the blue ones to the right bin, both arms at once.
+  world: worlds/conveyor_cell.world.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/conveyor.domain.pddl
+      facts:
+        - reaches(left, zone_left)
+        - reaches(right, zone_right)
+        - near(left, bin_left)
+        - near(right, bin_right)
+      goal:
+        - at(p1, bin_left)
+        - at(p2, bin_right)
+        - at(p3, bin_left)
+        - at(p4, bin_right)
+      parallel: true
+
+  # The parts are found by their true pose (no color detector in this
+  # plugin); the wrist cameras still render in the simulator.
+  perception: { oracle: always }
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1, bin_left)
+    - inside(p2, bin_right)
+    - inside(p3, bin_left)
+    - inside(p4, bin_right)
+    - { condition: "collision_count(left) == 0", phase: always }
+    - { condition: "collision_count(right) == 0", phase: always }
+    - planner.replans == 0
+    # Both arms moved at the same time for a while.
+    - dual_arm.overlap > 2
+    # The plan run step by step takes about 29 s (conveyor_sequential).
+    - time < 20
