@@ -4,12 +4,12 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Manipulation
-  description: Two arms work at the same time, planned by PDDL. A conveyor brings parts that both arms sort into their bins; one arm carries a tray of glasses while the other one visits each glass.
+  description: Two arms work at the same time, planned by PDDL. A conveyor brings parts that both arms sort into their bins; one arm holds a tray of glasses from below while the other one drills a path on it.
 
 library:
   entrypoint: librobotik_dual_arm.so
 
-# Runtime assets. data/ is this plugin's own pack (the conveyor).
+# Runtime assets. data/ is this plugin's own pack (conveyor, stand, pedestal).
 resources:
   directory: data
   packs:

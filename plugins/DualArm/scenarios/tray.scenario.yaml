@@ -1,11 +1,13 @@
-# The left arm carries a tray of glasses from pad_a to pad_b; the right arm
-# brings its tool above each glass while the tray moves. A temporal PDDL
-# domain: the planner puts the visits during the carry, and the executor
-# keeps the tray moving (and held) until the last visit ends. The tray and
+# The left arm holds a tray of glasses from below and carries it from
+# stand_a to stand_b; the right arm touches the tray with its drill and
+# follows a path between the glasses while the tray moves. The drill feels
+# the tray with its force sensor and keeps pressing with 5 N. A temporal PDDL
+# domain: the planner puts the drilling during the carry, and the executor
+# keeps the tray moving (and held) until the drilling ends. The tray and
 # the glasses are rigid bodies: they would slide or fall for real.
 scenario:
   id: tray
-  description: Carry a tray of glasses with one arm while the other arm visits each glass.
+  description: Carry a tray of glasses from below with one arm while the other arm drills a path on it.
   world: worlds/tray_cell.world.yaml
   seed: 42
 
@@ -14,13 +16,14 @@ scenario:
       domain: scenarios/tray.domain.pddl
       facts:
         - can_carry(left)
-        - can_visit(right)
+        - can_drill(right)
       goal:
-        - visited(g1)
-        - visited(g2)
-        - visited(g3)
-        - visited(g4)
+        - drilled(tray)
         - rests(tray, pad_b)
+
+  # The path of the drill, in the frame of the tray.
+  trajectories:
+    drill: scenarios/trajectories/drill_target.trajectory.yaml
 
   # Real bodies for the tray and the glasses: the cup of the left arm is at
   # the rigid level, so every box becomes a free body of MuJoCo.
@@ -36,13 +39,17 @@ scenario:
   assertions:
     - controller.success
     - planner.replans == 0
-    - on(tray, pad_b)              # resting on the stand (a real contact)
+    - on(tray, stand_b)            # resting on the rails (a real contact)
     # No glass falls nor leaves the tray, at any time.
     - { condition: "on(g1, tray)", phase: always }
     - { condition: "on(g2, tray)", phase: always }
     - { condition: "on(g3, tray)", phase: always }
     - { condition: "on(g4, tray)", phase: always }
+    # The drill touching the tray is its work (touches: [tray] in the
+    # world); touching a glass, the stand or the other arm is a collision.
     - { condition: "collision_count(left) == 0", phase: always }
     - { condition: "collision_count(right) == 0", phase: always }
-    # The visits happen while the tray moves.
+    # The drill pressed on the tray for most of its path (about 19 s long).
+    - dual_arm.contact > 15
+    # The drilling happens while the tray moves.
     - dual_arm.overlap > 4

@@ -1,11 +1,18 @@
 # Two 6-axis arms face to face. The left one holds a tray with a vacuum cup
-# and carries it from one stand to the other; the right one brings its tool
-# above each glass on the tray while it moves. The tray and the glasses are
-# rigid bodies of MuJoCo (see the scenario): dropped or tilted, the glasses
-# fall for real. Z-up, metres, radians. Seen from above:
+# from below, its cup pointing up between the rails of a stand, and carries
+# it from one stand to the other. The right one stands on a pedestal; its
+# drill touches the tray between the glasses and follows a path while the
+# tray moves. The arms never meet: one works under the tray, the other one
+# above it. The tray and the glasses are rigid bodies of MuJoCo (see the
+# scenario): tilted or shaken, the glasses fall for real. Z-up, metres,
+# radians. Seen from above:
 #
-#   left (0, 0) -->   pad_a (0.40, -0.20)  -> tray ->  pad_b (0.40, 0.20)   <-- right (0.80, 0)
-#   the glasses stand on the half of the tray next to the right arm.
+#                 stand_a (0.60, -0.21)         stand_b (0.60, 0.21)
+#   left (0, 0) -->      tray: g1 g2               -> tray ->        <-- right (1.02, 0), on a pedestal
+#                              g3 g4
+#
+# The rails of a stand run along y, 0.80 m high, open toward the middle:
+# the cup slides between them, under the tray, from y = 0.
 world:
   id: tray_cell
 
@@ -14,13 +21,13 @@ world:
       type: robot
       kind: arm
       model: robotik.robots.robot_6axis
-      # Turned aside, out of the way of the other arm; the tool points down.
-      home: { joint1: -1.5708, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      # The cup points up, below the height of the rails, between the stands.
+      home: { joint1: 0.0, joint2: 0.686, joint3: 0.979, joint4: 0.0, joint5: -1.665, joint6: 0.0 }
       sensors:
         left_camera: { type: camera, parent: link6, position: [0.05, 0.0, 0.0], fov: 70,
                        resolution: [320, 240], frequency: 15 }
       actuators:
-        left_arm: { type: joint_group }
+        left_arm: { type: joint_group, joints: [joint1, joint2, joint3, joint4, joint5, joint6] }
     - id: left_cup
       type: tool
       model: robotik.tools.vacuum
@@ -32,34 +39,61 @@ world:
       type: robot
       kind: arm
       model: robotik.robots.robot_6axis
-      pose: { position: [0.80, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
-      home: { joint1: -1.5708, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      pose: { position: [1.02, 0.0, 0.55], rpy: [0.0, 0.0, 3.141592653589793] }
+      # Turned aside, the drill pointing down, out of the way of the tray.
+      home: { joint1: 1.2, joint2: -0.1, joint3: 1.55, joint4: 0.0, joint5: 1.69, joint6: 0.0 }
       sensors:
         right_camera: { type: camera, parent: link6, position: [0.05, 0.0, 0.0], fov: 70,
                         resolution: [320, 240], frequency: 15 }
       actuators:
-        right_arm: { type: joint_group }
-    - id: right_pointer
+        # The arm alone: the spindle of the drill is not one of its joints.
+        right_arm: { type: joint_group, joints: [joint1, joint2, joint3, joint4, joint5, joint6] }
+    - id: right_drill
       type: tool
-      model: robotik.tools.default
+      model: robotik.tools.drill
       attach: { parent: right.flange, frame: tool_mount }
+      # The drill works on the tray: touching it is not a collision.
+      touches: [tray]
+      sensors:
+        # Force received by the spindle from the drill body: the drill feels
+        # the tray instead of trusting where it believes the tray is.
+        right_ft: { type: force_torque, link: drill_spindle, force: 0.05, torque: 0.005 }
 
-    # Two flat stands, 2 cm apart.
+    # Furniture: fixed bodies of the physics.
+    - id: pedestal
+      type: body
+      model: robotik.dual_arm.pedestal
+      physics: fixed
+      pose: { position: [1.02, 0.0, 0.0] }
+    - id: stand_a
+      type: body
+      model: robotik.dual_arm.stand
+      physics: fixed
+      # Legs on the outer side (-y).
+      pose: { position: [0.60, -0.21, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
+    - id: stand_b
+      type: body
+      model: robotik.dual_arm.stand
+      physics: fixed
+      pose: { position: [0.60, 0.21, 0.0] }
+
+    # Floor mats under the stands: the places of the planner (a body is not
+    # in the beliefs, a prop is).
     - id: pad_a
       type: prop
       kind: pad
-      shape: { type: container, size: [0.32, 0.38, 0.01] }
+      shape: { type: container, size: [0.28, 0.28, 0.004] }
       color: [0.30, 0.30, 0.30]
-      pose: { position: [0.40, -0.20, 0.005] }
+      pose: { position: [0.60, -0.21, 0.002] }
     - id: pad_b
       type: prop
       kind: pad
-      shape: { type: container, size: [0.32, 0.38, 0.01] }
+      shape: { type: container, size: [0.28, 0.28, 0.004] }
       color: [0.30, 0.30, 0.30]
-      pose: { position: [0.40, 0.20, 0.005] }
+      pose: { position: [0.60, 0.21, 0.002] }
 
-    # The tray rests on the floor of pad_a (5 mm); the cup takes it at its
-    # centre, away from the glasses.
+    # The tray rests on the rails of stand_a; the cup takes it at the centre
+    # of its bottom face.
     - id: tray
       type: prop
       kind: tray
@@ -67,39 +101,35 @@ world:
       color: [0.75, 0.55, 0.30]
       mass: 0.3
       friction: 1.0
-      pose: { position: [0.40, -0.20, 0.011] }
+      pose: { position: [0.60, -0.21, 0.806] }
 
-    # Square glasses (boxes: the only free shape), 9 cm high, 100 g, in a
-    # row 10 cm from the centre of the tray, where the cup holds it.
+    # Square glasses (boxes: the only free shape), 9 cm high, 100 g, as a
+    # 2 x 2 matrix: the middle of the tray stays free for the drill.
     - id: g1
       type: prop
-      kind: glass
       shape: { type: box, size: [0.05, 0.05, 0.09] }
       color: [0.70, 0.85, 0.95]
       mass: 0.1
       friction: 1.0
-      pose: { position: [0.50, -0.32, 0.062] }
+      pose: { position: [0.51, -0.31, 0.857] }
     - id: g2
       type: prop
-      kind: glass
       shape: { type: box, size: [0.05, 0.05, 0.09] }
       color: [0.70, 0.85, 0.95]
       mass: 0.1
       friction: 1.0
-      pose: { position: [0.50, -0.24, 0.062] }
+      pose: { position: [0.51, -0.11, 0.857] }
     - id: g3
       type: prop
-      kind: glass
       shape: { type: box, size: [0.05, 0.05, 0.09] }
       color: [0.70, 0.85, 0.95]
       mass: 0.1
       friction: 1.0
-      pose: { position: [0.50, -0.16, 0.062] }
+      pose: { position: [0.69, -0.31, 0.857] }
     - id: g4
       type: prop
-      kind: glass
       shape: { type: box, size: [0.05, 0.05, 0.09] }
       color: [0.70, 0.85, 0.95]
       mass: 0.1
       friction: 1.0
-      pose: { position: [0.50, -0.08, 0.062] }
+      pose: { position: [0.69, -0.11, 0.857] }

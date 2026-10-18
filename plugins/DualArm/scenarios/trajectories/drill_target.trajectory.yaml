@@ -1,0 +1,44 @@
+# Path of the drill on the tray, in the frame of the tray: its centre,
+# x and y along its sides, z up; z = 0.006 is the top face. The glasses
+# stand at (+-0.09, +-0.10): the path draws a target between them. It
+# starts on the side of the drill. A line along x through the corridor between the glasses (4.3 cm clear of them
+# for the 3.2 cm radius of the drill body), back to the centre, a line
+# along y through the other corridor (3.3 cm clear), then a circle of
+# 4.5 cm radius in the free middle. The drill points down; the skill
+# follows the tray while the other arm carries it.
+trajectory:
+  type: cartesian
+  frame: tray
+  orientation: { rpy: [3.141592653589793, 0.0, 0.0] }
+  points:
+    - [0.1100, 0.0000, 0.006]
+    - [-0.1100, 0.0000, 0.006]
+    - [0.0000, 0.0000, 0.006]
+    - [0.0000, 0.1200, 0.006]
+    - [0.0000, -0.1200, 0.006]
+    - [0.0000, 0.0000, 0.006]
+    - [0.0450, 0.0000, 0.006]
+    - [0.0435, 0.0116, 0.006]
+    - [0.0390, 0.0225, 0.006]
+    - [0.0318, 0.0318, 0.006]
+    - [0.0225, 0.0390, 0.006]
+    - [0.0116, 0.0435, 0.006]
+    - [0.0000, 0.0450, 0.006]
+    - [-0.0116, 0.0435, 0.006]
+    - [-0.0225, 0.0390, 0.006]
+    - [-0.0318, 0.0318, 0.006]
+    - [-0.0390, 0.0225, 0.006]
+    - [-0.0435, 0.0116, 0.006]
+    - [-0.0450, 0.0000, 0.006]
+    - [-0.0435, -0.0116, 0.006]
+    - [-0.0390, -0.0225, 0.006]
+    - [-0.0318, -0.0318, 0.006]
+    - [-0.0225, -0.0390, 0.006]
+    - [-0.0116, -0.0435, 0.006]
+    - [-0.0000, -0.0450, 0.006]
+    - [0.0116, -0.0435, 0.006]
+    - [0.0225, -0.0390, 0.006]
+    - [0.0318, -0.0318, 0.006]
+    - [0.0390, -0.0225, 0.006]
+    - [0.0435, -0.0116, 0.006]
+    - [0.0450, -0.0000, 0.006]

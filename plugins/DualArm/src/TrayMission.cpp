@@ -18,27 +18,31 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace dual_arm
 {
 
-/// Height of the cup over the tray before the grasp (m).
-static constexpr double kHover = 0.08;
-/// Height of the cup over the tray to grasp it: the weld holds it as it is.
-static constexpr double kContact = 0.012;
-/// The tray goes up, and back down, by this much (m).
-static constexpr double kLift = 0.20;
-/// The cup goes up after the release (m).
-static constexpr double kRetreat = 0.10;
-/// Height of the tool above a glass it visits (m).
-static constexpr double kVisitClearance = 0.05;
-/// The tool counts as above the glass within this distance (m).
-static constexpr double kVisitTolerance = 0.02;
-/// Times of the smooth moves with the tray (s): slow enough for the glasses.
-static constexpr double kRaiseTime = 3.0;
-static constexpr double kCarryTime = 10.0;
-static constexpr double kLowerTime = 3.0;
-static constexpr double kRetreatTime = 1.5;
+/// Gap between the cup and the bottom face of the tray to grasp it: the
+/// weld holds it as it is (m).
+static constexpr double kContact = 0.005;
+/// The tray goes up, and back down, by this much: clear of the rails (m).
+static constexpr double kLift = 0.05;
+/// The cup goes down after the release (m).
+static constexpr double kRetreat = 0.04;
+/// Force of the drill on the tray, felt by its force sensor (N).
+static constexpr double kDrillForce = 5.0;
+/// Speed of the drill along its path on the tray (m/s).
+static constexpr double kDrillSpeed = 0.06;
+/// Name of the path of the drill among the trajectories of the scenario.
+static constexpr char const* kDrillPath = "drill";
+/// Times of the smooth moves (s): slow enough for the glasses.
+static constexpr double kApproachTime = 2.5;
+static constexpr double kReachTime = 1.0;
+static constexpr double kRaiseTime = 2.0;
+static constexpr double kCarryTime = 20.0;
+static constexpr double kLowerTime = 2.0;
+static constexpr double kRetreatTime = 1.0;
 static constexpr int kPriority = 100;
 /// Joint servo gains of the arms: stiff enough to carry the tray and its
 /// glasses (0.7 kg) without sagging (the gravity compensation of the drive
@@ -63,11 +67,7 @@ void TrayMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /
 {
     for (robotik::EntitySpec const& entity : p_simulation.scenario().world.entities)
     {
-        if (entity.kind == "glass")
-        {
-            m_glasses.push_back(entity.id);
-        }
-        else if (entity.kind == "tray")
+        if (entity.kind == "tray")
         {
             m_trays.push_back(entity.id);
         }
@@ -75,8 +75,12 @@ void TrayMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /
         {
             m_pads.push_back(entity.id);
         }
+        for (std::string const& workpiece : entity.touches)
+        {
+            m_touches.push_back("touching(" + entity.id + ", " + workpiece + ")");
+        }
     }
-    // An arm with a cup carries; an arm without one visits.
+    // An arm with a cup carries; an arm without one drills.
     for (std::unique_ptr<robotik::RobotSession> const& robot : p_simulation.robots())
     {
         robotik::JointSet& joints = robot->joints();
@@ -91,7 +95,7 @@ void TrayMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /
         }
         else
         {
-            addVisitorSkills(p_simulation, *robot);
+            addDrillSkills(p_simulation, *robot);
         }
     }
     addPlanning(p_simulation);
@@ -107,13 +111,17 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation, robotik::R
     }
     std::vector<robotik::ResourceRequirement> const cup = { resources.require(cupOf(p_robot)->name()) };
 
+    // The cup points up: it slides under the tray between the rails, at the
+    // height it waits at, then rises to its bottom face.
     std::string const& id = p_robot.id();
     std::string const scope = id + ".";
     robotik::SkillScheduler& skills = p_simulation.skills();
     for (std::string const& tray : m_trays)
     {
-        skills.add<HoverSkill>(describe(scope + "Hover(" + tray + ")", id, arm), tray, Length(kHover));
-        skills.add<HoverSkill>(describe(scope + "Reach(" + tray + ")", id, arm), tray, Length(kContact));
+        skills.add<PathSkill>(describe(scope + "Approach(" + tray + ")", id, arm), tray,
+                              Seconds(kApproachTime));
+        skills.add<PathSkill>(describe(scope + "Reach(" + tray + ")", id, arm), tray, Length(kContact),
+                              Seconds(kReachTime));
         robotik::SkillDescription grasp = describe(scope + "Grasp(" + tray + ")", id, cup);
         grasp.wait = false;
         skills.add<GraspSkill>(std::move(grasp), tray);
@@ -127,26 +135,34 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation, robotik::R
     skills.add<PathSkill>(describe(scope + "Lower", id, arm), robotik::Vector3(0.0, 0.0, -kLift),
                           Seconds(kLowerTime));
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));
-    skills.add<PathSkill>(describe(scope + "Retreat", id, arm), robotik::Vector3(0.0, 0.0, kRetreat),
+    skills.add<PathSkill>(describe(scope + "Retreat", id, arm), robotik::Vector3(0.0, 0.0, -kRetreat),
                           Seconds(kRetreatTime));
 }
 
-void TrayMission::addVisitorSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot)
+void TrayMission::addDrillSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot)
 {
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = p_robot.actuators().first<robotik::JointGroup>())
     {
         arm.push_back(p_robot.resources().require(group->name()));
     }
+    // The path is a trajectory of the scenario, drawn in the frame of the tray.
+    auto const& trajectories = p_simulation.scenario().trajectories;
+    auto const found = trajectories.find(kDrillPath);
+    if (found == trajectories.end())
+    {
+        throw std::runtime_error(std::string("the scenario has no trajectory '") + kDrillPath + "'");
+    }
+    std::vector<robotik::Vector3> path;
+    for (robotik::Pose const& point : found->second.poses)
+    {
+        path.push_back(point.position);
+    }
     std::string const& id = p_robot.id();
     for (std::string const& tray : m_trays)
     {
-        for (std::string const& glass : m_glasses)
-        {
-            p_simulation.skills().add<VisitSkill>(
-                describe(id + ".Visit(" + glass + ", " + tray + ")", id, arm), glass, tray,
-                Length(kVisitClearance));
-        }
+        p_simulation.skills().add<TraceSkill>(describe(id + ".Trace(" + tray + ")", id, arm), tray, path,
+                                              LinearVelocity(kDrillSpeed), Force(kDrillForce));
     }
 }
 
@@ -186,7 +202,7 @@ void TrayMission::addPlanning(robotik::Simulation& p_simulation)
                        return arm == nullptr ? Truth::Unknown
                                              : robotik::truth(heldObject(*arm) == p_args[1]);
                    });
-    // Resting: on the footprint of the stand, low, not held.
+    // Resting: not held, over the pad of a stand (the stands hold it up).
     domain.observe("rests",
                    [](RobotContext const& p_context, Args p_args)
                    {
@@ -196,8 +212,7 @@ void TrayMission::addPlanning(robotik::Simulation& p_simulation)
                        {
                            return Truth::Unknown;
                        }
-                       bool const low = tray->position.z < pad->top() + tray->size.z;
-                       return robotik::truth(!heldByAnyone(p_context, p_args[0]) && low &&
+                       return robotik::truth(!heldByAnyone(p_context, p_args[0]) &&
                                              overFootprint(*tray, *pad));
                    });
     domain.observe("above",
@@ -214,60 +229,48 @@ void TrayMission::addPlanning(robotik::Simulation& p_simulation)
                    });
     // A token of the plan: nothing to see outside of a carry.
     domain.observe("in_motion", [](RobotContext const&, Args) { return Truth::False; });
-    domain.observe("on",
-                   [](RobotContext const& p_context, Args p_args)
-                   {
-                       robotik::WorldObject const* glass = p_context.world_model.find(p_args[0]);
-                       robotik::WorldObject const* tray = p_context.world_model.find(p_args[1]);
-                       if (glass == nullptr || tray == nullptr)
-                       {
-                           return Truth::Unknown;
-                       }
-                       return robotik::truth(glass->position.z > tray->position.z &&
-                                             overFootprint(*glass, *tray));
-                   });
-    domain.observe("visited", [this](RobotContext const&, Args p_args)
-                   { return robotik::truth(m_visited.contains(p_args[0])); });
+    domain.observe("drilled", [this](RobotContext const&, Args p_args)
+                   { return robotik::truth(m_drilled.contains(p_args[0])); });
 
     // --- Actions, as skills of each robot ----------------------------------
-    domain.bind("lift", { "{0}.Hover({1})", "{0}.Reach({1})", "{0}.Grasp({1})", "{0}.Raise" });
+    domain.bind("lift", { "{0}.Approach({1})", "{0}.Reach({1})", "{0}.Grasp({1})", "{0}.Raise" });
     domain.bind("carry", { "{0}.Carry({3})" });
-    domain.bind("visit", { "{0}.Visit({1}, {2})" });
+    domain.bind("drill", { "{0}.Trace({1})" });
     domain.bind("set_down", { "{0}.Lower", "{0}.Release", "{0}.Retreat" });
 }
 
 void TrayMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
 {
-    m_visited.clear();
+    m_drilled.clear();
     m_overlap = 0.0;
+    m_contact = 0.0;
 }
 
 void TrayMission::step(robotik::Simulation& p_simulation, Seconds p_dt)
 {
-    // A tool above a glass, on the beliefs and the measured tool pose.
-    robotik::WorldModel const& beliefs = p_simulation.worldModel();
-    for (std::unique_ptr<robotik::RobotSession> const& robot : p_simulation.robots())
+    // A tray is drilled once the drill followed its whole path on it.
+    robotik::SkillScheduler const& skills = p_simulation.skills();
+    for (std::string const& tray : m_trays)
     {
-        robotik::Vector3 const tool =
-            p_simulation.beliefFrame().inverse() * robot->worldPose(robot->tool()).position;
-        for (std::string const& id : m_glasses)
+        for (std::unique_ptr<robotik::RobotSession> const& robot : p_simulation.robots())
         {
-            robotik::WorldObject const* glass = beliefs.find(id);
-            if (glass == nullptr)
+            robotik::SkillId const trace = skills.find(robot->id() + ".Trace(" + tray + ")");
+            if (trace != robotik::NO_SKILL && skills.state(trace) == robotik::SkillState::Succeeded)
             {
-                continue;
-            }
-            robotik::Vector3 const point(glass->position.x, glass->position.y,
-                                         glass->top() + kVisitClearance);
-            if ((tool - point).norm() < kVisitTolerance)
-            {
-                m_visited.insert(id);
+                m_drilled.insert(tray);
             }
         }
     }
 
+    // A tool on its workpiece: ground truth, for the metric only.
+    if (!p_simulation.finished() &&
+        std::any_of(m_touches.begin(), m_touches.end(),
+                    [&](std::string const& p_query) { return p_simulation.query(p_query).value_or(0.0) > 0.5; }))
+    {
+        m_contact += p_dt.value();
+    }
+
     // Both arms busy: a skill of each robot is running.
-    robotik::SkillScheduler const& skills = p_simulation.skills();
     std::set<std::string> busy;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
@@ -286,7 +289,7 @@ void TrayMission::measure(robotik::Simulation const& /*p_simulation*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("dual_arm.overlap", m_overlap);
-    p_metrics.set("dual_arm.visited", static_cast<double>(m_visited.size()));
+    p_metrics.set("dual_arm.contact", m_contact);
 }
 
 } // namespace dual_arm

@@ -6,8 +6,9 @@
 // See LICENSING.md for details.
 
 /// @file TrayMission.hpp
-/// @brief One arm carries a tray of glasses, the other one visits them: the
-/// skills of each robot, the observers and bindings of the temporal domain.
+/// @brief One arm carries a tray of glasses from below, the other one drills
+/// a path on it: the skills of each robot, the observers and bindings of
+/// the temporal domain.
 #pragma once
 
 #include "Robotik/Robot/Robot.hpp"
@@ -22,8 +23,8 @@ namespace dual_arm
 
 // ****************************************************************************
 /// @brief Mission of the tray scenario. Publishes @c dual_arm.overlap
-/// (seconds during which both arms ran a skill) and @c dual_arm.visited
-/// (glasses a tool passed above).
+/// (seconds during which both arms ran a skill) and @c dual_arm.contact
+/// (seconds during which a tool touched one of the entities it works on).
 // ****************************************************************************
 class TrayMission final: public robotik::Mission
 {
@@ -37,17 +38,19 @@ public:
 private:
 
     void addCarrierSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot);
-    void addVisitorSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot);
+    void addDrillSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot);
     void addPlanning(robotik::Simulation& p_simulation);
 
 private:
 
-    std::vector<std::string> m_glasses;
     std::vector<std::string> m_trays;
     std::vector<std::string> m_pads;
-    /// Glasses a tool passed above, seen on the beliefs.
-    std::set<std::string> m_visited;
+    /// Trays the drill followed its path on (its skill succeeded).
+    std::set<std::string> m_drilled;
+    /// "touching(tool, workpiece)" of each tool and what it works on.
+    std::vector<std::string> m_touches;
     double m_overlap = 0.0;
+    double m_contact = 0.0;
 };
 
 } // namespace dual_arm

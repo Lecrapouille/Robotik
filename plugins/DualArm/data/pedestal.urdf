@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+     Copyright (c) 2020-2026 Quentin Quadrat
+     Pedestal of a robot, 0.549 m high: put the robot base at z = 0.55.
+     Base frame: origin on the floor at the centre, z up. -->
+<robot name="pedestal">
+  <material name="steel"><color rgba="0.55 0.57 0.60 1"/></material>
+  <material name="graphite"><color rgba="0.20 0.21 0.24 1"/></material>
+
+  <link name="pedestal_base">
+    <inertial>
+      <origin xyz="0 0 0.2745" rpy="0 0 0"/>
+      <mass value="60.0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <!-- column -->
+      <origin xyz="0.0000 0.0000 0.2595" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.2800 0.2800 0.5190"/></geometry>
+      <material name="graphite"/>
+    </visual>
+    <collision>
+      <!-- column -->
+      <origin xyz="0.0000 0.0000 0.2595" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.2800 0.2800 0.5190"/></geometry>
+    </collision>
+    <visual>
+      <!-- plate -->
+      <origin xyz="0.0000 0.0000 0.5340" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.3600 0.3600 0.0300"/></geometry>
+      <material name="steel"/>
+    </visual>
+    <collision>
+      <!-- plate -->
+      <origin xyz="0.0000 0.0000 0.5340" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.3600 0.3600 0.0300"/></geometry>
+    </collision>
+    <visual>
+      <!-- foot -->
+      <origin xyz="0.0000 0.0000 0.0100" rpy="0.0000 0.0000 0.0000"/>
+      <geometry><box size="0.4200 0.4200 0.0200"/></geometry>
+      <material name="steel"/>
+    </visual>
+  </link>
+</robot>

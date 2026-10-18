@@ -2,6 +2,8 @@ id: robotik.dual_arm
 version: 1.0.0
 license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 source: https://github.com/Lecrapouille/RobotIK
-description: Fixed furniture of the dual arm cells (conveyor).
+description: Fixed furniture of the dual arm cells (conveyor, tray stand, robot pedestal).
 models:
   conveyor: conveyor.urdf
+  stand: stand.urdf
+  pedestal: pedestal.urdf

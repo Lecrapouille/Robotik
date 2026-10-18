@@ -348,7 +348,7 @@ TEST(PluginSession, TwoArmsSortFasterWithAParallelPlan)
     EXPECT_LT(parallel, 0.7 * sequential);
 }
 
-TEST(PluginSession, OneArmHoldsTheTrayWhileTheOtherVisitsTheGlasses)
+TEST(PluginSession, OneArmHoldsTheTrayFromBelowWhileTheOtherDrillsIt)
 {
     double time = 0.0;
     double overlap = 0.0;
@@ -356,6 +356,6 @@ TEST(PluginSession, OneArmHoldsTheTrayWhileTheOtherVisitsTheGlasses)
     {
         GTEST_SKIP() << "dual arm plugin is not built";
     }
-    // The visits ran during the carry (required concurrency).
+    // The drilling ran during the carry (required concurrency).
     EXPECT_GT(overlap, 4.0);
 }
