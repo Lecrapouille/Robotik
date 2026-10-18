@@ -2,532 +2,352 @@
 
 # 🤖 RobotIK
 
-**RobotIK is a lightweight C++20 library for building robots that can be simulated, tested, trained, and eventually driven on real hardware—without rewriting their logic.**
+**Write a robot mission once, then run it in a 3D simulator, as a test in CI, as a reinforcement learning environment, and later on a real robot — and see, at every moment, what the robot decided and why.**
 
-RobotIK is not meant to replace excellent existing robotics libraries. It aims to make them work together behind a simple API. RobotIK started as a personal project to deepen my knowledge of robotics and inverse kinematics (IK), then evolved into a lightweight architecture focused on simulation: a way to explore, with hindsight, how I would organize simulation, tests, and control around a clear API if I were building a robot today.
-
-> **Write a mission once, then run it against a simulated robot or a real one.**
-
-The same behavior can start in a simulator, run headless in CI, feed an RL environment, and later connect to physical hardware:
-
-> ⚠️ **Active project: the API is still evolving.** Scenarios, demos, and tests are the best examples of the current API. PDDL planning is available; Prolog, GOAP and LLM front-ends are planned.
-
-```text
-                         Your application
-                               │
-                               ▼
-                         ┌───────────┐
-                         │  RobotIK  │
-                         └─────┬─────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             │                 │                 │
-          Perception         Skills          Scenarios
-             │                 │                 │
-          WorldModel      Behavior Tree       Tests
-             │                 │
-             └────────────┬────┘
-                          │
-                    Robot / Commands
-                          │
-              ┌───────────┴───────────┐
-              │                       │
-           MuJoCo                 Real robot
-          simulation              SO-101, ...
-```
-
-## ❓ Why RobotIK?
-
-Modern robotics already has strong specialized libraries:
-
-- **Pinocchio** for kinematics and dynamics;
-- **MuJoCo** for physics and contact simulation;
-- **Ruckig**, **OMPL**, etc. for trajectories and motion planning;
-- **OpenCV** for image processing;
-- **behaviortree.cpp** for behavior trees (a compact alternative to state machines);
-- **RViz** for 3D visualization.
-
-The interesting problem is not rewriting all of that, but:
-
-> **How do you build a simple autonomous robot by combining these building blocks?**
-
-RobotIK provides that orchestration layer. It builds on [Pinocchio](https://github.com/stack-of-tasks/pinocchio) (kinematics), [MuJoCo](https://github.com/google-deepmind/mujoco) (physics), [Kairos](https://github.com/PlanSys2/kairos) (PDDL planner), and two other projects of mine:
-
-- 🧱 [Compages](https://github.com/Lecrapouille/Compages) — a C++20 3D library in three layers that work alone: **GPU** (shaders and compute, data set by the names of the shader), **World** (scene graph + ECS, joints, headless), **Renderer** (scene, glTF/URDF assets, pictures). RobotIK keeps its world in Compages and draws it in the simulator. [Documentation](external/Compages/doc/README.md).
-- 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) — a behavior tree library with one YAML file per tree, a real blackboard, simulated time, and **Oakular**, an open-source editor and live visualizer embedded in the RobotIK simulator. [Documentation](external/BlackThorn/doc/README.md).
-
-Some perception demos require OpenCV and AprilTag; they stay in their plugins.
+> ⚠️ **Active project: the API is still evolving.** Scenarios, demos and tests are the best examples of the current API. No physical robot has been driven yet.
 
 ---
 
-## 🛠️ A concrete example
+## 🤔 What is it for?
 
-Imagine a 6-DOF arm that must pick a red cube and place it in a box. You want to express:
+You want a robot arm to pick a red cube and drop it in a box. The motion itself is the easy part. The hard part is everything around it:
 
-```text
-Detect the cube
-→ approach
-→ reach the cube
-→ grasp
-→ lift the cube
-→ move to the box
-→ release
-→ verify the cube is in the box
-```
+- 🎯 **Deciding**: find the cube, approach, grasp, carry, release… and what to do when the camera fails in the middle.
+- 🧪 **Proving it works**: not "it looked fine once", but "the cube ends in the box, nothing collided, it took less than 30 s", checked on every commit.
+- 🔍 **Understanding failures**: when the robot stops, which step failed, what it believed, who held the gripper, why the planner chose this plan?
+- 🔁 **Reusing the work**: the same mission as a demo, a regression test, a benchmark, a learning environment, and one day the real robot.
 
-RobotIK breaks this mission into several levels:
+RobotIK gives you a frame for all of this. You describe the **world** and the **mission** in YAML, you write the robot's **skills** in C++, and RobotIK runs them on simulated physics, judges the result, and shows you everything that happened.
 
 ```text
-Mission
-   │
-   ▼
-Behavior Tree
-   │
-   ├── Detect(red_cube)
-   ├── Approach(red_cube)
-   ├── Reach(red_cube)
-   ├── Grasp(red_cube)
-   ├── MoveTo(box)
-   └── Release(red_cube)
-          │
-          ▼
-       Skills
-          │
-          ▼
-     Actuators
-          │
-          ▼
-       Robot
+   world.yaml            scenario.yaml                 skills (C++)
+robot, cube, box     goal, faults, assertions     Detect, Grasp, Release…
+         └──────────────────────┼─────────────────────────┘
+                                ▼
+                             RobotIK
+                                │
+          ┌─────────────────────┼─────────────────────┬──────────────────┐
+          ▼                     ▼                     ▼                  ▼
+     3D simulator          headless test          RL environment      real robot
+    (see and debug)      (PASS / FAIL in CI)      (N in parallel)     (planned)
 ```
 
-A `Skill` does not need to know whether the robot is simulated. In RobotIK, a **`Skill`** is the unit of action between the behavior tree and the robot.
-
-```text
-MoveTCP(target)
-       │
-       ▼
-   RobotIK API
-       │
-       ├───────────────┐
-       ▼               ▼
-    MuJoCo          SO-101
-   simulation        real
-```
+New to robotics? [The introduction](doc/01-Introduction.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
 
 ---
 
-## 🧪 A mission can be a test
+## 📖 The story
 
-A RobotIK scenario file describes not only the world and how the robot should behave, but also **how to tell whether the mission succeeded**—a contract that doubles as an integration test.
+RobotIK started as a small project to **learn inverse kinematics** — the **IK** of the name: how to compute the joint angles that bring the hand of an arm to a point. It mixed my own OpenGL code and my own robotics code, which is a fine way to learn and a poor way to build anything serious.
 
-For example:
+Little by little it turned into something else: a **simulation-oriented library** built on real, proven tools — [MuJoCo](https://github.com/google-deepmind/mujoco) for physics, [Pinocchio](https://github.com/stack-of-tasks/pinocchio) for kinematics, [Kairos](https://github.com/PlanSys2/kairos) for planning. On the way, my 3D library [Compages](https://github.com/Lecrapouille/Compages) was finally finished, and RobotIK uses its three layers: the **World** layer holds the simulated world, headless in tests; the **Renderer** layer draws it in the simulator, down to the live texture of the painter's canvas; the **GPU** layer is what the Renderer stands on. My behavior tree library [BlackThorn](https://github.com/Lecrapouille/BlackThorn) drives the missions, and its editor Oakular shows them running.
+
+Why I build it? Because, professionally, I never found this kind of tool:
+
+- 🐢 **ROS** has Gazebo and RViz, but ROS is heavy: middleware, nodes, launch files, message types — a lot to install and learn before a cube moves.
+- 🚗 When I worked on an **autonomous car simulator**, the automotive world had scenario standards such as [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/): describe a situation, run it, judge it. **Robotics has almost nothing like this.**
+- 🕸️ In a real professional project, **debugging the planner, the behavior tree, the skills and the shared resources together is hard**: each lives in its own tool, its own logs, its own clock.
+
+The closest project I found, afterwards, is [SkiROS2](https://github.com/RobotLabLTH/skiros2): skills, behavior trees, planning and a world model — on ROS 2. I did not know it when RobotIK took shape, and the two answer differently (see below).
+
+---
+
+## ✨ Why RobotIK?
+
+| | 🤖 RobotIK | ROS 2 + Gazebo / RViz | SkiROS2 | MuJoCo or PyBullet scripts |
+|---|---|---|---|---|
+| What you install | one C++ library, plain `make` | ROS 2 distribution, middleware | ROS 2 + SkiROS2 | a Python package |
+| Mission as a test | ✅ scenario with assertions, PASS/FAIL, JSON report | by hand (launch tests) | by hand | by hand |
+| Scenario file (world, faults, variants, seeds) | ✅ world / scenario / experiment YAML | world files, no scenario standard | world model, no scenario file | your script |
+| Skills with resources, priorities, preemption | ✅ `SkillScheduler` | by hand | ✅ | ❌ |
+| Behavior tree and PDDL planner | ✅ both, with replanning | Nav2 BT, PlanSys2 (separate) | ✅ | ❌ |
+| One window to debug tree, plan, skills, resources, beliefs | ✅ the simulator workspaces | several tools | partly | ❌ |
+| Belief vs ground truth | ✅ skills see beliefs, assertions see truth | by convention | world model | ❌ |
+| Fault injection | ✅ in the scenario file | by hand | by hand | by hand |
+| Headless and parallel (CI, RL) | ✅ same scenario, N environments | heavy | heavy | ✅ |
+| Distributed robots, ROS ecosystem | ❌ not the goal | ✅ | ✅ | ❌ |
+
+SkiROS2 is a robot control platform for distributed systems in the ROS ecosystem, with a semantic world model. RobotIK is a C++ library without middleware, centered on **simulation, tests and debugging**, with the same mission running in a simulator and, later, on hardware. If you live in ROS 2, SkiROS2 is a great fit; if you want a self-contained program you can test in CI, RobotIK is.
+
+What this gives you:
+
+- 🧪 **A mission is a test.** The scenario says what must be true at the end, at every step, or before a deadline. A failure keeps the measured value, the bound and the simulated time.
+- 🔍 **You see why.** The **Mission** workspace of the simulator shows the live behavior tree, a timeline of skills with the resources they hold, the assertions, and the plans of the PDDL planner. The **Autonomy** workspace shows what the robot *believes* next to what is *true*.
+- 💥 **You break it on purpose.** Faults are written in the scenario: the camera dies at 0 s, comes back at 1 s, dies again at 3 s. The tree must cope.
+- 🎲 **You reproduce it.** One seed feeds the world, the sensors, the faults and the RL runs: the same seed gives the same run.
+- 🧩 **You extend it with plugins.** Each demo is a plugin: its C++, its worlds, its scenarios, its assets. The core knows nothing about cubes or brushes.
+- 🏆 **You learn with it.** Any scenario becomes a reinforcement learning environment, run N times in parallel without a window.
+
+---
+
+## 👀 What it looks like
+
+Let us follow the **pick-and-place** demo from the files to the result: A robot with a camera on its wrist, picks a red cube and places it inside a box. Everything of a demo lives in one folder, a **plugin**, that RobotIK loads at run time:
+
+```text
+plugins/PickAndPlace/
+├── plugin.yaml          📦 the name of the plugin and the list of its scenarios
+├── worlds/              🌍 what exists
+├── src/                 🔧 the skills, in C++
+├── scenarios/           🎬 what happens and what is checked (+ the behavior tree)
+└── experiments/         🧪 the variants to compare
+```
+
+### 🌍 1. The world: what exists
+
+A robot with a camera on its wrist, a red cube, a box. Only facts, no behavior:
 
 ```yaml
-assertions:
-  - controller.success
-  - inside(red_cube, box)
-  - holding(gripper) == 0
-  - { condition: "collision_count(robot) == 0", phase: always }
-  - { condition: "pose_error(easel) < 0.002", phase: always }
-  - time < 30
-```
-
-A failed assertion keeps the measured value, the expected bound and the simulated time. Zero collision does not prove that nothing moved: measure it.
-
-The same mission can be used as:
-
-- a demo;
-- a regression test;
-- a benchmark;
-- a perception experiment;
-- a learning environment;
-- a test bed for a new planning strategy.
-
-> **Assertions are judged at every step (`always`), at the end, at a given time, within a deadline, eventually, or as an ordered sequence. The grammar borrows ideas from OpenSCENARIO without depending on it.**
-
----
-
-## 🏭 Simulation or real robot?
-
-This is a central idea in RobotIK. A skill must not contain:
-
-```cpp
-if (mujoco)
-{
-    ...
-}
-else if (so101)
-{
-    ...
-}
-```
-
-It should drive the robot through a common API:
-
-```cpp
-robot.joint("shoulder").moveTo(target);
-robot.gripper().open();
-```
-
-Behind that API, a `RobotBackend` can be plugged in:
-
-```text
-RobotBackend
-   │
-   ├── MujocoBackend
-   ├── SO101Backend       ← future
-   └── other robot        ← future
-```
-
-The backend translates RobotIK commands to the simulator or hardware. That also enables a **digital twin** in Compages: the real robot publishes state, RobotIK updates the world, and Compages renders it.
-
-> **Note: no physical robot has been controlled with this library yet.**
-
----
-
-## 🏗️ Architecture (work in progress)
-
-```text
-                         RobotIK
-                            │
-       ┌────────────────────┼────────────────────┐
-       │                    │                    │
- Robot / State          Autonomy            Scenarios
-       │                    │                    │
-       │              ┌─────┼─────┐              │
-       │              │     │     │              │
-       │             GOAP  PDDL  LLM             │
-       │              │     │     │              │
-       │              └─────┼─────┘              │
-       │                    ▼                    │
-       │              Behavior Tree              │
-       │                    │                    │
-       │                  Skills                 │
-       │                    │                    │
-       └─────────────── Robot API ───────────────┘
-                            │
-                            ▼
-                 ┌──────────┴──────────┐
-                 │                     │
-              MuJoCo               Hardware
-                 │                     │
-              Physics              SO-101...
-```
-
-The planning side is intentionally extensible:
-
-- ✅ **Behavior trees** (BlackThorn) turn plans into reactive execution;
-- ✅ **PDDL** (Kairos): a scenario gives a goal instead of a tree, the planner finds the actions from the robot's beliefs and replans when a skill fails ([doc/11-PDDL-Planner.md](doc/11-PDDL-Planner.md));
-- 🔜 **GOAP** for game-style action planning;
-- 🔜 **Prolog** to express and query world logic;
-- 🔜 **LLM** to interpret intent or propose high-level plans.
-
-One possible flow:
-
-```text
-"Pick the red cube and put it in the box"
-                  │
-                  ▼
-             LLM / user
-                  │
-                  ▼
-           GOAP / PDDL planner
-                  │
-            symbolic plan
-                  │
-                  ▼
-          Behavior Tree
-                  │
-                  ▼
-                Skills
-                  │
-                  ▼
-        control / motion
-```
-
-Prolog can run in parallel to answer questions such as:
-
-```text
-inside(red_cube, box).
-reachable(arm, red_cube).
-holding(gripper, red_cube).
-```
-
-None of these technologies is mandatory; they are interchangeable bricks.
-
----
-
-## 👁️ Perception
-
-A RobotIK camera must not force OpenCV into the core library. The pattern is:
-
-```text
-Camera
-  │
-  ▼
-FrameSource
-  │
-  ▼
-PerceptionPipeline
-  │
-  ├── Detector
-  ├── Detector
-  └── DepthEstimator
-        │
-        ▼
-    WorldModel
-```
-
-For example, the line follower adds its own detectors to the pipeline of the simulation (`plugins/LineFollower/src/LineFollowerMission.cpp`):
-
-```cpp
-p_simulation.perception().add<AprilTagDetector>(TAG_SIZE_M);
-p_simulation.perception().add<LineDetector>();
-```
-
-The core gives `Camera`, `FrameSource`, `PerceptionPipeline`, `Detector` and `DepthEstimator`; detectors that need OpenCV or AprilTag (`ColorDetector`, `AprilTagDetector`, `LineDetector`) live in the plugins. RobotIK core stays independent of rendering and image processing, and a mission still runs headless, without camera images.
-
----
-
-## 🧩 World, scenario, experiment
-
-RobotIK describes an experiment in three files that do not talk about the same thing:
-
-| File | Says |
-|------|------|
-| **World** | What physically exists: the robot, its tool, bodies, props, sensors |
-| **Scenario** | What happens, when it stops, and what is checked |
-| **Experiment** | Which variants to run and compare, with which seeds and metrics |
-
-```yaml
-# worlds/pick_place_cell.world.yaml
+# worlds/pick_place_cell.world.yaml (excerpt)
 world:
   id: pick_place_cell
   entities:
     - id: robot
       type: robot
-      model: robotik.robots.robot_6axis      # asset id, resolved in data/packs
+      model: robotik.robots.robot_6axis
       sensors:
         wrist_camera: { type: camera, parent: link6, fov: 70, frequency: 15 }
-      actuators:
-        arm: { type: joint_group }
-    - id: vacuum
-      type: tool
-      model: robotik.tools.vacuum
-      attach: { parent: robot.flange, frame: tool_mount }
-      actuators:
-        gripper: { type: vacuum }
     - id: red_cube
       type: prop
       shape: { type: box, size: [0.04, 0.04, 0.04] }
       pose: { position: [0.40, 0.20, 0.02] }
       randomize: { x: [-0.02, 0.02], y: [-0.02, 0.02] }
-    - id: box
-      type: prop
-      shape: { type: container, size: [0.16, 0.16, 0.08] }
-      pose: { position: [0.40, -0.20, 0.04] }
 ```
 
+### 🔧 2. The skills: what the robot knows how to do
+
+A **skill** is one thing the robot knows how to do: detect an object, approach it, grasp it, release it. It is a small C++ class of the plugin (`src/PickPlaceSkills.cpp`). It is called again and again, and answers *running*, *success* or *failure*. Here is the heart of `Grasp`:
+
+```cpp
+Status GraspSkill::tick(RobotContext& p_context, Seconds p_dt)
+{
+    VacuumGripper* gripper = findGripper(p_context.robot, m_gripper);
+    gripper->suction(true);                                    // turn on the vacuum
+    if (heldObject(p_context.robot, m_gripper) == m_object)
+        return Status::SUCCESS;                                // the cube is held
+    ...                                                        // RUNNING, or FAILURE after 0.5 s
+}
+```
+
+A skill only sees the robot and what the robot **believes** (`RobotContext`): never the simulator, never the true position of the cube. This is what lets the same skill run on a real robot later.
+
+When the run starts, the plugin registers its skills with a name, the **resources** they need (the arm, the gripper, the camera) and their conditions (`src/PickPlaceMission.cpp`):
+
+```cpp
+grasp.preconditions.push_back({ "gripper is empty", ... });
+skills.add<robotik::GraspSkill>(std::move(grasp), "red_cube");   // the skill "Grasp(red_cube)"
+```
+
+The **skill scheduler** then makes sure two skills never use the same arm at the same time, and stops a skill whose camera breaks.
+
+### 🌳 3. The behavior tree: in which order
+
+The tree only uses the names of the skills. It says the order, and what to do when a step fails:
+
 ```yaml
-# scenarios/pick_and_place.scenario.yaml
+# scenarios/pick_and_place.bt.yaml (excerpt)
+- UntilSuccess:                 # the camera may be broken: try again
+    attempts: 1000
+    child:
+      - Action: { name: Detect(red_cube) }
+- Action: { name: Approach(red_cube) }
+- Action: { name: Reach(red_cube) }
+- Action: { name: Grasp(red_cube) }
+```
+
+Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([doc/11](doc/11-PDDL-Planner.md)).
+
+### 🎬 4. The scenario: what happens, and what is checked
+
+The scenario puts it together: this world, this tree, these faults, and **the assertions that decide whether the mission succeeded**. Here, the camera breaks at 0 s, comes back at 1 s, and breaks for good at 3 s:
+
+```yaml
+# scenarios/pick_and_place_faults.scenario.yaml (excerpt)
 scenario:
-  id: pick_and_place
-  world: worlds/pick_place_cell.world.yaml           # paths start at the plugin folder
-  seed: 42
+  id: pick_and_place_faults
+  world: worlds/pick_place_cell.world.yaml
+  seed: 7
   controller:
-    behavior_tree: scenarios/pick_and_place.bt.yaml
-  timeout: 60
+    behavior_tree: scenarios/pick_and_place.bt.yaml   # or a PDDL goal
+  faults:
+    - { at: 0.0, resource: wrist_camera, action: disable }
+    - { at: 1.0, resource: wrist_camera, action: restore }
+    - { at: 3.0, resource: wrist_camera, action: disable }
   assertions:
     - controller.success
     - inside(red_cube, box)
     - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 30
 ```
 
+Run it without a window, the way CI does:
+
+```text
+$ ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
+
+  0.99 s  Detect(red_cube)  FAILED (unavailable: wrist_camera)  (0 s)
+  1.01 s  Detect(red_cube)  SUCCEEDED  (0.01 s)
+  1.03 s  Approach(red_cube)  SUCCEEDED  (2.37 s)
+  3.41 s  Reach(red_cube)  SUCCEEDED  (0.5 s)
+  3.92 s  Grasp(red_cube)  SUCCEEDED  (0.01 s)
+  ...
+  6.02 s  Release  SUCCEEDED  (0.01 s)
+  6.04 s  Home  SUCCEEDED  (2.37 s)
+
+[PASS] controller.success  (controller.success = 1)
+[PASS] inside(red_cube, box)  (inside(red_cube, box) = 1)
+[PASS] holding(gripper) == 0  (holding(gripper) = 0)
+[PASS] collision_count(robot) == 0  (collision_count(robot) = 0)
+[PASS] time < 30  (time = 8.43)
+pick_and_place_faults: 1/1 runs passed
+```
+
+The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/Robotik-Simulator` to watch the arm, the tree and the skills live.
+
+### 🧪 5. The experiment: the same task, several ways
+
+One success proves little. An **experiment** runs the same scenario in several **cases** (a wider area for the cube, real physics, the camera down at start), each with several **seeds**, and judges them all with the same assertions:
+
 ```yaml
-# experiments/pick_and_place.experiment.yaml
+# experiments/pick_and_place.experiment.yaml (excerpt)
 experiment:
   id: pick_and_place_experiment
   seeds: [11, 12, 13]
   cases:
-    - { id: nominal, scenario: scenarios/pick_and_place.scenario.yaml }
+    - id: nominal
+      scenario: scenarios/pick_and_place.scenario.yaml
     - id: wide_layout
       scenario: scenarios/pick_and_place.scenario.yaml
       overrides:
         world.entities.red_cube.randomize: { x: [-0.05, 0.05], y: [-0.05, 0.05] }
+    - id: rigid
+      scenario: scenarios/pick_and_place.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
   evaluation:
-    metrics: [ time, collision_count(robot) ]
+    metrics: [ time, collision_count(robot), distance(red_cube, box) ]
 ```
 
-The scenario does not say how the robot solves the task: the controller is only the default strategy, and the same assertions judge any other one. Details in [doc/03-Worlds-and-Scenarios.md](doc/03-Worlds-and-Scenarios.md).
+```text
+$ ./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
+[PASS] nominal                  seed=11     controller succeeded at 7.4 s ...  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0149
+[PASS] wide_layout              seed=12     controller succeeded at 7.54 s ...  time=7.54  collision_count(robot)=0  distance(red_cube, box)=0.0149
+[PASS] rigid                    seed=13     controller succeeded at 7.4 s ... (physics rigid)  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0337539
+...
+pick_and_place_experiment: 12/12 runs passed
+```
+
+`--report results.json` writes every run and every metric, to compare strategies or follow a regression.
+
+The other demos: a painter that draws strokes on a canvas, a mobile robot following a line, a fly brain avoiding obstacles, a humanoid walking with a learned policy ([doc/09-Demos.md](doc/09-Demos.md)).
 
 ---
 
-## 🌀 Reproducibility
+## 🔬 Physics: as simple as your question
 
-Robotics experiments are hard to reproduce when randomness is involved:
+A simulation does not need to be perfect; it needs to answer **your** question. Checking that a plan is right does not need the cube to bounce; checking that it lands in the box does. A scenario chooses how finely objects are simulated, and **the skills, the tree, the planner and the assertions stay the same** at every level:
 
-- initial poses;
-- sensor noise;
-- faults;
-- RL policy;
-- environment.
-
-RobotIK uses a master seed:
+| Level | When the robot grasps | When it releases | Use it to |
+|-------|-----------------------|------------------|-----------|
+| `abstract` (default) | the object simply follows the tool | the object is put at the bottom of the container, no fall | check the logic and the plan, fast |
+| `rigid` | the object is a rigid body held to the tool | the object **falls for real** and stops where it lands | check the task with real positions |
+| `contact` | *(planned)* the tool holds by friction and may slip | | study the grasp itself |
 
 ```yaml
-seed: 42
+scenario:
+  physics:
+    fidelity: abstract        # every object
+    overrides:
+      red_cube: rigid         # except this one
 ```
 
-It can feed the various random generators:
-
-```text
-seed = 42
-     │
-     ├── world
-     ├── sensors
-     ├── faults
-     └── RL run
-```
-
-That helps debugging: the same seed should yield the same experiment under identical conditions.
+The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [doc/03 §Physics fidelity](doc/03-Worlds-and-Scenarios.md#physics-fidelity).
 
 ---
 
-## 🏆 Reinforcement learning
+## 🧱 What RobotIK is built on
 
-RobotIK provides an `Environment` abstraction and an `EnvironmentPool`. You can run:
+RobotIK does not rewrite robotics. It makes proven libraries work together behind one API:
 
-```text
-Environment 0 ─┐
-Environment 1 ─┤
-Environment 2 ─┤
-Environment 3 ─┼──▶ RL policy
-...            │
-Environment N ─┘
-```
+| Library | Role in RobotIK |
+|---------|-----------------|
+| 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
+| 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
+| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([doc/11](doc/11-PDDL-Planner.md)) |
+| 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](external/BlackThorn/doc/README.md)) |
+| 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](external/Compages/doc/README.md)) |
+| OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
 
-without opening N windows. Rendering is an optional observation path for the user, not a core dependency. That keeps the loop:
-
-```text
-observation
-    ↓
-policy
-    ↓
-action
-    ↓
-physics
-    ↓
-reward
-    ↓
-observation
-```
-
-independent of environment count and thread count. A `SimulationEnvironment` turns any scenario into an environment from three swappable parts (observation builder, action adapter, reward evaluator); spaces are named and bounded, observations read from the ground truth are flagged as privileged, and an episode ends in success, failure, time limit or technical abort. See [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md).
+A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
 
 ---
 
-## ⚖️ RobotIK and SkiROS2
-
-RobotIK may look close to **SkiROS2**—both use skills, behavior trees, planning, and world knowledge.
-
-The positioning differs.
-
-**SkiROS2** is a robot control platform on ROS 2, with a semantic world model, skills with pre/post-conditions, behavior trees, and task planning. It fits distributed robotic systems in the ROS ecosystem well.
-
-RobotIK targets writing robotic programs in C++ without adopting a full middleware stack. Another emphasis is symmetry:
+## 🧭 Where it goes
 
 ```text
-             same mission
-                  │
-        ┌─────────┴─────────┐
-        ▼                   ▼
-     simulation          hardware
-        │                   │
-      MuJoCo             SO-101
+"Put the red cube in the box"         ← intent (user, later an LLM)
+              │
+     PDDL planner ✅ · GOAP 🔜        ← which actions are needed?
+              │
+       behavior tree ✅               ← in which order, with which recovery?
+              │
+          skills ✅                   ← how, on this robot
+              │
+   MuJoCo ✅ · real robot 🔜
 ```
+
+- ✅ behavior trees, PDDL planning with replanning, skills with resources, faults, assertions, experiments, RL environments;
+- 🔜 a real robot backend (SO-ARM101), GOAP, Prolog to query the world, an LLM front-end that stays at the level of intent and never drives the motors.
+
+Expected robots:
+- [Microduck](https://github.com/pollen-robotics/microduck)
+- [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM100)
+- [Roboparty](https://github.com/Roboparty)
 
 ---
 
-## 🚀 Clone, build, and run
+## 🚀 Quick start
 
-**Note:** RobotIK builds on Linux with plain `make` (no CMake). It does not build on macOS: the simulator needs a newer OpenGL than the 4.1 of macOS.
+Linux only, plain `make` (no CMake). macOS is not supported: the simulator needs a newer OpenGL than the 4.1 of macOS.
 
 ```bash
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
-
 make download-external-libs
 make -j"$(nproc --all)"
+
+./build/Robotik-Simulator          # Demos menu: every plugin and its scenarios
+./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
+./build/Robotik-Headless build/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
+./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
 
-A `build` directory should contain static and shared libraries plus executables:
-
-```bash
-./build/Robotik-Simulator
-```
-
-New to robotics or to RobotIK? Read [doc/01-Introduction.md](doc/01-Introduction.md), then follow the **HelloWorld** tutorial in [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md).
-
-The **Demos** menu lists every package built under `build/plugins/`. The same scenario runs without a window, and so does a whole experiment, with a JSON report:
-
-```bash
-./build/Robotik-Headless \
-    build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml \
-    --seed 7
-./build/Robotik-Headless \
-    build/plugins/Painter/experiments/painter.experiment.yaml \
-    --report painting.json
-```
-
-Parallel RL demo:
-
-```bash
-./build/Robotik-PickAndPlaceRL \
-    --policy converged \
-    --envs 16 \
-    --threads 8 \
-    --episodes 32
-```
-
-Optional install:
-
-```bash
-sudo make install
-```
-
-For developers, unit tests:
-
-```bash
-make tests -j"$(nproc --all)"
-```
+Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md).
 
 ---
 
 ## 📚 Documentation
 
-| Document | Contents |
-|----------|----------|
-| [doc/README.md](doc/README.md) | Reading order, beginner → advanced |
-| [doc/01-Introduction.md](doc/01-Introduction.md) | Robotics in ten minutes, and what RobotIK does |
-| [doc/02-Getting-Started.md](doc/02-Getting-Started.md) | Build, simulator, headless, reports |
-| [doc/03-Worlds-and-Scenarios.md](doc/03-Worlds-and-Scenarios.md) | World, scenario and experiment files, assertions, trajectories, ground truth |
-| [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md) | The HelloWorld tutorial, writing a plugin, manifest, asset packs |
-| [doc/05-Skills-and-Behavior-Trees.md](doc/05-Skills-and-Behavior-Trees.md) | Skills, resources, `SkillScheduler`, BlackThorn trees, faults |
-| [doc/06-Architecture.md](doc/06-Architecture.md) | Layers, data flow, `include/Robotik/` layout |
-| [doc/07-API-Reference.md](doc/07-API-Reference.md) | The classes a plugin uses |
-| [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md) | Environments, spaces, episode ends, pool, episode log |
-| [doc/09-Demos.md](doc/09-Demos.md) | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
-| [doc/10-Tools-and-Frames.md](doc/10-Tools-and-Frames.md) | Flange, tool, TCP |
-| [doc/11-PDDL-Planner.md](doc/11-PDDL-Planner.md) | The PDDL planner (Kairos): a goal instead of a behavior tree |
+Chapters 1 to 5 are for everybody; 6 to 11 are references.
 
-The libraries RobotIK is built on have their own documentation, written the same way:
+| # | Chapter | Contents |
+|---|---------|----------|
+| | [doc/README.md](doc/README.md) | 🧭 Reading order and quick paths |
+| 1 | [Introduction](doc/01-Introduction.md) | 🌱 Robotics in ten minutes, and what RobotIK does |
+| 2 | [Getting started](doc/02-Getting-Started.md) | 🚀 Build, simulator, headless, reports |
+| 3 | [Worlds and scenarios](doc/03-Worlds-and-Scenarios.md) | 🧩 World, scenario and experiment files, assertions, trajectories, ground truth |
+| 4 | [Your first plugin](doc/04-Your-First-Plugin.md) | 🎓 The HelloWorld tutorial, writing a plugin, manifest, asset packs |
+| 5 | [Skills and behavior trees](doc/05-Skills-and-Behavior-Trees.md) | 🌳 Skills, resources, `SkillScheduler`, BlackThorn trees, faults |
+| 6 | [Architecture](doc/06-Architecture.md) | 🏗 Layers, data flow, `include/Robotik/` layout |
+| 7 | [API reference](doc/07-API-Reference.md) | 📖 The classes a plugin uses |
+| 8 | [Reinforcement learning](doc/08-Reinforcement-Learning.md) | 🏆 Environments, spaces, episode ends, pool, episode log |
+| 9 | [Demos](doc/09-Demos.md) | 🎬 HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
+| 10 | [Tools and frames](doc/10-Tools-and-Frames.md) | 🔧 Flange, tool, TCP |
+| 11 | [The PDDL planner](doc/11-PDDL-Planner.md) | 🧠 A goal instead of a behavior tree (Kairos) |
 
-| Library | Documentation | For |
-|---------|---------------|-----|
-| 🧱 Compages | [external/Compages/doc/README.md](external/Compages/doc/README.md) | the 3D world, the scene, live textures (the Painter canvas) |
-| 🌳 BlackThorn | [external/BlackThorn/doc/README.md](external/BlackThorn/doc/README.md) | every node of a `.bt.yaml` tree, the blackboard, the Oakular editor |
+The libraries RobotIK is built on have their own documentation, written the same way: [Compages](external/Compages/doc/README.md) and [BlackThorn](external/BlackThorn/doc/README.md).
 
-🤖 Coding agents: [AGENTS.md](AGENTS.md) maps each task to a skill of `.claude/skills/` (plugin, scenario, skill and behavior tree, simulator, docs). Compages and BlackThorn have their own `AGENTS.md` and skills.
+🤖 Coding agents: [AGENTS.md](AGENTS.md) maps each task to a skill of `.claude/skills/`. Compages and BlackThorn have their own `AGENTS.md` and skills.
 
 ---
 
