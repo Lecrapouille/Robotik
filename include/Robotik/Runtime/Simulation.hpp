@@ -169,6 +169,13 @@ public:
         return m_robots;
     }
 
+    // -------------------------------------------------------------------------
+    /// @brief Frame of the beliefs in the world: the base of the robot when
+    /// it is alone, the world itself when the robots share them (a skill
+    /// then uses its own base: @c robot.base().pose.inverse() * belief).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose beliefFrame() const;
+
     [[nodiscard]] WorldModel& worldModel()
     {
         return m_world_model;
@@ -458,8 +465,9 @@ private:
 
     Seed m_seed;
     int m_max_contacts = 0;
-    /// A carried prop went through container walls. Sticky until reset.
-    bool m_prop_penetration = false;
+    /// Robots (ids) that carried a prop through container walls. Sticky
+    /// until reset.
+    std::unordered_set<std::string> m_prop_penetration;
     /// How the grippers hold objects, one model per level in use.
     std::vector<std::unique_ptr<GraspModel>> m_grasps;
     /// Teach pendant owns the joints; the mission is frozen.

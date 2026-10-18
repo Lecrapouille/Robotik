@@ -356,8 +356,20 @@ void Simulation::buildDevices(RobotSession& p_robot,
             camera.source(p_view->camera(camera, link));
         }
         p_blind = p_blind && camera.source() == nullptr;
-        camera.onFrame([this](CameraFrame const& p_frame)
-                       { m_world_model.update(m_perception.process(p_frame)); });
+        camera.onFrame(
+            [this, &p_robot](CameraFrame const& p_frame)
+            {
+                Detections const& detections = m_perception.process(p_frame);
+                if (m_robots.size() == 1u)
+                {
+                    m_world_model.update(detections);
+                    return;
+                }
+                // Shared beliefs live in the world frame.
+                Detections lifted = detections;
+                lifted.camera = p_robot.base().pose * lifted.camera;
+                m_world_model.update(lifted);
+            });
     }
 }
 
@@ -688,6 +700,11 @@ void Simulation::addSkills()
     }
 }
 
+Pose Simulation::beliefFrame() const
+{
+    return m_robots.size() == 1u ? m_robot->base().pose : Pose{ zero3(), Quaternion{} };
+}
+
 RobotSession* Simulation::robot(std::string_view p_id) const
 {
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
@@ -762,7 +779,7 @@ void Simulation::reset(Seed p_seed)
 {
     m_seed = p_seed;
     m_max_contacts = 0;
-    m_prop_penetration = false;
+    m_prop_penetration.clear();
     m_outcome = Outcome::Running;
 
     m_resources->restoreAll();
@@ -814,7 +831,7 @@ void Simulation::reset(Seed p_seed)
     // Props: the robot only knows the nominal layout (in its base frame); the
     // true positions are randomized.
     Random random(p_seed.derive("world"));
-    Pose const to_base = m_robot->base().pose.inverse();
+    Pose const to_base = beliefFrame().inverse();
     m_world_model.clear();
     for (Record& record : m_records)
     {
@@ -887,7 +904,7 @@ void Simulation::observe()
     {
         return;
     }
-    Pose const to_base = m_robot->base().pose.inverse();
+    Pose const to_base = beliefFrame().inverse();
     for (Record const& record : m_records)
     {
         if (record.spec->type == EntitySpec::Type::Prop)
@@ -983,7 +1000,12 @@ void Simulation::step(Seconds p_dt)
         {
             grasp->update(*robot);
         }
-        trackPropPenetration(*robot, m_prop_penetration);
+        bool through = m_prop_penetration.contains(robot->id());
+        trackPropPenetration(*robot, through);
+        if (through)
+        {
+            m_prop_penetration.insert(robot->id());
+        }
     }
     if (m_oracle)
     {

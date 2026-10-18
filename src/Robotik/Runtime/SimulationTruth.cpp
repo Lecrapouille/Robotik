@@ -455,7 +455,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
         arity(p_name, p_args, 1u, 1u);
         Record const& record = require(p_args[0]);
         int count = record.peak_contacts;
-        if (record.spec->type == EntitySpec::Type::Robot && m_prop_penetration)
+        if (record.spec->type == EntitySpec::Type::Robot &&
+            m_prop_penetration.contains(record.spec->id))
         {
             ++count;
         }

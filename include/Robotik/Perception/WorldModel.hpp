@@ -25,7 +25,8 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Belief about one object, in the robot base frame.
+/// @brief Belief about one object, in the robot base frame (in the world
+/// frame when several robots share the beliefs: Simulation::beliefFrame).
 // ****************************************************************************
 struct WorldObject
 {
