@@ -15,11 +15,9 @@
 namespace robotik
 {
 
-namespace
-{
-
+/// Loads one function pointer from the plugin library.
 template <class Function>
-Function symbol(void* p_library, char const* p_name, std::string& p_error)
+static Function symbol(void* p_library, char const* p_name, std::string& p_error)
 {
     dlerror();
     void* address = dlsym(p_library, p_name);
@@ -34,8 +32,6 @@ Function symbol(void* p_library, char const* p_name, std::string& p_error)
     std::memcpy(&function, &address, sizeof(function));
     return function;
 }
-
-} // namespace
 
 PluginManager::~PluginManager()
 {

@@ -98,10 +98,8 @@ void syncTeachAxes(App& p_app, bool p_visible)
     }
 }
 
-namespace
-{
-
-void syncMarkers(App& p_app)
+/// Moves the waypoint markers so they follow the recorded poses.
+static void syncMarkers(App& p_app)
 {
     if (!p_app.simulation || !p_app.scene || !p_app.world || !p_app.scene_view)
     {
@@ -146,10 +144,10 @@ void syncMarkers(App& p_app)
     }
 }
 
-//! @brief Mounted tool. A change reloads the scenario with that URDF.
-//! @return True when the simulation was reloaded. The caller must stop using
-//! the previous robot.
-bool changeTool(App& p_app)
+/// @brief Mounted tool. A change reloads the scenario with that URDF.
+/// @return True when the simulation was reloaded. The caller must stop using
+/// the previous robot.
+static bool changeTool(App& p_app)
 {
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
     robotik::EntitySpec const* mounted = world.mountedTool();
@@ -195,8 +193,8 @@ bool changeTool(App& p_app)
     return true;
 }
 
-//! @brief Actuates the mounted tool: suction, finger close, or spindle.
-void triggerTool(App& p_app, robotik::RobotSession& p_robot)
+/// @brief Actuates the mounted tool: suction, finger close, or spindle.
+static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 {
     // Kind of tool: the model key of its asset id (robotik.tools.vacuum).
     robotik::EntitySpec const* tool = p_app.simulation->scenario().world.mountedTool();
@@ -305,9 +303,8 @@ void triggerTool(App& p_app, robotik::RobotSession& p_robot)
     ImGui::TextDisabled("Trigger: this tool has none");
 }
 
-
-//! @brief One jog row: "-" value "+" for a translation or a rotation axis.
-void jogRow(App& p_app,
+/// @brief One jog row: "-" value "+" for a translation or a rotation axis.
+static void jogRow(App& p_app,
             char const* p_axis,
             robotik::Vector3 const& p_shift,
             robotik::Vector3 const& p_turn)
@@ -336,9 +333,9 @@ void jogRow(App& p_app,
     ImGui::PopID();
 }
 
-//! @brief The frame to move: the work frame of the robot (its tool), or any
-//! other link: a foot of a humanoid, a leg tip of a hexapod...
-void frameChoice(App& p_app)
+/// @brief The frame to move: the work frame of the robot (its tool), or any
+/// other link: a foot of a humanoid, a leg tip of a hexapod...
+static void frameChoice(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
@@ -367,7 +364,8 @@ void frameChoice(App& p_app)
     ImGui::EndCombo();
 }
 
-void cartesianJog(App& p_app)
+/// Jog buttons that move a frame by one step in the base frame.
+static void cartesianJog(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     ImGui::SeparatorText("Move a frame");
@@ -424,7 +422,8 @@ void cartesianJog(App& p_app)
     ImGui::SetItemTooltip("Step of the - and + buttons of the Joints panel.");
 }
 
-void waypoints(App& p_app)
+/// Record, edit and play the pendant waypoints.
+static void waypoints(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
@@ -514,8 +513,6 @@ void waypoints(App& p_app)
         ImGui::TextColored(RED, "%s", pendant.error().c_str());
     }
 }
-
-} // namespace
 
 void teachPanel(App& p_app)
 {

@@ -17,9 +17,7 @@
 #include <sstream>
 #include <string>
 
-namespace
-{
-
+/// Loads the fly mission and its view.
 class FlyPlugin final: public robotik::Plugin
 {
 public:
@@ -98,7 +96,7 @@ public:
 
 private:
 
-    //! @brief Installs a brain loaded in the background, once it is ready.
+    /// @brief Installs a brain loaded in the background, once it is ready.
     void poll()
     {
         if (!m_loading.valid() ||
@@ -176,7 +174,5 @@ private:
     bool m_target = false;
     std::chrono::steady_clock::time_point m_started;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(FlyPlugin)

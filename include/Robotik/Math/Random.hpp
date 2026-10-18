@@ -5,19 +5,19 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Random.hpp
-//! @brief Deterministic seeds and a tiny random generator.
-//!
-//! There is no global generator: every consumer (world layout, sensor noise,
-//! faults, each RL environment) derives its own @ref Seed from a master seed,
-//! so adding a consumer never shifts the random stream of another one.
-//!
-//! @code
-//! robotik::Seed const master(123456);
-//! robotik::Random world(master.derive("world"));
-//! robotik::Seed const env3 = master.derive(3u);
-//! robotik::Seed const episode = env3.derive(42u);
-//! @endcode
+/// @file Random.hpp
+/// @brief Deterministic seeds and a tiny random generator.
+///
+/// There is no global generator: every consumer (world layout, sensor noise,
+/// faults, each RL environment) derives its own @ref Seed from a master seed,
+/// so adding a consumer never shifts the random stream of another one.
+///
+/// @code
+/// robotik::Seed const master(123456);
+/// robotik::Random world(master.derive("world"));
+/// robotik::Seed const env3 = master.derive(3u);
+/// robotik::Seed const episode = env3.derive(42u);
+/// @endcode
 #pragma once
 
 #include <cmath>
@@ -29,7 +29,7 @@ namespace robotik
 {
 
 // -------------------------------------------------------------------------
-//! @brief SplitMix64 finalizer: a strong 64-bit mixing function.
+/// @brief SplitMix64 finalizer: a strong 64-bit mixing function.
 // -------------------------------------------------------------------------
 [[nodiscard]] constexpr std::uint64_t mix64(std::uint64_t p_value)
 {
@@ -40,7 +40,7 @@ namespace robotik
 }
 
 // ****************************************************************************
-//! @brief Node of the seed hierarchy: a value plus deterministic children.
+/// @brief Node of the seed hierarchy: a value plus deterministic children.
 // ****************************************************************************
 struct Seed
 {
@@ -50,7 +50,7 @@ struct Seed
     constexpr explicit Seed(std::uint64_t p_value) : value(p_value) {}
 
     // -------------------------------------------------------------------------
-    //! @brief Child seed for an indexed consumer (environment, episode...).
+    /// @brief Child seed for an indexed consumer (environment, episode...).
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::uint64_t p_index) const
     {
@@ -58,7 +58,7 @@ struct Seed
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Child seed for a named consumer ("world", "sensors"...).
+    /// @brief Child seed for a named consumer ("world", "sensors"...).
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::string_view p_name) const
     {
@@ -74,8 +74,8 @@ struct Seed
 };
 
 // ****************************************************************************
-//! @brief SplitMix64 generator: 8 bytes of state, fast and reproducible on
-//! every platform (unlike the std distributions).
+/// @brief SplitMix64 generator: 8 bytes of state, fast and reproducible on
+/// every platform (unlike the std distributions).
 // ****************************************************************************
 class Random
 {
@@ -84,7 +84,7 @@ public:
     constexpr explicit Random(Seed p_seed = Seed{}) noexcept : m_state(p_seed.value) {}
 
     // -------------------------------------------------------------------------
-    //! @brief Next raw 64-bit value.
+    /// @brief Next raw 64-bit value.
     // -------------------------------------------------------------------------
     constexpr std::uint64_t next()
     {
@@ -96,7 +96,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Uniform double in [0, 1).
+    /// @brief Uniform double in [0, 1).
     // -------------------------------------------------------------------------
     constexpr double uniform()
     {
@@ -104,7 +104,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Uniform double in [p_low, p_high).
+    /// @brief Uniform double in [p_low, p_high).
     // -------------------------------------------------------------------------
     constexpr double uniform(double p_low, double p_high)
     {
@@ -112,8 +112,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Gaussian sample (Box-Muller, no cached second value so that the
-    //! stream only depends on the number of calls).
+    /// @brief Gaussian sample (Box-Muller, no cached second value so that the
+    /// stream only depends on the number of calls).
     // -------------------------------------------------------------------------
     double normal(double p_mean = 0.0, double p_sigma = 1.0)
     {
@@ -124,7 +124,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief True with probability @p_probability.
+    /// @brief True with probability @p_probability.
     // -------------------------------------------------------------------------
     constexpr bool chance(double p_probability)
     {

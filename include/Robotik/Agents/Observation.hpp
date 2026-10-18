@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Observation.hpp
-//! @brief What an agent is allowed to know at one instant.
-//!
-//! A flat vector, same layout an @ref Environment writes into its observation
-//! buffer. The agent never receives a camera image, a texture or a simulator
-//! handle.
+/// @file Observation.hpp
+/// @brief What an agent is allowed to know at one instant.
+///
+/// A flat vector, same layout an @ref Environment writes into its observation
+/// buffer. The agent never receives a camera image, a texture or a simulator
+/// handle.
 #pragma once
 
 #include "Robotik/Math/Si.hpp"
@@ -21,7 +21,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Timestamped sensor vector handed to an @ref Agent.
+/// @brief Timestamped sensor vector handed to an @ref Agent.
 // ****************************************************************************
 struct Observation
 {

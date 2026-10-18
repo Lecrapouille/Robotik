@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file EpisodeLog.hpp
-//! @brief What a learning or evaluation run must keep to be compared and
-//! replayed: the episodes with their seeds, and what produced them.
+/// @file EpisodeLog.hpp
+/// @brief What a learning or evaluation run must keep to be compared and
+/// replayed: the episodes with their seeds, and what produced them.
 #pragma once
 
 #include "Robotik/Environment/Environment.hpp"
@@ -21,8 +21,8 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Context of a list of episodes. Any episode replays from the
-//! scenario, the master seed (or its own seed), the policy and the version.
+/// @brief Context of a list of episodes. Any episode replays from the
+/// scenario, the master seed (or its own seed), the policy and the version.
 // ****************************************************************************
 struct EpisodeLog
 {
@@ -34,8 +34,8 @@ struct EpisodeLog
     double control_period = 0.0;
     std::uint32_t max_steps = 0;
 
-    //! @brief JSON: the context, RobotIK version and commit, then one entry
-    //! per episode (environment, index, seed, return, steps, end).
+    /// @brief JSON: the context, RobotIK version and commit, then one entry
+    /// per episode (environment, index, seed, return, steps, end).
     void write(std::ostream& p_out, std::span<Episode const> p_episodes) const;
 };
 

@@ -16,20 +16,18 @@
 #include <filesystem>
 #include <string>
 
-namespace
-{
-
+/// Title, shortcut and hint of one workspace.
 struct WorkspaceInfo
 {
     char const* name;
     char const* key;
     char const* shortcut;
-    //!< A panel of the column where the plugin panels go.
+    /// A panel of the column where the plugin panels go.
     char const* anchor;
     char const* hint;
 };
 
-std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
+static std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
     { "Plugin", "plugin", "Ctrl+1", "Files",
       "Read the loaded plugin: its files, dependencies and licenses, the scenario, "
       "its behavior tree, the experiments, the world and the asset packs. No 3D view." },
@@ -41,12 +39,14 @@ std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
       "What the robot believes against the ground truth, and what it perceives." },
 } };
 
-WorkspaceInfo const& infoOf(Workspace p_workspace)
+/// Title, shortcut and hint of one workspace.
+static WorkspaceInfo const& infoOf(Workspace p_workspace)
 {
     return WORKSPACES[static_cast<std::size_t>(p_workspace)];
 }
 
-void select(App& p_app, Workspace p_workspace)
+/// Switches the workspace and asks for the plugin panels to be placed.
+static void select(App& p_app, Workspace p_workspace)
 {
     if (p_app.ui.workspace != p_workspace)
     {
@@ -57,18 +57,20 @@ void select(App& p_app, Workspace p_workspace)
 
 // --- Layouts ----------------------------------------------------------------
 
-//! @brief Splits @p_node; the first returned id is the new side.
-ImGuiID split(ImGuiID& p_node, ImGuiDir p_dir, float p_ratio)
+/// @brief Splits @p_node; the first returned id is the new side.
+static ImGuiID split(ImGuiID& p_node, ImGuiDir p_dir, float p_ratio)
 {
     return ImGui::DockBuilderSplitNode(p_node, p_dir, p_ratio, nullptr, &p_node);
 }
 
-void dock(std::string const& p_window, ImGuiID p_node)
+/// Docks a window on a dock-builder node.
+static void dock(std::string const& p_window, ImGuiID p_node)
 {
     ImGui::DockBuilderDockWindow(p_window.c_str(), p_node);
 }
 
-void layout(Workspace p_workspace, ImGuiID p_dock)
+/// Builds the dock layout of one workspace.
+static void layout(Workspace p_workspace, ImGuiID p_dock)
 {
     ImGui::DockBuilderRemoveNode(p_dock);
     ImGui::DockBuilderAddNode(p_dock, ImGuiDockNodeFlags_DockSpace);
@@ -135,7 +137,8 @@ void layout(Workspace p_workspace, ImGuiID p_dock)
 
 // --- Commands ---------------------------------------------------------------
 
-void reload(App& p_app)
+/// Loads the current scenario again.
+static void reload(App& p_app)
 {
     if (!p_app.scenario_path.empty())
     {
@@ -143,7 +146,8 @@ void reload(App& p_app)
     }
 }
 
-void quit()
+/// Asks the window to close.
+static void quit()
 {
     if (GLFWwindow* window = glfwGetCurrentContext())
     {
@@ -151,7 +155,8 @@ void quit()
     }
 }
 
-void shortcuts(App& p_app)
+/// Keyboard shortcuts that are not ImGui menu chords.
+static void shortcuts(App& p_app)
 {
     ImGuiIO const& io = ImGui::GetIO();
     if (io.WantTextInput)
@@ -210,11 +215,11 @@ void shortcuts(App& p_app)
 
 // --- Menu bar ---------------------------------------------------------------
 
-//! @brief Why a workspace tab is drawn in red, one reason per line; empty
-//! when all is well. Plugin: the scenario did not load, or a package of the
-//! catalog is broken. Mission: the run failed, the robot is stopped, or a
-//! resource is in fault.
-std::string alertOf(App const& p_app, Workspace p_workspace)
+/// @brief Why a workspace tab is drawn in red, one reason per line; empty
+/// when all is well. Plugin: the scenario did not load, or a package of the
+/// catalog is broken. Mission: the run failed, the robot is stopped, or a
+/// resource is in fault.
+static std::string alertOf(App const& p_app, Workspace p_workspace)
 {
     std::string alert;
     auto line = [&alert](std::string const& p_text)
@@ -275,7 +280,8 @@ std::string alertOf(App const& p_app, Workspace p_workspace)
     return alert;
 }
 
-void workspaceTabs(App& p_app)
+/// The four workspace tabs, centred in the menu bar.
+static void workspaceTabs(App& p_app)
 {
     // Centred in the free part of the menu bar.
     float width = 0.0f;
@@ -314,7 +320,8 @@ void workspaceTabs(App& p_app)
     }
 }
 
-void mainMenu(App& p_app)
+/// File, workspace and help menus.
+static void mainMenu(App& p_app)
 {
     if (!ImGui::BeginMainMenuBar())
     {
@@ -375,13 +382,15 @@ void mainMenu(App& p_app)
 
 // --- Status bar -------------------------------------------------------------
 
+/// Status-bar label and its color.
 struct Outcome
 {
     char const* text;
     ImVec4 color;
 };
 
-Outcome outcomeOf(App const& p_app)
+/// Status-bar text and color for the current run.
+static Outcome outcomeOf(App const& p_app)
 {
     if (!p_app.simulation)
     {
@@ -412,7 +421,8 @@ Outcome outcomeOf(App const& p_app)
     return { "", GREY };
 }
 
-void statusBar(App& p_app)
+/// Bottom bar: outcome, time and the loaded scenario.
+static void statusBar(App& p_app)
 {
     float const height = ImGui::GetFrameHeight() + 4.0f;
     ImGuiWindowFlags const flags =
@@ -480,7 +490,8 @@ void statusBar(App& p_app)
 
 // --- Dialogs ----------------------------------------------------------------
 
-void openDialog(App& p_app)
+/// Modal that asks for a scenario path.
+static void openDialog(App& p_app)
 {
     if (p_app.ui.show_open)
     {
@@ -514,7 +525,8 @@ void openDialog(App& p_app)
     ImGui::EndPopup();
 }
 
-void shortcutsWindow(App& p_app)
+/// Lists the keyboard shortcuts.
+static void shortcutsWindow(App& p_app)
 {
     if (!p_app.ui.show_shortcuts)
     {
@@ -553,8 +565,6 @@ void shortcutsWindow(App& p_app)
     }
     ImGui::End();
 }
-
-} // namespace
 
 void drawPanels(App& p_app)
 {

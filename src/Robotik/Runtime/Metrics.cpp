@@ -16,10 +16,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::string_view trim(std::string_view p_text)
+/// Drops leading and trailing spaces and tabs.
+static std::string_view trim(std::string_view p_text)
 {
     std::size_t const first = p_text.find_first_not_of(" \t");
     if (first == std::string_view::npos)
@@ -30,6 +28,7 @@ std::string_view trim(std::string_view p_text)
     return p_text.substr(first, last - first + 1u);
 }
 
+/// One metric condition split into a name, an operator and a number.
 struct Comparison
 {
     std::string_view metric;
@@ -37,8 +36,8 @@ struct Comparison
     std::string_view number;
 };
 
-//! Splits at the first comparison operator found outside quotes.
-std::optional<Comparison> split(std::string_view p_text)
+/// Splits at the first comparison operator found outside quotes.
+static std::optional<Comparison> split(std::string_view p_text)
 {
     static constexpr std::array<std::string_view, 6> operators = {
         "==", "!=", "<=", ">=", "<", ">"
@@ -68,7 +67,8 @@ std::optional<Comparison> split(std::string_view p_text)
     return std::nullopt;
 }
 
-bool compare(double p_value, std::string_view p_op, double p_reference)
+/// Compares a measured value with a reference under one operator.
+static bool compare(double p_value, std::string_view p_op, double p_reference)
 {
     if (p_op == "==")
         return std::abs(p_value - p_reference) <= 1e-9;
@@ -83,14 +83,13 @@ bool compare(double p_value, std::string_view p_op, double p_reference)
     return p_value > p_reference;
 }
 
-std::string format(double p_value)
+/// Prints a number the way a metric condition shows it.
+static std::string format(double p_value)
 {
     std::ostringstream stream;
     stream << p_value;
     return stream.str();
 }
-
-} // namespace
 
 void Metrics::set(std::string_view p_name, double p_value)
 {

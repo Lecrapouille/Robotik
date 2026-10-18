@@ -21,12 +21,10 @@
 #include <utility>
 #include <vector>
 
-namespace
-{
+static constexpr float kPriorityWidth = 16.0f;
+static constexpr float kIconWidth = 14.0f;
 
-constexpr float kPriorityWidth = 16.0f;
-constexpr float kIconWidth = 14.0f;
-
+/// A fault kept on the board until the run changes.
 struct FaultNote
 {
     robotik::SkillId skill = robotik::NO_SKILL;
@@ -37,6 +35,7 @@ struct FaultNote
     std::string when;
 };
 
+/// What the skill board remembers between frames.
 struct BoardMemory
 {
     bool expand_all = false;
@@ -48,12 +47,14 @@ struct BoardMemory
     std::size_t trace_size = 0;
 };
 
-ImU32 colorMuted()
+/// Disabled text color, used for idle skill chrome.
+static ImU32 colorMuted()
 {
     return ImGui::GetColorU32(ImGuiCol_TextDisabled);
 }
 
-ImU32 colorPriority(int p_level)
+/// Bar color for one priority band.
+static ImU32 colorPriority(int p_level)
 {
     if (p_level >= 3)
     {
@@ -66,7 +67,8 @@ ImU32 colorPriority(int p_level)
     return IM_COL32(124, 196, 238, 255);
 }
 
-int priorityLevel(robotik::Priority p_priority)
+/// Bands a priority into 0..3 for the bars and the label.
+static int priorityLevel(robotik::Priority p_priority)
 {
     if (p_priority >= 1000)
     {
@@ -79,7 +81,8 @@ int priorityLevel(robotik::Priority p_priority)
     return 1;
 }
 
-char const* priorityLabel(int p_level)
+/// Short label of a priority band.
+static char const* priorityLabel(int p_level)
 {
     if (p_level >= 3)
     {
@@ -92,7 +95,8 @@ char const* priorityLabel(int p_level)
     return "Low";
 }
 
-std::string formatSeconds(double p_seconds)
+/// Prints a duration as seconds, or as minutes and seconds.
+static std::string formatSeconds(double p_seconds)
 {
     if (p_seconds < 0.0)
     {
@@ -109,7 +113,8 @@ std::string formatSeconds(double p_seconds)
     return buffer;
 }
 
-robotik::SkillRun const* latestRun(robotik::SkillScheduler const& p_skills,
+/// Newest trace entry of a skill, and its index when asked.
+static robotik::SkillRun const* latestRun(robotik::SkillScheduler const& p_skills,
                                    robotik::SkillId p_id,
                                    std::size_t* p_index)
 {
@@ -128,7 +133,8 @@ robotik::SkillRun const* latestRun(robotik::SkillScheduler const& p_skills,
     return nullptr;
 }
 
-bool isBlocked(robotik::SkillScheduler const& p_skills, robotik::SkillId p_id)
+/// True when a waiting skill is held by a resource or a priority.
+static bool isBlocked(robotik::SkillScheduler const& p_skills, robotik::SkillId p_id)
 {
     if (p_skills.state(p_id) != robotik::SkillState::Waiting)
     {
@@ -139,19 +145,22 @@ bool isBlocked(robotik::SkillScheduler const& p_skills, robotik::SkillId p_id)
            reason == robotik::SkillReason::Unavailable;
 }
 
-bool terminal(robotik::SkillState p_state)
+/// True for succeeded, failed and cancelled.
+static bool terminal(robotik::SkillState p_state)
 {
     return p_state == robotik::SkillState::Succeeded ||
            p_state == robotik::SkillState::Failed ||
            p_state == robotik::SkillState::Cancelled;
 }
 
-float chipWidth(std::string const& p_text)
+/// Width of a small outlined label, including its padding.
+static float chipWidth(std::string const& p_text)
 {
     return ImGui::CalcTextSize(p_text.c_str()).x + 12.0f;
 }
 
-void chip(std::string const& p_text)
+/// Draws a small outlined label at the cursor.
+static void chip(std::string const& p_text)
 {
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 const at = ImGui::GetCursorScreenPos();
@@ -166,7 +175,8 @@ void chip(std::string const& p_text)
     draw->AddText(ImVec2(at.x + 6.0f, at.y), colorMuted(), p_text.c_str());
 }
 
-void priorityBars(int p_level, robotik::Priority p_value)
+/// Draws the four priority bars, filled up to the band.
+static void priorityBars(int p_level, robotik::Priority p_value)
 {
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 const at = ImGui::GetCursorScreenPos();
@@ -192,7 +202,8 @@ void priorityBars(int p_level, robotik::Priority p_value)
     }
 }
 
-void stateIcon(robotik::SkillState p_state,
+/// Draws the disk that stands for a skill state.
+static void stateIcon(robotik::SkillState p_state,
                robotik::SkillReason p_reason,
                bool p_blocked)
 {
@@ -276,7 +287,8 @@ void stateIcon(robotik::SkillState p_state,
     }
 }
 
-void dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
+/// Draws a dashed rectangle, used for a preempted span.
+static void dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
 {
     auto line = [&](ImVec2 p_from, ImVec2 p_to)
     {
@@ -303,7 +315,8 @@ void dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
     line(ImVec2(p_a.x, p_b.y), p_a);
 }
 
-std::string statusText(robotik::Simulation const& p_simulation,
+/// One line describing why a skill is in its current state.
+static std::string statusText(robotik::Simulation const& p_simulation,
                        robotik::SkillId p_id)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
@@ -330,7 +343,8 @@ std::string statusText(robotik::Simulation const& p_simulation,
     return text;
 }
 
-void rememberFaults(BoardMemory& p_memory,
+/// Keeps the faults seen since the panel was opened.
+static void rememberFaults(BoardMemory& p_memory,
                     robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
@@ -382,7 +396,8 @@ void rememberFaults(BoardMemory& p_memory,
     }
 }
 
-void toolbar(BoardMemory& p_memory)
+/// Expand, collapse and priority filter of the skill board.
+static void toolbar(BoardMemory& p_memory)
 {
     if (ImGui::Button(p_memory.expand_all ? "Collapse all" : "Expand all"))
     {
@@ -398,7 +413,8 @@ void toolbar(BoardMemory& p_memory)
     }
 }
 
-void faultsSection(BoardMemory& p_memory)
+/// Lists the faults remembered for this run.
+static void faultsSection(BoardMemory& p_memory)
 {
     if (p_memory.faults.empty())
     {
@@ -446,7 +462,8 @@ void faultsSection(BoardMemory& p_memory)
     }
 }
 
-void card(BoardMemory& p_memory,
+/// One skill: state, resources, timing and the trace under it.
+static void card(BoardMemory& p_memory,
           robotik::Simulation& p_simulation,
           robotik::SkillId p_id,
           bool p_blocked)
@@ -612,7 +629,8 @@ void card(BoardMemory& p_memory,
     ImGui::Dummy(ImVec2(0.0f, 6.0f));
 }
 
-void section(char const* p_title,
+/// A collapsible group of skill cards.
+static void section(char const* p_title,
              char const* p_empty,
              std::vector<robotik::SkillId> const& p_ids,
              BoardMemory& p_memory,
@@ -641,7 +659,8 @@ void section(char const* p_title,
     }
 }
 
-robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
+/// Skill whose latest terminal run ended most recently.
+static robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
 {
     robotik::SkillId last = robotik::NO_SKILL;
     double last_end = -1.0;
@@ -660,8 +679,8 @@ robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
     return last;
 }
 
-//! @brief Every skill in one table: priority, resources, state, reason.
-void skillTable(App& p_app)
+/// @brief Every skill in one table: priority, resources, state, reason.
+static void skillTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::SkillScheduler& skills = simulation.skills();
@@ -722,8 +741,6 @@ void skillTable(App& p_app)
         endTable();
     }
 }
-
-} // namespace
 
 void skillsPanel(App& p_app)
 {

@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginAPI.hpp
-//! @brief C++ helpers for a demo plugin. The exported symbols stay C.
+/// @file PluginAPI.hpp
+/// @brief C++ helpers for a demo plugin. The exported symbols stay C.
 #pragma once
 
 #include "Robotik/Plugin/PluginABI.h"
@@ -26,10 +26,10 @@ class Mission;
 class Simulation;
 
 // ****************************************************************************
-//! @brief Identity published by @c robotik_plugin_query, before any instance.
-//!
-//! @c plugin.yaml is the description of the package: the host only checks
-//! that @ref id matches it. The other fields are optional.
+/// @brief Identity published by @c robotik_plugin_query, before any instance.
+///
+/// @c plugin.yaml is the description of the package: the host only checks
+/// that @ref id matches it. The other fields are optional.
 // ****************************************************************************
 struct PluginInfo
 {
@@ -40,7 +40,7 @@ struct PluginInfo
 };
 
 // ****************************************************************************
-//! @brief Drawing surface implemented by the host. Valid only during a draw.
+/// @brief Drawing surface implemented by the host. Valid only during a draw.
 // ****************************************************************************
 class Canvas
 {
@@ -108,7 +108,7 @@ public:
         return m_canvas->slider_int(m_canvas, label.c_str(), &p_value, p_min, p_max) != 0;
     }
 
-    //! @brief Radio button: drawn selected when @p_active. True when clicked.
+    /// @brief Radio button: drawn selected when @p_active. True when clicked.
     [[nodiscard]] bool radio(std::string_view p_label, bool p_active) const
     {
         if (m_canvas == nullptr ||
@@ -135,7 +135,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Services of the host, seen from the plugin.
+/// @brief Services of the host, seen from the plugin.
 // ****************************************************************************
 class Host
 {
@@ -239,9 +239,9 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Base of a plugin instance. Override the steps the demo needs.
-//!
-//! @c describe is static because the host reads it before @c create.
+/// @brief Base of a plugin instance. Override the steps the demo needs.
+///
+/// @c describe is static because the host reads it before @c create.
 // ****************************************************************************
 class Plugin
 {
@@ -594,10 +594,10 @@ void destroyPlugin(RobotikPlugin* p_plugin)
 } // namespace robotik
 
 // ****************************************************************************
-//! @brief Exports the C ABI for @p Type. Use it in one translation unit.
-//!
-//! @p Type is default-constructible and provides @c static PluginInfo describe(),
-//! e.g. @code return { .id = "robotik.painter" }; @endcode
+/// @brief Exports the C ABI for @p Type. Use it in one translation unit.
+///
+/// @p Type is default-constructible and provides @c static PluginInfo describe(),
+/// e.g. @code return { .id = "robotik.painter" }; @endcode
 // ****************************************************************************
 #define ROBOTIK_EXPORT_PLUGIN(Type)                                                  \
     extern "C"                                                                       \

@@ -19,17 +19,16 @@
 #include <stdexcept>
 #include <string>
 
-namespace
-{
+static constexpr std::size_t TRAIL = 240;
 
-constexpr std::size_t TRAIL = 240;
-
-compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
+/// Converts a double vector to the float vector the scene stores.
+static compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x), static_cast<float>(p_v.y), static_cast<float>(p_v.z) };
 }
 
-compages::core::Quatf toFloat(robotik::Quaternion const& p_q)
+/// Converts a double quaternion to the float quaternion the scene stores.
+static compages::core::Quatf toFloat(robotik::Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),
@@ -37,7 +36,8 @@ compages::core::Quatf toFloat(robotik::Quaternion const& p_q)
              static_cast<float>(p_q.z) };
 }
 
-void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, double p_angle)
+/// Writes a measured angle on a named joint when it exists.
+static void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, double p_angle)
 {
     robotik::JointId const id = p_joints.find(p_name);
     if (id != robotik::NO_JOINT)
@@ -46,7 +46,8 @@ void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, double p_
     }
 }
 
-robotik::ecs::Shape decoration(std::string p_name,
+/// A colored box the fly scenario adds to the scene.
+static robotik::ecs::Shape decoration(std::string p_name,
                                      robotik::Vector3 const& p_size,
                                      std::array<float, 3> const& p_color)
 {
@@ -56,8 +57,6 @@ robotik::ecs::Shape decoration(std::string p_name,
     object.color = p_color;
     return object;
 }
-
-} // namespace
 
 // --- Backend ----------------------------------------------------------------
 

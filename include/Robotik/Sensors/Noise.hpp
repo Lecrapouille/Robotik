@@ -5,14 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Noise.hpp
-//! @brief How a sensor degrades the true value: noise, bias, resolution,
-//! saturation and latency.
-//!
-//! The model is applied in this order: bias, white gaussian noise,
-//! quantization to the resolution, then saturation. An ideal channel (all
-//! zero, unbounded) returns the true value and draws no random number, so
-//! turning noise off does not shift the random streams of the other sensors.
+/// @file Noise.hpp
+/// @brief How a sensor degrades the true value: noise, bias, resolution,
+/// saturation and latency.
+///
+/// The model is applied in this order: bias, white gaussian noise,
+/// quantization to the resolution, then saturation. An ideal channel (all
+/// zero, unbounded) returns the true value and draws no random number, so
+/// turning noise off does not shift the random streams of the other sensors.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -27,21 +27,21 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Degradation of one measured channel, in the unit of the channel.
+/// @brief Degradation of one measured channel, in the unit of the channel.
 // ****************************************************************************
 struct NoiseModel
 {
-    //!< Standard deviation of the white gaussian noise.
+    /// Standard deviation of the white gaussian noise.
     double sigma = 0.0;
-    //!< Constant offset added to the true value.
+    /// Constant offset added to the true value.
     double bias = 0.0;
-    //!< Quantization step; zero for a continuous output.
+    /// Quantization step; zero for a continuous output.
     double resolution = 0.0;
-    //!< Saturation bounds of the output.
+    /// Saturation bounds of the output.
     double min = -std::numeric_limits<double>::infinity();
     double max = std::numeric_limits<double>::infinity();
 
-    //! @brief Pure gaussian noise of standard deviation @p_sigma.
+    /// @brief Pure gaussian noise of standard deviation @p_sigma.
     [[nodiscard]] static NoiseModel gaussian(double p_sigma)
     {
         NoiseModel model;
@@ -69,7 +69,7 @@ struct NoiseModel
         return value < min ? min : (value > max ? max : value);
     }
 
-    //! @brief Same model on the three axes (drawn x, then y, then z).
+    /// @brief Same model on the three axes (drawn x, then y, then z).
     [[nodiscard]] Vector3 apply(Vector3 const& p_value, Random& p_random) const
     {
         double const x = apply(p_value.x, p_random);
@@ -80,10 +80,10 @@ struct NoiseModel
 };
 
 // ****************************************************************************
-//! @brief Delivers samples @c latency after their capture.
-//!
-//! The stamp of a sample stays its capture time: a consumer sees an old
-//! measurement, and knows how old it is.
+/// @brief Delivers samples @c latency after their capture.
+///
+/// The stamp of a sample stays its capture time: a consumer sees an old
+/// measurement, and knows how old it is.
 // ****************************************************************************
 template <class Sample>
 class LatencyBuffer
@@ -100,15 +100,15 @@ public:
         return m_latency;
     }
 
-    //! @brief Queues a sample captured at @p_now.
+    /// @brief Queues a sample captured at @p_now.
     void push(Seconds p_now, Sample p_sample)
     {
         m_pending.emplace_back(p_now + m_latency, std::move(p_sample));
     }
 
-    //! @brief Moves the samples due at @p_now to @ref current. A nanosecond
-    //! of slack absorbs the rounding of clocks summed step by step.
-    //! @return True when a sample was delivered.
+    /// @brief Moves the samples due at @p_now to @ref current. A nanosecond
+    /// of slack absorbs the rounding of clocks summed step by step.
+    /// @return True when a sample was delivered.
     bool advance(Seconds p_now)
     {
         bool delivered = false;
@@ -121,7 +121,7 @@ public:
         return delivered;
     }
 
-    //! @brief Last delivered sample (default before the first one).
+    /// @brief Last delivered sample (default before the first one).
     [[nodiscard]] Sample const& current() const
     {
         return m_current;

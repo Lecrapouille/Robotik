@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Devices.hpp
-//! @brief Registry of the sensors or the actuators of a robot.
+/// @file Devices.hpp
+/// @brief Registry of the sensors or the actuators of a robot.
 #pragma once
 
 #include "Robotik/Runtime/Resources.hpp"
@@ -23,13 +23,13 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-//! @brief Owns devices and declares each one as a resource of the same name.
-//!
-//! @code
-//! auto& camera = robot.sensors().add<robotik::Camera>("wrist_camera", config);
-//! auto* gripper = robot.actuators().first<robotik::VacuumGripper>();
-//! bool ok = robot.resources().available("wrist_camera");
-//! @endcode
+/// @brief Owns devices and declares each one as a resource of the same name.
+///
+/// @code
+/// auto& camera = robot.sensors().add<robotik::Camera>("wrist_camera", config);
+/// auto* gripper = robot.actuators().first<robotik::VacuumGripper>();
+/// bool ok = robot.resources().available("wrist_camera");
+/// @endcode
 // ****************************************************************************
 template <typename Base>
 class DeviceSet
@@ -42,8 +42,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Builds a device in place and registers its resource.
-    //! @throws std::invalid_argument on a duplicated name.
+    /// @brief Builds a device in place and registers its resource.
+    /// @throws std::invalid_argument on a duplicated name.
     // -------------------------------------------------------------------------
     template <std::derived_from<Base> T, typename... Args>
     T& add(Args&&... p_args)
@@ -74,7 +74,7 @@ public:
         return *m_devices[p_index];
     }
 
-    //! @brief Resource of the device at @p_index.
+    /// @brief Resource of the device at @p_index.
     [[nodiscard]] ResourceId resource(std::size_t p_index) const
     {
         return m_ids[p_index];
@@ -103,7 +103,7 @@ public:
         return dynamic_cast<T*>(find(p_name));
     }
 
-    //! @brief First device of type @p T, or null.
+    /// @brief First device of type @p T, or null.
     template <std::derived_from<Base> T>
     [[nodiscard]] T* first() const
     {

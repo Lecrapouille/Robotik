@@ -15,7 +15,7 @@ using namespace robotik;
 using namespace robotik;
 
 // *********************************************************************************
-//! \brief Test fixture for Conversions class.
+/// \brief Test fixture for Conversions class.
 // *********************************************************************************
 class ConversionsTest: public ::testing::Test
 {
@@ -31,7 +31,7 @@ protected:
 };
 
 // *********************************************************************************
-//! \brief Test Euler angles to rotation matrix conversion.
+/// \brief Test Euler angles to rotation matrix conversion.
 // *********************************************************************************
 TEST_F(ConversionsTest, EulerToRotation)
 {
@@ -59,7 +59,7 @@ TEST_F(ConversionsTest, EulerToRotation)
 }
 
 // *********************************************************************************
-//! \brief Test rotation matrix to Euler angles conversion.
+/// \brief Test rotation matrix to Euler angles conversion.
 // *********************************************************************************
 TEST_F(ConversionsTest, RotationToEuler)
 {
@@ -80,7 +80,7 @@ TEST_F(ConversionsTest, RotationToEuler)
 }
 
 // *********************************************************************************
-//! \brief Test round-trip conversion: Euler -> Rotation -> Euler.
+/// \brief Test round-trip conversion: Euler -> Rotation -> Euler.
 // *********************************************************************************
 TEST_F(ConversionsTest, EulerRotationRoundTrip)
 {
@@ -107,7 +107,7 @@ TEST_F(ConversionsTest, EulerRotationRoundTrip)
 }
 
 // *********************************************************************************
-//! \brief Test createTransform with translation and rotation matrix.
+/// \brief Test createTransform with translation and rotation matrix.
 // *********************************************************************************
 TEST_F(ConversionsTest, CreateTransformWithMatrix)
 {
@@ -130,7 +130,7 @@ TEST_F(ConversionsTest, CreateTransformWithMatrix)
 }
 
 // *********************************************************************************
-//! \brief Test createTransform with translation and Euler angles.
+/// \brief Test createTransform with translation and Euler angles.
 // *********************************************************************************
 TEST_F(ConversionsTest, CreateTransformWithEuler)
 {
@@ -150,7 +150,7 @@ TEST_F(ConversionsTest, CreateTransformWithEuler)
 }
 
 // *********************************************************************************
-//! \brief Test getTranslation.
+/// \brief Test getTranslation.
 // *********************************************************************************
 TEST_F(ConversionsTest, GetTranslation)
 {
@@ -163,7 +163,7 @@ TEST_F(ConversionsTest, GetTranslation)
 }
 
 // *********************************************************************************
-//! \brief Test getRotation.
+/// \brief Test getRotation.
 // *********************************************************************************
 TEST_F(ConversionsTest, GetRotation)
 {
@@ -177,7 +177,7 @@ TEST_F(ConversionsTest, GetRotation)
 }
 
 // *********************************************************************************
-//! \brief Test transformToPose.
+/// \brief Test transformToPose.
 // *********************************************************************************
 TEST_F(ConversionsTest, TransformToPose)
 {
@@ -201,7 +201,7 @@ TEST_F(ConversionsTest, TransformToPose)
 }
 
 // *********************************************************************************
-//! \brief Test poseToTransform.
+/// \brief Test poseToTransform.
 // *********************************************************************************
 TEST_F(ConversionsTest, PoseToTransform)
 {
@@ -222,7 +222,7 @@ TEST_F(ConversionsTest, PoseToTransform)
 }
 
 // *********************************************************************************
-//! \brief Test round-trip conversion: Transform -> Pose -> Transform.
+/// \brief Test round-trip conversion: Transform -> Pose -> Transform.
 // *********************************************************************************
 TEST_F(ConversionsTest, TransformPoseRoundTrip)
 {
@@ -239,7 +239,7 @@ TEST_F(ConversionsTest, TransformPoseRoundTrip)
 }
 
 // *********************************************************************************
-//! \brief Test DH (Denavit-Hartenberg) transformation.
+/// \brief Test DH (Denavit-Hartenberg) transformation.
 // *********************************************************************************
 TEST_F(ConversionsTest, DHTransform)
 {
@@ -271,7 +271,7 @@ TEST_F(ConversionsTest, DHTransform)
 }
 
 // *********************************************************************************
-//! \brief Test DH transform with known values.
+/// \brief Test DH transform with known values.
 // *********************************************************************************
 TEST_F(ConversionsTest, DHTransformKnownValues)
 {
@@ -301,7 +301,7 @@ TEST_F(ConversionsTest, DHTransformKnownValues)
 }
 
 // *********************************************************************************
-//! \brief Test edge cases.
+/// \brief Test edge cases.
 // *********************************************************************************
 TEST_F(ConversionsTest, EdgeCases)
 {

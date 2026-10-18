@@ -11,13 +11,10 @@
 #include <algorithm>
 #include <cstdint>
 
-namespace
-{
+static constexpr char const* STOP = "Stop";
 
-constexpr char const* STOP = "Stop";
-
-//! @brief Run controls drawn over the top-left corner of the 3D view.
-void runControls(App& p_app, ImVec2 p_at)
+/// @brief Run controls drawn over the top-left corner of the 3D view.
+static void runControls(App& p_app, ImVec2 p_at)
 {
     ImGui::SetCursorScreenPos(ImVec2(p_at.x + 10.0f, p_at.y + 8.0f));
     ImDrawList* draw = ImGui::GetWindowDrawList();
@@ -78,7 +75,8 @@ void runControls(App& p_app, ImVec2 p_at)
     layers.Merge(draw);
 }
 
-void stopButton(App& p_app, ImVec2 p_at, float p_width)
+/// Emergency-stop button, drawn over the view when a Stop skill exists.
+static void stopButton(App& p_app, ImVec2 p_at, float p_width)
 {
     if (p_app.simulation->skills().find(STOP) == robotik::NO_SKILL)
     {
@@ -100,8 +98,8 @@ void stopButton(App& p_app, ImVec2 p_at, float p_width)
     ImGui::SetItemTooltip("The Stop skill takes every actuator  (Ctrl+E)");
 }
 
-//! @brief Colored frame around the view: the state of the run at a glance.
-void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
+/// @brief Colored frame around the view: the state of the run at a glance.
+static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
 {
     ImVec4 color;
     if (!runColor(p_app, color))
@@ -114,8 +112,6 @@ void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
                                         ImVec2(p_at.x + p_size.x - half, p_at.y + p_size.y - half),
                                         ImGui::GetColorU32(color), 0.0f, 0, THICKNESS);
 }
-
-} // namespace
 
 bool runColor(App const& p_app, ImVec4& p_color)
 {

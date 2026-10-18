@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file ForceTorqueSensor.hpp
-//! @brief Six-axis force/torque sensor (wrist, ankle, gripper).
+/// @file ForceTorqueSensor.hpp
+/// @brief Six-axis force/torque sensor (wrist, ankle, gripper).
 #pragma once
 
 #include "Robotik/Math/Random.hpp"
@@ -22,25 +22,25 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Which link is measured and how noisy the measure is.
+/// @brief Which link is measured and how noisy the measure is.
 // ****************************************************************************
 struct ForceTorqueConfig
 {
-    //!< Link whose wrench from its parent link is measured.
+    /// Link whose wrench from its parent link is measured.
     std::string link;
-    //!< Sampling rate in Hz.
+    /// Sampling rate in Hz.
     double frequency = 500.0;
-    //!< Delay between a capture and its delivery.
+    /// Delay between a capture and its delivery.
     Seconds latency{ 0.0 };
-    //!< Force channels (SI: N).
+    /// Force channels (SI: N).
     NoiseModel force;
-    //!< Torque channels (SI: N.m).
+    /// Torque channels (SI: N.m).
     NoiseModel torque;
 };
 
 // ****************************************************************************
-//! @brief Wrench measured through the backend (@ref RobotBackend::wrench).
-//! A backend that cannot measure wrenches leaves the sensor without samples.
+/// @brief Wrench measured through the backend (@ref RobotBackend::wrench).
+/// A backend that cannot measure wrenches leaves the sensor without samples.
 // ****************************************************************************
 class ForceTorqueSensor final: public Sensor
 {
@@ -53,7 +53,7 @@ public:
         return m_config;
     }
 
-    //! @brief Last delivered reading, in the frame of the measured link.
+    /// @brief Last delivered reading, in the frame of the measured link.
     [[nodiscard]] ForceTorqueReading const& reading() const
     {
         return m_readings.current();
@@ -79,7 +79,7 @@ private:
 
     ForceTorqueConfig m_config;
     LatencyBuffer<ForceTorqueReading> m_readings;
-    //!< Link entity the delivered reading is attached to.
+    /// Link entity the delivered reading is attached to.
     compages::world::Entity m_holder;
     Random m_random;
 };

@@ -5,13 +5,13 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PainterScene.hpp
-//! @brief Conventions of the painter demonstration.
-//!
-//! The world (worlds/painting_lab.world.yaml) builds the easel, the canvas and the
-//! pots; the strokes are trajectories of the scenario, in the frame of the
-//! easel. What is left here are the entity ids, the brush orientation over a
-//! pot and the paint colours. Frames are URDF Z-up, the world frame.
+/// @file PainterScene.hpp
+/// @brief Conventions of the painter demonstration.
+///
+/// The world (worlds/painting_lab.world.yaml) builds the easel, the canvas and the
+/// pots; the strokes are trajectories of the scenario, in the frame of the
+/// easel. What is left here are the entity ids, the brush orientation over a
+/// pot and the paint colours. Frames are URDF Z-up, the world frame.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -24,26 +24,26 @@
 namespace painter
 {
 
-//! World entity ids.
+/// World entity ids.
 inline constexpr char const* kCanvas = "canvas";
 inline constexpr char const* kEasel = "easel";
 
-//! Tool straight down, for dipping into a pot.
+/// Tool straight down, for dipping into a pot.
 inline robotik::Quaternion brushDown()
 {
     return { 0.0, 0.0, 1.0, 0.0 };
 }
 
-//! @brief Shared with the mission so a stroke can tint the canvas texture.
-//! @c brush and @c painted are the memory of the robot (it cannot see the
-//! paint): set by the gestures that succeed, read by the planner.
+/// @brief Shared with the mission so a stroke can tint the canvas texture.
+/// @c brush and @c painted are the memory of the robot (it cannot see the
+/// paint): set by the gestures that succeed, read by the planner.
 struct Stroke
 {
     std::string color = "red";
     bool painting = false;
-    //!< Colour on the brush, empty when clean.
+    /// Colour on the brush, empty when clean.
     std::string brush;
-    //!< Colours already laid on the canvas.
+    /// Colours already laid on the canvas.
     std::set<std::string, std::less<>> painted;
 };
 

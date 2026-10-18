@@ -18,12 +18,9 @@
 #include <numbers>
 #include <string>
 
-namespace
-{
+static constexpr double DEGREES = 180.0 / std::numbers::pi;
 
-constexpr double DEGREES = 180.0 / std::numbers::pi;
-
-//! @brief Limits and display units of one joint.
+/// @brief Limits and display units of one joint.
 struct JointInfo
 {
     bool linear = false;
@@ -32,7 +29,7 @@ struct JointInfo
     double velocity = std::numeric_limits<double>::infinity();
     double effort = std::numeric_limits<double>::infinity();
     bool bounded = false;
-    //!< SI value to display value: degrees for angles, metres for lengths.
+    /// SI value to display value: degrees for angles, metres for lengths.
     double unit = 1.0;
     char const* position_unit = "m";
     char const* velocity_unit = "m/s";
@@ -40,7 +37,8 @@ struct JointInfo
     char const* effort_unit = "N";
 };
 
-JointInfo infoOf(robotik::JointSet const& p_joints, robotik::JointId p_id)
+/// Limits and units of one joint, ready for the table.
+static JointInfo infoOf(robotik::JointSet const& p_joints, robotik::JointId p_id)
 {
     JointInfo info;
     info.linear = p_joints.isPrismatic(p_id);
@@ -68,12 +66,14 @@ JointInfo infoOf(robotik::JointSet const& p_joints, robotik::JointId p_id)
     return info;
 }
 
-double finiteOr(double p_value, double p_fallback)
+/// The value when it is finite and positive, otherwise the fallback.
+static double finiteOr(double p_value, double p_fallback)
 {
     return std::isfinite(p_value) && p_value > 0.0 ? p_value : p_fallback;
 }
 
-void header(App& p_app)
+/// Robot name, model and joint count.
+static void header(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     robotik::Scenario const& scenario = p_app.simulation->scenario();
@@ -136,7 +136,8 @@ void header(App& p_app)
     }
 }
 
-void positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
+/// Slider and numeric field of one joint position.
+static void positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     robotik::JointSet& joints = robot.joints();
@@ -194,7 +195,8 @@ void positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
     }
 }
 
-void jointsTable(App& p_app)
+/// Table of every joint: mode, position, velocity and plot toggle.
+static void jointsTable(App& p_app)
 {
     robotik::RobotSession& robot = p_app.simulation->robot();
     robotik::JointSet& joints = robot.joints();
@@ -338,6 +340,7 @@ void jointsTable(App& p_app)
 
 // --- Plots ------------------------------------------------------------------
 
+/// One curve of the joint plot: samples and the scale of the display.
 struct Series
 {
     JointHistory const* history;
@@ -345,7 +348,8 @@ struct Series
     double scale;
 };
 
-ImPlotPoint sample(int p_index, void* p_data)
+/// One sample of a joint plot, in display units.
+static ImPlotPoint sample(int p_index, void* p_data)
 {
     auto const* series = static_cast<Series const*>(p_data);
     std::size_t const slot =
@@ -353,8 +357,6 @@ ImPlotPoint sample(int p_index, void* p_data)
     return ImPlotPoint(static_cast<double>(series->history->time[slot]),
                        static_cast<double>((*series->values)[slot]) * series->scale);
 }
-
-} // namespace
 
 void robotPanel(App& p_app)
 {

@@ -20,10 +20,7 @@ using robotik::SkillReason;
 using robotik::SkillState;
 using robotik::Status;
 
-namespace
-{
-
-//! @brief Runs for a fixed number of ticks, records cancellations.
+/// @brief Runs for a fixed number of ticks, records cancellations.
 class CountdownSkill final: public robotik::Skill
 {
 public:
@@ -61,6 +58,7 @@ private:
     int m_left = 0;
 };
 
+/// Fixture that drives a scheduler with countdown skills.
 class SchedulerTest: public ::testing::Test
 {
 protected:
@@ -106,8 +104,6 @@ protected:
     robotik::RobotContext context;
     robotik::SkillScheduler skills;
 };
-
-} // namespace
 
 TEST_F(SchedulerTest, RunsUntilSuccessAndReleases)
 {

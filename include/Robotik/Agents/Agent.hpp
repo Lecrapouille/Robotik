@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Agent.hpp
-//! @brief Something that maps an observation to an action.
-//!
-//! A fly brain, a reinforcement-learning policy, a classical controller or a
-//! scripted player all share this surface. None of them sees MuJoCo, Compages
-//! or the files that built the world.
+/// @file Agent.hpp
+/// @brief Something that maps an observation to an action.
+///
+/// A fly brain, a reinforcement-learning policy, a classical controller or a
+/// scripted player all share this surface. None of them sees MuJoCo, Compages
+/// or the files that built the world.
 #pragma once
 
 #include "Robotik/Agents/Action.hpp"
@@ -20,7 +20,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Closed-loop decision, one step at a time.
+/// @brief Closed-loop decision, one step at a time.
 // ****************************************************************************
 class Agent
 {

@@ -18,10 +18,8 @@
 namespace painter
 {
 
-namespace
-{
-
-robotik::Status follow(std::vector<robotik::Pose> const& p_path,
+/// Advances along a polyline, one MoveTCP step at a time.
+static robotik::Status follow(std::vector<robotik::Pose> const& p_path,
                        std::size_t& p_index,
                        robotik::MoveTCPSkill& p_move,
                        robotik::RobotContext& p_context,
@@ -49,6 +47,7 @@ robotik::Status follow(std::vector<robotik::Pose> const& p_path,
     return robotik::Status::RUNNING;
 }
 
+/// One stroke of the painter: dip, mark or rinse.
 enum class Gesture
 {
     Dip,
@@ -56,6 +55,7 @@ enum class Gesture
     Rinse,
 };
 
+/// Behavior-tree leaf that plays one painter gesture.
 class GestureNode final: public bt::CallbackLeaf
 {
 public:
@@ -132,8 +132,6 @@ private:
     Gesture m_gesture = Gesture::Dip;
     bool m_active = false;
 };
-
-} // namespace
 
 DipSkill::DipSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
 {

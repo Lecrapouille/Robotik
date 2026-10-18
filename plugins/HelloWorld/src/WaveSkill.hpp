@@ -11,11 +11,11 @@
 #include "Robotik/Skills/Skill.hpp"
 
 // ****************************************************************************
-//! @brief Lesson 4: a skill. It swings the base joint left, right, left,
-//! right, then succeeds.
-//!
-//! A skill only sees the @ref robotik::RobotContext: the robot API and its
-//! beliefs. It cannot tell a simulation from a real robot.
+/// @brief Lesson 4: a skill. It swings the base joint left, right, left,
+/// right, then succeeds.
+///
+/// A skill only sees the @ref robotik::RobotContext: the robot API and its
+/// beliefs. It cannot tell a simulation from a real robot.
 // ****************************************************************************
 class WaveSkill final: public robotik::Skill
 {
@@ -31,8 +31,8 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Lesson 4: registers the skill "Wave". The behavior tree of the
-//! scenario calls it by that name.
+/// @brief Lesson 4: registers the skill "Wave". The behavior tree of the
+/// scenario calls it by that name.
 // ****************************************************************************
 class SkillsMission final: public robotik::Mission
 {

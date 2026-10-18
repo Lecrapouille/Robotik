@@ -58,7 +58,7 @@ TEST(RobotSession, GripperJointsJoinTheArm)
     EXPECT_EQ(robot.tool(), "tcp");
 }
 
-//! The simulator loads meshes through a scene. That path must keep the fingers.
+/// The simulator loads meshes through a scene. That path must keep the fingers.
 class SceneToolView : public robotik::SceneView
 {
 public:

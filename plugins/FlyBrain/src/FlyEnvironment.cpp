@@ -11,17 +11,14 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace
-{
+static constexpr double BODY_RADIUS_M = 0.16;
+static constexpr double REACH_M = 0.45;
+static constexpr double REACH_Z_M = 0.4;
+static constexpr double GROUND_Z_M = 0.19;
+static constexpr std::size_t TRAIL_CAP = 240;
 
-constexpr double BODY_RADIUS_M = 0.16;
-constexpr double REACH_M = 0.45;
-constexpr double REACH_Z_M = 0.4;
-constexpr double GROUND_Z_M = 0.19;
-constexpr std::size_t TRAIL_CAP = 240;
-
-//! @brief Brings an angle back to (-pi, pi], for the food bearing.
-double wrapPi(double p_angle)
+/// @brief Brings an angle back to (-pi, pi], for the food bearing.
+static double wrapPi(double p_angle)
 {
     constexpr double pi = 3.14159265358979323846;
     while (p_angle > pi)
@@ -35,15 +32,13 @@ double wrapPi(double p_angle)
     return p_angle;
 }
 
-//! @brief Distance in the ground plane. Height is checked apart from this.
-double horizontal(FlyPlant const& p_plant, robotik::Vector3 const& p_target)
+/// @brief Distance in the ground plane. Height is checked apart from this.
+static double horizontal(FlyPlant const& p_plant, robotik::Vector3 const& p_target)
 {
     double const dx = p_target.x - p_plant.x;
     double const dy = p_target.y - p_plant.y;
     return std::sqrt(dx * dx + dy * dy);
 }
-
-} // namespace
 
 FlyEnvironment::FlyEnvironment(FlyScenario p_scenario,
                                std::uint32_t p_max_steps)
@@ -111,7 +106,7 @@ void FlyEnvironment::reset(robotik::Seed p_seed, std::span<float> p_observation)
     write(p_observation);
 }
 
-//! @brief Eyes first, then the quantities the eyes do not measure.
+/// @brief Eyes first, then the quantities the eyes do not measure.
 void FlyEnvironment::sense()
 {
     // Sense the vision.

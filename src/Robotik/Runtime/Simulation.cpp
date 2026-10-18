@@ -32,27 +32,27 @@
 #define SKILL_PRIORITY 100
 #define STOP_PRIORITY 1000
 #define WORLD_MODEL_GATE_M 0.10
-//! Name of the Z-up frame entity the world entities hang from.
+/// Name of the Z-up frame entity the world entities hang from.
 #define WORLD_FRAME_ENTITY "robotik.world"
 
 namespace robotik
 {
 
-namespace
-{
-
-Vector3 positionOf(compages::world::Entity p_entity)
+/// Reads an entity position as a double vector.
+static Vector3 positionOf(compages::world::Entity p_entity)
 {
     auto const at = p_entity.position();
     return { at.x, at.y, at.z };
 }
 
-compages::core::Vector3f toFloat(Vector3 const& p_v)
+/// Converts a double vector to the float vector the scene stores.
+static compages::core::Vector3f toFloat(Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x), static_cast<float>(p_v.y), static_cast<float>(p_v.z) };
 }
 
-compages::core::Quatf toFloat(Quaternion const& p_q)
+/// Converts a double quaternion to the float quaternion the scene stores.
+static compages::core::Quatf toFloat(Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),
@@ -60,14 +60,15 @@ compages::core::Quatf toFloat(Quaternion const& p_q)
              static_cast<float>(p_q.z) };
 }
 
-//! Links of a URDF and its root (the link no joint has as child).
+/// Links of a URDF and its root (the link no joint has as child).
 struct UrdfLinks
 {
     std::string root;
     std::unordered_set<std::string> names;
 };
 
-UrdfLinks readLinks(std::filesystem::path const& p_urdf)
+/// Reads each link name and its inertial origin from a URDF.
+static UrdfLinks readLinks(std::filesystem::path const& p_urdf)
 {
     pugi::xml_document document;
     if (!document.load_file(p_urdf.string().c_str()))
@@ -93,8 +94,8 @@ UrdfLinks readLinks(std::filesystem::path const& p_urdf)
     return links;
 }
 
-//! Solid box inertia at the centre (kg.m^2).
-Vector3 boxInertia(double p_mass, Vector3 const& p_size)
+/// Solid box inertia at the centre (kg.m^2).
+static Vector3 boxInertia(double p_mass, Vector3 const& p_size)
 {
     double const x2 = p_size.x * p_size.x;
     double const y2 = p_size.y * p_size.y;
@@ -102,9 +103,9 @@ Vector3 boxInertia(double p_mass, Vector3 const& p_size)
     return { p_mass * (y2 + z2) / 12.0, p_mass * (x2 + z2) / 12.0, p_mass * (x2 + y2) / 12.0 };
 }
 
-//! While the vacuum holds a prop, flag wall penetration (counts as a robot
-//! collision). Sticky until @ref Simulation::reset.
-void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
+/// While the vacuum holds a prop, flag wall penetration (counts as a robot
+/// collision). Sticky until @ref Simulation::reset.
+static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
 {
     if (p_flag)
     {
@@ -143,8 +144,6 @@ void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
             }
         });
 }
-
-} // namespace
 
 char const* toString(Simulation::Outcome p_outcome)
 {

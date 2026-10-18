@@ -7,7 +7,7 @@
 
 #pragma once
 
-//! \brief Make a derived class non copyable.
+/// \brief Make a derived class non copyable.
 class NonCopyable
 {
 protected:
@@ -19,7 +19,7 @@ protected:
     const NonCopyable& operator=(const NonCopyable&) = delete;
 };
 
-//! \brief Make a derived class non creatable.
+/// \brief Make a derived class non creatable.
 class NonCreatable
 {
 protected:
@@ -31,8 +31,8 @@ protected:
     const NonCreatable& operator=(const NonCreatable&) = delete;
 };
 
-//! \brief Singleton pattern implementation.
-//! \tparam T Curiously recurring template pattern of the derived class.
+/// \brief Singleton pattern implementation.
+/// \tparam T Curiously recurring template pattern of the derived class.
 template <class T>
 class Singleton: public NonCopyable, public NonCreatable
 {

@@ -5,19 +5,19 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Environment.hpp
-//! @brief Reinforcement learning environments and a pool running N of them in
-//! parallel.
-//!
-//! Observations and actions are flat float vectors written in place: an
-//! environment step allocates nothing, and the pool stores all of them in
-//! contiguous row-major buffers ready to hand to a learner. Their layout is
-//! described by a @ref Space: a name, bounds and a unit per dimension.
-//!
-//! An environment is one simulated world; an agent is something that acts in
-//! it. Several environments (@ref EnvironmentPool) collect experience faster
-//! or compare conditions; several agents in one environment interact. The
-//! two combine, and are not to be confused.
+/// @file Environment.hpp
+/// @brief Reinforcement learning environments and a pool running N of them in
+/// parallel.
+///
+/// Observations and actions are flat float vectors written in place: an
+/// environment step allocates nothing, and the pool stores all of them in
+/// contiguous row-major buffers ready to hand to a learner. Their layout is
+/// described by a @ref Space: a name, bounds and a unit per dimension.
+///
+/// An environment is one simulated world; an agent is something that acts in
+/// it. Several environments (@ref EnvironmentPool) collect experience faster
+/// or compare conditions; several agents in one environment interact. The
+/// two combine, and are not to be confused.
 #pragma once
 
 #include "Robotik/Environment/Space.hpp"
@@ -36,35 +36,35 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Why an episode ended. Completion, time limit and technical stop are
-//! different events, for learning (bootstrap or not) and for evaluation.
+/// @brief Why an episode ended. Completion, time limit and technical stop are
+/// different events, for learning (bootstrap or not) and for evaluation.
 // ****************************************************************************
 enum class EpisodeEnd : std::uint8_t
 {
-    None,      //!< Still running.
-    Success,   //!< The task is done: a terminal state.
-    Failure,   //!< The task cannot be done any more: a terminal state.
-    TimeLimit, //!< Cut by the step budget: not a terminal state.
-    Aborted,   //!< Technical stop (invalid state, solver error): discard.
+    None,      ///< Still running.
+    Success,   ///< The task is done: a terminal state.
+    Failure,   ///< The task cannot be done any more: a terminal state.
+    TimeLimit, ///< Cut by the step budget: not a terminal state.
+    Aborted,   ///< Technical stop (invalid state, solver error): discard.
 };
 
 [[nodiscard]] char const* toString(EpisodeEnd p_end);
 
 // ****************************************************************************
-//! @brief Outcome of one environment step.
+/// @brief Outcome of one environment step.
 // ****************************************************************************
 struct StepResult
 {
     float reward = 0.0f;
     EpisodeEnd end = EpisodeEnd::None;
 
-    //! @brief The task ended (success or unrecoverable failure).
+    /// @brief The task ended (success or unrecoverable failure).
     [[nodiscard]] bool terminated() const
     {
         return end == EpisodeEnd::Success || end == EpisodeEnd::Failure;
     }
 
-    //! @brief The episode was cut; the task did not end.
+    /// @brief The episode was cut; the task did not end.
     [[nodiscard]] bool truncated() const
     {
         return end == EpisodeEnd::TimeLimit || end == EpisodeEnd::Aborted;
@@ -77,9 +77,9 @@ struct StepResult
 };
 
 // ****************************************************************************
-//! @brief One simulated world an agent acts in.
-//!
-//! Same seed, same actions: same observations and rewards.
+/// @brief One simulated world an agent acts in.
+///
+/// Same seed, same actions: same observations and rewards.
 // ****************************************************************************
 class Environment
 {
@@ -90,33 +90,33 @@ public:
     [[nodiscard]] virtual std::size_t observationSize() const = 0;
     [[nodiscard]] virtual std::size_t actionSize() const = 0;
 
-    //! @brief Layout of the observation; unnamed and unbounded by default.
+    /// @brief Layout of the observation; unnamed and unbounded by default.
     [[nodiscard]] virtual Space observationSpace() const
     {
         return Space::unnamed("o", observationSize());
     }
 
-    //! @brief Layout of the action; unnamed and unbounded by default.
+    /// @brief Layout of the action; unnamed and unbounded by default.
     [[nodiscard]] virtual Space actionSpace() const
     {
         return Space::unnamed("a", actionSize());
     }
 
-    //! @brief Starts an episode and writes its first observation.
+    /// @brief Starts an episode and writes its first observation.
     virtual void reset(Seed p_seed, std::span<float> p_observation) = 0;
 
-    //! @brief Applies @p_action and writes the next observation.
+    /// @brief Applies @p_action and writes the next observation.
     virtual StepResult step(std::span<float const> p_action,
                             std::span<float> p_observation) = 0;
 };
 
 // ****************************************************************************
-//! @brief Summary of a finished episode.
+/// @brief Summary of a finished episode.
 // ****************************************************************************
 struct Episode
 {
     std::uint32_t environment = 0;
-    //!< Episode number in this environment, from 0.
+    /// Episode number in this environment, from 0.
     std::uint32_t index = 0;
     Seed seed;
     double reward = 0.0;
@@ -130,23 +130,23 @@ struct Episode
 };
 
 // ****************************************************************************
-//! @brief N environments stepped together on worker threads.
-//!
-//! Episode @c k of environment @c i is seeded with
-//! @c master.derive(i).derive(k): any episode can be replayed alone. A
-//! finished environment restarts at once; its observation row then holds the
-//! first observation of the next episode and @ref episodes logs the old one.
-//!
-//! @code
-//! robotik::EnvironmentPool pool(16, [](std::size_t) {
-//!     return std::make_unique<MyEnvironment>(); }, robotik::Seed{ 1 });
-//! pool.reset();
-//! for (int t = 0; t < 1000; ++t) {
-//!     policy(pool.observations(), pool.actions()); // fill every row
-//!     pool.step();
-//!     learn(pool.rewards(), pool.dones());
-//! }
-//! @endcode
+/// @brief N environments stepped together on worker threads.
+///
+/// Episode @c k of environment @c i is seeded with
+/// @c master.derive(i).derive(k): any episode can be replayed alone. A
+/// finished environment restarts at once; its observation row then holds the
+/// first observation of the next episode and @ref episodes logs the old one.
+///
+/// @code
+/// robotik::EnvironmentPool pool(16, [](std::size_t) {
+///     return std::make_unique<MyEnvironment>(); }, robotik::Seed{ 1 });
+/// pool.reset();
+/// for (int t = 0; t < 1000; ++t) {
+///     policy(pool.observations(), pool.actions()); // fill every row
+///     pool.step();
+///     learn(pool.rewards(), pool.dones());
+/// }
+/// @endcode
 // ****************************************************************************
 class EnvironmentPool
 {
@@ -154,7 +154,7 @@ public:
 
     using Factory = std::function<std::unique_ptr<Environment>(std::size_t)>;
 
-    //! @param p_threads Worker threads; 0 picks the hardware concurrency.
+    /// @param p_threads Worker threads; 0 picks the hardware concurrency.
     EnvironmentPool(std::size_t p_count,
                     Factory const& p_factory,
                     Seed p_master,
@@ -179,10 +179,10 @@ public:
         return m_action_size;
     }
 
-    //! @brief Restarts every environment at its episode 0.
+    /// @brief Restarts every environment at its episode 0.
     void reset();
 
-    //! @brief Steps every environment with its row of @ref actions.
+    /// @brief Steps every environment with its row of @ref actions.
     void step();
 
     // --- Buffers (row i belongs to environment i) ----------------------------
@@ -213,25 +213,25 @@ public:
         return m_rewards;
     }
 
-    //! @brief 1 where the last step ended an episode.
+    /// @brief 1 where the last step ended an episode.
     [[nodiscard]] std::span<std::uint8_t const> dones() const
     {
         return m_dones;
     }
 
-    //! @brief Seed of the running episode of environment @p_index.
+    /// @brief Seed of the running episode of environment @p_index.
     [[nodiscard]] Seed seed(std::size_t p_index) const
     {
         return m_master.derive(p_index).derive(m_indices[p_index]);
     }
 
-    //! @brief Finished episodes, in completion order.
+    /// @brief Finished episodes, in completion order.
     [[nodiscard]] std::span<Episode const> episodes() const
     {
         return m_episodes;
     }
 
-    //! @brief Direct access, e.g. to render one environment.
+    /// @brief Direct access, e.g. to render one environment.
     [[nodiscard]] Environment& environment(std::size_t p_index)
     {
         return *m_environments[p_index];

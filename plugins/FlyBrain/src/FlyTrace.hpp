@@ -15,26 +15,26 @@
 #include <vector>
 
 // ****************************************************************************
-//! @brief A fly episode stored as JSON, so it can be replayed without a brain.
+/// @brief A fly episode stored as JSON, so it can be replayed without a brain.
 // ****************************************************************************
 struct FlyTrace
 {
-    //!< Master seed of the episode.
+    /// Master seed of the episode.
     std::uint64_t seed = 0;
-    //!< Step the actions were computed with (SI: s).
+    /// Step the actions were computed with (SI: s).
     double dt = 0.01;
-    //!< Observation read before each action. Same length as @ref actions.
+    /// Observation read before each action. Same length as @ref actions.
     std::vector<FlyObservation> observations;
-    //!< Action applied at each step, in order.
+    /// Action applied at each step, in order.
     std::vector<FlyAction> actions;
 
     // ------------------------------------------------------------------------
-    //! @brief Writes a JSON object with the seed, the step and the two lists.
+    /// @brief Writes a JSON object with the seed, the step and the two lists.
     // ------------------------------------------------------------------------
     void save(std::filesystem::path const& p_path) const;
 
     // ------------------------------------------------------------------------
-    //! @brief Reads a file written by @ref save.
+    /// @brief Reads a file written by @ref save.
     // ------------------------------------------------------------------------
     [[nodiscard]] static FlyTrace load(std::filesystem::path const& p_path);
 };

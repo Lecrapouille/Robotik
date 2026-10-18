@@ -12,9 +12,7 @@
 #include <memory>
 #include <string_view>
 
-namespace
-{
-
+/// Loads the painter mission.
 class PainterPlugin final: public robotik::Plugin
 {
 public:
@@ -47,7 +45,5 @@ private:
 
     std::unique_ptr<PainterMission> m_mission;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)

@@ -17,7 +17,7 @@
 #include <vector>
 
 // ****************************************************************************
-//! @brief Joints of the policy, in its order, and the IMU that feeds it.
+/// @brief Joints of the policy, in its order, and the IMU that feeds it.
 // ****************************************************************************
 struct WalkBody
 {
@@ -26,8 +26,8 @@ struct WalkBody
 };
 
 // ****************************************************************************
-//! @brief Holds the default posture of the policy for a while: the robot
-//! settles on its feet before walking.
+/// @brief Holds the default posture of the policy for a while: the robot
+/// settles on its feet before walking.
 // ****************************************************************************
 class StandSkill final: public robotik::Skill
 {
@@ -48,15 +48,15 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Walks with a velocity command for a while (forever when the
-//! duration is not positive). A forward speed and a yaw rate draw a circle of
-//! radius vx / yaw rate. The command is read at each policy run: a panel may
-//! change it while the robot walks.
-//!
-//! The policy runs every decimation physics steps on the IMU and the joint
-//! encoders; between two runs the joint PD loops hold its targets. The skill
-//! fails when the IMU is lost or says the robot lies down; it then leaves the
-//! joints in damping mode (velocity loop toward zero), as the LimX robot does.
+/// @brief Walks with a velocity command for a while (forever when the
+/// duration is not positive). A forward speed and a yaw rate draw a circle of
+/// radius vx / yaw rate. The command is read at each policy run: a panel may
+/// change it while the robot walks.
+///
+/// The policy runs every decimation physics steps on the IMU and the joint
+/// encoders; between two runs the joint PD loops hold its targets. The skill
+/// fails when the IMU is lost or says the robot lies down; it then leaves the
+/// joints in damping mode (velocity loop toward zero), as the LimX robot does.
 // ****************************************************************************
 class WalkSkill final: public robotik::Skill
 {
@@ -76,10 +76,10 @@ private:
 
     WalkBody m_body;
     WalkPolicy& m_policy;
-    //!< Forward (m/s), lateral (m/s), yaw rate (rad/s), owned by the mission.
+    /// Forward (m/s), lateral (m/s), yaw rate (rad/s), owned by the mission.
     std::array<double, 3> const& m_command;
     Seconds m_duration;
-    //!< Time between two policy runs.
+    /// Time between two policy runs.
     Seconds m_period;
     Seconds m_elapsed{};
     Seconds m_wait{};

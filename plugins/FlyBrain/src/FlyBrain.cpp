@@ -15,11 +15,8 @@
 #include <string_view>
 #include <unordered_map>
 
-namespace
-{
-
-// Sensor roles first, then motor roles. The embedded circuit uses the
-// index as the neuron index; a connectome overwrites m_role.
+/// Sensor roles first, then motor roles. The embedded circuit uses the
+/// index as the neuron index; a connectome overwrites m_role.
 enum Role : int
 {
     InLeft = 0,
@@ -38,22 +35,22 @@ enum Role : int
     RoleCount
 };
 
-constexpr double EMA_TAU_S = 0.05;
+static constexpr double EMA_TAU_S = 0.05;
 
-//! @brief Clamps to [0, 1]. Forward speed has no reverse.
-double clamp01(double p_value)
+/// @brief Clamps to [0, 1]. Forward speed has no reverse.
+static double clamp01(double p_value)
 {
     return std::clamp(p_value, 0.0, 1.0);
 }
 
-//! @brief Clamps to [-1, 1]. Turn and lift are signed.
-double clamp11(double p_value)
+/// @brief Clamps to [-1, 1]. Turn and lift are signed.
+static double clamp11(double p_value)
 {
     return std::clamp(p_value, -1.0, 1.0);
 }
 
-//! @brief Binding-file name to a @ref Role. Unknown names are refused.
-int roleOf(std::string const& p_name)
+/// @brief Binding-file name to a @ref Role. Unknown names are refused.
+static int roleOf(std::string const& p_name)
 {
     static std::unordered_map<std::string, int> const roles = {
         { "visual_left", InLeft },      { "visual_center", InCenter },
@@ -71,8 +68,6 @@ int roleOf(std::string const& p_name)
     }
     return found->second;
 }
-
-} // namespace
 
 FlyBrain::FlyBrain(Kind p_kind, float p_cruise_altitude)
     : m_kind(p_kind), m_cruise(p_cruise_altitude)

@@ -26,25 +26,25 @@ class Scene;
 }
 
 // ------------------------------------------------------------------------
-//! @brief Z-up metres to the Compages view (Y up): (x, y, z) becomes
-//! (x, z, -y).
+/// @brief Z-up metres to the Compages view (Y up): (x, y, z) becomes
+/// (x, z, -y).
 // ------------------------------------------------------------------------
 [[nodiscard]] compages::core::Vector3f flyToView(robotik::Vector3 const& p_z_up);
 
 // ------------------------------------------------------------------------
-//! @brief Writes the joint targets and the thorax pose.
-//!
-//! Does not step the world. The caller does, so a camera orbit is not
-//! updated once per physics substep.
+/// @brief Writes the joint targets and the thorax pose.
+///
+/// Does not step the world. The caller does, so a camera orbit is not
+/// updated once per physics substep.
 // ------------------------------------------------------------------------
 void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot);
 
 // ------------------------------------------------------------------------
-//! @brief Aims one sensor beam from the eye to the sample.
-//!
-//! The Scene cone stands on Y (tip at +Y, base at -Y). The base sits on
-//! the eye, the tip on the sample. The two spheres mark those ends.
-//! @p_strength in [0, 1] thickens the beam and grows the tip.
+/// @brief Aims one sensor beam from the eye to the sample.
+///
+/// The Scene cone stands on Y (tip at +Y, base at -Y). The base sits on
+/// the eye, the tip on the sample. The two spheres mark those ends.
+/// @p_strength in [0, 1] thickens the beam and grows the tip.
 // ------------------------------------------------------------------------
 void aimFlyBeam(compages::world::Entity p_beam,
                 compages::world::Entity p_start,
@@ -54,12 +54,12 @@ void aimFlyBeam(compages::world::Entity p_beam,
                 float p_strength);
 
 // ------------------------------------------------------------------------
-//! @brief Parents a camera to an eye link, looking along that link's +X.
-//!
-//! URDF eye frames use +X as the optical axis and +Z as up. A Compages
-//! camera looks down its local -Z, so the mount turns -Z onto +X. The eye
-//! sits a few centimetres in front of the link so the head mesh stays
-//! behind the near plane. An unknown link returns an empty handle.
+/// @brief Parents a camera to an eye link, looking along that link's +X.
+///
+/// URDF eye frames use +X as the optical axis and +Z as up. A Compages
+/// camera looks down its local -Z, so the mount turns -Z onto +X. The eye
+/// sits a few centimetres in front of the link so the head mesh stays
+/// behind the near plane. An unknown link returns an empty handle.
 // ------------------------------------------------------------------------
 [[nodiscard]] compages::world::Entity
 mountFlyEye(compages::renderer::Scene& p_scene,

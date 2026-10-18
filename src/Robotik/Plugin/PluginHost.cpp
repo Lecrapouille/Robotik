@@ -15,15 +15,11 @@
 namespace robotik
 {
 
-namespace
-{
-
-PluginHost* self(RobotikHost* p_host)
+/// Recovers the C++ host from the C host pointer.
+static PluginHost* self(RobotikHost* p_host)
 {
     return reinterpret_cast<PluginHost*>(p_host);
 }
-
-} // namespace
 
 void hostLog(RobotikHost* p_host, int p_level, char const* p_message)
 {

@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file RunReport.hpp
-//! @brief What a finished run leaves behind: outcome, verdicts and metrics,
-//! with what is needed to replay it (scenario, case, seed).
+/// @file RunReport.hpp
+/// @brief What a finished run leaves behind: outcome, verdicts and metrics,
+/// with what is needed to replay it (scenario, case, seed).
 #pragma once
 
 #include "Robotik/Scenario/Assertions.hpp"
@@ -26,35 +26,35 @@ namespace robotik
 class Simulation;
 
 // ****************************************************************************
-//! @brief One run of one case with one seed.
+/// @brief One run of one case with one seed.
 // ****************************************************************************
 // ****************************************************************************
-//! @brief One plan of the PDDL planner in a run: when, why, what came out.
+/// @brief One plan of the PDDL planner in a run: when, why, what came out.
 // ****************************************************************************
 struct PlanSummary
 {
-    //!< Simulated time of the search (s).
+    /// Simulated time of the search (s).
     double time = 0.0;
-    //!< "start", or what went wrong with the previous plan.
+    /// "start", or what went wrong with the previous plan.
     std::string cause;
-    //!< Solved, Unsolvable, NoPlanFound or Invalid.
+    /// Solved, Unsolvable, NoPlanFound or Invalid.
     std::string result;
-    //!< Ground actions, e.g. "pick(red_cube, table)".
+    /// Ground actions, e.g. "pick(red_cube, table)".
     std::vector<std::string> steps;
     std::size_t expanded = 0;
     double milliseconds = 0.0;
 };
 
 // ****************************************************************************
-//! @brief What the planner did in a run. Empty without a planner.
+/// @brief What the planner did in a run. Empty without a planner.
 // ****************************************************************************
 struct PlannerSummary
 {
     bool used = false;
-    //!< Final state: Succeeded, Failed...
+    /// Final state: Succeeded, Failed...
     std::string state;
     unsigned replans = 0;
-    //!< Why it failed, or why it last replanned.
+    /// Why it failed, or why it last replanned.
     std::string failure;
     std::vector<PlanSummary> plans;
 };
@@ -65,24 +65,24 @@ struct RunRecord
     std::string scenario;
     std::uint64_t seed = 0;
     std::string outcome;
-    //!< Simulated time at the end (s).
+    /// Simulated time at the end (s).
     double time = 0.0;
     bool passed = false;
-    //!< The ground truth stood in for perception (see @ref OraclePolicy).
+    /// The ground truth stood in for perception (see @ref OraclePolicy).
     bool oracle = false;
-    //!< Physics fidelity, e.g. "abstract" or "abstract, red_cube: rigid":
-    //!< never compare metrics of runs at different levels.
+    /// Physics fidelity, e.g. "abstract" or "abstract, red_cube: rigid":
+    /// never compare metrics of runs at different levels.
     std::string physics;
     std::vector<Check> checks;
-    //!< Name and value; nothing when it could not be measured.
+    /// Name and value; nothing when it could not be measured.
     std::vector<std::pair<std::string, std::optional<double>>> metrics;
-    //!< Plans and replans of the PDDL planner, if the scenario plans.
+    /// Plans and replans of the PDDL planner, if the scenario plans.
     PlannerSummary planner;
-    //!< Why the run could not be built or started, if it was not.
+    /// Why the run could not be built or started, if it was not.
     std::string error;
 
     // -------------------------------------------------------------------------
-    //! @brief Snapshot of a concluded simulation; @p_metrics are measured now.
+    /// @brief Snapshot of a concluded simulation; @p_metrics are measured now.
     // -------------------------------------------------------------------------
     [[nodiscard]] static RunRecord capture(Simulation const& p_simulation,
                                            std::string p_case,
@@ -90,7 +90,7 @@ struct RunRecord
 };
 
 // ****************************************************************************
-//! @brief Every run of an experiment (or the single run of a scenario).
+/// @brief Every run of an experiment (or the single run of a scenario).
 // ****************************************************************************
 struct RunReport
 {
@@ -99,10 +99,10 @@ struct RunReport
 
     [[nodiscard]] bool passed() const;
 
-    //! @brief One line per run, then the failed assertions.
+    /// @brief One line per run, then the failed assertions.
     void writeText(std::ostream& p_out) const;
 
-    //! @brief The whole report as JSON (for scripts comparing runs).
+    /// @brief The whole report as JSON (for scripts comparing runs).
     void writeJson(std::ostream& p_out) const;
 };
 

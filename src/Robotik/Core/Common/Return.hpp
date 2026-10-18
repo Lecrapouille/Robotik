@@ -15,28 +15,28 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! \brief Return type template that holds either a success value or an error.
-//! Inspired by Rust's Result<T, E> and C++23's std::expected<T, E>.
-//!
-//! This class provides type-safe error handling without exceptions or global
-//! error states. It forces the caller to check for errors before accessing
-//! the value.
-//!
-//! Example usage:
-//! \code
-//!   Return<int> divide(int a, int b) {
-//!       if (b == 0)
-//!           return Return<int>::error("Division by zero");
-//!       return Return<int>::success(a / b);
-//!   }
-//!
-//!   auto result = divide(10, 2);
-//!   if (result) {
-//!       std::cout << "Result: " << result.getValue() << std::endl;
-//!   } else {
-//!       std::cerr << "Error: " << result.getError() << std::endl;
-//!   }
-//! \endcode
+/// \brief Return type template that holds either a success value or an error.
+/// Inspired by Rust's Result<T, E> and C++23's std::expected<T, E>.
+///
+/// This class provides type-safe error handling without exceptions or global
+/// error states. It forces the caller to check for errors before accessing
+/// the value.
+///
+/// Example usage:
+/// \code
+///   Return<int> divide(int a, int b) {
+///       if (b == 0)
+///           return Return<int>::error("Division by zero");
+///       return Return<int>::success(a / b);
+///   }
+///
+///   auto result = divide(10, 2);
+///   if (result) {
+///       std::cout << "Result: " << result.getValue() << std::endl;
+///   } else {
+///       std::cerr << "Error: " << result.getError() << std::endl;
+///   }
+/// \endcode
 // ****************************************************************************
 template <typename T>
 class Return
@@ -44,9 +44,9 @@ class Return
 public:
 
     // ------------------------------------------------------------------------
-    //! \brief Create a successful Return with a value.
-    //! \param[in] p_value The success value.
-    //! \return A Return containing the success value.
+    /// \brief Create a successful Return with a value.
+    /// \param[in] p_value The success value.
+    /// \return A Return containing the success value.
     // ------------------------------------------------------------------------
     static Return success(T&& p_value)
     {
@@ -57,9 +57,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Create a successful Return with a value (copy version).
-    //! \param[in] p_value The success value.
-    //! \return A Return containing the success value.
+    /// \brief Create a successful Return with a value (copy version).
+    /// \param[in] p_value The success value.
+    /// \return A Return containing the success value.
     // ------------------------------------------------------------------------
     static Return success(T const& p_value)
     {
@@ -70,9 +70,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Create a failed Return with an error message.
-    //! \param[in] p_error The error message.
-    //! \return A Return containing the error message.
+    /// \brief Create a failed Return with an error message.
+    /// \param[in] p_error The error message.
+    /// \return A Return containing the error message.
     // ------------------------------------------------------------------------
     static Return error(std::string const& p_error)
     {
@@ -83,13 +83,13 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Default constructor creates a failed Return.
+    /// \brief Default constructor creates a failed Return.
     // ------------------------------------------------------------------------
     Return() : m_has_value(false), m_error("Uninitialized Return") {}
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the Return contains a success value.
-    //! \return True if successful, false if error.
+    /// \brief Check if the Return contains a success value.
+    /// \return True if successful, false if error.
     // ------------------------------------------------------------------------
     [[nodiscard]] bool isSuccess() const
     {
@@ -97,8 +97,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Check if the Return contains an error.
-    //! \return True if error, false if successful.
+    /// \brief Check if the Return contains an error.
+    /// \return True if error, false if successful.
     // ------------------------------------------------------------------------
     [[nodiscard]] bool isError() const
     {
@@ -106,8 +106,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Bool conversion operator for convenient checking.
-    //! \return True if successful, false if error.
+    /// \brief Bool conversion operator for convenient checking.
+    /// \return True if successful, false if error.
     // ------------------------------------------------------------------------
     [[nodiscard]] explicit operator bool() const
     {
@@ -115,9 +115,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the success value.
-    //! \return Reference to the success value.
-    //! \throw std::runtime_error if called on an error Return.
+    /// \brief Get the success value.
+    /// \return Reference to the success value.
+    /// \throw std::runtime_error if called on an error Return.
     // ------------------------------------------------------------------------
     [[nodiscard]] T& getValue()
     {
@@ -130,9 +130,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the success value (const version).
-    //! \return Const reference to the success value.
-    //! \throw std::runtime_error if called on an error Return.
+    /// \brief Get the success value (const version).
+    /// \return Const reference to the success value.
+    /// \throw std::runtime_error if called on an error Return.
     // ------------------------------------------------------------------------
     [[nodiscard]] T const& getValue() const
     {
@@ -145,9 +145,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the error message.
-    //! \return The error message.
-    //! \note Returns empty string if called on a success Return.
+    /// \brief Get the error message.
+    /// \return The error message.
+    /// \note Returns empty string if called on a success Return.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::string const& getError() const
     {
@@ -155,9 +155,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the value or a default if error.
-    //! \param[in] p_default The default value to return on error.
-    //! \return The value if success, or the default if error.
+    /// \brief Get the value or a default if error.
+    /// \param[in] p_default The default value to return on error.
+    /// \return The value if success, or the default if error.
     // ------------------------------------------------------------------------
     [[nodiscard]] T valueOr(T const& p_default) const
     {
@@ -165,9 +165,9 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Move the value out of the Return.
-    //! \return The moved value.
-    //! \throw std::runtime_error if called on an error Return.
+    /// \brief Move the value out of the Return.
+    /// \return The moved value.
+    /// \throw std::runtime_error if called on an error Return.
     // ------------------------------------------------------------------------
     [[nodiscard]] T&& moveValue()
     {

@@ -5,13 +5,13 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file TeachPendant.hpp
-//! @brief Operator jog, waypoint recording and joint-space playback.
-//!
-//! Cartesian jogs are solved once with @ref Robot::inverseKinematics
-//! (Pinocchio, damped least squares). Playback is a rest-to-rest quintic in
-//! joint space between the recorded configurations. The pendant only writes
-//! joint targets; a @ref RobotSession step is what moves the arm.
+/// @file TeachPendant.hpp
+/// @brief Operator jog, waypoint recording and joint-space playback.
+///
+/// Cartesian jogs are solved once with @ref Robot::inverseKinematics
+/// (Pinocchio, damped least squares). Playback is a rest-to-rest quintic in
+/// joint space between the recorded configurations. The pendant only writes
+/// joint targets; a @ref RobotSession step is what moves the arm.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -28,25 +28,25 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief One recorded configuration of the arm.
+/// @brief One recorded configuration of the arm.
 // ****************************************************************************
 struct TeachWaypoint
 {
     std::string label;
-    //!< Joint positions in @ref JointId order, SI unit of each joint.
+    /// Joint positions in @ref JointId order, SI unit of each joint.
     std::vector<double> joints;
-    //!< Tool pose in the robot base frame at recording.
+    /// Tool pose in the robot base frame at recording.
     Pose pose{};
-    //!< Duration of the move that reaches this waypoint (s).
+    /// Duration of the move that reaches this waypoint (s).
     double duration = 2.0;
 };
 
 // ****************************************************************************
-//! @brief Virtual teach pendant for one robot.
-//!
-//! Stateless with respect to the simulator: it does not tick the behavior
-//! tree. Suspend the @ref Simulation before jogging, otherwise the mission
-//! overwrites the targets.
+/// @brief Virtual teach pendant for one robot.
+///
+/// Stateless with respect to the simulator: it does not tick the behavior
+/// tree. Suspend the @ref Simulation before jogging, otherwise the mission
+/// overwrites the targets.
 // ****************************************************************************
 class TeachPendant
 {
@@ -62,7 +62,7 @@ public:
         return m_playing;
     }
 
-    //! @brief Waypoint currently approached, or -1.
+    /// @brief Waypoint currently approached, or -1.
     [[nodiscard]] int segment() const
     {
         return m_playing ? m_cursor : -1;
@@ -74,9 +74,9 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Frame moved by @ref jogTool and stored by @ref record: any link
-    //! of the robot (a foot, a leg tip...). Empty: the work frame of the
-    //! robot (@ref Robot::tool).
+    /// @brief Frame moved by @ref jogTool and stored by @ref record: any link
+    /// of the robot (a foot, a leg tip...). Empty: the work frame of the
+    /// robot (@ref Robot::tool).
     // -------------------------------------------------------------------------
     void frame(std::string p_frame)
     {
@@ -85,18 +85,18 @@ public:
 
     [[nodiscard]] std::string const& frame(Robot const& p_robot) const;
 
-    //! @brief Shift one joint by @p_delta (rad or m). Stops playback.
+    /// @brief Shift one joint by @p_delta (rad or m). Stops playback.
     bool jogJoint(Robot& p_robot, JointId p_joint, double p_delta);
 
     // -------------------------------------------------------------------------
-    //! @brief Shift the tool in the base frame and solve IK.
-    //! @param p_rotation Small rotations about the base axes X, Y, Z (rad).
+    /// @brief Shift the tool in the base frame and solve IK.
+    /// @param p_rotation Small rotations about the base axes X, Y, Z (rad).
     // -------------------------------------------------------------------------
     bool jogTool(Robot& p_robot,
                  Vector3 const& p_translation,
                  Vector3 const& p_rotation);
 
-    //! @brief Store the measured joints and the current tool pose.
+    /// @brief Store the measured joints and the current tool pose.
     std::size_t record(Robot const& p_robot,
                        std::string p_label,
                        double p_duration);
@@ -104,16 +104,16 @@ public:
     void erase(std::size_t p_index);
     void clear();
 
-    //! @brief Quintic from the current command to one waypoint.
+    /// @brief Quintic from the current command to one waypoint.
     bool goTo(Robot& p_robot, std::size_t p_index);
 
-    //! @brief Play every waypoint in order, optionally looping.
+    /// @brief Play every waypoint in order, optionally looping.
     bool play(Robot& p_robot, bool p_loop);
 
-    //! @brief Stop playback and servo the arm where it is.
+    /// @brief Stop playback and servo the arm where it is.
     void stop(Robot& p_robot);
 
-    //! @brief Advance the active quintic and write joint targets.
+    /// @brief Advance the active quintic and write joint targets.
     void update(Robot& p_robot, Seconds p_dt);
 
 private:

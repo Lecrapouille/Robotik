@@ -21,36 +21,37 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::string text(bt::YamlNode const& p_node, std::string_view p_key)
+/// Reads one scalar child of a YAML node, or empty.
+static std::string text(bt::YamlNode const& p_node, std::string_view p_key)
 {
     bt::YamlNode const child = p_node.child(p_key);
     return child.valid() ? child.scalar() : std::string{};
 }
 
-bool directory(std::filesystem::path const& p_path)
+/// True when the path is a directory.
+static bool directory(std::filesystem::path const& p_path)
 {
     std::error_code error;
     return std::filesystem::is_directory(p_path, error);
 }
 
-bool regularFile(std::filesystem::path const& p_path)
+/// True when the path is a regular file.
+static bool regularFile(std::filesystem::path const& p_path)
 {
     std::error_code error;
     return std::filesystem::is_regular_file(p_path, error);
 }
 
-std::filesystem::path canonicalPath(std::filesystem::path const& p_path)
+/// Canonical path, or the normalized absolute path on failure.
+static std::filesystem::path canonicalPath(std::filesystem::path const& p_path)
 {
     std::error_code error;
     std::filesystem::path result = std::filesystem::weakly_canonical(p_path, error);
     return error ? std::filesystem::absolute(p_path).lexically_normal() : result;
 }
 
-//! True when @p_file stays below @p_root once both are made canonical.
-bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
+/// True when @p_file stays below @p_root once both are made canonical.
+static bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
 {
     std::filesystem::path const relative =
         canonicalPath(p_file).lexically_relative(canonicalPath(p_root));
@@ -62,8 +63,6 @@ bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_
                         relative.end(),
                         [](std::filesystem::path const& p_part) { return p_part == ".."; });
 }
-
-} // namespace
 
 std::filesystem::path executableDirectory()
 {

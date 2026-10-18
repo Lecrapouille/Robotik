@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file SimulationTruth.cpp
-//! @brief Ground-truth queries of @ref Simulation: what the assertions
-//! measure. World frame, metres and radians.
+/// @file SimulationTruth.cpp
+/// @brief Ground-truth queries of @ref Simulation: what the assertions
+/// measure. World frame, metres and radians.
 
 #include "Robotik/Runtime/Simulation.hpp"
 #include "ShapeOf.hpp"
@@ -21,18 +21,16 @@
 #include <cmath>
 #include <stdexcept>
 
-//! Vertical gap tolerated between two props said to rest on each other (m).
+/// Vertical gap tolerated between two props said to rest on each other (m).
 #define ON_TOLERANCE_M 0.005
-//! Joint limit overshoot tolerated by joint_limits_respected (rad or m).
+/// Joint limit overshoot tolerated by joint_limits_respected (rad or m).
 #define JOINT_LIMIT_TOLERANCE 1e-3
 
 namespace robotik
 {
 
-namespace
-{
-
-std::string_view trim(std::string_view p_text)
+/// Drops leading and trailing spaces and tabs.
+static std::string_view trim(std::string_view p_text)
 {
     std::size_t const first = p_text.find_first_not_of(" \t");
     if (first == std::string_view::npos)
@@ -43,9 +41,9 @@ std::string_view trim(std::string_view p_text)
     return p_text.substr(first, last - first + 1u);
 }
 
-//! "name(a, b)" -> name and its arguments (commas inside parentheses kept,
-//! quotes stripped). Nothing when @p_term is not a call.
-std::optional<std::pair<std::string, std::vector<std::string>>> parseCall(std::string_view p_term)
+/// "name(a, b)" -> name and its arguments (commas inside parentheses kept,
+/// quotes stripped). Nothing when @p_term is not a call.
+static std::optional<std::pair<std::string, std::vector<std::string>>> parseCall(std::string_view p_term)
 {
     std::string_view const term = trim(p_term);
     std::size_t const open = term.find('(');
@@ -90,8 +88,8 @@ std::optional<std::pair<std::string, std::vector<std::string>>> parseCall(std::s
     return call;
 }
 
-//! "easel.canvas_mount" -> { "easel", "canvas_mount" }.
-std::pair<std::string_view, std::string_view> splitReference(std::string_view p_reference)
+/// "easel.canvas_mount" -> { "easel", "canvas_mount" }.
+static std::pair<std::string_view, std::string_view> splitReference(std::string_view p_reference)
 {
     std::size_t const dot = p_reference.find('.');
     if (dot == std::string_view::npos)
@@ -101,13 +99,15 @@ std::pair<std::string_view, std::string_view> splitReference(std::string_view p_
     return { p_reference.substr(0, dot), p_reference.substr(dot + 1u) };
 }
 
-double angleBetween(Quaternion const& p_a, Quaternion const& p_b)
+/// Angle in radians between two orientations.
+static double angleBetween(Quaternion const& p_a, Quaternion const& p_b)
 {
     double const dot = std::abs(p_a.w * p_b.w + p_a.x * p_b.x + p_a.y * p_b.y + p_a.z * p_b.z);
     return 2.0 * std::acos(std::min(1.0, dot));
 }
 
-Vector3 halfSize(EntitySpec const& p_spec)
+/// Half the extents of an entity shape, or zero when it has none.
+static Vector3 halfSize(EntitySpec const& p_spec)
 {
     return p_spec.shape ? Vector3(0.5 * p_spec.shape->size.x,
                                   0.5 * p_spec.shape->size.y,
@@ -115,7 +115,8 @@ Vector3 halfSize(EntitySpec const& p_spec)
                         : zero3();
 }
 
-void arity(std::string const& p_name,
+/// Rejects a truth query whose argument count is out of range.
+static void arity(std::string const& p_name,
            std::vector<std::string> const& p_args,
            std::size_t p_min,
            std::size_t p_max)
@@ -127,8 +128,6 @@ void arity(std::string const& p_name,
                                     " argument(s)");
     }
 }
-
-} // namespace
 
 Simulation::Record const* Simulation::record(std::string_view p_id) const
 {

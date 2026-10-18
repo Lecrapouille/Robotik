@@ -5,13 +5,13 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginABI.h
-//! @brief C boundary of a Robotik demo plugin.
-//!
-//! One shared library implements a family of demonstrations. Each execution
-//! is a scenario file shipped beside that library. The host selects a
-//! scenario id and passes it to @c setup. No C++ type, STL container or
-//! exception crosses this boundary.
+/// @file PluginABI.h
+/// @brief C boundary of a Robotik demo plugin.
+///
+/// One shared library implements a family of demonstrations. Each execution
+/// is a scenario file shipped beside that library. The host selects a
+/// scenario id and passes it to @c setup. No C++ type, STL container or
+/// exception crosses this boundary.
 
 #ifndef ROBOTIK_PLUGIN_ABI_H
 #define ROBOTIK_PLUGIN_ABI_H
@@ -77,7 +77,7 @@ typedef struct RobotikEvent
     int32_t code;
     double number;
     char name[ROBOTIK_PLUGIN_EVENT_NAME_CAP];
-    //! @brief Assertion result, 1 when the check passes.
+    /// @brief Assertion result, 1 when the check passes.
     int32_t flag;
 } RobotikEvent;
 
@@ -150,17 +150,17 @@ typedef struct RobotikHostAPI
     RobotikBindMissionFn bind_mission;
 } RobotikHostAPI;
 
-//! @brief ABI version implemented by the library. Compared before @c query.
+/// @brief ABI version implemented by the library. Compared before @c query.
 uint32_t robotik_plugin_abi_version(void);
 
-//! @brief Fills @p info and @p api. Both structures arrive with their size
-//! and abi_version set by the host.
+/// @brief Fills @p info and @p api. Both structures arrive with their size
+/// and abi_version set by the host.
 bool robotik_plugin_query(RobotikPluginInfo* info, RobotikPluginVTable* api);
 
-//! @brief Creates one instance. The host pointer inside @p host must outlive it.
+/// @brief Creates one instance. The host pointer inside @p host must outlive it.
 RobotikPlugin* robotik_plugin_create(RobotikHostAPI const* host);
 
-//! @brief Destroys an instance created by @ref robotik_plugin_create.
+/// @brief Destroys an instance created by @ref robotik_plugin_create.
 void robotik_plugin_destroy(RobotikPlugin* plugin);
 
 #ifdef __cplusplus

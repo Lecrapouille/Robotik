@@ -22,7 +22,7 @@ namespace robotik
 
 static constexpr Length kVacuumContactDistance{ 0.02 };
 static constexpr Length kReleaseFloorLift{ 1e-4 };
-//! Extra reach beyond the outer walls when choosing a bin to drop into.
+/// Extra reach beyond the outer walls when choosing a bin to drop into.
 static constexpr Length kOuterFootprintSlack{ 0.05 };
 
 static Vector3 positionOf(compages::world::Entity p_entity)
@@ -31,14 +31,14 @@ static Vector3 positionOf(compages::world::Entity p_entity)
     return { at.x, at.y, at.z };
 }
 
-//! Bodies of the physics backend are not props: suction does not move them.
+/// Bodies of the physics backend are not props: suction does not move them.
 static bool simulated(compages::world::Entity p_entity)
 {
     return p_entity.find<ecs::PhysicsBody>() != nullptr ||
            p_entity.find<ecs::Decoration>() != nullptr;
 }
 
-//! Height of the support below @p_at: a container floor or the ground (z = 0).
+/// Height of the support below @p_at: a container floor or the ground (z = 0).
 static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
 {
     Length floor{ 0.0 };
@@ -63,8 +63,8 @@ static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
     return floor;
 }
 
-//! Final pose after vacuum off: the nearest open box under the object, or the
-//! support below it (container floor, otherwise the ground).
+/// Final pose after vacuum off: the nearest open box under the object, or the
+/// support below it (container floor, otherwise the ground).
 static Vector3 settle(compages::world::World& p_world,
                       compages::world::Entity p_held,
                       Vector3 p_at)
@@ -113,7 +113,7 @@ static Vector3 settle(compages::world::World& p_world,
     return p_at;
 }
 
-//! Nearest graspable cube whose top face is within @ref kVacuumContactDistance.
+/// Nearest graspable cube whose top face is within @ref kVacuumContactDistance.
 static compages::world::EntityId touched(compages::world::World& p_world,
                                            Vector3 const& p_tip)
 {

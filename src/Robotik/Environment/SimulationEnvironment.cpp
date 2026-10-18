@@ -16,12 +16,9 @@
 namespace robotik
 {
 
-namespace
-{
-
-//! The agent drives and the reward judges: the scenario's own controller and
-//! end-of-run rules do not apply.
-Scenario forLearning(Scenario p_scenario)
+/// The agent drives and the reward judges: the scenario's own controller and
+/// end-of-run rules do not apply.
+static Scenario forLearning(Scenario p_scenario)
 {
     p_scenario.controller.behavior_tree.clear();
     p_scenario.assertions.clear();
@@ -29,8 +26,6 @@ Scenario forLearning(Scenario p_scenario)
     p_scenario.timeout = Seconds(0.0);
     return p_scenario;
 }
-
-} // namespace
 
 SimulationEnvironment::SimulationEnvironment(Scenario p_scenario,
                                              Parts p_parts,

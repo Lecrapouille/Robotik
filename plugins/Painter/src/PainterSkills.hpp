@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PainterSkills.hpp
-//! @brief Dip, stroke and rinse. The color is chosen when the skill starts.
+/// @file PainterSkills.hpp
+/// @brief Dip, stroke and rinse. The color is chosen when the skill starts.
 #pragma once
 
 #include "PainterScene.hpp"
@@ -45,22 +45,22 @@ private:
     bool m_ready = false;
 };
 
-//! @brief Follows the stroke of the chosen colour: the scenario trajectory of
-//! that name, already in the robot base frame.
+/// @brief Follows the stroke of the chosen colour: the scenario trajectory of
+/// that name, already in the robot base frame.
 class MarkSkill final: public robotik::Skill
 {
 public:
 
     using Strokes = std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
 
-    //! @brief How the brush follows a stroke.
+    /// @brief How the brush follows a stroke.
     struct Settings
     {
-        //!< Longest Cartesian step (m) between two IK targets. Each target
-        //!< is reached in joint space: without small steps the brush draws
-        //!< arcs, not lines. Zero: the waypoints only.
+        /// Longest Cartesian step (m) between two IK targets. Each target
+        /// is reached in joint space: without small steps the brush draws
+        /// arcs, not lines. Zero: the waypoints only.
         double step = 0.002;
-        //!< Joint tolerance (rad) to go on to the next target.
+        /// Joint tolerance (rad) to go on to the next target.
         double tolerance = 2e-2;
     };
 
@@ -79,8 +79,8 @@ private:
     std::string m_color = "red";
     Settings m_settings;
     std::vector<robotik::Pose> m_path;
-    //!< Targets of the path that lay paint: from the second waypoint to the
-    //!< one before last.
+    /// Targets of the path that lay paint: from the second waypoint to the
+    /// one before last.
     std::size_t m_paint_begin = 0;
     std::size_t m_paint_end = 0;
     std::size_t m_index = 0;
@@ -107,7 +107,7 @@ private:
     bool m_ready = false;
 };
 
-//! @brief Tree actions Dip, Mark and Rinse. Each reads @c color on its blackboard.
+/// @brief Tree actions Dip, Mark and Rinse. Each reads @c color on its blackboard.
 void registerNodes(bt::NodeFactory& p_factory, robotik::SkillScheduler& p_scheduler);
 
 } // namespace painter

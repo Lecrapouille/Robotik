@@ -18,10 +18,8 @@
 #include <string>
 #include <vector>
 
-namespace
-{
-
-char const* oracleOf(robotik::OraclePolicy p_policy)
+/// Display name of an oracle policy.
+static char const* oracleOf(robotik::OraclePolicy p_policy)
 {
     switch (p_policy)
     {
@@ -35,9 +33,9 @@ char const* oracleOf(robotik::OraclePolicy p_policy)
     return "";
 }
 
-//! @brief Two-column "key  value" rows.
-void field(char const* p_key, char const* p_format, ...) IM_FMTARGS(2);
-void field(char const* p_key, char const* p_format, ...)
+/// @brief Two-column "key  value" rows.
+static void field(char const* p_key, char const* p_format, ...) IM_FMTARGS(2);
+static void field(char const* p_key, char const* p_format, ...)
 {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -49,7 +47,8 @@ void field(char const* p_key, char const* p_format, ...)
     va_end(args);
 }
 
-bool beginFields(char const* p_id)
+/// Opens the two-column table the field rows share.
+static bool beginFields(char const* p_id)
 {
     if (!beginTable(p_id, 2, ImGuiTableFlags_SizingStretchProp))
     {
@@ -60,8 +59,8 @@ bool beginFields(char const* p_id)
     return true;
 }
 
-//! @brief The license of a pack: green when somebody wrote it down.
-void licenseBadge(robotik::AssetPack const& p_pack)
+/// @brief The license of a pack: green when somebody wrote it down.
+static void licenseBadge(robotik::AssetPack const& p_pack)
 {
     if (p_pack.licenseVerified())
     {
@@ -76,16 +75,16 @@ void licenseBadge(robotik::AssetPack const& p_pack)
     }
 }
 
-//! @brief True when @p_file is inside the folder @p_root.
-bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
+/// @brief True when @p_file is inside the folder @p_root.
+static bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
 {
     auto const mismatch = std::mismatch(p_root.begin(), p_root.end(), p_file.begin(), p_file.end());
     return !p_root.empty() && mismatch.first == p_root.end();
 }
 
-//! @brief Packs the running scenario takes a model from, or the package
-//! requires, or the package owns.
-bool usedByRun(App const& p_app, robotik::PluginPackage const* p_package, robotik::AssetPack const& p_pack)
+/// @brief Packs the running scenario takes a model from, or the package
+/// requires, or the package owns.
+static bool usedByRun(App const& p_app, robotik::PluginPackage const* p_package, robotik::AssetPack const& p_pack)
 {
     if (p_package != nullptr)
     {
@@ -114,7 +113,8 @@ bool usedByRun(App const& p_app, robotik::PluginPackage const* p_package, roboti
     return false;
 }
 
-bool matches(std::string const& p_text, char const* p_filter)
+/// Case-insensitive substring test against the file filter.
+static bool matches(std::string const& p_text, char const* p_filter)
 {
     if (p_filter[0] == '\0')
     {
@@ -131,7 +131,8 @@ bool matches(std::string const& p_text, char const* p_filter)
     return text.find(filter) != std::string::npos;
 }
 
-void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
+/// Description, timing and assertions of the loaded scenario.
+static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
 {
     robotik::Scenario const& scenario = p_app.simulation->scenario();
     if (!scenario.description.empty())
@@ -170,7 +171,8 @@ void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     endTable();
 }
 
-void dependencies(App& p_app, robotik::PluginPackage const& p_package)
+/// Packs, plugins and third parties the package declares.
+static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
 {
     ImGui::SeparatorText("Dependencies");
     robotik::AssetResolver const& assets = p_app.plugins.assets();
@@ -281,7 +283,8 @@ void dependencies(App& p_app, robotik::PluginPackage const& p_package)
     }
 }
 
-std::string sizeText(std::uintmax_t p_bytes)
+/// Prints a byte count as B, kB or MB.
+static std::string sizeText(std::uintmax_t p_bytes)
 {
     char text[32];
     if (p_bytes < 1024u)
@@ -299,8 +302,8 @@ std::string sizeText(std::uintmax_t p_bytes)
     return text;
 }
 
-//! @brief Folders first, then files, each sorted by name.
-PackageEntry readFolder(std::filesystem::path const& p_folder, std::string p_name, int p_depth)
+/// @brief Folders first, then files, each sorted by name.
+static PackageEntry readFolder(std::filesystem::path const& p_folder, std::string p_name, int p_depth)
 {
     PackageEntry entry;
     entry.name = std::move(p_name);
@@ -339,9 +342,9 @@ PackageEntry readFolder(std::filesystem::path const& p_folder, std::string p_nam
     return entry;
 }
 
-//! @brief Files of the loaded scenario and experiment, as canonical paths,
-//! to mark them in the tree.
-std::vector<std::filesystem::path> loadedFiles(App const& p_app)
+/// @brief Files of the loaded scenario and experiment, as canonical paths,
+/// to mark them in the tree.
+static std::vector<std::filesystem::path> loadedFiles(App const& p_app)
 {
     std::vector<std::filesystem::path> files;
     auto add = [&files](std::filesystem::path const& p_path) {
@@ -361,7 +364,8 @@ std::vector<std::filesystem::path> loadedFiles(App const& p_app)
     return files;
 }
 
-void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::filesystem::path> const& p_loaded, int p_depth)
+/// One file or folder of the package tree.
+static void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::filesystem::path> const& p_loaded, int p_depth)
 {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -415,7 +419,8 @@ void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::filesyste
     ImGui::TextDisabled("%s", sizeText(p_entry.size).c_str());
 }
 
-void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
+/// The package tree and the filter above it.
+static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
 {
     ImGui::SeparatorText("Files");
     if (p_app.ui.package_root != p_package.root)
@@ -454,8 +459,8 @@ void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
     }
 }
 
-//! @brief A value of an override, written inline: 0.05, [a, b], {x: 1}.
-std::string inlineText(robotik::ConfigNode const& p_node)
+/// @brief A value of an override, written inline: 0.05, [a, b], {x: 1}.
+static std::string inlineText(robotik::ConfigNode const& p_node)
 {
     if (p_node.isScalar())
     {
@@ -477,7 +482,8 @@ std::string inlineText(robotik::ConfigNode const& p_node)
     return "{" + text + "}";
 }
 
-void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
+/// Table of the cases of the loaded experiment.
+static void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
 {
     ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
@@ -544,13 +550,14 @@ void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
     endTable();
 }
 
-robotik::PluginPackage const* loadedPackage(App const& p_app)
+/// Package that owns the scenario currently loaded.
+static robotik::PluginPackage const* loadedPackage(App const& p_app)
 {
     return p_app.plugins.catalog().matchScenario(p_app.scenario_path).package;
 }
 
-//! @brief A new package: its first experiment becomes the chosen one.
-void followPackage(App& p_app, robotik::PluginPackage const* p_package)
+/// @brief A new package: its first experiment becomes the chosen one.
+static void followPackage(App& p_app, robotik::PluginPackage const* p_package)
 {
     UiState& ui = p_app.ui;
     if (p_package == nullptr || ui.experiment_root == p_package->root)
@@ -568,7 +575,8 @@ void followPackage(App& p_app, robotik::PluginPackage const* p_package)
     }
 }
 
-char const* viewName(FileTab p_view)
+/// Title of a file tab.
+static char const* viewName(FileTab p_view)
 {
     switch (p_view)
     {
@@ -587,8 +595,6 @@ char const* viewName(FileTab p_view)
     }
     return "";
 }
-
-} // namespace
 
 void showView(App& p_app, FileTab p_view, bool p_editor)
 {

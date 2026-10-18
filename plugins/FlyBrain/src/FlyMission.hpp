@@ -5,17 +5,17 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file FlyMission.hpp
-//! @brief The fly as a regular plugin: its flight model is the backend of
-//! the robot, its brain is the agent the mission runs.
-//!
-//! @code
-//! Simulation::step
-//!   ├── robot step ── FlyBackend: one FlyEnvironment step with the last
-//!   │                 command, then the thorax pose and the posture
-//!   └── mission step ── FlyMission: the brain reads the new observation
-//!                       and gives the next command
-//! @endcode
+/// @file FlyMission.hpp
+/// @brief The fly as a regular plugin: its flight model is the backend of
+/// the robot, its brain is the agent the mission runs.
+///
+/// @code
+/// Simulation::step
+///   ├── robot step ── FlyBackend: one FlyEnvironment step with the last
+///   │                 command, then the thorax pose and the posture
+///   └── mission step ── FlyMission: the brain reads the new observation
+///                       and gives the next command
+/// @endcode
 #pragma once
 
 #include "FlyBrain.hpp"
@@ -32,9 +32,9 @@
 #include <vector>
 
 // ****************************************************************************
-//! @brief Flight dynamics of the fly, as a robot backend. The environment
-//! integrates the thorax and the posture; the backend copies them onto the
-//! robot (base pose, joint positions).
+/// @brief Flight dynamics of the fly, as a robot backend. The environment
+/// integrates the thorax and the posture; the backend copies them onto the
+/// robot (base pose, joint positions).
 // ****************************************************************************
 class FlyBackend final: public robotik::RobotBackend
 {
@@ -42,13 +42,13 @@ public:
 
     explicit FlyBackend(FlyEnvironment& p_environment);
 
-    //! @brief Action applied at the next environment step.
+    /// @brief Action applied at the next environment step.
     void command(FlyAction const& p_action)
     {
         m_command = p_action;
     }
 
-    //! @brief Observation written by the last step (or the reset).
+    /// @brief Observation written by the last step (or the reset).
     [[nodiscard]] std::span<float const> observation() const
     {
         return m_observation;
@@ -59,7 +59,7 @@ public:
         return m_observation;
     }
 
-    //! @brief The episode ended: the fly no longer moves.
+    /// @brief The episode ended: the fly no longer moves.
     [[nodiscard]] bool done() const
     {
         return m_done;
@@ -70,7 +70,7 @@ public:
         return m_return;
     }
 
-    //! @brief Starts over (the environment was reset by the mission).
+    /// @brief Starts over (the environment was reset by the mission).
     void restart();
 
     void attach(robotik::Robot& /*p_robot*/) override {}
@@ -90,8 +90,8 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Builds the fly world from the scenario, plugs @ref FlyBackend and
-//! runs the brain. Draws the three eye beams and the trail when rendered.
+/// @brief Builds the fly world from the scenario, plugs @ref FlyBackend and
+/// runs the brain. Draws the three eye beams and the trail when rendered.
 // ****************************************************************************
 class FlyMission final: public robotik::Mission
 {
@@ -105,32 +105,32 @@ public:
     [[nodiscard]] robotik::Status status(robotik::Simulation const& p_simulation) const override;
 
     // -------------------------------------------------------------------------
-    //! @brief Swaps the 13-neuron circuit for the FlyWire connectome (or
-    //! back). Keeps the current brain when the tables cannot be read.
-    //! @throws std::runtime_error with the reason.
+    /// @brief Swaps the 13-neuron circuit for the FlyWire connectome (or
+    /// back). Keeps the current brain when the tables cannot be read.
+    /// @throws std::runtime_error with the reason.
     // -------------------------------------------------------------------------
     void useConnectome(bool p_connectome);
 
     // -------------------------------------------------------------------------
-    //! @brief Builds a brain without touching the mission: safe on another
-    //! thread. Loading the connectome reads large files (seconds) from
-    //! @p_tables (see @ref tables).
-    //! @throws std::runtime_error when the tables cannot be read.
+    /// @brief Builds a brain without touching the mission: safe on another
+    /// thread. Loading the connectome reads large files (seconds) from
+    /// @p_tables (see @ref tables).
+    /// @throws std::runtime_error when the tables cannot be read.
     // -------------------------------------------------------------------------
     [[nodiscard]] static std::unique_ptr<FlyBrain>
     buildBrain(bool p_connectome, float p_cruise, std::filesystem::path const& p_tables);
 
-    //! @brief Folder of the FlyWire tables: @c flywire/ in the pack
-    //! @c robotik.fly. Empty before @c setup.
+    /// @brief Folder of the FlyWire tables: @c flywire/ in the pack
+    /// @c robotik.fly. Empty before @c setup.
     [[nodiscard]] std::filesystem::path const& tables() const
     {
         return m_tables;
     }
 
-    //! @brief Cruise height given to a new brain.
+    /// @brief Cruise height given to a new brain.
     [[nodiscard]] float cruise() const;
 
-    //! @brief Replaces the brain and restarts the episode.
+    /// @brief Replaces the brain and restarts the episode.
     void installBrain(std::unique_ptr<FlyBrain> p_brain);
 
     [[nodiscard]] FlyBrain const* brain() const

@@ -5,19 +5,19 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Space.hpp
-//! @brief Layout of an observation or an action vector: what each float is.
-//!
-//! @code
-//! robotik::Space observation;
-//! observation.add3("tip", -1.0f, 1.0f, "m")       // tip.x, tip.y, tip.z
-//!            .add("holding", 0.0f, 1.0f)
-//!            .add("delivered", 0.0f, 1.0f, "", true); // from the ground truth
-//! @endcode
-//!
-//! A dimension marked @c privileged is computed from the ground truth of the
-//! simulator: a real robot could not observe it. A policy trained on it must
-//! not be taken for a deployable one.
+/// @file Space.hpp
+/// @brief Layout of an observation or an action vector: what each float is.
+///
+/// @code
+/// robotik::Space observation;
+/// observation.add3("tip", -1.0f, 1.0f, "m")       // tip.x, tip.y, tip.z
+///            .add("holding", 0.0f, 1.0f)
+///            .add("delivered", 0.0f, 1.0f, "", true); // from the ground truth
+/// @endcode
+///
+/// A dimension marked @c privileged is computed from the ground truth of the
+/// simulator: a real robot could not observe it. A policy trained on it must
+/// not be taken for a deployable one.
 #pragma once
 
 #include <cstddef>
@@ -30,7 +30,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Named, bounded dimensions of a flat float vector.
+/// @brief Named, bounded dimensions of a flat float vector.
 // ****************************************************************************
 struct Space
 {
@@ -39,15 +39,15 @@ struct Space
         std::string name;
         float low = -std::numeric_limits<float>::infinity();
         float high = std::numeric_limits<float>::infinity();
-        //!< SI unit, empty for a flag or a ratio.
+        /// SI unit, empty for a flag or a ratio.
         std::string unit;
-        //!< Comes from the ground truth, not from a sensor.
+        /// Comes from the ground truth, not from a sensor.
         bool privileged = false;
     };
 
     std::vector<Dimension> dimensions;
 
-    //! @brief @p_count unbounded dimensions named @p_prefix0, @p_prefix1...
+    /// @brief @p_count unbounded dimensions named @p_prefix0, @p_prefix1...
     [[nodiscard]] static Space unnamed(std::string const& p_prefix, std::size_t p_count)
     {
         Space space;
@@ -71,7 +71,7 @@ struct Space
         return *this;
     }
 
-    //! @brief Three dimensions @p_name.x, .y and .z with the same bounds.
+    /// @brief Three dimensions @p_name.x, .y and .z with the same bounds.
     Space& add3(std::string const& p_name,
                 float p_low,
                 float p_high,
@@ -90,7 +90,7 @@ struct Space
         return dimensions.size();
     }
 
-    //! @brief One dimension or more comes from the ground truth.
+    /// @brief One dimension or more comes from the ground truth.
     [[nodiscard]] bool privileged() const
     {
         for (Dimension const& dimension : dimensions)
@@ -103,7 +103,7 @@ struct Space
         return false;
     }
 
-    //! @brief Every value lies within its bounds (and is not NaN).
+    /// @brief Every value lies within its bounds (and is not NaN).
     [[nodiscard]] bool contains(std::span<float const> p_values) const
     {
         if (p_values.size() != dimensions.size())

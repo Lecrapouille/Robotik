@@ -17,10 +17,10 @@ namespace robotik
 // -------------------------------------------------------------------------
 enum class Status
 {
-    IDLE,     //!< Not started or explicitly idle.
-    RUNNING,  //!< Still working toward the goal.
-    SUCCESS,  //!< Goal reached.
-    FAILURE,  //!< Goal cannot be reached or was aborted.
+    IDLE,     ///< Not started or explicitly idle.
+    RUNNING,  ///< Still working toward the goal.
+    SUCCESS,  ///< Goal reached.
+    FAILURE,  ///< Goal cannot be reached or was aborted.
 };
 
 } // namespace robotik

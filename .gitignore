@@ -3,6 +3,7 @@ build/
 doc/code-coverage/*
 doc/doxygen/*
 external/*/
+old/*
 
 # Python
 __pycache__

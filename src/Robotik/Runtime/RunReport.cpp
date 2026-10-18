@@ -19,10 +19,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::string quoted(std::string_view p_text)
+/// Escapes a string as a JSON string.
+static std::string quoted(std::string_view p_text)
 {
     std::string result = "\"";
     for (char const character : p_text)
@@ -58,7 +56,8 @@ std::string quoted(std::string_view p_text)
     return result + "\"";
 }
 
-std::string number(double p_value)
+/// Prints a finite number, or null when it is not.
+static std::string number(double p_value)
 {
     if (!std::isfinite(p_value))
     {
@@ -68,8 +67,6 @@ std::string number(double p_value)
     stream << std::setprecision(10) << p_value;
     return stream.str();
 }
-
-} // namespace
 
 RunRecord RunRecord::capture(Simulation const& p_simulation,
                              std::string p_case,

@@ -10,34 +10,29 @@
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
+static constexpr double MAX_SPEED_M_S = 1.7;
+static constexpr double SPEED_GAIN = 2.2;
+static constexpr double MAX_YAW_RATE = 1.15;
+static constexpr double LIFT_SPEED_M_S = 0.7;
+static constexpr double LIFT_GAIN = 2.0;
+static constexpr double GROUND_Z_M = 0.19;
+static constexpr double PI = 3.14159265358979323846;
 
-constexpr double MAX_SPEED_M_S = 1.7;
-constexpr double SPEED_GAIN = 2.2;
-constexpr double MAX_YAW_RATE = 1.15;
-constexpr double LIFT_SPEED_M_S = 0.7;
-constexpr double LIFT_GAIN = 2.0;
-constexpr double GROUND_Z_M = 0.19;
-constexpr double PI = 3.14159265358979323846;
-
-//! @brief Clamps a command before it becomes a speed.
-double clampUnit(double p_value, double p_low, double p_high)
+/// @brief Clamps a command before it becomes a speed.
+static double clampUnit(double p_value, double p_low, double p_high)
 {
     return std::clamp(p_value, p_low, p_high);
 }
 
-} // namespace
-
-//! @brief Standing posture, wing stroke back to the start.
+/// @brief Standing posture, wing stroke back to the start.
 void FlyController::reset()
 {
     m_posture = {};
     m_phase = 0.0;
 }
 
-//! @brief Integrates the thorax, then writes a posture the URDF can show.
-//! Lift zero holds altitude: the weight is cancelled here, not in the URDF.
+/// @brief Integrates the thorax, then writes a posture the URDF can show.
+/// Lift zero holds altitude: the weight is cancelled here, not in the URDF.
 void FlyController::apply(FlyAction const& p_action,
                           FlyPlant& p_plant,
                           double p_dt)

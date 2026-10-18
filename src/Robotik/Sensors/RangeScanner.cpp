@@ -19,17 +19,15 @@
 namespace robotik
 {
 
-namespace
-{
-
+/// Axis-aligned box in the scanner frame, used by the ray test.
 struct Box
 {
     Vector3 low;
     Vector3 high;
 };
 
-//! Slab test: distance to an axis-aligned box, or infinity.
-double hit(Box const& p_box, Vector3 const& p_origin, Vector3 const& p_dir)
+/// Slab test: distance to an axis-aligned box, or infinity.
+static double hit(Box const& p_box, Vector3 const& p_origin, Vector3 const& p_dir)
 {
     double near = 0.0;
     double far = std::numeric_limits<double>::infinity();
@@ -60,8 +58,6 @@ double hit(Box const& p_box, Vector3 const& p_origin, Vector3 const& p_dir)
     }
     return near;
 }
-
-} // namespace
 
 RangeScanner::RangeScanner(std::string p_name, RangeScannerConfig p_config)
     : Sensor(std::move(p_name), p_config.frequency),

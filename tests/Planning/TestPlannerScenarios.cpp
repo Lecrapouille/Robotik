@@ -19,9 +19,7 @@
 
 #include <sstream>
 
-namespace
-{
-
+/// Outcome of one planned episode: result, time, plans and causes.
 struct PlannedRun
 {
     robotik::Simulation::Outcome outcome =
@@ -32,7 +30,8 @@ struct PlannedRun
     std::vector<std::string> causes;
 };
 
-PlannedRun
+/// Resets, steps until the plan ends, and records the outcome.
+static PlannedRun
 run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
 {
     p_simulation.reset(p_seed);
@@ -70,12 +69,11 @@ run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
     return result;
 }
 
-robotik::Scenario scenario(char const* p_file)
+/// Loads a scenario file from the repository.
+static robotik::Scenario scenario(char const* p_file)
 {
     return robotik::Scenario::load(repoFile(p_file), testAssets());
 }
-
-} // namespace
 
 TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
 {

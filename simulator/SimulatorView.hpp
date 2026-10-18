@@ -37,8 +37,8 @@ class RenderedCamera final: public robotik::FrameSource
 {
 public:
 
-    //! @p_overlays: entities only the operator sees (teach axes, waypoint
-    //! markers), hidden while this camera renders.
+    /// @p_overlays: entities only the operator sees (teach axes, waypoint
+    /// markers), hidden while this camera renders.
     RenderedCamera(compages::renderer::Scene& p_scene,
                    robotik::Camera const& p_camera,
                    compages::world::Entity p_link,
@@ -86,8 +86,8 @@ public:
                     double p_height) override;
     void ink(double p_y, double p_z, float p_red, float p_green, float p_blue) override;
 
-    //! @brief Marks @p_entity as a help for the operator: the 3D view shows
-    //! it, the robot cameras never see it (it would fool perception).
+    /// @brief Marks @p_entity as a help for the operator: the 3D view shows
+    /// it, the robot cameras never see it (it would fool perception).
     void overlay(compages::world::Entity p_entity)
     {
         m_overlays.push_back(p_entity.id());

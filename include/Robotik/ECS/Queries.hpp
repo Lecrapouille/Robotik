@@ -20,10 +20,10 @@ namespace robotik
 {
 
 // -------------------------------------------------------------------------
-//! @brief Finds the entity with @ref ecs::Shape matching @p_name.
-//! @param p_world World to search.
-//! @param p_name Object name from the scenario.
-//! @return Matching entity, or invalid if not found.
+/// @brief Finds the entity with @ref ecs::Shape matching @p_name.
+/// @param p_world World to search.
+/// @param p_name Object name from the scenario.
+/// @return Matching entity, or invalid if not found.
 // -------------------------------------------------------------------------
 [[nodiscard]] inline compages::world::Entity
 findObject(compages::world::World& p_world, std::string_view p_name)

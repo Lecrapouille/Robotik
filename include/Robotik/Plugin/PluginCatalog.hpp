@@ -5,48 +5,48 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginCatalog.hpp
-//! @brief Discovers plugin packages without loading their libraries.
-//!
-//! A package is a directory with @c plugin.yaml, the shared library, its
-//! scenario files and optionally a @c data/ asset pack. The catalog reads the
-//! manifest only; the library is opened later, for the chosen scenario.
-//!
-//! @code
-//! plugin:
-//!   id: robotik.painter
-//!   name: Robotic painter
-//!   version: 1.0.0
-//!   api_version: 1            # ROBOTIK_PLUGIN_ABI_VERSION it was built for
-//!   category: Manipulation
-//!   description: A robot arm paints strokes on an easel.   # optional
-//! library:
-//!   entrypoint: librobotik_painter.so
-//! resources:                  # runtime dependencies
-//!   directory: data           # this package's own asset pack
-//!   packs:
-//!     - { id: robotik.robots, version: "1.0" }
-//! dependencies:
-//!   plugins: [ robotik.other ]  # must be in the catalog to run
-//!   system: [ { name: opencv4, license: Apache-2.0 } ]
-//!   thirdparties: [ { repo: AprilRobotics/apriltag, license: BSD-2-Clause } ]
-//! host:                       # hints for the simulator
-//!   graphics: false
-//!   clock: simulation         # or plugin: its update advances time
-//!   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
-//! scenarios:
-//!   directory: scenarios
-//!   entries:                  # optional: every runnable file of the folder otherwise
-//!     - { id: painter, name: Robotic painter, file: painter.scenario.yaml }
-//!     # optional: submenu of the Demos menu, clock overriding host.clock
-//!     - { id: rl, name: RL, file: rl.rl.yaml, menu: Learning, clock: plugin }
-//! experiments:                # optional, same format
-//!   directory: experiments
-//! @endcode
-//!
-//! The manifest describes the package; it does not build it. Its
-//! @c dependencies (see @ref ThirdParty) are read by the Makefile of the
-//! plugin too (plugins/dependencies.awk): it clones and builds them.
+/// @file PluginCatalog.hpp
+/// @brief Discovers plugin packages without loading their libraries.
+///
+/// A package is a directory with @c plugin.yaml, the shared library, its
+/// scenario files and optionally a @c data/ asset pack. The catalog reads the
+/// manifest only; the library is opened later, for the chosen scenario.
+///
+/// @code
+/// plugin:
+///   id: robotik.painter
+///   name: Robotic painter
+///   version: 1.0.0
+///   api_version: 1            # ROBOTIK_PLUGIN_ABI_VERSION it was built for
+///   category: Manipulation
+///   description: A robot arm paints strokes on an easel.   # optional
+/// library:
+///   entrypoint: librobotik_painter.so
+/// resources:                  # runtime dependencies
+///   directory: data           # this package's own asset pack
+///   packs:
+///     - { id: robotik.robots, version: "1.0" }
+/// dependencies:
+///   plugins: [ robotik.other ]  # must be in the catalog to run
+///   system: [ { name: opencv4, license: Apache-2.0 } ]
+///   thirdparties: [ { repo: AprilRobotics/apriltag, license: BSD-2-Clause } ]
+/// host:                       # hints for the simulator
+///   graphics: false
+///   clock: simulation         # or plugin: its update advances time
+///   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
+/// scenarios:
+///   directory: scenarios
+///   entries:                  # optional: every runnable file of the folder otherwise
+///     - { id: painter, name: Robotic painter, file: painter.scenario.yaml }
+///     # optional: submenu of the Demos menu, clock overriding host.clock
+///     - { id: rl, name: RL, file: rl.rl.yaml, menu: Learning, clock: plugin }
+/// experiments:                # optional, same format
+///   directory: experiments
+/// @endcode
+///
+/// The manifest describes the package; it does not build it. Its
+/// @c dependencies (see @ref ThirdParty) are read by the Makefile of the
+/// plugin too (plugins/dependencies.awk): it clones and builds them.
 #pragma once
 
 #include "Robotik/Assets/Version.hpp"
@@ -60,45 +60,45 @@
 namespace robotik
 {
 
-//! @brief A runnable file of a package: a scenario or an experiment.
+/// @brief A runnable file of a package: a scenario or an experiment.
 struct PluginScenario
 {
     std::string id;
     std::string name;
     std::filesystem::path file;
-    //!< Submenu of the Demos menu, or empty (directly under the package).
+    /// Submenu of the Demos menu, or empty (directly under the package).
     std::string menu;
-    //!< The plugin update advances time for this scenario: its @c clock
-    //!< field, else @c host.clock of the package.
+    /// The plugin update advances time for this scenario: its @c clock
+    /// field, else @c host.clock of the package.
     bool owns_clock = false;
 };
 
-//! @brief An asset pack the package needs at run time.
+/// @brief An asset pack the package needs at run time.
 struct PackRequirement
 {
     std::string id;
-    //!< Oldest compatible version (same major).
+    /// Oldest compatible version (same major).
     Version version;
 };
 
-//! @brief A library the plugin is built with, from @c dependencies.system
-//! or @c dependencies.thirdparties of @c plugin.yaml:
-//! @code
-//! dependencies:
-//!   system:
-//!     - { name: opencv4, license: Apache-2.0 }           # pkg-config name
-//!   thirdparties:
-//!     - { repo: AprilRobotics/apriltag@v3.4.2, license: BSD-2-Clause,
-//!         description: AprilTag fiducial detection }     # cloned and built
-//!     - { name: onnxruntime, url: "https://...", license: MIT }  # no repo
-//! @endcode
+/// @brief A library the plugin is built with, from @c dependencies.system
+/// or @c dependencies.thirdparties of @c plugin.yaml:
+/// @code
+/// dependencies:
+///   system:
+///     - { name: opencv4, license: Apache-2.0 }           # pkg-config name
+///   thirdparties:
+///     - { repo: AprilRobotics/apriltag@v3.4.2, license: BSD-2-Clause,
+///         description: AprilTag fiducial detection }     # cloned and built
+///     - { name: onnxruntime, url: "https://...", license: MIT }  # no repo
+/// @endcode
 struct ThirdParty
 {
-    //!< GitHub @c user/repo (without @c :recurse nor @c @ref), or a name.
+    /// GitHub @c user/repo (without @c :recurse nor @c @ref), or a name.
     std::string name;
-    //!< Branch, tag or commit after @c @ in @c repo, or empty.
+    /// Branch, tag or commit after @c @ in @c repo, or empty.
     std::string reference;
-    //!< Home page: the GitHub page of a repo, or the @c url field.
+    /// Home page: the GitHub page of a repo, or the @c url field.
     std::string url;
     std::string license;
     std::string description;
@@ -111,28 +111,28 @@ struct PluginPackage
     std::string name;
     Version version;
     std::string category;
-    //!< One or two sentences for the user, or empty.
+    /// One or two sentences for the user, or empty.
     std::string description;
-    //!< @c ROBOTIK_PLUGIN_ABI_VERSION the library was built against.
+    /// @c ROBOTIK_PLUGIN_ABI_VERSION the library was built against.
     std::uint32_t api_version = 0;
-    //!< The package's own asset pack, or empty.
+    /// The package's own asset pack, or empty.
     std::filesystem::path resources;
     std::vector<PackRequirement> packs;
-    //!< Plugin ids that must be in the catalog for this one to run.
+    /// Plugin ids that must be in the catalog for this one to run.
     std::vector<std::string> plugins;
-    //!< Libraries of the system (pkg-config), for the credits.
+    /// Libraries of the system (pkg-config), for the credits.
     std::vector<ThirdParty> system;
-    //!< Libraries cloned and built with the plugin, for the credits.
+    /// Libraries cloned and built with the plugin, for the credits.
     std::vector<ThirdParty> thirdparties;
     bool graphics = false;
-    //! @brief Default of @ref PluginScenario::owns_clock (@c host.clock).
+    /// @brief Default of @ref PluginScenario::owns_clock (@c host.clock).
     bool owns_clock = false;
     bool has_view = false;
     float eye[3] = { 1.6f, 1.2f, 1.6f };
     float target[3] = { 0.35f, 0.15f, 0.0f };
     std::filesystem::path library;
     std::vector<PluginScenario> scenarios;
-    //!< Experiment files (cases over the scenarios), same entry format.
+    /// Experiment files (cases over the scenarios), same entry format.
     std::vector<PluginScenario> experiments;
 };
 
@@ -143,24 +143,24 @@ struct PluginMatch
 };
 
 // ****************************************************************************
-//! @brief In-memory list of plugin packages.
+/// @brief In-memory list of plugin packages.
 // ****************************************************************************
 class PluginCatalog
 {
 public:
 
 
-    //! @brief @p_extra, then the default roots: each directory of
-    //! @c ROBOTIK_PLUGINS (colon separated), @c plugins/ next to the
-    //! executable, @c lib/robotik/plugins of its install prefix.
+    /// @brief @p_extra, then the default roots: each directory of
+    /// @c ROBOTIK_PLUGINS (colon separated), @c plugins/ next to the
+    /// executable, @c lib/robotik/plugins of its install prefix.
     void scan(std::filesystem::path const& p_extra = {});
 
-    //! @brief Adds the package holding @p_scenario (its folder or one of the
-    //! two above) and returns it, or null when there is none.
+    /// @brief Adds the package holding @p_scenario (its folder or one of the
+    /// two above) and returns it, or null when there is none.
     PluginPackage const* add(std::filesystem::path const& p_scenario);
 
-    //! @brief Scans exactly these directories. Each one is either a package
-    //! or a folder of packages.
+    /// @brief Scans exactly these directories. Each one is either a package
+    /// or a folder of packages.
     void scan(std::vector<std::filesystem::path> const& p_roots);
 
     [[nodiscard]] std::vector<PluginPackage> const& packages() const
@@ -175,10 +175,10 @@ public:
 
     [[nodiscard]] PluginPackage const* findPackage(std::string_view p_id) const;
 
-    //! @brief Package that ships @p_scenario, compared as a canonical path.
+    /// @brief Package that ships @p_scenario, compared as a canonical path.
     [[nodiscard]] PluginPackage const* findScenario(std::filesystem::path const& p_scenario) const;
 
-    //! @brief Exact path, or the only scenario whose id is the file stem.
+    /// @brief Exact path, or the only scenario whose id is the file stem.
     [[nodiscard]] PluginMatch matchScenario(std::filesystem::path const& p_scenario) const;
 
     [[nodiscard]] PluginScenario const* scenarioOf(PluginPackage const& p_package,

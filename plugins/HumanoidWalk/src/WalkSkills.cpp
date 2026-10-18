@@ -13,24 +13,19 @@
 
 #include <algorithm>
 
-//! Gravity along the IMU z axis above which the robot lies down (upright: -1).
+/// Gravity along the IMU z axis above which the robot lies down (upright: -1).
 #define FALLEN_GRAVITY_Z -0.5
 
-namespace
-{
-
-//! Damping mode of the LimX controllers: no stiffness, a viscous brake
-//! (JointGains::velocity_kp = kd). Without its IMU the robot cannot balance:
-//! it sags to the ground instead of freezing in a stiff pose.
-void damp(robotik::JointSet& p_joints, std::vector<robotik::JointId> const& p_ids)
+/// Damping mode of the LimX controllers: no stiffness, a viscous brake
+/// (JointGains::velocity_kp = kd). Without its IMU the robot cannot balance:
+/// it sags to the ground instead of freezing in a stiff pose.
+static void damp(robotik::JointSet& p_joints, std::vector<robotik::JointId> const& p_ids)
 {
     for (robotik::JointId const id : p_ids)
     {
         p_joints.spin(id, 0.0);
     }
 }
-
-} // namespace
 
 // ****************************************************************************
 StandSkill::StandSkill(WalkBody p_body, std::vector<double> p_posture, Seconds p_duration)

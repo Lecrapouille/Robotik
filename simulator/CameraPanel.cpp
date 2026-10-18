@@ -13,13 +13,10 @@
 #include <numbers>
 #include <vector>
 
-namespace
-{
-
-//! @brief One camera: a title line and its picture, fitted in @p_cell
-//! without changing the aspect ratio. Fitting both sides keeps the panel
-//! free of scrollbars, so the picture does not shake.
-void cameraCell(App& p_app, robotik::Camera& p_camera, std::size_t p_index, ImVec2 p_cell)
+/// @brief One camera: a title line and its picture, fitted in @p_cell
+/// without changing the aspect ratio. Fitting both sides keeps the panel
+/// free of scrollbars, so the picture does not shake.
+static void cameraCell(App& p_app, robotik::Camera& p_camera, std::size_t p_index, ImVec2 p_cell)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     SimulatorView& view = *p_app.scene_view;
@@ -89,8 +86,6 @@ void cameraCell(App& p_app, robotik::Camera& p_camera, std::size_t p_index, ImVe
                       item.label.c_str());
     }
 }
-
-} // namespace
 
 void camerasPanel(App& p_app, char const* p_key)
 {

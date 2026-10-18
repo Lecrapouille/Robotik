@@ -14,10 +14,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
+/// Reads the faults a scenario injects on resources.
+static void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
 {
     for (ConfigNode const& fault : p_node.items())
     {
@@ -43,7 +41,8 @@ void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
     }
 }
 
-std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string const& p_key)
+/// Reads planner literals such as in(a, b).
+static std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string const& p_key)
 {
     std::vector<Literal> literals;
     for (ConfigNode const& item : p_node.at(p_key).items())
@@ -66,7 +65,8 @@ std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string const& p
     return literals;
 }
 
-PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode const& p_node)
+/// Reads the planner block: domain file, goal and replan limits.
+static PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode const& p_node)
 {
     PlannerSpec spec;
     spec.domain = packageFile(p_root, p_node.text("domain"));
@@ -94,8 +94,6 @@ PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode const& p
     spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
     return spec;
 }
-
-} // namespace
 
 ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
 {
@@ -142,10 +140,8 @@ void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
     }
 }
 
-namespace
-{
-
-Fidelity readFidelity(std::string const& p_text, std::string const& p_where)
+/// Maps the words abstract and rigid onto the fidelity enum.
+static Fidelity readFidelity(std::string const& p_text, std::string const& p_where)
 {
     if (p_text == "abstract")
     {
@@ -162,7 +158,8 @@ Fidelity readFidelity(std::string const& p_text, std::string const& p_where)
     throw std::runtime_error(p_where + " must be abstract, rigid or contact");
 }
 
-void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
+/// Reads the fidelity and the per-entity overrides under physics.
+static void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
 {
     if (!p_node.isMap())
     {
@@ -179,8 +176,8 @@ void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
     }
 }
 
-//! Every override names an entity or an actuator of the world.
-void checkPhysics(Scenario const& p_scenario)
+/// Every override names an entity or an actuator of the world.
+static void checkPhysics(Scenario const& p_scenario)
 {
     for (auto const& [id, level] : p_scenario.physics.overrides)
     {
@@ -199,8 +196,6 @@ void checkPhysics(Scenario const& p_scenario)
         }
     }
 }
-
-} // namespace
 
 char const* toString(Fidelity p_fidelity)
 {

@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file MotionSkills.hpp
-//! @brief Joint-space and Cartesian motions, and the emergency stop.
-//!
-//! Joint ids are resolved once at @ref Skill::reset, so ticks only touch the
-//! dense @ref JointSet arrays. A cancelled motion holds the joints where they
-//! are.
+/// @file MotionSkills.hpp
+/// @brief Joint-space and Cartesian motions, and the emergency stop.
+///
+/// Joint ids are resolved once at @ref Skill::reset, so ticks only touch the
+/// dense @ref JointSet arrays. A cancelled motion holds the joints where they
+/// are.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -25,13 +25,13 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Moves the joints of a group (all joints by default) to their home.
+/// @brief Moves the joints of a group (all joints by default) to their home.
 // ****************************************************************************
 class HomeSkill final: public Skill
 {
 public:
 
-    //! @param p_group @ref JointGroup name; empty for every joint.
+    /// @param p_group @ref JointGroup name; empty for every joint.
     explicit HomeSkill(std::string p_group = {}, double p_tolerance = 1e-2);
 
     void reset() override;
@@ -47,7 +47,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Drives one joint to a position.
+/// @brief Drives one joint to a position.
 // ****************************************************************************
 class MoveJointSkill final: public Skill
 {
@@ -73,7 +73,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Drives several joints at once; succeeds when all are reached.
+/// @brief Drives several joints at once; succeeds when all are reached.
 // ****************************************************************************
 class MoveJointsSkill final: public Skill
 {
@@ -94,18 +94,18 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Moves a frame to a pose in the robot base frame (IK once per goal).
+/// @brief Moves a frame to a pose in the robot base frame (IK once per goal).
 // ****************************************************************************
 class MoveTCPSkill final: public Skill
 {
 public:
 
-    //! @param p_frame Link to move; empty for the robot tool frame.
+    /// @param p_frame Link to move; empty for the robot tool frame.
     explicit MoveTCPSkill(std::string p_frame = {},
                           Pose const& p_target = {},
                           double p_tolerance = 1e-2);
 
-    //! @brief New goal, planned at the next tick.
+    /// @brief New goal, planned at the next tick.
     void goal(Pose const& p_target);
 
     void reset() override;
@@ -122,8 +122,8 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Holds every joint until cancelled. Give it the highest priority and
-//! all motion resources: it preempts whatever moves.
+/// @brief Holds every joint until cancelled. Give it the highest priority and
+/// all motion resources: it preempts whatever moves.
 // ****************************************************************************
 class StopSkill final: public Skill
 {

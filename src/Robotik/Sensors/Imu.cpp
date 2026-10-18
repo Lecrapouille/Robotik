@@ -17,11 +17,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-//! Rotation vector (axis * angle) of a unit quaternion.
-Vector3 rotationVector(Quaternion p_q)
+/// Rotation vector (axis * angle) of a unit quaternion.
+static Vector3 rotationVector(Quaternion p_q)
 {
     if (p_q.w < 0.0)
     {
@@ -36,8 +33,6 @@ Vector3 rotationVector(Quaternion p_q)
     double const angle = 2.0 * std::atan2(sine, std::clamp(p_q.w, -1.0, 1.0));
     return axis * (angle / sine);
 }
-
-} // namespace
 
 Imu::Imu(std::string p_name, ImuConfig p_config)
     : Sensor(std::move(p_name), p_config.frequency),

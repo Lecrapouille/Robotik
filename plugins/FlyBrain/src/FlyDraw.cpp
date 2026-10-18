@@ -15,21 +15,18 @@
 #include <cmath>
 #include <string>
 
-namespace
-{
+static constexpr float PI = 3.14159265358979323846f;
 
-constexpr float PI = 3.14159265358979323846f;
-
-//! @brief Euclidean length. The beam math stays in float, the view's unit.
-float lengthOf(compages::core::Vector3f const& p_vector)
+/// @brief Euclidean length. The beam math stays in float, the view's unit.
+static float lengthOf(compages::core::Vector3f const& p_vector)
 {
     return std::sqrt(p_vector.x * p_vector.x + p_vector.y * p_vector.y +
                      p_vector.z * p_vector.z);
 }
 
-//! @brief Places one joint when the URDF has it. A missing name is skipped,
-//! so a shorter model still draws.
-void poseJoint(robotik::Robot& p_robot,
+/// @brief Places one joint when the URDF has it. A missing name is skipped,
+/// so a shorter model still draws.
+static void poseJoint(robotik::Robot& p_robot,
                std::string const& p_name,
                double p_angle)
 {
@@ -39,8 +36,6 @@ void poseJoint(robotik::Robot& p_robot,
         p_robot.joints().place(id, p_angle);
     }
 }
-
-} // namespace
 
 compages::core::Vector3f flyToView(robotik::Vector3 const& p_z_up)
 {

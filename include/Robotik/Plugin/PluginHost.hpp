@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginHost.hpp
-//! @brief Host services behind @ref RobotikHostAPI. No user interface toolkit.
+/// @file PluginHost.hpp
+/// @brief Host services behind @ref RobotikHostAPI. No user interface toolkit.
 #pragma once
 
 #include "Robotik/Plugin/PluginABI.h"
@@ -42,10 +42,10 @@ struct PluginPanel
 };
 
 // ****************************************************************************
-//! @brief Menus, panels, event subscriptions and the bound mission.
-//!
-//! The object address is the @ref RobotikHost pointer. It must not move for
-//! the lifetime of a plugin instance.
+/// @brief Menus, panels, event subscriptions and the bound mission.
+///
+/// The object address is the @ref RobotikHost pointer. It must not move for
+/// the lifetime of a plugin instance.
 // ****************************************************************************
 class PluginHost
 {

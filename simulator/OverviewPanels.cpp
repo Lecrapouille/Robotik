@@ -18,10 +18,8 @@
 #include <string_view>
 #include <vector>
 
-namespace
-{
-
-char const* typeOf(robotik::EntitySpec::Type p_type)
+/// Display name of an entity type.
+static char const* typeOf(robotik::EntitySpec::Type p_type)
 {
     switch (p_type)
     {
@@ -37,7 +35,8 @@ char const* typeOf(robotik::EntitySpec::Type p_type)
     return "";
 }
 
-char const* typeOf(robotik::SensorSpec::Type p_type)
+/// Display name of a sensor type.
+static char const* typeOf(robotik::SensorSpec::Type p_type)
 {
     switch (p_type)
     {
@@ -53,7 +52,8 @@ char const* typeOf(robotik::SensorSpec::Type p_type)
     return "";
 }
 
-char const* typeOf(robotik::ActuatorSpec::Type p_type)
+/// Display name of an actuator type.
+static char const* typeOf(robotik::ActuatorSpec::Type p_type)
 {
     switch (p_type)
     {
@@ -67,7 +67,8 @@ char const* typeOf(robotik::ActuatorSpec::Type p_type)
     return "";
 }
 
-std::string parentOf(robotik::EntitySpec const& p_entity)
+/// Id of the entity this one is attached to, without the link.
+static std::string parentOf(robotik::EntitySpec const& p_entity)
 {
     if (!p_entity.attach)
     {
@@ -77,9 +78,11 @@ std::string parentOf(robotik::EntitySpec const& p_entity)
     return std::string(parent.substr(0, parent.find('.')));
 }
 
-void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity);
+/// Forward declaration: one entity and the devices hanging from it.
+static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity);
 
-void children(App& p_app, robotik::WorldDescription const& p_world, std::string const& p_parent)
+/// Rows of the entities attached to this parent.
+static void children(App& p_app, robotik::WorldDescription const& p_world, std::string const& p_parent)
 {
     for (robotik::EntitySpec const& entity : p_world.entities)
     {
@@ -90,7 +93,8 @@ void children(App& p_app, robotik::WorldDescription const& p_world, std::string 
     }
 }
 
-void leaf(char const* p_name, char const* p_type, char const* p_detail)
+/// One childless row: name, type and a detail.
+static void leaf(char const* p_name, char const* p_type, char const* p_detail)
 {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
@@ -103,7 +107,8 @@ void leaf(char const* p_name, char const* p_type, char const* p_detail)
     ImGui::TableNextColumn();
 }
 
-void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity)
+/// One entity row and the sensors, actuators and children under it.
+static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
     bool has_children = !p_entity.sensors.empty() || !p_entity.actuators.empty();
@@ -167,8 +172,8 @@ void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::En
     ImGui::TreePop();
 }
 
-//! @brief Text of @p_path, or a short note for a binary or a large file.
-std::string readShown(std::filesystem::path const& p_path)
+/// @brief Text of @p_path, or a short note for a binary or a large file.
+static std::string readShown(std::filesystem::path const& p_path)
 {
     constexpr std::uintmax_t LIMIT = 2u * 1024u * 1024u;
     std::error_code error;
@@ -189,8 +194,6 @@ std::string readShown(std::filesystem::path const& p_path)
     }
     return text;
 }
-
-} // namespace
 
 void worldView(App& p_app)
 {
@@ -224,18 +227,16 @@ void worldView(App& p_app)
     }
 }
 
-namespace
-{
-
-bool same(std::filesystem::path const& p_a, std::filesystem::path const& p_b)
+/// True when both paths name the same file.
+static bool same(std::filesystem::path const& p_a, std::filesystem::path const& p_b)
 {
     std::error_code error;
     return !p_a.empty() && !p_b.empty() && std::filesystem::equivalent(p_a, p_b, error);
 }
 
-//! @brief Kind of a file: from its double extension (FileRole.hpp), else
-//! from the first top-level key of a YAML file.
-FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
+/// @brief Kind of a file: from its double extension (FileRole.hpp), else
+/// from the first top-level key of a YAML file.
+static FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
 {
     switch (robotik::fileRole(p_path))
     {
@@ -290,8 +291,8 @@ FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
     return FileTab::Other;
 }
 
-//! @brief The file a tab shows: the one chosen in Files, else the loaded one.
-ShownFile shownIn(App const& p_app, FileTab p_tab)
+/// @brief The file a tab shows: the one chosen in Files, else the loaded one.
+static ShownFile shownIn(App const& p_app, FileTab p_tab)
 {
     ShownFile const& chosen = p_app.ui.shown_files[static_cast<std::size_t>(p_tab)];
     if (!chosen.path.empty())
@@ -318,9 +319,9 @@ ShownFile shownIn(App const& p_app, FileTab p_tab)
     return {};
 }
 
-//! @brief Planner tab: not one file but the texts of the planner. Only for
-//! a scenario that plans.
-void plannerTab(App& p_app)
+/// @brief Planner tab: not one file but the texts of the planner. Only for
+/// a scenario that plans.
+static void plannerTab(App& p_app)
 {
     if (!p_app.simulation || p_app.simulation->planner() == nullptr)
     {
@@ -344,7 +345,8 @@ void plannerTab(App& p_app)
     }
 }
 
-void fileTab(App& p_app, FileTab p_tab, char const* p_label)
+/// Selects one package file and shows it in the text panel.
+static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
 {
     std::size_t const index = static_cast<std::size_t>(p_tab);
     ShownFile const shown = shownIn(p_app, p_tab);
@@ -393,8 +395,6 @@ void fileTab(App& p_app, FileTab p_tab, char const* p_label)
         p_app.ui.shown_files[index] = {};
     }
 }
-
-} // namespace
 
 void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_focus)
 {

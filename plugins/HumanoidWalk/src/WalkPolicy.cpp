@@ -14,10 +14,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-namespace
-{
-
-std::vector<double> numbers(robotik::ConfigNode const& p_node,
+/// Reads a YAML sequence of numbers of the expected length.
+static std::vector<double> numbers(robotik::ConfigNode const& p_node,
                             std::string_view p_key,
                             std::size_t p_size)
 {
@@ -40,12 +38,11 @@ std::vector<double> numbers(robotik::ConfigNode const& p_node,
     return values;
 }
 
-float clip(double p_value, double p_bound)
+/// Clamps a value to a symmetric bound and returns it as float.
+static float clip(double p_value, double p_bound)
 {
     return static_cast<float>(std::clamp(p_value, -p_bound, p_bound));
 }
-
-} // namespace
 
 // ----------------------------------------------------------------------------
 WalkContract WalkContract::load(std::filesystem::path const& p_path)

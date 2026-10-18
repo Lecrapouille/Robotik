@@ -16,10 +16,8 @@
 #include <sstream>
 #include <stdexcept>
 
-namespace
-{
-
-robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
+/// Control and physics periods of the pick-and-place fixture.
+static robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
 {
     robotik::EnvironmentTiming result;
     result.physics_step = Seconds(PICK_PLACE_PHYSICS_STEP_S);
@@ -28,13 +26,14 @@ robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
     return result;
 }
 
-robotik::Scenario scenario()
+/// Loads the pick-and-place scenario used by these tests.
+static robotik::Scenario scenario()
 {
     return robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
                                    testAssets());
 }
 
-//! Throws on the third action: a solver that gives up.
+/// Throws on the third action: a solver that gives up.
 class Fragile final: public robotik::ActionAdapter
 {
 public:
@@ -56,8 +55,6 @@ private:
 
     int m_calls = 0;
 };
-
-} // namespace
 
 TEST(SimulationEnvironment, SpacesAreNamedBoundedAndHonest)
 {

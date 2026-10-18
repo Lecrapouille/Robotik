@@ -12,18 +12,14 @@
 #include <cmath>
 #include <optional>
 
-namespace
-{
-
-double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
+/// Distance between two poses.
+static double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
 {
     double const dx = p_from.position.x - p_to.position.x;
     double const dy = p_from.position.y - p_to.position.y;
     double const dz = p_from.position.z - p_to.position.z;
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
-
-} // namespace
 
 void ReachMission::reset(robotik::Simulation& p_simulation, robotik::Seed /*p_seed*/)
 {

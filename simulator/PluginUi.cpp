@@ -16,15 +16,14 @@
 #include <string>
 #include <vector>
 
-namespace
-{
-
-void canvasText(RobotikCanvas const* /*p_canvas*/, char const* p_line)
+/// Canvas callback: one line of text.
+static void canvasText(RobotikCanvas const* /*p_canvas*/, char const* p_line)
 {
     ImGui::TextUnformatted(p_line != nullptr ? p_line : "");
 }
 
-void canvasColor(RobotikCanvas const* /*p_canvas*/,
+/// Canvas callback: one line of colored text.
+static void canvasColor(RobotikCanvas const* /*p_canvas*/,
                  float p_red,
                  float p_green,
                  float p_blue,
@@ -35,12 +34,14 @@ void canvasColor(RobotikCanvas const* /*p_canvas*/,
                        p_line != nullptr ? p_line : "");
 }
 
-int canvasButton(RobotikCanvas const* /*p_canvas*/, char const* p_label)
+/// Canvas callback: a button, 1 when it was clicked.
+static int canvasButton(RobotikCanvas const* /*p_canvas*/, char const* p_label)
 {
     return ImGui::Button(p_label != nullptr ? p_label : "") ? 1 : 0;
 }
 
-int canvasCheckbox(RobotikCanvas const* /*p_canvas*/, char const* p_label, int* p_value)
+/// Canvas callback: a checkbox bound to an int.
+static int canvasCheckbox(RobotikCanvas const* /*p_canvas*/, char const* p_label, int* p_value)
 {
     if (p_value == nullptr)
     {
@@ -52,7 +53,8 @@ int canvasCheckbox(RobotikCanvas const* /*p_canvas*/, char const* p_label, int* 
     return changed ? 1 : 0;
 }
 
-int canvasSlider(RobotikCanvas const* /*p_canvas*/,
+/// Canvas callback: an integer slider.
+static int canvasSlider(RobotikCanvas const* /*p_canvas*/,
                  char const* p_label,
                  int* p_value,
                  int p_min,
@@ -65,17 +67,20 @@ int canvasSlider(RobotikCanvas const* /*p_canvas*/,
     return ImGui::SliderInt(p_label != nullptr ? p_label : "", p_value, p_min, p_max) ? 1 : 0;
 }
 
-int canvasRadio(RobotikCanvas const* /*p_canvas*/, char const* p_label, int p_active)
+/// Canvas callback: a radio button.
+static int canvasRadio(RobotikCanvas const* /*p_canvas*/, char const* p_label, int p_active)
 {
     return ImGui::RadioButton(p_label != nullptr ? p_label : "", p_active != 0) ? 1 : 0;
 }
 
-void canvasSeparator(RobotikCanvas const* /*p_canvas*/)
+/// Canvas callback: a separator.
+static void canvasSeparator(RobotikCanvas const* /*p_canvas*/)
 {
     ImGui::Separator();
 }
 
-RobotikCanvas makeCanvas()
+/// Fills the C canvas with the ImGui callbacks.
+static RobotikCanvas makeCanvas()
 {
     RobotikCanvas canvas{};
     canvas.size = static_cast<std::uint32_t>(sizeof(canvas));
@@ -88,8 +93,6 @@ RobotikCanvas makeCanvas()
     canvas.radio = &canvasRadio;
     return canvas;
 }
-
-} // namespace
 
 void requestScenario(App& p_app, std::filesystem::path const& p_file)
 {

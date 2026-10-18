@@ -16,25 +16,22 @@
 #include <memory>
 #include <string>
 
-namespace
-{
-
 // ****************************************************************************
-//! @brief The plugin: picks the mission of the chosen scenario, adds a menu
-//! item, a panel and a key binding. Everything else is optional.
+/// @brief The plugin: picks the mission of the chosen scenario, adds a menu
+/// item, a panel and a key binding. Everything else is optional.
 // ****************************************************************************
 class HelloWorldPlugin final: public robotik::Plugin
 {
 public:
 
-    //! The id must match plugin.id in plugin.yaml.
+    /// The id must match plugin.id in plugin.yaml.
     static robotik::PluginInfo describe()
     {
         return { .id = "robotik.hello_world" };
     }
 
-    //! Called before the simulation exists: create the mission and hand it
-    //! to the host, which passes it to the simulation.
+    /// Called before the simulation exists: create the mission and hand it
+    /// to the host, which passes it to the simulation.
     RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
         m_scenario = std::string(p_scenario);
@@ -75,14 +72,14 @@ public:
         return ROBOTIK_PLUGIN_OK;
     }
 
-    //! Called after each simulation step.
+    /// Called after each simulation step.
     RobotikPluginStatus update(robotik::Host& /*p_host*/, double /*p_dt*/) override
     {
         ++m_updates;
         return ROBOTIK_PLUGIN_OK;
     }
 
-    //! Only the events subscribed in setup arrive here.
+    /// Only the events subscribed in setup arrive here.
     RobotikPluginStatus onEvent(robotik::Host& /*p_host*/,
                                 RobotikEvent const& p_event) override
     {
@@ -97,7 +94,7 @@ public:
         return ROBOTIK_PLUGIN_OK;
     }
 
-    //! The host already destroyed the simulation: free the mission.
+    /// The host already destroyed the simulation: free the mission.
     RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
     {
         m_reach = nullptr;
@@ -105,8 +102,8 @@ public:
         return ROBOTIK_PLUGIN_OK;
     }
 
-    //! Requests the built-in skill "Home". Missions that command the joints
-    //! at every step (wave, reach) overwrite it at the next step.
+    /// Requests the built-in skill "Home". Missions that command the joints
+    /// at every step (wave, reach) overwrite it at the next step.
     void home()
     {
         ++m_homes;
@@ -155,7 +152,5 @@ private:
     int m_keys = 0;
     int m_homes = 0;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(HelloWorldPlugin)

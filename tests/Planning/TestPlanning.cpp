@@ -15,12 +15,9 @@
 #include <filesystem>
 #include <fstream>
 
-namespace
-{
-
 // A gripper moves blocks between places. Typed, with a constant, a
 // derived predicate and a quantified effect.
-char const* const BLOCKS = R"(
+static char const* const BLOCKS = R"(
 ; Blocks moved by one gripper.
 (define (domain Blocks)
   (:requirements :strips :typing :negative-preconditions :derived-predicates
@@ -43,7 +40,8 @@ char const* const BLOCKS = R"(
     :effect (forall (?b - block) (not (holding ?b)))))
 )";
 
-std::filesystem::path writeDomain(char const* p_name, char const* p_text)
+/// Writes a domain to a temporary file and returns its path.
+static std::filesystem::path writeDomain(char const* p_name, char const* p_text)
 {
     std::filesystem::path const file =
         std::filesystem::temp_directory_path() / p_name;
@@ -51,7 +49,8 @@ std::filesystem::path writeDomain(char const* p_name, char const* p_text)
     return file;
 }
 
-robotik::WorldDescription world()
+/// A tiny world: a cube, a bin and a prop the planner ignores.
+static robotik::WorldDescription world()
 {
     robotik::WorldDescription world;
     world.id = "cell";
@@ -67,8 +66,8 @@ robotik::WorldDescription world()
     return world;
 }
 
-//! Observers for every predicate, bindings for every action.
-robotik::PlanningDomain complete()
+/// Observers for every predicate, bindings for every action.
+static robotik::PlanningDomain complete()
 {
     robotik::PlanningDomain domain;
     auto unknown = [](robotik::RobotContext const&, robotik::Args)
@@ -82,7 +81,8 @@ robotik::PlanningDomain complete()
     return domain;
 }
 
-robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
+/// A planner spec whose goal is at(red_cube, bin).
+static robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
 {
     robotik::PlannerSpec spec;
     spec.domain = p_domain;
@@ -90,14 +90,13 @@ robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
     return spec;
 }
 
-std::string problemOf(char const* p_init)
+/// A blocks problem whose initial state is the given text.
+static std::string problemOf(char const* p_init)
 {
     return std::string("(define (problem p) (:domain blocks)\n"
                        "  (:objects red_cube - cube bin - place)\n  (:init ") +
            p_init + ")\n  (:goal (at red_cube bin)))";
 }
-
-} // namespace
 
 TEST(Planning, ReadsLiterals)
 {

@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginSession.hpp
-//! @brief Catalog, library and scenario instance used by Simulator and Headless.
-//!
-//! Tear-down order: stop the plugin, destroy the @ref Simulation (it still
-//! uses the mission), then @ref release which shuts the plugin down and
-//! deletes the mission. @ref unload closes the library after that.
+/// @file PluginSession.hpp
+/// @brief Catalog, library and scenario instance used by Simulator and Headless.
+///
+/// Tear-down order: stop the plugin, destroy the @ref Simulation (it still
+/// uses the mission), then @ref release which shuts the plugin down and
+/// deletes the mission. @ref unload closes the library after that.
 #pragma once
 
 #include "Robotik/Assets/AssetResolver.hpp"
@@ -34,15 +34,15 @@ class Simulation;
 
 enum class PluginPrepare : std::uint8_t
 {
-    //! @brief The path is not a scenario of a discovered package.
+    /// @brief The path is not a scenario of a discovered package.
     NotPlugin,
-    //! @brief The plugin is set up and its mission can be passed to Simulation.
+    /// @brief The plugin is set up and its mission can be passed to Simulation.
     Ready,
     Failed,
 };
 
 // ****************************************************************************
-//! @brief One loaded plugin and the scenario currently prepared on it.
+/// @brief One loaded plugin and the scenario currently prepared on it.
 // ****************************************************************************
 class PluginSession
 {
@@ -53,11 +53,11 @@ public:
     PluginSession& operator=(PluginSession const&) = delete;
     ~PluginSession();
 
-    //! @brief Lists the packages, then the asset packs: the standard roots
-    //! and the own pack of every package.
+    /// @brief Lists the packages, then the asset packs: the standard roots
+    /// and the own pack of every package.
     void scan(std::filesystem::path const& p_extra = {});
 
-    //! @brief Refuse packages that declare @c graphics: true.
+    /// @brief Refuse packages that declare @c graphics: true.
     void setHeadless(bool p_headless)
     {
         m_headless = p_headless;
@@ -68,7 +68,7 @@ public:
         return m_catalog;
     }
 
-    //! @brief Asset packs visible to the scenarios of the catalog.
+    /// @brief Asset packs visible to the scenarios of the catalog.
     [[nodiscard]] AssetResolver const& assets() const
     {
         return m_assets;
@@ -90,7 +90,7 @@ public:
         return m_scenario_name;
     }
 
-    //! @brief The plugin advances the simulation inside @c update.
+    /// @brief The plugin advances the simulation inside @c update.
     [[nodiscard]] bool ownsClock() const
     {
         return m_owns_clock;
@@ -104,9 +104,9 @@ public:
                m_manager.state() == PluginState::Stopped;
     }
 
-    //! @brief Checks the asset packs and plugins the package depends on,
-    //! loads the owning plugin and runs @c setup. The simulation does not
-    //! exist yet: the returned mission is what the host passes to it.
+    /// @brief Checks the asset packs and plugins the package depends on,
+    /// loads the owning plugin and runs @c setup. The simulation does not
+    /// exist yet: the returned mission is what the host passes to it.
     PluginPrepare prepare(std::filesystem::path const& p_scenario);
 
     [[nodiscard]] Mission* mission() const
@@ -119,19 +119,19 @@ public:
 
     RobotikPluginStatus start();
     void setPaused(bool p_paused);
-    //! @brief Plugin @c update, then assertion and skill events.
+    /// @brief Plugin @c update, then assertion and skill events.
     void afterStep(double p_dt);
     void publishKey(std::int32_t p_code);
     void publish(RobotikEvent const& p_event);
 
-    //! @brief Plugin @c stop. The simulation may still be alive.
+    /// @brief Plugin @c stop. The simulation may still be alive.
     void stop();
 
-    //! @brief Drops menus, shuts the plugin down and destroys the instance.
-    //! The simulation must already be destroyed.
+    /// @brief Drops menus, shuts the plugin down and destroys the instance.
+    /// The simulation must already be destroyed.
     void release();
 
-    //! @brief @ref release, then closes the library.
+    /// @brief @ref release, then closes the library.
     void unload();
 
 private:

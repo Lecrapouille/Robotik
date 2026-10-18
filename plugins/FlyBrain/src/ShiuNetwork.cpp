@@ -15,18 +15,15 @@
 #include <stdexcept>
 #include <string>
 
-namespace
-{
-
 // 1.8 ms / 0.1 ms is 18. Dividing the doubles truncates to 17, so the
 // count is written out.
-constexpr int DELAY_STEPS = 18;
-constexpr int RING = DELAY_STEPS + 1;
-constexpr double SUBSTEP_MS = ShiuNetwork::SUBSTEP_S * 1000.0;
+static constexpr int DELAY_STEPS = 18;
+static constexpr int RING = DELAY_STEPS + 1;
+static constexpr double SUBSTEP_MS = ShiuNetwork::SUBSTEP_S * 1000.0;
 
-//! @brief Poisson count. A tiny lambda is a coin flip; otherwise Knuth's
-//! product of uniforms, which stops at the first draw that falls under e^-λ.
-int poisson(robotik::Random& p_random, double p_lambda)
+/// @brief Poisson count. A tiny lambda is a coin flip; otherwise Knuth's
+/// product of uniforms, which stops at the first draw that falls under e^-λ.
+static int poisson(robotik::Random& p_random, double p_lambda)
 {
     if (p_lambda <= 0.0)
     {
@@ -46,8 +43,6 @@ int poisson(robotik::Random& p_random, double p_lambda)
     } while (product > limit);
     return count - 1;
 }
-
-} // namespace
 
 void ShiuNetwork::resize(std::uint32_t p_neurons)
 {

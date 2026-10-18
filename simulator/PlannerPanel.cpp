@@ -26,10 +26,8 @@
 #include <string>
 #include <vector>
 
-namespace
-{
-
-ImVec4 colorOf(robotik::PlanState p_state)
+/// Color of a plan state.
+static ImVec4 colorOf(robotik::PlanState p_state)
 {
     switch (p_state)
     {
@@ -46,7 +44,8 @@ ImVec4 colorOf(robotik::PlanState p_state)
     return BLUE;
 }
 
-ImVec4 colorOf(robotik::Truth p_truth)
+/// Color of a truth value.
+static ImVec4 colorOf(robotik::Truth p_truth)
 {
     switch (p_truth)
     {
@@ -60,8 +59,8 @@ ImVec4 colorOf(robotik::Truth p_truth)
     return GREY;
 }
 
-//! @brief Writes the texts of every plan of the run in @p_folder.
-std::string save(robotik::PlanExecutor const& p_executor,
+/// @brief Writes the texts of every plan of the run in @p_folder.
+static std::string save(robotik::PlanExecutor const& p_executor,
                  std::filesystem::path const& p_folder)
 {
     std::error_code error;
@@ -91,21 +90,21 @@ std::string save(robotik::PlanExecutor const& p_executor,
            p_folder.string();
 }
 
-//! @brief The planner of the loaded run, or null.
-robotik::PlanExecutor* plannerOf(App& p_app)
+/// @brief The planner of the loaded run, or null.
+static robotik::PlanExecutor* plannerOf(App& p_app)
 {
     return p_app.simulation ? p_app.simulation->planner() : nullptr;
 }
 
-//! @brief Folder where Save PDDL writes the texts of the run.
-std::filesystem::path saveFolder(App const& p_app)
+/// @brief Folder where Save PDDL writes the texts of the run.
+static std::filesystem::path saveFolder(App const& p_app)
 {
     return std::filesystem::current_path() / "planner" / p_app.simulation->scenario().id;
 }
 
-//! @brief Index of the plan whose texts are shown: the one picked in
-//! History, else the last one. History must not be empty.
-std::size_t shownRecord(App& p_app, robotik::PlanExecutor const& p_executor)
+/// @brief Index of the plan whose texts are shown: the one picked in
+/// History, else the last one. History must not be empty.
+static std::size_t shownRecord(App& p_app, robotik::PlanExecutor const& p_executor)
 {
     std::size_t const count = p_executor.history().size();
     int& picked = p_app.ui.planner_record;
@@ -116,15 +115,16 @@ std::size_t shownRecord(App& p_app, robotik::PlanExecutor const& p_executor)
     return picked < 0 ? count - 1u : static_cast<std::size_t>(picked);
 }
 
-void noPlanner()
+/// Placeholder when the scenario has no PDDL planner.
+static void noPlanner()
 {
     emptyState("This scenario has no planner.\nA scenario with controller.planner gets its "
                "plan from a PDDL goal instead of a behavior tree.");
 }
 
-//! @brief Goal and state. The goal stays on top: it is the order given to
-//! the robot (one day written by a language model from a sentence).
-void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
+/// @brief Goal and state. The goal stays on top: it is the order given to
+/// the robot (one day written by a language model from a sentence).
+static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
 {
     std::string goal = p_executor.spec().goal_pddl;
     for (robotik::Literal const& literal : p_executor.spec().goal)
@@ -166,8 +166,8 @@ void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     }
 }
 
-//! @brief The plan as a list of steps, the current one highlighted.
-void planSteps(robotik::PlanExecutor const& p_executor)
+/// @brief The plan as a list of steps, the current one highlighted.
+static void planSteps(robotik::PlanExecutor const& p_executor)
 {
     std::vector<robotik::GroundAction> const& plan = p_executor.plan();
     if (plan.empty())
@@ -245,9 +245,9 @@ void planSteps(robotik::PlanExecutor const& p_executor)
     endTable();
 }
 
-//! @brief Every plan of the run. A click picks the plan whose texts
-//! Files > Planner shows.
-void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
+/// @brief Every plan of the run. A click picks the plan whose texts
+/// Files > Planner shows.
+static void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
 {
     std::vector<robotik::PlanningRecord> const& history = p_executor.history();
     if (history.empty())
@@ -291,8 +291,6 @@ void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
     }
     endTable();
 }
-
-} // namespace
 
 void beliefsView(App& p_app)
 {

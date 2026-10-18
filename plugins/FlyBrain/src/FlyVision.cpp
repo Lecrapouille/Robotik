@@ -10,19 +10,16 @@
 #include <algorithm>
 #include <cmath>
 
-namespace
-{
-
-constexpr double RAY_RANGE_M = 4.0;
-constexpr double RAY_LEFT_RAD = 0.55;
-constexpr double RAY_RIGHT_RAD = -0.55;
+static constexpr double RAY_RANGE_M = 4.0;
+static constexpr double RAY_LEFT_RAD = 0.55;
+static constexpr double RAY_RIGHT_RAD = -0.55;
 
 // neck_yaw origin in data/drosophila_x100.urdf, thorax frame.
-constexpr double NECK_X_M = 0.07;
-constexpr double NECK_Z_M = 0.015;
+static constexpr double NECK_X_M = 0.07;
+static constexpr double NECK_Z_M = 0.015;
 
-// Where each beam leaves the head, in the head frame: the two eye meshes
-// and the front of the head. Left is +y.
+/// Where each beam leaves the head, in the head frame: the two eye meshes
+/// and the front of the head. Left is +y.
 struct EyePoint
 {
     double x;
@@ -30,14 +27,14 @@ struct EyePoint
     double z;
 };
 
-constexpr EyePoint EYE_POINTS[3] = {
+static constexpr EyePoint EYE_POINTS[3] = {
     { 0.04, 0.032, 0.008 },
     { 0.08, 0.0, 0.012 },
     { 0.04, -0.032, 0.008 },
 };
 
-//! @brief Eye point from the head frame to the world: neck yaw, then body yaw.
-robotik::Vector3
+/// @brief Eye point from the head frame to the world: neck yaw, then body yaw.
+static robotik::Vector3
 eyeOrigin(FlyPlant const& p_plant, EyePoint const& p_eye, double p_neck_yaw)
 {
     double const neck_cos = std::cos(p_neck_yaw);
@@ -54,9 +51,9 @@ eyeOrigin(FlyPlant const& p_plant, EyePoint const& p_eye, double p_neck_yaw)
                             p_plant.z + body_z);
 }
 
-//! @brief Slab method. Returns the entry distance, or past @p_range on a miss
-//! and when the box is entirely behind the eye.
-double rayBox(robotik::Vector3 const& p_origin,
+/// @brief Slab method. Returns the entry distance, or past @p_range on a miss
+/// and when the box is entirely behind the eye.
+static double rayBox(robotik::Vector3 const& p_origin,
               robotik::Vector3 const& p_direction,
               double p_range,
               FlyBox const& p_box)
@@ -103,8 +100,8 @@ double rayBox(robotik::Vector3 const& p_origin,
     return t_near;
 }
 
-//! @brief 1 at a contact, 0 at the end of the range or beyond it.
-float channel(double p_distance, double p_range)
+/// @brief 1 at a contact, 0 at the end of the range or beyond it.
+static float channel(double p_distance, double p_range)
 {
     if (p_distance > p_range)
     {
@@ -112,8 +109,6 @@ float channel(double p_distance, double p_range)
     }
     return static_cast<float>(1.0 - p_distance / p_range);
 }
-
-} // namespace
 
 FlyVision senseFly(FlyPlant const& p_plant,
                    std::span<FlyBox const> p_obstacles,

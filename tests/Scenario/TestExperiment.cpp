@@ -15,10 +15,8 @@
 #include <fstream>
 #include <sstream>
 
-namespace
-{
-
-robotik::ExperimentCase const& find(robotik::Experiment const& p_experiment,
+/// The experiment case with this id.
+static robotik::ExperimentCase const& find(robotik::Experiment const& p_experiment,
                                     std::string const& p_id)
 {
     for (robotik::ExperimentCase const& item : p_experiment.cases)
@@ -31,8 +29,8 @@ robotik::ExperimentCase const& find(robotik::Experiment const& p_experiment,
     throw std::invalid_argument(p_id);
 }
 
-//! @brief Writes @p_text in experiments/ of a throwaway package.
-std::filesystem::path write(std::string const& p_name, std::string const& p_text)
+/// @brief Writes @p_text in experiments/ of a throwaway package.
+static std::filesystem::path write(std::string const& p_name, std::string const& p_text)
 {
     std::filesystem::path const package =
         std::filesystem::temp_directory_path() / "robotik_package";
@@ -42,8 +40,6 @@ std::filesystem::path write(std::string const& p_name, std::string const& p_text
     std::ofstream(path) << p_text;
     return path;
 }
-
-} // namespace
 
 TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 {

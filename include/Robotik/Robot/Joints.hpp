@@ -5,23 +5,23 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Joints.hpp
-//! @brief Joint state, commands, limits and low-level loops of one robot.
-//!
-//! Two views of the same joints:
-//! @li @ref JointSet — the hot data, one contiguous array per quantity indexed
-//!     by @ref JointId, walked by control loops and backends at 1 kHz;
-//! @li the Compages joint components (@c compages::world::RevoluteJoint,
-//!     @c PrismaticJoint) on the link entities — limits loaded from the URDF,
-//!     and a mirror of the measured state (position, velocity, effort) for
-//!     rendering and inspection, refreshed after each step.
-//!
-//! The public API is typed with SI units: a revolute joint is addressed by a
-//! @ref Revolute handle and speaks @c Radians, @c AngularVelocity and
-//! @c Torque; a prismatic joint by a @ref Prismatic handle and speaks
-//! @c Length, @c LinearVelocity and @c Force. Code that walks joints of
-//! mixed types (IK solutions, backends, postures) uses @ref JointId and the
-//! SI base unit of each joint (rad or m), as Pinocchio and MuJoCo do.
+/// @file Joints.hpp
+/// @brief Joint state, commands, limits and low-level loops of one robot.
+///
+/// Two views of the same joints:
+/// @li @ref JointSet — the hot data, one contiguous array per quantity indexed
+///     by @ref JointId, walked by control loops and backends at 1 kHz;
+/// @li the Compages joint components (@c compages::world::RevoluteJoint,
+///     @c PrismaticJoint) on the link entities — limits loaded from the URDF,
+///     and a mirror of the measured state (position, velocity, effort) for
+///     rendering and inspection, refreshed after each step.
+///
+/// The public API is typed with SI units: a revolute joint is addressed by a
+/// @ref Revolute handle and speaks @c Radians, @c AngularVelocity and
+/// @c Torque; a prismatic joint by a @ref Prismatic handle and speaks
+/// @c Length, @c LinearVelocity and @c Force. Code that walks joints of
+/// mixed types (IK solutions, backends, postures) uses @ref JointId and the
+/// SI base unit of each joint (rad or m), as Pinocchio and MuJoCo do.
 #pragma once
 
 #include "Robotik/Math/Si.hpp"
@@ -44,25 +44,25 @@ inline constexpr JointId NO_JOINT = 0xFFFFu;
 enum class JointType : std::uint8_t
 {
     Revolute,
-    //!< Revolute without position limits (wheels).
+    /// Revolute without position limits (wheels).
     Continuous,
     Prismatic,
 };
 
 // ****************************************************************************
-//! @brief How the command of a joint is interpreted.
+/// @brief How the command of a joint is interpreted.
 // ****************************************************************************
 enum class JointMode : std::uint8_t
 {
-    Disabled, //!< No effort: the joint is free.
-    Position, //!< PD loop toward a rate-limited reference.
-    Velocity, //!< Proportional velocity loop.
-    Effort,   //!< Raw effort, clamped to the limit.
+    Disabled, ///< No effort: the joint is free.
+    Position, ///< PD loop toward a rate-limited reference.
+    Velocity, ///< Proportional velocity loop.
+    Effort,   ///< Raw effort, clamped to the limit.
 };
 
 // ****************************************************************************
-//! @brief Units of a joint, from its position unit (same unit triplets as the
-//! Compages joint states).
+/// @brief Units of a joint, from its position unit (same unit triplets as the
+/// Compages joint states).
 // ****************************************************************************
 template <class Position>
 struct JointUnits;
@@ -89,16 +89,16 @@ template <class Position>
 using EffortOf = typename JointUnits<Position>::Effort;
 
 // ****************************************************************************
-//! @brief URDF limits of a joint. Infinite values mean unlimited.
+/// @brief URDF limits of a joint. Infinite values mean unlimited.
 // ****************************************************************************
 template <class Position>
 struct JointLimits
 {
     Position lower{ -std::numeric_limits<double>::infinity() };
     Position upper{ std::numeric_limits<double>::infinity() };
-    //!< Largest speed, in both directions.
+    /// Largest speed, in both directions.
     VelocityOf<Position> velocity{ std::numeric_limits<double>::infinity() };
-    //!< Largest torque or force, in both directions.
+    /// Largest torque or force, in both directions.
     EffortOf<Position> effort{ std::numeric_limits<double>::infinity() };
 
     [[nodiscard]] bool bounded() const
@@ -112,7 +112,7 @@ using RevoluteLimits = JointLimits<Radians>;
 using PrismaticLimits = JointLimits<Length>;
 
 // ****************************************************************************
-//! @brief Typed handle on a joint: the unit is part of the type.
+/// @brief Typed handle on a joint: the unit is part of the type.
 // ****************************************************************************
 template <class Position>
 struct JointHandle
@@ -125,55 +125,55 @@ struct JointHandle
     }
 };
 
-//! @brief Revolute or continuous joint (rad, rad/s, N.m).
+/// @brief Revolute or continuous joint (rad, rad/s, N.m).
 using Revolute = JointHandle<Radians>;
-//! @brief Prismatic joint (m, m/s, N).
+/// @brief Prismatic joint (m, m/s, N).
 using Prismatic = JointHandle<Length>;
 
 // ****************************************************************************
-//! @brief Low-level loop tuning (SI, per unit of the joint).
+/// @brief Low-level loop tuning (SI, per unit of the joint).
 // ****************************************************************************
 struct JointGains
 {
-    //!< Position loop stiffness (N.m/rad or N/m).
+    /// Position loop stiffness (N.m/rad or N/m).
     double kp = 150.0;
-    //!< Position loop damping (N.m.s/rad or N.s/m).
+    /// Position loop damping (N.m.s/rad or N.s/m).
     double kd = 15.0;
-    //!< Largest reference slew as a fraction of the velocity limit.
-    //!< Infinity: no slew, the PD loop aims at the target at once (targets
-    //!< already smooth, e.g. from a learned policy).
+    /// Largest reference slew as a fraction of the velocity limit.
+    /// Infinity: no slew, the PD loop aims at the target at once (targets
+    /// already smooth, e.g. from a learned policy).
     double speed_ratio = 0.5;
-    //!< Velocity loop gain (N.m.s/rad or N.s/m).
+    /// Velocity loop gain (N.m.s/rad or N.s/m).
     double velocity_kp = 5.0;
 };
 
 // ****************************************************************************
-//! @brief All joints of a robot.
-//!
-//! @code
-//! robotik::JointSet& joints = robot.joints();
-//! robotik::Revolute const elbow = joints.revolute("joint3");
-//! joints.moveTo(elbow, Radians(0.8));
-//! if (joints.reached(elbow, Radians(0.01))) { ... }
-//! robotik::Revolute const wheel = joints.revolute("left_wheel_joint");
-//! joints.spin(wheel, AngularVelocity(3.0));
-//! @endcode
+/// @brief All joints of a robot.
+///
+/// @code
+/// robotik::JointSet& joints = robot.joints();
+/// robotik::Revolute const elbow = joints.revolute("joint3");
+/// joints.moveTo(elbow, Radians(0.8));
+/// if (joints.reached(elbow, Radians(0.01))) { ... }
+/// robotik::Revolute const wheel = joints.revolute("left_wheel_joint");
+/// joints.spin(wheel, AngularVelocity(3.0));
+/// @endcode
 // ****************************************************************************
 class JointSet
 {
 public:
 
     // -------------------------------------------------------------------------
-    //! @brief Appends the joint carried by @p_link, reading its type and its
-    //! limits from the Compages joint component (filled from the URDF).
-    //! @throws std::invalid_argument if @p_link has no joint component or the
-    //! name is taken.
+    /// @brief Appends the joint carried by @p_link, reading its type and its
+    /// limits from the Compages joint component (filled from the URDF).
+    /// @throws std::invalid_argument if @p_link has no joint component or the
+    /// name is taken.
     // -------------------------------------------------------------------------
     JointId add(std::string p_name, compages::world::Entity p_link);
 
     // -------------------------------------------------------------------------
-    //! @brief Appends a joint without rendered link (tests, drivers).
-    //! @throws std::invalid_argument if the name is taken.
+    /// @brief Appends a joint without rendered link (tests, drivers).
+    /// @throws std::invalid_argument if the name is taken.
     // -------------------------------------------------------------------------
     Revolute add(std::string p_name,
                  RevoluteLimits const& p_limits,
@@ -185,14 +185,14 @@ public:
         return m_names.size();
     }
 
-    //! @brief Joint named @p_name, or @ref NO_JOINT.
+    /// @brief Joint named @p_name, or @ref NO_JOINT.
     [[nodiscard]] JointId find(std::string_view p_name) const;
 
-    //! @brief Joint named @p_name. @throws std::invalid_argument if unknown.
+    /// @brief Joint named @p_name. @throws std::invalid_argument if unknown.
     [[nodiscard]] JointId require(std::string_view p_name) const;
 
-    //! @brief Typed handles. @throws std::invalid_argument if unknown or of
-    //! the other kind.
+    /// @brief Typed handles. @throws std::invalid_argument if unknown or of
+    /// the other kind.
     [[nodiscard]] Revolute revolute(std::string_view p_name) const;
     [[nodiscard]] Prismatic prismatic(std::string_view p_name) const;
     [[nodiscard]] Revolute revolute(JointId p_id) const;
@@ -249,7 +249,7 @@ public:
         return VelocityOf<Position>(m_velocities[p_joint.id]);
     }
 
-    //! @brief Effort produced by the last @ref control call.
+    /// @brief Effort produced by the last @ref control call.
     template <class Position>
     [[nodiscard]] EffortOf<Position> effort(JointHandle<Position> p_joint) const
     {
@@ -276,7 +276,7 @@ public:
         push(p_joint.id, p_effort.value());
     }
 
-    //! @brief True in position mode once |position - target| <= @p_tolerance.
+    /// @brief True in position mode once |position - target| <= @p_tolerance.
     template <class Position>
     [[nodiscard]] bool reached(JointHandle<Position> p_joint,
                                Position p_tolerance) const
@@ -343,7 +343,7 @@ public:
         return m_modes[p_id];
     }
 
-    //! @brief Setpoint of the current mode (position, velocity or effort).
+    /// @brief Setpoint of the current mode (position, velocity or effort).
     [[nodiscard]] double target(JointId p_id) const
     {
         return m_targets[p_id];
@@ -354,40 +354,40 @@ public:
     void push(JointId p_id, double p_effort);
     [[nodiscard]] bool reached(JointId p_id, double p_tolerance) const;
 
-    //! @brief Servos the joint where it is.
+    /// @brief Servos the joint where it is.
     void hold(JointId p_id);
-    //! @brief Servos every joint where it is.
+    /// @brief Servos every joint where it is.
     void hold();
-    //! @brief Removes any effort (the joint becomes free).
+    /// @brief Removes any effort (the joint becomes free).
     void release(JointId p_id);
 
     // --- Backend side -------------------------------------------------------
 
-    //! @brief Writes a measurement.
+    /// @brief Writes a measurement.
     void measure(JointId p_id, double p_position, double p_velocity)
     {
         m_positions[p_id] = p_position;
         m_velocities[p_id] = p_velocity;
     }
 
-    //! @brief Teleports a joint at rest: state, reference and command.
+    /// @brief Teleports a joint at rest: state, reference and command.
     void place(JointId p_id, double p_position);
 
     // -------------------------------------------------------------------------
-    //! @brief Runs the low-level loop of every joint for @p_dt and stores the
-    //! efforts (see @ref efforts). Backends call it at their physics rate.
+    /// @brief Runs the low-level loop of every joint for @p_dt and stores the
+    /// efforts (see @ref efforts). Backends call it at their physics rate.
     // -------------------------------------------------------------------------
     void control(Seconds p_dt);
 
     // -------------------------------------------------------------------------
-    //! @brief Copies the measured state into the Compages joint components of
-    //! the links (rendering and inspection).
+    /// @brief Copies the measured state into the Compages joint components of
+    /// the links (rendering and inspection).
     // -------------------------------------------------------------------------
     void publish() const;
 
 private:
 
-    //! @brief Limits in SI base units.
+    /// @brief Limits in SI base units.
     struct Bounds
     {
         double lower;

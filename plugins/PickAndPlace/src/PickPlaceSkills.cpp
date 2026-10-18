@@ -28,8 +28,8 @@ static constexpr Length kDefaultCubeHalfHeight{ 0.02 };
 static constexpr Length kTransitClearanceThreshold{ 0.08 };
 static constexpr Length kMaxFinalApproachClearance{ 0.03 };
 
-//! @brief If the gripper is not holding an object, return the default cube half
-//! height. Otherwise, return the half height of the object.
+/// @brief If the gripper is not holding an object, return the default cube half
+/// height. Otherwise, return the half height of the object.
 static Length carriedCubeHalfHeight(compages::world::World& p_world,
                                     VacuumGripper const& p_gripper)
 {
@@ -46,9 +46,9 @@ static Length carriedCubeHalfHeight(compages::world::World& p_world,
     return shape->size[2] * 0.5;
 }
 
-//! @brief If the clearance is greater than the transit clearance threshold,
-//! return the clearance. Otherwise, return the minimum of the clearance and the
-//! final approach clearance.
+/// @brief If the clearance is greater than the transit clearance threshold,
+/// return the clearance. Otherwise, return the minimum of the clearance and the
+/// final approach clearance.
 static Length clearanceAboveCavity(Length p_clearance)
 {
     // Transit keeps full clearance; Reach (≈ 0) caps at 3 cm above the cavity.
@@ -59,8 +59,8 @@ static Length clearanceAboveCavity(Length p_clearance)
     return std::min(p_clearance, kMaxFinalApproachClearance);
 }
 
-//! TCP height over an open box. @p_at is the believed centre (perception or
-//! the scenario prior). The wall layout comes from the named entity's shape.
+/// TCP height over an open box. @p_at is the believed centre (perception or
+/// the scenario prior). The wall layout comes from the named entity's shape.
 static std::optional<Length>
 tcpHeightOverOpenBox(compages::world::World& p_world,
                      std::string_view p_object_name,

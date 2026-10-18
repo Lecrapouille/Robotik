@@ -21,16 +21,15 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::string field(bt::YamlNode const& p_node, std::string_view p_key)
+/// Reads one scalar child of a YAML node, or empty.
+static std::string field(bt::YamlNode const& p_node, std::string_view p_key)
 {
     bt::YamlNode const child = p_node.child(p_key);
     return child.valid() ? child.scalar() : std::string{};
 }
 
-bool libraryName(std::string const& p_name)
+/// True when the text is a plausible shared-library file name.
+static bool libraryName(std::string const& p_name)
 {
     if (p_name.size() < 4u || !p_name.ends_with(".so"))
     {
@@ -50,9 +49,9 @@ bool libraryName(std::string const& p_name)
     return true;
 }
 
-//! A relative name. Whether it stays in the package is checked on its
-//! canonical path (".." and symbolic links are followed).
-bool relativeName(std::string const& p_file)
+/// A relative name. Whether it stays in the package is checked on its
+/// canonical path (".." and symbolic links are followed).
+static bool relativeName(std::string const& p_file)
 {
     if (p_file.empty())
     {
@@ -66,14 +65,16 @@ bool relativeName(std::string const& p_file)
     return !path.has_root_name() && !path.has_root_directory();
 }
 
-std::filesystem::path canonicalOf(std::filesystem::path const& p_path)
+/// Canonical path, or the absolute path when canonicalization fails.
+static std::filesystem::path canonicalOf(std::filesystem::path const& p_path)
 {
     std::error_code error;
     std::filesystem::path const canonical = std::filesystem::weakly_canonical(p_path, error);
     return error ? std::filesystem::absolute(p_path) : canonical;
 }
 
-bool contained(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
+/// True when a file stays inside a directory once links are resolved.
+static bool contained(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
 {
     std::filesystem::path const root = canonicalOf(p_root);
     std::filesystem::path const file = canonicalOf(p_file);
@@ -92,9 +93,9 @@ bool contained(std::filesystem::path const& p_root, std::filesystem::path const&
     return true;
 }
 
-//! Beside the manifest (staged package), else next to the executable (a
-//! package read from the sources while its library sits in build/).
-std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
+/// Beside the manifest (staged package), else next to the executable (a
+/// package read from the sources while its library sits in build/).
+static std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
                                      std::string const& p_name)
 {
     std::filesystem::path const beside = p_root / p_name;
@@ -114,7 +115,8 @@ std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
     return beside;
 }
 
-std::string titleFromStem(std::string p_stem)
+/// Turns a file stem into a title; underscores and dashes become spaces.
+static std::string titleFromStem(std::string p_stem)
 {
     for (char& character : p_stem)
     {
@@ -126,11 +128,11 @@ std::string titleFromStem(std::string p_stem)
     return p_stem;
 }
 
-//! Entries of a "scenarios:" or "experiments:" section: listed, or every
-//! runnable file of the folder (*.scenario.yaml, *.rl.yaml,
-//! *.experiment.yaml, or a YAML file without a role). Files must stay in
-//! the package. False, with @p_why set, on an invalid section or file.
-bool readEntries(bt::YamlNode const& p_section,
+/// Entries of a "scenarios:" or "experiments:" section: listed, or every
+/// runnable file of the folder (*.scenario.yaml, *.rl.yaml,
+/// *.experiment.yaml, or a YAML file without a role). Files must stay in
+/// the package. False, with @p_why set, on an invalid section or file.
+static bool readEntries(bt::YamlNode const& p_section,
                  std::filesystem::path const& p_root,
                  bool p_owns_clock,
                  std::vector<PluginScenario>& p_out,
@@ -213,9 +215,9 @@ bool readEntries(bt::YamlNode const& p_section,
     return true;
 }
 
-//! An entry of dependencies.system or dependencies.thirdparties: a map, or
-//! a scalar (the repo or the name).
-ThirdParty libraryOf(bt::YamlNode const& p_item)
+/// An entry of dependencies.system or dependencies.thirdparties: a map, or
+/// a scalar (the repo or the name).
+static ThirdParty libraryOf(bt::YamlNode const& p_item)
 {
     ThirdParty entry;
     std::string repo = p_item.isMap() ? field(p_item, "repo") : std::string{};
@@ -245,8 +247,6 @@ ThirdParty libraryOf(bt::YamlNode const& p_item)
     }
     return entry;
 }
-
-} // namespace
 
 void PluginCatalog::scan(std::filesystem::path const& p_extra)
 {

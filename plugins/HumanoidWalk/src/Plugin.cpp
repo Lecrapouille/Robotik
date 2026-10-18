@@ -17,14 +17,12 @@
 #include <string>
 #include <string_view>
 
-//! Largest host time simulated in one update (s): a slow frame does not pile
-//! up a lag the simulation never catches up.
+/// Largest host time simulated in one update (s): a slow frame does not pile
+/// up a lag the simulation never catches up.
 #define MAX_LAG_S 0.05
 
-namespace
-{
-
-std::string format(char const* p_format, double p_a, double p_b = 0.0)
+/// Prints one or two numbers with a printf format.
+static std::string format(char const* p_format, double p_a, double p_b = 0.0)
 {
     char line[96];
     std::snprintf(line, sizeof(line), p_format, p_a, p_b);
@@ -32,10 +30,10 @@ std::string format(char const* p_format, double p_a, double p_b = 0.0)
 }
 
 // ****************************************************************************
-//! @brief Humanoid walking by a learned policy. The plugin owns the clock
-//! (host.clock: plugin): it steps the simulation at the physics rate of the
-//! training, whatever the host rate, so the policy runs at its own rate.
-//! Its panel changes the walk command while the robot walks.
+/// @brief Humanoid walking by a learned policy. The plugin owns the clock
+/// (host.clock: plugin): it steps the simulation at the physics rate of the
+/// training, whatever the host rate, so the policy runs at its own rate.
+/// Its panel changes the walk command while the robot walks.
 // ****************************************************************************
 class HumanoidWalkPlugin final: public robotik::Plugin
 {
@@ -139,10 +137,8 @@ private:
     }
 
     std::unique_ptr<WalkMission> m_mission;
-    //!< Host time not yet simulated (s).
+    /// Host time not yet simulated (s).
     double m_lag = 0.0;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(HumanoidWalkPlugin)

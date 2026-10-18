@@ -27,7 +27,7 @@
 #include <thread>
 #include <vector>
 
-//! @brief Command line. The scenario seed is used until --seed replaces it.
+/// @brief Command line. The scenario seed is used until --seed replaces it.
 struct Options
 {
     std::filesystem::path scenario = "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml";
@@ -44,8 +44,8 @@ struct Options
     std::size_t episodes = 1;
 };
 
-//! @brief Fills @p_options. False prints the usage: unknown flag, missing
-//! value, --edges without --binding, or a zero count.
+/// @brief Fills @p_options. False prints the usage: unknown flag, missing
+/// value, --edges without --binding, or a zero count.
 bool parse(int p_argc, char** p_argv, Options& p_options)
 {
     for (int i = 1; i < p_argc; ++i)
@@ -128,7 +128,7 @@ bool parse(int p_argc, char** p_argv, Options& p_options)
     return p_options.envs > 0u && p_options.episodes > 0u;
 }
 
-//! @brief One line of flags, written on stderr.
+/// @brief One line of flags, written on stderr.
 void usage(char const* p_program)
 {
     std::cerr << "Usage : " << p_program
@@ -138,8 +138,8 @@ void usage(char const* p_program)
               << "       [--record fly_run.json] [--replay fly_run.json]\n";
 }
 
-//! @brief Reflex or Shiu. An edge list replaces the embedded circuit and
-//! forces the Shiu path inside loadConnectome.
+/// @brief Reflex or Shiu. An edge list replaces the embedded circuit and
+/// forces the Shiu path inside loadConnectome.
 FlyBrain makeBrain(Options const& p_options, FlyScenario const& p_scenario)
 {
     FlyBrain::Kind const kind =
@@ -152,8 +152,8 @@ FlyBrain makeBrain(Options const& p_options, FlyScenario const& p_scenario)
     return brain;
 }
 
-//! @brief One window, one world. A replay file replaces the brain. Recording
-//! stores the observation that was read and the action that followed.
+/// @brief One window, one world. A replay file replaces the brain. Recording
+/// stores the observation that was read and the action that followed.
 int runView(Options const& p_options, FlyScenario const& p_scenario)
 {
     std::uint32_t const steps =
@@ -226,8 +226,8 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
     return reached ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-//! @brief N worlds until @c episodes of them have finished. A finished world
-//! restarts at once. Recording keeps only the first world's first episode.
+/// @brief N worlds until @c episodes of them have finished. A finished world
+/// restarts at once. Recording keeps only the first world's first episode.
 int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
 {
     std::uint32_t const steps =
@@ -338,8 +338,8 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
     return successes > 0u ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
-//! @brief Replay forces a single world. --view opens the window, otherwise
-//! the pool runs with no OpenGL.
+/// @brief Replay forces a single world. --view opens the window, otherwise
+/// the pool runs with no OpenGL.
 int main(int p_argc, char** p_argv)
 {
     Options options;

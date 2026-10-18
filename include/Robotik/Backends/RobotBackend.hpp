@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file RobotBackend.hpp
-//! @brief What moves the joints of a robot: physics engine, kinematic model or
-//! hardware driver.
+/// @file RobotBackend.hpp
+/// @brief What moves the joints of a robot: physics engine, kinematic model or
+/// hardware driver.
 #pragma once
 
 #include "Robotik/Sensors/Measurements.hpp"
@@ -22,37 +22,37 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-//! @brief Two bodies touching after a step.
+/// @brief Two bodies touching after a step.
 // ****************************************************************************
 struct Contact
 {
-    //!< Body names in the backend; @ref GROUND for the floor plane.
+    /// Body names in the backend; @ref GROUND for the floor plane.
     std::string first;
     std::string second;
-    //!< Contact point in the world frame (m).
+    /// Contact point in the world frame (m).
     Vector3 position = zero3();
 
     static constexpr char const* GROUND = "world";
 };
 
 // ****************************************************************************
-//! @brief Time-stepping side of a robot.
-//!
-//! A <em>backend</em> is a thin adapter around an external library or a
-//! driver. Skills never see it: they command the @ref JointSet and the
-//! actuators of the @ref Robot, and the backend applies those commands and
-//! measures the joints at each @ref step. Kinematics (FK/IK) are not a
-//! backend concern: every robot owns a @ref PinocchioBackend for that.
-//!
-//! Implementations:
-//! @li @ref MujocoBackend — rigid-body dynamics with contacts (simulation);
-//! @li a kinematic model — joints follow their commands (fast tests, RL);
-//! @li a hardware driver — writes the commands to the motor controllers and
-//!     reads the encoders.
-//!
-//! The optional queries (@ref raycast, @ref wrench) let simulated sensors
-//! measure the world; a hardware driver leaves them empty and its sensors get
-//! their data from the devices.
+/// @brief Time-stepping side of a robot.
+///
+/// A <em>backend</em> is a thin adapter around an external library or a
+/// driver. Skills never see it: they command the @ref JointSet and the
+/// actuators of the @ref Robot, and the backend applies those commands and
+/// measures the joints at each @ref step. Kinematics (FK/IK) are not a
+/// backend concern: every robot owns a @ref PinocchioBackend for that.
+///
+/// Implementations:
+/// @li @ref MujocoBackend — rigid-body dynamics with contacts (simulation);
+/// @li a kinematic model — joints follow their commands (fast tests, RL);
+/// @li a hardware driver — writes the commands to the motor controllers and
+///     reads the encoders.
+///
+/// The optional queries (@ref raycast, @ref wrench) let simulated sensors
+/// measure the world; a hardware driver leaves them empty and its sensors get
+/// their data from the devices.
 // ****************************************************************************
 class RobotBackend
 {
@@ -61,25 +61,25 @@ public:
     virtual ~RobotBackend() = default;
 
     // -------------------------------------------------------------------------
-    //! @brief Binds the backend to the joints, actuators and sensors of
-    //! @p_robot. Called once by @ref RobotSession::connect.
+    /// @brief Binds the backend to the joints, actuators and sensors of
+    /// @p_robot. Called once by @ref RobotSession::connect.
     // -------------------------------------------------------------------------
     virtual void attach(Robot& p_robot) = 0;
 
     // -------------------------------------------------------------------------
-    //! @brief Puts the backend at rest on the current joint positions and
-    //! base pose.
+    /// @brief Puts the backend at rest on the current joint positions and
+    /// base pose.
     // -------------------------------------------------------------------------
     virtual void reset(Robot& p_robot) = 0;
 
     // -------------------------------------------------------------------------
-    //! @brief Applies the joint commands for @p_dt, then writes the measured
-    //! joints (@ref JointSet::measure) and base (@ref Robot::measureBase).
+    /// @brief Applies the joint commands for @p_dt, then writes the measured
+    /// joints (@ref JointSet::measure) and base (@ref Robot::measureBase).
     // -------------------------------------------------------------------------
     virtual void step(Robot& p_robot, Seconds p_dt) = 0;
 
     // -------------------------------------------------------------------------
-    //! @brief Contacts after the last step (simulation only).
+    /// @brief Contacts after the last step (simulation only).
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual int contacts() const
     {
@@ -87,8 +87,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Every contact after the last step, floor included (simulation
-    //! only). Ground-truth queries build on it; skills never see it.
+    /// @brief Every contact after the last step, floor included (simulation
+    /// only). Ground-truth queries build on it; skills never see it.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual std::vector<Contact> contactList() const
     {
@@ -96,7 +96,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief World pose of a body after the last step (simulation only).
+    /// @brief World pose of a body after the last step (simulation only).
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual std::optional<Pose> bodyPose(std::string const& /*p_body*/) const
     {
@@ -104,8 +104,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Moves a free body to @p_pose, at rest (simulation only).
-    //! @return False if the backend has no such free body.
+    /// @brief Moves a free body to @p_pose, at rest (simulation only).
+    /// @return False if the backend has no such free body.
     // -------------------------------------------------------------------------
     virtual bool placeBody(std::string const& /*p_body*/, Pose const& /*p_pose*/)
     {
@@ -113,9 +113,9 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Turns on or off a weld declared before the backend was built:
-    //! on, the second body keeps its current pose relative to the first.
-    //! @return False if the backend has no such weld.
+    /// @brief Turns on or off a weld declared before the backend was built:
+    /// on, the second body keeps its current pose relative to the first.
+    /// @return False if the backend has no such weld.
     // -------------------------------------------------------------------------
     virtual bool weld(std::string const& /*p_name*/, bool /*p_on*/)
     {
@@ -123,12 +123,12 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Distance to the first surface hit by a ray, ignoring the robot.
-    //! @param p_origin Ray origin in the world frame (m).
-    //! @param p_direction Unit direction in the world frame.
-    //! @param p_max Longest distance looked at (m).
-    //! @return Nothing when nothing was hit within @p_max or when the backend
-    //! cannot cast rays.
+    /// @brief Distance to the first surface hit by a ray, ignoring the robot.
+    /// @param p_origin Ray origin in the world frame (m).
+    /// @param p_direction Unit direction in the world frame.
+    /// @param p_max Longest distance looked at (m).
+    /// @return Nothing when nothing was hit within @p_max or when the backend
+    /// cannot cast rays.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual std::optional<double>
     raycast(Vector3 const& /*p_origin*/,
@@ -139,8 +139,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Wrench the link @p_link receives from its parent link, in the
-    //! link frame, or nothing if unknown.
+    /// @brief Wrench the link @p_link receives from its parent link, in the
+    /// link frame, or nothing if unknown.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual std::optional<Wrench>
     wrench(std::string const& /*p_link*/) const

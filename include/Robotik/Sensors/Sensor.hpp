@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Sensor.hpp
-//! @brief Base class of every robot sensor: name, sampling rate and counters.
+/// @file Sensor.hpp
+/// @brief Base class of every robot sensor: name, sampling rate and counters.
 #pragma once
 
 #include "Robotik/Math/Si.hpp"
@@ -20,25 +20,25 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-//! @brief A named data source sampled at its own frequency.
-//!
-//! The robot calls @ref update every step; the sensor only samples when its
-//! period has elapsed. Availability is not stored here: a sensor is also a
-//! resource of the robot (same name) and the robot skips the sensors whose
-//! resource has failed (see @ref ResourceManager::fail).
-//!
-//! Concrete sensors produce typed data (@ref Camera produces @ref
-//! CameraFrame) and get it from a pluggable source, so the same sensor works
-//! in simulation, on hardware and in RL environments. Each one has three
-//! layers:
-//! @li the model: its configuration (mount, rate, a @ref NoiseModel per
-//!     channel, latency);
-//! @li the simulation: @ref sample, which measures the true value on the
-//!     robot and its backend, then degrades it;
-//! @li the measurement: the reading, a @ref Measurement header plus typed
-//!     data, published once its latency has elapsed.
-//!
-//! A sensor never knows which algorithm consumes it.
+/// @brief A named data source sampled at its own frequency.
+///
+/// The robot calls @ref update every step; the sensor only samples when its
+/// period has elapsed. Availability is not stored here: a sensor is also a
+/// resource of the robot (same name) and the robot skips the sensors whose
+/// resource has failed (see @ref ResourceManager::fail).
+///
+/// Concrete sensors produce typed data (@ref Camera produces @ref
+/// CameraFrame) and get it from a pluggable source, so the same sensor works
+/// in simulation, on hardware and in RL environments. Each one has three
+/// layers:
+/// @li the model: its configuration (mount, rate, a @ref NoiseModel per
+///     channel, latency);
+/// @li the simulation: @ref sample, which measures the true value on the
+///     robot and its backend, then degrades it;
+/// @li the measurement: the reading, a @ref Measurement header plus typed
+///     data, published once its latency has elapsed.
+///
+/// A sensor never knows which algorithm consumes it.
 // ****************************************************************************
 class Sensor
 {
@@ -47,7 +47,7 @@ public:
     virtual ~Sensor() = default;
 
     // -------------------------------------------------------------------------
-    //! @brief Sensor name, also the name of its resource.
+    /// @brief Sensor name, also the name of its resource.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::string const& name() const
     {
@@ -55,7 +55,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Sampling frequency in Hz (0 samples at every update).
+    /// @brief Sampling frequency in Hz (0 samples at every update).
     // -------------------------------------------------------------------------
     [[nodiscard]] double frequency() const
     {
@@ -63,7 +63,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Number of samples produced so far.
+    /// @brief Number of samples produced so far.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::uint64_t samples() const
     {
@@ -71,7 +71,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Time of the last sample (negative before the first one).
+    /// @brief Time of the last sample (negative before the first one).
     // -------------------------------------------------------------------------
     [[nodiscard]] Seconds stamp() const
     {
@@ -79,10 +79,10 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Samples the sensor if its period elapsed since the last sample,
-    //! then publishes what its latency lets through.
-    //! @param p_robot Robot carrying the sensor (kinematics for the mount).
-    //! @param p_now Robot clock.
+    /// @brief Samples the sensor if its period elapsed since the last sample,
+    /// then publishes what its latency lets through.
+    /// @param p_robot Robot carrying the sensor (kinematics for the mount).
+    /// @param p_now Robot clock.
     // -------------------------------------------------------------------------
     void update(Robot const& p_robot, Seconds p_now)
     {
@@ -97,13 +97,13 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief The sensor resource failed: the published reading becomes
-    //! invalid until the next sample.
+    /// @brief The sensor resource failed: the published reading becomes
+    /// invalid until the next sample.
     // -------------------------------------------------------------------------
     virtual void invalidate() {}
 
     // -------------------------------------------------------------------------
-    //! @brief Forgets the sampling history (episode reset).
+    /// @brief Forgets the sampling history (episode reset).
     // -------------------------------------------------------------------------
     void rewind()
     {
@@ -124,17 +124,17 @@ protected:
     Sensor& operator=(Sensor&&) noexcept = default;
 
     // -------------------------------------------------------------------------
-    //! @brief Produces one sample.
-    //! @return False if no data was available (e.g. no source connected).
+    /// @brief Produces one sample.
+    /// @return False if no data was available (e.g. no source connected).
     // -------------------------------------------------------------------------
     virtual bool sample(Robot const& p_robot, Seconds p_now) = 0;
 
-    //! @brief Drops the state carried between samples (see @ref rewind).
+    /// @brief Drops the state carried between samples (see @ref rewind).
     virtual void restart() {}
 
     // -------------------------------------------------------------------------
-    //! @brief Publishes the samples whose latency has elapsed at @p_now.
-    //! Called at every update, sampled or not.
+    /// @brief Publishes the samples whose latency has elapsed at @p_now.
+    /// Called at every update, sampled or not.
     // -------------------------------------------------------------------------
     virtual void deliver(Seconds /*p_now*/) {}
 

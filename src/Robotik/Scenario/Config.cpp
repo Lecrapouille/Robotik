@@ -16,10 +16,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-ConfigNode copy(bt::YamlNode const& p_node)
+/// Copies a YAML node into the config tree the scenario keeps.
+static ConfigNode copy(bt::YamlNode const& p_node)
 {
     ConfigNode result;
     if (!p_node.valid())
@@ -47,13 +45,15 @@ ConfigNode copy(bt::YamlNode const& p_node)
     return ConfigNode(std::move(text));
 }
 
-ConfigNode const& nullNode()
+/// Empty node returned when a queried key is missing.
+static ConfigNode const& nullNode()
 {
     static ConfigNode const empty;
     return empty;
 }
 
-std::optional<std::size_t> index(std::string_view p_text)
+/// Parses a sequence index, or nothing when the text is not one.
+static std::optional<std::size_t> index(std::string_view p_text)
 {
     std::size_t value = 0;
     auto const [end, error] =
@@ -64,8 +64,6 @@ std::optional<std::size_t> index(std::string_view p_text)
     }
     return value;
 }
-
-} // namespace
 
 ConfigNode ConfigNode::load(std::filesystem::path const& p_path)
 {

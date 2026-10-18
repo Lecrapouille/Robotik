@@ -15,14 +15,9 @@
 
 #include <cmath>
 
-namespace
-{
-
-//! A belief older than this says nothing about where the object is now: the
-//! camera may be down since.
-constexpr double kFreshBelief = 0.5;
-
-} // namespace
+/// A belief older than this says nothing about where the object is now: the
+/// camera may be down since.
+static constexpr double kFreshBelief = 0.5;
 
 void registerPlanning(robotik::PlanningDomain& p_domain)
 {

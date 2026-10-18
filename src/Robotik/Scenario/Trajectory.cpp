@@ -14,10 +14,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::vector<double> numbers(ConfigNode const& p_node)
+/// Reads a YAML sequence of numbers.
+static std::vector<double> numbers(ConfigNode const& p_node)
 {
     std::vector<double> result;
     for (ConfigNode const& item : p_node.items())
@@ -31,8 +29,6 @@ std::vector<double> numbers(ConfigNode const& p_node)
     }
     return result;
 }
-
-} // namespace
 
 Trajectory Trajectory::load(std::filesystem::path const& p_path)
 {

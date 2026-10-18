@@ -15,18 +15,14 @@
 
 #include <cmath>
 
-namespace
-{
-
-robotik::Scenario rigidPickAndPlace()
+/// The pick-and-place scenario forced to rigid grasp fidelity.
+static robotik::Scenario rigidPickAndPlace()
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
     source.override("scenario.physics.fidelity", robotik::ConfigNode("rigid"));
     return robotik::Scenario::read(source, testAssets());
 }
-
-} // namespace
 
 // Rigid level: the cube is a free body, the vacuum welds it, and it falls
 // into the box for real on release.

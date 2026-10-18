@@ -14,14 +14,9 @@
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
 
-namespace
-{
-
-constexpr double kApproachClearance = 0.10;
-constexpr double kTransitClearance = 0.22;
-constexpr int kSkillPriority = 100;
-
-} // namespace
+static constexpr double kApproachClearance = 0.10;
+static constexpr double kTransitClearance = 0.22;
+static constexpr int kSkillPriority = 100;
 
 void PickPlaceMission::setup(robotik::Simulation& p_simulation,
                              robotik::SceneView* /*p_view*/)

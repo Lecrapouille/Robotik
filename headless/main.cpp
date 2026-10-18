@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file main.cpp
-//! @brief Runs a scenario, or every case of an experiment, without a window.
-//!
-//! Exit code: 0 when every run passed its assertions, 2 when one failed, 1
-//! when a file or a plugin could not be loaded.
+/// @file main.cpp
+/// @brief Runs a scenario, or every case of an experiment, without a window.
+///
+/// Exit code: 0 when every run passed its assertions, 2 when one failed, 1
+/// when a file or a plugin could not be loaded.
 
 #include "Robotik/Plugin/PluginSession.hpp"
 #include "Robotik/Runtime/RunReport.hpp"
@@ -26,12 +26,10 @@
 #include <string>
 
 #define HEADLESS_DT_S 0.01
-//! Safety net for scenarios without a timeout of their own.
+/// Safety net for scenarios without a timeout of their own.
 #define HEADLESS_TIMEOUT_S 600.0
 
-namespace
-{
-
+/// Command line of Robotik-Headless.
 struct Options
 {
     std::filesystem::path file;
@@ -40,13 +38,15 @@ struct Options
     bool trace = false;
 };
 
-void usage()
+/// Prints the command line on the error stream.
+static void usage()
 {
     std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | x.experiment.yaml> [--seed N]\n"
                  "                        [--report report.json] [--trace]\n";
 }
 
-std::optional<Options> parse(int argc, char** argv)
+/// Reads the scenario path and the optional flags.
+static std::optional<Options> parse(int argc, char** argv)
 {
     Options options;
     for (int i = 1; i < argc; ++i)
@@ -80,7 +80,8 @@ std::optional<Options> parse(int argc, char** argv)
     return options;
 }
 
-void printTrace(robotik::Simulation const& p_simulation)
+/// Prints each skill run of the finished simulation.
+static void printTrace(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
     robotik::ResourceManager const& resources = p_simulation.robot().resources();
@@ -122,10 +123,10 @@ void printTrace(robotik::Simulation const& p_simulation)
 }
 
 // ----------------------------------------------------------------------------
-//! One run: the plugin owning @p_file brings the mission, the world is built
-//! from @p_scenario, the run goes until the scenario says it ends.
+/// One run: the plugin owning @p_file brings the mission, the world is built
+/// from @p_scenario, the run goes until the scenario says it ends.
 // ----------------------------------------------------------------------------
-robotik::RunRecord run(robotik::PluginSession& p_session,
+static robotik::RunRecord run(robotik::PluginSession& p_session,
                        std::filesystem::path const& p_file,
                        robotik::Scenario p_scenario,
                        std::string const& p_case,
@@ -188,8 +189,6 @@ robotik::RunRecord run(robotik::PluginSession& p_session,
     p_session.detach();
     return record;
 }
-
-} // namespace
 
 int main(int argc, char** argv)
 {

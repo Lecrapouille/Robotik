@@ -10,7 +10,7 @@
 struct GLFWwindow;
 
 // ****************************************************************************
-//! @brief GLFW window, OpenGL 4.5 via Compages GPU, and Dear ImGui (docking).
+/// @brief GLFW window, OpenGL 4.5 via Compages GPU, and Dear ImGui (docking).
 // ****************************************************************************
 struct Window
 {
@@ -22,13 +22,13 @@ struct Window
     bool open();
     ~Window();
 
-    //! @brief Scroll accumulated since the last beginInputFrame() (GLFW y offset).
+    /// @brief Scroll accumulated since the last beginInputFrame() (GLFW y offset).
     [[nodiscard]] float scroll() const
     {
         return m_scroll;
     }
 
-    //! @brief Call once per frame after glfwPollEvents().
+    /// @brief Call once per frame after glfwPollEvents().
     void beginInputFrame();
 
 private:

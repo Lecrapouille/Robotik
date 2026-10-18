@@ -13,50 +13,50 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-//! \brief Vector of values for each joint at a given time (i.e. positions,
-//! velocities, accelerations).
+/// \brief Vector of values for each joint at a given time (i.e. positions,
+/// velocities, accelerations).
 // ----------------------------------------------------------------------------
 using JointValues = std::vector<double>;
 
 // ----------------------------------------------------------------------------
-//! \brief Homogeneous transformation matrix (4x4) for 3D spatial
-//! transformations.
-//!
-//! This 4x4 matrix encodes both rotation and translation in a single
-//! representation: [R t] where R is 3x3 rotation matrix, t is 3x1 translation
-//! vector [0 1] bottom row is always [0 0 0 1] for homogeneous coordinates
-//!
-//! Used for: Forward kinematics, coordinate frame transformations, pose
-//! composition.
+/// \brief Homogeneous transformation matrix (4x4) for 3D spatial
+/// transformations.
+///
+/// This 4x4 matrix encodes both rotation and translation in a single
+/// representation: [R t] where R is 3x3 rotation matrix, t is 3x1 translation
+/// vector [0 1] bottom row is always [0 0 0 1] for homogeneous coordinates
+///
+/// Used for: Forward kinematics, coordinate frame transformations, pose
+/// composition.
 // ----------------------------------------------------------------------------
 using Transform = Eigen::Matrix4d; // TODO Eigen::Affine3d
 
 // ----------------------------------------------------------------------------
-//! \brief 6D pose vector representing position and orientation
-//! (x,y,z,rx,ry,rz).
-//!
-//! This compact representation combines:
-//! - Position: [x,y,z] - 3D coordinates in meters
-//! - Orientation: [rx,ry,rz] - Euler angles in radians (roll, pitch, yaw)
-//!
-//! Used for: End-effector targets, trajectory waypoints, inverse kinematics
-//! goals.
+/// \brief 6D pose vector representing position and orientation
+/// (x,y,z,rx,ry,rz).
+///
+/// This compact representation combines:
+/// - Position: [x,y,z] - 3D coordinates in meters
+/// - Orientation: [rx,ry,rz] - Euler angles in radians (roll, pitch, yaw)
+///
+/// Used for: End-effector targets, trajectory waypoints, inverse kinematics
+/// goals.
 // ----------------------------------------------------------------------------
 using Pose = Eigen::Matrix<double, 6, 1>;
 
 // ----------------------------------------------------------------------------
-//! \brief Jacobian matrix relating joint velocities to end-effector velocity.
-//!
-//! This matrix (typically 6×n for n joints) provides the linear relationship:
-//! end_effector_velocity = J * joint_velocities
-//!
-//! Used for: Velocity control, force control, singularity analysis, inverse
-//! kinematics
+/// \brief Jacobian matrix relating joint velocities to end-effector velocity.
+///
+/// This matrix (typically 6×n for n joints) provides the linear relationship:
+/// end_effector_velocity = J * joint_velocities
+///
+/// Used for: Velocity control, force control, singularity analysis, inverse
+/// kinematics
 // ----------------------------------------------------------------------------
 using Jacobian = Eigen::MatrixXd;
 
 // ****************************************************************************
-//! \brief Inertial properties of a robotic link.
+/// \brief Inertial properties of a robotic link.
 // ****************************************************************************
 struct Inertial
 {
@@ -66,11 +66,11 @@ struct Inertial
         inertia_matrix = Eigen::Matrix3d::Identity();
     }
 
-    //! \brief Mass of the object (kg).
+    /// \brief Mass of the object (kg).
     double mass = 0.0;
-    //! \brief Center of mass of the object (m).
+    /// \brief Center of mass of the object (m).
     Eigen::Vector3d center_of_mass;
-    //! \brief Inertia matrix of the object.
+    /// \brief Inertia matrix of the object.
     Eigen::Matrix3d inertia_matrix;
 };
 

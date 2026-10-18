@@ -19,12 +19,12 @@ inline constexpr std::size_t RL_OBSERVATIONS = PICK_PLACE_OBSERVATIONS;
 inline constexpr std::size_t RL_ACTIONS = PICK_PLACE_ACTIONS;
 
 // ****************************************************************************
-//! @brief One rendered pick-and-place episode driven by the scripted policy.
-//!
-//! Same observation, action and reward as Robotik-PickAndPlaceRL (see
-//! PickPlaceControl.hpp). @c step stays empty: @ref act holds the action for
-//! the control period itself, and a policy step from inside a simulation
-//! step would recurse.
+/// @brief One rendered pick-and-place episode driven by the scripted policy.
+///
+/// Same observation, action and reward as Robotik-PickAndPlaceRL (see
+/// PickPlaceControl.hpp). @c step stays empty: @ref act holds the action for
+/// the control period itself, and a policy step from inside a simulation
+/// step would recurse.
 // ****************************************************************************
 class RlMission final: public robotik::Mission
 {
@@ -34,7 +34,7 @@ public:
     void step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/) override {}
     robotik::Status status(robotik::Simulation const& /*p_simulation*/) const override;
 
-    //! @brief One policy action, or the pause before the next episode.
+    /// @brief One policy action, or the pause before the next episode.
     void act(robotik::Simulation& p_simulation, double p_dt);
 
     bool converged = true;

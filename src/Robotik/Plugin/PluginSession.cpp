@@ -17,10 +17,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-void copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
+/// Copies a name into a fixed C buffer and terminates it.
+static void copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
 {
     if (p_dest == nullptr || p_capacity == 0u)
     {
@@ -33,8 +31,6 @@ void copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
     }
     p_dest[count] = '\0';
 }
-
-} // namespace
 
 PluginSession::~PluginSession()
 {

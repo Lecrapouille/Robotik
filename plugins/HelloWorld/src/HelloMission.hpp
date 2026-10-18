@@ -10,11 +10,11 @@
 #include "Robotik/Runtime/Mission.hpp"
 
 // ****************************************************************************
-//! @brief Lesson 1: the smallest mission.
-//!
-//! It counts the simulation steps, publishes the count as the metric
-//! "hello.ticks", and succeeds after two seconds. The scenario file asserts
-//! on that metric.
+/// @brief Lesson 1: the smallest mission.
+///
+/// It counts the simulation steps, publishes the count as the metric
+/// "hello.ticks", and succeeds after two seconds. The scenario file asserts
+/// on that metric.
 // ****************************************************************************
 class HelloMission final: public robotik::Mission
 {

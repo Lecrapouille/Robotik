@@ -14,7 +14,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! \brief Base exception class for all Robotik library exceptions.
+/// \brief Base exception class for all Robotik library exceptions.
 // ****************************************************************************
 class RobotikException: public std::runtime_error
 {

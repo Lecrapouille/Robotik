@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Version.hpp
-//! @brief Semantic version of an asset pack or a plugin, and the rule used to
-//! check a requirement against it.
+/// @file Version.hpp
+/// @brief Semantic version of an asset pack or a plugin, and the rule used to
+/// check a requirement against it.
 #pragma once
 
 #include <compare>
@@ -20,7 +20,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief @c major.minor.patch. Missing parts read as zero: "1.2" is 1.2.0.
+/// @brief @c major.minor.patch. Missing parts read as zero: "1.2" is 1.2.0.
 // ****************************************************************************
 struct Version
 {
@@ -28,14 +28,14 @@ struct Version
     std::uint32_t minor = 0;
     std::uint32_t patch = 0;
 
-    //! @brief Parses "1", "1.2" or "1.2.3". Nothing on any other text.
+    /// @brief Parses "1", "1.2" or "1.2.3". Nothing on any other text.
     [[nodiscard]] static std::optional<Version> parse(std::string_view p_text);
 
     [[nodiscard]] std::string toString() const;
 
     // -------------------------------------------------------------------------
-    //! @brief True when this version can replace @p_required: same major
-    //! version, and not older.
+    /// @brief True when this version can replace @p_required: same major
+    /// version, and not older.
     // -------------------------------------------------------------------------
     [[nodiscard]] bool satisfies(Version const& p_required) const
     {

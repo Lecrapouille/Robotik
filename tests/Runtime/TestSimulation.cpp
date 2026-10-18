@@ -15,9 +15,7 @@
 
 #include <algorithm>
 
-namespace
-{
-
+/// How a short run finished: verdict, time and the skill trace.
 struct Outcome
 {
     bool passed = true;
@@ -25,7 +23,8 @@ struct Outcome
     std::vector<std::string> runs;
 };
 
-Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
+/// Resets, steps until the run ends, and returns how it finished.
+static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 {
     p_simulation.reset(p_seed);
     while (!p_simulation.finished() && p_simulation.time() < Seconds(60.0))
@@ -44,8 +43,6 @@ Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     }
     return outcome;
 }
-
-} // namespace
 
 TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 {

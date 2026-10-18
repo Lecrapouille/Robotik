@@ -15,9 +15,7 @@
 #include <string>
 #include <string_view>
 
-namespace
-{
-
+/// Loads the line-follower mission.
 class LineFollowerPlugin final: public robotik::Plugin
 {
 public:
@@ -86,7 +84,5 @@ private:
     robotik::Host m_host;
     std::unique_ptr<LineFollowerMission> m_mission;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(LineFollowerPlugin)

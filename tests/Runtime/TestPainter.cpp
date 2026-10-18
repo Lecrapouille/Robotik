@@ -14,21 +14,18 @@
 
 #include <cmath>
 
-namespace
-{
-
-robotik::Scenario painterScenario()
+/// Loads the painter scenario used by these tests.
+static robotik::Scenario painterScenario()
 {
     return robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
                                    testAssets());
 }
 
-double gap(robotik::Pose const& p_a, robotik::Pose const& p_b)
+/// Distance between two poses.
+static double gap(robotik::Pose const& p_a, robotik::Pose const& p_b)
 {
     return robotik::norm(p_a.position - p_b.position);
 }
-
-} // namespace
 
 TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
 {

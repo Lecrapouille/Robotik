@@ -5,13 +5,13 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Actuators.hpp
-//! @brief Things that act on the robot or the world: motors, joint groups,
-//! grippers.
-//!
-//! A joint is kinematics (an axis and limits); an actuator is a device that
-//! drives one or several joints, or the world (suction). Each actuator is a
-//! resource of the same name, reserved by skills and disabled on failure.
+/// @file Actuators.hpp
+/// @brief Things that act on the robot or the world: motors, joint groups,
+/// grippers.
+///
+/// A joint is kinematics (an axis and limits); an actuator is a device that
+/// drives one or several joints, or the world (suction). Each actuator is a
+/// resource of the same name, reserved by skills and disabled on failure.
 #pragma once
 
 #include "Robotik/Math/Geometry.hpp"
@@ -29,7 +29,7 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-//! @brief Base class of the actuators.
+/// @brief Base class of the actuators.
 // ****************************************************************************
 class Actuator
 {
@@ -43,8 +43,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Resolves joints and frames once the robot is loaded.
-    //! @throws std::invalid_argument on unknown names.
+    /// @brief Resolves joints and frames once the robot is loaded.
+    /// @throws std::invalid_argument on unknown names.
     // -------------------------------------------------------------------------
     virtual void bind(Robot& /*p_robot*/)
     {
@@ -52,7 +52,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief The resource failed: switch to a safe state.
+    /// @brief The resource failed: switch to a safe state.
     // -------------------------------------------------------------------------
     virtual void disable(Robot& /*p_robot*/)
     {
@@ -69,13 +69,13 @@ private:
 };
 
 // ****************************************************************************
-//! @brief One rotary motor driving one revolute joint (a wheel, a pan axis).
-//!
-//! @code
-//! auto& left = robot.actuators().add<robotik::Motor>("left_motor",
-//!                                                    "left_wheel_joint");
-//! left.spin(AngularVelocity(4.0));
-//! @endcode
+/// @brief One rotary motor driving one revolute joint (a wheel, a pan axis).
+///
+/// @code
+/// auto& left = robot.actuators().add<robotik::Motor>("left_motor",
+///                                                    "left_wheel_joint");
+/// left.spin(AngularVelocity(4.0));
+/// @endcode
 // ****************************************************************************
 class Motor final: public Actuator
 {
@@ -84,13 +84,13 @@ public:
     Motor(std::string p_name, std::string p_joint);
 
     void bind(Robot& p_robot) override;
-    //! @brief A failed motor delivers no torque.
+    /// @brief A failed motor delivers no torque.
     void disable(Robot& p_robot) override;
 
     void moveTo(Radians p_position);
     void spin(AngularVelocity p_velocity);
     void push(Torque p_effort);
-    //! @brief Zero speed.
+    /// @brief Zero speed.
     void stop();
 
     [[nodiscard]] Revolute joint() const
@@ -110,20 +110,20 @@ private:
 };
 
 // ****************************************************************************
-//! @brief A set of joints commanded together (an arm, a head...).
-//!
-//! Targets are given in the SI base unit of each joint (rad or m), in the
-//! order of @ref joints, like an IK solution.
+/// @brief A set of joints commanded together (an arm, a head...).
+///
+/// Targets are given in the SI base unit of each joint (rad or m), in the
+/// order of @ref joints, like an IK solution.
 // ****************************************************************************
 class JointGroup final: public Actuator
 {
 public:
 
-    //! @param p_joints Joint names; empty takes every joint of the robot.
+    /// @param p_joints Joint names; empty takes every joint of the robot.
     JointGroup(std::string p_name, std::vector<std::string> p_joints = {});
 
     void bind(Robot& p_robot) override;
-    //! @brief A failed group brakes where it is.
+    /// @brief A failed group brakes where it is.
     void disable(Robot& p_robot) override;
 
     [[nodiscard]] std::span<JointId const> joints() const
@@ -133,7 +133,7 @@ public:
 
     [[nodiscard]] bool contains(JointId p_joint) const;
 
-    //! @brief One target per joint of the group, in @ref joints order.
+    /// @brief One target per joint of the group, in @ref joints order.
     void moveTo(std::span<double const> p_positions);
     void hold();
     [[nodiscard]] bool reached(double p_tolerance) const;
@@ -146,23 +146,23 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Suction cup mounted along +Z of a link.
-//!
-//! The command is the suction; what is held is measured (vacuum sensor on
-//! hardware, contact model in simulation).
+/// @brief Suction cup mounted along +Z of a link.
+///
+/// The command is the suction; what is held is measured (vacuum sensor on
+/// hardware, contact model in simulation).
 // ****************************************************************************
 class VacuumGripper final: public Actuator
 {
 public:
 
-    //! @param p_link Flange link; empty uses the robot tool frame.
-    //! @param p_length Flange to cup tip distance along +Z.
+    /// @param p_link Flange link; empty uses the robot tool frame.
+    /// @param p_length Flange to cup tip distance along +Z.
     VacuumGripper(std::string p_name,
                   std::string p_link = {},
                   Length p_length = Length(0.06));
 
     void bind(Robot& p_robot) override;
-    //! @brief A failed pump drops what it holds.
+    /// @brief A failed pump drops what it holds.
     void disable(Robot& p_robot) override;
 
     void suction(bool p_on)
@@ -185,7 +185,7 @@ public:
         return m_held;
     }
 
-    //! @brief Measured grasp (physics or vacuum sensor side).
+    /// @brief Measured grasp (physics or vacuum sensor side).
     void held(compages::world::EntityId p_object)
     {
         m_held = p_object;
@@ -201,9 +201,9 @@ public:
         return m_length;
     }
 
-    //! @brief Flange pose in the robot base frame.
+    /// @brief Flange pose in the robot base frame.
     [[nodiscard]] Pose flange(Robot const& p_robot) const;
-    //! @brief Cup tip in the robot base frame, @p_extra beyond the cup.
+    /// @brief Cup tip in the robot base frame, @p_extra beyond the cup.
     [[nodiscard]] Vector3 tip(Robot const& p_robot,
                               Length p_extra = Length(0.0)) const;
 

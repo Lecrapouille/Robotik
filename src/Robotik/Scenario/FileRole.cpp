@@ -15,17 +15,14 @@
 namespace robotik
 {
 
-namespace
-{
-
-//! Each role, its main extension, then the spelling also accepted (.yml).
+/// Each role, its main extension, then the spelling also accepted (.yml).
 struct Spelling
 {
     FileRole role;
     std::string_view extension;
 };
 
-constexpr std::array<Spelling, 13> SPELLINGS{ {
+static constexpr std::array<Spelling, 13> SPELLINGS{ {
     { FileRole::World, ".world.yaml" },
     { FileRole::Scenario, ".scenario.yaml" },
     { FileRole::Rl, ".rl.yaml" },
@@ -41,12 +38,11 @@ constexpr std::array<Spelling, 13> SPELLINGS{ {
     { FileRole::Experiment, ".experiment.yml" },
 } };
 
-bool yaml(std::string_view p_name)
+/// True when the file name ends with .yaml or .yml.
+static bool yaml(std::string_view p_name)
 {
     return p_name.ends_with(".yaml") || p_name.ends_with(".yml");
 }
-
-} // namespace
 
 FileRole fileRole(std::filesystem::path const& p_file)
 {

@@ -5,33 +5,33 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PlanningDomain.hpp
-//! @brief What a mission tells the planner: how to observe each predicate
-//! of its PDDL domain and which skills carry out each action.
-//!
-//! The domain file holds the types, predicates and actions; the world gives
-//! the objects (entities with a @c kind); the scenario gives the goal. The
-//! mission only links names:
-//!
-//! @code
-//! void setup(robotik::Simulation& p_simulation, robotik::SceneView*) override
-//! {
-//!     robotik::PlanningDomain& domain = p_simulation.planning();
-//!     // State: computed on the beliefs, never on the ground truth.
-//!     domain.observe("holding", [](robotik::RobotContext const& p_context,
-//!                                  robotik::Args p_args) {
-//!         return robotik::truth(heldObject(p_context) == p_args[0]);
-//!     });
-//!     // Action -> behavior tree nodes; {0} is the first argument.
-//!     domain.bind("pick", { "Approach({0})", "Reach({0})", "Grasp({0})" });
-//!     // A node reading a blackboard value: parameters set it per step.
-//!     domain.bind("dip", { "Dip" }, { { "color", "{0}" } });
-//! }
-//! @endcode
-//!
-//! Arguments are entity ids as written in the world file. Every predicate
-//! needs an observer, a fact of the scenario or a @c :derived rule, and
-//! every action a binding: the scenario is refused otherwise.
+/// @file PlanningDomain.hpp
+/// @brief What a mission tells the planner: how to observe each predicate
+/// of its PDDL domain and which skills carry out each action.
+///
+/// The domain file holds the types, predicates and actions; the world gives
+/// the objects (entities with a @c kind); the scenario gives the goal. The
+/// mission only links names:
+///
+/// @code
+/// void setup(robotik::Simulation& p_simulation, robotik::SceneView*) override
+/// {
+///     robotik::PlanningDomain& domain = p_simulation.planning();
+///     // State: computed on the beliefs, never on the ground truth.
+///     domain.observe("holding", [](robotik::RobotContext const& p_context,
+///                                  robotik::Args p_args) {
+///         return robotik::truth(heldObject(p_context) == p_args[0]);
+///     });
+///     // Action -> behavior tree nodes; {0} is the first argument.
+///     domain.bind("pick", { "Approach({0})", "Reach({0})", "Grasp({0})" });
+///     // A node reading a blackboard value: parameters set it per step.
+///     domain.bind("dip", { "Dip" }, { { "color", "{0}" } });
+/// }
+/// @endcode
+///
+/// Arguments are entity ids as written in the world file. Every predicate
+/// needs an observer, a fact of the scenario or a @c :derived rule, and
+/// every action a binding: the scenario is refused otherwise.
 #pragma once
 
 #include "Robotik/Planning/Pddl.hpp"
@@ -49,37 +49,37 @@ namespace robotik
 
 struct RobotContext;
 
-//! @brief Arguments of an observed atom: entity ids.
+/// @brief Arguments of an observed atom: entity ids.
 using Args = std::span<std::string const>;
 
-//! @brief Value of a predicate for these arguments, from the beliefs.
+/// @brief Value of a predicate for these arguments, from the beliefs.
 using Observer = std::function<Truth(RobotContext const&, Args)>;
 
 // ****************************************************************************
-//! @brief Behavior tree nodes run for one action of the plan, in order.
+/// @brief Behavior tree nodes run for one action of the plan, in order.
 // ****************************************************************************
 struct ActionBinding
 {
-    //!< Node names; @c {0}, @c {1}... are replaced by the arguments.
+    /// Node names; @c {0}, @c {1}... are replaced by the arguments.
     std::vector<std::string> nodes;
-    //!< Blackboard values of the step (@c {0} replaced as well).
+    /// Blackboard values of the step (@c {0} replaced as well).
     std::vector<std::pair<std::string, std::string>> parameters;
 };
 
 // ****************************************************************************
-//! @brief Observers and bindings of a mission, keyed by PDDL name.
+/// @brief Observers and bindings of a mission, keyed by PDDL name.
 // ****************************************************************************
 class PlanningDomain
 {
 public:
 
     // -------------------------------------------------------------------------
-    //! @brief How to read @p_predicate on the beliefs. Replaces a previous one.
+    /// @brief How to read @p_predicate on the beliefs. Replaces a previous one.
     // -------------------------------------------------------------------------
     void observe(std::string_view p_predicate, Observer p_observer);
 
     // -------------------------------------------------------------------------
-    //! @brief Nodes run for @p_action. Replaces a previous binding.
+    /// @brief Nodes run for @p_action. Replaces a previous binding.
     // -------------------------------------------------------------------------
     void
     bind(std::string_view p_action,
@@ -114,8 +114,8 @@ private:
 };
 
 // ----------------------------------------------------------------------------
-//! @brief Replaces @c {0}, @c {1}... in @p_pattern by @p_args.
-//! @throws std::out_of_range when an index has no argument.
+/// @brief Replaces @c {0}, @c {1}... in @p_pattern by @p_args.
+/// @throws std::out_of_range when an index has no argument.
 // ----------------------------------------------------------------------------
 [[nodiscard]] std::string expand(std::string_view p_pattern,
                                  std::span<std::string const> p_args);

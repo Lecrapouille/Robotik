@@ -25,14 +25,11 @@
 #include <stdexcept>
 #include <string>
 
-namespace
-{
+static constexpr std::size_t TRAIL = 240;
+static constexpr float PI = 3.14159265358979323846f;
 
-constexpr std::size_t TRAIL = 240;
-constexpr float PI = 3.14159265358979323846f;
-
-//! @brief Loads the URDF into the window scene. No extra cameras or ground:
-//! the fly demo builds those itself.
+/// @brief Loads the URDF into the window scene. No extra cameras or ground:
+/// the fly demo builds those itself.
 class FlySceneView final: public robotik::SceneView
 {
 public:
@@ -42,7 +39,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! @brief Loads the URDF into the window scene.
+    /// @brief Loads the URDF into the window scene.
     // ------------------------------------------------------------------------
     compages::world::Entity robot(compages::world::World& /*p_world*/,
                                   std::filesystem::path const& p_urdf) override
@@ -60,10 +57,8 @@ private:
     compages::renderer::Scene& m_scene;
 };
 
-} // namespace
-
-//! @brief Everything that must die before GLFW. The robot first, because its
-//! entities live in the world.
+/// @brief Everything that must die before GLFW. The robot first, because its
+/// entities live in the world.
 struct FlyView::Gpu
 {
     GLFWwindow* window = nullptr;
@@ -92,13 +87,13 @@ struct FlyView::Gpu
     }
 };
 
-//! @brief Stores the scenario. The window stays closed until @ref open.
+/// @brief Stores the scenario. The window stays closed until @ref open.
 FlyView::FlyView(FlyScenario const& p_scenario) : m_scenario(p_scenario) {}
 
-//! @brief Defined here so the unique_ptr to @ref Gpu sees a complete type.
+/// @brief Defined here so the unique_ptr to @ref Gpu sees a complete type.
 FlyView::~FlyView() = default;
 
-//! @brief Window, chase camera, URDF, eye insets, arena, beams and trail.
+/// @brief Window, chase camera, URDF, eye insets, arena, beams and trail.
 bool FlyView::open()
 {
     m_gpu = std::make_unique<Gpu>();
@@ -218,7 +213,7 @@ bool FlyView::open()
     return true;
 }
 
-//! @brief One posed frame. Escape and the window close both return false.
+/// @brief One posed frame. Escape and the window close both return false.
 bool FlyView::frame(FlyEnvironment const& p_environment)
 {
     if (m_gpu == nullptr || m_gpu->window == nullptr)

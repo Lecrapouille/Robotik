@@ -15,11 +15,9 @@
 #define COLOR_MIN_VALUE 0.15f
 #define COLOR_MIN_PIXELS 20
 
-namespace
-{
-
 // RGB [0,1] to HSV for hue-based segmentation.
 
+/// Hue, saturation and value of one pixel.
 struct Hsv
 {
     float hue;
@@ -27,7 +25,8 @@ struct Hsv
     float value;
 };
 
-Hsv hsv(float p_r, float p_g, float p_b)
+/// Converts one RGB pixel to hue, saturation and value.
+static Hsv hsv(float p_r, float p_g, float p_b)
 {
     float const high = std::max({ p_r, p_g, p_b });
     float const low = std::min({ p_r, p_g, p_b });
@@ -52,13 +51,12 @@ Hsv hsv(float p_r, float p_g, float p_b)
     return result;
 }
 
-float hueDistance(float p_a, float p_b)
+/// Shortest distance between two hues on the color wheel.
+static float hueDistance(float p_a, float p_b)
 {
     float const distance = std::abs(p_a - p_b);
     return std::min(distance, 360.0f - distance);
 }
-
-} // namespace
 
 void ColorDetector::detect(robotik::CameraFrame const& p_frame,
                            robotik::Detections& p_detections)

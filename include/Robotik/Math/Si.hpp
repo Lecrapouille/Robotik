@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Si.hpp
-//! @brief SI unit names RobotIK uses on top of nholthaus/units.
-//!
-//! Compages exposes the unit library, not these short names. They live here
-//! so a refresh of Compages does not drop @c Seconds or @c Radians.
+/// @file Si.hpp
+/// @brief SI unit names RobotIK uses on top of nholthaus/units.
+///
+/// Compages exposes the unit library, not these short names. They live here
+/// so a refresh of Compages does not drop @c Seconds or @c Radians.
 #pragma once
 
 #include "Compages/Core/Units.hpp"

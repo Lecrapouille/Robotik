@@ -21,7 +21,7 @@
 
 using namespace ::testing;
 
-//! @brief Repository file, whether tests run from the root or from tests/.
+/// @brief Repository file, whether tests run from the root or from tests/.
 inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
 {
     for (char const* root : { ".", ".." })
@@ -35,7 +35,7 @@ inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
     return p_file;
 }
 
-//! @brief Asset packs of the repository: data/packs and the plugins' own.
+/// @brief Asset packs of the repository: data/packs and the plugins' own.
 inline robotik::AssetResolver const& testAssets()
 {
     static robotik::AssetResolver const assets = []()
@@ -50,7 +50,7 @@ inline robotik::AssetResolver const& testAssets()
     return assets;
 }
 
-//! @brief File of the model @p_id of the repository packs.
+/// @brief File of the model @p_id of the repository packs.
 inline std::filesystem::path assetFile(std::string_view p_id)
 {
     return testAssets().model(p_id);

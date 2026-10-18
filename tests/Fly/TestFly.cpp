@@ -21,16 +21,15 @@
 
 #include <filesystem>
 
-namespace
-{
-
-FlyScenario flyScenario()
+/// Loads the obstacle-avoidance scenario of the fly.
+static FlyScenario flyScenario()
 {
     return FlyScenario::from(robotik::Scenario::load(
         repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"), testAssets()));
 }
 
-robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
+/// Runs one brain until the horizon and keeps the last snapshot.
+static robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
 {
     FlyScenario const scenario = flyScenario();
     std::uint32_t const limit =
@@ -57,8 +56,6 @@ robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
     p_end = environment.snapshot();
     return result;
 }
-
-} // namespace
 
 TEST(FlyScenario, LoadsObstacleAvoidance)
 {

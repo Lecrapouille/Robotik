@@ -17,8 +17,8 @@
 namespace robotik
 {
 
-//! Largest gap between the suction tip and the top face of an object that
-//! still grasps it (same as the abstract level).
+/// Largest gap between the suction tip and the top face of an object that
+/// still grasps it (same as the abstract level).
 static constexpr double kContactDistanceM = 0.02;
 
 std::string RigidGrasp::weldName(std::string const& p_gripper, std::string const& p_object)

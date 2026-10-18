@@ -38,7 +38,7 @@
 #define IK_STEP 0.5
 #define IK_DAMPING 1e-4
 #define IK_TOLERANCE 1e-4
-//! Largest joint move of one iteration (rad or m, norm over the joints).
+/// Largest joint move of one iteration (rad or m, norm over the joints).
 #define IK_MAX_JOINT_STEP 0.2
 
 namespace robotik
@@ -57,8 +57,8 @@ static std::vector<double> toVector(Eigen::VectorXd const& p_value)
     return {p_value.data(), p_value.data() + p_value.size()};
 }
 
-//! Pose of tcp in the tool_mount frame. The mount itself is the identity
-//! on the robot flange, so this is also the pose of tcp on the flange.
+/// Pose of tcp in the tool_mount frame. The mount itself is the identity
+/// on the robot flange, so this is also the pose of tcp on the flange.
 static pinocchio::SE3 tcpInMount(std::filesystem::path const& p_tool)
 {
     pinocchio::Model tool;

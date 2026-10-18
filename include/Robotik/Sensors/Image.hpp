@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Image.hpp
-//! @brief CPU image: one tightly packed buffer, top-left origin.
+/// @file Image.hpp
+/// @brief CPU image: one tightly packed buffer, top-left origin.
 #pragma once
 
 #include <cstddef>
@@ -18,14 +18,14 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Pixel layouts handled by Robotik.
+/// @brief Pixel layouts handled by Robotik.
 // ****************************************************************************
 enum class PixelFormat : std::uint8_t
 {
-    Gray8,    //!< One byte per pixel.
-    RGB8,     //!< Three bytes per pixel, R first.
-    RGBA8,    //!< Four bytes per pixel.
-    Depth32F, //!< One float per pixel: distance along the optical axis (m).
+    Gray8,    ///< One byte per pixel.
+    RGB8,     ///< Three bytes per pixel, R first.
+    RGBA8,    ///< Four bytes per pixel.
+    Depth32F, ///< One float per pixel: distance along the optical axis (m).
 };
 
 [[nodiscard]] constexpr std::size_t bytesPerPixel(PixelFormat p_format)
@@ -44,14 +44,14 @@ enum class PixelFormat : std::uint8_t
 }
 
 // ****************************************************************************
-//! @brief Owning image with rows stored top to bottom and no padding.
-//!
-//! @ref resize keeps the allocation when the size does not grow, so a camera
-//! reuses the same memory frame after frame. Third-party libraries can wrap
-//! the buffer without a copy, e.g. in a demo:
-//! @code
-//! cv::Mat view(int(image.height()), int(image.width()), CV_8UC3, image.data());
-//! @endcode
+/// @brief Owning image with rows stored top to bottom and no padding.
+///
+/// @ref resize keeps the allocation when the size does not grow, so a camera
+/// reuses the same memory frame after frame. Third-party libraries can wrap
+/// the buffer without a copy, e.g. in a demo:
+/// @code
+/// cv::Mat view(int(image.height()), int(image.width()), CV_8UC3, image.data());
+/// @endcode
 // ****************************************************************************
 class Image
 {
@@ -65,7 +65,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Changes the geometry; contents are unspecified afterwards.
+    /// @brief Changes the geometry; contents are unspecified afterwards.
     // -------------------------------------------------------------------------
     void resize(std::uint32_t p_width,
                 std::uint32_t p_height,
@@ -78,7 +78,7 @@ public:
                         bytesPerPixel(p_format));
     }
 
-    //! @brief Releases the pixels (an empty image means "no data").
+    /// @brief Releases the pixels (an empty image means "no data").
     void clear()
     {
         m_width = 0;
@@ -106,7 +106,7 @@ public:
         return m_format;
     }
 
-    //! @brief Bytes per row.
+    /// @brief Bytes per row.
     [[nodiscard]] std::size_t stride() const
     {
         return std::size_t(m_width) * bytesPerPixel(m_format);
@@ -133,7 +133,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Typed pointer on row @p_y (e.g. @c row<float>(y) for depth).
+    /// @brief Typed pointer on row @p_y (e.g. @c row<float>(y) for depth).
     // -------------------------------------------------------------------------
     template <typename T = std::uint8_t>
     [[nodiscard]] T* row(std::uint32_t p_y)

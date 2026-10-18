@@ -15,10 +15,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
+/// Reads the inject_fault steps that prepare one experiment case.
+static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
 {
     for (ConfigNode const& step : p_setup.items())
     {
@@ -47,8 +45,6 @@ void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
             { Seconds(fault.number("at", 0.0)), std::move(resource), action == "disable" });
     }
 }
-
-} // namespace
 
 bool Experiment::describes(std::filesystem::path const& p_path)
 {

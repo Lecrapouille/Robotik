@@ -18,10 +18,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-std::string quoted(std::string_view p_text)
+/// Escapes a string as a JSON string.
+static std::string quoted(std::string_view p_text)
 {
     std::string result = "\"";
     for (char const character : p_text)
@@ -35,7 +33,8 @@ std::string quoted(std::string_view p_text)
     return result + "\"";
 }
 
-std::string number(double p_value)
+/// Prints a finite number at full precision, or null.
+static std::string number(double p_value)
 {
     if (!std::isfinite(p_value))
     {
@@ -46,7 +45,8 @@ std::string number(double p_value)
     return stream.str();
 }
 
-void writeSpace(std::ostream& p_out, Space const& p_space)
+/// Writes one observation or action space as a JSON array.
+static void writeSpace(std::ostream& p_out, Space const& p_space)
 {
     p_out << '[';
     for (std::size_t i = 0; i < p_space.dimensions.size(); ++i)
@@ -59,8 +59,6 @@ void writeSpace(std::ostream& p_out, Space const& p_space)
     }
     p_out << ']';
 }
-
-} // namespace
 
 void EpisodeLog::write(std::ostream& p_out, std::span<Episode const> p_episodes) const
 {

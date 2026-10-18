@@ -13,12 +13,12 @@
 #include <vector>
 
 // ****************************************************************************
-//! @brief Lesson 3: ask for a tool position, let inverse kinematics find the
-//! joint angles.
-//!
-//! At reset, the target is the current tool pose moved three centimetres
-//! along x. Inverse kinematics gives one angle per joint; each step commands
-//! them and publishes the remaining distance as "reach.error".
+/// @brief Lesson 3: ask for a tool position, let inverse kinematics find the
+/// joint angles.
+///
+/// At reset, the target is the current tool pose moved three centimetres
+/// along x. Inverse kinematics gives one angle per joint; each step commands
+/// them and publishes the remaining distance as "reach.error".
 // ****************************************************************************
 class ReachMission final: public robotik::Mission
 {

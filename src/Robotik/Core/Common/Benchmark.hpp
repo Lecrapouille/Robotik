@@ -20,16 +20,16 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! \brief RAII profiler that automatically measures execution time.
+/// \brief RAII profiler that automatically measures execution time.
 // ****************************************************************************
 class ScopedProfiler: public NonCopyable
 {
 public:
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor.
-    //! \param name Name of the profiler.
-    //! \param output Pointer to the output variable to store the elapsed time.
+    /// \brief Constructor.
+    /// \param name Name of the profiler.
+    /// \param output Pointer to the output variable to store the elapsed time.
     // ------------------------------------------------------------------------
     explicit ScopedProfiler(const std::string& name, double* output = nullptr)
         : m_name(name), m_output(output)
@@ -53,7 +53,7 @@ public:
 private:
 
     // ************************************************************************
-    //! \brief Simple timer for benchmarking.
+    /// \brief Simple timer for benchmarking.
     // ************************************************************************
     class Timer
     {
@@ -96,7 +96,7 @@ private:
 };
 
 // ****************************************************************************
-//! \brief Performance statistics collector.
+/// \brief Performance statistics collector.
 // ****************************************************************************
 class PerformanceStats: public Singleton<PerformanceStats>
 {

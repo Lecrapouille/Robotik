@@ -20,9 +20,7 @@
 namespace robotik
 {
 
-namespace
-{
-
+/// A joint read from a URDF: name, type and child link.
 struct UrdfJoint
 {
     std::string name;
@@ -30,13 +28,15 @@ struct UrdfJoint
     std::string child;
 };
 
+/// Robot name and moving joints read from a URDF.
 struct UrdfRobot
 {
     std::string name;
     std::vector<UrdfJoint> joints;
 };
 
-UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
+/// Reads the robot name and its moving joints from a URDF.
+static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
 {
     pugi::xml_document document;
     pugi::xml_parse_result const parsed =
@@ -57,13 +57,15 @@ UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
     return result;
 }
 
-bool moving(std::string_view p_type)
+/// True for a revolute, continuous or prismatic joint.
+static bool moving(std::string_view p_type)
 {
     return p_type == "revolute" || p_type == "continuous" ||
            p_type == "prismatic";
 }
 
-compages::world::Entity findNamed(compages::world::Entity p_root,
+/// Depth-first search of an entity by name.
+static compages::world::Entity findNamed(compages::world::Entity p_root,
                                   std::string_view p_name)
 {
     if (!p_root || p_root.name() == p_name)
@@ -82,14 +84,16 @@ compages::world::Entity findNamed(compages::world::Entity p_root,
     return found;
 }
 
-compages::core::Vector3f toFloat(Vector3 const& p_v)
+/// Converts a double vector to the float vector the scene stores.
+static compages::core::Vector3f toFloat(Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x),
              static_cast<float>(p_v.y),
              static_cast<float>(p_v.z) };
 }
 
-compages::core::Quatf toFloat(Quaternion const& p_q)
+/// Converts a double quaternion to the float quaternion the scene stores.
+static compages::core::Quatf toFloat(Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),
@@ -97,7 +101,8 @@ compages::core::Quatf toFloat(Quaternion const& p_q)
              static_cast<float>(p_q.z) };
 }
 
-compages::world::Entity loadTool(compages::world::World& p_world,
+/// Loads a tool URDF, through the view when one is attached.
+static compages::world::Entity loadTool(compages::world::World& p_world,
                                  std::filesystem::path const& p_urdf,
                                  SceneView* p_view)
 {
@@ -113,7 +118,8 @@ compages::world::Entity loadTool(compages::world::World& p_world,
     return loaded.value();
 }
 
-void mountTool(compages::world::World& p_world,
+/// Parents the tool mount frame on the robot flange.
+static void mountTool(compages::world::World& p_world,
                compages::world::Entity p_robot,
                std::filesystem::path const& p_tool,
                SceneView* p_view)
@@ -138,8 +144,6 @@ void mountTool(compages::world::World& p_world,
         wrapper.destroy();
     }
 }
-
-} // namespace
 
 Robot::Robot(compages::world::World& p_world,
              std::filesystem::path const& p_urdf,

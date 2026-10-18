@@ -20,9 +20,7 @@
 #include <string>
 #include <string_view>
 
-namespace
-{
-
+/// Loads the pick-and-place mission chosen by the scenario.
 class PickPlacePlugin final: public robotik::Plugin
 {
 public:
@@ -60,8 +58,8 @@ public:
         return ROBOTIK_PLUGIN_ERR_SETUP;
     }
 
-    //! The RL scenario owns the clock (plugin.yaml): one policy action per
-    //! update. The behavior tree scenarios are stepped by the simulation.
+    /// The RL scenario owns the clock (plugin.yaml): one policy action per
+    /// update. The behavior tree scenarios are stepped by the simulation.
     RobotikPluginStatus update(robotik::Host& p_host, double p_dt) override
     {
         if (m_rl == nullptr)
@@ -153,7 +151,5 @@ private:
     std::unique_ptr<PickPlaceMission> m_tree;
     std::unique_ptr<RlMission> m_rl;
 };
-
-} // namespace
 
 ROBOTIK_EXPORT_PLUGIN(PickPlacePlugin)

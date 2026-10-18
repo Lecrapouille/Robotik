@@ -15,13 +15,13 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! \brief Signal/Slot system for event handling.
-//!
-//! This class provides a signal/slot mechanism for connecting callbacks
-//! to events. Slots can be connected and disconnected, and signals can
-//! be emitted to call all connected slots.
-//!
-//! \tparam Args Parameter types for the signal.
+/// \brief Signal/Slot system for event handling.
+///
+/// This class provides a signal/slot mechanism for connecting callbacks
+/// to events. Slots can be connected and disconnected, and signals can
+/// be emitted to call all connected slots.
+///
+/// \tparam Args Parameter types for the signal.
 // ****************************************************************************
 template <typename... Args>
 class Signal
@@ -32,9 +32,9 @@ public:
     using ConnectionId = size_t;
 
     // ------------------------------------------------------------------------
-    //! \brief Connect a slot (function, lambda, method).
-    //! \param slot The slot to connect.
-    //! \return Connection ID for later disconnection.
+    /// \brief Connect a slot (function, lambda, method).
+    /// \param slot The slot to connect.
+    /// \return Connection ID for later disconnection.
     // ------------------------------------------------------------------------
     ConnectionId connect(SlotType slot)
     {
@@ -44,8 +44,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Disconnect a slot by its connection ID.
-    //! \param id Connection ID to disconnect.
+    /// \brief Disconnect a slot by its connection ID.
+    /// \param id Connection ID to disconnect.
     // ------------------------------------------------------------------------
     void disconnect(ConnectionId id)
     {
@@ -53,7 +53,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Disconnect all slots.
+    /// \brief Disconnect all slots.
     // ------------------------------------------------------------------------
     void disconnectAll()
     {
@@ -61,8 +61,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Emit the signal, calling all connected slots.
-    //! \param args Arguments to pass to the slots.
+    /// \brief Emit the signal, calling all connected slots.
+    /// \param args Arguments to pass to the slots.
     // ------------------------------------------------------------------------
     void emit(Args... args)
     {
@@ -78,8 +78,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Operator() for more natural syntax.
-    //! \param args Arguments to pass to the slots.
+    /// \brief Operator() for more natural syntax.
+    /// \param args Arguments to pass to the slots.
     // ------------------------------------------------------------------------
     void operator()(Args... args)
     {
@@ -87,8 +87,8 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Get the number of connected slots.
-    //! \return Number of connections.
+    /// \brief Get the number of connected slots.
+    /// \return Number of connections.
     // ------------------------------------------------------------------------
     size_t connectionCount() const
     {
@@ -97,19 +97,19 @@ public:
 
 private:
 
-    //! \brief Map of connection IDs to slots.
+    /// \brief Map of connection IDs to slots.
     std::map<ConnectionId, SlotType> slots_;
-    //! \brief Next connection ID to assign.
+    /// \brief Next connection ID to assign.
     ConnectionId next_id_ = 0;
 };
 
 // ****************************************************************************
-//! \brief RAII wrapper for automatic connection management.
-//!
-//! This class automatically disconnects a signal connection when it goes
-//! out of scope.
-//!
-//! \tparam Args Parameter types for the signal.
+/// \brief RAII wrapper for automatic connection management.
+///
+/// This class automatically disconnects a signal connection when it goes
+/// out of scope.
+///
+/// \tparam Args Parameter types for the signal.
 // ****************************************************************************
 template <typename... Args>
 class ScopedConnection
@@ -117,9 +117,9 @@ class ScopedConnection
 public:
 
     // ------------------------------------------------------------------------
-    //! \brief Constructor.
-    //! \param signal Pointer to the signal.
-    //! \param id Connection ID.
+    /// \brief Constructor.
+    /// \param signal Pointer to the signal.
+    /// \param id Connection ID.
     // ------------------------------------------------------------------------
     ScopedConnection(Signal<Args...>* signal,
                      typename Signal<Args...>::ConnectionId id)
@@ -128,7 +128,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Destructor - automatically disconnects.
+    /// \brief Destructor - automatically disconnects.
     // ------------------------------------------------------------------------
     ~ScopedConnection()
     {
@@ -143,7 +143,7 @@ public:
     ScopedConnection& operator=(const ScopedConnection&) = delete;
 
     // ------------------------------------------------------------------------
-    //! \brief Move constructor.
+    /// \brief Move constructor.
     // ------------------------------------------------------------------------
     ScopedConnection(ScopedConnection&& other) noexcept
         : signal_(other.signal_), id_(other.id_)
@@ -152,7 +152,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    //! \brief Move assignment operator.
+    /// \brief Move assignment operator.
     // ------------------------------------------------------------------------
     ScopedConnection& operator=(ScopedConnection&& other) noexcept
     {
@@ -173,9 +173,9 @@ public:
 
 private:
 
-    //! \brief Pointer to the signal.
+    /// \brief Pointer to the signal.
     Signal<Args...>* signal_;
-    //! \brief Connection ID.
+    /// \brief Connection ID.
     typename Signal<Args...>::ConnectionId id_;
 };
 

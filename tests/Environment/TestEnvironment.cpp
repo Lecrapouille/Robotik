@@ -9,10 +9,7 @@
 
 #include "Robotik/Environment/Environment.hpp"
 
-namespace
-{
-
-//! @brief Random walk on a line: reach +1 to win, give up after 50 steps.
+/// @brief Random walk on a line: reach +1 to win, give up after 50 steps.
 class WalkEnvironment final: public robotik::Environment
 {
 public:
@@ -66,7 +63,8 @@ private:
     int m_steps = 0;
 };
 
-std::vector<robotik::Episode> play(std::size_t p_threads)
+/// Plays the walk environment on the given number of threads.
+static std::vector<robotik::Episode> play(std::size_t p_threads)
 {
     robotik::EnvironmentPool pool(
         8u,
@@ -85,8 +83,6 @@ std::vector<robotik::Episode> play(std::size_t p_threads)
     }
     return { pool.episodes().begin(), pool.episodes().end() };
 }
-
-} // namespace
 
 TEST(EnvironmentPool, AutoResetsWithDerivedSeeds)
 {

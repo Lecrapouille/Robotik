@@ -19,17 +19,17 @@
 #include <limits>
 #include <numbers>
 
-//! Physics step of the policy training (s).
+/// Physics step of the policy training (s).
 #define PHYSICS_STEP_S 0.001
-//! IMU of the policy: on the pelvis, at the origin of the base link.
+/// IMU of the policy: on the pelvis, at the origin of the base link.
 #define IMU_NAME "imu"
-//! Link whose ground truth pose feeds the metrics.
+/// Link whose ground truth pose feeds the metrics.
 #define BASE_LINK "base_link"
-//! Skill priority, as the other plugins.
+/// Skill priority, as the other plugins.
 #define SKILL_PRIORITY 100
-//! The walked path is sampled at this period (s) for the circle fit.
+/// The walked path is sampled at this period (s) for the circle fit.
 #define PATH_PERIOD_S 0.05
-//! Painted ground in the simulator: side and tile (m).
+/// Painted ground in the simulator: side and tile (m).
 #define GROUND_SIZE_M 12u
 #define GROUND_TILE_M 1u
 

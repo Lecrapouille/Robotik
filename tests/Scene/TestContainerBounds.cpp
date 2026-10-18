@@ -17,11 +17,8 @@ using robotik::scene::innerBounds;
 using robotik::scene::penetratesContainer;
 using robotik::scene::restsInside;
 
-namespace
-{
-
 // Same layout as data/scenarios/pick_and_place.scenario.yaml.
-Shape makeBox()
+static Shape makeBox()
 {
     Shape box;
     box.name = "box";
@@ -30,7 +27,8 @@ Shape makeBox()
     return box;
 }
 
-Shape makeCube()
+/// A 4 cm cube used as the grasped prop.
+static Shape makeCube()
 {
     Shape cube;
     cube.name = "red_cube";
@@ -39,11 +37,9 @@ Shape makeCube()
     return cube;
 }
 
-Vector3 const kBoxCenter{ 0.40, -0.20, 0.04 };
-Vector3 const kPickCenter{ 0.40, 0.20, 0.02 };
-double constexpr kSlack = 0.05;
-
-} // namespace
+static Vector3 const kBoxCenter{ 0.40, -0.20, 0.04 };
+static Vector3 const kPickCenter{ 0.40, 0.20, 0.02 };
+static double constexpr kSlack = 0.05;
 
 TEST(ContainerBounds, CavityMatchesTheRenderedWalls)
 {

@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PickPlaceSkills.hpp
-//! @brief Pick-and-place skills with a vacuum gripper.
-//!
-//! Object positions come from the @ref WorldModel (what the robot believes),
-//! never from the simulator.
+/// @file PickPlaceSkills.hpp
+/// @brief Pick-and-place skills with a vacuum gripper.
+///
+/// Object positions come from the @ref WorldModel (what the robot believes),
+/// never from the simulator.
 #pragma once
 
 #include "Robotik/Skills/MotionSkills.hpp"
@@ -22,14 +22,14 @@ namespace robotik
 class VacuumGripper;
 
 // ****************************************************************************
-//! @brief Brings the suction cup @p_clearance above the top of an object,
-//! pointing down.
+/// @brief Brings the suction cup @p_clearance above the top of an object,
+/// pointing down.
 // ****************************************************************************
 class ApproachSkill final: public Skill
 {
 public:
 
-    //! @param p_gripper @ref VacuumGripper name; empty for the first one.
+    /// @param p_gripper @ref VacuumGripper name; empty for the first one.
     ApproachSkill(std::string p_object,
                   Length p_clearance,
                   std::string p_gripper = {});
@@ -48,7 +48,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Turns the suction on and waits until the object is held.
+/// @brief Turns the suction on and waits until the object is held.
 // ****************************************************************************
 class GraspSkill final: public Skill
 {
@@ -82,7 +82,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Turns the suction off and waits until nothing is held.
+/// @brief Turns the suction off and waits until nothing is held.
 // ****************************************************************************
 class ReleaseSkill final: public Skill
 {
@@ -113,7 +113,7 @@ private:
 };
 
 // ****************************************************************************
-//! @brief Waits for a fresh observation of an object in the @ref WorldModel.
+/// @brief Waits for a fresh observation of an object in the @ref WorldModel.
 // ****************************************************************************
 class DetectSkill final: public Skill
 {
@@ -146,12 +146,12 @@ private:
     std::uint32_t m_observations_at_start = 0u;
 };
 
-//! @brief Gripper named @p_name, or the first one when empty.
+/// @brief Gripper named @p_name, or the first one when empty.
 [[nodiscard]] VacuumGripper* findGripper(Robot const& p_robot,
                                          std::string const& p_name);
 
-//! @brief Id of the object the gripper @p_name holds, as the vacuum sensor
-//! reports it, or empty.
+/// @brief Id of the object the gripper @p_name holds, as the vacuum sensor
+/// reports it, or empty.
 [[nodiscard]] std::string heldObject(Robot const& p_robot, std::string const& p_name = {});
 
 } // namespace robotik

@@ -11,10 +11,8 @@
 
 #include <limits>
 
-namespace
-{
-
-robotik::JointSet oneJoint(double p_speed_ratio)
+/// A single revolute joint with the given speed ratio.
+static robotik::JointSet oneJoint(double p_speed_ratio)
 {
     robotik::JointSet joints;
     robotik::RevoluteLimits limits;
@@ -26,8 +24,6 @@ robotik::JointSet oneJoint(double p_speed_ratio)
     joints.moveTo(joint.id, 1.0);
     return joints;
 }
-
-} // namespace
 
 TEST(Joints, PositionLoopSlewsTheReference)
 {

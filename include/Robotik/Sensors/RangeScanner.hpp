@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file RangeScanner.hpp
-//! @brief Planar range scanner (2D lidar).
+/// @file RangeScanner.hpp
+/// @brief Planar range scanner (2D lidar).
 #pragma once
 
 #include "Robotik/Math/Random.hpp"
@@ -24,36 +24,36 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Where the scanner is and how it samples.
+/// @brief Where the scanner is and how it samples.
 // ****************************************************************************
 struct RangeScannerConfig
 {
-    //!< Link carrying the scanner; empty for the robot base.
+    /// Link carrying the scanner; empty for the robot base.
     std::string parent;
-    //!< Scan plane: the XY plane of this frame, in the parent link frame.
+    /// Scan plane: the XY plane of this frame, in the parent link frame.
     Pose mount;
     std::uint32_t beams = 180;
-    //!< Angular span, centered on +X.
+    /// Angular span, centered on +X.
     Radians field_of_view{ 2.0 * std::numbers::pi };
     Length max_range{ 10.0 };
-    //!< Scan rate in Hz.
+    /// Scan rate in Hz.
     double frequency = 10.0;
-    //!< Delay between a scan and its delivery.
+    /// Delay between a scan and its delivery.
     Seconds latency{ 0.0 };
-    //!< Range channel (SI: m), applied to hits only and saturated to
-    //!< [0, max_range].
+    /// Range channel (SI: m), applied to hits only and saturated to
+    /// [0, max_range].
     NoiseModel noise;
 };
 
 // ****************************************************************************
-//! @brief 2D lidar casting its beams through the backend
-//! (@ref RobotBackend::raycast) and against the scene objects of the world.
-//!
-//! @code
-//! auto& lidar = robot.sensors().add<robotik::RangeScanner>(
-//!     "lidar", robotik::RangeScannerConfig{ .parent = "base_link" });
-//! float const front = lidar.scan().ranges[lidar.scan().ranges.size() / 2];
-//! @endcode
+/// @brief 2D lidar casting its beams through the backend
+/// (@ref RobotBackend::raycast) and against the scene objects of the world.
+///
+/// @code
+/// auto& lidar = robot.sensors().add<robotik::RangeScanner>(
+///     "lidar", robotik::RangeScannerConfig{ .parent = "base_link" });
+/// float const front = lidar.scan().ranges[lidar.scan().ranges.size() / 2];
+/// @endcode
 // ****************************************************************************
 class RangeScanner final: public Sensor
 {
@@ -66,7 +66,7 @@ public:
         return m_config;
     }
 
-    //! @brief Last delivered scan.
+    /// @brief Last delivered scan.
     [[nodiscard]] RangeScan const& scan() const
     {
         return m_scans.current();
@@ -92,7 +92,7 @@ private:
 
     RangeScannerConfig m_config;
     LatencyBuffer<RangeScan> m_scans;
-    //!< Link entity the delivered scan is attached to.
+    /// Link entity the delivered scan is attached to.
     compages::world::Entity m_holder;
     Random m_random;
 };

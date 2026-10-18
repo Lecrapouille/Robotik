@@ -18,21 +18,19 @@
 namespace robotik
 {
 
-namespace
-{
+/// The robot flange and the tool link that lands on it (see Tools.md).
+static constexpr char const* FLANGE = "flange";
+static constexpr char const* TOOL_MOUNT = "tool_mount";
 
-//! The robot flange and the tool link that lands on it (see Tools.md).
-constexpr char const* FLANGE = "flange";
-constexpr char const* TOOL_MOUNT = "tool_mount";
-
-[[noreturn]] void fail(std::string const& p_where, std::string const& p_what)
+/// Throws a world error prefixed with the place it was found.
+[[noreturn]] static void fail(std::string const& p_where, std::string const& p_what)
 {
     throw std::runtime_error(p_where + ": " + p_what);
 }
 
-//! A noise channel: a standard deviation, or { sigma, bias, resolution,
-//! saturation: [min, max] }.
-NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
+/// A noise channel: a standard deviation, or { sigma, bias, resolution,
+/// saturation: [min, max] }.
+static NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
 {
     ConfigNode const& node = p_node.at(p_key);
     NoiseModel model;
@@ -62,7 +60,8 @@ NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
     return model;
 }
 
-CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
+/// Reads a camera mount, its resolution and its clip planes.
+static CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
 {
     CameraConfig config;
     config.parent = p_node.text("parent");
@@ -91,7 +90,8 @@ CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p_node, 
     return config;
 }
 
-SensorSpec sensor(std::string const& p_where,
+/// Reads one sensor entry of an entity.
+static SensorSpec sensor(std::string const& p_where,
                   std::string const& p_name,
                   ConfigNode const& p_node)
 {
@@ -169,7 +169,8 @@ SensorSpec sensor(std::string const& p_where,
     }
 }
 
-ActuatorSpec actuator(std::string const& p_where,
+/// Reads one actuator entry of an entity.
+static ActuatorSpec actuator(std::string const& p_where,
                       std::string const& p_name,
                       ConfigNode const& p_node)
 {
@@ -204,7 +205,8 @@ ActuatorSpec actuator(std::string const& p_where,
     return spec;
 }
 
-EntitySpec::Type entityType(std::string const& p_where, std::string const& p_text)
+/// Maps the type text of an entity onto its enum.
+static EntitySpec::Type entityType(std::string const& p_where, std::string const& p_text)
 {
     if (p_text == "robot")
         return EntitySpec::Type::Robot;
@@ -217,7 +219,8 @@ EntitySpec::Type entityType(std::string const& p_where, std::string const& p_tex
     fail(p_where, "type must be robot, tool, body or prop, not '" + p_text + "'");
 }
 
-ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
+/// Reads the shape block of an entity.
+static ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
 {
     ConfigNode const& node = p_entity.at("shape");
     ShapeSpec spec;
@@ -242,8 +245,8 @@ ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
     return spec;
 }
 
-//! "easel.canvas_mount" -> { "easel", "canvas_mount" }; "easel" -> { "easel", "" }.
-std::pair<std::string, std::string> splitFrame(std::string const& p_text)
+/// "easel.canvas_mount" -> { "easel", "canvas_mount" }; "easel" -> { "easel", "" }.
+static std::pair<std::string, std::string> splitFrame(std::string const& p_text)
 {
     std::size_t const dot = p_text.find('.');
     if (dot == std::string::npos)
@@ -253,7 +256,8 @@ std::pair<std::string, std::string> splitFrame(std::string const& p_text)
     return { p_text.substr(0, dot), p_text.substr(dot + 1u) };
 }
 
-EntitySpec entity(std::string const& p_world,
+/// Reads one entity, including its model, shape and devices.
+static EntitySpec entity(std::string const& p_world,
                   ConfigNode const& p_node,
                   std::filesystem::path const& p_directory,
                   AssetResolver const& p_assets)
@@ -384,8 +388,6 @@ EntitySpec entity(std::string const& p_world,
     }
     return spec;
 }
-
-} // namespace
 
 WorldDescription WorldDescription::read(ConfigNode const& p_world,
                                         std::filesystem::path const& p_directory,

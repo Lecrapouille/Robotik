@@ -17,30 +17,30 @@ namespace robotik::ecs
 {
 
 // ****************************************************************************
-//! @brief Marks the URDF root entity as the robot instance.
+/// @brief Marks the URDF root entity as the robot instance.
 // ****************************************************************************
 struct RobotTag
 {
-    //!< Reserved lifecycle flag (always true for loaded robots).
+    /// Reserved lifecycle flag (always true for loaded robots).
     bool alive = true;
 };
 
 // ****************************************************************************
-//! @brief Human-readable robot id and source model path.
+/// @brief Human-readable robot id and source model path.
 // ****************************************************************************
 struct RobotIdentity
 {
-    //!< Name from the URDF @c robot element.
+    /// Name from the URDF @c robot element.
     std::string name;
-    //!< URDF file.
+    /// URDF file.
     std::filesystem::path model_path;
 };
 
 // ****************************************************************************
-//! @brief Marker of a teach-pendant waypoint, parented to the robot root.
-//!
-//! The entity pose is the recorded tool pose in the robot base frame. The
-//! index matches @ref robotik::TeachPendant waypoints.
+/// @brief Marker of a teach-pendant waypoint, parented to the robot root.
+///
+/// The entity pose is the recorded tool pose in the robot base frame. The
+/// index matches @ref robotik::TeachPendant waypoints.
 // ****************************************************************************
 struct TeachMarker
 {

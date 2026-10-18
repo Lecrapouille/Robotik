@@ -14,9 +14,8 @@
 #include "Robotik/Math/Si.hpp"
 #include "Compages/World/Controllers/Controls.hpp"
 
-namespace
-{
-void tuneViewOrbit(compages::world::World& p_world,
+/// Slows the scroll zoom of the orbit controller.
+static void tuneViewOrbit(compages::world::World& p_world,
                    compages::world::Entity p_camera)
 {
     if (compages::world::Orbit* orbit =
@@ -26,7 +25,6 @@ void tuneViewOrbit(compages::world::World& p_world,
         orbit->controller.zoom_sensitivity = 0.35f;
     }
 }
-} // namespace
 
 #include <fstream>
 #include <iostream>

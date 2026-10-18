@@ -9,15 +9,11 @@
 
 #include "Robotik/Assets/AssetResolver.hpp"
 
-namespace
-{
-
-std::filesystem::path fixture(char const* p_name)
+/// Path of one file under tests/Assets/fixtures.
+static std::filesystem::path fixture(char const* p_name)
 {
     return repoFile(std::filesystem::path("tests/Assets/fixtures") / p_name);
 }
-
-} // namespace
 
 TEST(Version, ParsesShortFormsAndRejectsGarbage)
 {

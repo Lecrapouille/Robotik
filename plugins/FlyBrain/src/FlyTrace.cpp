@@ -14,11 +14,8 @@
 #include <stdexcept>
 #include <string>
 
-namespace
-{
-
-//! @brief Nine observation fields, comma separated, declaration order.
-void writeObservation(std::ostream& p_out, FlyObservation const& p_observation)
+/// @brief Nine observation fields, comma separated, declaration order.
+static void writeObservation(std::ostream& p_out, FlyObservation const& p_observation)
 {
     p_out << p_observation.visual_left << ',' << p_observation.visual_center
           << ',' << p_observation.visual_right << ','
@@ -29,14 +26,14 @@ void writeObservation(std::ostream& p_out, FlyObservation const& p_observation)
           << p_observation.target_distance;
 }
 
-//! @brief forward, turn, lift.
-void writeAction(std::ostream& p_out, FlyAction const& p_action)
+/// @brief forward, turn, lift.
+static void writeAction(std::ostream& p_out, FlyAction const& p_action)
 {
     p_out << p_action.forward << ',' << p_action.turn << ',' << p_action.lift;
 }
 
-//! @brief Splits a comma-separated list of floats. No brackets.
-std::vector<float> numbers(std::string const& p_text)
+/// @brief Splits a comma-separated list of floats. No brackets.
+static std::vector<float> numbers(std::string const& p_text)
 {
     std::vector<float> values;
     std::stringstream stream(p_text);
@@ -47,8 +44,6 @@ std::vector<float> numbers(std::string const& p_text)
     }
     return values;
 }
-
-} // namespace
 
 void FlyTrace::save(std::filesystem::path const& p_path) const
 {

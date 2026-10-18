@@ -15,11 +15,11 @@ namespace compages::world
 struct ViewFrame;
 }
 
-//! @brief Mouse input for the world panel, in panel pixels with Y up.
-//! @param p_app The application.
-//! @param p_elapsed The elapsed time.
-//! @param p_total The total time.
-//! @return The view frame.
+/// @brief Mouse input for the world panel, in panel pixels with Y up.
+/// @param p_app The application.
+/// @param p_elapsed The elapsed time.
+/// @param p_total The total time.
+/// @return The view frame.
 compages::world::ViewFrame viewFrame(App const& p_app,
                                      Window const& p_window,
                                      float p_elapsed,

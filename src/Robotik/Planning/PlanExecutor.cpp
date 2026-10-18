@@ -22,11 +22,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-//! @brief A PDDL name: a letter, then letters, digits, '_' or '-'.
-bool pddlName(std::string_view p_name)
+/// @brief A PDDL name: a letter, then letters, digits, '_' or '-'.
+static bool pddlName(std::string_view p_name)
 {
     if (p_name.empty() ||
         std::isalpha(static_cast<unsigned char>(p_name.front())) == 0)
@@ -43,8 +40,8 @@ bool pddlName(std::string_view p_name)
                        });
 }
 
-//! @brief YAML double-quoted scalar.
-std::string yamlQuoted(std::string_view p_text)
+/// @brief YAML double-quoted scalar.
+static std::string yamlQuoted(std::string_view p_text)
 {
     std::string result = "\"";
     for (char const c : p_text)
@@ -58,7 +55,8 @@ std::string yamlQuoted(std::string_view p_text)
     return result + "\"";
 }
 
-std::string readFile(std::filesystem::path const& p_file)
+/// Reads a whole file, or throws when it cannot be opened.
+static std::string readFile(std::filesystem::path const& p_file)
 {
     std::ifstream in(p_file);
     if (!in)
@@ -71,13 +69,11 @@ std::string readFile(std::filesystem::path const& p_file)
     return text.str();
 }
 
-//! @brief "pick(red_cube)" for a step.
-std::string label(GroundAction const& p_step)
+/// @brief "pick(red_cube)" for a step.
+static std::string label(GroundAction const& p_step)
 {
     return Atom{ p_step.name, p_step.args }.toString();
 }
-
-} // namespace
 
 char const* toString(PlanState p_state)
 {

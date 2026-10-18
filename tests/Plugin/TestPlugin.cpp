@@ -18,10 +18,8 @@
 #include <cstdlib>
 #include <string>
 
-namespace
-{
-
-std::filesystem::path repo(std::filesystem::path const& p_relative)
+/// Resolves a path from the repository root, from build/ or from src.
+static std::filesystem::path repo(std::filesystem::path const& p_relative)
 {
     for (char const* root : { ".", ".." })
     {
@@ -34,7 +32,8 @@ std::filesystem::path repo(std::filesystem::path const& p_relative)
     return p_relative;
 }
 
-std::filesystem::path buildRoot()
+/// Directory of the build, next to the sources or one level above.
+static std::filesystem::path buildRoot()
 {
     for (char const* root : { "build", "../build" })
     {
@@ -46,7 +45,8 @@ std::filesystem::path buildRoot()
     return "build";
 }
 
-std::string drawPanel(robotik::PluginHost const& p_host)
+/// Draws the first plugin panel and returns the text it wrote.
+static std::string drawPanel(robotik::PluginHost const& p_host)
 {
     if (p_host.panels().empty() || p_host.panels().front().draw == nullptr)
     {
@@ -66,8 +66,6 @@ std::string drawPanel(robotik::PluginHost const& p_host)
     p_host.panels().front().draw(p_host.panels().front().user, &canvas);
     return text;
 }
-
-} // namespace
 
 TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
 {

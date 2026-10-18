@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file Action.hpp
-//! @brief What an agent decided. A controller turns it into motor commands.
+/// @file Action.hpp
+/// @brief What an agent decided. A controller turns it into motor commands.
 #pragma once
 
 #include <vector>
@@ -15,7 +15,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-//! @brief Flat command vector produced by an @ref Agent.
+/// @brief Flat command vector produced by an @ref Agent.
 // ****************************************************************************
 struct Action
 {

@@ -14,28 +14,28 @@
 #include "FlyTypes.hpp"
 
 // ****************************************************************************
-//! @brief Kinematic body of the fly.
-//!
-//! Turns a @ref FlyAction into thrust, yaw and lift, and into joint targets
-//! for the URDF. There is no aerodynamics and no foot adhesion.
+/// @brief Kinematic body of the fly.
+///
+/// Turns a @ref FlyAction into thrust, yaw and lift, and into joint targets
+/// for the URDF. There is no aerodynamics and no foot adhesion.
 // ****************************************************************************
 class FlyController
 {
 public:
 
     // ------------------------------------------------------------------------
-    //! @brief Wings back to the start of a stroke, speeds left to the plant.
+    /// @brief Wings back to the start of a stroke, speeds left to the plant.
     // ------------------------------------------------------------------------
     void reset();
 
     // ------------------------------------------------------------------------
-    //! @brief Integrates @p_action into @p_plant over @p_dt seconds and
-    //! refreshes @ref posture.
+    /// @brief Integrates @p_action into @p_plant over @p_dt seconds and
+    /// refreshes @ref posture.
     // ------------------------------------------------------------------------
     void apply(FlyAction const& p_action, FlyPlant& p_plant, double p_dt);
 
     // ------------------------------------------------------------------------
-    //! @brief Joint targets written by the last @ref apply or @ref reset.
+    /// @brief Joint targets written by the last @ref apply or @ref reset.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlyPosture const& posture() const
     {
@@ -44,8 +44,8 @@ public:
 
 private:
 
-    //!< Last joint targets.
+    /// Last joint targets.
     FlyPosture m_posture;
-    //!< Wing-stroke phase (SI: rad).
+    /// Wing-stroke phase (SI: rad).
     double m_phase = 0.0;
 };

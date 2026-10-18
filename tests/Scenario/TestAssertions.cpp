@@ -15,12 +15,9 @@
 
 #include <map>
 
-namespace
-{
-
 using Verdict = robotik::Check::Verdict;
 
-//! Conditions are names of a table of values the test changes over time.
+/// Conditions are names of a table of values the test changes over time.
 struct Board
 {
     std::map<std::string, double, std::less<>> values;
@@ -39,12 +36,11 @@ struct Board
     }
 };
 
-robotik::AssertionSpec spec(std::string const& p_yaml)
+/// Parses one assertion from a YAML snippet.
+static robotik::AssertionSpec spec(std::string const& p_yaml)
 {
     return robotik::AssertionSpec::read(robotik::ConfigNode::parse(p_yaml));
 }
-
-} // namespace
 
 TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
 {

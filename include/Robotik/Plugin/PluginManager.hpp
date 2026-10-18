@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PluginManager.hpp
-//! @brief Loads one plugin library and drives a single scenario instance.
-//!
-//! The library stays loaded when the scenario instance is destroyed, so
-//! another scenario of the same plugin can be prepared without @c dlopen.
+/// @file PluginManager.hpp
+/// @brief Loads one plugin library and drives a single scenario instance.
+///
+/// The library stays loaded when the scenario instance is destroyed, so
+/// another scenario of the same plugin can be prepared without @c dlopen.
 #pragma once
 
 #include "Robotik/Plugin/PluginABI.h"
@@ -33,7 +33,7 @@ enum class PluginState : std::uint8_t
 };
 
 // ****************************************************************************
-//! @brief Owner of the @c dlopen handle and of the instance pointer.
+/// @brief Owner of the @c dlopen handle and of the instance pointer.
 // ****************************************************************************
 class PluginManager
 {
@@ -64,10 +64,10 @@ public:
         return m_state != PluginState::Unloaded;
     }
 
-    //! @brief Opens the library, checks the ABI and reads the vtable.
+    /// @brief Opens the library, checks the ABI and reads the vtable.
     RobotikPluginStatus load(std::string const& p_path);
 
-    //! @brief Creates the instance. The host API must outlive it.
+    /// @brief Creates the instance. The host API must outlive it.
     RobotikPluginStatus create(RobotikHostAPI const* p_host);
 
     RobotikPluginStatus setup(std::string const& p_scenario_id);
@@ -78,10 +78,10 @@ public:
     RobotikPluginStatus stop();
     RobotikPluginStatus shutdown();
 
-    //! @brief Destroys the instance and keeps the library open.
+    /// @brief Destroys the instance and keeps the library open.
     RobotikPluginStatus destroy();
 
-    //! @brief Destroys a leftover instance, then closes the library.
+    /// @brief Destroys a leftover instance, then closes the library.
     RobotikPluginStatus unload();
 
 private:

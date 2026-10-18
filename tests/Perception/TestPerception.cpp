@@ -18,17 +18,14 @@
 
 #include <numbers>
 
-namespace
-{
-
-//! @brief Camera 1 m above the base origin, looking down.
-robotik::Pose downward()
+/// @brief Camera 1 m above the base origin, looking down.
+static robotik::Pose downward()
 {
     return { { 0.0, 0.0, 1.0 },
              robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)) };
 }
 
-//! @brief Gray image of the right size, counts captures.
+/// @brief Gray image of the right size, counts captures.
 class FlatSource final: public robotik::FrameSource
 {
 public:
@@ -48,7 +45,7 @@ public:
     int captures = 0;
 };
 
-//! @brief Reports one object at a fixed pixel.
+/// @brief Reports one object at a fixed pixel.
 class FixedDetector final: public robotik::Detector
 {
 public:
@@ -68,8 +65,6 @@ private:
 
     std::array<float, 2> m_center;
 };
-
-} // namespace
 
 TEST(Random, SeedsAreReplayableAndIndependent)
 {

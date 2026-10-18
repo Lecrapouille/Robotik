@@ -44,7 +44,7 @@ struct MujocoBackend::Impl
         ChainOptions options;
     };
 
-    //! @brief @c child_mount of @c child hangs on @c parent_mount of @c parent.
+    /// @brief @c child_mount of @c child hangs on @c parent_mount of @c parent.
     struct Graft
     {
         std::string parent;
@@ -68,7 +68,7 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::vector<Chain> chains;
-    //! @brief A weld between two bodies, off until @ref MujocoBackend::weld.
+    /// @brief A weld between two bodies, off until @ref MujocoBackend::weld.
     struct Weld
     {
         std::string name;
@@ -78,21 +78,21 @@ struct MujocoBackend::Impl
 
     std::vector<FreeBox> boxes;
     std::vector<Weld> welds;
-    //!< Pairs of bodies that never collide.
+    /// Pairs of bodies that never collide.
     std::vector<std::pair<std::string, std::string>> excluded;
     std::vector<Graft> grafts;
-    //!< True until @ref MujocoBackend::compile has consumed @c chains.
+    /// True until @ref MujocoBackend::compile has consumed @c chains.
     bool dirty = true;
-    //!< Set by @ref MujocoBackend::attach(Robot&), so a later graft rebinds.
+    /// Set by @ref MujocoBackend::attach(Robot&), so a later graft rebinds.
     Robot* robot = nullptr;
-    //!< Root body of the first chain (child of the world body).
+    /// Root body of the first chain (child of the world body).
     int root = -1;
-    //!< First qpos / DOF of the free joint, or -1 for a fixed base.
+    /// First qpos / DOF of the free joint, or -1 for a fixed base.
     int free_qpos = -1;
     int free_dof = -1;
-    //!< Floor geom, or -1.
+    /// Floor geom, or -1.
     int floor = -1;
-    //!< True when cfrc_int is older than the last step.
+    /// True when cfrc_int is older than the last step.
     bool stale_wrenches = true;
 
     ~Impl()
@@ -133,7 +133,7 @@ static SpecPtr parseSpec(std::filesystem::path const& p_path)
     return SpecPtr{ spec };
 }
 
-//! A link name, or a joint name (the link that joint moves).
+/// A link name, or a joint name (the link that joint moves).
 static mjsBody* findMount(mjSpec* p_spec, std::string const& p_name)
 {
     if (mjsBody* const body = mjs_findBody(p_spec, p_name.c_str()))
@@ -156,8 +156,8 @@ static std::vector<mjsBody*> rootBodies(mjSpec* p_spec)
     return roots;
 }
 
-//! Hang @p_child on an identity frame of @p_parent. mjs_attach copies a body
-//! onto a frame (the other way round is rejected).
+/// Hang @p_child on an identity frame of @p_parent. mjs_attach copies a body
+/// onto a frame (the other way round is rejected).
 static void hang(mjSpec* p_host, mjsBody* p_parent, mjsBody* p_child)
 {
     mjsFrame* const frame = mjs_addFrame(p_parent, nullptr);
@@ -245,9 +245,9 @@ withInertia(std::filesystem::path const& p_filename)
     return output;
 }
 
-//! Edits the parsed URDF: free joint, floor, friction, no body fusion.
-//! @p_root is the first chain's root link. Sibling chains hang on the world
-//! too, so the free joint must not follow whichever body MuJoCo lists first.
+/// Edits the parsed URDF: free joint, floor, friction, no body fusion.
+/// @p_root is the first chain's root link. Sibling chains hang on the world
+/// too, so the free joint must not follow whichever body MuJoCo lists first.
 static void edit(mjSpec* p_spec,
                  MujocoOptions const& p_options,
                  std::string const& p_root)
@@ -302,9 +302,7 @@ static void edit(mjSpec* p_spec,
     }
 }
 
-namespace
-{
-
+/// Joint positions kept while a weld is on, so the arm can be restored.
 struct HeldPose
 {
     std::unordered_map<std::string, double> qpos;
@@ -312,7 +310,8 @@ struct HeldPose
     bool has_free = false;
 };
 
-HeldPose holdPose(mjModel* p_model, mjData* p_data)
+/// Saves every joint position so a later restore can undo a weld.
+static HeldPose holdPose(mjModel* p_model, mjData* p_data)
 {
     HeldPose held;
     if (p_model == nullptr || p_data == nullptr)
@@ -342,7 +341,8 @@ HeldPose holdPose(mjModel* p_model, mjData* p_data)
     return held;
 }
 
-void restorePose(mjModel* p_model, mjData* p_data, HeldPose const& p_held)
+/// Writes a saved joint pose back into the MuJoCo state.
+static void restorePose(mjModel* p_model, mjData* p_data, HeldPose const& p_held)
 {
     for (int joint = 0; joint < p_model->njnt; ++joint)
     {
@@ -369,7 +369,8 @@ void restorePose(mjModel* p_model, mjData* p_data, HeldPose const& p_held)
     }
 }
 
-std::string urdfRobotName(std::filesystem::path const& p_urdf)
+/// Reads the name attribute of the robot element in a URDF file.
+static std::string urdfRobotName(std::filesystem::path const& p_urdf)
 {
     pugi::xml_document document;
     pugi::xml_parse_result const parsed = document.load_file(p_urdf.c_str());
@@ -385,8 +386,6 @@ std::string urdfRobotName(std::filesystem::path const& p_urdf)
     }
     return name;
 }
-
-} // namespace
 
 MujocoBackend::MujocoBackend(MujocoOptions p_options)
     : m_impl(std::make_unique<Impl>()), m_options(std::move(p_options))

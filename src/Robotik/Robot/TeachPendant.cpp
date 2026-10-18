@@ -16,10 +16,8 @@
 namespace robotik
 {
 
-namespace
-{
-
-double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
+/// Keeps a joint command inside its limits when they are bounded.
+static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
 {
     if (p_joints.isPrismatic(p_id))
     {
@@ -39,8 +37,6 @@ double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
     }
     return p_value;
 }
-
-} // namespace
 
 double TeachPendant::Polynomial::position(double p_t) const
 {

@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file SceneView.hpp
-//! @brief Rendering hooks, implemented by graphical applications.
+/// @file SceneView.hpp
+/// @brief Rendering hooks, implemented by graphical applications.
 #pragma once
 
 #include "Compages/Renderer/Assets/UrdfLoader.hpp"
@@ -33,11 +33,11 @@ struct Shape;
 }
 
 // ****************************************************************************
-//! @brief What a renderer adds to the ECS world built by Robotik.
-//!
-//! The library stays headless: without a view, robots and objects are plain
-//! entities and cameras have no image source. The simulator implements these
-//! hooks with Compages meshes and offscreen rendering.
+/// @brief What a renderer adds to the ECS world built by Robotik.
+///
+/// The library stays headless: without a view, robots and objects are plain
+/// entities and cameras have no image source. The simulator implements these
+/// hooks with Compages meshes and offscreen rendering.
 // ****************************************************************************
 class SceneView
 {
@@ -45,11 +45,11 @@ public:
 
     virtual ~SceneView() = default;
 
-    //! @brief Loads the URDF with its meshes. @throws std::runtime_error.
+    /// @brief Loads the URDF with its meshes. @throws std::runtime_error.
     virtual compages::world::Entity robot(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf) = 0;
 
-    //! @brief Loads a URDF on its own. The caller parents @c tool_mount.
+    /// @brief Loads a URDF on its own. The caller parents @c tool_mount.
     virtual compages::world::Entity model(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf)
     {
@@ -61,14 +61,14 @@ public:
         return loaded.value();
     }
 
-    //! @brief Adds the meshes of a scenario object to @p_entity.
+    /// @brief Adds the meshes of a scenario object to @p_entity.
     virtual void object(compages::world::Entity /*p_entity*/,
                         ecs::Shape const& /*p_object*/)
     {
         /* no-op */
     }
 
-    //! @brief Image source of @p_camera mounted on @p_link, or null.
+    /// @brief Image source of @p_camera mounted on @p_link, or null.
     virtual FrameSource* camera(Camera& /*p_camera*/,
                                 compages::world::Entity /*p_link*/)
     {
@@ -76,10 +76,10 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief Paints @p_image on the ground, centered on the world origin.
-    //! @param p_width Extent along the world X axis (m).
-    //! @param p_height Extent along the world Y axis (m); row 0 of the image
-    //! is the +Y edge.
+    /// @brief Paints @p_image on the ground, centered on the world origin.
+    /// @param p_width Extent along the world X axis (m).
+    /// @param p_height Extent along the world Y axis (m); row 0 of the image
+    /// is the +Y edge.
     // -------------------------------------------------------------------------
     virtual void ground(Image const& /*p_image*/,
                         double /*p_width*/,
@@ -94,8 +94,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    //! @brief A paintable sheet on the +X face of @p_parent. @p_width is the
-    //! parent's Y extent (m), @p_height its Z extent. Headless views ignore it.
+    /// @brief A paintable sheet on the +X face of @p_parent. @p_width is the
+    /// parent's Y extent (m), @p_height its Z extent. Headless views ignore it.
     // -------------------------------------------------------------------------
     virtual bool openCanvas(compages::world::Entity /*p_parent*/,
                             double /*p_width*/,
@@ -104,8 +104,8 @@ public:
         return false;
     }
 
-    //! @brief Stamp ink at a point of the sheet. Y and Z are metres from the
-    //! parent origin, in the parent frame.
+    /// @brief Stamp ink at a point of the sheet. Y and Z are metres from the
+    /// parent origin, in the parent frame.
     virtual void ink(double /*p_y*/,
                      double /*p_z*/,
                      float /*p_red*/,

@@ -21,12 +21,9 @@
 #include <iostream>
 #include <string>
 
-namespace
-{
-
-//! @brief imgui.ini lives in the user configuration, not in the folder the
-//! simulator was started from.
-std::string settingsFile()
+/// @brief imgui.ini lives in the user configuration, not in the folder the
+/// simulator was started from.
+static std::string settingsFile()
 {
     std::filesystem::path base;
     if (char const* config = std::getenv("XDG_CONFIG_HOME"); config != nullptr && *config != '\0')
@@ -46,7 +43,8 @@ std::string settingsFile()
     return (base / "robotik" / "simulator.ini").string();
 }
 
-void loadFonts()
+/// Loads the interface fonts when the font directory is present.
+static void loadFonts()
 {
     ImGuiIO& io = ImGui::GetIO();
 #ifdef ROBOTIK_FONTS_DIR
@@ -66,7 +64,8 @@ void loadFonts()
     io.Fonts->AddFontDefault();
 }
 
-void applyStyle()
+/// Dark theme and the rounding used by every panel.
+static void applyStyle()
 {
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
@@ -116,8 +115,6 @@ void applyStyle()
     colors[ImGuiCol_TableHeaderBg] = ImVec4(0.15f, 0.17f, 0.20f, 1.0f);
     colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.0f, 1.0f, 1.0f, 0.025f);
 }
-
-} // namespace
 
 bool Window::open()
 {

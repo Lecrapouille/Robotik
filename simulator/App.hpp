@@ -27,21 +27,21 @@
 #include <vector>
 
 // ****************************************************************************
-//! @brief A workspace groups the panels of one task. Each one has its own
-//! dock layout, saved in imgui.ini.
+/// @brief A workspace groups the panels of one task. Each one has its own
+/// dock layout, saved in imgui.ini.
 // ****************************************************************************
 enum class Workspace : std::uint8_t
 {
-    Plugin,   //!< What is loaded: package, scenarios, world, assertions, files.
-    Robot,    //!< Joints, limits, plots, teach pendant, cameras.
-    Mission,  //!< Behavior tree, skills, timeline, resources.
-    Autonomy, //!< Beliefs against truth, perception.
+    Plugin,   ///< What is loaded: package, scenarios, world, assertions, files.
+    Robot,    ///< Joints, limits, plots, teach pendant, cameras.
+    Mission,  ///< Behavior tree, skills, timeline, resources.
+    Autonomy, ///< Beliefs against truth, perception.
 };
 
 inline constexpr std::size_t WORKSPACE_COUNT = 4u;
 
 // ****************************************************************************
-//! @brief Recent joint states, for the plots. A ring buffer per series.
+/// @brief Recent joint states, for the plots. A ring buffer per series.
 // ****************************************************************************
 struct JointHistory
 {
@@ -52,18 +52,18 @@ struct JointHistory
     std::vector<std::vector<float>> velocity;
     std::vector<std::vector<float>> acceleration;
     std::vector<std::vector<float>> effort;
-    //!< Index of the oldest sample once the buffer is full.
+    /// Index of the oldest sample once the buffer is full.
     std::size_t head = 0;
     std::size_t count = 0;
 
     void clear();
     void record(robotik::Simulation const& p_simulation);
-    //! @brief Index of the latest sample, or CAPACITY when empty.
+    /// @brief Index of the latest sample, or CAPACITY when empty.
     [[nodiscard]] std::size_t latest() const;
 };
 
 // ****************************************************************************
-//! @brief A file or a folder of the loaded package (Package panel).
+/// @brief A file or a folder of the loaded package (Package panel).
 // ****************************************************************************
 struct PackageEntry
 {
@@ -75,24 +75,24 @@ struct PackageEntry
 };
 
 // ****************************************************************************
-//! @brief Tabs of the Files panel: one per kind of file.
+/// @brief Tabs of the Files panel: one per kind of file.
 // ****************************************************************************
 enum class FileTab : std::uint8_t
 {
     Scenario,
     World,
     Tree,
-    //!< The texts of the PDDL planner: domain, problem, output, tree.
+    /// The texts of the PDDL planner: domain, problem, output, tree.
     Planner,
     Experiment,
-    //!< Any other file of the package (plugin.yaml, a URDF...).
+    /// Any other file of the package (plugin.yaml, a URDF...).
     Other,
 };
 
 inline constexpr std::size_t FILE_TAB_COUNT = 6u;
 
 // ****************************************************************************
-//! @brief A file shown read-only in the Files panel.
+/// @brief A file shown read-only in the Files panel.
 // ****************************************************************************
 struct ShownFile
 {
@@ -101,86 +101,86 @@ struct ShownFile
 };
 
 // ****************************************************************************
-//! @brief A fault injected by hand in the Resources panel.
+/// @brief A fault injected by hand in the Resources panel.
 // ****************************************************************************
 struct ManualFault
 {
     std::string resource;
-    //!< Simulation time of the injection.
+    /// Simulation time of the injection.
     double since = 0.0;
-    //!< Simulation time of the automatic restore; 0: none.
+    /// Simulation time of the automatic restore; 0: none.
     double until = 0.0;
 };
 
 // ****************************************************************************
-//! @brief What a resource chip of the Timeline shows. Skills take and give
-//! back resources within a few steps: the last holders stay shown a short
-//! time so the chip does not flicker.
+/// @brief What a resource chip of the Timeline shows. Skills take and give
+/// back resources within a few steps: the last holders stay shown a short
+/// time so the chip does not flicker.
 // ****************************************************************************
 struct ChipHold
 {
     std::size_t holders = 0;
     bool exclusive = false;
-    //!< Wall-clock time (ImGui::GetTime) until which it is kept.
+    /// Wall-clock time (ImGui::GetTime) until which it is kept.
     double until = 0.0;
 };
 
 // ****************************************************************************
-//! @brief Operator interface state, kept across scenario loads.
+/// @brief Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
 {
     Workspace workspace = Workspace::Mission;
-    //!< Rebuild the dock layout of the current workspace.
+    /// Rebuild the dock layout of the current workspace.
     bool reset_layout = false;
-    //!< Dock the plugin panels in the current workspace, then focus them.
+    /// Dock the plugin panels in the current workspace, then focus them.
     bool place_plugin_panels = false;
     bool focus_plugin_panel = false;
     bool show_shortcuts = false;
     bool show_open = false;
-    //!< Scenario to load at the start of the next frame.
+    /// Scenario to load at the start of the next frame.
     std::filesystem::path pending_scenario;
     std::string open_path;
-    //!< Package panel: the files of the package, read once per package.
+    /// Package panel: the files of the package, read once per package.
     std::filesystem::path package_root;
     PackageEntry package_tree;
-    //!< Files panel: a file shown in a tab instead of the loaded one (empty
-    //!< path: the loaded one). Scenario, World and Tree are reset when
-    //!< another scenario is loaded.
+    /// Files panel: a file shown in a tab instead of the loaded one (empty
+    /// path: the loaded one). Scenario, World and Tree are reset when
+    /// another scenario is loaded.
     std::array<ShownFile, FILE_TAB_COUNT> shown_files;
     std::filesystem::path shown_for;
-    //!< Tab to bring to the front on the next frame.
+    /// Tab to bring to the front on the next frame.
     std::optional<FileTab> select_tab;
-    //!< Experiment panel: the experiment chosen in Files, read once.
+    /// Experiment panel: the experiment chosen in Files, read once.
     std::filesystem::path experiment_root;
     std::filesystem::path experiment_path;
     std::optional<robotik::Experiment> experiment;
     std::string experiment_error;
-    //!< The panel beside Files shows one view: Scenario, World, Tree,
-    //!< Planner or Experiment. It follows the tab chosen in Files.
+    /// The panel beside Files shows one view: Scenario, World, Tree,
+    /// Planner or Experiment. It follows the tab chosen in Files.
     FileTab view = FileTab::Scenario;
     std::optional<FileTab> active_tab;
-    //!< Assets panel: text filter, and only the packs of the running scenario.
+    /// Assets panel: text filter, and only the packs of the running scenario.
     std::array<char, 64> asset_filter{};
     bool assets_in_use = false;
-    //!< Planner: plan whose texts are shown (-1: the last one), result of
-    //!< Save PDDL, and the beliefs filter.
+    /// Planner: plan whose texts are shown (-1: the last one), result of
+    /// Save PDDL, and the beliefs filter.
     int planner_record = -1;
     std::string planner_saved;
     bool beliefs_only_true = false;
-    //!< Skills panel: cards (false) or a table (true).
+    /// Skills panel: cards (false) or a table (true).
     bool skills_table = false;
-    //!< Resources panel: resources ticked for the next fault, its duration
-    //!< and the faults injected by hand.
+    /// Resources panel: resources ticked for the next fault, its duration
+    /// and the faults injected by hand.
     std::vector<bool> fault_pick;
     float fault_duration = 0.0f;
     std::vector<ManualFault> manual_faults;
-    //!< Timeline: what each resource chip shows.
+    /// Timeline: what each resource chip shows.
     std::vector<ChipHold> chip_hold;
-    //!< Joints drawn in the plots.
+    /// Joints drawn in the plots.
     std::vector<bool> plotted;
     float plot_window_s = 10.0f;
-    //!< Simulated seconds per real second, smoothed.
+    /// Simulated seconds per real second, smoothed.
     float realtime_factor = 0.0f;
 };
 
@@ -196,7 +196,7 @@ struct TeachWatch
     robotik::TeachPendant pendant;
     std::vector<compages::world::Entity> markers;
     std::uint32_t marker_serial = 0;
-    //!< X, Y, Z arrows on the frame the pendant moves (Robot workspace).
+    /// X, Y, Z arrows on the frame the pendant moves (Robot workspace).
     bool show_axes = true;
     bool axes_made = false;
     std::array<compages::world::Entity, 3> axes{};
@@ -211,7 +211,7 @@ struct App
     std::string world_text;
     std::string tree_text;
     std::string error;
-    //! @brief The loaded package advances time inside its own update.
+    /// @brief The loaded package advances time inside its own update.
     bool owns_clock = false;
 
     robotik::PluginSession plugins;
@@ -233,7 +233,7 @@ struct App
     bool step_once = false;
     float speed = 1.0f;
     std::uint64_t seed = 0;
-    //! @brief When set, replaces @c robot.tool read from the scenario file.
+    /// @brief When set, replaces @c robot.tool read from the scenario file.
     bool tool_override = false;
     std::string tool_override_name;
 

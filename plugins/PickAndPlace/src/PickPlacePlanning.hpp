@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-//! @file PickPlacePlanning.hpp
-//! @brief Links the PDDL domain of pick and place
-//! (scenarios/pick_and_place.domain.pddl) to the beliefs and the skills.
+/// @file PickPlacePlanning.hpp
+/// @brief Links the PDDL domain of pick and place
+/// (scenarios/pick_and_place.domain.pddl) to the beliefs and the skills.
 #pragma once
 
 namespace robotik
@@ -16,7 +16,7 @@ class PlanningDomain;
 } // namespace robotik
 
 // ----------------------------------------------------------------------------
-//! @brief Observers of seen, holding, hand_empty and in; bindings of detect,
-//! pick and place to the skills of @ref PickPlaceMission.
+/// @brief Observers of seen, holding, hand_empty and in; bindings of detect,
+/// pick and place to the skills of @ref PickPlaceMission.
 // ----------------------------------------------------------------------------
 void registerPlanning(robotik::PlanningDomain& p_domain);

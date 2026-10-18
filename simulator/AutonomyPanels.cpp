@@ -13,10 +13,8 @@
 #include <string>
 #include <unordered_set>
 
-namespace
-{
-
-void oracleLine(robotik::Simulation const& p_simulation)
+/// Says whether beliefs are filled from the ground truth.
+static void oracleLine(robotik::Simulation const& p_simulation)
 {
     if (p_simulation.oracle())
     {
@@ -31,8 +29,6 @@ void oracleLine(robotik::Simulation const& p_simulation)
         ImGui::TextDisabled("beliefs come from perception only");
     }
 }
-
-} // namespace
 
 void worldModelPanel(App& p_app)
 {
