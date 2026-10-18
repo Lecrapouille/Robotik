@@ -279,22 +279,38 @@ std::vector<Pose> Simulation::waypoints(std::string_view p_name) const
     return result;
 }
 
+/// @brief Robot an entity belongs to: its own id for a robot, the robot it
+/// is mounted on for a tool, empty otherwise.
+static std::string_view assemblyOf(EntitySpec const& p_spec)
+{
+    if (p_spec.type == EntitySpec::Type::Robot)
+    {
+        return p_spec.id;
+    }
+    if (p_spec.type == EntitySpec::Type::Tool && p_spec.attach)
+    {
+        return p_spec.attach->parent;
+    }
+    return {};
+}
+
 int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p_contacts) const
 {
-    bool const robot_side = p_record.spec->type == EntitySpec::Type::Robot ||
-                            p_record.spec->type == EntitySpec::Type::Tool;
-    // The robot answers for its mounted tool: a tool hitting the world is a
-    // robot collision too.
-    auto mine = [&](std::string const& p_body)
+    // A robot and its mounted tool are one assembly: a tool hitting the world
+    // is a robot collision too, the robot touching its own tool is not.
+    // Another robot, or its tool, is the world.
+    std::string_view const assembly = assemblyOf(*p_record.spec);
+    auto inAssembly = [&](std::string const& p_body)
     {
-        if (p_record.links.contains(p_body))
-        {
-            return true;
-        }
-        return p_record.spec->type == EntitySpec::Type::Robot &&
+        return !assembly.empty() &&
                std::any_of(m_records.begin(), m_records.end(),
                            [&](Record const& p_peer)
-                           { return p_peer.spec->type == EntitySpec::Type::Tool && p_peer.links.contains(p_body); });
+                           { return assemblyOf(*p_peer.spec) == assembly && p_peer.links.contains(p_body); });
+    };
+    auto mine = [&](std::string const& p_body)
+    {
+        return p_record.links.contains(p_body) ||
+               (p_record.spec->type == EntitySpec::Type::Robot && inAssembly(p_body));
     };
     int count = 0;
     for (Contact const& contact : p_contacts)
@@ -307,23 +323,9 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
         {
             continue;
         }
-        if (robot_side)
+        if (inAssembly(first ? contact.second : contact.first))
         {
-            // The mounted tool and the robot are one assembly.
-            std::string const& other = first ? contact.second : contact.first;
-            bool const assembly = std::any_of(
-                m_records.begin(),
-                m_records.end(),
-                [&](Record const& p_peer)
-                {
-                    return (p_peer.spec->type == EntitySpec::Type::Robot ||
-                            p_peer.spec->type == EntitySpec::Type::Tool) &&
-                           p_peer.links.contains(other);
-                });
-            if (assembly)
-            {
-                continue;
-            }
+            continue;
         }
         ++count;
     }
