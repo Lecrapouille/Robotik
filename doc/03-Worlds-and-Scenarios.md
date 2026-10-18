@@ -333,6 +333,11 @@ Rules:
   robots share the resource manager. A second `gripper` is refused when the
   world is loaded.
 - Each robot keeps the names of its own URDF: both arms have a `joint1`.
+  In the same way, two `body` entities may use the same model (the two
+  stands of the tray cell).
+- A `joint_group` without `joints` takes every joint of the robot, the
+  joints of its tool too (the spindle of a drill). List the arm joints when
+  the tool has joints of its own.
 - The first robot of the file is `Simulation::robot()`. The others are
   `Simulation::robot("right")`; all of them are `Simulation::robots()`.
 - The skills of the core are named after the robot: `left.Home`,

@@ -88,6 +88,27 @@ TEST(World, ToolTouchesItsWorkpiece)
     EXPECT_THROW((void)robotik::WorldDescription::read(unknown, ".", testAssets()), std::runtime_error);
 }
 
+TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
+{
+    // Two fixed bodies of the same URDF: their MuJoCo names start with
+    // their ids, so they do not clash.
+    robotik::ConfigNode const node = robotik::ConfigNode::parse(std::string(TWO_ARMS) + R"(
+  - { id: stand_a, type: body, model: robotik.tools.vacuum, physics: fixed,
+      pose: { position: [0.5, -0.2, 0.0] } }
+  - { id: stand_b, type: body, model: robotik.tools.vacuum, physics: fixed,
+      pose: { position: [0.5, 0.2, 0.0] } }
+)");
+    robotik::Scenario scenario;
+    scenario.id = "two_bodies";
+    scenario.world = robotik::WorldDescription::read(node, ".", testAssets());
+    compages::world::World world;
+    robotik::Simulation simulation(world, scenario);
+    simulation.step(Seconds(0.01));
+    EXPECT_NEAR(simulation.pose("stand_a").position.y, -0.2, 1e-6);
+    EXPECT_NEAR(simulation.pose("stand_b").position.y, 0.2, 1e-6);
+    EXPECT_DOUBLE_EQ(simulation.query("touching(stand_a, stand_b)").value(), 0.0);
+}
+
 TEST(Simulation, TwoRobotsShareOnePhysics)
 {
     compages::world::World world;

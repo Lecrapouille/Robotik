@@ -441,9 +441,15 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
         }
         return;
     }
-    UrdfLinks links = readLinks(spec.model);
-    p_record.body = links.root;
-    p_record.links = std::move(links.names);
+    // MuJoCo names of a model body start with its id: two copies of a
+    // model can share the world.
+    UrdfLinks const links = readLinks(spec.model);
+    std::string const prefix = spec.id + "/";
+    p_record.body = prefix + links.root;
+    for (std::string const& link : links.names)
+    {
+        p_record.links.insert(prefix + link);
+    }
     p_record.frames = std::make_shared<PinocchioBackend>(spec.model);
     if (p_view != nullptr)
     {
@@ -533,7 +539,9 @@ void Simulation::connectBackend()
         }
         else
         {
-            (void)physics->load(spec.model, ChainOptions{ free, record.nominal, spec.friction });
+            ChainOptions chain{ free, record.nominal, spec.friction };
+            chain.prefix = spec.id + "/";
+            (void)physics->load(spec.model, chain);
         }
     }
     addRigidProps(*physics);
