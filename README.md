@@ -8,9 +8,9 @@ RobotIK is not meant to replace excellent existing robotics libraries. It aims t
 
 > **Write a mission once, then run it against a simulated robot or a real one.**
 
-The same behavior can start in a simulator, run headless in CI, feed an RL environment, and later connect to physical hardware. The idea is simple:
+The same behavior can start in a simulator, run headless in CI, feed an RL environment, and later connect to physical hardware:
 
-> **Active project: the API is still evolving. Scenarios, demos, and tests are the best examples of the current API. Planned integrations include Prolog and PDDL.**
+> ⚠️ **Active project: the API is still evolving.** Scenarios, demos, and tests are the best examples of the current API. PDDL planning is available; Prolog, GOAP and LLM front-ends are planned.
 
 ```text
                          Your application
@@ -51,12 +51,12 @@ The interesting problem is not rewriting all of that, but:
 
 > **How do you build a simple autonomous robot by combining these building blocks?**
 
-RobotIK provides that orchestration layer and builds on [Pinocchio](https://github.com/stack-of-tasks/pinocchio), [MuJoCo](https://github.com/google-deepmind/mujoco), and other projects of mine:
+RobotIK provides that orchestration layer. It builds on [Pinocchio](https://github.com/stack-of-tasks/pinocchio) (kinematics), [MuJoCo](https://github.com/google-deepmind/mujoco) (physics), [Kairos](https://github.com/PlanSys2/kairos) (PDDL planner), and two other projects of mine:
 
-- [Compages](https://github.com/Lecrapouille/Compages) — a 3D engine split into three layers: ECS world, 3D rendering, and an OpenGL abstraction (shaders, CPU→GPU uploads).
-- [BlackThorn](https://github.com/Lecrapouille/BlackThorn) — a behavior-tree library designed to be clearer and faster than mainstream behaviortree.cpp.
+- 🧱 [Compages](https://github.com/Lecrapouille/Compages) — a C++20 3D library in three layers that work alone: **GPU** (shaders and compute, data set by the names of the shader), **World** (scene graph + ECS, joints, headless), **Renderer** (scene, glTF/URDF assets, pictures). RobotIK keeps its world in Compages and draws it in the simulator. [Documentation](external/Compages/doc/README.md).
+- 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) — a behavior tree library with one YAML file per tree, a real blackboard, simulated time, and **Oakular**, an open-source editor and live visualizer embedded in the RobotIK simulator. [Documentation](external/BlackThorn/doc/README.md).
 
-Some perception demos require OpenCV and AprilTag.
+Some perception demos require OpenCV and AprilTag; they stay in their plugins.
 
 ---
 
@@ -214,12 +214,13 @@ The backend translates RobotIK commands to the simulator or hardware. That also 
               Physics              SO-101...
 ```
 
-The planning side is intentionally extensible. The long-term goal includes:
+The planning side is intentionally extensible:
 
-- **PDDL** or **GOAP** for symbolic planning and action sequences;
-- **Prolog** to express and query world logic;
-- **LLM** to interpret intent or propose high-level plans;
-- **Behavior trees** to turn plans into reactive execution.
+- ✅ **Behavior trees** (BlackThorn) turn plans into reactive execution;
+- ✅ **PDDL** (Kairos): a scenario gives a goal instead of a tree, the planner finds the actions from the robot's beliefs and replans when a skill fails ([doc/11-PDDL-Planner.md](doc/11-PDDL-Planner.md));
+- 🔜 **GOAP** for game-style action planning;
+- 🔜 **Prolog** to express and query world logic;
+- 🔜 **LLM** to interpret intent or propose high-level plans.
 
 One possible flow:
 
@@ -277,16 +278,14 @@ PerceptionPipeline
     WorldModel
 ```
 
-For example:
+For example, the line follower adds its own detectors to the pipeline of the simulation (`plugins/LineFollower/src/LineFollowerMission.cpp`):
 
 ```cpp
-pipeline
-    .add<ColorDetector>()
-    .add<AprilTagDetector>()
-    .add<DepthEstimator>();
+p_simulation.perception().add<AprilTagDetector>(TAG_SIZE_M);
+p_simulation.perception().add<LineDetector>();
 ```
 
-Applications may use OpenCV, AprilTag, or other libraries. RobotIK core stays independent of rendering and image processing.
+The core gives `Camera`, `FrameSource`, `PerceptionPipeline`, `Detector` and `DepthEstimator`; detectors that need OpenCV or AprilTag (`ColorDetector`, `AprilTagDetector`, `LineDetector`) live in the plugins. RobotIK core stays independent of rendering and image processing, and a mission still runs headless, without camera images.
 
 ---
 
@@ -451,7 +450,7 @@ RobotIK targets writing robotic programs in C++ without adopting a full middlewa
 
 ## 🚀 Clone, build, and run
 
-**Note:** RobotIK does not use CMake and does not build on macOS (OpenGL > 4.1 requirement).
+**Note:** RobotIK builds on Linux with plain `make` (no CMake). It does not build on macOS: the simulator needs a newer OpenGL than the 4.1 of macOS.
 
 ```bash
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
@@ -517,12 +516,21 @@ make tests -j"$(nproc --all)"
 | [doc/06-Architecture.md](doc/06-Architecture.md) | Layers, data flow, `include/Robotik/` layout |
 | [doc/07-API-Reference.md](doc/07-API-Reference.md) | The classes a plugin uses |
 | [doc/08-Reinforcement-Learning.md](doc/08-Reinforcement-Learning.md) | Environments, spaces, episode ends, pool, episode log |
-| [doc/09-Demos.md](doc/09-Demos.md) | HelloWorld, pick and place, painter, line follower, RL, fly brain |
+| [doc/09-Demos.md](doc/09-Demos.md) | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
 | [doc/10-Tools-and-Frames.md](doc/10-Tools-and-Frames.md) | Flange, tool, TCP |
 | [doc/11-PDDL-Planner.md](doc/11-PDDL-Planner.md) | The PDDL planner (Kairos): a goal instead of a behavior tree |
+
+The libraries RobotIK is built on have their own documentation, written the same way:
+
+| Library | Documentation | For |
+|---------|---------------|-----|
+| 🧱 Compages | [external/Compages/doc/README.md](external/Compages/doc/README.md) | the 3D world, the scene, live textures (the Painter canvas) |
+| 🌳 BlackThorn | [external/BlackThorn/doc/README.md](external/BlackThorn/doc/README.md) | every node of a `.bt.yaml` tree, the blackboard, the Oakular editor |
+
+🤖 Coding agents: [AGENTS.md](AGENTS.md) maps each task to a skill of `.claude/skills/` (plugin, scenario, skill and behavior tree, simulator, docs). Compages and BlackThorn have their own `AGENTS.md` and skills.
 
 ---
 
 ## 📝 License
 
-See `LICENSE`.
+RobotIK is dual-licensed: GNU GPL v3 or later, or a commercial license for those who cannot use the GPL. See [LICENSING.md](LICENSING.md).
