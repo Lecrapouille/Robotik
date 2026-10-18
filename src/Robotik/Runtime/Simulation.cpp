@@ -495,12 +495,12 @@ Pose Simulation::resolveNominal(EntitySpec const& p_spec) const
 void Simulation::connectBackend()
 {
     WorldDescription const& world = m_scenario.world;
-    MujocoOptions options;
+    MujocoOptions options = m_physics_options;
     // Rigid props rest on the ground: they need a floor.
     bool const rigid = std::any_of(world.entities.begin(), world.entities.end(),
                                    [this](EntitySpec const& p_entity)
                                    { return p_entity.type == EntitySpec::Type::Prop && rigidProp(p_entity); });
-    options.floor = world.floor || rigid;
+    options.floor = options.floor || world.floor || rigid;
     options.floor_friction = world.floor_friction;
     auto physics = std::make_shared<MujocoBackend>(options);
     // The first robot is the host chain; the others stand in the world with

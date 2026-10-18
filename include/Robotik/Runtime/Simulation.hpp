@@ -11,6 +11,7 @@
 /// given.
 #pragma once
 
+#include "Robotik/Backends/MujocoBackend.hpp"
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Planning/PlanExecutor.hpp"
@@ -179,6 +180,18 @@ public:
     [[nodiscard]] WorldModel& worldModel()
     {
         return m_world_model;
+    }
+
+    // -------------------------------------------------------------------------
+    /// @brief Options of the physics the core builds after
+    /// @ref Mission::setup: a mission may tune them there (a floating base,
+    /// no gravity compensation, the step and the rotors of a legged robot).
+    /// The world still adds its floor. The robots, tools, bodies and rigid
+    /// props of the world are loaded as usual.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] MujocoOptions& physicsOptions()
+    {
+        return m_physics_options;
     }
 
     [[nodiscard]] WorldModel const& worldModel() const
@@ -432,6 +445,8 @@ private:
     compages::world::World& m_world;
     Scenario m_scenario;
     Mission* m_mission = nullptr;
+    /// Options of the physics built by connectBackend (see physicsOptions).
+    MujocoOptions m_physics_options;
     SceneView* m_view = nullptr;
     /// One for all the robots of the world.
     std::shared_ptr<ResourceManager> m_resources;

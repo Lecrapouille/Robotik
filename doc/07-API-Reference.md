@@ -125,6 +125,7 @@ a scenario; the mission receives it.
 | `faults()` | `FaultInjector&` |
 | `context()`, `context(id)` | `RobotContext&`: what skills receive (first robot, or robot `id`) |
 | `beliefFrame()` | Frame of the beliefs: the robot base when alone, the world with several robots |
+| `physicsOptions()` | Options of the physics the core builds after `Mission::setup`: tune them there (floating base, gravity compensation, step, `armature`, `damping`, `exact_inertia`); the world still adds its bodies and floor (MicroDuck) |
 | `factory()` | `bt::NodeFactory&`: register custom tree nodes |
 | `camera()` | `Camera*`: the first camera, or null |
 | `scenario()` | `Scenario const&`: the parsed files (trajectories, world, …) |
