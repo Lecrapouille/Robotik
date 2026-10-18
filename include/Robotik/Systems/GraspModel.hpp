@@ -43,8 +43,9 @@ public:
 
 // ****************************************************************************
 /// @brief Abstract level: objects without physics (@ref ecs::Shape without
-/// @ref ecs::PhysicsBody). Suction near the top of a box attaches it; no
-/// suction drops it onto the floor of the container below, or the ground.
+/// @ref ecs::PhysicsBody). Suction near the top or bottom face of a box
+/// attaches it; no suction drops it onto the floor of the container below,
+/// or the ground.
 // ****************************************************************************
 class AbstractGrasp final: public GraspModel
 {
@@ -55,8 +56,8 @@ public:
 
 // ****************************************************************************
 /// @brief Rigid level: objects are free bodies of the physics backend.
-/// Suction near the top of one turns on the weld declared between the
-/// gripper and it; no suction turns it off.
+/// Suction near the top or the bottom face of one turns on the weld
+/// declared between the gripper and it; no suction turns it off.
 // ****************************************************************************
 class RigidGrasp final: public GraspModel
 {
@@ -67,8 +68,8 @@ public:
     {
         /// World entity id, also the body name in the backend.
         std::string id;
-        /// Half height of the object (m): the top face is this far above
-        /// its centre.
+        /// Half height of the object (m): the top and bottom faces are
+        /// this far from its centre.
         double half_height = 0.0;
     };
 

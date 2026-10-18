@@ -448,7 +448,7 @@ planner and assertions work at every level.
 | Level | Grasp | Release | Use |
 |-------|-------|---------|-----|
 | `abstract` (default) | the object follows the tool | the object is put on the floor of the container below, at its centre (no fall) | check the logic and the plan, fast |
-| `rigid` | the object is a rigid body; a weld holds it to the tool | the weld goes: the object **falls for real** and stops where it lands | check the task with real positions |
+| `rigid` | the object is a rigid body; a weld holds it to the tool, as it is | the weld goes: the object **falls for real** and stops where it lands | check the task with real positions |
 | `contact` | (not available yet) the tool holds by force: it may slip | | study the grasp itself |
 
 ```yaml
@@ -458,6 +458,10 @@ scenario:
     overrides:                # per entity or actuator
       red_cube: rigid
 ```
+
+A vacuum cup takes a box by its **top or bottom face**: its tip must be
+within 2 cm of the centre of that face. A cup pointing up holds a tray from
+below (DualArm `tray`).
 
 Rules:
 

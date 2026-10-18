@@ -113,7 +113,8 @@ static Vector3 settle(compages::world::World& p_world,
     return p_at;
 }
 
-/// Nearest graspable cube whose top face is within @ref kVacuumContactDistance.
+/// Nearest graspable cube whose top or bottom face is within
+/// @ref kVacuumContactDistance: a cup takes it from above or from below.
 static compages::world::EntityId touched(compages::world::World& p_world,
                                            Vector3 const& p_tip)
 {
@@ -126,9 +127,9 @@ static compages::world::EntityId touched(compages::world::World& p_world,
             {
                 return;
             }
-            Vector3 top = positionOf(p_entity);
-            top.z += (p_object.size[2] * 0.5).value();
-            Length const gap{ (top - p_tip).norm() };
+            Vector3 const center = positionOf(p_entity);
+            Vector3 const half(0.0, 0.0, (p_object.size[2] * 0.5).value());
+            Length const gap{ std::min((center + half - p_tip).norm(), (center - half - p_tip).norm()) };
             if (gap <= best)
             {
                 best = gap;

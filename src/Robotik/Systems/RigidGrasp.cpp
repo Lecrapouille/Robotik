@@ -14,6 +14,8 @@
 
 #include "Compages/World/World.hpp"
 
+#include <algorithm>
+
 namespace robotik
 {
 
@@ -76,10 +78,12 @@ void RigidGrasp::update(Robot& p_robot)
                 {
                     continue;
                 }
+                // The top or the bottom face: a cup takes it from above or below.
                 auto const at = entity.position();
-                Vector3 const top(static_cast<double>(at.x), static_cast<double>(at.y),
-                                  static_cast<double>(at.z) + object.half_height);
-                double const gap = (top - tip).norm();
+                Vector3 const center(static_cast<double>(at.x), static_cast<double>(at.y),
+                                     static_cast<double>(at.z));
+                Vector3 const half(0.0, 0.0, object.half_height);
+                double const gap = std::min((center + half - tip).norm(), (center - half - tip).norm());
                 if (gap <= best_gap)
                 {
                     best = &object;
