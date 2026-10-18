@@ -136,8 +136,8 @@ skills.add<HoverSkill>(describe(id + ".Hover(" + part + ")", id, arm), part, Len
   (a move of both arms at once).
 - `p_context.team` lists every robot: a skill reads what the others measure
   of themselves (joints, tool pose), as a real cell shares it on its
-  network. The tray visit of DualArm follows the tool of the carrying arm
-  this way. Command another robot only with its resources held.
+  network. The drill of the DualArm tray follows the tool of the carrying
+  arm this way. Command another robot only with its resources held.
 - The beliefs are in the world frame: bring them into the base of your
   robot with `p_context.robot.base().pose.inverse() * belief`.
 

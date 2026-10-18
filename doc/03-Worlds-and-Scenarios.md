@@ -309,7 +309,7 @@ cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
       model: robotik.robots.robot_6axis
       ...
       actuators:
-        left_arm: { type: joint_group }
+        left_arm: { type: joint_group, joints: [joint1, joint2, joint3, joint4, joint5, joint6] }
     - id: left_cup
       type: tool
       model: robotik.tools.vacuum
@@ -321,7 +321,7 @@ cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
       type: robot
       kind: arm
       model: robotik.robots.robot_6axis
-      pose: { position: [0.80, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
+      pose: { position: [1.02, 0.0, 0.55], rpy: [0.0, 0.0, 3.141592653589793] }
       ...
 ```
 

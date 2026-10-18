@@ -247,17 +247,17 @@ for two arms and one conveyor. The same plan, run both ways:
 
 ```text
 conveyor (parallel: true)
-  0 s  Convey(p4, zone_right)  SUCCEEDED  (2.69 s)
-  2.7 s  right.Hover(p4)  SUCCEEDED  (1.08 s)
-  2.7 s  Convey(p3, zone_left)  SUCCEEDED  (2.38 s)
+  0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.56 s)
+  2.57 s  right.Hover(p4)  SUCCEEDED  (0.95 s)
+  2.57 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (2.91 s)
   ...
-  5.09 s  left.Hover(p3)  SUCCEEDED  (1.08 s)
-  5.09 s  Convey(p2, zone_right)  SUCCEEDED  (2.08 s)
+  5.49 s  left.Hover(p3)  SUCCEEDED  (0.95 s)
+  5.49 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (2.91 s)
   ...
-[PASS] default                  seed=42     controller succeeded at 13.91 s (oracle perception)  time=13.91
+[PASS] default                  seed=42     controller succeeded at 16.85 s (oracle perception)  time=16.85
 
 conveyor_sequential (parallel: false)
-[PASS] default                  seed=42     controller succeeded at 26.61 s (oracle perception)  time=26.61
+[PASS] default                  seed=42     controller succeeded at 33.27 s (oracle perception)  time=33.27
 ```
 
 **Durative actions.** In a temporal domain (`:durative-action`), the
@@ -265,19 +265,17 @@ planner gives a start time and a duration to each action. The start event
 reads the `at start` and `over all` conditions and changes the `at start`
 effects; the end event reads the `at end` and `over all` conditions and
 changes the `at end` effects. This gives **required concurrency**: in the
-DualArm tray scenario, `visit` needs `(over all (in_motion ?t))`, which
-`carry` adds at its start and removes at its end. So the first visit starts once
-the carry has started (`After start of 2: 3. visit(right, g1, tray)`), and
-the carry ends only once the last visit has ended (`Until 6: 2.
-carry(left, tray, pad_a, pad_b)`, a node before its Check; the other visits
-end before the last one, so they are not listed):
+DualArm tray scenario, `drill` needs `(over all (in_motion ?t))`, which
+`carry` adds at its start and removes at its end. So the drilling starts once
+the carry has started (`After start of 2: 3. drill(right, tray)`), and
+the carry ends only once the drilling has ended (`Until 3: 2.
+carry(left, tray, pad_a, pad_b)`, a node before its Check). The carry motion
+is done at 25.52 s, but the tray stays held until 30.09 s:
 
 ```text
-  4.53 s  left.Carry(pad_b)  SUCCEEDED  (10 s)
-  4.53 s  right.Visit(g1, tray)  SUCCEEDED  (3.66 s)
-  8.2 s  right.Visit(g2, tray)  SUCCEEDED  (1.85 s)
-  10.06 s  right.Visit(g3, tray)  SUCCEEDED  (1.72 s)
-  11.79 s  right.Visit(g4, tray)  SUCCEEDED  (1.81 s)
+  5.53 s  left.Carry(pad_b)  SUCCEEDED  (19.99 s)
+  5.53 s  right.Trace(tray)  SUCCEEDED  (24.56 s)
+  30.11 s  left.Lower  SUCCEEDED  (1.99 s)
 ```
 
 The durations of the domain only order the plan: the executor waits for the

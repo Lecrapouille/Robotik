@@ -72,7 +72,11 @@ Several robots (`plugins/DualArm/worlds/*.world.yaml`): one entity
 frame: tool_mount }`); sensor/actuator names unique in the world
 (`left_arm`, `right_arm`), refused otherwise. Queries take the robot id:
 `collision_count(left)`, `pose(right.tcp)`; a contact with another robot is
-a collision. Core skills become `left.Home`, `left.Stop`.
+a collision. Core skills become `left.Home`, `left.Stop`. Two `body`
+entities may share a model. A tool that works by contact lists its
+workpieces: `touches: [tray]` (those contacts are not collisions). A
+`joint_group` without `joints` includes the tool joints (drill spindle).
+A vacuum cup takes a box by its top or bottom face.
 ## Scenario
 
 ```yaml
