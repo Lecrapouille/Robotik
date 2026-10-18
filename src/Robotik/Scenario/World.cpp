@@ -341,6 +341,7 @@ static EntitySpec entity(std::string const& p_world,
         {
             spec.actuators.push_back(actuator(where, name, node));
         }
+        spec.touches = p_node.strings("touches");
     }
     catch (std::runtime_error const& error)
     {
@@ -474,6 +475,23 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
                 grand != nullptr && grand->attach)
             {
                 fail(entity, "attachments nest two levels at most");
+            }
+        }
+    }
+
+    // What a tool works on is another entity of the world.
+    for (EntitySpec const& spec : world.entities)
+    {
+        std::string const entity = where + ", entity '" + spec.id + "'";
+        if (!spec.touches.empty() && spec.type != EntitySpec::Type::Tool)
+        {
+            fail(entity, "only a tool touches its workpieces");
+        }
+        for (std::string const& id : spec.touches)
+        {
+            if (world.find(id) == nullptr || id == spec.id)
+            {
+                fail(entity, "touches '" + id + "', which is not another entity");
             }
         }
     }

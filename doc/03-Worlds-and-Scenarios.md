@@ -278,6 +278,23 @@ mount one instead. Details in [10-Tools-and-Frames.md](10-Tools-and-Frames.md).
     - { id: drill, type: tool, model: robotik.tools.drill }    # in storage
 ```
 
+A tool that works **by contact** (a drill on its workpiece, a probe) lists
+what it may touch. Its contacts with these entities are its work, not
+collisions (`collision_count` does not count them); any other contact still
+counts. From the DualArm tray cell:
+
+```yaml
+    - id: right_drill
+      type: tool
+      model: robotik.tools.drill
+      attach: { parent: right.flange, frame: tool_mount }
+      # The drill works on the tray: touching it is not a collision.
+      touches: [tray]
+```
+
+Only a tool has `touches`, and each name must be another entity of the
+world; otherwise the world is refused.
+
 ### Several robots
 
 A world may have several entities of type `robot`: two arms of a cell, an
@@ -574,7 +591,7 @@ true when it is not zero.
 | `inside(a, b)` | `a` rests in the container `b`, or is inside the box `b` |
 | `on(a, b)` | `a` is placed on `b`: a contact under `a`, or touching faces for two props |
 | `touching(a, b)` | `a` and `b` are in contact |
-| `collision_count(e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included |
+| `collision_count(e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included. The contacts of a tool with the entities of its `touches` are not counted (§4, Tools) |
 | `tool_is_attached(t, robot.flange)` | 1 if the tool `t` is mounted there |
 | `joint_limits_respected(robot)` | 1 if every joint is inside its limits (± 1e-3) |
 | `holding(g)`, `holding(g, object)` | The gripper `g` holds something, or this object |

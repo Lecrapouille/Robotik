@@ -70,6 +70,24 @@ TEST(World, SeveralRobotsEachWithItsTool)
     EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()), std::runtime_error);
 }
 
+TEST(World, ToolTouchesItsWorkpiece)
+{
+    // The right cup works on the left arm: their contacts are not collisions.
+    robotik::ConfigNode node = robotik::ConfigNode::parse(TWO_ARMS);
+    node.set("entities.right_cup.touches", robotik::ConfigNode::parse("[left]"));
+    robotik::WorldDescription const world = robotik::WorldDescription::read(node, ".", testAssets());
+    ASSERT_NE(world.find("right_cup"), nullptr);
+    EXPECT_EQ(world.find("right_cup")->touches, std::vector<std::string>{ "left" });
+
+    // Only a tool touches, and only another entity of the world.
+    robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS);
+    robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]"));
+    EXPECT_THROW((void)robotik::WorldDescription::read(robot, ".", testAssets()), std::runtime_error);
+    robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS);
+    unknown.set("entities.right_cup.touches", robotik::ConfigNode::parse("[tray]"));
+    EXPECT_THROW((void)robotik::WorldDescription::read(unknown, ".", testAssets()), std::runtime_error);
+}
+
 TEST(Simulation, TwoRobotsShareOnePhysics)
 {
     compages::world::World world;

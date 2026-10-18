@@ -312,6 +312,23 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
         return p_record.links.contains(p_body) ||
                (p_record.spec->type == EntitySpec::Type::Robot && inAssembly(p_body));
     };
+    // A tool on the entities it works on (a drill on its workpiece).
+    auto works = [&](std::string const& p_tool_body, std::string const& p_other_body)
+    {
+        auto const tool = std::find_if(m_records.begin(), m_records.end(),
+                                       [&](Record const& p_peer)
+                                       {
+                                           return p_peer.spec->type == EntitySpec::Type::Tool &&
+                                                  p_peer.links.contains(p_tool_body);
+                                       });
+        return tool != m_records.end() &&
+               std::any_of(tool->spec->touches.begin(), tool->spec->touches.end(),
+                           [&](std::string const& p_id)
+                           {
+                               Record const* workpiece = record(p_id);
+                               return workpiece != nullptr && workpiece->links.contains(p_other_body);
+                           });
+    };
     int count = 0;
     for (Contact const& contact : p_contacts)
     {
@@ -324,6 +341,10 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
             continue;
         }
         if (inAssembly(first ? contact.second : contact.first))
+        {
+            continue;
+        }
+        if (works(contact.first, contact.second) || works(contact.second, contact.first))
         {
             continue;
         }

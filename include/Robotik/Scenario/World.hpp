@@ -206,6 +206,9 @@ struct EntitySpec
     JointPosture home;
     std::vector<SensorSpec> sensors;
     std::vector<ActuatorSpec> actuators;
+    /// Entities a tool works on (a drill on its workpiece): its contacts
+    /// with them are not collisions.
+    std::vector<std::string> touches;
 };
 
 // ****************************************************************************
