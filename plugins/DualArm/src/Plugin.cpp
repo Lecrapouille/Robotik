@@ -6,9 +6,11 @@
 // See LICENSING.md for details.
 
 // Two arms in one cell, planned by PDDL. The same mission runs both
-// conveyor scenarios: only planner.parallel differs.
+// conveyor scenarios: only planner.parallel differs. The tray scenario
+// plans with durative actions.
 
 #include "ConveyorMission.hpp"
+#include "TrayMission.hpp"
 
 #include "Robotik/Plugin/PluginAPI.hpp"
 
@@ -33,6 +35,12 @@ public:
             p_host.bindMission(*m_mission);
             return ROBOTIK_PLUGIN_OK;
         }
+        if (p_scenario == "tray")
+        {
+            m_mission = std::make_unique<dual_arm::TrayMission>();
+            p_host.bindMission(*m_mission);
+            return ROBOTIK_PLUGIN_OK;
+        }
         p_host.error("unknown dual arm scenario");
         return ROBOTIK_PLUGIN_ERR_SETUP;
     }
@@ -45,7 +53,7 @@ public:
 
 private:
 
-    std::unique_ptr<dual_arm::ConveyorMission> m_mission;
+    std::unique_ptr<robotik::Mission> m_mission;
 };
 
 ROBOTIK_EXPORT_PLUGIN(DualArmPlugin)

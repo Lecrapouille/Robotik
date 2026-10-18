@@ -1,0 +1,105 @@
+# Two 6-axis arms face to face. The left one holds a tray with a vacuum cup
+# and carries it from one stand to the other; the right one brings its tool
+# above each glass on the tray while it moves. The tray and the glasses are
+# rigid bodies of MuJoCo (see the scenario): dropped or tilted, the glasses
+# fall for real. Z-up, metres, radians. Seen from above:
+#
+#   left (0, 0) -->   pad_a (0.40, -0.20)  -> tray ->  pad_b (0.40, 0.20)   <-- right (0.80, 0)
+#   the glasses stand on the half of the tray next to the right arm.
+world:
+  id: tray_cell
+
+  entities:
+    - id: left
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      # Turned aside, out of the way of the other arm; the tool points down.
+      home: { joint1: -1.5708, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      sensors:
+        left_camera: { type: camera, parent: link6, position: [0.05, 0.0, 0.0], fov: 70,
+                       resolution: [320, 240], frequency: 15 }
+      actuators:
+        left_arm: { type: joint_group }
+    - id: left_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: left.flange, frame: tool_mount }
+      actuators:
+        left_gripper: { type: vacuum }
+
+    - id: right
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.80, 0.0, 0.0], rpy: [0.0, 0.0, 3.141592653589793] }
+      home: { joint1: -1.5708, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      sensors:
+        right_camera: { type: camera, parent: link6, position: [0.05, 0.0, 0.0], fov: 70,
+                        resolution: [320, 240], frequency: 15 }
+      actuators:
+        right_arm: { type: joint_group }
+    - id: right_pointer
+      type: tool
+      model: robotik.tools.default
+      attach: { parent: right.flange, frame: tool_mount }
+
+    # Two flat stands, 2 cm apart.
+    - id: pad_a
+      type: prop
+      kind: pad
+      shape: { type: container, size: [0.32, 0.38, 0.01] }
+      color: [0.30, 0.30, 0.30]
+      pose: { position: [0.40, -0.20, 0.005] }
+    - id: pad_b
+      type: prop
+      kind: pad
+      shape: { type: container, size: [0.32, 0.38, 0.01] }
+      color: [0.30, 0.30, 0.30]
+      pose: { position: [0.40, 0.20, 0.005] }
+
+    # The tray rests on the floor of pad_a (5 mm); the cup takes it at its
+    # centre, away from the glasses.
+    - id: tray
+      type: prop
+      kind: tray
+      shape: { type: box, size: [0.30, 0.34, 0.012] }
+      color: [0.75, 0.55, 0.30]
+      mass: 0.3
+      friction: 1.0
+      pose: { position: [0.40, -0.20, 0.011] }
+
+    # Square glasses (boxes: the only free shape), 9 cm high, 100 g, in a
+    # row 10 cm from the centre of the tray, where the cup holds it.
+    - id: g1
+      type: prop
+      kind: glass
+      shape: { type: box, size: [0.05, 0.05, 0.09] }
+      color: [0.70, 0.85, 0.95]
+      mass: 0.1
+      friction: 1.0
+      pose: { position: [0.50, -0.32, 0.062] }
+    - id: g2
+      type: prop
+      kind: glass
+      shape: { type: box, size: [0.05, 0.05, 0.09] }
+      color: [0.70, 0.85, 0.95]
+      mass: 0.1
+      friction: 1.0
+      pose: { position: [0.50, -0.24, 0.062] }
+    - id: g3
+      type: prop
+      kind: glass
+      shape: { type: box, size: [0.05, 0.05, 0.09] }
+      color: [0.70, 0.85, 0.95]
+      mass: 0.1
+      friction: 1.0
+      pose: { position: [0.50, -0.16, 0.062] }
+    - id: g4
+      type: prop
+      kind: glass
+      shape: { type: box, size: [0.05, 0.05, 0.09] }
+      color: [0.70, 0.85, 0.95]
+      mass: 0.1
+      friction: 1.0
+      pose: { position: [0.50, -0.08, 0.062] }

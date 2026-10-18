@@ -347,3 +347,15 @@ TEST(PluginSession, TwoArmsSortFasterWithAParallelPlan)
     EXPECT_DOUBLE_EQ(none, 0.0);
     EXPECT_LT(parallel, 0.7 * sequential);
 }
+
+TEST(PluginSession, OneArmHoldsTheTrayWhileTheOtherVisitsTheGlasses)
+{
+    double time = 0.0;
+    double overlap = 0.0;
+    if (!runDualArm("tray", time, overlap))
+    {
+        GTEST_SKIP() << "dual arm plugin is not built";
+    }
+    // The visits ran during the carry (required concurrency).
+    EXPECT_GT(overlap, 4.0);
+}

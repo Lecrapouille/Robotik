@@ -4,7 +4,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Manipulation
-  description: Two arms work at the same time, planned by PDDL. A conveyor brings parts that both arms sort into their bins.
+  description: Two arms work at the same time, planned by PDDL. A conveyor brings parts that both arms sort into their bins; one arm carries a tray of glasses while the other one visits each glass.
 
 library:
   entrypoint: librobotik_dual_arm.so
@@ -19,3 +19,4 @@ scenarios:
   entries:
     - { id: conveyor, name: Conveyor (parallel), file: conveyor.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_sequential, name: Conveyor (step by step), file: conveyor_sequential.scenario.yaml, menu: PDDL planner }
+    - { id: tray, name: Tray of glasses, file: tray.scenario.yaml, menu: PDDL planner }

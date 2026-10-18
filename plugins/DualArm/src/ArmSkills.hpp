@@ -32,6 +32,13 @@ namespace dual_arm
 [[nodiscard]] robotik::Vector3 inBase(robotik::RobotContext const& p_context,
                                       robotik::Vector3 const& p_belief);
 
+// ----------------------------------------------------------------------------
+/// @brief Tool pointing down above the point @p_at of the base, turned so
+/// that the last joint stays near 0 (far from its limits): a cup or a
+/// pointer does not care about its turn around its axis.
+// ----------------------------------------------------------------------------
+[[nodiscard]] robotik::Quaternion pointingDown(robotik::Vector3 const& p_at);
+
 /// @brief Robot @p_id of the cell of @p_context, or null.
 [[nodiscard]] robotik::Robot const* teammate(robotik::RobotContext const& p_context,
                                              std::string_view p_id);

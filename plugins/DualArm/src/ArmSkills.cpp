@@ -15,6 +15,7 @@
 #include "Compages/World/World.hpp"
 
 #include <cmath>
+#include <numbers>
 
 namespace dual_arm
 {
@@ -28,6 +29,14 @@ robotik::Vector3 inBase(robotik::RobotContext const& p_context, robotik::Vector3
         return p_belief; // A robot alone: the beliefs are in its base frame.
     }
     return p_context.robot.base().pose.inverse() * p_belief;
+}
+
+robotik::Quaternion pointingDown(robotik::Vector3 const& p_at)
+{
+    // Half a turn about z from the yaw facing the point: the wrist of the
+    // 6-axis arm is then near 0 instead of near its limit.
+    double const yaw = std::atan2(p_at.y, p_at.x) + std::numbers::pi;
+    return { 0.0, std::cos(yaw * 0.5), std::sin(yaw * 0.5), 0.0 };
 }
 
 robotik::Robot const* teammate(robotik::RobotContext const& p_context, std::string_view p_id)
@@ -92,10 +101,8 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         }
         robotik::Vector3 const at = inBase(p_context, object->position);
         double const top = inBase(p_context, robotik::Vector3(0.0, 0.0, object->top())).z;
-        double const yaw = std::atan2(at.y, at.x);
         double const height = top + m_clearance.value() + cup->length().value();
-        robotik::Pose const target{ { at.x, at.y, height },
-                                    { 0.0, std::cos(yaw * 0.5), std::sin(yaw * 0.5), 0.0 } };
+        robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);
         m_planned = true;
     }
