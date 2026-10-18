@@ -11,6 +11,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <string>
 
 int main(int argc, char** argv)
 {
@@ -23,11 +24,24 @@ int main(int argc, char** argv)
 
     App app;
     app.plugins.scan();
-    if (argc > 1)
+    // Robotik-Simulator [scenario] [--screenshot file.png [--at seconds]]
+    for (int i = 1; i < argc; ++i)
     {
-        app.scenario_path = std::filesystem::path(argv[1]);
+        std::string const argument = argv[i];
+        if (argument == "--screenshot" && i + 1 < argc)
+        {
+            app.screenshot = argv[++i];
+        }
+        else if (argument == "--at" && i + 1 < argc)
+        {
+            app.screenshot_at = std::stod(argv[++i]);
+        }
+        else
+        {
+            app.scenario_path = std::filesystem::path(argument);
+        }
     }
-    else
+    if (app.scenario_path.empty())
     {
         for (robotik::PluginPackage const& package : app.plugins.catalog().packages())
         {
@@ -43,6 +57,8 @@ int main(int argc, char** argv)
     if (!app.scenario_path.empty())
     {
         app.load();
+        // A picture of the run: play it until the time of the picture.
+        app.playing = app.playing || !app.screenshot.empty();
     }
     runMainLoop(window, app);
     return app.error.empty() ? 0 : 1;

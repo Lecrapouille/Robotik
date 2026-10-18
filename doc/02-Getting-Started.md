@@ -117,6 +117,14 @@ You can also give a scenario file directly:
 ./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
+`--screenshot view.png` plays the scenario, saves the 3D view into a PNG
+file and quits; `--at 6` takes it after 6 simulated seconds (3 by
+default, or at the end of the run if it ends before):
+
+```bash
+./build/Robotik-Simulator build/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
+```
+
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
 a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 

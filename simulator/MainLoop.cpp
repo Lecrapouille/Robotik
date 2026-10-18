@@ -7,6 +7,8 @@
 
 #include "MainLoop.hpp"
 
+#include "Screenshot.hpp"
+
 #include "App.hpp"
 #include "SimFrame.hpp"
 #include "SimulatorDisplay.hpp"
@@ -19,6 +21,8 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+
+#include <iostream>
 
 void runMainLoop(Window& p_window, App& p_app)
 {
@@ -55,6 +59,15 @@ void runMainLoop(Window& p_window, App& p_app)
                 p_app.view.framebuffer,
                 compages::gpu::PassDesc{ .color = viewClearColor() });
             p_app.scene->render(p_app.view_camera);
+        }
+        // --screenshot: the 3D view at the asked time, then quit.
+        if (!p_app.screenshot.empty() && p_app.simulation && p_app.view.width > 0 &&
+            (p_app.simulation->time().value() >= p_app.screenshot_at || p_app.simulation->finished()))
+        {
+            std::string const failed = saveScreenshot(p_app.view, p_app.screenshot);
+            std::cerr << (failed.empty() ? "wrote " + p_app.screenshot.string() : failed) << '\n';
+            p_app.screenshot.clear();
+            glfwSetWindowShouldClose(p_window.handle, GLFW_TRUE);
         }
 
         ImGui::Render();

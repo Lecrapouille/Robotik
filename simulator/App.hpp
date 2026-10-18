@@ -236,6 +236,10 @@ struct App
     float view_h = 1.0f;
 
     bool playing = false;
+    /// --screenshot: the PNG to save of the 3D view, then quit; empty: none.
+    std::filesystem::path screenshot;
+    /// --screenshot: simulated seconds to play before the picture.
+    double screenshot_at = 3.0;
     bool step_once = false;
     float speed = 1.0f;
     std::uint64_t seed = 0;
