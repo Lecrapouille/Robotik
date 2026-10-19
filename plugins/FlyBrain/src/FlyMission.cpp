@@ -24,7 +24,9 @@ static constexpr std::size_t TRAIL = 240;
 /// Converts a double vector to the float vector the scene stores.
 static compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
 {
-    return { static_cast<float>(p_v.x), static_cast<float>(p_v.y), static_cast<float>(p_v.z) };
+    return { static_cast<float>(p_v.x),
+             static_cast<float>(p_v.y),
+             static_cast<float>(p_v.z) };
 }
 
 /// Converts a double quaternion to the float quaternion the scene stores.
@@ -37,7 +39,9 @@ static compages::core::Quatf toFloat(robotik::Quaternion const& p_q)
 }
 
 /// Writes a measured angle on a named joint when it exists.
-static void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, double p_angle)
+static void poseJoint(robotik::JointSet& p_joints,
+                      std::string const& p_name,
+                      double p_angle)
 {
     robotik::JointId const id = p_joints.find(p_name);
     if (id != robotik::NO_JOINT)
@@ -48,8 +52,8 @@ static void poseJoint(robotik::JointSet& p_joints, std::string const& p_name, do
 
 /// A colored box the fly scenario adds to the scene.
 static robotik::ecs::Shape decoration(std::string p_name,
-                                     robotik::Vector3 const& p_size,
-                                     std::array<float, 3> const& p_color)
+                                      robotik::Vector3 const& p_size,
+                                      std::array<float, 3> const& p_color)
 {
     robotik::ecs::Shape object;
     object.name = std::move(p_name);
@@ -60,7 +64,8 @@ static robotik::ecs::Shape decoration(std::string p_name,
 
 // --- Backend ----------------------------------------------------------------
 
-FlyBackend::FlyBackend(FlyEnvironment& p_environment) : m_environment(p_environment)
+FlyBackend::FlyBackend(FlyEnvironment& p_environment)
+    : m_environment(p_environment)
 {
 }
 
@@ -86,7 +91,8 @@ void FlyBackend::step(robotik::Robot& p_robot, Seconds p_dt)
     {
         std::array<float, FlyAction::SIZE> action{};
         m_command.write(action);
-        robotik::StepResult const result = m_environment.step(action, m_observation);
+        robotik::StepResult const result =
+            m_environment.step(action, m_observation);
         m_return += static_cast<double>(result.reward);
         m_done = result.done();
         m_lag -= dt;
@@ -118,7 +124,8 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
         poseJoint(joints, wing + "_sweep", posture.wing_sweep);
         poseJoint(joints, wing + "_deviation", posture.wing_deviation);
         poseJoint(joints, wing + "_pitch", posture.wing_pitch);
-        poseJoint(joints, std::string("haltere_") + side + "_flap", posture.haltere);
+        poseJoint(
+            joints, std::string("haltere_") + side + "_flap", posture.haltere);
     }
     poseJoint(joints, "neck_yaw", posture.neck_yaw);
     poseJoint(joints, "neck_pitch", posture.neck_pitch);
@@ -126,24 +133,29 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
     poseJoint(joints, "abdomen_pitch", posture.abdomen_pitch);
 
     robotik::Pose pose;
-    pose.position = robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z);
-    pose.rotation = robotik::rpy(Radians(0.0), Radians(0.0), Radians(snapshot.plant.yaw));
+    pose.position =
+        robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z);
+    pose.rotation =
+        robotik::rpy(Radians(0.0), Radians(0.0), Radians(snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
 // --- Mission ----------------------------------------------------------------
 
-void FlyMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view)
+void FlyMission::setup(robotik::Simulation& p_simulation,
+                       robotik::SceneView* p_view)
 {
     m_simulation = &p_simulation;
     // The FlyWire tables sit in the pack of the fly body (the plugin's own).
-    if (robotik::AssetPack const* pack = p_simulation.scenario().assets.find("robotik.fly"))
+    if (robotik::AssetPack const* pack =
+            p_simulation.scenario().assets.find("robotik.fly"))
     {
         m_tables = pack->root / "flywire";
     }
     FlyScenario scenario = FlyScenario::from(p_simulation.scenario());
     m_dt = scenario.dt;
-    m_kind = scenario.agent == "reflex" ? FlyBrain::Kind::Reflex : FlyBrain::Kind::Shiu;
+    m_kind = scenario.agent == "reflex" ? FlyBrain::Kind::Reflex
+                                        : FlyBrain::Kind::Shiu;
     float const cruise = static_cast<float>(scenario.target.z);
     robotik::Vector3 const arena = scenario.arena;
     m_environment = std::make_unique<FlyEnvironment>(std::move(scenario), 0u);
@@ -168,20 +180,24 @@ void FlyMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_
     double const extent = 2.0 * (std::max(arena.x, arena.y) + 2.0);
     p_view->ground(meadow, extent, extent);
 
-    std::array<std::array<float, 3>, 3> const colors = { { { 0.95f, 0.75f, 0.2f },
-                                                           { 0.95f, 0.25f, 0.2f },
-                                                           { 0.25f, 0.45f, 1.0f } } };
+    std::array<std::array<float, 3>, 3> const colors = {
+        { { 0.95f, 0.75f, 0.2f },
+          { 0.95f, 0.25f, 0.2f },
+          { 0.25f, 0.45f, 1.0f } }
+    };
     char const* names[3] = { "ray_left", "ray_center", "ray_right" };
     for (std::size_t ray = 0; ray < 3u; ++ray)
     {
         // Unit length along x, stretched toward the hit at each step.
-        m_beams[ray] = p_simulation.decorate(
-            decoration(names[ray], robotik::Vector3(1.0, 0.02, 0.02), colors[ray]));
+        m_beams[ray] = p_simulation.decorate(decoration(
+            names[ray], robotik::Vector3(1.0, 0.02, 0.02), colors[ray]));
     }
     for (std::size_t i = 0; i < TRAIL; ++i)
     {
-        m_trail.push_back(p_simulation.decorate(decoration(
-            "trail_" + std::to_string(i), robotik::Vector3(0.04, 0.04, 0.04), { 0.95f, 0.95f, 0.9f })));
+        m_trail.push_back(
+            p_simulation.decorate(decoration("trail_" + std::to_string(i),
+                                             robotik::Vector3(0.04, 0.04, 0.04),
+                                             { 0.95f, 0.95f, 0.9f })));
     }
 }
 
@@ -196,12 +212,14 @@ void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     // The blocks shift a little at each episode: the props follow.
     std::span<FlyBox const> const blocks = m_environment->obstacles();
     std::size_t index = 0;
-    for (robotik::EntitySpec const& entity : p_simulation.scenario().world.entities)
+    for (robotik::EntitySpec const& entity :
+         p_simulation.scenario().world.entities)
     {
         if (entity.type == robotik::EntitySpec::Type::Prop &&
             entity.id.starts_with("obstacle") && index < blocks.size())
         {
-            p_simulation.entity(entity.id).position(toFloat(blocks[index].position));
+            p_simulation.entity(entity.id).position(
+                toFloat(blocks[index].position));
             ++index;
         }
     }
@@ -209,9 +227,9 @@ void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     // Puts the body where the episode starts, then the first decision: the
     // first step flies with it, as in the standalone loop.
     FlyPlant const& plant = m_environment->snapshot().plant;
-    p_simulation.robot().startPose(
-        robotik::Pose{ robotik::Vector3(plant.x, plant.y, plant.z),
-                       robotik::rpy(Radians(0.0), Radians(0.0), Radians(plant.yaw)) });
+    p_simulation.robot().startPose(robotik::Pose{
+        robotik::Vector3(plant.x, plant.y, plant.z),
+        robotik::rpy(Radians(0.0), Radians(0.0), Radians(plant.yaw)) });
     decide();
     drawBeamsAndTrail();
 }
@@ -228,7 +246,8 @@ void FlyMission::step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/)
 
 void FlyMission::decide()
 {
-    m_action = m_brain->update(FlyObservation::from(m_backend->observation()), Seconds(m_dt));
+    m_action = m_brain->update(FlyObservation::from(m_backend->observation()),
+                               Seconds(m_dt));
     m_backend->command(m_action);
 }
 
@@ -255,9 +274,10 @@ void FlyMission::drawBeamsAndTrail()
         double const angle = std::acos(std::clamp(along.x, -1.0, 1.0));
         robotik::Quaternion const turn =
             robotik::norm(axis) < 1e-9
-                ? (along.x > 0.0 ? robotik::Quaternion{}
-                                 : robotik::axisAngle(robotik::Vector3(0.0, 0.0, 1.0),
-                                                      Radians(3.14159265358979323846)))
+                ? (along.x > 0.0
+                       ? robotik::Quaternion{}
+                       : robotik::axisAngle(robotik::Vector3(0.0, 0.0, 1.0),
+                                            Radians(3.14159265358979323846)))
                 : robotik::axisAngle(axis, Radians(angle));
         beam.position(toFloat(from + span * 0.5))
             .rotation(toFloat(turn))
@@ -291,18 +311,21 @@ void FlyMission::measure(robotik::Simulation const& /*p_simulation*/,
     p_metrics.set("fly.neurons", static_cast<double>(m_brain->neurons()));
 }
 
-robotik::Status FlyMission::status(robotik::Simulation const& /*p_simulation*/) const
+robotik::Status
+FlyMission::status(robotik::Simulation const& /*p_simulation*/) const
 {
     if (m_environment->snapshot().reached)
     {
         return robotik::Status::SUCCESS;
     }
-    return m_backend->done() ? robotik::Status::FAILURE : robotik::Status::RUNNING;
+    return m_backend->done() ? robotik::Status::FAILURE
+                             : robotik::Status::RUNNING;
 }
 
-std::unique_ptr<FlyBrain> FlyMission::buildBrain(bool p_connectome,
-                                                 float p_cruise,
-                                                 std::filesystem::path const& p_tables)
+std::unique_ptr<FlyBrain>
+FlyMission::buildBrain(bool p_connectome,
+                       float p_cruise,
+                       std::filesystem::path const& p_tables)
 {
     auto brain = std::make_unique<FlyBrain>(FlyBrain::Kind::Shiu, p_cruise);
     if (p_connectome)

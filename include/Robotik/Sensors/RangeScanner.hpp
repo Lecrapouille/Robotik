@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file RangeScanner.hpp
-/// @brief Planar range scanner (2D lidar).
+/// Planar range scanner (2D lidar).
 #pragma once
 
 #include "Robotik/Math/Random.hpp"
@@ -24,7 +24,15 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Where the scanner is and how it samples.
+/// Where the scanner is and how it samples.
+///
+/// @code
+/// robotik::RangeScannerConfig config;
+/// config.parent = "base_link";
+/// config.beams = 360;
+/// config.field_of_view = Radians(std::numbers::pi); // 180 deg in front
+/// config.noise.sigma = 0.01;                        // 1 cm
+/// @endcode
 // ****************************************************************************
 struct RangeScannerConfig
 {
@@ -32,9 +40,11 @@ struct RangeScannerConfig
     std::string parent;
     /// Scan plane: the XY plane of this frame, in the parent link frame.
     Pose mount;
+    /// Number of beams, spread evenly over the field of view.
     std::uint32_t beams = 180;
     /// Angular span, centered on +X.
     Radians field_of_view{ 2.0 * std::numbers::pi };
+    /// Beams longer than this see nothing.
     Length max_range{ 10.0 };
     /// Scan rate in Hz.
     double frequency = 10.0;
@@ -46,7 +56,7 @@ struct RangeScannerConfig
 };
 
 // ****************************************************************************
-/// @brief 2D lidar casting its beams through the backend
+/// 2D lidar casting its beams through the backend
 /// (@ref RobotBackend::raycast) and against the scene objects of the world.
 ///
 /// @code
@@ -59,24 +69,40 @@ class RangeScanner final: public Sensor
 {
 public:
 
+    // -------------------------------------------------------------------------
+    /// @param p_name Sensor name, also its resource name.
+    /// @param p_config Mount, beams, range, rate and noise.
+    // -------------------------------------------------------------------------
     RangeScanner(std::string p_name, RangeScannerConfig p_config = {});
 
+    // -------------------------------------------------------------------------
+    /// @return The configuration given at construction.
+    // -------------------------------------------------------------------------
     [[nodiscard]] RangeScannerConfig const& config() const
     {
         return m_config;
     }
 
-    /// @brief Last delivered scan.
+    // -------------------------------------------------------------------------
+    /// @return Last delivered scan. Check @c valid before use.
+    // -------------------------------------------------------------------------
     [[nodiscard]] RangeScan const& scan() const
     {
         return m_scans.current();
     }
 
+    // -------------------------------------------------------------------------
+    /// Marks the current scan invalid (the sensor resource failed).
+    // -------------------------------------------------------------------------
     void invalidate() override
     {
         m_scans.current().valid = false;
     }
 
+    // -------------------------------------------------------------------------
+    /// Restarts the noise generator.
+    /// @param p_seed Same seed, same noise.
+    // -------------------------------------------------------------------------
     void seed(Seed p_seed)
     {
         m_random = Random(p_seed);
@@ -84,16 +110,22 @@ public:
 
 protected:
 
+    /// Casts every beam and adds the noise.
     bool sample(Robot const& p_robot, Seconds p_now) override;
+    /// Clears the scans waiting for their latency.
     void restart() override;
+    /// Publishes the scans whose latency has elapsed.
     void deliver(Seconds p_now) override;
 
 private:
 
+    /// Configuration given at construction.
     RangeScannerConfig m_config;
+    /// Scans waiting for their latency, and the current one.
     LatencyBuffer<RangeScan> m_scans;
     /// Link entity the delivered scan is attached to.
     compages::world::Entity m_holder;
+    /// Noise generator.
     Random m_random;
 };
 

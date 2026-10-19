@@ -21,10 +21,12 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
 {
     if (p_joints.isPrismatic(p_id))
     {
-        PrismaticLimits const limits = p_joints.limits(p_joints.prismatic(p_id));
+        PrismaticLimits const limits =
+            p_joints.limits(p_joints.prismatic(p_id));
         if (limits.bounded())
         {
-            return std::clamp(p_value, limits.lower.value(), limits.upper.value());
+            return std::clamp(
+                p_value, limits.lower.value(), limits.upper.value());
         }
     }
     else
@@ -32,7 +34,8 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
         RevoluteLimits const limits = p_joints.limits(p_joints.revolute(p_id));
         if (limits.bounded())
         {
-            return std::clamp(p_value, limits.lower.value(), limits.upper.value());
+            return std::clamp(
+                p_value, limits.lower.value(), limits.upper.value());
         }
     }
     return p_value;
@@ -53,8 +56,9 @@ std::vector<double> TeachPendant::command(Robot const& p_robot) const
     std::vector<double> values(joints.size());
     for (JointId id = 0; id < joints.size(); ++id)
     {
-        values[id] = joints.mode(id) == JointMode::Position ? joints.target(id)
-                                                            : joints.position(id);
+        values[id] = joints.mode(id) == JointMode::Position
+                         ? joints.target(id)
+                         : joints.position(id);
     }
     return values;
 }
@@ -135,21 +139,24 @@ bool TeachPendant::jogTool(Robot& p_robot,
     target.position.x += p_translation.x;
     target.position.y += p_translation.y;
     target.position.z += p_translation.z;
-    if (std::abs(p_rotation.x) + std::abs(p_rotation.y) + std::abs(p_rotation.z) >
+    if (std::abs(p_rotation.x) + std::abs(p_rotation.y) +
+            std::abs(p_rotation.z) >
         0.0)
     {
-        target.rotation = axisAngle(Vector3(1.0, 0.0, 0.0), Radians(p_rotation.x)) *
-                          axisAngle(Vector3(0.0, 1.0, 0.0), Radians(p_rotation.y)) *
-                          axisAngle(Vector3(0.0, 0.0, 1.0), Radians(p_rotation.z)) *
-                          target.rotation;
+        target.rotation =
+            axisAngle(Vector3(1.0, 0.0, 0.0), Radians(p_rotation.x)) *
+            axisAngle(Vector3(0.0, 1.0, 0.0), Radians(p_rotation.y)) *
+            axisAngle(Vector3(0.0, 0.0, 1.0), Radians(p_rotation.z)) *
+            target.rotation;
     }
 
     std::optional<std::vector<double>> const solution =
         p_robot.inverseKinematics(moved, target);
     if (!solution)
     {
-        m_error = moved + " cannot reach this pose: its joints do not allow this move "
-                          "(IK did not converge)";
+        m_error = moved +
+                  " cannot reach this pose: its joints do not allow this move "
+                  "(IK did not converge)";
         return false;
     }
     apply(p_robot, *solution);

@@ -29,7 +29,10 @@ Track::Point Track::at(double p_s) const
     if (u < arc)
     {
         double const phi = -0.5 * pi + u / radius;
-        return { half + radius * std::cos(phi), radius * std::sin(phi), phi + 0.5 * pi, s };
+        return { half + radius * std::cos(phi),
+                 radius * std::sin(phi),
+                 phi + 0.5 * pi,
+                 s };
     }
     u -= arc;
     if (u < straight)
@@ -38,7 +41,10 @@ Track::Point Track::at(double p_s) const
     }
     u -= straight;
     double const phi = 0.5 * pi + u / radius;
-    return { -half + radius * std::cos(phi), radius * std::sin(phi), phi + 0.5 * pi, s };
+    return { -half + radius * std::cos(phi),
+             radius * std::sin(phi),
+             phi + 0.5 * pi,
+             s };
 }
 
 Track::Point Track::closest(double p_x, double p_y) const
@@ -49,7 +55,8 @@ Track::Point Track::closest(double p_x, double p_y) const
 
     if (p_x >= half)
     {
-        double const phi = std::clamp(std::atan2(p_y, p_x - half), -0.5 * pi, 0.5 * pi);
+        double const phi =
+            std::clamp(std::atan2(p_y, p_x - half), -0.5 * pi, 0.5 * pi);
         return at(straight + (phi + 0.5 * pi) * radius);
     }
     if (p_x <= -half)

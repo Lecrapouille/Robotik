@@ -36,7 +36,8 @@ TEST(NoiseModel, BiasResolutionAndSaturation)
     model.resolution = 0.25;
     model.min = -1.0;
     model.max = 1.0;
-    EXPECT_DOUBLE_EQ(model.apply(0.1, random), 0.5); // 0.4 rounded to 0.25 steps
+    EXPECT_DOUBLE_EQ(model.apply(0.1, random),
+                     0.5); // 0.4 rounded to 0.25 steps
     EXPECT_DOUBLE_EQ(model.apply(5.0, random), 1.0);
     EXPECT_DOUBLE_EQ(model.apply(-5.0, random), -1.0);
 
@@ -67,7 +68,8 @@ TEST(LatencyBuffer, DeliversAfterTheLatencyWithTheCaptureStamp)
 TEST(Imu, ReadingHasAHeaderALatencyAndGoesInvalidOnFailure)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, assetFile("robotik.robots.simple_revolute_robot"));
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::ImuConfig config;
     config.parent = "base_link";
     config.frequency = 100.0;
@@ -114,7 +116,8 @@ entities:
 )");
     robotik::WorldDescription const description =
         robotik::WorldDescription::read(world, ".", testAssets());
-    std::vector<robotik::SensorSpec> const& sensors = description.robot().sensors;
+    std::vector<robotik::SensorSpec> const& sensors =
+        description.robot().sensors;
     ASSERT_EQ(sensors.size(), 4u);
     EXPECT_EQ(sensors[0].type, robotik::SensorSpec::Type::Camera);
     EXPECT_TRUE(sensors[0].camera.depth);
@@ -131,22 +134,26 @@ entities:
 
     robotik::ConfigNode bad = world;
     bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode(""));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()), std::runtime_error);
+    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+                 std::runtime_error);
     bad = world;
     bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1"));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()), std::runtime_error);
+    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+                 std::runtime_error);
     bad = world;
     bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar"));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()), std::runtime_error);
+    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+                 std::runtime_error);
 }
 
 TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
 {
     auto build = [](char const* p_policy)
     {
-        robotik::ScenarioSource source = robotik::ScenarioSource::load(
-            repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
-        source.override("scenario.perception.oracle", robotik::ConfigNode(p_policy));
+        robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        source.override("scenario.perception.oracle",
+                        robotik::ConfigNode(p_policy));
         return robotik::Scenario::read(source, testAssets());
     };
     {
@@ -166,7 +173,8 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
     {
         PickPlaceMission mission;
         compages::world::World world;
-        robotik::Simulation oracle(world, build("when_blind"), nullptr, &mission);
+        robotik::Simulation oracle(
+            world, build("when_blind"), nullptr, &mission);
         EXPECT_TRUE(oracle.oracle());
     }
 }

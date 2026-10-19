@@ -38,7 +38,8 @@ struct Options
     double laps = 1.0;
     bool view = false;
     std::filesystem::path save;
-    std::filesystem::path scenario = "plugins/LineFollower/scenarios/line_follower.scenario.yaml";
+    std::filesystem::path scenario =
+        "plugins/LineFollower/scenarios/line_follower.scenario.yaml";
 };
 
 static bool parse(int argc, char** argv, Options& p_options)
@@ -169,7 +170,8 @@ int main(int argc, char** argv)
         compages::world::World world;
         robotik::Simulation simulation(
             world,
-            robotik::Scenario::load(options.scenario, robotik::AssetResolver::standard()),
+            robotik::Scenario::load(options.scenario,
+                                    robotik::AssetResolver::standard()),
             nullptr,
             &mission);
         simulation.reset(robotik::Seed{ options.seed });
@@ -226,7 +228,8 @@ int main(int argc, char** argv)
         simulation.conclude();
         for (robotik::Check const& check : simulation.checks())
         {
-            std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text;
+            std::cout << '[' << robotik::toString(check.verdict) << "] "
+                      << check.text;
             if (!check.detail.empty())
             {
                 std::cout << "  (" << check.detail << ')';

@@ -33,9 +33,15 @@ struct DriveGeometry
     double sign = -1.0;
 
     // Forward speed (m/s) and yaw rate (rad/s) of wheel speeds (rad/s).
-    void twist(double p_left, double p_right, double& p_speed, double& p_yaw_rate) const;
+    void twist(double p_left,
+               double p_right,
+               double& p_speed,
+               double& p_yaw_rate) const;
     // Wheel speeds (rad/s) of a forward speed and a yaw rate.
-    void wheels(double p_speed, double p_yaw_rate, double& p_left, double& p_right) const;
+    void wheels(double p_speed,
+                double p_yaw_rate,
+                double& p_left,
+                double& p_right) const;
     // Base pose after @p_dt at constant twist (exact arc of the axle midpoint).
     [[nodiscard]] Pose2 integrate(Pose2 const& p_pose,
                                   double p_speed,
@@ -49,7 +55,9 @@ class DiffDriveBackend final: public robotik::RobotBackend
 {
 public:
 
-    DiffDriveBackend(std::string p_left, std::string p_right, DriveGeometry p_geometry = {});
+    DiffDriveBackend(std::string p_left,
+                     std::string p_right,
+                     DriveGeometry p_geometry = {});
 
     void attach(robotik::Robot& p_robot) override;
     void reset(robotik::Robot& p_robot) override;

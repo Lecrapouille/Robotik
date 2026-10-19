@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-
 inline ImVec4 colorOf(robotik::SkillState p_state)
 {
     switch (p_state)
@@ -158,7 +157,8 @@ inline std::string skillWhy(robotik::SkillScheduler const& p_skills,
     if (reason == robotik::SkillReason::Failed)
     {
         std::string const why = p_skills.skill(p_id).why();
-        return why.empty() ? std::string("failed (the skill gave no reason)") : "failed: " + why;
+        return why.empty() ? std::string("failed (the skill gave no reason)")
+                           : "failed: " + why;
     }
     if (reason == robotik::SkillReason::Precondition)
     {

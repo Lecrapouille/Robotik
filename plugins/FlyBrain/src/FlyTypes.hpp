@@ -201,4 +201,5 @@ struct FlyScenario
 };
 
 /// URDF prefixes of the six legs, fore to hind, left then right.
-inline constexpr char const* FLY_LEG_NAMES[] = { "LF", "LM", "LH", "RF", "RM", "RH" };
+inline constexpr char const* FLY_LEG_NAMES[] = { "LF", "LM", "LH",
+                                                 "RF", "RM", "RH" };

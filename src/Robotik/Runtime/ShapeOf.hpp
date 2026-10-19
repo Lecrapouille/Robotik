@@ -20,8 +20,9 @@ namespace robotik
 {
     ecs::Shape object;
     object.name = p_spec.id;
-    object.type = p_spec.shape->type == ShapeSpec::Type::Container ? ecs::Shape::Type::CONTAINER
-                                                                   : ecs::Shape::Type::BOX;
+    object.type = p_spec.shape->type == ShapeSpec::Type::Container
+                      ? ecs::Shape::Type::CONTAINER
+                      : ecs::Shape::Type::BOX;
     object.size = { Length(p_spec.shape->size.x),
                     Length(p_spec.shape->size.y),
                     Length(p_spec.shape->size.z) };

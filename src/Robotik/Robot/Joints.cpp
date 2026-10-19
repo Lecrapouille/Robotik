@@ -45,9 +45,8 @@ JointId JointSet::add(std::string p_name, compages::world::Entity p_link)
     if (auto const* joint = p_link.find<compages::world::RevoluteJoint>())
     {
         auto const& state = joint->state;
-        bool const continuous =
-            std::isinf(state.position.min.value()) &&
-            std::isinf(state.position.max.value());
+        bool const continuous = std::isinf(state.position.min.value()) &&
+                                std::isinf(state.position.max.value());
         return append(std::move(p_name),
                       continuous ? JointType::Continuous : JointType::Revolute,
                       { state.position.min.value(),
@@ -224,12 +223,13 @@ void JointSet::control(Seconds p_dt)
                 }
                 else
                 {
-                    double const speed = std::isfinite(bounds.velocity)
-                                             ? bounds.velocity * gains.speed_ratio
-                                             : DEFAULT_SLEW_RATE;
+                    double const speed =
+                        std::isfinite(bounds.velocity)
+                            ? bounds.velocity * gains.speed_ratio
+                            : DEFAULT_SLEW_RATE;
                     double const step = speed * dt;
-                    m_references[i] += std::clamp(
-                        m_targets[i] - m_references[i], -step, step);
+                    m_references[i] +=
+                        std::clamp(m_targets[i] - m_references[i], -step, step);
                 }
                 effort = gains.kp * (m_references[i] - m_positions[i]) -
                          gains.kd * m_velocities[i];

@@ -10,8 +10,8 @@
 namespace robotik
 {
 
-std::optional<Localization>
-localize(Detections const& p_detections, std::span<Landmark const> p_landmarks)
+std::optional<Localization> localize(Detections const& p_detections,
+                                     std::span<Landmark const> p_landmarks)
 {
     Pose const camera_in_base_inverse = p_detections.camera.inverse();
     Vector3 position;
@@ -39,8 +39,8 @@ localize(Detections const& p_detections, std::span<Landmark const> p_landmarks)
             {
                 reference = q;
             }
-            else if (reference.w * q.w + reference.x * q.x +
-                         reference.y * q.y + reference.z * q.z <
+            else if (reference.w * q.w + reference.x * q.x + reference.y * q.y +
+                         reference.z * q.z <
                      0.0)
             {
                 q = { -q.w, -q.x, -q.y, -q.z };

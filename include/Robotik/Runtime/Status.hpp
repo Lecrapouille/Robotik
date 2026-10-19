@@ -5,22 +5,35 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// @file Status.hpp
-// @brief Execution status shared by skills and behavior-tree adapters.
+/// @file Status.hpp
+/// Execution status shared by skills and behavior-tree adapters.
 #pragma once
 
 namespace robotik
 {
 
 // -------------------------------------------------------------------------
-// @brief Outcome of a single skill tick or an aggregated skill run.
+/// Outcome of a single skill tick or an aggregated skill run.
+///
+/// A skill returns @c RUNNING while it works, then @c SUCCESS or @c FAILURE
+/// once. The behavior tree nodes map it to the BlackThorn status of the same
+/// name.
+///
+/// @code
+/// Status MySkill::tick(RobotContext& p_context, Seconds p_dt)
+/// {
+///     if (reached(p_context))
+///         return Status::SUCCESS;
+///     return Status::RUNNING;
+/// }
+/// @endcode
 // -------------------------------------------------------------------------
 enum class Status
 {
-    IDLE,     ///< Not started or explicitly idle.
-    RUNNING,  ///< Still working toward the goal.
-    SUCCESS,  ///< Goal reached.
-    FAILURE,  ///< Goal cannot be reached or was aborted.
+    IDLE,    ///< Not started or explicitly idle.
+    RUNNING, ///< Still working toward the goal.
+    SUCCESS, ///< Goal reached.
+    FAILURE, ///< Goal cannot be reached or was aborted.
 };
 
 } // namespace robotik

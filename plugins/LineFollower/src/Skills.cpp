@@ -32,14 +32,16 @@
 bool Navigation::fix(robotik::Localization const& p_fix, Seconds p_stamp)
 {
     if (fixes > 0u &&
-        std::hypot(p_fix.pose.position.x - estimate.x, p_fix.pose.position.y - estimate.y) > NAVIGATION_GATE_M &&
+        std::hypot(p_fix.pose.position.x - estimate.x,
+                   p_fix.pose.position.y - estimate.y) > NAVIGATION_GATE_M &&
         ++streak < NAVIGATION_RELOCALIZE)
     {
         ++rejected;
         return false;
     }
     streak = 0;
-    estimate = { p_fix.pose.position.x, p_fix.pose.position.y,
+    estimate = { p_fix.pose.position.x,
+                 p_fix.pose.position.y,
                  robotik::yawOf(p_fix.pose.rotation) };
     ++fixes;
     last_fix = p_stamp;
@@ -76,7 +78,8 @@ void LocalizeSkill::reset()
     m_phase = 0.0;
 }
 
-robotik::Status LocalizeSkill::tick(robotik::RobotContext& /*p_context*/, Seconds p_dt)
+robotik::Status LocalizeSkill::tick(robotik::RobotContext& /*p_context*/,
+                                    Seconds p_dt)
 {
     if (m_navigation.fixes > m_fixes)
     {
@@ -118,7 +121,8 @@ void ReachLineSkill::reset()
     m_elapsed = 0.0;
 }
 
-robotik::Status ReachLineSkill::tick(robotik::RobotContext& /*p_context*/, Seconds p_dt)
+robotik::Status ReachLineSkill::tick(robotik::RobotContext& /*p_context*/,
+                                     Seconds p_dt)
 {
     Pose2 const& pose = m_navigation.estimate;
     if (!m_started)
@@ -141,8 +145,10 @@ robotik::Status ReachLineSkill::tick(robotik::RobotContext& /*p_context*/, Secon
         m_wheels.stop();
         return robotik::Status::SUCCESS;
     }
-    double const bearing = std::remainder(std::atan2(dy, dx) - pose.yaw, 2.0 * std::numbers::pi);
-    m_wheels.drive(REACH_SPEED * std::max(std::cos(bearing), 0.0), REACH_GAIN * bearing);
+    double const bearing =
+        std::remainder(std::atan2(dy, dx) - pose.yaw, 2.0 * std::numbers::pi);
+    m_wheels.drive(REACH_SPEED * std::max(std::cos(bearing), 0.0),
+                   REACH_GAIN * bearing);
     return robotik::Status::RUNNING;
 }
 
@@ -161,7 +167,8 @@ void FollowLineSkill::reset()
     m_seen = Seconds(-1.0);
 }
 
-robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context,
+                                      Seconds p_dt)
 {
     Track const& track = m_navigation.track;
     Pose2 const& pose = m_navigation.estimate;
@@ -193,12 +200,14 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context, Seconds 
         if (ray.z < -1e-6)
         {
             double const t = (floor - detections.camera.position.z) / ray.z;
-            double const x = detections.camera.position.x + t * ray.x - m_wheels.model.axle;
+            double const x =
+                detections.camera.position.x + t * ray.x - m_wheels.model.axle;
             double const y = detections.camera.position.y + t * ray.y;
             m_turn = 2.0 * y / (x * x + y * y);
         }
     }
-    double const age = m_seen.value() < 0.0 ? m_elapsed : (p_context.time - m_seen).value();
+    double const age =
+        m_seen.value() < 0.0 ? m_elapsed : (p_context.time - m_seen).value();
     if (age > FOLLOW_GIVE_UP_S)
     {
         m_wheels.stop();
@@ -206,10 +215,15 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context, Seconds 
     }
     if (m_seen.value() < 0.0 || age > FOLLOW_LOST_S)
     {
-        m_wheels.drive(0.0, m_turn >= 0.0 ? FOLLOW_SEARCH_YAW_RATE : -FOLLOW_SEARCH_YAW_RATE);
+        m_wheels.drive(0.0,
+                       m_turn >= 0.0 ? FOLLOW_SEARCH_YAW_RATE
+                                     : -FOLLOW_SEARCH_YAW_RATE);
         return robotik::Status::RUNNING;
     }
-    m_wheels.drive(m_speed, std::clamp(m_speed * m_turn, -FOLLOW_MAX_YAW_RATE, FOLLOW_MAX_YAW_RATE));
+    m_wheels.drive(m_speed,
+                   std::clamp(m_speed * m_turn,
+                              -FOLLOW_MAX_YAW_RATE,
+                              FOLLOW_MAX_YAW_RATE));
     return robotik::Status::RUNNING;
 }
 

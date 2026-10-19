@@ -50,9 +50,10 @@ static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
     UrdfRobot result{ robot.attribute("name").as_string(), {} };
     for (pugi::xml_node node : robot.children("joint"))
     {
-        result.joints.push_back({ node.attribute("name").as_string(),
-                                  node.attribute("type").as_string(),
-                                  node.child("child").attribute("link").as_string() });
+        result.joints.push_back(
+            { node.attribute("name").as_string(),
+              node.attribute("type").as_string(),
+              node.child("child").attribute("link").as_string() });
     }
     return result;
 }
@@ -66,7 +67,7 @@ static bool moving(std::string_view p_type)
 
 /// Depth-first search of an entity by name.
 static compages::world::Entity findNamed(compages::world::Entity p_root,
-                                  std::string_view p_name)
+                                         std::string_view p_name)
 {
     if (!p_root || p_root.name() == p_name)
     {
@@ -103,8 +104,8 @@ static compages::core::Quatf toFloat(Quaternion const& p_q)
 
 /// Loads a tool URDF, through the view when one is attached.
 static compages::world::Entity loadTool(compages::world::World& p_world,
-                                 std::filesystem::path const& p_urdf,
-                                 SceneView* p_view)
+                                        std::filesystem::path const& p_urdf,
+                                        SceneView* p_view)
 {
     if (p_view != nullptr)
     {
@@ -120,9 +121,9 @@ static compages::world::Entity loadTool(compages::world::World& p_world,
 
 /// Parents the tool mount frame on the robot flange.
 static void mountTool(compages::world::World& p_world,
-               compages::world::Entity p_robot,
-               std::filesystem::path const& p_tool,
-               SceneView* p_view)
+                      compages::world::Entity p_robot,
+                      std::filesystem::path const& p_tool,
+                      SceneView* p_view)
 {
     compages::world::Entity const wrapper = loadTool(p_world, p_tool, p_view);
     compages::world::Entity const mount = findNamed(wrapper, "tool_mount");
@@ -152,7 +153,8 @@ Robot::Robot(compages::world::World& p_world,
              std::shared_ptr<ResourceManager> p_resources)
     : m_world(p_world),
       m_kinematics(std::make_unique<PinocchioBackend>(p_urdf, p_tool)),
-      m_resources(p_resources ? std::move(p_resources) : std::make_shared<ResourceManager>()),
+      m_resources(p_resources ? std::move(p_resources)
+                              : std::make_shared<ResourceManager>()),
       m_sensors(*this, *m_resources),
       m_actuators(*this, *m_resources)
 {
@@ -210,8 +212,9 @@ Robot::Robot(compages::world::World& p_world,
             compages::world::Entity link = findNamed(m_root, joint.child);
             if (!link)
             {
-                throw std::runtime_error("Compages has no link '" + joint.child +
-                                         "' for joint '" + joint.name + "'");
+                throw std::runtime_error("Compages has no link '" +
+                                         joint.child + "' for joint '" +
+                                         joint.name + "'");
             }
             m_joints.add(joint.name, link);
             m_q_indices.push_back(m_kinematics->qIndex(joint.name));

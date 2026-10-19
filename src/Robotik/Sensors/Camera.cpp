@@ -95,13 +95,14 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
         callback(m_frame);
     }
 
-    compages::world::Entity holder =
-        m_config.parent.empty() ? p_robot.root()
-                                : p_robot.link(m_config.parent);
+    compages::world::Entity holder = m_config.parent.empty()
+                                         ? p_robot.root()
+                                         : p_robot.link(m_config.parent);
     if (holder)
     {
         CameraReading reading;
-        static_cast<Measurement&>(reading) = static_cast<Measurement const&>(m_frame);
+        static_cast<Measurement&>(reading) =
+            static_cast<Measurement const&>(m_frame);
         reading.pose = m_frame.pose;
         reading.width = m_frame.intrinsics.width;
         reading.height = m_frame.intrinsics.height;

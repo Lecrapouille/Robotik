@@ -9,8 +9,8 @@
 
 #include "SimulatorView.hpp"
 
-#include "Robotik/Robot/TeachPendant.hpp"
 #include "Robotik/Plugin/PluginSession.hpp"
+#include "Robotik/Robot/TeachPendant.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 #include "Robotik/Scenario/Experiment.hpp"

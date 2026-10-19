@@ -22,7 +22,8 @@ struct Window
     bool open();
     ~Window();
 
-    /// @brief Scroll accumulated since the last beginInputFrame() (GLFW y offset).
+    /// @brief Scroll accumulated since the last beginInputFrame() (GLFW y
+    /// offset).
     [[nodiscard]] float scroll() const
     {
         return m_scroll;

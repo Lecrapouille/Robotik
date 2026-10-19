@@ -108,8 +108,9 @@ void WorldModel::update(Detections const& p_detections)
         else
         {
             // Monocular: the center lies on the top plane of the object.
-            Vector3 const ray = camera.rotation * p_detections.intrinsics.ray(
-                detection.center[0], detection.center[1]);
+            Vector3 const ray =
+                camera.rotation * p_detections.intrinsics.ray(
+                                      detection.center[0], detection.center[1]);
             double const height = object->top() - camera.position.z;
             if (std::abs(ray.z) < 1e-9 || height / ray.z <= 0.0)
             {
@@ -117,7 +118,8 @@ void WorldModel::update(Detections const& p_detections)
             }
             point = camera.position + ray * (height / ray.z);
         }
-        (void)observe(detection.label, point, detection.confidence, p_detections.stamp);
+        (void)observe(
+            detection.label, point, detection.confidence, p_detections.stamp);
     }
 }
 

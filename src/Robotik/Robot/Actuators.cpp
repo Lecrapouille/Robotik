@@ -167,8 +167,7 @@ Pose VacuumGripper::flange(Robot const& p_robot) const
 
 Vector3 VacuumGripper::tip(Robot const& p_robot, Length p_extra) const
 {
-    return flange(p_robot) *
-           Vector3(0.0, 0.0, (m_length + p_extra).value());
+    return flange(p_robot) * Vector3(0.0, 0.0, (m_length + p_extra).value());
 }
 
 } // namespace robotik

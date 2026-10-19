@@ -282,10 +282,10 @@ void ShiuNetwork::substep()
             if (m_refractory[neuron] <= 0.0f)
             {
                 m_refractory[neuron] = 0.0f;
-                active = std::bit_cast<std::uint32_t>(m_conductance[neuron]) !=
-                             0u ||
-                         std::bit_cast<std::uint32_t>(m_voltage[neuron]) !=
-                             rest_bits;
+                active =
+                    std::bit_cast<std::uint32_t>(m_conductance[neuron]) != 0u ||
+                    std::bit_cast<std::uint32_t>(m_voltage[neuron]) !=
+                        rest_bits;
             }
         }
         else
@@ -348,7 +348,8 @@ void ShiuNetwork::substep()
     {
         float* outgoing =
             m_ring.data() + static_cast<std::size_t>(future) * m_count;
-        std::uint32_t const due = m_step + static_cast<std::uint32_t>(DELAY_STEPS);
+        std::uint32_t const due =
+            m_step + static_cast<std::uint32_t>(DELAY_STEPS);
         for (std::uint32_t neuron : m_fired)
         {
             for (std::uint32_t edge = m_row[neuron]; edge < m_row[neuron + 1u];

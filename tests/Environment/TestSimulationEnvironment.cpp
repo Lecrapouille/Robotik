@@ -29,8 +29,9 @@ static robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
 /// Loads the pick-and-place scenario used by these tests.
 static robotik::Scenario scenario()
 {
-    return robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-                                   testAssets());
+    return robotik::Scenario::load(
+        repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+        testAssets());
 }
 
 /// Throws on the third action: a solver that gives up.
@@ -43,7 +44,8 @@ public:
         return robotik::Space::unnamed("a", 4u);
     }
 
-    void apply(std::span<float const> /*p_action*/, robotik::Simulation& /*p_simulation*/) override
+    void apply(std::span<float const> /*p_action*/,
+               robotik::Simulation& /*p_simulation*/) override
     {
         if (++m_calls == 3)
         {
@@ -58,7 +60,8 @@ private:
 
 TEST(SimulationEnvironment, SpacesAreNamedBoundedAndHonest)
 {
-    robotik::SimulationEnvironment environment(scenario(), pickPlaceParts(), timing(20));
+    robotik::SimulationEnvironment environment(
+        scenario(), pickPlaceParts(), timing(20));
     robotik::Space const observation = environment.observationSpace();
     ASSERT_EQ(environment.observationSize(), PICK_PLACE_OBSERVATIONS);
     EXPECT_EQ(environment.actionSize(), PICK_PLACE_ACTIONS);
@@ -76,7 +79,8 @@ TEST(SimulationEnvironment, SpacesAreNamedBoundedAndHonest)
 
 TEST(SimulationEnvironment, ResetReplaysAndSeedsDiffer)
 {
-    robotik::SimulationEnvironment environment(scenario(), pickPlaceParts(), timing(20));
+    robotik::SimulationEnvironment environment(
+        scenario(), pickPlaceParts(), timing(20));
     std::vector<float> first(environment.observationSize());
     std::vector<float> again(environment.observationSize());
     std::vector<float> other(environment.observationSize());
@@ -92,7 +96,8 @@ TEST(SimulationEnvironment, ResetReplaysAndSeedsDiffer)
 
 TEST(SimulationEnvironment, TimeLimitTruncatesWithoutEndingTheTask)
 {
-    robotik::SimulationEnvironment environment(scenario(), pickPlaceParts(), timing(3));
+    robotik::SimulationEnvironment environment(
+        scenario(), pickPlaceParts(), timing(3));
     std::vector<float> observation(environment.observationSize());
     std::vector<float> const still(environment.actionSize(), 0.0f);
     environment.reset(robotik::Seed{ 1 }, observation);
@@ -105,19 +110,23 @@ TEST(SimulationEnvironment, TimeLimitTruncatesWithoutEndingTheTask)
     EXPECT_TRUE(result.truncated());
     EXPECT_FALSE(result.terminated());
     EXPECT_FLOAT_EQ(observation[14], 1.0f) << "progress";
-    EXPECT_NEAR(environment.simulation().time().value(), 0.3, 1e-9) << "three control periods";
+    EXPECT_NEAR(environment.simulation().time().value(), 0.3, 1e-9)
+        << "three control periods";
 }
 
 TEST(SimulationEnvironment, ATechnicalErrorAbortsTheEpisode)
 {
     robotik::SimulationEnvironment::Parts parts = pickPlaceParts();
     parts.action = std::make_unique<Fragile>();
-    robotik::SimulationEnvironment environment(scenario(), std::move(parts), timing(20));
+    robotik::SimulationEnvironment environment(
+        scenario(), std::move(parts), timing(20));
     std::vector<float> observation(environment.observationSize());
     std::vector<float> const action(environment.actionSize(), 0.0f);
     environment.reset(robotik::Seed{ 1 }, observation);
-    EXPECT_EQ(environment.step(action, observation).end, robotik::EpisodeEnd::None);
-    EXPECT_EQ(environment.step(action, observation).end, robotik::EpisodeEnd::None);
+    EXPECT_EQ(environment.step(action, observation).end,
+              robotik::EpisodeEnd::None);
+    EXPECT_EQ(environment.step(action, observation).end,
+              robotik::EpisodeEnd::None);
     robotik::StepResult const result = environment.step(action, observation);
     EXPECT_EQ(result.end, robotik::EpisodeEnd::Aborted);
     EXPECT_TRUE(result.truncated());
@@ -128,12 +137,14 @@ TEST(SimulationEnvironment, InvalidPartsOrTimingAreRefused)
 {
     robotik::SimulationEnvironment::Parts missing = pickPlaceParts();
     missing.reward.reset();
-    EXPECT_THROW(robotik::SimulationEnvironment(scenario(), std::move(missing), timing(10)),
+    EXPECT_THROW(robotik::SimulationEnvironment(
+                     scenario(), std::move(missing), timing(10)),
                  std::invalid_argument);
     robotik::EnvironmentTiming odd = timing(10);
     odd.control_period = Seconds(0.015);
-    EXPECT_THROW(robotik::SimulationEnvironment(scenario(), pickPlaceParts(), odd),
-                 std::invalid_argument);
+    EXPECT_THROW(
+        robotik::SimulationEnvironment(scenario(), pickPlaceParts(), odd),
+        std::invalid_argument);
 }
 
 TEST(EpisodeLog, KeepsWhatAReplayNeeds)
@@ -142,7 +153,8 @@ TEST(EpisodeLog, KeepsWhatAReplayNeeds)
     log.scenario = "pick_and_place";
     log.policy = "converged";
     log.master_seed = 9;
-    log.observation.add("x", -1.0f, 1.0f, "m").add("hint", 0.0f, 1.0f, "", true);
+    log.observation.add("x", -1.0f, 1.0f, "m")
+        .add("hint", 0.0f, 1.0f, "", true);
     std::vector<robotik::Episode> episodes(1);
     episodes[0].seed = robotik::Seed{ 42 };
     episodes[0].end = robotik::EpisodeEnd::TimeLimit;

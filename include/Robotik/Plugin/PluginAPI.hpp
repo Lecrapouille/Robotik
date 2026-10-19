@@ -6,7 +6,35 @@
 // See LICENSING.md for details.
 
 /// @file PluginAPI.hpp
-/// @brief C++ helpers for a demo plugin. The exported symbols stay C.
+/// C++ helpers for a demo plugin. The exported symbols stay C.
+///
+/// A plugin derives from @ref Plugin, gives a static @c describe(), and
+/// exports itself with @ref ROBOTIK_EXPORT_PLUGIN. The helpers turn the C
+/// calls of @c PluginABI.h into virtual calls, and C++ exceptions into error
+/// statuses: nothing C++ crosses the border.
+///
+/// @code
+/// class MyPlugin final : public robotik::Plugin
+/// {
+/// public:
+///     static robotik::PluginInfo describe() { return { .id =
+///     "robotik.my_plugin" }; }
+///
+///     RobotikPluginStatus setup(robotik::Host& p_host, std::string_view
+///     p_scenario) override
+///     {
+///         if (p_scenario != "demo")
+///             return ROBOTIK_PLUGIN_ERR_SETUP;
+///         m_mission = std::make_unique<MyMission>();
+///         p_host.bindMission(*m_mission);
+///         return ROBOTIK_PLUGIN_OK;
+///     }
+/// private:
+///     std::unique_ptr<MyMission> m_mission;
+/// };
+///
+/// ROBOTIK_EXPORT_PLUGIN(MyPlugin)
+/// @endcode
 #pragma once
 
 #include "Robotik/Plugin/PluginABI.h"
@@ -26,30 +54,62 @@ class Mission;
 class Simulation;
 
 // ****************************************************************************
-/// @brief Identity published by @c robotik_plugin_query, before any instance.
+/// Identity published by @c robotik_plugin_query, before any instance.
 ///
 /// @c plugin.yaml is the description of the package: the host only checks
 /// that @ref id matches it. The other fields are optional.
+///
+/// @code
+/// static robotik::PluginInfo describe()
+/// {
+///     return { .id = "robotik.hello_world", .name = "Hello world" };
+/// }
+/// @endcode
 // ****************************************************************************
 struct PluginInfo
 {
+    /// Plugin id; must equal @c plugin.id of @c plugin.yaml.
     std::string id{};
+    /// Name shown to the user.
     std::string name{};
+    /// Version text.
     std::string version{};
+    /// Group in the plugin list.
     std::string category{};
 };
 
 // ****************************************************************************
-/// @brief Drawing surface implemented by the host. Valid only during a draw.
+/// Drawing surface implemented by the host. Valid only during a draw.
+///
+/// Every method does nothing (or returns false) when the host does not
+/// provide the widget, so a panel also works with an older host.
+///
+/// @code
+/// static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
+/// {
+///     auto* self = static_cast<MyPlugin*>(p_user);
+///     robotik::Canvas canvas(p_canvas);
+///     canvas.text("Laps: " + std::to_string(self->laps));
+///     if (canvas.button("Reset"))
+///         self->laps = 0;
+///     canvas.checkbox("Show path", self->show_path);
+/// }
+/// @endcode
 // ****************************************************************************
 class Canvas
 {
 public:
 
-    explicit Canvas(RobotikCanvas const* p_canvas = nullptr) : m_canvas(p_canvas)
+    /// @param p_canvas Canvas given by the host to the draw function.
+    explicit Canvas(RobotikCanvas const* p_canvas = nullptr)
+        : m_canvas(p_canvas)
     {
     }
 
+    // -------------------------------------------------------------------------
+    /// Writes one line of text.
+    /// @param p_line Text to write.
+    // -------------------------------------------------------------------------
     void text(std::string_view p_line) const
     {
         if (m_canvas == nullptr || m_canvas->text == nullptr ||
@@ -61,6 +121,13 @@ public:
         m_canvas->text(m_canvas, line.c_str());
     }
 
+    // -------------------------------------------------------------------------
+    /// Writes one line of text in a color.
+    /// @param p_red Red in [0, 1].
+    /// @param p_green Green in [0, 1].
+    /// @param p_blue Blue in [0, 1].
+    /// @param p_line Text to write.
+    // -------------------------------------------------------------------------
     void textColored(float p_red,
                      float p_green,
                      float p_blue,
@@ -75,6 +142,11 @@ public:
         m_canvas->text_colored(m_canvas, p_red, p_green, p_blue, line.c_str());
     }
 
+    // -------------------------------------------------------------------------
+    /// Draws a button.
+    /// @param p_label Text on the button.
+    /// @return True when clicked.
+    // -------------------------------------------------------------------------
     [[nodiscard]] bool button(std::string_view p_label) const
     {
         if (m_canvas == nullptr || m_canvas->button == nullptr)
@@ -85,6 +157,12 @@ public:
         return m_canvas->button(m_canvas, label.c_str()) != 0;
     }
 
+    // -------------------------------------------------------------------------
+    /// Draws a check box bound to a boolean.
+    /// @param p_label Text next to the box.
+    /// @param p_value Value shown and changed by the user.
+    /// @return True when the user changed it.
+    // -------------------------------------------------------------------------
     [[nodiscard]] bool checkbox(std::string_view p_label, bool& p_value) const
     {
         if (m_canvas == nullptr || m_canvas->checkbox == nullptr)
@@ -93,26 +171,45 @@ public:
         }
         int value = p_value ? 1 : 0;
         std::string label(p_label);
-        bool const changed = m_canvas->checkbox(m_canvas, label.c_str(), &value) != 0;
+        bool const changed =
+            m_canvas->checkbox(m_canvas, label.c_str(), &value) != 0;
         p_value = value != 0;
         return changed;
     }
 
-    [[nodiscard]] bool sliderInt(std::string_view p_label, int& p_value, int p_min, int p_max) const
+    // -------------------------------------------------------------------------
+    /// Draws an integer slider.
+    /// @param p_label Text next to the slider.
+    /// @param p_value Value shown and changed by the user.
+    /// @param p_min Lowest value.
+    /// @param p_max Highest value.
+    /// @return True when the user changed it.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] bool sliderInt(std::string_view p_label,
+                                 int& p_value,
+                                 int p_min,
+                                 int p_max) const
     {
         if (m_canvas == nullptr || m_canvas->slider_int == nullptr)
         {
             return false;
         }
         std::string label(p_label);
-        return m_canvas->slider_int(m_canvas, label.c_str(), &p_value, p_min, p_max) != 0;
+        return m_canvas->slider_int(
+                   m_canvas, label.c_str(), &p_value, p_min, p_max) != 0;
     }
 
-    /// @brief Radio button: drawn selected when @p_active. True when clicked.
+    // -------------------------------------------------------------------------
+    /// Draws a radio button.
+    /// @param p_label Text next to the button.
+    /// @param p_active True to draw it selected.
+    /// @return True when clicked.
+    // -------------------------------------------------------------------------
     [[nodiscard]] bool radio(std::string_view p_label, bool p_active) const
     {
         if (m_canvas == nullptr ||
-            m_canvas->size < offsetof(RobotikCanvas, radio) + sizeof(m_canvas->radio) ||
+            m_canvas->size <
+                offsetof(RobotikCanvas, radio) + sizeof(m_canvas->radio) ||
             m_canvas->radio == nullptr)
         {
             return false;
@@ -121,6 +218,7 @@ public:
         return m_canvas->radio(m_canvas, label.c_str(), p_active ? 1 : 0) != 0;
     }
 
+    /// Draws a horizontal line.
     void separator() const
     {
         if (m_canvas != nullptr && m_canvas->separator != nullptr)
@@ -131,33 +229,60 @@ public:
 
 private:
 
+    /// C canvas of the host, or null.
     RobotikCanvas const* m_canvas = nullptr;
 };
 
 // ****************************************************************************
-/// @brief Services of the host, seen from the plugin.
+/// Services of the host, seen from the plugin.
+///
+/// A cheap copyable view of the C API; every method does nothing when the
+/// host lacks the service.
+///
+/// @code
+/// p_host.log(ROBOTIK_LOG_INFO, "ready");
+/// p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
+/// p_host.addMenuItem("My plugin", "Home", &onHome, this);
+/// p_host.addPanel("my_plugin", "My plugin", &onDraw, this);
+/// @endcode
 // ****************************************************************************
 class Host
 {
 public:
 
+    /// Host without services.
     Host() = default;
 
+    /// @param p_api C services of the host; must outlive this view.
     Host(RobotikHostAPI const* p_api) : m_api(p_api) {}
 
+    // -------------------------------------------------------------------------
+    /// @return True when connected to a host.
+    // -------------------------------------------------------------------------
     [[nodiscard]] bool valid() const
     {
         return m_api != nullptr && m_api->host != nullptr;
     }
 
+    // -------------------------------------------------------------------------
+    /// Writes a message in the host log.
+    /// @param p_level @c ROBOTIK_LOG_INFO, @c ROBOTIK_LOG_WARNING or
+    ///   @c ROBOTIK_LOG_ERROR.
+    /// @param p_message Text to write.
+    // -------------------------------------------------------------------------
     void log(int p_level, std::string_view p_message) const
     {
         call(m_api != nullptr ? m_api->log : nullptr, p_level, p_message);
     }
 
+    // -------------------------------------------------------------------------
+    /// Reports an error to the host, shown to the user.
+    /// @param p_message What went wrong.
+    // -------------------------------------------------------------------------
     void error(std::string_view p_message) const
     {
-        if (m_api == nullptr || m_api->report_error == nullptr || m_api->host == nullptr)
+        if (m_api == nullptr || m_api->report_error == nullptr ||
+            m_api->host == nullptr)
         {
             return;
         }
@@ -165,53 +290,87 @@ public:
         m_api->report_error(m_api->host, text.c_str());
     }
 
+    // -------------------------------------------------------------------------
+    /// Asks for one kind of event; only those reach @ref Plugin::onEvent.
+    /// @param p_kind Kind of event.
+    // -------------------------------------------------------------------------
     void subscribe(RobotikEventKind p_kind) const
     {
-        if (m_api != nullptr && m_api->subscribe != nullptr && m_api->host != nullptr)
+        if (m_api != nullptr && m_api->subscribe != nullptr &&
+            m_api->host != nullptr)
         {
             m_api->subscribe(m_api->host, static_cast<std::uint32_t>(p_kind));
         }
     }
 
+    // -------------------------------------------------------------------------
+    /// Adds a menu entry.
+    /// @param p_menu Menu holding the entry.
+    /// @param p_item Text of the entry.
+    /// @param p_callback Called with @p_user when the user picks it.
+    /// @param p_user Pointer given back to @p_callback (often @c this).
+    /// @return Handle for @ref removeUi, or 0 on failure.
+    // -------------------------------------------------------------------------
     std::uint32_t addMenuItem(std::string_view p_menu,
                               std::string_view p_item,
                               void (*p_callback)(void*),
                               void* p_user) const
     {
-        if (m_api == nullptr || m_api->add_menu_item == nullptr || m_api->host == nullptr)
+        if (m_api == nullptr || m_api->add_menu_item == nullptr ||
+            m_api->host == nullptr)
         {
             return 0;
         }
         std::string menu(p_menu);
         std::string item(p_item);
-        return m_api->add_menu_item(m_api->host, menu.c_str(), item.c_str(), p_callback, p_user);
+        return m_api->add_menu_item(
+            m_api->host, menu.c_str(), item.c_str(), p_callback, p_user);
     }
 
+    // -------------------------------------------------------------------------
+    /// Adds a panel, drawn every frame.
+    /// @param p_id Stable key, to remember the layout.
+    /// @param p_title Window title.
+    /// @param p_draw Called with @p_user and a canvas (see @ref Canvas).
+    /// @param p_user Pointer given back to @p_draw (often @c this).
+    /// @return Handle for @ref removeUi, or 0 on failure.
+    // -------------------------------------------------------------------------
     std::uint32_t addPanel(std::string_view p_id,
                            std::string_view p_title,
                            void (*p_draw)(void*, RobotikCanvas const*),
                            void* p_user) const
     {
-        if (m_api == nullptr || m_api->add_panel == nullptr || m_api->host == nullptr)
+        if (m_api == nullptr || m_api->add_panel == nullptr ||
+            m_api->host == nullptr)
         {
             return 0;
         }
         std::string id(p_id);
         std::string title(p_title);
-        return m_api->add_panel(m_api->host, id.c_str(), title.c_str(), p_draw, p_user);
+        return m_api->add_panel(
+            m_api->host, id.c_str(), title.c_str(), p_draw, p_user);
     }
 
+    // -------------------------------------------------------------------------
+    /// Removes a menu entry or a panel.
+    /// @param p_handle Handle returned by @ref addMenuItem or @ref addPanel.
+    // -------------------------------------------------------------------------
     void removeUi(std::uint32_t p_handle) const
     {
-        if (m_api != nullptr && m_api->remove_ui != nullptr && m_api->host != nullptr)
+        if (m_api != nullptr && m_api->remove_ui != nullptr &&
+            m_api->host != nullptr)
         {
             m_api->remove_ui(m_api->host, p_handle);
         }
     }
 
+    // -------------------------------------------------------------------------
+    /// @return The scenario file being run, or empty.
+    // -------------------------------------------------------------------------
     [[nodiscard]] std::string scenarioPath() const
     {
-        if (m_api == nullptr || m_api->scenario_path == nullptr || m_api->host == nullptr)
+        if (m_api == nullptr || m_api->scenario_path == nullptr ||
+            m_api->host == nullptr)
         {
             return {};
         }
@@ -219,13 +378,24 @@ public:
         return path != nullptr ? std::string(path) : std::string{};
     }
 
+    // -------------------------------------------------------------------------
+    /// @return The simulation of the run, or null (before it is built, or
+    ///   after it is destroyed).
+    // -------------------------------------------------------------------------
     [[nodiscard]] Simulation* simulation() const;
 
+    // -------------------------------------------------------------------------
+    /// Gives the host the mission of the plugin; the host passes it to the
+    /// simulation it builds. Call it in @ref Plugin::setup.
+    /// @param p_mission Mission owned by the plugin; must outlive the run.
+    // -------------------------------------------------------------------------
     void bindMission(Mission& p_mission) const;
 
 private:
 
-    void call(RobotikLogFn p_function, int p_level, std::string_view p_message) const
+    /// Calls a log function of the host with a C string.
+    void
+    call(RobotikLogFn p_function, int p_level, std::string_view p_message) const
     {
         if (p_function == nullptr || m_api == nullptr || m_api->host == nullptr)
         {
@@ -235,13 +405,31 @@ private:
         p_function(m_api->host, p_level, text.c_str());
     }
 
+    /// C services of the host, or null.
     RobotikHostAPI const* m_api = nullptr;
 };
 
 // ****************************************************************************
-/// @brief Base of a plugin instance. Override the steps the demo needs.
+/// Base of a plugin instance. Override the steps the demo needs.
 ///
 /// @c describe is static because the host reads it before @c create.
+/// Every step returns @c ROBOTIK_PLUGIN_OK by default. An exception thrown
+/// by a step is caught, reported with @ref Host::error and turned into
+/// @c ROBOTIK_PLUGIN_ERR_RUNTIME.
+///
+/// The host calls: @ref setup, @ref start, then @ref update after each
+/// simulation step (and @ref onEvent, @ref pause when they happen), then
+/// @ref stop and @ref shutdown.
+///
+/// @code
+/// RobotikPluginStatus MyPlugin::onEvent(robotik::Host&, RobotikEvent const&
+/// p_event)
+/// {
+///     if (p_event.kind == ROBOTIK_EVENT_KEY_PRESSED && p_event.code == 'H')
+///         home();
+///     return ROBOTIK_PLUGIN_OK;
+/// }
+/// @endcode
 // ****************************************************************************
 class Plugin
 {
@@ -249,74 +437,133 @@ public:
 
     virtual ~Plugin() = default;
 
-    virtual RobotikPluginStatus setup(Host& /*p_host*/, std::string_view /*p_scenario*/)
+    // -------------------------------------------------------------------------
+    /// Prepares a scenario, before the simulation exists: create the mission
+    /// and bind it (@ref Host::bindMission), add menus and panels.
+    /// @param p_host Services of the host.
+    /// @param p_scenario Scenario id, as listed in @c plugin.yaml.
+    /// @return @c ROBOTIK_PLUGIN_ERR_SETUP for an unknown scenario.
+    // -------------------------------------------------------------------------
+    virtual RobotikPluginStatus setup(Host& /*p_host*/,
+                                      std::string_view /*p_scenario*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
+    // -------------------------------------------------------------------------
+    /// The run starts.
+    /// @param p_host Services of the host.
+    /// @return The status.
+    // -------------------------------------------------------------------------
     virtual RobotikPluginStatus start(Host& /*p_host*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
+    // -------------------------------------------------------------------------
+    /// Called after each simulation step.
+    /// @param p_host Services of the host.
+    /// @param p_dt Duration of the step (s).
+    /// @return The status.
+    // -------------------------------------------------------------------------
     virtual RobotikPluginStatus update(Host& /*p_host*/, double /*p_dt*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
-    virtual RobotikPluginStatus onEvent(Host& /*p_host*/, RobotikEvent const& /*p_event*/)
+    // -------------------------------------------------------------------------
+    /// Receives an event subscribed with @ref Host::subscribe.
+    /// @param p_host Services of the host.
+    /// @param p_event The event.
+    /// @return The status.
+    // -------------------------------------------------------------------------
+    virtual RobotikPluginStatus onEvent(Host& /*p_host*/,
+                                        RobotikEvent const& /*p_event*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
+    // -------------------------------------------------------------------------
+    /// The run is paused or resumed.
+    /// @param p_host Services of the host.
+    /// @param p_paused True when paused.
+    /// @return The status.
+    // -------------------------------------------------------------------------
     virtual RobotikPluginStatus pause(Host& /*p_host*/, bool /*p_paused*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
+    // -------------------------------------------------------------------------
+    /// The run ended.
+    /// @param p_host Services of the host.
+    /// @return The status.
+    // -------------------------------------------------------------------------
     virtual RobotikPluginStatus stop(Host& /*p_host*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 
+    // -------------------------------------------------------------------------
+    /// The host destroyed the simulation: free the mission and the rest.
+    /// @param p_host Services of the host.
+    /// @return The status.
+    // -------------------------------------------------------------------------
     virtual RobotikPluginStatus shutdown(Host& /*p_host*/)
     {
         return ROBOTIK_PLUGIN_OK;
     }
 };
 
+/// Glue behind @ref ROBOTIK_EXPORT_PLUGIN. Not for plugin code.
 namespace plugin_detail
 {
 
+// ----------------------------------------------------------------------------
+/// What the host sees as a @c RobotikPlugin: a copy of the host API and the
+/// C++ plugin object.
+/// @tparam T Plugin class.
+// ----------------------------------------------------------------------------
 template <class T>
 struct Box
 {
-    RobotikHostAPI api{};
-    T object;
+    RobotikHostAPI api{}; ///< Copy of the services of the host.
+    T object;             ///< The plugin.
 };
 
+/// @return The box behind an opaque plugin pointer.
 template <class T>
 Box<T>* boxOf(RobotikPlugin* p_plugin)
 {
     return reinterpret_cast<Box<T>*>(p_plugin);
 }
 
+/// @return A @ref Host view on the services stored in the box.
 template <class T>
 Host hostOf(Box<T>* p_box)
 {
     return Host(p_box != nullptr ? &p_box->api : nullptr);
 }
 
+/// Reports @p_message to the host, if it can receive it.
 inline void report(RobotikHostAPI const* p_api, char const* p_message)
 {
-    if (p_api != nullptr && p_api->report_error != nullptr && p_api->host != nullptr &&
-        p_message != nullptr)
+    if (p_api != nullptr && p_api->report_error != nullptr &&
+        p_api->host != nullptr && p_message != nullptr)
     {
         p_api->report_error(p_api->host, p_message);
     }
 }
 
-inline bool copyField(char* p_dest, std::size_t p_capacity, std::string_view p_value)
+// ----------------------------------------------------------------------------
+/// Copies a string into a fixed C buffer, final zero included.
+/// @param p_dest Destination buffer.
+/// @param p_capacity Size of the buffer.
+/// @param p_value Text to copy.
+/// @return False when the text does not fit.
+// ----------------------------------------------------------------------------
+inline bool
+copyField(char* p_dest, std::size_t p_capacity, std::string_view p_value)
 {
     if (p_dest == nullptr || p_value.size() + 1u > p_capacity)
     {
@@ -330,6 +577,7 @@ inline bool copyField(char* p_dest, std::size_t p_capacity, std::string_view p_v
     return true;
 }
 
+/// C entry calling @ref Plugin::setup; exceptions become an error status.
 template <class T>
 RobotikPluginStatus setupThunk(RobotikPlugin* p_plugin, char const* p_scenario)
 {
@@ -341,7 +589,8 @@ RobotikPluginStatus setupThunk(RobotikPlugin* p_plugin, char const* p_scenario)
     try
     {
         Host host = hostOf(self);
-        return self->object.setup(host, p_scenario != nullptr ? p_scenario : "");
+        return self->object.setup(host,
+                                  p_scenario != nullptr ? p_scenario : "");
     }
     catch (std::exception const& error)
     {
@@ -355,6 +604,7 @@ RobotikPluginStatus setupThunk(RobotikPlugin* p_plugin, char const* p_scenario)
     }
 }
 
+/// C entry calling @ref Plugin::start; exceptions become an error status.
 template <class T>
 RobotikPluginStatus startThunk(RobotikPlugin* p_plugin)
 {
@@ -380,6 +630,7 @@ RobotikPluginStatus startThunk(RobotikPlugin* p_plugin)
     }
 }
 
+/// C entry calling @ref Plugin::update; exceptions become an error status.
 template <class T>
 RobotikPluginStatus updateThunk(RobotikPlugin* p_plugin, double p_dt)
 {
@@ -405,8 +656,10 @@ RobotikPluginStatus updateThunk(RobotikPlugin* p_plugin, double p_dt)
     }
 }
 
+/// C entry calling @ref Plugin::onEvent; exceptions become an error status.
 template <class T>
-RobotikPluginStatus eventThunk(RobotikPlugin* p_plugin, RobotikEvent const* p_event)
+RobotikPluginStatus eventThunk(RobotikPlugin* p_plugin,
+                               RobotikEvent const* p_event)
 {
     Box<T>* self = boxOf<T>(p_plugin);
     if (self == nullptr || p_event == nullptr)
@@ -430,6 +683,7 @@ RobotikPluginStatus eventThunk(RobotikPlugin* p_plugin, RobotikEvent const* p_ev
     }
 }
 
+/// C entry calling @ref Plugin::pause; exceptions become an error status.
 template <class T>
 RobotikPluginStatus pauseThunk(RobotikPlugin* p_plugin, int p_paused)
 {
@@ -455,6 +709,7 @@ RobotikPluginStatus pauseThunk(RobotikPlugin* p_plugin, int p_paused)
     }
 }
 
+/// C entry calling @ref Plugin::stop; exceptions become an error status.
 template <class T>
 RobotikPluginStatus stopThunk(RobotikPlugin* p_plugin)
 {
@@ -480,6 +735,7 @@ RobotikPluginStatus stopThunk(RobotikPlugin* p_plugin)
     }
 }
 
+/// C entry calling @ref Plugin::shutdown; exceptions become an error status.
 template <class T>
 RobotikPluginStatus shutdownThunk(RobotikPlugin* p_plugin)
 {
@@ -505,6 +761,7 @@ RobotikPluginStatus shutdownThunk(RobotikPlugin* p_plugin)
     }
 }
 
+/// Stores a C++ function pointer in a C function pointer of the same size.
 template <class CFunction, class CppFunction>
 void assignFunction(CFunction* p_dest, CppFunction p_function)
 {
@@ -512,6 +769,7 @@ void assignFunction(CFunction* p_dest, CppFunction p_function)
     std::memcpy(p_dest, &p_function, sizeof(p_function));
 }
 
+/// Fills the vtable with the thunks of @p T.
 template <class T>
 void fillTable(RobotikPluginVTable* p_api)
 {
@@ -526,6 +784,11 @@ void fillTable(RobotikPluginVTable* p_api)
     assignFunction(&p_api->shutdown, &shutdownThunk<T>);
 }
 
+// ----------------------------------------------------------------------------
+/// Body of @c robotik_plugin_query: checks the sizes and ABI versions, then
+/// copies @c T::describe() and the vtable.
+/// @return False on a mismatch or a field too long.
+// ----------------------------------------------------------------------------
 template <class T>
 bool queryPlugin(RobotikPluginInfo* p_info, RobotikPluginVTable* p_api)
 {
@@ -548,8 +811,10 @@ bool queryPlugin(RobotikPluginInfo* p_info, RobotikPluginVTable* p_api)
         PluginInfo const described = T::describe();
         if (!copyField(p_info->id, sizeof(p_info->id), described.id) ||
             !copyField(p_info->name, sizeof(p_info->name), described.name) ||
-            !copyField(p_info->version, sizeof(p_info->version), described.version) ||
-            !copyField(p_info->category, sizeof(p_info->category), described.category))
+            !copyField(
+                p_info->version, sizeof(p_info->version), described.version) ||
+            !copyField(
+                p_info->category, sizeof(p_info->category), described.category))
         {
             return false;
         }
@@ -562,11 +827,17 @@ bool queryPlugin(RobotikPluginInfo* p_info, RobotikPluginVTable* p_api)
     }
 }
 
+// ----------------------------------------------------------------------------
+/// Body of @c robotik_plugin_create: checks the host API, then builds a
+/// @ref Box holding a default-constructed @p T.
+/// @return The instance, or null.
+// ----------------------------------------------------------------------------
 template <class T>
 RobotikPlugin* createPlugin(RobotikHostAPI const* p_host)
 {
     if (p_host == nullptr || p_host->size < sizeof(RobotikHostAPI) ||
-        p_host->abi_version != ROBOTIK_PLUGIN_ABI_VERSION || p_host->host == nullptr)
+        p_host->abi_version != ROBOTIK_PLUGIN_ABI_VERSION ||
+        p_host->host == nullptr)
     {
         return nullptr;
     }
@@ -583,6 +854,7 @@ RobotikPlugin* createPlugin(RobotikHostAPI const* p_host)
     }
 }
 
+/// Body of @c robotik_plugin_destroy.
 template <class T>
 void destroyPlugin(RobotikPlugin* p_plugin)
 {
@@ -594,28 +866,39 @@ void destroyPlugin(RobotikPlugin* p_plugin)
 } // namespace robotik
 
 // ****************************************************************************
-/// @brief Exports the C ABI for @p Type. Use it in one translation unit.
+/// Exports the C ABI for @p Type. Use it in one translation unit.
 ///
-/// @p Type is default-constructible and provides @c static PluginInfo describe(),
-/// e.g. @code return { .id = "robotik.painter" }; @endcode
+/// @p Type is default-constructible and provides @c static PluginInfo
+/// describe().
+///
+/// @code
+/// class MyPlugin final : public robotik::Plugin
+/// {
+/// public:
+///     static robotik::PluginInfo describe() { return { .id =
+///     "robotik.my_plugin" }; }
+/// };
+/// ROBOTIK_EXPORT_PLUGIN(MyPlugin)
+/// @endcode
 // ****************************************************************************
-#define ROBOTIK_EXPORT_PLUGIN(Type)                                                  \
-    extern "C"                                                                       \
-    {                                                                                \
-    uint32_t robotik_plugin_abi_version(void)                                        \
-    {                                                                                \
-        return ROBOTIK_PLUGIN_ABI_VERSION;                                           \
-    }                                                                                \
-    bool robotik_plugin_query(RobotikPluginInfo* info, RobotikPluginVTable* api)     \
-    {                                                                                \
-        return robotik::plugin_detail::queryPlugin<Type>(info, api);                \
-    }                                                                                \
-    RobotikPlugin* robotik_plugin_create(RobotikHostAPI const* host)                \
-    {                                                                                \
-        return robotik::plugin_detail::createPlugin<Type>(host);                    \
-    }                                                                                \
-    void robotik_plugin_destroy(RobotikPlugin* plugin)                              \
-    {                                                                                \
-        robotik::plugin_detail::destroyPlugin<Type>(plugin);                         \
-    }                                                                                \
+#define ROBOTIK_EXPORT_PLUGIN(Type)                                      \
+    extern "C"                                                           \
+    {                                                                    \
+        uint32_t robotik_plugin_abi_version(void)                        \
+        {                                                                \
+            return ROBOTIK_PLUGIN_ABI_VERSION;                           \
+        }                                                                \
+        bool robotik_plugin_query(RobotikPluginInfo* info,               \
+                                  RobotikPluginVTable* api)              \
+        {                                                                \
+            return robotik::plugin_detail::queryPlugin<Type>(info, api); \
+        }                                                                \
+        RobotikPlugin* robotik_plugin_create(RobotikHostAPI const* host) \
+        {                                                                \
+            return robotik::plugin_detail::createPlugin<Type>(host);     \
+        }                                                                \
+        void robotik_plugin_destroy(RobotikPlugin* plugin)               \
+        {                                                                \
+            robotik::plugin_detail::destroyPlugin<Type>(plugin);         \
+        }                                                                \
     }

@@ -10,9 +10,9 @@
 #include "DiffDrive.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/Localization.hpp"
+#include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Skills/Skill.hpp"
 
 #include <cstdint>
@@ -23,7 +23,8 @@
 // disagree: then the belief was wrong and the robot relocalizes.
 struct Navigation
 {
-    Navigation(Track const& p_track, DriveGeometry const& p_model) : track(p_track), model(p_model)
+    Navigation(Track const& p_track, DriveGeometry const& p_model)
+        : track(p_track), model(p_model)
     {
     }
 
@@ -64,7 +65,8 @@ public:
     }
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -88,7 +90,8 @@ public:
     }
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -121,7 +124,8 @@ public:
     }
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] double progress() const

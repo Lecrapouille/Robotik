@@ -93,8 +93,10 @@ FlyScenario FlyScenario::from(robotik::Scenario const& p_scenario)
         throw std::runtime_error("parameters.brain must be shiu or reflex");
     }
     scenario.dt = parameters.number("dt", scenario.dt);
-    scenario.sensor_noise = parameters.number("sensor_noise", scenario.sensor_noise);
-    scenario.layout_jitter = parameters.number("layout_jitter", scenario.layout_jitter);
+    scenario.sensor_noise =
+        parameters.number("sensor_noise", scenario.sensor_noise);
+    scenario.layout_jitter =
+        parameters.number("layout_jitter", scenario.layout_jitter);
     scenario.arena = parameters.vector3("arena", scenario.arena);
 
     robotik::EntitySpec const& fly = p_scenario.world.robot();
@@ -118,7 +120,8 @@ FlyScenario FlyScenario::from(robotik::Scenario const& p_scenario)
         }
         else if (entity.id.starts_with("obstacle"))
         {
-            scenario.obstacles.push_back({ entity.pose.position, entity.shape->size });
+            scenario.obstacles.push_back(
+                { entity.pose.position, entity.shape->size });
         }
     }
     if (!food)

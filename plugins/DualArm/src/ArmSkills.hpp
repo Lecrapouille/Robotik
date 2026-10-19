@@ -40,8 +40,8 @@ namespace dual_arm
 [[nodiscard]] robotik::Quaternion pointingDown(robotik::Vector3 const& p_at);
 
 /// @brief Robot @p_id of the cell of @p_context, or null.
-[[nodiscard]] robotik::Robot const* teammate(robotik::RobotContext const& p_context,
-                                             std::string_view p_id);
+[[nodiscard]] robotik::Robot const*
+teammate(robotik::RobotContext const& p_context, std::string_view p_id);
 
 /// @brief First vacuum cup of @p_robot, or null.
 [[nodiscard]] robotik::VacuumGripper* cupOf(robotik::Robot const& p_robot);
@@ -61,7 +61,8 @@ public:
     HoverSkill(std::string p_object, Length p_clearance);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -93,7 +94,8 @@ public:
         m_why.clear();
     }
 
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -116,7 +118,10 @@ class ReleaseSkill final: public robotik::Skill
 {
 public:
 
-    explicit ReleaseSkill(Seconds p_timeout = Seconds(0.5)) : m_timeout(p_timeout) {}
+    explicit ReleaseSkill(Seconds p_timeout = Seconds(0.5))
+        : m_timeout(p_timeout)
+    {
+    }
 
     void reset() override
     {
@@ -124,7 +129,8 @@ public:
         m_why.clear();
     }
 
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
 
     [[nodiscard]] std::string why() const override
     {

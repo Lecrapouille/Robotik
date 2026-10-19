@@ -26,24 +26,30 @@
 #include "stb_image_write.h"
 #pragma GCC diagnostic pop
 
-std::string saveScreenshot(RenderTarget const& p_target, std::filesystem::path const& p_path)
+std::string saveScreenshot(RenderTarget const& p_target,
+                           std::filesystem::path const& p_path)
 {
     if (p_target.width == 0u || p_target.height == 0u)
     {
         return "the 3D view is not drawn yet";
     }
     // A pass names the target to read; it clears nothing.
-    compages::gpu::RenderPass const pass(p_target.framebuffer,
-                                         compages::gpu::PassDesc{ .clear_color = false, .clear_depth = false });
-    compages::Result<std::vector<std::byte>> const pixels = compages::gpu::readPixels();
+    compages::gpu::RenderPass const pass(
+        p_target.framebuffer,
+        compages::gpu::PassDesc{ .clear_color = false, .clear_depth = false });
+    compages::Result<std::vector<std::byte>> const pixels =
+        compages::gpu::readPixels();
     if (!pixels)
     {
         return "cannot read the 3D view: " + pixels.error();
     }
     // The device gives the bottom row first, a PNG holds the top row first.
     stbi_flip_vertically_on_write(1);
-    int const written = stbi_write_png(p_path.string().c_str(), static_cast<int>(p_target.width),
-                                       static_cast<int>(p_target.height), 4, pixels.value().data(),
+    int const written = stbi_write_png(p_path.string().c_str(),
+                                       static_cast<int>(p_target.width),
+                                       static_cast<int>(p_target.height),
+                                       4,
+                                       pixels.value().data(),
                                        static_cast<int>(p_target.width * 4u));
     return written != 0 ? std::string() : "cannot write " + p_path.string();
 }

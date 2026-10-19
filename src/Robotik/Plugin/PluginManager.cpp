@@ -17,14 +17,16 @@ namespace robotik
 
 /// Loads one function pointer from the plugin library.
 template <class Function>
-static Function symbol(void* p_library, char const* p_name, std::string& p_error)
+static Function
+symbol(void* p_library, char const* p_name, std::string& p_error)
 {
     dlerror();
     void* address = dlsym(p_library, p_name);
     char const* failure = dlerror();
     if (failure != nullptr || address == nullptr)
     {
-        p_error = failure != nullptr ? failure : std::string("missing symbol ") + p_name;
+        p_error = failure != nullptr ? failure
+                                     : std::string("missing symbol ") + p_name;
         return nullptr;
     }
     Function function = nullptr;
@@ -47,7 +49,8 @@ void PluginManager::clearSymbols()
     m_id.clear();
 }
 
-RobotikPluginStatus PluginManager::fail(RobotikPluginStatus p_status, std::string p_message)
+RobotikPluginStatus PluginManager::fail(RobotikPluginStatus p_status,
+                                        std::string p_message)
 {
     m_error = std::move(p_message);
     return p_status;
@@ -76,11 +79,13 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
     using CreateFn = RobotikPlugin* (*)(RobotikHostAPI const*);
     using DestroyFn = void (*)(RobotikPlugin*);
 
-    auto missing = [this](std::string p_message) {
+    auto missing = [this](std::string p_message)
+    {
         unload();
         return fail(ROBOTIK_PLUGIN_ERR_NOT_FOUND, std::move(p_message));
     };
-    AbiFn const abi = symbol<AbiFn>(m_library, "robotik_plugin_abi_version", m_error);
+    AbiFn const abi =
+        symbol<AbiFn>(m_library, "robotik_plugin_abi_version", m_error);
     if (abi == nullptr)
     {
         return missing(m_error);
@@ -88,9 +93,11 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
     if (abi() != ROBOTIK_PLUGIN_ABI_VERSION)
     {
         unload();
-        return fail(ROBOTIK_PLUGIN_ERR_ABI, "plugin ABI version is not compatible");
+        return fail(ROBOTIK_PLUGIN_ERR_ABI,
+                    "plugin ABI version is not compatible");
     }
-    QueryFn const query = symbol<QueryFn>(m_library, "robotik_plugin_query", m_error);
+    QueryFn const query =
+        symbol<QueryFn>(m_library, "robotik_plugin_query", m_error);
     if (query == nullptr)
     {
         return missing(m_error);
@@ -112,8 +119,9 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
     m_api = {};
     m_api.size = static_cast<std::uint32_t>(sizeof(m_api));
     m_api.abi_version = ROBOTIK_PLUGIN_ABI_VERSION;
-    if (!query(&info, &m_api) || m_api.setup == nullptr || m_api.start == nullptr ||
-        m_api.update == nullptr || m_api.stop == nullptr || m_api.shutdown == nullptr)
+    if (!query(&info, &m_api) || m_api.setup == nullptr ||
+        m_api.start == nullptr || m_api.update == nullptr ||
+        m_api.stop == nullptr || m_api.shutdown == nullptr)
     {
         unload();
         return fail(ROBOTIK_PLUGIN_ERR_ABI, "plugin query failed");
@@ -148,7 +156,8 @@ RobotikPluginStatus PluginManager::setup(std::string const& p_scenario_id)
     {
         return fail(ROBOTIK_PLUGIN_ERR_STATE, "plugin cannot be prepared");
     }
-    RobotikPluginStatus const status = m_api.setup(m_instance, p_scenario_id.c_str());
+    RobotikPluginStatus const status =
+        m_api.setup(m_instance, p_scenario_id.c_str());
     if (status != ROBOTIK_PLUGIN_OK)
     {
         return status;
@@ -219,7 +228,8 @@ RobotikPluginStatus PluginManager::pause(bool p_paused)
     }
     if (m_api.pause != nullptr && m_instance != nullptr)
     {
-        RobotikPluginStatus const status = m_api.pause(m_instance, p_paused ? 1 : 0);
+        RobotikPluginStatus const status =
+            m_api.pause(m_instance, p_paused ? 1 : 0);
         if (status != ROBOTIK_PLUGIN_OK)
         {
             return status;
@@ -272,7 +282,8 @@ RobotikPluginStatus PluginManager::destroy()
 {
     if (m_instance == nullptr)
     {
-        if (m_state == PluginState::Created || m_state == PluginState::Shutdown ||
+        if (m_state == PluginState::Created ||
+            m_state == PluginState::Shutdown ||
             m_state == PluginState::Stopped || m_state == PluginState::Setup)
         {
             m_state = PluginState::Loaded;
@@ -293,7 +304,8 @@ RobotikPluginStatus PluginManager::destroy()
         m_destroy(m_instance);
     }
     m_instance = nullptr;
-    m_state = m_library != nullptr ? PluginState::Loaded : PluginState::Unloaded;
+    m_state =
+        m_library != nullptr ? PluginState::Loaded : PluginState::Unloaded;
     m_error.clear();
     return ROBOTIK_PLUGIN_OK;
 }

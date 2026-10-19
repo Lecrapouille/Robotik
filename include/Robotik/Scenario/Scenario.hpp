@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Scenario.hpp
-/// @brief What happens in a world, and how to tell whether it went well.
+/// What happens in a world, and how to tell whether it went well.
 ///
 /// The scenario names its world (@ref World.hpp), the events applied during
 /// the run (faults), when the run stops and what is checked
@@ -32,9 +32,8 @@
 ///   faults:
 ///     - { at: 4.0, resource: wrist_camera, action: disable }
 ///     - { resource: gripper, rate: 0.01 }
-///   perception: { oracle: when_blind }     # never (default) | when_blind | always
-///   timeout: 30
-///   stop_when: inside(red_cube, box)       # optional
+///   perception: { oracle: when_blind }     # never (default) | when_blind |
+///   always timeout: 30 stop_when: inside(red_cube, box)       # optional
 ///   parameters:                            # free, read by the mission
 ///     approach_height: 0.10
 ///   assertions:
@@ -72,33 +71,60 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief The two files of a scenario, still editable (see @ref ConfigNode).
+/// The two files of a scenario, still editable (see @ref ConfigNode).
+///
+/// Change values here, then interpret with @ref Scenario::read. This is how
+/// an experiment applies its @c overrides.
+///
+/// @code
+/// robotik::ScenarioSource source = robotik::ScenarioSource::load(file);
+/// source.override("world.entities.easel.friction",
+/// robotik::ConfigNode("0.05")); source.override("scenario.timeout",
+/// robotik::ConfigNode("60")); robotik::Scenario const scenario =
+/// robotik::Scenario::read(source, assets);
+/// @endcode
 // ****************************************************************************
 struct ScenarioSource
 {
     /// Root of the scenario file (holds @c scenario:).
     ConfigNode scenario;
+    /// Path of the scenario file.
     std::filesystem::path scenario_file;
     /// Package root: the folder of @c plugin.yaml. File names start there.
     std::filesystem::path package;
     /// Root of the world file (holds @c world:).
     ConfigNode world;
+    /// Path of the world file.
     std::filesystem::path world_file;
 
-    /// @brief Reads the scenario file and the world file it names.
+    // -------------------------------------------------------------------------
+    /// Reads the scenario file and the world file it names.
+    /// @param p_scenario A @c x.scenario.yaml file.
+    /// @return Both trees, not interpreted yet.
     /// @throws std::runtime_error when a file is missing or unreadable.
-    [[nodiscard]] static ScenarioSource load(std::filesystem::path const& p_scenario);
+    // -------------------------------------------------------------------------
+    [[nodiscard]] static ScenarioSource
+    load(std::filesystem::path const& p_scenario);
 
     // -------------------------------------------------------------------------
-    /// @brief Changes one value before interpretation. @p_path starts with
-    /// @c scenario. or @c world., e.g. @c world.entities.easel.friction.
+    /// Changes one value before interpretation.
+    /// @param p_path Starts with @c scenario. or @c world., e.g.
+    ///   @c world.entities.easel.friction.
+    /// @param p_value New value.
     /// @throws std::runtime_error for another prefix or a broken path.
     // -------------------------------------------------------------------------
     void override(std::string_view p_path, ConfigNode p_value);
 };
 
 // ****************************************************************************
-/// @brief The strategy driving the robot. Empty: the mission drives it.
+/// Goal and settings of the PDDL planner (@c controller.planner:, see
+/// @ref ControllerSpec for the YAML).
+///
+/// @code
+/// if (scenario.controller.planner)
+///     for (robotik::Literal const& g : scenario.controller.planner->goal)
+///         std::cout << "goal: " << g.toString() << '\n';
+/// @endcode
 // ****************************************************************************
 struct PlannerSpec
 {
@@ -127,8 +153,8 @@ struct PlannerSpec
 };
 
 // ****************************************************************************
-/// @brief The strategy driving the robot: a behavior tree, a planner goal,
-/// or neither (the mission drives it).
+/// The strategy driving the robot: a behavior tree, a planner goal, or
+/// neither (the mission drives it).
 ///
 /// @code
 /// controller:
@@ -138,10 +164,10 @@ struct PlannerSpec
 ///       - compatible(vacuum, cube)        # would split at the comma
 ///     goal:
 ///       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
-///     replan: { max: 3, delay: 0.5 }      # new plans, simulated seconds before each
-///     verify: true                        # check the effects on the beliefs
-///     parallel: true                      # independent steps run together
-///     search: lama                        # planner search preset
+///     replan: { max: 3, delay: 0.5 }      # new plans, simulated seconds
+///     before each verify: true                        # check the effects on
+///     the beliefs parallel: true                      # independent steps run
+///     together search: lama                        # planner search preset
 ///     timeout: 10                         # wall-clock safety net (s)
 /// @endcode
 ///
@@ -150,22 +176,24 @@ struct PlannerSpec
 // ****************************************************************************
 struct ControllerSpec
 {
+    /// Behavior tree file, or empty.
     std::filesystem::path behavior_tree;
+    /// Planner goal, or nothing.
     std::optional<PlannerSpec> planner;
 };
 
 // ****************************************************************************
-/// @brief When the ground truth may stand in for perception.
+/// When the ground truth may stand in for perception (@c perception.oracle:).
 // ****************************************************************************
 enum class OraclePolicy : std::uint8_t
 {
-    Never,
-    WhenBlind,
-    Always,
+    Never,     ///< @c never: beliefs come from perception only.
+    WhenBlind, ///< @c when_blind: when no camera has an image source.
+    Always,    ///< @c always: the true poses, whatever the cameras.
 };
 
 // ****************************************************************************
-/// @brief How finely the physics simulates an interaction (FIDELITY.md).
+/// How finely the physics simulates an interaction (FIDELITY.md).
 // ****************************************************************************
 enum class Fidelity : std::uint8_t
 {
@@ -179,10 +207,14 @@ enum class Fidelity : std::uint8_t
     Contact,
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_fidelity Level to name.
+/// @return "abstract", "rigid" or "contact".
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(Fidelity p_fidelity);
 
 // ****************************************************************************
-/// @brief Section @c physics: of a scenario.
+/// Section @c physics: of a scenario.
 ///
 /// @code{.yaml}
 /// physics:
@@ -193,50 +225,89 @@ enum class Fidelity : std::uint8_t
 // ****************************************************************************
 struct PhysicsSpec
 {
+    /// Level of everything not in @ref overrides.
     Fidelity fidelity = Fidelity::Abstract;
+    /// Level per world entity or actuator id.
     std::map<std::string, Fidelity, std::less<>> overrides;
 
-    /// @brief Level of the entity or actuator @p_id.
+    // -------------------------------------------------------------------------
+    /// @param p_id Entity or actuator id.
+    /// @return Its level.
+    // -------------------------------------------------------------------------
     [[nodiscard]] Fidelity of(std::string_view p_id) const
     {
         auto const found = overrides.find(p_id);
         return found == overrides.end() ? fidelity : found->second;
     }
 
-    /// @brief Level of an interaction: the most detailed of its two sides.
-    [[nodiscard]] Fidelity between(std::string_view p_a, std::string_view p_b) const
+    // -------------------------------------------------------------------------
+    /// @param p_a Id of one side.
+    /// @param p_b Id of the other side.
+    /// @return Level of an interaction: the most detailed of its two sides.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Fidelity between(std::string_view p_a,
+                                   std::string_view p_b) const
     {
         return std::max(of(p_a), of(p_b));
     }
 };
 
 // ****************************************************************************
-/// @brief Interpreted scenario.
+/// Interpreted scenario: everything a @ref Simulation needs to run.
+///
+/// @code
+/// auto const assets = robotik::AssetResolver::standard();
+/// robotik::Scenario const scenario = robotik::Scenario::load(file, assets);
+/// std::cout << scenario.id << ": " << scenario.world.entities.size()
+///           << " entities, timeout " << scenario.timeout.value() << " s\n";
+/// double const h = scenario.parameters.number("approach_height", 0.1);
+/// @endcode
 // ****************************************************************************
 struct Scenario
 {
+    // -------------------------------------------------------------------------
+    /// Interprets the two files of a scenario.
+    /// @param p_source Scenario and world trees, maybe overridden.
+    /// @param p_assets Resolves the model names.
+    /// @return The scenario.
     /// @throws std::runtime_error naming the file and the field at fault, or
-    /// a model missing from @p_assets.
+    ///   a model missing from @p_assets.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static Scenario read(ScenarioSource const& p_source,
                                        AssetResolver const& p_assets);
 
+    // -------------------------------------------------------------------------
+    /// Reads and interprets a scenario file and its world.
+    /// @param p_path A @c x.scenario.yaml file.
+    /// @param p_assets Resolves the model names.
+    /// @return The scenario.
+    /// @throws std::runtime_error as @ref read and @ref ScenarioSource::load.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static Scenario load(std::filesystem::path const& p_path,
                                        AssetResolver const& p_assets)
     {
         return read(ScenarioSource::load(p_path), p_assets);
     }
 
+    /// Scenario id.
     std::string id;
+    /// Free text for the user.
     std::string description;
+    /// File the scenario was read from.
     std::filesystem::path file;
     /// Master seed of the run; every random stream derives from it.
     std::uint64_t seed = 0;
+    /// The world the scenario runs in.
     WorldDescription world;
+    /// Behavior tree, planner goal, or neither.
     ControllerSpec controller;
     /// Paths named by the scenario, read from their own files.
     std::map<std::string, Trajectory, std::less<>> trajectories;
+    /// Faults at fixed times.
     std::vector<Fault> faults;
+    /// Faults drawn at random.
     std::vector<RandomFault> random_faults;
+    /// When the ground truth may stand in for perception.
     OraclePolicy oracle = OraclePolicy::Never;
     /// Fidelity of the physics, per entity.
     PhysicsSpec physics;
@@ -244,6 +315,7 @@ struct Scenario
     Seconds timeout{};
     /// Condition ending the run as soon as it holds; empty for none.
     std::string stop_when;
+    /// What is checked during and at the end of the run.
     std::vector<AssertionSpec> assertions;
     /// Values the mission reads (gains, model choices...). An experiment
     /// overrides them as scenario.parameters.<name>.

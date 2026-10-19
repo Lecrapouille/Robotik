@@ -30,10 +30,12 @@ class FlatSource final: public robotik::FrameSource
 {
 public:
 
-    bool capture(robotik::Camera const& p_camera, robotik::CameraFrame& p_frame) override
+    bool capture(robotik::Camera const& p_camera,
+                 robotik::CameraFrame& p_frame) override
     {
         auto const& intrinsics = p_camera.intrinsics();
-        p_frame.rgb.resize(intrinsics.width, intrinsics.height, robotik::PixelFormat::RGB8);
+        p_frame.rgb.resize(
+            intrinsics.width, intrinsics.height, robotik::PixelFormat::RGB8);
         for (std::uint8_t& byte : p_frame.rgb.bytes())
         {
             byte = 128u;
@@ -50,9 +52,12 @@ class FixedDetector final: public robotik::Detector
 {
 public:
 
-    explicit FixedDetector(std::array<float, 2> p_center) : m_center(p_center) {}
+    explicit FixedDetector(std::array<float, 2> p_center) : m_center(p_center)
+    {
+    }
 
-    void detect(robotik::CameraFrame const&, robotik::Detections& p_detections) override
+    void detect(robotik::CameraFrame const&,
+                robotik::Detections& p_detections) override
     {
         robotik::Detection detection;
         detection.label = "cube";
@@ -87,23 +92,26 @@ TEST(Random, SeedsAreReplayableAndIndependent)
 TEST(Pose, ComposeAndInvert)
 {
     robotik::Pose const pose{ { 1.0, 2.0, 3.0 },
-                               robotik::rpy(Radians(0.1), Radians(0.2), Radians(0.3)) };
+                              robotik::rpy(
+                                  Radians(0.1), Radians(0.2), Radians(0.3)) };
     robotik::Pose const identity = pose * pose.inverse();
     EXPECT_NEAR(robotik::norm(identity.position), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(identity.rotation.w), 1.0, 1e-12);
     robotik::Vector3 const point{ 0.5, -0.2, 0.1 };
     robotik::Vector3 const back = pose.inverse() * (pose * point);
     EXPECT_NEAR(robotik::norm(back - point), 0.0, 1e-12);
-    EXPECT_NEAR(robotik::yawOf(robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.7))),
-                0.7,
-                1e-12);
+    EXPECT_NEAR(
+        robotik::yawOf(robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.7))),
+        0.7,
+        1e-12);
 }
 
 TEST(CameraIntrinsics, RayAndProjectAreInverse)
 {
     auto const intrinsics = robotik::CameraIntrinsics::fromFov(
         320u, 240u, Radians(70.0 * std::numbers::pi / 180.0));
-    EXPECT_NEAR(intrinsics.fov().value(), 70.0 * std::numbers::pi / 180.0, 1e-12);
+    EXPECT_NEAR(
+        intrinsics.fov().value(), 70.0 * std::numbers::pi / 180.0, 1e-12);
     robotik::Vector3 const ray = intrinsics.ray(40.0, 200.0);
     auto const pixel = intrinsics.project(ray * 2.0);
     ASSERT_TRUE(pixel);
@@ -115,7 +123,8 @@ TEST(CameraIntrinsics, RayAndProjectAreInverse)
 TEST(Camera, SamplesAtItsFrequencyFromItsSource)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, assetFile("robotik.robots.simple_revolute_robot"));
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::CameraConfig config;
     config.frequency = 10.0;
     config.mount = downward();
@@ -128,7 +137,8 @@ TEST(Camera, SamplesAtItsFrequencyFromItsSource)
     FlatSource source;
     camera.source(&source);
     int frames = 0;
-    camera.onFrame([&frames](robotik::CameraFrame const&) noexcept { ++frames; });
+    camera.onFrame([&frames](robotik::CameraFrame const&) noexcept
+                   { ++frames; });
     for (int i = 0; i < 100; ++i)
     {
         robot.step(Seconds(0.01));
@@ -160,8 +170,8 @@ TEST(WorldModel, MonocularDetectionLandsOnTheTopPlane)
     ASSERT_TRUE(pixel);
 
     robotik::PerceptionPipeline pipeline;
-    pipeline.add<FixedDetector>(std::array<float, 2>{ static_cast<float>((*pixel)[0]),
-                                                      static_cast<float>((*pixel)[1]) });
+    pipeline.add<FixedDetector>(std::array<float, 2>{
+        static_cast<float>((*pixel)[0]), static_cast<float>((*pixel)[1]) });
     robotik::WorldModel beliefs;
     beliefs.add("cube", { 0.25, 0.15, 0.02 }, { 0.04, 0.04, 0.04 });
     EXPECT_FALSE(beliefs.find("cube")->observed());
@@ -181,9 +191,11 @@ TEST(WorldModel, GateRejectsOutliers)
     robotik::WorldModel beliefs;
     beliefs.gate(0.1);
     beliefs.add("cube", { 0.4, 0.2, 0.02 }, { 0.04, 0.04, 0.04 });
-    EXPECT_TRUE(beliefs.observe("cube", { 0.43, 0.18, 0.5 }, 1.0f, Seconds(1.0)));
+    EXPECT_TRUE(
+        beliefs.observe("cube", { 0.43, 0.18, 0.5 }, 1.0f, Seconds(1.0)));
     EXPECT_NEAR(beliefs.find("cube")->position.z, 0.02, 1e-9);
-    EXPECT_FALSE(beliefs.observe("cube", { 0.0, 0.0, 0.02 }, 1.0f, Seconds(2.0)));
+    EXPECT_FALSE(
+        beliefs.observe("cube", { 0.0, 0.0, 0.02 }, 1.0f, Seconds(2.0)));
     EXPECT_NEAR(beliefs.find("cube")->position.x, 0.43, 1e-9);
     EXPECT_EQ(beliefs.find("cube")->observations, 1u);
     EXPECT_FALSE(beliefs.observe("unknown", {}, 1.0f, Seconds(2.0)));
@@ -192,11 +204,15 @@ TEST(WorldModel, GateRejectsOutliers)
 TEST(Localization, RecoversTheRobotPoseFromALandmark)
 {
     robotik::Pose const robot{ { 1.0, -0.5, 0.0 },
-                                robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.4)) };
+                               robotik::rpy(
+                                   Radians(0.0), Radians(0.0), Radians(0.4)) };
     robotik::Pose const camera{
         { 0.1, 0.0, 0.2 },
-        robotik::rpy(Radians(-2.0), Radians(0.0), Radians(-1.57)) };
-    robotik::Landmark const tag{ 3, { { 1.4, -0.3, 0.0 }, robotik::Quaternion{} } };
+        robotik::rpy(Radians(-2.0), Radians(0.0), Radians(-1.57))
+    };
+    robotik::Landmark const tag{
+        3, { { 1.4, -0.3, 0.0 }, robotik::Quaternion{} }
+    };
 
     robotik::Detections detections;
     detections.camera = camera;
@@ -209,6 +225,7 @@ TEST(Localization, RecoversTheRobotPoseFromALandmark)
     auto const found = robotik::localize(detections, std::span(&tag, 1u));
     ASSERT_TRUE(found);
     EXPECT_EQ(found->landmarks, 1u);
-    EXPECT_NEAR(robotik::norm(found->pose.position - robot.position), 0.0, 1e-9);
+    EXPECT_NEAR(
+        robotik::norm(found->pose.position - robot.position), 0.0, 1e-9);
     EXPECT_NEAR(robotik::yawOf(found->pose.rotation), 0.4, 1e-9);
 }

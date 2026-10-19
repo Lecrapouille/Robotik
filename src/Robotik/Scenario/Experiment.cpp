@@ -23,8 +23,9 @@ static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
         ConfigNode const& fault = step.at("inject_fault");
         if (!fault.isMap())
         {
-            throw std::runtime_error("setup steps are inject_fault: { resource, at, action } "
-                                     "or { resource, rate }");
+            throw std::runtime_error(
+                "setup steps are inject_fault: { resource, at, action } "
+                "or { resource, rate }");
         }
         std::string resource = fault.text("resource");
         if (resource.empty())
@@ -33,16 +34,19 @@ static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
         }
         if (fault.has("rate"))
         {
-            p_case.random_faults.push_back({ std::move(resource), fault.number("rate", 0.0) });
+            p_case.random_faults.push_back(
+                { std::move(resource), fault.number("rate", 0.0) });
             continue;
         }
         std::string const action = fault.text("action", "disable");
         if (action != "disable" && action != "restore")
         {
-            throw std::runtime_error("inject_fault action must be disable or restore");
+            throw std::runtime_error(
+                "inject_fault action must be disable or restore");
         }
-        p_case.faults.push_back(
-            { Seconds(fault.number("at", 0.0)), std::move(resource), action == "disable" });
+        p_case.faults.push_back({ Seconds(fault.number("at", 0.0)),
+                                  std::move(resource),
+                                  action == "disable" });
     }
 }
 
@@ -91,16 +95,19 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
             run.scenario = packageFile(root, item.text("scenario"));
             if (run.id.empty() || run.scenario.empty())
             {
-                throw std::runtime_error("every case needs an id and a scenario");
+                throw std::runtime_error(
+                    "every case needs an id and a scenario");
             }
             for (ExperimentCase const& known : experiment.cases)
             {
                 if (known.id == run.id)
                 {
-                    throw std::runtime_error("case '" + run.id + "' is declared twice");
+                    throw std::runtime_error("case '" + run.id +
+                                             "' is declared twice");
                 }
             }
-            run.behavior_tree = packageFile(root, item.at("controller").text("behavior_tree"));
+            run.behavior_tree =
+                packageFile(root, item.at("controller").text("behavior_tree"));
             for (auto const& [path, value] : item.at("overrides").entries())
             {
                 run.overrides.emplace_back(path, value);
@@ -111,7 +118,8 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
             }
             catch (std::runtime_error const& error)
             {
-                throw std::runtime_error("case '" + run.id + "': " + error.what());
+                throw std::runtime_error("case '" + run.id +
+                                         "': " + error.what());
             }
             experiment.cases.push_back(std::move(run));
         }
@@ -128,12 +136,14 @@ Experiment Experiment::load(std::filesystem::path const& p_path)
     }
     catch (std::runtime_error const& error)
     {
-        throw std::runtime_error(experiment.file.string() + ": " + error.what());
+        throw std::runtime_error(experiment.file.string() + ": " +
+                                 error.what());
     }
     return experiment;
 }
 
-Scenario Experiment::scenario(ExperimentCase const& p_case, AssetResolver const& p_assets) const
+Scenario Experiment::scenario(ExperimentCase const& p_case,
+                              AssetResolver const& p_assets) const
 {
     ScenarioSource source = ScenarioSource::load(p_case.scenario);
     if (!world.empty())
@@ -149,8 +159,8 @@ Scenario Experiment::scenario(ExperimentCase const& p_case, AssetResolver const&
         }
         catch (std::runtime_error const& error)
         {
-            throw std::runtime_error(file.string() + ", case '" + p_case.id + "': " +
-                                     error.what());
+            throw std::runtime_error(file.string() + ", case '" + p_case.id +
+                                     "': " + error.what());
         }
     }
     Scenario scenario = Scenario::read(source, p_assets);
@@ -158,15 +168,18 @@ Scenario Experiment::scenario(ExperimentCase const& p_case, AssetResolver const&
     {
         scenario.controller.behavior_tree = p_case.behavior_tree;
     }
-    scenario.faults.insert(scenario.faults.end(), p_case.faults.begin(), p_case.faults.end());
+    scenario.faults.insert(
+        scenario.faults.end(), p_case.faults.begin(), p_case.faults.end());
     // The injector expects its plan in time order.
     std::stable_sort(scenario.faults.begin(),
                      scenario.faults.end(),
-                     [](Fault const& p_a, Fault const& p_b) { return p_a.at < p_b.at; });
+                     [](Fault const& p_a, Fault const& p_b)
+                     { return p_a.at < p_b.at; });
     scenario.random_faults.insert(scenario.random_faults.end(),
                                   p_case.random_faults.begin(),
                                   p_case.random_faults.end());
-    scenario.assertions.insert(scenario.assertions.end(), assertions.begin(), assertions.end());
+    scenario.assertions.insert(
+        scenario.assertions.end(), assertions.begin(), assertions.end());
     return scenario;
 }
 

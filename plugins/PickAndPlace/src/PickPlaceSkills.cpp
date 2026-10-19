@@ -7,14 +7,14 @@
 
 #include "PickPlaceSkills.hpp"
 
-#include "Robotik/Scene/ContainerBounds.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/ECS/Queries.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
+#include "Robotik/Scene/ContainerBounds.hpp"
 
-#include "Robotik/Math/Si.hpp"
 #include "Compages/World/World.hpp"
+#include "Robotik/Math/Si.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -194,7 +194,8 @@ Status GraspSkill::tick(RobotContext& p_context, Seconds p_dt)
     {
         gripper->suction(false);
         std::string const held = heldObject(p_context.robot, m_gripper);
-        m_why = held.empty() ? "suction holds nothing after " + std::to_string(m_timeout.value()) + " s"
+        m_why = held.empty() ? "suction holds nothing after " +
+                                   std::to_string(m_timeout.value()) + " s"
                              : "suction holds " + held + ", not " + m_object;
         return Status::FAILURE;
     }

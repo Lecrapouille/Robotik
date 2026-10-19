@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Measurements.hpp
-/// @brief Physical quantities measured on a robot, in SI units.
+/// Physical quantities measured on a robot, in SI units.
 ///
 /// These plain structs are what sensors produce and what backends report.
 /// Every sensor reading starts with a @ref Measurement header: when it was
@@ -29,7 +29,15 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Header shared by every sensor reading.
+/// Header shared by every sensor reading.
+///
+/// Always check @ref valid first: a failed sensor keeps its last values.
+///
+/// @code
+/// robotik::ImuReading const& r = imu.reading();
+/// if (r.valid && r.stamp > last_used)
+///     use(r);
+/// @endcode
 // ****************************************************************************
 struct Measurement
 {
@@ -46,7 +54,12 @@ struct Measurement
 };
 
 // ****************************************************************************
-/// @brief Velocity of a frame.
+/// Velocity of a frame.
+///
+/// @code
+/// robotik::Twist const& v = robot.base().twist;
+/// double const speed = robotik::norm(v.linear);
+/// @endcode
 // ****************************************************************************
 struct Twist
 {
@@ -57,7 +70,12 @@ struct Twist
 };
 
 // ****************************************************************************
-/// @brief Force and torque applied at the origin of a frame.
+/// Force and torque applied at the origin of a frame.
+///
+/// @code
+/// robotik::Wrench const& w = ft.reading().wrench;
+/// bool const contact = robotik::norm(w.force) > 2.0;
+/// @endcode
 // ****************************************************************************
 struct Wrench
 {
@@ -68,22 +86,33 @@ struct Wrench
 };
 
 // ****************************************************************************
-/// @brief Pose and velocity of the robot base in the world frame.
+/// Pose and velocity of the robot base in the world frame.
 ///
 /// Ground truth in simulation, identity for a robot bolted to the world. A
 /// mobile robot does not know it: it estimates it (odometry, localization).
+///
+/// @code
+/// robotik::BaseState const& base = robot.base();
+/// double const heading = robotik::yawOf(base.pose.rotation);
+/// @endcode
 // ****************************************************************************
 struct BaseState
 {
+    /// Base frame in the world frame.
     Pose pose;
     /// Expressed in the world frame.
     Twist twist;
 };
 
 // ****************************************************************************
-/// @brief One inertial measurement, in the sensor frame.
+/// One inertial measurement, in the sensor frame.
+///
+/// @code
+/// robotik::ImuReading const& r = imu.reading();
+/// double const spin = r.angular_velocity.z; // rad/s about the sensor Z
+/// @endcode
 // ****************************************************************************
-struct ImuReading : Measurement
+struct ImuReading: Measurement
 {
     /// Specific force: acceleration minus gravity, so +9.81 along the up
     /// axis at rest (SI: m/s^2), in the sensor frame.
@@ -95,35 +124,56 @@ struct ImuReading : Measurement
 };
 
 // ****************************************************************************
-/// @brief One sweep of a planar range scanner.
+/// One sweep of a planar range scanner.
+///
+/// Beam @c i points at @c angle_min + @c i * @c increment.
+///
+/// @code
+/// robotik::RangeScan const& s = lidar.scan();
+/// for (std::size_t i = 0; i < s.ranges.size(); ++i)
+///     if (s.ranges[i] < 0.3f)
+///         std::cout << "obstacle at " << (s.angle_min + double(i) *
+///         s.increment).value() << '\n';
+/// @endcode
 // ****************************************************************************
-struct RangeScan : Measurement
+struct RangeScan: Measurement
 {
     /// One distance per beam (SI: m); max_range when nothing was hit.
     std::vector<float> ranges;
-    /// Beam angles in the scan plane (XY of the sensor frame).
+    /// Angle of the first beam in the scan plane (XY of the sensor frame).
     Radians angle_min{};
+    /// Angle between two beams.
     Radians increment{};
+    /// Distance reported when a beam hits nothing.
     Length max_range{};
 };
 
 // ****************************************************************************
-/// @brief Wrench a link receives from its parent link.
+/// Wrench a link receives from its parent link.
+///
+/// @code
+/// double const fz = ft.reading().wrench.force.z;
+/// @endcode
 // ****************************************************************************
-struct ForceTorqueReading : Measurement
+struct ForceTorqueReading: Measurement
 {
     /// In the frame of the measured link.
     Wrench wrench;
 };
 
 // ****************************************************************************
-/// @brief What a camera publishes on its link entity (no pixels).
+/// What a camera publishes on its link entity (no pixels).
+///
+/// Enough for a viewer to draw the camera frustum; the image itself is in
+/// the @ref CameraFrame of the camera.
 // ****************************************************************************
-struct CameraReading : Measurement
+struct CameraReading: Measurement
 {
     /// Optical frame in the robot base frame.
     Pose pose;
+    /// Image width in pixels.
     std::uint32_t width = 0;
+    /// Image height in pixels.
     std::uint32_t height = 0;
 };
 

@@ -32,7 +32,8 @@ public:
     void use(std::string p_color);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -51,7 +52,8 @@ class MarkSkill final: public robotik::Skill
 {
 public:
 
-    using Strokes = std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
+    using Strokes =
+        std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
 
     /// @brief How the brush follows a stroke.
     struct Settings
@@ -69,7 +71,8 @@ public:
     void use(std::string p_color);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -95,7 +98,8 @@ public:
     explicit RinseSkill(Stroke& p_stroke);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -107,7 +111,9 @@ private:
     bool m_ready = false;
 };
 
-/// @brief Tree actions Dip, Mark and Rinse. Each reads @c color on its blackboard.
-void registerNodes(bt::NodeFactory& p_factory, robotik::SkillScheduler& p_scheduler);
+/// @brief Tree actions Dip, Mark and Rinse. Each reads @c color on its
+/// blackboard.
+void registerNodes(bt::NodeFactory& p_factory,
+                   robotik::SkillScheduler& p_scheduler);
 
 } // namespace painter

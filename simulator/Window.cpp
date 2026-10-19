@@ -26,11 +26,13 @@
 static std::string settingsFile()
 {
     std::filesystem::path base;
-    if (char const* config = std::getenv("XDG_CONFIG_HOME"); config != nullptr && *config != '\0')
+    if (char const* config = std::getenv("XDG_CONFIG_HOME");
+        config != nullptr && *config != '\0')
     {
         base = config;
     }
-    else if (char const* home = std::getenv("HOME"); home != nullptr && *home != '\0')
+    else if (char const* home = std::getenv("HOME");
+             home != nullptr && *home != '\0')
     {
         base = std::filesystem::path(home) / ".config";
     }
@@ -51,7 +53,8 @@ static void loadFonts()
     std::filesystem::path const fonts(ROBOTIK_FONTS_DIR);
     std::filesystem::path const text = fonts / "Roboto-Medium.ttf";
     std::filesystem::path const mono = fonts / "Cousine-Regular.ttf";
-    if (std::filesystem::exists(text) && io.Fonts->AddFontFromFileTTF(text.string().c_str(), 15.0f) != nullptr)
+    if (std::filesystem::exists(text) &&
+        io.Fonts->AddFontFromFileTTF(text.string().c_str(), 15.0f) != nullptr)
     {
         // Second font, for the file viewer (see monoFont).
         if (std::filesystem::exists(mono))

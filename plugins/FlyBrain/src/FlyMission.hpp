@@ -97,12 +97,15 @@ class FlyMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view) override;
-    void reset(robotik::Simulation& p_simulation, robotik::Seed p_seed) override;
+    void setup(robotik::Simulation& p_simulation,
+               robotik::SceneView* p_view) override;
+    void reset(robotik::Simulation& p_simulation,
+               robotik::Seed p_seed) override;
     void step(robotik::Simulation& p_simulation, Seconds p_dt) override;
     void measure(robotik::Simulation const& p_simulation,
                  robotik::Metrics& p_metrics) const override;
-    [[nodiscard]] robotik::Status status(robotik::Simulation const& p_simulation) const override;
+    [[nodiscard]] robotik::Status
+    status(robotik::Simulation const& p_simulation) const override;
 
     // -------------------------------------------------------------------------
     /// @brief Swaps the 13-neuron circuit for the FlyWire connectome (or
@@ -118,7 +121,9 @@ public:
     /// @throws std::runtime_error when the tables cannot be read.
     // -------------------------------------------------------------------------
     [[nodiscard]] static std::unique_ptr<FlyBrain>
-    buildBrain(bool p_connectome, float p_cruise, std::filesystem::path const& p_tables);
+    buildBrain(bool p_connectome,
+               float p_cruise,
+               std::filesystem::path const& p_tables);
 
     /// @brief Folder of the FlyWire tables: @c flywire/ in the pack
     /// @c robotik.fly. Empty before @c setup.

@@ -54,9 +54,9 @@ eyeOrigin(FlyPlant const& p_plant, EyePoint const& p_eye, double p_neck_yaw)
 /// @brief Slab method. Returns the entry distance, or past @p_range on a miss
 /// and when the box is entirely behind the eye.
 static double rayBox(robotik::Vector3 const& p_origin,
-              robotik::Vector3 const& p_direction,
-              double p_range,
-              FlyBox const& p_box)
+                     robotik::Vector3 const& p_direction,
+                     double p_range,
+                     FlyBox const& p_box)
 {
     robotik::Vector3 const half(
         p_box.size.x * 0.5, p_box.size.y * 0.5, p_box.size.z * 0.5);

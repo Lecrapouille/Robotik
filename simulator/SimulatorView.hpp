@@ -75,7 +75,8 @@ class SimulatorView final: public robotik::SceneView
 {
 public:
 
-    explicit SimulatorView(compages::renderer::Scene& p_scene) : m_scene(p_scene)
+    explicit SimulatorView(compages::renderer::Scene& p_scene)
+        : m_scene(p_scene)
     {
     }
 
@@ -93,7 +94,11 @@ public:
     bool openCanvas(compages::world::Entity p_parent,
                     double p_width,
                     double p_height) override;
-    void ink(double p_y, double p_z, float p_red, float p_green, float p_blue) override;
+    void ink(double p_y,
+             double p_z,
+             float p_red,
+             float p_green,
+             float p_blue) override;
 
     /// @brief Marks @p_entity as a help for the operator: the 3D view shows
     /// it, the robot cameras never see it (it would fool perception).
@@ -107,7 +112,8 @@ public:
         return m_grounded;
     }
 
-    [[nodiscard]] std::vector<std::unique_ptr<RenderedCamera>> const& cameras() const
+    [[nodiscard]] std::vector<std::unique_ptr<RenderedCamera>> const&
+    cameras() const
     {
         return m_cameras;
     }

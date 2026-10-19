@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PlanningEngine.hpp
-/// @brief A PDDL planner behind a RobotIK interface (Kairos by default).
+/// A PDDL planner behind a RobotIK interface (Kairos by default).
 #pragma once
 
 #include "Robotik/Planning/Pddl.hpp"
@@ -21,23 +21,43 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief How the planner searches. A run is reproducible: one thread, a
-/// fixed search and no anytime improvement (they depend on the wall clock).
+/// How the planner searches. A run is reproducible: one thread, a fixed
+/// search and no anytime improvement (they depend on the wall clock).
+///
+/// @code
+/// robotik::PlanningOptions options;
+/// options.search = "ff";
+/// options.timeout = std::chrono::seconds(2);
+/// @endcode
 // ****************************************************************************
 struct PlanningOptions
 {
     /// Search preset of the planner (Kairos: ff, lama, eager-lama...).
     std::string search = "lama";
+    /// Seed of the search, for the planners that draw at random.
     std::uint64_t seed = 0u;
     /// Safety net only: a plan found before it does not depend on it.
     std::chrono::milliseconds timeout{ std::chrono::seconds(10) };
 };
 
 // ****************************************************************************
-/// @brief Answer of the planner.
+/// Answer of the planner.
+///
+/// @code
+/// robotik::PlanningResult const result = planner->solve(problem, options);
+/// if (result.solved())
+///     for (auto const& step : result.steps)
+///         std::cout << step.name << '\n';
+/// else
+///     std::cerr << robotik::toString(result.status) << '\n' <<
+///     result.diagnostics;
+/// @endcode
 // ****************************************************************************
 struct PlanningResult
 {
+    // ------------------------------------------------------------------------
+    /// How the search ended.
+    // ------------------------------------------------------------------------
     enum class Status : std::uint8_t
     {
         Solved,      ///< @ref steps reach the goal (empty: it already holds).
@@ -46,25 +66,48 @@ struct PlanningResult
         Invalid,     ///< Domain or problem rejected: see @ref diagnostics.
     };
 
+    /// How the search ended.
     Status status = Status::Invalid;
+    /// The plan, in order, when @ref status is @c Solved.
     std::vector<GroundAction> steps;
     /// Errors and warnings of the planner, one per line, with locations.
     std::string diagnostics;
     /// Raw answer of the planner (status, plan text, statistics).
     std::string report;
+    /// Number of states the search expanded.
     std::size_t expanded = 0u;
+    /// Time spent planning (wall clock).
     double milliseconds = 0.0;
 
+    // ------------------------------------------------------------------------
+    /// @return True when a plan was found.
+    // ------------------------------------------------------------------------
     [[nodiscard]] bool solved() const
     {
         return status == Status::Solved;
     }
 };
 
+// ----------------------------------------------------------------------------
+/// Names a planning status, for logs.
+/// @param p_status Status to name.
+/// @return For example "solved" or "unsolvable".
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(PlanningResult::Status p_status);
 
 // ****************************************************************************
-/// @brief Solves a problem written in PDDL.
+/// Solves a problem written in PDDL.
+///
+/// Load the domain once, then call @ref solve for each new state of the
+/// world (each replan).
+///
+/// @code
+/// auto planner = robotik::makeKairosPlanner();
+/// std::string const errors = planner->load(domain_text, "pick.domain.pddl");
+/// if (!errors.empty())
+///     throw std::runtime_error(errors);
+/// robotik::PlanningResult const plan = planner->solve(problem_text, {});
+/// @endcode
 // ****************************************************************************
 class PlanningEngine
 {
@@ -73,20 +116,29 @@ public:
     virtual ~PlanningEngine() = default;
 
     // -------------------------------------------------------------------------
-    /// @brief Checks a domain. @return Empty when valid, the diagnostics
-    /// otherwise. The domain is kept for the next @ref solve calls.
+    /// Checks a domain. The domain is kept for the next @ref solve calls.
+    /// @param p_domain PDDL text of the domain.
+    /// @param p_file File name, used in the error locations.
+    /// @return Empty when valid, the diagnostics otherwise.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual std::string load(std::string const& p_domain,
                                            std::string const& p_file) = 0;
 
     // -------------------------------------------------------------------------
-    /// @brief Plans for @p_problem against the loaded domain.
+    /// Plans against the loaded domain.
+    /// @param p_problem PDDL text of the problem (objects, initial state,
+    ///   goal).
+    /// @param p_options Search preset, seed and timeout.
+    /// @return The plan, or why there is none.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual PlanningResult
     solve(std::string const& p_problem, PlanningOptions const& p_options) = 0;
 };
 
-/// @brief The default engine: Kairos.
+// ----------------------------------------------------------------------------
+/// Creates the default engine.
+/// @return A Kairos planner with no domain loaded.
+// ----------------------------------------------------------------------------
 [[nodiscard]] std::unique_ptr<PlanningEngine> makeKairosPlanner();
 
 } // namespace robotik

@@ -19,7 +19,8 @@
 /// Damping mode of the LimX controllers: no stiffness, a viscous brake
 /// (JointGains::velocity_kp = kd). Without its IMU the robot cannot balance:
 /// it sags to the ground instead of freezing in a stiff pose.
-static void damp(robotik::JointSet& p_joints, std::vector<robotik::JointId> const& p_ids)
+static void damp(robotik::JointSet& p_joints,
+                 std::vector<robotik::JointId> const& p_ids)
 {
     for (robotik::JointId const id : p_ids)
     {
@@ -28,8 +29,12 @@ static void damp(robotik::JointSet& p_joints, std::vector<robotik::JointId> cons
 }
 
 // ****************************************************************************
-StandSkill::StandSkill(WalkBody p_body, std::vector<double> p_posture, Seconds p_duration)
-    : m_body(std::move(p_body)), m_posture(std::move(p_posture)), m_duration(p_duration)
+StandSkill::StandSkill(WalkBody p_body,
+                       std::vector<double> p_posture,
+                       Seconds p_duration)
+    : m_body(std::move(p_body)),
+      m_posture(std::move(p_posture)),
+      m_duration(p_duration)
 {
 }
 
@@ -46,7 +51,8 @@ robotik::Status StandSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         joints.moveTo(m_body.joints[i], m_posture[i]);
     }
     m_elapsed = m_elapsed + p_dt;
-    return m_elapsed >= m_duration ? robotik::Status::SUCCESS : robotik::Status::RUNNING;
+    return m_elapsed >= m_duration ? robotik::Status::SUCCESS
+                                   : robotik::Status::RUNNING;
 }
 
 void StandSkill::cancel(robotik::RobotContext& p_context)
@@ -111,8 +117,11 @@ robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         {
             command[i] = std::clamp(m_command[i], -limit[i], limit[i]);
         }
-        WalkInput const input{ reading.orientation, reading.angular_velocity, command,
-                               m_positions, m_velocities };
+        WalkInput const input{ reading.orientation,
+                               reading.angular_velocity,
+                               command,
+                               m_positions,
+                               m_velocities };
         std::span<double const> const targets = m_policy.act(input);
         for (std::size_t i = 0; i < m_body.joints.size(); ++i)
         {

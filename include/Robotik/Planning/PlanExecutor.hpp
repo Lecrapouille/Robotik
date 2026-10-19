@@ -6,8 +6,8 @@
 // See LICENSING.md for details.
 
 /// @file PlanExecutor.hpp
-/// @brief Plans with the PDDL planner, runs the plan as a behavior tree,
-/// checks it on the beliefs and plans again when reality disagrees.
+/// Plans with the PDDL planner, runs the plan as a behavior tree, checks it
+/// on the beliefs and plans again when reality disagrees.
 ///
 /// @code
 /// state of the beliefs (observers) + facts + objects (kind) + goal
@@ -43,7 +43,13 @@ class SkillScheduler;
 struct RobotContext;
 
 // ****************************************************************************
-/// @brief An object of the problem: a world entity with a @c kind.
+/// An object of the problem: a world entity with a @c kind.
+///
+/// @code
+/// for (robotik::PlanningObject const& o : executor.objects())
+///     std::cout << o.name << " - " << o.type << "   ; entity " << o.id <<
+///     '\n';
+/// @endcode
 // ****************************************************************************
 struct PlanningObject
 {
@@ -51,22 +57,32 @@ struct PlanningObject
     std::string id;
     /// Lower-case name in the PDDL problem.
     std::string name;
+    /// PDDL type (the @c kind of the entity).
     std::string type;
 };
 
-/// @brief An atom of the problem and its value in the beliefs.
+/// An atom of the problem and its value in the beliefs.
 using ObservedAtom = std::pair<Atom, Truth>;
 
 // ****************************************************************************
-/// @brief One call to the planner, kept for the user interface and reports.
+/// One call to the planner, kept for the user interface and reports.
+///
+/// @code
+/// robotik::PlanningRecord const& last = executor.history().back();
+/// std::cout << last.cause << " -> " << robotik::toString(last.result.status)
+/// << '\n'
+///           << last.problem;
+/// @endcode
 // ****************************************************************************
 struct PlanningRecord
 {
+    /// Simulated time of the call.
     Seconds time{};
     /// Why this plan: "start", or what went wrong with the previous one.
     std::string cause;
     /// Problem sent to the planner.
     std::string problem;
+    /// Answer of the planner.
     PlanningResult result;
     /// Atoms read on the beliefs to build the problem (entity ids).
     std::vector<ObservedAtom> observed;
@@ -75,7 +91,7 @@ struct PlanningRecord
 };
 
 // ****************************************************************************
-/// @brief Life cycle of the executor within one episode.
+/// Life cycle of the executor within one episode.
 // ****************************************************************************
 enum class PlanState : std::uint8_t
 {
@@ -86,10 +102,14 @@ enum class PlanState : std::uint8_t
     Failed,    ///< No plan, or no replan left.
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_state State to name.
+/// @return Its name, for the user interface and reports.
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(PlanState p_state);
 
 // ****************************************************************************
-/// @brief Where one step of the current plan is.
+/// Where one step of the current plan is.
 // ****************************************************************************
 enum class StepStatus : std::uint8_t
 {
@@ -99,21 +119,44 @@ enum class StepStatus : std::uint8_t
     Failed,  ///< A skill failed or an effect was not seen (see failure()).
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_status Status to name.
+/// @return Its name, for the user interface and reports.
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(StepStatus p_status);
 
 // ****************************************************************************
-/// @brief Drives a @ref PlannerSpec goal through the skills of a robot.
+/// Drives a @ref PlannerSpec goal through the skills of a robot.
+///
+/// The @ref Simulation builds it when the scenario has a planner, and ticks
+/// it every step instead of a behavior tree.
+///
+/// @code
+/// robotik::PlanExecutor executor(*scenario.controller.planner, scenario.world,
+///                                mission_domain, scenario.id, factory,
+///                                skills);
+/// executor.reset(robotik::Seed(42));
+/// while (executor.tick(context) == bt::Status::RUNNING)
+///     step();
+/// if (executor.state() == robotik::PlanState::Failed)
+///     std::cerr << executor.failure() << '\n';
+/// @endcode
 // ****************************************************************************
 class PlanExecutor
 {
 public:
 
     // -------------------------------------------------------------------------
-    /// @brief Loads the domain and checks that the domain, the world, the
-    /// scenario and the mission agree (see @ref PlanningDomain).
+    /// Loads the domain and checks that the domain, the world, the scenario
+    /// and the mission agree (see @ref PlanningDomain).
+    /// @param p_spec Goal and settings of the planner.
+    /// @param p_world World: the entities with a @c kind are the objects.
+    /// @param p_domain Observers and bindings of the mission.
     /// @param p_name Name of the PDDL problem (the scenario id).
     /// @param p_factory Holds the skill nodes; the executor adds its own.
-    /// It and @p_skills must outlive the executor.
+    ///   It and @p_skills must outlive the executor.
+    /// @param p_skills Scheduler running the skills of the plan.
+    /// @param p_engine Planner; Kairos by default.
     /// @throws std::runtime_error listing every problem found.
     // -------------------------------------------------------------------------
     PlanExecutor(
@@ -127,8 +170,9 @@ public:
     ~PlanExecutor();
 
     // -------------------------------------------------------------------------
-    /// @brief Clock of the trees built from the plans (the simulated time):
-    /// their timed nodes then follow it. Empty: the wall clock.
+    /// Sets the clock of the trees built from the plans (the simulated
+    /// time): their timed nodes then follow it.
+    /// @param p_clock Clock function; empty: the wall clock.
     // -------------------------------------------------------------------------
     void clock(bt::Tree::ClockFunction p_clock)
     {
@@ -136,187 +180,232 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief New episode: forgets the plans; the next tick plans.
+    /// New episode: forgets the plans; the next tick plans.
+    /// @param p_seed Seed of the episode, given to the planner.
     // -------------------------------------------------------------------------
     void reset(Seed p_seed);
 
     // -------------------------------------------------------------------------
-    /// @brief Plans when due, then ticks the plan.
+    /// Plans when due, then ticks the plan.
+    /// @param p_context Robot API and beliefs of this tick.
     /// @return @c RUNNING, or @c SUCCESS / @c FAILURE once the run is over.
     // -------------------------------------------------------------------------
     bt::Status tick(RobotContext const& p_context);
 
     // -------------------------------------------------------------------------
-    /// @brief Drops the current plan and plans again at the next tick
-    /// (user request). Does not count as a replan.
+    /// Drops the current plan and plans again at the next tick (user
+    /// request). Does not count as a replan.
+    /// @param p_cause Why, kept in @ref history.
     // -------------------------------------------------------------------------
     void replan(std::string p_cause);
 
     // -------------------------------------------------------------------------
-    /// @brief The problem the planner would get now.
+    /// @param p_context Robot API and beliefs.
+    /// @return The PDDL problem the planner would get now.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::string problem(RobotContext const& p_context) const;
 
     // -------------------------------------------------------------------------
-    /// @brief Every atom with an observer, read now on the beliefs.
+    /// @param p_context Robot API and beliefs.
+    /// @return Every atom with an observer, read now on the beliefs.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<ObservedAtom>
     observe(RobotContext const& p_context) const;
 
     // --- Introspection ------------------------------------------------------
 
+    /// @return Goal and settings of the planner.
     [[nodiscard]] PlannerSpec const& spec() const
     {
         return m_spec;
     }
 
+    /// @return What RobotIK read of the domain.
     [[nodiscard]] DomainSchema const& schema() const
     {
         return m_schema;
     }
 
-    /// @brief Text of the domain file.
+    /// @return Text of the domain file.
     [[nodiscard]] std::string const& domain() const
     {
         return m_domain_text;
     }
 
+    /// @return Objects of the problem.
     [[nodiscard]] std::vector<PlanningObject> const& objects() const
     {
         return m_objects;
     }
 
+    /// @return Every call to the planner since the reset.
     [[nodiscard]] std::vector<PlanningRecord> const& history() const
     {
         return m_history;
     }
 
-    /// @brief Steps of the current plan (entity ids as arguments).
+    /// @return Steps of the current plan (entity ids as arguments).
     [[nodiscard]] std::vector<GroundAction> const& plan() const
     {
         return m_plan;
     }
 
-    /// @brief Count of steps of the current plan done (or skipped) and
-    /// checked; with parallel steps, not always the first ones.
+    /// @return Count of steps of the current plan done (or skipped) and
+    ///   checked; with parallel steps, not always the first ones.
     [[nodiscard]] std::size_t done() const
     {
         return m_done;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Steps each step of the current plan waits for before it starts
-    /// (their end, or their start in a temporal plan). A chain when the plan
-    /// runs step by step.
+    /// @return Steps each step of the current plan waits for before it
+    ///   starts (their end, or their start in a temporal plan). A chain when
+    ///   the plan runs step by step.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<std::vector<std::size_t>> const& after() const
     {
         return m_after;
     }
 
-    /// @brief The step has started and is not over: several at once when
-    /// the plan runs steps together.
+    /// @return True when step @p_step has started and is not over: several
+    ///   at once when the plan runs steps together.
     [[nodiscard]] bool running(std::size_t p_step) const;
 
-    /// @brief Events each step waits for before it starts and before it ends
-    /// (see PlanGraph.hpp).
+    /// @return Events each step waits for before it starts and before it
+    ///   ends (see PlanGraph.hpp).
     [[nodiscard]] std::vector<StepOrder> const& order() const
     {
         return m_order;
     }
 
-    /// @brief Status of each step of the current plan.
+    /// @return Status of each step of the current plan.
     [[nodiscard]] std::vector<StepStatus> const& steps() const
     {
         return m_steps;
     }
 
+    /// @return Where the executor is in the episode.
     [[nodiscard]] PlanState state() const
     {
         return m_state;
     }
 
-    /// @brief Last thing that went wrong, empty if none.
+    /// @return Last thing that went wrong, empty if none.
     [[nodiscard]] std::string const& failure() const
     {
         return m_failure;
     }
 
+    /// @return Number of replans since the reset.
     [[nodiscard]] std::uint32_t replans() const
     {
         return m_replans;
     }
 
-    /// @brief Tree of the current plan, or null.
+    /// @return Tree of the current plan, or null.
     [[nodiscard]] bt::Tree const* tree() const
     {
         return m_tree.get();
     }
 
-    /// @brief Behavior tree nodes of one plan step.
+    /// @param p_step A step of a plan.
+    /// @return Behavior tree nodes of the step, arguments replaced.
     [[nodiscard]] std::vector<std::string>
     nodes(GroundAction const& p_step) const;
 
 private:
 
+    /// Reads the domain and checks it against the world and the mission.
     void load(WorldDescription const& p_world, PlanningDomain const& p_domain);
+    /// Builds the problem, calls the planner and compiles the plan.
     void plan(RobotContext const& p_context, std::string p_cause);
+    /// Orders the steps and builds the behavior tree of the plan.
     void compile();
+    /// Ends the episode in @ref PlanState::Failed.
     void fail(std::string p_why);
+    /// Waits replan.delay then plans again, or fails when no replan is left.
     void retry(RobotContext const& p_context, std::string p_cause);
+    /// Tree node: SUCCESS when the effects of @p_step hold (or verify is off).
     [[nodiscard]] bt::Status check(std::size_t p_step,
                                    RobotContext const& p_context);
+    /// Tree node: SUCCESS when every effect of @p_step already holds.
     [[nodiscard]] bt::Status skip(std::size_t p_step,
                                   RobotContext const& p_context);
-    /// @brief SUCCESS once @p_step may start (marks it started), else RUNNING.
+    /// SUCCESS once @p_step may start (marks it started), else RUNNING.
     [[nodiscard]] bt::Status ready(std::size_t p_step);
-    /// @brief SUCCESS once @p_step may end, else RUNNING.
+    /// SUCCESS once @p_step may end, else RUNNING.
     [[nodiscard]] bt::Status mayEnd(std::size_t p_step) const;
-    /// @brief The event happened: a start once the step started, an end once
-    /// it is done or skipped.
+    /// The event happened: a start once the step started, an end once it is
+    /// done or skipped.
     [[nodiscard]] bool reached(PlanEvent const& p_event) const;
-    /// @brief Marks @p_step finished (done or skipped) and counts it.
+    /// Marks @p_step finished (done or skipped) and counts it.
     void finish(std::size_t p_step, StepStatus p_status);
-    /// @brief Step a failed tree failed at: one with a failed skill, else
-    /// the first one running.
+    /// Step a failed tree failed at: one with a failed skill, else the first
+    /// one running.
     [[nodiscard]] std::size_t failingStep() const;
-    /// @brief Partial order of @ref m_plan (a chain unless spec.parallel).
+    /// Partial order of @ref m_plan (a chain unless spec.parallel).
     [[nodiscard]] std::vector<StepOrder> partialOrder() const;
-    /// @brief Plain effects of a step, as ground literals (PDDL names).
+    /// Plain effects of a step, as ground literals (PDDL names);
+    /// @p_partial tells that some effects cannot be checked.
     [[nodiscard]] std::vector<Literal> effects(std::size_t p_step,
                                                bool& p_partial) const;
+    /// Value of a ground atom: a fact, or its observer on the beliefs.
     [[nodiscard]] Truth evaluate(Atom const& p_atom,
                                  RobotContext const& p_context) const;
+    /// Empty when the goal holds; else which goal literal is false.
     [[nodiscard]] std::string goalReached(RobotContext const& p_context) const;
+    /// Explains why the tree failed: the step and its failed skill.
     [[nodiscard]] std::string stepFailure(RobotContext const& p_context) const;
+    /// Entity ids of PDDL object names (unknown names are kept).
     [[nodiscard]] std::vector<std::string>
     ids(std::vector<std::string> const& p_names) const;
+    /// PDDL problem from observed atoms, facts, objects and goal.
     [[nodiscard]] std::string
     problemOf(std::vector<ObservedAtom> const& p_observed) const;
 
 private:
 
+    /// Goal and settings of the planner.
     PlannerSpec m_spec;
+    /// Name of the PDDL problem.
     std::string m_name;
+    /// Observers and bindings of the mission.
     PlanningDomain const& m_domain;
+    /// Factory of the tree nodes.
     bt::NodeFactory& m_factory;
+    /// Scheduler running the skills.
     SkillScheduler& m_skills;
+    /// The planner.
     std::unique_ptr<PlanningEngine> m_engine;
 
+    /// Text of the domain file.
     std::string m_domain_text;
+    /// What RobotIK read of the domain.
     DomainSchema m_schema;
+    /// Objects of the problem.
     std::vector<PlanningObject> m_objects;
 
+    /// Seed of the episode.
     std::uint64_t m_seed = 0u;
+    /// Where the executor is in the episode.
     PlanState m_state = PlanState::Planning;
+    /// Simulated time to plan again, in @ref PlanState::Waiting.
     Seconds m_resume{};
+    /// Replans since the reset.
     std::uint32_t m_replans = 0u;
+    /// Last thing that went wrong.
     std::string m_failure;
+    /// Every call to the planner.
     std::vector<PlanningRecord> m_history;
+    /// Steps of the current plan.
     std::vector<GroundAction> m_plan;
+    /// Steps done or skipped.
     std::size_t m_done = 0u;
+    /// Status of each step.
     std::vector<StepStatus> m_steps;
+    /// Steps each step waits for before it starts.
     std::vector<std::vector<std::size_t>> m_after;
+    /// Partial order of the plan.
     std::vector<StepOrder> m_order;
     /// The start of each step happened.
     std::vector<bool> m_started;
@@ -324,8 +413,11 @@ private:
     std::string m_check_failure;
     /// Context of the tick in progress, for the check nodes.
     RobotContext const* m_context = nullptr;
+    /// Blackboard of the tree (step parameters).
     bt::Blackboard::Ptr m_blackboard;
+    /// Tree of the current plan.
     bt::Tree::Ptr m_tree;
+    /// Clock given to the trees.
     bt::Tree::ClockFunction m_clock;
 };
 

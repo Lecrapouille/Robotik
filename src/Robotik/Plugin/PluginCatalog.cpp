@@ -8,6 +8,7 @@
 #include "Robotik/Plugin/PluginCatalog.hpp"
 
 #include "Robotik/Assets/AssetResolver.hpp"
+#include "Robotik/Common/File.hpp"
 #include "Robotik/Plugin/PluginABI.h"
 #include "Robotik/Scenario/FileRole.hpp"
 
@@ -39,8 +40,9 @@ static bool libraryName(std::string const& p_name)
     {
         bool const ok = (character >= 'a' && character <= 'z') ||
                         (character >= 'A' && character <= 'Z') ||
-                        (character >= '0' && character <= '9') || character == '.' ||
-                        character == '_' || character == '+' || character == '-';
+                        (character >= '0' && character <= '9') ||
+                        character == '.' || character == '_' ||
+                        character == '+' || character == '-';
         if (!ok)
         {
             return false;
@@ -69,12 +71,14 @@ static bool relativeName(std::string const& p_file)
 static std::filesystem::path canonicalOf(std::filesystem::path const& p_path)
 {
     std::error_code error;
-    std::filesystem::path const canonical = std::filesystem::weakly_canonical(p_path, error);
+    std::filesystem::path const canonical =
+        std::filesystem::weakly_canonical(p_path, error);
     return error ? std::filesystem::absolute(p_path) : canonical;
 }
 
 /// True when a file stays inside a directory once links are resolved.
-static bool contained(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
+static bool contained(std::filesystem::path const& p_root,
+                      std::filesystem::path const& p_file)
 {
     std::filesystem::path const root = canonicalOf(p_root);
     std::filesystem::path const file = canonicalOf(p_file);
@@ -96,7 +100,7 @@ static bool contained(std::filesystem::path const& p_root, std::filesystem::path
 /// Beside the manifest (staged package), else next to the executable (a
 /// package read from the sources while its library sits in build/).
 static std::filesystem::path resolveLibrary(std::filesystem::path const& p_root,
-                                     std::string const& p_name)
+                                            std::string const& p_name)
 {
     std::filesystem::path const beside = p_root / p_name;
     std::error_code error;
@@ -133,10 +137,10 @@ static std::string titleFromStem(std::string p_stem)
 /// *.experiment.yaml, or a YAML file without a role). Files must stay in
 /// the package. False, with @p_why set, on an invalid section or file.
 static bool readEntries(bt::YamlNode const& p_section,
-                 std::filesystem::path const& p_root,
-                 bool p_owns_clock,
-                 std::vector<PluginScenario>& p_out,
-                 std::string& p_why)
+                        std::filesystem::path const& p_root,
+                        bool p_owns_clock,
+                        std::vector<PluginScenario>& p_out,
+                        std::string& p_why)
 {
     if (!p_section.valid())
     {
@@ -144,32 +148,37 @@ static bool readEntries(bt::YamlNode const& p_section,
     }
     std::string const folder_name = field(p_section, "directory");
     if (!folder_name.empty() && folder_name != "." &&
-        (!relativeName(folder_name) || !contained(p_root, p_root / folder_name)))
+        (!relativeName(folder_name) ||
+         !contained(p_root, p_root / folder_name)))
     {
         p_why = "a directory must stay inside the package";
         return false;
     }
     std::filesystem::path const folder =
-        folder_name.empty() ? p_root : (p_root / folder_name).lexically_normal();
+        folder_name.empty() ? p_root
+                            : (p_root / folder_name).lexically_normal();
     if (p_section.hasKey("entries"))
     {
         bool entries_ok = true;
-        p_section.child("entries").forEachSeq([&](bt::YamlNode p_item) {
-            PluginScenario entry;
-            entry.id = field(p_item, "id");
-            entry.name = field(p_item, "name");
-            std::string const file = field(p_item, "file");
-            if (entry.id.empty() || entry.name.empty() || file.empty())
+        p_section.child("entries").forEachSeq(
+            [&](bt::YamlNode p_item)
             {
-                entries_ok = false;
-                return;
-            }
-            entry.file = (folder / file).lexically_normal();
-            entry.menu = field(p_item, "menu");
-            std::string const clock = field(p_item, "clock");
-            entry.owns_clock = clock.empty() ? p_owns_clock : clock == "plugin";
-            p_out.push_back(std::move(entry));
-        });
+                PluginScenario entry;
+                entry.id = field(p_item, "id");
+                entry.name = field(p_item, "name");
+                std::string const file = field(p_item, "file");
+                if (entry.id.empty() || entry.name.empty() || file.empty())
+                {
+                    entries_ok = false;
+                    return;
+                }
+                entry.file = (folder / file).lexically_normal();
+                entry.menu = field(p_item, "menu");
+                std::string const clock = field(p_item, "clock");
+                entry.owns_clock =
+                    clock.empty() ? p_owns_clock : clock == "plugin";
+                p_out.push_back(std::move(entry));
+            });
         if (!entries_ok)
         {
             p_why = "invalid entry (id, name and file are required)";
@@ -206,9 +215,11 @@ static bool readEntries(bt::YamlNode const& p_section,
     for (PluginScenario const& entry : p_out)
     {
         std::error_code error;
-        if (!std::filesystem::is_regular_file(entry.file, error) || !contained(p_root, entry.file))
+        if (!std::filesystem::is_regular_file(entry.file, error) ||
+            !contained(p_root, entry.file))
         {
-            p_why = entry.file.string() + " is outside the plugin package or missing";
+            p_why = entry.file.string() +
+                    " is outside the plugin package or missing";
             return false;
         }
     }
@@ -229,7 +240,8 @@ static ThirdParty libraryOf(bt::YamlNode const& p_item)
             entry.reference = repo.substr(at + 1u);
             repo.resize(at);
         }
-        if (std::size_t const option = repo.find(':'); option != std::string::npos)
+        if (std::size_t const option = repo.find(':');
+            option != std::string::npos)
         {
             repo.resize(option);
         }
@@ -261,7 +273,8 @@ void PluginCatalog::scan(std::filesystem::path const& p_extra)
         while (!paths.empty())
         {
             std::size_t const colon = paths.find(':');
-            if (std::string_view const item = paths.substr(0, colon); !item.empty())
+            if (std::string_view const item = paths.substr(0, colon);
+                !item.empty())
             {
                 roots.emplace_back(item);
             }
@@ -318,7 +331,8 @@ PluginPackage const* PluginCatalog::findPackage(std::string_view p_id) const
     return nullptr;
 }
 
-PluginPackage const* PluginCatalog::findScenario(std::filesystem::path const& p_scenario) const
+PluginPackage const*
+PluginCatalog::findScenario(std::filesystem::path const& p_scenario) const
 {
     std::filesystem::path const wanted = canonicalOf(p_scenario);
     for (PluginPackage const& package : m_packages)
@@ -334,7 +348,8 @@ PluginPackage const* PluginCatalog::findScenario(std::filesystem::path const& p_
     return nullptr;
 }
 
-PluginMatch PluginCatalog::matchScenario(std::filesystem::path const& p_scenario) const
+PluginMatch
+PluginCatalog::matchScenario(std::filesystem::path const& p_scenario) const
 {
     if (PluginPackage const* exact = findScenario(p_scenario))
     {
@@ -361,8 +376,9 @@ PluginMatch PluginCatalog::matchScenario(std::filesystem::path const& p_scenario
     return matches == 1 ? found : PluginMatch{};
 }
 
-PluginScenario const* PluginCatalog::scenarioOf(PluginPackage const& p_package,
-                                                std::filesystem::path const& p_scenario) const
+PluginScenario const*
+PluginCatalog::scenarioOf(PluginPackage const& p_package,
+                          std::filesystem::path const& p_scenario) const
 {
     std::filesystem::path const wanted = canonicalOf(p_scenario);
     for (PluginScenario const& scenario : p_package.scenarios)
@@ -392,7 +408,8 @@ void PluginCatalog::consider(std::filesystem::path const& p_directory)
     {
         return;
     }
-    for (; cursor != std::filesystem::directory_iterator(); cursor.increment(error))
+    for (; cursor != std::filesystem::directory_iterator();
+         cursor.increment(error))
     {
         if (error)
         {
@@ -425,9 +442,8 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         m_errors.push_back(manifest.string() + ": " + parsed.getError());
         return;
     }
-    auto reject = [&](std::string const& p_why) {
-        m_errors.push_back(manifest.string() + ": " + p_why);
-    };
+    auto reject = [&](std::string const& p_why)
+    { m_errors.push_back(manifest.string() + ": " + p_why); };
     bt::YamlNode const node = parsed.getValue().root();
 
     // --- plugin: identity ---------------------------------------------------
@@ -442,19 +458,21 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     {
         package.category = "Demo";
     }
-    std::optional<Version> const version = Version::parse(field(plugin, "version"));
+    std::optional<Version> const version =
+        parseVersion(field(plugin, "version"));
     if (package.id.empty() || package.name.empty() || !version)
     {
         reject("plugin.id, plugin.name and plugin.version are required");
         return;
     }
     package.version = *version;
-    package.api_version =
-        static_cast<std::uint32_t>(plugin.child("api_version").asDouble().value_or(0.0));
+    package.api_version = static_cast<std::uint32_t>(
+        plugin.child("api_version").asDouble().value_or(0.0));
     if (package.api_version != ROBOTIK_PLUGIN_ABI_VERSION)
     {
         reject("built for plugin API " + std::to_string(package.api_version) +
-               ", this host speaks " + std::to_string(ROBOTIK_PLUGIN_ABI_VERSION));
+               ", this host speaks " +
+               std::to_string(ROBOTIK_PLUGIN_ABI_VERSION));
         return;
     }
 
@@ -469,7 +487,8 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
 
     // --- resources: own pack and required packs ------------------------------
     bt::YamlNode const resources = node.child("resources");
-    if (std::string const directory = field(resources, "directory"); !directory.empty())
+    if (std::string const directory = field(resources, "directory");
+        !directory.empty())
     {
         if (!relativeName(directory) || !contained(p_root, p_root / directory))
         {
@@ -480,33 +499,42 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         package.resources = canonicalOf(p_root / directory);
     }
     bool packs_ok = true;
-    resources.child("packs").forEachSeq([&](bt::YamlNode p_item) {
-        PackRequirement requirement;
-        requirement.id = p_item.isMap() ? field(p_item, "id") : p_item.scalar();
-        std::string const wanted = p_item.isMap() ? field(p_item, "version") : "0";
-        std::optional<Version> const minimum = Version::parse(wanted.empty() ? "0" : wanted);
-        if (requirement.id.empty() || !minimum)
+    resources.child("packs").forEachSeq(
+        [&](bt::YamlNode p_item)
         {
-            packs_ok = false;
-            return;
-        }
-        requirement.version = *minimum;
-        package.packs.push_back(std::move(requirement));
-    });
+            PackRequirement requirement;
+            requirement.id =
+                p_item.isMap() ? field(p_item, "id") : p_item.scalar();
+            std::string const wanted =
+                p_item.isMap() ? field(p_item, "version") : "0";
+            std::optional<Version> const minimum =
+                parseVersion(wanted.empty() ? "0" : wanted);
+            if (requirement.id.empty() || !minimum)
+            {
+                packs_ok = false;
+                return;
+            }
+            requirement.version = *minimum;
+            package.packs.push_back(std::move(requirement));
+        });
     if (!packs_ok)
     {
-        reject("resources.packs entries need an id and a version such as \"1.0\"");
+        reject(
+            "resources.packs entries need an id and a version such as \"1.0\"");
         return;
     }
 
     // --- dependencies -------------------------------------------------------
     bt::YamlNode const dependencies = node.child("dependencies");
     dependencies.child("plugins").forEachSeq(
-        [&](bt::YamlNode p_item) { package.plugins.push_back(p_item.scalar()); });
+        [&](bt::YamlNode p_item)
+        { package.plugins.push_back(p_item.scalar()); });
     dependencies.child("system").forEachSeq(
-        [&](bt::YamlNode p_item) { package.system.push_back(libraryOf(p_item)); });
-    dependencies.child("thirdparties").forEachSeq(
-        [&](bt::YamlNode p_item) { package.thirdparties.push_back(libraryOf(p_item)); });
+        [&](bt::YamlNode p_item)
+        { package.system.push_back(libraryOf(p_item)); });
+    dependencies.child("thirdparties")
+        .forEachSeq([&](bt::YamlNode p_item)
+                    { package.thirdparties.push_back(libraryOf(p_item)); });
 
     // --- host hints ---------------------------------------------------------
     bt::YamlNode const host = node.child("host");
@@ -515,19 +543,23 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     if (host.hasKey("view"))
     {
         bt::YamlNode const view = host.child("view");
-        auto read3 = [](bt::YamlNode const& p_node, float p_out[3]) {
+        auto read3 = [](bt::YamlNode const& p_node, float p_out[3])
+        {
             if (!p_node.isSeq())
             {
                 return;
             }
             int index = 0;
-            p_node.forEachSeq([&](bt::YamlNode p_item) {
-                if (index < 3)
+            p_node.forEachSeq(
+                [&](bt::YamlNode p_item)
                 {
-                    p_out[index] = static_cast<float>(p_item.asDouble().value_or(p_out[index]));
-                    ++index;
-                }
-            });
+                    if (index < 3)
+                    {
+                        p_out[index] = static_cast<float>(
+                            p_item.asDouble().value_or(p_out[index]));
+                        ++index;
+                    }
+                });
         };
         read3(view.child("eye"), package.eye);
         read3(view.child("target"), package.target);
@@ -536,8 +568,16 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
 
     // --- scenarios and experiments -----------------------------------------
     std::string why;
-    if (!readEntries(node.child("scenarios"), p_root, package.owns_clock, package.scenarios, why) ||
-        !readEntries(node.child("experiments"), p_root, package.owns_clock, package.experiments, why))
+    if (!readEntries(node.child("scenarios"),
+                     p_root,
+                     package.owns_clock,
+                     package.scenarios,
+                     why) ||
+        !readEntries(node.child("experiments"),
+                     p_root,
+                     package.owns_clock,
+                     package.experiments,
+                     why))
     {
         if (!why.empty())
         {

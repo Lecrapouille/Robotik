@@ -24,7 +24,8 @@ static constexpr char const* FLANGE = "flange";
 static constexpr char const* TOOL_MOUNT = "tool_mount";
 
 /// Throws a world error prefixed with the place it was found.
-[[noreturn]] static void fail(std::string const& p_where, std::string const& p_what)
+[[noreturn]] static void fail(std::string const& p_where,
+                              std::string const& p_what)
 {
     throw std::runtime_error(p_where + ": " + p_what);
 }
@@ -55,14 +56,16 @@ static NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
     }
     if (model.sigma < 0.0 || model.resolution < 0.0)
     {
-        throw std::runtime_error("'" + std::string(p_key) +
-                                 "': sigma and resolution must not be negative");
+        throw std::runtime_error(
+            "'" + std::string(p_key) +
+            "': sigma and resolution must not be negative");
     }
     return model;
 }
 
 /// Reads a camera mount, its resolution and its clip planes.
-static CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
+static CameraConfig
+cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
 {
     CameraConfig config;
     config.parent = p_node.text("parent");
@@ -74,7 +77,8 @@ static CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p
     if (!resolution.isNull())
     {
         if (!resolution.isSequence() || resolution.items().size() != 2u ||
-            !resolution.items()[0].asNumber() || !resolution.items()[1].asNumber())
+            !resolution.items()[0].asNumber() ||
+            !resolution.items()[1].asNumber())
         {
             fail(p_where, "resolution must be [width, height]");
         }
@@ -82,9 +86,10 @@ static CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p
         height = *resolution.items()[1].asNumber();
     }
     double const fov = p_node.number("fov", 70.0) * std::numbers::pi / 180.0;
-    config.intrinsics = CameraIntrinsics::fromFov(static_cast<std::uint32_t>(width),
-                                                  static_cast<std::uint32_t>(height),
-                                                  Radians(fov));
+    config.intrinsics =
+        CameraIntrinsics::fromFov(static_cast<std::uint32_t>(width),
+                                  static_cast<std::uint32_t>(height),
+                                  Radians(fov));
     config.frequency = p_node.number("frequency", 30.0);
     config.depth = p_depth;
     config.noise = p_node.number("noise", 0.0);
@@ -93,8 +98,8 @@ static CameraConfig cameraConfig(std::string const& p_where, ConfigNode const& p
 
 /// Reads one sensor entry of an entity.
 static SensorSpec sensor(std::string const& p_where,
-                  std::string const& p_name,
-                  ConfigNode const& p_node)
+                         std::string const& p_name,
+                         ConfigNode const& p_node)
 {
     std::string const where = p_where + ", sensor '" + p_name + "'";
     std::string const type = p_node.text("type");
@@ -132,10 +137,12 @@ static SensorSpec sensor(std::string const& p_where,
             RangeScannerConfig& range = spec.range;
             range.parent = p_node.text("parent");
             range.mount = p_node.asPose();
-            range.beams = static_cast<std::uint32_t>(p_node.number("beams", range.beams));
+            range.beams =
+                static_cast<std::uint32_t>(p_node.number("beams", range.beams));
             range.field_of_view =
                 Radians(p_node.number("fov", 360.0) * std::numbers::pi / 180.0);
-            range.max_range = Length(p_node.number("max_range", range.max_range.value()));
+            range.max_range =
+                Length(p_node.number("max_range", range.max_range.value()));
             range.frequency = p_node.number("frequency", range.frequency);
             range.latency = latency;
             range.noise = noise(p_node, "noise");
@@ -156,7 +163,9 @@ static SensorSpec sensor(std::string const& p_where,
         }
         else
         {
-            fail(where, "unknown type '" + type + "' (camera, rgbd, imu, range, force_torque)");
+            fail(where,
+                 "unknown type '" + type +
+                     "' (camera, rgbd, imu, range, force_torque)");
         }
         return spec;
     }
@@ -172,8 +181,8 @@ static SensorSpec sensor(std::string const& p_where,
 
 /// Reads one actuator entry of an entity.
 static ActuatorSpec actuator(std::string const& p_where,
-                      std::string const& p_name,
-                      ConfigNode const& p_node)
+                             std::string const& p_name,
+                             ConfigNode const& p_node)
 {
     std::string const where = p_where + ", actuator '" + p_name + "'";
     ActuatorSpec spec;
@@ -207,7 +216,8 @@ static ActuatorSpec actuator(std::string const& p_where,
 }
 
 /// Maps the type text of an entity onto its enum.
-static EntitySpec::Type entityType(std::string const& p_where, std::string const& p_text)
+static EntitySpec::Type entityType(std::string const& p_where,
+                                   std::string const& p_text)
 {
     if (p_text == "robot")
         return EntitySpec::Type::Robot;
@@ -217,7 +227,8 @@ static EntitySpec::Type entityType(std::string const& p_where, std::string const
         return EntitySpec::Type::Body;
     if (p_text == "prop")
         return EntitySpec::Type::Prop;
-    fail(p_where, "type must be robot, tool, body or prop, not '" + p_text + "'");
+    fail(p_where,
+         "type must be robot, tool, body or prop, not '" + p_text + "'");
 }
 
 /// Reads the shape block of an entity.
@@ -236,7 +247,8 @@ static ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
     }
     else
     {
-        fail(p_where, "shape.type must be box or container, not '" + type + "'");
+        fail(p_where,
+             "shape.type must be box or container, not '" + type + "'");
     }
     spec.size = node.vector3("size", spec.size);
     Vector3 const color = p_entity.vector3("color", { 0.8, 0.8, 0.8 });
@@ -246,7 +258,8 @@ static ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
     return spec;
 }
 
-/// "easel.canvas_mount" -> { "easel", "canvas_mount" }; "easel" -> { "easel", "" }.
+/// "easel.canvas_mount" -> { "easel", "canvas_mount" }; "easel" -> { "easel",
+/// "" }.
 static std::pair<std::string, std::string> splitFrame(std::string const& p_text)
 {
     std::size_t const dot = p_text.find('.');
@@ -259,9 +272,9 @@ static std::pair<std::string, std::string> splitFrame(std::string const& p_text)
 
 /// Reads one entity, including its model, shape and devices.
 static EntitySpec entity(std::string const& p_world,
-                  ConfigNode const& p_node,
-                  std::filesystem::path const& p_directory,
-                  AssetResolver const& p_assets)
+                         ConfigNode const& p_node,
+                         std::filesystem::path const& p_directory,
+                         AssetResolver const& p_assets)
 {
     EntitySpec spec;
     spec.id = p_node.text("id");
@@ -296,7 +309,8 @@ static EntitySpec entity(std::string const& p_world,
         {
             ConfigNode const& node = p_node.at("attach");
             Attachment attach;
-            std::tie(attach.parent, attach.parent_frame) = splitFrame(node.text("parent"));
+            std::tie(attach.parent, attach.parent_frame) =
+                splitFrame(node.text("parent"));
             attach.frame = node.text("frame");
             attach.transform = node.pose("transform");
             if (attach.parent.empty())
@@ -321,7 +335,9 @@ static EntitySpec entity(std::string const& p_world,
         spec.mass = p_node.number("mass", spec.mass);
         spec.friction = p_node.number("friction", spec.friction);
         ConfigNode const& randomize = p_node.at("randomize");
-        spec.randomize = { randomize.range("x"), randomize.range("y"), randomize.range("z") };
+        spec.randomize = { randomize.range("x"),
+                           randomize.range("y"),
+                           randomize.range("z") };
 
         ConfigNode const& home = p_node.at("home");
         for (auto const& [joint, value] : home.entries())
@@ -383,7 +399,8 @@ static EntitySpec entity(std::string const& p_world,
             }
             break;
     }
-    if (spec.type != EntitySpec::Type::Robot && spec.type != EntitySpec::Type::Tool &&
+    if (spec.type != EntitySpec::Type::Robot &&
+        spec.type != EntitySpec::Type::Tool &&
         (!spec.sensors.empty() || !spec.home.empty()))
     {
         fail(where, "only robots and tools carry sensors or a home posture");
@@ -391,9 +408,10 @@ static EntitySpec entity(std::string const& p_world,
     return spec;
 }
 
-WorldDescription WorldDescription::read(ConfigNode const& p_world,
-                                        std::filesystem::path const& p_directory,
-                                        AssetResolver const& p_assets)
+WorldDescription
+WorldDescription::read(ConfigNode const& p_world,
+                       std::filesystem::path const& p_directory,
+                       AssetResolver const& p_assets)
 {
     WorldDescription world;
     world.id = p_world.text("id");
@@ -426,7 +444,8 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
         world.entities.push_back(std::move(spec));
     }
 
-    // --- Relations ------------------------------------------------------------
+    // --- Relations
+    // ------------------------------------------------------------
     std::vector<EntitySpec const*> const robots = world.robots();
     if (robots.empty())
     {
@@ -443,18 +462,25 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
         EntitySpec const* parent = world.find(spec.attach->parent);
         if (parent == nullptr || parent == &spec)
         {
-            fail(entity, "attach.parent '" + spec.attach->parent + "' is not another entity");
+            fail(entity,
+                 "attach.parent '" + spec.attach->parent +
+                     "' is not another entity");
         }
         if (spec.type == EntitySpec::Type::Tool)
         {
-            if (parent->type != EntitySpec::Type::Robot || spec.attach->parent_frame != FLANGE ||
+            if (parent->type != EntitySpec::Type::Robot ||
+                spec.attach->parent_frame != FLANGE ||
                 spec.attach->frame != TOOL_MOUNT)
             {
-                fail(entity, "a tool attaches with { parent: <robot>.flange, frame: tool_mount }");
+                fail(entity,
+                     "a tool attaches with { parent: <robot>.flange, frame: "
+                     "tool_mount }");
             }
             if (++mounted[parent->id] > 1)
             {
-                fail(where, "only one tool can be mounted on robot '" + parent->id + "'");
+                fail(where,
+                     "only one tool can be mounted on robot '" + parent->id +
+                         "'");
             }
         }
         else if (spec.type == EntitySpec::Type::Robot)
@@ -491,7 +517,8 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
         {
             if (world.find(id) == nullptr || id == spec.id)
             {
-                fail(entity, "touches '" + id + "', which is not another entity");
+                fail(entity,
+                     "touches '" + id + "', which is not another entity");
             }
         }
     }
@@ -505,8 +532,10 @@ WorldDescription WorldDescription::read(ConfigNode const& p_world,
             auto const [found, inserted] = devices.emplace(p_name, spec.id);
             if (!inserted && found->second != spec.id)
             {
-                fail(where, "device '" + p_name + "' is declared by '" + found->second +
-                                "' and by '" + spec.id + "': names are unique in the world");
+                fail(where,
+                     "device '" + p_name + "' is declared by '" +
+                         found->second + "' and by '" + spec.id +
+                         "': names are unique in the world");
             }
         };
         for (ActuatorSpec const& actuator : spec.actuators)
@@ -575,7 +604,8 @@ EntitySpec const* WorldDescription::mountedTool(std::string_view p_robot) const
 {
     for (EntitySpec const& spec : entities)
     {
-        if (spec.type == EntitySpec::Type::Tool && spec.attach && spec.attach->parent == p_robot)
+        if (spec.type == EntitySpec::Type::Tool && spec.attach &&
+            spec.attach->parent == p_robot)
         {
             return &spec;
         }
@@ -585,11 +615,13 @@ EntitySpec const* WorldDescription::mountedTool(std::string_view p_robot) const
 
 void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
 {
-    std::string const robot_id = p_robot.empty() ? robot().id : std::string(p_robot);
+    std::string const robot_id =
+        p_robot.empty() ? robot().id : std::string(p_robot);
     EntitySpec const* owner = find(robot_id);
     if (owner == nullptr || owner->type != EntitySpec::Type::Robot)
     {
-        throw std::invalid_argument("World '" + id + "' has no robot '" + robot_id + "'");
+        throw std::invalid_argument("World '" + id + "' has no robot '" +
+                                    robot_id + "'");
     }
     EntitySpec* chosen = nullptr;
     if (!p_id.empty())
@@ -617,7 +649,9 @@ void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
     }
     if (chosen != nullptr)
     {
-        chosen->attach = Attachment{ robot_id, FLANGE, TOOL_MOUNT, Pose{ zero3(), Quaternion{} } };
+        chosen->attach = Attachment{
+            robot_id, FLANGE, TOOL_MOUNT, Pose{ zero3(), Quaternion{} }
+        };
     }
 }
 

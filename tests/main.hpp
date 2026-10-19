@@ -26,7 +26,8 @@ inline std::filesystem::path repoFile(std::filesystem::path const& p_file)
 {
     for (char const* root : { ".", ".." })
     {
-        std::filesystem::path const candidate = std::filesystem::path(root) / p_file;
+        std::filesystem::path const candidate =
+            std::filesystem::path(root) / p_file;
         if (std::filesystem::exists(candidate))
         {
             return candidate;
@@ -41,7 +42,8 @@ inline robotik::AssetResolver const& testAssets()
     static robotik::AssetResolver const assets = []()
     {
         robotik::AssetResolver resolver = robotik::AssetResolver::standard();
-        for (auto const& entry : std::filesystem::directory_iterator(repoFile("plugins")))
+        for (auto const& entry :
+             std::filesystem::directory_iterator(repoFile("plugins")))
         {
             resolver.addRoot(entry.path() / "data");
         }

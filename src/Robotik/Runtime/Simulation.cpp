@@ -48,7 +48,9 @@ static Vector3 positionOf(compages::world::Entity p_entity)
 /// Converts a double vector to the float vector the scene stores.
 static compages::core::Vector3f toFloat(Vector3 const& p_v)
 {
-    return { static_cast<float>(p_v.x), static_cast<float>(p_v.y), static_cast<float>(p_v.z) };
+    return { static_cast<float>(p_v.x),
+             static_cast<float>(p_v.y),
+             static_cast<float>(p_v.z) };
 }
 
 /// Converts a double quaternion to the float quaternion the scene stores.
@@ -100,7 +102,9 @@ static Vector3 boxInertia(double p_mass, Vector3 const& p_size)
     double const x2 = p_size.x * p_size.x;
     double const y2 = p_size.y * p_size.y;
     double const z2 = p_size.z * p_size.z;
-    return { p_mass * (y2 + z2) / 12.0, p_mass * (x2 + z2) / 12.0, p_mass * (x2 + y2) / 12.0 };
+    return { p_mass * (y2 + z2) / 12.0,
+             p_mass * (x2 + z2) / 12.0,
+             p_mass * (x2 + y2) / 12.0 };
 }
 
 /// While the vacuum holds a prop, flag wall penetration (counts as a robot
@@ -133,12 +137,14 @@ static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
         [&](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
             if (p_flag || p_object.type != ecs::Shape::Type::CONTAINER ||
-                p_entity.id() == held.id() || p_entity.find<ecs::PhysicsBody>() != nullptr ||
+                p_entity.id() == held.id() ||
+                p_entity.find<ecs::PhysicsBody>() != nullptr ||
                 p_entity.find<ecs::Decoration>() != nullptr)
             {
                 return;
             }
-            if (scene::penetratesContainer(p_object, positionOf(p_entity), at, half))
+            if (scene::penetratesContainer(
+                    p_object, positionOf(p_entity), at, half))
             {
                 p_flag = true;
             }
@@ -176,19 +182,24 @@ Simulation::Simulation(compages::world::World& p_world,
       m_mission(p_mission),
       m_view(p_view),
       m_resources(std::make_shared<ResourceManager>()),
-      m_robots([&]() {
-          WorldDescription const& world = m_scenario.world;
-          std::vector<std::unique_ptr<RobotSession>> robots;
-          for (EntitySpec const* spec : world.robots())
+      m_robots(
+          [&]()
           {
-              EntitySpec const* tool = world.mountedTool(spec->id);
-              robots.push_back(std::make_unique<RobotSession>(
-                  p_world, spec->model, p_view,
-                  tool != nullptr ? tool->model : std::filesystem::path{}, m_resources));
-              robots.back()->identify(spec->id);
-          }
-          return robots;
-      }()),
+              WorldDescription const& world = m_scenario.world;
+              std::vector<std::unique_ptr<RobotSession>> robots;
+              for (EntitySpec const* spec : world.robots())
+              {
+                  EntitySpec const* tool = world.mountedTool(spec->id);
+                  robots.push_back(std::make_unique<RobotSession>(
+                      p_world,
+                      spec->model,
+                      p_view,
+                      tool != nullptr ? tool->model : std::filesystem::path{},
+                      m_resources));
+                  robots.back()->identify(spec->id);
+              }
+              return robots;
+          }()),
       m_robot(m_robots.front().get()),
       m_scheduler(std::make_unique<SkillScheduler>(*m_resources)),
       m_faults(m_scenario.faults, m_scenario.random_faults),
@@ -203,7 +214,8 @@ Simulation::Simulation(compages::world::World& p_world,
     }
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        m_contexts.push_back(RobotContext{ *robot, m_world_model, {}, {}, m_team });
+        m_contexts.push_back(
+            RobotContext{ *robot, m_world_model, {}, {}, m_team });
     }
 
     // Robot devices, props and bodies of the world file.
@@ -215,9 +227,11 @@ Simulation::Simulation(compages::world::World& p_world,
     {
         m_mission->setup(*this, p_view);
     }
-    bool const plugged = std::any_of(m_robots.begin(), m_robots.end(),
-                                     [](std::unique_ptr<RobotSession> const& p_robot)
-                                     { return p_robot->backend() != nullptr; });
+    bool const plugged =
+        std::any_of(m_robots.begin(),
+                    m_robots.end(),
+                    [](std::unique_ptr<RobotSession> const& p_robot)
+                    { return p_robot->backend() != nullptr; });
     if (!plugged)
     {
         connectBackend();
@@ -237,9 +251,13 @@ Simulation::Simulation(compages::world::World& p_world,
     registerSkills(m_factory, *m_scheduler);
     if (m_scenario.controller.planner)
     {
-        m_executor = std::make_unique<PlanExecutor>(*m_scenario.controller.planner,
-                                                    m_scenario.world, m_planning, m_scenario.id,
-                                                    m_factory, *m_scheduler);
+        m_executor =
+            std::make_unique<PlanExecutor>(*m_scenario.controller.planner,
+                                           m_scenario.world,
+                                           m_planning,
+                                           m_scenario.id,
+                                           m_factory,
+                                           *m_scheduler);
         m_executor->clock(simulatedClock());
     }
     reset();
@@ -295,7 +313,8 @@ void Simulation::buildDevices(RobotSession& p_robot,
     std::vector<ActuatorSpec> specs = p_spec.actuators;
     if (p_tool != nullptr)
     {
-        specs.insert(specs.end(), p_tool->actuators.begin(), p_tool->actuators.end());
+        specs.insert(
+            specs.end(), p_tool->actuators.begin(), p_tool->actuators.end());
     }
     for (ActuatorSpec const& actuator : specs)
     {
@@ -308,7 +327,8 @@ void Simulation::buildDevices(RobotSession& p_robot,
                 actuators.add<Motor>(actuator.name, actuator.joints.front());
                 break;
             case ActuatorSpec::Type::Vacuum:
-                actuators.add<VacuumGripper>(actuator.name, actuator.link, actuator.length);
+                actuators.add<VacuumGripper>(
+                    actuator.name, actuator.link, actuator.length);
                 break;
         }
     }
@@ -317,14 +337,16 @@ void Simulation::buildDevices(RobotSession& p_robot,
     std::vector<SensorSpec> sensors = p_spec.sensors;
     if (p_tool != nullptr)
     {
-        sensors.insert(sensors.end(), p_tool->sensors.begin(), p_tool->sensors.end());
+        sensors.insert(
+            sensors.end(), p_tool->sensors.begin(), p_tool->sensors.end());
     }
-    auto requireFrame = [&p_robot](SensorSpec const& p_sensor, std::string const& p_frame)
+    auto requireFrame =
+        [&p_robot](SensorSpec const& p_sensor, std::string const& p_frame)
     {
         if (!p_frame.empty() && !p_robot.link(p_frame))
         {
-            throw std::runtime_error("Sensor '" + p_sensor.name + "': unknown link '" + p_frame +
-                                     "'");
+            throw std::runtime_error("Sensor '" + p_sensor.name +
+                                     "': unknown link '" + p_frame + "'");
         }
     };
     for (SensorSpec const& spec : sensors)
@@ -341,7 +363,8 @@ void Simulation::buildDevices(RobotSession& p_robot,
                 continue;
             case SensorSpec::Type::ForceTorque:
                 requireFrame(spec, spec.force_torque.link);
-                p_robot.sensors().add<ForceTorqueSensor>(spec.name, spec.force_torque);
+                p_robot.sensors().add<ForceTorqueSensor>(spec.name,
+                                                         spec.force_torque);
                 continue;
             case SensorSpec::Type::Camera:
                 break;
@@ -412,8 +435,11 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
                 }
                 else
                 {
-                    p_record.links = { spec.id + "_floor", spec.id + "_wall_x0", spec.id + "_wall_x1",
-                                       spec.id + "_wall_y0", spec.id + "_wall_y1" };
+                    p_record.links = { spec.id + "_floor",
+                                       spec.id + "_wall_x0",
+                                       spec.id + "_wall_x1",
+                                       spec.id + "_wall_y0",
+                                       spec.id + "_wall_y1" };
                 }
             }
             if (p_view != nullptr)
@@ -434,7 +460,8 @@ void Simulation::buildRecord(Record& p_record, SceneView* p_view)
         p_record.links = { spec.id };
         ecs::Shape const object = shapeOf(spec);
         p_record.entity = m_world.entity(spec.id);
-        p_record.entity.parent(m_frame).set(object).set(ecs::PhysicsBody{ spec.id });
+        p_record.entity.parent(m_frame).set(object).set(
+            ecs::PhysicsBody{ spec.id });
         if (p_view != nullptr)
         {
             p_view->object(p_record.entity, object);
@@ -475,16 +502,18 @@ Pose Simulation::resolveNominal(EntitySpec const& p_spec) const
         Record const* record = this->record(parent->id);
         if (record == nullptr)
         {
-            throw std::runtime_error("Entity '" + p_spec.id + "' hangs from '" + parent->id +
-                                     "', declared after it");
+            throw std::runtime_error("Entity '" + p_spec.id + "' hangs from '" +
+                                     parent->id + "', declared after it");
         }
         base = record->nominal;
         if (!attach.parent_frame.empty())
         {
-            if (record->frames == nullptr || !record->frames->hasFrame(attach.parent_frame))
+            if (record->frames == nullptr ||
+                !record->frames->hasFrame(attach.parent_frame))
             {
-                throw std::runtime_error("Entity '" + p_spec.id + "': '" + parent->id +
-                                         "' has no frame '" + attach.parent_frame + "'");
+                throw std::runtime_error("Entity '" + p_spec.id + "': '" +
+                                         parent->id + "' has no frame '" +
+                                         attach.parent_frame + "'");
             }
             base = base * record->frames->framePose(attach.parent_frame);
         }
@@ -497,9 +526,14 @@ void Simulation::connectBackend()
     WorldDescription const& world = m_scenario.world;
     MujocoOptions options = m_physics_options;
     // Rigid props rest on the ground: they need a floor.
-    bool const rigid = std::any_of(world.entities.begin(), world.entities.end(),
-                                   [this](EntitySpec const& p_entity)
-                                   { return p_entity.type == EntitySpec::Type::Prop && rigidProp(p_entity); });
+    bool const rigid =
+        std::any_of(world.entities.begin(),
+                    world.entities.end(),
+                    [this](EntitySpec const& p_entity)
+                    {
+                        return p_entity.type == EntitySpec::Type::Prop &&
+                               rigidProp(p_entity);
+                    });
     options.floor = options.floor || world.floor || rigid;
     options.floor_friction = world.floor_friction;
     auto physics = std::make_shared<MujocoBackend>(options);
@@ -530,12 +564,13 @@ void Simulation::connectBackend()
         bool const free = spec.physics == EntitySpec::Physics::Free;
         if (spec.shape)
         {
-            physics->addBox(FreeBox{ spec.id,
-                                     spec.shape->size,
-                                     spec.mass,
-                                     boxInertia(spec.mass, spec.shape->size),
-                                     record.nominal,
-                                     spec.friction < 0.0 ? 1.0 : spec.friction });
+            physics->addBox(
+                FreeBox{ spec.id,
+                         spec.shape->size,
+                         spec.mass,
+                         boxInertia(spec.mass, spec.shape->size),
+                         record.nominal,
+                         spec.friction < 0.0 ? 1.0 : spec.friction });
         }
         else
         {
@@ -570,12 +605,14 @@ bool Simulation::rigidProp(EntitySpec const& p_prop) const
     {
         for (ActuatorSpec const& actuator : entity.actuators)
         {
-            rigid_gripper = rigid_gripper || (actuator.type == ActuatorSpec::Type::Vacuum &&
-                                              physics.of(actuator.name) == Fidelity::Rigid);
+            rigid_gripper =
+                rigid_gripper || (actuator.type == ActuatorSpec::Type::Vacuum &&
+                                  physics.of(actuator.name) == Fidelity::Rigid);
         }
-        rigid_box = rigid_box || (entity.type == EntitySpec::Type::Prop && entity.shape &&
-                                  entity.shape->type == ShapeSpec::Type::Box &&
-                                  physics.of(entity.id) == Fidelity::Rigid);
+        rigid_box = rigid_box ||
+                    (entity.type == EntitySpec::Type::Prop && entity.shape &&
+                     entity.shape->type == ShapeSpec::Type::Box &&
+                     physics.of(entity.id) == Fidelity::Rigid);
     }
     // A box a rigid gripper may take; a container a rigid object may fall in.
     return box ? rigid_gripper : (rigid_gripper || rigid_box);
@@ -595,8 +632,12 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
         Vector3 const size = spec.shape->size;
         if (spec.shape->type == ShapeSpec::Type::Box)
         {
-            p_physics.addBox(FreeBox{ spec.id, size, spec.mass, boxInertia(spec.mass, size),
-                                      record.nominal, friction });
+            p_physics.addBox(FreeBox{ spec.id,
+                                      size,
+                                      spec.mass,
+                                      boxInertia(spec.mass, size),
+                                      record.nominal,
+                                      friction });
             graspable.push_back({ spec.id, 0.5 * size.z });
             continue;
         }
@@ -605,21 +646,39 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
         if (spec.randomize != decltype(spec.randomize){})
         {
             throw std::runtime_error("Prop '" + spec.id +
-                                     "': a rigid container cannot be randomized (its walls are static)");
+                                     "': a rigid container cannot be "
+                                     "randomized (its walls are static)");
         }
         double const wall = ecs::CONTAINER_WALL_M;
         Pose const& at = record.nominal;
-        auto add = [&](std::string const& p_name, Vector3 const& p_size, Vector3 const& p_offset)
+        auto add = [&](std::string const& p_name,
+                       Vector3 const& p_size,
+                       Vector3 const& p_offset)
         {
-            FreeBox part{ p_name, p_size, 1.0, zero3(), at * Pose{ p_offset, Quaternion{} }, friction };
+            FreeBox part{ p_name,
+                          p_size,
+                          1.0,
+                          zero3(),
+                          at * Pose{ p_offset, Quaternion{} },
+                          friction };
             part.fixed = true;
             p_physics.addBox(part);
         };
-        add(spec.id + "_floor", Vector3(size.x, size.y, wall), Vector3(0.0, 0.0, -0.5 * size.z + 0.5 * wall));
-        add(spec.id + "_wall_x0", Vector3(wall, size.y, size.z), Vector3(-0.5 * size.x + 0.5 * wall, 0.0, 0.0));
-        add(spec.id + "_wall_x1", Vector3(wall, size.y, size.z), Vector3(0.5 * size.x - 0.5 * wall, 0.0, 0.0));
-        add(spec.id + "_wall_y0", Vector3(size.x, wall, size.z), Vector3(0.0, -0.5 * size.y + 0.5 * wall, 0.0));
-        add(spec.id + "_wall_y1", Vector3(size.x, wall, size.z), Vector3(0.0, 0.5 * size.y - 0.5 * wall, 0.0));
+        add(spec.id + "_floor",
+            Vector3(size.x, size.y, wall),
+            Vector3(0.0, 0.0, -0.5 * size.z + 0.5 * wall));
+        add(spec.id + "_wall_x0",
+            Vector3(wall, size.y, size.z),
+            Vector3(-0.5 * size.x + 0.5 * wall, 0.0, 0.0));
+        add(spec.id + "_wall_x1",
+            Vector3(wall, size.y, size.z),
+            Vector3(0.5 * size.x - 0.5 * wall, 0.0, 0.0));
+        add(spec.id + "_wall_y0",
+            Vector3(size.x, wall, size.z),
+            Vector3(0.0, -0.5 * size.y + 0.5 * wall, 0.0));
+        add(spec.id + "_wall_y1",
+            Vector3(size.x, wall, size.z),
+            Vector3(0.0, 0.5 * size.y - 0.5 * wall, 0.0));
     }
 
     if (graspable.empty())
@@ -639,18 +698,25 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
             }
             RobotSession const& owner = ownerOf(entity);
             std::string const link =
-                prefixOf(owner.id()) + (actuator.link.empty() ? owner.tool() : actuator.link);
+                prefixOf(owner.id()) +
+                (actuator.link.empty() ? owner.tool() : actuator.link);
             std::vector<std::string> tool_links;
             for (Record const& record : m_records)
             {
-                if (record.spec->type == EntitySpec::Type::Tool && &ownerOf(*record.spec) == &owner)
+                if (record.spec->type == EntitySpec::Type::Tool &&
+                    &ownerOf(*record.spec) == &owner)
                 {
-                    tool_links.insert(tool_links.end(), record.links.begin(), record.links.end());
+                    tool_links.insert(tool_links.end(),
+                                      record.links.begin(),
+                                      record.links.end());
                 }
             }
             for (RigidGrasp::Graspable const& object : graspable)
             {
-                p_physics.addWeld(RigidGrasp::weldName(actuator.name, object.id), link, object.id);
+                p_physics.addWeld(
+                    RigidGrasp::weldName(actuator.name, object.id),
+                    link,
+                    object.id);
                 for (std::string const& tool_link : tool_links)
                 {
                     if (tool_link != link)
@@ -666,7 +732,8 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
 
 void Simulation::addSkills()
 {
-    auto describe = [](std::string p_name, std::vector<ResourceRequirement> p_resources)
+    auto describe =
+        [](std::string p_name, std::vector<ResourceRequirement> p_resources)
     {
         SkillDescription description;
         description.name = std::move(p_name);
@@ -681,7 +748,8 @@ void Simulation::addSkills()
     {
         ResourceManager const& resources = robot->resources();
         ActuatorSet const& actuators = robot->actuators();
-        std::string const scope = m_robots.size() > 1u ? robot->id() + "." : std::string();
+        std::string const scope =
+            m_robots.size() > 1u ? robot->id() + "." : std::string();
 
         std::vector<ResourceRequirement> arm;
         if (auto const* group = actuators.first<JointGroup>())
@@ -711,7 +779,8 @@ void Simulation::addSkills()
 
 Pose Simulation::beliefFrame() const
 {
-    return m_robots.size() == 1u ? m_robot->base().pose : Pose{ zero3(), Quaternion{} };
+    return m_robots.size() == 1u ? m_robot->base().pose
+                                 : Pose{ zero3(), Quaternion{} };
 }
 
 RobotSession* Simulation::robot(std::string_view p_id) const
@@ -735,15 +804,17 @@ RobotContext& Simulation::context(std::string_view p_id)
             return context;
         }
     }
-    throw std::invalid_argument("The world has no robot '" + std::string(p_id) + "'");
+    throw std::invalid_argument("The world has no robot '" + std::string(p_id) +
+                                "'");
 }
 
 RobotSession& Simulation::ownerOf(EntitySpec const& p_spec) const
 {
     std::string_view const id =
         p_spec.type == EntitySpec::Type::Robot ? std::string_view(p_spec.id)
-        : p_spec.type == EntitySpec::Type::Tool && p_spec.attach ? std::string_view(p_spec.attach->parent)
-                                                                  : std::string_view();
+        : p_spec.type == EntitySpec::Type::Tool && p_spec.attach
+            ? std::string_view(p_spec.attach->parent)
+            : std::string_view();
     RobotSession* const found = id.empty() ? nullptr : robot(id);
     return found != nullptr ? *found : *m_robot;
 }
@@ -766,7 +837,8 @@ void Simulation::loadTree()
     auto built = bt::Builder::fromFile(m_factory, file.string(), m_blackboard);
     if (!built)
     {
-        throw std::runtime_error("Behavior tree '" + file.string() + "': " + built.getError());
+        throw std::runtime_error("Behavior tree '" + file.string() +
+                                 "': " + built.getError());
     }
     m_tree = std::move(built.getValue());
     m_tree->clock(simulatedClock());
@@ -780,7 +852,8 @@ bt::Tree::ClockFunction Simulation::simulatedClock() const
     {
         std::chrono::duration<double> const elapsed(m_robot->time().value());
         return std::chrono::steady_clock::time_point(
-            std::chrono::duration_cast<std::chrono::steady_clock::duration>(elapsed));
+            std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                elapsed));
     };
 }
 
@@ -810,26 +883,27 @@ void Simulation::reset(Seed p_seed)
 
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-    SensorSet const& sensors = robot->sensors();
-    for (std::size_t i = 0; i < sensors.size(); ++i)
-    {
-        if (auto* camera = dynamic_cast<Camera*>(&sensors[i]))
+        SensorSet const& sensors = robot->sensors();
+        for (std::size_t i = 0; i < sensors.size(); ++i)
         {
-            camera->seed(p_seed.derive(camera->name()));
+            if (auto* camera = dynamic_cast<Camera*>(&sensors[i]))
+            {
+                camera->seed(p_seed.derive(camera->name()));
+            }
+            else if (auto* imu = dynamic_cast<Imu*>(&sensors[i]))
+            {
+                imu->seed(p_seed.derive(imu->name()));
+            }
+            else if (auto* scanner = dynamic_cast<RangeScanner*>(&sensors[i]))
+            {
+                scanner->seed(p_seed.derive(scanner->name()));
+            }
+            else if (auto* force =
+                         dynamic_cast<ForceTorqueSensor*>(&sensors[i]))
+            {
+                force->seed(p_seed.derive(force->name()));
+            }
         }
-        else if (auto* imu = dynamic_cast<Imu*>(&sensors[i]))
-        {
-            imu->seed(p_seed.derive(imu->name()));
-        }
-        else if (auto* scanner = dynamic_cast<RangeScanner*>(&sensors[i]))
-        {
-            scanner->seed(p_seed.derive(scanner->name()));
-        }
-        else if (auto* force = dynamic_cast<ForceTorqueSensor*>(&sensors[i]))
-        {
-            force->seed(p_seed.derive(force->name()));
-        }
-    }
     }
 
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
@@ -857,11 +931,14 @@ void Simulation::reset(Seed p_seed)
         // A rigid box is a free body: the backend moves it, syncBodies copies.
         RobotBackend* backend = m_robot->backend();
         if (record.body.empty() || backend == nullptr ||
-            !backend->placeBody(record.body, Pose{ at, record.nominal.rotation }))
+            !backend->placeBody(record.body,
+                                Pose{ at, record.nominal.rotation }))
         {
-            record.entity.position(toFloat(at)).rotation(toFloat(record.nominal.rotation));
+            record.entity.position(toFloat(at))
+                .rotation(toFloat(record.nominal.rotation));
         }
-        m_world_model.add(spec.id, to_base * record.nominal.position, spec.shape->size);
+        m_world_model.add(
+            spec.id, to_base * record.nominal.position, spec.shape->size);
     }
     syncBodies();
     m_world.update();
@@ -918,7 +995,9 @@ void Simulation::observe()
     {
         if (record.spec->type == EntitySpec::Type::Prop)
         {
-            m_world_model.place(record.spec->id, to_base * positionOf(record.entity), m_robot->time());
+            m_world_model.place(record.spec->id,
+                                to_base * positionOf(record.entity),
+                                m_robot->time());
         }
     }
 }
@@ -940,12 +1019,14 @@ void Simulation::syncBodies()
         if (record.spec->shape)
         {
             // Child of the Z-up frame: local pose is the world pose.
-            entity.position(toFloat(pose.position)).rotation(toFloat(pose.rotation));
+            entity.position(toFloat(pose.position))
+                .rotation(toFloat(pose.rotation));
         }
         else
         {
             // Root of a loaded model, at the Compages root.
-            entity.position(up * toFloat(pose.position)).rotation(up * toFloat(pose.rotation));
+            entity.position(up * toFloat(pose.position))
+                .rotation(up * toFloat(pose.rotation));
         }
     }
 }
@@ -963,7 +1044,8 @@ void Simulation::track()
     {
         if (!record.links.empty())
         {
-            record.peak_contacts = std::max(record.peak_contacts, contactsOf(record, contacts));
+            record.peak_contacts =
+                std::max(record.peak_contacts, contactsOf(record, contacts));
         }
     }
 }
@@ -1055,7 +1137,8 @@ void Simulation::settle()
         return;
     }
     m_assertions.update(time(),
-                        [this](std::string_view p_condition) { return evaluate(p_condition); });
+                        [this](std::string_view p_condition)
+                        { return evaluate(p_condition); });
 
     if (m_status == bt::Status::SUCCESS)
     {
@@ -1069,7 +1152,8 @@ void Simulation::settle()
     {
         finish(Outcome::AssertionFailed);
     }
-    else if (!m_scenario.stop_when.empty() && evaluate(m_scenario.stop_when).holds)
+    else if (!m_scenario.stop_when.empty() &&
+             evaluate(m_scenario.stop_when).holds)
     {
         finish(Outcome::StopCondition);
     }
@@ -1083,7 +1167,8 @@ void Simulation::finish(Outcome p_outcome)
 {
     m_outcome = p_outcome;
     m_assertions.conclude(time(),
-                          [this](std::string_view p_condition) { return evaluate(p_condition); });
+                          [this](std::string_view p_condition)
+                          { return evaluate(p_condition); });
 }
 
 void Simulation::conclude()

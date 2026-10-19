@@ -16,7 +16,8 @@ void WaveSkill::reset()
     m_waves = 0;
 }
 
-robotik::Status WaveSkill::tick(robotik::RobotContext& p_context, Seconds /*p_dt*/)
+robotik::Status WaveSkill::tick(robotik::RobotContext& p_context,
+                                Seconds /*p_dt*/)
 {
     robotik::JointSet& joints = p_context.robot.joints();
     robotik::JointId const base = joints.find("joint1");
@@ -40,7 +41,8 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
     p_context.robot.joints().hold();
 }
 
-void SkillsMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /*p_view*/)
+void SkillsMission::setup(robotik::Simulation& p_simulation,
+                          robotik::SceneView* /*p_view*/)
 {
     // The skill reserves the actuator "arm" while it runs: no other skill
     // can move the arm at the same time.

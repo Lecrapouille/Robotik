@@ -101,7 +101,8 @@ ConveySkill::ConveySkill(Conveyor& p_conveyor,
 {
 }
 
-robotik::Status ConveySkill::tick(robotik::RobotContext& p_context, Seconds /*p_dt*/)
+robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
+                                  Seconds /*p_dt*/)
 {
     if (!m_started)
     {
@@ -112,18 +113,24 @@ robotik::Status ConveySkill::tick(robotik::RobotContext& p_context, Seconds /*p_
         robotik::WorldObject const* zone = beliefs.find(m_zone);
         if (part == nullptr || feeder == nullptr || zone == nullptr)
         {
-            m_why = (part == nullptr ? m_part : feeder == nullptr ? m_feeder : m_zone) +
+            m_why = (part == nullptr     ? m_part
+                     : feeder == nullptr ? m_feeder
+                                         : m_zone) +
                     " is not in the beliefs";
             return robotik::Status::FAILURE;
         }
         // Off the feeder, across to the lane of the zone, down the lane.
-        double const transfer = feeder->position.x - 0.5 * feeder->size.x - kTransfer;
-        m_conveyor.carry(m_part, { robotik::Vector3(transfer, part->position.y, 0.0),
-                                   robotik::Vector3(transfer, zone->position.y, 0.0),
-                                   robotik::Vector3(zone->position.x, zone->position.y, 0.0) });
+        double const transfer =
+            feeder->position.x - 0.5 * feeder->size.x - kTransfer;
+        m_conveyor.carry(
+            m_part,
+            { robotik::Vector3(transfer, part->position.y, 0.0),
+              robotik::Vector3(transfer, zone->position.y, 0.0),
+              robotik::Vector3(zone->position.x, zone->position.y, 0.0) });
         m_started = true;
     }
-    return m_conveyor.delivered() == m_part ? robotik::Status::SUCCESS : robotik::Status::RUNNING;
+    return m_conveyor.delivered() == m_part ? robotik::Status::SUCCESS
+                                            : robotik::Status::RUNNING;
 }
 
 void ConveySkill::cancel(robotik::RobotContext& /*p_context*/)

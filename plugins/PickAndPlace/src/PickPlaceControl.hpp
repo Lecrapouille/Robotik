@@ -84,7 +84,8 @@ public:
     [[nodiscard]] robotik::Space space() const override;
     /// @brief Finds the arm and the cup, and makes the ready posture the home.
     void setup(robotik::Simulation& p_simulation) override;
-    void apply(std::span<float const> p_action, robotik::Simulation& p_simulation) override;
+    void apply(std::span<float const> p_action,
+               robotik::Simulation& p_simulation) override;
 
 private:
 
@@ -102,7 +103,8 @@ public:
 
     void setup(robotik::Simulation const& p_simulation) override;
     void reset(robotik::Simulation const& p_simulation) override;
-    [[nodiscard]] robotik::StepResult evaluate(robotik::Simulation const& p_simulation) override;
+    [[nodiscard]] robotik::StepResult
+    evaluate(robotik::Simulation const& p_simulation) override;
 
 private:
 

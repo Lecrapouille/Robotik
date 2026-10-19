@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file SceneView.hpp
-/// @brief Rendering hooks, implemented by graphical applications.
+/// Rendering hooks, implemented by graphical applications.
 #pragma once
 
 #include "Compages/Renderer/Assets/UrdfLoader.hpp"
@@ -33,11 +33,33 @@ struct Shape;
 }
 
 // ****************************************************************************
-/// @brief What a renderer adds to the ECS world built by Robotik.
+/// What a renderer adds to the ECS world built by Robotik.
 ///
 /// The library stays headless: without a view, robots and objects are plain
 /// entities and cameras have no image source. The simulator implements these
 /// hooks with Compages meshes and offscreen rendering.
+///
+/// Code that gets a @c SceneView* must accept null (headless run).
+///
+/// @code
+/// class MyView final : public robotik::SceneView
+/// {
+/// public:
+///     compages::world::Entity robot(compages::world::World& p_world,
+///                                   std::filesystem::path const& p_urdf)
+///                                   override
+///     {
+///         return loadWithMeshes(p_world, p_urdf);
+///     }
+/// };
+///
+/// void MyMission::setup(robotik::Simulation& p_sim, robotik::SceneView*
+/// p_view)
+/// {
+///     if (p_view != nullptr)
+///         p_view->openCanvas(board, 0.6, 0.4);
+/// }
+/// @endcode
 // ****************************************************************************
 class SceneView
 {
@@ -45,11 +67,25 @@ public:
 
     virtual ~SceneView() = default;
 
-    /// @brief Loads the URDF with its meshes. @throws std::runtime_error.
-    virtual compages::world::Entity robot(compages::world::World& p_world,
-                                          std::filesystem::path const& p_urdf) = 0;
+    // -------------------------------------------------------------------------
+    /// Loads a robot URDF with its meshes.
+    /// @param p_world World receiving the entities.
+    /// @param p_urdf URDF file.
+    /// @return The root entity of the robot.
+    /// @throws std::runtime_error when the file cannot be loaded.
+    // -------------------------------------------------------------------------
+    virtual compages::world::Entity
+    robot(compages::world::World& p_world,
+          std::filesystem::path const& p_urdf) = 0;
 
-    /// @brief Loads a URDF on its own. The caller parents @c tool_mount.
+    // -------------------------------------------------------------------------
+    /// Loads a URDF on its own (a tool, a prop). The caller parents it, for
+    /// example to @c tool_mount.
+    /// @param p_world World receiving the entities.
+    /// @param p_urdf URDF file.
+    /// @return The root entity of the model.
+    /// @throws std::runtime_error when the file cannot be loaded.
+    // -------------------------------------------------------------------------
     virtual compages::world::Entity model(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf)
     {
@@ -61,14 +97,23 @@ public:
         return loaded.value();
     }
 
-    /// @brief Adds the meshes of a scenario object to @p_entity.
+    // -------------------------------------------------------------------------
+    /// Adds the meshes of a scenario object to its entity.
+    /// @param p_entity Entity of the object.
+    /// @param p_object Shape, size and color to draw.
+    // -------------------------------------------------------------------------
     virtual void object(compages::world::Entity /*p_entity*/,
                         ecs::Shape const& /*p_object*/)
     {
         /* no-op */
     }
 
-    /// @brief Image source of @p_camera mounted on @p_link, or null.
+    // -------------------------------------------------------------------------
+    /// Gives a camera its images.
+    /// @param p_camera Camera sensor.
+    /// @param p_link Link entity carrying the camera.
+    /// @return The image source, or null when the view renders nothing.
+    // -------------------------------------------------------------------------
     virtual FrameSource* camera(Camera& /*p_camera*/,
                                 compages::world::Entity /*p_link*/)
     {
@@ -76,26 +121,34 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Paints @p_image on the ground, centered on the world origin.
+    /// Paints an image on the ground, centered on the world origin (a track
+    /// to follow, a map).
+    /// @param p_image Image to paint.
     /// @param p_width Extent along the world X axis (m).
     /// @param p_height Extent along the world Y axis (m); row 0 of the image
-    /// is the +Y edge.
+    ///   is the +Y edge.
     // -------------------------------------------------------------------------
-    virtual void ground(Image const& /*p_image*/,
-                        double /*p_width*/,
-                        double /*p_height*/)
+    virtual void
+    ground(Image const& /*p_image*/, double /*p_width*/, double /*p_height*/)
     {
         /* no-op */
     }
 
+    // -------------------------------------------------------------------------
+    /// @return True when a ground image was painted.
+    // -------------------------------------------------------------------------
     [[nodiscard]] virtual bool hasGround() const
     {
         return false;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief A paintable sheet on the +X face of @p_parent. @p_width is the
-    /// parent's Y extent (m), @p_height its Z extent. Headless views ignore it.
+    /// Opens a paintable sheet on the +X face of an entity. Headless views
+    /// ignore it.
+    /// @param p_parent Entity carrying the sheet.
+    /// @param p_width Y extent of the parent (m).
+    /// @param p_height Z extent of the parent (m).
+    /// @return True when the sheet was opened.
     // -------------------------------------------------------------------------
     virtual bool openCanvas(compages::world::Entity /*p_parent*/,
                             double /*p_width*/,
@@ -104,8 +157,14 @@ public:
         return false;
     }
 
-    /// @brief Stamp ink at a point of the sheet. Y and Z are metres from the
-    /// parent origin, in the parent frame.
+    // -------------------------------------------------------------------------
+    /// Stamps ink at a point of the sheet opened by @ref openCanvas.
+    /// @param p_y Metres from the parent origin along its Y axis.
+    /// @param p_z Metres from the parent origin along its Z axis.
+    /// @param p_red Red in [0, 1].
+    /// @param p_green Green in [0, 1].
+    /// @param p_blue Blue in [0, 1].
+    // -------------------------------------------------------------------------
     virtual void ink(double /*p_y*/,
                      double /*p_z*/,
                      float /*p_red*/,

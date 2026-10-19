@@ -30,7 +30,7 @@ include/Robotik/<Module>/   public headers; src/Robotik/<Module>/ implementation
   Robot/     Robot, RobotSession, JointSet (SoA), actuators
   Scenario/  World/Scenario/Experiment YAML parsing, AssertionEngine, Trajectory
   Plugin/    PluginABI.h (C border), PluginAPI.hpp (C++ helper), catalog, session
-  Skills/ Sensors/ Perception/ Environment/ Backends/ Assets/ Agents/ ECS/ Scene/ Systems/ Math/
+  Skills/ Sensors/ Perception/ Environment/ Backends/ Assets/ Common/ Agents/ ECS/ Scene/ Systems/ Math/
 simulator/   Robotik-Simulator (ImGui host)      headless/  Robotik-Headless (CLI host)
 plugins/<Name>/  plugin.yaml, Makefile, src/, worlds/, scenarios/, experiments/, data/
 plugins/plugin.mk  shared plugin build recipe        data/packs/<id>/  asset packs (URDF)

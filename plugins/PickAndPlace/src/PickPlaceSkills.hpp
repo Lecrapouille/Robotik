@@ -119,7 +119,8 @@ class DetectSkill final: public Skill
 {
 public:
 
-    explicit DetectSkill(std::string p_object, Seconds p_timeout = Seconds(2.0));
+    explicit DetectSkill(std::string p_object,
+                         Seconds p_timeout = Seconds(2.0));
 
     void reset() override
     {
@@ -152,6 +153,7 @@ private:
 
 /// @brief Id of the object the gripper @p_name holds, as the vacuum sensor
 /// reports it, or empty.
-[[nodiscard]] std::string heldObject(Robot const& p_robot, std::string const& p_name = {});
+[[nodiscard]] std::string heldObject(Robot const& p_robot,
+                                     std::string const& p_name = {});
 
 } // namespace robotik

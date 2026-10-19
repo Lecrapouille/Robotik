@@ -75,10 +75,9 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
         {
             acceleration = (velocity - m_previous_velocity) * (1.0 / dt);
         }
-        angular_velocity =
-            rotationVector(m_previous_pose.rotation.conjugate() *
-                           pose.rotation) *
-            (1.0 / dt);
+        angular_velocity = rotationVector(m_previous_pose.rotation.conjugate() *
+                                          pose.rotation) *
+                           (1.0 / dt);
     }
 
     Quaternion const to_sensor = pose.rotation.conjugate();
@@ -90,8 +89,10 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     reading.frame = name();
     reading.sequence = samples() + 1u;
     reading.valid = true;
-    reading.acceleration = m_config.accelerometer.apply(specific_force, m_random);
-    reading.angular_velocity = m_config.gyroscope.apply(angular_velocity, m_random);
+    reading.acceleration =
+        m_config.accelerometer.apply(specific_force, m_random);
+    reading.angular_velocity =
+        m_config.gyroscope.apply(angular_velocity, m_random);
     reading.orientation = pose.rotation;
     m_readings.push(p_now, std::move(reading));
 
@@ -100,7 +101,8 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     m_previous_stamp = p_now;
     m_history = std::min(m_history + 1, 2);
 
-    m_holder = m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
+    m_holder = m_config.parent.empty() ? p_robot.root()
+                                       : p_robot.link(m_config.parent);
     return true;
 }
 

@@ -38,7 +38,8 @@ bool insideInner(ContainerInner const& p_inner,
                  Vector3 const& p_point,
                  double p_margin)
 {
-    return std::abs(p_point.x - p_inner.center.x) <= p_inner.half_x - p_margin &&
+    return std::abs(p_point.x - p_inner.center.x) <=
+               p_inner.half_x - p_margin &&
            std::abs(p_point.y - p_inner.center.y) <= p_inner.half_y - p_margin;
 }
 
@@ -119,8 +120,7 @@ std::optional<Vector3> dropInto(ecs::Shape const& p_container,
     std::optional<ContainerInner> const inner =
         innerBounds(p_container, p_container_center);
     if (!inner ||
-        !overOuterFootprint(
-            p_container, p_container_center, p_point, p_slack))
+        !overOuterFootprint(p_container, p_container_center, p_point, p_slack))
     {
         return std::nullopt;
     }

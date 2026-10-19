@@ -84,7 +84,8 @@ public:
     {
     }
 
-    bool capture(robotik::Camera const& p_camera, robotik::CameraFrame& p_frame) override;
+    bool capture(robotik::Camera const& p_camera,
+                 robotik::CameraFrame& p_frame) override;
 
 private:
 

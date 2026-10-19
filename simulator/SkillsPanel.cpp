@@ -114,9 +114,10 @@ static std::string formatSeconds(double p_seconds)
 }
 
 /// Newest trace entry of a skill, and its index when asked.
-static robotik::SkillRun const* latestRun(robotik::SkillScheduler const& p_skills,
-                                   robotik::SkillId p_id,
-                                   std::size_t* p_index)
+static robotik::SkillRun const*
+latestRun(robotik::SkillScheduler const& p_skills,
+          robotik::SkillId p_id,
+          std::size_t* p_index)
 {
     std::span<robotik::SkillRun const> const trace = p_skills.trace();
     for (std::size_t i = trace.size(); i > 0; --i)
@@ -134,7 +135,8 @@ static robotik::SkillRun const* latestRun(robotik::SkillScheduler const& p_skill
 }
 
 /// True when a waiting skill is held by a resource or a priority.
-static bool isBlocked(robotik::SkillScheduler const& p_skills, robotik::SkillId p_id)
+static bool isBlocked(robotik::SkillScheduler const& p_skills,
+                      robotik::SkillId p_id)
 {
     if (p_skills.state(p_id) != robotik::SkillState::Waiting)
     {
@@ -204,8 +206,8 @@ static void priorityBars(int p_level, robotik::Priority p_value)
 
 /// Draws the disk that stands for a skill state.
 static void stateIcon(robotik::SkillState p_state,
-               robotik::SkillReason p_reason,
-               bool p_blocked)
+                      robotik::SkillReason p_reason,
+                      bool p_blocked)
 {
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 const at = ImGui::GetCursorScreenPos();
@@ -288,7 +290,8 @@ static void stateIcon(robotik::SkillState p_state,
 }
 
 /// Draws a dashed rectangle, used for a preempted span.
-static void dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
+static void
+dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
 {
     auto line = [&](ImVec2 p_from, ImVec2 p_to)
     {
@@ -317,7 +320,7 @@ static void dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color
 
 /// One line describing why a skill is in its current state.
 static std::string statusText(robotik::Simulation const& p_simulation,
-                       robotik::SkillId p_id)
+                              robotik::SkillId p_id)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
     robotik::SkillState const state = skills.state(p_id);
@@ -345,7 +348,7 @@ static std::string statusText(robotik::Simulation const& p_simulation,
 
 /// Keeps the faults seen since the panel was opened.
 static void rememberFaults(BoardMemory& p_memory,
-                    robotik::Simulation const& p_simulation)
+                           robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
     if (p_memory.simulation != &p_simulation ||
@@ -464,9 +467,9 @@ static void faultsSection(BoardMemory& p_memory)
 
 /// One skill: state, resources, timing and the trace under it.
 static void card(BoardMemory& p_memory,
-          robotik::Simulation& p_simulation,
-          robotik::SkillId p_id,
-          bool p_blocked)
+                 robotik::Simulation& p_simulation,
+                 robotik::SkillId p_id,
+                 bool p_blocked)
 {
     robotik::SkillScheduler& skills = p_simulation.skills();
     robotik::SkillDescription const& description = skills.description(p_id);
@@ -631,12 +634,12 @@ static void card(BoardMemory& p_memory,
 
 /// A collapsible group of skill cards.
 static void section(char const* p_title,
-             char const* p_empty,
-             std::vector<robotik::SkillId> const& p_ids,
-             BoardMemory& p_memory,
-             robotik::Simulation& p_simulation,
-             robotik::SkillScheduler const& p_skills,
-             bool p_open)
+                    char const* p_empty,
+                    std::vector<robotik::SkillId> const& p_ids,
+                    BoardMemory& p_memory,
+                    robotik::Simulation& p_simulation,
+                    robotik::SkillScheduler const& p_skills,
+                    bool p_open)
 {
     if (p_open)
     {
@@ -686,9 +689,9 @@ static void skillTable(App& p_app)
     robotik::SkillScheduler& skills = simulation.skills();
     robotik::ResourceManager const& resources = simulation.robot().resources();
     if (beginTable("skills",
-                          6,
-                          ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
-                              ImGuiTableFlags_ScrollY))
+                   6,
+                   ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
+                       ImGuiTableFlags_ScrollY))
     {
         ImGui::TableSetupColumn("Skill");
         ImGui::TableSetupColumn("Priority");
@@ -766,9 +769,11 @@ void skillsPanel(App& p_app)
         p_app.ui.skills_table = true;
     }
     ImGui::SameLine();
-    helpMarker("Cards group the skills by state (running, waiting, last run, idle). "
-               "The table lists them all with their resources. Request runs a skill by hand; "
-               "Cancel stops it.");
+    helpMarker(
+        "Cards group the skills by state (running, waiting, last run, idle). "
+        "The table lists them all with their resources. Request runs a skill "
+        "by hand; "
+        "Cancel stops it.");
     ImGui::Separator();
     if (p_app.ui.skills_table)
     {
@@ -813,24 +818,13 @@ void skillsPanel(App& p_app)
     std::stable_sort(running.begin(), running.end(), by_priority);
     std::stable_sort(waiting.begin(), waiting.end(), by_priority);
 
-    section("RUNNING",
-            "Robot is idle",
-            running,
-            memory,
-            simulation,
-            skills,
-            true);
-    section("WAITING",
-            "Queue is empty",
-            waiting,
-            memory,
-            simulation,
-            skills,
-            true);
+    section(
+        "RUNNING", "Robot is idle", running, memory, simulation, skills, true);
+    section(
+        "WAITING", "Queue is empty", waiting, memory, simulation, skills, true);
     std::vector<robotik::SkillId> const finished =
-        last == robotik::NO_SKILL
-            ? std::vector<robotik::SkillId>{}
-            : std::vector<robotik::SkillId>{ last };
+        last == robotik::NO_SKILL ? std::vector<robotik::SkillId>{}
+                                  : std::vector<robotik::SkillId>{ last };
     section("LAST RUN",
             "Nothing has run yet",
             finished,

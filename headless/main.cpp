@@ -41,7 +41,8 @@ struct Options
 /// Prints the command line on the error stream.
 static void usage()
 {
-    std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | x.experiment.yaml> [--seed N]\n"
+    std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | "
+                 "x.experiment.yaml> [--seed N]\n"
                  "                        [--report report.json] [--trace]\n";
 }
 
@@ -84,7 +85,8 @@ static std::optional<Options> parse(int argc, char** argv)
 static void printTrace(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
-    robotik::ResourceManager const& resources = p_simulation.robot().resources();
+    robotik::ResourceManager const& resources =
+        p_simulation.robot().resources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         std::cout << "  " << run.start << "  " << skills.name(run.skill) << "  "
@@ -106,7 +108,8 @@ static void printTrace(robotik::Simulation const& p_simulation)
         std::size_t index = 0u;
         for (robotik::PlanningRecord const& record : planner->history())
         {
-            std::cout << "  plan " << index++ << " at " << record.time << " (" << record.cause
+            std::cout << "  plan " << index++ << " at " << record.time << " ("
+                      << record.cause
                       << "): " << robotik::toString(record.result.status);
             for (robotik::GroundAction const& step : record.result.steps)
             {
@@ -116,8 +119,8 @@ static void printTrace(robotik::Simulation const& p_simulation)
         }
         if (planner->state() == robotik::PlanState::Failed)
         {
-            std::cout << "  planner: " << robotik::toString(planner->state()) << ", "
-                      << planner->failure() << '\n';
+            std::cout << "  planner: " << robotik::toString(planner->state())
+                      << ", " << planner->failure() << '\n';
         }
     }
 }
@@ -127,12 +130,12 @@ static void printTrace(robotik::Simulation const& p_simulation)
 /// from @p_scenario, the run goes until the scenario says it ends.
 // ----------------------------------------------------------------------------
 static robotik::RunRecord run(robotik::PluginSession& p_session,
-                       std::filesystem::path const& p_file,
-                       robotik::Scenario p_scenario,
-                       std::string const& p_case,
-                       std::optional<std::uint64_t> p_seed,
-                       std::vector<std::string> const& p_metrics,
-                       bool p_trace)
+                              std::filesystem::path const& p_file,
+                              robotik::Scenario p_scenario,
+                              std::string const& p_case,
+                              std::optional<std::uint64_t> p_seed,
+                              std::vector<std::string> const& p_metrics,
+                              bool p_trace)
 {
     robotik::RunRecord failed;
     failed.case_id = p_case;
@@ -140,12 +143,14 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     failed.seed = p_seed.value_or(p_scenario.seed);
     if (p_session.prepare(p_file) != robotik::PluginPrepare::Ready)
     {
-        failed.error = p_session.error().empty() ? "scenario is not in a plugin package"
-                                                 : p_session.error();
+        failed.error = p_session.error().empty()
+                           ? "scenario is not in a plugin package"
+                           : p_session.error();
         return failed;
     }
     compages::world::World world;
-    robotik::Simulation simulation(world, std::move(p_scenario), nullptr, p_session.mission());
+    robotik::Simulation simulation(
+        world, std::move(p_scenario), nullptr, p_session.mission());
     p_session.attach(&simulation);
     if (p_session.start() != ROBOTIK_PLUGIN_OK)
     {
@@ -167,7 +172,8 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     double simulated = 0.0;
     double host = 0.0;
     Seconds last = simulation.time();
-    while (!simulation.finished() && simulated < limit && host < HEADLESS_TIMEOUT_S)
+    while (!simulation.finished() && simulated < limit &&
+           host < HEADLESS_TIMEOUT_S)
     {
         if (!p_session.ownsClock())
         {
@@ -184,7 +190,8 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     {
         printTrace(simulation);
     }
-    robotik::RunRecord record = robotik::RunRecord::capture(simulation, p_case, p_metrics);
+    robotik::RunRecord record =
+        robotik::RunRecord::capture(simulation, p_case, p_metrics);
     p_session.stop();
     p_session.detach();
     return record;
@@ -208,7 +215,8 @@ int main(int argc, char** argv)
 
         if (robotik::Experiment::describes(options->file))
         {
-            robotik::Experiment const experiment = robotik::Experiment::load(options->file);
+            robotik::Experiment const experiment =
+                robotik::Experiment::load(options->file);
             report.experiment = experiment.id;
             std::vector<std::optional<std::uint64_t>> seeds;
             if (options->seed)
@@ -232,13 +240,16 @@ int main(int argc, char** argv)
                 {
                     // A scenario outside the catalog brings its package (and
                     // its asset pack) along.
-                    if (session.catalog().matchScenario(item.scenario).package == nullptr)
+                    if (session.catalog()
+                            .matchScenario(item.scenario)
+                            .package == nullptr)
                     {
                         (void)session.prepare(item.scenario);
                     }
                     // Each run reads its files again: a case never inherits the
                     // world of the previous one.
-                    robotik::Scenario scenario = experiment.scenario(item, session.assets());
+                    robotik::Scenario scenario =
+                        experiment.scenario(item, session.assets());
                     report.runs.push_back(run(session,
                                               item.scenario,
                                               std::move(scenario),
@@ -247,8 +258,8 @@ int main(int argc, char** argv)
                                               experiment.metrics,
                                               options->trace));
                     robotik::RunRecord const& last = report.runs.back();
-                    std::cout << (last.passed ? "[PASS] " : "[FAIL] ") << item.id << " seed="
-                              << last.seed << std::endl;
+                    std::cout << (last.passed ? "[PASS] " : "[FAIL] ")
+                              << item.id << " seed=" << last.seed << std::endl;
                 }
             }
         }
@@ -256,8 +267,9 @@ int main(int argc, char** argv)
         {
             if (session.prepare(options->file) != robotik::PluginPrepare::Ready)
             {
-                std::cerr << (session.error().empty() ? "scenario is not in a plugin package"
-                                                      : session.error())
+                std::cerr << (session.error().empty()
+                                  ? "scenario is not in a plugin package"
+                                  : session.error())
                           << '\n';
                 return 1;
             }
@@ -273,8 +285,8 @@ int main(int argc, char** argv)
                                       true));
             for (robotik::Check const& check : report.runs.back().checks)
             {
-                std::cout << '[' << robotik::toString(check.verdict) << "] " << check.text
-                          << "  (" << check.detail << ")\n";
+                std::cout << '[' << robotik::toString(check.verdict) << "] "
+                          << check.text << "  (" << check.detail << ")\n";
             }
         }
 

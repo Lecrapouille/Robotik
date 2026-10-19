@@ -7,12 +7,12 @@
 
 #include "Robotik/Systems/GraspModel.hpp"
 
-#include "Robotik/Scene/ContainerBounds.hpp"
 #include "Robotik/ECS/ObjectComponents.hpp"
 #include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Scene/ContainerBounds.hpp"
 
-#include "Robotik/Math/Si.hpp"
 #include "Compages/World/World.hpp"
+#include "Robotik/Math/Si.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -116,7 +116,7 @@ static Vector3 settle(compages::world::World& p_world,
 /// Nearest graspable cube whose top or bottom face is within
 /// @ref kVacuumContactDistance: a cup takes it from above or from below.
 static compages::world::EntityId touched(compages::world::World& p_world,
-                                           Vector3 const& p_tip)
+                                         Vector3 const& p_tip)
 {
     compages::world::EntityId found{};
     Length best = kVacuumContactDistance;
@@ -129,7 +129,8 @@ static compages::world::EntityId touched(compages::world::World& p_world,
             }
             Vector3 const center = positionOf(p_entity);
             Vector3 const half(0.0, 0.0, (p_object.size[2] * 0.5).value());
-            Length const gap{ std::min((center + half - p_tip).norm(), (center - half - p_tip).norm()) };
+            Length const gap{ std::min((center + half - p_tip).norm(),
+                                       (center - half - p_tip).norm()) };
             if (gap <= best)
             {
                 best = gap;
@@ -163,7 +164,8 @@ void AbstractGrasp::update(Robot& p_robot)
 
         if (gripper->suction() && !gripper->holding())
         {
-            gripper->held(touched(world, p_robot.base().pose * gripper->tip(p_robot)));
+            gripper->held(
+                touched(world, p_robot.base().pose * gripper->tip(p_robot)));
         }
         else if (!gripper->suction() && gripper->holding())
         {
@@ -185,7 +187,8 @@ void AbstractGrasp::update(Robot& p_robot)
                 continue;
             }
             Length const half = shape->size[2] * 0.5;
-            Vector3 const center = p_robot.base().pose * gripper->tip(p_robot, half);
+            Vector3 const center =
+                p_robot.base().pose * gripper->tip(p_robot, half);
             held.position(static_cast<float>(center.x),
                           static_cast<float>(center.y),
                           static_cast<float>(center.z));

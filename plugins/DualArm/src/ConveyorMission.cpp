@@ -34,9 +34,10 @@ static constexpr double kPartHeight = 0.04;
 static constexpr int kPriority = 100;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
-static robotik::SkillDescription describe(std::string p_name,
-                                          std::string p_robot,
-                                          std::vector<robotik::ResourceRequirement> p_resources)
+static robotik::SkillDescription
+describe(std::string p_name,
+         std::string p_robot,
+         std::vector<robotik::ResourceRequirement> p_resources)
 {
     robotik::SkillDescription description;
     description.name = std::move(p_name);
@@ -46,9 +47,11 @@ static robotik::SkillDescription describe(std::string p_name,
     return description;
 }
 
-void ConveyorMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /*p_view*/)
+void ConveyorMission::setup(robotik::Simulation& p_simulation,
+                            robotik::SceneView* /*p_view*/)
 {
-    for (robotik::EntitySpec const& entity : p_simulation.scenario().world.entities)
+    for (robotik::EntitySpec const& entity :
+         p_simulation.scenario().world.entities)
     {
         if (entity.kind == "part")
         {
@@ -80,19 +83,27 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation, robotik::SceneVie
             for (std::string const& zone : m_zones)
             {
                 p_simulation.skills().add<ConveySkill>(
-                    describe("Convey(" + part + ", " + feeder + ", " + zone + ")", {}, belt),
-                    m_conveyor, part, feeder, zone);
+                    describe("Convey(" + part + ", " + feeder + ", " + zone +
+                                 ")",
+                             {},
+                             belt),
+                    m_conveyor,
+                    part,
+                    feeder,
+                    zone);
             }
         }
     }
-    for (std::unique_ptr<robotik::RobotSession> const& robot : p_simulation.robots())
+    for (std::unique_ptr<robotik::RobotSession> const& robot :
+         p_simulation.robots())
     {
         addArmSkills(p_simulation, *robot);
     }
     addPlanning(p_simulation);
 }
 
-void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot)
+void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation,
+                                   robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
     robotik::ActuatorSet const& actuators = p_robot.actuators();
@@ -114,34 +125,46 @@ void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation, robotik::R
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));
     for (std::string const& part : m_parts)
     {
-        skills.add<HoverSkill>(describe(scope + "Hover(" + part + ")", id, arm), part, Length(kHover));
-        skills.add<HoverSkill>(describe(scope + "Reach(" + part + ")", id, arm), part, Length(kContact));
-        robotik::SkillDescription grasp = describe(scope + "Grasp(" + part + ")", id, cup);
+        skills.add<HoverSkill>(describe(scope + "Hover(" + part + ")", id, arm),
+                               part,
+                               Length(kHover));
+        skills.add<HoverSkill>(describe(scope + "Reach(" + part + ")", id, arm),
+                               part,
+                               Length(kContact));
+        robotik::SkillDescription grasp =
+            describe(scope + "Grasp(" + part + ")", id, cup);
         grasp.wait = false;
         skills.add<GraspSkill>(std::move(grasp), part);
     }
     for (std::string const& bin : m_bins)
     {
-        skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm), bin, Length(kOverBin));
+        skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm),
+                               bin,
+                               Length(kOverBin));
     }
     // Back over a pick zone, where the next part arrives.
     for (std::string const& zone : m_zones)
     {
-        skills.add<HoverSkill>(describe(scope + "Ready(" + zone + ")", id, arm), zone,
+        skills.add<HoverSkill>(describe(scope + "Ready(" + zone + ")", id, arm),
+                               zone,
                                Length(kPartHeight + kHover));
     }
 }
 
 /// @brief True when the believed centre of @p_object lies in the footprint
 /// of @p_place (shared beliefs: same frame for both).
-static bool onFootprint(robotik::WorldObject const& p_object, robotik::WorldObject const& p_place)
+static bool onFootprint(robotik::WorldObject const& p_object,
+                        robotik::WorldObject const& p_place)
 {
-    return std::abs(p_object.position.x - p_place.position.x) < 0.5 * p_place.size.x &&
-           std::abs(p_object.position.y - p_place.position.y) < 0.5 * p_place.size.y;
+    return std::abs(p_object.position.x - p_place.position.x) <
+               0.5 * p_place.size.x &&
+           std::abs(p_object.position.y - p_place.position.y) <
+               0.5 * p_place.size.y;
 }
 
 /// @brief An arm of the cell holds @p_part.
-static bool heldByAnyone(robotik::RobotContext const& p_context, std::string const& p_part)
+static bool heldByAnyone(robotik::RobotContext const& p_context,
+                         std::string const& p_part)
 {
     if (heldObject(p_context.robot) == p_part)
     {
@@ -188,24 +211,31 @@ void ConveyorMission::addPlanning(robotik::Simulation& p_simulation)
     domain.observe("free",
                    [](RobotContext const& p_context, Args p_args)
                    {
-                       robotik::Robot const* arm = teammate(p_context, p_args[0]);
-                       return arm == nullptr ? Truth::Unknown : robotik::truth(heldObject(*arm).empty());
+                       robotik::Robot const* arm =
+                           teammate(p_context, p_args[0]);
+                       return arm == nullptr
+                                  ? Truth::Unknown
+                                  : robotik::truth(heldObject(*arm).empty());
                    });
-    domain.observe("holding",
+    domain.observe(
+        "holding",
+        [](RobotContext const& p_context, Args p_args)
+        {
+            robotik::Robot const* arm = teammate(p_context, p_args[0]);
+            return arm == nullptr
+                       ? Truth::Unknown
+                       : robotik::truth(heldObject(*arm) == p_args[1]);
+        });
+    domain.observe("at",
                    [](RobotContext const& p_context, Args p_args)
-                   {
-                       robotik::Robot const* arm = teammate(p_context, p_args[0]);
-                       return arm == nullptr ? Truth::Unknown
-                                             : robotik::truth(heldObject(*arm) == p_args[1]);
-                   });
-    domain.observe("at", [](RobotContext const& p_context, Args p_args)
                    { return resting(p_context, p_args[0], p_args[1]); });
     domain.observe("zone_free",
                    [this](RobotContext const& p_context, Args p_args)
                    {
                        for (std::string const& part : m_parts)
                        {
-                           if (resting(p_context, part, p_args[0]) == Truth::True)
+                           if (resting(p_context, part, p_args[0]) ==
+                               Truth::True)
                            {
                                return Truth::False;
                            }
@@ -215,11 +245,16 @@ void ConveyorMission::addPlanning(robotik::Simulation& p_simulation)
 
     // --- Actions, as skills of each robot ----------------------------------
     domain.bind("convey", { "Convey({0}, {1}, {2})" });
-    domain.bind("pick", { "{0}.Hover({1})", "{0}.Reach({1})", "{0}.Grasp({1})", "{0}.Hover({1})" });
+    domain.bind("pick",
+                { "{0}.Hover({1})",
+                  "{0}.Reach({1})",
+                  "{0}.Grasp({1})",
+                  "{0}.Hover({1})" });
     domain.bind("place", { "{0}.Over({2})", "{0}.Release", "{0}.Ready({3})" });
 }
 
-void ConveyorMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
+void ConveyorMission::reset(robotik::Simulation& /*p_simulation*/,
+                            robotik::Seed /*p_seed*/)
 {
     m_conveyor.reset();
     m_overlap = 0.0;
@@ -235,7 +270,8 @@ void ConveyorMission::step(robotik::Simulation& p_simulation, Seconds p_dt)
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
         std::string const& robot = skills.description(id).robot;
-        if (!robot.empty() && skills.state(id) == robotik::SkillState::Running &&
+        if (!robot.empty() &&
+            skills.state(id) == robotik::SkillState::Running &&
             std::find(busy.begin(), busy.end(), robot) == busy.end())
         {
             busy.push_back(robot);

@@ -27,18 +27,21 @@ static ConfigNode copy(bt::YamlNode const& p_node)
     if (p_node.isMap())
     {
         // An empty map stays a null node: both mean "nothing declared".
-        p_node.forEachMap([&result](std::string_view p_key, bt::YamlNode p_value)
-                          { result.put(std::string(p_key), copy(p_value)); });
+        p_node.forEachMap(
+            [&result](std::string_view p_key, bt::YamlNode p_value)
+            { result.put(std::string(p_key), copy(p_value)); });
         return result;
     }
     if (p_node.isSeq())
     {
-        p_node.forEachSeq([&result](bt::YamlNode p_item) { result.push(copy(p_item)); });
+        p_node.forEachSeq([&result](bt::YamlNode p_item)
+                          { result.push(copy(p_item)); });
         return result;
     }
     // A YAML null ("~" or nothing) stays a null node.
     std::string text = p_node.scalar();
-    if ((text.empty() || text == "~" || text == "null") && !p_node.isQuotedScalar())
+    if ((text.empty() || text == "~" || text == "null") &&
+        !p_node.isQuotedScalar())
     {
         return result;
     }
@@ -120,7 +123,8 @@ ConfigNode const& ConfigNode::item(std::string_view p_id) const
     return nullNode();
 }
 
-std::string ConfigNode::text(std::string_view p_key, std::string_view p_default) const
+std::string ConfigNode::text(std::string_view p_key,
+                             std::string_view p_default) const
 {
     ConfigNode const& value = at(p_key);
     return value.isScalar() ? value.scalar() : std::string(p_default);
@@ -135,7 +139,8 @@ std::optional<double> ConfigNode::asNumber() const
     double value = 0.0;
     char const* const begin = m_scalar.data();
     char const* const end = begin + m_scalar.size();
-    char const* const start = (begin != end && *begin == '+') ? begin + 1 : begin;
+    char const* const start =
+        (begin != end && *begin == '+') ? begin + 1 : begin;
     auto const [last, error] = std::from_chars(start, end, value);
     if (error != std::errc{} || last != end)
     {
@@ -154,8 +159,8 @@ double ConfigNode::number(std::string_view p_key, double p_default) const
     std::optional<double> const parsed = value.asNumber();
     if (!parsed)
     {
-        throw std::runtime_error("'" + std::string(p_key) + "' is not a number: '" +
-                                 value.scalar() + "'");
+        throw std::runtime_error("'" + std::string(p_key) +
+                                 "' is not a number: '" + value.scalar() + "'");
     }
     return *parsed;
 }
@@ -176,8 +181,8 @@ bool ConfigNode::flag(std::string_view p_key, bool p_default) const
     {
         return false;
     }
-    throw std::runtime_error("'" + std::string(p_key) + "' is not a boolean: '" + text +
-                             "'");
+    throw std::runtime_error("'" + std::string(p_key) +
+                             "' is not a boolean: '" + text + "'");
 }
 
 Vector3 ConfigNode::vector3(std::string_view p_key, Vector3 p_default) const
@@ -198,7 +203,8 @@ Vector3 ConfigNode::vector3(std::string_view p_key, Vector3 p_default) const
     }
     if (!x || !y || !z)
     {
-        throw std::runtime_error("'" + std::string(p_key) + "' must be [x, y, z]");
+        throw std::runtime_error("'" + std::string(p_key) +
+                                 "' must be [x, y, z]");
     }
     return { *x, *y, *z };
 }
@@ -219,7 +225,8 @@ std::array<double, 2> ConfigNode::range(std::string_view p_key) const
     }
     if (!low || !high || *high < *low)
     {
-        throw std::runtime_error("'" + std::string(p_key) + "' must be [min, max]");
+        throw std::runtime_error("'" + std::string(p_key) +
+                                 "' must be [min, max]");
     }
     return { *low, *high };
 }
@@ -272,7 +279,8 @@ Pose ConfigNode::asPose() const
                 q[i] = quaternion.items()[i].asNumber();
             }
         }
-        if (std::any_of(q.begin(), q.end(), [](auto const& p_v) { return !p_v; }))
+        if (std::any_of(
+                q.begin(), q.end(), [](auto const& p_v) { return !p_v; }))
         {
             throw std::runtime_error("'quaternion' must be [w, x, y, z]");
         }
@@ -280,7 +288,8 @@ Pose ConfigNode::asPose() const
         return pose;
     }
     Vector3 const angles = vector3("rpy", zero3());
-    pose.rotation = rpy(Radians(angles.x), Radians(angles.y), Radians(angles.z));
+    pose.rotation =
+        rpy(Radians(angles.x), Radians(angles.y), Radians(angles.z));
     return pose;
 }
 
@@ -327,11 +336,13 @@ void ConfigNode::set(std::string_view p_path, ConfigNode p_value)
         ConfigNode* const next = node->child(segment);
         if (next == nullptr)
         {
-            throw std::runtime_error("Override '" + std::string(p_path) + "': no '" +
-                                     std::string(segment) + "' here");
+            throw std::runtime_error("Override '" + std::string(p_path) +
+                                     "': no '" + std::string(segment) +
+                                     "' here");
         }
         node = next;
-        rest = dot == std::string_view::npos ? std::string_view{} : rest.substr(dot + 1u);
+        rest = dot == std::string_view::npos ? std::string_view{}
+                                             : rest.substr(dot + 1u);
     }
     *node = std::move(p_value);
 }

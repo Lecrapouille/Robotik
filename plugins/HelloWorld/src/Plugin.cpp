@@ -32,7 +32,8 @@ public:
 
     /// Called before the simulation exists: create the mission and hand it
     /// to the host, which passes it to the simulation.
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    RobotikPluginStatus setup(robotik::Host& p_host,
+                              std::string_view p_scenario) override
     {
         m_scenario = std::string(p_scenario);
         m_updates = 0;
@@ -73,7 +74,8 @@ public:
     }
 
     /// Called after each simulation step.
-    RobotikPluginStatus update(robotik::Host& /*p_host*/, double /*p_dt*/) override
+    RobotikPluginStatus update(robotik::Host& /*p_host*/,
+                               double /*p_dt*/) override
     {
         ++m_updates;
         return ROBOTIK_PLUGIN_OK;
@@ -127,7 +129,8 @@ public:
                       " homes=" + std::to_string(m_homes));
         if (m_reach != nullptr)
         {
-            p_canvas.text("reach error " + std::to_string(m_reach->error()) + " m");
+            p_canvas.text("reach error " + std::to_string(m_reach->error()) +
+                          " m");
         }
     }
 

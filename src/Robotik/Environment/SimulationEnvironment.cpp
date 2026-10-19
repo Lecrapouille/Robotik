@@ -32,11 +32,14 @@ SimulationEnvironment::SimulationEnvironment(Scenario p_scenario,
                                              EnvironmentTiming p_timing)
     : m_parts(std::move(p_parts)), m_timing(p_timing)
 {
-    if (m_parts.observation == nullptr || m_parts.action == nullptr || m_parts.reward == nullptr)
+    if (m_parts.observation == nullptr || m_parts.action == nullptr ||
+        m_parts.reward == nullptr)
     {
-        throw std::invalid_argument("An environment needs an observation, an action and a reward");
+        throw std::invalid_argument(
+            "An environment needs an observation, an action and a reward");
     }
-    double const ratio = m_timing.control_period.value() / m_timing.physics_step.value();
+    double const ratio =
+        m_timing.control_period.value() / m_timing.physics_step.value();
     if (!(m_timing.physics_step.value() > 0.0) || ratio < 1.0 - 1e-9 ||
         std::abs(ratio - std::round(ratio)) > 1e-9)
     {
@@ -48,8 +51,11 @@ SimulationEnvironment::SimulationEnvironment(Scenario p_scenario,
     m_observation_space = m_parts.observation->space();
     m_action_space = m_parts.action->space();
 
-    m_simulation = std::make_unique<Simulation>(
-        m_world, forLearning(std::move(p_scenario)), nullptr, m_parts.mission.get());
+    m_simulation =
+        std::make_unique<Simulation>(m_world,
+                                     forLearning(std::move(p_scenario)),
+                                     nullptr,
+                                     m_parts.mission.get());
     m_parts.observation->setup(*m_simulation);
     m_parts.action->setup(*m_simulation);
     m_parts.reward->setup(*m_simulation);

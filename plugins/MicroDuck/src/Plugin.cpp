@@ -51,7 +51,8 @@ public:
                               std::string_view p_scenario) override
     {
         m_mission.reset();
-        if (p_scenario != "drive" && p_scenario != "tour" && p_scenario != "walk_forward")
+        if (p_scenario != "drive" && p_scenario != "tour" &&
+            p_scenario != "walk_forward")
         {
             p_host.error("unknown microduck scenario");
             return ROBOTIK_PLUGIN_ERR_SETUP;

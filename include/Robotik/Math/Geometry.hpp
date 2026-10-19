@@ -6,10 +6,17 @@
 // See LICENSING.md for details.
 
 /// @file Geometry.hpp
-/// @brief Short names for the Compages geometry types, in double precision.
+/// Short names for the Compages geometry types, in double precision.
 ///
 /// Robotik defines no vector nor quaternion of its own: these are the
 /// Compages types (rendering uses their float flavors).
+///
+/// @code
+/// robotik::Pose tool;
+/// tool.position = robotik::Vector3(0.3, 0.0, 0.2);
+/// tool.rotation = robotik::rpy(Radians(0.0), Radians(1.5708), Radians(0.0));
+/// double heading = robotik::yawOf(tool.rotation);
+/// @endcode
 #pragma once
 
 #include "Compages/Core/Pose.hpp"
@@ -20,27 +27,43 @@
 namespace robotik
 {
 
-/// @brief Position (m) or direction.
+/// Position (m) or direction.
 using Vector3 = compages::core::Vector3g;
-/// @brief Unit quaternion (w, x, y, z).
+/// Unit quaternion (w, x, y, z).
 using Quaternion = compages::core::Quatd;
-/// @brief Frame placement in a parent frame (position in m).
+/// Frame placement in a parent frame (position in m).
 using Pose = compages::core::Posed;
 
-/// @brief Null vector (Compages vectors are left uninitialized by default).
+// ----------------------------------------------------------------------------
+/// Null vector. Use it instead of @c Vector3(): Compages vectors are left
+/// uninitialized by default.
+/// @return (0, 0, 0).
+// ----------------------------------------------------------------------------
 inline Vector3 zero3()
 {
     return Vector3(0.0, 0.0, 0.0);
 }
 
-/// @brief Euclidean norm.
+// ----------------------------------------------------------------------------
+/// Euclidean norm (length) of a vector.
+/// @param p_v Vector to measure.
+/// @return sqrt(x² + y² + z²).
+// ----------------------------------------------------------------------------
 inline double norm(Vector3 const& p_v)
 {
     return compages::core::vector::norm(p_v);
 }
 
-/// @brief Roll about X, pitch about Y, yaw about Z (URDF convention).
-[[nodiscard]] inline Quaternion rpy(Radians p_roll, Radians p_pitch, Radians p_yaw)
+// ----------------------------------------------------------------------------
+/// Rotation from roll, pitch and yaw (URDF convention): roll about X first,
+/// then pitch about Y, then yaw about Z, all about the fixed axes.
+/// @param p_roll Angle about X.
+/// @param p_pitch Angle about Y.
+/// @param p_yaw Angle about Z.
+/// @return The rotation Rz * Ry * Rx.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline Quaternion
+rpy(Radians p_roll, Radians p_pitch, Radians p_yaw)
 {
     Quaternion const rx = Quaternion::rotation(p_roll, 1.0, 0.0, 0.0);
     Quaternion const ry = Quaternion::rotation(p_pitch, 0.0, 1.0, 0.0);
@@ -48,7 +71,14 @@ inline double norm(Vector3 const& p_v)
     return rz * ry * rx;
 }
 
-/// @brief Rotation whose columns are the given orthonormal axes.
+// ----------------------------------------------------------------------------
+/// Rotation whose columns are the given orthonormal axes: the rotated frame
+/// has its X along @p_x, its Y along @p_y and its Z along @p_z.
+/// @param p_x Unit X axis of the new frame.
+/// @param p_y Unit Y axis, orthogonal to @p_x.
+/// @param p_z Unit Z axis, orthogonal to both.
+/// @return The rotation.
+// ----------------------------------------------------------------------------
 [[nodiscard]] inline Quaternion
 basis(Vector3 const& p_x, Vector3 const& p_y, Vector3 const& p_z)
 {
@@ -65,21 +95,30 @@ basis(Vector3 const& p_x, Vector3 const& p_y, Vector3 const& p_z)
     return Quaternion::fromMatrix(m);
 }
 
-/// @brief Rotation of @p_angle about @p_axis.
-[[nodiscard]] inline Quaternion axisAngle(Vector3 const& p_axis, Radians p_angle)
+// ----------------------------------------------------------------------------
+/// Rotation of an angle about an axis.
+/// @param p_axis Rotation axis; it does not need to be of length 1.
+/// @param p_angle Angle, positive by the right-hand rule.
+/// @return The rotation, or the identity when the axis is (almost) null.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline Quaternion axisAngle(Vector3 const& p_axis,
+                                          Radians p_angle)
 {
     double const length = norm(p_axis);
     if (length < 1e-12)
     {
         return {};
     }
-    return Quaternion::rotation(p_angle,
-                                p_axis.x / length,
-                                p_axis.y / length,
-                                p_axis.z / length);
+    return Quaternion::rotation(
+        p_angle, p_axis.x / length, p_axis.y / length, p_axis.z / length);
 }
 
-/// @brief Heading about Z (rad).
+// ----------------------------------------------------------------------------
+/// Heading about Z: where the X axis of the rotated frame points in the
+/// horizontal plane.
+/// @param p_q Rotation to read.
+/// @return The yaw angle in (-pi, pi] (rad).
+// ----------------------------------------------------------------------------
 [[nodiscard]] inline double yawOf(Quaternion const& p_q)
 {
     double const siny = 2.0 * (p_q.w * p_q.z + p_q.x * p_q.y);

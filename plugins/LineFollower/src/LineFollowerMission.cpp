@@ -59,23 +59,20 @@ void LineFollowerMission::bindCamera(robotik::Simulation& p_simulation)
     double const s = std::sin(pitch);
     camera->mount(robotik::Pose{
         { 0.2, 0.0, 0.2 },
-        robotik::basis({ 0.0, -1.0, 0.0 },
-                       { -s, 0.0, -c },
-                       { c, 0.0, -s }) });
+        robotik::basis({ 0.0, -1.0, 0.0 }, { -s, 0.0, -c }, { c, 0.0, -s }) });
     m_source = std::make_unique<FloorCamera>(*m_floor, *m_drive);
     camera->source(m_source.get());
     camera->onFrame(
         [this, &p_simulation](robotik::CameraFrame const& p_frame)
         {
-            if (auto fix = robotik::localize(
-                    p_simulation.perception().detections(),
-                    m_floor->landmarks());
+            if (auto fix =
+                    robotik::localize(p_simulation.perception().detections(),
+                                      m_floor->landmarks());
                 fix && m_navigation->fix(*fix, p_frame.stamp))
             {
                 Pose2 const& truth = m_drive->truth();
-                double const error =
-                    std::hypot(fix->pose.position.x - truth.x,
-                               fix->pose.position.y - truth.y);
+                double const error = std::hypot(fix->pose.position.x - truth.x,
+                                                fix->pose.position.y - truth.y);
                 m_fix_error_sum += error;
                 m_fix_error_max = std::max(m_fix_error_max, error);
                 ++m_fix_count;
@@ -91,7 +88,8 @@ void LineFollowerMission::setup(robotik::Simulation& p_simulation,
     m_drive = backend.get();
     p_simulation.robot().connect(std::move(backend));
 
-    m_left = p_simulation.robot().actuators().find<robotik::Motor>("left_wheel");
+    m_left =
+        p_simulation.robot().actuators().find<robotik::Motor>("left_wheel");
     m_right =
         p_simulation.robot().actuators().find<robotik::Motor>("right_wheel");
     if (m_left == nullptr || m_right == nullptr)
@@ -104,8 +102,7 @@ void LineFollowerMission::setup(robotik::Simulation& p_simulation,
     p_simulation.perception().add<LineDetector>();
     bindCamera(p_simulation);
 
-    m_navigation =
-        std::make_unique<Navigation>(m_track, m_drive->geometry());
+    m_navigation = std::make_unique<Navigation>(m_track, m_drive->geometry());
 
     robotik::ResourceManager& resources = p_simulation.robot().resources();
     robotik::SkillDescription describe;
@@ -121,13 +118,13 @@ void LineFollowerMission::setup(robotik::Simulation& p_simulation,
     describe.name = "ReachLine";
     p_simulation.skills().add<ReachLineSkill>(describe, wheels, *m_navigation);
     describe.name = "FollowLine";
-    m_follow = p_simulation.skills().add<FollowLineSkill>(
-        describe,
-        wheels,
-        *m_navigation,
-        p_simulation.perception(),
-        m_laps,
-        FOLLOW_SPEED);
+    m_follow =
+        p_simulation.skills().add<FollowLineSkill>(describe,
+                                                   wheels,
+                                                   *m_navigation,
+                                                   p_simulation.perception(),
+                                                   m_laps,
+                                                   FOLLOW_SPEED);
     m_follow_skill = &static_cast<FollowLineSkill const&>(
         p_simulation.skills().skill(m_follow));
 
@@ -144,7 +141,8 @@ void LineFollowerMission::reset(robotik::Simulation& p_simulation,
                                 robotik::Seed p_seed)
 {
     robotik::Random start(p_seed.derive("start"));
-    Track::Point const near = m_track.at(start.uniform(0.0, m_track.perimeter()));
+    Track::Point const near =
+        m_track.at(start.uniform(0.0, m_track.perimeter()));
     double const offset = start.uniform(-0.3, 0.3);
     m_drive->start({ near.x - offset * std::sin(near.heading),
                      near.y + offset * std::cos(near.heading),
@@ -249,7 +247,6 @@ double LineFollowerMission::followProgress() const
 
 double LineFollowerMission::fixErrorMean() const
 {
-    return m_fix_count > 0u
-               ? m_fix_error_sum / static_cast<double>(m_fix_count)
-               : 0.0;
+    return m_fix_count > 0u ? m_fix_error_sum / static_cast<double>(m_fix_count)
+                            : 0.0;
 }

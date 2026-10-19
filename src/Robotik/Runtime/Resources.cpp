@@ -152,7 +152,8 @@ ResourceManager::acquire(std::span<ResourceRequirement const> p_requirements,
                          OwnerId p_owner)
 {
     ResourceLease lease;
-    if (p_requirements.size() > ResourceLease::CAPACITY || conflict(p_requirements))
+    if (p_requirements.size() > ResourceLease::CAPACITY ||
+        conflict(p_requirements))
     {
         return lease;
     }

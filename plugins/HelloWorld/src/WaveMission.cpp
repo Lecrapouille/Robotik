@@ -12,7 +12,8 @@
 #include <algorithm>
 #include <cmath>
 
-void WaveMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
+void WaveMission::reset(robotik::Simulation& /*p_simulation*/,
+                        robotik::Seed /*p_seed*/)
 {
     m_swing = 0.0;
     m_tool_y = 0.0;
@@ -37,7 +38,8 @@ void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
 
     // Measure: the angle reached, and where the tool is (forward kinematics,
     // in the robot base frame).
-    m_swing = std::max(m_swing, std::abs((joints.position(base) - home).value()));
+    m_swing =
+        std::max(m_swing, std::abs((joints.position(base) - home).value()));
     m_tool_y = robot.framePose(robot.tool()).position.y;
 }
 
@@ -48,7 +50,8 @@ void WaveMission::measure(robotik::Simulation const& /*p_simulation*/,
     p_metrics.set("wave.tool_y", m_tool_y);
 }
 
-robotik::Status WaveMission::status(robotik::Simulation const& p_simulation) const
+robotik::Status
+WaveMission::status(robotik::Simulation const& p_simulation) const
 {
     if (p_simulation.time() >= Seconds(6.0))
     {

@@ -6,8 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Metrics.hpp
-/// @brief Named numbers published by a run, and the conditions evaluated on
-/// them.
+/// Named numbers published by a run, and the conditions evaluated on them.
 ///
 /// A mission publishes what it measures (@c laps, @c cross_track.max...),
 /// the simulation adds @c time and @c controller.success, and answers queries
@@ -32,29 +31,53 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Flat table of named values (insertion order kept).
+/// Flat table of named values (insertion order kept).
+///
+/// @code
+/// robotik::Metrics metrics;
+/// metrics.set("laps", 3.0);
+/// metrics.set("laps", 4.0);                 // overwrites
+/// double laps = metrics.get("laps").value(); // 4
+/// @endcode
 // ****************************************************************************
 class Metrics
 {
 public:
 
-    /// @brief Creates or overwrites @p_name.
+    // ------------------------------------------------------------------------
+    /// Creates or overwrites a value.
+    /// @param p_name Metric name; dots group names (@c cross_track.max).
+    /// @param p_value Measured value.
+    // ------------------------------------------------------------------------
     void set(std::string_view p_name, double p_value);
 
-    /// @brief Value of @p_name, or nothing.
+    // ------------------------------------------------------------------------
+    /// Reads a value.
+    /// @param p_name Metric name.
+    /// @return The value, or nothing when it was never set.
+    // ------------------------------------------------------------------------
     [[nodiscard]] std::optional<double> get(std::string_view p_name) const;
 
+    // ------------------------------------------------------------------------
+    /// Removes every value.
+    // ------------------------------------------------------------------------
     void clear()
     {
         m_names.clear();
         m_values.clear();
     }
 
+    // ------------------------------------------------------------------------
+    /// @return The names, in insertion order, aligned with @ref values.
+    // ------------------------------------------------------------------------
     [[nodiscard]] std::span<std::string const> names() const
     {
         return m_names;
     }
 
+    // ------------------------------------------------------------------------
+    /// @return The values, aligned with @ref names.
+    // ------------------------------------------------------------------------
     [[nodiscard]] std::span<double const> values() const
     {
         return m_values;
@@ -62,18 +85,28 @@ public:
 
 private:
 
+    /// Metric names, in insertion order.
     std::vector<std::string> m_names;
+    /// Values, aligned with @ref m_names.
     std::vector<double> m_values;
 };
 
-/// @brief Values that are not stored in a @ref Metrics table (e.g. queries
-/// with arguments such as @c inside(red_cube, box)). Throws
-/// std::invalid_argument for a query it knows but cannot answer (unknown
-/// entity), returns nothing for a name it does not know.
+/// Values that are not stored in a @ref Metrics table (e.g. queries with
+/// arguments such as @c inside(red_cube, box)). Throws std::invalid_argument
+/// for a query it knows but cannot answer (unknown entity), returns nothing
+/// for a name it does not know.
 using MetricResolver = std::function<std::optional<double>(std::string_view)>;
 
 // ****************************************************************************
-/// @brief One evaluation of a condition.
+/// One evaluation of a condition.
+///
+/// @code
+/// robotik::Evaluation const e = robotik::evaluate("time < 60", metrics);
+/// if (!e.known)
+///     std::cerr << e.detail << '\n';   // why it could not be measured
+/// else if (!e.holds)
+///     std::cerr << e.detail << ", expected " << e.expected << '\n';
+/// @endcode
 // ****************************************************************************
 struct Evaluation
 {
@@ -90,9 +123,16 @@ struct Evaluation
 };
 
 // ----------------------------------------------------------------------------
-/// @brief Evaluates @p_condition: @c "<value> <op> <number>" with @c op one of
-/// @c == @c != @c < @c <= @c > @c >=, or a bare @c "<value>" which holds when
-/// the value is not zero. A value is a metric or a resolver query.
+/// Evaluates a condition written in a scenario.
+///
+/// The condition is @c "<value> <op> <number>" with @c op one of @c ==
+/// @c != @c < @c <= @c > @c >=, or a bare @c "<value>" which holds when the
+/// value is not zero. A value is a metric or a resolver query.
+///
+/// @param p_condition Text of the condition, e.g. @c "time < 60".
+/// @param p_metrics Published metrics.
+/// @param p_resolver Answers the values that are not in @p_metrics.
+/// @return What was measured and whether the condition holds.
 // ----------------------------------------------------------------------------
 [[nodiscard]] Evaluation evaluate(std::string_view p_condition,
                                   Metrics const& p_metrics,

@@ -45,7 +45,8 @@ void RlMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
                           observation);
 }
 
-robotik::Status RlMission::status(robotik::Simulation const& /*p_simulation*/) const
+robotik::Status
+RlMission::status(robotik::Simulation const& /*p_simulation*/) const
 {
     if (!ready)
     {

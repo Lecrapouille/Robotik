@@ -49,7 +49,8 @@ FileRole fileRole(std::filesystem::path const& p_file)
     std::string const name = p_file.filename().string();
     for (Spelling const& spelling : SPELLINGS)
     {
-        if (name.ends_with(spelling.extension) && name.size() > spelling.extension.size())
+        if (name.ends_with(spelling.extension) &&
+            name.size() > spelling.extension.size())
         {
             return spelling.role;
         }

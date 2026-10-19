@@ -1,30 +1,21 @@
-// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
-// Copyright (c) 2020-2026 Quentin Quadrat
-//
-// This file is part of RobotIK. It is available under the GNU GPL v3 or,
-// for users who cannot use the GPL, under a commercial license.
-// See LICENSING.md for details.
+/// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+/// Copyright (c) 2020-2026 Quentin Quadrat
+///
+/// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+/// for users who cannot use the GPL, under a commercial license.
+/// See LICENSING.md for details.
 
 /// @file AssetPack.hpp
-/// @brief A versioned folder of reusable assets (robots, tools, props).
-///
-/// @code
-/// # data/packs/robotik.tools/pack.yaml
-/// id: robotik.tools
-/// version: 1.0.0
-/// license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
-/// source: https://github.com/Lecrapouille/RobotIK
-/// models:
-///   vacuum: tool_vacuum.urdf
-///   gripper: tool_gripper.urdf
-/// @endcode
+/// A versioned folder of reusable assets (robots, tools, props) for RobotIK
+/// plugins.
 ///
 /// A model is named by the pack id and its key: @c robotik.tools.vacuum. The
 /// files stay where the pack puts them; nobody outside the pack builds a path
-/// to them.
+/// to them. Example: data/packs/robotik.tools/pack.yaml.
+
 #pragma once
 
-#include "Robotik/Assets/Version.hpp"
+#include "Robotik/Common/Version.hpp"
 
 #include <filesystem>
 #include <map>
@@ -34,41 +25,74 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Manifest of one asset pack.
+/// Manifest of one asset pack.
+///
+/// Usually loaded by an @ref AssetResolver, which scans every pack folder.
+/// Load it yourself only to inspect one pack.
+///
+/// # data/packs/robotik.tools/pack.yaml
+/// @code
+/// id: robotik.tools
+/// version: 1.0.0
+/// license: your license here
+/// source: https://your.website.here
+/// description: "Tools for RobotIK: vacuum, gripper, ..."
+/// models:
+///   vacuum: tool_vacuum.urdf
+///   gripper: tool_gripper.urdf
+/// @endcode
+///
+/// @code
+/// auto const pack =
+/// robotik::AssetPack::load("data/packs/robotik.tools/pack.yaml");
+/// std::filesystem::path urdf = robotik::model(pack, "vacuum"); //
+/// tool_vacuum.urdf if (!robotik::licenseVerified(pack)) {
+///     std::cerr << pack.id << ": license not checked\n";
+/// }
+/// @endcode
 // ****************************************************************************
 struct AssetPack
 {
-    /// @brief SPDX token for a license nobody has checked yet.
-    static constexpr char const* UNVERIFIED_LICENSE = "NOASSERTION";
-
     // -------------------------------------------------------------------------
-    // @brief Reads @p_manifest (a @c pack.yaml).
+    /// Reads a pack manifest.
+    /// @param p_manifest Path of a @c pack.yaml.
+    /// @return The pack, with absolute paths.
     /// @throws std::runtime_error when a required field is missing, a model
-    /// file does not exist or leaves the pack folder.
+    ///   file does not exist or leaves the pack folder.
     // -------------------------------------------------------------------------
     [[nodiscard]] static AssetPack
     load(std::filesystem::path const& p_manifest);
 
-    /// @brief Folder holding @c pack.yaml.
+    /// Folder holding @c pack.yaml.
     std::filesystem::path root;
+    /// Pack id, the prefix of its model names (e.g. @c robotik.tools).
     std::string id;
+    /// Version of the pack, checked against what a world requires.
     Version version;
-    /// SPDX expression, or @ref UNVERIFIED_LICENSE.
+    /// SPDX expression, or @c NOASSERTION when nobody checked the license.
     std::string license;
     /// Where the assets come from (URL), for the credits.
     std::string source;
+    /// Free text shown in the credits.
     std::string description;
     /// Model key to its file, relative to @ref root.
     std::map<std::string, std::filesystem::path> models;
-
-    /// @brief False until somebody wrote down the license of the assets.
-    [[nodiscard]] bool licenseVerified() const
-    {
-        return !license.empty() && license != UNVERIFIED_LICENSE;
-    }
-
-    /// @brief Absolute file of model @p_key, or empty when the pack has none.
-    [[nodiscard]] std::filesystem::path model(std::string const& p_key) const;
 };
+
+// -------------------------------------------------------------------------
+/// Tells whether somebody wrote down the license of the assets.
+/// @param p_pack Pack to inspect.
+/// @return False when the license is empty or @c NOASSERTION.
+// -------------------------------------------------------------------------
+[[nodiscard]] bool licenseVerified(AssetPack const& p_pack);
+
+// -------------------------------------------------------------------------
+/// Gives the file of one model.
+/// @param p_pack Pack that owns the model.
+/// @param p_key Model key in the pack (e.g. @c vacuum, not the full name).
+/// @return Absolute file of the model, or empty when the pack has none.
+// -------------------------------------------------------------------------
+[[nodiscard]] std::filesystem::path model(AssetPack const& p_pack,
+                                          std::string const& p_key);
 
 } // namespace robotik

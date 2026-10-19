@@ -42,7 +42,8 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
         {
             throw std::runtime_error("no 'trajectory:' section");
         }
-        if (!node.at("points").isSequence() || node.at("points").items().empty())
+        if (!node.at("points").isSequence() ||
+            node.at("points").items().empty())
         {
             throw std::runtime_error("points must be a non-empty list");
         }
@@ -62,9 +63,11 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
                 std::vector<double> const xyz = numbers(point);
                 if (xyz.size() != 3u)
                 {
-                    throw std::runtime_error("a cartesian point is [x, y, z] or a pose");
+                    throw std::runtime_error(
+                        "a cartesian point is [x, y, z] or a pose");
                 }
-                trajectory.poses.push_back(Pose{ Vector3(xyz[0], xyz[1], xyz[2]), orientation });
+                trajectory.poses.push_back(
+                    Pose{ Vector3(xyz[0], xyz[1], xyz[2]), orientation });
             }
         }
         else if (type == "joint")
@@ -80,7 +83,8 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
                 std::vector<double> configuration = numbers(point);
                 if (configuration.size() != trajectory.joints.size())
                 {
-                    throw std::runtime_error("every point gives one value per joint");
+                    throw std::runtime_error(
+                        "every point gives one value per joint");
                 }
                 trajectory.configurations.push_back(std::move(configuration));
             }
@@ -92,7 +96,8 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
     }
     catch (std::runtime_error const& error)
     {
-        throw std::runtime_error(trajectory.file.string() + ": " + error.what());
+        throw std::runtime_error(trajectory.file.string() + ": " +
+                                 error.what());
     }
     return trajectory;
 }

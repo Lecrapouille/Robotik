@@ -6,13 +6,13 @@
 // See LICENSING.md for details.
 
 /// @file FileRole.hpp
-/// @brief The role of a package file, read from its double extension.
+/// The role of a package file, read from its double extension.
 ///
 /// @code{.text}
 /// worlds/arm.world.yaml                   world
 /// scenarios/wave.scenario.yaml            scenario
-/// scenarios/pick.rl.yaml                  scenario driven by a learned policy (id pick_rl)
-/// scenarios/wave.bt.yaml                  behavior tree
+/// scenarios/pick.rl.yaml                  scenario driven by a learned policy
+/// (id pick_rl) scenarios/wave.bt.yaml                  behavior tree
 /// scenarios/pick.domain.pddl              PDDL domain
 /// scenarios/trajectories/red.trajectory.yaml
 /// experiments/bench.experiment.yaml       experiment
@@ -29,33 +29,63 @@
 namespace robotik
 {
 
+// ****************************************************************************
+/// What a package file is for, from its name.
+///
+/// @code
+/// if (robotik::fileRole(path) == robotik::FileRole::World)
+///     loadWorld(path);
+/// @endcode
+// ****************************************************************************
 enum class FileRole
 {
-    World,
-    Scenario,
-    Rl,
-    Tree,
-    Domain,
-    Trajectory,
-    Experiment,
+    World,      ///< @c x.world.yaml: robots, objects, sensors.
+    Scenario,   ///< @c x.scenario.yaml: a world plus a mission.
+    Rl,         ///< @c x.rl.yaml: a scenario driven by a learned policy.
+    Tree,       ///< @c x.bt.yaml: a behavior tree.
+    Domain,     ///< @c x.domain.pddl: a PDDL domain.
+    Trajectory, ///< @c x.trajectory.yaml: a list of waypoints.
+    Experiment, ///< @c x.experiment.yaml: several runs to compare.
     /// No known double extension.
     Unknown,
 };
 
-/// @brief Role of @p_file from its name: @c x.world.yaml is a world.
+// ----------------------------------------------------------------------------
+/// Reads the role of a file from its name.
+/// @param p_file File name or path; only the name is read.
+/// @return The role, @c x.world.yaml is a world; @c Unknown otherwise.
+// ----------------------------------------------------------------------------
 [[nodiscard]] FileRole fileRole(std::filesystem::path const& p_file);
 
-/// @brief Double extension of @p_role, e.g. ".world.yaml"; empty for Unknown.
+// ----------------------------------------------------------------------------
+/// Gives the double extension of a role.
+/// @param p_role Role to name.
+/// @return For example ".world.yaml"; empty for Unknown.
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* roleExtension(FileRole p_role);
 
-/// @brief Id given by a file name: the extension is dropped, the default
-/// role @c .scenario too, and every other dot becomes @c _.
-/// @c wave.scenario.yaml -> @c wave, @c pick.rl.yaml -> @c pick_rl,
-/// @c hello.experiment.yaml -> @c hello_experiment, @c wave.yml -> @c wave.
+// ----------------------------------------------------------------------------
+/// Id given by a file name: the extension is dropped, the default role
+/// @c .scenario too, and every other dot becomes @c _.
+///
+/// @code{.text}
+/// wave.scenario.yaml    -> wave
+/// pick.rl.yaml          -> pick_rl
+/// hello.experiment.yaml -> hello_experiment
+/// wave.yml              -> wave
+/// @endcode
+///
+/// @param p_file File name or path.
+/// @return The id, as used in @c plugin.yaml.
+// ----------------------------------------------------------------------------
 [[nodiscard]] std::string roleStem(std::filesystem::path const& p_file);
 
-/// @brief True for a file the scenario list may hold: a scenario, an RL
-/// scenario, an experiment, or a YAML file without a role.
+// ----------------------------------------------------------------------------
+/// Tells whether a file can be run from the scenario list.
+/// @param p_file File name or path.
+/// @return True for a scenario, an RL scenario, an experiment, or a YAML
+///   file without a role.
+// ----------------------------------------------------------------------------
 [[nodiscard]] bool runnableRole(std::filesystem::path const& p_file);
 
 } // namespace robotik

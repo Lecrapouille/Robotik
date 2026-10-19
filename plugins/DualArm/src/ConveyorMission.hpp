@@ -29,14 +29,18 @@ class ConveyorMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view) override;
-    void reset(robotik::Simulation& p_simulation, robotik::Seed p_seed) override;
+    void setup(robotik::Simulation& p_simulation,
+               robotik::SceneView* p_view) override;
+    void reset(robotik::Simulation& p_simulation,
+               robotik::Seed p_seed) override;
     void step(robotik::Simulation& p_simulation, Seconds p_dt) override;
-    void measure(robotik::Simulation const& p_simulation, robotik::Metrics& p_metrics) const override;
+    void measure(robotik::Simulation const& p_simulation,
+                 robotik::Metrics& p_metrics) const override;
 
 private:
 
-    void addArmSkills(robotik::Simulation& p_simulation, robotik::Robot const& p_robot);
+    void addArmSkills(robotik::Simulation& p_simulation,
+                      robotik::Robot const& p_robot);
     void addPlanning(robotik::Simulation& p_simulation);
 
 private:

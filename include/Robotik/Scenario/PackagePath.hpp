@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PackagePath.hpp
-/// @brief Files named inside a plugin package.
+/// Files named inside a plugin package.
 ///
 /// A world, scenario or experiment file names other files (a world, a
 /// behavior tree, a trajectory, a URDF). Those names are relative to the
@@ -31,19 +31,37 @@ namespace robotik
 {
 
 // ----------------------------------------------------------------------------
-/// @brief Folder holding @c plugin.yaml: the folder of @p_file or one of its
-/// parents.
+/// Finds the package that holds a file.
+///
+/// @code
+/// packageRoot("plugins/HelloWorld/scenarios/wave.scenario.yaml");
+/// // -> plugins/HelloWorld
+/// @endcode
+///
+/// @param p_file Any file of the package.
+/// @return Folder holding @c plugin.yaml: the folder of @p_file or one of
+///   its parents.
 /// @throws std::runtime_error when @p_file is in no package.
 // ----------------------------------------------------------------------------
-[[nodiscard]] std::filesystem::path packageRoot(std::filesystem::path const& p_file);
+[[nodiscard]] std::filesystem::path
+packageRoot(std::filesystem::path const& p_file);
 
 // ----------------------------------------------------------------------------
-/// @brief Canonical path of @p_root / @p_name, or empty when @p_name is
-/// empty.
+/// Resolves a file name written in a YAML file of the package.
+///
+/// @code
+/// auto root = packageRoot(scenario_file);
+/// auto world = packageFile(root, "worlds/arm.world.yaml");
+/// @endcode
+///
+/// @param p_root Package root, as given by @ref packageRoot.
+/// @param p_name Name relative to @p_root.
+/// @return Canonical path of @p_root / @p_name, or empty when @p_name is
+///   empty.
 /// @throws std::runtime_error when @p_name is absolute, or when its
-/// canonical path is not inside the canonical @p_root.
+///   canonical path is not inside the canonical @p_root.
 // ----------------------------------------------------------------------------
-[[nodiscard]] std::filesystem::path packageFile(std::filesystem::path const& p_root,
-                                                std::string const& p_name);
+[[nodiscard]] std::filesystem::path
+packageFile(std::filesystem::path const& p_root, std::string const& p_name);
 
 } // namespace robotik

@@ -12,8 +12,8 @@
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Sensors/ForceTorqueSensor.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
+#include "Robotik/Sensors/ForceTorqueSensor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -51,7 +51,8 @@ static constexpr double kDeepest = 0.02;
 /// frame): one inverse kinematics from the current joints, then each joint
 /// of the arm servoed to its solution. A tool joint (the spindle of a
 /// drill) is left to its own motor. False when there is no solution.
-static bool servo(robotik::RobotContext& p_context, robotik::Pose const& p_target)
+static bool servo(robotik::RobotContext& p_context,
+                  robotik::Pose const& p_target)
 {
     robotik::Robot& robot = p_context.robot;
     auto const solution = robot.inverseKinematics(robot.tool(), p_target);
@@ -59,7 +60,8 @@ static bool servo(robotik::RobotContext& p_context, robotik::Pose const& p_targe
     {
         return false;
     }
-    robotik::JointGroup const* arm = robot.actuators().first<robotik::JointGroup>();
+    robotik::JointGroup const* arm =
+        robot.actuators().first<robotik::JointGroup>();
     robotik::JointSet& joints = robot.joints();
     for (robotik::JointId id = 0; id < joints.size(); ++id)
     {
@@ -91,7 +93,9 @@ PathSkill::PathSkill(std::string p_object, Seconds p_duration)
 }
 
 PathSkill::PathSkill(std::string p_object, Length p_below, Seconds p_duration)
-    : m_object(std::move(p_object)), m_below(p_below.value()), m_duration(p_duration)
+    : m_object(std::move(p_object)),
+      m_below(p_below.value()),
+      m_duration(p_duration)
 {
 }
 
@@ -104,7 +108,8 @@ Status PathSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         m_to = m_from.position + m_offset;
         if (!m_object.empty())
         {
-            robotik::WorldObject const* object = p_context.world_model.find(m_object);
+            robotik::WorldObject const* object =
+                p_context.world_model.find(m_object);
             if (object == nullptr)
             {
                 m_why = m_object + " is not in the beliefs";
@@ -115,7 +120,9 @@ Status PathSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
             if (m_below)
             {
                 double const bottom = object->position.z - 0.5 * object->size.z;
-                m_to.z = inBase(p_context, robotik::Vector3(0.0, 0.0, bottom - *m_below)).z;
+                m_to.z = inBase(p_context,
+                                robotik::Vector3(0.0, 0.0, bottom - *m_below))
+                             .z;
             }
         }
         m_elapsed = Seconds{};
@@ -124,14 +131,16 @@ Status PathSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
     m_elapsed += p_dt;
     double const s = m_elapsed.value() / std::max(1e-3, m_duration.value());
     double const k = minimumJerk(s);
-    robotik::Pose const target{ m_from.position + k * (m_to - m_from.position), m_from.rotation };
+    robotik::Pose const target{ m_from.position + k * (m_to - m_from.position),
+                                m_from.rotation };
     if (!servo(p_context, target))
     {
         m_why = "no joint solution on the way";
         return Status::FAILURE;
     }
     double const left = (robot.framePose(robot.tool()).position - m_to).norm();
-    return s >= 1.0 && left < kPathTolerance ? Status::SUCCESS : Status::RUNNING;
+    return s >= 1.0 && left < kPathTolerance ? Status::SUCCESS
+                                             : Status::RUNNING;
 }
 
 void PathSkill::cancel(robotik::RobotContext& p_context)
@@ -175,7 +184,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
     robotik::Robot const* holder = nullptr;
     for (robotik::Robot const* robot : p_context.team)
     {
-        holder = holder == nullptr && heldObject(*robot) == m_tray ? robot : holder;
+        holder =
+            holder == nullptr && heldObject(*robot) == m_tray ? robot : holder;
     }
     if (holder == nullptr)
     {
@@ -183,10 +193,12 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         return Status::FAILURE;
     }
     robotik::Pose const carrier = holder->worldPose(holder->tool());
-    auto const* sensor = p_context.robot.sensors().first<robotik::ForceTorqueSensor>();
+    auto const* sensor =
+        p_context.robot.sensors().first<robotik::ForceTorqueSensor>();
     if (sensor == nullptr || !sensor->reading().valid)
     {
-        m_why = sensor == nullptr ? "no force sensor on the robot" : "the force sensor gives nothing";
+        m_why = sensor == nullptr ? "no force sensor on the robot"
+                                  : "the force sensor gives nothing";
         return Status::FAILURE;
     }
     if (m_offsets.empty())
@@ -194,7 +206,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
         robotik::WorldObject const* tray = p_context.world_model.find(m_tray);
         if (tray == nullptr || m_path.empty())
         {
-            m_why = tray == nullptr ? m_tray + " is not in the beliefs" : "the path is empty";
+            m_why = tray == nullptr ? m_tray + " is not in the beliefs"
+                                    : "the path is empty";
             return Status::FAILURE;
         }
         // Shared beliefs: the world frame, as the pose of the carrier.
@@ -217,7 +230,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
     {
         case Phase::Approach:
         {
-            robotik::Vector3 const above = carrier * m_offsets.front() + robotik::Vector3(0.0, 0.0, m_height);
+            robotik::Vector3 const above = carrier * m_offsets.front() +
+                                           robotik::Vector3(0.0, 0.0, m_height);
             if ((tool - above).norm() < kApproachTolerance)
             {
                 // Nothing touches yet: what the sensor reads is the tool.
@@ -227,7 +241,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
             break;
         }
         case Phase::Descend:
-            m_height -= (m_height > kSearchHeight ? kDescentSpeed : kSearchSpeed) * dt;
+            m_height -=
+                (m_height > kSearchHeight ? kDescentSpeed : kSearchSpeed) * dt;
             if (felt > kTouchForce)
             {
                 m_phase = Phase::Follow;
@@ -250,7 +265,10 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
                 return total;
             }();
             // Too much force: up; too little: down.
-            m_height += std::clamp(kAdmittance * (felt - m_force.value()), -kSearchSpeed, kSearchSpeed) * dt;
+            m_height += std::clamp(kAdmittance * (felt - m_force.value()),
+                                   -kSearchSpeed,
+                                   kSearchSpeed) *
+                        dt;
             m_height = std::max(m_height, -kDeepest);
             m_travel = std::min(length, m_travel + m_speed.value() * dt);
             m_phase = m_travel >= length ? Phase::Lift : m_phase;
@@ -260,7 +278,8 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
             m_height = std::min(kApproachHeight, m_height + kDescentSpeed * dt);
             break;
     }
-    robotik::Vector3 goal = carrier * along(m_travel) + robotik::Vector3(0.0, 0.0, m_height);
+    robotik::Vector3 goal =
+        carrier * along(m_travel) + robotik::Vector3(0.0, 0.0, m_height);
     if (m_phase == Phase::Approach && (goal - tool).norm() > kApproachStep)
     {
         goal = tool + (kApproachStep / (goal - tool).norm()) * (goal - tool);

@@ -6,8 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Trajectory.hpp
-/// @brief A path the robot follows, kept in its own file and named by the
-/// scenario.
+/// A path the robot follows, kept in its own file and named by the scenario.
 ///
 /// @code
 /// # Cartesian: tool work point poses in the frame of a world entity.
@@ -47,20 +46,41 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Parsed trajectory file.
+/// Parsed trajectory file.
+///
+/// A cartesian trajectory fills @ref frame and @ref poses; a joint
+/// trajectory fills @ref joints and @ref configurations. The other fields
+/// stay empty.
+///
+/// @code
+/// auto const path = robotik::Trajectory::load(file);
+/// if (path.type == robotik::Trajectory::Type::Joint)
+///     for (auto const& q : path.configurations)
+///         follow(path.joints, q);
+/// @endcode
 // ****************************************************************************
 struct Trajectory
 {
+    // ------------------------------------------------------------------------
+    /// What a point of the trajectory describes.
+    // ------------------------------------------------------------------------
     enum class Type : std::uint8_t
     {
-        Cartesian,
-        Joint,
+        Cartesian, ///< Tool poses in a frame.
+        Joint,     ///< Joint values.
     };
 
+    // ------------------------------------------------------------------------
+    /// Reads a @c x.trajectory.yaml file.
+    /// @param p_path File to read.
+    /// @return The parsed trajectory.
     /// @throws std::runtime_error naming the file and the field at fault.
+    // ------------------------------------------------------------------------
     [[nodiscard]] static Trajectory load(std::filesystem::path const& p_path);
 
+    /// File the trajectory was read from.
     std::filesystem::path file;
+    /// Cartesian or joint trajectory.
     Type type = Type::Cartesian;
     /// Frame of the cartesian points (entity or entity.link); empty: world.
     std::string frame;

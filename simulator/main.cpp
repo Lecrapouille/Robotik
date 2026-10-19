@@ -43,7 +43,8 @@ int main(int argc, char** argv)
     }
     if (app.scenario_path.empty())
     {
-        for (robotik::PluginPackage const& package : app.plugins.catalog().packages())
+        for (robotik::PluginPackage const& package :
+             app.plugins.catalog().packages())
         {
             for (robotik::PluginScenario const& scenario : package.scenarios)
             {

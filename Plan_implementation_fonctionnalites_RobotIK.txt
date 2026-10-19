@@ -1,0 +1,419 @@
+PLAN D'IMPLEMENTATION — FONCTIONNALITES MANQUANTES DE ROBOTIK
+Version : 1.0
+Date : 2026-10-18
+
+CONTEXTE ET PERIMETRE
+=====================
+
+Ce plan est base sur l'extrait du projet RobotIK fourni dans Archive(1).zip.
+L'archive contient notamment les modules Runtime, Plugin, Planning/PDDL, Scenario,
+Skills, ECS, Robot, Sensors, Perception et les sources de l'exemple PickAndPlace.
+Elle ne contient pas l'ensemble du depot (notamment les fichiers racine de build,
+la suite de tests complete et toute la documentation). Les points ci-dessous sont
+donc un plan de consolidation et d'extension a valider sur le depot complet, et non
+l'affirmation que chaque fonctionnalite est absente de la branche main.
+
+OBJECTIF GENERAL
+================
+
+Rendre RobotIK plus fiable, observable, extensible et pret a accueillir de nouveaux
+plugins de robotique, avant d'ajouter de nombreuses fonctionnalites specialisees.
+Priorite a des contrats explicites entre modules, des tests automatises, a la
+verification des effets physiques et a la reproductibilite des experiences.
+
+PRINCIPES D'IMPLEMENTATION
+==========================
+
+1. Conserver la separation entre :
+   - le monde simule et son etat physique ;
+   - les observations des capteurs ;
+   - le World Model estime par le robot ;
+   - l'etat symbolique utilise par le planificateur ;
+   - les commandes demandees et les etats effectivement mesures.
+
+2. Une action planifiee ou une commande envoyee ne prouve pas que l'action a reussi.
+   Les effets doivent etre verifies par une observation, une mesure ou une assertion
+   explicite du scenario.
+
+3. Chaque fonctionnalite doit avoir :
+   - un contrat API documente ;
+   - des erreurs et cas limites definis ;
+   - des tests unitaires ou d'integration ;
+   - des logs et des metriques utiles ;
+   - un exemple minimal executable lorsque c'est pertinent.
+
+4. Ne pas introduire une dependance lourde avant d'avoir defini son interface et son
+   cas d'usage. Les integrations tierces doivent etre optionnelles quand possible.
+
+PHASE 0 — ETABLIR L'ETAT REEL DU DEPOT
+=====================================
+
+Objectif : distinguer ce qui existe deja, ce qui est partiel et ce qui manque.
+
+Taches :
+[ ] Reprendre l'analyse sur la branche main complete, avec les fichiers de build,
+    tests, documentation, exemples et CI.
+[ ] Pour chaque fonctionnalite de ce plan, indiquer : IMPLEMENTE, PARTIEL, ABSENT,
+    EXPERIMENTAL ou NON VERIFIE.
+[ ] Verifier que l'exemple PickAndPlace se configure, compile et s'execute.
+[ ] Inventorier les dependances externes, leurs versions et leur caractere obligatoire.
+[ ] Identifier les contrats publics qui doivent rester compatibles.
+
+Critere de sortie :
+- Un tableau de statut par fonctionnalite et une commande reproductible pour compiler
+  et lancer l'exemple principal.
+
+PHASE 1 — BUILD, CI ET SOCLE DE TESTS
+=====================================
+
+Objectif : empecher les regressions et rendre chaque changement verifiable.
+
+Taches :
+[ ] Ajouter ou consolider les configurations de build debug/release.
+[ ] Ajouter une CI qui compile les configurations prises en charge.
+[ ] Activer les avertissements du compilateur et, si possible, les sanitizers
+    AddressSanitizer et UndefinedBehaviorSanitizer sur les jobs adaptes.
+[ ] Organiser les tests par module : Plugin, Scheduler, Skills, PDDL, PlanExecutor,
+    Runtime, Scenario, Sensors/Perception et backends.
+[ ] Ajouter des tests d'integration executant les scenarios PickAndPlace.
+[ ] Garantir que les tests deterministes utilisent des graines aleatoires explicites.
+[ ] Fournir un script ou une commande unique pour configurer, compiler et tester.
+
+Tests d'acceptation :
+- Un clone propre peut etre configure et compile avec les dependances documentees.
+- La CI detecte une regression de compilation.
+- Les tests essentiels peuvent etre lances sans materiel physique.
+
+PHASE 2 — FORMALISER LES CONTRATS ENTRE MODULES
+==============================================
+
+Objectif : definir les comportements attendus aux frontieres entre les composants.
+
+Taches :
+[ ] Documenter les contrats des interfaces Runtime, Skill, Scheduler, PlanExecutor,
+    Plugin, Scenario, Sensors, Perception et des backends.
+[ ] Definir un modele commun de resultat d'action : RUNNING, SUCCEEDED, FAILED,
+    CANCELLED, avec une cause d'echec exploitable.
+[ ] Definir les regles de timeout, d'annulation, de preemption et de nettoyage.
+[ ] Definir le comportement lorsqu'une ressource est indisponible, perdue ou en panne.
+[ ] Definir les unites, reperes, conventions d'axes et conventions temporelles.
+[ ] Distinguer les consignes demandees, les commandes envoyees et l'etat mesure.
+[ ] Definir comment les erreurs remontent du backend au skill, puis au planificateur
+    et au scenario.
+[ ] Eviter les appels bloquants longs dans la boucle de controle ; definir les limites
+    de temps et le modele d'execution des plugins.
+
+Tests d'acceptation :
+- Une skill peut etre annulee ou expirer sans conserver de ressource.
+- Une panne du backend remonte jusqu'au scenario avec une cause identifiable.
+- Les erreurs ne sont ni silencieusement ignorees ni converties en succes.
+
+PHASE 3 — DURCIR LE PLUGIN HOST ET LE CYCLE DE VIE
+=================================================
+
+Objectif : rendre le chargement, l'initialisation et l'arret des plugins previsibles.
+
+Taches :
+[ ] Verifier la validation du manifeste : champs obligatoires, version, identifiant,
+    dependances et capacites declarees.
+[ ] Valider la compatibilite de l'ABI : version, taille des structures et fonctions
+    requises avant d'appeler un plugin.
+[ ] Definir le cycle de vie : decouvert, charge, initialise, actif, arrete, decharge,
+    erreur.
+[ ] Garantir le nettoyage en cas d'echec a chaque etape d'initialisation.
+[ ] Definir les regles d'ordre de chargement et de resolution des dependances.
+[ ] Tester les plugins manquants, incompatibles, mal configures et ceux dont
+    l'initialisation ou l'arret echoue.
+[ ] Documenter que les plugins natifs executes dans le processus hote ne sont pas
+    isoles et doivent etre consideres comme du code de confiance.
+[ ] Ajouter une commande ou un outil de diagnostic listant plugins detectes,
+    dependances, versions et raisons de rejet.
+
+Tests d'acceptation :
+- Un plugin incompatible est refuse proprement.
+- L'echec d'un plugin ne laisse pas de ressources ni d'etat partiellement actif.
+- Les messages d'erreur nomment le plugin et l'etape en echec.
+
+PHASE 4 — FIABILISER SKILLS, SCHEDULER ET RESSOURCES
+===================================================
+
+Objectif : garantir le comportement des actions et leur coordination.
+
+Taches :
+[ ] Definir le contrat d'une Skill : preconditions, ressources requises, lancement,
+    mise a jour, succes, echec, annulation et effets observables.
+[ ] Definir les proprietes des ressources : exclusives ou partageables, acquisition,
+    liberation et ordre d'acquisition.
+[ ] Tester les conflits entre plusieurs skills et la prevention des interblocages.
+[ ] Tester preemption, timeout, annulation, echec materiel et perte de ressource.
+[ ] Garantir la liberation des ressources sur tous les chemins de sortie.
+[ ] Definir si et quand une skill peut etre relancee apres un echec.
+[ ] Exposer un diagnostic de l'etat des skills, des ressources detenues et des raisons
+    de blocage.
+[ ] Definir des politiques explicites de priorite et de preemption plutot que de les
+    laisser implicites.
+
+Tests d'acceptation :
+- Deux skills incompatibles ne pilotent pas simultanement la meme ressource exclusive.
+- Toute terminaison libere les ressources conformement au contrat.
+- Un echec est visible du PlanExecutor et du scenario.
+
+PHASE 5 — VERIFICATION PDDL, PLAN EXECUTOR ET EFFETS REELS
+=========================================================
+
+Objectif : eviter que l'etat symbolique affirme une reussite non observee.
+
+Taches :
+[ ] Documenter le sous-ensemble de PDDL effectivement supporte par le parseur.
+[ ] Detecter et refuser explicitement les constructions non supportees.
+[ ] Ajouter des tests pour la syntaxe invalide, les symboles inconnus, les types,
+    les preconditions impossibles et les actions non applicables.
+[ ] Verifier les preconditions avant l'execution de chaque action.
+[ ] Separer trois etats : effet predit par le plan, effet observe dans le monde,
+    effet confirme dans l'etat symbolique.
+[ ] Ne valider un effet symbolique qu'apres confirmation par une observation,
+    une mesure, une assertion ou une politique explicite du scenario.
+[ ] Definir les comportements en cas d'action partiellement executee, de timeout,
+    de perception incertaine ou de divergence entre simulation et World Model.
+[ ] Ajouter un mecanisme de replanification lorsqu'une precondition disparait ou
+    qu'un effet attendu n'est pas observe.
+[ ] Fournir des diagnostics expliquant pourquoi une action est applicable, bloquee,
+    echouee ou invalidee.
+
+Tests d'acceptation :
+- Un pick-and-place dont la prise echoue ne declare pas l'objet transporte.
+- Une divergence entre etat physique et etat symbolique est detectee.
+- Une construction PDDL non supportee produit une erreur claire, pas un resultat
+  silencieusement incorrect.
+
+PHASE 6 — WORLD MODEL, PERCEPTION ET DONNEES OBSOLETES
+=====================================================
+
+Objectif : separer clairement la verite du simulateur de ce que le robot sait.
+
+Taches :
+[ ] Definir un schema d'objet observe : identifiant, classe, pose, repere, horodatage,
+    confiance, source et incertitude si disponible.
+[ ] Definir la duree de validite des observations et la politique pour les donnees
+    perimees.
+[ ] Gerer les objets non observes, masques, perdus ou detectes de nouveau.
+[ ] Tracer la provenance d'une information : capteur reel, perception, oracle du
+    simulateur ou donnees injectees par le scenario.
+[ ] Rendre explicite et visible tout mode oracle, notamment les configurations de
+    type « oracle when blind ».
+[ ] Definir la politique de fusion entre sources et le traitement des contradictions.
+[ ] Ajouter des interfaces de perception sans imposer un moteur de vision unique.
+
+Tests d'acceptation :
+- Une observation perimee n'est pas traitee comme une certitude actuelle.
+- Un scenario avec oracle est marque comme tel dans les resultats.
+- Une information issue du simulateur ne peut pas se faire passer silencieusement
+  pour une observation de capteur.
+
+PHASE 7 — SCENARIOS, ASSERTIONS ET REPRODUCTIBILITE
+==================================================
+
+Objectif : comparer des strategies de maniere juste et repetable.
+
+Taches :
+[ ] Definir le schema versionne des fichiers scenario et valider leur contenu avant
+    execution.
+[ ] Distinguer configuration, actions, criteres de fin, assertions et mesures.
+[ ] Definir des assertions reutilisables : objet saisi, pose finale, collision,
+    limites depassees, temps maximal, etat du robot et etat du monde.
+[ ] Eviter de dupliquer dans le code des criteres deja exprimables proprement dans
+    le scenario ; garder en C++ les assertions necessitant une logique specialisee.
+[ ] Enregistrer les graines aleatoires, versions de plugins, backend, parametres,
+    domaine/probleme PDDL, strategie et configuration de perception.
+[ ] Produire un rapport machine-lisible et un resume humain pour chaque experience.
+[ ] Enregistrer les evenements : lancement de skill, transition d'etat, erreur,
+    replanning, collision et assertion echouee.
+[ ] Ajouter un mode batch pour executer plusieurs scenarios et comparer les resultats.
+
+Tests d'acceptation :
+- Une experience peut etre reproduite a partir de son rapport et de sa configuration.
+- Deux strategies peuvent etre comparees sur les memes scenarios et graines.
+- Toute assertion echouee indique la condition, la valeur observee et la valeur attendue.
+
+PHASE 8 — OBSERVABILITE ET OUTILS DE DIAGNOSTIC
+==============================================
+
+Objectif : rendre les problemes comprehensibles sans deboguer tout le code.
+
+Taches :
+[ ] Definir des evenements structures avec horodatage et identifiant d'experience.
+[ ] Mesurer la duree des skills, le temps de planification, les replannings, les
+    collisions, les echecs, le temps simule et le temps mural.
+[ ] Ajouter un visualiseur de Behavior Tree et de son execution en temps reel ou
+    depuis un journal.
+[ ] Ajouter un inspecteur PDDL : domaine, probleme, plan, preconditions et effets.
+[ ] Ajouter un inspecteur World Model montrant poses, confiance, age des observations
+    et provenance.
+[ ] Ajouter un outil de comparaison de rapports d'experiences.
+[ ] Definir une API d'evenements commune aux outils, sans coupler le noyau a une UI.
+
+Tests d'acceptation :
+- Un rapport permet d'identifier rapidement pourquoi un scenario a echoue.
+- Les outils peuvent fonctionner sur un journal enregistre, sans simulation active.
+
+PHASE 9 — BACKENDS ET SEMANTIQUE DE SIMULATION
+==============================================
+
+Objectif : rendre les differences entre backends explicites et controlables.
+
+Taches :
+[ ] Documenter les capacites de chaque backend : cinematique, dynamique, contacts,
+    collisions, capteurs, contraintes et determinisme.
+[ ] Ne pas presenter un backend de calcul cinematique/dynamique comme un simulateur
+    physique complet s'il ne gere pas la dynamique de contact necessaire.
+[ ] Definir une interface commune pour l'etat, les commandes, les limites, les
+    collisions et le pas de simulation.
+[ ] Tester les unites et reperes aux frontieres des backends.
+[ ] Definir les garanties et limites des modes de simulation simplifies.
+[ ] Ajouter des tests de coherence entre mode simplifie et mode physique complet
+    sur un ensemble de scenarios de reference.
+[ ] Documenter les differences qui empechent une equivalence exacte entre backends.
+
+Tests d'acceptation :
+- Les capacites et limites de chaque backend sont consultables.
+- Les modes simplifies sont explicitement identifies dans les rapports.
+- Les differences d'unites ou de reperes sont detectees par les tests.
+
+PHASE 10 — NOUVEAUX PLUGINS A FORTE VALEUR
+=========================================
+
+N'implementer ces extensions qu'apres stabilisation des contrats et de l'observabilite.
+
+Ordre recommande :
+
+10.1 Experiment Recorder / Benchmark
+------------------------------------
+- Enregistrer les configurations, evenements, mesures et resultats.
+- Fournir des comparaisons de strategies et des rapports exportables.
+- Priorite : tres haute, car il aide au developpement de tous les autres modules.
+
+10.2 World Model Inspector
+--------------------------
+- Visualiser les objets connus, leur pose, confiance, age et provenance.
+- Afficher les divergences entre monde physique et monde estime.
+- Priorite : tres haute pour le debogage de la perception et de PDDL.
+
+10.3 PDDL / Behavior Tree Inspector
+-----------------------------------
+- Visualiser le plan symbolique, le BT genere et l'etat courant de chaque noeud.
+- Relier une action PDDL a la skill et aux evenements qui l'executent.
+- Priorite : tres haute pour comprendre les echecs de planification.
+
+10.4 Vision 2D/3D et suivi d'objets
+-----------------------------------
+- Creer une interface generique de perception.
+- Ajouter au besoin des adaptateurs OpenCV, AprilTag, PCL ou Open3D.
+- Gerer les reperes, horodatages, confiance et perte de suivi.
+
+10.5 Planification de mouvement et collisions
+---------------------------------------------
+- Definir d'abord une interface de planification de mouvement.
+- Evaluer une integration OMPL ou MoveIt 2 selon le niveau d'integration ROS souhaite.
+- Garder la planification de taches PDDL distincte de la planification de trajectoires.
+
+10.6 Controleurs RL ONNX
+------------------------
+- Formaliser l'interface observation -> inference -> commande.
+- Valider les dimensions, types, normalisation et ordre des observations.
+- Gerer frequence d'inference, latence, erreurs et limites de commande.
+- Ajouter des tests de non-regression sur des entrees connues.
+- Mesurer les performances CPU avant d'imposer une dependance GPU.
+
+10.7 Force, compliance et manipulation
+--------------------------------------
+- Definir les interfaces couple/force et les capacites des capteurs disponibles.
+- Ajouter des strategies de compliance et des limites de securite.
+- Valider d'abord en simulation avant tout materiel reel.
+
+10.8 Integrations futures
+-------------------------
+- Pont ROS 2 optionnel pour echanger commandes, etats, TF et capteurs.
+- Outils de calibration et de definition TCP/outils/payloads.
+- Import de robots et scenes depuis des formats standards.
+- Demonstrations et apprentissage par imitation.
+- Coordination multi-robots, uniquement lorsque la gestion des ressources et des
+  communications est suffisamment robuste.
+
+PHASE 11 — SDK ET DOCUMENTATION POUR LES AUTEURS DE PLUGINS
+==========================================================
+
+Objectif : permettre a un contributeur d'ajouter un plugin sans connaitre tout le noyau.
+
+Taches :
+[ ] Fournir un squelette minimal de plugin compilable.
+[ ] Documenter manifeste, ABI, cycle de vie, dependances et gestion des erreurs.
+[ ] Fournir un exemple de plugin qui ajoute une skill et un exemple qui ajoute un
+    backend ou une source de perception.
+[ ] Documenter la compatibilite entre versions du SDK et de l'hote.
+[ ] Ajouter une commande de validation du manifeste et de diagnostic du plugin.
+[ ] Ecrire un guide de test et de distribution des plugins.
+[ ] Documenter les frontieres de securite : un plugin natif n'est pas sandboxe.
+
+Tests d'acceptation :
+- Un nouveau plugin simple peut etre cree, compile, charge et teste en suivant le guide.
+- Les erreurs de compatibilite sont detectees avant l'execution de la mission.
+
+ORDRE DE PRIORITE RECOMMANDE
+============================
+
+P0 — Bloquant pour une base fiable
+[ ] Verifier le depot complet et l'etat exact de chaque fonctionnalite.
+[ ] Build reproductible, CI et tests d'integration.
+[ ] Contrats de Skill/Scheduler/PlanExecutor.
+[ ] Gestion du cycle de vie et des erreurs des plugins.
+[ ] Verification des effets PDDL par des observations ou assertions.
+
+P1 — Rend le systeme debuggable
+[ ] World Model avec provenance, confiance et age des observations.
+[ ] Journaux structures et rapport d'experience reproductible.
+[ ] Inspecteur Behavior Tree/PDDL.
+[ ] Tests de coherence entre modes et backends.
+
+P2 — Etend les capacites robotiques
+[ ] Interface de planification de mouvement et verification des collisions.
+[ ] Perception 2D/3D et suivi d'objets.
+[ ] Controleurs RL ONNX avec validation et mesures de latence.
+[ ] Outils de calibration et gestion TCP/outils/payloads.
+
+P3 — Extensions a plus long terme
+[ ] Pont ROS 2.
+[ ] Apprentissage par imitation.
+[ ] Coordination multi-robots.
+[ ] Plugins avances de force/compliance et manipulation.
+
+DEFINITION OF DONE POUR CHAQUE FONCTIONNALITE
+=============================================
+
+Une fonctionnalite est consideree terminee uniquement si :
+[ ] Son contrat public est documente.
+[ ] Les erreurs, annulations, timeouts et cas limites sont definis.
+[ ] Les tests unitaires pertinents passent.
+[ ] Au moins un test d'integration couvre le chemin nominal et un echec important.
+[ ] Les logs et mesures permettent de diagnostiquer un echec.
+[ ] Un exemple reproductible est fourni.
+[ ] La documentation indique les dependances, limites et compatibilites.
+[ ] La CI verifie automatiquement les tests pertinents.
+
+PREMIER LOT DE TRAVAIL CONCRET
+==============================
+
+Pour commencer, implementer ce lot dans cet ordre :
+
+1. Faire l'inventaire sur le depot complet et confirmer les lacunes.
+2. Ajouter ou fiabiliser le test d'integration PickAndPlace.
+3. Formaliser le resultat d'une Skill et les regles de liberation des ressources.
+4. Ajouter les tests de timeout, annulation, preemption et erreur backend.
+5. Tester le cycle de vie du plugin et les incompatibilites ABI.
+6. Faire en sorte que PlanExecutor ne confirme pas un effet PDDL sans verification.
+7. Ajouter les informations de provenance et d'age des observations du World Model.
+8. Produire un rapport d'experience avec graine, versions, backend, strategie,
+   assertions et mesures.
+9. Utiliser ce rapport pour comparer les trois modes de simulation.
+10. Ensuite seulement, demarrer les plugins d'inspection et les nouvelles integrations.
+
+FIN DU DOCUMENT

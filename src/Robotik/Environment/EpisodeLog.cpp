@@ -52,17 +52,22 @@ static void writeSpace(std::ostream& p_out, Space const& p_space)
     for (std::size_t i = 0; i < p_space.dimensions.size(); ++i)
     {
         Space::Dimension const& dimension = p_space.dimensions[i];
-        p_out << (i == 0u ? "" : ", ") << "{ \"name\": " << quoted(dimension.name)
-              << ", \"low\": " << number(dimension.low) << ", \"high\": " << number(dimension.high)
+        p_out << (i == 0u ? "" : ", ")
+              << "{ \"name\": " << quoted(dimension.name)
+              << ", \"low\": " << number(dimension.low)
+              << ", \"high\": " << number(dimension.high)
               << ", \"unit\": " << quoted(dimension.unit)
-              << ", \"privileged\": " << (dimension.privileged ? "true" : "false") << " }";
+              << ", \"privileged\": "
+              << (dimension.privileged ? "true" : "false") << " }";
     }
     p_out << ']';
 }
 
-void EpisodeLog::write(std::ostream& p_out, std::span<Episode const> p_episodes) const
+void EpisodeLog::write(std::ostream& p_out,
+                       std::span<Episode const> p_episodes) const
 {
-    p_out << "{\n  \"robotik\": { \"version\": " << quoted(project::info::version::full)
+    p_out << "{\n  \"robotik\": { \"version\": "
+          << quoted(project::info::version::full)
           << ", \"commit\": " << quoted(project::info::git::sha1) << " },\n"
           << "  \"scenario\": " << quoted(scenario) << ",\n"
           << "  \"policy\": " << quoted(policy) << ",\n"
@@ -77,9 +82,12 @@ void EpisodeLog::write(std::ostream& p_out, std::span<Episode const> p_episodes)
     for (std::size_t i = 0; i < p_episodes.size(); ++i)
     {
         Episode const& episode = p_episodes[i];
-        p_out << (i == 0u ? "\n" : ",\n") << "    { \"environment\": " << episode.environment
-              << ", \"index\": " << episode.index << ", \"seed\": " << episode.seed.value
-              << ", \"return\": " << number(episode.reward) << ", \"steps\": " << episode.steps
+        p_out << (i == 0u ? "\n" : ",\n")
+              << "    { \"environment\": " << episode.environment
+              << ", \"index\": " << episode.index
+              << ", \"seed\": " << episode.seed.value
+              << ", \"return\": " << number(episode.reward)
+              << ", \"steps\": " << episode.steps
               << ", \"end\": " << quoted(toString(episode.end)) << " }";
     }
     p_out << (p_episodes.empty() ? "]\n}\n" : "\n  ]\n}\n");

@@ -14,8 +14,8 @@
 #include "FlyView.hpp"
 
 #include "Robotik/Assets/AssetResolver.hpp"
-#include "Robotik/Scenario/PackagePath.hpp"
 #include "Robotik/Environment/Environment.hpp"
+#include "Robotik/Scenario/PackagePath.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
 #include <algorithm>
@@ -30,7 +30,8 @@
 /// @brief Command line. The scenario seed is used until --seed replaces it.
 struct Options
 {
-    std::filesystem::path scenario = "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml";
+    std::filesystem::path scenario =
+        "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml";
     std::filesystem::path edges;
     std::filesystem::path binding;
     std::filesystem::path record;
@@ -51,7 +52,8 @@ bool parse(int p_argc, char** p_argv, Options& p_options)
     for (int i = 1; i < p_argc; ++i)
     {
         std::string const arg = p_argv[i];
-        auto next = [&]() -> char const* { return i + 1 < p_argc ? p_argv[++i] : nullptr; };
+        auto next = [&]() -> char const*
+        { return i + 1 < p_argc ? p_argv[++i] : nullptr; };
         char const* value = nullptr;
         if (arg == "--headless")
         {
@@ -78,7 +80,8 @@ bool parse(int p_argc, char** p_argv, Options& p_options)
             }
             else if (value != std::string("shiu"))
             {
-                std::cerr << "Cerveau inconnu : " << value << " (reflex|shiu)\n";
+                std::cerr << "Cerveau inconnu : " << value
+                          << " (reflex|shiu)\n";
                 return false;
             }
         }
@@ -131,11 +134,12 @@ bool parse(int p_argc, char** p_argv, Options& p_options)
 /// @brief One line of flags, written on stderr.
 void usage(char const* p_program)
 {
-    std::cerr << "Usage : " << p_program
-              << " [--scenario file.scenario.yaml] [--seed S] [--brain reflex|shiu]\n"
-              << "       [--edges edges.csv --binding roles.txt]\n"
-              << "       [--view] [--envs N] [--threads T] [--episodes E]\n"
-              << "       [--record fly_run.json] [--replay fly_run.json]\n";
+    std::cerr
+        << "Usage : " << p_program
+        << " [--scenario file.scenario.yaml] [--seed S] [--brain reflex|shiu]\n"
+        << "       [--edges edges.csv --binding roles.txt]\n"
+        << "       [--view] [--envs N] [--threads T] [--episodes E]\n"
+        << "       [--record fly_run.json] [--replay fly_run.json]\n";
 }
 
 /// @brief Reflex or Shiu. An edge list replaces the embedded circuit and
@@ -161,7 +165,8 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
     FlyEnvironment environment(p_scenario, steps);
     std::vector<float> observation(FlyObservation::SIZE);
     std::vector<float> action(FlyAction::SIZE);
-    robotik::Seed const seed{ p_options.seed_set ? p_options.seed : p_scenario.seed };
+    robotik::Seed const seed{ p_options.seed_set ? p_options.seed
+                                                 : p_scenario.seed };
     environment.reset(seed, observation);
     FlyBrain brain = makeBrain(p_options, p_scenario);
     brain.reset(seed);
@@ -209,12 +214,13 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
             trace.observations.push_back(seen);
             trace.actions.push_back(decided);
         }
-        robotik::StepResult const result = environment.step(action, observation);
+        robotik::StepResult const result =
+            environment.step(action, observation);
         if (result.done())
         {
             reached = result.terminated();
-            std::cout << (reached ? "Target reached" : "Time up")
-                      << " in " << environment.snapshot().steps << " steps, reward "
+            std::cout << (reached ? "Target reached" : "Time up") << " in "
+                      << environment.snapshot().steps << " steps, reward "
                       << environment.snapshot().reward << '\n';
         }
     }
@@ -232,10 +238,12 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
 {
     std::uint32_t const steps =
         static_cast<std::uint32_t>(p_scenario.horizon / p_scenario.dt);
-    robotik::Seed const master{ p_options.seed_set ? p_options.seed : p_scenario.seed };
-    std::size_t const threads = p_options.threads > 0u
-                                    ? p_options.threads
-                                    : std::max<std::size_t>(1u, std::thread::hardware_concurrency());
+    robotik::Seed const master{ p_options.seed_set ? p_options.seed
+                                                   : p_scenario.seed };
+    std::size_t const threads =
+        p_options.threads > 0u
+            ? p_options.threads
+            : std::max<std::size_t>(1u, std::thread::hardware_concurrency());
 
     // One brain per world. The pool only steps the bodies, so each brain is
     // reset with the seed of the episode that world just started.
@@ -253,7 +261,8 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
 
     robotik::EnvironmentPool pool(
         p_options.envs,
-        [&](std::size_t) { return std::make_unique<FlyEnvironment>(p_scenario, steps); },
+        [&](std::size_t)
+        { return std::make_unique<FlyEnvironment>(p_scenario, steps); },
         master,
         p_options.envs == 1u ? 1u : threads);
     pool.reset();
@@ -270,7 +279,8 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
     {
         for (std::size_t i = 0; i < pool.size(); ++i)
         {
-            FlyObservation const seen = FlyObservation::from(pool.observation(i));
+            FlyObservation const seen =
+                FlyObservation::from(pool.observation(i));
             FlyAction decided;
             if (!replay.actions.empty())
             {
@@ -353,8 +363,8 @@ int main(int p_argc, char** p_argv)
         // The fly body is in the package's own pack (data/).
         robotik::AssetResolver assets = robotik::AssetResolver::standard();
         assets.addRoot(robotik::packageRoot(options.scenario) / "data");
-        FlyScenario scenario =
-            FlyScenario::from(robotik::Scenario::load(options.scenario, assets));
+        FlyScenario scenario = FlyScenario::from(
+            robotik::Scenario::load(options.scenario, assets));
         if (!options.replay.empty())
         {
             options.envs = 1;

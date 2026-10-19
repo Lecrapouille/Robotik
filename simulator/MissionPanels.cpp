@@ -66,9 +66,13 @@ static void treeNode(bt::Node const& p_node)
     // BlackThorn calls its action leaves "Callback": they are skills here.
     std::string_view const type = p_node.typeName();
     bool const action = type == "Callback";
-    bool const open = action ? ImGui::TreeNodeEx("##node", flags, "%s", p_node.name.c_str())
-                             : ImGui::TreeNodeEx("##node", flags, "%s  %s", p_node.typeName(),
-                                                 p_node.name.c_str());
+    bool const open =
+        action ? ImGui::TreeNodeEx("##node", flags, "%s", p_node.name.c_str())
+               : ImGui::TreeNodeEx("##node",
+                                   flags,
+                                   "%s  %s",
+                                   p_node.typeName(),
+                                   p_node.name.c_str());
     ImGui::PopStyleColor();
     if (!leaf && open)
     {
@@ -193,7 +197,8 @@ static void timeline(robotik::Simulation const& p_simulation)
     ImDrawList* draw = ImGui::GetWindowDrawList();
     // Time ruler: a tick every 1, 2, 5, 10... seconds, about 80 px apart.
     double tick = 1.0;
-    for (double const step : { 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0 })
+    for (double const step :
+         { 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 50.0, 100.0, 200.0, 500.0 })
     {
         tick = step;
         if (static_cast<double>(scale) * step / span >= 80.0)
@@ -254,9 +259,10 @@ static void timeline(robotik::Simulation const& p_simulation)
 }
 
 /// @brief Names of the skills currently holding @p_id, exclusive or shared.
-static std::vector<std::string> holdersOf(robotik::SkillScheduler const& p_skills,
-                                   robotik::ResourceManager const& p_resources,
-                                   robotik::ResourceId p_id)
+static std::vector<std::string>
+holdersOf(robotik::SkillScheduler const& p_skills,
+          robotik::ResourceManager const& p_resources,
+          robotik::ResourceId p_id)
 {
     std::vector<std::string> names;
     if (p_resources.owner(p_id) != robotik::NO_OWNER)
@@ -275,7 +281,8 @@ static std::vector<std::string> holdersOf(robotik::SkillScheduler const& p_skill
         {
             continue;
         }
-        for (robotik::ResourceRequirement const& need : p_skills.description(id).resources)
+        for (robotik::ResourceRequirement const& need :
+             p_skills.description(id).resources)
         {
             if (need.id == p_id && need.access == robotik::Access::Shared)
             {
@@ -292,12 +299,14 @@ static std::vector<std::string> holdersOf(robotik::SkillScheduler const& p_skill
 }
 
 /// @brief Skills that need @p_id, whether they run or not.
-static std::vector<std::string> neededBy(robotik::SkillScheduler const& p_skills, robotik::ResourceId p_id)
+static std::vector<std::string>
+neededBy(robotik::SkillScheduler const& p_skills, robotik::ResourceId p_id)
 {
     std::vector<std::string> names;
     for (robotik::SkillId id = 0; id < p_skills.size(); ++id)
     {
-        for (robotik::ResourceRequirement const& need : p_skills.description(id).resources)
+        for (robotik::ResourceRequirement const& need :
+             p_skills.description(id).resources)
         {
             if (need.id == p_id)
             {
@@ -310,7 +319,8 @@ static std::vector<std::string> neededBy(robotik::SkillScheduler const& p_skills
 }
 
 /// @brief "a, b, c", or @p_none when empty.
-static std::string joined(std::vector<std::string> const& p_names, char const* p_none)
+static std::string joined(std::vector<std::string> const& p_names,
+                          char const* p_none)
 {
     if (p_names.empty())
     {
@@ -326,18 +336,20 @@ static std::string joined(std::vector<std::string> const& p_names, char const* p
 }
 
 /// Short word for how a resource is held: free, shared, exclusive, fault.
-static char const* accessOf(robotik::ResourceManager const& p_resources, robotik::ResourceId p_id)
+static char const* accessOf(robotik::ResourceManager const& p_resources,
+                            robotik::ResourceId p_id)
 {
-    return !p_resources.available(p_id)                 ? "in fault"
+    return !p_resources.available(p_id)                   ? "in fault"
            : p_resources.owner(p_id) != robotik::NO_OWNER ? "exclusive"
            : p_resources.users(p_id) > 0u                 ? "shared"
                                                           : "free";
 }
 
 /// Color of a resource from its fault and its leases.
-static ImVec4 colorOf(robotik::ResourceManager const& p_resources, robotik::ResourceId p_id)
+static ImVec4 colorOf(robotik::ResourceManager const& p_resources,
+                      robotik::ResourceId p_id)
 {
-    return !p_resources.available(p_id)                 ? RED
+    return !p_resources.available(p_id)                   ? RED
            : p_resources.owner(p_id) != robotik::NO_OWNER ? ORANGE
            : p_resources.users(p_id) > 0u                 ? BLUE
                                                           : GREY;
@@ -345,8 +357,8 @@ static ImVec4 colorOf(robotik::ResourceManager const& p_resources, robotik::Reso
 
 /// @brief Tooltip of a resource: one fact per row.
 static void resourceTooltip(robotik::SkillScheduler const& p_skills,
-                     robotik::ResourceManager const& p_resources,
-                     robotik::ResourceId p_id)
+                            robotik::ResourceManager const& p_resources,
+                            robotik::ResourceId p_id)
 {
     if (!ImGui::BeginTooltip())
     {
@@ -356,7 +368,9 @@ static void resourceTooltip(robotik::SkillScheduler const& p_skills,
     ImGui::Separator();
     if (beginTable("tip", 2, ImGuiTableFlags_SizingFixedFit))
     {
-        auto row = [](char const* p_key, ImVec4 const& p_color, std::string const& p_value)
+        auto row = [](char const* p_key,
+                      ImVec4 const& p_color,
+                      std::string const& p_value)
         {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -368,7 +382,9 @@ static void resourceTooltip(robotik::SkillScheduler const& p_skills,
         };
         ImVec4 const text = ImGui::GetStyleColorVec4(ImGuiCol_Text);
         row("State", colorOf(p_resources, p_id), accessOf(p_resources, p_id));
-        row("Held by", text, joined(holdersOf(p_skills, p_resources, p_id), "nobody"));
+        row("Held by",
+            text,
+            joined(holdersOf(p_skills, p_resources, p_id), "nobody"));
         row("Needed by", text, joined(neededBy(p_skills, p_id), "no skill"));
         endTable();
     }
@@ -394,7 +410,9 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     std::size_t const holders = holdersOf(skills, resources, p_id).size();
     if (holders > 0u || now >= hold.until)
     {
-        hold = { holders, resources.owner(p_id) != robotik::NO_OWNER, now + HOLD_S };
+        hold = { holders,
+                 resources.owner(p_id) != robotik::NO_OWNER,
+                 now + HOLD_S };
     }
 
     bool const available = resources.available(p_id);
@@ -408,10 +426,14 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     {
         text += "  " + std::to_string(hold.holders);
     }
-    ImVec4 const color = !available ? RED : hold.holders == 0u ? GREY : hold.exclusive ? ORANGE : BLUE;
+    ImVec4 const color = !available           ? RED
+                         : hold.holders == 0u ? GREY
+                         : hold.exclusive     ? ORANGE
+                                              : BLUE;
     ImVec2 const pad(8.0f, 2.0f);
-    float const widest = std::max(ImGui::CalcTextSize((name + "  FAULT").c_str()).x,
-                                  ImGui::CalcTextSize((name + "  99").c_str()).x);
+    float const widest =
+        std::max(ImGui::CalcTextSize((name + "  FAULT").c_str()).x,
+                 ImGui::CalcTextSize((name + "  99").c_str()).x);
     ImVec2 const size(widest + 2.0f * pad.x, ImGui::GetFrameHeight());
     if (ImGui::GetContentRegionAvail().x < size.x)
     {
@@ -423,11 +445,22 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     bool const hovered = ImGui::IsItemHovered();
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec4 fill = color;
-    fill.w = (available && hold.holders == 0u) ? (hovered ? 0.12f : 0.0f) : (hovered ? 0.45f : 0.30f);
-    draw->AddRectFilled(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(fill), size.y * 0.5f);
-    draw->AddRect(at, ImVec2(at.x + size.x, at.y + size.y), ImGui::GetColorU32(color), size.y * 0.5f, 0, 1.2f);
-    draw->AddText(ImVec2(at.x + pad.x, at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5f),
-                  ImGui::GetColorU32(ImGuiCol_Text), text.c_str());
+    fill.w = (available && hold.holders == 0u) ? (hovered ? 0.12f : 0.0f)
+                                               : (hovered ? 0.45f : 0.30f);
+    draw->AddRectFilled(at,
+                        ImVec2(at.x + size.x, at.y + size.y),
+                        ImGui::GetColorU32(fill),
+                        size.y * 0.5f);
+    draw->AddRect(at,
+                  ImVec2(at.x + size.x, at.y + size.y),
+                  ImGui::GetColorU32(color),
+                  size.y * 0.5f,
+                  0,
+                  1.2f);
+    draw->AddText(ImVec2(at.x + pad.x,
+                         at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5f),
+                  ImGui::GetColorU32(ImGuiCol_Text),
+                  text.c_str());
     if (hovered)
     {
         resourceTooltip(skills, resources, p_id);
@@ -442,8 +475,10 @@ static void resourceTable(App& p_app)
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::ResourceManager const& resources = simulation.robot().resources();
     robotik::SkillScheduler const& skills = simulation.skills();
-    if (!beginTable("resources", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                         ImGuiTableFlags_SizingFixedFit))
+    if (!beginTable("resources",
+                    4,
+                    ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+                        ImGuiTableFlags_SizingFixedFit))
     {
         return;
     }
@@ -458,11 +493,14 @@ static void resourceTable(App& p_app)
         ImGui::TableNextColumn();
         ImGui::TextUnformatted(resources.name(id).c_str());
         ImGui::TableNextColumn();
-        ImGui::TextColored(colorOf(resources, id), "%s", accessOf(resources, id));
+        ImGui::TextColored(
+            colorOf(resources, id), "%s", accessOf(resources, id));
         ImGui::TableNextColumn();
-        ImGui::TextWrapped("%s", joined(holdersOf(skills, resources, id), "-").c_str());
+        ImGui::TextWrapped(
+            "%s", joined(holdersOf(skills, resources, id), "-").c_str());
         ImGui::TableNextColumn();
-        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::PushStyleColor(ImGuiCol_Text,
+                              ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         ImGui::TextWrapped("%s", joined(neededBy(skills, id), "-").c_str());
         ImGui::PopStyleColor();
     }
@@ -476,7 +514,9 @@ static void expireFaults(App& p_app)
     robotik::ResourceManager& resources = p_app.simulation->robot().resources();
     std::vector<ManualFault>& faults = p_app.ui.manual_faults;
     // A replay rewinds the clock: the faults of the old run are forgotten.
-    std::erase_if(faults, [&](ManualFault const& p_fault) { return p_fault.since > now + 1e-9; });
+    std::erase_if(faults,
+                  [&](ManualFault const& p_fault)
+                  { return p_fault.since > now + 1e-9; });
     std::erase_if(faults,
                   [&](ManualFault const& p_fault)
                   {
@@ -501,8 +541,10 @@ static void faultForm(App& p_app)
     double const now = simulation.time().value();
 
     // One row per resource: tick, name, fault state, restore.
-    if (beginTable("faults", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                    ImGuiTableFlags_SizingFixedFit))
+    if (beginTable("faults",
+                   4,
+                   ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+                       ImGuiTableFlags_SizingFixedFit))
     {
         ImGui::TableSetupColumn("##pick", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Resource");
@@ -513,8 +555,11 @@ static void faultForm(App& p_app)
         {
             std::string const& name = resources.name(id);
             bool const available = resources.available(id);
-            auto const by_hand = std::find_if(manual.begin(), manual.end(),
-                                              [&](ManualFault const& p_fault) { return p_fault.resource == name; });
+            auto const by_hand =
+                std::find_if(manual.begin(),
+                             manual.end(),
+                             [&](ManualFault const& p_fault)
+                             { return p_fault.resource == name; });
             // Keyed by name: an index would clash with the IDs of the header
             // cells (column index + label).
             ImGui::PushID(name.c_str());
@@ -529,7 +574,10 @@ static void faultForm(App& p_app)
             ImGui::EndDisabled();
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextColored(available ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : RED, "%s", name.c_str());
+            ImGui::TextColored(
+                available ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : RED,
+                "%s",
+                name.c_str());
             ImGui::TableNextColumn();
             if (available)
             {
@@ -541,7 +589,8 @@ static void faultForm(App& p_app)
             }
             else if (by_hand->until > 0.0)
             {
-                ImGui::TextColored(RED, "by hand, %.1f s left", by_hand->until - now);
+                ImGui::TextColored(
+                    RED, "by hand, %.1f s left", by_hand->until - now);
             }
             else
             {
@@ -562,20 +611,29 @@ static void faultForm(App& p_app)
     }
 
     // Actions on the ticked resources.
-    std::size_t const count = static_cast<std::size_t>(std::count(picked.begin(), picked.end(), true));
+    std::size_t const count = static_cast<std::size_t>(
+        std::count(picked.begin(), picked.end(), true));
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("For");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(110.0f);
-    ImGui::InputFloat("##duration", &p_app.ui.fault_duration, 0.5f, 1.0f,
+    ImGui::InputFloat("##duration",
+                      &p_app.ui.fault_duration,
+                      0.5f,
+                      1.0f,
                       p_app.ui.fault_duration > 0.0f ? "%.1f s" : "ever");
     p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0f);
-    ImGui::SetItemTooltip("Simulated time before the resources come back. 0: until restored by hand.");
+    ImGui::SetItemTooltip("Simulated time before the resources come back. 0: "
+                          "until restored by hand.");
     ImGui::SameLine();
     ImGui::BeginDisabled(count == 0u);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.15f, 0.15f, 1.0f));
     char apply[48];
-    std::snprintf(apply, sizeof apply, "Inject %zu fault%s", count, count > 1u ? "s" : "");
+    std::snprintf(apply,
+                  sizeof apply,
+                  "Inject %zu fault%s",
+                  count,
+                  count > 1u ? "s" : "");
     if (ImGui::Button(apply))
     {
         double const duration = static_cast<double>(p_app.ui.fault_duration);
@@ -586,8 +644,12 @@ static void faultForm(App& p_app)
                 continue;
             }
             resources.fail(id);
-            std::erase_if(manual, [&](ManualFault const& p_fault) { return p_fault.resource == resources.name(id); });
-            manual.push_back({ resources.name(id), now, duration > 0.0 ? now + duration : 0.0 });
+            std::erase_if(manual,
+                          [&](ManualFault const& p_fault)
+                          { return p_fault.resource == resources.name(id); });
+            manual.push_back({ resources.name(id),
+                               now,
+                               duration > 0.0 ? now + duration : 0.0 });
             picked[id] = false;
         }
     }
@@ -621,21 +683,27 @@ static void scenarioFaults(App& p_app)
     for (robotik::Fault const& fault : injector.scheduled())
     {
         bool const past = fault.at.value() <= now;
-        ImGui::PushStyleColor(ImGuiCol_Text, past ? ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)
-                                                  : ImGui::GetStyleColorVec4(ImGuiCol_Text));
-        ImGui::BulletText("%6.2f s  %s  %s", fault.at.value(), fault.disable ? "disable" : "restore",
+        ImGui::PushStyleColor(
+            ImGuiCol_Text,
+            past ? ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled)
+                 : ImGui::GetStyleColorVec4(ImGuiCol_Text));
+        ImGui::BulletText("%6.2f s  %s  %s",
+                          fault.at.value(),
+                          fault.disable ? "disable" : "restore",
                           fault.resource.c_str());
         ImGui::PopStyleColor();
     }
     for (robotik::RandomFault const& fault : injector.random())
     {
-        ImGui::BulletText("random  %s  %.3f / s", fault.resource.c_str(), fault.rate);
+        ImGui::BulletText(
+            "random  %s  %.3f / s", fault.resource.c_str(), fault.rate);
     }
 }
 
 void treeView(App& p_app)
 {
-    bt::Tree const* tree = p_app.simulation ? p_app.simulation->tree() : nullptr;
+    bt::Tree const* tree =
+        p_app.simulation ? p_app.simulation->tree() : nullptr;
     if (tree == nullptr)
     {
         if (!p_app.simulation)
@@ -644,18 +712,25 @@ void treeView(App& p_app)
         }
         else if (p_app.simulation->planner() != nullptr)
         {
-            emptyState("The PDDL planner builds the tree of its plan\nwhen the run starts "
+            emptyState("The PDDL planner builds the tree of its plan\nwhen the "
+                       "run starts "
                        "(see the Planner panel).");
         }
         else
         {
-            emptyState("This scenario has no behavior tree:\nthe plugin mission drives the robot.");
+            emptyState("This scenario has no behavior tree:\nthe plugin "
+                       "mission drives the robot.");
         }
         return;
     }
-    ImGui::TextDisabled("%s", p_app.simulation->scenario().controller.behavior_tree.filename().string().c_str());
+    ImGui::TextDisabled("%s",
+                        p_app.simulation->scenario()
+                            .controller.behavior_tree.filename()
+                            .string()
+                            .c_str());
     ImGui::SameLine();
-    helpMarker("Each node shows its last status. Actions are skills, run by the scheduler.");
+    helpMarker("Each node shows its last status. Actions are skills, run by "
+               "the scheduler.");
     ImGui::TextColored(GREY, "idle");
     ImGui::SameLine();
     ImGui::TextColored(ORANGE, "running");
@@ -694,7 +769,8 @@ void timelinePanel(App& p_app)
         ImGui::End();
         return;
     }
-    robotik::ResourceManager const& resources = p_app.simulation->robot().resources();
+    robotik::ResourceManager const& resources =
+        p_app.simulation->robot().resources();
     ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("Resources");
     ImGui::SameLine();

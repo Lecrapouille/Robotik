@@ -141,7 +141,8 @@ using SpecPtr = std::unique_ptr<mjSpec, SpecDelete>;
 static SpecPtr parseSpec(std::filesystem::path const& p_path)
 {
     char error[1024] = {};
-    mjSpec* const spec = mj_parseXML(p_path.c_str(), nullptr, error, sizeof(error));
+    mjSpec* const spec =
+        mj_parseXML(p_path.c_str(), nullptr, error, sizeof(error));
     if (spec == nullptr)
     {
         throw std::runtime_error("MuJoCo failed to load '" + p_path.string() +
@@ -158,7 +159,8 @@ static mjsBody* findMount(mjSpec* p_spec, std::string const& p_name)
     {
         return body;
     }
-    mjsElement* const joint = mjs_findElement(p_spec, mjOBJ_JOINT, p_name.c_str());
+    mjsElement* const joint =
+        mjs_findElement(p_spec, mjOBJ_JOINT, p_name.c_str());
     return joint != nullptr ? mjs_getParent(joint) : nullptr;
 }
 
@@ -166,7 +168,8 @@ static std::vector<mjsBody*> rootBodies(mjSpec* p_spec)
 {
     std::vector<mjsBody*> roots;
     mjsBody* const world = mjs_findBody(p_spec, "world");
-    for (mjsElement* child = mjs_firstChild(world, mjOBJ_BODY, 0); child != nullptr;
+    for (mjsElement* child = mjs_firstChild(world, mjOBJ_BODY, 0);
+         child != nullptr;
          child = mjs_nextChild(world, child, 0))
     {
         roots.push_back(mjs_asBody(child));
@@ -176,15 +179,19 @@ static std::vector<mjsBody*> rootBodies(mjSpec* p_spec)
 
 /// Hang @p_child on an identity frame of @p_parent. mjs_attach copies a body
 /// onto a frame (the other way round is rejected).
-static void hang(mjSpec* p_host, mjsBody* p_parent, mjsBody* p_child,
+static void hang(mjSpec* p_host,
+                 mjsBody* p_parent,
+                 mjsBody* p_child,
                  std::string const& p_prefix)
 {
     mjsFrame* const frame = mjs_addFrame(p_parent, nullptr);
     if (frame == nullptr ||
-        mjs_attach(frame->element, p_child->element, p_prefix.c_str(), "") == nullptr)
+        mjs_attach(frame->element, p_child->element, p_prefix.c_str(), "") ==
+            nullptr)
     {
-        throw std::runtime_error(std::string("MuJoCo failed to attach a chain: ") +
-                                 mjs_getError(p_host));
+        throw std::runtime_error(
+            std::string("MuJoCo failed to attach a chain: ") +
+            mjs_getError(p_host));
     }
 }
 
@@ -267,9 +274,8 @@ withInertia(std::filesystem::path const& p_filename)
 /// Edits the parsed URDF: free joint, floor, friction, no body fusion.
 /// @p_root is the first chain's root link. Sibling chains hang on the world
 /// too, so the free joint must not follow whichever body MuJoCo lists first.
-static void edit(mjSpec* p_spec,
-                 MujocoOptions const& p_options,
-                 std::string const& p_root)
+static void
+edit(mjSpec* p_spec, MujocoOptions const& p_options, std::string const& p_root)
 {
     // Fusing static bodies would merge links that skills and sensors name.
     p_spec->compiler.fusestatic = 0;
@@ -361,7 +367,8 @@ static HeldPose holdPose(mjModel* p_model, mjData* p_data)
 }
 
 /// Writes a saved joint pose back into the MuJoCo state.
-static void restorePose(mjModel* p_model, mjData* p_data, HeldPose const& p_held)
+static void
+restorePose(mjModel* p_model, mjData* p_data, HeldPose const& p_held)
 {
     for (int joint = 0; joint < p_model->njnt; ++joint)
     {
@@ -426,12 +433,14 @@ static void writePose(mjsBody* p_body, Pose const& p_pose)
 
 static void setFriction(mjsBody* p_body, double p_friction)
 {
-    for (mjsElement* geom = mjs_firstChild(p_body, mjOBJ_GEOM, 0); geom != nullptr;
+    for (mjsElement* geom = mjs_firstChild(p_body, mjOBJ_GEOM, 0);
+         geom != nullptr;
          geom = mjs_nextChild(p_body, geom, 0))
     {
         mjs_asGeom(geom)->friction[0] = p_friction;
     }
-    for (mjsElement* child = mjs_firstChild(p_body, mjOBJ_BODY, 0); child != nullptr;
+    for (mjsElement* child = mjs_firstChild(p_body, mjOBJ_BODY, 0);
+         child != nullptr;
          child = mjs_nextChild(p_body, child, 0))
     {
         setFriction(mjs_asBody(child), p_friction);
@@ -523,13 +532,16 @@ void MujocoBackend::addBox(FreeBox const& p_box)
     invalidate();
 }
 
-void MujocoBackend::addWeld(std::string p_name, std::string p_body1, std::string p_body2)
+void MujocoBackend::addWeld(std::string p_name,
+                            std::string p_body1,
+                            std::string p_body2)
 {
     if (p_name.empty() || p_body1.empty() || p_body2.empty())
     {
         throw std::runtime_error("MuJoCo: a weld needs a name and two bodies");
     }
-    m_impl->welds.push_back(Impl::Weld{ std::move(p_name), std::move(p_body1), std::move(p_body2) });
+    m_impl->welds.push_back(Impl::Weld{
+        std::move(p_name), std::move(p_body1), std::move(p_body2) });
     invalidate();
 }
 
@@ -631,14 +643,16 @@ void MujocoBackend::attach(std::string const& p_robot1,
 {
     if (p_robot1 == p_robot2)
     {
-        throw std::runtime_error("MuJoCo: a chain cannot be attached to itself");
+        throw std::runtime_error(
+            "MuJoCo: a chain cannot be attached to itself");
     }
     Impl::Chain* const parent = m_impl->find(p_robot1);
     Impl::Chain* const child = m_impl->find(p_robot2);
     if (parent == nullptr || child == nullptr)
     {
         throw std::runtime_error("MuJoCo: no kinematic chain '" +
-                                 (parent == nullptr ? p_robot1 : p_robot2) + "'");
+                                 (parent == nullptr ? p_robot1 : p_robot2) +
+                                 "'");
     }
     for (Impl::Graft const& graft : m_impl->grafts)
     {
@@ -671,11 +685,16 @@ void MujocoBackend::detach(std::string const& p_robot1,
                            std::string const& p_joint2)
 {
     std::vector<Impl::Graft>& grafts = m_impl->grafts;
-    auto const found = std::find_if(
-        grafts.begin(), grafts.end(), [&](Impl::Graft const& p_graft) {
-            return p_graft.parent == p_robot1 && p_graft.parent_mount == p_joint1 &&
-                   p_graft.child == p_robot2 && p_graft.child_mount == p_joint2;
-        });
+    auto const found =
+        std::find_if(grafts.begin(),
+                     grafts.end(),
+                     [&](Impl::Graft const& p_graft)
+                     {
+                         return p_graft.parent == p_robot1 &&
+                                p_graft.parent_mount == p_joint1 &&
+                                p_graft.child == p_robot2 &&
+                                p_graft.child_mount == p_joint2;
+                     });
     if (found == grafts.end())
     {
         throw std::runtime_error("MuJoCo: '" + p_robot2 +
@@ -730,7 +749,8 @@ void MujocoBackend::compile()
     auto prefixOf = [&](std::string const& p_chain) -> std::string
     {
         Impl::Chain const* chain = m_impl->find(p_chain);
-        return chain == nullptr || chain == host_chain ? std::string() : chain->options.prefix;
+        return chain == nullptr || chain == host_chain ? std::string()
+                                                       : chain->options.prefix;
     };
 
     std::unordered_map<std::string, SpecPtr> specs;
@@ -748,8 +768,9 @@ void MujocoBackend::compile()
         mjs_getString(mjs_getName(host_roots.front()->element));
     if (mjs_setDeepCopy(host, 1) != 0)
     {
-        throw std::runtime_error(std::string("MuJoCo failed to copy a chain: ") +
-                                 mjs_getError(host));
+        throw std::runtime_error(
+            std::string("MuJoCo failed to copy a chain: ") +
+            mjs_getError(host));
     }
     for (Impl::Chain const& chain : m_impl->chains)
     {
@@ -782,7 +803,8 @@ void MujocoBackend::compile()
             {
                 continue;
             }
-            mjsBody* const parent = findMount(host, prefixOf(graft.parent) + graft.parent_mount);
+            mjsBody* const parent =
+                findMount(host, prefixOf(graft.parent) + graft.parent_mount);
             mjsBody* const child =
                 findMount(specs.at(graft.child).get(), graft.child_mount);
             if (parent == nullptr)
@@ -814,7 +836,8 @@ void MujocoBackend::compile()
         {
             continue;
         }
-        mjsBody* const root = mjs_findBody(host, (prefixOf(chain.name) + chain.root).c_str());
+        mjsBody* const root =
+            mjs_findBody(host, (prefixOf(chain.name) + chain.root).c_str());
         if (root == nullptr)
         {
             throw std::runtime_error("MuJoCo: chain '" + chain.name +
@@ -864,8 +887,8 @@ void MujocoBackend::compile()
     std::string const compile_error = mjs_getError(host);
     if (fresh == nullptr)
     {
-        throw std::runtime_error("MuJoCo failed to compile the kinematic chains: " +
-                                 compile_error);
+        throw std::runtime_error(
+            "MuJoCo failed to compile the kinematic chains: " + compile_error);
     }
     specs.clear();
 
@@ -894,14 +917,16 @@ void MujocoBackend::compile()
     // keeps its values.
     if (m_options.exact_inertia)
     {
-        auto keep = [&](std::unordered_map<std::string, double> const& p_values, mjtNum* p_field)
+        auto keep = [&](std::unordered_map<std::string, double> const& p_values,
+                        mjtNum* p_field)
         {
             for (auto const& [name, value] : p_values)
             {
                 int const joint = mj_name2id(fresh, mjOBJ_JOINT, name.c_str());
                 if (joint < 0)
                 {
-                    throw std::runtime_error("MuJoCo: no joint '" + name + "' for the inertia option");
+                    throw std::runtime_error("MuJoCo: no joint '" + name +
+                                             "' for the inertia option");
                 }
                 p_field[fresh->jnt_dofadr[joint]] = value;
             }
@@ -929,7 +954,9 @@ void MujocoBackend::join(Robot& p_robot, std::string const& p_prefix)
         compile();
     }
     std::vector<Member>& members = m_impl->members;
-    auto found = std::find_if(members.begin(), members.end(), [&](Member const& p_member)
+    auto found = std::find_if(members.begin(),
+                              members.end(),
+                              [&](Member const& p_member)
                               { return p_member.robot == &p_robot; });
     if (found == members.end())
     {
@@ -955,7 +982,8 @@ void MujocoBackend::bind(Member& p_member)
         }
         p_member.bindings[id].qpos = model->jnt_qposadr[joint];
         p_member.bindings[id].dof = model->jnt_dofadr[joint];
-        p_member.bindings[id].actuator = mj_name2id(model, mjOBJ_ACTUATOR, name.c_str());
+        p_member.bindings[id].actuator =
+            mj_name2id(model, mjOBJ_ACTUATOR, name.c_str());
     }
 
     // The robot chain: the host for no prefix, else the first chain standing
@@ -963,11 +991,16 @@ void MujocoBackend::bind(Member& p_member)
     Impl::Chain const* chain = nullptr;
     for (Impl::Chain const& candidate : m_impl->chains)
     {
-        bool const grafted = std::any_of(m_impl->grafts.begin(), m_impl->grafts.end(),
-                                         [&](Impl::Graft const& p_graft)
-                                         { return p_graft.child == candidate.name; });
+        bool const grafted =
+            std::any_of(m_impl->grafts.begin(),
+                        m_impl->grafts.end(),
+                        [&](Impl::Graft const& p_graft)
+                        { return p_graft.child == candidate.name; });
         bool const host = candidate.name == m_impl->host;
-        if (p_member.prefix.empty() ? host : (!host && !grafted && candidate.options.prefix == p_member.prefix))
+        if (p_member.prefix.empty()
+                ? host
+                : (!host && !grafted &&
+                   candidate.options.prefix == p_member.prefix))
         {
             chain = &candidate;
             break;
@@ -975,14 +1008,20 @@ void MujocoBackend::bind(Member& p_member)
     }
     if (chain == nullptr)
     {
-        throw std::runtime_error("MuJoCo: no chain loaded with prefix '" + p_member.prefix + "'");
+        throw std::runtime_error("MuJoCo: no chain loaded with prefix '" +
+                                 p_member.prefix + "'");
     }
-    std::string const prefix = chain->name == m_impl->host ? std::string() : chain->options.prefix;
-    p_member.root = mj_name2id(model, mjOBJ_BODY, (prefix + chain->root).c_str());
-    std::string const free = chain->name == m_impl->host ? std::string("robotik_base") : chain->name + "_free";
+    std::string const prefix =
+        chain->name == m_impl->host ? std::string() : chain->options.prefix;
+    p_member.root =
+        mj_name2id(model, mjOBJ_BODY, (prefix + chain->root).c_str());
+    std::string const free = chain->name == m_impl->host
+                                 ? std::string("robotik_base")
+                                 : chain->name + "_free";
     p_member.free_qpos = -1;
     p_member.free_dof = -1;
-    if (int const joint = mj_name2id(model, mjOBJ_JOINT, free.c_str()); joint >= 0)
+    if (int const joint = mj_name2id(model, mjOBJ_JOINT, free.c_str());
+        joint >= 0)
     {
         p_member.free_qpos = model->jnt_qposadr[joint];
         p_member.free_dof = model->jnt_dofadr[joint];
@@ -999,10 +1038,12 @@ void MujocoBackend::reset(Robot& /*p_robot*/)
     for (Member const& member : m_impl->members)
     {
         Pose const& base = member.robot->base().pose;
-        double const position[3] = { base.position.x, base.position.y,
+        double const position[3] = { base.position.x,
+                                     base.position.y,
                                      base.position.z };
-        double const quaternion[4] = { base.rotation.w, base.rotation.x,
-                                       base.rotation.y, base.rotation.z };
+        double const quaternion[4] = {
+            base.rotation.w, base.rotation.x, base.rotation.y, base.rotation.z
+        };
         if (member.free_qpos >= 0)
         {
             mju_copy(data->qpos + member.free_qpos, position, 3);
@@ -1039,8 +1080,10 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
 
     // The joint loops run at the physics rate, not at the caller rate.
     double const timestep = m_options.timestep.value();
-    int const steps = std::clamp(
-        static_cast<int>(std::lround(p_dt.value() / timestep)), 1, MAX_SUBSTEPS);
+    int const steps =
+        std::clamp(static_cast<int>(std::lround(p_dt.value() / timestep)),
+                   1,
+                   MAX_SUBSTEPS);
     model->opt.timestep = timestep;
 
     for (int i = 0; i < steps; ++i)
@@ -1064,7 +1107,8 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
                 {
                     continue;
                 }
-                data->qfrc_applied[binding.dof] = compensate ? data->qfrc_bias[binding.dof] : 0.0;
+                data->qfrc_applied[binding.dof] =
+                    compensate ? data->qfrc_bias[binding.dof] : 0.0;
                 if (binding.actuator >= 0)
                 {
                     data->ctrl[binding.actuator] = joints.effort(id);
@@ -1086,7 +1130,8 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
                 Member::Binding const& binding = member.bindings[id];
                 if (binding.qpos >= 0)
                 {
-                    joints.measure(id, data->qpos[binding.qpos], data->qvel[binding.dof]);
+                    joints.measure(
+                        id, data->qpos[binding.qpos], data->qvel[binding.dof]);
                 }
             }
         }
@@ -1123,15 +1168,17 @@ std::vector<Contact> MujocoBackend::contactList() const
     {
         int const body = model->geom_bodyid[p_geom];
         char const* const name = mj_id2name(model, mjOBJ_BODY, body);
-        return name != nullptr ? std::string(name) : std::string(Contact::GROUND);
+        return name != nullptr ? std::string(name)
+                               : std::string(Contact::GROUND);
     };
     result.reserve(static_cast<std::size_t>(data->ncon));
     for (int i = 0; i < data->ncon; ++i)
     {
         mjContact const& contact = data->contact[i];
-        result.push_back(Contact{ bodyName(contact.geom[0]),
-                                  bodyName(contact.geom[1]),
-                                  Vector3(contact.pos[0], contact.pos[1], contact.pos[2]) });
+        result.push_back(
+            Contact{ bodyName(contact.geom[0]),
+                     bodyName(contact.geom[1]),
+                     Vector3(contact.pos[0], contact.pos[1], contact.pos[2]) });
     }
     return result;
 }
@@ -1143,7 +1190,8 @@ int MujocoBackend::contacts() const
     for (int i = 0; i < data->ncon; ++i)
     {
         mjContact const& contact = data->contact[i];
-        if (contact.geom[0] != m_impl->floor && contact.geom[1] != m_impl->floor)
+        if (contact.geom[0] != m_impl->floor &&
+            contact.geom[1] != m_impl->floor)
         {
             ++count;
         }
@@ -1180,8 +1228,8 @@ std::optional<double> MujocoBackend::raycast(Vector3 const& p_origin,
     for (int hop = 0; hop < MAX_RAY_HOPS; ++hop)
     {
         int geom = -1;
-        double const distance =
-            mj_ray(model, data, origin, direction, nullptr, 1, -1, &geom, nullptr);
+        double const distance = mj_ray(
+            model, data, origin, direction, nullptr, 1, -1, &geom, nullptr);
         if (distance < 0.0 || travelled + distance > p_max)
         {
             return std::nullopt;
@@ -1268,7 +1316,8 @@ public:
         return m_physics->contactList();
     }
 
-    [[nodiscard]] std::optional<Pose> bodyPose(std::string const& p_body) const override
+    [[nodiscard]] std::optional<Pose>
+    bodyPose(std::string const& p_body) const override
     {
         return m_physics->bodyPose(p_body);
     }
@@ -1283,13 +1332,15 @@ public:
         return m_physics->weld(p_name, p_on);
     }
 
-    [[nodiscard]] std::optional<double>
-    raycast(Vector3 const& p_origin, Vector3 const& p_direction, double p_max) const override
+    [[nodiscard]] std::optional<double> raycast(Vector3 const& p_origin,
+                                                Vector3 const& p_direction,
+                                                double p_max) const override
     {
         return m_physics->raycast(p_origin, p_direction, p_max, m_prefix);
     }
 
-    [[nodiscard]] std::optional<Wrench> wrench(std::string const& p_link) const override
+    [[nodiscard]] std::optional<Wrench>
+    wrench(std::string const& p_link) const override
     {
         return m_physics->wrench(m_prefix + p_link);
     }
@@ -1300,10 +1351,12 @@ private:
     std::string m_prefix;
 };
 
-std::unique_ptr<RobotBackend> MujocoBackend::member(std::shared_ptr<MujocoBackend> p_physics,
-                                                     std::string p_prefix)
+std::unique_ptr<RobotBackend>
+MujocoBackend::member(std::shared_ptr<MujocoBackend> p_physics,
+                      std::string p_prefix)
 {
-    return std::make_unique<MujocoMember>(std::move(p_physics), std::move(p_prefix));
+    return std::make_unique<MujocoMember>(std::move(p_physics),
+                                          std::move(p_prefix));
 }
 
 } // namespace robotik

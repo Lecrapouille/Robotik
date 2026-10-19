@@ -20,10 +20,10 @@ namespace painter
 
 /// Advances along a polyline, one MoveTCP step at a time.
 static robotik::Status follow(std::vector<robotik::Pose> const& p_path,
-                       std::size_t& p_index,
-                       robotik::MoveTCPSkill& p_move,
-                       robotik::RobotContext& p_context,
-                       robotik::Seconds p_dt)
+                              std::size_t& p_index,
+                              robotik::MoveTCPSkill& p_move,
+                              robotik::RobotContext& p_context,
+                              robotik::Seconds p_dt)
 {
     if (p_index >= p_path.size())
     {
@@ -74,7 +74,8 @@ public:
     {
         GestureNode* self = const_cast<GestureNode*>(this);
         p_config.callback = [self]() { return self->onTick(); };
-        p_config.on_reset = [self]() {
+        p_config.on_reset = [self]()
+        {
             if (self->m_active)
             {
                 self->m_scheduler.cancel(self->m_id);
@@ -91,19 +92,22 @@ private:
         {
             if (m_gesture != Gesture::Rinse)
             {
-                auto const color = blackboard() ? blackboard()->get<std::string>("color")
-                                                : std::nullopt;
+                auto const color = blackboard()
+                                       ? blackboard()->get<std::string>("color")
+                                       : std::nullopt;
                 if (!color || color->empty())
                 {
                     return bt::Status::FAILURE;
                 }
                 if (m_gesture == Gesture::Dip)
                 {
-                    dynamic_cast<DipSkill&>(m_scheduler.skill(m_id)).use(*color);
+                    dynamic_cast<DipSkill&>(m_scheduler.skill(m_id))
+                        .use(*color);
                 }
                 else
                 {
-                    dynamic_cast<MarkSkill&>(m_scheduler.skill(m_id)).use(*color);
+                    dynamic_cast<MarkSkill&>(m_scheduler.skill(m_id))
+                        .use(*color);
                 }
             }
             m_scheduler.request(m_id);
@@ -133,9 +137,7 @@ private:
     bool m_active = false;
 };
 
-DipSkill::DipSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
-{
-}
+DipSkill::DipSkill(Stroke& p_stroke) : m_stroke(&p_stroke) {}
 
 void DipSkill::use(std::string p_color)
 {
@@ -151,7 +153,8 @@ void DipSkill::reset()
     m_stroke->painting = false;
 }
 
-robotik::Status DipSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+robotik::Status DipSkill::tick(robotik::RobotContext& p_context,
+                               robotik::Seconds p_dt)
 {
     if (!m_ready)
     {
@@ -170,7 +173,8 @@ robotik::Status DipSkill::tick(robotik::RobotContext& p_context, robotik::Second
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_ready = true;
     }
-    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    robotik::Status const status =
+        follow(m_path, m_index, m_move, p_context, p_dt);
     if (status == robotik::Status::SUCCESS)
     {
         m_stroke->brush = m_color;
@@ -185,7 +189,9 @@ void DipSkill::cancel(robotik::RobotContext& p_context)
 }
 
 MarkSkill::MarkSkill(Stroke& p_stroke, Strokes p_strokes, Settings p_settings)
-    : m_stroke(&p_stroke), m_strokes(std::move(p_strokes)), m_settings(p_settings)
+    : m_stroke(&p_stroke),
+      m_strokes(std::move(p_strokes)),
+      m_settings(p_settings)
 {
 }
 
@@ -204,7 +210,8 @@ void MarkSkill::reset()
     m_stroke->painting = false;
 }
 
-robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
+                                robotik::Seconds p_dt)
 {
     if (!m_ready)
     {
@@ -223,12 +230,17 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
             robotik::Vector3 const to = points[i].position;
             double const length = (to - from).norm();
             std::size_t const steps =
-                m_settings.step > 0.0 ? std::max<std::size_t>(1u, static_cast<std::size_t>(std::ceil(length / m_settings.step)))
-                                      : 1u;
+                m_settings.step > 0.0
+                    ? std::max<std::size_t>(1u,
+                                            static_cast<std::size_t>(std::ceil(
+                                                length / m_settings.step)))
+                    : 1u;
             for (std::size_t k = 1; k <= steps; ++k)
             {
-                double const t = static_cast<double>(k) / static_cast<double>(steps);
-                m_path.push_back(robotik::Pose{ from + (to - from) * t, points[i].rotation });
+                double const t =
+                    static_cast<double>(k) / static_cast<double>(steps);
+                m_path.push_back(robotik::Pose{ from + (to - from) * t,
+                                                points[i].rotation });
             }
             if (i == 1u)
             {
@@ -239,14 +251,16 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context, robotik::Secon
                 m_paint_end = m_path.size() - 1u;
             }
         }
-        m_move = robotik::MoveTCPSkill({}, m_path.front(), m_settings.tolerance);
+        m_move =
+            robotik::MoveTCPSkill({}, m_path.front(), m_settings.tolerance);
         m_stroke->color = m_color;
         m_ready = true;
     }
     // The first point approaches, the last one leaves: the brush paints in
     // between.
     m_stroke->painting = m_index >= m_paint_begin && m_index <= m_paint_end;
-    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    robotik::Status const status =
+        follow(m_path, m_index, m_move, p_context, p_dt);
     if (status != robotik::Status::RUNNING)
     {
         m_stroke->painting = false;
@@ -264,9 +278,7 @@ void MarkSkill::cancel(robotik::RobotContext& p_context)
     m_move.cancel(p_context);
 }
 
-RinseSkill::RinseSkill(Stroke& p_stroke) : m_stroke(&p_stroke)
-{
-}
+RinseSkill::RinseSkill(Stroke& p_stroke) : m_stroke(&p_stroke) {}
 
 void RinseSkill::reset()
 {
@@ -277,7 +289,8 @@ void RinseSkill::reset()
     m_stroke->painting = false;
 }
 
-robotik::Status RinseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
+robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
+                                 robotik::Seconds p_dt)
 {
     if (!m_ready)
     {
@@ -296,7 +309,8 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context, robotik::Seco
         {
             for (int i = 0; i < kSteps; ++i)
             {
-                double const angle = (turn * kSteps + i) * (2.0 * std::numbers::pi / kSteps);
+                double const angle =
+                    (turn * kSteps + i) * (2.0 * std::numbers::pi / kSteps);
                 m_path.push_back({ { x + 0.02 * std::cos(angle),
                                      y + 0.02 * std::sin(angle),
                                      wet },
@@ -307,7 +321,8 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context, robotik::Seco
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_ready = true;
     }
-    robotik::Status const status = follow(m_path, m_index, m_move, p_context, p_dt);
+    robotik::Status const status =
+        follow(m_path, m_index, m_move, p_context, p_dt);
     if (status == robotik::Status::SUCCESS)
     {
         m_stroke->brush.clear();
@@ -323,9 +338,12 @@ void RinseSkill::cancel(robotik::RobotContext& p_context)
 void registerNodes(bt::NodeFactory& p_factory,
                    robotik::SkillScheduler& p_scheduler)
 {
-    auto bind = [&](char const* p_node, char const* p_skill, Gesture p_gesture) {
+    auto bind = [&](char const* p_node, char const* p_skill, Gesture p_gesture)
+    {
         p_factory.registerNode(
-            p_node, [&p_scheduler, name = std::string(p_skill), p_gesture]() {
+            p_node,
+            [&p_scheduler, name = std::string(p_skill), p_gesture]()
+            {
                 return std::make_unique<GestureNode>(
                     p_scheduler, p_scheduler.find(name), p_gesture);
             });

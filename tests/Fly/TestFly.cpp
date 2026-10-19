@@ -25,7 +25,9 @@
 static FlyScenario flyScenario()
 {
     return FlyScenario::from(robotik::Scenario::load(
-        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"), testAssets()));
+        repoFile(
+            "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
+        testAssets()));
 }
 
 /// Runs one brain until the horizon and keeps the last snapshot.
@@ -44,8 +46,8 @@ static robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
     robotik::StepResult result;
     for (std::uint32_t step = 0; step < limit; ++step)
     {
-        FlyAction const decided =
-            brain.update(FlyObservation::from(observation), Seconds(scenario.dt));
+        FlyAction const decided = brain.update(
+            FlyObservation::from(observation), Seconds(scenario.dt));
         decided.write(action);
         result = environment.step(action, observation);
         if (result.done())
@@ -98,18 +100,18 @@ TEST(FlyBrain, ReflexReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Reflex, end);
-    EXPECT_TRUE(result.terminated()) << "x=" << end.plant.x << " y=" << end.plant.y
-                                   << " yaw=" << end.plant.yaw
-                                   << " steps=" << end.steps;
+    EXPECT_TRUE(result.terminated())
+        << "x=" << end.plant.x << " y=" << end.plant.y
+        << " yaw=" << end.plant.yaw << " steps=" << end.steps;
 }
 
 TEST(FlyBrain, ShiuReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Shiu, end);
-    EXPECT_TRUE(result.terminated()) << "x=" << end.plant.x << " y=" << end.plant.y
-                                   << " yaw=" << end.plant.yaw
-                                   << " steps=" << end.steps;
+    EXPECT_TRUE(result.terminated())
+        << "x=" << end.plant.x << " y=" << end.plant.y
+        << " yaw=" << end.plant.yaw << " steps=" << end.steps;
 }
 
 TEST(FlyEnvironment, SameSeedSameArrival)
@@ -129,7 +131,8 @@ TEST(FlyTrace, RoundTrip)
     FlyTrace trace;
     trace.seed = 99;
     trace.dt = 0.01;
-    trace.observations.push_back(FlyObservation{ 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1.0f, 2.0f, -0.2f, 3.0f });
+    trace.observations.push_back(FlyObservation{
+        0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1.0f, 2.0f, -0.2f, 3.0f });
     trace.actions.push_back(FlyAction{ 0.8f, -0.2f, 0.1f });
     std::filesystem::path const path =
         std::filesystem::temp_directory_path() / "robotik_fly_trace.json";
@@ -146,7 +149,9 @@ TEST(FlyTrace, RoundTrip)
 TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repoFile("plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"), testAssets());
+        repoFile(
+            "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
+        testAssets());
     compages::world::World world;
     FlyMission mission;
     robotik::Simulation simulation(world, scenario, nullptr, &mission);
@@ -157,11 +162,13 @@ TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_TRUE(simulation.finished()) << robotik::toString(simulation.outcome());
+    EXPECT_TRUE(simulation.finished())
+        << robotik::toString(simulation.outcome());
     for (robotik::Check const& check : simulation.checks())
     {
         EXPECT_EQ(check.verdict, robotik::Check::Verdict::Passed)
-            << check.text << ": " << check.detail << " at " << check.time.value() << " s";
+            << check.text << ": " << check.detail << " at "
+            << check.time.value() << " s";
     }
     EXPECT_TRUE(simulation.passed());
     EXPECT_LT(simulation.time().value(), 40.0);

@@ -75,10 +75,10 @@ TEST(ContainerBounds, RestsInsideUsesRealExtentsAndTheRim)
     Shape slab = cube;
     slab.size[0] = Length(0.10);
     Vector3 const wide = halfExtents(slab);
-    EXPECT_TRUE(restsInside(
-        box, kBoxCenter, { 0.40, -0.20, 0.005 + wide.z }, wide));
-    EXPECT_FALSE(restsInside(
-        box, kBoxCenter, { 0.43, -0.20, 0.005 + wide.z }, wide));
+    EXPECT_TRUE(
+        restsInside(box, kBoxCenter, { 0.40, -0.20, 0.005 + wide.z }, wide));
+    EXPECT_FALSE(
+        restsInside(box, kBoxCenter, { 0.43, -0.20, 0.005 + wide.z }, wide));
 }
 
 TEST(ContainerBounds, DropStaysOnTheFootprint)
@@ -94,8 +94,7 @@ TEST(ContainerBounds, DropStaysOnTheFootprint)
     EXPECT_NEAR(placed->y, kBoxCenter.y, 1e-12);
     EXPECT_NEAR(placed->z, 0.005 + kHalfZ + kLift, 1e-12);
 
-    EXPECT_FALSE(
-        dropInto(box, kBoxCenter, kPickCenter, kHalfZ, kLift, kSlack));
+    EXPECT_FALSE(dropInto(box, kBoxCenter, kPickCenter, kHalfZ, kLift, kSlack));
     EXPECT_FALSE(dropInto(
         box, kBoxCenter, { 0.40, -0.06, 0.15 }, kHalfZ, kLift, kSlack));
     EXPECT_FALSE(
@@ -112,6 +111,5 @@ TEST(ContainerBounds, PenetrationIsAWallCrossingBelowTheRim)
     EXPECT_FALSE(restsInside(box, kBoxCenter, through_wall, half));
     EXPECT_FALSE(
         penetratesContainer(box, kBoxCenter, { 0.40, -0.20, 0.22 }, half));
-    EXPECT_FALSE(
-        penetratesContainer(box, kBoxCenter, kPickCenter, half));
+    EXPECT_FALSE(penetratesContainer(box, kBoxCenter, kPickCenter, half));
 }

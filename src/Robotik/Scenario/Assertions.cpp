@@ -71,7 +71,8 @@ AssertionSpec AssertionSpec::read(ConfigNode const& p_node)
         spec.sequence = p_node.strings("sequence");
         if (spec.sequence.size() < 2u || !spec.condition.empty())
         {
-            throw std::runtime_error("a sequence lists two conditions or more, and no condition");
+            throw std::runtime_error(
+                "a sequence lists two conditions or more, and no condition");
         }
     }
     else if (p_node.has("at"))
@@ -98,7 +99,8 @@ AssertionSpec AssertionSpec::read(ConfigNode const& p_node)
     }
     else
     {
-        throw std::runtime_error("phase must be always, end or eventually (or use at:, within:, sequence:)");
+        throw std::runtime_error("phase must be always, end or eventually (or "
+                                 "use at:, within:, sequence:)");
     }
     if (spec.phase != AssertionPhase::Sequence && spec.condition.empty())
     {
@@ -107,7 +109,8 @@ AssertionSpec AssertionSpec::read(ConfigNode const& p_node)
     spec.name = p_node.text("name");
     if (spec.name.empty())
     {
-        spec.name = spec.phase == AssertionPhase::Sequence ? "sequence" : spec.condition;
+        spec.name = spec.phase == AssertionPhase::Sequence ? "sequence"
+                                                           : spec.condition;
     }
     return spec;
 }
@@ -198,21 +201,23 @@ void AssertionEngine::judge(std::size_t p_index,
             }
             ++next;
         }
-        for (std::size_t later = next + 1u; later < spec.sequence.size(); ++later)
+        for (std::size_t later = next + 1u; later < spec.sequence.size();
+             ++later)
         {
             if (p_probe(spec.sequence[later]).holds)
             {
                 fail(check,
                      p_now,
-                     "'" + spec.sequence[later] + "' before '" + spec.sequence[next] + "'");
+                     "'" + spec.sequence[later] + "' before '" +
+                         spec.sequence[next] + "'");
                 return;
             }
         }
         check.time = p_now;
         check.value = static_cast<double>(next);
         check.holds = next == spec.sequence.size();
-        check.detail = std::to_string(next) + "/" + std::to_string(spec.sequence.size()) +
-                       " reached";
+        check.detail = std::to_string(next) + "/" +
+                       std::to_string(spec.sequence.size()) + " reached";
         if (check.holds)
         {
             check.verdict = Check::Verdict::Passed;
@@ -255,17 +260,22 @@ void AssertionEngine::judge(std::size_t p_index,
         case AssertionPhase::End:
             if (p_final)
             {
-                check.verdict = measured.holds ? Check::Verdict::Passed : Check::Verdict::Failed;
+                check.verdict = measured.holds ? Check::Verdict::Passed
+                                               : Check::Verdict::Failed;
             }
             break;
         case AssertionPhase::At:
             if (p_now < spec.time)
             {
-                fail(check, p_now, "the run ended before " + std::to_string(spec.time.value()) + " s");
+                fail(check,
+                     p_now,
+                     "the run ended before " +
+                         std::to_string(spec.time.value()) + " s");
             }
             else
             {
-                check.verdict = measured.holds ? Check::Verdict::Passed : Check::Verdict::Failed;
+                check.verdict = measured.holds ? Check::Verdict::Passed
+                                               : Check::Verdict::Failed;
             }
             break;
         case AssertionPhase::Within:
@@ -275,8 +285,10 @@ void AssertionEngine::judge(std::size_t p_index,
             }
             else if (p_now > spec.time || p_final)
             {
-                fail(check, p_now, check.detail + ", not true within " +
-                                        std::to_string(spec.time.value()) + " s");
+                fail(check,
+                     p_now,
+                     check.detail + ", not true within " +
+                         std::to_string(spec.time.value()) + " s");
             }
             break;
         case AssertionPhase::Eventually:

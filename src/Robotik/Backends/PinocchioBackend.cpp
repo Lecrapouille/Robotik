@@ -54,7 +54,7 @@ struct PinocchioBackend::Impl
 
 static std::vector<double> toVector(Eigen::VectorXd const& p_value)
 {
-    return {p_value.data(), p_value.data() + p_value.size()};
+    return { p_value.data(), p_value.data() + p_value.size() };
 }
 
 /// Pose of tcp in the tool_mount frame. The mount itself is the identity
@@ -94,12 +94,10 @@ PinocchioBackend::PinocchioBackend(std::filesystem::path const& p_urdf,
         pinocchio::Frame const& flange = m_impl->model.frames[flange_id];
         pinocchio::JointIndex const parent = flange.parentJoint;
         pinocchio::SE3 const placement = flange.placement * tcp;
-        m_impl->model.addFrame(pinocchio::Frame("tcp",
-                                               parent,
-                                               flange_id,
-                                               placement,
-                                               pinocchio::OP_FRAME),
-                              false);
+        m_impl->model.addFrame(
+            pinocchio::Frame(
+                "tcp", parent, flange_id, placement, pinocchio::OP_FRAME),
+            false);
     }
     m_impl->data = std::make_unique<pinocchio::Data>(m_impl->model);
     m_impl->q = pinocchio::neutral(m_impl->model);
@@ -141,7 +139,8 @@ std::span<double const> PinocchioBackend::velocity() const
 
 void PinocchioBackend::updateKinematics()
 {
-    pinocchio::forwardKinematics(m_impl->model, *m_impl->data, m_impl->q, m_impl->v);
+    pinocchio::forwardKinematics(
+        m_impl->model, *m_impl->data, m_impl->q, m_impl->v);
     pinocchio::updateFramePlacements(m_impl->model, *m_impl->data);
 }
 
@@ -234,8 +233,8 @@ PinocchioBackend::solveIK(std::string const& p_frame,
     Eigen::VectorXd q = m_impl->q;
     if (p_seed.size() == nq())
     {
-        q = Eigen::Map<Eigen::VectorXd const>(p_seed.data(),
-                                              static_cast<Eigen::Index>(p_seed.size()));
+        q = Eigen::Map<Eigen::VectorXd const>(
+            p_seed.data(), static_cast<Eigen::Index>(p_seed.size()));
     }
 
     Eigen::Quaterniond rotation(p_target.rotation.w,
@@ -262,7 +261,8 @@ PinocchioBackend::solveIK(std::string const& p_frame,
         pinocchio::updateFramePlacements(m_impl->model, data);
 
         pinocchio::SE3 const iMd = data.oMf[frame].actInv(oMdes);
-        Eigen::Matrix<double, 6, 1> const error = pinocchio::log6(iMd).toVector();
+        Eigen::Matrix<double, 6, 1> const error =
+            pinocchio::log6(iMd).toVector();
         if (error.norm() < IK_TOLERANCE)
         {
             return toVector(q);
@@ -280,19 +280,22 @@ PinocchioBackend::solveIK(std::string const& p_frame,
         // that no joint can reduce by 1 / damping.
         Eigen::MatrixXd jtj = jacobian.transpose() * jacobian;
         jtj.diagonal().array() += IK_DAMPING;
-        Eigen::VectorXd velocity = -jtj.ldlt().solve(jacobian.transpose() * error);
+        Eigen::VectorXd velocity =
+            -jtj.ldlt().solve(jacobian.transpose() * error);
         if (!velocity.allFinite())
         {
             return std::nullopt;
         }
-        // A bounded step per iteration: far targets are approached, not jumped to.
+        // A bounded step per iteration: far targets are approached, not jumped
+        // to.
         double const norm = velocity.norm() * IK_STEP;
         if (norm > IK_MAX_JOINT_STEP)
         {
             velocity *= IK_MAX_JOINT_STEP / norm;
         }
         q = pinocchio::integrate(m_impl->model, q, velocity * IK_STEP);
-        // MuJoCo enforces the URDF limits: a target beyond them is never reached.
+        // MuJoCo enforces the URDF limits: a target beyond them is never
+        // reached.
         q = q.cwiseMax(m_impl->model.lowerPositionLimit)
                 .cwiseMin(m_impl->model.upperPositionLimit);
     }

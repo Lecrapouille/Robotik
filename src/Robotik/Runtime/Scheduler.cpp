@@ -166,18 +166,27 @@ void SkillScheduler::record(SkillId p_id, Seconds p_now)
     if (m_runs[p_id] < 0)
     {
         m_runs[p_id] = static_cast<std::int32_t>(m_trace.size());
-        m_trace.push_back(
-            { p_id, m_states[p_id], m_reasons[p_id], m_blockers[p_id], p_now, p_now });
+        m_trace.push_back({ p_id,
+                            m_states[p_id],
+                            m_reasons[p_id],
+                            m_blockers[p_id],
+                            p_now,
+                            p_now });
         return;
     }
     SkillRun& run = m_trace[static_cast<std::size_t>(m_runs[p_id])];
     // Keep the waiting interval on the timeline. The next phase starts here.
-    if (run.state == SkillState::Waiting && m_states[p_id] != SkillState::Waiting)
+    if (run.state == SkillState::Waiting &&
+        m_states[p_id] != SkillState::Waiting)
     {
         run.end = p_now;
         m_runs[p_id] = static_cast<std::int32_t>(m_trace.size());
-        m_trace.push_back(
-            { p_id, m_states[p_id], m_reasons[p_id], m_blockers[p_id], p_now, p_now });
+        m_trace.push_back({ p_id,
+                            m_states[p_id],
+                            m_reasons[p_id],
+                            m_blockers[p_id],
+                            p_now,
+                            p_now });
         return;
     }
     run.state = m_states[p_id];
@@ -212,11 +221,14 @@ RobotContext& SkillScheduler::contextOf(SkillId p_id) const
             return context;
         }
     }
-    throw std::runtime_error("Skill '" + m_descriptions[p_id].name + "' drives robot '" + robot +
+    throw std::runtime_error("Skill '" + m_descriptions[p_id].name +
+                             "' drives robot '" + robot +
                              "', which is not in the world");
 }
 
-void SkillScheduler::stop(SkillId p_id, SkillState p_state, SkillReason p_reason)
+void SkillScheduler::stop(SkillId p_id,
+                          SkillState p_state,
+                          SkillReason p_reason)
 {
     RobotContext& context = contextOf(p_id);
     if (m_states[p_id] == SkillState::Running)
@@ -303,7 +315,8 @@ void SkillScheduler::admit(SkillId p_id)
             }
             else
             {
-                finish(p_id, SkillState::Failed, SkillReason::Precondition, now);
+                finish(
+                    p_id, SkillState::Failed, SkillReason::Precondition, now);
             }
             return;
         }
@@ -311,7 +324,8 @@ void SkillScheduler::admit(SkillId p_id)
 
     // Each preemption frees at least one resource: bounded retries.
     Conflict conflict;
-    for (std::size_t attempt = 0; attempt <= description.resources.size(); ++attempt)
+    for (std::size_t attempt = 0; attempt <= description.resources.size();
+         ++attempt)
     {
         conflict = m_resources.conflict(description.resources);
         if (!conflict)
@@ -351,7 +365,8 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
 {
     if (p_contexts.empty())
     {
-        throw std::invalid_argument("SkillScheduler::update needs a robot context");
+        throw std::invalid_argument(
+            "SkillScheduler::update needs a robot context");
     }
     m_contexts = p_contexts;
     // Explicit cancellations.
@@ -370,7 +385,8 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
         {
             continue;
         }
-        for (ResourceRequirement const& requirement : m_descriptions[id].resources)
+        for (ResourceRequirement const& requirement :
+             m_descriptions[id].resources)
         {
             if (!m_resources.available(requirement.id))
             {

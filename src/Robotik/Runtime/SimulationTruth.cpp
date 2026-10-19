@@ -43,7 +43,8 @@ static std::string_view trim(std::string_view p_text)
 
 /// "name(a, b)" -> name and its arguments (commas inside parentheses kept,
 /// quotes stripped). Nothing when @p_term is not a call.
-static std::optional<std::pair<std::string, std::vector<std::string>>> parseCall(std::string_view p_term)
+static std::optional<std::pair<std::string, std::vector<std::string>>>
+parseCall(std::string_view p_term)
 {
     std::string_view const term = trim(p_term);
     std::size_t const open = term.find('(');
@@ -53,13 +54,15 @@ static std::optional<std::pair<std::string, std::vector<std::string>>> parseCall
     }
     std::pair<std::string, std::vector<std::string>> call;
     call.first = std::string(trim(term.substr(0, open)));
-    std::string_view const inside = term.substr(open + 1u, term.size() - open - 2u);
+    std::string_view const inside =
+        term.substr(open + 1u, term.size() - open - 2u);
     int depth = 0;
     std::size_t start = 0;
     auto push = [&](std::size_t p_end)
     {
         std::string_view argument = trim(inside.substr(start, p_end - start));
-        if (argument.size() >= 2u && argument.front() == '"' && argument.back() == '"')
+        if (argument.size() >= 2u && argument.front() == '"' &&
+            argument.back() == '"')
         {
             argument = argument.substr(1u, argument.size() - 2u);
         }
@@ -89,7 +92,8 @@ static std::optional<std::pair<std::string, std::vector<std::string>>> parseCall
 }
 
 /// "easel.canvas_mount" -> { "easel", "canvas_mount" }.
-static std::pair<std::string_view, std::string_view> splitReference(std::string_view p_reference)
+static std::pair<std::string_view, std::string_view>
+splitReference(std::string_view p_reference)
 {
     std::size_t const dot = p_reference.find('.');
     if (dot == std::string_view::npos)
@@ -102,7 +106,8 @@ static std::pair<std::string_view, std::string_view> splitReference(std::string_
 /// Angle in radians between two orientations.
 static double angleBetween(Quaternion const& p_a, Quaternion const& p_b)
 {
-    double const dot = std::abs(p_a.w * p_b.w + p_a.x * p_b.x + p_a.y * p_b.y + p_a.z * p_b.z);
+    double const dot =
+        std::abs(p_a.w * p_b.w + p_a.x * p_b.x + p_a.y * p_b.y + p_a.z * p_b.z);
     return 2.0 * std::acos(std::min(1.0, dot));
 }
 
@@ -117,15 +122,16 @@ static Vector3 halfSize(EntitySpec const& p_spec)
 
 /// Rejects a truth query whose argument count is out of range.
 static void arity(std::string const& p_name,
-           std::vector<std::string> const& p_args,
-           std::size_t p_min,
-           std::size_t p_max)
+                  std::vector<std::string> const& p_args,
+                  std::size_t p_min,
+                  std::size_t p_max)
 {
     if (p_args.size() < p_min || p_args.size() > p_max)
     {
-        throw std::invalid_argument(p_name + "() takes " + std::to_string(p_min) +
-                                    (p_min == p_max ? "" : " to " + std::to_string(p_max)) +
-                                    " argument(s)");
+        throw std::invalid_argument(
+            p_name + "() takes " + std::to_string(p_min) +
+            (p_min == p_max ? "" : " to " + std::to_string(p_max)) +
+            " argument(s)");
     }
 }
 
@@ -150,7 +156,8 @@ Simulation::Record const& Simulation::require(std::string_view p_id) const
     if (EntitySpec const* spec = m_scenario.world.find(p_id);
         spec != nullptr && spec->type == EntitySpec::Type::Tool)
     {
-        throw std::invalid_argument("tool '" + std::string(p_id) + "' is not mounted");
+        throw std::invalid_argument("tool '" + std::string(p_id) +
+                                    "' is not mounted");
     }
     throw std::invalid_argument("unknown entity '" + std::string(p_id) + "'");
 }
@@ -172,7 +179,8 @@ compages::world::Entity Simulation::entity(std::string_view p_id) const
     return found != nullptr ? found->entity : compages::world::Entity{};
 }
 
-Pose Simulation::framePose(Record const& p_record, std::string_view p_frame) const
+Pose Simulation::framePose(Record const& p_record,
+                           std::string_view p_frame) const
 {
     EntitySpec const& spec = *p_record.spec;
     std::string const frame(p_frame);
@@ -183,13 +191,14 @@ Pose Simulation::framePose(Record const& p_record, std::string_view p_frame) con
         case EntitySpec::Type::Tool:
             // A mounted tool is part of the robot chain; its tool_mount lands
             // on the flange (Pinocchio merges the two).
-            return ownerOf(spec).worldPose(frame.empty() ? p_record.spec->attach->parent_frame
-                                                         : frame);
+            return ownerOf(spec).worldPose(
+                frame.empty() ? p_record.spec->attach->parent_frame : frame);
         case EntitySpec::Type::Prop:
         {
             if (!frame.empty())
             {
-                throw std::invalid_argument("prop '" + spec.id + "' has no frame '" + frame + "'");
+                throw std::invalid_argument("prop '" + spec.id +
+                                            "' has no frame '" + frame + "'");
             }
             auto const at = p_record.entity.position();
             return { Vector3(at.x, at.y, at.z), p_record.nominal.rotation };
@@ -207,7 +216,8 @@ Pose Simulation::framePose(Record const& p_record, std::string_view p_frame) con
     }
     if (p_record.frames == nullptr || !p_record.frames->hasFrame(frame))
     {
-        throw std::invalid_argument("'" + spec.id + "' has no frame '" + frame + "'");
+        throw std::invalid_argument("'" + spec.id + "' has no frame '" + frame +
+                                    "'");
     }
     return base * p_record.frames->framePose(frame);
 }
@@ -236,7 +246,8 @@ Pose Simulation::described(std::string_view p_reference) const
         case EntitySpec::Type::Prop:
             if (!frame.empty())
             {
-                throw std::invalid_argument("prop '" + record.spec->id + "' has no frame '" +
+                throw std::invalid_argument("prop '" + record.spec->id +
+                                            "' has no frame '" +
                                             std::string(frame) + "'");
             }
             return record.nominal;
@@ -250,7 +261,8 @@ Pose Simulation::described(std::string_view p_reference) const
     std::string const link(frame);
     if (record.frames == nullptr || !record.frames->hasFrame(link))
     {
-        throw std::invalid_argument("'" + record.spec->id + "' has no frame '" + link + "'");
+        throw std::invalid_argument("'" + record.spec->id + "' has no frame '" +
+                                    link + "'");
     }
     return record.nominal * record.frames->framePose(link);
 }
@@ -260,12 +272,14 @@ std::vector<Pose> Simulation::waypoints(std::string_view p_name) const
     auto const found = m_scenario.trajectories.find(p_name);
     if (found == m_scenario.trajectories.end())
     {
-        throw std::invalid_argument("the scenario has no trajectory '" + std::string(p_name) + "'");
+        throw std::invalid_argument("the scenario has no trajectory '" +
+                                    std::string(p_name) + "'");
     }
     Trajectory const& trajectory = found->second;
     if (trajectory.type != Trajectory::Type::Cartesian)
     {
-        throw std::invalid_argument("trajectory '" + std::string(p_name) + "' is not cartesian");
+        throw std::invalid_argument("trajectory '" + std::string(p_name) +
+                                    "' is not cartesian");
     }
     Pose const frame = trajectory.frame.empty() ? Pose{ zero3(), Quaternion{} }
                                                 : described(trajectory.frame);
@@ -294,7 +308,8 @@ static std::string_view assemblyOf(EntitySpec const& p_spec)
     return {};
 }
 
-int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p_contacts) const
+int Simulation::contactsOf(Record const& p_record,
+                           std::vector<Contact> const& p_contacts) const
 {
     // A robot and its mounted tool are one assembly: a tool hitting the world
     // is a robot collision too, the robot touching its own tool is not.
@@ -303,30 +318,40 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
     auto inAssembly = [&](std::string const& p_body)
     {
         return !assembly.empty() &&
-               std::any_of(m_records.begin(), m_records.end(),
+               std::any_of(m_records.begin(),
+                           m_records.end(),
                            [&](Record const& p_peer)
-                           { return assemblyOf(*p_peer.spec) == assembly && p_peer.links.contains(p_body); });
+                           {
+                               return assemblyOf(*p_peer.spec) == assembly &&
+                                      p_peer.links.contains(p_body);
+                           });
     };
     auto mine = [&](std::string const& p_body)
     {
         return p_record.links.contains(p_body) ||
-               (p_record.spec->type == EntitySpec::Type::Robot && inAssembly(p_body));
+               (p_record.spec->type == EntitySpec::Type::Robot &&
+                inAssembly(p_body));
     };
     // A tool on the entities it works on (a drill on its workpiece).
-    auto works = [&](std::string const& p_tool_body, std::string const& p_other_body)
+    auto works =
+        [&](std::string const& p_tool_body, std::string const& p_other_body)
     {
-        auto const tool = std::find_if(m_records.begin(), m_records.end(),
-                                       [&](Record const& p_peer)
-                                       {
-                                           return p_peer.spec->type == EntitySpec::Type::Tool &&
-                                                  p_peer.links.contains(p_tool_body);
-                                       });
+        auto const tool = std::find_if(
+            m_records.begin(),
+            m_records.end(),
+            [&](Record const& p_peer)
+            {
+                return p_peer.spec->type == EntitySpec::Type::Tool &&
+                       p_peer.links.contains(p_tool_body);
+            });
         return tool != m_records.end() &&
-               std::any_of(tool->spec->touches.begin(), tool->spec->touches.end(),
+               std::any_of(tool->spec->touches.begin(),
+                           tool->spec->touches.end(),
                            [&](std::string const& p_id)
                            {
                                Record const* workpiece = record(p_id);
-                               return workpiece != nullptr && workpiece->links.contains(p_other_body);
+                               return workpiece != nullptr &&
+                                      workpiece->links.contains(p_other_body);
                            });
     };
     int count = 0;
@@ -344,7 +369,8 @@ int Simulation::contactsOf(Record const& p_record, std::vector<Contact> const& p
         {
             continue;
         }
-        if (works(contact.first, contact.second) || works(contact.second, contact.first))
+        if (works(contact.first, contact.second) ||
+            works(contact.second, contact.first))
         {
             continue;
         }
@@ -357,12 +383,16 @@ Metrics Simulation::metrics() const
 {
     Metrics metrics;
     metrics.set("time", time().value());
-    metrics.set("controller.success", m_status == bt::Status::SUCCESS ? 1.0 : 0.0);
+    metrics.set("controller.success",
+                m_status == bt::Status::SUCCESS ? 1.0 : 0.0);
     if (m_executor)
     {
-        metrics.set("planner.plans", static_cast<double>(m_executor->history().size()));
-        metrics.set("planner.replans", static_cast<double>(m_executor->replans()));
-        metrics.set("planner.steps", static_cast<double>(m_executor->plan().size()));
+        metrics.set("planner.plans",
+                    static_cast<double>(m_executor->history().size()));
+        metrics.set("planner.replans",
+                    static_cast<double>(m_executor->replans()));
+        metrics.set("planner.steps",
+                    static_cast<double>(m_executor->plan().size()));
         metrics.set("planner.done", static_cast<double>(m_executor->done()));
     }
     if (m_mission != nullptr)
@@ -376,8 +406,9 @@ Evaluation Simulation::evaluate(std::string_view p_condition) const
 {
     Metrics const table = metrics();
     return robotik::evaluate(p_condition,
-                            table,
-                            [this](std::string_view p_term) { return query(p_term); });
+                             table,
+                             [this](std::string_view p_term)
+                             { return query(p_term); });
 }
 
 std::optional<double> Simulation::query(std::string_view p_term) const
@@ -389,8 +420,9 @@ std::optional<double> Simulation::query(std::string_view p_term) const
     return metrics().get(trim(p_term));
 }
 
-std::optional<double> Simulation::call(std::string const& p_name,
-                                       std::vector<std::string> const& p_args) const
+std::optional<double>
+Simulation::call(std::string const& p_name,
+                 std::vector<std::string> const& p_args) const
 {
     auto boolean = [](bool p_value) { return p_value ? 1.0 : 0.0; };
 
@@ -417,7 +449,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
         Record const& container = require(p_args[1]);
         if (!object.spec->shape || !container.spec->shape)
         {
-            throw std::invalid_argument("inside() compares two primitive shapes");
+            throw std::invalid_argument(
+                "inside() compares two primitive shapes");
         }
         Vector3 const at = framePose(object, {}).position;
         Vector3 const center = framePose(container, {}).position;
@@ -427,7 +460,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
                 shapeOf(*container.spec), center, at, halfSize(*object.spec)));
         }
         Vector3 const half = halfSize(*container.spec);
-        return boolean(std::abs(at.x - center.x) < half.x && std::abs(at.y - center.y) < half.y &&
+        return boolean(std::abs(at.x - center.x) < half.x &&
+                       std::abs(at.y - center.y) < half.y &&
                        std::abs(at.z - center.z) < half.z);
     }
     if (p_name == "touching" || p_name == "on")
@@ -443,10 +477,12 @@ std::optional<double> Simulation::call(std::string const& p_name,
             double const height = framePose(upper, {}).position.z;
             for (Contact const& contact : backend->contactList())
             {
-                bool const between =
-                    (upper.links.contains(contact.first) && lower.links.contains(contact.second)) ||
-                    (upper.links.contains(contact.second) && lower.links.contains(contact.first));
-                if (between && (p_name == "touching" || contact.position.z < height))
+                bool const between = (upper.links.contains(contact.first) &&
+                                      lower.links.contains(contact.second)) ||
+                                     (upper.links.contains(contact.second) &&
+                                      lower.links.contains(contact.first));
+                if (between &&
+                    (p_name == "touching" || contact.position.z < height))
                 {
                     return 1.0;
                 }
@@ -455,7 +491,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
         }
         if (!upper.spec->shape || !lower.spec->shape)
         {
-            throw std::invalid_argument(p_name + "() needs two bodies or two shapes");
+            throw std::invalid_argument(p_name +
+                                        "() needs two bodies or two shapes");
         }
         // Props: the bottom face of the upper one on the top face of the
         // lower one, above its footprint.
@@ -463,8 +500,9 @@ std::optional<double> Simulation::call(std::string const& p_name,
         Vector3 const b = framePose(lower, {}).position;
         Vector3 const ha = halfSize(*upper.spec);
         Vector3 const hb = halfSize(*lower.spec);
-        bool const stacked = std::abs((a.z - ha.z) - (b.z + hb.z)) < ON_TOLERANCE_M &&
-                             std::abs(a.x - b.x) < hb.x && std::abs(a.y - b.y) < hb.y;
+        bool const stacked =
+            std::abs((a.z - ha.z) - (b.z + hb.z)) < ON_TOLERANCE_M &&
+            std::abs(a.x - b.x) < hb.x && std::abs(a.y - b.y) < hb.y;
         if (p_name == "on")
         {
             return boolean(stacked);
@@ -494,9 +532,11 @@ std::optional<double> Simulation::call(std::string const& p_name,
             throw std::invalid_argument("'" + p_args[0] + "' is not a tool");
         }
         EntitySpec const* mounted =
-            tool->attach ? m_scenario.world.mountedTool(tool->attach->parent) : nullptr;
-        bool const attached = mounted == tool &&
-                              p_args[1] == mounted->attach->parent + "." + mounted->attach->parent_frame;
+            tool->attach ? m_scenario.world.mountedTool(tool->attach->parent)
+                         : nullptr;
+        bool const attached =
+            mounted == tool && p_args[1] == mounted->attach->parent + "." +
+                                                mounted->attach->parent_frame;
         return boolean(attached);
     }
     if (p_name == "joint_limits_respected")
@@ -525,7 +565,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
                 upper = limits.upper.value();
             }
             double const at = joints.position(id);
-            if (at < lower - JOINT_LIMIT_TOLERANCE || at > upper + JOINT_LIMIT_TOLERANCE)
+            if (at < lower - JOINT_LIMIT_TOLERANCE ||
+                at > upper + JOINT_LIMIT_TOLERANCE)
             {
                 return 0.0;
             }
@@ -538,12 +579,14 @@ std::optional<double> Simulation::call(std::string const& p_name,
         VacuumGripper const* gripper = nullptr;
         for (std::unique_ptr<RobotSession> const& robot : m_robots)
         {
-            gripper = gripper != nullptr ? gripper
-                                         : robot->actuators().find<VacuumGripper>(p_args[0]);
+            gripper = gripper != nullptr
+                          ? gripper
+                          : robot->actuators().find<VacuumGripper>(p_args[0]);
         }
         if (gripper == nullptr)
         {
-            throw std::invalid_argument("'" + p_args[0] + "' is not a vacuum gripper");
+            throw std::invalid_argument("'" + p_args[0] +
+                                        "' is not a vacuum gripper");
         }
         if (!gripper->holding())
         {
@@ -556,7 +599,8 @@ std::optional<double> Simulation::call(std::string const& p_name,
         compages::world::Entity const held = m_world.entity(gripper->held());
         return boolean(held.name() == p_args[1]);
     }
-    if (p_name == "skill_started" || p_name == "skill_succeeded" || p_name == "skill_failed")
+    if (p_name == "skill_started" || p_name == "skill_succeeded" ||
+        p_name == "skill_failed")
     {
         arity(p_name, p_args, 1u, 1u);
         SkillId const id = m_scheduler->find(p_args[0]);
@@ -572,8 +616,9 @@ std::optional<double> Simulation::call(std::string const& p_name,
             }
             bool const hit = p_name == "skill_started"
                                  ? run.state != SkillState::Waiting
-                                 : run.state == (p_name == "skill_succeeded" ? SkillState::Succeeded
-                                                                             : SkillState::Failed);
+                                 : run.state == (p_name == "skill_succeeded"
+                                                     ? SkillState::Succeeded
+                                                     : SkillState::Failed);
             if (hit)
             {
                 return 1.0;

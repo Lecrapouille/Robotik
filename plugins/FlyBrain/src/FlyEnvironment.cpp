@@ -33,7 +33,8 @@ static double wrapPi(double p_angle)
 }
 
 /// @brief Distance in the ground plane. Height is checked apart from this.
-static double horizontal(FlyPlant const& p_plant, robotik::Vector3 const& p_target)
+static double horizontal(FlyPlant const& p_plant,
+                         robotik::Vector3 const& p_target)
 {
     double const dx = p_target.x - p_plant.x;
     double const dy = p_target.y - p_plant.y;

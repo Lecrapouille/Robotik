@@ -27,7 +27,8 @@ struct Box
 };
 
 /// Slab test: distance to an axis-aligned box, or infinity.
-static double hit(Box const& p_box, Vector3 const& p_origin, Vector3 const& p_dir)
+static double
+hit(Box const& p_box, Vector3 const& p_origin, Vector3 const& p_dir)
 {
     double near = 0.0;
     double far = std::numeric_limits<double>::infinity();
@@ -65,7 +66,8 @@ RangeScanner::RangeScanner(std::string p_name, RangeScannerConfig p_config)
 {
     m_config.beams = std::max(m_config.beams, 1u);
     m_config.noise.min = std::max(m_config.noise.min, 0.0);
-    m_config.noise.max = std::min(m_config.noise.max, m_config.max_range.value());
+    m_config.noise.max =
+        std::min(m_config.noise.max, m_config.max_range.value());
     m_scans.latency(m_config.latency);
 }
 
@@ -101,8 +103,7 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
     // Scene objects are axis-aligned boxes at their world position.
     std::vector<Box> boxes;
     p_robot.world().each<ecs::Shape>(
-        [&boxes](compages::world::Entity p_entity,
-                 ecs::Shape const& p_object)
+        [&boxes](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {
             if (p_entity.find<ecs::Decoration>() != nullptr)
             {
@@ -127,9 +128,10 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
         double range = max_range;
         if (backend != nullptr)
         {
-            range = std::min(range, backend->raycast(pose.position, direction,
-                                                     max_range)
-                                        .value_or(max_range));
+            range =
+                std::min(range,
+                         backend->raycast(pose.position, direction, max_range)
+                             .value_or(max_range));
         }
         for (Box const& box : boxes)
         {
@@ -150,7 +152,8 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
     scan.sequence = samples() + 1u;
     scan.valid = true;
     m_scans.push(p_now, std::move(scan));
-    m_holder = m_config.parent.empty() ? p_robot.root() : p_robot.link(m_config.parent);
+    m_holder = m_config.parent.empty() ? p_robot.root()
+                                       : p_robot.link(m_config.parent);
     return true;
 }
 

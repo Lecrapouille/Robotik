@@ -71,7 +71,7 @@ USER_LDFLAGS += -ldl
 # Compile the unit tests
 #
 SRC_FILES += $(call rwildcard,$(P)/src/Robotik/Core,*.cpp)
-ROBOTIK_MODULES := Assets Backends Environment Perception Planning Plugin Robot
+ROBOTIK_MODULES := Assets Backends Common Environment Perception Planning Plugin Robot
 ROBOTIK_MODULES += Scene Runtime Scenario Sensors Skills Systems
 SRC_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)

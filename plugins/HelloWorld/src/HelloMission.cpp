@@ -9,7 +9,8 @@
 
 #include "Robotik/Runtime/Simulation.hpp"
 
-void HelloMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
+void HelloMission::reset(robotik::Simulation& /*p_simulation*/,
+                         robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;
 }
@@ -25,7 +26,8 @@ void HelloMission::measure(robotik::Simulation const& /*p_simulation*/,
     p_metrics.set("hello.ticks", m_ticks);
 }
 
-robotik::Status HelloMission::status(robotik::Simulation const& p_simulation) const
+robotik::Status
+HelloMission::status(robotik::Simulation const& p_simulation) const
 {
     if (p_simulation.time() >= Seconds(2.0))
     {

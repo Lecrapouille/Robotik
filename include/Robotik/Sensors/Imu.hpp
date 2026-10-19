@@ -6,8 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Imu.hpp
-/// @brief Inertial measurement unit: specific force, angular velocity and
-/// attitude.
+/// Inertial measurement unit: specific force, angular velocity and attitude.
 #pragma once
 
 #include "Robotik/Math/Random.hpp"
@@ -23,7 +22,14 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Where the IMU is and how noisy it is.
+/// Where the IMU is and how noisy it is.
+///
+/// @code
+/// robotik::ImuConfig config;
+/// config.parent = "torso";
+/// config.frequency = 200.0;
+/// config.gyroscope.sigma = 0.002; // rad/s
+/// @endcode
 // ****************************************************************************
 struct ImuConfig
 {
@@ -42,9 +48,12 @@ struct ImuConfig
 };
 
 // ****************************************************************************
-/// @brief IMU measured from the motion of its frame in the world (base pose
-/// times link pose times mount), so it works with any backend that measures
-/// the base. The first sample after a reset reads the robot at rest.
+/// IMU measured from the motion of its frame in the world (base pose times
+/// link pose times mount), so it works with any backend that measures the
+/// base. The first sample after a reset reads the robot at rest.
+///
+/// The velocity and the acceleration are finite differences of the last
+/// poses, like a real IMU integrated over its period.
 ///
 /// @code
 /// auto& imu = robot.sensors().add<robotik::Imu>(
@@ -56,24 +65,40 @@ class Imu final: public Sensor
 {
 public:
 
+    // -------------------------------------------------------------------------
+    /// @param p_name Sensor name, also its resource name.
+    /// @param p_config Mount, rate, latency and noise.
+    // -------------------------------------------------------------------------
     Imu(std::string p_name, ImuConfig p_config = {});
 
+    // -------------------------------------------------------------------------
+    /// @return The configuration given at construction.
+    // -------------------------------------------------------------------------
     [[nodiscard]] ImuConfig const& config() const
     {
         return m_config;
     }
 
-    /// @brief Last delivered reading.
+    // -------------------------------------------------------------------------
+    /// @return Last delivered reading. Check @c valid before use.
+    // -------------------------------------------------------------------------
     [[nodiscard]] ImuReading const& reading() const
     {
         return m_readings.current();
     }
 
+    // -------------------------------------------------------------------------
+    /// Marks the current reading invalid (the sensor resource failed).
+    // -------------------------------------------------------------------------
     void invalidate() override
     {
         m_readings.current().valid = false;
     }
 
+    // -------------------------------------------------------------------------
+    /// Restarts the noise generator.
+    /// @param p_seed Same seed, same noise.
+    // -------------------------------------------------------------------------
     void seed(Seed p_seed)
     {
         m_random = Random(p_seed);
@@ -81,20 +106,31 @@ public:
 
 protected:
 
+    /// Measures the motion of the IMU frame and adds the noise.
     bool sample(Robot const& p_robot, Seconds p_now) override;
+    /// Forgets the previous poses (the next sample reads the robot at rest).
     void restart() override;
+    /// Publishes the readings whose latency has elapsed.
     void deliver(Seconds p_now) override;
 
 private:
 
+    /// Configuration given at construction.
     ImuConfig m_config;
+    /// Readings waiting for their latency, and the current one.
     LatencyBuffer<ImuReading> m_readings;
     /// Link entity the delivered reading is attached to.
     compages::world::Entity m_holder;
+    /// Noise generator.
     Random m_random;
+    /// World pose of the IMU frame at the previous sample.
     Pose m_previous_pose;
+    /// Linear velocity at the previous sample (m/s).
     Vector3 m_previous_velocity = zero3();
+    /// Time of the previous sample.
     Seconds m_previous_stamp{};
+    /// Number of previous samples known (0, 1 or 2): the finite differences
+    /// need two.
     int m_history = 0;
 };
 

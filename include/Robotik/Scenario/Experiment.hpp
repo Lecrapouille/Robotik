@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Experiment.hpp
-/// @brief How scenarios are run and compared: cases, seeds and evaluation.
+/// How scenarios are run and compared: cases, seeds and evaluation.
 ///
 /// @code
 /// experiment:
@@ -48,11 +48,19 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief One variant of an experiment.
+/// One variant of an experiment.
+///
+/// @code
+/// for (robotik::ExperimentCase const& c : experiment.cases)
+///     std::cout << c.id << ": " << c.scenario << ", "
+///               << c.overrides.size() << " overrides\n";
+/// @endcode
 // ****************************************************************************
 struct ExperimentCase
 {
+    /// Case id, unique in the experiment.
     std::string id;
+    /// Scenario file of the case.
     std::filesystem::path scenario;
     /// Replaces the scenario controller when set.
     std::filesystem::path behavior_tree;
@@ -60,35 +68,62 @@ struct ExperimentCase
     std::vector<std::pair<std::string, ConfigNode>> overrides;
     /// Faults added to those of the scenario.
     std::vector<Fault> faults;
+    /// Random faults added to those of the scenario.
     std::vector<RandomFault> random_faults;
 };
 
 // ****************************************************************************
-/// @brief Parsed experiment file.
+/// Parsed experiment file.
+///
+/// Each case is run once per seed; @ref scenario builds what one run needs.
+///
+/// @code
+/// auto const experiment = robotik::Experiment::load(file);
+/// for (auto const& c : experiment.cases)
+///     for (std::uint64_t seed : experiment.seeds)
+///         run(experiment.scenario(c, assets), robotik::Seed(seed));
+/// @endcode
 // ****************************************************************************
 struct Experiment
 {
+    // -------------------------------------------------------------------------
+    /// Reads an experiment file.
+    /// @param p_path A @c x.experiment.yaml file.
+    /// @return The parsed experiment.
     /// @throws std::runtime_error naming the file and the field at fault.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static Experiment load(std::filesystem::path const& p_path);
 
-    /// @brief True when the root of @p_path holds @c experiment:.
+    // -------------------------------------------------------------------------
+    /// Tells whether a YAML file is an experiment, whatever its name.
+    /// @param p_path YAML file to look at.
+    /// @return True when its root holds @c experiment:.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static bool describes(std::filesystem::path const& p_path);
 
+    /// Experiment id.
     std::string id;
+    /// Free text for the user.
     std::string description;
+    /// File the experiment was read from.
     std::filesystem::path file;
     /// Replaces the world of every scenario when set.
     std::filesystem::path world;
     /// Empty: each scenario runs with its own seed.
     std::vector<std::uint64_t> seeds;
+    /// Variants to run.
     std::vector<ExperimentCase> cases;
+    /// Assertions added to those of every scenario.
     std::vector<AssertionSpec> assertions;
     /// Values recorded at the end of every run (metric names or queries).
     std::vector<std::string> metrics;
 
     // -------------------------------------------------------------------------
-    /// @brief The scenario of @p_case once the experiment is applied: world,
-    /// overrides, controller, extra faults and extra assertions.
+    /// Builds the scenario of one case: world, overrides, controller, extra
+    /// faults and extra assertions are applied.
+    /// @param p_case Case of this experiment.
+    /// @param p_assets Resolves the models named by the files.
+    /// @return The scenario ready to run.
     // -------------------------------------------------------------------------
     [[nodiscard]] Scenario scenario(ExperimentCase const& p_case,
                                     AssetResolver const& p_assets) const;

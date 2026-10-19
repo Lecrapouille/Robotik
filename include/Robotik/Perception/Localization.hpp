@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Localization.hpp
-/// @brief Robot pose in a map from fiducials of known placement.
+/// Robot pose in a map from fiducials of known placement.
 ///
 /// Works with any detector that fills @ref Detection::id and
 /// @ref Detection::pose (AprilTag, ArUco...). The chain is
@@ -25,17 +25,28 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief A fiducial of known placement in the map frame.
+/// A fiducial of known placement in the map frame.
+///
+/// @code
+/// robotik::Landmark tag{ .id = 7, .pose = Pose{ Vector3{ 2.0, 0.0, 0.5 } } };
+/// @endcode
 // ****************************************************************************
 struct Landmark
 {
+    /// Fiducial id, matched to @ref Detection::id.
     int id = -1;
     /// Fiducial frame in the map (same convention as the detector poses).
     Pose pose;
 };
 
 // ****************************************************************************
-/// @brief Result of a localization.
+/// Result of a localization.
+///
+/// @code
+/// if (auto const where = robotik::localize(detections, landmarks))
+///     std::cout << where->pose.position.x << " from " << where->landmarks << "
+///     tags\n";
+/// @endcode
 // ****************************************************************************
 struct Localization
 {
@@ -46,8 +57,15 @@ struct Localization
 };
 
 // ----------------------------------------------------------------------------
-/// @brief Averages the robot pose given by every known fiducial of a frame.
-/// @return Nothing when no detection matched a landmark.
+/// Averages the robot pose given by every known fiducial of a frame.
+///
+/// Detections without a known id, or without a pose, are skipped. More tags
+/// give a more stable result.
+///
+/// @param p_detections Detections of one camera frame, with their pose in
+///   the robot base frame.
+/// @param p_landmarks Known fiducials of the map.
+/// @return The robot pose, or nothing when no detection matched a landmark.
 // ----------------------------------------------------------------------------
 [[nodiscard]] std::optional<Localization>
 localize(Detections const& p_detections, std::span<Landmark const> p_landmarks);

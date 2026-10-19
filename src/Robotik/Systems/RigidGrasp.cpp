@@ -23,7 +23,8 @@ namespace robotik
 /// still grasps it (same as the abstract level).
 static constexpr double kContactDistanceM = 0.02;
 
-std::string RigidGrasp::weldName(std::string const& p_gripper, std::string const& p_object)
+std::string RigidGrasp::weldName(std::string const& p_gripper,
+                                 std::string const& p_object)
 {
     return "robotik_grasp_" + p_gripper + "_" + p_object;
 }
@@ -48,10 +49,12 @@ void RigidGrasp::update(Robot& p_robot)
         Graspable const* held = nullptr;
         if (gripper->holding() && world.alive(gripper->held()))
         {
-            ecs::Shape const* shape = world.entity(gripper->held()).find<ecs::Shape>();
+            ecs::Shape const* shape =
+                world.entity(gripper->held()).find<ecs::Shape>();
             for (Graspable const& object : m_objects)
             {
-                held = shape != nullptr && object.id == shape->name ? &object : held;
+                held = shape != nullptr && object.id == shape->name ? &object
+                                                                    : held;
             }
             if (held == nullptr)
             {
@@ -73,17 +76,21 @@ void RigidGrasp::update(Robot& p_robot)
             compages::world::EntityId best_id{};
             for (Graspable const& object : m_objects)
             {
-                compages::world::Entity const entity = findObject(world, object.id);
+                compages::world::Entity const entity =
+                    findObject(world, object.id);
                 if (!entity)
                 {
                     continue;
                 }
-                // The top or the bottom face: a cup takes it from above or below.
+                // The top or the bottom face: a cup takes it from above or
+                // below.
                 auto const at = entity.position();
-                Vector3 const center(static_cast<double>(at.x), static_cast<double>(at.y),
+                Vector3 const center(static_cast<double>(at.x),
+                                     static_cast<double>(at.y),
                                      static_cast<double>(at.z));
                 Vector3 const half(0.0, 0.0, object.half_height);
-                double const gap = std::min((center + half - tip).norm(), (center - half - tip).norm());
+                double const gap = std::min((center + half - tip).norm(),
+                                            (center - half - tip).norm());
                 if (gap <= best_gap)
                 {
                     best = &object;
@@ -91,7 +98,8 @@ void RigidGrasp::update(Robot& p_robot)
                     best_id = entity.id();
                 }
             }
-            if (best != nullptr && backend->weld(weldName(gripper->name(), best->id), true))
+            if (best != nullptr &&
+                backend->weld(weldName(gripper->name(), best->id), true))
             {
                 gripper->held(best_id);
             }

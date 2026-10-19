@@ -35,7 +35,8 @@ TEST(Joints, PositionLoopSlewsTheReference)
 
 TEST(Joints, InfiniteSpeedRatioAimsAtTheTargetAtOnce)
 {
-    robotik::JointSet joints = oneJoint(std::numeric_limits<double>::infinity());
+    robotik::JointSet joints =
+        oneJoint(std::numeric_limits<double>::infinity());
     joints.control(Seconds(0.001));
     EXPECT_NEAR(joints.effort(0), 100.0, 1e-9);
 }

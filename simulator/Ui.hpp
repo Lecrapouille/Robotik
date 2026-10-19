@@ -22,7 +22,6 @@
 
 #include <string>
 
-
 // --- Shared helpers (Widgets.cpp) -------------------------------------------
 
 /// @brief Window title of a panel in one workspace: "Name##key".
@@ -39,7 +38,9 @@ void emptyState(char const* p_text);
 
 /// @brief ImGui::BeginTable with a smaller font and tighter cells, so that
 /// columns are not cut. Call endTable() only when it returns true.
-bool beginTable(char const* p_id, int p_columns, ImGuiTableFlags p_flags = 0,
+bool beginTable(char const* p_id,
+                int p_columns,
+                ImGuiTableFlags p_flags = 0,
                 ImVec2 const& p_size = ImVec2(0.0f, 0.0f));
 void endTable();
 
@@ -106,7 +107,9 @@ void experimentView(App& p_app);
 /// loaded, an experiment becomes the one of the Experiment panel.
 void showFile(App& p_app, std::filesystem::path const& p_path);
 /// @brief Makes @p_path the experiment of the Experiment panel.
-void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_focus);
+void selectExperiment(App& p_app,
+                      std::filesystem::path const& p_path,
+                      bool p_focus);
 /// @brief Every asset pack found: models, version, license, source.
 void assetsPanel(App& p_app);
 void filesPanel(App& p_app);

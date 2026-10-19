@@ -9,11 +9,11 @@
 #include "WalkSkills.hpp"
 
 #include "Robotik/Backends/MujocoBackend.hpp"
+#include "Robotik/Backends/SceneView.hpp"
 #include "Robotik/Runtime/Metrics.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Backends/SceneView.hpp"
-#include "Robotik/Sensors/Image.hpp"
 #include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Sensors/Image.hpp"
 
 #include <cmath>
 #include <limits>
@@ -39,12 +39,14 @@ Seconds WalkMission::physicsStep()
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view)
+void WalkMission::setup(robotik::Simulation& p_simulation,
+                        robotik::SceneView* p_view)
 {
     robotik::Scenario const& scenario = p_simulation.scenario();
     m_base = scenario.world.robot().id + "." + BASE_LINK;
     std::filesystem::path const& urdf = scenario.world.robot().model;
-    WalkContract contract = WalkContract::load(urdf.parent_path() / "walk.yaml");
+    WalkContract contract =
+        WalkContract::load(urdf.parent_path() / "walk.yaml");
 
     // A free base on a floor, no gravity compensation, the rotor inertia.
     robotik::MujocoOptions options;
@@ -95,8 +97,8 @@ void WalkMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* p
     describe.name = "Stand";
     p_simulation.skills().add<StandSkill>(describe, body, posture, stand);
     describe.name = "Walk";
-    m_walk = p_simulation.skills().add<WalkSkill>(describe, body, *m_policy, m_command, walk,
-                                                  period);
+    m_walk = p_simulation.skills().add<WalkSkill>(
+        describe, body, *m_policy, m_command, walk, period);
 
     if (p_view != nullptr)
     {
@@ -110,7 +112,8 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
     // Grey tiles of one metre: the circle of one metre is easy to read.
     constexpr std::uint32_t TILES = GROUND_SIZE_M / GROUND_TILE_M;
     constexpr std::uint32_t PIXELS = 8u;
-    robotik::Image ground(TILES * PIXELS, TILES * PIXELS, robotik::PixelFormat::RGB8);
+    robotik::Image ground(
+        TILES * PIXELS, TILES * PIXELS, robotik::PixelFormat::RGB8);
     std::span<std::uint8_t> bytes = ground.bytes();
     for (std::uint32_t row = 0; row < ground.height(); ++row)
     {
@@ -124,11 +127,14 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
             bytes[at + 2u] = static_cast<std::uint8_t>(level + 8u);
         }
     }
-    p_view.ground(ground, static_cast<double>(GROUND_SIZE_M), static_cast<double>(GROUND_SIZE_M));
+    p_view.ground(ground,
+                  static_cast<double>(GROUND_SIZE_M),
+                  static_cast<double>(GROUND_SIZE_M));
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::reset(robotik::Simulation& p_simulation, robotik::Seed /*p_seed*/)
+void WalkMission::reset(robotik::Simulation& p_simulation,
+                        robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
     robotik::Pose const base = p_simulation.pose(m_base);
@@ -149,14 +155,16 @@ void WalkMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
     m_height = base.position.z;
     m_height_min = std::min(m_height_min, base.position.z);
 
-    bool const walking = p_simulation.skills().state(m_walk) == robotik::SkillState::Running;
+    bool const walking =
+        p_simulation.skills().state(m_walk) == robotik::SkillState::Running;
     double const yaw = robotik::yawOf(base.rotation);
     double const x = base.position.x;
     double const y = base.position.y;
     if (walking)
     {
         m_distance += std::hypot(x - m_last_x, y - m_last_y);
-        m_yaw_turned += std::remainder(yaw - m_last_yaw, 2.0 * std::numbers::pi);
+        m_yaw_turned +=
+            std::remainder(yaw - m_last_yaw, 2.0 * std::numbers::pi);
         double const now = p_simulation.time().value();
         if (m_path.empty() || now >= m_next_sample)
         {
@@ -202,7 +210,8 @@ double WalkMission::turns() const
 
 double WalkMission::commandedRadius() const
 {
-    return std::abs(m_command[2]) > 1e-6 ? std::abs(m_command[0] / m_command[2]) : 0.0;
+    return std::abs(m_command[2]) > 1e-6 ? std::abs(m_command[0] / m_command[2])
+                                         : 0.0;
 }
 
 // ----------------------------------------------------------------------------

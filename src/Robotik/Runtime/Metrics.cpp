@@ -158,8 +158,8 @@ Evaluation evaluate(std::string_view p_condition,
     }
     double reference = 0.0;
     std::string_view const number = comparison->number;
-    auto const [end_, error] =
-        std::from_chars(number.data(), number.data() + number.size(), reference);
+    auto const [end_, error] = std::from_chars(
+        number.data(), number.data() + number.size(), reference);
     if (error != std::errc{} || end_ != number.data() + number.size())
     {
         result.known = false;

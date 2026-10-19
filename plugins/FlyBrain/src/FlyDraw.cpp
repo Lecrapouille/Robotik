@@ -26,9 +26,8 @@ static float lengthOf(compages::core::Vector3f const& p_vector)
 
 /// @brief Places one joint when the URDF has it. A missing name is skipped,
 /// so a shorter model still draws.
-static void poseJoint(robotik::Robot& p_robot,
-               std::string const& p_name,
-               double p_angle)
+static void
+poseJoint(robotik::Robot& p_robot, std::string const& p_name, double p_angle)
 {
     robotik::JointId const id = p_robot.joints().find(p_name);
     if (id != robotik::NO_JOINT)
@@ -81,7 +80,8 @@ void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot)
     robotik::Pose pose;
     pose.position = robotik::Vector3(
         p_snapshot.plant.x, p_snapshot.plant.y, p_snapshot.plant.z);
-    pose.rotation = robotik::rpy(Radians(0.0), Radians(0.0), Radians(p_snapshot.plant.yaw));
+    pose.rotation =
+        robotik::rpy(Radians(0.0), Radians(0.0), Radians(p_snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 

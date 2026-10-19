@@ -22,7 +22,8 @@ class WaveSkill final: public robotik::Skill
 public:
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -38,5 +39,6 @@ class SkillsMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Simulation& p_simulation, robotik::SceneView* p_view) override;
+    void setup(robotik::Simulation& p_simulation,
+               robotik::SceneView* p_view) override;
 };

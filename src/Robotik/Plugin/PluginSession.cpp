@@ -18,7 +18,8 @@ namespace robotik
 {
 
 /// Copies a name into a fixed C buffer and terminates it.
-static void copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
+static void
+copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
 {
     if (p_dest == nullptr || p_capacity == 0u)
     {
@@ -66,7 +67,8 @@ bool PluginSession::dependenciesMet(PluginPackage const& p_package)
     {
         if (m_catalog.findPackage(plugin) == nullptr)
         {
-            fallback(p_package.id + ": plugin '" + plugin + "' is not installed");
+            fallback(p_package.id + ": plugin '" + plugin +
+                     "' is not installed");
             return false;
         }
     }

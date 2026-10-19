@@ -23,13 +23,18 @@ void badge(char const* p_text, ImVec4 const& p_color)
     ImVec2 const at = ImGui::GetCursorScreenPos();
     ImVec2 const text = ImGui::CalcTextSize(p_text);
     ImVec2 const pad(6.0f, 1.0f);
-    ImVec2 const size(text.x + 2.0f * pad.x, ImGui::GetTextLineHeight() + 2.0f * pad.y);
+    ImVec2 const size(text.x + 2.0f * pad.x,
+                      ImGui::GetTextLineHeight() + 2.0f * pad.y);
     ImVec4 fill = p_color;
     fill.w = 0.22f;
     ImDrawList* draw = ImGui::GetWindowDrawList();
-    draw->AddRectFilled(at, ImVec2(at.x + size.x, at.y + size.y),
-                        ImGui::GetColorU32(fill), size.y * 0.5f);
-    draw->AddText(ImVec2(at.x + pad.x, at.y + pad.y), ImGui::GetColorU32(p_color), p_text);
+    draw->AddRectFilled(at,
+                        ImVec2(at.x + size.x, at.y + size.y),
+                        ImGui::GetColorU32(fill),
+                        size.y * 0.5f);
+    draw->AddText(ImVec2(at.x + pad.x, at.y + pad.y),
+                  ImGui::GetColorU32(p_color),
+                  p_text);
     ImGui::Dummy(size);
 }
 
@@ -49,9 +54,12 @@ void emptyState(char const* p_text)
 {
     ImVec2 const avail = ImGui::GetContentRegionAvail();
     ImVec2 const text = ImGui::CalcTextSize(p_text, nullptr, false, avail.x);
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + std::max(0.0f, (avail.x - text.x) * 0.5f));
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + std::max(0.0f, (avail.y - text.y) * 0.4f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
+                         std::max(0.0f, (avail.x - text.x) * 0.5f));
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() +
+                         std::max(0.0f, (avail.y - text.y) * 0.4f));
+    ImGui::PushStyleColor(ImGuiCol_Text,
+                          ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
     ImGui::TextWrapped("%s", p_text);
     ImGui::PopStyleColor();
 }
@@ -59,7 +67,10 @@ void emptyState(char const* p_text)
 // Tables use this fraction of the base font size.
 constexpr float TABLE_FONT = 0.87f;
 
-bool beginTable(char const* p_id, int p_columns, ImGuiTableFlags p_flags, ImVec2 const& p_size)
+bool beginTable(char const* p_id,
+                int p_columns,
+                ImGuiTableFlags p_flags,
+                ImVec2 const& p_size)
 {
     ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * TABLE_FONT);
     ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(4.0f, 2.0f));
@@ -112,16 +123,20 @@ void textView(std::filesystem::path const& p_path, std::string const& p_text)
     {
         std::size_t const end = rest.find('\n');
         lines.push_back(rest.substr(0, end));
-        rest = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1u);
+        rest = end == std::string_view::npos ? std::string_view{}
+                                             : rest.substr(end + 1u);
     }
 
     SyntaxPainter painter(p_path);
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.09f, 0.10f, 1.0f));
-    if (ImGui::BeginChild("##text", ImVec2(0.0f, 0.0f), ImGuiChildFlags_None,
+    if (ImGui::BeginChild("##text",
+                          ImVec2(0.0f, 0.0f),
+                          ImGuiChildFlags_None,
                           ImGuiWindowFlags_HorizontalScrollbar))
     {
         ImGui::PushFont(monoFont(), 0.0f);
-        int const digits = static_cast<int>(std::to_string(lines.size()).size());
+        int const digits =
+            static_cast<int>(std::to_string(lines.size()).size());
         int seen = 0;
         ImGuiListClipper clipper;
         clipper.Begin(static_cast<int>(lines.size()));
@@ -137,7 +152,8 @@ void textView(std::filesystem::path const& p_path, std::string const& p_text)
                 painter.skip(lines[static_cast<std::size_t>(seen)]);
                 ++seen;
             }
-            for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
+            for (int row = clipper.DisplayStart; row < clipper.DisplayEnd;
+                 ++row)
             {
                 ImGui::TextDisabled("%*d", digits, row + 1);
                 ImGui::SameLine();
@@ -169,7 +185,8 @@ void rangeBar(double p_value,
     double const span = p_upper - p_lower;
     auto place = [&](double p_x)
     {
-        double const ratio = span > 0.0 ? std::clamp((p_x - p_lower) / span, 0.0, 1.0) : 0.5;
+        double const ratio =
+            span > 0.0 ? std::clamp((p_x - p_lower) / span, 0.0, 1.0) : 0.5;
         return at.x + static_cast<float>(ratio) * width;
     };
     // Bars of a signed quantity grow from zero when zero is inside the range.
@@ -180,13 +197,19 @@ void rangeBar(double p_value,
     fill.w = 0.55f;
     draw->AddRectFilled(ImVec2(std::min(x0, x1), at.y + 2.0f),
                         ImVec2(std::max(x0, x1) + 1.0f, end.y - 2.0f),
-                        ImGui::GetColorU32(fill), 2.0f);
+                        ImGui::GetColorU32(fill),
+                        2.0f);
     if (p_has_target)
     {
         float const x = place(p_target);
-        draw->AddLine(ImVec2(x, at.y), ImVec2(x, end.y), ImGui::GetColorU32(ORANGE), 2.0f);
+        draw->AddLine(ImVec2(x, at.y),
+                      ImVec2(x, end.y),
+                      ImGui::GetColorU32(ORANGE),
+                      2.0f);
     }
     ImVec2 const text = ImGui::CalcTextSize(p_label);
-    draw->AddText(ImVec2(at.x + (width - text.x) * 0.5f, at.y + (height - text.y) * 0.5f),
-                  ImGui::GetColorU32(ImGuiCol_Text), p_label);
+    draw->AddText(
+        ImVec2(at.x + (width - text.x) * 0.5f, at.y + (height - text.y) * 0.5f),
+        ImGui::GetColorU32(ImGuiCol_Text),
+        p_label);
 }

@@ -6,8 +6,8 @@
 // See LICENSING.md for details.
 
 /// @file Simulation.hpp
-/// @brief Runs a scenario: builds its world, drives the controller, applies
-/// the faults and judges the assertions. Headless unless a @ref SceneView is
+/// Runs a scenario: builds its world, drives the controller, applies the
+/// faults and judges the assertions. Headless unless a @ref SceneView is
 /// given.
 #pragma once
 
@@ -53,7 +53,7 @@ struct Shape;
 }
 
 // ****************************************************************************
-/// @brief One scenario instance, replayable from a seed.
+/// One scenario instance, replayable from a seed.
 ///
 /// Each @ref step: faults, behavior tree tick (requests skills), scheduler
 /// update (admits and ticks skills), robot step (physics, sensors, perception
@@ -82,15 +82,16 @@ class Simulation
 {
 public:
 
-    /// @brief Why a run ended.
+    /// Why a run ended.
     enum class Outcome : std::uint8_t
     {
-        Running,
-        ControllerSucceeded,
-        ControllerFailed,
-        StopCondition,
-        Timeout,
-        AssertionFailed,
+        Running,             ///< Not ended.
+        ControllerSucceeded, ///< The tree, the planner or the mission
+                             ///< succeeded.
+        ControllerFailed,    ///< The tree, the planner or the mission failed.
+        StopCondition,       ///< The @c stop_when condition holds.
+        Timeout,             ///< The @c timeout elapsed.
+        AssertionFailed,     ///< An assertion marked @c stop failed.
         /// The host ended the run (@ref conclude).
         Interrupted,
     };
@@ -98,8 +99,15 @@ public:
     Simulation(Simulation const&) = delete;
     Simulation& operator=(Simulation const&) = delete;
 
+    // -------------------------------------------------------------------------
+    /// Builds the world of the scenario (robots, sensors, objects, physics),
+    /// calls @ref Mission::setup, then resets with the scenario seed.
+    /// @param p_world ECS world receiving the entities.
+    /// @param p_scenario Scenario to run.
     /// @param p_view Rendering hooks, or null for a headless run.
     /// @param p_mission Task plugin (skills, detectors, metrics); not owned.
+    /// @throws std::runtime_error when the world cannot be built.
+    // -------------------------------------------------------------------------
     Simulation(compages::world::World& p_world,
                Scenario p_scenario,
                SceneView* p_view = nullptr,
@@ -107,85 +115,97 @@ public:
     ~Simulation();
 
     // -------------------------------------------------------------------------
-    /// @brief Starts a new episode: same seed, same episode.
-    ///
-    /// @p_seed derives the prop layout ("world"), the faults ("faults") and
-    /// the sensor noise (one stream per sensor name).
+    /// Starts a new episode: same seed, same episode.
+    /// @param p_seed Derives the prop layout ("world"), the faults
+    ///   ("faults") and the sensor noise (one stream per sensor name).
     // -------------------------------------------------------------------------
     void reset(Seed p_seed);
 
-    /// @brief New episode with the scenario seed.
+    /// New episode with the scenario seed.
     void reset()
     {
         reset(Seed{ m_scenario.seed });
     }
 
+    // -------------------------------------------------------------------------
+    /// Advances the run by one step (see the class comment for the order).
+    /// @param p_dt Duration of the step.
+    // -------------------------------------------------------------------------
     void step(Seconds p_dt);
 
     // -------------------------------------------------------------------------
-    /// @brief Operator mode: physics and sensors keep running, the behavior
-    /// tree, the scheduler, the mission and the assertions do not. Joint
-    /// commands then come from the teach pendant.
+    /// Operator mode: physics and sensors keep running, the behavior tree,
+    /// the scheduler, the mission and the assertions do not. Joint commands
+    /// then come from the teach pendant.
+    /// @param p_on True to suspend, false to resume.
     // -------------------------------------------------------------------------
     void suspend(bool p_on)
     {
         m_suspended = p_on;
     }
 
+    /// @return True in operator mode.
     [[nodiscard]] bool suspended() const
     {
         return m_suspended;
     }
 
+    /// @return The scenario being run.
     [[nodiscard]] Scenario const& scenario() const
     {
         return m_scenario;
     }
 
+    /// @return Seed of the current episode.
     [[nodiscard]] Seed seed() const
     {
         return m_seed;
     }
 
+    /// @return Simulated time since the reset.
     [[nodiscard]] Seconds time() const
     {
         return m_robot->time();
     }
 
-    /// @brief The first robot of the world file.
+    /// @return The first robot of the world file.
     [[nodiscard]] RobotSession& robot() const
     {
         return *m_robot;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Robot of entity id @p_id, or null. The robots of a world share
-    /// one physics, one resource manager, one scheduler and the beliefs.
+    /// Finds a robot. The robots of a world share one physics, one resource
+    /// manager, one scheduler and the beliefs.
+    /// @param p_id Entity id in the world file.
+    /// @return The robot, or null.
     // -------------------------------------------------------------------------
     [[nodiscard]] RobotSession* robot(std::string_view p_id) const;
 
-    /// @brief Every robot, in world file order (the first is @ref robot()).
-    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const& robots() const
+    /// @return Every robot, in world file order (the first is @ref robot()).
+    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const&
+    robots() const
     {
         return m_robots;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Frame of the beliefs in the world: the base of the robot when
-    /// it is alone, the world itself when the robots share them (a skill
-    /// then uses its own base: @c robot.base().pose.inverse() * belief).
+    /// @return Frame of the beliefs in the world: the base of the robot when
+    ///   it is alone, the world itself when the robots share them (a skill
+    ///   then uses its own base: @c robot.base().pose.inverse() * belief).
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose beliefFrame() const;
 
+    /// @return The beliefs shared by the robots.
     [[nodiscard]] WorldModel& worldModel()
     {
         return m_world_model;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Entity of the Z-up frame of the world, at its origin: the parent
-    /// of the props. Hang on it what stays in the world (a floor), not on the
-    /// root of a robot, which moves with a floating base.
+    /// @return Entity of the Z-up frame of the world, at its origin: the
+    ///   parent of the props. Hang on it what stays in the world (a floor),
+    ///   not on the root of a robot, which moves with a floating base.
     // -------------------------------------------------------------------------
     [[nodiscard]] compages::world::Entity worldFrame() const
     {
@@ -193,129 +213,151 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Options of the physics the core builds after
-    /// @ref Mission::setup: a mission may tune them there (a floating base,
-    /// no gravity compensation, the step and the rotors of a legged robot).
-    /// The world still adds its floor. The robots, tools, bodies and rigid
-    /// props of the world are loaded as usual.
+    /// Options of the physics the core builds after @ref Mission::setup: a
+    /// mission may tune them there (a floating base, no gravity
+    /// compensation, the step and the rotors of a legged robot). The world
+    /// still adds its floor. The robots, tools, bodies and rigid props of the
+    /// world are loaded as usual.
+    ///
+    /// @code
+    /// void Walk::setup(robotik::Simulation& p_sim, robotik::SceneView*)
+    /// {
+    ///     p_sim.physicsOptions().floating_base = true;
+    ///     p_sim.physicsOptions().gravity_compensation = false;
+    /// }
+    /// @endcode
+    ///
+    /// @return The options, to change in place.
     // -------------------------------------------------------------------------
     [[nodiscard]] MujocoOptions& physicsOptions()
     {
         return m_physics_options;
     }
 
+    /// @copydoc worldModel()
     [[nodiscard]] WorldModel const& worldModel() const
     {
         return m_world_model;
     }
 
-    /// @brief Detectors run on every camera frame (empty by default).
+    /// @return Detectors run on every camera frame (empty by default).
     [[nodiscard]] PerceptionPipeline& perception()
     {
         return m_perception;
     }
 
+    /// @copydoc perception()
     [[nodiscard]] PerceptionPipeline const& perception() const
     {
         return m_perception;
     }
 
+    /// @return The scheduler of every skill of the world.
     [[nodiscard]] SkillScheduler& skills() const
     {
         return *m_scheduler;
     }
 
-    /// @brief Factory the behavior tree is built from. Skills registered
-    /// later under the same name replace a node added here.
+    /// @return Factory the behavior tree is built from. Skills registered
+    ///   later under the same name replace a node added here.
     [[nodiscard]] bt::NodeFactory& factory()
     {
         return m_factory;
     }
 
+    /// @return The faults of the scenario.
     [[nodiscard]] FaultInjector& faults()
     {
         return m_faults;
     }
 
-    /// @brief Context of the first robot.
+    /// @return Context of the first robot.
     [[nodiscard]] RobotContext& context()
     {
         return m_contexts.front();
     }
 
-    /// @brief Context of robot @p_id. @throws std::invalid_argument if none.
+    // -------------------------------------------------------------------------
+    /// @param p_id Robot entity id.
+    /// @return Context of the robot.
+    /// @throws std::invalid_argument if there is no such robot.
+    // -------------------------------------------------------------------------
     [[nodiscard]] RobotContext& context(std::string_view p_id);
 
-    /// @brief First camera of the robots, or null.
+    /// @return First camera of the robots, or null.
     [[nodiscard]] Camera* camera() const;
 
-    /// @brief The ground truth feeds the world model (see @ref OraclePolicy).
+    /// @return True when the ground truth feeds the world model (see
+    ///   @ref OraclePolicy).
     [[nodiscard]] bool oracle() const
     {
         return m_oracle;
     }
 
-    /// @brief Behavior tree, or null if the controller has none. With a
-    /// planner: the tree of the current plan.
+    /// @return Behavior tree, or null if the controller has none. With a
+    ///   planner: the tree of the current plan.
     [[nodiscard]] bt::Tree const* tree() const
     {
         return m_executor ? m_executor->tree() : m_tree.get();
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Observers and bindings of the PDDL planner. The mission fills
-    /// them in @ref Mission::setup; they are used when the scenario
-    /// controller is a @c planner (see @ref PlanningDomain).
+    /// @return Observers and bindings of the PDDL planner. The mission fills
+    ///   them in @ref Mission::setup; they are used when the scenario
+    ///   controller is a @c planner (see @ref PlanningDomain).
     // -------------------------------------------------------------------------
     [[nodiscard]] PlanningDomain& planning()
     {
         return m_planning;
     }
 
-    /// @brief The planner controller, or null when the scenario has none.
+    /// @return The planner controller, or null when the scenario has none.
     [[nodiscard]] PlanExecutor* planner() const
     {
         return m_executor.get();
     }
 
-    /// @brief Controller status (behavior tree, or mission without one).
+    /// @return Controller status (behavior tree, or mission without one).
     [[nodiscard]] bt::Status status() const
     {
         return m_status;
     }
 
-    // --- End of run -----------------------------------------------------------
+    // --- End of run
+    // -----------------------------------------------------------
 
+    /// @return Why the run ended, or @c Running.
     [[nodiscard]] Outcome outcome() const
     {
         return m_outcome;
     }
 
+    /// @return True once the run ended (the physics may keep running).
     [[nodiscard]] bool finished() const
     {
         return m_outcome != Outcome::Running;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Ends the run now (the host's own limit): pending assertions get
-    /// their final verdict. No effect on a finished run.
+    /// Ends the run now (the host's own limit): pending assertions get their
+    /// final verdict. No effect on a finished run.
     // -------------------------------------------------------------------------
     void conclude();
 
-    /// @brief Assertions with their verdicts (live while running).
+    /// @return Assertions with their verdicts (live while running).
     [[nodiscard]] std::vector<Check> const& checks() const
     {
         return m_assertions.checks();
     }
 
-    /// @brief Run finished and every assertion passed.
+    /// @return True when the run finished and every assertion passed.
     [[nodiscard]] bool passed() const
     {
         return m_assertions.passed();
     }
 
-    /// @brief Peak count of simultaneous contacts (floor excluded) since the
-    /// last reset, whatever the bodies.
+    /// @return Peak count of simultaneous contacts (floor excluded) since
+    ///   the last reset, whatever the bodies.
     [[nodiscard]] int maxContacts() const
     {
         return m_max_contacts;
@@ -324,67 +366,87 @@ public:
     // --- Ground truth (world frame; for evaluation, not for skills) ----------
 
     // -------------------------------------------------------------------------
-    /// @brief Pose of @c entity or @c entity.frame: a robot link, a link of a
-    /// body model, or the origin of a prop or a primitive body.
+    /// True pose of an entity or one of its frames.
+    /// @param p_reference @c entity or @c entity.frame: a robot link, a link
+    ///   of a body model, or the origin of a prop or a primitive body.
+    /// @return The pose in the world frame.
     /// @throws std::invalid_argument for an unknown entity or frame.
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose pose(std::string_view p_reference) const;
 
-    /// @brief Pose of @p_id when the episode started.
+    /// @return Pose of entity @p_id when the episode started.
     [[nodiscard]] Pose initialPose(std::string_view p_id) const;
 
-    /// @brief ECS entity of @p_id (props, primitive bodies, rendered models),
-    /// or an empty handle.
+    /// @return ECS entity of @p_id (props, primitive bodies, rendered
+    ///   models), or an empty handle.
     [[nodiscard]] compages::world::Entity entity(std::string_view p_id) const;
 
     // -------------------------------------------------------------------------
-    /// @brief A primitive drawn for the eye only (beam, trail), in the Z-up
+    /// Adds a primitive drawn for the eye only (beam, trail), in the Z-up
     /// world frame: its position and rotation are world coordinates. It is
     /// not an entity of the world: nothing collides with it, and assertions
     /// cannot name it. The mission moves it.
+    /// @param p_object Shape, size and color.
+    /// @return The new entity.
     // -------------------------------------------------------------------------
     compages::world::Entity decorate(ecs::Shape const& p_object);
 
     // -------------------------------------------------------------------------
-    /// @brief Value of a metric or of a world query, as used in conditions:
+    /// Value of a metric or of a world query, as used in conditions:
     /// @c time, @c controller.success, mission metrics, @c pose_error(e),
     /// @c orientation_error(e), @c distance(a, b), @c inside(a, b),
     /// @c on(a, b), @c touching(a, b), @c collision_count(e),
     /// @c tool_is_attached(tool, robot.flange), @c joint_limits_respected(r),
     /// @c holding(gripper[, object]), @c skill_started(name),
     /// @c skill_succeeded(name), @c skill_failed(name).
-    /// @return Nothing for an unknown name.
+    ///
+    /// @code
+    /// double const d = sim.query("distance(robot.tcp,
+    /// red_cube)").value_or(-1.0);
+    /// @endcode
+    ///
+    /// @param p_term Metric name or query.
+    /// @return The value; nothing for an unknown name.
     /// @throws std::invalid_argument for a known query on an unknown entity.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<double> query(std::string_view p_term) const;
 
-    /// @brief Evaluates a condition (see @ref evaluate in Metrics.hpp).
+    // -------------------------------------------------------------------------
+    /// Evaluates a condition (see @ref evaluate in Metrics.hpp) on the
+    /// metrics and the queries.
+    /// @param p_condition E.g. @c "inside(red_cube, box)".
+    /// @return What was measured and whether it holds.
+    // -------------------------------------------------------------------------
     [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const;
 
     // --- Described world (what the robot was told) ---------------------------
 
     // -------------------------------------------------------------------------
-    /// @brief Pose of @c entity or @c entity.frame as the world file
-    /// describes it at the start, not as it is now: a prior the robot may
-    /// plan from. Robot frames come from its own kinematics.
+    /// Pose of an entity as the world file describes it at the start, not
+    /// as it is now: a prior the robot may plan from. Robot frames come from
+    /// its own kinematics.
+    /// @param p_reference @c entity or @c entity.frame.
+    /// @return The pose in the world frame.
     /// @throws std::invalid_argument for an unknown entity or frame.
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose described(std::string_view p_reference) const;
 
     // -------------------------------------------------------------------------
-    /// @brief Points of the cartesian trajectory @p_name of the scenario, in
-    /// the robot base frame (its frame placed where the world file says).
+    /// Points of a cartesian trajectory of the scenario, in the robot base
+    /// frame (its frame placed where the world file says).
+    /// @param p_name Key under @c trajectories: in the scenario.
+    /// @return The poses, in order.
     /// @throws std::invalid_argument for an unknown or non cartesian one.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<Pose> waypoints(std::string_view p_name) const;
 
     // -------------------------------------------------------------------------
-    /// @brief Copies the ground-truth prop positions into the @ref WorldModel.
-    /// Used by the RL overlay (same observations as the headless env).
+    /// Copies the ground-truth prop positions into the @ref WorldModel. Used
+    /// by the RL overlay (same observations as the headless env).
     // -------------------------------------------------------------------------
     void observe();
 
-    /// @brief Task plugin, or null.
+    /// @return Task plugin, or null.
     [[nodiscard]] Mission* mission() const
     {
         return m_mission;
@@ -392,7 +454,7 @@ public:
 
 private:
 
-    /// @brief A world entity once built.
+    /// A world entity once built.
     struct Record
     {
         EntitySpec const* spec = nullptr;
@@ -412,65 +474,93 @@ private:
         int peak_contacts = 0;
     };
 
+    /// Builds the robots, the entities and the physics of the world.
     void build(SceneView* p_view);
-    /// @brief Actuators and sensors of one robot and of its mounted tool.
+    /// Actuators and sensors of one robot and of its mounted tool.
     /// @p_blind turns false when a camera gets a render source.
     void buildDevices(RobotSession& p_robot,
                       EntitySpec const& p_spec,
                       EntitySpec const* p_tool,
                       SceneView* p_view,
                       bool& p_blind);
+    /// Builds the ECS entity of one world entity (shape or model).
     void buildRecord(Record& p_record, SceneView* p_view);
-    /// @brief True when @p_prop is a body of the physics backend: its level
-    /// is rigid, or it is a box a rigid gripper may take, or a container a
+    /// True when @p_prop is a body of the physics backend: its level is
+    /// rigid, or it is a box a rigid gripper may take, or a container a
     /// rigid object may fall into (FIDELITY.md).
     [[nodiscard]] bool rigidProp(EntitySpec const& p_prop) const;
-    /// @brief Free boxes, container walls and grasp welds of the rigid props.
+    /// Free boxes, container walls and grasp welds of the rigid props.
     void addRigidProps(MujocoBackend& p_physics);
+    /// Builds the shared MuJoCo physics and connects every robot to it.
     void connectBackend();
+    /// Adds the generic skills (@c Home, @c Stop...) to the scheduler.
     void addSkills();
-    /// @brief Robot that carries @p_spec: a robot itself, the robot a tool
-    /// is mounted on, else the first robot.
+    /// Robot that carries @p_spec: a robot itself, the robot a tool is
+    /// mounted on, else the first robot.
     [[nodiscard]] RobotSession& ownerOf(EntitySpec const& p_spec) const;
-    /// @brief MuJoCo prefix of the names of robot @p_id (empty for the first).
+    /// MuJoCo prefix of the names of robot @p_id (empty for the first).
     [[nodiscard]] std::string prefixOf(std::string_view p_id) const;
+    /// Builds the behavior tree of the scenario, if it has one.
     void loadTree();
+    /// Copies the physics poses of the bodies to their ECS entities.
     void syncBodies();
+    /// Counts the contacts of each entity after a step.
     void track();
+    /// Updates the assertions and ends the run when a stop rule holds.
     void settle();
+    /// Ends the run: final verdicts, frozen outcome.
     void finish(Outcome p_outcome);
 
+    /// Record of entity @p_id, or null.
     [[nodiscard]] Record const* record(std::string_view p_id) const;
+    /// Record of entity @p_id; throws std::invalid_argument if none.
     [[nodiscard]] Record const& require(std::string_view p_id) const;
+    /// World pose of an entity from the file, its attachment resolved.
     [[nodiscard]] Pose resolveNominal(EntitySpec const& p_spec) const;
-    [[nodiscard]] Pose framePose(Record const& p_record, std::string_view p_frame) const;
+    /// True pose of a frame of an entity (empty frame: its origin).
+    [[nodiscard]] Pose framePose(Record const& p_record,
+                                 std::string_view p_frame) const;
+    /// Contacts of the entity with other entities, floor excluded.
     [[nodiscard]] int contactsOf(Record const& p_record,
                                  std::vector<Contact> const& p_contacts) const;
+    /// @c time, @c controller.success and the mission metrics.
     [[nodiscard]] Metrics metrics() const;
-    [[nodiscard]] std::optional<double> call(std::string const& p_name,
-                                             std::vector<std::string> const& p_args) const;
+    /// Answers a world query with arguments (see @ref query).
+    [[nodiscard]] std::optional<double>
+    call(std::string const& p_name,
+         std::vector<std::string> const& p_args) const;
 
 private:
 
+    /// ECS world of the entities.
     compages::world::World& m_world;
+    /// The scenario being run.
     Scenario m_scenario;
+    /// Task plugin, not owned, or null.
     Mission* m_mission = nullptr;
     /// Options of the physics built by connectBackend (see physicsOptions).
     MujocoOptions m_physics_options;
+    /// Rendering hooks, or null.
     SceneView* m_view = nullptr;
     /// One for all the robots of the world.
     std::shared_ptr<ResourceManager> m_resources;
+    /// Every robot, in world file order.
     std::vector<std::unique_ptr<RobotSession>> m_robots;
     /// The first robot.
     RobotSession* m_robot = nullptr;
     /// @ref RobotContext::team: every robot when there are several.
     std::vector<Robot*> m_team;
+    /// Beliefs shared by the robots.
     WorldModel m_world_model;
+    /// Detectors run on every camera frame.
     PerceptionPipeline m_perception;
+    /// Scheduler of every skill.
     std::unique_ptr<SkillScheduler> m_scheduler;
+    /// Faults of the scenario.
     FaultInjector m_faults;
     /// One per robot, in the order of @ref m_robots.
     std::vector<RobotContext> m_contexts;
+    /// Judges the assertions.
     AssertionEngine m_assertions;
     /// Z-up frame of the world entities (Compages is Y-up).
     compages::world::Entity m_frame;
@@ -479,16 +569,23 @@ private:
     /// The ground truth feeds the world model.
     bool m_oracle = false;
 
+    /// Factory of the behavior tree nodes.
     bt::NodeFactory m_factory;
-    /// @brief Clock of the behavior trees: the simulated time.
+    /// Clock of the behavior trees: the simulated time.
     [[nodiscard]] bt::Tree::ClockFunction simulatedClock() const;
 
+    /// Blackboard of the behavior tree.
     bt::Blackboard::Ptr m_blackboard;
+    /// Behavior tree of the scenario, or null.
     bt::Tree::Ptr m_tree;
+    /// Last controller status.
     bt::Status m_status = bt::Status::INVALID;
+    /// Why the run ended.
     Outcome m_outcome = Outcome::Running;
 
+    /// Seed of the episode.
     Seed m_seed;
+    /// Peak count of simultaneous contacts.
     int m_max_contacts = 0;
     /// Robots (ids) that carried a prop through container walls. Sticky
     /// until reset.
@@ -497,11 +594,16 @@ private:
     std::vector<std::unique_ptr<GraspModel>> m_grasps;
     /// Teach pendant owns the joints; the mission is frozen.
     bool m_suspended = false;
+    /// Observers and bindings given by the mission.
     PlanningDomain m_planning;
     /// After the factory and the scheduler it uses.
     std::unique_ptr<PlanExecutor> m_executor;
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_outcome Outcome to name.
+/// @return For example "timeout" or "controller succeeded".
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(Simulation::Outcome p_outcome);
 
 } // namespace robotik

@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Assertions.hpp
-/// @brief What a scenario checks on the world, and when.
+/// What a scenario checks on the world, and when.
 ///
 /// @code
 /// assertions:
@@ -21,7 +21,8 @@
 ///     sequence:
 ///       - tool_is_attached(brush, robot.flange)
 ///       - skill_started(mark)
-///   - { condition: "joint_limits_respected(robot)", phase: always, stop: true }
+///   - { condition: "joint_limits_respected(robot)", phase: always, stop: true
+///   }
 /// @endcode
 ///
 /// A failed assertion keeps its measured value, the expected bound and the
@@ -43,7 +44,7 @@ namespace robotik
 class ConfigNode;
 
 // ****************************************************************************
-/// @brief When a condition is judged.
+/// When a condition is judged.
 // ****************************************************************************
 enum class AssertionPhase : std::uint8_t
 {
@@ -55,114 +56,191 @@ enum class AssertionPhase : std::uint8_t
     Sequence,   ///< Conditions must first become true in the listed order.
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_phase Phase to name.
+/// @return Its name, for reports.
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(AssertionPhase p_phase);
 
 // ****************************************************************************
-/// @brief One declared assertion.
+/// One declared assertion, as written in the scenario.
+///
+/// @code
+/// robotik::AssertionSpec spec;
+/// spec.condition = "collision_count(robot) == 0";
+/// spec.phase = robotik::AssertionPhase::Always;
+/// spec.stop = true;
+/// @endcode
 // ****************************************************************************
 struct AssertionSpec
 {
     /// Shown in reports; the condition by default.
     std::string name;
+    /// When the condition is judged.
     AssertionPhase phase = AssertionPhase::End;
     /// Empty for a sequence.
     std::string condition;
+    /// Conditions of a @ref AssertionPhase::Sequence, in order.
     std::vector<std::string> sequence;
     /// Instant of @ref AssertionPhase::At, deadline of Within.
     Seconds time{};
     /// A failure ends the run.
     bool stop = false;
 
-    /// @brief A string (shorthand for phase end) or a map, see the file doc.
+    // -------------------------------------------------------------------------
+    /// Reads one entry of @c assertions:.
+    /// @param p_node A string (shorthand for phase end) or a map, see the
+    ///   file doc.
+    /// @return The assertion.
     /// @throws std::runtime_error on an invalid entry.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static AssertionSpec read(ConfigNode const& p_node);
 };
 
 // ****************************************************************************
-/// @brief State of one assertion.
+/// State of one assertion.
+///
+/// @code
+/// for (robotik::Check const& c : engine.checks())
+///     if (c.verdict == robotik::Check::Verdict::Failed)
+///         std::cout << c.text << ": " << c.detail << ", expected " <<
+///         c.expected
+///                   << " at " << c.time.value() << " s\n";
+/// @endcode
 // ****************************************************************************
 struct Check
 {
+    // ------------------------------------------------------------------------
+    /// Final or temporary result.
+    // ------------------------------------------------------------------------
     enum class Verdict : std::uint8_t
     {
-        Pending,
-        Passed,
-        Failed,
+        Pending, ///< Not judged yet.
+        Passed,  ///< Judged true.
+        Failed,  ///< Judged false.
     };
 
+    /// Name of the assertion, shown in reports.
     std::string text;
+    /// When the condition is judged.
     AssertionPhase phase = AssertionPhase::End;
+    /// Current verdict.
     Verdict verdict = Verdict::Pending;
     /// Last evaluation: the condition holds now.
     bool holds = false;
     /// Value measured at the verdict (or the last one while pending).
     double value = 0.0;
+    /// Right-hand side, e.g. "< 0.002".
     std::string expected;
+    /// "name = value", or why it failed.
     std::string detail;
     /// Simulated time of the verdict, or of the last evaluation.
     Seconds time{};
 
-    /// @brief Green in a live view: passed, or pending and holding now.
+    /// @return True to show it green in a live view: passed, or pending and
+    ///   holding now.
     [[nodiscard]] bool ok() const
     {
-        return verdict == Verdict::Passed || (verdict == Verdict::Pending && holds);
+        return verdict == Verdict::Passed ||
+               (verdict == Verdict::Pending && holds);
     }
 };
 
+// ----------------------------------------------------------------------------
+/// @param p_verdict Verdict to name.
+/// @return Its name, for reports.
+// ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(Check::Verdict p_verdict);
 
-/// @brief Evaluates one condition on the current state.
+/// Evaluates one condition on the current state (see @ref evaluate).
 using ConditionProbe = std::function<Evaluation(std::string_view)>;
 
 // ****************************************************************************
-/// @brief Judges a scenario's assertions over a run.
+/// Judges a scenario's assertions over a run.
+///
+/// The @ref Simulation owns one and calls it every step. The verdicts live
+/// here, never in plugin C++ code.
+///
+/// @code
+/// robotik::AssertionEngine engine(scenario.assertions);
+/// engine.reset();
+/// auto probe = [&](std::string_view p_condition) {
+///     return robotik::evaluate(p_condition, metrics, resolver);
+/// };
+/// while (running && !engine.stopRequested())
+///     engine.update(now, probe);
+/// engine.conclude(now, probe);
+/// bool const ok = engine.passed();
+/// @endcode
 // ****************************************************************************
 class AssertionEngine
 {
 public:
 
     AssertionEngine() = default;
+
+    /// @param p_specs Assertions of the scenario.
     explicit AssertionEngine(std::vector<AssertionSpec> p_specs);
 
-    /// @brief Every assertion back to pending (episode reset).
+    /// Puts every assertion back to pending (episode reset).
     void reset();
 
-    /// @brief Evaluates the assertions due at @p_now (after a step).
+    // -------------------------------------------------------------------------
+    /// Evaluates the assertions due now (after a step).
+    /// @param p_now Simulated time.
+    /// @param p_probe Evaluates a condition on the current state.
+    // -------------------------------------------------------------------------
     void update(Seconds p_now, ConditionProbe const& p_probe);
 
-    /// @brief Gives every pending assertion its final verdict. Idempotent.
+    // -------------------------------------------------------------------------
+    /// Gives every pending assertion its final verdict (the run ends).
+    /// Calling it again changes nothing.
+    /// @param p_now Simulated time at the end.
+    /// @param p_probe Evaluates a condition on the final state.
+    // -------------------------------------------------------------------------
     void conclude(Seconds p_now, ConditionProbe const& p_probe);
 
+    /// @return True once @ref conclude was called.
     [[nodiscard]] bool concluded() const
     {
         return m_concluded;
     }
 
+    /// @return The state of each assertion, aligned with @ref specs.
     [[nodiscard]] std::vector<Check> const& checks() const
     {
         return m_checks;
     }
 
+    /// @return The declared assertions.
     [[nodiscard]] std::vector<AssertionSpec> const& specs() const
     {
         return m_specs;
     }
 
-    /// @brief An assertion declared @c stop: true has failed.
+    /// @return True when an assertion declared @c stop: true has failed.
     [[nodiscard]] bool stopRequested() const;
 
-    /// @brief Concluded and every assertion passed.
+    /// @return True when concluded and every assertion passed.
     [[nodiscard]] bool passed() const;
 
 private:
 
-    void judge(std::size_t p_index, Seconds p_now, ConditionProbe const& p_probe, bool p_final);
+    /// Evaluates assertion @p_index; @p_final gives pending ones a verdict.
+    void judge(std::size_t p_index,
+               Seconds p_now,
+               ConditionProbe const& p_probe,
+               bool p_final);
+    /// Sets a failed verdict with its reason.
     void fail(Check& p_check, Seconds p_now, std::string p_why);
 
+    /// Declared assertions.
     std::vector<AssertionSpec> m_specs;
+    /// State of each assertion.
     std::vector<Check> m_checks;
     /// Next condition expected by each sequence.
     std::vector<std::size_t> m_progress;
+    /// @ref conclude was called.
     bool m_concluded = false;
 };
 

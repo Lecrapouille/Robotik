@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Observation.hpp
-/// @brief What an agent is allowed to know at one instant.
+/// What an agent is allowed to know at one instant.
 ///
 /// A flat vector, same layout an @ref Environment writes into its observation
 /// buffer. The agent never receives a camera image, a texture or a simulator
@@ -21,11 +21,23 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Timestamped sensor vector handed to an @ref Agent.
+/// Timestamped sensor vector handed to an @ref Agent.
+///
+/// The order of @ref values follows the observation @ref Space of the
+/// environment (for example joint angles, then the target position).
+///
+/// @code
+/// robotik::Observation obs;
+/// obs.timestamp = Seconds(0.5);
+/// obs.values = { q0, q1, target_x, target_y };
+/// robotik::Action action = agent.update(obs, Seconds(0.01));
+/// @endcode
 // ****************************************************************************
 struct Observation
 {
+    /// Simulated time when the values were measured.
     Seconds timestamp{};
+    /// Measured values, in the order of the observation space.
     std::vector<float> values;
 };
 

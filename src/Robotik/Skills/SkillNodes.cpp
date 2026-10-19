@@ -14,7 +14,8 @@
 namespace robotik
 {
 
-static bt::Status tickSkill(SkillScheduler& p_scheduler, SkillId p_id, bool& p_active)
+static bt::Status
+tickSkill(SkillScheduler& p_scheduler, SkillId p_id, bool& p_active)
 {
     if (!p_active)
     {

@@ -11,14 +11,16 @@
 
 #include "Robotik/Scenario/Scenario.hpp"
 
-#include "Robotik/Math/Si.hpp"
 #include "Compages/World/Controllers/Controls.hpp"
+#include "Robotik/Math/Si.hpp"
 
 /// Limits of the camera rig for a robot cell: from a few centimetres to
 /// a few metres.
-static void tuneViewRig(compages::world::World& p_world, compages::world::Entity p_camera)
+static void tuneViewRig(compages::world::World& p_world,
+                        compages::world::Entity p_camera)
 {
-    if (compages::world::Rig* rig = p_world.behavior<compages::world::Rig>(p_camera))
+    if (compages::world::Rig* rig =
+            p_world.behavior<compages::world::Rig>(p_camera))
     {
         rig->controller.min_distance = 0.15f;
         rig->controller.max_distance = 20.0f;
@@ -39,7 +41,8 @@ static std::string readText(std::filesystem::path const& p_path)
     {
         return {};
     }
-    return std::string(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    return std::string(std::istreambuf_iterator<char>(file),
+                       std::istreambuf_iterator<char>());
 }
 
 void JointHistory::clear()
@@ -111,15 +114,17 @@ void JointHistory::record(robotik::Simulation const& p_simulation)
 static void report(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.skills();
-    robotik::ResourceManager const& resources = p_simulation.robot().resources();
+    robotik::ResourceManager const& resources =
+        p_simulation.robot().resources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         if (run.state == robotik::SkillState::Succeeded)
         {
             continue;
         }
-        std::cout << "  " << run.start.value() << " s " << skills.name(run.skill)
-                  << ' ' << robotik::toString(run.state) << ' '
+        std::cout << "  " << run.start.value() << " s "
+                  << skills.name(run.skill) << ' '
+                  << robotik::toString(run.state) << ' '
                   << robotik::toString(run.reason)
                   << (run.blocker != robotik::NO_RESOURCE
                           ? " " + resources.name(run.blocker)
@@ -134,8 +139,8 @@ static void report(robotik::Simulation const& p_simulation)
     }
     std::cout << "Run " << robotik::toString(p_simulation.outcome())
               << " seed=" << p_simulation.seed().value
-              << " time=" << p_simulation.time().value() << " s checks="
-              << passed << '/' << checks.size() << std::endl;
+              << " time=" << p_simulation.time().value()
+              << " s checks=" << passed << '/' << checks.size() << std::endl;
 }
 
 void App::load(bool p_keep_tool)
@@ -187,7 +192,8 @@ void App::load(bool p_keep_tool)
         {
             plugins.scan();
         }
-        robotik::PluginMatch const matched = plugins.catalog().matchScenario(scenario_path);
+        robotik::PluginMatch const matched =
+            plugins.catalog().matchScenario(scenario_path);
         if (matched.scenario != nullptr)
         {
             scenario_title = matched.scenario->name;
@@ -210,7 +216,8 @@ void App::load(bool p_keep_tool)
         robotik::PluginPrepare const prepared = plugins.prepare(scenario_path);
         if (prepared != robotik::PluginPrepare::Ready)
         {
-            error = plugins.error().empty() ? "scenario is not a demo package" : plugins.error();
+            error = plugins.error().empty() ? "scenario is not a demo package"
+                                            : plugins.error();
             return;
         }
         owns_clock = plugins.ownsClock();
@@ -220,7 +227,8 @@ void App::load(bool p_keep_tool)
         plugins.attach(simulation.get());
         if (plugins.start() != ROBOTIK_PLUGIN_OK)
         {
-            error = plugins.error().empty() ? "plugin start failed" : plugins.error();
+            error = plugins.error().empty() ? "plugin start failed"
+                                            : plugins.error();
             plugins.detach();
             simulation.reset();
             plugins.release();
@@ -246,14 +254,19 @@ void App::load(bool p_keep_tool)
     {
         // A grid on the floor: distances and heights read at a glance.
         static std::filesystem::path const grid = floorGrid();
-        compages::world::Entity floor = scene->plane("Floor", compages::renderer::texture(grid.string()));
+        compages::world::Entity floor =
+            scene->plane("Floor", compages::renderer::texture(grid.string()));
         // In the world, not on the robot: a floating base would carry it.
-        floor.parent(simulation->worldFrame()).position(0.0f, 0.0f, -0.001f).scale(3.0f);
+        floor.parent(simulation->worldFrame())
+            .position(0.0f, 0.0f, -0.001f)
+            .scale(3.0f);
         noShadow(floor);
     }
     // Compages world is Y-up. The robot stands on XZ after the URDF
-    // conversion; look at the table from above-front. A package may override it.
-    robotik::PluginPackage const* package = plugins.catalog().matchScenario(scenario_path).package;
+    // conversion; look at the table from above-front. A package may override
+    // it.
+    robotik::PluginPackage const* package =
+        plugins.catalog().matchScenario(scenario_path).package;
     if (package != nullptr && package->has_view)
     {
         view_camera.position(package->eye[0], package->eye[1], package->eye[2])
@@ -306,8 +319,8 @@ void App::advance(double p_elapsed)
         history.record(*simulation);
         if (playing && p_elapsed > 0.0)
         {
-            float const rate =
-                static_cast<float>((simulation->time().value() - before) / p_elapsed);
+            float const rate = static_cast<float>(
+                (simulation->time().value() - before) / p_elapsed);
             ui.realtime_factor = 0.9f * ui.realtime_factor + 0.1f * rate;
         }
         else

@@ -407,7 +407,8 @@ bt::Status PlanExecutor::tick(RobotContext const& p_context)
                 std::string cause = m_check_failure.empty()
                                         ? stepFailure(p_context)
                                         : m_check_failure;
-                if (std::size_t const failed = failingStep(); failed < m_steps.size())
+                if (std::size_t const failed = failingStep();
+                    failed < m_steps.size())
                 {
                     m_steps[failed] = StepStatus::Failed;
                 }
@@ -455,7 +456,8 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     {
         for (GroundAction const& step : record.result.steps)
         {
-            m_plan.push_back({ step.name, ids(step.args), step.start, step.duration });
+            m_plan.push_back(
+                { step.name, ids(step.args), step.start, step.duration });
         }
     }
     m_steps.assign(m_plan.size(), StepStatus::Pending);
@@ -509,7 +511,8 @@ void PlanExecutor::compile()
         std::string text;
         for (PlanEvent const& event : p_events)
         {
-            text += (text.empty() ? "" : ", ") + std::string(event.end ? "" : "start of ") +
+            text += (text.empty() ? "" : ", ") +
+                    std::string(event.end ? "" : "start of ") +
                     std::to_string(event.step + 1u);
         }
         return text;
@@ -517,14 +520,16 @@ void PlanExecutor::compile()
     std::ostringstream yaml;
     if (chain)
     {
-        yaml << "BehaviorTree:\n  Sequence:\n    name: \"Plan\"\n    children:\n";
+        yaml << "BehaviorTree:\n  Sequence:\n    name: \"Plan\"\n    "
+                "children:\n";
     }
     else
     {
         // Every step at once; each waits for its predecessors, runs once,
         // and the first failure fails the plan.
         yaml << "BehaviorTree:\n  Parallel:\n    name: \"Plan\"\n"
-             << "    success_on_all: true\n    fail_on_all: false\n    children:\n";
+             << "    success_on_all: true\n    fail_on_all: false\n    "
+                "children:\n";
     }
     for (std::size_t k = 0u; k < m_plan.size(); ++k)
     {
@@ -533,25 +538,29 @@ void PlanExecutor::compile()
         std::string indent = "      ";
         if (!chain)
         {
-            std::string const wait = m_order[k].start_after.empty()
-                                         ? "Start " + title
-                                         : "After " + events(m_order[k].start_after) + ": " + title;
-            m_factory.registerNode(wait,
-                                   [this, k]()
-                                   {
-                                       return std::make_unique<bt::CallbackLeaf>(
-                                           [this, k]() { return ready(k); });
-                                   });
+            std::string const wait =
+                m_order[k].start_after.empty()
+                    ? "Start " + title
+                    : "After " + events(m_order[k].start_after) + ": " + title;
+            m_factory.registerNode(
+                wait,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]() { return ready(k); });
+                });
             yaml << indent << "- RunOnce:\n"
                  << indent << "    child:\n"
                  << indent << "      - Sequence:\n"
                  << indent << "          name: " << yamlQuoted(title) << "\n"
                  << indent << "          children:\n"
                  << indent << "            - Action:\n"
-                 << indent << "                name: " << yamlQuoted(wait) << "\n";
+                 << indent << "                name: " << yamlQuoted(wait)
+                 << "\n";
             indent += "            ";
         }
-        yaml << indent << "- SubTree:\n" << indent << "    name: " << yamlQuoted(title) << "\n"
+        yaml << indent << "- SubTree:\n"
+             << indent << "    name: " << yamlQuoted(title) << "\n"
              << indent << "    reference: step_" << k << "\n";
         ActionBinding const* binding = m_domain.binding(step.name);
         if (binding != nullptr && !binding->parameters.empty())
@@ -598,17 +607,19 @@ void PlanExecutor::compile()
         // tray held while the other arm works).
         if (!m_order[k].end_after.empty())
         {
-            std::string const until = "Until " + events(m_order[k].end_after) + ": " + title;
-            m_factory.registerNode(until,
-                                   [this, k]()
-                                   {
-                                       return std::make_unique<bt::CallbackLeaf>(
-                                           [this, k]() { return mayEnd(k); });
-                                   });
-            yaml << "              - Action:\n                  name: " << yamlQuoted(until)
-                 << "\n";
+            std::string const until =
+                "Until " + events(m_order[k].end_after) + ": " + title;
+            m_factory.registerNode(
+                until,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]() { return mayEnd(k); });
+                });
+            yaml << "              - Action:\n                  name: "
+                 << yamlQuoted(until) << "\n";
         }
-                // The check node marks the step done: always there, it only reads
+        // The check node marks the step done: always there, it only reads
         // the beliefs when verify is on.
         std::string const check = "Check " + title;
         m_factory.registerNode(
@@ -678,16 +689,15 @@ std::vector<Literal> PlanExecutor::effects(std::size_t p_step,
         Literal ground{ { effect.atom.predicate, {} }, effect.positive };
         for (std::string const& arg : effect.atom.args)
         {
-            auto const found = std::find_if(
-                parameters.begin(),
-                parameters.end(),
-                [&](Parameter const& p_parameter)
-                { return "?" + p_parameter.name == arg; });
+            auto const found =
+                std::find_if(parameters.begin(),
+                             parameters.end(),
+                             [&](Parameter const& p_parameter)
+                             { return "?" + p_parameter.name == arg; });
             std::size_t const index =
                 static_cast<std::size_t>(found - parameters.begin());
-            ground.atom.args.push_back(index < step.args.size()
-                                           ? lowerCase(step.args[index])
-                                           : arg);
+            ground.atom.args.push_back(
+                index < step.args.size() ? lowerCase(step.args[index]) : arg);
         }
         result.push_back(std::move(ground));
     }
@@ -711,11 +721,10 @@ bt::Status PlanExecutor::check(std::size_t p_step,
             if (value != Truth::Unknown &&
                 (value == Truth::True) != effect.positive)
             {
-                m_check_failure = std::to_string(p_step + 1u) + ". " +
-                                  label(m_plan[p_step]) + ": " +
-                                  effect.toString() +
-                                  " expected, the beliefs say " +
-                                  toString(value);
+                m_check_failure =
+                    std::to_string(p_step + 1u) + ". " + label(m_plan[p_step]) +
+                    ": " + effect.toString() + " expected, the beliefs say " +
+                    toString(value);
                 return bt::Status::FAILURE;
             }
         }
@@ -725,8 +734,7 @@ bt::Status PlanExecutor::check(std::size_t p_step,
 }
 
 // ----------------------------------------------------------------------------
-bt::Status PlanExecutor::skip(std::size_t p_step,
-                              RobotContext const& p_context)
+bt::Status PlanExecutor::skip(std::size_t p_step, RobotContext const& p_context)
 {
     bool partial = true;
     std::vector<Literal> const expected = effects(p_step, partial);
@@ -738,7 +746,8 @@ bt::Status PlanExecutor::skip(std::size_t p_step,
     for (Literal const& effect : expected)
     {
         Truth const value = evaluate(effect.atom, p_context);
-        if (value == Truth::Unknown || (value == Truth::True) != effect.positive)
+        if (value == Truth::Unknown ||
+            (value == Truth::True) != effect.positive)
         {
             return bt::Status::FAILURE;
         }
@@ -751,7 +760,8 @@ bt::Status PlanExecutor::skip(std::size_t p_step,
 bool PlanExecutor::reached(PlanEvent const& p_event) const
 {
     StepStatus const status = m_steps[p_event.step];
-    bool const over = status == StepStatus::Done || status == StepStatus::Skipped;
+    bool const over =
+        status == StepStatus::Done || status == StepStatus::Skipped;
     return p_event.end ? over : over || m_started[p_event.step];
 }
 
@@ -763,8 +773,10 @@ bool PlanExecutor::running(std::size_t p_step) const
     {
         return false;
     }
-    return std::all_of(m_order[p_step].start_after.begin(), m_order[p_step].start_after.end(),
-                       [this](PlanEvent const& p_event) { return reached(p_event); });
+    return std::all_of(m_order[p_step].start_after.begin(),
+                       m_order[p_step].start_after.end(),
+                       [this](PlanEvent const& p_event)
+                       { return reached(p_event); });
 }
 
 // ----------------------------------------------------------------------------
@@ -798,9 +810,11 @@ bt::Status PlanExecutor::mayEnd(std::size_t p_step) const
 void PlanExecutor::finish(std::size_t p_step, StepStatus p_status)
 {
     m_steps[p_step] = p_status;
-    m_done = static_cast<std::size_t>(
-        std::count_if(m_steps.begin(), m_steps.end(), [](StepStatus p_s)
-                      { return p_s == StepStatus::Done || p_s == StepStatus::Skipped; }));
+    m_done = static_cast<std::size_t>(std::count_if(
+        m_steps.begin(),
+        m_steps.end(),
+        [](StepStatus p_s)
+        { return p_s == StepStatus::Done || p_s == StepStatus::Skipped; }));
 }
 
 // ----------------------------------------------------------------------------
@@ -824,8 +838,10 @@ std::size_t PlanExecutor::failingStep() const
         }
         bool const going =
             k < m_order.size() &&
-            std::all_of(m_order[k].start_after.begin(), m_order[k].start_after.end(),
-                        [this](PlanEvent const& p_event) { return reached(p_event); });
+            std::all_of(
+                m_order[k].start_after.begin(),
+                m_order[k].start_after.end(),
+                [this](PlanEvent const& p_event) { return reached(p_event); });
         if (first == m_plan.size() && going)
         {
             first = k;
@@ -859,8 +875,10 @@ std::vector<StepOrder> PlanExecutor::partialOrder() const
         {
             if (SkillId const id = m_skills.find(node); id != NO_SKILL)
             {
-                std::vector<ResourceRequirement> const& needed = m_skills.description(id).resources;
-                print.resources.insert(print.resources.end(), needed.begin(), needed.end());
+                std::vector<ResourceRequirement> const& needed =
+                    m_skills.description(id).resources;
+                print.resources.insert(
+                    print.resources.end(), needed.begin(), needed.end());
             }
         }
         prints.push_back(std::move(print));

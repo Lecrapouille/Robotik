@@ -17,8 +17,9 @@
 /// Loads the painter scenario used by these tests.
 static robotik::Scenario painterScenario()
 {
-    return robotik::Scenario::load(repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
-                                   testAssets());
+    return robotik::Scenario::load(
+        repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
+        testAssets());
 }
 
 /// Distance between two poses.
@@ -35,19 +36,24 @@ TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
 
     // The easel stands where the world file puts it, its canvas on the mount.
     EXPECT_LT(gap(simulation.pose("easel"),
-                  robotik::Pose{ robotik::Vector3(0.65, 0.0, 0.0), robotik::Quaternion{} }),
+                  robotik::Pose{ robotik::Vector3(0.65, 0.0, 0.0),
+                                 robotik::Quaternion{} }),
               1e-3);
-    EXPECT_LT(gap(simulation.described("canvas"), simulation.pose("canvas")), 1e-6);
+    EXPECT_LT(gap(simulation.described("canvas"), simulation.pose("canvas")),
+              1e-6);
     EXPECT_EQ(simulation.query("tool_is_attached(brush, robot.flange)"), 1.0);
 
-    // The red stroke paints 4 cm in front of the canvas face, in its upper half.
+    // The red stroke paints 4 cm in front of the canvas face, in its upper
+    // half.
     std::vector<robotik::Pose> const red = simulation.waypoints("red");
     ASSERT_EQ(red.size(), 5u);
-    robotik::Vector3 const local = simulation.pose("canvas").inverse() * red[2].position;
+    robotik::Vector3 const local =
+        simulation.pose("canvas").inverse() * red[2].position;
     EXPECT_NEAR(local.x, 0.06 - 0.011, 1e-6);
     EXPECT_NEAR(local.z, 0.16 - 0.251, 1e-6);
     // The brush points into the canvas: its axis is the canvas -x.
-    robotik::Vector3 const axis = red[2].rotation * robotik::Vector3(0.0, 0.0, 1.0);
+    robotik::Vector3 const axis =
+        red[2].rotation * robotik::Vector3(0.0, 0.0, 1.0);
     robotik::Vector3 const into =
         simulation.pose("canvas").rotation * robotik::Vector3(-1.0, 0.0, 0.0);
     EXPECT_NEAR(robotik::norm(axis - into), 0.0, 1e-6);
@@ -83,12 +89,14 @@ TEST(Painter, PortraitDipsAndMarks)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_EQ(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded)
+    EXPECT_EQ(simulation.outcome(),
+              robotik::Simulation::Outcome::ControllerSucceeded)
         << robotik::toString(simulation.outcome());
     for (robotik::Check const& check : simulation.checks())
     {
         EXPECT_EQ(check.verdict, robotik::Check::Verdict::Passed)
-            << check.text << ": " << check.detail << " at " << check.time.value() << " s";
+            << check.text << ": " << check.detail << " at "
+            << check.time.value() << " s";
     }
     EXPECT_TRUE(simulation.passed());
     EXPECT_GT(simulation.pose("canvas").position.z, 0.5);

@@ -149,7 +149,7 @@ private:
 /// @c (either ...) types are read as @c object.
 // ----------------------------------------------------------------------------
 static std::vector<Parameter> typedList(std::vector<Sexpr> const& p_items,
-                                 std::size_t p_from)
+                                        std::size_t p_from)
 {
     std::vector<Parameter> result;
     std::size_t pending = result.size();
@@ -244,10 +244,11 @@ static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
 static bool connective(std::string_view p_head)
 {
     static constexpr std::string_view WORDS[] = {
-        "and",      "or",       "not",      "imply",     "forall",     "exists",
-        "when",     "at",       "over",     "=",         "<",          ">",
-        "<=",       ">=",       "+",        "-",         "*",          "/",
-        "increase", "decrease", "assign",   "scale-up",  "scale-down", "preference",
+        "and",    "or",       "not",        "imply",      "forall",
+        "exists", "when",     "at",         "over",       "=",
+        "<",      ">",        "<=",         ">=",         "+",
+        "-",      "*",        "/",          "increase",   "decrease",
+        "assign", "scale-up", "scale-down", "preference",
     };
     for (std::string_view const word : WORDS)
     {
@@ -273,7 +274,10 @@ enum class When
 /// @c (f ?a) inside a comparison or an assignment, sorted by the phase it
 /// applies to. The variable lists of @c forall / @c exists are skipped.
 // ----------------------------------------------------------------------------
-static void collectAtoms(Sexpr const& p_node, ActionSchema& p_action, bool p_effect, When p_when)
+static void collectAtoms(Sexpr const& p_node,
+                         ActionSchema& p_action,
+                         bool p_effect,
+                         When p_when)
 {
     if (!p_node.is_list || p_node.list.empty())
     {
@@ -281,10 +285,12 @@ static void collectAtoms(Sexpr const& p_node, ActionSchema& p_action, bool p_eff
     }
     std::string_view const head = p_node.head();
     // (at ?r ?room) is an atom; (at start φ) and (over all φ) are not.
-    bool const timed = p_node.list.size() == 3u && !p_node.list[1].is_list &&
-                       (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
-                        p_node.list[1].isAtom("all"));
-    bool const word = (head == "at" || head == "over") ? timed : connective(head);
+    bool const timed =
+        p_node.list.size() == 3u && !p_node.list[1].is_list &&
+        (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
+         p_node.list[1].isAtom("all"));
+    bool const word =
+        (head == "at" || head == "over") ? timed : connective(head);
     if (head.empty())
     {
         return;

@@ -24,10 +24,10 @@ static void canvasText(RobotikCanvas const* /*p_canvas*/, char const* p_line)
 
 /// Canvas callback: one line of colored text.
 static void canvasColor(RobotikCanvas const* /*p_canvas*/,
-                 float p_red,
-                 float p_green,
-                 float p_blue,
-                 char const* p_line)
+                        float p_red,
+                        float p_green,
+                        float p_blue,
+                        char const* p_line)
 {
     ImGui::TextColored(ImVec4(p_red, p_green, p_blue, 1.0f),
                        "%s",
@@ -41,36 +41,46 @@ static int canvasButton(RobotikCanvas const* /*p_canvas*/, char const* p_label)
 }
 
 /// Canvas callback: a checkbox bound to an int.
-static int canvasCheckbox(RobotikCanvas const* /*p_canvas*/, char const* p_label, int* p_value)
+static int canvasCheckbox(RobotikCanvas const* /*p_canvas*/,
+                          char const* p_label,
+                          int* p_value)
 {
     if (p_value == nullptr)
     {
         return 0;
     }
     bool flag = *p_value != 0;
-    bool const changed = ImGui::Checkbox(p_label != nullptr ? p_label : "", &flag);
+    bool const changed =
+        ImGui::Checkbox(p_label != nullptr ? p_label : "", &flag);
     *p_value = flag ? 1 : 0;
     return changed ? 1 : 0;
 }
 
 /// Canvas callback: an integer slider.
 static int canvasSlider(RobotikCanvas const* /*p_canvas*/,
-                 char const* p_label,
-                 int* p_value,
-                 int p_min,
-                 int p_max)
+                        char const* p_label,
+                        int* p_value,
+                        int p_min,
+                        int p_max)
 {
     if (p_value == nullptr)
     {
         return 0;
     }
-    return ImGui::SliderInt(p_label != nullptr ? p_label : "", p_value, p_min, p_max) ? 1 : 0;
+    return ImGui::SliderInt(
+               p_label != nullptr ? p_label : "", p_value, p_min, p_max)
+               ? 1
+               : 0;
 }
 
 /// Canvas callback: a radio button.
-static int canvasRadio(RobotikCanvas const* /*p_canvas*/, char const* p_label, int p_active)
+static int canvasRadio(RobotikCanvas const* /*p_canvas*/,
+                       char const* p_label,
+                       int p_active)
 {
-    return ImGui::RadioButton(p_label != nullptr ? p_label : "", p_active != 0) ? 1 : 0;
+    return ImGui::RadioButton(p_label != nullptr ? p_label : "", p_active != 0)
+               ? 1
+               : 0;
 }
 
 /// Canvas callback: a separator.
@@ -109,7 +119,8 @@ void drawDemosMenu(App& p_app)
     {
         ImGui::TextDisabled("No plugin package found in build/plugins");
     }
-    for (robotik::PluginPackage const& package : p_app.plugins.catalog().packages())
+    for (robotik::PluginPackage const& package :
+         p_app.plugins.catalog().packages())
     {
         if (!ImGui::BeginMenu(package.name.c_str()))
         {
@@ -120,12 +131,14 @@ void drawDemosMenu(App& p_app)
         for (robotik::PluginScenario const& scenario : package.scenarios)
         {
             if (!scenario.menu.empty() &&
-                std::find(submenus.begin(), submenus.end(), scenario.menu) == submenus.end())
+                std::find(submenus.begin(), submenus.end(), scenario.menu) ==
+                    submenus.end())
             {
                 submenus.push_back(scenario.menu);
             }
         }
-        auto items = [&](std::string const& p_menu) {
+        auto items = [&](std::string const& p_menu)
+        {
             for (robotik::PluginScenario const& scenario : package.scenarios)
             {
                 bool const current = scenario.file == p_app.scenario_path;
@@ -168,7 +181,8 @@ void drawPluginMenus(App& p_app)
         }
         for (robotik::PluginMenuItem const& item : p_app.plugins.host().menus())
         {
-            if (item.menu == menu && ImGui::MenuItem(item.label.c_str()) && item.callback != nullptr)
+            if (item.menu == menu && ImGui::MenuItem(item.label.c_str()) &&
+                item.callback != nullptr)
             {
                 item.callback(item.user);
             }

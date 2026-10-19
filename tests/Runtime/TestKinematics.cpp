@@ -14,9 +14,9 @@
 #include "Robotik/Runtime/RobotContext.hpp"
 #include "Robotik/Skills/MotionSkills.hpp"
 
-#include "Robotik/Math/Si.hpp"
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
+#include "Robotik/Math/Si.hpp"
 
 #include <stdexcept>
 
@@ -24,7 +24,8 @@
 
 TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
 {
-    robotik::PinocchioBackend kinematics(assetFile("robotik.robots.simple_revolute_robot"));
+    robotik::PinocchioBackend kinematics(
+        assetFile("robotik.robots.simple_revolute_robot"));
     EXPECT_EQ(kinematics.nq(), 1u);
     ASSERT_TRUE(kinematics.hasFrame("arm_link"));
     robotik::Pose const pose = kinematics.framePose("arm_link");
@@ -59,11 +60,12 @@ TEST(RobotSession, GripperJointsJoinTheArm)
 }
 
 /// The simulator loads meshes through a scene. That path must keep the fingers.
-class SceneToolView : public robotik::SceneView
+class SceneToolView: public robotik::SceneView
 {
 public:
 
-    explicit SceneToolView(compages::renderer::Scene& p_scene) : m_scene(p_scene)
+    explicit SceneToolView(compages::renderer::Scene& p_scene)
+        : m_scene(p_scene)
     {
     }
 
@@ -114,7 +116,8 @@ TEST(MujocoBackend, AttachesAndDetachesAToolChain)
 {
     compages::world::World world;
     auto physics = std::make_unique<robotik::MujocoBackend>();
-    std::string const arm = physics->load(assetFile("robotik.robots.robot_6axis"));
+    std::string const arm =
+        physics->load(assetFile("robotik.robots.robot_6axis"));
     std::string const tool = physics->load(assetFile("robotik.tools.gripper"));
     EXPECT_THROW(physics->attach(arm, "missing", tool, "tool_mount"),
                  std::runtime_error);
@@ -141,7 +144,8 @@ TEST(MujocoBackend, AttachesAndDetachesAToolChain)
 TEST(RobotSession, MoveJointReachesTheCommand)
 {
     compages::world::World world;
-    std::filesystem::path const urdf = assetFile("robotik.robots.simple_revolute_robot");
+    std::filesystem::path const urdf =
+        assetFile("robotik.robots.simple_revolute_robot");
     robotik::RobotSession robot(world, urdf);
     auto physics = std::make_unique<robotik::MujocoBackend>();
     (void)physics->load(urdf);
@@ -167,15 +171,18 @@ TEST(RobotSession, MoveJointReachesTheCommand)
 TEST(RobotSession, FailedActuatorIsDisabled)
 {
     compages::world::World world;
-    std::filesystem::path const urdf = assetFile("robotik.robots.simple_diff_drive_robot");
+    std::filesystem::path const urdf =
+        assetFile("robotik.robots.simple_diff_drive_robot");
     robotik::RobotSession robot(world, urdf);
-    auto& motor = robot.actuators().add<robotik::Motor>(
-        "left_motor", robot.joints().name(0));
+    auto& motor = robot.actuators().add<robotik::Motor>("left_motor",
+                                                        robot.joints().name(0));
     EXPECT_TRUE(robot.resources().available("left_motor"));
 
     motor.spin(AngularVelocity(2.0));
-    EXPECT_EQ(robot.joints().mode(motor.joint().id), robotik::JointMode::Velocity);
+    EXPECT_EQ(robot.joints().mode(motor.joint().id),
+              robotik::JointMode::Velocity);
     robot.resources().fail("left_motor");
     robot.step(Seconds(0.01));
-    EXPECT_EQ(robot.joints().mode(motor.joint().id), robotik::JointMode::Disabled);
+    EXPECT_EQ(robot.joints().mode(motor.joint().id),
+              robotik::JointMode::Disabled);
 }

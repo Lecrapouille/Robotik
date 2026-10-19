@@ -21,7 +21,8 @@ static double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void ReachMission::reset(robotik::Simulation& p_simulation, robotik::Seed /*p_seed*/)
+void ReachMission::reset(robotik::Simulation& p_simulation,
+                         robotik::Seed /*p_seed*/)
 {
     robotik::Robot& robot = p_simulation.robot();
 
@@ -41,7 +42,8 @@ void ReachMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_simulation.robot();
     robotik::JointSet& joints = robot.joints();
-    for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size(); ++id)
+    for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size();
+         ++id)
     {
         joints.moveTo(id, m_solution[id]);
     }
@@ -54,11 +56,13 @@ void ReachMission::measure(robotik::Simulation const& /*p_simulation*/,
     p_metrics.set("reach.error", m_error);
 }
 
-robotik::Status ReachMission::status(robotik::Simulation const& /*p_simulation*/) const
+robotik::Status
+ReachMission::status(robotik::Simulation const& /*p_simulation*/) const
 {
     if (m_solution.empty())
     {
         return robotik::Status::FAILURE;
     }
-    return m_error < 0.005 ? robotik::Status::SUCCESS : robotik::Status::RUNNING;
+    return m_error < 0.005 ? robotik::Status::SUCCESS
+                           : robotik::Status::RUNNING;
 }

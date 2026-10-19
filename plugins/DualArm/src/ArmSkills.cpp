@@ -22,7 +22,8 @@ namespace dual_arm
 
 using robotik::Status;
 
-robotik::Vector3 inBase(robotik::RobotContext const& p_context, robotik::Vector3 const& p_belief)
+robotik::Vector3 inBase(robotik::RobotContext const& p_context,
+                        robotik::Vector3 const& p_belief)
 {
     if (p_context.team.empty())
     {
@@ -39,7 +40,8 @@ robotik::Quaternion pointingDown(robotik::Vector3 const& p_at)
     return { 0.0, std::cos(yaw * 0.5), std::sin(yaw * 0.5), 0.0 };
 }
 
-robotik::Robot const* teammate(robotik::RobotContext const& p_context, std::string_view p_id)
+robotik::Robot const* teammate(robotik::RobotContext const& p_context,
+                               std::string_view p_id)
 {
     if (p_context.robot.id() == p_id)
     {
@@ -68,9 +70,10 @@ std::string heldObject(robotik::Robot const& p_robot)
         return {};
     }
     compages::world::World& world = p_robot.world();
-    auto const* held = world.alive(cup->held())
-                           ? world.entity(cup->held()).find<robotik::ecs::Shape>()
-                           : nullptr;
+    auto const* held =
+        world.alive(cup->held())
+            ? world.entity(cup->held()).find<robotik::ecs::Shape>()
+            : nullptr;
     return held != nullptr ? held->name : std::string{};
 }
 
@@ -92,15 +95,18 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
     if (!m_planned)
     {
         // Believed pose (perception or oracle), never the ground truth.
-        robotik::WorldObject const* object = p_context.world_model.find(m_object);
+        robotik::WorldObject const* object =
+            p_context.world_model.find(m_object);
         robotik::VacuumGripper const* cup = cupOf(p_context.robot);
         if (object == nullptr || cup == nullptr)
         {
-            m_why = object == nullptr ? m_object + " is not in the beliefs" : "no vacuum cup";
+            m_why = object == nullptr ? m_object + " is not in the beliefs"
+                                      : "no vacuum cup";
             return Status::FAILURE;
         }
         robotik::Vector3 const at = inBase(p_context, object->position);
-        double const top = inBase(p_context, robotik::Vector3(0.0, 0.0, object->top())).z;
+        double const top =
+            inBase(p_context, robotik::Vector3(0.0, 0.0, object->top())).z;
         double const height = top + m_clearance.value() + cup->length().value();
         robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);
@@ -143,7 +149,8 @@ Status GraspSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
     {
         cup->suction(false);
         std::string const held = heldObject(p_context.robot);
-        m_why = held.empty() ? "suction holds nothing" : "suction holds " + held + ", not " + m_object;
+        m_why = held.empty() ? "suction holds nothing"
+                             : "suction holds " + held + ", not " + m_object;
         return Status::FAILURE;
     }
     return Status::RUNNING;
@@ -151,7 +158,8 @@ Status GraspSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
 
 void GraspSkill::cancel(robotik::RobotContext& p_context)
 {
-    if (robotik::VacuumGripper* cup = cupOf(p_context.robot); cup != nullptr && !cup->holding())
+    if (robotik::VacuumGripper* cup = cupOf(p_context.robot);
+        cup != nullptr && !cup->holding())
     {
         cup->suction(false);
     }

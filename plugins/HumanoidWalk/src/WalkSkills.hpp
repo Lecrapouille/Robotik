@@ -33,10 +33,13 @@ class StandSkill final: public robotik::Skill
 {
 public:
 
-    StandSkill(WalkBody p_body, std::vector<double> p_posture, Seconds p_duration);
+    StandSkill(WalkBody p_body,
+               std::vector<double> p_posture,
+               Seconds p_duration);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -69,7 +72,8 @@ public:
               Seconds p_period);
 
     void reset() override;
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:

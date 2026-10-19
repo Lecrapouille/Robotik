@@ -36,20 +36,24 @@ static void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
             throw std::runtime_error("fault on '" + resource +
                                      "': action must be disable or restore");
         }
-        p_scenario.faults.push_back(
-            { Seconds(fault.number("at", 0.0)), std::move(resource), action == "disable" });
+        p_scenario.faults.push_back({ Seconds(fault.number("at", 0.0)),
+                                      std::move(resource),
+                                      action == "disable" });
     }
 }
 
 /// Reads planner literals such as in(a, b).
-static std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string const& p_key)
+static std::vector<Literal> readLiterals(ConfigNode const& p_node,
+                                         std::string const& p_key)
 {
     std::vector<Literal> literals;
     for (ConfigNode const& item : p_node.at(p_key).items())
     {
         if (!item.isScalar())
         {
-            throw std::runtime_error("planner." + p_key + ": each item is a literal such as in(a, b)");
+            throw std::runtime_error(
+                "planner." + p_key +
+                ": each item is a literal such as in(a, b)");
         }
         try
         {
@@ -57,29 +61,33 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node, std::string c
         }
         catch (std::runtime_error const& error)
         {
-            throw std::runtime_error("planner." + p_key + ": " + error.what() +
-                                     " (write one literal per line: a flow list [a(x, y)] "
-                                     "splits at the comma)");
+            throw std::runtime_error(
+                "planner." + p_key + ": " + error.what() +
+                " (write one literal per line: a flow list [a(x, y)] "
+                "splits at the comma)");
         }
     }
     return literals;
 }
 
 /// Reads the planner block: domain file, goal and replan limits.
-static PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode const& p_node)
+static PlannerSpec readPlanner(std::filesystem::path const& p_root,
+                               ConfigNode const& p_node)
 {
     PlannerSpec spec;
     spec.domain = packageFile(p_root, p_node.text("domain"));
     if (spec.domain.empty())
     {
-        throw std::runtime_error("planner.domain is required (a PDDL file of the package)");
+        throw std::runtime_error(
+            "planner.domain is required (a PDDL file of the package)");
     }
     spec.facts = readLiterals(p_node, "facts");
     spec.goal = readLiterals(p_node, "goal");
     spec.goal_pddl = p_node.text("goal_pddl");
     if (spec.goal.empty() == spec.goal_pddl.empty())
     {
-        throw std::runtime_error("planner: give a goal (list of literals) or a goal_pddl");
+        throw std::runtime_error(
+            "planner: give a goal (list of literals) or a goal_pddl");
     }
     ConfigNode const& replan = p_node.at("replan");
     double const max = replan.number("max", spec.max_replans);
@@ -88,7 +96,8 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode c
         throw std::runtime_error("planner.replan.max must be positive");
     }
     spec.max_replans = static_cast<std::uint32_t>(max);
-    spec.replan_delay = Seconds(replan.number("delay", spec.replan_delay.value()));
+    spec.replan_delay =
+        Seconds(replan.number("delay", spec.replan_delay.value()));
     spec.verify = p_node.flag("verify", spec.verify);
     spec.parallel = p_node.flag("parallel", spec.parallel);
     spec.search = p_node.text("search", spec.search);
@@ -99,18 +108,21 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root, ConfigNode c
 ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
 {
     ScenarioSource source;
-    source.scenario_file = std::filesystem::absolute(p_scenario).lexically_normal();
+    source.scenario_file =
+        std::filesystem::absolute(p_scenario).lexically_normal();
     source.package = packageRoot(source.scenario_file);
     source.scenario = ConfigNode::load(source.scenario_file);
     ConfigNode const& scenario = source.scenario.at("scenario");
     if (!scenario.isMap())
     {
-        throw std::runtime_error(p_scenario.string() + ": no 'scenario:' section");
+        throw std::runtime_error(p_scenario.string() +
+                                 ": no 'scenario:' section");
     }
     std::string const world = scenario.text("world");
     if (world.empty())
     {
-        throw std::runtime_error(p_scenario.string() + ": scenario.world is required");
+        throw std::runtime_error(p_scenario.string() +
+                                 ": scenario.world is required");
     }
     try
     {
@@ -118,7 +130,8 @@ ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
     }
     catch (std::runtime_error const& error)
     {
-        throw std::runtime_error(p_scenario.string() + ": scenario.world " + error.what());
+        throw std::runtime_error(p_scenario.string() + ": scenario.world " +
+                                 error.what());
     }
     source.world = ConfigNode::load(source.world_file);
     return source;
@@ -142,7 +155,8 @@ void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
 }
 
 /// Maps the words abstract and rigid onto the fidelity enum.
-static Fidelity readFidelity(std::string const& p_text, std::string const& p_where)
+static Fidelity readFidelity(std::string const& p_text,
+                             std::string const& p_where)
 {
     if (p_text == "abstract")
     {
@@ -154,7 +168,8 @@ static Fidelity readFidelity(std::string const& p_text, std::string const& p_whe
     }
     if (p_text == "contact")
     {
-        throw std::runtime_error(p_where + ": contact is not available yet (abstract or rigid)");
+        throw std::runtime_error(
+            p_where + ": contact is not available yet (abstract or rigid)");
     }
     throw std::runtime_error(p_where + " must be abstract, rigid or contact");
 }
@@ -166,14 +181,17 @@ static void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
     {
         return;
     }
-    p_scenario.physics.fidelity = readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity");
+    p_scenario.physics.fidelity =
+        readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity");
     for (auto const& [id, level] : p_node.at("overrides").entries())
     {
         if (!level.isScalar())
         {
-            throw std::runtime_error("physics.overrides." + id + " must be a level");
+            throw std::runtime_error("physics.overrides." + id +
+                                     " must be a level");
         }
-        p_scenario.physics.overrides.emplace(id, readFidelity(level.scalar(), "physics.overrides." + id));
+        p_scenario.physics.overrides.emplace(
+            id, readFidelity(level.scalar(), "physics.overrides." + id));
     }
 }
 
@@ -192,8 +210,9 @@ static void checkPhysics(Scenario const& p_scenario)
         }
         if (!known)
         {
-            throw std::runtime_error("physics.overrides: '" + id +
-                                     "' is no entity nor actuator of the world");
+            throw std::runtime_error(
+                "physics.overrides: '" + id +
+                "' is no entity nor actuator of the world");
         }
     }
 }
@@ -212,7 +231,8 @@ char const* toString(Fidelity p_fidelity)
     return "?";
 }
 
-Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_assets)
+Scenario Scenario::read(ScenarioSource const& p_source,
+                        AssetResolver const& p_assets)
 {
     ConfigNode const& node = p_source.scenario.at("scenario");
     std::filesystem::path const& root = p_source.package;
@@ -231,25 +251,31 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         scenario.description = node.text("description");
         scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
         ConfigNode const& controller = node.at("controller");
-        scenario.controller.behavior_tree = packageFile(root, controller.text("behavior_tree"));
+        scenario.controller.behavior_tree =
+            packageFile(root, controller.text("behavior_tree"));
         if (controller.has("planner"))
         {
             if (!scenario.controller.behavior_tree.empty())
             {
-                throw std::runtime_error("controller: give a behavior_tree or a planner, not both");
+                throw std::runtime_error(
+                    "controller: give a behavior_tree or a planner, not both");
             }
-            scenario.controller.planner = readPlanner(root, controller.at("planner"));
+            scenario.controller.planner =
+                readPlanner(root, controller.at("planner"));
         }
         for (auto const& [name, file] : node.at("trajectories").entries())
         {
             if (!file.isScalar())
             {
-                throw std::runtime_error("trajectories." + name + " must be a file name");
+                throw std::runtime_error("trajectories." + name +
+                                         " must be a file name");
             }
-            scenario.trajectories.emplace(name, Trajectory::load(packageFile(root, file.scalar())));
+            scenario.trajectories.emplace(
+                name, Trajectory::load(packageFile(root, file.scalar())));
         }
         readFaults(scenario, node.at("faults"));
-        std::string const oracle = node.at("perception").text("oracle", "never");
+        std::string const oracle =
+            node.at("perception").text("oracle", "never");
         if (oracle == "never")
         {
             scenario.oracle = OraclePolicy::Never;
@@ -264,7 +290,8 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
         }
         else
         {
-            throw std::runtime_error("perception.oracle must be never, when_blind or always");
+            throw std::runtime_error(
+                "perception.oracle must be never, when_blind or always");
         }
         readPhysics(scenario, node.at("physics"));
         scenario.timeout = Seconds(node.number("timeout", 0.0));
@@ -283,16 +310,17 @@ Scenario Scenario::read(ScenarioSource const& p_source, AssetResolver const& p_a
     ConfigNode const& world = p_source.world.at("world");
     if (!world.isMap())
     {
-        throw std::runtime_error(p_source.world_file.string() + ": no 'world:' section");
+        throw std::runtime_error(p_source.world_file.string() +
+                                 ": no 'world:' section");
     }
     try
     {
-        scenario.world =
-            WorldDescription::read(world, root, p_assets);
+        scenario.world = WorldDescription::read(world, root, p_assets);
     }
     catch (std::runtime_error const& error)
     {
-        throw std::runtime_error(p_source.world_file.string() + ": " + error.what());
+        throw std::runtime_error(p_source.world_file.string() + ": " +
+                                 error.what());
     }
     try
     {

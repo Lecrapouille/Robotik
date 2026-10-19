@@ -17,7 +17,8 @@
 TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 {
     compages::world::World world;
-    robotik::RobotSession robot(world, assetFile("robotik.robots.simple_revolute_robot"));
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
     robotik::TeachPendant pendant;
 
     std::size_t const home = pendant.record(robot, "home", 1.0);
@@ -107,12 +108,14 @@ TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
     robotik::TeachPendant pendant;
     pendant.frame("link1");
     // link1 only turns about z: it cannot translate along x.
-    EXPECT_FALSE(pendant.jogTool(robot, robotik::Vector3(0.01, 0.0, 0.0), robotik::zero3()));
+    EXPECT_FALSE(pendant.jogTool(
+        robot, robotik::Vector3(0.01, 0.0, 0.0), robotik::zero3()));
     EXPECT_FALSE(pendant.error().empty());
     for (robotik::JointId id = 0; id < robot.joints().size(); ++id)
     {
         EXPECT_TRUE(std::isfinite(robot.joints().target(id)));
     }
     // A rotation about z is possible.
-    EXPECT_TRUE(pendant.jogTool(robot, robotik::zero3(), robotik::Vector3(0.0, 0.0, 0.1)));
+    EXPECT_TRUE(pendant.jogTool(
+        robot, robotik::zero3(), robotik::Vector3(0.0, 0.0, 0.1)));
 }

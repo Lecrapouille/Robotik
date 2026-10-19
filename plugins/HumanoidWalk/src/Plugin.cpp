@@ -44,7 +44,8 @@ public:
         return { .id = "robotik.humanoid_walk" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    RobotikPluginStatus setup(robotik::Host& p_host,
+                              std::string_view p_scenario) override
     {
         m_mission.reset();
         if (p_scenario != "walk" && p_scenario != "walk_circle")
@@ -89,7 +90,8 @@ private:
 
     static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
     {
-        static_cast<HumanoidWalkPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
+        static_cast<HumanoidWalkPlugin*>(p_user)->draw(
+            robotik::Canvas(p_canvas));
     }
 
     void draw(robotik::Canvas const& p_canvas)
@@ -122,9 +124,12 @@ private:
             command = {};
         }
         p_canvas.separator();
-        p_canvas.text(format("Path radius %.2f m (commanded %.2f m, exact after one turn)",
-                             m_mission->radius(), m_mission->commandedRadius()));
-        p_canvas.text(format("Turns %.2f   distance %.1f m", m_mission->turns(),
+        p_canvas.text(format(
+            "Path radius %.2f m (commanded %.2f m, exact after one turn)",
+            m_mission->radius(),
+            m_mission->commandedRadius()));
+        p_canvas.text(format("Turns %.2f   distance %.1f m",
+                             m_mission->turns(),
                              m_mission->distance()));
         if (m_mission->height() < 0.6)
         {

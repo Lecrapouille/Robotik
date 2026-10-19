@@ -27,7 +27,8 @@ public:
         return { .id = "robotik.dual_arm" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    RobotikPluginStatus setup(robotik::Host& p_host,
+                              std::string_view p_scenario) override
     {
         if (p_scenario == "conveyor" || p_scenario == "conveyor_sequential")
         {

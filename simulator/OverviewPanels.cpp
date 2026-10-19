@@ -80,10 +80,14 @@ static std::string parentOf(robotik::EntitySpec const& p_entity)
 }
 
 /// Forward declaration: one entity and the devices hanging from it.
-static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity);
+static void entityRow(App& p_app,
+                      robotik::WorldDescription const& p_world,
+                      robotik::EntitySpec const& p_entity);
 
 /// Rows of the entities attached to this parent.
-static void children(App& p_app, robotik::WorldDescription const& p_world, std::string const& p_parent)
+static void children(App& p_app,
+                     robotik::WorldDescription const& p_world,
+                     std::string const& p_parent)
 {
     for (robotik::EntitySpec const& entity : p_world.entities)
     {
@@ -99,8 +103,10 @@ static void leaf(char const* p_name, char const* p_type, char const* p_detail)
 {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
-    ImGui::TreeNodeEx(p_name, ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                  ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
+    ImGui::TreeNodeEx(
+        p_name,
+        ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
+            ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanFullWidth);
     ImGui::TableNextColumn();
     ImGui::TextDisabled("%s", p_type);
     ImGui::TableNextColumn();
@@ -109,17 +115,22 @@ static void leaf(char const* p_name, char const* p_type, char const* p_detail)
 }
 
 /// One entity row and the sensors, actuators and children under it.
-static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robotik::EntitySpec const& p_entity)
+static void entityRow(App& p_app,
+                      robotik::WorldDescription const& p_world,
+                      robotik::EntitySpec const& p_entity)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
-    bool has_children = !p_entity.sensors.empty() || !p_entity.actuators.empty();
+    bool has_children =
+        !p_entity.sensors.empty() || !p_entity.actuators.empty();
     for (robotik::EntitySpec const& other : p_world.entities)
     {
-        has_children = has_children || (parentOf(other) == p_entity.id && other.id != p_entity.id);
+        has_children = has_children || (parentOf(other) == p_entity.id &&
+                                        other.id != p_entity.id);
     }
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen;
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_DefaultOpen;
     if (!has_children)
     {
         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
@@ -136,13 +147,20 @@ static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robo
     {
         robotik::Vector3 const& size = p_entity.shape->size;
         ImGui::ColorButton("##color",
-                           ImVec4(p_entity.shape->color[0], p_entity.shape->color[1],
-                                  p_entity.shape->color[2], 1.0f),
-                           ImGuiColorEditFlags_NoTooltip, ImVec2(10.0f, 10.0f));
+                           ImVec4(p_entity.shape->color[0],
+                                  p_entity.shape->color[1],
+                                  p_entity.shape->color[2],
+                                  1.0f),
+                           ImGuiColorEditFlags_NoTooltip,
+                           ImVec2(10.0f, 10.0f));
         ImGui::SameLine();
         ImGui::Text("%s %.2fx%.2fx%.2f m",
-                    p_entity.shape->type == robotik::ShapeSpec::Type::Container ? "container" : "box",
-                    size.x, size.y, size.z);
+                    p_entity.shape->type == robotik::ShapeSpec::Type::Container
+                        ? "container"
+                        : "box",
+                    size.x,
+                    size.y,
+                    size.z);
     }
     ImGui::TableNextColumn();
     if (p_entity.type != robotik::EntitySpec::Type::Robot)
@@ -154,7 +172,9 @@ static void entityRow(App& p_app, robotik::WorldDescription const& p_world, robo
         }
         catch (std::exception const&)
         {
-            ImGui::TextDisabled(p_entity.type == robotik::EntitySpec::Type::Tool ? "stored" : "-");
+            ImGui::TextDisabled(p_entity.type == robotik::EntitySpec::Type::Tool
+                                    ? "stored"
+                                    : "-");
         }
     }
     if (!has_children || !open)
@@ -185,10 +205,12 @@ static std::string readShown(std::filesystem::path const& p_path)
     }
     if (size > LIMIT)
     {
-        return "# " + std::to_string(size / (1024u * 1024u)) + " MB: too large to show here.";
+        return "# " + std::to_string(size / (1024u * 1024u)) +
+               " MB: too large to show here.";
     }
     std::ifstream file(p_path, std::ios::binary);
-    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string text((std::istreambuf_iterator<char>(file)),
+                     std::istreambuf_iterator<char>());
     if (text.find('\0') != std::string::npos)
     {
         return "# Binary file, " + std::to_string(size) + " bytes.";
@@ -204,17 +226,23 @@ void worldView(App& p_app)
         return;
     }
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
-    ImGui::TextDisabled("%s  ·  %zu entities  ·  %s", world.id.c_str(), world.entities.size(),
+    ImGui::TextDisabled("%s  ·  %zu entities  ·  %s",
+                        world.id.c_str(),
+                        world.entities.size(),
                         world.floor ? "physical floor" : "no physical floor");
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                  ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
     if (beginTable("entities", 4, flags))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Entity", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        ImGui::TableSetupColumn(
+            "Entity", ImGuiTableColumnFlags_WidthStretch, 1.5f);
         ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Model", ImGuiTableColumnFlags_WidthStretch, 1.5f);
-        ImGui::TableSetupColumn("Position (m)", ImGuiTableColumnFlags_WidthStretch, 1.3f);
+        ImGui::TableSetupColumn(
+            "Model", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+        ImGui::TableSetupColumn(
+            "Position (m)", ImGuiTableColumnFlags_WidthStretch, 1.3f);
         ImGui::TableHeadersRow();
         for (robotik::EntitySpec const& entity : world.entities)
         {
@@ -229,15 +257,18 @@ void worldView(App& p_app)
 }
 
 /// True when both paths name the same file.
-static bool same(std::filesystem::path const& p_a, std::filesystem::path const& p_b)
+static bool same(std::filesystem::path const& p_a,
+                 std::filesystem::path const& p_b)
 {
     std::error_code error;
-    return !p_a.empty() && !p_b.empty() && std::filesystem::equivalent(p_a, p_b, error);
+    return !p_a.empty() && !p_b.empty() &&
+           std::filesystem::equivalent(p_a, p_b, error);
 }
 
 /// @brief Kind of a file: from its double extension (FileRole.hpp), else
 /// from the first top-level key of a YAML file.
-static FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_text)
+static FileTab kindOf(std::filesystem::path const& p_path,
+                      std::string const& p_text)
 {
     switch (robotik::fileRole(p_path))
     {
@@ -266,7 +297,8 @@ static FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_
     {
         std::size_t const end = rest.find('\n');
         std::string_view const line = rest.substr(0, end);
-        rest = end == std::string_view::npos ? std::string_view{} : rest.substr(end + 1u);
+        rest = end == std::string_view::npos ? std::string_view{}
+                                             : rest.substr(end + 1u);
         if (line.empty() || line.front() == '#' || line.front() == ' ')
         {
             continue;
@@ -295,7 +327,8 @@ static FileTab kindOf(std::filesystem::path const& p_path, std::string const& p_
 /// @brief The file a tab shows: the one chosen in Files, else the loaded one.
 static ShownFile shownIn(App const& p_app, FileTab p_tab)
 {
-    ShownFile const& chosen = p_app.ui.shown_files[static_cast<std::size_t>(p_tab)];
+    ShownFile const& chosen =
+        p_app.ui.shown_files[static_cast<std::size_t>(p_tab)];
     if (!chosen.path.empty())
     {
         return chosen;
@@ -309,7 +342,8 @@ static ShownFile shownIn(App const& p_app, FileTab p_tab)
         case FileTab::Tree:
             if (p_app.simulation)
             {
-                return { p_app.simulation->scenario().controller.behavior_tree, p_app.tree_text };
+                return { p_app.simulation->scenario().controller.behavior_tree,
+                         p_app.tree_text };
             }
             return {};
         case FileTab::Planner:
@@ -397,7 +431,9 @@ static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
     }
 }
 
-void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_focus)
+void selectExperiment(App& p_app,
+                      std::filesystem::path const& p_path,
+                      bool p_focus)
 {
     UiState& ui = p_app.ui;
     ui.experiment_path = p_path;
@@ -411,7 +447,9 @@ void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_fo
     {
         ui.experiment_error = error.what();
     }
-    ui.shown_files[static_cast<std::size_t>(FileTab::Experiment)] = { p_path, readShown(p_path) };
+    ui.shown_files[static_cast<std::size_t>(FileTab::Experiment)] = {
+        p_path, readShown(p_path)
+    };
     if (p_focus)
     {
         showView(p_app, FileTab::Experiment, true);
@@ -420,16 +458,20 @@ void selectExperiment(App& p_app, std::filesystem::path const& p_path, bool p_fo
 
 /// @brief First scenario of @p_package whose planner reads the domain
 /// @p_domain, or null.
-static std::filesystem::path const* scenarioOfDomain(robotik::PluginPackage const& p_package,
-                                                     std::filesystem::path const& p_domain)
+static std::filesystem::path const*
+scenarioOfDomain(robotik::PluginPackage const& p_package,
+                 std::filesystem::path const& p_domain)
 {
     for (robotik::PluginScenario const& scenario : p_package.scenarios)
     {
         try
         {
-            robotik::ConfigNode const node = robotik::ConfigNode::load(scenario.file);
-            std::string const domain =
-                node.at("scenario").at("controller").at("planner").text("domain");
+            robotik::ConfigNode const node =
+                robotik::ConfigNode::load(scenario.file);
+            std::string const domain = node.at("scenario")
+                                           .at("controller")
+                                           .at("planner")
+                                           .text("domain");
             if (!domain.empty() && same(p_package.root / domain, p_domain))
             {
                 return &scenario.file;
@@ -458,7 +500,8 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
                 {
                     requestScenario(p_app, scenario.file);
                 }
-                p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
+                p_app.ui.shown_files[static_cast<std::size_t>(
+                    FileTab::Scenario)] = {};
                 showView(p_app, FileTab::Scenario, true);
                 return;
             }
@@ -474,12 +517,15 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
     }
     // The domain of another scenario of the package: load that scenario, the
     // Planner tab then shows the domain with its plans.
-    if (package != nullptr && robotik::fileRole(p_path) == robotik::FileRole::Domain)
+    if (package != nullptr &&
+        robotik::fileRole(p_path) == robotik::FileRole::Domain)
     {
-        if (std::filesystem::path const* scenario = scenarioOfDomain(*package, p_path))
+        if (std::filesystem::path const* scenario =
+                scenarioOfDomain(*package, p_path))
         {
             requestScenario(p_app, *scenario);
-            p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
+            p_app.ui
+                .shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
             showView(p_app, FileTab::Planner, true);
             return;
         }
@@ -512,12 +558,14 @@ void filesPanel(App& p_app)
     if (ui.shown_for != p_app.scenario_path)
     {
         ui.shown_for = p_app.scenario_path;
-        for (FileTab const tab : { FileTab::Scenario, FileTab::World, FileTab::Tree })
+        for (FileTab const tab :
+             { FileTab::Scenario, FileTab::World, FileTab::Tree })
         {
             ui.shown_files[static_cast<std::size_t>(tab)] = {};
         }
     }
-    if (p_app.scenario_text.empty() && ui.shown_files[static_cast<std::size_t>(FileTab::Other)].path.empty())
+    if (p_app.scenario_text.empty() &&
+        ui.shown_files[static_cast<std::size_t>(FileTab::Other)].path.empty())
     {
         emptyState("No file loaded.\nClick a file in the Plugin panel.");
         ImGui::End();
@@ -560,23 +608,31 @@ void assertionsView(App& p_app)
     ImGui::SameLine();
     ImGui::TextColored(GREY, "%zu pending", pending);
     ImGui::SameLine();
-    ImGui::TextDisabled("   run: %s   contacts seen: %d", robotik::toString(simulation.outcome()),
+    ImGui::TextDisabled("   run: %s   contacts seen: %d",
+                        robotik::toString(simulation.outcome()),
                         simulation.maxContacts());
     ImGui::SameLine();
-    helpMarker("An assertion is a condition judged at a moment. A failed one keeps its value, "
-               "its bound and its time; it does not stop the run unless it says stop: true. "
-               "Pending rows show the live value: green when the condition holds now.");
+    helpMarker("An assertion is a condition judged at a moment. A failed one "
+               "keeps its value, "
+               "its bound and its time; it does not stop the run unless it "
+               "says stop: true. "
+               "Pending rows show the live value: green when the condition "
+               "holds now.");
 
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                  ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
     if (beginTable("assertions", 6, flags))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Assertion", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+        ImGui::TableSetupColumn(
+            "Assertion", ImGuiTableColumnFlags_WidthStretch, 2.0f);
         ImGui::TableSetupColumn("When", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.7f);
-        ImGui::TableSetupColumn("Expected", ImGuiTableColumnFlags_WidthStretch, 0.7f);
+        ImGui::TableSetupColumn(
+            "Value", ImGuiTableColumnFlags_WidthStretch, 0.7f);
+        ImGui::TableSetupColumn(
+            "Expected", ImGuiTableColumnFlags_WidthStretch, 0.7f);
         ImGui::TableSetupColumn("At", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (robotik::Check const& check : simulation.checks())
@@ -590,10 +646,12 @@ void assertionsView(App& p_app)
                     break;
                 case robotik::Check::Verdict::Failed:
                     badge("FAIL", RED);
-                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1, IM_COL32(120, 30, 30, 70));
+                    ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1,
+                                           IM_COL32(120, 30, 30, 70));
                     break;
                 case robotik::Check::Verdict::Pending:
-                    badge(check.holds ? "holds" : "wait", check.holds ? GREEN : GREY);
+                    badge(check.holds ? "holds" : "wait",
+                          check.holds ? GREEN : GREY);
                     break;
             }
             ImGui::TableNextColumn();

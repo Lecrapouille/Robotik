@@ -9,7 +9,8 @@
 
 #include <imgui.h>
 
-// Status colors shared by every panel: idle, waiting, running, success, failure.
+// Status colors shared by every panel: idle, waiting, running, success,
+// failure.
 inline ImVec4 const GREY(0.55f, 0.55f, 0.58f, 1.0f);
 inline ImVec4 const ORANGE(1.00f, 0.70f, 0.20f, 1.0f);
 inline ImVec4 const GREEN(0.35f, 0.85f, 0.40f, 1.0f);

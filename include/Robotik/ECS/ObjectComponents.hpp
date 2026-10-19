@@ -5,8 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// @file ObjectComponents.hpp
-// @brief Objects of the world spawned from a scenario (ground truth).
+/// @file ObjectComponents.hpp
+/// Objects of the world spawned from a scenario (ground truth).
+///
+/// These components are the truth of the simulator: metrics, assertions and
+/// RL rewards may read them, skills never do (they read the
+/// @ref robotik::WorldModel).
 #pragma once
 
 #include "Robotik/Math/Si.hpp"
@@ -22,14 +26,23 @@ namespace robotik::ecs
 inline constexpr double CONTAINER_WALL_M = 0.005;
 
 // ****************************************************************************
-// @brief Primitive object of the world (prop or primitive body).
-// Pose is the Compages transform on an entity parented to the Z-up world
-// frame (coordinates in the world frame).
+/// Primitive object of the world (prop or primitive body).
+///
+/// Pose is the Compages transform on an entity parented to the Z-up world
+/// frame (coordinates in the world frame).
+///
+/// @code
+/// robotik::ecs::Shape cube;
+/// cube.name = "red_cube";
+/// cube.size = { Length(0.05), Length(0.05), Length(0.05) };
+/// cube.color = { 1.0f, 0.0f, 0.0f };
+/// entity.add<robotik::ecs::Shape>(cube);
+/// @endcode
 // ****************************************************************************
 struct Shape
 {
     // ------------------------------------------------------------------------
-    // @brief Primitive shape used for rendering.
+    /// Primitive shape used for rendering.
     // ------------------------------------------------------------------------
     enum class Type
     {
@@ -48,8 +61,12 @@ struct Shape
 };
 
 // ****************************************************************************
-/// @brief Marks a @ref Shape moved by the physics backend: the grasp
-/// system and the container rules leave it alone.
+/// Marks a @ref Shape moved by the physics backend: the grasp system and the
+/// container rules leave it alone.
+///
+/// @code
+/// entity.add<robotik::ecs::PhysicsBody>(robotik::ecs::PhysicsBody{ "box" });
+/// @endcode
 // ****************************************************************************
 struct PhysicsBody
 {
@@ -58,13 +75,19 @@ struct PhysicsBody
 };
 
 // ****************************************************************************
-/// @brief Marks a @ref Shape drawn for the eye only (a sensor beam, a
-/// trail): not a world entity. Grasp, range sensing and the ground truth
-/// ignore it. Not empty: EnTT stores no instance of an empty type, and the
-/// Compages entity API returns references to its components.
+/// Marks a @ref Shape drawn for the eye only (a sensor beam, a trail): not a
+/// world entity. Grasp, range sensing and the ground truth ignore it.
+///
+/// Not empty: EnTT stores no instance of an empty type, and the Compages
+/// entity API returns references to its components.
+///
+/// @code
+/// beam.add<robotik::ecs::Decoration>();
+/// @endcode
 // ****************************************************************************
 struct Decoration
 {
+    /// Always true; only here so the type is not empty.
     bool decorative = true;
 };
 

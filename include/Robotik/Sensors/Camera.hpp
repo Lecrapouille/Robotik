@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Camera.hpp
-/// @brief Robot camera sensor, its frames and the source that fills them.
+/// Robot camera sensor, its frames and the source that fills them.
 ///
 /// Robotik owns the camera concept; it does not render nor grab images. A
 /// @ref FrameSource does: the simulator renders with Compages, a demo grabs a
@@ -33,42 +33,64 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Pinhole model: image size, focal lengths and principal point (px).
+/// Pinhole model: image size, focal lengths and principal point (px).
+///
+/// @code
+/// auto const k = robotik::CameraIntrinsics::fromFov(640, 480, Radians(1.0));
+/// robotik::Vector3 const ray = k.ray(320.0, 240.0);       // straight ahead:
+/// +Z if (auto const px = k.project(robotik::Vector3(0.1, 0.0, 1.0)))
+///     std::cout << (*px)[0] << ", " << (*px)[1] << '\n';
+/// @endcode
 // ****************************************************************************
 struct CameraIntrinsics
 {
-    std::uint32_t width = 320;
-    std::uint32_t height = 240;
-    double fx = 171.0;
-    double fy = 171.0;
-    double cx = 160.0;
-    double cy = 120.0;
+    std::uint32_t width = 320;  ///< Image width (px).
+    std::uint32_t height = 240; ///< Image height (px).
+    double fx = 171.0;          ///< Horizontal focal length (px).
+    double fy = 171.0;          ///< Vertical focal length (px).
+    double cx = 160.0;          ///< Principal point, column (px).
+    double cy = 120.0;          ///< Principal point, row (px).
 
     // -------------------------------------------------------------------------
-    /// @brief Square pixels, centered principal point, vertical field of view.
+    /// Builds square pixels with a centered principal point.
+    /// @param p_width Image width (px).
+    /// @param p_height Image height (px).
+    /// @param p_fov Vertical field of view.
+    /// @return The intrinsics.
     // -------------------------------------------------------------------------
     [[nodiscard]] static CameraIntrinsics
     fromFov(std::uint32_t p_width, std::uint32_t p_height, Radians p_fov);
 
-    /// @brief Vertical field of view.
+    /// @return The vertical field of view.
     [[nodiscard]] Radians fov() const;
 
     // -------------------------------------------------------------------------
-    /// @brief Unit ray through pixel (@p_u, @p_v), in the optical frame.
+    /// @param p_u Column (px).
+    /// @param p_v Row (px).
+    /// @return Unit ray through the pixel, in the optical frame.
     // -------------------------------------------------------------------------
     [[nodiscard]] Vector3 ray(double p_u, double p_v) const;
 
     // -------------------------------------------------------------------------
-    /// @brief Pixel of a point given in the optical frame, if in front.
+    /// @param p_point Point in the optical frame (m).
+    /// @return Its pixel (column, row), or nothing when it is behind the
+    ///   camera.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<std::array<double, 2>>
     project(Vector3 const& p_point) const;
 };
 
 // ****************************************************************************
-/// @brief One capture: images plus where and when they were taken.
+/// One capture: images plus where and when they were taken.
+///
+/// @code
+/// robotik::CameraFrame const& f = camera.frame();
+/// if (f.valid && !f.depth.empty())
+///     float const z = f.depth.row<float>(f.intrinsics.height /
+///     2)[f.intrinsics.width / 2];
+/// @endcode
 // ****************************************************************************
-struct CameraFrame : Measurement
+struct CameraFrame: Measurement
 {
     /// Color image (@ref PixelFormat::RGB8 or Gray8).
     Image rgb;
@@ -83,7 +105,22 @@ struct CameraFrame : Measurement
 class Camera;
 
 // ****************************************************************************
-/// @brief Fills a @ref CameraFrame: renderer, driver or synthetic generator.
+/// Fills a @ref CameraFrame: renderer, driver or synthetic generator.
+///
+/// @code
+/// class GrayTest final : public robotik::FrameSource
+/// {
+/// public:
+///     bool capture(robotik::Camera const&, robotik::CameraFrame& p_frame)
+///     override
+///     {
+///         auto const& k = p_frame.intrinsics;
+///         p_frame.rgb.resize(k.width, k.height, robotik::PixelFormat::RGB8);
+///         std::ranges::fill(p_frame.rgb.bytes(), std::uint8_t(128));
+///         return true;
+///     }
+/// };
+/// @endcode
 // ****************************************************************************
 class FrameSource
 {
@@ -92,14 +129,23 @@ public:
     virtual ~FrameSource() = default;
 
     // -------------------------------------------------------------------------
-    /// @brief Writes the images of @p_frame (pose and intrinsics are set).
+    /// Writes the images of a frame.
+    /// @param p_camera Camera asking for the images.
+    /// @param p_frame Frame to fill; its pose and intrinsics are already set.
     /// @return False when no image could be produced.
     // -------------------------------------------------------------------------
     virtual bool capture(Camera const& p_camera, CameraFrame& p_frame) = 0;
 };
 
 // ****************************************************************************
-/// @brief Where the camera is and how it samples.
+/// Where the camera is and how it samples.
+///
+/// @code
+/// robotik::CameraConfig config;
+/// config.parent = "link6";
+/// config.intrinsics = robotik::CameraIntrinsics::fromFov(320, 240,
+/// Radians(0.9)); config.frequency = 15.0; config.depth = true;
+/// @endcode
 // ****************************************************************************
 struct CameraConfig
 {
@@ -116,11 +162,13 @@ struct CameraConfig
     /// Gaussian noise on color channels, as a fraction of 255 (0: none).
     double noise = 0.0;
 };
-/// Frames are handed to the callbacks as soon as they are captured: a
-/// camera has no latency model (it would have to queue images).
 
 // ****************************************************************************
-/// @brief A camera of the robot.
+/// A camera of the robot.
+///
+/// Frames are handed to the callbacks as soon as they are captured: a
+/// camera has no latency model (it would have to queue images). Without a
+/// source (headless run) it produces no frame.
 ///
 /// @code
 /// auto& camera = robot.sensors().add<robotik::Camera>(
@@ -135,41 +183,53 @@ class Camera final: public Sensor
 {
 public:
 
+    /// Function called with each new frame.
     using Callback = std::function<void(CameraFrame const&)>;
 
+    // -------------------------------------------------------------------------
+    /// @param p_name Camera name, also its resource name.
+    /// @param p_config Mount, intrinsics, rate, depth and noise.
+    // -------------------------------------------------------------------------
     Camera(std::string p_name, CameraConfig p_config = {});
 
+    /// @return The configuration.
     [[nodiscard]] CameraConfig const& config() const
     {
         return m_config;
     }
 
-    /// @brief Optical frame in the parent link (mission / calibration).
+    // -------------------------------------------------------------------------
+    /// Moves the camera on its link (mission / calibration).
+    /// @param p_mount Optical frame in the parent link.
+    // -------------------------------------------------------------------------
     void mount(Pose const& p_mount)
     {
         m_config.mount = p_mount;
     }
 
+    /// @return The image geometry.
     [[nodiscard]] CameraIntrinsics const& intrinsics() const
     {
         return m_config.intrinsics;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Connects the image source (not owned); null disconnects.
+    /// Connects the image source.
+    /// @param p_source Source, not owned; null disconnects.
     // -------------------------------------------------------------------------
     void source(FrameSource* p_source)
     {
         m_source = p_source;
     }
 
+    /// @return The image source, or null.
     [[nodiscard]] FrameSource* source() const
     {
         return m_source;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Last captured frame (empty images before the first capture).
+    /// @return Last captured frame (empty images before the first capture).
     // -------------------------------------------------------------------------
     [[nodiscard]] CameraFrame const& frame() const
     {
@@ -177,7 +237,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Calls @p_callback after every capture, in registration order.
+    /// Calls a function after every capture, in registration order.
+    /// @param p_callback Function receiving the frame.
     // -------------------------------------------------------------------------
     void onFrame(Callback p_callback)
     {
@@ -185,13 +246,15 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Reseeds the noise generator (episode reset).
+    /// Reseeds the noise generator (episode reset).
+    /// @param p_seed Same seed, same noise.
     // -------------------------------------------------------------------------
     void seed(Seed p_seed)
     {
         m_random = Random(p_seed);
     }
 
+    /// Marks the current frame invalid (the sensor resource failed).
     void invalidate() override
     {
         m_frame.valid = false;
@@ -199,14 +262,20 @@ public:
 
 protected:
 
+    /// Asks the source for images, adds the noise, calls the callbacks.
     bool sample(Robot const& p_robot, Seconds p_now) override;
 
 private:
 
+    /// Mount, intrinsics, rate, depth and noise.
     CameraConfig m_config;
+    /// Image source, not owned.
     FrameSource* m_source = nullptr;
+    /// Last captured frame.
     CameraFrame m_frame;
+    /// Functions called after each capture.
     std::vector<Callback> m_callbacks;
+    /// Noise generator.
     Random m_random;
 };
 

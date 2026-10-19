@@ -15,7 +15,8 @@ namespace robotik
 
 Simulation* Host::simulation() const
 {
-    if (m_api == nullptr || m_api->simulation == nullptr || m_api->host == nullptr)
+    if (m_api == nullptr || m_api->simulation == nullptr ||
+        m_api->host == nullptr)
     {
         return nullptr;
     }
@@ -24,7 +25,8 @@ Simulation* Host::simulation() const
 
 void Host::bindMission(Mission& p_mission) const
 {
-    if (m_api != nullptr && m_api->bind_mission != nullptr && m_api->host != nullptr)
+    if (m_api != nullptr && m_api->bind_mission != nullptr &&
+        m_api->host != nullptr)
     {
         m_api->bind_mission(m_api->host, &p_mission);
     }

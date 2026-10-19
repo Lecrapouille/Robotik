@@ -7,7 +7,8 @@
 
 #include "Floor.hpp"
 
-extern "C" {
+extern "C"
+{
 #include "apriltag.h"
 #include "tag36h11.h"
 }
@@ -29,12 +30,15 @@ FloorMap::FloorMap(Track const& p_track,
                    double p_resolution)
     : m_tag_size(p_tag_size), m_resolution(p_resolution)
 {
-    double const half_x = 0.5 * p_track.straight + p_track.radius + FLOOR_MARGIN_M;
+    double const half_x =
+        0.5 * p_track.straight + p_track.radius + FLOOR_MARGIN_M;
     double const half_y = p_track.radius + FLOOR_MARGIN_M;
     m_x0 = -half_x;
     m_y1 = half_y;
-    auto const width = static_cast<std::uint32_t>(std::ceil(2.0 * half_x / p_resolution));
-    auto const height = static_cast<std::uint32_t>(std::ceil(2.0 * half_y / p_resolution));
+    auto const width =
+        static_cast<std::uint32_t>(std::ceil(2.0 * half_x / p_resolution));
+    auto const height =
+        static_cast<std::uint32_t>(std::ceil(2.0 * half_y / p_resolution));
     m_image.resize(width, height, robotik::PixelFormat::RGB8);
 
     for (std::uint32_t row = 0; row < height; ++row)
@@ -45,7 +49,8 @@ FloorMap::FloorMap(Track const& p_track,
         {
             double const x = m_x0 + (col + 0.5) * p_resolution;
             Track::Point const near = p_track.closest(x, y);
-            bool const line = std::hypot(x - near.x, y - near.y) <= 0.5 * p_track.width;
+            bool const line =
+                std::hypot(x - near.x, y - near.y) <= 0.5 * p_track.width;
             std::uint8_t const grey = line ? LINE_GREY : FLOOR_GREY;
             pixel[0] = grey;
             pixel[1] = grey;
@@ -60,24 +65,35 @@ FloorMap::FloorMap(Track const& p_track,
     double const total = family->total_width;
     for (FloorTag const& tag : p_tags)
     {
-        image_u8_t* picture = apriltag_to_image(family, static_cast<uint32_t>(tag.id));
-        auto const [c0, r0] = pixel(tag.x - 0.5 * total * module, tag.y + 0.5 * total * module);
-        auto const [c1, r1] = pixel(tag.x + 0.5 * total * module, tag.y - 0.5 * total * module);
+        image_u8_t* picture =
+            apriltag_to_image(family, static_cast<uint32_t>(tag.id));
+        auto const [c0, r0] =
+            pixel(tag.x - 0.5 * total * module, tag.y + 0.5 * total * module);
+        auto const [c1, r1] =
+            pixel(tag.x + 0.5 * total * module, tag.y - 0.5 * total * module);
         for (auto row = static_cast<std::uint32_t>(std::max(r0, 0.0));
-             row < std::min<std::uint32_t>(height, static_cast<std::uint32_t>(r1 + 1.0)); ++row)
+             row < std::min<std::uint32_t>(
+                       height, static_cast<std::uint32_t>(r1 + 1.0));
+             ++row)
         {
             for (auto col = static_cast<std::uint32_t>(std::max(c0, 0.0));
-                 col < std::min<std::uint32_t>(width, static_cast<std::uint32_t>(c1 + 1.0)); ++col)
+                 col < std::min<std::uint32_t>(
+                           width, static_cast<std::uint32_t>(c1 + 1.0));
+                 ++col)
             {
                 double const x = m_x0 + (col + 0.5) * p_resolution;
                 double const y = m_y1 - (row + 0.5) * p_resolution;
-                int const u = static_cast<int>(std::floor((x - tag.x) / module + 0.5 * total));
-                int const v = static_cast<int>(std::floor((tag.y - y) / module + 0.5 * total));
-                if (u < 0 || v < 0 || u >= picture->width || v >= picture->height)
+                int const u = static_cast<int>(
+                    std::floor((x - tag.x) / module + 0.5 * total));
+                int const v = static_cast<int>(
+                    std::floor((tag.y - y) / module + 0.5 * total));
+                if (u < 0 || v < 0 || u >= picture->width ||
+                    v >= picture->height)
                 {
                     continue;
                 }
-                std::uint8_t const value = picture->buf[v * picture->stride + u];
+                std::uint8_t const value =
+                    picture->buf[v * picture->stride + u];
                 std::uint8_t* out = m_image.row<std::uint8_t>(row) + 3 * col;
                 out[0] = value;
                 out[1] = value;
@@ -91,7 +107,8 @@ FloorMap::FloorMap(Track const& p_track,
         m_landmarks.push_back(
             { tag.id,
               robotik::Pose{ { tag.x, tag.y, 0.0 },
-                             robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)) } });
+                             robotik::axisAngle({ 1.0, 0.0, 0.0 },
+                                                Radians(std::numbers::pi)) } });
     }
     tag36h11_destroy(family);
 }
@@ -114,8 +131,10 @@ void FloorMap::sample(double p_x, double p_y, std::uint8_t* p_rgb) const
     }
     double const a = fu - u0;
     double const b = fv - v0;
-    std::uint8_t const* top = m_image.row<std::uint8_t>(static_cast<std::uint32_t>(v0)) + 3 * u0;
-    std::uint8_t const* bottom = m_image.row<std::uint8_t>(static_cast<std::uint32_t>(v0 + 1)) + 3 * u0;
+    std::uint8_t const* top =
+        m_image.row<std::uint8_t>(static_cast<std::uint32_t>(v0)) + 3 * u0;
+    std::uint8_t const* bottom =
+        m_image.row<std::uint8_t>(static_cast<std::uint32_t>(v0 + 1)) + 3 * u0;
     for (int c = 0; c < 3; ++c)
     {
         double const value = (1.0 - b) * ((1.0 - a) * top[c] + a * top[3 + c]) +
@@ -124,7 +143,8 @@ void FloorMap::sample(double p_x, double p_y, std::uint8_t* p_rgb) const
     }
 }
 
-bool FloorCamera::capture(robotik::Camera const& p_camera, robotik::CameraFrame& p_frame)
+bool FloorCamera::capture(robotik::Camera const& p_camera,
+                          robotik::CameraFrame& p_frame)
 {
     robotik::CameraIntrinsics const& intrinsics = p_camera.intrinsics();
     if (m_width != intrinsics.width || m_height != intrinsics.height)

@@ -9,10 +9,10 @@
 
 #include "ColorDetector.hpp"
 
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
+#include "Robotik/ECS/ObjectComponents.hpp"
+#include "Robotik/Runtime/Simulation.hpp"
 
 static constexpr double kApproachClearance = 0.10;
 static constexpr double kTransitClearance = 0.22;
@@ -28,7 +28,8 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
 
     // Perception: map each prop colour to a Detect(label) target.
     std::vector<robotik::EntitySpec const*> props;
-    for (robotik::EntitySpec const& entity : p_simulation.scenario().world.entities)
+    for (robotik::EntitySpec const& entity :
+         p_simulation.scenario().world.entities)
     {
         if (entity.type == robotik::EntitySpec::Type::Prop)
         {

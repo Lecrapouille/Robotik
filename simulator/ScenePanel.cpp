@@ -24,8 +24,9 @@ static void runControls(App& p_app, ImVec2 p_at)
     ImGui::BeginGroup();
 
     bool const owns_clock = p_app.owns_clock;
-    ImGui::PushStyleColor(ImGuiCol_Button, p_app.playing ? ImVec4(0.55f, 0.38f, 0.10f, 1.0f)
-                                                         : ImVec4(0.16f, 0.45f, 0.22f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,
+                          p_app.playing ? ImVec4(0.55f, 0.38f, 0.10f, 1.0f)
+                                        : ImVec4(0.16f, 0.45f, 0.22f, 1.0f));
     if (ImGui::Button(p_app.playing ? "Pause" : "Play", ImVec2(64.0f, 0.0f)))
     {
         p_app.playing = !p_app.playing;
@@ -49,8 +50,9 @@ static void runControls(App& p_app, ImVec2 p_at)
     ImGui::SameLine();
     ImGui::SetNextItemWidth(96.0f);
     ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
-    ImGui::SetItemTooltip("Seed: object layout, sensor noise and random faults derive from it.\n"
-                          "Press Replay to use it.");
+    ImGui::SetItemTooltip(
+        "Seed: object layout, sensor noise and random faults derive from it.\n"
+        "Press Replay to use it.");
     ImGui::SameLine();
     if (ImGui::Button("Next seed"))
     {
@@ -70,8 +72,10 @@ static void runControls(App& p_app, ImVec2 p_at)
     ImVec2 const min = ImGui::GetItemRectMin();
     ImVec2 const max = ImGui::GetItemRectMax();
     layers.SetCurrentChannel(draw, 0);
-    draw->AddRectFilled(ImVec2(min.x - 6.0f, min.y - 5.0f), ImVec2(max.x + 6.0f, max.y + 5.0f),
-                        IM_COL32(20, 22, 27, 200), 6.0f);
+    draw->AddRectFilled(ImVec2(min.x - 6.0f, min.y - 5.0f),
+                        ImVec2(max.x + 6.0f, max.y + 5.0f),
+                        IM_COL32(20, 22, 27, 200),
+                        6.0f);
     layers.Merge(draw);
 }
 
@@ -84,12 +88,16 @@ static void stopButton(App& p_app, ImVec2 p_at, float p_width)
     }
     bool const engaged = emergencyEngaged(p_app);
     char const* label = engaged ? "Release stop" : "EMERGENCY STOP";
-    ImVec2 const size(ImGui::CalcTextSize(label).x + 28.0f, ImGui::GetFrameHeight() + 8.0f);
-    ImGui::SetCursorScreenPos(ImVec2(p_at.x + p_width - size.x - 10.0f, p_at.y + 6.0f));
-    ImGui::PushStyleColor(ImGuiCol_Button, engaged ? ImVec4(0.30f, 0.30f, 0.32f, 1.0f)
-                                                   : ImVec4(0.75f, 0.12f, 0.12f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, engaged ? ImVec4(0.40f, 0.40f, 0.42f, 1.0f)
-                                                          : ImVec4(0.90f, 0.18f, 0.18f, 1.0f));
+    ImVec2 const size(ImGui::CalcTextSize(label).x + 28.0f,
+                      ImGui::GetFrameHeight() + 8.0f);
+    ImGui::SetCursorScreenPos(
+        ImVec2(p_at.x + p_width - size.x - 10.0f, p_at.y + 6.0f));
+    ImGui::PushStyleColor(ImGuiCol_Button,
+                          engaged ? ImVec4(0.30f, 0.30f, 0.32f, 1.0f)
+                                  : ImVec4(0.75f, 0.12f, 0.12f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                          engaged ? ImVec4(0.40f, 0.40f, 0.42f, 1.0f)
+                                  : ImVec4(0.90f, 0.18f, 0.18f, 1.0f));
     if (ImGui::Button(label, size))
     {
         toggleEmergency(p_app);
@@ -108,9 +116,13 @@ static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
     }
     constexpr float THICKNESS = 3.0f;
     float const half = THICKNESS * 0.5f;
-    ImGui::GetWindowDrawList()->AddRect(ImVec2(p_at.x + half, p_at.y + half),
-                                        ImVec2(p_at.x + p_size.x - half, p_at.y + p_size.y - half),
-                                        ImGui::GetColorU32(color), 0.0f, 0, THICKNESS);
+    ImGui::GetWindowDrawList()->AddRect(
+        ImVec2(p_at.x + half, p_at.y + half),
+        ImVec2(p_at.x + p_size.x - half, p_at.y + p_size.y - half),
+        ImGui::GetColorU32(color),
+        0.0f,
+        0,
+        THICKNESS);
 }
 
 bool runColor(App const& p_app, ImVec4& p_color)
@@ -157,7 +169,8 @@ bool emergencyEngaged(App const& p_app)
         return false;
     }
     robotik::SkillState const state = skills.state(stop);
-    return state == robotik::SkillState::Running || state == robotik::SkillState::Waiting;
+    return state == robotik::SkillState::Running ||
+           state == robotik::SkillState::Waiting;
 }
 
 void toggleEmergency(App& p_app)
@@ -186,8 +199,10 @@ void scenePanel(App& p_app, char const* p_key)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     std::string const title = panelTitle("Scene", p_key);
-    bool const visible = ImGui::Begin(title.c_str(), nullptr,
-                                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    bool const visible = ImGui::Begin(title.c_str(),
+                                      nullptr,
+                                      ImGuiWindowFlags_NoScrollbar |
+                                          ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
     p_app.view_hovered = false;
     if (!visible)
@@ -198,7 +213,8 @@ void scenePanel(App& p_app, char const* p_key)
     if (!p_app.simulation)
     {
         emptyState(p_app.error.empty()
-                       ? "No scenario loaded.\nChoose one in the Demos menu, or File > Open scenario."
+                       ? "No scenario loaded.\nChoose one in the Demos menu, "
+                         "or File > Open scenario."
                        : p_app.error.c_str());
         ImGui::End();
         return;
@@ -215,26 +231,37 @@ void scenePanel(App& p_app, char const* p_key)
     p_app.view_h = size.y;
     // The controls drawn on top must win the mouse over the view.
     ImGui::SetNextItemAllowOverlap();
-    ImGui::InvisibleButton("##view", size,
-                           ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
+    ImGui::InvisibleButton("##view",
+                           size,
+                           ImGuiButtonFlags_MouseButtonLeft |
+                               ImGuiButtonFlags_MouseButtonRight |
                                ImGuiButtonFlags_MouseButtonMiddle);
     p_app.view_hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
     if (p_app.view.width > 0)
     {
         // The device puts the first row at the bottom.
         ImGui::GetWindowDrawList()->AddImage(
-            ImTextureRef(static_cast<ImTextureID>(p_app.view.color.nativeId())), at,
-            ImVec2(at.x + size.x, at.y + size.y), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
+            ImTextureRef(static_cast<ImTextureID>(p_app.view.color.nativeId())),
+            at,
+            ImVec2(at.x + size.x, at.y + size.y),
+            ImVec2(0.0f, 1.0f),
+            ImVec2(1.0f, 0.0f));
     }
     runFrame(p_app, at, size);
     runControls(p_app, at);
     stopButton(p_app, at, size.x);
-    char const* hint = "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
+    char const* hint =
+        "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);
     ImVec2 const corner(at.x + 10.0f, at.y + size.y - text.y - 12.0f);
     ImDrawList* draw = ImGui::GetWindowDrawList();
-    draw->AddRectFilled(corner, ImVec2(corner.x + text.x + 12.0f, corner.y + text.y + 6.0f),
-                        IM_COL32(20, 22, 27, 170), 4.0f);
-    draw->AddText(ImVec2(corner.x + 6.0f, corner.y + 3.0f), ImGui::GetColorU32(ImGuiCol_TextDisabled), hint);
+    draw->AddRectFilled(
+        corner,
+        ImVec2(corner.x + text.x + 12.0f, corner.y + text.y + 6.0f),
+        IM_COL32(20, 22, 27, 170),
+        4.0f);
+    draw->AddText(ImVec2(corner.x + 6.0f, corner.y + 3.0f),
+                  ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                  hint);
     ImGui::End();
 }

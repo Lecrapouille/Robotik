@@ -20,7 +20,8 @@ TEST(ResourceManager, ExclusiveLeaseBlocksOthers)
     EXPECT_EQ(resources.add("arm"), arm);
     EXPECT_EQ(resources.find("arm"), arm);
 
-    robotik::ResourceLease lease = resources.acquire({ resources.require("arm") }, 1u);
+    robotik::ResourceLease lease =
+        resources.acquire({ resources.require("arm") }, 1u);
     ASSERT_TRUE(lease);
     EXPECT_EQ(resources.owner(arm), 1u);
 
@@ -40,8 +41,10 @@ TEST(ResourceManager, SharedLeasesCoexist)
 {
     ResourceManager resources;
     auto const camera = resources.add("camera");
-    auto a = resources.acquire({ resources.require("camera", Access::Shared) }, 1u);
-    auto b = resources.acquire({ resources.require("camera", Access::Shared) }, 2u);
+    auto a =
+        resources.acquire({ resources.require("camera", Access::Shared) }, 1u);
+    auto b =
+        resources.acquire({ resources.require("camera", Access::Shared) }, 2u);
     EXPECT_TRUE(a);
     EXPECT_TRUE(b);
     EXPECT_EQ(resources.users(camera), 2u);
@@ -75,9 +78,9 @@ TEST(FaultInjector, ScheduledAndRandomFaultsAreReplayable)
         ResourceManager resources;
         resources.add("camera");
         resources.add("gripper");
-        robotik::FaultInjector faults(
-            { { Seconds(0.5), "camera", true }, { Seconds(1.0), "camera", false } },
-            { { "gripper", 0.5 } });
+        robotik::FaultInjector faults({ { Seconds(0.5), "camera", true },
+                                        { Seconds(1.0), "camera", false } },
+                                      { { "gripper", 0.5 } });
         faults.reset(p_seed);
         std::vector<int> history;
         Seconds const dt(0.01);

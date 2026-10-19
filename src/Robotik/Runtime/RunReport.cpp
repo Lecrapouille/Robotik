@@ -43,8 +43,8 @@ static std::string quoted(std::string_view p_text)
                 if (static_cast<unsigned char>(character) < 0x20u)
                 {
                     std::ostringstream code;
-                    code << "\\u" << std::hex << std::setw(4) << std::setfill('0')
-                         << static_cast<int>(character);
+                    code << "\\u" << std::hex << std::setw(4)
+                         << std::setfill('0') << static_cast<int>(character);
                     result += code.str();
                 }
                 else
@@ -113,8 +113,9 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     {
         Evaluation const measured = p_simulation.evaluate(name);
         record.metrics.emplace_back(name,
-                                    measured.known ? std::optional<double>(measured.value)
-                                                   : std::nullopt);
+                                    measured.known
+                                        ? std::optional<double>(measured.value)
+                                        : std::nullopt);
     }
     return record;
 }
@@ -122,7 +123,9 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
 bool RunReport::passed() const
 {
     return !runs.empty() &&
-           std::all_of(runs.begin(), runs.end(), [](RunRecord const& p_run) { return p_run.passed; });
+           std::all_of(runs.begin(),
+                       runs.end(),
+                       [](RunRecord const& p_run) { return p_run.passed; });
 }
 
 void RunReport::writeText(std::ostream& p_out) const
@@ -131,8 +134,9 @@ void RunReport::writeText(std::ostream& p_out) const
     for (RunRecord const& run : runs)
     {
         passed_runs += run.passed ? 1u : 0u;
-        p_out << (run.passed ? "[PASS] " : "[FAIL] ") << std::left << std::setw(24)
-              << run.case_id << " seed=" << std::setw(6) << run.seed;
+        p_out << (run.passed ? "[PASS] " : "[FAIL] ") << std::left
+              << std::setw(24) << run.case_id << " seed=" << std::setw(6)
+              << run.seed;
         if (!run.error.empty())
         {
             p_out << " error: " << run.error << '\n';
@@ -140,7 +144,9 @@ void RunReport::writeText(std::ostream& p_out) const
         }
         p_out << " " << run.outcome << " at " << run.time << " s"
               << (run.oracle ? " (oracle perception)" : "")
-              << (run.physics.empty() || run.physics == "abstract" ? "" : " (physics " + run.physics + ")");
+              << (run.physics.empty() || run.physics == "abstract"
+                      ? ""
+                      : " (physics " + run.physics + ")");
         for (auto const& [name, value] : run.metrics)
         {
             p_out << "  " << name << '=';
@@ -156,8 +162,9 @@ void RunReport::writeText(std::ostream& p_out) const
         p_out << '\n';
         if (run.planner.used)
         {
-            p_out << "         planner " << run.planner.state << ": " << run.planner.plans.size()
-                  << " plan(s), " << run.planner.replans << " replan(s)";
+            p_out << "         planner " << run.planner.state << ": "
+                  << run.planner.plans.size() << " plan(s), "
+                  << run.planner.replans << " replan(s)";
             if (!run.planner.failure.empty())
             {
                 p_out << "  (" << run.planner.failure << ')';
@@ -168,19 +175,22 @@ void RunReport::writeText(std::ostream& p_out) const
         {
             if (check.verdict != Check::Verdict::Passed)
             {
-                p_out << "         " << toString(check.verdict) << ' ' << check.text << "  ("
-                      << check.detail << ", expected " << check.expected << ", at "
-                      << check.time.value() << " s)\n";
+                p_out << "         " << toString(check.verdict) << ' '
+                      << check.text << "  (" << check.detail << ", expected "
+                      << check.expected << ", at " << check.time.value()
+                      << " s)\n";
             }
         }
     }
-    p_out << experiment << ": " << passed_runs << '/' << runs.size() << " runs passed\n";
+    p_out << experiment << ": " << passed_runs << '/' << runs.size()
+          << " runs passed\n";
 }
 
 void RunReport::writeJson(std::ostream& p_out) const
 {
-    p_out << "{\n  \"experiment\": " << quoted(experiment) << ",\n  \"passed\": "
-          << (passed() ? "true" : "false") << ",\n  \"runs\": [";
+    p_out << "{\n  \"experiment\": " << quoted(experiment)
+          << ",\n  \"passed\": " << (passed() ? "true" : "false")
+          << ",\n  \"runs\": [";
     for (std::size_t i = 0; i < runs.size(); ++i)
     {
         RunRecord const& run = runs[i];
@@ -190,9 +200,10 @@ void RunReport::writeJson(std::ostream& p_out) const
               << "      \"seed\": " << run.seed << ",\n"
               << "      \"outcome\": " << quoted(run.outcome) << ",\n"
               << "      \"time\": " << number(run.time) << ",\n"
-              << "      \"passed\": " << (run.passed ? "true" : "false") << ",\n"
-              << "      \"perception\": " << (run.oracle ? "\"oracle\"" : "\"sensors\"")
+              << "      \"passed\": " << (run.passed ? "true" : "false")
               << ",\n"
+              << "      \"perception\": "
+              << (run.oracle ? "\"oracle\"" : "\"sensors\"") << ",\n"
               << "      \"physics\": " << quoted(run.physics) << ",\n";
         if (!run.error.empty())
         {
@@ -209,18 +220,21 @@ void RunReport::writeJson(std::ostream& p_out) const
             for (std::size_t p = 0; p < planner.plans.size(); ++p)
             {
                 PlanSummary const& plan = planner.plans[p];
-                p_out << (p == 0u ? "\n" : ",\n") << "          { \"time\": " << number(plan.time)
+                p_out << (p == 0u ? "\n" : ",\n")
+                      << "          { \"time\": " << number(plan.time)
                       << ", \"cause\": " << quoted(plan.cause)
                       << ", \"result\": " << quoted(plan.result)
                       << ", \"expanded\": " << plan.expanded
-                      << ", \"milliseconds\": " << number(plan.milliseconds) << ", \"steps\": [";
+                      << ", \"milliseconds\": " << number(plan.milliseconds)
+                      << ", \"steps\": [";
                 for (std::size_t k = 0; k < plan.steps.size(); ++k)
                 {
                     p_out << (k == 0u ? "" : ", ") << quoted(plan.steps[k]);
                 }
                 p_out << "] }";
             }
-            p_out << (planner.plans.empty() ? "]\n" : "\n        ]\n") << "      },\n";
+            p_out << (planner.plans.empty() ? "]\n" : "\n        ]\n")
+                  << "      },\n";
         }
         p_out << "      \"metrics\": {";
         for (std::size_t m = 0; m < run.metrics.size(); ++m)
@@ -233,7 +247,8 @@ void RunReport::writeJson(std::ostream& p_out) const
         for (std::size_t c = 0; c < run.checks.size(); ++c)
         {
             Check const& check = run.checks[c];
-            p_out << (c == 0u ? "\n" : ",\n") << "        { \"name\": " << quoted(check.text)
+            p_out << (c == 0u ? "\n" : ",\n")
+                  << "        { \"name\": " << quoted(check.text)
                   << ", \"phase\": " << quoted(toString(check.phase))
                   << ", \"verdict\": " << quoted(toString(check.verdict))
                   << ", \"value\": " << number(check.value)

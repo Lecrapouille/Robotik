@@ -6,8 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file AssetResolver.hpp
-/// @brief Turns a model identifier into a file, whatever the current
-/// directory.
+/// Turns a model identifier into a file, whatever the current directory.
 ///
 /// Packs are found under search roots, in this order:
 /// @li each directory of @c ROBOTIK_DATA (colon separated);
@@ -23,6 +22,7 @@
 /// robotik::AssetResolver assets = robotik::AssetResolver::standard();
 /// std::filesystem::path urdf = assets.model("robotik.tools.vacuum");
 /// @endcode
+
 #pragma once
 
 #include "Robotik/Assets/AssetPack.hpp"
@@ -35,63 +35,91 @@
 namespace robotik
 {
 
-/// @brief Folder of the running executable (Linux @c /proc/self/exe), or
-/// empty. Search roots hang from it so that no lookup depends on the current
-/// directory.
-[[nodiscard]] std::filesystem::path executableDirectory();
-
 // ****************************************************************************
-/// @brief Catalog of the asset packs visible to a run.
+/// Catalog of the asset packs visible to a run.
+///
+/// @code
+/// robotik::AssetResolver assets = robotik::AssetResolver::standard();
+/// assets.addRoot("plugins/PickAndPlace/data");
+/// for (std::string const& error : assets.errors())
+///     std::cerr << error << '\n';
+/// auto urdf = assets.resolve("robotik.robots.abb.irb2400", scenario_folder);
+/// @endcode
 // ****************************************************************************
 class AssetResolver
 {
 public:
 
-    /// @brief Resolver over the default roots (see the file description).
+    // -------------------------------------------------------------------------
+    /// @return A resolver over the default roots (see the file description).
+    // -------------------------------------------------------------------------
     [[nodiscard]] static AssetResolver standard();
 
-    /// @brief Default roots that exist on this machine, in search order.
+    // -------------------------------------------------------------------------
+    /// @return The default roots that exist on this machine, in search order.
+    // -------------------------------------------------------------------------
     [[nodiscard]] static std::vector<std::filesystem::path> standardRoots();
 
     // -------------------------------------------------------------------------
-    /// @brief Loads the pack at @p_root, or every pack one level below it.
+    /// Loads the pack at a root, or every pack one level below it.
     /// Unreadable manifests are kept in @ref errors, not thrown.
+    /// @param p_root A pack folder or a folder of packs.
     // -------------------------------------------------------------------------
     void addRoot(std::filesystem::path const& p_root);
 
+    // -------------------------------------------------------------------------
+    /// @return Every pack found, in search order.
+    // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<AssetPack> const& packs() const
     {
         return m_packs;
     }
 
-    /// @brief Manifest errors and version conflicts met while scanning.
+    // -------------------------------------------------------------------------
+    /// @return Manifest errors and version conflicts met while scanning.
+    // -------------------------------------------------------------------------
     [[nodiscard]] std::vector<std::string> const& errors() const
     {
         return m_errors;
     }
 
+    // -------------------------------------------------------------------------
+    /// Finds a pack by its id.
+    /// @param p_id Pack id (e.g. @c robotik.tools).
+    /// @return The pack, or null.
+    // -------------------------------------------------------------------------
     [[nodiscard]] AssetPack const* find(std::string_view p_id) const;
 
     // -------------------------------------------------------------------------
-    /// @brief Pack @p_id when its version satisfies @p_minimum, null
-    /// otherwise. @p_why receives the reason of a refusal.
+    /// Finds a pack and checks its version.
+    /// @param p_id Pack id.
+    /// @param p_minimum Oldest version accepted (same major version).
+    /// @param p_why Receives the reason of a refusal.
+    /// @return The pack when its version satisfies @p_minimum, null
+    ///   otherwise.
     // -------------------------------------------------------------------------
     [[nodiscard]] AssetPack const* require(std::string_view p_id,
                                            Version const& p_minimum,
                                            std::string& p_why) const;
 
     // -------------------------------------------------------------------------
-    /// @brief File of model @p_id (@c <pack-id>.<key>). The longest pack id
-    /// prefixing @p_id wins, so @c robotik.robots.abb.irb2400 picks the pack
+    /// Gives the file of a model. The longest pack id prefixing @p_id wins,
+    /// so @c robotik.robots.abb.irb2400 picks the pack
     /// @c robotik.robots.abb over @c robotik.robots.
+    /// @param p_id Model id, @c <pack-id>.<key>.
+    /// @return Absolute file of the model.
     /// @throws std::runtime_error when no pack provides the model.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::filesystem::path model(std::string_view p_id) const;
 
     // -------------------------------------------------------------------------
-    /// @brief File named by a scenario field. A reference holding a slash or
-    /// ending in @c .urdf is a path relative to @p_base; anything else is a
-    /// model identifier (see @ref model).
+    /// Gives the file named by a scenario field. A reference holding a slash
+    /// or ending in @c .urdf is a path; anything else is a model identifier
+    /// (see @ref model).
+    /// @param p_reference Path or model id written in the YAML.
+    /// @param p_base Folder a relative path starts from.
+    /// @return The file.
+    /// @throws std::runtime_error when a model id is unknown.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::filesystem::path
     resolve(std::string const& p_reference,
@@ -99,9 +127,12 @@ public:
 
 private:
 
+    /// Loads one pack and checks it against the packs already known.
     void addPack(std::filesystem::path const& p_root);
 
+    /// Packs found, in search order.
     std::vector<AssetPack> m_packs;
+    /// Errors met while scanning.
     std::vector<std::string> m_errors;
 };
 

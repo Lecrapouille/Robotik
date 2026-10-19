@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Random.hpp
-/// @brief Deterministic seeds and a tiny random generator.
+/// Deterministic seeds and a tiny random generator.
 ///
 /// There is no global generator: every consumer (world layout, sensor noise,
 /// faults, each RL environment) derives its own @ref Seed from a master seed,
@@ -29,7 +29,10 @@ namespace robotik
 {
 
 // -------------------------------------------------------------------------
-/// @brief SplitMix64 finalizer: a strong 64-bit mixing function.
+/// SplitMix64 finalizer: a strong 64-bit mixing function. Close inputs give
+/// very different outputs.
+/// @param p_value Value to mix.
+/// @return The mixed value.
 // -------------------------------------------------------------------------
 [[nodiscard]] constexpr std::uint64_t mix64(std::uint64_t p_value)
 {
@@ -40,17 +43,32 @@ namespace robotik
 }
 
 // ****************************************************************************
-/// @brief Node of the seed hierarchy: a value plus deterministic children.
+/// Node of the seed hierarchy: a value plus deterministic children.
+///
+/// A seed is not a generator: it only names a random stream. Give it to a
+/// @ref Random to draw numbers. The same parent and the same name always give
+/// the same child, on every machine.
+///
+/// @code
+/// robotik::Seed const master(7);
+/// robotik::Seed const noise = master.derive("sensors").derive("camera");
+/// robotik::Random rng(noise);
+/// @endcode
 // ****************************************************************************
 struct Seed
 {
+    /// Raw 64-bit seed.
     std::uint64_t value = 0;
 
     constexpr Seed() = default;
+
+    /// @param p_value Raw seed, for example from the command line.
     constexpr explicit Seed(std::uint64_t p_value) : value(p_value) {}
 
     // -------------------------------------------------------------------------
-    /// @brief Child seed for an indexed consumer (environment, episode...).
+    /// Child seed for an indexed consumer (environment, episode...).
+    /// @param p_index Index of the consumer.
+    /// @return A seed independent of the other indices.
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::uint64_t p_index) const
     {
@@ -58,7 +76,9 @@ struct Seed
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Child seed for a named consumer ("world", "sensors"...).
+    /// Child seed for a named consumer ("world", "sensors"...).
+    /// @param p_name Name of the consumer, hashed with FNV-1a.
+    /// @return A seed independent of the other names.
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::string_view p_name) const
     {
@@ -70,21 +90,34 @@ struct Seed
         return derive(hash);
     }
 
+    /// Same value, same seed.
     [[nodiscard]] constexpr bool operator==(Seed const&) const = default;
 };
 
 // ****************************************************************************
-/// @brief SplitMix64 generator: 8 bytes of state, fast and reproducible on
-/// every platform (unlike the std distributions).
+/// SplitMix64 generator: 8 bytes of state, fast and reproducible on every
+/// platform (unlike the std distributions).
+///
+/// @code
+/// robotik::Random rng(seed);
+/// double x = rng.uniform(-0.1, 0.1);   // position jitter
+/// double n = rng.normal(0.0, 0.01);    // sensor noise
+/// if (rng.chance(0.05)) { ... }        // rare event
+/// @endcode
 // ****************************************************************************
 class Random
 {
 public:
 
-    constexpr explicit Random(Seed p_seed = Seed{}) noexcept : m_state(p_seed.value) {}
+    /// @param p_seed Start of the stream: same seed, same numbers.
+    constexpr explicit Random(Seed p_seed = Seed{}) noexcept
+        : m_state(p_seed.value)
+    {
+    }
 
     // -------------------------------------------------------------------------
-    /// @brief Next raw 64-bit value.
+    /// Draws the next raw value.
+    /// @return A uniform 64-bit value.
     // -------------------------------------------------------------------------
     constexpr std::uint64_t next()
     {
@@ -96,7 +129,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Uniform double in [0, 1).
+    /// Draws a uniform number between 0 and 1.
+    /// @return A double in [0, 1).
     // -------------------------------------------------------------------------
     constexpr double uniform()
     {
@@ -104,7 +138,10 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Uniform double in [p_low, p_high).
+    /// Draws a uniform number in a range.
+    /// @param p_low Lowest value (included).
+    /// @param p_high Highest value (excluded).
+    /// @return A double in [p_low, p_high).
     // -------------------------------------------------------------------------
     constexpr double uniform(double p_low, double p_high)
     {
@@ -112,8 +149,11 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Gaussian sample (Box-Muller, no cached second value so that the
-    /// stream only depends on the number of calls).
+    /// Draws a Gaussian number (Box-Muller). There is no cached second
+    /// value, so the stream only depends on the number of calls.
+    /// @param p_mean Mean of the distribution.
+    /// @param p_sigma Standard deviation.
+    /// @return The sample.
     // -------------------------------------------------------------------------
     double normal(double p_mean = 0.0, double p_sigma = 1.0)
     {
@@ -124,7 +164,9 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @brief True with probability @p_probability.
+    /// Draws a yes/no event.
+    /// @param p_probability Probability of true, in [0, 1].
+    /// @return True with probability @p_probability.
     // -------------------------------------------------------------------------
     constexpr bool chance(double p_probability)
     {
@@ -133,6 +175,7 @@ public:
 
 private:
 
+    /// State of the generator.
     std::uint64_t m_state;
 };
 

@@ -36,7 +36,8 @@ static robotik::Vector3 clampWorkspace(robotik::Vector3 const& p_point)
              std::clamp(p_point.z, 0.02, 0.35) };
 }
 
-// --- Scripted ready pose before RL episodes -----------------------------------
+// --- Scripted ready pose before RL episodes
+// -----------------------------------
 
 void readyPosture(robotik::RobotSession& p_robot,
                   robotik::VacuumGripper const& p_gripper,
@@ -57,15 +58,13 @@ void readyPosture(robotik::RobotSession& p_robot,
     for (int k = 1; k <= READY_STEPS; ++k)
     {
         double const t = static_cast<double>(k) / READY_STEPS;
-        robotik::Quaternion const q{
-            (1.0 - t) * start.rotation.w + t * end.w,
-            (1.0 - t) * start.rotation.x + t * end.x,
-            (1.0 - t) * start.rotation.y + t * end.y,
-            (1.0 - t) * start.rotation.z + t * end.z
+        robotik::Quaternion const q{ (1.0 - t) * start.rotation.w + t * end.w,
+                                     (1.0 - t) * start.rotation.x + t * end.x,
+                                     (1.0 - t) * start.rotation.y + t * end.y,
+                                     (1.0 - t) * start.rotation.z + t * end.z };
+        robotik::Pose const pose{
+            start.position * (1.0 - t) + goal.position * t, q.normalized()
         };
-        robotik::Pose const pose{ start.position * (1.0 - t) +
-                                      goal.position * t,
-                                  q.normalized() };
         auto solution = p_robot.inverseKinematics(p_robot.tool(), pose);
         if (!solution)
         {
@@ -100,17 +99,20 @@ static robotik::VacuumGripper* findGripper(robotik::Simulation& p_simulation)
         p_simulation.robot().actuators().first<robotik::VacuumGripper>();
     if (gripper == nullptr)
     {
-        throw std::runtime_error("Pick and place learning needs a vacuum gripper");
+        throw std::runtime_error(
+            "Pick and place learning needs a vacuum gripper");
     }
     return gripper;
 }
 
-static robotik::Vector3 believed(robotik::Simulation const& p_simulation, char const* p_name)
+static robotik::Vector3 believed(robotik::Simulation const& p_simulation,
+                                 char const* p_name)
 {
     robotik::WorldObject const* object = p_simulation.worldModel().find(p_name);
     if (object == nullptr)
     {
-        throw std::runtime_error(std::string("The world has no prop '") + p_name + "'");
+        throw std::runtime_error(std::string("The world has no prop '") +
+                                 p_name + "'");
     }
     return object->position;
 }
@@ -171,7 +173,9 @@ robotik::Space PickPlaceAction::space() const
 {
     robotik::Space space;
     // Fractions of STEP_M per control period.
-    space.add("move.x", -1.0f, 1.0f).add("move.y", -1.0f, 1.0f).add("move.z", -1.0f, 1.0f);
+    space.add("move.x", -1.0f, 1.0f)
+        .add("move.y", -1.0f, 1.0f)
+        .add("move.z", -1.0f, 1.0f);
     space.add("suction", -1.0f, 1.0f);
     return space;
 }
@@ -181,19 +185,22 @@ void PickPlaceAction::setup(robotik::Simulation& p_simulation)
     m_arm = p_simulation.robot().actuators().find<robotik::JointGroup>("arm");
     if (m_arm == nullptr)
     {
-        throw std::runtime_error("Pick and place learning needs an 'arm' joint group");
+        throw std::runtime_error(
+            "Pick and place learning needs an 'arm' joint group");
     }
     m_gripper = findGripper(p_simulation);
     // hold() makes the posture the home: every reset starts from it.
     readyPosture(p_simulation.robot(), *m_gripper);
 }
 
-void PickPlaceAction::apply(std::span<float const> p_action, robotik::Simulation& p_simulation)
+void PickPlaceAction::apply(std::span<float const> p_action,
+                            robotik::Simulation& p_simulation)
 {
     robotik::RobotSession& robot = p_simulation.robot();
     auto axis = [&](std::size_t p_index)
     {
-        return STEP_M * std::clamp(static_cast<double>(p_action[p_index]), -1.0, 1.0);
+        return STEP_M *
+               std::clamp(static_cast<double>(p_action[p_index]), -1.0, 1.0);
     };
     robotik::Vector3 const target = clampWorkspace(
         m_gripper->tip(robot) + robotik::Vector3{ axis(0), axis(1), axis(2) });
@@ -219,10 +226,12 @@ void PickPlaceAction::apply(std::span<float const> p_action, robotik::Simulation
 
 void PickPlaceReward::setup(robotik::Simulation const& p_simulation)
 {
-    m_gripper = p_simulation.robot().actuators().first<robotik::VacuumGripper>();
+    m_gripper =
+        p_simulation.robot().actuators().first<robotik::VacuumGripper>();
     if (m_gripper == nullptr)
     {
-        throw std::runtime_error("Pick and place learning needs a vacuum gripper");
+        throw std::runtime_error(
+            "Pick and place learning needs a vacuum gripper");
     }
 }
 
@@ -231,7 +240,8 @@ void PickPlaceReward::reset(robotik::Simulation const& /*p_simulation*/)
     m_grasped = false;
 }
 
-robotik::StepResult PickPlaceReward::evaluate(robotik::Simulation const& p_simulation)
+robotik::StepResult
+PickPlaceReward::evaluate(robotik::Simulation const& p_simulation)
 {
     robotik::Vector3 const cube = believed(p_simulation, PICK_PLACE_CUBE);
     robotik::Vector3 const box = believed(p_simulation, PICK_PLACE_BOX);
@@ -275,11 +285,14 @@ robotik::SimulationEnvironment::Parts pickPlaceParts()
 void convergedPolicy(std::span<float const> p_observation,
                      std::span<float> p_action)
 {
-    robotik::Vector3 const tip{ p_observation[0], p_observation[1],
+    robotik::Vector3 const tip{ p_observation[0],
+                                p_observation[1],
                                 p_observation[2] };
-    robotik::Vector3 const cube{ p_observation[3], p_observation[4],
+    robotik::Vector3 const cube{ p_observation[3],
+                                 p_observation[4],
                                  p_observation[5] };
-    robotik::Vector3 const box{ p_observation[6], p_observation[7],
+    robotik::Vector3 const box{ p_observation[6],
+                                p_observation[7],
                                 p_observation[8] };
     bool const holding = p_observation[12] > 0.5f;
     bool suction = holding;
@@ -348,7 +361,8 @@ void pickPlacePolicy(std::span<float const> p_observation,
     for (std::size_t i = 0; i < p_action.size(); ++i)
     {
         float const noise = static_cast<float>(p_noise->uniform(-1.0, 1.0));
-        p_action[i] = std::clamp((1.0f - mix) * noise + mix * teacher[i], -1.0f, 1.0f);
+        p_action[i] =
+            std::clamp((1.0f - mix) * noise + mix * teacher[i], -1.0f, 1.0f);
     }
 }
 
@@ -362,11 +376,14 @@ char const* policyPhase(std::span<float const> p_observation)
     {
         return "delivered";
     }
-    robotik::Vector3 const tip{ p_observation[0], p_observation[1],
+    robotik::Vector3 const tip{ p_observation[0],
+                                p_observation[1],
                                 p_observation[2] };
-    robotik::Vector3 const cube{ p_observation[3], p_observation[4],
+    robotik::Vector3 const cube{ p_observation[3],
+                                 p_observation[4],
                                  p_observation[5] };
-    robotik::Vector3 const box{ p_observation[6], p_observation[7],
+    robotik::Vector3 const box{ p_observation[6],
+                                p_observation[7],
                                 p_observation[8] };
     bool const holding = p_observation[12] > 0.5f;
     if (!holding)

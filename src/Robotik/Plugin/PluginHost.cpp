@@ -32,8 +32,8 @@ void hostLog(RobotikHost* p_host, int p_level, char const* p_message)
     {
         label = "error";
     }
-    std::clog << "plugin " << label << ": " << (p_message != nullptr ? p_message : "")
-              << '\n';
+    std::clog << "plugin " << label << ": "
+              << (p_message != nullptr ? p_message : "") << '\n';
     (void)self(p_host);
 }
 
@@ -63,7 +63,8 @@ std::uint32_t hostAddMenu(RobotikHost* p_host,
                           void* p_user)
 {
     PluginHost* host = self(p_host);
-    if (host == nullptr || p_menu == nullptr || p_item == nullptr || p_callback == nullptr)
+    if (host == nullptr || p_menu == nullptr || p_item == nullptr ||
+        p_callback == nullptr)
     {
         return 0;
     }
@@ -84,7 +85,8 @@ std::uint32_t hostAddPanel(RobotikHost* p_host,
                            void* p_user)
 {
     PluginHost* host = self(p_host);
-    if (host == nullptr || p_id == nullptr || p_title == nullptr || p_draw == nullptr)
+    if (host == nullptr || p_id == nullptr || p_title == nullptr ||
+        p_draw == nullptr)
     {
         return 0;
     }
@@ -107,15 +109,13 @@ void hostRemoveUi(RobotikHost* p_host, std::uint32_t p_handle)
     }
     auto const menu = std::remove_if(host->m_menus.begin(),
                                      host->m_menus.end(),
-                                     [p_handle](PluginMenuItem const& p_item) {
-                                         return p_item.id == p_handle;
-                                     });
+                                     [p_handle](PluginMenuItem const& p_item)
+                                     { return p_item.id == p_handle; });
     host->m_menus.erase(menu, host->m_menus.end());
     auto const panel = std::remove_if(host->m_panels.begin(),
                                       host->m_panels.end(),
-                                      [p_handle](PluginPanel const& p_item) {
-                                          return p_item.id == p_handle;
-                                      });
+                                      [p_handle](PluginPanel const& p_item)
+                                      { return p_item.id == p_handle; });
     host->m_panels.erase(panel, host->m_panels.end());
 }
 

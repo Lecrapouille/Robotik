@@ -12,7 +12,10 @@
 
 #define WHEEL_TIME_CONSTANT_S 0.05
 
-void DriveGeometry::twist(double p_left, double p_right, double& p_speed, double& p_yaw_rate) const
+void DriveGeometry::twist(double p_left,
+                          double p_right,
+                          double& p_speed,
+                          double& p_yaw_rate) const
 {
     double const left = sign * radius * p_left;
     double const right = sign * radius * p_right;
@@ -20,7 +23,10 @@ void DriveGeometry::twist(double p_left, double p_right, double& p_speed, double
     p_yaw_rate = (right - left) / track;
 }
 
-void DriveGeometry::wheels(double p_speed, double p_yaw_rate, double& p_left, double& p_right) const
+void DriveGeometry::wheels(double p_speed,
+                           double p_yaw_rate,
+                           double& p_left,
+                           double& p_right) const
 {
     p_left = (p_speed - 0.5 * track * p_yaw_rate) / (sign * radius);
     p_right = (p_speed + 0.5 * track * p_yaw_rate) / (sign * radius);
@@ -45,11 +51,17 @@ Pose2 DriveGeometry::integrate(Pose2 const& p_pose,
         x += p_speed * p_dt * std::cos(p_pose.yaw);
         y += p_speed * p_dt * std::sin(p_pose.yaw);
     }
-    return { x - axle * std::cos(yaw), y - axle * std::sin(yaw), std::remainder(yaw, 2.0 * std::numbers::pi) };
+    return { x - axle * std::cos(yaw),
+             y - axle * std::sin(yaw),
+             std::remainder(yaw, 2.0 * std::numbers::pi) };
 }
 
-DiffDriveBackend::DiffDriveBackend(std::string p_left, std::string p_right, DriveGeometry p_geometry)
-    : m_left_name(std::move(p_left)), m_right_name(std::move(p_right)), m_geometry(p_geometry)
+DiffDriveBackend::DiffDriveBackend(std::string p_left,
+                                   std::string p_right,
+                                   DriveGeometry p_geometry)
+    : m_left_name(std::move(p_left)),
+      m_right_name(std::move(p_right)),
+      m_geometry(p_geometry)
 {
 }
 
@@ -80,9 +92,12 @@ void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
     {
         // A disabled or position controlled wheel brakes.
         double const target =
-            joints.mode(ids[i]) == robotik::JointMode::Velocity ? joints.target(ids[i]) : 0.0;
+            joints.mode(ids[i]) == robotik::JointMode::Velocity
+                ? joints.target(ids[i])
+                : 0.0;
         m_speeds[i] += (target - m_speeds[i]) * blend;
-        joints.measure(ids[i], joints.position(ids[i]) + m_speeds[i] * dt, m_speeds[i]);
+        joints.measure(
+            ids[i], joints.position(ids[i]) + m_speeds[i] * dt, m_speeds[i]);
     }
     double speed = 0.0;
     double yaw_rate = 0.0;

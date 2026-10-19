@@ -18,8 +18,9 @@ namespace robotik
 {
 
 /// @brief One line per diagnostic, with the source line under it.
-static std::string describe(std::vector<kairos::Diagnostic> const& p_diagnostics,
-                     std::string_view p_source)
+static std::string
+describe(std::vector<kairos::Diagnostic> const& p_diagnostics,
+         std::string_view p_source)
 {
     std::string text;
     for (kairos::Diagnostic const& diagnostic : p_diagnostics)
@@ -76,8 +77,9 @@ public:
         options.search = p_options.search;
         // Silent: what matters comes back as diagnostics and in the report.
         options.log.level = kairos::LogLevel::Error;
-        options.log.callback =
-            [](kairos::LogLevel, kairos::LogChannel, std::string_view) noexcept {};
+        options.log.callback = [](kairos::LogLevel,
+                                  kairos::LogChannel,
+                                  std::string_view) noexcept {};
         kairos::SolveResult const solved =
             kairos::Planner().solve(*problem, options);
 
@@ -116,7 +118,8 @@ public:
             report << kairos::to_string(*solved.plan, kairos::PlanFormat::Ipc);
             for (kairos::PlanStep const& step : solved.plan->steps)
             {
-                result.steps.push_back({ step.name, step.args, step.time, step.duration });
+                result.steps.push_back(
+                    { step.name, step.args, step.time, step.duration });
             }
         }
         result.report = report.str();

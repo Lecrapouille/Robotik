@@ -73,7 +73,10 @@ class ConveySkill final: public robotik::Skill
 {
 public:
 
-    ConveySkill(Conveyor& p_conveyor, std::string p_part, std::string p_feeder, std::string p_zone);
+    ConveySkill(Conveyor& p_conveyor,
+                std::string p_part,
+                std::string p_feeder,
+                std::string p_zone);
 
     void reset() override
     {
@@ -81,7 +84,8 @@ public:
         m_why.clear();
     }
 
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override

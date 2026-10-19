@@ -90,7 +90,8 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
     describe.name = "Walk";
     skills.add<WalkSkill>(describe, body, *m_policy, m_command, walk, period);
     describe.name = "Forward";
-    skills.add<WalkSkill>(describe, body, *m_policy, m_forward, forward, period);
+    skills.add<WalkSkill>(
+        describe, body, *m_policy, m_forward, forward, period);
     describe.name = "TurnLeft";
     skills.add<WalkSkill>(describe, body, *m_policy, m_turn, turn, period);
 }
@@ -129,5 +130,6 @@ void DuckMission::measure(robotik::Simulation const& /*p_simulation*/,
 {
     p_metrics.set("duck.height_min", m_height_min);
     p_metrics.set("duck.distance", m_distance);
-    p_metrics.set("duck.displacement", std::hypot(m_last_x - m_start_x, m_last_y - m_start_y));
+    p_metrics.set("duck.displacement",
+                  std::hypot(m_last_x - m_start_x, m_last_y - m_start_y));
 }

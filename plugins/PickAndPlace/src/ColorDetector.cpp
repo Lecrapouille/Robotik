@@ -81,12 +81,12 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
             std::uint8_t* mask = m_mask.data() + y * width;
             for (std::uint32_t x = 0; x < width; ++x, pixel += 3)
             {
-                Hsv const have =
-                    hsv(pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
-                mask[x] = have.value >= COLOR_MIN_VALUE &&
-                          have.saturation >= COLOR_MIN_SATURATION &&
-                          hueDistance(have.hue, want.hue) <=
-                              COLOR_MAX_HUE_DISTANCE;
+                Hsv const have = hsv(
+                    pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
+                mask[x] =
+                    have.value >= COLOR_MIN_VALUE &&
+                    have.saturation >= COLOR_MIN_SATURATION &&
+                    hueDistance(have.hue, want.hue) <= COLOR_MAX_HUE_DISTANCE;
             }
         }
 

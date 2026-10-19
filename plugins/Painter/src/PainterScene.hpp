@@ -8,8 +8,8 @@
 /// @file PainterScene.hpp
 /// @brief Conventions of the painter demonstration.
 ///
-/// The world (worlds/painting_lab.world.yaml) builds the easel, the canvas and the
-/// pots; the strokes are trajectories of the scenario, in the frame of the
+/// The world (worlds/painting_lab.world.yaml) builds the easel, the canvas and
+/// the pots; the strokes are trajectories of the scenario, in the frame of the
 /// easel. What is left here are the entity ids, the brush orientation over a
 /// pot and the paint colours. Frames are URDF Z-up, the world frame.
 #pragma once
@@ -64,7 +64,8 @@ inline int colorIndex(std::string_view p_name)
     return 3;
 }
 
-inline void colorRgb(std::string_view p_name, float& p_r, float& p_g, float& p_b)
+inline void
+colorRgb(std::string_view p_name, float& p_r, float& p_g, float& p_b)
 {
     switch (colorIndex(p_name))
     {

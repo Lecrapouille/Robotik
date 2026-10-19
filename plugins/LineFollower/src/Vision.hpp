@@ -29,7 +29,8 @@ public:
     AprilTagDetector(AprilTagDetector const&) = delete;
     AprilTagDetector& operator=(AprilTagDetector const&) = delete;
 
-    void detect(robotik::CameraFrame const& p_frame, robotik::Detections& p_detections) override;
+    void detect(robotik::CameraFrame const& p_frame,
+                robotik::Detections& p_detections) override;
 
 private:
 
@@ -47,7 +48,8 @@ class LineDetector final: public robotik::Detector
 {
 public:
 
-    void detect(robotik::CameraFrame const& p_frame, robotik::Detections& p_detections) override;
+    void detect(robotik::CameraFrame const& p_frame,
+                robotik::Detections& p_detections) override;
 
 private:
 

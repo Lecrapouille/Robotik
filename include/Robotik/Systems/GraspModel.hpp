@@ -6,8 +6,8 @@
 // See LICENSING.md for details.
 
 /// @file GraspModel.hpp
-/// @brief How the simulation makes a gripper hold an object, per level of
-/// physics fidelity (@ref Fidelity).
+/// How the simulation makes a gripper hold an object, per level of physics
+/// fidelity (@ref Fidelity).
 ///
 /// Skills never see the model: they turn the suction of a
 /// @ref VacuumGripper on or off and read @c holding(). The model decides
@@ -29,7 +29,18 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-/// @brief Grasps, carries and releases objects for the grippers of a robot.
+/// Grasps, carries and releases objects for the grippers of a robot.
+///
+/// The @ref Simulation owns the models and calls @ref update after each
+/// physics step; a plugin does not need to touch them.
+///
+/// @code
+/// std::vector<std::unique_ptr<robotik::GraspModel>> grasps;
+/// grasps.push_back(std::make_unique<robotik::AbstractGrasp>());
+/// // after each physics step:
+/// for (auto& grasp : grasps)
+///     grasp->update(robot);
+/// @endcode
 // ****************************************************************************
 class GraspModel
 {
@@ -37,33 +48,58 @@ public:
 
     virtual ~GraspModel() = default;
 
-    /// @brief Updates every gripper of @p_robot after a physics step.
+    // ------------------------------------------------------------------------
+    /// Updates every gripper of a robot after a physics step: attaches,
+    /// carries or releases the objects.
+    /// @param p_robot Robot whose grippers are updated.
+    // ------------------------------------------------------------------------
     virtual void update(Robot& p_robot) = 0;
 };
 
 // ****************************************************************************
-/// @brief Abstract level: objects without physics (@ref ecs::Shape without
+/// Abstract level: objects without physics (@ref ecs::Shape without
 /// @ref ecs::PhysicsBody). Suction near the top or bottom face of a box
 /// attaches it; no suction drops it onto the floor of the container below,
 /// or the ground.
+///
+/// Fast and stable: good for planning tests and RL.
+///
+/// @code
+/// robotik::AbstractGrasp grasp;
+/// grasp.update(robot);
+/// @endcode
 // ****************************************************************************
 class AbstractGrasp final: public GraspModel
 {
 public:
 
+    /// Attaches, carries or drops the shapes without physics.
     void update(Robot& p_robot) override;
 };
 
 // ****************************************************************************
-/// @brief Rigid level: objects are free bodies of the physics backend.
-/// Suction near the top or the bottom face of one turns on the weld
-/// declared between the gripper and it; no suction turns it off.
+/// Rigid level: objects are free bodies of the physics backend. Suction near
+/// the top or the bottom face of one turns on the weld declared between the
+/// gripper and it; no suction turns it off.
+///
+/// The welds must exist in the physics model before it is built: declare one
+/// per gripper and object, named by @ref weldName.
+///
+/// @code
+/// robotik::RigidGrasp grasp({ { "box", 0.025 } });
+/// physics.addWeld(robotik::RigidGrasp::weldName("vacuum", "box"), tool_link,
+/// "box");
+/// // after each physics step:
+/// grasp.update(robot);
+/// @endcode
 // ****************************************************************************
 class RigidGrasp final: public GraspModel
 {
 public:
 
-    /// @brief An object the grippers may hold, and its weld per gripper.
+    // ------------------------------------------------------------------------
+    /// An object the grippers may hold.
+    // ------------------------------------------------------------------------
     struct Graspable
     {
         /// World entity id, also the body name in the backend.
@@ -73,19 +109,30 @@ public:
         double half_height = 0.0;
     };
 
-    explicit RigidGrasp(std::vector<Graspable> p_objects) : m_objects(std::move(p_objects))
+    // ------------------------------------------------------------------------
+    /// @param p_objects Objects the grippers may hold.
+    // ------------------------------------------------------------------------
+    explicit RigidGrasp(std::vector<Graspable> p_objects)
+        : m_objects(std::move(p_objects))
     {
     }
 
-    /// @brief Name of the weld between @p_gripper and @p_object, to declare
-    /// in the backend before it is built.
+    // ------------------------------------------------------------------------
+    /// Names the weld between a gripper and an object, to declare in the
+    /// backend before it is built.
+    /// @param p_gripper Name of the gripper actuator.
+    /// @param p_object Id of the object.
+    /// @return The weld name.
+    // ------------------------------------------------------------------------
     [[nodiscard]] static std::string weldName(std::string const& p_gripper,
                                               std::string const& p_object);
 
+    /// Turns the welds on or off from the suction of each gripper.
     void update(Robot& p_robot) override;
 
 private:
 
+    /// Objects the grippers may hold.
     std::vector<Graspable> m_objects;
 };
 

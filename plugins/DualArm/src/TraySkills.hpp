@@ -46,7 +46,8 @@ public:
         m_why.clear();
     }
 
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -105,7 +106,8 @@ public:
         m_why.clear();
     }
 
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override;
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override

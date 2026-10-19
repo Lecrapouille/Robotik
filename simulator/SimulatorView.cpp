@@ -61,10 +61,11 @@ bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
     return true;
 }
 
-RenderedCamera::RenderedCamera(compages::renderer::Scene& p_scene,
-                               robotik::Camera const& p_camera,
-                               compages::world::Entity p_link,
-                               std::vector<compages::world::EntityId> const& p_overlays)
+RenderedCamera::RenderedCamera(
+    compages::renderer::Scene& p_scene,
+    robotik::Camera const& p_camera,
+    compages::world::Entity p_link,
+    std::vector<compages::world::EntityId> const& p_overlays)
     : m_scene(p_scene), m_overlays(p_overlays)
 {
     compages::world::Entity const active = p_scene.activeCamera();
@@ -120,7 +121,8 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
     // The device puts the first row at the bottom; Robotik images start at
     // the top.
     std::vector<std::byte> const& bytes = pixels.value();
-    p_frame.rgb.resize(intrinsics.width, intrinsics.height, robotik::PixelFormat::RGB8);
+    p_frame.rgb.resize(
+        intrinsics.width, intrinsics.height, robotik::PixelFormat::RGB8);
     std::size_t const stride = p_frame.rgb.stride();
     if (bytes.size() < stride * intrinsics.height)
     {
@@ -153,8 +155,9 @@ void RenderedCamera::sync(robotik::Camera const& p_camera)
                                         static_cast<float>(rotation.z)));
 }
 
-compages::world::Entity SimulatorView::model(compages::world::World& /*p_world*/,
-                                             std::filesystem::path const& p_urdf)
+compages::world::Entity
+SimulatorView::model(compages::world::World& /*p_world*/,
+                     std::filesystem::path const& p_urdf)
 {
     auto loaded = m_scene.load(p_urdf.string());
     if (!loaded)
@@ -164,8 +167,9 @@ compages::world::Entity SimulatorView::model(compages::world::World& /*p_world*/
     return loaded.value();
 }
 
-compages::world::Entity SimulatorView::robot(compages::world::World& /*p_world*/,
-                                             std::filesystem::path const& p_urdf)
+compages::world::Entity
+SimulatorView::robot(compages::world::World& /*p_world*/,
+                     std::filesystem::path const& p_urdf)
 {
     auto loaded = m_scene.load(p_urdf.string());
     if (!loaded)
@@ -183,8 +187,13 @@ void SimulatorView::object(compages::world::Entity p_entity,
     auto const x = static_cast<float>(p_object.size[0].value());
     auto const y = static_cast<float>(p_object.size[1].value());
     auto const z = static_cast<float>(p_object.size[2].value());
-    auto part = [&](char const* p_name, float p_px, float p_py, float p_pz,
-                    float p_sx, float p_sy, float p_sz)
+    auto part = [&](char const* p_name,
+                    float p_px,
+                    float p_py,
+                    float p_pz,
+                    float p_sx,
+                    float p_sy,
+                    float p_sz)
     {
         m_scene.box(p_object.name + p_name, look)
             .parent(p_entity)
@@ -196,10 +205,10 @@ void SimulatorView::object(compages::world::Entity p_entity,
         part("_mesh", 0.0f, 0.0f, 0.0f, x, y, z);
         return;
     }
-    // Open-top bin: same wall thickness (m) as scene::innerBounds / CONTAINER_WALL_M.
-    // The parts do not overlap: two faces in the same plane would flicker.
-    // North and south run the full length, east and west fit between them,
-    // the floor fits inside the four walls.
+    // Open-top bin: same wall thickness (m) as scene::innerBounds /
+    // CONTAINER_WALL_M. The parts do not overlap: two faces in the same plane
+    // would flicker. North and south run the full length, east and west fit
+    // between them, the floor fits inside the four walls.
     float const wall = static_cast<float>(robotik::ecs::CONTAINER_WALL_M);
     float const inner_x = std::max(x - 2.0f * wall, 0.0f);
     float const inner_y = std::max(y - 2.0f * wall, 0.0f);
@@ -214,7 +223,8 @@ void noShadow(compages::world::Entity p_entity)
 {
     if (auto* mesh = p_entity.find<compages::renderer::MeshRenderer>())
     {
-        mesh->flags = mesh->flags | compages::renderer::RenderFlags::NoShadowCaster;
+        mesh->flags =
+            mesh->flags | compages::renderer::RenderFlags::NoShadowCaster;
     }
 }
 
@@ -223,7 +233,8 @@ std::filesystem::path floorGrid()
     // 3 m across: a line every 10 cm, a stronger one every 50 cm.
     constexpr int SIZE = 1500;
     constexpr int CELL = SIZE / 30;
-    std::filesystem::path const path = std::filesystem::temp_directory_path() / "robotik_floor.ppm";
+    std::filesystem::path const path =
+        std::filesystem::temp_directory_path() / "robotik_floor.ppm";
     std::ofstream file(path, std::ios::binary);
     file << "P6\n" << SIZE << ' ' << SIZE << "\n255\n";
     std::vector<unsigned char> row(static_cast<std::size_t>(SIZE) * 3u);
@@ -231,7 +242,8 @@ std::filesystem::path floorGrid()
     {
         for (int u = 0; u < SIZE; ++u)
         {
-            auto line = [](int p_at, int p_every, int p_width) { return p_at % p_every < p_width; };
+            auto line = [](int p_at, int p_every, int p_width)
+            { return p_at % p_every < p_width; };
             bool const major = line(u, CELL * 5, 4) || line(v, CELL * 5, 4);
             bool const minor = line(u, CELL, 2) || line(v, CELL, 2);
             unsigned char const shade = major ? 58 : minor ? 70 : 82;
@@ -240,7 +252,8 @@ std::filesystem::path floorGrid()
             row[i + 1u] = static_cast<unsigned char>(shade + 2);
             row[i + 2u] = static_cast<unsigned char>(shade + 5);
         }
-        file.write(reinterpret_cast<char const*>(row.data()), static_cast<std::streamsize>(row.size()));
+        file.write(reinterpret_cast<char const*>(row.data()),
+                   static_cast<std::streamsize>(row.size()));
     }
     return path;
 }
@@ -248,7 +261,8 @@ std::filesystem::path floorGrid()
 robotik::FrameSource* SimulatorView::camera(robotik::Camera& p_camera,
                                             compages::world::Entity p_link)
 {
-    m_cameras.push_back(std::make_unique<RenderedCamera>(m_scene, p_camera, p_link, m_overlays));
+    m_cameras.push_back(std::make_unique<RenderedCamera>(
+        m_scene, p_camera, p_link, m_overlays));
     return m_cameras.back().get();
 }
 
@@ -260,7 +274,8 @@ void SimulatorView::ground(robotik::Image const& p_image,
     {
         return;
     }
-    m_ground_file = std::filesystem::temp_directory_path() / "robotik_ground.ppm";
+    m_ground_file =
+        std::filesystem::temp_directory_path() / "robotik_ground.ppm";
     std::ofstream file(m_ground_file, std::ios::binary);
     file << "P6\n" << p_image.width() << ' ' << p_image.height() << "\n255\n";
     file.write(reinterpret_cast<char const*>(p_image.data()),
@@ -271,8 +286,11 @@ void SimulatorView::ground(robotik::Image const& p_image,
     }
     file.close();
     // Plane is XY facing +Z; Compages world is Y-up, URDF ground is Z-up.
-    compages::world::Entity ground = m_scene.plane("Ground", compages::renderer::texture(m_ground_file.string()));
-    ground.rotation(Radians(-0.5f * std::numbers::pi_v<float>), compages::core::Vector3f(1.0f, 0.0f, 0.0f))
+    compages::world::Entity ground = m_scene.plane(
+        "Ground", compages::renderer::texture(m_ground_file.string()));
+    ground
+        .rotation(Radians(-0.5f * std::numbers::pi_v<float>),
+                  compages::core::Vector3f(1.0f, 0.0f, 0.0f))
         .position(0.0f, 0.0f, 0.0f)
         .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0f);
     noShadow(ground);
@@ -280,8 +298,8 @@ void SimulatorView::ground(robotik::Image const& p_image,
 }
 
 bool SimulatorView::openCanvas(compages::world::Entity p_parent,
-                              double p_width,
-                              double p_height)
+                               double p_width,
+                               double p_height)
 {
     if (!p_parent || p_width < 1e-4 || p_height < 1e-4)
     {
@@ -311,7 +329,11 @@ bool SimulatorView::openCanvas(compages::world::Entity p_parent,
     return true;
 }
 
-void SimulatorView::ink(double p_y, double p_z, float p_red, float p_green, float p_blue)
+void SimulatorView::ink(double p_y,
+                        double p_z,
+                        float p_red,
+                        float p_green,
+                        float p_blue)
 {
     if (!m_sheet_ready)
     {
@@ -337,7 +359,8 @@ RenderTarget const& SimulatorView::frameTarget(std::size_t p_index)
     return *m_frames[p_index];
 }
 
-bool SimulatorView::showFrame(std::size_t p_index, robotik::CameraFrame const& p_frame)
+bool SimulatorView::showFrame(std::size_t p_index,
+                              robotik::CameraFrame const& p_frame)
 {
     robotik::Image const& image = p_frame.rgb;
     if (image.format() != robotik::PixelFormat::RGB8 || image.empty())

@@ -62,33 +62,39 @@ static bool beginFields(char const* p_id)
 /// @brief The license of a pack: green when somebody wrote it down.
 static void licenseBadge(robotik::AssetPack const& p_pack)
 {
-    if (p_pack.licenseVerified())
+    if (robotik::licenseVerified(p_pack))
     {
         ImGui::TextColored(GREEN, "%s", p_pack.license.c_str());
     }
     else
     {
         badge("not checked", ORANGE);
-        ImGui::SetItemTooltip("Nobody wrote down the license of these files (%s). Check it "
-                              "before you share or ship them.",
-                              p_pack.license.empty() ? "empty" : p_pack.license.c_str());
+        ImGui::SetItemTooltip(
+            "Nobody wrote down the license of these files (%s). Check it "
+            "before you share or ship them.",
+            p_pack.license.empty() ? "empty" : p_pack.license.c_str());
     }
 }
 
 /// @brief True when @p_file is inside the folder @p_root.
-static bool inside(std::filesystem::path const& p_root, std::filesystem::path const& p_file)
+static bool inside(std::filesystem::path const& p_root,
+                   std::filesystem::path const& p_file)
 {
-    auto const mismatch = std::mismatch(p_root.begin(), p_root.end(), p_file.begin(), p_file.end());
+    auto const mismatch = std::mismatch(
+        p_root.begin(), p_root.end(), p_file.begin(), p_file.end());
     return !p_root.empty() && mismatch.first == p_root.end();
 }
 
 /// @brief Packs the running scenario takes a model from, or the package
 /// requires, or the package owns.
-static bool usedByRun(App const& p_app, robotik::PluginPackage const* p_package, robotik::AssetPack const& p_pack)
+static bool usedByRun(App const& p_app,
+                      robotik::PluginPackage const* p_package,
+                      robotik::AssetPack const& p_pack)
 {
     if (p_package != nullptr)
     {
-        if (!p_package->resources.empty() && inside(p_package->resources, p_pack.root))
+        if (!p_package->resources.empty() &&
+            inside(p_package->resources, p_pack.root))
         {
             return true;
         }
@@ -102,7 +108,8 @@ static bool usedByRun(App const& p_app, robotik::PluginPackage const* p_package,
     }
     if (p_app.simulation)
     {
-        for (robotik::EntitySpec const& entity : p_app.simulation->scenario().world.entities)
+        for (robotik::EntitySpec const& entity :
+             p_app.simulation->scenario().world.entities)
         {
             if (!entity.model.empty() && inside(p_pack.root, entity.model))
             {
@@ -122,9 +129,13 @@ static bool matches(std::string const& p_text, char const* p_filter)
     }
     std::string text = p_text;
     std::string filter = p_filter;
-    auto lower = [](std::string& p_s) {
-        std::transform(p_s.begin(), p_s.end(), p_s.begin(),
-                       [](unsigned char p_c) { return static_cast<char>(std::tolower(p_c)); });
+    auto lower = [](std::string& p_s)
+    {
+        std::transform(p_s.begin(),
+                       p_s.end(),
+                       p_s.begin(),
+                       [](unsigned char p_c)
+                       { return static_cast<char>(std::tolower(p_c)); });
     };
     lower(text);
     lower(filter);
@@ -149,10 +160,11 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     field("robot", "%s", scenario.world.robot().model_ref.c_str());
     std::string const controller =
         scenario.controller.planner
-            ? "PDDL planner, " + scenario.controller.planner->domain.filename().string()
-            : scenario.controller.behavior_tree.empty()
-                  ? std::string("plugin mission (C++)")
-                  : scenario.controller.behavior_tree.filename().string();
+            ? "PDDL planner, " +
+                  scenario.controller.planner->domain.filename().string()
+        : scenario.controller.behavior_tree.empty()
+            ? std::string("plugin mission (C++)")
+            : scenario.controller.behavior_tree.filename().string();
     field("controller", "%s", controller.c_str());
     field("seed", "%llu", static_cast<unsigned long long>(scenario.seed));
     field("timeout", "%.0f s", scenario.timeout.value());
@@ -160,13 +172,24 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     {
         field("stop when", "%s", scenario.stop_when.c_str());
     }
-    field("faults", "%zu planned, %zu random", scenario.faults.size(), scenario.random_faults.size());
-    field("oracle", "%s%s", oracleOf(scenario.oracle),
-          p_app.simulation->oracle() ? " (active: ground truth feeds the beliefs)" : "");
+    field("faults",
+          "%zu planned, %zu random",
+          scenario.faults.size(),
+          scenario.random_faults.size());
+    field("oracle",
+          "%s%s",
+          oracleOf(scenario.oracle),
+          p_app.simulation->oracle()
+              ? " (active: ground truth feeds the beliefs)"
+              : "");
     if (p_package != nullptr)
     {
-        field("clock", "%s", p_app.owns_clock ? "the plugin advances time" : "the simulation");
-        field("graphics", "%s", p_package->graphics ? "needs a window" : "works headless");
+        field("clock",
+              "%s",
+              p_app.owns_clock ? "the plugin advances time" : "the simulation");
+        field("graphics",
+              "%s",
+              p_package->graphics ? "needs a window" : "works headless");
     }
     endTable();
 }
@@ -185,7 +208,8 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
         ImGui::TextDisabled("None: the package only uses the core.");
         return;
     }
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg |
+                                  ImGuiTableFlags_BordersInnerV |
                                   ImGuiTableFlags_SizingStretchProp;
     if (!beginTable("dependencies", 3, flags))
     {
@@ -193,7 +217,8 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
     }
     ImGui::TableSetupColumn("Kind", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.4f);
-    ImGui::TableSetupColumn("License / status", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+    ImGui::TableSetupColumn(
+        "License / status", ImGuiTableColumnFlags_WidthStretch, 1.0f);
     ImGui::TableHeadersRow();
 
     if (!p_package.resources.empty())
@@ -206,7 +231,9 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
                 ImGui::TableNextColumn();
                 ImGui::TextDisabled("own pack");
                 ImGui::TableNextColumn();
-                ImGui::Text("%s %s", pack.id.c_str(), pack.version.toString().c_str());
+                ImGui::Text("%s %s",
+                            pack.id.c_str(),
+                            robotik::toString(pack.version).c_str());
                 ImGui::TableNextColumn();
                 licenseBadge(pack);
             }
@@ -218,10 +245,13 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
         ImGui::TableNextColumn();
         ImGui::TextDisabled("asset pack");
         ImGui::TableNextColumn();
-        ImGui::Text("%s >= %s", requirement.id.c_str(), requirement.version.toString().c_str());
+        ImGui::Text("%s >= %s",
+                    requirement.id.c_str(),
+                    robotik::toString(requirement.version).c_str());
         ImGui::TableNextColumn();
         std::string why;
-        if (robotik::AssetPack const* pack = assets.require(requirement.id, requirement.version, why))
+        if (robotik::AssetPack const* pack =
+                assets.require(requirement.id, requirement.version, why))
         {
             licenseBadge(*pack);
         }
@@ -242,7 +272,9 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
         bool const found = catalog.findPackage(plugin) != nullptr;
         badge(found ? "found" : "missing", found ? GREEN : RED);
     }
-    auto libraries = [](std::vector<robotik::ThirdParty> const& p_list, char const* p_kind) {
+    auto libraries =
+        [](std::vector<robotik::ThirdParty> const& p_list, char const* p_kind)
+    {
         for (robotik::ThirdParty const& library : p_list)
         {
             ImGui::TableNextRow();
@@ -255,12 +287,15 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
             }
             else
             {
-                ImGui::TextLinkOpenURL(library.name.c_str(), library.url.c_str());
+                ImGui::TextLinkOpenURL(library.name.c_str(),
+                                       library.url.c_str());
             }
             if (!library.description.empty() || !library.reference.empty())
             {
-                ImGui::SetItemTooltip("%s%s%s", library.description.c_str(),
-                                      library.reference.empty() ? "" : "\nVersion: ",
+                ImGui::SetItemTooltip("%s%s%s",
+                                      library.description.c_str(),
+                                      library.reference.empty() ? ""
+                                                                : "\nVersion: ",
                                       library.reference.c_str());
             }
             ImGui::TableNextColumn();
@@ -279,7 +314,8 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
     endTable();
     if (!p_package.system.empty() || !p_package.thirdparties.empty())
     {
-        ImGui::TextDisabled("Libraries are listed in dependencies: of plugin.yaml.");
+        ImGui::TextDisabled(
+            "Libraries are listed in dependencies: of plugin.yaml.");
     }
 }
 
@@ -293,17 +329,25 @@ static std::string sizeText(std::uintmax_t p_bytes)
     }
     else if (p_bytes < 1024u * 1024u)
     {
-        std::snprintf(text, sizeof(text), "%.1f KB", static_cast<double>(p_bytes) / 1024.0);
+        std::snprintf(text,
+                      sizeof(text),
+                      "%.1f KB",
+                      static_cast<double>(p_bytes) / 1024.0);
     }
     else
     {
-        std::snprintf(text, sizeof(text), "%.1f MB", static_cast<double>(p_bytes) / (1024.0 * 1024.0));
+        std::snprintf(text,
+                      sizeof(text),
+                      "%.1f MB",
+                      static_cast<double>(p_bytes) / (1024.0 * 1024.0));
     }
     return text;
 }
 
 /// @brief Folders first, then files, each sorted by name.
-static PackageEntry readFolder(std::filesystem::path const& p_folder, std::string p_name, int p_depth)
+static PackageEntry readFolder(std::filesystem::path const& p_folder,
+                               std::string p_name,
+                               int p_depth)
 {
     PackageEntry entry;
     entry.name = std::move(p_name);
@@ -311,7 +355,8 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder, std::strin
     entry.folder = true;
     std::error_code error;
     std::filesystem::directory_iterator cursor(p_folder, error);
-    for (; !error && cursor != std::filesystem::directory_iterator(); cursor.increment(error))
+    for (; !error && cursor != std::filesystem::directory_iterator();
+         cursor.increment(error))
     {
         std::filesystem::path const path = cursor->path();
         std::string name = path.filename().string();
@@ -319,7 +364,8 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder, std::strin
         {
             if (p_depth < 6)
             {
-                entry.children.push_back(readFolder(path, std::move(name), p_depth + 1));
+                entry.children.push_back(
+                    readFolder(path, std::move(name), p_depth + 1));
             }
         }
         else
@@ -331,9 +377,12 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder, std::strin
             entry.children.push_back(std::move(file));
         }
     }
-    std::sort(entry.children.begin(), entry.children.end(),
-              [](PackageEntry const& p_a, PackageEntry const& p_b) {
-                  return p_a.folder != p_b.folder ? p_a.folder : p_a.name < p_b.name;
+    std::sort(entry.children.begin(),
+              entry.children.end(),
+              [](PackageEntry const& p_a, PackageEntry const& p_b)
+              {
+                  return p_a.folder != p_b.folder ? p_a.folder
+                                                  : p_a.name < p_b.name;
               });
     for (PackageEntry const& child : entry.children)
     {
@@ -347,7 +396,8 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder, std::strin
 static std::vector<std::filesystem::path> loadedFiles(App const& p_app)
 {
     std::vector<std::filesystem::path> files;
-    auto add = [&files](std::filesystem::path const& p_path) {
+    auto add = [&files](std::filesystem::path const& p_path)
+    {
         std::error_code error;
         if (!p_path.empty())
         {
@@ -365,17 +415,23 @@ static std::vector<std::filesystem::path> loadedFiles(App const& p_app)
 }
 
 /// One file or folder of the package tree.
-static void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::filesystem::path> const& p_loaded, int p_depth)
+static void fileRow(App& p_app,
+                    PackageEntry const& p_entry,
+                    std::vector<std::filesystem::path> const& p_loaded,
+                    int p_depth)
 {
     ImGui::TableNextRow();
     ImGui::TableNextColumn();
     if (p_entry.folder)
     {
         // The content folders open at first; data/ may hold hundreds of meshes.
-        bool const content = p_depth == 0 && p_entry.name != "data" && p_entry.name != "external";
+        bool const content = p_depth == 0 && p_entry.name != "data" &&
+                             p_entry.name != "external";
         ImGui::SetNextItemOpen(content, ImGuiCond_Once);
-        bool const open = ImGui::TreeNodeEx(p_entry.path.string().c_str(), ImGuiTreeNodeFlags_SpanFullWidth,
-                                            "%s/", p_entry.name.c_str());
+        bool const open = ImGui::TreeNodeEx(p_entry.path.string().c_str(),
+                                            ImGuiTreeNodeFlags_SpanFullWidth,
+                                            "%s/",
+                                            p_entry.name.c_str());
         ImGui::TableNextColumn();
         ImGui::TextDisabled("%s", sizeText(p_entry.size).c_str());
         if (open)
@@ -388,15 +444,19 @@ static void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::fi
         }
         return;
     }
-    bool const loaded = std::find(p_loaded.begin(), p_loaded.end(), p_entry.path) != p_loaded.end();
+    bool const loaded =
+        std::find(p_loaded.begin(), p_loaded.end(), p_entry.path) !=
+        p_loaded.end();
     if (loaded)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, GREEN);
     }
     ImGui::TreeNodeEx(p_entry.path.string().c_str(),
-                      ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                      ImGuiTreeNodeFlags_Leaf |
+                          ImGuiTreeNodeFlags_NoTreePushOnOpen |
                           ImGuiTreeNodeFlags_SpanFullWidth,
-                      "%s", p_entry.name.c_str());
+                      "%s",
+                      p_entry.name.c_str());
     if (loaded)
     {
         ImGui::PopStyleColor();
@@ -413,7 +473,8 @@ static void fileRow(App& p_app, PackageEntry const& p_entry, std::vector<std::fi
         }
         ImGui::EndPopup();
     }
-    ImGui::SetItemTooltip("%sClick: a scenario is loaded, any other file is shown in its tab of Files.",
+    ImGui::SetItemTooltip("%sClick: a scenario is loaded, any other file is "
+                          "shown in its tab of Files.",
                           loaded ? "In use (green).\n" : "");
     ImGui::TableNextColumn();
     ImGui::TextDisabled("%s", sizeText(p_entry.size).c_str());
@@ -426,7 +487,8 @@ static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
     if (p_app.ui.package_root != p_package.root)
     {
         p_app.ui.package_root = p_package.root;
-        p_app.ui.package_tree = readFolder(p_package.root, p_package.root.filename().string(), 0);
+        p_app.ui.package_tree =
+            readFolder(p_package.root, p_package.root.filename().string(), 0);
     }
     if (ImGui::SmallButton("Copy folder"))
     {
@@ -436,16 +498,21 @@ static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
     ImGui::SameLine();
     if (ImGui::SmallButton("Read again"))
     {
-        p_app.ui.package_tree = readFolder(p_package.root, p_package.root.filename().string(), 0);
+        p_app.ui.package_tree =
+            readFolder(p_package.root, p_package.root.filename().string(), 0);
     }
     ImGui::SameLine();
     ImGui::TextDisabled("read only");
     ImGui::SameLine();
-    helpMarker("The package as the simulator reads it. In the build tree this is a copy "
-               "made by make: change the files in plugins/<Name>/, not here.\n\n"
-               "Green: the files of the loaded scenario and of the chosen experiment.");
+    helpMarker(
+        "The package as the simulator reads it. In the build tree this is a "
+        "copy "
+        "made by make: change the files in plugins/<Name>/, not here.\n\n"
+        "Green: the files of the loaded scenario and of the chosen "
+        "experiment.");
     ImGui::TextDisabled("%s", p_package.root.string().c_str());
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV;
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV;
     if (beginTable("files", 2, flags))
     {
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
@@ -485,16 +552,20 @@ static std::string inlineText(robotik::ConfigNode const& p_node)
 /// Table of the cases of the loaded experiment.
 static void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
 {
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                  ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp;
     if (!beginTable("cases", 4, flags))
     {
         return;
     }
     ImGui::TableSetupColumn("Case", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-    ImGui::TableSetupColumn("Scenario", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-    ImGui::TableSetupColumn("Controller", ImGuiTableColumnFlags_WidthStretch, 0.9f);
-    ImGui::TableSetupColumn("Changes", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+    ImGui::TableSetupColumn(
+        "Scenario", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+    ImGui::TableSetupColumn(
+        "Controller", ImGuiTableColumnFlags_WidthStretch, 0.9f);
+    ImGui::TableSetupColumn(
+        "Changes", ImGuiTableColumnFlags_WidthStretch, 1.4f);
     ImGui::TableHeadersRow();
     for (robotik::ExperimentCase const& item : p_experiment.cases)
     {
@@ -507,14 +578,16 @@ static void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
         {
             showFile(p_app, item.scenario);
         }
-        ImGui::SetItemTooltip("%s\nClick to load it alone, without the changes of this case.",
-                              item.scenario.string().c_str());
+        ImGui::SetItemTooltip(
+            "%s\nClick to load it alone, without the changes of this case.",
+            item.scenario.string().c_str());
         ImGui::TableNextColumn();
         if (item.behavior_tree.empty())
         {
             ImGui::TextDisabled("the scenario's");
         }
-        else if (ImGui::TextLink(item.behavior_tree.filename().string().c_str()))
+        else if (ImGui::TextLink(
+                     item.behavior_tree.filename().string().c_str()))
         {
             showFile(p_app, item.behavior_tree);
         }
@@ -527,14 +600,22 @@ static void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
         for (robotik::Fault const& fault : item.faults)
         {
             char line[160];
-            std::snprintf(line, sizeof(line), "%s %s at %.2f s", fault.disable ? "disable" : "restore",
-                          fault.resource.c_str(), fault.at.value());
+            std::snprintf(line,
+                          sizeof(line),
+                          "%s %s at %.2f s",
+                          fault.disable ? "disable" : "restore",
+                          fault.resource.c_str(),
+                          fault.at.value());
             changes.emplace_back(line);
         }
         for (robotik::RandomFault const& fault : item.random_faults)
         {
             char line[160];
-            std::snprintf(line, sizeof(line), "%s fails at %.3g per second", fault.resource.c_str(), fault.rate);
+            std::snprintf(line,
+                          sizeof(line),
+                          "%s fails at %.3g per second",
+                          fault.resource.c_str(),
+                          fault.rate);
             changes.emplace_back(line);
         }
         if (changes.empty())
@@ -635,8 +716,11 @@ void viewPanel(App& p_app)
         ImGui::End();
         return;
     }
-    for (FileTab const tab :
-         { FileTab::Scenario, FileTab::World, FileTab::Tree, FileTab::Planner, FileTab::Experiment })
+    for (FileTab const tab : { FileTab::Scenario,
+                               FileTab::World,
+                               FileTab::Tree,
+                               FileTab::Planner,
+                               FileTab::Experiment })
     {
         if (tab != FileTab::Scenario)
         {
@@ -645,7 +729,9 @@ void viewPanel(App& p_app)
         bool const active = tab == view;
         if (active)
         {
-            ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+            ImGui::PushStyleColor(
+                ImGuiCol_Button,
+                ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
         }
         if (ImGui::SmallButton(viewName(tab)) && !active)
         {
@@ -726,9 +812,13 @@ void pluginPanel(App& p_app)
     if (beginFields("description"))
     {
         field("id", "%s", package->id.c_str());
-        field("version", "%s", package->version.toString().c_str());
-        field("plugin API", "%u%s", package->api_version,
-              package->api_version == ROBOTIK_PLUGIN_ABI_VERSION ? "" : " (not this host)");
+        field("version", "%s", robotik::toString(package->version).c_str());
+        field("plugin API",
+              "%u%s",
+              package->api_version,
+              package->api_version == ROBOTIK_PLUGIN_ABI_VERSION
+                  ? ""
+                  : " (not this host)");
         endTable();
     }
     ImGui::Spacing();
@@ -750,7 +840,8 @@ void assetsPanel(App& p_app)
         p_app.plugins.catalog().matchScenario(p_app.scenario_path).package;
     if (assets.packs().empty())
     {
-        emptyState("No asset pack found.\nSet ROBOTIK_DATA or build the project.");
+        emptyState(
+            "No asset pack found.\nSet ROBOTIK_DATA or build the project.");
         ImGui::End();
         return;
     }
@@ -760,37 +851,50 @@ void assetsPanel(App& p_app)
     for (robotik::AssetPack const& pack : assets.packs())
     {
         models += pack.models.size();
-        unchecked += pack.licenseVerified() ? 0u : 1u;
+        unchecked += robotik::licenseVerified(pack) ? 0u : 1u;
     }
     ImGui::Text("%zu packs, %zu models", assets.packs().size(), models);
     if (unchecked > 0u)
     {
         ImGui::SameLine();
-        ImGui::TextColored(ORANGE, "  %zu license%s not checked", unchecked, unchecked > 1u ? "s" : "");
+        ImGui::TextColored(ORANGE,
+                           "  %zu license%s not checked",
+                           unchecked,
+                           unchecked > 1u ? "s" : "");
     }
     ImGui::SameLine();
-    helpMarker("An asset pack is a versioned folder of models (URDF and meshes) with a "
-               "pack.yaml: id, version, license, source. A world names a model by "
-               "<pack id>.<key>, e.g. robotik.tools.vacuum.\n\nPacks are searched in "
-               "ROBOTIK_DATA, data/packs, then in the data/ folder of each plugin.");
+    helpMarker(
+        "An asset pack is a versioned folder of models (URDF and meshes) with "
+        "a "
+        "pack.yaml: id, version, license, source. A world names a model by "
+        "<pack id>.<key>, e.g. robotik.tools.vacuum.\n\nPacks are searched in "
+        "ROBOTIK_DATA, data/packs, then in the data/ folder of each plugin.");
 
     char* const filter = p_app.ui.asset_filter.data();
-    ImGui::SetNextItemWidth(std::min(220.0f, ImGui::GetContentRegionAvail().x * 0.5f));
-    ImGui::InputTextWithHint("##filter", "Filter packs and models", filter, p_app.ui.asset_filter.size());
+    ImGui::SetNextItemWidth(
+        std::min(220.0f, ImGui::GetContentRegionAvail().x * 0.5f));
+    ImGui::InputTextWithHint("##filter",
+                             "Filter packs and models",
+                             filter,
+                             p_app.ui.asset_filter.size());
     ImGui::SameLine();
     ImGui::Checkbox("Used by this run", &p_app.ui.assets_in_use);
     bool const only_used = p_app.ui.assets_in_use;
 
-    ImGuiTableFlags const flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                                  ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
     float const errors_height =
-        assets.errors().empty() ? 0.0f : ImGui::GetTextLineHeightWithSpacing() * 4.0f;
+        assets.errors().empty() ? 0.0f
+                                : ImGui::GetTextLineHeightWithSpacing() * 4.0f;
     if (beginTable("packs", 4, flags, ImVec2(0.0f, -errors_height)))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
-        ImGui::TableSetupColumn("Pack / model", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn(
+            "Pack / model", ImGuiTableColumnFlags_WidthStretch, 1.6f);
         ImGui::TableSetupColumn("Version", ImGuiTableColumnFlags_WidthFixed);
-        ImGui::TableSetupColumn("License", ImGuiTableColumnFlags_WidthStretch, 1.2f);
+        ImGui::TableSetupColumn(
+            "License", ImGuiTableColumnFlags_WidthStretch, 1.2f);
         ImGui::TableSetupColumn("Models", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (robotik::AssetPack const& pack : assets.packs())
@@ -803,9 +907,11 @@ void assetsPanel(App& p_app)
             bool model_match = false;
             for (auto const& [key, file] : pack.models)
             {
-                model_match = model_match || matches(pack.id + "." + key, filter);
+                model_match =
+                    model_match || matches(pack.id + "." + key, filter);
             }
-            if (!matches(pack.id, filter) && !matches(pack.description, filter) && !model_match)
+            if (!matches(pack.id, filter) &&
+                !matches(pack.description, filter) && !model_match)
             {
                 continue;
             }
@@ -818,7 +924,10 @@ void assetsPanel(App& p_app)
                 ImGui::SetNextItemOpen(true, ImGuiCond_Always);
             }
             bool const open =
-                ImGui::TreeNodeEx("##pack", ImGuiTreeNodeFlags_SpanFullWidth, "%s", pack.id.c_str());
+                ImGui::TreeNodeEx("##pack",
+                                  ImGuiTreeNodeFlags_SpanFullWidth,
+                                  "%s",
+                                  pack.id.c_str());
             if (!pack.description.empty())
             {
                 ImGui::SetItemTooltip("%s", pack.description.c_str());
@@ -829,7 +938,7 @@ void assetsPanel(App& p_app)
                 badge("in use", GREEN);
             }
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(pack.version.toString().c_str());
+            ImGui::TextUnformatted(robotik::toString(pack.version).c_str());
             ImGui::TableNextColumn();
             licenseBadge(pack);
             ImGui::TableNextColumn();
@@ -864,9 +973,11 @@ void assetsPanel(App& p_app)
                     }
                     ImGui::TableNextRow();
                     ImGui::TableNextColumn();
-                    ImGui::TreeNodeEx(id.c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_Bullet |
-                                                      ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                                                      ImGuiTreeNodeFlags_SpanFullWidth);
+                    ImGui::TreeNodeEx(id.c_str(),
+                                      ImGuiTreeNodeFlags_Leaf |
+                                          ImGuiTreeNodeFlags_Bullet |
+                                          ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                                          ImGuiTreeNodeFlags_SpanFullWidth);
                     if (ImGui::BeginPopupContextItem())
                     {
                         if (ImGui::MenuItem("Copy model id"))
@@ -902,7 +1013,8 @@ void experimentView(App& p_app)
     UiState& ui = p_app.ui;
     if (ui.experiment_path.empty())
     {
-        emptyState("No experiment.\nAn experiment runs variants of the scenarios over several "
+        emptyState("No experiment.\nAn experiment runs variants of the "
+                   "scenarios over several "
                    "seeds. Click one in the Files of the Plugin panel.");
         return;
     }
@@ -919,12 +1031,14 @@ void experimentView(App& p_app)
     ImGui::SameLine();
     if (ImGui::SmallButton("Copy command"))
     {
-        std::string const command = "./build/Robotik-Headless " + experiment.file.string() +
-                                    " --report " + experiment.id + ".json";
+        std::string const command = "./build/Robotik-Headless " +
+                                    experiment.file.string() + " --report " +
+                                    experiment.id + ".json";
         ImGui::SetClipboardText(command.c_str());
     }
     ImGui::SameLine();
-    helpMarker("An experiment runs every case with every seed, without window, and writes a "
+    helpMarker("An experiment runs every case with every seed, without window, "
+               "and writes a "
                "report. Copy the command and run it in a terminal.");
     if (!experiment.description.empty())
     {
@@ -937,11 +1051,17 @@ void experimentView(App& p_app)
         {
             seeds += (seeds.empty() ? "" : ", ") + std::to_string(seed);
         }
-        field("seeds", "%s", seeds.empty() ? "the seed of each scenario" : seeds.c_str());
-        field("runs", "%zu", experiment.cases.size() * std::max<std::size_t>(experiment.seeds.size(), 1u));
+        field("seeds",
+              "%s",
+              seeds.empty() ? "the seed of each scenario" : seeds.c_str());
+        field("runs",
+              "%zu",
+              experiment.cases.size() *
+                  std::max<std::size_t>(experiment.seeds.size(), 1u));
         if (!experiment.world.empty())
         {
-            field("world", "%s (replaces the world of every scenario)",
+            field("world",
+                  "%s (replaces the world of every scenario)",
                   experiment.world.filename().string().c_str());
         }
         endTable();

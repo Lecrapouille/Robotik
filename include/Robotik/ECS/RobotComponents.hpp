@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// @file RobotComponents.hpp
-// @brief ECS markers of a loaded robot root entity.
+/// @file RobotComponents.hpp
+/// ECS markers of a loaded robot root entity.
 #pragma once
 
 #include <cstddef>
@@ -17,7 +17,14 @@ namespace robotik::ecs
 {
 
 // ****************************************************************************
-/// @brief Marks the URDF root entity as the robot instance.
+/// Marks the URDF root entity as the robot instance.
+///
+/// Use it to find every robot of a world:
+///
+/// @code
+/// world.each<robotik::ecs::RobotTag>(
+///     [](compages::world::Entity p_root, robotik::ecs::RobotTag&) { ... });
+/// @endcode
 // ****************************************************************************
 struct RobotTag
 {
@@ -26,7 +33,13 @@ struct RobotTag
 };
 
 // ****************************************************************************
-/// @brief Human-readable robot id and source model path.
+/// Human-readable robot id and source model path, stored next to
+/// @ref RobotTag on the root entity.
+///
+/// @code
+/// auto const& identity = root.get<robotik::ecs::RobotIdentity>();
+/// std::cout << identity.name << " from " << identity.model_path << '\n';
+/// @endcode
 // ****************************************************************************
 struct RobotIdentity
 {
@@ -37,13 +50,19 @@ struct RobotIdentity
 };
 
 // ****************************************************************************
-/// @brief Marker of a teach-pendant waypoint, parented to the robot root.
+/// Marker of a teach-pendant waypoint, parented to the robot root.
 ///
 /// The entity pose is the recorded tool pose in the robot base frame. The
-/// index matches @ref robotik::TeachPendant waypoints.
+/// index matches @ref robotik::TeachPendant waypoints, so the view can draw
+/// a small frame at each recorded point.
+///
+/// @code
+/// marker.add<robotik::ecs::TeachMarker>(robotik::ecs::TeachMarker{ 3 });
+/// @endcode
 // ****************************************************************************
 struct TeachMarker
 {
+    /// Index of the waypoint in the teach pendant list.
     std::size_t index = 0;
 };
 

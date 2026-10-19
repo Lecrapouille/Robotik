@@ -60,8 +60,9 @@ TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
 
 TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
 {
-    robotik::ConfigNode node = robotik::ConfigNode::parse(
-        "world:\n  entities:\n    - { id: a, mass: 1 }\n    - { id: b, mass: 2 }\n");
+    robotik::ConfigNode node =
+        robotik::ConfigNode::parse("world:\n  entities:\n    - { id: a, mass: "
+                                   "1 }\n    - { id: b, mass: 2 }\n");
     node.set("world.entities.b.mass", robotik::ConfigNode("5"));
     node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]"));
     node.set("world.floor.friction", robotik::ConfigNode("0.3"));
@@ -91,7 +92,8 @@ TEST(Assertions, ShorthandIsJudgedAtTheEnd)
 TEST(Assertions, AlwaysKeepsTheFirstBreach)
 {
     Board board{ { { "gap", 0.001 } } };
-    robotik::AssertionEngine engine({ spec("{ condition: gap < 0.002, phase: always }") });
+    robotik::AssertionEngine engine(
+        { spec("{ condition: gap < 0.002, phase: always }") });
     engine.update(robotik::Seconds(1.0), board.probe());
     board.values["gap"] = 0.004;
     engine.update(robotik::Seconds(2.0), board.probe());
@@ -109,7 +111,8 @@ TEST(Assertions, AlwaysKeepsTheFirstBreach)
 TEST(Assertions, StopOnFailureIsRequested)
 {
     Board board{ { { "ok", 0.0 } } };
-    robotik::AssertionEngine engine({ spec("{ condition: ok, phase: always, stop: true }") });
+    robotik::AssertionEngine engine(
+        { spec("{ condition: ok, phase: always, stop: true }") });
     engine.update(robotik::Seconds(0.1), board.probe());
     EXPECT_TRUE(engine.stopRequested());
 }
@@ -117,9 +120,10 @@ TEST(Assertions, StopOnFailureIsRequested)
 TEST(Assertions, WithinAtAndEventually)
 {
     Board board{ { { "x", 0.0 } } };
-    robotik::AssertionEngine engine({ spec("{ condition: x, within: 2.0 }"),
-                                      spec("{ condition: x, at: 5.0 }"),
-                                      spec("{ condition: x, eventually: true }") });
+    robotik::AssertionEngine engine(
+        { spec("{ condition: x, within: 2.0 }"),
+          spec("{ condition: x, at: 5.0 }"),
+          spec("{ condition: x, eventually: true }") });
     engine.update(robotik::Seconds(1.0), board.probe());
     for (robotik::Check const& check : engine.checks())
     {
@@ -173,7 +177,8 @@ TEST(Assertions, UnknownValueFails)
 TEST(Assertions, InvalidSpecsAreRefused)
 {
     EXPECT_THROW((void)spec("{ phase: always }"), std::runtime_error);
-    EXPECT_THROW((void)spec("{ condition: x, phase: sometimes }"), std::runtime_error);
+    EXPECT_THROW((void)spec("{ condition: x, phase: sometimes }"),
+                 std::runtime_error);
     EXPECT_THROW((void)spec("{ sequence: [a] }"), std::runtime_error);
 }
 
@@ -184,13 +189,17 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     // scene is wrong.
     robotik::ScenarioSource source = robotik::ScenarioSource::load(
         repoFile("plugins/Painter/scenarios/painter.scenario.yaml"));
-    source.override("world.entities.canvas.attach.parent", robotik::ConfigNode("easel"));
+    source.override("world.entities.canvas.attach.parent",
+                    robotik::ConfigNode("easel"));
     source.override("world.entities.canvas.attach.transform.position",
                     robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]"));
     PainterMission mission;
     compages::world::World world;
-    robotik::Simulation simulation(world, robotik::Scenario::read(source, testAssets()), nullptr,
-                                   &mission);
+    robotik::Simulation simulation(
+        world,
+        robotik::Scenario::read(source, testAssets()),
+        nullptr,
+        &mission);
     simulation.suspend(true);
     for (int i = 0; i < 200; ++i)
     {
@@ -200,6 +209,7 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     EXPECT_EQ(simulation.query("touching(canvas, easel)"), 0.0);
     EXPECT_GT(*simulation.query("pose_error(canvas)"), 0.05);
     EXPECT_EQ(simulation.query("collision_count(robot)"), 0.0);
-    EXPECT_THROW((void)simulation.query("pose_error(nobody)"), std::invalid_argument);
+    EXPECT_THROW((void)simulation.query("pose_error(nobody)"),
+                 std::invalid_argument);
     EXPECT_FALSE(simulation.evaluate("pose_error(nobody) < 1").known);
 }

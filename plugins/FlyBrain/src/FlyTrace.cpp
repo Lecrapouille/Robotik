@@ -15,7 +15,8 @@
 #include <string>
 
 /// @brief Nine observation fields, comma separated, declaration order.
-static void writeObservation(std::ostream& p_out, FlyObservation const& p_observation)
+static void writeObservation(std::ostream& p_out,
+                             FlyObservation const& p_observation)
 {
     p_out << p_observation.visual_left << ',' << p_observation.visual_center
           << ',' << p_observation.visual_right << ','

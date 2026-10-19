@@ -7,11 +7,11 @@
 
 #include "main.hpp"
 
-#include "Robotik/Skills/SkillNodes.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Runtime/RobotContext.hpp"
 #include "Robotik/Runtime/Scheduler.hpp"
+#include "Robotik/Skills/SkillNodes.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -73,9 +73,10 @@ protected:
         robot.resources().add("camera");
     }
 
-    robotik::SkillDescription describe(std::string p_name,
-                                       std::vector<robotik::ResourceRequirement> p_resources,
-                                       robotik::Priority p_priority = 0)
+    robotik::SkillDescription
+    describe(std::string p_name,
+             std::vector<robotik::ResourceRequirement> p_resources,
+             robotik::Priority p_priority = 0)
     {
         robotik::SkillDescription description;
         description.name = std::move(p_name);
@@ -165,8 +166,10 @@ TEST_F(SchedulerTest, SharedResourcesRunTogether)
 
 TEST_F(SchedulerTest, HigherPriorityPreempts)
 {
-    auto const low = skills.add<CountdownSkill>(describe("Low", { arm() }, 10), 100);
-    auto const stop = skills.add<CountdownSkill>(describe("Stop", { arm() }, 1000), 2);
+    auto const low =
+        skills.add<CountdownSkill>(describe("Low", { arm() }, 10), 100);
+    auto const stop =
+        skills.add<CountdownSkill>(describe("Stop", { arm() }, 1000), 2);
     skills.request(low);
     update();
     skills.request(stop);
@@ -182,7 +185,8 @@ TEST_F(SchedulerTest, NonCancellableIsNotPreempted)
     auto description = describe("Critical", { arm() }, 0);
     description.cancellable = false;
     auto const critical = skills.add<CountdownSkill>(std::move(description), 3);
-    auto const urgent = skills.add<CountdownSkill>(describe("Urgent", { arm() }, 50), 1);
+    auto const urgent =
+        skills.add<CountdownSkill>(describe("Urgent", { arm() }, 50), 1);
     skills.request(critical);
     update();
     skills.request(urgent);
@@ -193,7 +197,8 @@ TEST_F(SchedulerTest, NonCancellableIsNotPreempted)
 
 TEST_F(SchedulerTest, LostResourceAbortsTheRun)
 {
-    auto const id = skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
+    auto const id =
+        skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
     skills.request(id);
     update();
     robot.resources().fail("arm");
@@ -213,7 +218,8 @@ TEST_F(SchedulerTest, PreconditionWaitsOrFails)
     bool ready = false;
     auto waiting = describe("Waiting", {});
     waiting.preconditions.push_back(
-        { "ready", [&ready](robotik::RobotContext const&) noexcept { return ready; } });
+        { "ready",
+          [&ready](robotik::RobotContext const&) noexcept { return ready; } });
     auto failing = waiting;
     failing.name = "Failing";
     failing.wait = false;
@@ -233,7 +239,8 @@ TEST_F(SchedulerTest, PreconditionWaitsOrFails)
 
 TEST_F(SchedulerTest, CancelIsCooperative)
 {
-    auto const id = skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
+    auto const id =
+        skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
     skills.request(id);
     update();
     skills.cancel(id);
@@ -247,7 +254,8 @@ TEST_F(SchedulerTest, CancelIsCooperative)
 TEST_F(SchedulerTest, BehaviorTreeRequestsSkills)
 {
     skills.add<CountdownSkill>(describe("First", { arm() }), 2);
-    skills.add<CountdownSkill>(describe("Second", { arm() }), 2, Status::FAILURE);
+    skills.add<CountdownSkill>(
+        describe("Second", { arm() }), 2, Status::FAILURE);
     bt::NodeFactory factory;
     robotik::registerSkills(factory, skills);
     auto built = bt::Builder::fromText(factory, R"(

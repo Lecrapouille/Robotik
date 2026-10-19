@@ -25,7 +25,8 @@ public:
         return { .id = "robotik.line_follower" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    RobotikPluginStatus setup(robotik::Host& p_host,
+                              std::string_view p_scenario) override
     {
         m_host = p_host;
         m_mission.reset();
@@ -54,22 +55,25 @@ public:
             return;
         }
         std::ostringstream fixes;
-        fixes << "Fixes " << m_mission->navigation().fixes
-              << "  rejected " << m_mission->navigation().rejected
-              << "  error mean " << (1000.0 * m_mission->fixErrorMean()) << " mm";
+        fixes << "Fixes " << m_mission->navigation().fixes << "  rejected "
+              << m_mission->navigation().rejected << "  error mean "
+              << (1000.0 * m_mission->fixErrorMean()) << " mm";
         p_canvas.text(fixes.str());
         double const perimeter = m_mission->track().perimeter();
         std::ostringstream laps;
-        laps << "Laps " << (perimeter > 0.0 ? m_mission->followProgress() / perimeter : 0.0)
-             << "  cross-track max " << (1000.0 * m_mission->crossTrackMax()) << " mm";
+        laps << "Laps "
+             << (perimeter > 0.0 ? m_mission->followProgress() / perimeter
+                                 : 0.0)
+             << "  cross-track max " << (1000.0 * m_mission->crossTrackMax())
+             << " mm";
         p_canvas.text(laps.str());
         if (m_mission->drive() != nullptr)
         {
             Pose2 const& truth = m_mission->drive()->truth();
             std::ostringstream pose;
-            pose << "Truth " << truth.x << " " << truth.y
-                 << "   estimate " << m_mission->navigation().estimate.x
-                 << " " << m_mission->navigation().estimate.y;
+            pose << "Truth " << truth.x << " " << truth.y << "   estimate "
+                 << m_mission->navigation().estimate.x << " "
+                 << m_mission->navigation().estimate.y;
             p_canvas.text(pose.str());
         }
     }
@@ -78,7 +82,8 @@ private:
 
     static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
     {
-        static_cast<LineFollowerPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
+        static_cast<LineFollowerPlugin*>(p_user)->draw(
+            robotik::Canvas(p_canvas));
     }
 
     robotik::Host m_host;

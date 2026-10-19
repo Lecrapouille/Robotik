@@ -38,7 +38,8 @@
 
 struct Options
 {
-    std::filesystem::path scenario = "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml";
+    std::filesystem::path scenario =
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml";
     std::size_t envs = 8;
     std::size_t threads = 0;
     std::size_t episodes = 32;
@@ -62,13 +63,15 @@ static bool parse(int argc, char** argv, Options& p_options)
     for (int i = 1; i < argc; ++i)
     {
         std::string const arg = argv[i];
-        auto next = [&]() -> char const* { return i + 1 < argc ? argv[++i] : nullptr; };
+        auto next = [&]() -> char const*
+        { return i + 1 < argc ? argv[++i] : nullptr; };
         char const* value = nullptr;
         if (arg == "--policy" && (value = next()))
         {
             std::string const policy = value;
             p_options.random = policy == "random";
-            if (policy != "random" && policy != "converged" && policy != "expert")
+            if (policy != "random" && policy != "converged" &&
+                policy != "expert")
             {
                 std::cerr << "Unknown --policy " << policy
                           << " (converged|random)\n";
@@ -114,8 +117,10 @@ static bool parse(int argc, char** argv, Options& p_options)
         else
         {
             std::cerr << "Usage: " << argv[0]
-                      << " [--policy converged|random] [--train] [--envs N] [--threads T] [--episodes E]"
-                         " [--seed S] [--scenario file.scenario.yaml] [--no-replay] [--trace]"
+                      << " [--policy converged|random] [--train] [--envs N] "
+                         "[--threads T] [--episodes E]"
+                         " [--seed S] [--scenario file.scenario.yaml] "
+                         "[--no-replay] [--trace]"
                          " [--log episodes.json]\n";
             return false;
         }
@@ -124,10 +129,11 @@ static bool parse(int argc, char** argv, Options& p_options)
 }
 
 // The scenario world, the cube spread wider, the three parts of the task.
-static std::unique_ptr<robotik::SimulationEnvironment> makeEnvironment(Options const& p_options)
+static std::unique_ptr<robotik::SimulationEnvironment>
+makeEnvironment(Options const& p_options)
 {
-    robotik::Scenario scenario =
-        robotik::Scenario::load(p_options.scenario, robotik::AssetResolver::standard());
+    robotik::Scenario scenario = robotik::Scenario::load(
+        p_options.scenario, robotik::AssetResolver::standard());
     for (robotik::EntitySpec& entity : scenario.world.entities)
     {
         if (entity.id == PICK_PLACE_CUBE)
@@ -157,7 +163,8 @@ static Report run(Options const& p_options, std::size_t p_threads)
     std::vector<robotik::Random> noise;
     for (std::size_t i = 0; i < pool.size(); ++i)
     {
-        noise.emplace_back(robotik::Seed{ p_options.seed }.derive("policy").derive(i));
+        noise.emplace_back(
+            robotik::Seed{ p_options.seed }.derive("policy").derive(i));
     }
 
     Report report;
@@ -196,14 +203,19 @@ static Report run(Options const& p_options, std::size_t p_threads)
                                static_cast<float>(PICK_PLACE_TRAIN_EPISODES));
         }
     }
-    report.wall = std::chrono::duration<double>(std::chrono::steady_clock::now() - begin).count();
+    report.wall =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - begin)
+            .count();
     auto const episodes = pool.episodes();
-    report.episodes.assign(episodes.begin(), episodes.begin() + static_cast<std::ptrdiff_t>(p_options.episodes));
+    report.episodes.assign(episodes.begin(),
+                           episodes.begin() +
+                               static_cast<std::ptrdiff_t>(p_options.episodes));
     return report;
 }
 
 // Bit for bit: a replay must not even differ in rounding.
-static bool same(std::vector<robotik::Episode> const& p_a, std::vector<robotik::Episode> const& p_b)
+static bool same(std::vector<robotik::Episode> const& p_a,
+                 std::vector<robotik::Episode> const& p_b)
 {
     if (p_a.size() != p_b.size())
     {
@@ -211,9 +223,11 @@ static bool same(std::vector<robotik::Episode> const& p_a, std::vector<robotik::
     }
     for (std::size_t i = 0; i < p_a.size(); ++i)
     {
-        if (p_a[i].environment != p_b[i].environment || p_a[i].index != p_b[i].index ||
+        if (p_a[i].environment != p_b[i].environment ||
+            p_a[i].index != p_b[i].index ||
             p_a[i].seed.value != p_b[i].seed.value ||
-            std::bit_cast<std::uint64_t>(p_a[i].reward) != std::bit_cast<std::uint64_t>(p_b[i].reward) ||
+            std::bit_cast<std::uint64_t>(p_a[i].reward) !=
+                std::bit_cast<std::uint64_t>(p_b[i].reward) ||
             p_a[i].steps != p_b[i].steps || p_a[i].end != p_b[i].end)
         {
             return false;
@@ -231,37 +245,48 @@ int main(int argc, char** argv)
     }
     try
     {
-        std::size_t const threads = options.threads > 0u ? options.threads : std::max(1u, std::thread::hardware_concurrency());
+        std::size_t const threads =
+            options.threads > 0u
+                ? options.threads
+                : std::max(1u, std::thread::hardware_concurrency());
         Report const report = run(options, threads);
 
         std::size_t successes = 0;
         double total = 0.0;
-        std::cout << " env  episode  seed                  return   steps  end\n";
+        std::cout
+            << " env  episode  seed                  return   steps  end\n";
         for (robotik::Episode const& episode : report.episodes)
         {
             successes += episode.end == robotik::EpisodeEnd::Success ? 1u : 0u;
             total += episode.reward;
-            std::cout << std::setw(4) << episode.environment << std::setw(9) << episode.index << "  "
-                      << std::setw(20) << episode.seed.value << std::fixed << std::setprecision(2)
-                      << std::setw(9) << episode.reward << std::setw(8) << episode.steps << "  "
+            std::cout << std::setw(4) << episode.environment << std::setw(9)
+                      << episode.index << "  " << std::setw(20)
+                      << episode.seed.value << std::fixed
+                      << std::setprecision(2) << std::setw(9) << episode.reward
+                      << std::setw(8) << episode.steps << "  "
                       << robotik::toString(episode.end) << '\n';
         }
         double const count = static_cast<double>(report.episodes.size());
         double const simulated = static_cast<double>(report.steps) * 0.1;
-        std::cout << (options.random ? (options.train ? "random→converged" : "random")
-                                     : "converged")
-                  << " policy: " << successes << '/'
-                  << report.episodes.size() << " delivered, mean return " << total / count << '\n'
-                  << options.envs << " environments on " << threads << " threads: " << report.steps
-                  << " steps in " << report.wall << " s (" << static_cast<double>(report.steps) / report.wall
-                  << " steps/s, " << simulated / report.wall << "x real time)\n";
+        std::cout << (options.random
+                          ? (options.train ? "random→converged" : "random")
+                          : "converged")
+                  << " policy: " << successes << '/' << report.episodes.size()
+                  << " delivered, mean return " << total / count << '\n'
+                  << options.envs << " environments on " << threads
+                  << " threads: " << report.steps << " steps in " << report.wall
+                  << " s (" << static_cast<double>(report.steps) / report.wall
+                  << " steps/s, " << simulated / report.wall
+                  << "x real time)\n";
 
         if (!options.log.empty())
         {
-            std::unique_ptr<robotik::SimulationEnvironment> const sample = makeEnvironment(options);
+            std::unique_ptr<robotik::SimulationEnvironment> const sample =
+                makeEnvironment(options);
             robotik::EpisodeLog log;
             log.scenario = sample->simulation().scenario().id;
-            log.policy = options.random ? (options.train ? "random-to-converged" : "random")
+            log.policy = options.random ? (options.train ? "random-to-converged"
+                                                         : "random")
                                         : "converged";
             log.master_seed = options.seed;
             log.observation = sample->observationSpace();
@@ -277,7 +302,8 @@ int main(int argc, char** argv)
         {
             Report const again = run(options, 1u);
             bool const identical = same(report.episodes, again.episodes);
-            std::cout << "replay on 1 thread: " << (identical ? "identical" : "DIFFERENT") << '\n';
+            std::cout << "replay on 1 thread: "
+                      << (identical ? "identical" : "DIFFERENT") << '\n';
             if (!identical)
             {
                 return EXIT_FAILURE;

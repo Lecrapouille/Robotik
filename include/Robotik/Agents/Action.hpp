@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Action.hpp
-/// @brief What an agent decided. A controller turns it into motor commands.
+/// What an agent decided. A controller turns it into motor commands.
 #pragma once
 
 #include <vector>
@@ -15,10 +15,20 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief Flat command vector produced by an @ref Agent.
+/// Flat command vector produced by an @ref Agent.
+///
+/// The meaning of each value is set by the environment that reads it (its
+/// action @ref Space): joint targets, wheel speeds, a gripper command... The
+/// agent only fills numbers in the right order.
+///
+/// @code
+/// robotik::Action action;
+/// action.values = { 0.2f, -0.1f, 1.0f }; // e.g. dx, dy, close gripper
+/// @endcode
 // ****************************************************************************
 struct Action
 {
+    /// Command values, in the order of the action space.
     std::vector<float> values;
 };
 

@@ -6,10 +6,10 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
+#include "imgui_stdlib.h"
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include "imgui_stdlib.h"
 
 #include <array>
 #include <cstdio>
@@ -28,15 +28,32 @@ struct WorkspaceInfo
 };
 
 static std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
-    { "Plugin", "plugin", "Ctrl+1", "Files",
-      "Read the loaded plugin: its files, dependencies and licenses, the scenario, "
-      "its behavior tree, the experiments, the world and the asset packs. No 3D view." },
-    { "Robot", "robot", "Ctrl+2", "Teach Pendant",
-      "The robot body: joints and their limits, plots, manual moves, cameras." },
-    { "Mission", "mission", "Ctrl+3", "Skills",
-      "The execution: behavior tree, skills, resources and their timeline, the PDDL planner." },
-    { "Autonomy", "autonomy", "Ctrl+4", "World model",
-      "What the robot believes against the ground truth, and what it perceives." },
+    { "Plugin",
+      "plugin",
+      "Ctrl+1",
+      "Files",
+      "Read the loaded plugin: its files, dependencies and licenses, the "
+      "scenario, "
+      "its behavior tree, the experiments, the world and the asset packs. No "
+      "3D view." },
+    { "Robot",
+      "robot",
+      "Ctrl+2",
+      "Teach Pendant",
+      "The robot body: joints and their limits, plots, manual moves, "
+      "cameras." },
+    { "Mission",
+      "mission",
+      "Ctrl+3",
+      "Skills",
+      "The execution: behavior tree, skills, resources and their timeline, the "
+      "PDDL planner." },
+    { "Autonomy",
+      "autonomy",
+      "Ctrl+4",
+      "World model",
+      "What the robot believes against the ground truth, and what it "
+      "perceives." },
 } };
 
 /// Title, shortcut and hint of one workspace.
@@ -60,7 +77,8 @@ static void select(App& p_app, Workspace p_workspace)
 /// @brief Splits @p_node; the first returned id is the new side.
 static ImGuiID split(ImGuiID& p_node, ImGuiDir p_dir, float p_ratio)
 {
-    return ImGui::DockBuilderSplitNode(p_node, p_dir, p_ratio, nullptr, &p_node);
+    return ImGui::DockBuilderSplitNode(
+        p_node, p_dir, p_ratio, nullptr, &p_node);
 }
 
 /// Docks a window on a dock-builder node.
@@ -166,7 +184,9 @@ static void shortcuts(App& p_app)
     bool const ctrl = io.KeyCtrl;
     for (std::size_t i = 0; i < WORKSPACE_COUNT; ++i)
     {
-        if (ctrl && ImGui::IsKeyPressed(static_cast<ImGuiKey>(ImGuiKey_1 + static_cast<int>(i)), false))
+        if (ctrl &&
+            ImGui::IsKeyPressed(
+                static_cast<ImGuiKey>(ImGuiKey_1 + static_cast<int>(i)), false))
         {
             select(p_app, static_cast<Workspace>(i));
         }
@@ -267,7 +287,8 @@ static std::string alertOf(App const& p_app, Workspace p_workspace)
         {
             line("Emergency stop engaged.");
         }
-        robotik::ResourceManager const& resources = simulation.robot().resources();
+        robotik::ResourceManager const& resources =
+            simulation.robot().resources();
         for (std::size_t i = 0; i < resources.size(); ++i)
         {
             robotik::ResourceId const id = static_cast<robotik::ResourceId>(i);
@@ -287,7 +308,8 @@ static void workspaceTabs(App& p_app)
     float width = 0.0f;
     for (WorkspaceInfo const& info : WORKSPACES)
     {
-        width += ImGui::CalcTextSize(info.name).x + ImGui::GetStyle().FramePadding.x * 4.0f;
+        width += ImGui::CalcTextSize(info.name).x +
+                 ImGui::GetStyle().FramePadding.x * 4.0f;
     }
     float const center = (ImGui::GetWindowWidth() - width) * 0.5f;
     if (center > ImGui::GetCursorPosX())
@@ -299,11 +321,15 @@ static void workspaceTabs(App& p_app)
         WorkspaceInfo const& info = WORKSPACES[i];
         bool const current = p_app.ui.workspace == static_cast<Workspace>(i);
         std::string const alert = alertOf(p_app, static_cast<Workspace>(i));
-        ImGui::PushStyleColor(ImGuiCol_Button, current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
-                                                       : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-        ImGui::PushStyleColor(ImGuiCol_Text, !alert.empty() ? RED
-                                             : current     ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
-                                                           : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::PushStyleColor(
+            ImGuiCol_Button,
+            current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
+                    : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+        ImGui::PushStyleColor(
+            ImGuiCol_Text,
+            !alert.empty() ? RED
+            : current      ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+                           : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         if (ImGui::Button(info.name))
         {
             select(p_app, static_cast<Workspace>(i));
@@ -315,7 +341,8 @@ static void workspaceTabs(App& p_app)
         }
         else
         {
-            ImGui::SetItemTooltip("%s  (%s)\n\n%s", info.hint, info.shortcut, alert.c_str());
+            ImGui::SetItemTooltip(
+                "%s  (%s)\n\n%s", info.hint, info.shortcut, alert.c_str());
         }
     }
 }
@@ -333,7 +360,8 @@ static void mainMenu(App& p_app)
         {
             p_app.ui.show_open = true;
         }
-        if (ImGui::MenuItem("Reload", "F5", false, !p_app.scenario_path.empty()))
+        if (ImGui::MenuItem(
+                "Reload", "F5", false, !p_app.scenario_path.empty()))
         {
             reload(p_app);
         }
@@ -350,8 +378,10 @@ static void mainMenu(App& p_app)
         for (std::size_t i = 0; i < WORKSPACE_COUNT; ++i)
         {
             WorkspaceInfo const& info = WORKSPACES[i];
-            if (ImGui::MenuItem(info.name, info.shortcut,
-                                p_app.ui.workspace == static_cast<Workspace>(i)))
+            if (ImGui::MenuItem(info.name,
+                                info.shortcut,
+                                p_app.ui.workspace ==
+                                    static_cast<Workspace>(i)))
             {
                 select(p_app, static_cast<Workspace>(i));
             }
@@ -405,10 +435,12 @@ static Outcome outcomeOf(App const& p_app)
             {
                 return { "MANUAL", ORANGE };
             }
-            return { p_app.playing ? "RUNNING" : "PAUSED", p_app.playing ? ORANGE : BLUE };
+            return { p_app.playing ? "RUNNING" : "PAUSED",
+                     p_app.playing ? ORANGE : BLUE };
         case robotik::Simulation::Outcome::ControllerSucceeded:
         case robotik::Simulation::Outcome::StopCondition:
-            return { simulation.passed() ? "SUCCEEDED" : "ENDED", simulation.passed() ? GREEN : RED };
+            return { simulation.passed() ? "SUCCEEDED" : "ENDED",
+                     simulation.passed() ? GREEN : RED };
         case robotik::Simulation::Outcome::ControllerFailed:
             return { "FAILED", RED };
         case robotik::Simulation::Outcome::Timeout:
@@ -425,9 +457,11 @@ static Outcome outcomeOf(App const& p_app)
 static void statusBar(App& p_app)
 {
     float const height = ImGui::GetFrameHeight() + 4.0f;
-    ImGuiWindowFlags const flags =
-        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_MenuBar;
-    if (!ImGui::BeginViewportSideBar("##status", ImGui::GetMainViewport(), ImGuiDir_Down, height, flags))
+    ImGuiWindowFlags const flags = ImGuiWindowFlags_NoScrollbar |
+                                   ImGuiWindowFlags_NoSavedSettings |
+                                   ImGuiWindowFlags_MenuBar;
+    if (!ImGui::BeginViewportSideBar(
+            "##status", ImGui::GetMainViewport(), ImGuiDir_Down, height, flags))
     {
         ImGui::End();
         return;
@@ -442,25 +476,37 @@ static void statusBar(App& p_app)
             {
                 ImGui::TextUnformatted(p_app.scenario_title.c_str());
             }
-            ImGui::TextDisabled("seed %llu", static_cast<unsigned long long>(p_app.seed));
+            ImGui::TextDisabled("seed %llu",
+                                static_cast<unsigned long long>(p_app.seed));
             std::size_t passed = 0;
             std::size_t failed = 0;
             auto const& checks = p_app.simulation->checks();
             for (robotik::Check const& check : checks)
             {
-                passed += check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
-                failed += check.verdict == robotik::Check::Verdict::Failed ? 1u : 0u;
+                passed +=
+                    check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
+                failed +=
+                    check.verdict == robotik::Check::Verdict::Failed ? 1u : 0u;
             }
             char text[64];
-            std::snprintf(text, sizeof text, "Assertions %zu/%zu%s", passed, checks.size(),
+            std::snprintf(text,
+                          sizeof text,
+                          "Assertions %zu/%zu%s",
+                          passed,
+                          checks.size(),
                           failed > 0u ? "  failed" : "");
-            ImGui::PushStyleColor(ImGuiCol_Text, failed > 0u ? RED : passed == checks.size() ? GREEN : GREY);
-            if (ImGui::Selectable(text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0f)))
+            ImGui::PushStyleColor(ImGuiCol_Text,
+                                  failed > 0u               ? RED
+                                  : passed == checks.size() ? GREEN
+                                                            : GREY);
+            if (ImGui::Selectable(
+                    text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0f)))
             {
                 select(p_app, Workspace::Plugin);
             }
             ImGui::PopStyleColor();
-            ImGui::SetItemTooltip("Open the Plugin workspace to see every assertion.");
+            ImGui::SetItemTooltip(
+                "Open the Plugin workspace to see every assertion.");
             if (emergencyEngaged(p_app))
             {
                 badge("EMERGENCY STOP", RED);
@@ -475,12 +521,16 @@ static void statusBar(App& p_app)
         if (p_app.simulation)
         {
             char right[96];
-            std::snprintf(right, sizeof right, "t %.2f s   x%.2f real time   %.0f fps",
+            std::snprintf(right,
+                          sizeof right,
+                          "t %.2f s   x%.2f real time   %.0f fps",
                           p_app.simulation->time().value(),
                           static_cast<double>(p_app.ui.realtime_factor),
                           static_cast<double>(ImGui::GetIO().Framerate));
-            float const width = ImGui::CalcTextSize(right).x + ImGui::GetStyle().WindowPadding.x;
-            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(), ImGui::GetWindowWidth() - width));
+            float const width = ImGui::CalcTextSize(right).x +
+                                ImGui::GetStyle().WindowPadding.x;
+            ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                          ImGui::GetWindowWidth() - width));
             ImGui::TextDisabled("%s", right);
         }
         ImGui::EndMenuBar();
@@ -500,18 +550,22 @@ static void openDialog(App& p_app)
         ImGui::OpenPopup("Open scenario");
     }
     ImGui::SetNextWindowSize(ImVec2(620.0f, 0.0f), ImGuiCond_Appearing);
-    if (!ImGui::BeginPopupModal("Open scenario", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    if (!ImGui::BeginPopupModal(
+            "Open scenario", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
     {
         return;
     }
-    ImGui::TextUnformatted("Scenario file (.scenario.yaml), listed in the plugin.yaml of its package:");
+    ImGui::TextUnformatted("Scenario file (.scenario.yaml), listed in the "
+                           "plugin.yaml of its package:");
     ImGui::SetNextItemWidth(600.0f);
     if (ImGui::IsWindowAppearing())
     {
         ImGui::SetKeyboardFocusHere();
     }
-    bool const enter = ImGui::InputText("##path", &p_app.ui.open_path, ImGuiInputTextFlags_EnterReturnsTrue);
-    ImGui::TextDisabled("Tip: the Demos menu lists every scenario of the built plugins.");
+    bool const enter = ImGui::InputText(
+        "##path", &p_app.ui.open_path, ImGuiInputTextFlags_EnterReturnsTrue);
+    ImGui::TextDisabled(
+        "Tip: the Demos menu lists every scenario of the built plugins.");
     if (ImGui::Button("Open") || enter)
     {
         requestScenario(p_app, std::filesystem::path(p_app.ui.open_path));
@@ -533,9 +587,13 @@ static void shortcutsWindow(App& p_app)
         return;
     }
     ImGui::SetNextWindowSize(ImVec2(420.0f, 0.0f), ImGuiCond_Appearing);
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
-    if (ImGui::Begin("Keyboard shortcuts", &p_app.ui.show_shortcuts,
-                     ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize))
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),
+                            ImGuiCond_Appearing,
+                            ImVec2(0.5f, 0.5f));
+    if (ImGui::Begin("Keyboard shortcuts",
+                     &p_app.ui.show_shortcuts,
+                     ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse |
+                         ImGuiWindowFlags_AlwaysAutoResize))
     {
         static constexpr char const* ROWS[][2] = {
             { "Space", "Play / pause" },
@@ -555,7 +613,9 @@ static void shortcutsWindow(App& p_app)
             { "Shift", "Faster" },
             { "F1", "This window" },
         };
-        if (beginTable("keys", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
+        if (beginTable("keys",
+                       2,
+                       ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
         {
             for (auto const& row : ROWS)
             {
@@ -588,8 +648,8 @@ void drawPanels(App& p_app)
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
     constexpr char const* LAYOUT_VERSION = "/7";
-    ImGuiID const dock =
-        ImGui::GetID((std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
+    ImGuiID const dock = ImGui::GetID(
+        (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
     {
         layout(workspace, dock);

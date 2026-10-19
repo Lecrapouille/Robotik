@@ -66,7 +66,8 @@ EnvironmentPool::EnvironmentPool(std::size_t p_count,
     m_finished_episodes.assign(p_count, Episode{});
 
     std::size_t workers =
-        p_threads != 0u ? p_threads : std::max(1u, std::thread::hardware_concurrency());
+        p_threads != 0u ? p_threads
+                        : std::max(1u, std::thread::hardware_concurrency());
     workers = std::min(workers, p_count);
     if (workers > 1u)
     {
@@ -92,7 +93,8 @@ EnvironmentPool::~EnvironmentPool()
 
 void EnvironmentPool::restart(std::size_t p_index)
 {
-    std::span<float> const row(m_observations.data() + p_index * m_observation_size,
+    std::span<float> const row(m_observations.data() +
+                                   p_index * m_observation_size,
                                m_observation_size);
     m_environments[p_index]->reset(seed(p_index), row);
     m_returns[p_index] = 0.0;
@@ -101,9 +103,11 @@ void EnvironmentPool::restart(std::size_t p_index)
 
 void EnvironmentPool::advance(std::size_t p_index)
 {
-    std::span<float> const row(m_observations.data() + p_index * m_observation_size,
+    std::span<float> const row(m_observations.data() +
+                                   p_index * m_observation_size,
                                m_observation_size);
-    StepResult const result = m_environments[p_index]->step(action(p_index), row);
+    StepResult const result =
+        m_environments[p_index]->step(action(p_index), row);
     m_rewards[p_index] = result.reward;
     m_returns[p_index] += static_cast<double>(result.reward);
     ++m_steps[p_index];
@@ -144,7 +148,8 @@ void EnvironmentPool::work(std::size_t p_worker)
     {
         {
             std::unique_lock lock(m_mutex);
-            m_start.wait(lock, [&]() { return m_stop || m_generation != seen; });
+            m_start.wait(lock,
+                         [&]() { return m_stop || m_generation != seen; });
             if (m_stop)
             {
                 return;

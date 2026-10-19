@@ -81,7 +81,8 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+        scenario(
+            "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
         &mission);
     ASSERT_NE(simulation.planner(), nullptr);
@@ -116,8 +117,8 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        scenario(
-            "plugins/PickAndPlace/scenarios/pick_and_place_pddl_faults.scenario.yaml"),
+        scenario("plugins/PickAndPlace/scenarios/"
+                 "pick_and_place_pddl_faults.scenario.yaml"),
         nullptr,
         &mission);
 
@@ -133,7 +134,8 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     EXPECT_GE(simulation.planner()->replans(), 1u);
 
     // --report: the plans and the replans are in the run record.
-    robotik::RunRecord const record = robotik::RunRecord::capture(simulation, "default", {});
+    robotik::RunRecord const record =
+        robotik::RunRecord::capture(simulation, "default", {});
     EXPECT_TRUE(record.planner.used);
     EXPECT_EQ(record.planner.plans.size(), result.plans.size());
     EXPECT_EQ(record.planner.replans, simulation.planner()->replans());
@@ -142,7 +144,8 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     EXPECT_EQ(record.planner.plans.front().steps.front(), "detect(red_cube)");
     std::ostringstream json;
     robotik::RunReport{ "x", { record } }.writeJson(json);
-    EXPECT_NE(json.str().find("\"replans\": "), std::string::npos) << json.str();
+    EXPECT_NE(json.str().find("\"replans\": "), std::string::npos)
+        << json.str();
 }
 
 TEST(PlannerScenario, PainterLaysTheLayersInOrder)
@@ -175,8 +178,8 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(
-        repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"));
+    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+        "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"));
     source.override("scenario.controller.behavior_tree",
                     robotik::ConfigNode("scenarios/pick_and_place.bt.yaml"));
     EXPECT_THROW((void)robotik::Scenario::read(source, testAssets()),
