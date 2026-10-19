@@ -7,11 +7,11 @@
 
 #include "main.hpp"
 
-#include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Runtime/Scheduler.hpp"
-#include "Robotik/Skills/SkillNodes.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Task/Scheduler.hpp"
+#include "Robotik/Task/Skills/SkillNodes.hpp"
 
 #include "Compages/World/World.hpp"
 

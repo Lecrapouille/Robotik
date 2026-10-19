@@ -8,7 +8,7 @@
 #include "PickPlaceControl.hpp"
 
 #include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include <algorithm>
 #include <array>

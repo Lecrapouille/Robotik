@@ -8,11 +8,11 @@
 #include "main.hpp"
 
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Perception/Detector.hpp"
-#include "Robotik/Perception/Localization.hpp"
-#include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Task/Perception/Detector.hpp"
+#include "Robotik/Task/Perception/Localization.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Robot/Sensors/Camera.hpp"
 
 #include "Compages/World/World.hpp"
 

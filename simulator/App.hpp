@@ -9,11 +9,11 @@
 
 #include "SimulatorView.hpp"
 
-#include "Robotik/Plugin/PluginSession.hpp"
+#include "Robotik/Package/Plugin/PluginSession.hpp"
 #include "Robotik/Robot/TeachPendant.hpp"
-#include "Robotik/Runtime/Mission.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Experiment.hpp"
+#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Experiment.hpp"
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"

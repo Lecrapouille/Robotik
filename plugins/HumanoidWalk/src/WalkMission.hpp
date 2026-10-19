@@ -9,8 +9,8 @@
 
 #include "WalkPolicy.hpp"
 
-#include "Robotik/Runtime/Mission.hpp"
-#include "Robotik/Runtime/Scheduler.hpp"
+#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/Scheduler.hpp"
 
 #include <array>
 #include <memory>

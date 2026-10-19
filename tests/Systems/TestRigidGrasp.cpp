@@ -9,7 +9,7 @@
 
 #include "PickPlaceMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include "Compages/World/World.hpp"
 

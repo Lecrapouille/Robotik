@@ -9,11 +9,11 @@
 
 #include "PickPlaceMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Config.hpp"
-#include "Robotik/Scenario/World.hpp"
-#include "Robotik/Sensors/Imu.hpp"
-#include "Robotik/Sensors/Noise.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Package/Scenario/World.hpp"
+#include "Robotik/Robot/Sensors/Imu.hpp"
+#include "Robotik/Robot/Sensors/Noise.hpp"
 
 #include "Compages/World/World.hpp"
 

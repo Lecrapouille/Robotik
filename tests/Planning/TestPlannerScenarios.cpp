@@ -12,8 +12,8 @@
 #include "PainterMission.hpp"
 #include "PickPlaceMission.hpp"
 
-#include "Robotik/Runtime/RunReport.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/RunReport.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include "Compages/World/World.hpp"
 

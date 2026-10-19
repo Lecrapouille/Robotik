@@ -7,9 +7,9 @@
 
 #include "PainterSkills.hpp"
 
-#include "Robotik/Perception/WorldModel.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Runtime/Scheduler.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Task/Scheduler.hpp"
 
 #include <cmath>
 #include <memory>

@@ -7,7 +7,7 @@
 
 #include "DuckPolicy.hpp"
 
-#include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Package/Scenario/Config.hpp"
 
 #include <onnxruntime_cxx_api.h>
 

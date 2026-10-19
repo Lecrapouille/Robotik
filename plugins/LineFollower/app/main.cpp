@@ -11,8 +11,8 @@
 #include "Floor.hpp"
 #include "LineFollowerMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Skills/SkillNodes.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Skills/SkillNodes.hpp"
 
 #include "Compages/World/World.hpp"
 

@@ -7,8 +7,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Planning/PlanGraph.hpp"
-#include "Robotik/Planning/PlanningEngine.hpp"
+#include "Robotik/Task/Planning/PlanGraph.hpp"
+#include "Robotik/Task/Planning/PlanningEngine.hpp"
 
 /// Arms that pick and place; one hand each.
 static char const* const ARMS = R"(

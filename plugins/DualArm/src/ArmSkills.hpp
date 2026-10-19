@@ -12,7 +12,7 @@
 /// brings them into the base frame of its own robot (@ref inBase).
 #pragma once
 
-#include "Robotik/Skills/MotionSkills.hpp"
+#include "Robotik/Task/Skills/MotionSkills.hpp"
 
 #include <string>
 

@@ -6,8 +6,8 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
-#include "Robotik/Plugin/PluginABI.h"
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Plugin/PluginABI.h"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include <imgui.h>
 

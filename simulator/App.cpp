@@ -9,7 +9,7 @@
 
 #include "SimulatorDisplay.hpp"
 
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include "Compages/World/Controllers/Controls.hpp"
 #include "Robotik/Common/Math.hpp"

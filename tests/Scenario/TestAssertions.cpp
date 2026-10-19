@@ -9,9 +9,9 @@
 
 #include "PainterMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Assertions.hpp"
-#include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Assertions.hpp"
+#include "Robotik/Package/Scenario/Config.hpp"
 
 #include <map>
 

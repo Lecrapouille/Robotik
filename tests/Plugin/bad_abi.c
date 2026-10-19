@@ -1,4 +1,4 @@
-#include "Robotik/Plugin/PluginABI.h"
+#include "Robotik/Package/Plugin/PluginABI.h"
 
 uint32_t robotik_plugin_abi_version(void)
 {

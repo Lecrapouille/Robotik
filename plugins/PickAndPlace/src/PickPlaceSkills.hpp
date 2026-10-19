@@ -12,7 +12,7 @@
 /// never from the simulator.
 #pragma once
 
-#include "Robotik/Skills/MotionSkills.hpp"
+#include "Robotik/Task/Skills/MotionSkills.hpp"
 
 #include <string>
 

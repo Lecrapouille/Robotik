@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
-#include "Robotik/ECS/ObjectComponents.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
 
 #include <imgui.h>
 

@@ -9,11 +9,11 @@
 
 #include "ArmSkills.hpp"
 
-#include "Robotik/Perception/WorldModel.hpp"
-#include "Robotik/Planning/PlanningDomain.hpp"
-#include "Robotik/Runtime/Metrics.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/Planning/PlanningDomain.hpp"
+#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include <algorithm>
 #include <cmath>

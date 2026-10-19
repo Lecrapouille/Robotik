@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Assets/AssetResolver.hpp"
+#include "Robotik/Package/Assets/AssetResolver.hpp"
 
 /// Path of one file under tests/Assets/fixtures.
 static std::filesystem::path fixture(char const* p_name)

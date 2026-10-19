@@ -8,8 +8,8 @@
 #include "WalkSkills.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Sensors/Imu.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Robot/Sensors/Imu.hpp"
 
 #include <algorithm>
 

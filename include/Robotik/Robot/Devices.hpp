@@ -9,7 +9,7 @@
 /// Registry of the sensors or the actuators of a robot.
 #pragma once
 
-#include "Robotik/Runtime/Resources.hpp"
+#include "Robotik/Robot/Resources.hpp"
 
 #include <concepts>
 #include <memory>

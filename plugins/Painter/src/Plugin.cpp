@@ -7,7 +7,7 @@
 
 #include "PainterMission.hpp"
 
-#include "Robotik/Plugin/PluginAPI.hpp"
+#include "Robotik/Package/Plugin/PluginAPI.hpp"
 
 #include <memory>
 #include <string_view>

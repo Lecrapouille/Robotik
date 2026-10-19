@@ -8,10 +8,10 @@
 #include "DuckMission.hpp"
 #include "DuckSkills.hpp"
 
-#include "Robotik/Backends/MujocoBackend.hpp"
-#include "Robotik/Runtime/Metrics.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Config.hpp"
+#include "Robotik/Robot/Backends/MujocoBackend.hpp"
+#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Config.hpp"
 
 #include <algorithm>
 #include <cmath>

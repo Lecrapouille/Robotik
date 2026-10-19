@@ -14,8 +14,8 @@
 
 #include "Ui.hpp"
 
-#include "Robotik/Planning/PlanExecutor.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Task/Planning/PlanExecutor.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include <imgui.h>
 

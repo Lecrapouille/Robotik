@@ -10,7 +10,7 @@
 #include "PickPlaceControl.hpp"
 
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Runtime/Mission.hpp"
+#include "Robotik/Task/Mission.hpp"
 
 #include <array>
 #include <cstdint>

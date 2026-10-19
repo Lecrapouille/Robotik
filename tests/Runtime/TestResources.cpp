@@ -7,8 +7,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Runtime/Faults.hpp"
-#include "Robotik/Runtime/Resources.hpp"
+#include "Robotik/Task/Faults.hpp"
+#include "Robotik/Robot/Resources.hpp"
 
 using robotik::Access;
 using robotik::ResourceManager;

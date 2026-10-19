@@ -7,8 +7,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Backends/MujocoBackend.hpp"
-#include "Robotik/Backends/PinocchioBackend.hpp"
+#include "Robotik/Robot/Backends/MujocoBackend.hpp"
+#include "Robotik/Robot/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Robot/TeachPendant.hpp"
 

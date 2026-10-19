@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "Robotik/Runtime/Mission.hpp"
-#include "Robotik/Skills/Skill.hpp"
+#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/Skills/Skill.hpp"
 
 // ****************************************************************************
 /// @brief Lesson 4: a skill. It swings the base joint left, right, left,

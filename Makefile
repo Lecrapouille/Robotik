@@ -77,3 +77,11 @@ applications: $(DIRS_WITH_MAKEFILE)
 	done;
 
 post-build:: applications
+
+###################################################
+# A layer only includes the layers below it (Common < Robot < Task < Package),
+# and skills and the planner never read the simulator truth.
+#
+.PHONY: check-layers
+check-layers:
+	@python3 $(P)/tests/scripts/check_layers.py $(P)

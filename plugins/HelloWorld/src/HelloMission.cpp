@@ -7,7 +7,7 @@
 
 #include "HelloMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 void HelloMission::reset(robotik::Simulation& /*p_simulation*/,
                          robotik::Seed /*p_seed*/)

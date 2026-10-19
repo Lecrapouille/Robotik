@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Runtime/Mission.hpp"
+#include "Robotik/Task/Mission.hpp"
 
 // ****************************************************************************
 /// @brief Lesson 2: command a joint, read the tool pose.

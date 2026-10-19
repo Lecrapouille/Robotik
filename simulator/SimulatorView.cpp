@@ -9,8 +9,8 @@
 
 #include "SimulatorDisplay.hpp"
 
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Sensors/Image.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
+#include "Robotik/Robot/Sensors/Image.hpp"
 
 #include "Compages/GPU/RenderPass.hpp"
 #include "Compages/Renderer/Assets/CanvasTexture.hpp"

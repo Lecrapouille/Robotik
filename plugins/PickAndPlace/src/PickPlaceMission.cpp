@@ -11,8 +11,8 @@
 
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 static constexpr double kApproachClearance = 0.10;
 static constexpr double kTransitClearance = 0.22;

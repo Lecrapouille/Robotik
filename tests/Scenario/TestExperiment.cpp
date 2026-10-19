@@ -7,10 +7,10 @@
 
 #include "main.hpp"
 
-#include "Robotik/Runtime/RunReport.hpp"
-#include "Robotik/Scenario/Experiment.hpp"
-#include "Robotik/Scenario/PackagePath.hpp"
-#include "Robotik/Scenario/Trajectory.hpp"
+#include "Robotik/Package/RunReport.hpp"
+#include "Robotik/Package/Scenario/Experiment.hpp"
+#include "Robotik/Package/Scenario/PackagePath.hpp"
+#include "Robotik/Package/Scenario/Trajectory.hpp"
 
 #include <fstream>
 #include <sstream>

@@ -13,7 +13,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include <cstddef>
 #include <cstdint>

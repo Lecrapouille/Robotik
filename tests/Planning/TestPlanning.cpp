@@ -7,10 +7,10 @@
 
 #include "main.hpp"
 
-#include "Robotik/Planning/PlanExecutor.hpp"
-#include "Robotik/Planning/PlanningEngine.hpp"
-#include "Robotik/Runtime/Resources.hpp"
-#include "Robotik/Runtime/Scheduler.hpp"
+#include "Robotik/Task/Planning/PlanExecutor.hpp"
+#include "Robotik/Task/Planning/PlanningEngine.hpp"
+#include "Robotik/Robot/Resources.hpp"
+#include "Robotik/Task/Scheduler.hpp"
 
 #include <filesystem>
 #include <fstream>

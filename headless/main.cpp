@@ -11,10 +11,10 @@
 /// Exit code: 0 when every run passed its assertions, 2 when one failed, 1
 /// when a file or a plugin could not be loaded.
 
-#include "Robotik/Plugin/PluginSession.hpp"
-#include "Robotik/Runtime/RunReport.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Experiment.hpp"
+#include "Robotik/Package/Plugin/PluginSession.hpp"
+#include "Robotik/Package/RunReport.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Experiment.hpp"
 
 #include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"

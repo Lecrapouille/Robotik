@@ -14,15 +14,15 @@
 /// behind is the business of the @ref RobotBackend plugged in the session.
 #pragma once
 
-#include "Robotik/Backends/RobotBackend.hpp"
-#include "Robotik/Backends/SceneView.hpp"
+#include "Robotik/Robot/Backends/RobotBackend.hpp"
+#include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Devices.hpp"
 #include "Robotik/Robot/Joints.hpp"
-#include "Robotik/Runtime/Resources.hpp"
-#include "Robotik/Sensors/Measurements.hpp"
-#include "Robotik/Sensors/Sensor.hpp"
+#include "Robotik/Robot/Resources.hpp"
+#include "Robotik/Robot/Sensors/Measurements.hpp"
+#include "Robotik/Robot/Sensors/Sensor.hpp"
 
 #include "Compages/World/Entity.hpp"
 

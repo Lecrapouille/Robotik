@@ -7,7 +7,7 @@
 
 #include "WaveMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include <algorithm>
 #include <cmath>

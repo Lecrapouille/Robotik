@@ -7,11 +7,11 @@
 
 #include "PickPlaceSkills.hpp"
 
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/ECS/Queries.hpp"
-#include "Robotik/Perception/WorldModel.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Scene/ContainerBounds.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
+#include "Robotik/Robot/Components/Queries.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Task/Grasp/ContainerBounds.hpp"
 
 #include "Compages/World/World.hpp"
 #include "Robotik/Common/Math.hpp"

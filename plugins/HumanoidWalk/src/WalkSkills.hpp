@@ -10,7 +10,7 @@
 #include "WalkPolicy.hpp"
 
 #include "Robotik/Robot/Joints.hpp"
-#include "Robotik/Skills/Skill.hpp"
+#include "Robotik/Task/Skills/Skill.hpp"
 
 #include <array>
 #include <string>

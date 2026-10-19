@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Scenario/FileRole.hpp"
+#include "Robotik/Package/Scenario/FileRole.hpp"
 
 TEST(FileRole, DoubleExtensionGivesTheRole)
 {

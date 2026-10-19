@@ -7,12 +7,12 @@
 
 #include "FlyMission.hpp"
 
-#include "Robotik/Assets/AssetResolver.hpp"
-#include "Robotik/Backends/SceneView.hpp"
-#include "Robotik/ECS/ObjectComponents.hpp"
+#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Backends/SceneView.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Sensors/Image.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Robot/Sensors/Image.hpp"
 
 #include <algorithm>
 #include <cmath>

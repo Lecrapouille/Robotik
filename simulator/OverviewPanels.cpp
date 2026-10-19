@@ -6,9 +6,9 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
-#include "Robotik/Scenario/Config.hpp"
-#include "Robotik/Scenario/FileRole.hpp"
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Package/Scenario/FileRole.hpp"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include <imgui.h>
 

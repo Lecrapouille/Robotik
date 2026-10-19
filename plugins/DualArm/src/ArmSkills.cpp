@@ -7,10 +7,10 @@
 
 #include "ArmSkills.hpp"
 
-#include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Robot/Components/Objects.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
+#include "Robotik/Task/RobotContext.hpp"
 
 #include "Compages/World/World.hpp"
 

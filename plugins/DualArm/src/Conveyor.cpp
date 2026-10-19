@@ -7,9 +7,9 @@
 
 #include "Conveyor.hpp"
 
-#include "Robotik/Perception/WorldModel.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include "Compages/World/World.hpp"
 

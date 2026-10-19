@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Robot/Sensors/Camera.hpp"
 
 #include "Compages/GPU/Framebuffer.hpp"
 #include "Compages/GPU/Texture.hpp"

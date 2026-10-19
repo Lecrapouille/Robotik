@@ -11,7 +11,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Skills/Skill.hpp"
+#include "Robotik/Task/Skills/Skill.hpp"
 
 #include <string>
 #include <vector>

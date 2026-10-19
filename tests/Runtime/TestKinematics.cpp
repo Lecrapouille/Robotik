@@ -7,12 +7,12 @@
 
 #include "main.hpp"
 
-#include "Robotik/Backends/MujocoBackend.hpp"
-#include "Robotik/Backends/PinocchioBackend.hpp"
-#include "Robotik/Perception/WorldModel.hpp"
+#include "Robotik/Robot/Backends/MujocoBackend.hpp"
+#include "Robotik/Robot/Backends/PinocchioBackend.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Skills/MotionSkills.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Task/Skills/MotionSkills.hpp"
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"

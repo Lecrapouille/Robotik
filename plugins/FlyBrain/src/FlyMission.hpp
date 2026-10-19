@@ -21,8 +21,8 @@
 #include "FlyBrain.hpp"
 #include "FlyEnvironment.hpp"
 
-#include "Robotik/Backends/RobotBackend.hpp"
-#include "Robotik/Runtime/Mission.hpp"
+#include "Robotik/Robot/Backends/RobotBackend.hpp"
+#include "Robotik/Task/Mission.hpp"
 
 #include "Compages/World/Entity.hpp"
 

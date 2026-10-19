@@ -10,11 +10,11 @@
 #include "Vision.hpp"
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Perception/Localization.hpp"
+#include "Robotik/Task/Perception/Localization.hpp"
 #include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Runtime/Resources.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Sensors/Camera.hpp"
+#include "Robotik/Robot/Resources.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Robot/Sensors/Camera.hpp"
 
 #include <cmath>
 #include <numbers>

@@ -15,11 +15,11 @@
 
 #include "PickPlaceControl.hpp"
 
-#include "Robotik/Environment/EpisodeLog.hpp"
-#include "Robotik/Environment/SimulationEnvironment.hpp"
+#include "Robotik/Task/Learning/EpisodeLog.hpp"
+#include "Robotik/Task/Learning/SimulationEnvironment.hpp"
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include <algorithm>
 #include <bit>

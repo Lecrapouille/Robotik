@@ -7,8 +7,8 @@
 
 #include "LineFollowerMission.hpp"
 
-#include "Robotik/Plugin/PluginAPI.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Package/Plugin/PluginAPI.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 #include <memory>
 #include <sstream>

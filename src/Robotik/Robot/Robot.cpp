@@ -7,8 +7,8 @@
 
 #include "Robotik/Robot/Robot.hpp"
 
-#include "Robotik/Backends/PinocchioBackend.hpp"
-#include "Robotik/ECS/RobotComponents.hpp"
+#include "Robotik/Robot/Backends/PinocchioBackend.hpp"
+#include "Robotik/Robot/Components/Robots.hpp"
 
 #include "Compages/Renderer/Assets/UrdfLoader.hpp"
 #include "Compages/World/World.hpp"

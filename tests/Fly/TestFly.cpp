@@ -14,8 +14,8 @@
 
 #include "FlyMission.hpp"
 
-#include "Robotik/Runtime/Simulation.hpp"
-#include "Robotik/Scenario/Scenario.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include "Compages/World/World.hpp"
 

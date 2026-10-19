@@ -7,7 +7,7 @@
 
 #include "FlyMission.hpp"
 
-#include "Robotik/Plugin/PluginAPI.hpp"
+#include "Robotik/Package/Plugin/PluginAPI.hpp"
 
 #include <chrono>
 #include <exception>

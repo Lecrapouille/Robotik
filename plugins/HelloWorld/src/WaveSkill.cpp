@@ -8,8 +8,8 @@
 #include "WaveSkill.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Runtime/RobotContext.hpp"
-#include "Robotik/Runtime/Simulation.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Package/Simulation.hpp"
 
 void WaveSkill::reset()
 {

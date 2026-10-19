@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Runtime/Scheduler.hpp"
+#include "Robotik/Task/Scheduler.hpp"
 
 #include "Colors.hpp"
 

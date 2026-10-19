@@ -10,10 +10,10 @@
 #include "DiffDrive.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Perception/Detector.hpp"
-#include "Robotik/Perception/Localization.hpp"
+#include "Robotik/Task/Perception/Detector.hpp"
+#include "Robotik/Task/Perception/Localization.hpp"
 #include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Skills/Skill.hpp"
+#include "Robotik/Task/Skills/Skill.hpp"
 
 #include <cstdint>
 
