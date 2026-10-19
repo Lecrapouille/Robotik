@@ -467,9 +467,9 @@ private:
         /// Frames of a body model, at its root (neutral configuration).
         std::shared_ptr<PinocchioBackend> frames;
         /// Where the entity starts (world frame) before randomization.
-        Pose nominal{ zero3(), Quaternion{} };
+        Pose nominal{ Vector3::ZERO, Quaternion{} };
         /// Pose captured at the start of the episode.
-        Pose initial{ zero3(), Quaternion{} };
+        Pose initial{ Vector3::ZERO, Quaternion{} };
         /// Peak contacts with other entities (floor excluded).
         int peak_contacts = 0;
     };

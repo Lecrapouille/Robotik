@@ -82,7 +82,7 @@ void DiffDriveBackend::reset(robotik::Robot& p_robot)
     p_robot.measureBase({ pose(), {} });
 }
 
-void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
+void DiffDriveBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
 {
     robotik::JointSet& joints = p_robot.joints();
     double const dt = p_dt.value();
@@ -109,5 +109,5 @@ void DiffDriveBackend::step(robotik::Robot& p_robot, Seconds p_dt)
 robotik::Pose DiffDriveBackend::pose() const
 {
     return { { m_truth.x, m_truth.y, m_geometry.height },
-             robotik::axisAngle({ 0.0, 0.0, 1.0 }, Radians(m_truth.yaw)) };
+             robotik::Quaternion::fromAngleAxis(robotik::Radians(m_truth.yaw), { 0.0, 0.0, 1.0 }) };
 }

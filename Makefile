@@ -26,7 +26,7 @@ include $(M)/project/Makefile
 #
 LIB_ROBOTIK_CORE := $(call internal-lib,robotik-core)
 INTERNAL_LIBS := $(LIB_ROBOTIK_CORE)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik
 
 ###################################################
 # Generic Makefile rules

@@ -88,9 +88,9 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         skills.add<robotik::ApproachSkill>(
             describe("Approach(" + name + ")", arm),
             name,
-            Length(kApproachClearance));
+            robotik::Length(kApproachClearance));
         skills.add<robotik::ApproachSkill>(
-            describe("Reach(" + name + ")", arm), name, Length{});
+            describe("Reach(" + name + ")", arm), name, robotik::Length{});
 
         robotik::SkillDescription grasp =
             describe("Grasp(" + name + ")", gripper);
@@ -109,7 +109,7 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
             skills.add<robotik::ApproachSkill>(
                 describe("Transit(" + name + ")", arm),
                 name,
-                Length(kTransitClearance));
+                robotik::Length(kTransitClearance));
         }
     }
 

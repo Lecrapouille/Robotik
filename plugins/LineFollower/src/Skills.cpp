@@ -29,7 +29,7 @@
 #define FOLLOW_SEARCH_YAW_RATE 0.8
 #define FOLLOW_GIVE_UP_S 4.0
 
-bool Navigation::fix(robotik::Localization const& p_fix, Seconds p_stamp)
+bool Navigation::fix(robotik::Localization const& p_fix, robotik::Seconds p_stamp)
 {
     if (fixes > 0u &&
         std::hypot(p_fix.pose.position.x - estimate.x,
@@ -42,7 +42,7 @@ bool Navigation::fix(robotik::Localization const& p_fix, Seconds p_stamp)
     streak = 0;
     estimate = { p_fix.pose.position.x,
                  p_fix.pose.position.y,
-                 robotik::yawOf(p_fix.pose.rotation) };
+                 robotik::yaw(p_fix.pose.rotation).value() };
     ++fixes;
     last_fix = p_stamp;
     return true;
@@ -61,8 +61,8 @@ void Wheels::drive(double p_speed, double p_yaw_rate)
     double left_speed = 0.0;
     double right_speed = 0.0;
     model.wheels(p_speed, p_yaw_rate, left_speed, right_speed);
-    left.spin(AngularVelocity(left_speed));
-    right.spin(AngularVelocity(right_speed));
+    left.spin(robotik::AngularVelocity(left_speed));
+    right.spin(robotik::AngularVelocity(right_speed));
 }
 
 void Wheels::stop()
@@ -79,7 +79,7 @@ void LocalizeSkill::reset()
 }
 
 robotik::Status LocalizeSkill::tick(robotik::RobotContext& /*p_context*/,
-                                    Seconds p_dt)
+                                    robotik::Seconds p_dt)
 {
     if (m_navigation.fixes > m_fixes)
     {
@@ -122,7 +122,7 @@ void ReachLineSkill::reset()
 }
 
 robotik::Status ReachLineSkill::tick(robotik::RobotContext& /*p_context*/,
-                                     Seconds p_dt)
+                                     robotik::Seconds p_dt)
 {
     Pose2 const& pose = m_navigation.estimate;
     if (!m_started)
@@ -164,11 +164,11 @@ void FollowLineSkill::reset()
     m_progress = 0.0;
     m_elapsed = 0.0;
     m_turn = 0.0;
-    m_seen = Seconds(-1.0);
+    m_seen = robotik::Seconds(-1.0);
 }
 
 robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context,
-                                      Seconds p_dt)
+                                      robotik::Seconds p_dt)
 {
     Track const& track = m_navigation.track;
     Pose2 const& pose = m_navigation.estimate;

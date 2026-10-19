@@ -52,7 +52,7 @@
 #pragma once
 
 #include "Robotik/Assets/AssetResolver.hpp"
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Sensors/Camera.hpp"
 #include "Robotik/Sensors/ForceTorqueSensor.hpp"
@@ -194,7 +194,7 @@ struct Attachment
     /// Own link that lands on the parent frame (empty: own origin).
     std::string frame;
     /// Offset of @ref frame in the parent frame.
-    Pose transform{ zero3(), Quaternion{} };
+    Pose transform{ Vector3::ZERO, Quaternion{} };
 };
 
 // ****************************************************************************
@@ -243,7 +243,7 @@ struct EntitySpec
     /// Primitive geometry, when there is no model.
     std::optional<ShapeSpec> shape;
     /// World pose; ignored when @ref attach is set.
-    Pose pose{ zero3(), Quaternion{} };
+    Pose pose{ Vector3::ZERO, Quaternion{} };
     /// Where it hangs from, or nothing (placed by @ref pose).
     std::optional<Attachment> attach;
     /// How the physics backend treats it.

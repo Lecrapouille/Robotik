@@ -13,7 +13,7 @@
 /// are.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Joints.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Skills/Skill.hpp"
@@ -162,7 +162,7 @@ private:
 /// @code
 /// robotik::Pose target;
 /// target.position = robotik::Vector3(0.4, 0.0, 0.3);
-/// target.rotation = robotik::rpy(Radians(3.1416), Radians(0.0), Radians(0.0));
+/// target.rotation = robotik::Quaternion::fromRpy(Radians(3.1416), Radians(0.0), Radians(0.0));
 /// scheduler.add<robotik::MoveTCPSkill>({ .name = "Above" }, "", target);
 /// @endcode
 // ****************************************************************************

@@ -13,7 +13,7 @@
 /// @ref localize, which use the camera pose stored next to the detections.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Sensors/Camera.hpp"
 
 #include <array>

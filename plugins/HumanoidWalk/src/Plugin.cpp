@@ -66,7 +66,7 @@ public:
         {
             return ROBOTIK_PLUGIN_OK;
         }
-        Seconds const step = WalkMission::physicsStep();
+        robotik::Seconds const step = WalkMission::physicsStep();
         m_lag = std::min(m_lag + p_dt, MAX_LAG_S);
         // The physics goes on after the end of the run, so the simulator
         // shows what follows a failure (a robot without IMU falls). The

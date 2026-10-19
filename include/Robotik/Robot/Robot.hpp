@@ -16,7 +16,7 @@
 
 #include "Robotik/Backends/RobotBackend.hpp"
 #include "Robotik/Backends/SceneView.hpp"
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Devices.hpp"
 #include "Robotik/Robot/Joints.hpp"

@@ -37,7 +37,7 @@ struct Contact
     /// Other body name; @ref GROUND for the floor plane.
     std::string second;
     /// Contact point in the world frame (m).
-    Vector3 position = zero3();
+    Vector3 position = Vector3::ZERO;
 
     /// Name of the floor plane.
     static constexpr char const* GROUND = "world";

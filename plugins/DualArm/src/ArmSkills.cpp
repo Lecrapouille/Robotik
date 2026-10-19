@@ -78,7 +78,7 @@ std::string heldObject(robotik::Robot const& p_robot)
 }
 
 // ----------------------------------------------------------------------------
-HoverSkill::HoverSkill(std::string p_object, Length p_clearance)
+HoverSkill::HoverSkill(std::string p_object, robotik::Length p_clearance)
     : m_object(std::move(p_object)), m_clearance(p_clearance)
 {
 }
@@ -90,7 +90,7 @@ void HoverSkill::reset()
     m_move.reset();
 }
 
-Status HoverSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     if (!m_planned)
     {
@@ -126,12 +126,12 @@ void HoverSkill::cancel(robotik::RobotContext& p_context)
 }
 
 // ----------------------------------------------------------------------------
-GraspSkill::GraspSkill(std::string p_object, Seconds p_timeout)
+GraspSkill::GraspSkill(std::string p_object, robotik::Seconds p_timeout)
     : m_object(std::move(p_object)), m_timeout(p_timeout)
 {
 }
 
-Status GraspSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+Status GraspSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     robotik::VacuumGripper* cup = cupOf(p_context.robot);
     if (cup == nullptr)
@@ -166,7 +166,7 @@ void GraspSkill::cancel(robotik::RobotContext& p_context)
 }
 
 // ----------------------------------------------------------------------------
-Status ReleaseSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+Status ReleaseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     robotik::VacuumGripper* cup = cupOf(p_context.robot);
     if (cup == nullptr)

@@ -14,7 +14,7 @@
 /// joint targets; a @ref RobotSession step is what moves the arm.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Joints.hpp"
 #include "Robotik/Robot/Robot.hpp"
 
@@ -60,7 +60,7 @@ struct TeachWaypoint
 ///
 /// @code
 /// robotik::TeachPendant pendant;
-/// pendant.jogTool(robot, robotik::Vector3(0.0, 0.0, 0.01), robotik::zero3());
+/// pendant.jogTool(robot, robotik::Vector3(0.0, 0.0, 0.01), robotik::Vector3::ZERO);
 /// // up 1 cm pendant.record(robot, "above", 2.0); pendant.jogJoint(robot,
 /// wrist, 0.2); pendant.record(robot, "turned", 1.0); pendant.play(robot,
 /// true); while (pendant.playing()) {

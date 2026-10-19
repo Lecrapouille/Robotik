@@ -20,8 +20,8 @@
 static robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
 {
     robotik::EnvironmentTiming result;
-    result.physics_step = Seconds(PICK_PLACE_PHYSICS_STEP_S);
-    result.control_period = Seconds(PICK_PLACE_CONTROL_PERIOD_S);
+    result.physics_step = robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S);
+    result.control_period = robotik::Seconds(PICK_PLACE_CONTROL_PERIOD_S);
     result.max_steps = p_max_steps;
     return result;
 }
@@ -141,7 +141,7 @@ TEST(SimulationEnvironment, InvalidPartsOrTimingAreRefused)
                      scenario(), std::move(missing), timing(10)),
                  std::invalid_argument);
     robotik::EnvironmentTiming odd = timing(10);
-    odd.control_period = Seconds(0.015);
+    odd.control_period = robotik::Seconds(0.015);
     EXPECT_THROW(
         robotik::SimulationEnvironment(scenario(), pickPlaceParts(), odd),
         std::invalid_argument);

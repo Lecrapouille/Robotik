@@ -33,9 +33,9 @@
 #define GROUND_SIZE_M 12u
 #define GROUND_TILE_M 1u
 
-Seconds WalkMission::physicsStep()
+robotik::Seconds WalkMission::physicsStep()
 {
-    return Seconds(PHYSICS_STEP_S);
+    return robotik::Seconds(PHYSICS_STEP_S);
 }
 
 // ----------------------------------------------------------------------------
@@ -83,9 +83,9 @@ void WalkMission::setup(robotik::Simulation& p_simulation,
     m_command = { parameters.number("vx", 0.3),
                   parameters.number("vy", 0.0),
                   parameters.number("yaw_rate", 0.3) };
-    Seconds const stand(parameters.number("stand_duration", 1.0));
-    Seconds const walk(parameters.number("walk_duration", 25.0));
-    Seconds const period(PHYSICS_STEP_S * contract.decimation);
+    robotik::Seconds const stand(parameters.number("stand_duration", 1.0));
+    robotik::Seconds const walk(parameters.number("walk_duration", 25.0));
+    robotik::Seconds const period(PHYSICS_STEP_S * contract.decimation);
     std::vector<double> const posture = contract.default_angle;
 
     std::filesystem::path const model = urdf.parent_path() / "walk.onnx";
@@ -144,12 +144,12 @@ void WalkMission::reset(robotik::Simulation& p_simulation,
     m_yaw_turned = 0.0;
     m_last_x = base.position.x;
     m_last_y = base.position.y;
-    m_last_yaw = robotik::yawOf(base.rotation);
+    m_last_yaw = robotik::yaw(base.rotation).value();
     m_path.clear();
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void WalkMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_simulation.pose(m_base);
     m_height = base.position.z;
@@ -157,7 +157,7 @@ void WalkMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
 
     bool const walking =
         p_simulation.skills().state(m_walk) == robotik::SkillState::Running;
-    double const yaw = robotik::yawOf(base.rotation);
+    double const yaw = robotik::yaw(base.rotation).value();
     double const x = base.position.x;
     double const y = base.position.y;
     if (walking)

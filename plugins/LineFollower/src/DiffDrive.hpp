@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Robot.hpp"
 
 #include <string>
@@ -61,7 +61,7 @@ public:
 
     void attach(robotik::Robot& p_robot) override;
     void reset(robotik::Robot& p_robot) override;
-    void step(robotik::Robot& p_robot, Seconds p_dt) override;
+    void step(robotik::Robot& p_robot, robotik::Seconds p_dt) override;
 
     void start(Pose2 const& p_pose)
     {

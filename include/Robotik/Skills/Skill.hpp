@@ -12,7 +12,7 @@
 #include "Robotik/Runtime/Resources.hpp"
 #include "Robotik/Runtime/Status.hpp"
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <cstdint>
 #include <functional>

@@ -49,12 +49,12 @@ TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
         "p: { position: [1, 0, 0], rpy: [0, 0, 0] }\n");
     EXPECT_DOUBLE_EQ(node.number("a", 0.0), 1.5);
     EXPECT_DOUBLE_EQ(node.number("missing", 7.0), 7.0);
-    EXPECT_DOUBLE_EQ(node.vector3("b", robotik::zero3()).z, 3.0);
+    EXPECT_DOUBLE_EQ(node.vector3("b", robotik::Vector3::ZERO).z, 3.0);
     EXPECT_TRUE(node.flag("c", false));
     EXPECT_EQ(node.text("d"), "text");
     EXPECT_DOUBLE_EQ(node.pose("p").position.x, 1.0);
     EXPECT_THROW((void)node.number("d", 0.0), std::runtime_error);
-    EXPECT_THROW((void)node.vector3("a", robotik::zero3()), std::runtime_error);
+    EXPECT_THROW((void)node.vector3("a", robotik::Vector3::ZERO), std::runtime_error);
     EXPECT_THROW((void)node.range("r"), std::runtime_error);
 }
 

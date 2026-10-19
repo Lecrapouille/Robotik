@@ -143,7 +143,7 @@ void RenderedCamera::sync(robotik::Camera const& p_camera)
     robotik::Pose const& mount = p_camera.config().mount;
     robotik::Quaternion const rotation =
         (mount.rotation *
-         robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)))
+         robotik::Quaternion::fromAngleAxis(robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }))
             .normalized();
     m_entity
         .position(static_cast<float>(mount.position.x),
@@ -289,7 +289,7 @@ void SimulatorView::ground(robotik::Image const& p_image,
     compages::world::Entity ground = m_scene.plane(
         "Ground", compages::renderer::texture(m_ground_file.string()));
     ground
-        .rotation(Radians(-0.5f * std::numbers::pi_v<float>),
+        .rotation(robotik::Radians(-0.5f * std::numbers::pi_v<float>),
                   compages::core::Vector3f(1.0f, 0.0f, 0.0f))
         .position(0.0f, 0.0f, 0.0f)
         .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0f);

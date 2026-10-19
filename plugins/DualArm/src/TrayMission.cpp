@@ -128,11 +128,11 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation,
         skills.add<PathSkill>(
             describe(scope + "Approach(" + tray + ")", id, arm),
             tray,
-            Seconds(kApproachTime));
+            robotik::Seconds(kApproachTime));
         skills.add<PathSkill>(describe(scope + "Reach(" + tray + ")", id, arm),
                               tray,
-                              Length(kContact),
-                              Seconds(kReachTime));
+                              robotik::Length(kContact),
+                              robotik::Seconds(kReachTime));
         robotik::SkillDescription grasp =
             describe(scope + "Grasp(" + tray + ")", id, cup);
         grasp.wait = false;
@@ -142,18 +142,18 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation,
     {
         skills.add<PathSkill>(describe(scope + "Carry(" + pad + ")", id, arm),
                               pad,
-                              Seconds(kCarryTime));
+                              robotik::Seconds(kCarryTime));
     }
     skills.add<PathSkill>(describe(scope + "Raise", id, arm),
                           robotik::Vector3(0.0, 0.0, kLift),
-                          Seconds(kRaiseTime));
+                          robotik::Seconds(kRaiseTime));
     skills.add<PathSkill>(describe(scope + "Lower", id, arm),
                           robotik::Vector3(0.0, 0.0, -kLift),
-                          Seconds(kLowerTime));
+                          robotik::Seconds(kLowerTime));
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));
     skills.add<PathSkill>(describe(scope + "Retreat", id, arm),
                           robotik::Vector3(0.0, 0.0, -kRetreat),
-                          Seconds(kRetreatTime));
+                          robotik::Seconds(kRetreatTime));
 }
 
 void TrayMission::addDrillSkills(robotik::Simulation& p_simulation,
@@ -184,8 +184,8 @@ void TrayMission::addDrillSkills(robotik::Simulation& p_simulation,
             describe(id + ".Trace(" + tray + ")", id, arm),
             tray,
             path,
-            LinearVelocity(kDrillSpeed),
-            Force(kDrillForce));
+            robotik::LinearVelocity(kDrillSpeed),
+            robotik::Force(kDrillForce));
     }
 }
 
@@ -291,7 +291,7 @@ void TrayMission::reset(robotik::Simulation& /*p_simulation*/,
     m_contact = 0.0;
 }
 
-void TrayMission::step(robotik::Simulation& p_simulation, Seconds p_dt)
+void TrayMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
 {
     // A tray is drilled once the drill followed its whole path on it.
     robotik::SkillScheduler const& skills = p_simulation.skills();

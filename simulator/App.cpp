@@ -12,7 +12,7 @@
 #include "Robotik/Scenario/Scenario.hpp"
 
 #include "Compages/World/Controllers/Controls.hpp"
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 /// Limits of the camera rig for a robot cell: from a few centimetres to
 /// a few metres.
@@ -180,7 +180,7 @@ void App::load(bool p_keep_tool)
     scene->background(clear.x, clear.y, clear.z).ambient(0.35f, 0.35f, 0.38f);
     // A sun about 40 degrees high, from the side: the shadows stretch on
     // the floor and show where each object stands.
-    scene->sun("Sun").rotation(Radians(-0.75f),
+    scene->sun("Sun").rotation(robotik::Radians(-0.75f),
                                compages::core::Vector3f(1.0f, 0.0f, 0.6f));
     view_camera = scene->camera("ViewCamera");
     scene->activeCamera(view_camera);
@@ -365,9 +365,9 @@ void App::step(double p_elapsed)
         step_once = false;
         if (teach.manual)
         {
-            teach.pendant.update(simulation->robot(), Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->robot(), robotik::Seconds(SIMULATOR_DT_S));
         }
-        simulation->step(Seconds(SIMULATOR_DT_S));
+        simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);
         return;
     }
@@ -386,9 +386,9 @@ void App::step(double p_elapsed)
     {
         if (teach.manual)
         {
-            teach.pendant.update(simulation->robot(), Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->robot(), robotik::Seconds(SIMULATOR_DT_S));
         }
-        simulation->step(Seconds(SIMULATOR_DT_S));
+        simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);
         history.record(*simulation);
         m_lag -= SIMULATOR_DT_S;

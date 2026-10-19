@@ -492,7 +492,7 @@ Pose Simulation::resolveNominal(EntitySpec const& p_spec) const
     }
     Attachment const& attach = *p_spec.attach;
     EntitySpec const* parent = m_scenario.world.find(attach.parent);
-    Pose base{ zero3(), Quaternion{} };
+    Pose base{ Vector3::ZERO, Quaternion{} };
     if (parent->type == EntitySpec::Type::Robot)
     {
         base = robot(parent->id)->worldPose(attach.parent_frame);
@@ -658,7 +658,7 @@ void Simulation::addRigidProps(MujocoBackend& p_physics)
             FreeBox part{ p_name,
                           p_size,
                           1.0,
-                          zero3(),
+                          Vector3::ZERO,
                           at * Pose{ p_offset, Quaternion{} },
                           friction };
             part.fixed = true;
@@ -780,7 +780,7 @@ void Simulation::addSkills()
 Pose Simulation::beliefFrame() const
 {
     return m_robots.size() == 1u ? m_robot->base().pose
-                                 : Pose{ zero3(), Quaternion{} };
+                                 : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
 RobotSession* Simulation::robot(std::string_view p_id) const

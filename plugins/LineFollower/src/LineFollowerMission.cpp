@@ -9,7 +9,7 @@
 
 #include "Vision.hpp"
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Perception/Localization.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Runtime/Resources.hpp"
@@ -59,7 +59,7 @@ void LineFollowerMission::bindCamera(robotik::Simulation& p_simulation)
     double const s = std::sin(pitch);
     camera->mount(robotik::Pose{
         { 0.2, 0.0, 0.2 },
-        robotik::basis({ 0.0, -1.0, 0.0 }, { -s, 0.0, -c }, { c, 0.0, -s }) });
+        robotik::Quaternion::fromBasis({ 0.0, -1.0, 0.0 }, { -s, 0.0, -c }, { c, 0.0, -s }) });
     m_source = std::make_unique<FloorCamera>(*m_floor, *m_drive);
     camera->source(m_source.get());
     camera->onFrame(
@@ -158,7 +158,7 @@ void LineFollowerMission::reset(robotik::Simulation& p_simulation,
     m_navigation->fixes = 0;
     m_navigation->rejected = 0;
     m_navigation->streak = 0;
-    m_navigation->last_fix = Seconds(-1.0);
+    m_navigation->last_fix = robotik::Seconds(-1.0);
 
     m_following = 0.0;
     m_was_following = false;
@@ -173,7 +173,7 @@ void LineFollowerMission::reset(robotik::Simulation& p_simulation,
     m_estimate_path.clear();
 }
 
-void LineFollowerMission::step(robotik::Simulation& p_simulation, Seconds p_dt)
+void LineFollowerMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
 {
     if (m_left == nullptr || m_navigation == nullptr)
     {

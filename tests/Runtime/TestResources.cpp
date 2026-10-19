@@ -78,15 +78,15 @@ TEST(FaultInjector, ScheduledAndRandomFaultsAreReplayable)
         ResourceManager resources;
         resources.add("camera");
         resources.add("gripper");
-        robotik::FaultInjector faults({ { Seconds(0.5), "camera", true },
-                                        { Seconds(1.0), "camera", false } },
+        robotik::FaultInjector faults({ { robotik::Seconds(0.5), "camera", true },
+                                        { robotik::Seconds(1.0), "camera", false } },
                                       { { "gripper", 0.5 } });
         faults.reset(p_seed);
         std::vector<int> history;
-        Seconds const dt(0.01);
+        robotik::Seconds const dt(0.01);
         for (int i = 1; i <= 300; ++i)
         {
-            faults.update(resources, Seconds(i * 0.01), dt);
+            faults.update(resources, robotik::Seconds(i * 0.01), dt);
             history.push_back((resources.available("camera") ? 1 : 0) +
                               (resources.available("gripper") ? 2 : 0));
         }

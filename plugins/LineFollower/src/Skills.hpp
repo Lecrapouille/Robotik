@@ -35,10 +35,10 @@ struct Navigation
     std::uint32_t fixes = 0;
     std::uint32_t rejected = 0;
     std::uint32_t streak = 0;
-    Seconds last_fix{ -1.0 };
+    robotik::Seconds last_fix{ -1.0 };
 
     // @return False when the fix is rejected.
-    bool fix(robotik::Localization const& p_fix, Seconds p_stamp);
+    bool fix(robotik::Localization const& p_fix, robotik::Seconds p_stamp);
     void odometry(double p_left, double p_right, double p_dt);
 };
 
@@ -66,7 +66,7 @@ public:
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -91,7 +91,7 @@ public:
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -125,7 +125,7 @@ public:
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] double progress() const
@@ -144,5 +144,5 @@ private:
     double m_last_s = 0.0;
     double m_elapsed = 0.0;
     double m_turn = 0.0;
-    Seconds m_seen{ -1.0 };
+    robotik::Seconds m_seen{ -1.0 };
 };

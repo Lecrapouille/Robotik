@@ -12,10 +12,10 @@
 /// a failure was injected, simulated or real.
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Runtime/Resources.hpp"
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <string>
 #include <vector>

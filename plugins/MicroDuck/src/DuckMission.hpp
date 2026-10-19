@@ -41,7 +41,7 @@ public:
                robotik::SceneView* p_view) override;
     void reset(robotik::Simulation& p_simulation,
                robotik::Seed p_seed) override;
-    void step(robotik::Simulation& p_simulation, Seconds p_dt) override;
+    void step(robotik::Simulation& p_simulation, robotik::Seconds p_dt) override;
     void measure(robotik::Simulation const& p_simulation,
                  robotik::Metrics& p_metrics) const override;
 
@@ -64,7 +64,7 @@ public:
     }
 
     /// @brief Physics step of the backend.
-    [[nodiscard]] Seconds physicsStep() const
+    [[nodiscard]] robotik::Seconds physicsStep() const
     {
         return m_step;
     }
@@ -74,7 +74,7 @@ private:
     std::unique_ptr<DuckPolicy> m_policy;
     /// Ground truth reference of the trunk: "<robot id>.trunk_base".
     std::string m_base;
-    Seconds m_step{ 0.005 };
+    robotik::Seconds m_step{ 0.005 };
 
     std::array<double, 3> m_command{};
     /// Fixed commands of Forward and TurnLeft.

@@ -206,7 +206,7 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
         }
         else
         {
-            decided = brain.update(seen, Seconds(p_scenario.dt));
+            decided = brain.update(seen, robotik::Seconds(p_scenario.dt));
         }
         decided.write(action);
         if (!p_options.record.empty())
@@ -291,7 +291,7 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
             }
             else
             {
-                decided = brains[i].update(seen, Seconds(p_scenario.dt));
+                decided = brains[i].update(seen, robotik::Seconds(p_scenario.dt));
             }
             decided.write(pool.action(i));
             // The trace is the first episode of world 0, before any restart.

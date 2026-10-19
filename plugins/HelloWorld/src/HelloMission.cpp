@@ -15,7 +15,7 @@ void HelloMission::reset(robotik::Simulation& /*p_simulation*/,
     m_ticks = 0.0;
 }
 
-void HelloMission::step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/)
+void HelloMission::step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;
 }
@@ -29,7 +29,7 @@ void HelloMission::measure(robotik::Simulation const& /*p_simulation*/,
 robotik::Status
 HelloMission::status(robotik::Simulation const& p_simulation) const
 {
-    if (p_simulation.time() >= Seconds(2.0))
+    if (p_simulation.time() >= robotik::Seconds(2.0))
     {
         return robotik::Status::SUCCESS;
     }

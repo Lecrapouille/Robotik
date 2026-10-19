@@ -15,8 +15,8 @@
 /// turning noise off does not shift the random streams of the other sensors.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Random.hpp"
 
 #include <cmath>
 #include <deque>

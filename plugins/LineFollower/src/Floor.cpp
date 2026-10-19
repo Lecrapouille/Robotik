@@ -107,8 +107,7 @@ FloorMap::FloorMap(Track const& p_track,
         m_landmarks.push_back(
             { tag.id,
               robotik::Pose{ { tag.x, tag.y, 0.0 },
-                             robotik::axisAngle({ 1.0, 0.0, 0.0 },
-                                                Radians(std::numbers::pi)) } });
+                             robotik::Quaternion::fromAngleAxis(robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }) } });
     }
     tag36h11_destroy(family);
 }

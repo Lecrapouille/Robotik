@@ -9,7 +9,7 @@
 /// Everything a skill may use during one tick.
 #pragma once
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <span>
 

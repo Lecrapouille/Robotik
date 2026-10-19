@@ -87,8 +87,8 @@ void FlyEnvironment::reset(robotik::Seed p_seed, std::span<float> p_observation)
     // Reset the vision origins and ends.
     for (int ray = 0; ray < 3; ++ray)
     {
-        m_snapshot.vision.origins[ray] = robotik::zero3();
-        m_snapshot.vision.ends[ray] = robotik::zero3();
+        m_snapshot.vision.origins[ray] = robotik::Vector3::ZERO;
+        m_snapshot.vision.ends[ray] = robotik::Vector3::ZERO;
     }
 
     // Reset the collision and reach flags, the reward, the steps, the plant,

@@ -27,9 +27,9 @@ struct Outcome
 static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 {
     p_simulation.reset(p_seed);
-    while (!p_simulation.finished() && p_simulation.time() < Seconds(60.0))
+    while (!p_simulation.finished() && p_simulation.time() < robotik::Seconds(60.0))
     {
-        p_simulation.step(Seconds(0.01));
+        p_simulation.step(robotik::Seconds(0.01));
     }
     p_simulation.conclude();
     Outcome outcome;
@@ -183,15 +183,15 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
     robotik::SkillId const detect =
         simulation.skills().find("Detect(red_cube)");
     ASSERT_NE(detect, robotik::NO_SKILL);
-    while (simulation.time() < Seconds(0.99))
+    while (simulation.time() < robotik::Seconds(0.99))
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
         EXPECT_NE(simulation.skills().state(detect),
                   robotik::SkillState::Succeeded);
     }
-    while (simulation.time() < Seconds(1.05))
+    while (simulation.time() < robotik::Seconds(1.05))
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
     }
     EXPECT_EQ(simulation.skills().state(detect),
               robotik::SkillState::Succeeded);
@@ -226,7 +226,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
         nullptr,
         &mission);
     simulation.reset(robotik::Seed{ 11 });
-    simulation.step(Seconds(0.01));
+    simulation.step(robotik::Seconds(0.01));
     bool failed = false;
     for (robotik::Check const& check : simulation.checks())
     {
@@ -234,7 +234,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
     }
     EXPECT_TRUE(failed);
     EXPECT_FALSE(simulation.finished());
-    simulation.step(Seconds(0.01));
+    simulation.step(robotik::Seconds(0.01));
     EXPECT_FALSE(simulation.finished());
 }
 
@@ -256,13 +256,13 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
 
     for (int i = 0; i < 100; ++i)
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
     }
     robotik::SkillId const approach = skills.find("Approach(red_cube)");
     ASSERT_EQ(skills.state(approach), robotik::SkillState::Running);
 
     skills.request(stop);
-    simulation.step(Seconds(0.01));
+    simulation.step(robotik::Seconds(0.01));
     EXPECT_EQ(skills.state(stop), robotik::SkillState::Running);
     EXPECT_EQ(skills.state(approach), robotik::SkillState::Cancelled);
     EXPECT_EQ(skills.reason(approach), robotik::SkillReason::Preempted);

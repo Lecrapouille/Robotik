@@ -57,7 +57,7 @@ static robotik::ecs::Shape decoration(std::string p_name,
 {
     robotik::ecs::Shape object;
     object.name = std::move(p_name);
-    object.size = { Length(p_size.x), Length(p_size.y), Length(p_size.z) };
+    object.size = { robotik::Length(p_size.x), robotik::Length(p_size.y), robotik::Length(p_size.z) };
     object.color = p_color;
     return object;
 }
@@ -82,7 +82,7 @@ void FlyBackend::reset(robotik::Robot& p_robot)
     pose(p_robot);
 }
 
-void FlyBackend::step(robotik::Robot& p_robot, Seconds p_dt)
+void FlyBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
 {
     double const dt = m_environment.dt();
     m_lag += p_dt.value();
@@ -136,7 +136,7 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
     pose.position =
         robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z);
     pose.rotation =
-        robotik::rpy(Radians(0.0), Radians(0.0), Radians(snapshot.plant.yaw));
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
@@ -229,12 +229,12 @@ void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     FlyPlant const& plant = m_environment->snapshot().plant;
     p_simulation.robot().startPose(robotik::Pose{
         robotik::Vector3(plant.x, plant.y, plant.z),
-        robotik::rpy(Radians(0.0), Radians(0.0), Radians(plant.yaw)) });
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(plant.yaw)) });
     decide();
     drawBeamsAndTrail();
 }
 
-void FlyMission::step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/)
+void FlyMission::step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/)
 {
     m_collided = m_collided || m_environment->snapshot().collided;
     if (!m_backend->done())
@@ -247,7 +247,7 @@ void FlyMission::step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/)
 void FlyMission::decide()
 {
     m_action = m_brain->update(FlyObservation::from(m_backend->observation()),
-                               Seconds(m_dt));
+                               robotik::Seconds(m_dt));
     m_backend->command(m_action);
 }
 
@@ -276,9 +276,8 @@ void FlyMission::drawBeamsAndTrail()
             robotik::norm(axis) < 1e-9
                 ? (along.x > 0.0
                        ? robotik::Quaternion{}
-                       : robotik::axisAngle(robotik::Vector3(0.0, 0.0, 1.0),
-                                            Radians(3.14159265358979323846)))
-                : robotik::axisAngle(axis, Radians(angle));
+                       : robotik::Quaternion::fromAngleAxis(robotik::Radians(3.14159265358979323846), robotik::Vector3(0.0, 0.0, 1.0)))
+                : robotik::Quaternion::fromAngleAxis(robotik::Radians(angle), axis);
         beam.position(toFloat(from + span * 0.5))
             .rotation(toFloat(turn))
             .scale(static_cast<float>(length), 1.0f, 1.0f);

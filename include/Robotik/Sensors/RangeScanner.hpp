@@ -9,7 +9,7 @@
 /// Planar range scanner (2D lidar).
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"

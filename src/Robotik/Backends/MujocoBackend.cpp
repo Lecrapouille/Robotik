@@ -625,7 +625,7 @@ std::optional<Pose> MujocoBackend::bodyPose(std::string const& p_body) const
     {
         return std::nullopt;
     }
-    Pose pose{ zero3(), Quaternion{} };
+    Pose pose{ Vector3::ZERO, Quaternion{} };
     pose.position = Vector3(data->xpos[3 * body],
                             data->xpos[3 * body + 1],
                             data->xpos[3 * body + 2]);

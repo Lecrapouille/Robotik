@@ -19,7 +19,7 @@ void WaveMission::reset(robotik::Simulation& /*p_simulation*/,
     m_tool_y = 0.0;
 }
 
-void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void WaveMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_simulation.robot();
     robotik::JointSet& joints = robot.joints();
@@ -32,8 +32,8 @@ void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
     }
 
     // Command: a target angle. The joint controller moves toward it.
-    Radians const home = joints.home(base);
-    Radians const offset(0.6 * std::sin(p_simulation.time().value()));
+    robotik::Radians const home = joints.home(base);
+    robotik::Radians const offset(0.6 * std::sin(p_simulation.time().value()));
     joints.moveTo(base, home + offset);
 
     // Measure: the angle reached, and where the tool is (forward kinematics,
@@ -53,7 +53,7 @@ void WaveMission::measure(robotik::Simulation const& /*p_simulation*/,
 robotik::Status
 WaveMission::status(robotik::Simulation const& p_simulation) const
 {
-    if (p_simulation.time() >= Seconds(6.0))
+    if (p_simulation.time() >= robotik::Seconds(6.0))
     {
         return robotik::Status::SUCCESS;
     }

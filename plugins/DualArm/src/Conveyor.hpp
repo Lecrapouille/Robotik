@@ -10,7 +10,7 @@
 /// the part it carries (abstract physics: the part rides at the belt speed).
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Skills/Skill.hpp"
 
 #include <string>
@@ -53,7 +53,7 @@ public:
     // -------------------------------------------------------------------------
     /// @brief Moves the carried part by @p_dt, unless the resource failed.
     // -------------------------------------------------------------------------
-    void step(robotik::Simulation& p_simulation, Seconds p_dt);
+    void step(robotik::Simulation& p_simulation, robotik::Seconds p_dt);
 
 private:
 
@@ -85,7 +85,7 @@ public:
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override

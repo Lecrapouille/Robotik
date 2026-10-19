@@ -166,12 +166,12 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     // Simulated time is summed across resets: a plugin that owns the clock
     // may restart episodes and rewind it. The scenario timeout bounds the
     // whole run; the host time bounds a plugin that never advances it.
-    Seconds const dt(HEADLESS_DT_S);
+    robotik::Seconds const dt(HEADLESS_DT_S);
     double const timeout = simulation.scenario().timeout.value();
     double const limit = timeout > 0.0 ? timeout : HEADLESS_TIMEOUT_S;
     double simulated = 0.0;
     double host = 0.0;
-    Seconds last = simulation.time();
+    robotik::Seconds last = simulation.time();
     while (!simulation.finished() && simulated < limit &&
            host < HEADLESS_TIMEOUT_S)
     {
@@ -180,7 +180,7 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
             simulation.step(dt);
         }
         p_session.afterStep(HEADLESS_DT_S);
-        Seconds const now = simulation.time();
+        robotik::Seconds const now = simulation.time();
         simulated += now >= last ? (now - last).value() : now.value();
         last = now;
         host += HEADLESS_DT_S;

@@ -38,7 +38,7 @@ void ReachMission::reset(robotik::Simulation& p_simulation,
     m_error = distance(start, m_target);
 }
 
-void ReachMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void ReachMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_simulation.robot();
     robotik::JointSet& joints = robot.joints();

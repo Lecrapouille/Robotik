@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Perception/Detector.hpp"
 #include "Robotik/Perception/Localization.hpp"
 #include "Robotik/Perception/WorldModel.hpp"
@@ -22,7 +22,7 @@
 static robotik::Pose downward()
 {
     return { { 0.0, 0.0, 1.0 },
-             robotik::axisAngle({ 1.0, 0.0, 0.0 }, Radians(std::numbers::pi)) };
+             robotik::Quaternion::fromAngleAxis(robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }) };
 }
 
 /// @brief Gray image of the right size, counts captures.
@@ -92,8 +92,7 @@ TEST(Random, SeedsAreReplayableAndIndependent)
 TEST(Pose, ComposeAndInvert)
 {
     robotik::Pose const pose{ { 1.0, 2.0, 3.0 },
-                              robotik::rpy(
-                                  Radians(0.1), Radians(0.2), Radians(0.3)) };
+                              robotik::Quaternion::fromRpy(robotik::Radians(0.1), robotik::Radians(0.2), robotik::Radians(0.3)) };
     robotik::Pose const identity = pose * pose.inverse();
     EXPECT_NEAR(robotik::norm(identity.position), 0.0, 1e-12);
     EXPECT_NEAR(std::abs(identity.rotation.w), 1.0, 1e-12);
@@ -101,7 +100,7 @@ TEST(Pose, ComposeAndInvert)
     robotik::Vector3 const back = pose.inverse() * (pose * point);
     EXPECT_NEAR(robotik::norm(back - point), 0.0, 1e-12);
     EXPECT_NEAR(
-        robotik::yawOf(robotik::rpy(Radians(0.0), Radians(0.0), Radians(0.7))),
+        robotik::yaw(robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(0.7))).value(),
         0.7,
         1e-12);
 }
@@ -109,7 +108,7 @@ TEST(Pose, ComposeAndInvert)
 TEST(CameraIntrinsics, RayAndProjectAreInverse)
 {
     auto const intrinsics = robotik::CameraIntrinsics::fromFov(
-        320u, 240u, Radians(70.0 * std::numbers::pi / 180.0));
+        320u, 240u, robotik::Radians(70.0 * std::numbers::pi / 180.0));
     EXPECT_NEAR(
         intrinsics.fov().value(), 70.0 * std::numbers::pi / 180.0, 1e-12);
     robotik::Vector3 const ray = intrinsics.ray(40.0, 200.0);
@@ -131,7 +130,7 @@ TEST(Camera, SamplesAtItsFrequencyFromItsSource)
     auto& camera = robot.sensors().add<robotik::Camera>("camera", config);
     EXPECT_TRUE(robot.resources().available("camera"));
 
-    robot.step(Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
     EXPECT_EQ(camera.samples(), 0u) << "no source, no frame";
 
     FlatSource source;
@@ -141,7 +140,7 @@ TEST(Camera, SamplesAtItsFrequencyFromItsSource)
                    { ++frames; });
     for (int i = 0; i < 100; ++i)
     {
-        robot.step(Seconds(0.01));
+        robot.step(robotik::Seconds(0.01));
     }
     EXPECT_NEAR(source.captures, 10, 1);
     EXPECT_EQ(frames, source.captures);
@@ -151,7 +150,7 @@ TEST(Camera, SamplesAtItsFrequencyFromItsSource)
     int const before = source.captures;
     for (int i = 0; i < 50; ++i)
     {
-        robot.step(Seconds(0.01));
+        robot.step(robotik::Seconds(0.01));
     }
     EXPECT_EQ(source.captures, before) << "a failed camera does not capture";
 }
@@ -161,8 +160,8 @@ TEST(WorldModel, MonocularDetectionLandsOnTheTopPlane)
     robotik::CameraFrame frame;
     frame.pose = downward();
     frame.intrinsics = robotik::CameraIntrinsics::fromFov(
-        320u, 240u, Radians(70.0 * std::numbers::pi / 180.0));
-    frame.stamp = Seconds(1.0);
+        320u, 240u, robotik::Radians(70.0 * std::numbers::pi / 180.0));
+    frame.stamp = robotik::Seconds(1.0);
 
     // Top center of a cube at (0.3, 0.1), 4 cm high, seen by the camera.
     robotik::Vector3 const top{ 0.3, 0.1, 0.04 };
@@ -183,7 +182,7 @@ TEST(WorldModel, MonocularDetectionLandsOnTheTopPlane)
     EXPECT_NEAR(cube->position.x, 0.3, 1e-3);
     EXPECT_NEAR(cube->position.y, 0.1, 1e-3);
     EXPECT_NEAR(cube->position.z, 0.02, 1e-9);
-    EXPECT_EQ(cube->seen, Seconds(1.0));
+    EXPECT_EQ(cube->seen, robotik::Seconds(1.0));
 }
 
 TEST(WorldModel, GateRejectsOutliers)
@@ -192,23 +191,22 @@ TEST(WorldModel, GateRejectsOutliers)
     beliefs.gate(0.1);
     beliefs.add("cube", { 0.4, 0.2, 0.02 }, { 0.04, 0.04, 0.04 });
     EXPECT_TRUE(
-        beliefs.observe("cube", { 0.43, 0.18, 0.5 }, 1.0f, Seconds(1.0)));
+        beliefs.observe("cube", { 0.43, 0.18, 0.5 }, 1.0f, robotik::Seconds(1.0)));
     EXPECT_NEAR(beliefs.find("cube")->position.z, 0.02, 1e-9);
     EXPECT_FALSE(
-        beliefs.observe("cube", { 0.0, 0.0, 0.02 }, 1.0f, Seconds(2.0)));
+        beliefs.observe("cube", { 0.0, 0.0, 0.02 }, 1.0f, robotik::Seconds(2.0)));
     EXPECT_NEAR(beliefs.find("cube")->position.x, 0.43, 1e-9);
     EXPECT_EQ(beliefs.find("cube")->observations, 1u);
-    EXPECT_FALSE(beliefs.observe("unknown", {}, 1.0f, Seconds(2.0)));
+    EXPECT_FALSE(beliefs.observe("unknown", {}, 1.0f, robotik::Seconds(2.0)));
 }
 
 TEST(Localization, RecoversTheRobotPoseFromALandmark)
 {
     robotik::Pose const robot{ { 1.0, -0.5, 0.0 },
-                               robotik::rpy(
-                                   Radians(0.0), Radians(0.0), Radians(0.4)) };
+                               robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(0.4)) };
     robotik::Pose const camera{
         { 0.1, 0.0, 0.2 },
-        robotik::rpy(Radians(-2.0), Radians(0.0), Radians(-1.57))
+        robotik::Quaternion::fromRpy(robotik::Radians(-2.0), robotik::Radians(0.0), robotik::Radians(-1.57))
     };
     robotik::Landmark const tag{
         3, { { 1.4, -0.3, 0.0 }, robotik::Quaternion{} }
@@ -227,5 +225,5 @@ TEST(Localization, RecoversTheRobotPoseFromALandmark)
     EXPECT_EQ(found->landmarks, 1u);
     EXPECT_NEAR(
         robotik::norm(found->pose.position - robot.position), 0.0, 1e-9);
-    EXPECT_NEAR(robotik::yawOf(found->pose.rotation), 0.4, 1e-9);
+    EXPECT_NEAR(robotik::yaw(found->pose.rotation).value(), 0.4, 1e-9);
 }

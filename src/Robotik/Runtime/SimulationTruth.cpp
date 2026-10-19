@@ -117,7 +117,7 @@ static Vector3 halfSize(EntitySpec const& p_spec)
     return p_spec.shape ? Vector3(0.5 * p_spec.shape->size.x,
                                   0.5 * p_spec.shape->size.y,
                                   0.5 * p_spec.shape->size.z)
-                        : zero3();
+                        : Vector3::ZERO;
 }
 
 /// Rejects a truth query whose argument count is out of range.
@@ -281,7 +281,7 @@ std::vector<Pose> Simulation::waypoints(std::string_view p_name) const
         throw std::invalid_argument("trajectory '" + std::string(p_name) +
                                     "' is not cartesian");
     }
-    Pose const frame = trajectory.frame.empty() ? Pose{ zero3(), Quaternion{} }
+    Pose const frame = trajectory.frame.empty() ? Pose{ Vector3::ZERO, Quaternion{} }
                                                 : described(trajectory.frame);
     Pose const to_base = m_robot->base().pose.inverse() * frame;
     std::vector<Pose> result;

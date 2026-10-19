@@ -23,7 +23,7 @@ static Shape makeBox()
     Shape box;
     box.name = "box";
     box.type = Shape::Type::CONTAINER;
-    box.size = { Length(0.16), Length(0.16), Length(0.08) };
+    box.size = { robotik::Length(0.16), robotik::Length(0.16), robotik::Length(0.08) };
     return box;
 }
 
@@ -33,7 +33,7 @@ static Shape makeCube()
     Shape cube;
     cube.name = "red_cube";
     cube.type = Shape::Type::BOX;
-    cube.size = { Length(0.04), Length(0.04), Length(0.04) };
+    cube.size = { robotik::Length(0.04), robotik::Length(0.04), robotik::Length(0.04) };
     return cube;
 }
 
@@ -73,7 +73,7 @@ TEST(ContainerBounds, RestsInsideUsesRealExtentsAndTheRim)
     EXPECT_FALSE(restsInside(box, kBoxCenter, kPickCenter, half));
 
     Shape slab = cube;
-    slab.size[0] = Length(0.10);
+    slab.size[0] = robotik::Length(0.10);
     Vector3 const wide = halfExtents(slab);
     EXPECT_TRUE(
         restsInside(box, kBoxCenter, { 0.40, -0.20, 0.005 + wide.z }, wide));

@@ -63,7 +63,7 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
 {
     if (!ready)
     {
-        p_simulation.step(Seconds(PICK_PLACE_PHYSICS_STEP_S));
+        p_simulation.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
         return;
     }
     if (done)
@@ -98,7 +98,7 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
         std::lround(PICK_PLACE_CONTROL_PERIOD_S / PICK_PLACE_PHYSICS_STEP_S));
     for (int i = 0; i < substeps; ++i)
     {
-        p_simulation.step(Seconds(PICK_PLACE_PHYSICS_STEP_S));
+        p_simulation.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
     }
     p_simulation.observe();
     ++steps;

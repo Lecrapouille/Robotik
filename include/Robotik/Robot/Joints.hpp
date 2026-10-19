@@ -26,7 +26,7 @@
 
 #include "Compages/World/Entity.hpp"
 #include "Compages/World/Spatial/Joint.hpp"
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <cstdint>
 #include <limits>

@@ -35,19 +35,19 @@ public:
 
     StandSkill(WalkBody p_body,
                std::vector<double> p_posture,
-               Seconds p_duration);
+               robotik::Seconds p_duration);
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
 
     WalkBody m_body;
     std::vector<double> m_posture;
-    Seconds m_duration;
-    Seconds m_elapsed{};
+    robotik::Seconds m_duration;
+    robotik::Seconds m_elapsed{};
 };
 
 // ****************************************************************************
@@ -68,12 +68,12 @@ public:
     WalkSkill(WalkBody p_body,
               WalkPolicy& p_policy,
               std::array<double, 3> const& p_command,
-              Seconds p_duration,
-              Seconds p_period);
+              robotik::Seconds p_duration,
+              robotik::Seconds p_period);
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
 private:
@@ -82,11 +82,11 @@ private:
     WalkPolicy& m_policy;
     /// Forward (m/s), lateral (m/s), yaw rate (rad/s), owned by the mission.
     std::array<double, 3> const& m_command;
-    Seconds m_duration;
+    robotik::Seconds m_duration;
     /// Time between two policy runs.
-    Seconds m_period;
-    Seconds m_elapsed{};
-    Seconds m_wait{};
+    robotik::Seconds m_period;
+    robotik::Seconds m_elapsed{};
+    robotik::Seconds m_wait{};
     std::vector<double> m_positions;
     std::vector<double> m_velocities;
 };

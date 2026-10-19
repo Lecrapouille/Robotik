@@ -128,7 +128,7 @@ bool FlyView::open()
     m_gpu->scene = std::make_unique<compages::renderer::Scene>(*m_gpu->world);
     m_gpu->scene->background(0.55f, 0.74f, 0.90f).ambient(0.42f, 0.42f, 0.44f);
     m_gpu->scene->sun("Sun").rotation(
-        Radians(-0.9f), compages::core::Vector3f(1.0f, 0.3f, 0.0f));
+        robotik::Radians(-0.9f), compages::core::Vector3f(1.0f, 0.3f, 0.0f));
     m_gpu->camera = m_gpu->scene->camera("View");
     m_gpu->scene->activeCamera(m_gpu->camera);
 
@@ -175,7 +175,7 @@ bool FlyView::open()
         flyToView(robotik::Vector3(m_scenario.arena.x * 0.5, 0.0, 0.0));
     m_gpu->scene->plane("Floor", compages::renderer::color(0.55f, 0.62f, 0.38f))
         .position(middle.x, 0.0f, middle.z)
-        .rotation(Radians(-0.5f * PI),
+        .rotation(robotik::Radians(-0.5f * PI),
                   compages::core::Vector3f(1.0f, 0.0f, 0.0f))
         .scale(static_cast<float>(m_scenario.arena.x + 4.0),
                static_cast<float>(m_scenario.arena.y + 4.0),
@@ -232,7 +232,7 @@ bool FlyView::frame(FlyEnvironment const& p_environment)
 
     FlySnapshot const& snapshot = p_environment.snapshot();
     poseFlyBody(*m_gpu->robot, snapshot);
-    m_gpu->robot->step(Seconds(p_environment.dt()));
+    m_gpu->robot->step(robotik::Seconds(p_environment.dt()));
 
     for (int ray = 0; ray < 3; ++ray)
     {

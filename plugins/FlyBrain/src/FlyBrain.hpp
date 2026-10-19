@@ -65,14 +65,14 @@ public:
     // ------------------------------------------------------------------------
     /// @brief One decision for the fly-shaped observation.
     // ------------------------------------------------------------------------
-    FlyAction update(FlyObservation const& p_observation, Seconds p_dt);
+    FlyAction update(FlyObservation const& p_observation, robotik::Seconds p_dt);
 
     // ------------------------------------------------------------------------
     /// @brief @ref Agent entry. The observation must hold
     /// @ref FlyObservation::SIZE floats.
     // ------------------------------------------------------------------------
     robotik::Action update(robotik::Observation const& p_observation,
-                           Seconds p_dt) override;
+                           robotik::Seconds p_dt) override;
 
     // ------------------------------------------------------------------------
     /// @brief Rule selected at construction. A loaded connectome stays

@@ -9,7 +9,7 @@
 /// Inertial measurement unit: specific force, angular velocity and attitude.
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"
@@ -126,7 +126,7 @@ private:
     /// World pose of the IMU frame at the previous sample.
     Pose m_previous_pose;
     /// Linear velocity at the previous sample (m/s).
-    Vector3 m_previous_velocity = zero3();
+    Vector3 m_previous_velocity = Vector3::ZERO;
     /// Time of the previous sample.
     Seconds m_previous_stamp{};
     /// Number of previous samples known (0, 1 or 2): the finite differences

@@ -262,12 +262,12 @@ Pose ConfigNode::pose(std::string_view p_key) const
 
 Pose ConfigNode::asPose() const
 {
-    Pose pose{ zero3(), Quaternion{} };
+    Pose pose{ Vector3::ZERO, Quaternion{} };
     if (!isMap())
     {
         return pose;
     }
-    pose.position = vector3("position", zero3());
+    pose.position = vector3("position", Vector3::ZERO);
     ConfigNode const& quaternion = at("quaternion");
     if (!quaternion.isNull())
     {
@@ -287,9 +287,9 @@ Pose ConfigNode::asPose() const
         pose.rotation = Quaternion(*q[0], *q[1], *q[2], *q[3]).normalized();
         return pose;
     }
-    Vector3 const angles = vector3("rpy", zero3());
+    Vector3 const angles = vector3("rpy", Vector3::ZERO);
     pose.rotation =
-        rpy(Radians(angles.x), Radians(angles.y), Radians(angles.z));
+        Quaternion::fromRpy(Radians(angles.x), Radians(angles.y), Radians(angles.z));
     return pose;
 }
 

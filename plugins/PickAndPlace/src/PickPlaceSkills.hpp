@@ -31,17 +31,17 @@ public:
 
     /// @param p_gripper @ref VacuumGripper name; empty for the first one.
     ApproachSkill(std::string p_object,
-                  Length p_clearance,
+                  robotik::Length p_clearance,
                   std::string p_gripper = {});
 
     void reset() override;
-    Status tick(RobotContext& p_context, Seconds p_dt) override;
+    Status tick(RobotContext& p_context, robotik::Seconds p_dt) override;
     void cancel(RobotContext& p_context) override;
 
 private:
 
     std::string m_object;
-    Length m_clearance;
+    robotik::Length m_clearance;
     std::string m_gripper;
     MoveTCPSkill m_move;
     bool m_planned = false;
@@ -56,15 +56,15 @@ public:
 
     explicit GraspSkill(std::string p_object,
                         std::string p_gripper = {},
-                        Seconds p_timeout = Seconds(0.5));
+                        robotik::Seconds p_timeout = robotik::Seconds(0.5));
 
     void reset() override
     {
-        m_waited = Seconds{};
+        m_waited = robotik::Seconds{};
         m_why.clear();
     }
 
-    Status tick(RobotContext& p_context, Seconds p_dt) override;
+    Status tick(RobotContext& p_context, robotik::Seconds p_dt) override;
     void cancel(RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -76,8 +76,8 @@ private:
 
     std::string m_object;
     std::string m_gripper;
-    Seconds m_timeout;
-    Seconds m_waited{};
+    robotik::Seconds m_timeout;
+    robotik::Seconds m_waited{};
     std::string m_why;
 };
 
@@ -89,15 +89,15 @@ class ReleaseSkill final: public Skill
 public:
 
     explicit ReleaseSkill(std::string p_gripper = {},
-                          Seconds p_timeout = Seconds(0.5));
+                          robotik::Seconds p_timeout = robotik::Seconds(0.5));
 
     void reset() override
     {
-        m_waited = Seconds{};
+        m_waited = robotik::Seconds{};
         m_why.clear();
     }
 
-    Status tick(RobotContext& p_context, Seconds p_dt) override;
+    Status tick(RobotContext& p_context, robotik::Seconds p_dt) override;
 
     [[nodiscard]] std::string why() const override
     {
@@ -107,8 +107,8 @@ public:
 private:
 
     std::string m_gripper;
-    Seconds m_timeout;
-    Seconds m_waited{};
+    robotik::Seconds m_timeout;
+    robotik::Seconds m_waited{};
     std::string m_why;
 };
 
@@ -120,7 +120,7 @@ class DetectSkill final: public Skill
 public:
 
     explicit DetectSkill(std::string p_object,
-                         Seconds p_timeout = Seconds(2.0));
+                         robotik::Seconds p_timeout = robotik::Seconds(2.0));
 
     void reset() override
     {
@@ -129,7 +129,7 @@ public:
         m_why.clear();
     }
 
-    Status tick(RobotContext& p_context, Seconds p_dt) override;
+    Status tick(RobotContext& p_context, robotik::Seconds p_dt) override;
 
     [[nodiscard]] std::string why() const override
     {
@@ -141,8 +141,8 @@ private:
     std::string m_why;
 
     std::string m_object;
-    Seconds m_timeout;
-    Seconds m_start{};
+    robotik::Seconds m_timeout;
+    robotik::Seconds m_start{};
     bool m_started = false;
     std::uint32_t m_observations_at_start = 0u;
 };

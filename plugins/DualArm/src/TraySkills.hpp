@@ -11,7 +11,7 @@
 /// that follows the arm carrying it.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Skills/Skill.hpp"
 
 #include <optional>
@@ -32,13 +32,13 @@ class PathSkill final: public robotik::Skill
 public:
 
     /// @brief By @p_offset (m, in the robot base frame).
-    PathSkill(robotik::Vector3 const& p_offset, Seconds p_duration);
+    PathSkill(robotik::Vector3 const& p_offset, robotik::Seconds p_duration);
 
     /// @brief Above the believed centre of @p_object, at the same height.
-    PathSkill(std::string p_object, Seconds p_duration);
+    PathSkill(std::string p_object, robotik::Seconds p_duration);
 
     /// @brief @p_below under the believed bottom face of @p_object.
-    PathSkill(std::string p_object, Length p_below, Seconds p_duration);
+    PathSkill(std::string p_object, robotik::Length p_below, robotik::Seconds p_duration);
 
     void reset() override
     {
@@ -47,7 +47,7 @@ public:
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -57,15 +57,15 @@ public:
 
 private:
 
-    robotik::Vector3 m_offset = robotik::zero3();
+    robotik::Vector3 m_offset = robotik::Vector3::ZERO;
     std::string m_object;
     /// Under the bottom face of the object by this much, if set.
     std::optional<double> m_below;
-    Seconds m_duration;
+    robotik::Seconds m_duration;
     bool m_started = false;
-    Seconds m_elapsed{};
-    robotik::Pose m_from{ robotik::zero3(), robotik::Quaternion{} };
-    robotik::Vector3 m_to = robotik::zero3();
+    robotik::Seconds m_elapsed{};
+    robotik::Pose m_from{ robotik::Vector3::ZERO, robotik::Quaternion{} };
+    robotik::Vector3 m_to = robotik::Vector3::ZERO;
     std::string m_why;
 };
 
@@ -91,9 +91,9 @@ public:
     /// the world (the carrier keeps it level and does not turn it).
     TraceSkill(std::string p_tray,
                std::vector<robotik::Vector3> p_path,
-               LinearVelocity p_speed,
-               Force p_force,
-               Seconds p_timeout = Seconds(40.0));
+               robotik::LinearVelocity p_speed,
+               robotik::Force p_force,
+               robotik::Seconds p_timeout = robotik::Seconds(40.0));
 
     void reset() override
     {
@@ -101,13 +101,13 @@ public:
         m_offsets.clear();
         m_height = 0.0;
         m_travel = 0.0;
-        m_tare = robotik::zero3();
-        m_elapsed = Seconds{};
+        m_tare = robotik::Vector3::ZERO;
+        m_elapsed = robotik::Seconds{};
         m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -132,19 +132,19 @@ private:
 
     std::string m_tray;
     std::vector<robotik::Vector3> m_path;
-    LinearVelocity m_speed;
-    Force m_force;
-    Seconds m_timeout;
+    robotik::LinearVelocity m_speed;
+    robotik::Force m_force;
+    robotik::Seconds m_timeout;
     Phase m_phase = Phase::Approach;
     /// Points of the path in the tool frame of the carrying arm.
     std::vector<robotik::Vector3> m_offsets;
     /// Height of the tool over the path (m), negative when it presses.
     double m_height = 0.0;
     /// Force read before the contact (the weight of the tool), subtracted.
-    robotik::Vector3 m_tare = robotik::zero3();
+    robotik::Vector3 m_tare = robotik::Vector3::ZERO;
     /// Length of the path done (m).
     double m_travel = 0.0;
-    Seconds m_elapsed{};
+    robotik::Seconds m_elapsed{};
     std::string m_why;
 };
 

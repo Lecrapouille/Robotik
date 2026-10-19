@@ -14,7 +14,7 @@
 /// resource of the same name, reserved by skills and disabled on failure.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Joints.hpp"
 
 #include "Compages/World/EntityId.hpp"

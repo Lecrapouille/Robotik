@@ -9,7 +9,7 @@
 /// Six-axis force/torque sensor (wrist, ankle, gripper).
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Noise.hpp"
 #include "Robotik/Sensors/Sensor.hpp"

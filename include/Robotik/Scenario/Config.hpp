@@ -21,7 +21,7 @@
 /// @endcode
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <array>
 #include <filesystem>
@@ -44,7 +44,7 @@ namespace robotik
 /// robotik::ConfigNode const node = robotik::ConfigNode::parse(
 ///     "{ mass: 0.2, size: [0.04, 0.04, 0.04], tags: [red, small] }");
 /// double m = node.number("mass", 1.0);                          // 0.2
-/// robotik::Vector3 s = node.vector3("size", robotik::zero3());
+/// robotik::Vector3 s = node.vector3("size", robotik::Vector3::ZERO);
 /// std::vector<std::string> tags = node.strings("tags");         // red, small
 /// bool fixed = node.flag("fixed", false);                       // missing:
 /// false

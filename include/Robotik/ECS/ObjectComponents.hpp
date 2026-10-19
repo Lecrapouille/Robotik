@@ -13,7 +13,7 @@
 /// @ref robotik::WorldModel).
 #pragma once
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <array>
 #include <string>

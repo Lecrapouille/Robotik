@@ -32,7 +32,7 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
     std::filesystem::path const& urdf = scenario.world.robot().model;
     DuckContract contract =
         DuckContract::load(urdf.parent_path() / "walk.yaml");
-    m_step = Seconds(contract.physics_step);
+    m_step = robotik::Seconds(contract.physics_step);
 
     // A free base on a floor, no gravity compensation. The rotors are far
     // below the default floor, so the given inertia is kept as written. The
@@ -71,11 +71,11 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
                   parameters.number("yaw_rate", 0.0) };
     m_forward = { parameters.number("forward_speed", 0.25), 0.0, 0.0 };
     m_turn = { 0.0, 0.0, parameters.number("turn_rate", 0.8) };
-    Seconds const stand(parameters.number("stand_duration", 0.02));
-    Seconds const walk(parameters.number("walk_duration", 0.0));
-    Seconds const forward(parameters.number("forward_duration", 3.0));
-    Seconds const turn(parameters.number("turn_duration", 2.0));
-    Seconds const period(contract.physics_step * contract.decimation);
+    robotik::Seconds const stand(parameters.number("stand_duration", 0.02));
+    robotik::Seconds const walk(parameters.number("walk_duration", 0.0));
+    robotik::Seconds const forward(parameters.number("forward_duration", 3.0));
+    robotik::Seconds const turn(parameters.number("turn_duration", 2.0));
+    robotik::Seconds const period(contract.physics_step * contract.decimation);
     std::vector<double> const posture = contract.default_angle;
 
     std::filesystem::path const model = urdf.parent_path() / "walk.onnx";
@@ -112,7 +112,7 @@ void DuckMission::reset(robotik::Simulation& p_simulation,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void DuckMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_simulation.pose(m_base);
     m_height = base.position.z;

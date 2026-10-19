@@ -47,7 +47,7 @@ static robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
     for (std::uint32_t step = 0; step < limit; ++step)
     {
         FlyAction const decided = brain.update(
-            FlyObservation::from(observation), Seconds(scenario.dt));
+            FlyObservation::from(observation), robotik::Seconds(scenario.dt));
         decided.write(action);
         result = environment.step(action, observation);
         if (result.done())
@@ -90,7 +90,7 @@ TEST(FlyBrain, ShiuTurnsAwayFromTheLeftEye)
     FlyAction action;
     for (int step = 0; step < 200; ++step)
     {
-        action = brain.update(observation, Seconds(0.01));
+        action = brain.update(observation, robotik::Seconds(0.01));
     }
     EXPECT_LT(action.turn, -0.3f);
     EXPECT_GT(action.forward, 0.4f);

@@ -191,7 +191,7 @@ int main(int argc, char** argv)
                 });
         }
 
-        Seconds const dt(DEMO_DT_S);
+        robotik::Seconds const dt(DEMO_DT_S);
         auto wall = std::chrono::steady_clock::now();
         auto const begin = wall;
         while (!simulation.finished() &&

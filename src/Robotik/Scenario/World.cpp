@@ -650,7 +650,7 @@ void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
     if (chosen != nullptr)
     {
         chosen->attach = Attachment{
-            robot_id, FLANGE, TOOL_MOUNT, Pose{ zero3(), Quaternion{} }
+            robot_id, FLANGE, TOOL_MOUNT, Pose{ Vector3::ZERO, Quaternion{} }
         };
     }
 }

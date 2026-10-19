@@ -22,7 +22,7 @@
 // negative inhibitory. Neuron order is the row order of Completeness_*.csv.
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 
 #include <cstdint>
 #include <filesystem>

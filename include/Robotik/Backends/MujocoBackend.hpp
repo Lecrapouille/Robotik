@@ -10,7 +10,7 @@
 #pragma once
 
 #include "Robotik/Backends/RobotBackend.hpp"
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <filesystem>
 #include <memory>
@@ -81,7 +81,7 @@ struct ChainOptions
     /// World pose of the root link (URDF Z-up): its start pose when
     /// @ref floating, where it is bolted otherwise. Ignored for the first
     /// chain, which follows the robot base.
-    Pose pose{ zero3(), Quaternion{} };
+    Pose pose{ Vector3::ZERO, Quaternion{} };
     /// Sliding friction of every geom of the chain. Negative keeps the URDF.
     double friction = -1.0;
     /// Put before every MuJoCo name of the chain (bodies, joints, geoms,
@@ -108,13 +108,13 @@ struct FreeBox
     /// Body name in MuJoCo, also the world entity id.
     std::string name;
     /// Full extents (m) along the box axes.
-    Vector3 size = zero3();
+    Vector3 size = Vector3::ZERO;
     /// Mass (kg).
     double mass = 1.0;
     /// Diagonal inertia (kg·m²) at the centre, in the box frame.
-    Vector3 inertia = zero3();
+    Vector3 inertia = Vector3::ZERO;
     /// Start pose in the world frame.
-    Pose pose{ zero3(), Quaternion{} };
+    Pose pose{ Vector3::ZERO, Quaternion{} };
     /// Sliding friction.
     double friction = 1.0;
     /// True: a static body (a wall), false: a free body.

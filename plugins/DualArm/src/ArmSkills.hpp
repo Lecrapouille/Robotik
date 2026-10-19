@@ -58,11 +58,11 @@ class HoverSkill final: public robotik::Skill
 {
 public:
 
-    HoverSkill(std::string p_object, Length p_clearance);
+    HoverSkill(std::string p_object, robotik::Length p_clearance);
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -73,7 +73,7 @@ public:
 private:
 
     std::string m_object;
-    Length m_clearance;
+    robotik::Length m_clearance;
     robotik::MoveTCPSkill m_move;
     bool m_planned = false;
     std::string m_why;
@@ -86,16 +86,16 @@ class GraspSkill final: public robotik::Skill
 {
 public:
 
-    explicit GraspSkill(std::string p_object, Seconds p_timeout = Seconds(0.5));
+    explicit GraspSkill(std::string p_object, robotik::Seconds p_timeout = robotik::Seconds(0.5));
 
     void reset() override
     {
-        m_waited = Seconds{};
+        m_waited = robotik::Seconds{};
         m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
     void cancel(robotik::RobotContext& p_context) override;
 
     [[nodiscard]] std::string why() const override
@@ -106,8 +106,8 @@ public:
 private:
 
     std::string m_object;
-    Seconds m_timeout;
-    Seconds m_waited{};
+    robotik::Seconds m_timeout;
+    robotik::Seconds m_waited{};
     std::string m_why;
 };
 
@@ -118,19 +118,19 @@ class ReleaseSkill final: public robotik::Skill
 {
 public:
 
-    explicit ReleaseSkill(Seconds p_timeout = Seconds(0.5))
+    explicit ReleaseSkill(robotik::Seconds p_timeout = robotik::Seconds(0.5))
         : m_timeout(p_timeout)
     {
     }
 
     void reset() override
     {
-        m_waited = Seconds{};
+        m_waited = robotik::Seconds{};
         m_why.clear();
     }
 
     robotik::Status tick(robotik::RobotContext& p_context,
-                         Seconds p_dt) override;
+                         robotik::Seconds p_dt) override;
 
     [[nodiscard]] std::string why() const override
     {
@@ -139,8 +139,8 @@ public:
 
 private:
 
-    Seconds m_timeout;
-    Seconds m_waited{};
+    robotik::Seconds m_timeout;
+    robotik::Seconds m_waited{};
     std::string m_why;
 };
 

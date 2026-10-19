@@ -41,7 +41,7 @@
 #pragma once
 
 #include "Robotik/ECS/ObjectComponents.hpp"
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <optional>
 

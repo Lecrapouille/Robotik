@@ -45,7 +45,7 @@ void Conveyor::reset()
     m_running = false;
 }
 
-void Conveyor::step(robotik::Simulation& p_simulation, Seconds p_dt)
+void Conveyor::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
 {
     if (!m_running || !p_simulation.robot().resources().available(RESOURCE))
     {
@@ -102,7 +102,7 @@ ConveySkill::ConveySkill(Conveyor& p_conveyor,
 }
 
 robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
-                                  Seconds /*p_dt*/)
+                                  robotik::Seconds /*p_dt*/)
 {
     if (!m_started)
     {

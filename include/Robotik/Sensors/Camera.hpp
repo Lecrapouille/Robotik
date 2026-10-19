@@ -17,8 +17,8 @@
 /// @c +X goes right in the image and @c +Y goes down.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Sensors/Image.hpp"
 #include "Robotik/Sensors/Measurements.hpp"
 #include "Robotik/Sensors/Sensor.hpp"

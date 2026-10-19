@@ -12,8 +12,8 @@
 #pragma once
 
 #include "Robotik/Environment/SimulationEnvironment.hpp"
-#include "Robotik/Math/Geometry.hpp"
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Robot/Robot.hpp"
 
 #include <cstdint>

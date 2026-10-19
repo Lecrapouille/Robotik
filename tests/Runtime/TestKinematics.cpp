@@ -16,7 +16,7 @@
 
 #include "Compages/Renderer/Scene.hpp"
 #include "Compages/World/World.hpp"
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <stdexcept>
 
@@ -134,11 +134,11 @@ TEST(MujocoBackend, AttachesAndDetachesAToolChain)
                  std::runtime_error);
     EXPECT_TRUE(robot.backend()->wrench("tcp").has_value());
     EXPECT_TRUE(robot.backend()->wrench("flange").has_value());
-    robot.step(Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
 
     backend->attach(arm, "joint6", tool, "tool_mount");
     EXPECT_TRUE(robot.backend()->wrench("tool_mount").has_value());
-    robot.step(Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
 }
 
 TEST(RobotSession, MoveJointReachesTheCommand)
@@ -156,7 +156,7 @@ TEST(RobotSession, MoveJointReachesTheCommand)
     skill.reset();
 
     robotik::Status status = robotik::Status::RUNNING;
-    Seconds const step(TEST_SIM_STEP_S);
+    robotik::Seconds const step(TEST_SIM_STEP_S);
     for (int i = 0; i < 1500 && status == robotik::Status::RUNNING; ++i)
     {
         context.time = robot.time();
@@ -178,11 +178,11 @@ TEST(RobotSession, FailedActuatorIsDisabled)
                                                         robot.joints().name(0));
     EXPECT_TRUE(robot.resources().available("left_motor"));
 
-    motor.spin(AngularVelocity(2.0));
+    motor.spin(robotik::AngularVelocity(2.0));
     EXPECT_EQ(robot.joints().mode(motor.joint().id),
               robotik::JointMode::Velocity);
     robot.resources().fail("left_motor");
-    robot.step(Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
     EXPECT_EQ(robot.joints().mode(motor.joint().id),
               robotik::JointMode::Disabled);
 }

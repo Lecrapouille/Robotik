@@ -22,7 +22,7 @@
 /// during the search, and the search is deterministic (@ref PlanningOptions).
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Planning/PlanGraph.hpp"
 #include "Robotik/Planning/PlanningDomain.hpp"
 #include "Robotik/Planning/PlanningEngine.hpp"

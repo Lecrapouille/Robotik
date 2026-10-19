@@ -11,7 +11,7 @@
 
 #include "FlyTypes.hpp"
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 
 #include <span>
 

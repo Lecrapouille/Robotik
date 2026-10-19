@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <array>
 #include <filesystem>
@@ -53,7 +53,7 @@ struct DuckInput
     /// IMU attitude in the world frame.
     robotik::Quaternion orientation;
     /// IMU angular velocity in the trunk frame (rad/s).
-    robotik::Vector3 angular_velocity = robotik::zero3();
+    robotik::Vector3 angular_velocity = robotik::Vector3::ZERO;
     /// Command: forward (m/s), lateral (m/s), yaw rate (rad/s).
     std::array<double, 3> command{};
     /// Joint positions and velocities, policy order.

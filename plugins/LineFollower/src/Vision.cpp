@@ -119,9 +119,7 @@ void AprilTagDetector::detect(robotik::CameraFrame const& p_frame,
             robotik::Pose{ { MATD_EL(pose.t, 0, 0),
                              MATD_EL(pose.t, 1, 0),
                              MATD_EL(pose.t, 2, 0) },
-                           robotik::basis({ r(0, 0), r(1, 0), r(2, 0) },
-                                          { r(0, 1), r(1, 1), r(2, 1) },
-                                          { r(0, 2), r(1, 2), r(2, 2) }) };
+                           robotik::Quaternion::fromBasis({ r(0, 0), r(1, 0), r(2, 0) }, { r(0, 1), r(1, 1), r(2, 1) }, { r(0, 2), r(1, 2), r(2, 2) }) };
         matd_destroy(pose.R);
         matd_destroy(pose.t);
         p_detections.items.push_back(std::move(detection));

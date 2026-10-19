@@ -82,24 +82,24 @@ static double minimumJerk(double p_s)
 }
 
 // ----------------------------------------------------------------------------
-PathSkill::PathSkill(robotik::Vector3 const& p_offset, Seconds p_duration)
+PathSkill::PathSkill(robotik::Vector3 const& p_offset, robotik::Seconds p_duration)
     : m_offset(p_offset), m_duration(p_duration)
 {
 }
 
-PathSkill::PathSkill(std::string p_object, Seconds p_duration)
+PathSkill::PathSkill(std::string p_object, robotik::Seconds p_duration)
     : m_object(std::move(p_object)), m_duration(p_duration)
 {
 }
 
-PathSkill::PathSkill(std::string p_object, Length p_below, Seconds p_duration)
+PathSkill::PathSkill(std::string p_object, robotik::Length p_below, robotik::Seconds p_duration)
     : m_object(std::move(p_object)),
       m_below(p_below.value()),
       m_duration(p_duration)
 {
 }
 
-Status PathSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     robotik::Robot& robot = p_context.robot;
     if (!m_started)
@@ -125,7 +125,7 @@ Status PathSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
                              .z;
             }
         }
-        m_elapsed = Seconds{};
+        m_elapsed = robotik::Seconds{};
         m_started = true;
     }
     m_elapsed += p_dt;
@@ -151,9 +151,9 @@ void PathSkill::cancel(robotik::RobotContext& p_context)
 // ----------------------------------------------------------------------------
 TraceSkill::TraceSkill(std::string p_tray,
                        std::vector<robotik::Vector3> p_path,
-                       LinearVelocity p_speed,
-                       Force p_force,
-                       Seconds p_timeout)
+                       robotik::LinearVelocity p_speed,
+                       robotik::Force p_force,
+                       robotik::Seconds p_timeout)
     : m_tray(std::move(p_tray)),
       m_path(std::move(p_path)),
       m_speed(p_speed),
@@ -178,7 +178,7 @@ robotik::Vector3 TraceSkill::along(double p_travel) const
     return m_offsets.back();
 }
 
-Status TraceSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     // The arm that carries the tray, found by what its cup holds.
     robotik::Robot const* holder = nullptr;

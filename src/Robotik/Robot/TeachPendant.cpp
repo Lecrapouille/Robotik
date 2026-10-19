@@ -144,9 +144,9 @@ bool TeachPendant::jogTool(Robot& p_robot,
         0.0)
     {
         target.rotation =
-            axisAngle(Vector3(1.0, 0.0, 0.0), Radians(p_rotation.x)) *
-            axisAngle(Vector3(0.0, 1.0, 0.0), Radians(p_rotation.y)) *
-            axisAngle(Vector3(0.0, 0.0, 1.0), Radians(p_rotation.z)) *
+            Quaternion::fromAngleAxis(Radians(p_rotation.x), Vector3(1.0, 0.0, 0.0)) *
+            Quaternion::fromAngleAxis(Radians(p_rotation.y), Vector3(0.0, 1.0, 0.0)) *
+            Quaternion::fromAngleAxis(Radians(p_rotation.z), Vector3(0.0, 0.0, 1.0)) *
             target.rotation;
     }
 

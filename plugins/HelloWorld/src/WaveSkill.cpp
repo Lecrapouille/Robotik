@@ -17,7 +17,7 @@ void WaveSkill::reset()
 }
 
 robotik::Status WaveSkill::tick(robotik::RobotContext& p_context,
-                                Seconds /*p_dt*/)
+                                robotik::Seconds /*p_dt*/)
 {
     robotik::JointSet& joints = p_context.robot.joints();
     robotik::JointId const base = joints.find("joint1");

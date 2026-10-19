@@ -29,7 +29,7 @@
 /// simulated time; it does not stop the run unless it says @c stop: true.
 #pragma once
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Runtime/Metrics.hpp"
 
 #include <cstdint>

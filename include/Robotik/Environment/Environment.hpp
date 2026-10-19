@@ -21,7 +21,7 @@
 #pragma once
 
 #include "Robotik/Environment/Space.hpp"
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 
 #include <condition_variable>
 #include <cstdint>

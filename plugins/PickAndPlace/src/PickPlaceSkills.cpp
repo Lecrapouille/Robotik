@@ -14,7 +14,7 @@
 #include "Robotik/Scene/ContainerBounds.hpp"
 
 #include "Compages/World/World.hpp"
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -24,13 +24,13 @@
 namespace robotik
 {
 
-static constexpr Length kDefaultCubeHalfHeight{ 0.02 };
-static constexpr Length kTransitClearanceThreshold{ 0.08 };
-static constexpr Length kMaxFinalApproachClearance{ 0.03 };
+static constexpr robotik::Length kDefaultCubeHalfHeight{ 0.02 };
+static constexpr robotik::Length kTransitClearanceThreshold{ 0.08 };
+static constexpr robotik::Length kMaxFinalApproachClearance{ 0.03 };
 
 /// @brief If the gripper is not holding an object, return the default cube half
 /// height. Otherwise, return the half height of the object.
-static Length carriedCubeHalfHeight(compages::world::World& p_world,
+static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
                                     VacuumGripper const& p_gripper)
 {
     if (!p_gripper.holding() || !p_world.alive(p_gripper.held()))
@@ -49,7 +49,7 @@ static Length carriedCubeHalfHeight(compages::world::World& p_world,
 /// @brief If the clearance is greater than the transit clearance threshold,
 /// return the clearance. Otherwise, return the minimum of the clearance and the
 /// final approach clearance.
-static Length clearanceAboveCavity(Length p_clearance)
+static robotik::Length clearanceAboveCavity(robotik::Length p_clearance)
 {
     // Transit keeps full clearance; Reach (≈ 0) caps at 3 cm above the cavity.
     if (p_clearance >= kTransitClearanceThreshold)
@@ -61,11 +61,11 @@ static Length clearanceAboveCavity(Length p_clearance)
 
 /// TCP height over an open box. @p_at is the believed centre (perception or
 /// the scenario prior). The wall layout comes from the named entity's shape.
-static std::optional<Length>
+static std::optional<robotik::Length>
 tcpHeightOverOpenBox(compages::world::World& p_world,
                      std::string_view p_object_name,
                      VacuumGripper const& p_gripper,
-                     Length p_clearance,
+                     robotik::Length p_clearance,
                      Vector3 const& p_at)
 {
     compages::world::Entity const box = findObject(p_world, p_object_name);
@@ -87,9 +87,9 @@ tcpHeightOverOpenBox(compages::world::World& p_world,
         return std::nullopt;
     }
 
-    Length const cube_half = carriedCubeHalfHeight(p_world, p_gripper);
-    Length const above = clearanceAboveCavity(p_clearance);
-    return Length(inner->floor_z) + cube_half * 2.0 + above +
+    robotik::Length const cube_half = carriedCubeHalfHeight(p_world, p_gripper);
+    robotik::Length const above = clearanceAboveCavity(p_clearance);
+    return robotik::Length(inner->floor_z) + cube_half * 2.0 + above +
            p_gripper.length();
 }
 
@@ -100,7 +100,7 @@ VacuumGripper* findGripper(Robot const& p_robot, std::string const& p_name)
 }
 
 ApproachSkill::ApproachSkill(std::string p_object,
-                             Length p_clearance,
+                             robotik::Length p_clearance,
                              std::string p_gripper)
     : m_object(std::move(p_object)),
       m_clearance(p_clearance),
@@ -114,7 +114,7 @@ void ApproachSkill::reset()
     m_move.reset();
 }
 
-Status ApproachSkill::tick(RobotContext& p_context, Seconds p_dt)
+Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
 {
     if (!m_planned)
     {
@@ -129,12 +129,12 @@ Status ApproachSkill::tick(RobotContext& p_context, Seconds p_dt)
         // Default target: hover above the object's reported top + clearance.
         Vector3 at = object->position;
         double const yaw = std::atan2(at.y, at.x);
-        Length height = Length(object->top()) + m_clearance + gripper->length();
+        robotik::Length height = robotik::Length(object->top()) + m_clearance + gripper->length();
 
         // If the object is a box, calculate the TCP height above the inner
         // floor.
         compages::world::World& world = p_context.robot.world();
-        if (std::optional<Length> over_box = tcpHeightOverOpenBox(
+        if (std::optional<robotik::Length> over_box = tcpHeightOverOpenBox(
                 world, m_object, *gripper, m_clearance, at))
         {
             height = *over_box;
@@ -162,14 +162,14 @@ void ApproachSkill::cancel(RobotContext& p_context)
 
 GraspSkill::GraspSkill(std::string p_object,
                        std::string p_gripper,
-                       Seconds p_timeout)
+                       robotik::Seconds p_timeout)
     : m_object(std::move(p_object)),
       m_gripper(std::move(p_gripper)),
       m_timeout(p_timeout)
 {
 }
 
-Status GraspSkill::tick(RobotContext& p_context, Seconds p_dt)
+Status GraspSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
 {
     // Find the gripper by name.
     VacuumGripper* gripper = findGripper(p_context.robot, m_gripper);
@@ -227,12 +227,12 @@ std::string heldObject(Robot const& p_robot, std::string const& p_name)
     return held != nullptr ? held->name : std::string{};
 }
 
-ReleaseSkill::ReleaseSkill(std::string p_gripper, Seconds p_timeout)
+ReleaseSkill::ReleaseSkill(std::string p_gripper, robotik::Seconds p_timeout)
     : m_gripper(std::move(p_gripper)), m_timeout(p_timeout)
 {
 }
 
-Status ReleaseSkill::tick(RobotContext& p_context, Seconds p_dt)
+Status ReleaseSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
 {
     // Find the gripper by name.
     VacuumGripper* gripper = findGripper(p_context.robot, m_gripper);
@@ -259,12 +259,12 @@ Status ReleaseSkill::tick(RobotContext& p_context, Seconds p_dt)
     return Status::RUNNING;
 }
 
-DetectSkill::DetectSkill(std::string p_object, Seconds p_timeout)
+DetectSkill::DetectSkill(std::string p_object, robotik::Seconds p_timeout)
     : m_object(std::move(p_object)), m_timeout(p_timeout)
 {
 }
 
-Status DetectSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
+Status DetectSkill::tick(RobotContext& p_context, robotik::Seconds /*p_dt*/)
 {
     // If the skill has not started, start it and record the observations at the
     // start.

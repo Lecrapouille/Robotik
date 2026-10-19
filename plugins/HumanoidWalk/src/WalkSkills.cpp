@@ -31,7 +31,7 @@ static void damp(robotik::JointSet& p_joints,
 // ****************************************************************************
 StandSkill::StandSkill(WalkBody p_body,
                        std::vector<double> p_posture,
-                       Seconds p_duration)
+                       robotik::Seconds p_duration)
     : m_body(std::move(p_body)),
       m_posture(std::move(p_posture)),
       m_duration(p_duration)
@@ -40,10 +40,10 @@ StandSkill::StandSkill(WalkBody p_body,
 
 void StandSkill::reset()
 {
-    m_elapsed = Seconds{};
+    m_elapsed = robotik::Seconds{};
 }
 
-robotik::Status StandSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+robotik::Status StandSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     robotik::JointSet& joints = p_context.robot.joints();
     for (std::size_t i = 0; i < m_body.joints.size(); ++i)
@@ -64,8 +64,8 @@ void StandSkill::cancel(robotik::RobotContext& p_context)
 WalkSkill::WalkSkill(WalkBody p_body,
                      WalkPolicy& p_policy,
                      std::array<double, 3> const& p_command,
-                     Seconds p_duration,
-                     Seconds p_period)
+                     robotik::Seconds p_duration,
+                     robotik::Seconds p_period)
     : m_body(std::move(p_body)),
       m_policy(p_policy),
       m_command(p_command),
@@ -79,11 +79,11 @@ WalkSkill::WalkSkill(WalkBody p_body,
 void WalkSkill::reset()
 {
     m_policy.reset();
-    m_elapsed = Seconds{};
-    m_wait = Seconds{};
+    m_elapsed = robotik::Seconds{};
+    m_wait = robotik::Seconds{};
 }
 
-robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, Seconds p_dt)
+robotik::Status WalkSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     robotik::Robot& robot = p_context.robot;
     auto const* imu = robot.sensors().find<robotik::Imu>(m_body.imu);

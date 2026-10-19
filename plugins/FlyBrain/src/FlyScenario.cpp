@@ -104,7 +104,7 @@ FlyScenario FlyScenario::from(robotik::Scenario const& p_scenario)
     scenario.fly.x = fly.pose.position.x;
     scenario.fly.y = fly.pose.position.y;
     scenario.fly.z = fly.pose.position.z;
-    scenario.fly.yaw = robotik::yawOf(fly.pose.rotation);
+    scenario.fly.yaw = robotik::yaw(fly.pose.rotation).value();
 
     bool food = false;
     for (robotik::EntitySpec const& entity : p_scenario.world.entities)

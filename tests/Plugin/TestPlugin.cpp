@@ -319,7 +319,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 
     for (int step = 0; step < 800 && !simulation.finished(); ++step)
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
         session.afterStep(0.01);
     }
     EXPECT_TRUE(simulation.finished());
@@ -362,7 +362,7 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
     for (int step = 0; step < 6000 && !simulation.finished(); ++step)
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
         session.afterStep(0.01);
     }
     EXPECT_TRUE(simulation.passed()) << p_scenario;

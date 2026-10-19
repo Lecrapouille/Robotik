@@ -7,7 +7,7 @@
 
 # Location of the project directory and Makefiles
 #
-P := ../../..
+P := ../..
 M := $(P)/.makefile
 
 ###############################################################################
@@ -36,12 +36,8 @@ DEFINES +=
 ###############################################################################
 # Make the list of files to compile
 #
-ROBOTIK_CORE_PATH := $(P)/src/Robotik/Core
-LIB_FILES += $(call rwildcard,$(ROBOTIK_CORE_PATH),*.cpp)
-ROBOTIK_MODULES := Assets Backends Common Environment Perception Planning Plugin Robot
-ROBOTIK_MODULES += Scene Runtime Scenario Sensors Skills Systems
-LIB_FILES += $(foreach m,$(ROBOTIK_MODULES),$(call rwildcard,$(P)/src/Robotik/$(m),*.cpp))
-HEADER_FILES := $(call rwildcard,$(ROBOTIK_CORE_PATH),*.hpp)
+LIB_FILES += $(call rwildcard,$(P)/src/Robotik,*.cpp)
+HEADER_FILES := $(call rwildcard,$(P)/src/Robotik,*.hpp)
 HEADER_FILES += $(call rwildcard,$(P)/include/Robotik,*.hpp)
 
 ###############################################################################

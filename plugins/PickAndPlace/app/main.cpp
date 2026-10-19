@@ -17,7 +17,7 @@
 
 #include "Robotik/Environment/EpisodeLog.hpp"
 #include "Robotik/Environment/SimulationEnvironment.hpp"
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Runtime/Simulation.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
@@ -143,8 +143,8 @@ makeEnvironment(Options const& p_options)
         }
     }
     robotik::EnvironmentTiming timing;
-    timing.physics_step = Seconds(PICK_PLACE_PHYSICS_STEP_S);
-    timing.control_period = Seconds(PICK_PLACE_CONTROL_PERIOD_S);
+    timing.physics_step = robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S);
+    timing.control_period = robotik::Seconds(PICK_PLACE_CONTROL_PERIOD_S);
     timing.max_steps = MAX_STEPS;
     return std::make_unique<robotik::SimulationEnvironment>(
         std::move(scenario), pickPlaceParts(), timing);

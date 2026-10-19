@@ -10,11 +10,11 @@
 /// success criteria and its metrics.
 #pragma once
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Runtime/Metrics.hpp"
 #include "Robotik/Runtime/Status.hpp"
 
-#include "Robotik/Math/Si.hpp"
+#include "Robotik/Common/Math.hpp"
 
 namespace robotik
 {

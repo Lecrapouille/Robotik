@@ -355,7 +355,7 @@ FlyAction FlyBrain::reflex(FlyObservation const& p_observation) const
     return action;
 }
 
-FlyAction FlyBrain::update(FlyObservation const& p_observation, Seconds p_dt)
+FlyAction FlyBrain::update(FlyObservation const& p_observation, robotik::Seconds p_dt)
 {
     // If it's a reflex brain or no network, use the reflex policy.
     if (m_kind == Kind::Reflex || m_network == nullptr)
@@ -376,7 +376,7 @@ FlyAction FlyBrain::update(FlyObservation const& p_observation, Seconds p_dt)
 }
 
 robotik::Action FlyBrain::update(robotik::Observation const& p_observation,
-                                 Seconds p_dt)
+                                 robotik::Seconds p_dt)
 {
     // Convert the observation to a FlyObservation and update the brain.
     FlyAction const decided =

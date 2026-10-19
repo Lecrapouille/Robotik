@@ -70,7 +70,7 @@ public:
         {
             return ROBOTIK_PLUGIN_OK;
         }
-        Seconds const step = m_mission->physicsStep();
+        robotik::Seconds const step = m_mission->physicsStep();
         m_lag = std::min(m_lag + p_dt, MAX_LAG_S);
         // The physics goes on after the end of the run, so the simulator
         // shows a fall. The verdict is already frozen; the headless host

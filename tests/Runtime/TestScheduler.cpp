@@ -36,7 +36,7 @@ public:
         ++resets;
     }
 
-    Status tick(robotik::RobotContext&, Seconds) override
+    Status tick(robotik::RobotContext&, robotik::Seconds) override
     {
         ++ticks;
         return --m_left > 0 ? Status::RUNNING : m_end;
@@ -65,7 +65,7 @@ protected:
 
     SchedulerTest()
         : robot(world, assetFile("robotik.robots.simple_revolute_robot")),
-          context{ robot, beliefs, {}, Seconds(0.01) },
+          context{ robot, beliefs, {}, robotik::Seconds(0.01) },
           skills(robot.resources())
     {
         robot.resources().add("arm");

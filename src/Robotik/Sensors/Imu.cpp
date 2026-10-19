@@ -44,7 +44,7 @@ Imu::Imu(std::string p_name, ImuConfig p_config)
 void Imu::restart()
 {
     m_history = 0;
-    m_previous_velocity = zero3();
+    m_previous_velocity = Vector3::ZERO;
     m_readings.clear();
 }
 
@@ -63,9 +63,9 @@ void Imu::deliver(Seconds p_now)
 bool Imu::sample(Robot const& p_robot, Seconds p_now)
 {
     Pose const pose = p_robot.worldPose(m_config.parent) * m_config.mount;
-    Vector3 velocity = zero3();
-    Vector3 acceleration = zero3();
-    Vector3 angular_velocity = zero3();
+    Vector3 velocity = Vector3::ZERO;
+    Vector3 acceleration = Vector3::ZERO;
+    Vector3 angular_velocity = Vector3::ZERO;
 
     double const dt = (p_now - m_previous_stamp).value();
     if (m_history > 0 && dt > 0.0)

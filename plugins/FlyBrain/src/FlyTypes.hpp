@@ -12,7 +12,7 @@
 // @ref FlyObservation and @ref FlyAction.
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Scenario/Scenario.hpp"
 
 #include <cstddef>

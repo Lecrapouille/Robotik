@@ -61,7 +61,7 @@ else
 
 INCLUDES += $(PLUGIN_SRC) $(P)/include $(P)/src
 VPATH += $(PLUGIN_SRC)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik/Core
+DIRS_WITH_MAKEFILE := $(P)/src/Robotik
 DO_NOT_COMPILE_STATIC_LIB := 1
 USER_LDFLAGS += -L$(BUILD_PATH) -Wl,-rpath,$(BUILD_PATH) -Wl,-rpath,'$$ORIGIN/../..'
 USER_LDFLAGS += -lrobotik-core -ldl

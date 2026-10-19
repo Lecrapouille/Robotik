@@ -81,7 +81,7 @@ void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot)
     pose.position = robotik::Vector3(
         p_snapshot.plant.x, p_snapshot.plant.y, p_snapshot.plant.z);
     pose.rotation =
-        robotik::rpy(Radians(0.0), Radians(0.0), Radians(p_snapshot.plant.yaw));
+        robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(p_snapshot.plant.yaw));
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
@@ -127,7 +127,7 @@ void aimFlyBeam(compages::world::Entity p_beam,
     {
         if (direction.y < 0.0f)
         {
-            p_beam.rotation(Radians(PI),
+            p_beam.rotation(robotik::Radians(PI),
                             compages::core::Vector3f(1.0f, 0.0f, 0.0f));
         }
         else
@@ -137,7 +137,7 @@ void aimFlyBeam(compages::world::Entity p_beam,
     }
     else
     {
-        p_beam.rotation(Radians(std::atan2(sine, direction.y)), axis);
+        p_beam.rotation(robotik::Radians(std::atan2(sine, direction.y)), axis);
     }
     float const diameter = 0.025f + 0.04f * p_strength;
     p_beam.scale(diameter, span, diameter);
@@ -157,9 +157,7 @@ compages::world::Entity mountFlyEye(compages::renderer::Scene& p_scene,
     // Columns are the camera axes in the eye frame: +X image-right, +Y up,
     // +Z opposite the look direction. -Z then falls on the optical +X.
     robotik::Quaternion const lens =
-        robotik::basis(robotik::Vector3(0.0, -1.0, 0.0),
-                       robotik::Vector3(0.0, 0.0, 1.0),
-                       robotik::Vector3(-1.0, 0.0, 0.0));
+        robotik::Quaternion::fromBasis(robotik::Vector3(0.0, -1.0, 0.0), robotik::Vector3(0.0, 0.0, 1.0), robotik::Vector3(-1.0, 0.0, 0.0));
 
     // Create the camera.
     compages::world::Entity camera =

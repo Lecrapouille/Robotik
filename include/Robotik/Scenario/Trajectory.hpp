@@ -35,7 +35,7 @@
 /// @endcode
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <cstdint>
 #include <filesystem>

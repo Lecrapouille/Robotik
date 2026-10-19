@@ -19,7 +19,7 @@
 /// @endcode
 #pragma once
 
-#include "Robotik/Math/Geometry.hpp"
+#include "Robotik/Common/Math.hpp"
 
 #include <cstdint>
 #include <string>
@@ -64,9 +64,9 @@ struct Measurement
 struct Twist
 {
     /// Linear velocity (SI: m/s).
-    Vector3 linear = zero3();
+    Vector3 linear = Vector3::ZERO;
     /// Angular velocity (SI: rad/s).
-    Vector3 angular = zero3();
+    Vector3 angular = Vector3::ZERO;
 };
 
 // ****************************************************************************
@@ -80,9 +80,9 @@ struct Twist
 struct Wrench
 {
     /// Force (SI: N).
-    Vector3 force = zero3();
+    Vector3 force = Vector3::ZERO;
     /// Torque about the frame origin (SI: N.m).
-    Vector3 torque = zero3();
+    Vector3 torque = Vector3::ZERO;
 };
 
 // ****************************************************************************
@@ -93,7 +93,7 @@ struct Wrench
 ///
 /// @code
 /// robotik::BaseState const& base = robot.base();
-/// double const heading = robotik::yawOf(base.pose.rotation);
+/// double const heading = robotik::yaw(base.pose.rotation).value();
 /// @endcode
 // ****************************************************************************
 struct BaseState
@@ -116,9 +116,9 @@ struct ImuReading: Measurement
 {
     /// Specific force: acceleration minus gravity, so +9.81 along the up
     /// axis at rest (SI: m/s^2), in the sensor frame.
-    Vector3 acceleration = zero3();
+    Vector3 acceleration = Vector3::ZERO;
     /// Angular velocity (SI: rad/s), in the sensor frame.
-    Vector3 angular_velocity = zero3();
+    Vector3 angular_velocity = Vector3::ZERO;
     /// Sensor frame in the world frame (fused attitude).
     Quaternion orientation;
 };

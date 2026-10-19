@@ -127,10 +127,10 @@ void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation,
     {
         skills.add<HoverSkill>(describe(scope + "Hover(" + part + ")", id, arm),
                                part,
-                               Length(kHover));
+                               robotik::Length(kHover));
         skills.add<HoverSkill>(describe(scope + "Reach(" + part + ")", id, arm),
                                part,
-                               Length(kContact));
+                               robotik::Length(kContact));
         robotik::SkillDescription grasp =
             describe(scope + "Grasp(" + part + ")", id, cup);
         grasp.wait = false;
@@ -140,14 +140,14 @@ void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation,
     {
         skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm),
                                bin,
-                               Length(kOverBin));
+                               robotik::Length(kOverBin));
     }
     // Back over a pick zone, where the next part arrives.
     for (std::string const& zone : m_zones)
     {
         skills.add<HoverSkill>(describe(scope + "Ready(" + zone + ")", id, arm),
                                zone,
-                               Length(kPartHeight + kHover));
+                               robotik::Length(kPartHeight + kHover));
     }
 }
 
@@ -260,7 +260,7 @@ void ConveyorMission::reset(robotik::Simulation& /*p_simulation*/,
     m_overlap = 0.0;
 }
 
-void ConveyorMission::step(robotik::Simulation& p_simulation, Seconds p_dt)
+void ConveyorMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
 {
     m_conveyor.step(p_simulation, p_dt);
 

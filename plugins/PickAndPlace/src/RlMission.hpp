@@ -9,7 +9,7 @@
 
 #include "PickPlaceControl.hpp"
 
-#include "Robotik/Math/Random.hpp"
+#include "Robotik/Common/Random.hpp"
 #include "Robotik/Runtime/Mission.hpp"
 
 #include <array>
@@ -32,7 +32,7 @@ public:
 
     void reset(robotik::Simulation& p_simulation,
                robotik::Seed p_seed) override;
-    void step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/) override
+    void step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/) override
     {
     }
     robotik::Status

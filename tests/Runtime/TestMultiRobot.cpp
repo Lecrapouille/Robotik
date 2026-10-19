@@ -113,7 +113,7 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
     scenario.world = robotik::WorldDescription::read(node, ".", testAssets());
     compages::world::World world;
     robotik::Simulation simulation(world, scenario);
-    simulation.step(Seconds(0.01));
+    simulation.step(robotik::Seconds(0.01));
     EXPECT_NEAR(simulation.pose("stand_a").position.y, -0.2, 1e-6);
     EXPECT_NEAR(simulation.pose("stand_b").position.y, 0.2, 1e-6);
     EXPECT_DOUBLE_EQ(simulation.query("touching(stand_a, stand_b)").value(),
@@ -150,7 +150,7 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     right->joints().moveTo(joint, 0.5);
     for (int i = 0; i < 200; ++i)
     {
-        simulation.step(Seconds(0.01));
+        simulation.step(robotik::Seconds(0.01));
     }
     EXPECT_NEAR(right->joints().position(joint), 0.5, 0.02);
     EXPECT_NEAR(left->joints().position(joint), left_before, 1e-3);

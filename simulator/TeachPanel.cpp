@@ -89,7 +89,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
                                          static_cast<float>(pose.rotation.z));
     for (std::size_t i = 0; i < 3u; ++i)
     {
-        robotik::Vector3 half = robotik::zero3();
+        robotik::Vector3 half = robotik::Vector3::ZERO;
         half[static_cast<int>(i)] = 0.5 * LENGTH;
         robotik::Vector3 const center = pose * half;
         float const length = static_cast<float>(LENGTH);
@@ -413,7 +413,7 @@ static void cartesianJog(App& p_app)
     }
     float const linear = p_app.teach.linear_step;
     float const angular = p_app.teach.angular_step;
-    robotik::Vector3 const none = robotik::zero3();
+    robotik::Vector3 const none = robotik::Vector3::ZERO;
     if (beginTable("jog", 7, ImGuiTableFlags_SizingStretchSame))
     {
         // Two blocks of three columns: translation, then rotation.

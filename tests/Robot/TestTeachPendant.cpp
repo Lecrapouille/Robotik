@@ -28,11 +28,11 @@ TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
 
     ASSERT_TRUE(pendant.goTo(robot, 0));
     EXPECT_TRUE(pendant.playing());
-    pendant.update(robot, Seconds(0.5));
+    pendant.update(robot, robotik::Seconds(0.5));
     EXPECT_NEAR(robot.joints().target(0), 0.2, 1e-9);
     EXPECT_TRUE(pendant.playing());
 
-    pendant.update(robot, Seconds(0.5));
+    pendant.update(robot, robotik::Seconds(0.5));
     EXPECT_NEAR(robot.joints().target(0), 0.0, 1e-9);
     EXPECT_FALSE(pendant.playing());
 }
@@ -55,10 +55,10 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
     robotik::Pose const before = robot.framePose(robot.tool());
     robotik::TeachPendant pendant;
     ASSERT_TRUE(pendant.jogTool(
-        robot, robotik::Vector3(0.02, 0.0, 0.0), robotik::zero3()));
+        robot, robotik::Vector3(0.02, 0.0, 0.0), robotik::Vector3::ZERO));
     EXPECT_TRUE(pendant.error().empty());
 
-    Seconds const step(0.002);
+    robotik::Seconds const step(0.002);
     for (int i = 0; i < 2000; ++i)
     {
         robot.step(step);
@@ -109,7 +109,7 @@ TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
     pendant.frame("link1");
     // link1 only turns about z: it cannot translate along x.
     EXPECT_FALSE(pendant.jogTool(
-        robot, robotik::Vector3(0.01, 0.0, 0.0), robotik::zero3()));
+        robot, robotik::Vector3(0.01, 0.0, 0.0), robotik::Vector3::ZERO));
     EXPECT_FALSE(pendant.error().empty());
     for (robotik::JointId id = 0; id < robot.joints().size(); ++id)
     {
@@ -117,5 +117,5 @@ TEST(TeachPendant, ImpossibleMoveOfALinkFailsWithoutCrash)
     }
     // A rotation about z is possible.
     EXPECT_TRUE(pendant.jogTool(
-        robot, robotik::zero3(), robotik::Vector3(0.0, 0.0, 0.1)));
+        robot, robotik::Vector3::ZERO, robotik::Vector3(0.0, 0.0, 0.1)));
 }
