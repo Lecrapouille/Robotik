@@ -26,6 +26,11 @@
 /// double const heading = robotik::yaw(tool.rotation).value();
 /// double const reach = robotik::norm(tool.position);
 /// @endcode
+///
+/// @par Contract
+/// - Promises: every quantity has its unit in its type; @c Pose is a position
+///   in metres plus a unit quaternion (w, x, y, z).
+/// - Expects: Z up, metres, radians (see doc/Glossary.md, "Frame").
 #pragma once
 
 #include "Compages/Core/Pose.hpp"

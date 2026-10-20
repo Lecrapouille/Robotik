@@ -8,10 +8,17 @@
 /// @file TeachPendant.hpp
 /// Operator jog, waypoint recording and joint-space playback.
 ///
-/// Cartesian jogs are solved once with @ref Robot::inverseKinematics
+/// Cartesian jogs are solved once with @ref robotik::Robot::inverseKinematics
 /// (Pinocchio, damped least squares). Playback is a rest-to-rest quintic in
 /// joint space between the recorded configurations. The pendant only writes
-/// joint targets; a @ref RobotSession step is what moves the arm.
+/// joint targets; a @ref robotik::RobotSession step is what moves the arm.
+///
+/// @par Contract
+/// - Promises: the pendant only writes joint targets; it never steps the
+///   physics.
+/// - Expects: a @ref robotik::RobotSession steps after each command.
+/// - Errors: a Cartesian jog that the IK cannot reach returns @c false and
+///   leaves the targets as they were.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
@@ -106,7 +113,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Chooses the frame moved by @ref jogTool and stored by @ref record: any
+    /// Chooses the frame moved by @ref jogTool and stored by @ref record — any
     /// link of the robot (a foot, a leg tip...).
     /// @param p_frame Link name. Empty: the work frame of the robot
     ///   (@ref Robot::tool).

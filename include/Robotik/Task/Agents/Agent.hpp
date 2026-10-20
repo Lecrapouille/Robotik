@@ -11,6 +11,10 @@
 /// A fly brain, a reinforcement-learning policy, a classical controller or a
 /// scripted player all share this surface. None of them sees MuJoCo, Compages
 /// or the files that built the world.
+///
+/// @par Contract
+/// - Promises: an agent sees only its @ref robotik::Observation.
+/// - Expects: @c update at each step, with the time since the last one.
 #pragma once
 
 #include "Robotik/Task/Agents/Action.hpp"

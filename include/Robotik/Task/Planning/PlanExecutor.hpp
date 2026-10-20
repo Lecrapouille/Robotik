@@ -19,7 +19,16 @@
 /// @endcode
 ///
 /// Planning happens inside a simulation step: simulated time does not move
-/// during the search, and the search is deterministic (@ref PlanningOptions).
+/// during the search, and the search is deterministic (@ref
+/// robotik::PlanningOptions).
+///
+/// @par Contract
+/// - Promises: an effect is "done" only when the beliefs show it; with
+///   @c verify: @c observed, only a belief seen after the start of the step.
+///   A step that fails, or an effect not seen, leads to a new plan.
+/// - Expects: observers and bindings for the whole domain.
+/// - Errors: a domain, goal or binding that does not fit throws
+///   @c std::runtime_error listing every problem, when the cell is built.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

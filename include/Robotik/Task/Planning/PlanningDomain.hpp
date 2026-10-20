@@ -32,6 +32,12 @@
 /// Arguments are entity ids as written in the world file. Every predicate
 /// needs an observer, a fact of the scenario or a @c :derived rule, and
 /// every action a binding: the scenario is refused otherwise.
+///
+/// @par Contract
+/// - Promises: observers read beliefs, never the truth.
+/// - Expects: every predicate has an observer, a fact or a derived rule, and
+///   every action a binding.
+/// - Errors: an argument index out of range throws @c std::out_of_range.
 #pragma once
 
 #include "Robotik/Task/Planning/Pddl.hpp"

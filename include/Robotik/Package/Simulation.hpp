@@ -8,11 +8,19 @@
 /// @file Simulation.hpp
 /// Runs a scenario file and tells whether it went well.
 ///
-/// A scenario is a robot cell (what to build, see @ref CellDescription) plus
-/// how its run is judged: a time limit, a stop condition and assertions. The
-/// simulation builds the @ref Cell, steps it, checks the assertions after
-/// each step and decides when the run is over. Headless unless a
-/// @ref SceneView is given.
+/// A scenario is a robot cell (what to build, see @ref
+/// robotik::CellDescription) plus how its run is judged: a time limit, a stop
+/// condition and assertions. The simulation builds the @ref robotik::Cell,
+/// steps it, checks the assertions after each step and decides when the run is
+/// over. Headless unless a
+/// @ref robotik::SceneView is given.
+///
+/// @par Contract
+/// - Promises: the verdicts are frozen when the run ends; @c ended is emitted
+///   once; @c assertionChanged when an assertion changes color.
+/// - Expects: a scenario read by @ref robotik::loadScenario.
+/// - Errors: a scenario whose cell cannot be built throws
+///   @c std::runtime_error in the constructor.
 #pragma once
 
 #include "Robotik/Package/Scenario/Assertions.hpp"

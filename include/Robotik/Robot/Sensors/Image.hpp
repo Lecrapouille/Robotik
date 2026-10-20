@@ -6,7 +6,13 @@
 // See LICENSING.md for details.
 
 /// @file Image.hpp
-/// CPU image: one tightly packed buffer, top-left origin.
+/// An image in memory: one buffer of pixels, the first pixel at the top left.
+///
+/// It is the only image type of RobotIK, so detectors do not depend on OpenGL,
+/// OpenCV or a camera driver.
+///
+/// @par Contract
+/// - Promises: one packed buffer, rows from top to bottom, no padding.
 #pragma once
 
 #include <cstddef>

@@ -6,8 +6,17 @@
 // See LICENSING.md for details.
 
 /// @file Mission.hpp
-/// What a demo adds to a generic @ref Cell: its skills, its world, its
-/// success criteria and its metrics.
+/// The C++ part of a demo: what it adds to a generic @ref robotik::Cell (its
+/// skills, its detectors, its metrics, what it does at each step).
+///
+/// A mission does not judge the run: it publishes numbers, and the assertions
+/// of the scenario decide (see doc/Glossary.md: "Metric", "Assertion").
+///
+/// @par Contract
+/// - Promises: @c setup once, @c reset at each episode, @c step after each
+///   physics step; @c measure publishes numbers, never a verdict.
+/// - Expects: the mission reads beliefs to decide and the truth only to
+///   measure; it does not keep entities between calls.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

@@ -7,6 +7,11 @@
 
 /// @file LinkRef.hpp
 /// A robot link found once by its name, then reused at every step.
+///
+/// @par Contract
+/// - Promises: a @ref robotik::LinkRef stays good while the robot exists; its
+///   entity tells (@c operator bool) when the link is gone.
+/// - Expects: code keeps it for one episode and finds it again after a reset.
 #pragma once
 
 #include "Compages/World/Entity.hpp"
@@ -23,8 +28,8 @@ namespace robotik
 /// A link is a rigid part of the robot (the arm segment, the wrist...).
 /// Finding it by its name walks the tree of the robot and compares strings:
 /// fine once, too slow for a sensor that reads its link 1000 times a second.
-/// @ref Robot::resolve does the search once; @ref Robot::worldPose(LinkRef
-/// const&) then reads the pose with no search.
+/// @ref Robot::resolve does the search once; @ref Robot::worldPose then
+/// reads the pose with no search.
 ///
 /// @code
 /// robotik::LinkRef const wrist = robot.resolve("link6"); // once

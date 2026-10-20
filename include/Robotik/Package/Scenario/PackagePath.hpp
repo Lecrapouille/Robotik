@@ -22,6 +22,10 @@
 /// A name may hold @c .. and cross symbolic links, but the real file (the
 /// canonical path) must be inside the package; an absolute name is refused.
 /// A package is a closed folder; it can be moved or installed as a whole.
+///
+/// @par Contract
+/// - Promises: @c packageFile returns a @c Result — a path that leaves the
+///   package, or an absolute path, is refused with a message.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

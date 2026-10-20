@@ -6,19 +6,20 @@
 // See LICENSING.md for details.
 
 /// @file ContainerBounds.hpp
-/// Axis-aligned inner cavity of open box containers (@ref
-/// ecs::Shape::Type::CONTAINER).
+/// Axis-aligned inner cavity of open box containers (@c CONTAINER shape).
 ///
 /// @par Scope
-/// Helpers for scenario props whose @ref ecs::Shape::Type is @c CONTAINER: an
-/// open-top bin (floor slab + four walls). Not arbitrary meshes, not MuJoCo
+/// Helpers for scenario props whose @ref robotik::ecs::Shape::Type is
+/// @c CONTAINER: an open-top bin (floor slab + four walls). Not arbitrary
+///     meshes, not MuJoCo
 /// collision shapes.
 ///
-/// @par Why @c Scene/ and not @c ECS/
-/// @ref ecs::Shape is an ECS component (data on entities). This file is
+/// @par Why in @c Task/Grasp and not in @c Robot/Components
+/// @ref robotik::ecs::Shape is an ECS component (data on entities). This file
+///     is
 /// layout math on that component: cavity size, placement checks, penetration
-/// while carried. Same rules drive rendering (@ref SimulatorView) and
-/// kinematic props (@ref AbstractGrasp) without duplicating wall thickness.
+/// while carried. Same rules drive rendering (@c SimulatorView) and kinematic
+/// props (@ref robotik::AbstractGrasp) without duplicating wall thickness.
 ///
 /// @par Coordinates
 /// Robot base frame (entities parented to the robot root). Metres.
@@ -28,7 +29,7 @@
 /// ecs::Shape const& box = container.get<ecs::Shape>();
 /// ecs::Shape const& cube = object.get<ecs::Shape>();
 /// bool ok = scene::restsInside(box, box_center, cube_center,
-/// scene::halfExtents(cube));
+///                              scene::halfExtents(cube));
 /// @endcode
 ///
 /// @par Example (carried cube vs walls)
@@ -38,6 +39,9 @@
 ///     // Count toward collisions == 0 while the vacuum holds the cube.
 /// }
 /// @endcode
+///
+/// @par Contract
+/// - Promises: pure functions on the data of a shape; no world access.
 #pragma once
 
 #include "Robotik/Robot/Components/Objects.hpp"

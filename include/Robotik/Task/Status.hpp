@@ -6,7 +6,11 @@
 // See LICENSING.md for details.
 
 /// @file Status.hpp
-/// Execution status shared by skills and behavior-tree adapters.
+/// The answer of a skill or a tree node at each tick: still running,
+/// succeeded or failed.
+///
+/// @par Contract
+/// - Promises: three states only: running, success, failure.
 #pragma once
 
 namespace robotik

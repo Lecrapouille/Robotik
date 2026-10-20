@@ -11,6 +11,11 @@
 /// These components are the truth of the simulator: metrics, assertions and
 /// RL rewards may read them, skills never do (they read the
 /// @ref robotik::WorldModel).
+///
+/// @par Contract
+/// - Promises: plain data, no logic.
+/// - Expects: only metrics, assertions, RL rewards and the grasp models read
+///   them; skills read beliefs (@ref robotik::WorldModel).
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
@@ -22,7 +27,7 @@ namespace robotik::ecs
 {
 
 /// Wall thickness in metres for @ref Shape::Type::CONTAINER (rendering, @ref
-/// Robotik/Scene/ContainerBounds.hpp).
+/// Robotik/Task/Grasp/ContainerBounds.hpp).
 inline constexpr double CONTAINER_WALL_M = 0.005;
 
 // ****************************************************************************

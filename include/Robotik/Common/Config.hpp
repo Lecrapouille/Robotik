@@ -19,6 +19,15 @@
 /// double const friction = world.at("world").at("entities")
 ///                              .item("easel").number("friction", 1.0);
 /// @endcode
+///
+/// @par Contract
+/// - Promises: @c load and @c parse return a @c Result — a message names the
+///   file and the line when the YAML is wrong.
+/// - Expects: an override path (@c set) names a field that exists, or a new key
+///   of a map.
+/// - Errors: reading a field of the wrong type (@c number on a word) throws
+///   @c std::runtime_error; the YAML readers turn it into a @c Result at
+///   their border.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

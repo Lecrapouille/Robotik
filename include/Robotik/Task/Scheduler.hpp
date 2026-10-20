@@ -11,7 +11,16 @@
 /// A planner or a behavior tree answers "what should be done"; the scheduler
 /// answers "what can be done now": it checks resources, priorities and
 /// preconditions, waits, preempts, cancels and stops skills whose resources
-/// fail. State is stored per skill in parallel arrays indexed by @ref SkillId.
+/// fail. State is stored per skill in parallel arrays indexed by @ref
+/// robotik::SkillId.
+///
+/// @par Contract
+/// - Promises: a resource is held by one running skill at most; a skill whose
+///   resource fails stops with @c ResourceLost. @c changed is emitted at each
+///   change of state (waiting, running, finished).
+/// - Expects: one @c update per step; skill names are unique.
+/// - Errors: a duplicated name throws @c std::invalid_argument; a skill driving
+///   an unknown robot throws @c std::runtime_error.
 #pragma once
 
 #include "Robotik/Robot/Resources.hpp"

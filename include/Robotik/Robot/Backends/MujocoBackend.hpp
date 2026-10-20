@@ -6,7 +6,18 @@
 // See LICENSING.md for details.
 
 /// @file MujocoBackend.hpp
-/// MuJoCo dynamics backend. Each loaded URDF is its own kinematic chain.
+/// The physics engine of RobotIK: MuJoCo computes gravity, contacts and the
+/// motor forces of every robot and object of a world.
+///
+/// Each URDF loaded becomes its own chain of bodies in one shared MuJoCo model,
+/// so robots and objects touch each other.
+///
+/// @par Contract
+/// - Promises: one physics for every robot and body of a world; contacts,
+///   welds and wrenches come from MuJoCo.
+/// - Expects: chains are loaded before the first step; names are unique.
+/// - Errors: a URDF that MuJoCo cannot read, or an unknown chain or link,
+///   throws @c std::runtime_error when the cell is built.
 #pragma once
 
 #include "Robotik/Robot/Backends/RobotBackend.hpp"

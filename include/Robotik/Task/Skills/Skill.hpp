@@ -6,7 +6,18 @@
 // See LICENSING.md for details.
 
 /// @file Skill.hpp
-/// Unit of robot behavior and its declarative description.
+/// One behaviour of a robot (move the arm, grasp, dip a brush), and the card
+/// that tells the scheduler what it needs.
+///
+/// A skill is ticked again and again until it succeeds or fails. Its
+/// @ref robotik::SkillDescription lists its resources and its priority, so the
+/// scheduler can run several skills at once without conflict.
+///
+/// @par Contract
+/// - Promises: @c reset before the first tick; @c cancel when the scheduler
+///   stops the skill; @c why tells a person why it failed.
+/// - Expects: a skill reads only its @ref robotik::RobotContext; it declares
+///   the resources it needs in its @ref robotik::SkillDescription.
 #pragma once
 
 #include "Robotik/Robot/Resources.hpp"

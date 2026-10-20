@@ -18,6 +18,9 @@
 /// A dimension marked @c privileged is computed from the ground truth of the
 /// simulator: a real robot could not observe it. A policy trained on it must
 /// not be taken for a deployable one.
+///
+/// @par Contract
+/// - Promises: each dimension has a name, bounds and a unit.
 #pragma once
 
 #include <cstddef>

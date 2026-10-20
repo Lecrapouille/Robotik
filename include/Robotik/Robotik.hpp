@@ -5,32 +5,38 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/**
- * @file Robotik.hpp
- * Umbrella header of the Robotik public API.
- *
- * A @ref robotik::Robot owns its joints, sensors, actuators and resources;
- * skills run under the @ref robotik::SkillScheduler; a
- * @ref robotik::RobotBackend (MuJoCo in simulation) moves the joints.
- * Kinematics come from Pinocchio and the scene graph from Compages. Rendering
- * stays out of the library (@ref robotik::SceneView). A @ref
- * robotik::Simulation runs a scenario and the @ref robotik::Mission that a demo
- * plugs in. An
- * @ref robotik::Agent turns an @ref robotik::Observation into an
- * @ref robotik::Action without knowing the simulator.
- *
- * Include it when you want everything at once (a small application, a test).
- * Inside the library and the plugins, prefer the precise header: it builds
- * faster.
- *
- * @code
- * #include "Robotik/Robotik.hpp"
- *
- * compages::world::World world;
- * robotik::Simulation simulation(world, robotik::loadScenario(path, assets));
- * simulation.reset(robotik::Seed(42));
- * @endcode
- */
+/// @file Robotik.hpp
+/// One include for the whole public API of RobotIK.
+///
+/// RobotIK has three layers; each one works without the ones above it
+/// (see doc/Glossary.md):
+/// @li Robot: one robot, its joints, sensors, actuators and physics
+///     (@ref robotik::openRobot, @ref robotik::Robot);
+/// @li Task: robots and objects doing a job, with a controller (behavior
+///     tree, PDDL planner or mission code) and beliefs
+///     (@ref robotik::Cell, @ref robotik::SkillScheduler);
+/// @li Package: the YAML files that describe a job, the plugins, and the
+///     verdict of a run (@ref robotik::Simulation, @ref robotik::RunRecord).
+///
+/// Include it for a small application or a test. Inside the library and the
+/// plugins, include the precise header: it builds faster.
+///
+/// @code
+/// #include "Robotik/Robotik.hpp"
+///
+/// auto scenario = robotik::loadScenario(path, assets);
+/// if (!scenario)
+///     return fail(scenario.error());
+/// compages::world::World world;
+/// robotik::Simulation simulation(world, scenario.take());
+/// while (!simulation.finished())
+///     simulation.step(robotik::Seconds(0.01));
+/// @endcode
+///
+/// @par Contract
+/// - Promises: the same API on a simulated and a real robot; files are read
+///   with a @c Result, never an exception.
+/// - Expects: skills read beliefs, never the ground truth.
 
 #pragma once
 

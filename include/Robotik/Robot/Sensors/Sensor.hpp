@@ -6,7 +6,17 @@
 // See LICENSING.md for details.
 
 /// @file Sensor.hpp
-/// Base class of every robot sensor: name, sampling rate and counters.
+/// What every sensor of a robot has: a name, a sampling rate, and counters.
+///
+/// A sensor measures something on the robot or around it. This base class
+/// decides when to measure; each kind of sensor says how (see
+/// doc/Glossary.md: "Sensor", "Latency", "Noise model").
+///
+/// @par Contract
+/// - Promises: a sensor samples at its own frequency and publishes its reading
+///   once its latency has elapsed; a failed resource makes the reading invalid.
+/// - Expects: the robot calls @ref robotik::Sensor::update at every step; a
+///   sensor never knows which algorithm reads it.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

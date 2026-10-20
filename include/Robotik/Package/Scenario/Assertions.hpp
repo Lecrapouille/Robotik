@@ -21,12 +21,17 @@
 ///     sequence:
 ///       - tool_is_attached(brush, robot.flange)
 ///       - skill_started(mark)
-///   - { condition: "joint_limits_respected(robot)", phase: always, stop: true
-///   }
+///   - { condition: "joint_limits_respected(robot)", phase: always,
+///       stop: true }
 /// @endcode
 ///
 /// A failed assertion keeps its measured value, the expected bound and the
 /// simulated time; it does not stop the run unless it says @c stop: true.
+///
+/// @par Contract
+/// - Promises: assertions only read metrics and truth queries; @c readAssertion
+///   returns a @c Result.
+/// - Expects: conditions name metrics the mission or the cell publish.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

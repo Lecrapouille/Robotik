@@ -8,10 +8,15 @@
 /// @file Detector.hpp
 /// Perception stages and the pipeline chaining them.
 ///
-/// Robotik knows what a @ref Detector is, not which algorithms exist: color
-/// blobs, AprilTag, YOLO or OpenCV detectors live in applications and plug in
-/// here. Stages run in order on the same @ref Detections, so a later stage
-/// can refine what an earlier one found (@ref DepthEstimator adds 3D points).
+/// Robotik knows what a @ref robotik::Detector is, not which algorithms exist:
+/// color blobs, AprilTag, YOLO or OpenCV detectors live in applications and
+/// plug in here. Stages run in order on the same @ref robotik::Detections, so a
+/// later stage can refine what an earlier one found (@ref
+/// robotik::DepthEstimator adds 3D points).
+///
+/// @par Contract
+/// - Promises: stages run in order on the same detections.
+/// - Expects: a detector does not keep the image after @c detect.
 #pragma once
 
 #include "Robotik/Task/Perception/Detection.hpp"

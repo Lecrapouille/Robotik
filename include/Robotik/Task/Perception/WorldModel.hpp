@@ -6,11 +6,20 @@
 // See LICENSING.md for details.
 
 /// @file WorldModel.hpp
-/// What the robot believes about the objects around it.
+/// What the robot believes about the objects around it: where they are, if
+/// they are held, and how sure it is.
 ///
-/// Skills read this belief, never the simulator ground truth: on a real robot
-/// there is none. Priors come from the mission (scenario layout), perception
-/// refines them, a simulator without rendering may feed it with an oracle.
+/// Skills read this belief, never the ground truth of the simulator: a real
+/// robot has no ground truth. A belief comes from the mission (where objects
+/// should be), from detectors, or from the simulator when the scenario asks
+/// for a truth fidelity (see doc/Glossary.md: "Perception fidelity").
+///
+/// @par Contract
+/// - Promises: each belief says where it comes from (@ref
+///   robotik::BeliefSource) and when it was last seen; an old belief is not
+///   taken as fresh.
+/// - Expects: skills and observers read it; only perception, the mission
+///   (priors) and the cell (truth fidelity) write it.
 #pragma once
 
 #include "Robotik/Task/Perception/Detection.hpp"

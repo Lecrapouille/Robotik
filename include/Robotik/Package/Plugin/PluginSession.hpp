@@ -8,9 +8,15 @@
 /// @file PluginSession.hpp
 /// Catalog, library and scenario instance used by Simulator and Headless.
 ///
-/// Tear-down order: stop the plugin, destroy the @ref Simulation (it still
-/// uses the mission), then @ref release which shuts the plugin down and
-/// deletes the mission. @ref unload closes the library after that.
+/// Tear-down order: stop the plugin, destroy the @ref robotik::Simulation (it
+/// still uses the mission), then @ref robotik::PluginSession::release which
+/// shuts the plugin down and deletes the mission. @ref
+/// robotik::PluginSession::unload closes the library after that.
+///
+/// @par Contract
+/// - Promises: assertion and skill events reach the plugin after the step, in
+///   order.
+/// - Expects: the tear-down order above.
 #pragma once
 
 #include "Robotik/Robot/Assets/AssetResolver.hpp"

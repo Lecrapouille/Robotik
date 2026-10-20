@@ -9,19 +9,29 @@
 /// Joint state, commands, limits and low-level loops of one robot.
 ///
 /// Two views of the same joints:
-/// @li @ref JointSet — the hot data, one contiguous array per quantity indexed
-///     by @ref JointId, walked by control loops and backends at 1 kHz;
+/// @li @ref robotik::JointSet — the hot data, one contiguous array per quantity
+///     indexed by @ref robotik::JointId, walked by control loops and backends
+///     at 1 kHz;
 /// @li the Compages joint components (@c compages::world::RevoluteJoint,
 ///     @c PrismaticJoint) on the link entities — limits loaded from the URDF,
 ///     and a mirror of the measured state (position, velocity, effort) for
 ///     rendering and inspection, refreshed after each step.
 ///
 /// The public API is typed with SI units: a revolute joint is addressed by a
-/// @ref Revolute handle and speaks @c Radians, @c AngularVelocity and
-/// @c Torque; a prismatic joint by a @ref Prismatic handle and speaks
+/// @ref robotik::Revolute handle and speaks @c Radians, @c AngularVelocity and
+/// @c Torque; a prismatic joint by a @ref robotik::Prismatic handle and speaks
 /// @c Length, @c LinearVelocity and @c Force. Code that walks joints of
-/// mixed types (IK solutions, backends, postures) uses @ref JointId and the
-/// SI base unit of each joint (rad or m), as Pinocchio and MuJoCo do.
+/// mixed types (IK solutions, backends, postures) uses @ref robotik::JointId
+/// and the SI base unit of each joint (rad or m), as Pinocchio and MuJoCo do.
+///
+/// @par Contract
+/// - Promises: positions, velocities and efforts are in SI units; a typed
+///   handle (@ref robotik::Revolute, @ref robotik::Prismatic) cannot be used
+///   with the wrong unit.
+/// - Expects: names resolved once (@c revolute, @c prismatic, @c require), then
+///   ids used in loops.
+/// - Errors: an unknown name, or a revolute name asked as prismatic, throws
+///   @c std::invalid_argument: it is a mistake in the code.
 #pragma once
 
 #include "Compages/World/Entity.hpp"
@@ -500,11 +510,11 @@ public:
         return m_targets[p_id];
     }
 
-    /// Untyped @ref moveTo(JointHandle, Position): @p_position in rad or m.
+    /// Untyped @ref moveTo — @p_position in rad or m.
     void moveTo(JointId p_id, double p_position);
-    /// Untyped @ref spin(JointHandle, VelocityOf): @p_velocity in rad/s or m/s.
+    /// Untyped @ref spin — @p_velocity in rad/s or m/s.
     void spin(JointId p_id, double p_velocity);
-    /// Untyped @ref push(JointHandle, EffortOf): @p_effort in N.m or N.
+    /// Untyped @ref push — @p_effort in N.m or N.
     void push(JointId p_id, double p_effort);
     /// Untyped @ref reached(JointHandle, Position) const.
     [[nodiscard]] bool reached(JointId p_id, double p_tolerance) const;

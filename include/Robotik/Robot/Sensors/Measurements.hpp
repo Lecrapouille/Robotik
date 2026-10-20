@@ -8,15 +8,19 @@
 /// @file Measurements.hpp
 /// Physical quantities measured on a robot, in SI units.
 ///
-/// These plain structs are what sensors produce and what backends report.
-/// Every sensor reading starts with a @ref Measurement header: when it was
-/// captured, in which frame its data are expressed, its rank and whether it
-/// is valid. Sensors also attach their last reading to the entity of their
-/// link, as an ECS component, so a viewer or a logger can query the world
-/// without knowing the sensors:
+/// These plain structs are what sensors produce and what backends report. Every
+/// sensor reading starts with a @ref robotik::Measurement header: when it was
+/// captured, in which frame its data are expressed, its rank and whether it is
+/// valid. Sensors also attach their last reading to the entity of their link,
+/// as an ECS component, so a viewer or a logger can query the world without
+/// knowing the sensors:
 /// @code
 /// world.each<robotik::ImuReading>([](auto p_link, auto const& p_imu) { ... });
 /// @endcode
+///
+/// @par Contract
+/// - Promises: SI units; every reading carries its time, its frame and a
+///   @c valid flag.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

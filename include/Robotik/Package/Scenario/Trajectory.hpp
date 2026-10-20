@@ -33,6 +33,9 @@
 ///   trajectories:
 ///     red: scenarios/trajectories/red_stroke.trajectory.yaml
 /// @endcode
+///
+/// @par Contract
+/// - Promises: @c loadTrajectory returns a @c Result.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

@@ -10,12 +10,19 @@
 /// objects, the physics level, the controller, the faults.
 ///
 /// A *cell* is the place where robots work (the word industry uses for a
-/// robotised work station). This description is plain data: a program fills
-/// it in a few lines, or the Package layer reads it from YAML files
-/// (a world file and a scenario file). A @ref Cell is then built from it.
+/// robotised work station). This description is plain data: a program fills it
+/// in a few lines, or the Package layer reads it from YAML files (a world file
+/// and a scenario file). A @ref robotik::Cell is then built from it.
 ///
 /// Frames are Z-up, in metres and radians. A tool that is not attached is in
 /// storage: it is not built, but a host may mount it instead of another.
+///
+/// @par Contract
+/// - Promises: plain data and free functions; nothing here reads a file.
+/// - Expects: entity ids are unique in the world; a robot named by a device or
+///   a skill exists.
+/// - Errors: @c mountTool returns a @c Result; building a @ref robotik::Cell
+///   from a wrong description throws (see @ref robotik::Cell).
 #pragma once
 
 #include "Robotik/Common/Config.hpp"
@@ -373,7 +380,7 @@ struct PlannerSpec
     Seconds replan_delay{ 0.5 };
     /// Checks the effects of each action on the beliefs once it is done.
     bool verify = true;
-    /// With @ref verify: an effect counts only when the beliefs confirm it
+    /// With @ref verify — an effect counts only when the beliefs confirm it
     /// with an observation made after the step started (@c verify: observed).
     /// Otherwise an effect the beliefs cannot tell (unknown) is accepted.
     bool observed = false;

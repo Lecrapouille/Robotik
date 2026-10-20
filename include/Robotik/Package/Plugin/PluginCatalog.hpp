@@ -36,8 +36,7 @@
 ///   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
 /// scenarios:
 ///   directory: scenarios
-///   entries:                  # optional: every runnable file of the folder
-///   otherwise
+///   entries:                  # optional; default: every runnable file
 ///     - { id: painter, name: Robotic painter, file: painter.scenario.yaml }
 ///     # optional: submenu of the Demos menu, clock overriding host.clock
 ///     - { id: rl, name: RL, file: rl.rl.yaml, menu: Learning, clock: plugin }
@@ -46,8 +45,13 @@
 /// @endcode
 ///
 /// The manifest describes the package; it does not build it. Its
-/// @c dependencies (see @ref ThirdParty) are read by the Makefile of the
+/// @c dependencies (see @ref robotik::ThirdParty) are read by the Makefile of
+///     the
 /// plugin too (plugins/dependencies.awk): it clones and builds them.
+///
+/// @par Contract
+/// - Promises: reading the catalog never loads a library; a wrong manifest is
+///   reported with its file, and the other packages stay usable.
 #pragma once
 
 #include "Robotik/Common/Version.hpp"

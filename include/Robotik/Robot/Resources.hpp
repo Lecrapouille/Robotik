@@ -10,8 +10,15 @@
 ///
 /// A failure is just an unavailable resource: no skill-specific fault code.
 /// Skills needing a failed resource cannot start; running ones are stopped by
-/// the @ref SkillScheduler. Storage is structure-of-arrays indexed by a small
-/// @ref ResourceId resolved once from the name.
+/// the @ref robotik::SkillScheduler. Storage is structure-of-arrays indexed by
+/// a small
+/// @ref robotik::ResourceId resolved once from the name.
+///
+/// @par Contract
+/// - Promises: a resource is held by one skill at most; a failure is seen by
+///   every skill that needs the resource, at the next scheduling.
+/// - Expects: names resolved once to a @ref robotik::ResourceId.
+/// - Errors: an unknown name throws @c std::invalid_argument.
 #pragma once
 
 #include <array>

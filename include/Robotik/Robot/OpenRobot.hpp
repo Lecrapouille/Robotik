@@ -22,6 +22,11 @@
 /// This is the first layer of RobotIK: one robot, its joints, sensors and
 /// physics. The layers above add a job to do (Task) and files to describe it
 /// (Package); nothing here needs them.
+///
+/// @par Contract
+/// - Promises: @c openRobot returns a @c Result — a missing model or a wrong
+///   URDF is a message, not an exception.
+/// - Expects: a model id (@c pack.key) or a path to a URDF file.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

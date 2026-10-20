@@ -24,6 +24,11 @@
 /// if (urdf)
 ///     load(urdf.value());
 /// @endcode
+///
+/// @par Contract
+/// - Promises: @c model and @c resolve return a @c Result — an unknown id or a
+///   missing file is a message listing where it looked.
+/// - Expects: pack ids are unique; the first pack found for an id wins.
 
 #pragma once
 

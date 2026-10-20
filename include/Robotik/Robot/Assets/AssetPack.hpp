@@ -6,12 +6,20 @@
 /// See LICENSING.md for details.
 
 /// @file AssetPack.hpp
-/// A versioned folder of reusable assets (robots, tools, props) for RobotIK
-/// plugins.
+/// A folder of reusable files for robot projects (robot models, tools,
+/// objects), with a small description file, @c pack.yaml, that lists them.
 ///
-/// A model is named by the pack id and its key: @c robotik.tools.vacuum. The
-/// files stay where the pack puts them; nobody outside the pack builds a path
-/// to them. Example: data/packs/robotik.tools/pack.yaml.
+/// An *asset* is such a reusable file; a *pack* is the folder that groups them
+/// with a version and a license; @c pack.yaml is its *manifest* (see
+/// doc/Glossary.md). A model is named by the pack id and its key:
+/// @c robotik.tools.vacuum. Nobody outside the pack builds a path to its
+/// files, so the pack can be moved or updated alone. Example:
+/// data/packs/robotik.tools/pack.yaml.
+///
+/// @par Contract
+/// - Promises: @c loadAssetPack returns a @c Result; the message names the
+///   @c pack.yaml and the field to fix.
+/// - Expects: the files of the pack stay inside its folder.
 
 #pragma once
 

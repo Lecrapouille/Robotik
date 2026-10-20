@@ -13,6 +13,11 @@
 /// quantization to the resolution, then saturation. An ideal channel (all
 /// zero, unbounded) returns the true value and draws no random number, so
 /// turning noise off does not shift the random streams of the other sensors.
+///
+/// @par Contract
+/// - Promises: an ideal channel returns the true value and draws no random
+///   number.
+/// - Expects: each sensor owns its generator, seeded from the cell seed.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

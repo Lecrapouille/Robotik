@@ -9,10 +9,11 @@
 /// A way for one part of the program to tell others that something happened,
 /// without knowing who listens (the "signal and slot" idea of Qt).
 ///
-/// The part that knows (a skill scheduler, a camera) owns a @ref Signal and
-/// calls it when the event happens. Anyone interested connects a function
-/// (a "slot") to it. Neither side includes the other: a simulator panel can
-/// react to a finished skill without the scheduler knowing panels exist.
+/// The part that knows (a skill scheduler, a camera) owns a @ref
+/// robotik::Signal and calls it when the event happens. Anyone interested
+/// connects a function (a "slot") to it. Neither side includes the other: a
+/// simulator panel can react to a finished skill without the scheduler knowing
+/// panels exist.
 ///
 /// @code
 /// robotik::Signal<std::string const&, bool> skill_done;
@@ -22,6 +23,13 @@
 /// skill_done("Pick", true);   // prints "Pick succeeded"
 /// skill_done.disconnect(id);
 /// @endcode
+///
+/// @par Contract
+/// - Promises: slots are called in the order they were connected, at once, on
+///   the thread that emits. A slot may connect or disconnect during an emit.
+/// - Expects: a slot does not outlive what it captures; use
+///   @ref robotik::ScopedConnection to disconnect at the end of a scope.
+/// - Errors: none; an exception thrown by a slot goes back to the emitter.
 #pragma once
 
 #include <cstddef>

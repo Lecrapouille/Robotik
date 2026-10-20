@@ -6,7 +6,18 @@
 // See LICENSING.md for details.
 
 /// @file SceneView.hpp
-/// Rendering hooks, implemented by graphical applications.
+/// What a window adds to a simulation: 3D models, camera images, a ground
+/// texture.
+///
+/// The simulation works without it (headless): a graphical host implements
+/// these hooks, the library only calls them when a view is given.
+///
+/// @par Contract
+/// - Promises: every call may be skipped: a null @ref robotik::SceneView is a
+///   headless run and the simulation does not change.
+/// - Expects: the simulation calls the view after it changed the world, never
+///   the reverse.
+/// - Errors: a 3D file that cannot be loaded throws @c std::runtime_error.
 #pragma once
 
 #include "Compages/Renderer/Assets/UrdfLoader.hpp"

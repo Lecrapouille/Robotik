@@ -9,9 +9,11 @@
 /// A reinforcement learning environment over a robot cell, assembled from
 /// three parts that can be swapped independently.
 ///
-/// @li @ref ObservationBuilder: what the agent may know, as a @ref Space;
-/// @li @ref ActionAdapter: how a float vector becomes robot commands;
-/// @li @ref RewardEvaluator: how a step is scored, and when the task ends.
+/// @li @ref robotik::ObservationBuilder — what the agent may know, as a @ref
+///     robotik::Space;
+/// @li @ref robotik::ActionAdapter — how a float vector becomes robot commands;
+/// @li @ref robotik::RewardEvaluator — how a step is scored, and when the task
+///     ends.
 ///
 /// The environment owns the simulation: it resets the world from a seed,
 /// holds each action for a fixed control period, truncates at the step
@@ -24,10 +26,18 @@
 /// parts.action = std::make_unique<MyAction>();
 /// parts.reward = std::make_unique<MyReward>();
 /// robotik::SimulationEnvironment env(
-///     robotik::loadScenario(path, assets), std::move(parts), // a CellDescription
-///     robotik::EnvironmentTiming{ .control_period = Seconds(0.1), .max_steps =
-///     100 });
+///     robotik::loadScenario(path, assets).take(), // a CellDescription
+///     std::move(parts),
+///     robotik::EnvironmentTiming{ .control_period = Seconds(0.1),
+///                                 .max_steps = 100 });
 /// @endcode
+///
+/// @par Contract
+/// - Promises: an episode starts from the seed given to @c reset; a technical
+///   error aborts the episode instead of the program.
+/// - Expects: the three parts are given.
+/// - Errors: a missing part, or a control period that is not a positive
+///   multiple of the physics step, throws @c std::invalid_argument.
 #pragma once
 
 #include "Robotik/Task/Learning/Environment.hpp"

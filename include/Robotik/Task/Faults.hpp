@@ -10,6 +10,10 @@
 ///
 /// The injector only flips resource availability; skills never know whether
 /// a failure was injected, simulated or real.
+///
+/// @par Contract
+/// - Promises: same seed, same random faults.
+/// - Expects: the resources named exist.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

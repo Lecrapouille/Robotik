@@ -6,7 +6,15 @@
 // See LICENSING.md for details.
 
 /// @file PluginHost.hpp
-/// Host services behind @ref RobotikHostAPI. No user interface toolkit.
+/// What the host gives to a plugin: logs, menus, panels, the scenario path,
+/// the mission to bind.
+///
+/// It is the host side of the C border (@ref RobotikHostAPI). It knows no
+/// window toolkit: the simulator draws the menus and panels it holds.
+///
+/// @par Contract
+/// - Promises: the plugin only reaches the host through these services; the
+///   menus and panels it adds are removed when it unloads.
 #pragma once
 
 #include "Robotik/Package/Plugin/PluginABI.h"

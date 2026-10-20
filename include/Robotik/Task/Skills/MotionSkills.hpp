@@ -8,9 +8,13 @@
 /// @file MotionSkills.hpp
 /// Joint-space and Cartesian motions, and the emergency stop.
 ///
-/// Joint ids are resolved once at @ref Skill::reset, so ticks only touch the
-/// dense @ref JointSet arrays. A cancelled motion holds the joints where they
-/// are.
+/// Joint ids are resolved once at @ref robotik::Skill::reset, so ticks only
+/// touch the dense @ref robotik::JointSet arrays. A cancelled motion holds the
+/// joints where they are.
+///
+/// @par Contract
+/// - Promises: a cancelled motion holds the joints where they are.
+/// - Expects: joint names exist in the robot.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

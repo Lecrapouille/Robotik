@@ -6,7 +6,15 @@
 // See LICENSING.md for details.
 
 /// @file RobotContext.hpp
-/// Everything a skill may use during one tick.
+/// Everything a skill may use during one tick: its robot, the beliefs of the
+/// cell, the time.
+///
+/// It is the only door of a skill to the world. There is no simulator in it,
+/// so the same skill can run on a real robot.
+///
+/// @par Contract
+/// - Promises: the robot, the beliefs, the time; no ground truth.
+/// - Expects: a skill keeps nothing of it after the tick.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

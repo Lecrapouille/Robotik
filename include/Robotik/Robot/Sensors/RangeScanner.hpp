@@ -6,7 +6,14 @@
 // See LICENSING.md for details.
 
 /// @file RangeScanner.hpp
-/// Planar range scanner (2D lidar).
+/// A planar lidar: it sends beams in a fan and measures the distance to the
+/// first obstacle on each one.
+///
+/// Mobile robots use it to see walls and obstacles around them.
+///
+/// @par Contract
+/// - Promises: a beam that hits nothing reads the maximum range, without noise.
+/// - Expects: the scan plane is the XY plane of the mounted frame.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

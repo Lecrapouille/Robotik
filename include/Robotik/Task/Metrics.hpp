@@ -18,6 +18,10 @@
 /// cross_track.max < 0.08
 /// pose_error(easel) < 0.002
 /// @endcode
+///
+/// @par Contract
+/// - Promises: an unknown metric is reported as such, never read as 0.
+/// - Expects: metric names are free text without spaces.
 #pragma once
 
 #include <functional>

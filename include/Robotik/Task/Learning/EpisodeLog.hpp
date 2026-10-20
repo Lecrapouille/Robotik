@@ -8,6 +8,9 @@
 /// @file EpisodeLog.hpp
 /// What a learning or evaluation run must keep to be compared and replayed:
 /// the episodes with their seeds, and what produced them.
+///
+/// @par Contract
+/// - Promises: enough to replay each episode: its seed and what produced it.
 #pragma once
 
 #include "Robotik/Task/Learning/Environment.hpp"

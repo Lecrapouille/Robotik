@@ -6,7 +6,14 @@
 // See LICENSING.md for details.
 
 /// @file File.hpp
-/// Small helpers around @c std::filesystem for paths on disk.
+/// Small questions about files on disk: is it a folder, is it a file, where
+/// is the running program.
+///
+/// They never throw, unlike some @c std::filesystem calls: a missing file or a
+/// denied access simply answers @c false.
+///
+/// @par Contract
+/// - Promises: no function throws; a path that does not exist gives @c false.
 
 #pragma once
 

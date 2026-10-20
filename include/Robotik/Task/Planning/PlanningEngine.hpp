@@ -6,7 +6,15 @@
 // See LICENSING.md for details.
 
 /// @file PlanningEngine.hpp
-/// A PDDL planner behind a RobotIK interface (Kairos by default).
+/// A PDDL planner behind a small RobotIK interface (Kairos by default).
+///
+/// The planner reads what can be done (the domain) and what is wanted (the
+/// goal), and returns a list of actions (see doc/Glossary.md: "PDDL"). Only
+/// src/Robotik/Task/Planning/Kairos/ knows Kairos.
+///
+/// @par Contract
+/// - Promises: the same problem and options give the same plan.
+/// - Expects: a PDDL problem as text.
 #pragma once
 
 #include "Robotik/Task/Planning/Pddl.hpp"

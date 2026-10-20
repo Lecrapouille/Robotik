@@ -28,6 +28,10 @@
 ///
 /// Any execution that keeps these pairs leads to the same final state as the
 /// plan. A variable of a quantified formula (@c ?x) matches any argument.
+///
+/// @par Contract
+/// - Promises: any order that keeps the pairs gives the final state of the
+///   plan.
 #pragma once
 
 #include "Robotik/Task/Planning/Pddl.hpp"

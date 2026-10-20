@@ -8,8 +8,8 @@
 /// @file World.hpp
 /// Reads a world file: what physically exists at the start of a run.
 ///
-/// The data it fills (@ref WorldDescription) is plain C++ in the Task layer;
-/// this file only knows the YAML format below.
+/// The data it fills (@ref robotik::WorldDescription) is plain C++ in the Task
+/// layer; this file only knows the YAML format below.
 ///
 /// A world file lists entities. The URDF of a model describes its structure;
 /// the world says which instance is present, where, and what it hangs from.
@@ -52,6 +52,10 @@
 ///
 /// Frames are Z-up, in metres and radians. A tool that is not attached is in
 /// storage: it is not built, but a host may mount it instead of another.
+///
+/// @par Contract
+/// - Promises: @c loadWorld and @c readWorld return a @c Result.
+/// - Expects: paths start at the package root.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

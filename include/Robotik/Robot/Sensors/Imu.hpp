@@ -6,7 +6,17 @@
 // See LICENSING.md for details.
 
 /// @file Imu.hpp
-/// Inertial measurement unit: specific force, angular velocity and attitude.
+/// An IMU (inertial measurement unit): it measures how its link moves (the
+/// acceleration felt, the turn rate) and how it is tilted.
+///
+/// Drones, legged robots and phones use one to keep their balance. In
+/// simulation the true motion of the link is measured, then the noise model
+/// spoils it.
+///
+/// @par Contract
+/// - Promises: the reading is in the IMU frame; the first two samples of an
+///   episode have no velocity or acceleration yet (finite differences).
+/// - Expects: the parent link exists in the robot.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

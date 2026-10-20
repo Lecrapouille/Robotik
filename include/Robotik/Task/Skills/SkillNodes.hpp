@@ -6,7 +6,16 @@
 // See LICENSING.md for details.
 
 /// @file SkillNodes.hpp
-/// Behavior tree actions backed by the @ref SkillScheduler.
+/// Behavior tree nodes that run a skill through the scheduler.
+///
+/// The tree decides what to do; the node only asks the scheduler, so
+/// resources and priorities stay checked (see doc/Glossary.md: "Behavior
+/// tree").
+///
+/// @par Contract
+/// - Promises: a node asks the scheduler for its skill and returns its state; a
+///   halted node cancels the skill.
+/// - Expects: the skill is registered in the scheduler.
 #pragma once
 
 #include "BlackThorn/BlackThorn.hpp"

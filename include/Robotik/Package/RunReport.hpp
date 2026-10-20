@@ -8,6 +8,10 @@
 /// @file RunReport.hpp
 /// What a finished run leaves behind: outcome, verdicts and metrics, with
 /// what is needed to replay it (scenario, case, seed).
+///
+/// @par Contract
+/// - Promises: a report tells how real the run was (physics and perception
+///   fidelity) next to its verdicts, and how to replay it (file, case, seed).
 #pragma once
 
 #include "Robotik/Package/Scenario/Assertions.hpp"

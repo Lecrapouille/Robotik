@@ -8,8 +8,8 @@
 /// @file PluginAPI.hpp
 /// C++ helpers for a demo plugin. The exported symbols stay C.
 ///
-/// A plugin derives from @ref Plugin, gives a static @c describe(), and
-/// exports itself with @ref ROBOTIK_EXPORT_PLUGIN. The helpers turn the C
+/// A plugin derives from @ref robotik::Plugin, gives a static @c describe(),
+/// and exports itself with @ref ROBOTIK_EXPORT_PLUGIN. The helpers turn the C
 /// calls of @c PluginABI.h into virtual calls, and C++ exceptions into error
 /// statuses: nothing C++ crosses the border.
 ///
@@ -17,11 +17,13 @@
 /// class MyPlugin final : public robotik::Plugin
 /// {
 /// public:
-///     static robotik::PluginInfo describe() { return { .id =
-///     "robotik.my_plugin" }; }
+///     static robotik::PluginInfo describe()
+///     {
+///         return { .id = "robotik.my_plugin" };
+///     }
 ///
-///     RobotikPluginStatus setup(robotik::Host& p_host, std::string_view
-///     p_scenario) override
+///     RobotikPluginStatus setup(robotik::Host& p_host,
+///                               std::string_view p_scenario) override
 ///     {
 ///         if (p_scenario != "demo")
 ///             return ROBOTIK_PLUGIN_ERR_SETUP;
@@ -35,6 +37,12 @@
 ///
 /// ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 /// @endcode
+///
+/// @par Contract
+/// - Promises: a C++ exception in a plugin becomes an error status at the
+///   border; nothing C++ crosses it.
+/// - Expects: @c describe().id equals @c plugin.id of @c plugin.yaml; the
+///   scenario ids tested in @c setup are listed in it.
 #pragma once
 
 #include "Robotik/Package/Plugin/PluginABI.h"

@@ -12,6 +12,11 @@
 /// reads the part it needs to build problems and check the plan: types,
 /// constants, predicates and the plain effects of the actions. Names are
 /// lower case, as PDDL does not tell case apart.
+///
+/// @par Contract
+/// - Promises: @c parseDomain and @c parseLiteral return a @c Result with the
+///   line of the error.
+/// - Expects: names in lower case.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

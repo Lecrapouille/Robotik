@@ -7,16 +7,22 @@
 
 /// @file GraspModel.hpp
 /// How the simulation makes a gripper hold an object, per level of physics
-/// fidelity (@ref Fidelity).
+/// fidelity (@ref robotik::Fidelity).
 ///
 /// Skills never see the model: they turn the suction of a
-/// @ref VacuumGripper on or off and read @c holding(). The model decides
+/// @ref robotik::VacuumGripper on or off and read @c holding(). The model
+///     decides
 /// what that does to the world after each physics step:
-/// - @ref AbstractGrasp: the object follows the tool, and is put down where
-///   it belongs on release (no contact, no fall);
-/// - @ref RigidGrasp: the object is a rigid body of the physics engine; a
-///   weld holds it, and it falls for real on release.
+/// - @ref robotik::AbstractGrasp — the object follows the tool, and is put down
+///   where it belongs on release (no contact, no fall);
+/// - @ref robotik::RigidGrasp — the object is a rigid body of the physics
+///   engine; a weld holds it, and it falls for real on release.
 /// The models share the grippers: each one only touches its own objects.
+///
+/// @par Contract
+/// - Promises: skills never see the model; each model only moves its own
+///   objects.
+/// - Expects: one @c update after each physics step.
 #pragma once
 
 #include <string>

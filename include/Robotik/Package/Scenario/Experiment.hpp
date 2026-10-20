@@ -33,6 +33,10 @@
 /// A case is a variant of the experiment, not a mutation of the previous
 /// one: each run rebuilds its world from the files, then resets it with its
 /// seed. An optional @c world: replaces the world of every scenario.
+///
+/// @par Contract
+/// - Promises: @c loadExperiment returns a @c Result; each case rebuilds its
+///   world from the files.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"
@@ -76,7 +80,7 @@ struct ExperimentCase
 // ****************************************************************************
 /// Parsed experiment file.
 ///
-/// Each case is run once per seed; @ref scenario builds what one run needs.
+/// Each case is run once per seed; @ref scenarioOf builds what one run needs.
 ///
 /// @code
 /// auto const experiment = robotik::loadExperiment(file).take();

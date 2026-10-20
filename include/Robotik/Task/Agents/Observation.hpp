@@ -8,9 +8,13 @@
 /// @file Observation.hpp
 /// What an agent is allowed to know at one instant.
 ///
-/// A flat vector, same layout an @ref Environment writes into its observation
-/// buffer. The agent never receives a camera image, a texture or a simulator
-/// handle.
+/// A flat vector, same layout an @ref robotik::Environment writes into its
+/// observation buffer. The agent never receives a camera image, a texture or a
+/// simulator handle.
+///
+/// @par Contract
+/// - Promises: a flat vector in the layout of the observation @ref
+///   robotik::Space.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

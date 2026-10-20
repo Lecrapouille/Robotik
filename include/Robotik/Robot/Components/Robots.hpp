@@ -6,7 +6,11 @@
 // See LICENSING.md for details.
 
 /// @file RobotComponents.hpp
-/// ECS markers of a loaded robot root entity.
+/// Markers put on the root entity of a robot, so a viewer or a query can find
+/// the robots of a world and tell which robot a link belongs to.
+///
+/// @par Contract
+/// - Promises: plain data, no logic.
 #pragma once
 
 #include <cstddef>

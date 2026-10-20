@@ -6,9 +6,25 @@
 // See LICENSING.md for details.
 
 /// @file Cell.hpp
-/// A robot cell running in simulation: robots and objects sharing one physics,
-/// a controller deciding what to do, and the true state of the world for
-/// measures. Headless unless a @ref SceneView is given.
+/// A robot cell running in simulation: robots and objects sharing one
+/// physics, a controller deciding what to do, and the true state of the world
+/// for measures.
+///
+/// A *cell* is the place where robots work, as in a factory (see
+/// doc/Glossary.md). It is the Task layer: a C++ program builds one from a
+/// @ref robotik::CellDescription, without any file. Headless unless a @ref
+///     robotik::SceneView is
+/// given.
+///
+/// @par Contract
+/// - Promises: same description and same seed, same run. Skills, observers and
+///   missions read beliefs; the truth API (@c pose, @c query) is for metrics,
+///   assertions and RL rewards (@c make @c check-layers checks it).
+/// - Expects: one @c step per control period; entities are found by id each
+///   time, never kept by a plugin.
+/// - Errors: a description that cannot be built throws @c std::runtime_error in
+///   the constructor; an unknown entity or robot in a query throws
+///   @c std::invalid_argument.
 #pragma once
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
@@ -55,12 +71,12 @@ struct Shape;
 /// Robots doing a job together, replayable from a seed.
 ///
 /// Built from a @ref CellDescription, written in C++ or read from YAML by the
-/// Package layer. Each @ref step: faults, controller tick (the behavior tree
+/// Package layer. Each @ref step — faults, controller tick (the behavior tree
 /// or the plan requests skills), scheduler update (admits and ticks skills),
 /// robot step (physics, sensors, perception into the @ref WorldModel),
-/// simulated suction, mission. When the description allows it
-/// (@ref OraclePolicy), an oracle feeds the world model with the ground truth
-/// while a sensor resource is available.
+/// simulated suction, mission. When the perception fidelity of an object is
+/// @c truth or @c noisy_truth (@ref PerceptionSpec), the cell writes its
+/// belief from the ground truth, as a mock of the detectors.
 ///
 /// The controller stops being ticked once it succeeds or fails (see
 /// @ref status), or when @ref stopController is called; the physics keeps
@@ -202,7 +218,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Options of the physics the core builds after @ref Mission::setup: a
+    /// Options of the physics the core builds after @ref Mission::setup — a
     /// mission may tune them there (a floating base, no gravity
     /// compensation, the step and the rotors of a legged robot). The world
     /// still adds its floor. The robots, tools, bodies and rigid props of the
@@ -540,7 +556,7 @@ private:
     std::vector<std::unique_ptr<RobotSession>> m_robots;
     /// The first robot.
     RobotSession* m_robot = nullptr;
-    /// @ref RobotContext::team: every robot when there are several.
+    /// @ref RobotContext::team — every robot when there are several.
     std::vector<Robot*> m_team;
     /// Beliefs shared by the robots.
     WorldModel m_world_model;

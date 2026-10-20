@@ -8,12 +8,15 @@
 /// @file Localization.hpp
 /// Robot pose in a map from fiducials of known placement.
 ///
-/// Works with any detector that fills @ref Detection::id and
-/// @ref Detection::pose (AprilTag, ArUco...). The chain is
+/// Works with any detector that fills @ref robotik::Detection::id and
+/// @ref robotik::Detection::pose (AprilTag, ArUco...). The chain is
 /// camera frame -> robot frame -> map frame:
 /// @code
 /// map_T_base = map_T_tag * inverse(camera_T_tag) * inverse(base_T_camera)
 /// @endcode
+///
+/// @par Contract
+/// - Promises: no pose when no known marker is seen.
 #pragma once
 
 #include "Robotik/Task/Perception/Detection.hpp"

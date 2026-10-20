@@ -10,6 +10,12 @@
 ///
 /// The library stays loaded when the scenario instance is destroyed, so
 /// another scenario of the same plugin can be prepared without @c dlopen.
+///
+/// @par Contract
+/// - Promises: each call returns a status; @c error() tells why the last one
+///   failed.
+/// - Expects: the order load, create, setup, start, then stop, shutdown,
+///   destroy, unload.
 #pragma once
 
 #include "Robotik/Package/Plugin/PluginABI.h"

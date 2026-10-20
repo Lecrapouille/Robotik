@@ -6,7 +6,12 @@
 // See LICENSING.md for details.
 
 /// @file Action.hpp
-/// What an agent decided. A controller turns it into motor commands.
+/// What an agent decided, as a list of numbers. An adapter turns it into
+/// commands for the robot.
+///
+/// @par Contract
+/// - Promises: a flat vector; its layout is the @ref robotik::Space of the
+///   environment.
 #pragma once
 
 #include <vector>

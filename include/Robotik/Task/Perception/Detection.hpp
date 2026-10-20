@@ -9,8 +9,13 @@
 /// What a detector saw in one image (not yet world knowledge).
 ///
 /// A detection lives in image space and, at best, in the camera frame. Turning
-/// it into robot or world coordinates is the job of @ref WorldModel or of
-/// @ref localize, which use the camera pose stored next to the detections.
+/// it into robot or world coordinates is the job of @ref robotik::WorldModel or
+/// of
+/// @ref robotik::localize, which use the camera pose stored next to the
+///     detections.
+///
+/// @par Contract
+/// - Promises: plain data in image space and, at best, in the camera frame.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

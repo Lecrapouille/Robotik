@@ -32,8 +32,12 @@
 ///   faults:
 ///     - { at: 4.0, resource: wrist_camera, action: disable }
 ///     - { resource: gripper, rate: 0.01 }
-///   perception: { oracle: when_blind }     # never (default) | when_blind |
-///   always timeout: 30 stop_when: inside(red_cube, box)       # optional
+///   perception:                            # where beliefs come from
+///     fidelity: sensed                     # truth | noisy_truth | sensed
+///     blind: truth                         # when no camera has an image
+///     overrides: { red_cube: truth }       # per object
+///   timeout: 30
+///   stop_when: inside(red_cube, box)       # optional
 ///   parameters:                            # free, read by the mission
 ///     approach_height: 0.10
 ///   assertions:
@@ -41,13 +45,21 @@
 ///     - inside(red_cube, box)
 /// @endcode
 ///
-/// The oracle copies the true pose of the props into what the robot believes.
-/// It is off unless the scenario asks for it: @c when_blind turns it on when
-/// no camera has an image source (a headless run), @c always regardless.
-/// Results obtained with it are labelled as such.
+/// The perception fidelity says where the beliefs of the robot come from
+/// (see doc/Glossary.md): @c sensed runs the detectors on the camera images;
+/// @c truth copies the true pose of the objects, as a mock of the detectors;
+/// @c noisy_truth adds noise, delay and misses to it. @c blind is used when
+/// no camera has an image source (a headless run). The run report tells
+/// which level each run used. The older key @c oracle is still read
+/// (@c always is @c fidelity: @c truth, @c when_blind is @c blind: @c truth).
 ///
 /// Files are relative to the package root and stay inside it
 /// (@ref PackagePath.hpp).
+///
+/// @par Contract
+/// - Promises: @c loadScenario returns a @c Result — the message names the file
+///   and the field to fix.
+/// - Expects: paths start at the package root.
 #pragma once
 
 #include "Robotik/Robot/Assets/AssetResolver.hpp"

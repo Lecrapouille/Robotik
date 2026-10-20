@@ -6,7 +6,19 @@
 // See LICENSING.md for details.
 
 /// @file PinocchioBackend.hpp
-/// Pinocchio kinematics and damped least-squares IK for one URDF.
+/// The geometry of one robot: where each link is for given joint angles
+/// (kinematics), and which joint angles put a link at a wanted pose (inverse
+/// kinematics, IK).
+///
+/// It uses the Pinocchio library and knows nothing of physics: it gives the
+/// same answer in simulation and on a real robot.
+///
+/// @par Contract
+/// - Promises: frame poses are in the robot base frame, after
+///   @c updateKinematics.
+/// - Expects: a URDF file that Pinocchio can read.
+/// - Errors: a file it cannot read throws @c std::runtime_error at
+///   construction; an unknown frame name throws @c std::invalid_argument.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

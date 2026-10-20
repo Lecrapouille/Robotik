@@ -6,7 +6,18 @@
 // See LICENSING.md for details.
 
 /// @file Devices.hpp
-/// Registry of the sensors or the actuators of a robot.
+/// The list of the sensors, or of the actuators, of one robot.
+///
+/// It owns the devices and declares each one as a resource (see
+/// doc/Glossary.md: "Resource"), so a skill reserves the camera by its name and
+/// a fault on that name stops the camera.
+///
+/// @par Contract
+/// - Promises: each device is a resource of the same name; a failed resource
+///   stops its device at the next step.
+/// - Expects: device names are unique in the world (several robots share one
+///   resource manager).
+/// - Errors: a duplicated name throws @c std::invalid_argument.
 #pragma once
 
 #include "Robotik/Robot/Resources.hpp"

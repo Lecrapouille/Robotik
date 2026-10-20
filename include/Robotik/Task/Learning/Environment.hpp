@@ -12,12 +12,17 @@
 /// Observations and actions are flat float vectors written in place: an
 /// environment step allocates nothing, and the pool stores all of them in
 /// contiguous row-major buffers ready to hand to a learner. Their layout is
-/// described by a @ref Space: a name, bounds and a unit per dimension.
+/// described by a @ref robotik::Space — a name, bounds and a unit per
+/// dimension.
 ///
 /// An environment is one simulated world; an agent is something that acts in
-/// it. Several environments (@ref EnvironmentPool) collect experience faster
-/// or compare conditions; several agents in one environment interact. The
-/// two combine, and are not to be confused.
+/// it. Several environments (@ref robotik::EnvironmentPool) collect experience
+/// faster or compare conditions; several agents in one environment interact.
+/// The two combine, and are not to be confused.
+///
+/// @par Contract
+/// - Promises: a step allocates nothing; same seed, same episode.
+/// - Expects: the buffers have the size of the spaces.
 #pragma once
 
 #include "Robotik/Task/Learning/Space.hpp"
@@ -307,7 +312,7 @@ public:
 
 private:
 
-    /// Loop of a worker thread: waits for a generation, then @ref run.
+    /// Loop of a worker thread: waits for a generation, then runs it.
     void work(std::size_t p_worker);
     /// Resets or steps the environments of worker @p_worker.
     void run(std::size_t p_worker);

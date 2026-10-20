@@ -6,7 +6,16 @@
 // See LICENSING.md for details.
 
 /// @file ForceTorqueSensor.hpp
-/// Six-axis force/torque sensor (wrist, ankle, gripper).
+/// A force-torque sensor: it measures the push and the twist on a link (the
+/// wrist, an ankle, a gripper).
+///
+/// Skills use it to feel a contact: stop when the tool touches the table,
+/// press with a given force.
+///
+/// @par Contract
+/// - Promises: no reading when the backend cannot measure the wrench (a
+///   kinematic backend).
+/// - Expects: the link exists in the physics.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"

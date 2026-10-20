@@ -6,12 +6,23 @@
 // See LICENSING.md for details.
 
 /// @file Robot.hpp
-/// The robot as seen by skills (@ref Robot) and by the application that runs
-/// it (@ref RobotSession).
+/// The robot: its joints, sensors, actuators and kinematics, in one object.
 ///
-/// Skills only see @ref Robot: joints, sensors, actuators, resources and
-/// kinematics. Whether a MuJoCo model, a kinematic model or the hardware sits
-/// behind is the business of the @ref RobotBackend plugged in the session.
+/// There are two views of it. Skills see @ref robotik::Robot — they read the
+/// joints and the sensors and send commands, nothing more. The program that
+/// runs the robot owns a @ref robotik::RobotSession — it steps the physics and
+/// the sensors. So a skill cannot step the world by mistake, and the same skill
+/// drives a simulated arm or a real one (see doc/Glossary.md: "Backend").
+///
+/// @par Contract
+/// - Promises: a skill sees the same @ref robotik::Robot API in simulation and
+///   on a real robot; only the @ref robotik::RobotBackend of the session
+///   changes.
+/// - Expects: one @ref robotik::RobotSession::step per control period; names of
+///   joints and frames that exist in the URDF.
+/// - Errors: an unknown joint or frame name is a programming error and throws
+///   @c std::invalid_argument. Opening a robot from a file is done by
+///   @ref robotik::openRobot, which returns a @c Result.
 #pragma once
 
 #include "Robotik/Robot/Backends/RobotBackend.hpp"
@@ -172,7 +183,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @return Base pose and velocity in the world (see @ref BaseState:
+    /// @return Base pose and velocity in the world (see @ref BaseState —
     ///   ground truth in simulation, not an estimate).
     // -------------------------------------------------------------------------
     [[nodiscard]] BaseState const& base() const

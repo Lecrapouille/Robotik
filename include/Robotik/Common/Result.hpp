@@ -33,6 +33,11 @@
 ///     return robotik::success();
 /// }
 /// @endcode
+///
+/// @par Contract
+/// - Promises: a @c Result holds a value or a message, never both.
+/// - Expects: the caller checks it (@c if (result)) before @c value(); reading
+///   the value of a failure is a programming error.
 #pragma once
 
 #include "Compages/Core/Result.hpp"

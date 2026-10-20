@@ -6,8 +6,16 @@
 // See LICENSING.md for details.
 
 /// @file Version.hpp
-/// Semantic version of an asset pack or a plugin, and the rule used to check
-/// a requirement against it.
+/// The version number of an asset pack or a plugin (@c 1.2.0), and the rule
+/// to tell whether a found version is good for a requirement.
+///
+/// A version tells users which changes they can expect: the first number
+/// changes when something breaks, the second when something is added.
+///
+/// @par Contract
+/// - Promises: @c parseVersion reads "1", "1.2" or "1.2.3" and returns
+///   nothing for any other text; @c satisfies accepts the same major
+///   version, not older.
 
 #pragma once
 

@@ -9,8 +9,9 @@
 /// Deterministic seeds and a tiny random generator.
 ///
 /// There is no global generator: every consumer (world layout, sensor noise,
-/// faults, each RL environment) derives its own @ref Seed from a master seed,
-/// so adding a consumer never shifts the random stream of another one.
+/// faults, each RL environment) derives its own @ref robotik::Seed from a
+/// master seed, so adding a consumer never shifts the random stream of another
+/// one.
 ///
 /// @code
 /// robotik::Seed const master(123456);
@@ -18,6 +19,11 @@
 /// robotik::Seed const env3 = master.derive(3u);
 /// robotik::Seed const episode = env3.derive(42u);
 /// @endcode
+///
+/// @par Contract
+/// - Promises: the same seed gives the same numbers on every machine (no
+///   @c std::random_device, no library distribution whose output may change).
+/// - Expects: each consumer derives its own seed; nobody shares a generator.
 #pragma once
 
 #include <cmath>

@@ -6,8 +6,20 @@
 // See LICENSING.md for details.
 
 /// @file RobotBackend.hpp
-/// What moves the joints of a robot: physics engine, kinematic model or
-/// hardware driver.
+/// What moves the joints of a robot: a physics engine, a kinematic model or a
+/// driver for real hardware.
+///
+/// The robot writes commands (targets, efforts) and reads measurements. The
+/// backend sits between them and the world. Swapping it is how the same
+/// skills run in simulation and on a real robot (see doc/Glossary.md:
+/// "Backend").
+///
+/// @par Contract
+/// - Promises: @c attach once, @c reset at each episode, @c step at each
+///   control period. The optional queries (contacts, body poses, wrench) answer
+///   "nothing" when the backend cannot measure them.
+/// - Expects: the backend reads the joint commands of the robot and writes the
+///   measured joint state back; it owns no skill logic.
 #pragma once
 
 #include "Robotik/Robot/Sensors/Measurements.hpp"

@@ -11,8 +11,8 @@
 /// @code{.text}
 /// worlds/arm.world.yaml                   world
 /// scenarios/wave.scenario.yaml            scenario
-/// scenarios/pick.rl.yaml                  scenario driven by a learned policy
-/// (id pick_rl) scenarios/wave.bt.yaml                  behavior tree
+/// scenarios/pick.rl.yaml                  learned policy scenario (id pick_rl)
+/// scenarios/wave.bt.yaml                  behavior tree
 /// scenarios/pick.domain.pddl              PDDL domain
 /// scenarios/trajectories/red.trajectory.yaml
 /// experiments/bench.experiment.yaml       experiment
@@ -21,6 +21,9 @@
 /// It is a convention, not a rule: the loaders read the content and never
 /// refuse a file for its name. Files without a role (an older
 /// @c wave.yml) keep working.
+///
+/// @par Contract
+/// - Promises: a name without a known role is still accepted.
 #pragma once
 
 #include <filesystem>

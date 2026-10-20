@@ -12,6 +12,12 @@
 /// A joint is kinematics (an axis and limits); an actuator is a device that
 /// drives one or several joints, or the world (suction). Each actuator is a
 /// resource of the same name, reserved by skills and disabled on failure.
+///
+/// @par Contract
+/// - Promises: while the resource of an actuator is unavailable, the robot
+///   calls its @c disable before each physics step (a gripper lets go).
+/// - Expects: joint names of a @ref robotik::JointGroup exist in the robot.
+/// - Errors: an unknown joint name throws @c std::invalid_argument.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"

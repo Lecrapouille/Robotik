@@ -9,12 +9,18 @@
 /// Robot camera sensor, its frames and the source that fills them.
 ///
 /// Robotik owns the camera concept; it does not render nor grab images. A
-/// @ref FrameSource does: the simulator renders with Compages, a demo grabs a
-/// USB camera, a test synthesizes pixels. Consumers only see @ref CameraFrame
-/// (CPU images), never OpenGL, OpenCV or a driver.
+/// @ref robotik::FrameSource does: the simulator renders with Compages, a demo
+///     grabs a
+/// USB camera, a test synthesizes pixels. Consumers only see @ref
+/// robotik::CameraFrame (CPU images), never OpenGL, OpenCV or a driver.
 ///
 /// Optical frame convention (OpenCV, AprilTag, ROS): @c +Z looks forward,
 /// @c +X goes right in the image and @c +Y goes down.
+///
+/// @par Contract
+/// - Promises: @c frames is emitted once per captured frame; nothing is emitted
+///   when no @ref robotik::FrameSource is connected (headless).
+/// - Expects: the source fills the image in the size of the intrinsics.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
@@ -106,7 +112,7 @@ struct CameraFrame: Measurement
 class Camera;
 
 // ****************************************************************************
-/// Fills a @ref CameraFrame: renderer, driver or synthetic generator.
+/// Fills a @ref CameraFrame — renderer, driver or synthetic generator.
 ///
 /// @code
 /// class GrayTest final : public robotik::FrameSource

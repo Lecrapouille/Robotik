@@ -24,6 +24,7 @@ Chapters 6 to 11 are references: open them when you need them.
 | 9 | [Demos](09-Demos.md) | Every plugin of the repository, and how to write a good demo |
 | 10 | [Tools and frames](10-Tools-and-Frames.md) | Flange, `tool0`, `tool_mount`, TCP; mounting a tool |
 | 11 | [The PDDL planner](11-PDDL-Planner.md) | A goal instead of a tree: domain, observers, bindings, replanning |
+| — | [Glossary](Glossary.md) | The words of RobotIK (asset, pack, skill, belief, fidelity...) in simple English |
 
 ## Quick paths
 

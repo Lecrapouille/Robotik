@@ -26,6 +26,10 @@
 /// vtable.setup(plugin, "wave");
 /// vtable.start(plugin);
 /// @endcode
+///
+/// @par Contract
+/// - Promises: plain C; every structure starts with its size.
+/// - Expects: a plugin checks @c ROBOTIK_PLUGIN_ABI_VERSION before anything.
 
 #ifndef ROBOTIK_PLUGIN_ABI_H
 #define ROBOTIK_PLUGIN_ABI_H
