@@ -47,7 +47,7 @@ static constexpr double ADMITTANCE = 0.002;
 /// there (m).
 static constexpr double DEEPEST = 0.02;
 
-/// @brief Puts the tool of the robot of @p_context at @p_target (base
+/// Puts the tool of the robot of @p_context at @p_target (base
 /// frame): one inverse kinematics from the current joints, then each joint
 /// of the arm servoed to its solution. A tool joint (the spindle of a
 /// drill) is left to its own motor. False when there is no solution.
@@ -73,7 +73,7 @@ static bool servo(robotik::RobotContext& p_context,
     return true;
 }
 
-/// @brief Minimum-jerk profile: 0 at 0, 1 at 1, no speed nor acceleration
+/// Minimum-jerk profile: 0 at 0, 1 at 1, no speed nor acceleration
 /// at both ends.
 static double minimumJerk(double p_s)
 {

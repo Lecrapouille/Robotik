@@ -102,7 +102,7 @@ public:
 
 private:
 
-    /// @brief Installs a brain loaded in the background, once it is ready.
+    /// Installs a brain loaded in the background, once it is ready.
     void poll()
     {
         if (!m_loading.valid() || m_loading.wait_for(std::chrono::seconds(0)) !=

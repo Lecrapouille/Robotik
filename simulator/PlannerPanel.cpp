@@ -59,7 +59,7 @@ static ImVec4 colorOf(robotik::Truth p_truth)
     return GREY;
 }
 
-/// @brief Writes the texts of every plan of the run in @p_folder.
+/// Writes the texts of every plan of the run in @p_folder.
 static std::string save(robotik::PlanExecutor const& p_executor,
                         std::filesystem::path const& p_folder)
 {
@@ -90,20 +90,20 @@ static std::string save(robotik::PlanExecutor const& p_executor,
            p_folder.string();
 }
 
-/// @brief The planner of the loaded run, or null.
+/// The planner of the loaded run, or null.
 static robotik::PlanExecutor* plannerOf(App& p_app)
 {
     return p_app.simulation ? p_app.simulation->cell().planner() : nullptr;
 }
 
-/// @brief Folder where Save PDDL writes the texts of the run.
+/// Folder where Save PDDL writes the texts of the run.
 static std::filesystem::path saveFolder(App const& p_app)
 {
     return std::filesystem::current_path() / "planner" /
            p_app.simulation->scenario().id;
 }
 
-/// @brief Index of the plan whose texts are shown: the one picked in
+/// Index of the plan whose texts are shown: the one picked in
 /// History, else the last one. History must not be empty.
 static std::size_t shownRecord(App& p_app,
                                robotik::PlanExecutor const& p_executor)
@@ -125,7 +125,7 @@ static void noPlanner()
                "plan from a PDDL goal instead of a behavior tree.");
 }
 
-/// @brief Goal and state. The goal stays on top: it is the order given to
+/// Goal and state. The goal stays on top: it is the order given to
 /// the robot (one day written by a language model from a sentence).
 static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
 {
@@ -176,7 +176,7 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     }
 }
 
-/// @brief The plan as a list of steps, the running ones highlighted (several
+/// The plan as a list of steps, the running ones highlighted (several
 /// at once when steps run together).
 static void planSteps(robotik::PlanExecutor const& p_executor)
 {
@@ -272,7 +272,7 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
     endTable();
 }
 
-/// @brief Every plan of the run. A click picks the plan whose texts
+/// Every plan of the run. A click picks the plan whose texts
 /// Files > Planner shows.
 static void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
 {

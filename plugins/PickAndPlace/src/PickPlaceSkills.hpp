@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PickPlaceSkills.hpp
-/// @brief Pick-and-place skills with a vacuum gripper.
+/// Pick-and-place skills with a vacuum gripper.
 ///
 /// Object positions come from the @ref WorldModel (what the robot believes),
 /// never from the simulator.
@@ -22,7 +22,7 @@ namespace robotik
 class VacuumGripper;
 
 // ****************************************************************************
-/// @brief Brings the suction cup @p_clearance above the top of an object,
+/// Brings the suction cup @p_clearance above the top of an object,
 /// pointing down.
 // ****************************************************************************
 class ApproachSkill final: public Skill
@@ -48,7 +48,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Turns the suction on and waits until the object is held.
+/// Turns the suction on and waits until the object is held.
 // ****************************************************************************
 class GraspSkill final: public Skill
 {
@@ -82,7 +82,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Turns the suction off and waits until nothing is held.
+/// Turns the suction off and waits until nothing is held.
 // ****************************************************************************
 class ReleaseSkill final: public Skill
 {
@@ -113,7 +113,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Waits for a fresh observation of an object in the @ref WorldModel.
+/// Waits for a fresh observation of an object in the @ref WorldModel.
 // ****************************************************************************
 class DetectSkill final: public Skill
 {
@@ -147,11 +147,11 @@ private:
     std::uint32_t m_observations_at_start = 0U;
 };
 
-/// @brief Gripper named @p_name, or the first one when empty.
+/// Gripper named @p_name, or the first one when empty.
 [[nodiscard]] VacuumGripper* findGripper(Robot const& p_robot,
                                          std::string const& p_name);
 
-/// @brief Id of the object the gripper @p_name holds, as the vacuum sensor
+/// Id of the object the gripper @p_name holds, as the vacuum sensor
 /// reports it, or empty.
 [[nodiscard]] std::string heldObject(Robot const& p_robot,
                                      std::string const& p_name = {});

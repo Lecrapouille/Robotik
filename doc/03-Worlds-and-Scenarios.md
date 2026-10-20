@@ -338,8 +338,8 @@ Rules:
 - A `joint_group` without `joints` takes every joint of the robot, the
   joints of its tool too (the spindle of a drill). List the arm joints when
   the tool has joints of its own.
-- The first robot of the file is `Simulation::robot()`. The others are
-  `Simulation::robot("right")`; all of them are `Simulation::robots()`.
+- The first robot of the file is `Cell::robot()`. The others are
+  `Cell::robot("right")`; all of them are `Cell::robots()`.
 - The skills of the core are named after the robot: `left.Home`,
   `right.Stop`. With one robot they stay `Home` and `Stop`.
 - The queries take the robot id: `pose(right.tcp)`, `collision_count(left)`,
@@ -414,7 +414,7 @@ scenario:
   trajectories:
     drop: scenarios/trajectories/drop.trajectory.yaml
 
-  perception: { oracle: when_blind }
+  perception: { blind: truth }      # true poses when no camera has an image
 
   faults:
     - { at: 4.0, resource: wrist_camera, action: disable }
@@ -436,7 +436,7 @@ scenario:
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
 | `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([chapter 11](11-PDDL-Planner.md#5-reference)). Without it, the plugin mission drives the robot |
 | `trajectories` | Named paths, one file each (§8) |
-| `perception.oracle` | When the ground truth may replace perception (§7) |
+| `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` (§7) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
 | `physics` | Physics fidelity: `abstract` (default) or `rigid`, per entity (see below) |
 | `timeout` | Maximum simulated time, in seconds |
@@ -618,27 +618,45 @@ Three things must not be mixed:
 
 | | What it is | Who can read it |
 |--|------------|-----------------|
-| **Ground truth** | The real state of the simulated world: `Simulation::pose`, `Simulation::query` | Assertions, reports, the RL reward |
-| **Description** | The world as the file describes it at the start: `Simulation::described`, `Simulation::waypoints` | The mission, to plan (like a map given to a real robot) |
+| **Ground truth** | The real state of the simulated world: `Cell::pose`, `Cell::query` | Assertions, reports, the RL reward |
+| **Description** | The world as the file describes it at the start: `Cell::described`, `Cell::waypoints` | The mission, to plan (like a map given to a real robot) |
 | **Belief** | What the robot thinks: the `WorldModel`, filled by perception | The skills, through `RobotContext` |
 
 Skills see only the `RobotContext`: **they cannot cheat**. The ground truth
-goes into the belief only through the **oracle**, and only if the scenario
-asks for it:
+goes into the belief only when the scenario asks for it, with a
+**perception fidelity**, as the physics has its own fidelity:
 
 ```yaml
-perception: { oracle: when_blind }    # never (default) | when_blind | always
+perception:
+  fidelity: sensed          # sensed (default) | noisy_truth | truth
+  blind: truth              # used instead of sensed when no camera has an image
+  overrides:                # per object
+    red_cube: truth
+  noise: { sigma: 0.005, dropout: 0.1, range: 2.0 }   # for noisy_truth
+  max_age: 2.0              # older beliefs are unknown to the planner (s)
 ```
 
-`when_blind` uses the oracle when no camera has an image source, that is, in
-headless mode (no rendering). The simulator renders the image and uses real
-perception. Reports mark the runs made with the oracle (`oracle perception`).
+| Level | Where the belief comes from | Use it to |
+|-------|-----------------------------|-----------|
+| `sensed` | The detectors, on the camera images | Test the whole chain, perception included |
+| `noisy_truth` | The true pose, with gaussian noise (`sigma`, m), misses (`dropout`, a chance per step) and a range (`range`, m) | Test the robustness of a plan without writing a detector |
+| `truth` | The true pose, copied | Skip perception: test the plan or the motion only |
+
+`truth` is a **mock**: like a car simulator that gives the lane marks and
+the pedestrians instead of a photo-realistic image to process. It is a
+choice, made by the scenario and written in the report: each run says the
+level of each object (`perception: truth, red_cube: sensed`). The level of
+an object is its `overrides` entry, or `fidelity`; when it is `sensed` and
+no camera has an image source (headless, no rendering), `blind` is used.
+
+The old key `oracle` is still read: `always` is `fidelity: truth`,
+`when_blind` is `blind: truth`, `never` is the default.
 
 **Frame of the beliefs.** With one robot, the beliefs are in its base frame.
 With several robots, they share the beliefs in the **world frame**: each
 camera turns its detections into the world with the base pose of its robot,
 and a skill brings a belief into its own base with
-`context.robot.base().pose.inverse() * belief` (`Simulation::beliefFrame()`
+`context.robot.base().pose.inverse() * belief` (`Cell::beliefFrame()`
 says which frame is used).
 
 ---
@@ -664,7 +682,7 @@ trajectory:
 | `cartesian` | Poses of the tool working point, in `frame` (an entity, or `entity.link`; the world if empty) |
 | `joint` | Joint configurations, for the joints listed in `joints` |
 
-In C++, `Simulation::waypoints("red")` returns a cartesian trajectory in the
+In C++, `Cell::waypoints("red")` returns a cartesian trajectory in the
 robot base frame. Its frame is placed where the **world file** describes it:
 if the easel slides during the run, the robot does not know.
 

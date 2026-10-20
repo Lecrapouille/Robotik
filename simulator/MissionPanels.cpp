@@ -34,7 +34,7 @@ static ImVec4 colorOf(bt::Status p_status)
     return GREY;
 }
 
-/// @brief Root of the nested tree of a SubTree node, else null.
+/// Root of the nested tree of a SubTree node, else null.
 static bt::Node const* subtreeRoot(bt::Node const& p_node)
 {
     auto const* subtree = dynamic_cast<bt::SubTreeNode const*>(&p_node);
@@ -45,7 +45,7 @@ static bt::Node const* subtreeRoot(bt::Node const& p_node)
     return &subtree->subtree().getRoot();
 }
 
-/// @brief Draw a tree node.
+/// Draw a tree node.
 /// @param p_node The node.
 static void treeNode(bt::Node const& p_node)
 {
@@ -103,7 +103,7 @@ struct ControlFailure
     double time = 0.0;
 };
 
-/// @brief Failed composites and decorators. Skill leaves already have a row.
+/// Failed composites and decorators. Skill leaves already have a row.
 static void collectControlFailures(bt::Node const& p_node,
                                    std::vector<std::string>& p_labels)
 {
@@ -139,7 +139,7 @@ static void collectControlFailures(bt::Node const& p_node,
     }
 }
 
-/// @brief Remember when a control node first failed, so the mark stays put.
+/// Remember when a control node first failed, so the mark stays put.
 static std::vector<ControlFailure> const&
 controlFailures(robotik::Simulation const& p_simulation)
 {
@@ -177,7 +177,7 @@ controlFailures(robotik::Simulation const& p_simulation)
     return marks;
 }
 
-/// @brief Draw the timeline of the skill runs on a common time axis.
+/// Draw the timeline of the skill runs on a common time axis.
 static void timeline(robotik::Simulation const& p_simulation)
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
@@ -258,7 +258,7 @@ static void timeline(robotik::Simulation const& p_simulation)
         ImVec2(width, head + static_cast<float>(skills.size()) * row + 4.0F));
 }
 
-/// @brief Names of the skills currently holding @p_id, exclusive or shared.
+/// Names of the skills currently holding @p_id, exclusive or shared.
 static std::vector<std::string>
 holdersOf(robotik::SkillScheduler const& p_skills,
           robotik::ResourceManager const& p_resources,
@@ -298,7 +298,7 @@ holdersOf(robotik::SkillScheduler const& p_skills,
     return names;
 }
 
-/// @brief Skills that need @p_id, whether they run or not.
+/// Skills that need @p_id, whether they run or not.
 static std::vector<std::string>
 neededBy(robotik::SkillScheduler const& p_skills, robotik::ResourceId p_id)
 {
@@ -318,7 +318,7 @@ neededBy(robotik::SkillScheduler const& p_skills, robotik::ResourceId p_id)
     return names;
 }
 
-/// @brief "a, b, c", or @p_none when empty.
+/// "a, b, c", or @p_none when empty.
 static std::string joined(std::vector<std::string> const& p_names,
                           char const* p_none)
 {
@@ -355,7 +355,7 @@ static ImVec4 colorOf(robotik::ResourceManager const& p_resources,
                                                           : GREY;
 }
 
-/// @brief Tooltip of a resource: one fact per row.
+/// Tooltip of a resource: one fact per row.
 static void resourceTooltip(robotik::SkillScheduler const& p_skills,
                             robotik::ResourceManager const& p_resources,
                             robotik::ResourceId p_id)
@@ -392,7 +392,7 @@ static void resourceTooltip(robotik::SkillScheduler const& p_skills,
     ImGui::EndTooltip();
 }
 
-/// @brief One resource as a chip: free (outline), held (orange), shared
+/// One resource as a chip: free (outline), held (orange), shared
 /// (blue), in fault (red), with the number of holders. Its width is fixed and
 /// the last holders stay shown a moment: the chip does not flicker when
 /// skills take and release it within a few steps. The tooltip and the
@@ -469,7 +469,7 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     ImGui::SameLine(0.0F, 6.0F);
 }
 
-/// @brief Who holds what: one row per resource.
+/// Who holds what: one row per resource.
 static void resourceTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
@@ -507,7 +507,7 @@ static void resourceTable(App& p_app)
     endTable();
 }
 
-/// @brief Restores the resources whose timed fault is over.
+/// Restores the resources whose timed fault is over.
 static void expireFaults(App& p_app)
 {
     double const now = p_app.simulation->time().value();
@@ -529,7 +529,7 @@ static void expireFaults(App& p_app)
                   });
 }
 
-/// @brief Inject faults on purpose: tick one or more resources, then apply.
+/// Inject faults on purpose: tick one or more resources, then apply.
 /// Nothing happens on a single click on a resource.
 static void faultForm(App& p_app)
 {
@@ -669,7 +669,7 @@ static void faultForm(App& p_app)
     ImGui::EndDisabled();
 }
 
-/// @brief The fault plan of the scenario: past entries greyed out.
+/// The fault plan of the scenario: past entries greyed out.
 static void scenarioFaults(App& p_app)
 {
     robotik::FaultInjector& injector = p_app.simulation->cell().faults();

@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyView.hpp
-// @brief Compages window for one fly.
+// Compages window for one fly.
 //
 // The brain never calls this. The chase camera follows the thorax. Each eye
 // link carries a camera, drawn in a corner of the window.
@@ -17,19 +17,19 @@
 #include <memory>
 
 // ****************************************************************************
-/// @brief One window: the URDF, the arena, the eye beams and the eye cameras.
+/// One window: the URDF, the arena, the eye beams and the eye cameras.
 // ****************************************************************************
 class FlyView
 {
 public:
 
     // ------------------------------------------------------------------------
-    /// @brief Keeps the scenario. The window opens in @ref open.
+    /// Keeps the scenario. The window opens in @ref open.
     // ------------------------------------------------------------------------
     explicit FlyView(FlyScenario const& p_scenario);
 
     // ------------------------------------------------------------------------
-    /// @brief Closes the window if @ref open succeeded.
+    /// Closes the window if @ref open succeeded.
     // ------------------------------------------------------------------------
     ~FlyView();
 
@@ -37,13 +37,13 @@ public:
     FlyView& operator=(FlyView const&) = delete;
 
     // ------------------------------------------------------------------------
-    /// @brief Creates the OpenGL window, the URDF and the eye cameras.
+    /// Creates the OpenGL window, the URDF and the eye cameras.
     /// @return false when the window could not be opened.
     // ------------------------------------------------------------------------
     bool open();
 
     // ------------------------------------------------------------------------
-    /// @brief Poses the URDF, the rays and the cameras, then draws one frame.
+    /// Poses the URDF, the rays and the cameras, then draws one frame.
     /// @return false when the user has closed the window or pressed Escape.
     // ------------------------------------------------------------------------
     bool frame(FlyEnvironment const& p_environment);

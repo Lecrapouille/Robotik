@@ -13,14 +13,14 @@
 namespace robotik
 {
 
-/// @brief An argument that matches anything: a free variable, or a nested
+/// An argument that matches anything: a free variable, or a nested
 /// term the schema does not read.
 static bool wildcard(std::string const& p_arg)
 {
     return p_arg.empty() || p_arg.front() == '?';
 }
 
-/// @brief Two atoms may be the same ground atom.
+/// Two atoms may be the same ground atom.
 static bool unify(Atom const& p_a, Atom const& p_b)
 {
     if (p_a.predicate != p_b.predicate || p_a.args.size() != p_b.args.size())
@@ -38,7 +38,7 @@ static bool unify(Atom const& p_a, Atom const& p_b)
     return true;
 }
 
-/// @brief Some atom of @p_a may be some atom of @p_b.
+/// Some atom of @p_a may be some atom of @p_b.
 static bool overlap(std::vector<Atom> const& p_a, std::vector<Atom> const& p_b)
 {
     return std::ranges::any_of(
@@ -50,7 +50,7 @@ static bool overlap(std::vector<Atom> const& p_a, std::vector<Atom> const& p_b)
         });
 }
 
-/// @brief One event reads what the other changes, or both change it.
+/// One event reads what the other changes, or both change it.
 static bool interfere(ActionSchema::Phase const& p_a,
                       ActionSchema::Phase const& p_b)
 {
@@ -58,7 +58,7 @@ static bool interfere(ActionSchema::Phase const& p_a,
            overlap(p_a.writes, p_b.writes);
 }
 
-/// @brief Both need a resource, and one of them alone.
+/// Both need a resource, and one of them alone.
 static bool contend(std::vector<ResourceRequirement> const& p_a,
                     std::vector<ResourceRequirement> const& p_b)
 {

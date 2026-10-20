@@ -30,7 +30,7 @@ static std::string format(char const* p_format, double p_a, double p_b = 0.0)
 }
 
 // ****************************************************************************
-/// @brief Humanoid walking by a learned policy. The plugin owns the clock
+/// Humanoid walking by a learned policy. The plugin owns the clock
 /// (host.clock: plugin): it steps the simulation at the physics rate of the
 /// training, whatever the host rate, so the policy runs at its own rate.
 /// Its panel changes the walk command while the robot walks.

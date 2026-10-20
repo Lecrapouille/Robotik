@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyController.hpp
-// @brief Maps a fly action onto the thorax and a posture.
+// Maps a fly action onto the thorax and a posture.
 //
 // It does not know why the action was chosen.
 #pragma once
@@ -14,7 +14,7 @@
 #include "FlyTypes.hpp"
 
 // ****************************************************************************
-/// @brief Kinematic body of the fly.
+/// Kinematic body of the fly.
 ///
 /// Turns a @ref FlyAction into thrust, yaw and lift, and into joint targets
 /// for the URDF. There is no aerodynamics and no foot adhesion.
@@ -24,18 +24,18 @@ class FlyController
 public:
 
     // ------------------------------------------------------------------------
-    /// @brief Wings back to the start of a stroke, speeds left to the plant.
+    /// Wings back to the start of a stroke, speeds left to the plant.
     // ------------------------------------------------------------------------
     void reset();
 
     // ------------------------------------------------------------------------
-    /// @brief Integrates @p_action into @p_plant over @p_dt seconds and
+    /// Integrates @p_action into @p_plant over @p_dt seconds and
     /// refreshes @ref posture.
     // ------------------------------------------------------------------------
     void apply(FlyAction const& p_action, FlyPlant& p_plant, double p_dt);
 
     // ------------------------------------------------------------------------
-    /// @brief Joint targets written by the last @ref apply or @ref reset.
+    /// Joint targets written by the last @ref apply or @ref reset.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlyPosture const& posture() const
     {

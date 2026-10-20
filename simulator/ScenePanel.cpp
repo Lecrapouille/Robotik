@@ -13,7 +13,7 @@
 
 static constexpr char const* STOP = "Stop";
 
-/// @brief Run controls drawn over the top-left corner of the 3D view.
+/// Run controls drawn over the top-left corner of the 3D view.
 static void runControls(App& p_app, ImVec2 p_at)
 {
     ImGui::SetCursorScreenPos(ImVec2(p_at.x + 10.0F, p_at.y + 8.0F));
@@ -106,7 +106,7 @@ static void stopButton(App& p_app, ImVec2 p_at, float p_width)
     ImGui::SetItemTooltip("The Stop skill takes every actuator  (Ctrl+E)");
 }
 
-/// @brief Colored frame around the view: the state of the run at a glance.
+/// Colored frame around the view: the state of the run at a glance.
 static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
 {
     ImVec4 color;

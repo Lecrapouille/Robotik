@@ -14,7 +14,7 @@
 #include <stdexcept>
 #include <string>
 
-/// @brief Nine observation fields, comma separated, declaration order.
+/// Nine observation fields, comma separated, declaration order.
 static void writeObservation(std::ostream& p_out,
                              FlyObservation const& p_observation)
 {
@@ -27,13 +27,13 @@ static void writeObservation(std::ostream& p_out,
           << p_observation.target_distance;
 }
 
-/// @brief forward, turn, lift.
+/// forward, turn, lift.
 static void writeAction(std::ostream& p_out, FlyAction const& p_action)
 {
     p_out << p_action.forward << ',' << p_action.turn << ',' << p_action.lift;
 }
 
-/// @brief Splits a comma-separated list of floats. No brackets.
+/// Splits a comma-separated list of floats. No brackets.
 static std::vector<float> numbers(std::string const& p_text)
 {
     std::vector<float> values;

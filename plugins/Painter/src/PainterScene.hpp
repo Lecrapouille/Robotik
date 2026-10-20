@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PainterScene.hpp
-/// @brief Conventions of the painter demonstration.
+/// Conventions of the painter demonstration.
 ///
 /// The world (worlds/painting_lab.world.yaml) builds the easel, the canvas and
 /// the pots; the strokes are trajectories of the scenario, in the frame of the
@@ -34,7 +34,7 @@ inline robotik::Quaternion brushDown()
     return { 0.0, 0.0, 1.0, 0.0 };
 }
 
-/// @brief Shared with the mission so a stroke can tint the canvas texture.
+/// Shared with the mission so a stroke can tint the canvas texture.
 /// @c brush and @c painted are the memory of the robot (it cannot see the
 /// paint): set by the gestures that succeed, read by the planner.
 struct Stroke

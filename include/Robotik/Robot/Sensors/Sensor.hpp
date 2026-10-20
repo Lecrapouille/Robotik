@@ -126,7 +126,8 @@ public:
     /// until the next sample.
     // -------------------------------------------------------------------------
     virtual void invalidate()
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -166,7 +167,8 @@ protected:
     /// Drops the state carried between samples (see @ref rewind).
     // -------------------------------------------------------------------------
     virtual void restart()
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -175,7 +177,8 @@ protected:
     /// @param p_now Robot clock.
     // -------------------------------------------------------------------------
     virtual void deliver(Seconds /*p_now*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
 private:

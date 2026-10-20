@@ -182,6 +182,7 @@ public:
                      float /*p_green*/,
                      float /*p_blue*/)
     {
+        // Nothing to do by default.
     }
 };
 

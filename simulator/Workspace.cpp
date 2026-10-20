@@ -74,7 +74,7 @@ static void select(App& p_app, Workspace p_workspace)
 
 // --- Layouts ----------------------------------------------------------------
 
-/// @brief Splits @p_node; the first returned id is the new side.
+/// Splits @p_node; the first returned id is the new side.
 static ImGuiID split(ImGuiID& p_node, ImGuiDir p_dir, float p_ratio)
 {
     return ImGui::DockBuilderSplitNode(
@@ -235,7 +235,7 @@ static void shortcuts(App& p_app)
 
 // --- Menu bar ---------------------------------------------------------------
 
-/// @brief Why a workspace tab is drawn in red, one reason per line; empty
+/// Why a workspace tab is drawn in red, one reason per line; empty
 /// when all is well. Plugin: the scenario did not load, or a package of the
 /// catalog is broken. Mission: the run failed, the robot is stopped, or a
 /// resource is in fault.

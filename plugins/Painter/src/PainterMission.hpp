@@ -30,7 +30,7 @@ public:
                robotik::Seed p_seed) override;
     void step(robotik::Cell& p_cell,
               robotik::Seconds p_dt) override;
-    /// @brief painter.stroke_deviation: largest distance (m), in the plane of
+    /// painter.stroke_deviation: largest distance (m), in the plane of
     /// the canvas, between the brush while it inks and the straight line of
     /// its stroke. painter.inked: number of steps that laid ink.
     void measure(robotik::Cell const& p_cell,

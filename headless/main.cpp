@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file main.cpp
-/// @brief Runs a scenario, or every case of an experiment, without a window.
+/// Runs a scenario, or every case of an experiment, without a window.
 ///
 /// Exit code: 0 when every run passed its assertions, 2 when one failed, 1
 /// when a file or a plugin could not be loaded.

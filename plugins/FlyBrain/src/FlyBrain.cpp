@@ -37,19 +37,19 @@ enum Role : int
 
 static constexpr double EMA_TAU_S = 0.05;
 
-/// @brief Clamps to [0, 1]. Forward speed has no reverse.
+/// Clamps to [0, 1]. Forward speed has no reverse.
 static double clamp01(double p_value)
 {
     return std::clamp(p_value, 0.0, 1.0);
 }
 
-/// @brief Clamps to [-1, 1]. Turn and lift are signed.
+/// Clamps to [-1, 1]. Turn and lift are signed.
 static double clamp11(double p_value)
 {
     return std::clamp(p_value, -1.0, 1.0);
 }
 
-/// @brief Binding-file name to a @ref Role. Unknown names are refused.
+/// Binding-file name to a @ref Role. Unknown names are refused.
 static int roleOf(std::string const& p_name)
 {
     static std::unordered_map<std::string, int> const roles = {

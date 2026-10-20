@@ -16,7 +16,7 @@
 #include <string>
 
 // ****************************************************************************
-/// @brief A Microduck walks by a learned policy (velstand, 14 servos).
+/// A Microduck walks by a learned policy (velstand, 14 servos).
 ///
 /// Setup asks the core for a floating base without gravity compensation, at
 /// the physics step of the policy, and gives every servo the PD gain and the
@@ -45,7 +45,7 @@ public:
     void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 
-    /// @brief Command of the Walk skill: forward (m/s), lateral (m/s), yaw
+    /// Command of the Walk skill: forward (m/s), lateral (m/s), yaw
     /// rate (rad/s). Starts from the scenario parameters; a panel may change it
     /// while the duck walks.
     [[nodiscard]] std::array<double, 3>& command()
@@ -53,7 +53,7 @@ public:
         return m_command;
     }
 
-    /// @brief Trunk height now (m), ground truth.
+    /// Trunk height now (m), ground truth.
     [[nodiscard]] double height() const
     {
         return m_height;
@@ -63,7 +63,7 @@ public:
         return m_distance;
     }
 
-    /// @brief Physics step of the backend.
+    /// Physics step of the backend.
     [[nodiscard]] robotik::Seconds physicsStep() const
     {
         return m_step;

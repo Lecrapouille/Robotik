@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyEnvironment.hpp
-// @brief One fly, its arena and its sensors.
+// One fly, its arena and its sensors.
 //
 // The brain is not in here: @ref FlyEnvironment::step only applies an action.
 // Headless: no window and no URDF.
@@ -21,7 +21,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Everything a viewer or a log needs after one step.
+/// Everything a viewer or a log needs after one step.
 // ****************************************************************************
 struct FlySnapshot
 {
@@ -46,7 +46,7 @@ struct FlySnapshot
 };
 
 // ****************************************************************************
-/// @brief The fly world an agent acts in.
+/// The fly world an agent acts in.
 ///
 /// Same seed, same actions: same observations. Obstacle jitter comes from
 /// the seed derived as @c "world", sensor noise from @c "sensors".
@@ -56,12 +56,12 @@ class FlyEnvironment final: public robotik::Environment
 public:
 
     // ------------------------------------------------------------------------
-    /// @brief Keeps @p_scenario. A zero @p_max_steps uses horizon / dt.
+    /// Keeps @p_scenario. A zero @p_max_steps uses horizon / dt.
     // ------------------------------------------------------------------------
     FlyEnvironment(FlyScenario p_scenario, std::uint32_t p_max_steps);
 
     // ------------------------------------------------------------------------
-    /// @brief @ref FlyObservation::SIZE.
+    /// @ref FlyObservation::SIZE.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::size_t observationSize() const override
     {
@@ -69,7 +69,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief @ref FlyAction::SIZE.
+    /// @ref FlyAction::SIZE.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::size_t actionSize() const override
     {
@@ -77,13 +77,13 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Jitters the obstacles, parks the fly and writes the first
+    /// Jitters the obstacles, parks the fly and writes the first
     /// observation.
     // ------------------------------------------------------------------------
     void reset(robotik::Seed p_seed, std::span<float> p_observation) override;
 
     // ------------------------------------------------------------------------
-    /// @brief Applies @p_action, then writes the next observation.
+    /// Applies @p_action, then writes the next observation.
     ///
     /// Terminated when the food is reached. Truncated at the step limit.
     // ------------------------------------------------------------------------
@@ -91,7 +91,7 @@ public:
                              std::span<float> p_observation) override;
 
     // ------------------------------------------------------------------------
-    /// @brief File the episode was built from, without the jitter.
+    /// File the episode was built from, without the jitter.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlyScenario const& scenario() const
     {
@@ -99,7 +99,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief State after the last @ref reset or @ref step.
+    /// State after the last @ref reset or @ref step.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlySnapshot const& snapshot() const
     {
@@ -107,7 +107,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Obstacles after the jitter of the current episode.
+    /// Obstacles after the jitter of the current episode.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::span<FlyBox const> obstacles() const
     {
@@ -115,7 +115,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Thorax positions kept for the trail, oldest first.
+    /// Thorax positions kept for the trail, oldest first.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::span<robotik::Vector3 const> trail() const
     {
@@ -123,7 +123,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Step length (SI: s), from the scenario.
+    /// Step length (SI: s), from the scenario.
     // ------------------------------------------------------------------------
     [[nodiscard]] double dt() const
     {
@@ -133,17 +133,17 @@ public:
 private:
 
     // ------------------------------------------------------------------------
-    /// @brief Fills the vision and the rest of the observation in the snapshot.
+    /// Fills the vision and the rest of the observation in the snapshot.
     // ------------------------------------------------------------------------
     void sense();
 
     // ------------------------------------------------------------------------
-    /// @brief Pushes the thorax out of walls and boxes. Sets @p_collided.
+    /// Pushes the thorax out of walls and boxes. Sets @p_collided.
     // ------------------------------------------------------------------------
     void separate(bool& p_collided);
 
     // ------------------------------------------------------------------------
-    /// @brief Copies the snapshot observation into @p_observation.
+    /// Copies the snapshot observation into @p_observation.
     // ------------------------------------------------------------------------
     void write(std::span<float> p_observation) const;
 

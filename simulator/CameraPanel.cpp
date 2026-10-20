@@ -13,7 +13,7 @@
 #include <numbers>
 #include <vector>
 
-/// @brief One camera: a title line and its picture, fitted in @p_cell
+/// One camera: a title line and its picture, fitted in @p_cell
 /// without changing the aspect ratio. Fitting both sides keeps the panel
 /// free of scrollbars, so the picture does not shake.
 static void cameraCell(App& p_app,

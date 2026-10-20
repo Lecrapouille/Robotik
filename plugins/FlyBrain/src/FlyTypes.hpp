@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyTypes.hpp
-// @brief Observation, action, posture and scenario of the fly demo.
+// Observation, action, posture and scenario of the fly demo.
 //
 // Metres, radians and seconds of the x100 model. The brain only sees
 // @ref FlyObservation and @ref FlyAction.
@@ -23,7 +23,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief What the fly brain may read.
+/// What the fly brain may read.
 ///
 /// Target bearing is the food beacon: positive means the target is to the
 /// left (+y).
@@ -53,18 +53,18 @@ struct FlyObservation
     static constexpr std::size_t SIZE = 9;
 
     // ------------------------------------------------------------------------
-    /// @brief Reads the nine fields above, in the order they are declared.
+    /// Reads the nine fields above, in the order they are declared.
     // ------------------------------------------------------------------------
     [[nodiscard]] static FlyObservation from(std::span<float const> p_values);
 
     // ------------------------------------------------------------------------
-    /// @brief Writes the nine fields above, in the order they are declared.
+    /// Writes the nine fields above, in the order they are declared.
     // ------------------------------------------------------------------------
     void write(std::span<float> p_values) const;
 };
 
 // ****************************************************************************
-/// @brief What the fly brain decides.
+/// What the fly brain decides.
 ///
 /// The controller maps this onto the body. The brain does not name joints.
 // ****************************************************************************
@@ -81,18 +81,18 @@ struct FlyAction
     static constexpr std::size_t SIZE = 3;
 
     // ------------------------------------------------------------------------
-    /// @brief Reads forward, turn, then lift.
+    /// Reads forward, turn, then lift.
     // ------------------------------------------------------------------------
     [[nodiscard]] static FlyAction from(std::span<float const> p_values);
 
     // ------------------------------------------------------------------------
-    /// @brief Writes forward, turn, then lift.
+    /// Writes forward, turn, then lift.
     // ------------------------------------------------------------------------
     void write(std::span<float> p_values) const;
 };
 
 // ****************************************************************************
-/// @brief Joint targets for the URDF.
+/// Joint targets for the URDF.
 ///
 /// Left and right share one value: the model is mirrored, so equal commands
 /// move both sides together.
@@ -124,7 +124,7 @@ struct FlyPosture
 };
 
 // ****************************************************************************
-/// @brief Axis-aligned obstacle. Position is the centre, size the full extents.
+/// Axis-aligned obstacle. Position is the centre, size the full extents.
 ///
 /// x forward, y left, z up, in metres.
 // ****************************************************************************
@@ -137,7 +137,7 @@ struct FlyBox
 };
 
 // ****************************************************************************
-/// @brief Kinematic state of the thorax.
+/// Kinematic state of the thorax.
 ///
 /// x forward, y left, z up, in metres. Yaw is about z; positive yaws left.
 // ****************************************************************************
@@ -160,7 +160,7 @@ struct FlyPlant
 };
 
 // ****************************************************************************
-/// @brief One episode description, read from a YAML file.
+/// One episode description, read from a YAML file.
 // ****************************************************************************
 struct FlyScenario
 {
@@ -191,7 +191,7 @@ struct FlyScenario
     std::filesystem::path robot_model;
 
     // ------------------------------------------------------------------------
-    /// @brief Reads a Robotik scenario: the robot entity is the fly (its pose
+    /// Reads a Robotik scenario: the robot entity is the fly (its pose
     /// is the start), the props named @c obstacle* are the blocks, the prop
     /// @c food is the target, the timeout is the horizon, and
     /// @c parameters gives brain, sensor_noise, layout_jitter, arena and

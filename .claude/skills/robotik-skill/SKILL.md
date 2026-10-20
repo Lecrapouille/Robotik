@@ -79,7 +79,7 @@ Nodes: `Sequence`, `Selector` (not "Fallback"), `Parallel`
 (one-element list). Action maps Waiting/Running→RUNNING,
 Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels it.
 
-`Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `Simulation`
+`Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `Cell`
 and `PlanExecutor` give the tree their clock (`bt::Tree::clock`), so they
 are reproducible. A tree you build yourself keeps the wall clock unless you
 call `clock()`.

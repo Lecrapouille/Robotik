@@ -29,7 +29,7 @@ find(robotik::Experiment const& p_experiment, std::string const& p_id)
     throw std::invalid_argument(p_id);
 }
 
-/// @brief Writes @p_text in experiments/ of a throwaway package.
+/// Writes @p_text in experiments/ of a throwaway package.
 static std::filesystem::path write(std::string const& p_name,
                                    std::string const& p_text)
 {

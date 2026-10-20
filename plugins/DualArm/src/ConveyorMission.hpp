@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file ConveyorMission.hpp
-/// @brief Two arms and a conveyor: the skills of each robot, the observers
+/// Two arms and a conveyor: the skills of each robot, the observers
 /// and bindings of the PDDL domain, and the belt.
 #pragma once
 
@@ -22,7 +22,7 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// @brief Mission of the conveyor scenarios. Publishes @c dual_arm.overlap:
+/// Mission of the conveyor scenarios. Publishes @c dual_arm.overlap:
 /// simulated seconds during which both arms ran a skill.
 // ****************************************************************************
 class ConveyorMission final: public robotik::Mission

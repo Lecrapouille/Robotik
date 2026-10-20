@@ -17,7 +17,7 @@
 #include <string>
 
 // ****************************************************************************
-/// @brief The plugin: picks the mission of the chosen scenario, adds a menu
+/// The plugin: picks the mission of the chosen scenario, adds a menu
 /// item, a panel and a key binding. Everything else is optional.
 // ****************************************************************************
 class HelloWorldPlugin final: public robotik::Plugin

@@ -64,7 +64,7 @@ struct MujocoBackend::Impl
         ChainOptions options;
     };
 
-    /// @brief @c child_mount of @c child hangs on @c parent_mount of @c parent.
+    /// @c child_mount of @c child hangs on @c parent_mount of @c parent.
     struct Graft
     {
         std::string parent;
@@ -88,7 +88,7 @@ struct MujocoBackend::Impl
     mjModel* model = nullptr;
     mjData* data = nullptr;
     std::vector<Chain> chains;
-    /// @brief A weld between two bodies, off until @ref MujocoBackend::weld.
+    /// A weld between two bodies, off until @ref MujocoBackend::weld.
     struct Weld
     {
         std::string name;
@@ -1276,7 +1276,7 @@ std::optional<Wrench> MujocoBackend::wrench(std::string const& p_link) const
 }
 
 // ****************************************************************************
-/// @brief One robot of a world shared with others: forwards to the shared
+/// One robot of a world shared with others: forwards to the shared
 /// backend, with the MuJoCo names of its chain.
 // ****************************************************************************
 class MujocoMember final: public RobotBackend

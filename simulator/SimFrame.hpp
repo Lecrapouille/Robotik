@@ -15,7 +15,7 @@ namespace compages::world
 struct ViewFrame;
 }
 
-/// @brief Mouse input for the world panel, in panel pixels with Y up.
+/// Mouse input for the world panel, in panel pixels with Y up.
 /// @param p_app The application.
 /// @param p_elapsed The elapsed time.
 /// @param p_total The total time.

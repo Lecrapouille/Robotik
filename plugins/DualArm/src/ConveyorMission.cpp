@@ -151,7 +151,7 @@ void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
     }
 }
 
-/// @brief True when the believed centre of @p_object lies in the footprint
+/// True when the believed centre of @p_object lies in the footprint
 /// of @p_place (shared beliefs: same frame for both).
 static bool onFootprint(robotik::WorldObject const& p_object,
                         robotik::WorldObject const& p_place)
@@ -162,7 +162,7 @@ static bool onFootprint(robotik::WorldObject const& p_object,
                0.5 * p_place.size.y;
 }
 
-/// @brief An arm of the cell holds @p_part.
+/// An arm of the cell holds @p_part.
 static bool heldByAnyone(robotik::RobotContext const& p_context,
                          std::string const& p_part)
 {
@@ -180,7 +180,7 @@ static bool heldByAnyone(robotik::RobotContext const& p_context,
     return false;
 }
 
-/// @brief at(part, place) on the beliefs: on its footprint, not held. A
+/// at(part, place) on the beliefs: on its footprint, not held. A
 /// part not seen yet is where the world file says (the prior).
 static robotik::Truth resting(robotik::RobotContext const& p_context,
                               std::string const& p_part,

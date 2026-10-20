@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Conveyor.hpp
-/// @brief The conveyor of the cell: the skill commands it, the mission moves
+/// The conveyor of the cell: the skill commands it, the mission moves
 /// the part it carries (abstract physics: the part rides at the belt speed).
 #pragma once
 
@@ -25,7 +25,7 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// @brief The belt: carries one part at a time along a path of the world
+/// The belt: carries one part at a time along a path of the world
 /// (off the infeed table, across to a lane, down the lane).
 // ****************************************************************************
 class Conveyor
@@ -35,23 +35,23 @@ public:
     /// Resource of the belt: the skill holds it alone, a fault stops it.
     static constexpr char const* RESOURCE = "conveyor";
 
-    /// @brief Starts carrying @p_part through @p_path (world frame, x and y).
+    /// Starts carrying @p_part through @p_path (world frame, x and y).
     void carry(std::string p_part, std::vector<robotik::Vector3> p_path);
 
-    /// @brief Stops the belt where it is.
+    /// Stops the belt where it is.
     void stop();
 
-    /// @brief Forgets the last delivery (new episode).
+    /// Forgets the last delivery (new episode).
     void reset();
 
-    /// @brief Part brought to its goal by the last @ref carry, or empty.
+    /// Part brought to its goal by the last @ref carry, or empty.
     [[nodiscard]] std::string const& delivered() const
     {
         return m_delivered;
     }
 
     // -------------------------------------------------------------------------
-    /// @brief Moves the carried part by @p_dt, unless the resource failed.
+    /// Moves the carried part by @p_dt, unless the resource failed.
     // -------------------------------------------------------------------------
     void step(robotik::Cell& p_cell, robotik::Seconds p_dt);
 
@@ -65,7 +65,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Convey(part, feeder, zone): the belt pushes the part off the
+/// Convey(part, feeder, zone): the belt pushes the part off the
 /// feeder, across to the lane of the zone, and down the lane to the believed
 /// centre of the zone.
 // ****************************************************************************

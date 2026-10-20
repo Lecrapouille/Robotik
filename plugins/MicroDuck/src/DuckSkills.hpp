@@ -17,7 +17,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Joints of the policy, in its order, and the IMU that feeds it.
+/// Joints of the policy, in its order, and the IMU that feeds it.
 // ****************************************************************************
 struct DuckBody
 {
@@ -26,7 +26,7 @@ struct DuckBody
 };
 
 // ****************************************************************************
-/// @brief Holds the home posture of the policy for a while: the duck settles
+/// Holds the home posture of the policy for a while: the duck settles
 /// on its feet before walking.
 // ****************************************************************************
 class StandSkill final: public robotik::Skill
@@ -51,7 +51,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Walks with a velocity command for a while (forever when the
+/// Walks with a velocity command for a while (forever when the
 /// duration is not positive). The command is read at each policy run: a panel
 /// may change it while the duck walks.
 ///

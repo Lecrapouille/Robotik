@@ -681,7 +681,7 @@ static robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
     return last;
 }
 
-/// @brief Every skill in one table: priority, resources, state, reason.
+/// Every skill in one table: priority, resources, state, reason.
 static void skillTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;

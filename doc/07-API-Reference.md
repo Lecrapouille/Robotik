@@ -6,8 +6,14 @@ comments; this page tells you where to look.
 
 Conventions in the code:
 
-- namespace `robotik`; units from `Robotik/Math/Si.hpp` (`Seconds`,
-  `Radians`, …) are also visible without the namespace;
+- namespace `robotik`; units from `Robotik/Common/Math.hpp` (`Seconds`,
+  `Radians`, …), the same types as Compages (`compages::si`);
+- headers are in three layers (see [06-Architecture.md](06-Architecture.md)
+  and the [glossary](Glossary.md)): `Robotik/Robot/` (one robot),
+  `Robotik/Task/` (a job in C++), `Robotik/Package/` (files and plugins),
+  plus `Robotik/Common/`;
+- reading a file returns a `Result` (`if (!r) … r.error()`, then
+  `r.value()` or `r.take()`); a mistake in the code throws;
 - parameters start with `p_`, members with `m_`;
 - SI units everywhere: metres, radians, seconds, newtons;
 - z up, like URDF.
@@ -16,7 +22,7 @@ Conventions in the code:
 |------------|-----|---------|
 | Write the entry point of my plugin | `Plugin`, `Host`, `Canvas` | [§1](#1-plugin-api) |
 | Add behaviour to a simulation | `Mission` | [§2](#2-mission) |
-| Read the world, the time, the truth | `Simulation` | [§3](#3-simulation) |
+| Read the world, the time, the truth | `Cell` (and `Simulation` for the verdict) | [§3](#3-cell-and-simulation) |
 | Move joints, read poses, compute IK | `Robot`, `JointSet` | [§4](#4-robot-and-joints) |
 | Use the gripper, a motor | actuators | [§5](#5-actuators) |
 | Write a skill | `Skill`, `SkillDescription`, `RobotContext` | [§6](#6-skills) |
@@ -33,8 +39,8 @@ One umbrella header includes everything: `#include "Robotik/Robotik.hpp"`.
 
 ## 1. Plugin API
 
-Header: `Robotik/Plugin/PluginAPI.hpp` (C++ helper over the C border
-`Robotik/Plugin/PluginABI.h`).
+Header: `Robotik/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border
+`Robotik/Package/Plugin/PluginABI.h`).
 
 ### `robotik::Plugin`
 
@@ -95,23 +101,27 @@ Valid only during the draw callback.
 
 ## 2. `Mission`
 
-Header: `Robotik/Runtime/Mission.hpp`. What your plugin adds to a generic
+Header: `Robotik/Task/Mission.hpp`. What your plugin adds to a generic
 simulation. All methods are optional.
 
 | Method | Called | Typical use |
 |--------|--------|-------------|
-| `setup(Simulation&, SceneView* view)` | Once, after the world is built, before the first reset. `view` is null in headless | Add skills, detectors, decorations; maybe your own backend |
-| `reset(Simulation&, Seed)` | Each episode start, after the robot and objects are reset | Clear state; derive random streams from the seed |
-| `step(Simulation&, Seconds dt)` | After each robot step | Command, measure, count |
-| `measure(Simulation const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
-| `Status status(Simulation const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
+| `setup(Cell&, SceneView* view)` | Once, after the world is built, before the first reset. `view` is null in headless | Add skills, detectors, decorations; maybe your own backend |
+| `reset(Cell&, Seed)` | Each episode start, after the robot and objects are reset | Clear state; derive random streams from the seed |
+| `step(Cell&, Seconds dt)` | After each robot step | Command, measure, count |
+| `measure(Cell const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
+| `Status status(Cell const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
 
 ---
 
-## 3. `Simulation`
+## 3. `Cell` and `Simulation`
 
-Header: `Robotik/Runtime/Simulation.hpp`. Built by the host from a world and
-a scenario; the mission receives it.
+Header: `Robotik/Task/Cell.hpp`. The robot cell: robots, objects, one
+physics, the controller and the beliefs. The mission receives it. A C++
+program can build one from a `CellDescription`, without any file
+([02-Getting-Started.md](02-Getting-Started.md#7-the-three-layers-in-code)).
+`Robotik/Package/Simulation.hpp` builds the cell from a scenario file and
+judges the run (marked *Simulation* below).
 
 **The parts**
 
@@ -129,7 +139,7 @@ a scenario; the mission receives it.
 | `worldFrame()` | Entity of the Z-up frame of the world: hang on it what stays in the world, not on a robot root that a floating base moves |
 | `factory()` | `bt::NodeFactory&`: register custom tree nodes |
 | `camera()` | `Camera*`: the first camera, or null |
-| `scenario()` | `Scenario const&`: the parsed files (trajectories, world, …) |
+| `description()` | `CellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
 | `mission()` | `Mission*` |
 | `planning()` | `PlanningDomain&`: observers and bindings of the PDDL planner ([chapter 11](11-PDDL-Planner.md#5-reference)) |
 | `planner()` | `PlanExecutor*`: the planner controller, or null |
@@ -142,9 +152,11 @@ a scenario; the mission receives it.
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |
 | `step(Seconds dt)` | One step (see [06-Architecture.md §3](06-Architecture.md#3-one-simulation-step)) |
-| `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
-| `checks()`, `passed()` | The assertion verdicts |
-| `oracle()` | True if the ground truth feeds the beliefs |
+| `status()`, `stopController()` | State of the controller (tree, plan or mission); stop ticking it |
+| `perceptionOf("id")`, `perceptionSummary()` | Perception fidelity of an object (`truth`, `noisy_truth`, `sensed`) and of the run |
+| *Simulation* `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
+| *Simulation* `checks()`, `passed()` | The assertion verdicts |
+| *Simulation* `ended`, `assertionChanged` | Signals: the run ended, an assertion changed color |
 
 **Ground truth** (for metrics and assertions, never for skills)
 
@@ -187,7 +199,7 @@ Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 | `base()` | State of a mobile base |
 
 `RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
-(used by `Simulation`).
+(used by `Cell`).
 
 ### `JointSet`
 
@@ -237,8 +249,8 @@ auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
 
 ## 6. Skills
 
-Headers: `Robotik/Skills/Skill.hpp`, `Robotik/Skills/MotionSkills.hpp`,
-`Robotik/Runtime/RobotContext.hpp`.
+Headers: `Robotik/Task/Skills/Skill.hpp`, `Robotik/Task/Skills/MotionSkills.hpp`,
+`Robotik/Task/RobotContext.hpp`.
 
 ```cpp
 class Skill
@@ -267,7 +279,7 @@ Built-in: `HomeSkill(group)`, `MoveJointSkill(joint, target)`,
 
 ## 7. `SkillScheduler`
 
-Header: `Robotik/Runtime/Scheduler.hpp`.
+Header: `Robotik/Task/Scheduler.hpp`.
 
 | Method | Does |
 |--------|------|
@@ -285,7 +297,7 @@ Header: `Robotik/Runtime/Scheduler.hpp`.
 
 ## 8. Resources and faults
 
-Headers: `Robotik/Runtime/Resources.hpp`, `Robotik/Runtime/Faults.hpp`.
+Headers: `Robotik/Robot/Resources.hpp`, `Robotik/Task/Faults.hpp`.
 
 | `ResourceManager` | Does |
 |-------------------|------|
@@ -301,8 +313,8 @@ step. You rarely need it directly.
 
 ## 9. Perception and beliefs
 
-Headers: `Robotik/Perception/Detector.hpp`, `Detection.hpp`, `WorldModel.hpp`,
-`Robotik/Sensors/Camera.hpp`.
+Headers: `Robotik/Task/Perception/Detector.hpp`, `Detection.hpp`, `WorldModel.hpp`,
+`Robotik/Robot/Sensors/Camera.hpp`.
 
 **Write a detector:**
 
@@ -341,7 +353,7 @@ p_simulation.perception().add<RedBlobDetector>();
 `WorldObject`: `name`, `position`, `size`, `confidence`, `seen` (time),
 `observations`, `observed()`, `top()`.
 
-Other sensors (`Robotik/Sensors/`): `Imu`, `RangeScanner`,
+Other sensors (`Robotik/Robot/Sensors/`): `Imu`, `RangeScanner`,
 `ForceTorqueSensor`. All derive from `Sensor` (`name()`, `frequency()`,
 `samples()`, `stamp()`), and their readings derive from `Measurement`
 (time stamp, frame, sequence, validity).
@@ -350,10 +362,10 @@ Other sensors (`Robotik/Sensors/`): `Imu`, `RangeScanner`,
 
 ## 10. Metrics
 
-Header: `Robotik/Runtime/Metrics.hpp`.
+Header: `Robotik/Task/Metrics.hpp`.
 
 ```cpp
-void measure(robotik::Simulation const&, robotik::Metrics& p_metrics) const override
+void measure(robotik::Cell const&, robotik::Metrics& p_metrics) const override
 {
     p_metrics.set("laps", m_laps);
     p_metrics.set("cross_track.max", m_max_error);
@@ -368,7 +380,7 @@ Any published name can be used in an assertion (`laps >= 1`) or in
 
 ## 11. Assets
 
-Header: `Robotik/Assets/AssetResolver.hpp`.
+Header: `Robotik/Robot/Assets/AssetResolver.hpp`.
 
 ```cpp
 robotik::AssetResolver const assets = robotik::AssetResolver::standard();
@@ -387,28 +399,28 @@ std::filesystem::path const urdf = assets.model("robotik.robots.robot_6axis");
 
 ## 12. Learning
 
-Headers in `Robotik/Environment/`. See [08-Reinforcement-Learning.md](08-Reinforcement-Learning.md).
+Headers in `Robotik/Task/Learning/`. See [08-Reinforcement-Learning.md](08-Reinforcement-Learning.md).
 
 | Class | Role |
 |-------|------|
 | `Environment` | `reset(seed, observation)`, `step(action, observation)`, `observationSpace()`, `actionSpace()` |
 | `Space` | Named, bounded dimensions (`add`, `add3`), with units; `privileged()` |
-| `SimulationEnvironment` | A scenario + `ObservationBuilder` + `ActionAdapter` + `RewardEvaluator` |
+| `SimulationEnvironment` | A cell description (a scenario is one) + `ObservationBuilder` + `ActionAdapter` + `RewardEvaluator` |
 | `EnvironmentPool` | N environments on threads, derived seeds |
 | `EpisodeLog` | JSON log of the episodes |
-| `Agent` (`Robotik/Agents/Agent.hpp`) | `Action update(Observation const&, Seconds)`: any brain |
+| `Agent` (`Robotik/Task/Agents/Agent.hpp`) | `Action update(Observation const&, Seconds)`: any brain |
 
 ---
 
 ## 13. Scenario objects
 
-Headers in `Robotik/Scenario/`. Usually built by the host; useful in tests.
+Headers in `Robotik/Package/Scenario/`. Usually built by the host; useful in tests.
 
 | Class | Role |
 |-------|------|
-| `Scenario::load(path, assets)` | Parse a scenario and its world |
-| `ScenarioSource`, `ConfigNode` | The YAML as an editable tree; `override("world.entities.x.y", ...)` then `Scenario::read` |
-| `Experiment` | Cases, seeds, evaluation |
-| `WorldDescription`, `EntitySpec` | The parsed world |
-| `Trajectory` | A cartesian or joint path |
-| `AssertionEngine`, `Check` | Verdicts: `verdict`, `text`, `detail`, `ok()` |
+| `loadScenario(path, assets)` | Parse a scenario and its world; returns a `Result<Scenario>` |
+| `ScenarioSource`, `ConfigNode` | The YAML as an editable tree: `loadScenarioSource`, `overrideValue(source, "world.entities.x.y", ...)`, then `readScenario` |
+| `Experiment` | Cases, seeds, evaluation: `loadExperiment`, `scenarioOf(experiment, case, assets)` |
+| `WorldDescription`, `EntitySpec` | The parsed world (Task layer data: `findEntity`, `firstRobot`, `robotsOf`) |
+| `Trajectory` | A cartesian or joint path: `loadTrajectory` |
+| `AssertionEngine`, `Check` | Verdicts: `verdict`, `text`, `detail`, and `ok(check)` |

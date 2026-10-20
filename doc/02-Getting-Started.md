@@ -225,15 +225,17 @@ and compares them.
 ```
 
 ```text
-[PASS] nominal                  seed=11     controller succeeded at 7.4 s (oracle perception)  time=7.4  ...
+[PASS] nominal                  seed=11     controller succeeded at 7.4 s (perception truth)  time=7.4  ...
 [PASS] wide_layout              seed=11     ...
-[PASS] camera_down_at_start     seed=11     controller succeeded at 8.9 s (oracle perception)  time=8.9  ...
-pick_and_place_experiment: 9/9 runs passed
+[PASS] rigid                    seed=11     ...
+[PASS] camera_down_at_start     seed=11     controller succeeded at 8.9 s (perception truth)  time=8.9  ...
+pick_and_place_experiment: 12/12 runs passed
 ```
 
-3 variants × 3 seeds = 9 runs. `pick.json` contains every run, every
-assertion, every metric. (`oracle perception` means that, without a window,
-no image is rendered, so the true cube position replaced the camera. See
+4 variants × 3 seeds = 12 runs. `pick.json` contains every run, every
+assertion, every metric. (`perception truth` means that, without a window,
+no image is rendered, so the true cube position replaced the camera, as the
+scenario asks with `perception: { blind: truth }`. See
 [03-Worlds-and-Scenarios.md §7](03-Worlds-and-Scenarios.md#7-truth-description-and-belief).)
 
 ---
@@ -254,7 +256,75 @@ All demos are described in [09-Demos.md](09-Demos.md).
 
 ---
 
-## 7. Where to go next
+## 7. The three layers in code
+
+RobotIK has three layers. Each one works without the ones above it, so you
+pick the smallest one that fits your project. The words are explained in
+the [glossary](Glossary.md).
+
+| Layer | You have… | You write… |
+|-------|-----------|------------|
+| **Robot** | a URDF file | one robot, its joints and its physics |
+| **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
+| **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
+
+**Robot**: open a robot and move a joint
+(`tests/Robot/TestOpenRobot.cpp`).
+
+```cpp
+auto arm = robotik::openRobot("robotik.robots.robot_6axis");
+if (!arm)
+    return fail(arm.error());                  // a message telling what to fix
+robotik::JointSet& joints = arm.value()->joints();
+joints.moveTo(joints.revolute("joint2"), robotik::Radians(0.3));
+for (int i = 0; i < 200; ++i)
+    arm.value()->step(robotik::Seconds(0.01)); // MuJoCo moves the joint
+```
+
+**Task**: a robot and a cube described in C++, and a skill run by the
+scheduler (`tests/Examples/TestLayerExamples.cpp`).
+
+```cpp
+robotik::CellDescription description;
+robotik::EntitySpec arm;
+arm.id = "arm";
+arm.type = robotik::EntitySpec::Type::Robot;
+arm.model = "robot_6axis.urdf";
+robotik::EntitySpec cube;
+cube.id = "cube";
+cube.shape = robotik::ShapeSpec{};             // a 4 cm box
+cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
+description.world.entities = { arm, cube };
+
+compages::world::World world;
+robotik::Cell cell(world, description);
+auto const raise = cell.skills().add<robotik::MoveJointSkill>(
+    { .name = "Raise" }, "joint2", 0.5);
+cell.skills().request(raise);
+while (cell.skills().state(raise) != robotik::SkillState::Succeeded)
+    cell.step(robotik::Seconds(0.01));
+```
+
+**Package**: the scenario file builds the cell; the simulation judges the
+run with the assertions of the file (same test file).
+
+```cpp
+auto scenario = robotik::loadScenario("hello.scenario.yaml", assets);
+if (!scenario)
+    return fail(scenario.error());
+compages::world::World world;
+robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
+while (!simulation.finished())
+    simulation.step(robotik::Seconds(0.01));
+bool const ok = simulation.passed();
+```
+
+A plugin is the same Package layer, loaded by the simulator or by
+Robotik-Headless: [04-Your-First-Plugin.md](04-Your-First-Plugin.md).
+
+---
+
+## 8. Where to go next
 
 - Change the world and the scenario, without C++:
   [03-Worlds-and-Scenarios.md](03-Worlds-and-Scenarios.md).

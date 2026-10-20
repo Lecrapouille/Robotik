@@ -15,7 +15,7 @@ namespace robotik
 {
 
 // ****************************************************************************
-/// @brief An S-expression: a lower-case atom or a list.
+/// An S-expression: a lower-case atom or a list.
 // ****************************************************************************
 struct Sexpr
 {
@@ -28,7 +28,7 @@ struct Sexpr
         return !is_list && atom == p_text;
     }
 
-    /// @brief Head of a list: @c "and" for @c (and ...), empty otherwise.
+    /// Head of a list: @c "and" for @c (and ...), empty otherwise.
     [[nodiscard]] std::string_view head() const
     {
         return is_list && !list.empty() && !list[0].is_list
@@ -38,7 +38,7 @@ struct Sexpr
 };
 
 // ****************************************************************************
-/// @brief Reads PDDL text into S-expressions; comments start with ';'.
+/// Reads PDDL text into S-expressions; comments start with ';'.
 // ****************************************************************************
 class Reader
 {
@@ -145,7 +145,7 @@ private:
 };
 
 // ----------------------------------------------------------------------------
-/// @brief Reads a typed list: @c "a b - t c - u d" gives a:t b:t c:u d:object.
+/// Reads a typed list: @c "a b - t c - u d" gives a:t b:t c:u d:object.
 /// @c (either ...) types are read as @c object.
 // ----------------------------------------------------------------------------
 static std::vector<Parameter> typedList(std::vector<Sexpr> const& p_items,
@@ -181,7 +181,7 @@ static std::vector<Parameter> typedList(std::vector<Sexpr> const& p_items,
 }
 
 // ----------------------------------------------------------------------------
-/// @brief @c (p a ?x) as an atom.
+/// @c (p a ?x) as an atom.
 // ----------------------------------------------------------------------------
 static Atom atomOf(Sexpr const& p_node)
 {
@@ -195,7 +195,7 @@ static Atom atomOf(Sexpr const& p_node)
 }
 
 // ----------------------------------------------------------------------------
-/// @brief Collects the plain effects of @p_node into @p_action. Conditional,
+/// Collects the plain effects of @p_node into @p_action. Conditional,
 /// quantified and numeric effects mark the action as partial. For a durative
 /// action, only @c at @c end effects are kept: they hold once it is done.
 // ----------------------------------------------------------------------------
@@ -238,7 +238,7 @@ static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
 }
 
 // ----------------------------------------------------------------------------
-/// @brief True for the words of a PDDL formula that are not atoms: logic,
+/// True for the words of a PDDL formula that are not atoms: logic,
 /// time, comparison, arithmetic and assignment.
 // ----------------------------------------------------------------------------
 static bool connective(std::string_view p_head)
@@ -260,7 +260,7 @@ static bool connective(std::string_view p_head)
     return false;
 }
 
-/// @brief When a part of a formula applies.
+/// When a part of a formula applies.
 enum class When
 {
     Untimed, ///< Plain action: conditions at start, effects at end.
@@ -270,7 +270,7 @@ enum class When
 };
 
 // ----------------------------------------------------------------------------
-/// @brief Every atom named in a formula, at any depth: @c (p ?a b) and
+/// Every atom named in a formula, at any depth: @c (p ?a b) and
 /// @c (f ?a) inside a comparison or an assignment, sorted by the phase it
 /// applies to. The variable lists of @c forall / @c exists are skipped.
 // ----------------------------------------------------------------------------
@@ -334,7 +334,7 @@ static void collectAtoms(Sexpr const& p_node,
 }
 
 // ----------------------------------------------------------------------------
-/// @brief Value following @p_key in a flat list (@c :parameters (...)).
+/// Value following @p_key in a flat list (@c :parameters (...)).
 // ----------------------------------------------------------------------------
 static Sexpr const* keyed(Sexpr const& p_node, std::string_view p_key)
 {

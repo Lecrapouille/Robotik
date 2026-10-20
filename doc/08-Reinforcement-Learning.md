@@ -17,7 +17,7 @@ If the words *observation*, *action*, *reward*, *episode* are new, read
        policy ──► action ──► simulation ──► reward
 ```
 
-`robotik::Environment` (`include/Robotik/Environment/Environment.hpp`):
+`robotik::Environment` (`include/Robotik/Task/Learning/Environment.hpp`):
 
 | Operation | Does |
 |-----------|------|
@@ -59,8 +59,9 @@ differently:
 
 ## 2. An environment from a scenario
 
-`robotik::SimulationEnvironment` turns a scenario into an environment, from
-three swappable parts:
+`robotik::SimulationEnvironment` turns a robot cell into an environment (a
+scenario file, or a `CellDescription` written in C++), from three swappable
+parts:
 
 ```text
            action                          observation
@@ -70,7 +71,7 @@ three swappable parts:
    (vector → commands)             (sensors, beliefs → vector)
               │                                 ▲
               ▼                                 │
-        Simulation ── held for control_period ──┘
+           Cell ── held for control_period ──┘
               │
               ▼
        RewardEvaluator ── reward, Success / Failure
@@ -150,7 +151,7 @@ Two different ideas:
 
 An agent is not always learned: an existing neural model (the fly brain), a
 classic controller or a trained policy all share the same surface,
-`robotik::Agent` (`include/Robotik/Agents/Agent.hpp`): it receives an
+`robotik::Agent` (`include/Robotik/Task/Agents/Agent.hpp`): it receives an
 observation and returns an action.
 
 Today `SimulationEnvironment` drives one robot. Several agents in one shared
@@ -162,7 +163,7 @@ world are still to do.
 
 | Question | Answer in Robotik |
 |----------|-------------------|
-| Does a reset put every state back? | Yes: `Simulation::reset` (robot, sensors, resources, faults, objects), then `reset` of each part. Checked by a replay test |
+| Does a reset put every state back? | Yes: `Cell::reset` (robot, sensors, resources, faults, objects), then `reset` of each part. Checked by a replay test |
 | Explicit observation and action spaces? | `Space`: name, bounds, unit per dimension |
 | Observations consistent with the available sensors? | Pick-and-place reads the robot beliefs; the only ground-truth dimension is flagged privileged |
 | How long is an action applied? | `EnvironmentTiming::control_period`, a whole multiple of the physics step |

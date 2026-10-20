@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file FlyMission.hpp
-/// @brief The fly as a regular plugin: its flight model is the backend of
+/// The fly as a regular plugin: its flight model is the backend of
 /// the robot, its brain is the agent the mission runs.
 ///
 /// @code
@@ -32,7 +32,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Flight dynamics of the fly, as a robot backend. The environment
+/// Flight dynamics of the fly, as a robot backend. The environment
 /// integrates the thorax and the posture; the backend copies them onto the
 /// robot (base pose, joint positions).
 // ****************************************************************************
@@ -42,13 +42,13 @@ public:
 
     explicit FlyBackend(FlyEnvironment& p_environment);
 
-    /// @brief Action applied at the next environment step.
+    /// Action applied at the next environment step.
     void command(FlyAction const& p_action)
     {
         m_command = p_action;
     }
 
-    /// @brief Observation written by the last step (or the reset).
+    /// Observation written by the last step (or the reset).
     [[nodiscard]] std::span<float const> observation() const
     {
         return m_observation;
@@ -59,7 +59,7 @@ public:
         return m_observation;
     }
 
-    /// @brief The episode ended: the fly no longer moves.
+    /// The episode ended: the fly no longer moves.
     [[nodiscard]] bool done() const
     {
         return m_done;
@@ -70,11 +70,12 @@ public:
         return m_return;
     }
 
-    /// @brief Starts over (the environment was reset by the mission).
+    /// Starts over (the environment was reset by the mission).
     void restart();
 
     void attach(robotik::Robot& /*p_robot*/) override
-    { /* nothing to attach: the fly has no device */
+    {
+        // Nothing to attach: the fly has no device.
     }
     void reset(robotik::Robot& p_robot) override;
     void step(robotik::Robot& p_robot, robotik::Seconds p_dt) override;
@@ -92,7 +93,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Builds the fly world from the scenario, plugs @ref FlyBackend and
+/// Builds the fly world from the scenario, plugs @ref FlyBackend and
 /// runs the brain. Draws the three eye beams and the trail when rendered.
 // ****************************************************************************
 class FlyMission final: public robotik::Mission
@@ -110,14 +111,14 @@ public:
     status(robotik::Cell const& p_cell) const override;
 
     // -------------------------------------------------------------------------
-    /// @brief Swaps the 13-neuron circuit for the FlyWire connectome (or
+    /// Swaps the 13-neuron circuit for the FlyWire connectome (or
     /// back). Keeps the current brain when the tables cannot be read.
     /// @throws std::runtime_error with the reason.
     // -------------------------------------------------------------------------
     void useConnectome(bool p_connectome);
 
     // -------------------------------------------------------------------------
-    /// @brief Builds a brain without touching the mission: safe on another
+    /// Builds a brain without touching the mission: safe on another
     /// thread. Loading the connectome reads large files (seconds) from
     /// @p_tables (see @ref tables).
     /// @throws std::runtime_error when the tables cannot be read.
@@ -127,17 +128,17 @@ public:
                float p_cruise,
                std::filesystem::path const& p_tables);
 
-    /// @brief Folder of the FlyWire tables: @c flywire/ in the pack
+    /// Folder of the FlyWire tables: @c flywire/ in the pack
     /// @c robotik.fly. Empty before @c setup.
     [[nodiscard]] std::filesystem::path const& tables() const
     {
         return m_tables;
     }
 
-    /// @brief Cruise height given to a new brain.
+    /// Cruise height given to a new brain.
     [[nodiscard]] float cruise() const;
 
-    /// @brief Replaces the brain and restarts the episode.
+    /// Replaces the brain and restarts the episode.
     void installBrain(std::unique_ptr<FlyBrain> p_brain);
 
     [[nodiscard]] FlyBrain const* brain() const

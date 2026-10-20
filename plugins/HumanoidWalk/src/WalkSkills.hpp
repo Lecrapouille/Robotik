@@ -17,7 +17,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Joints of the policy, in its order, and the IMU that feeds it.
+/// Joints of the policy, in its order, and the IMU that feeds it.
 // ****************************************************************************
 struct WalkBody
 {
@@ -26,7 +26,7 @@ struct WalkBody
 };
 
 // ****************************************************************************
-/// @brief Holds the default posture of the policy for a while: the robot
+/// Holds the default posture of the policy for a while: the robot
 /// settles on its feet before walking.
 // ****************************************************************************
 class StandSkill final: public robotik::Skill
@@ -51,7 +51,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Walks with a velocity command for a while (forever when the
+/// Walks with a velocity command for a while (forever when the
 /// duration is not positive). A forward speed and a yaw rate draw a circle of
 /// radius vx / yaw rate. The command is read at each policy run: a panel may
 /// change it while the robot walks.

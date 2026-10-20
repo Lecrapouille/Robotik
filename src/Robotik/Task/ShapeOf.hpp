@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file ShapeOf.hpp
-/// @brief Private to the runtime: the shape component of a world entity.
+/// Private to the runtime: the shape component of a world entity.
 #pragma once
 
 #include "Robotik/Robot/Components/Objects.hpp"
@@ -15,7 +15,7 @@
 namespace robotik
 {
 
-/// @brief Shape of @p_spec, which must have a @c shape: section.
+/// Shape of @p_spec, which must have a @c shape: section.
 [[nodiscard]] inline ecs::Shape shapeOf(EntitySpec const& p_spec)
 {
     ecs::Shape object;

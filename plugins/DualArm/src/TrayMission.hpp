@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file TrayMission.hpp
-/// @brief One arm carries a tray of glasses from below, the other one drills
+/// One arm carries a tray of glasses from below, the other one drills
 /// a path on it: the skills of each robot, the observers and bindings of
 /// the temporal domain.
 #pragma once
@@ -22,7 +22,7 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// @brief Mission of the tray scenario. Publishes @c dual_arm.overlap
+/// Mission of the tray scenario. Publishes @c dual_arm.overlap
 /// (seconds during which both arms ran a skill) and @c dual_arm.contact
 /// (seconds during which a tool touched one of the entities it works on).
 // ****************************************************************************

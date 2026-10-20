@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PainterSkills.hpp
-/// @brief Dip, stroke and rinse. The color is chosen when the skill starts.
+/// Dip, stroke and rinse. The color is chosen when the skill starts.
 #pragma once
 
 #include "PainterScene.hpp"
@@ -46,7 +46,7 @@ private:
     bool m_ready = false;
 };
 
-/// @brief Follows the stroke of the chosen colour: the scenario trajectory of
+/// Follows the stroke of the chosen colour: the scenario trajectory of
 /// that name, already in the robot base frame.
 class MarkSkill final: public robotik::Skill
 {
@@ -55,7 +55,7 @@ public:
     using Strokes =
         std::map<std::string, std::vector<robotik::Pose>, std::less<>>;
 
-    /// @brief How the brush follows a stroke.
+    /// How the brush follows a stroke.
     struct Settings
     {
         /// Longest Cartesian step (m) between two IK targets. Each target
@@ -111,7 +111,7 @@ private:
     bool m_ready = false;
 };
 
-/// @brief Tree actions Dip, Mark and Rinse. Each reads @c color on its
+/// Tree actions Dip, Mark and Rinse. Each reads @c color on its
 /// blackboard.
 void registerNodes(bt::NodeFactory& p_factory,
                    robotik::SkillScheduler& p_scheduler);

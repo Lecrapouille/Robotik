@@ -30,11 +30,41 @@ keeps each one in its own domain:
 | [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | Forward kinematics, Jacobians, inverse kinematics | `PinocchioBackend` |
 | [MuJoCo](https://github.com/google-deepmind/mujoco) | Dynamics, contacts, integration | `MujocoBackend` |
 | [Compages](https://github.com/Lecrapouille/Compages) | ECS world (entities, transforms), 3D rendering | `compages::world::World`, `SceneView` |
-| [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | Behavior trees | `Simulation::factory()`, `SkillNodes.hpp` |
+| [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | Behavior trees | `Cell::factory()`, `SkillNodes.hpp` |
 | OpenCV, AprilTag | Image processing (only in some plugins) | detectors of the plugins |
 
 Robotik provides the layer that combines them. It does not want to become a
 second Pinocchio or a second MuJoCo.
+
+### Three layers
+
+Like Compages (GPU, world, renderer), Robotik is cut in layers. Each layer
+works without the ones above it, so a project takes the smallest one it
+needs (examples in [02-Getting-Started.md](02-Getting-Started.md#7-the-three-layers-in-code)):
+
+```text
+Package   files and plugins: Simulation (scenario = cell + verdict), RunReport,
+  │       World / Scenario / Experiment YAML, Assertions, Plugin ABI and hosts
+Task      a job in C++: CellDescription (data), Cell (step loop, controllers,
+  │       truth, perception fidelity), Mission, SkillScheduler, Skills,
+  │       WorldModel, Planning (PDDL), Grasp, Learning (RL), Agents
+Robot     one robot: Robot, RobotSession, openRobot, joints, sensors,
+  │       actuators, resources, backends (MuJoCo, Pinocchio), asset packs
+Common    units and poses (from Compages), Result, Signal, Config, Random
+```
+
+`make check-layers` (`tests/scripts/check_layers.py`) refuses an include
+towards a higher layer, and a call of the truth API (`Cell::pose`,
+`Cell::query`...) in `Task/Skills` or `Task/Planning`. A future split stays
+possible: `Package` could become `Scenario` (files) and `App` (plugins,
+hosts) without touching the layers below.
+
+Contracts between modules are written at the top of each header
+(`@par Contract`: what it promises, what it expects, how it reports an
+error). Errors from files and users are a `Result`; a mistake in the code
+throws. Events are `Signal`s: `SkillScheduler::changed`, `Camera::frames`,
+`Simulation::assertionChanged` and `Simulation::ended`; the plugin session
+listens to them instead of polling.
 
 ---
 
@@ -67,21 +97,25 @@ WorldModel               the beliefs, read by the skills at the next tick
 
 ## 3. One simulation step
 
-`Simulation::step(dt)` (in `src/Robotik/Runtime/Simulation.cpp`) does, in
-this order:
+`Simulation::step(dt)` (Package, `src/Robotik/Package/Simulation.cpp`)
+steps the cell (`Cell::step`, Task, `src/Robotik/Task/Cell.cpp`), then
+judges. In this order:
 
 ```text
 Simulation::step(dt)
    │
-   ├── FaultInjector::update        faults on/off → resources (un)available
-   ├── behavior tree tick           requests / cancels skills
-   ├── SkillScheduler::update       admit, preempt, tick the skills
-   ├── RobotSession::step           joint control, backend (physics), kinematics, sensors
-   ├── observe()                    perception → WorldModel (or the oracle)
-   ├── track / syncBodies           ground truth of the bodies, contacts
-   ├── Mission::step                the plugin; Mission::status if no tree
-   ├── end of run?                  controller, stop_when, timeout, stop: true
-   └── AssertionEngine::update      verdicts, on the ground truth
+   ├── Cell::step(dt)
+   │     ├── FaultInjector::update        faults on/off → resources (un)available
+   │     ├── controller tick              behavior tree or plan: requests / cancels skills
+   │     ├── SkillScheduler::update       admit, preempt, tick the skills
+   │     ├── RobotSession prepare/advance/sense   every robot: actuators, one physics step, sensors
+   │     ├── GraspModel::update           what the grippers hold
+   │     ├── observe()                    perception → WorldModel, or the truth when
+   │     │                                the perception fidelity asks for it
+   │     ├── track / syncBodies           ground truth of the bodies, contacts
+   │     └── Mission::step                the plugin; Mission::status if no controller
+   ├── end of run?                        controller, stop_when, timeout, stop: true
+   └── AssertionEngine::update            verdicts, on the ground truth
 ```
 
 The plugin is called after: `Plugin::update(dt)`, from the host.
@@ -243,8 +277,8 @@ time.
 
 | | Access | Used by |
 |--|--------|---------|
-| **Ground truth** | `Simulation::pose`, `Simulation::query` | assertions, reports, RL reward |
-| **Description** | `Simulation::described`, `Simulation::waypoints` | the mission, to plan |
+| **Ground truth** | `Cell::pose`, `Cell::query` | assertions, reports, RL reward |
+| **Description** | `Cell::described`, `Cell::waypoints` | the mission, to plan |
 | **Belief** | `WorldModel`, through `RobotContext` | skills |
 
 The simulator knows `red_cube = (0.40, 0.20, 0.02)`. The robot may believe
@@ -256,8 +290,24 @@ truth ─► simulation ─► camera ─► perception ─► belief ─► ski
 ```
 
 This prevents cheating by giving the skills the perfect positions. The truth
-enters the belief only through the oracle, only if the scenario asks for it
-(`perception: { oracle: when_blind }`), and the reports say so.
+enters the belief only when the scenario chooses a **perception fidelity**
+that asks for it, per object (`perception: { fidelity: truth }`, or
+`blind: truth` when no camera has an image), and the reports say so. It is a
+mock, as a simpler physics is: a test of the plan does not need a detector
+(see [03-Worlds-and-Scenarios.md §7](03-Worlds-and-Scenarios.md#7-truth-description-and-belief)).
+
+Three contracts keep it honest:
+
+1. **One entry.** Skills, PDDL observers and the mission read the
+   `WorldModel` only; `make check-layers` refuses a truth call in
+   `Task/Skills` and `Task/Planning`.
+2. **Source and age.** Each belief says where it comes from
+   (`BeliefSource`: prior, sensed, noisy truth, truth) and when it was seen.
+   With `perception.max_age`, an older belief is unknown to the planner.
+3. **An effect is seen, not assumed.** The plan executor checks the effects
+   of each step on the beliefs; with `planner.verify: observed`, only a
+   belief seen after the start of the step counts, so a failed grasp is not
+   taken for a held object.
 
 ---
 
@@ -291,7 +341,7 @@ benchmarks, servers, and thousands of episodes. The graphical simulator is a
 ```
 
 The border between host and plugin is a **C ABI**
-(`include/Robotik/Plugin/PluginABI.h`): no C++ class, container or exception
+(`include/Robotik/Package/Plugin/PluginABI.h`): no C++ class, container or exception
 crosses it. `PluginAPI.hpp` wraps it in C++ for plugin authors. The manifest
 `plugin.yaml` is read without loading the library; the library is loaded only
 for the chosen scenario. Details in [04-Your-First-Plugin.md](04-Your-First-Plugin.md).
@@ -302,7 +352,7 @@ for the chosen scenario. Details in [04-Your-First-Plugin.md](04-Your-First-Plug
 
 ```text
 include/Robotik/          public headers (one umbrella: Robotik.hpp)
-src/Robotik/              implementation, same folders
+src/Robotik/              implementation, same folders (one library, robotik-core)
 simulator/                Robotik-Simulator (ImGui window, panels)
 headless/                 Robotik-Headless (CLI, reports)
 plugins/<Name>/           one plugin each; plugins/plugin.mk is the shared build recipe
@@ -313,22 +363,22 @@ external/                 third-party sources (downloaded)
 
 | `include/Robotik/` | Contents |
 |--------------------|----------|
-| `Agents/` | `Agent`, `Observation`, `Action`: a brain that maps observations to actions |
-| `Assets/` | `Version`, `AssetPack` (a `pack.yaml`), `AssetResolver` (`robotik.tools.vacuum` → file) |
-| `Backends/` | `RobotBackend` (with `contactList`, `bodyPose` for the truth), `MujocoBackend`, `PinocchioBackend`, `SceneView` |
-| `ECS/` | Compages components for robots and objects, queries |
-| `Environment/` | RL: `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` |
-| `Math/` | `Geometry.hpp` (`Pose`, `Quat`, `Vector3`), `Random.hpp` (`Seed`), `Si.hpp` (units) |
-| `Perception/` | `Detector`, `PerceptionPipeline`, `Detection`, `WorldModel`, `Localization` |
-| `Planning/` | `Pddl` (symbols, domain schema), `PlanningDomain` (observers, bindings), `PlanningEngine` (Kairos behind it), `PlanExecutor` (plan → behavior tree, checks, replans) |
-| `Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |
-| `Robot/` | `Robot`, `RobotSession`, `JointSet`, actuators (`Motor`, `JointGroup`, `VacuumGripper`), `TeachPendant` |
-| `Runtime/` | `Simulation`, `Mission`, `SkillScheduler`, `ResourceManager`, `FaultInjector`, `Metrics`, `RobotContext`, `RunReport`, `Status` |
-| `Scenario/` | `ConfigNode`, `WorldDescription`, `Scenario`, `Experiment`, `AssertionEngine`, `Trajectory` |
-| `Scene/` | Container geometry (`inside`) |
-| `Sensors/` | `Sensor`, `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, `Measurement`, `NoiseModel`, `Image` |
-| `Skills/` | `Skill`, `MotionSkills` (`Home`, `MoveJoint(s)`, `MoveTCP`, `Stop`), `SkillNodes` (BT bridge) |
-| `Systems/` | `GraspModel`: how a gripper holds an object, per physics fidelity (`AbstractGrasp`, `RigidGrasp`) |
+| `Common/` | `Math.hpp` (units, `Pose`, `Quaternion`, `Vector3`, from Compages), `Result.hpp`, `Signal.hpp`, `Config.hpp` (editable YAML tree), `Random.hpp` (`Seed`), `File.hpp`, `Version.hpp` |
+| `Robot/` | `Robot`, `RobotSession`, `openRobot`, `JointSet`, `LinkRef`, `Devices`, `Resources`, actuators (`Motor`, `JointGroup`, `VacuumGripper`), `TeachPendant` |
+| `Robot/Sensors/` | `Sensor`, `Camera`, `Imu`, `RangeScanner`, `ForceTorqueSensor`, `Measurement`, noise models, `Image` |
+| `Robot/Backends/` | `RobotBackend` (with `contactList`, `bodyPose` for the truth), `MujocoBackend`, `PinocchioBackend`, `SceneView` |
+| `Robot/Assets/` | `AssetPack` (a `pack.yaml`), `AssetResolver` (`robotik.tools.vacuum` → file) |
+| `Robot/Components/` | Compages components for robots and objects, queries |
+| `Task/` | `CellDescription`, `Cell`, `Mission`, `SkillScheduler`, `RobotContext`, `FaultInjector`, `Metrics`, `Status` |
+| `Task/Skills/` | `Skill`, `MotionSkills` (`Home`, `MoveJoint(s)`, `MoveTCP`, `Stop`), `SkillNodes` (BT bridge) |
+| `Task/Perception/` | `Detector`, `PerceptionPipeline`, `Detection`, `WorldModel`, `Localization` |
+| `Task/Planning/` | `Pddl` (symbols, domain schema), `PlanningDomain` (observers, bindings), `PlanningEngine` (Kairos behind it), `PlanExecutor` (plan → behavior tree, checks, replans), `PlanGraph` |
+| `Task/Grasp/` | `GraspModel`: how a gripper holds an object, per physics fidelity (`AbstractGrasp`, `RigidGrasp`); container geometry |
+| `Task/Learning/` | RL: `Environment`, `Space`, `SimulationEnvironment`, `EnvironmentPool`, `EpisodeLog` |
+| `Task/Agents/` | `Agent`, `Observation`, `Action`: a brain that maps observations to actions |
+| `Package/` | `Simulation` (scenario = cell + verdict), `RunReport` |
+| `Package/Scenario/` | `World`, `Scenario`, `Experiment`, `Assertions`, `Trajectory`, `PackagePath`, `FileRole` |
+| `Package/Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |
 
 ---
 

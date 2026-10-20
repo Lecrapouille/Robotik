@@ -21,7 +21,7 @@
 #include <iostream>
 #include <string>
 
-/// @brief imgui.ini lives in the user configuration, not in the folder the
+/// imgui.ini lives in the user configuration, not in the folder the
 /// simulator was started from.
 static std::string settingsFile()
 {

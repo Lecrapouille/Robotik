@@ -17,14 +17,14 @@
 
 static constexpr float PI = 3.14159265358979323846F;
 
-/// @brief Euclidean length. The beam math stays in float, the view's unit.
+/// Euclidean length. The beam math stays in float, the view's unit.
 static float lengthOf(compages::core::Vector3f const& p_vector)
 {
     return std::sqrt(p_vector.x * p_vector.x + p_vector.y * p_vector.y +
                      p_vector.z * p_vector.z);
 }
 
-/// @brief Places one joint when the URDF has it. A missing name is skipped,
+/// Places one joint when the URDF has it. A missing name is skipped,
 /// so a shorter model still draws.
 static void
 poseJoint(robotik::Robot& p_robot, std::string const& p_name, double p_angle)

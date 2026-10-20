@@ -21,7 +21,7 @@ static constexpr int DELAY_STEPS = 18;
 static constexpr int RING = DELAY_STEPS + 1;
 static constexpr double SUBSTEP_MS = ShiuNetwork::SUBSTEP_S * 1000.0;
 
-/// @brief Poisson count. A tiny lambda is a coin flip; otherwise Knuth's
+/// Poisson count. A tiny lambda is a coin flip; otherwise Knuth's
 /// product of uniforms, which stops at the first draw that falls under e^-λ.
 static int poisson(robotik::Random& p_random, double p_lambda)
 {

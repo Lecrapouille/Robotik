@@ -71,7 +71,8 @@ public:
     /// @param p_view Rendering hooks; null for a headless run.
     // -------------------------------------------------------------------------
     virtual void setup(Cell& /*p_cell*/, SceneView* /*p_view*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -81,7 +82,8 @@ public:
     /// @param p_seed Seed of the episode; derive random streams from it.
     // -------------------------------------------------------------------------
     virtual void reset(Cell& /*p_cell*/, Seed /*p_seed*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -90,7 +92,8 @@ public:
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
     virtual void step(Cell& /*p_cell*/, Seconds /*p_dt*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -102,6 +105,7 @@ public:
     virtual void measure(Cell const& /*p_cell*/,
                          Metrics& /*p_metrics*/) const
     {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------

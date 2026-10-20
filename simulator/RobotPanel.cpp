@@ -20,7 +20,7 @@
 
 static constexpr double DEGREES = 180.0 / std::numbers::pi;
 
-/// @brief Limits and display units of one joint.
+/// Limits and display units of one joint.
 struct JointInfo
 {
     bool linear = false;

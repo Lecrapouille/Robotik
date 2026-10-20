@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file PickPlaceControl.hpp
-/// @brief Pick and place as a learning task: observation, action and reward,
+/// Pick and place as a learning task: observation, action and reward,
 /// shared by the RL plugin (one rendered episode) and Robotik-PickAndPlaceRL
 /// (a pool of headless environments), plus the scripted policies.
 #pragma once
@@ -47,12 +47,12 @@ void readyPosture(robotik::RobotSession& p_robot,
                   robotik::VacuumGripper const& p_gripper,
                   robotik::Vector3 const& p_tip = PICK_PLACE_READY);
 
-/// @brief The cube rests in the box and the cup let it go (ground truth).
+/// The cube rests in the box and the cup let it go (ground truth).
 [[nodiscard]] bool cubeInBox(robotik::Cell const& p_cell,
                              robotik::VacuumGripper const& p_gripper);
 
 // ****************************************************************************
-/// @brief Cup tip, believed cube and box, their offset, cup state, progress.
+/// Cup tip, believed cube and box, their offset, cup state, progress.
 /// The positions are the robot's beliefs (world model, base frame). Only the
 /// @c delivered flag reads the ground truth: it is marked privileged.
 // ****************************************************************************
@@ -62,7 +62,7 @@ public:
 
     [[nodiscard]] robotik::Space space() const override;
     void setup(robotik::Cell& p_cell) override;
-    /// @brief The episode starts with one look at the scene (oracle runs).
+    /// The episode starts with one look at the scene (oracle runs).
     void reset(robotik::Cell& p_cell) override;
     void observe(robotik::Cell const& p_cell,
                  robotik::EpisodeClock const& p_clock,
@@ -74,7 +74,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Cup displacement (in steps of 3 cm, clamped to the workspace) and
+/// Cup displacement (in steps of 3 cm, clamped to the workspace) and
 /// suction (on above zero), through inverse kinematics on the arm group.
 // ****************************************************************************
 class PickPlaceAction final: public robotik::ActionAdapter
@@ -82,7 +82,7 @@ class PickPlaceAction final: public robotik::ActionAdapter
 public:
 
     [[nodiscard]] robotik::Space space() const override;
-    /// @brief Finds the arm and the cup, and makes the ready posture the home.
+    /// Finds the arm and the cup, and makes the ready posture the home.
     void setup(robotik::Cell& p_cell) override;
     void apply(std::span<float const> p_action,
                robotik::Cell& p_cell) override;
@@ -94,7 +94,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Dense shaping: reach the cube top, carry it above the box, a bonus
+/// Dense shaping: reach the cube top, carry it above the box, a bonus
 /// at the first grasp; success when the cube rests in the box.
 // ****************************************************************************
 class PickPlaceReward final: public robotik::RewardEvaluator
@@ -112,17 +112,17 @@ private:
     bool m_grasped = false;
 };
 
-/// @brief The three parts, ready for a @ref robotik::SimulationEnvironment.
+/// The three parts, ready for a @ref robotik::SimulationEnvironment.
 [[nodiscard]] robotik::SimulationEnvironment::Parts pickPlaceParts();
 
 void convergedPolicy(std::span<float const> p_observation,
                      std::span<float> p_action);
 
-/// @brief @p_mix 0 = noise, 1 = converged recipe. In between: blend.
+/// @p_mix 0 = noise, 1 = converged recipe. In between: blend.
 void pickPlacePolicy(std::span<float const> p_observation,
                      std::span<float> p_action,
                      float p_mix,
                      robotik::Random* p_noise);
 
-/// @brief Visible phase (approach / grasp / carry / drop).
+/// Visible phase (approach / grasp / carry / drop).
 [[nodiscard]] char const* policyPhase(std::span<float const> p_observation);

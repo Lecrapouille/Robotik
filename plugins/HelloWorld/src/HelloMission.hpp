@@ -10,7 +10,7 @@
 #include "Robotik/Task/Mission.hpp"
 
 // ****************************************************************************
-/// @brief Lesson 1: the smallest mission.
+/// Lesson 1: the smallest mission.
 ///
 /// It counts the simulation steps, publishes the count as the metric
 /// "hello.ticks", and succeeds after two seconds. The scenario file asserts

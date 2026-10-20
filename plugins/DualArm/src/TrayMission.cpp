@@ -189,7 +189,7 @@ void TrayMission::addDrillSkills(robotik::Cell& p_cell,
     }
 }
 
-/// @brief The believed centre of @p_a lies in the footprint of @p_b.
+/// The believed centre of @p_a lies in the footprint of @p_b.
 static bool overFootprint(robotik::WorldObject const& p_a,
                           robotik::WorldObject const& p_b)
 {
@@ -197,7 +197,7 @@ static bool overFootprint(robotik::WorldObject const& p_a,
            std::abs(p_a.position.y - p_b.position.y) < 0.5 * p_b.size.y;
 }
 
-/// @brief An arm of the cell holds @p_object.
+/// An arm of the cell holds @p_object.
 static bool heldByAnyone(robotik::RobotContext const& p_context,
                          std::string const& p_object)
 {

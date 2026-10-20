@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file ShiuNetwork.hpp
-// @brief Leaky integrate-and-fire network with the constants of Shiu et al.
+// Leaky integrate-and-fire network with the constants of Shiu et al.
 // 2024.
 //
 // The equations are those of model.py in
@@ -29,7 +29,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief One Shiu network: synapses, Poisson drives and the spike counters.
+/// One Shiu network: synapses, Poisson drives and the spike counters.
 // ****************************************************************************
 class ShiuNetwork
 {
@@ -57,51 +57,51 @@ public:
     static constexpr double F_POISSON = 250.0;
 
     // ------------------------------------------------------------------------
-    /// @brief Allocates @p_neurons cells at rest. Synapses added afterwards
+    /// Allocates @p_neurons cells at rest. Synapses added afterwards
     /// wait for @ref build.
     // ------------------------------------------------------------------------
     void resize(std::uint32_t p_neurons);
 
     // ------------------------------------------------------------------------
-    /// @brief Queues one synapse. @p_count is excitatory times connectivity
+    /// Queues one synapse. @p_count is excitatory times connectivity
     /// and may be negative. Call @ref build before @ref step.
     // ------------------------------------------------------------------------
     void addSynapse(std::uint32_t p_pre, std::uint32_t p_post, float p_count);
 
     // ------------------------------------------------------------------------
-    /// @brief Marks @p_neuron as a Poisson input. @ref setRate then drives it.
+    /// Marks @p_neuron as a Poisson input. @ref setRate then drives it.
     // ------------------------------------------------------------------------
     void addDrive(std::uint32_t p_neuron);
 
     // ------------------------------------------------------------------------
-    /// @brief Holds @p_neuron at rest. It neither spikes nor relays.
+    /// Holds @p_neuron at rest. It neither spikes nor relays.
     // ------------------------------------------------------------------------
     void silence(std::uint32_t p_neuron);
 
     // ------------------------------------------------------------------------
-    /// @brief Freezes the queued synapses into a sparse matrix.
+    /// Freezes the queued synapses into a sparse matrix.
     // ------------------------------------------------------------------------
     void build();
 
     // ------------------------------------------------------------------------
-    /// @brief Resting potentials, empty spike counters, Poisson seed taken
+    /// Resting potentials, empty spike counters, Poisson seed taken
     /// from @p_seed. Builds first when @ref build was not called.
     // ------------------------------------------------------------------------
     void reset(robotik::Seed p_seed);
 
     // ------------------------------------------------------------------------
-    /// @brief Poisson rate of a drive neuron (SI: Hz). Other neurons ignore it.
+    /// Poisson rate of a drive neuron (SI: Hz). Other neurons ignore it.
     // ------------------------------------------------------------------------
     void setRate(std::uint32_t p_neuron, double p_hertz);
 
     // ------------------------------------------------------------------------
-    /// @brief Integrates @p_dt seconds. Spike counters keep growing until
+    /// Integrates @p_dt seconds. Spike counters keep growing until
     /// @ref clearSpikes.
     // ------------------------------------------------------------------------
     void step(double p_dt);
 
     // ------------------------------------------------------------------------
-    /// @brief Cells allocated by @ref resize or @ref loadEdges.
+    /// Cells allocated by @ref resize or @ref loadEdges.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::uint32_t neurons() const
     {
@@ -109,7 +109,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Synapses stored after @ref build.
+    /// Synapses stored after @ref build.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::uint64_t synapses() const
     {
@@ -117,7 +117,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Spikes of @p_neuron since the last @ref clearSpikes.
+    /// Spikes of @p_neuron since the last @ref clearSpikes.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::uint32_t spikes(std::uint32_t p_neuron) const
     {
@@ -125,12 +125,12 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Zeroes every spike counter. Does not change the potentials.
+    /// Zeroes every spike counter. Does not change the potentials.
     // ------------------------------------------------------------------------
     void clearSpikes();
 
     // ------------------------------------------------------------------------
-    /// @brief Loads an edge list. A non-numeric first line is skipped.
+    /// Loads an edge list. A non-numeric first line is skipped.
     /// Columns: presynaptic index, postsynaptic index, weight.
     // ------------------------------------------------------------------------
     [[nodiscard]] static ShiuNetwork
@@ -139,12 +139,12 @@ public:
 private:
 
     // ------------------------------------------------------------------------
-    /// @brief One substep of @ref SUBSTEP_S, including delayed synapses.
+    /// One substep of @ref SUBSTEP_S, including delayed synapses.
     // ------------------------------------------------------------------------
     void substep();
 
     // ------------------------------------------------------------------------
-    /// @brief Puts @p_neuron in the active set. A resting cell is absent
+    /// Puts @p_neuron in the active set. A resting cell is absent
     /// from it, so a quiet connectome does not walk every neuron.
     // ------------------------------------------------------------------------
     void wake(std::uint32_t p_neuron);

@@ -27,7 +27,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief A workspace groups the panels of one task. Each one has its own
+/// A workspace groups the panels of one task. Each one has its own
 /// dock layout, saved in imgui.ini.
 // ****************************************************************************
 enum class Workspace : std::uint8_t
@@ -41,7 +41,7 @@ enum class Workspace : std::uint8_t
 inline constexpr std::size_t WORKSPACE_COUNT = 4U;
 
 // ****************************************************************************
-/// @brief Recent joint states, for the plots. A ring buffer per series.
+/// Recent joint states, for the plots. A ring buffer per series.
 // ****************************************************************************
 struct JointHistory
 {
@@ -58,12 +58,12 @@ struct JointHistory
 
     void clear();
     void record(robotik::Simulation const& p_simulation);
-    /// @brief Index of the latest sample, or CAPACITY when empty.
+    /// Index of the latest sample, or CAPACITY when empty.
     [[nodiscard]] std::size_t latest() const;
 };
 
 // ****************************************************************************
-/// @brief A file or a folder of the loaded package (Package panel).
+/// A file or a folder of the loaded package (Package panel).
 // ****************************************************************************
 struct PackageEntry
 {
@@ -75,7 +75,7 @@ struct PackageEntry
 };
 
 // ****************************************************************************
-/// @brief Tabs of the Files panel: one per kind of file.
+/// Tabs of the Files panel: one per kind of file.
 // ****************************************************************************
 enum class FileTab : std::uint8_t
 {
@@ -92,7 +92,7 @@ enum class FileTab : std::uint8_t
 inline constexpr std::size_t FILE_TAB_COUNT = 6U;
 
 // ****************************************************************************
-/// @brief A file shown read-only in the Files panel.
+/// A file shown read-only in the Files panel.
 // ****************************************************************************
 struct ShownFile
 {
@@ -101,7 +101,7 @@ struct ShownFile
 };
 
 // ****************************************************************************
-/// @brief A fault injected by hand in the Resources panel.
+/// A fault injected by hand in the Resources panel.
 // ****************************************************************************
 struct ManualFault
 {
@@ -113,7 +113,7 @@ struct ManualFault
 };
 
 // ****************************************************************************
-/// @brief What a resource chip of the Timeline shows. Skills take and give
+/// What a resource chip of the Timeline shows. Skills take and give
 /// back resources within a few steps: the last holders stay shown a short
 /// time so the chip does not flicker.
 // ****************************************************************************
@@ -126,7 +126,7 @@ struct ChipHold
 };
 
 // ****************************************************************************
-/// @brief Operator interface state, kept across scenario loads.
+/// Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
 {
@@ -211,7 +211,7 @@ struct App
     std::string world_text;
     std::string tree_text;
     std::string error;
-    /// @brief The loaded package advances time inside its own update.
+    /// The loaded package advances time inside its own update.
     bool owns_clock = false;
 
     robotik::PluginSession plugins;
@@ -243,7 +243,7 @@ struct App
     bool step_once = false;
     float speed = 1.0F;
     std::uint64_t seed = 0;
-    /// @brief When set, replaces @c robot.tool read from the scenario file.
+    /// When set, replaces @c robot.tool read from the scenario file.
     bool tool_override = false;
     std::string tool_override_name;
 

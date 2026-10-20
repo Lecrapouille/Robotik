@@ -95,7 +95,7 @@ scenario:
   #       - in(red_cube, box)
   #     replan: { max: 3, delay: 0.5 }   # verify: true, search: lama, timeout: 10
   trajectories: { red: scenarios/trajectories/red.trajectory.yaml }
-  perception: { oracle: when_blind }   # never (default) | when_blind | always
+  perception: { blind: truth }         # fidelity: sensed (default) | noisy_truth | truth; blind: level without image; overrides: { id: level }
   faults:
     - { at: 1.0, resource: arm, action: disable }
     - { at: 2.0, resource: arm, action: restore }

@@ -298,12 +298,14 @@ planned duration.
 | `goal_pddl` | none | The goal in PDDL, for what a list cannot say (`(forall ...)`). Not checked on the beliefs |
 | `replan.max` | 3 | New plans allowed after the first one |
 | `replan.delay` | 0.5 | Simulated seconds waited before a new plan |
-| `verify` | true | Check the effects of each action on the beliefs |
+| `verify` | true | Check the effects of each action on the beliefs. `observed`: an effect counts only when a belief was seen again after the start of the step (a failed grasp is not taken for a held object); `false`: no check |
 | `parallel` | true | Run together the steps that do not depend on each other ([§4](#steps-that-run-together)); `false` runs the plan step by step |
 | `search` | `lama` | Kairos search: `ff`, `lama`, `eager-lama`, `novelty`, `lama-novelty`, `ehc`, `goals` |
 | `timeout` | 10 | Wall-clock limit of one search, in seconds |
 
 A scenario has `behavior_tree` **or** `planner`, not both.
+
+Beliefs older than `perception.max_age` (seconds, infinite by default) are unknown to the planner: an observer does not plan on what the robot saw long ago.
 
 ### Metrics
 

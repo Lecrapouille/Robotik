@@ -33,7 +33,7 @@ static std::string format(char const* p_format, double p_value)
 }
 
 // ****************************************************************************
-/// @brief Microduck walking by a learned policy. The plugin owns the clock
+/// Microduck walking by a learned policy. The plugin owns the clock
 /// (host.clock: plugin): it steps the simulation at the physics rate of the
 /// training, whatever the host rate, so the policy runs at 50 Hz.
 /// Its panel changes the walk command while the duck walks.

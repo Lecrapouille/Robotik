@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-/// @brief Two-column "key  value" rows.
+/// Two-column "key  value" rows.
 static void field(char const* p_key, char const* p_format, ...) IM_FMTARGS(2);
 static void field(char const* p_key, char const* p_format, ...)
 {
@@ -44,7 +44,7 @@ static bool beginFields(char const* p_id)
     return true;
 }
 
-/// @brief The license of a pack: green when somebody wrote it down.
+/// The license of a pack: green when somebody wrote it down.
 static void licenseBadge(robotik::AssetPack const& p_pack)
 {
     if (robotik::licenseVerified(p_pack))
@@ -61,7 +61,7 @@ static void licenseBadge(robotik::AssetPack const& p_pack)
     }
 }
 
-/// @brief True when @p_file is inside the folder @p_root.
+/// True when @p_file is inside the folder @p_root.
 static bool inside(std::filesystem::path const& p_root,
                    std::filesystem::path const& p_file)
 {
@@ -70,7 +70,7 @@ static bool inside(std::filesystem::path const& p_root,
     return !p_root.empty() && mismatch.first == p_root.end();
 }
 
-/// @brief Packs the running scenario takes a model from, or the package
+/// Packs the running scenario takes a model from, or the package
 /// requires, or the package owns.
 static bool usedByRun(App const& p_app,
                       robotik::PluginPackage const* p_package,
@@ -329,7 +329,7 @@ static std::string sizeText(std::uintmax_t p_bytes)
     return text;
 }
 
-/// @brief Folders first, then files, each sorted by name.
+/// Folders first, then files, each sorted by name.
 static PackageEntry readFolder(std::filesystem::path const& p_folder,
                                std::string p_name,
                                int p_depth)
@@ -375,7 +375,7 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder,
     return entry;
 }
 
-/// @brief Files of the loaded scenario and experiment, as canonical paths,
+/// Files of the loaded scenario and experiment, as canonical paths,
 /// to mark them in the tree.
 static std::vector<std::filesystem::path> loadedFiles(App const& p_app)
 {
@@ -509,7 +509,7 @@ static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
     }
 }
 
-/// @brief A value of an override, written inline: 0.05, [a, b], {x: 1}.
+/// A value of an override, written inline: 0.05, [a, b], {x: 1}.
 static std::string inlineText(robotik::ConfigNode const& p_node)
 {
     if (p_node.isScalar())
@@ -620,7 +620,7 @@ static robotik::PluginPackage const* loadedPackage(App const& p_app)
     return p_app.plugins.catalog().matchScenario(p_app.scenario_path).package;
 }
 
-/// @brief A new package: its first experiment becomes the chosen one.
+/// A new package: its first experiment becomes the chosen one.
 static void followPackage(App& p_app, robotik::PluginPackage const* p_package)
 {
     UiState& ui = p_app.ui;

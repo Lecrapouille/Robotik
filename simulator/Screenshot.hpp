@@ -12,7 +12,7 @@
 
 struct RenderTarget;
 
-/// @brief Saves the color of @p_target into the PNG file @p_path.
+/// Saves the color of @p_target into the PNG file @p_path.
 /// @return An empty string, or why it failed.
 [[nodiscard]] std::string saveScreenshot(RenderTarget const& p_target,
                                          std::filesystem::path const& p_path);

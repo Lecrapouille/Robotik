@@ -18,14 +18,14 @@
 
 #include <numbers>
 
-/// @brief Camera 1 m above the base origin, looking down.
+/// Camera 1 m above the base origin, looking down.
 static robotik::Pose downward()
 {
     return { { 0.0, 0.0, 1.0 },
              robotik::Quaternion::fromAngleAxis(robotik::Radians(std::numbers::pi), { 1.0, 0.0, 0.0 }) };
 }
 
-/// @brief Gray image of the right size, counts captures.
+/// Gray image of the right size, counts captures.
 class FlatSource final: public robotik::FrameSource
 {
 public:
@@ -47,7 +47,7 @@ public:
     int captures = 0;
 };
 
-/// @brief Reports one object at a fixed pixel.
+/// Reports one object at a fixed pixel.
 class FixedDetector final: public robotik::Detector
 {
 public:

@@ -20,7 +20,7 @@ using robotik::SkillReason;
 using robotik::SkillState;
 using robotik::Status;
 
-/// @brief Runs for a fixed number of ticks, records cancellations.
+/// Runs for a fixed number of ticks, records cancellations.
 class CountdownSkill final: public robotik::Skill
 {
 public:

@@ -25,7 +25,7 @@
 namespace robotik
 {
 
-/// @brief A PDDL name: a letter, then letters, digits, '_' or '-'.
+/// A PDDL name: a letter, then letters, digits, '_' or '-'.
 static bool pddlName(std::string_view p_name)
 {
     if (p_name.empty() ||
@@ -42,7 +42,7 @@ static bool pddlName(std::string_view p_name)
         });
 }
 
-/// @brief YAML double-quoted scalar.
+/// YAML double-quoted scalar.
 static std::string yamlQuoted(std::string_view p_text)
 {
     std::string result = "\"";
@@ -71,7 +71,7 @@ static std::string readFile(std::filesystem::path const& p_file)
     return text.str();
 }
 
-/// @brief "pick(red_cube)" for a step.
+/// "pick(red_cube)" for a step.
 static std::string label(GroundAction const& p_step)
 {
     return toString(Atom{ p_step.name, p_step.args });

@@ -19,7 +19,7 @@ inline constexpr std::size_t RL_OBSERVATIONS = PICK_PLACE_OBSERVATIONS;
 inline constexpr std::size_t RL_ACTIONS = PICK_PLACE_ACTIONS;
 
 // ****************************************************************************
-/// @brief One rendered pick-and-place episode driven by the scripted policy.
+/// One rendered pick-and-place episode driven by the scripted policy.
 ///
 /// Same observation, action and reward as Robotik-PickAndPlaceRL (see
 /// PickPlaceControl.hpp). @c step stays empty: @ref act holds the action for
@@ -34,11 +34,12 @@ public:
                robotik::Seed p_seed) override;
     void step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/) override
     {
+        // Empty on purpose: act() steps the cell itself (see the class).
     }
     robotik::Status
     status(robotik::Cell const& /*p_cell*/) const override;
 
-    /// @brief One policy action, or the pause before the next episode.
+    /// One policy action, or the pause before the next episode.
     void act(robotik::Cell& p_cell, double p_dt);
 
     bool converged = true;

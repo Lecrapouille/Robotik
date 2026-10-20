@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file TraySkills.hpp
-/// @brief Skills of the tray scenario: a smooth straight move of the tool
+/// Skills of the tray scenario: a smooth straight move of the tool
 /// (glasses on a tray do not like jerks), and a path drilled on the tray
 /// that follows the arm carrying it.
 #pragma once
@@ -22,7 +22,7 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// @brief Moves the tool in a straight line, orientation kept, with a
+/// Moves the tool in a straight line, orientation kept, with a
 /// minimum-jerk profile over a fixed time: by an offset, under or above an
 /// object of the beliefs at the same height, or under its bottom face. The
 /// speed limits of the joints may make it slower, never faster.
@@ -31,13 +31,13 @@ class PathSkill final: public robotik::Skill
 {
 public:
 
-    /// @brief By @p_offset (m, in the robot base frame).
+    /// By @p_offset (m, in the robot base frame).
     PathSkill(robotik::Vector3 const& p_offset, robotik::Seconds p_duration);
 
-    /// @brief Above the believed centre of @p_object, at the same height.
+    /// Above the believed centre of @p_object, at the same height.
     PathSkill(std::string p_object, robotik::Seconds p_duration);
 
-    /// @brief @p_below under the believed bottom face of @p_object.
+    /// @p_below under the believed bottom face of @p_object.
     PathSkill(std::string p_object, robotik::Length p_below, robotik::Seconds p_duration);
 
     void reset() override
@@ -70,7 +70,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Touches a tray that another arm carries with the tool, presses on
+/// Touches a tray that another arm carries with the tool, presses on
 /// it with @p_force and follows @p_path on its top at @p_speed, then lifts.
 ///
 /// The contact is felt, not assumed: the tool goes down until the force
@@ -126,7 +126,7 @@ private:
         Lift,
     };
 
-    /// @brief Point of the path at @p_travel metres from its start, in the
+    /// Point of the path at @p_travel metres from its start, in the
     /// tool frame of the carrier.
     [[nodiscard]] robotik::Vector3 along(double p_travel) const;
 

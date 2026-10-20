@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyVision.hpp
-// @brief Three synthetic eyes: left, centre and right.
+// Three synthetic eyes: left, centre and right.
 #pragma once
 
 #include "FlyTypes.hpp"
@@ -16,7 +16,7 @@
 #include <span>
 
 // ****************************************************************************
-/// @brief One sample of the three eyes.
+/// One sample of the three eyes.
 ///
 /// Each value is 1 when an obstacle touches the eye and 0 when the ray
 /// reaches its end without a hit. @c origins[i] is where beam i leaves the
@@ -40,7 +40,7 @@ struct FlyVision
 };
 
 // ------------------------------------------------------------------------
-/// @brief Casts the three eye rays.
+/// Casts the three eye rays.
 ///
 /// @p_neck_yaw is the head yaw in the thorax (SI: rad). The beams leave the
 /// eye meshes, not the thorax centre. @p_noise, when not null and when

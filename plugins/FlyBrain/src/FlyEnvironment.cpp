@@ -17,7 +17,7 @@ static constexpr double REACH_Z_M = 0.4;
 static constexpr double GROUND_Z_M = 0.19;
 static constexpr std::size_t TRAIL_CAP = 240;
 
-/// @brief Brings an angle back to (-pi, pi], for the food bearing.
+/// Brings an angle back to (-pi, pi], for the food bearing.
 static double wrapPi(double p_angle)
 {
     constexpr double pi = 3.14159265358979323846;
@@ -32,7 +32,7 @@ static double wrapPi(double p_angle)
     return p_angle;
 }
 
-/// @brief Distance in the ground plane. Height is checked apart from this.
+/// Distance in the ground plane. Height is checked apart from this.
 static double horizontal(FlyPlant const& p_plant,
                          robotik::Vector3 const& p_target)
 {
@@ -107,7 +107,7 @@ void FlyEnvironment::reset(robotik::Seed p_seed, std::span<float> p_observation)
     write(p_observation);
 }
 
-/// @brief Eyes first, then the quantities the eyes do not measure.
+/// Eyes first, then the quantities the eyes do not measure.
 void FlyEnvironment::sense()
 {
     // Sense the vision.

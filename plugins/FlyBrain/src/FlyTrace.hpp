@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyTrace.hpp
-// @brief One recorded episode: the seed, then every observation and action.
+// One recorded episode: the seed, then every observation and action.
 #pragma once
 
 #include "FlyTypes.hpp"
@@ -15,7 +15,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief A fly episode stored as JSON, so it can be replayed without a brain.
+/// A fly episode stored as JSON, so it can be replayed without a brain.
 // ****************************************************************************
 struct FlyTrace
 {
@@ -29,12 +29,12 @@ struct FlyTrace
     std::vector<FlyAction> actions;
 
     // ------------------------------------------------------------------------
-    /// @brief Writes a JSON object with the seed, the step and the two lists.
+    /// Writes a JSON object with the seed, the step and the two lists.
     // ------------------------------------------------------------------------
     void save(std::filesystem::path const& p_path) const;
 
     // ------------------------------------------------------------------------
-    /// @brief Reads a file written by @ref save.
+    /// Reads a file written by @ref save.
     // ------------------------------------------------------------------------
     [[nodiscard]] static FlyTrace load(std::filesystem::path const& p_path);
 };

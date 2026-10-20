@@ -18,7 +18,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief A humanoid walks by a learned policy (LimX HU_D04_01).
+/// A humanoid walks by a learned policy (LimX HU_D04_01).
 ///
 /// Setup plugs a floating-base MuJoCo backend without gravity compensation
 /// (the policy was trained without it), gives every joint the PD gains of the
@@ -46,7 +46,7 @@ public:
     void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 
-    /// @brief Command of the Walk skill: forward (m/s), lateral (m/s), yaw
+    /// Command of the Walk skill: forward (m/s), lateral (m/s), yaw
     /// rate (rad/s). Starts from the scenario parameters; a panel may change it
     /// while the robot walks.
     [[nodiscard]] std::array<double, 3>& command()
@@ -54,7 +54,7 @@ public:
         return m_command;
     }
 
-    /// @brief Base link height now (m), ground truth.
+    /// Base link height now (m), ground truth.
     [[nodiscard]] double height() const
     {
         return m_height;
@@ -67,7 +67,7 @@ public:
     [[nodiscard]] double radius() const;
     [[nodiscard]] double commandedRadius() const;
 
-    /// @brief Physics step of the backend: the plugin steps the simulation
+    /// Physics step of the backend: the plugin steps the simulation
     /// at this rate so the policy runs exactly every decimation steps.
     [[nodiscard]] static robotik::Seconds physicsStep();
 

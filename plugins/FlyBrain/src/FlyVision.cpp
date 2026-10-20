@@ -33,7 +33,7 @@ static constexpr EyePoint EYE_POINTS[3] = {
     { 0.04, -0.032, 0.008 },
 };
 
-/// @brief Eye point from the head frame to the world: neck yaw, then body yaw.
+/// Eye point from the head frame to the world: neck yaw, then body yaw.
 static robotik::Vector3
 eyeOrigin(FlyPlant const& p_plant, EyePoint const& p_eye, double p_neck_yaw)
 {
@@ -51,7 +51,7 @@ eyeOrigin(FlyPlant const& p_plant, EyePoint const& p_eye, double p_neck_yaw)
                             p_plant.z + body_z);
 }
 
-/// @brief Slab method. Returns the entry distance, or past @p_range on a miss
+/// Slab method. Returns the entry distance, or past @p_range on a miss
 /// and when the box is entirely behind the eye.
 static double rayBox(robotik::Vector3 const& p_origin,
                      robotik::Vector3 const& p_direction,
@@ -100,7 +100,7 @@ static double rayBox(robotik::Vector3 const& p_origin,
     return t_near;
 }
 
-/// @brief 1 at a contact, 0 at the end of the range or beyond it.
+/// 1 at a contact, 0 at the end of the range or beyond it.
 static float channel(double p_distance, double p_range)
 {
     if (p_distance > p_range)

@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 // @file FlyBrain.hpp
-// @brief Closed-loop flyer: a reflex rule, or the Shiu neuron model.
+// Closed-loop flyer: a reflex rule, or the Shiu neuron model.
 //
 // Neither path knows MuJoCo, Compages or the URDF. The default Shiu circuit
 // is a small sensorimotor stand-in. @ref FlyBrain::loadConnectome replaces
@@ -23,14 +23,14 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Maps a @ref FlyObservation to a @ref FlyAction.
+/// Maps a @ref FlyObservation to a @ref FlyAction.
 // ****************************************************************************
 class FlyBrain final: public robotik::Agent
 {
 public:
 
     // ------------------------------------------------------------------------
-    /// @brief Which decision rule @ref update runs.
+    /// Which decision rule @ref update runs.
     // ------------------------------------------------------------------------
     enum class Kind
     {
@@ -39,7 +39,7 @@ public:
     };
 
     // ------------------------------------------------------------------------
-    /// @brief Builds a reflex brain, or the embedded Shiu circuit.
+    /// Builds a reflex brain, or the embedded Shiu circuit.
     ///
     /// @p_cruise_altitude is the height the lift neurons try to hold (SI: m),
     /// usually the food height.
@@ -47,13 +47,13 @@ public:
     FlyBrain(Kind p_kind, float p_cruise_altitude);
 
     // ------------------------------------------------------------------------
-    /// @brief Clears the spike filters. Derives the Poisson seed from
+    /// Clears the spike filters. Derives the Poisson seed from
     /// @p_seed when a network is loaded.
     // ------------------------------------------------------------------------
     void reset(robotik::Seed p_seed);
 
     // ------------------------------------------------------------------------
-    /// @brief Replaces the embedded circuit with a connectome.
+    /// Replaces the embedded circuit with a connectome.
     ///
     /// @p_edges is the synaptic list (presynaptic index, postsynaptic index,
     /// excitatory times connectivity). @p_binding names which neuron index
@@ -63,19 +63,19 @@ public:
                         std::filesystem::path const& p_binding);
 
     // ------------------------------------------------------------------------
-    /// @brief One decision for the fly-shaped observation.
+    /// One decision for the fly-shaped observation.
     // ------------------------------------------------------------------------
     FlyAction update(FlyObservation const& p_observation, robotik::Seconds p_dt);
 
     // ------------------------------------------------------------------------
-    /// @brief @ref Agent entry. The observation must hold
+    /// @ref Agent entry. The observation must hold
     /// @ref FlyObservation::SIZE floats.
     // ------------------------------------------------------------------------
     robotik::Action update(robotik::Observation const& p_observation,
                            robotik::Seconds p_dt) override;
 
     // ------------------------------------------------------------------------
-    /// @brief Rule selected at construction. A loaded connectome stays
+    /// Rule selected at construction. A loaded connectome stays
     /// @ref Kind::Shiu.
     // ------------------------------------------------------------------------
     [[nodiscard]] Kind kind() const
@@ -84,7 +84,7 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief True after a successful @ref loadConnectome.
+    /// True after a successful @ref loadConnectome.
     // ------------------------------------------------------------------------
     [[nodiscard]] bool connectome() const
     {
@@ -92,40 +92,40 @@ public:
     }
 
     // ------------------------------------------------------------------------
-    /// @brief Cells in the loaded network. Zero for a reflex brain.
+    /// Cells in the loaded network. Zero for a reflex brain.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::uint32_t neurons() const;
 
     // ------------------------------------------------------------------------
-    /// @brief Synapses in the loaded network. Zero for a reflex brain.
+    /// Synapses in the loaded network. Zero for a reflex brain.
     // ------------------------------------------------------------------------
     [[nodiscard]] std::uint64_t synapses() const;
 
 private:
 
     // ------------------------------------------------------------------------
-    /// @brief Wires the thirteen-neuron stand-in and marks every role present.
+    /// Wires the thirteen-neuron stand-in and marks every role present.
     // ------------------------------------------------------------------------
     void buildEmbedded();
 
     // ------------------------------------------------------------------------
-    /// @brief Reads the role file into @ref m_role. A repeated role adds
+    /// Reads the role file into @ref m_role. A repeated role adds
     /// another neuron: inputs share the rate, motor spikes are summed.
     // ------------------------------------------------------------------------
     void bind(std::filesystem::path const& p_path);
 
     // ------------------------------------------------------------------------
-    /// @brief Turns the observation into Poisson rates on the input neurons.
+    /// Turns the observation into Poisson rates on the input neurons.
     // ------------------------------------------------------------------------
     void stimulate(FlyObservation const& p_observation);
 
     // ------------------------------------------------------------------------
-    /// @brief Spike counts of the motor neurons, filtered, as a fly action.
+    /// Spike counts of the motor neurons, filtered, as a fly action.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlyAction readout(double p_dt);
 
     // ------------------------------------------------------------------------
-    /// @brief Avoidance rule used when @ref m_kind is @ref Kind::Reflex.
+    /// Avoidance rule used when @ref m_kind is @ref Kind::Reflex.
     // ------------------------------------------------------------------------
     [[nodiscard]] FlyAction reflex(FlyObservation const& p_observation) const;
 

@@ -10,7 +10,7 @@
 #include "Robotik/Task/Mission.hpp"
 
 // ****************************************************************************
-/// @brief Lesson 2: command a joint, read the tool pose.
+/// Lesson 2: command a joint, read the tool pose.
 ///
 /// The base joint follows a sine around its home angle. Each step reads the
 /// pose of the tool frame (forward kinematics) and publishes how far the

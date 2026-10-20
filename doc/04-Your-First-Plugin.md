@@ -94,11 +94,11 @@ class HelloMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Simulation& p_simulation, robotik::Seed p_seed) override;
-    void step(robotik::Simulation& p_simulation, Seconds p_dt) override;
-    void measure(robotik::Simulation const& p_simulation,
+    void reset(robotik::Cell& p_cell, robotik::Seed p_seed) override;
+    void step(robotik::Cell& p_cell, Seconds p_dt) override;
+    void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
-    [[nodiscard]] robotik::Status status(robotik::Simulation const& p_simulation) const override;
+    [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override;
 
 private:
 
@@ -109,25 +109,25 @@ private:
 `src/HelloMission.cpp`:
 
 ```cpp
-void HelloMission::reset(robotik::Simulation& /*p_simulation*/, robotik::Seed /*p_seed*/)
+void HelloMission::reset(robotik::Cell& /*p_cell*/, robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;                         // a new episode starts
 }
 
-void HelloMission::step(robotik::Simulation& /*p_simulation*/, Seconds /*p_dt*/)
+void HelloMission::step(robotik::Cell& /*p_cell*/, Seconds /*p_dt*/)
 {
     m_ticks += 1.0;                        // called after each simulation step
 }
 
-void HelloMission::measure(robotik::Simulation const& /*p_simulation*/,
+void HelloMission::measure(robotik::Cell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks); // the scenario can now use "hello.ticks"
 }
 
-robotik::Status HelloMission::status(robotik::Simulation const& p_simulation) const
+robotik::Status HelloMission::status(robotik::Cell const& p_cell) const
 {
-    if (p_simulation.time() >= Seconds(2.0))
+    if (p_cell.time() >= Seconds(2.0))
     {
         return robotik::Status::SUCCESS;   // ends the run: controller.success = 1
     }
@@ -156,9 +156,9 @@ The five methods of a `Mission`, all optional:
 The arm turns its base joint left and right. `src/WaveMission.cpp`:
 
 ```cpp
-void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void WaveMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
     robotik::JointSet& joints = robot.joints();
 
     // A typed handle: the angle is in radians, the compiler checks it.
@@ -170,7 +170,7 @@ void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
 
     // Command: a target angle. The joint controller moves toward it.
     Radians const home = joints.home(base);
-    Radians const offset(0.6 * std::sin(p_simulation.time().value()));
+    Radians const offset(0.6 * std::sin(p_cell.time().value()));
     joints.moveTo(base, home + offset);
 
     // Measure: the angle reached, and where the tool is (forward kinematics,
@@ -182,7 +182,7 @@ void WaveMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
 
 What you see here:
 
-- `p_simulation.robot()` gives the robot. `robot.joints()` gives all joints.
+- `p_cell.robot()` gives the robot. `robot.joints()` gives all joints.
 - `joints.revolute("joint1")` gives a **typed handle**: its positions are
   `Radians`. A prismatic joint gives a `Prismatic` handle in metres. Mixing
   them does not compile.
@@ -214,9 +214,9 @@ Now we give a **position** and ask which joint angles reach it.
 `src/ReachMission.cpp`:
 
 ```cpp
-void ReachMission::reset(robotik::Simulation& p_simulation, robotik::Seed /*p_seed*/)
+void ReachMission::reset(robotik::Cell& p_cell, robotik::Seed /*p_seed*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
 
     // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
     robotik::Pose const start = robot.framePose(robot.tool());
@@ -230,9 +230,9 @@ void ReachMission::reset(robotik::Simulation& p_simulation, robotik::Seed /*p_se
     m_error = distance(start, m_target);
 }
 
-void ReachMission::step(robotik::Simulation& p_simulation, Seconds /*p_dt*/)
+void ReachMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
     robotik::JointSet& joints = robot.joints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size(); ++id)
     {
@@ -302,13 +302,13 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
 The mission registers it, with a **name** and the **resources** it needs:
 
 ```cpp
-void SkillsMission::setup(robotik::Simulation& p_simulation, robotik::SceneView* /*p_view*/)
+void SkillsMission::setup(robotik::Cell& p_cell, robotik::SceneView* /*p_view*/)
 {
     robotik::SkillDescription wave;
     wave.name = "Wave";
-    wave.resources = { p_simulation.robot().resources().require("arm") };
+    wave.resources = { p_cell.robot().resources().require("arm") };
     wave.priority = 100;
-    p_simulation.skills().add<WaveSkill>(std::move(wave));
+    p_cell.skills().add<WaveSkill>(std::move(wave));
 }
 ```
 
@@ -437,7 +437,7 @@ Simulation built          from the world + scenario; Mission::setup, Mission::re
 start
       │
       ▼
-loop: Simulation::step → Mission::step → Plugin::update(dt)
+loop: Cell::step → Mission::step → Plugin::update(dt)
       │
       ▼
 stop                      the simulation still exists
@@ -776,12 +776,12 @@ executable.
 - **A reset rebuilds the state** without unloading the plugin: put all
   episode state back in `Mission::reset`.
 - **Skills see beliefs, not truth.** In a skill, use `RobotContext`
-  (`robot`, `world_model`). Ground truth (`Simulation::pose`) is for metrics
+  (`robot`, `world_model`). Ground truth (`Cell::pose`) is for metrics
   and assertions.
 - **Publish metrics, do not judge.** The scenario file holds the verdict.
 - **Units are SI**: metres, radians, seconds. Use the typed handles
   (`Revolute`, `Prismatic`, `Seconds`, `Radians`) when you can.
 - **Headless first.** `view` is null and there is no camera image in
-  headless: your mission must still work (see `perception.oracle`).
+  headless: your mission must still work (see `perception.blind`).
 
 Next: [05-Skills-and-Behavior-Trees.md](05-Skills-and-Behavior-Trees.md).

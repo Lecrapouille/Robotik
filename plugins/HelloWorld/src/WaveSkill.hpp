@@ -11,7 +11,7 @@
 #include "Robotik/Task/Skills/Skill.hpp"
 
 // ****************************************************************************
-/// @brief Lesson 4: a skill. It swings the base joint left, right, left,
+/// Lesson 4: a skill. It swings the base joint left, right, left,
 /// right, then succeeds.
 ///
 /// A skill only sees the @ref robotik::RobotContext: the robot API and its
@@ -32,7 +32,7 @@ private:
 };
 
 // ****************************************************************************
-/// @brief Lesson 4: registers the skill "Wave". The behavior tree of the
+/// Lesson 4: registers the skill "Wave". The behavior tree of the
 /// scenario calls it by that name.
 // ****************************************************************************
 class SkillsMission final: public robotik::Mission

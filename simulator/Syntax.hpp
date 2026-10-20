@@ -6,14 +6,14 @@
 // See LICENSING.md for details.
 
 /// @file Syntax.hpp
-/// @brief Syntax colours for the read-only text view (YAML and PDDL).
+/// Syntax colours for the read-only text view (YAML and PDDL).
 #pragma once
 
 #include <filesystem>
 #include <string_view>
 
 // ****************************************************************************
-/// @brief Colours one file in the text view.
+/// Colours one file in the text view.
 ///
 /// Create one painter per file. Call @c skip for every line above the first
 /// visible line, then @c draw for each visible line, in order. YAML strings
@@ -25,16 +25,16 @@ public:
 
     explicit SyntaxPainter(std::filesystem::path const& p_path);
 
-    /// @brief Forgets the carried YAML state. The language stays.
+    /// Forgets the carried YAML state. The language stays.
     void reset();
 
-    /// @brief Updates the carried state without drawing. No-op except for YAML.
+    /// Updates the carried state without drawing. No-op except for YAML.
     void skip(std::string_view p_line);
 
-    /// @brief Draws @p_line on the current ImGui line and updates the state.
+    /// Draws @p_line on the current ImGui line and updates the state.
     void draw(std::string_view p_line);
 
-    /// @brief Which grammar the file uses.
+    /// Which grammar the file uses.
     enum class Language
     {
         Plain,
@@ -42,7 +42,7 @@ public:
         Pddl,
     };
 
-    /// @brief Where a YAML line continues from the line above.
+    /// Where a YAML line continues from the line above.
     enum class Mode
     {
         Code,

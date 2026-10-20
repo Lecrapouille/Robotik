@@ -193,7 +193,7 @@ static void entityRow(App& p_app,
     ImGui::TreePop();
 }
 
-/// @brief Text of @p_path, or a short note for a binary or a large file.
+/// Text of @p_path, or a short note for a binary or a large file.
 static std::string readShown(std::filesystem::path const& p_path)
 {
     constexpr std::uintmax_t LIMIT = 2U * 1024U * 1024U;
@@ -265,7 +265,7 @@ static bool same(std::filesystem::path const& p_a,
            std::filesystem::equivalent(p_a, p_b, error);
 }
 
-/// @brief Kind of a file: from its double extension (FileRole.hpp), else
+/// Kind of a file: from its double extension (FileRole.hpp), else
 /// from the first top-level key of a YAML file.
 static FileTab kindOf(std::filesystem::path const& p_path,
                       std::string const& p_text)
@@ -324,7 +324,7 @@ static FileTab kindOf(std::filesystem::path const& p_path,
     return FileTab::Other;
 }
 
-/// @brief The file a tab shows: the one chosen in Files, else the loaded one.
+/// The file a tab shows: the one chosen in Files, else the loaded one.
 static ShownFile shownIn(App const& p_app, FileTab p_tab)
 {
     ShownFile const& chosen =
@@ -354,7 +354,7 @@ static ShownFile shownIn(App const& p_app, FileTab p_tab)
     return {};
 }
 
-/// @brief Planner tab: not one file but the texts of the planner. Only for
+/// Planner tab: not one file but the texts of the planner. Only for
 /// a scenario that plans.
 static void plannerTab(App& p_app)
 {
@@ -457,7 +457,7 @@ void selectExperiment(App& p_app,
     }
 }
 
-/// @brief First scenario of @p_package whose planner reads the domain
+/// First scenario of @p_package whose planner reads the domain
 /// @p_domain, or null.
 static std::filesystem::path const*
 scenarioOfDomain(robotik::PluginPackage const& p_package,

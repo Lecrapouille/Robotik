@@ -28,7 +28,7 @@ static constexpr robotik::Length DEFAULT_CUBE_HALF_HEIGHT{ 0.02 };
 static constexpr robotik::Length TRANSIT_CLEARANCE_THRESHOLD{ 0.08 };
 static constexpr robotik::Length MAX_FINAL_APPROACH_CLEARANCE{ 0.03 };
 
-/// @brief If the gripper is not holding an object, return the default cube half
+/// If the gripper is not holding an object, return the default cube half
 /// height. Otherwise, return the half height of the object.
 static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
                                     VacuumGripper const& p_gripper)
@@ -46,7 +46,7 @@ static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
     return shape->size[2] * 0.5;
 }
 
-/// @brief If the clearance is greater than the transit clearance threshold,
+/// If the clearance is greater than the transit clearance threshold,
 /// return the clearance. Otherwise, return the minimum of the clearance and the
 /// final approach clearance.
 static robotik::Length clearanceAboveCavity(robotik::Length p_clearance)

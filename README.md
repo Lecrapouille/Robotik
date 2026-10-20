@@ -263,6 +263,23 @@ scenario:
 
 The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [doc/03 §Physics fidelity](doc/03-Worlds-and-Scenarios.md#physics-fidelity).
 
+Perception works the same way. A car simulator may give the car the lane marks and the pedestrians instead of a photo-realistic image to process; a test of a plan may give the robot the true pose of the cube instead of running a detector. The scenario chooses, per object, and **the report says it**:
+
+| Level | Where the robot's belief comes from | Use it to |
+|-------|-------------------------------------|-----------|
+| `sensed` (default) | the detectors, on the camera images | test the whole chain |
+| `noisy_truth` | the true pose, with noise, delay and misses | test the robustness, without a detector |
+| `truth` | the true pose | skip perception, test the plan |
+
+```yaml
+scenario:
+  perception:
+    fidelity: sensed
+    overrides: { red_cube: truth }   # a mock of the detector, for this cube only
+```
+
+Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [doc/03 §7](doc/03-Worlds-and-Scenarios.md#7-truth-description-and-belief).
+
 ---
 
 ## 🧱 What RobotIK is built on
@@ -277,6 +294,16 @@ RobotIK does not rewrite robotics. It makes proven libraries work together behin
 | 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](external/BlackThorn/doc/README.md)) |
 | 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](external/Compages/doc/README.md)) |
 | OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
+
+RobotIK itself is cut in three layers, like Compages. Each one works without the ones above, so a project takes the smallest that fits:
+
+| Layer | You have… | You get |
+|-------|-----------|---------|
+| 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::openRobot`) |
+| 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::Cell`) |
+| 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
+
+Examples of each: [doc/02 §7](doc/02-Getting-Started.md#7-the-three-layers-in-code). The words: [glossary](doc/Glossary.md).
 
 A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
 
@@ -344,6 +371,7 @@ Chapters 1 to 5 are for everybody; 6 to 11 are references.
 | 9 | [Demos](doc/09-Demos.md) | 🎬 HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
 | 10 | [Tools and frames](doc/10-Tools-and-Frames.md) | 🔧 Flange, tool, TCP |
 | 11 | [The PDDL planner](doc/11-PDDL-Planner.md) | 🧠 A goal instead of a behavior tree (Kairos) |
+| | [Glossary](doc/Glossary.md) | 📕 The words of RobotIK in simple English |
 
 The libraries RobotIK is built on have their own documentation, written the same way: [Compages](external/Compages/doc/README.md) and [BlackThorn](external/BlackThorn/doc/README.md).
 

@@ -73,8 +73,8 @@ assertions:
 ```
 
 In headless, no image is rendered: the scenario says
-`perception: { oracle: when_blind }`, so the true cube position replaces the
-camera, and reports say `oracle perception`. The simulator renders the image
+`perception: { blind: truth }`, so the true cube position replaces the
+camera, and reports say `perception truth`. The simulator renders the image
 and uses the colour detector.
 
 The fault scenario does not only check that things fail: it checks that the
@@ -399,8 +399,8 @@ How it works:
   their servos), the contact of the drill on the tray, the force it feels.
   Simplified: the cup holds by a weld that never slips (the `contact`
   fidelity does not exist yet), the drill removes no material and its
-  spindle does not turn, and the beliefs come from the oracle (true poses,
-  no camera detection).
+  spindle does not turn, and the beliefs are the true poses
+  (`perception: { fidelity: truth }`, no camera detection).
 
 Files: `plugins/DualArm/`
 - `worlds/conveyor_cell.world.yaml`, `worlds/tray_cell.world.yaml`;
@@ -412,8 +412,8 @@ Files: `plugins/DualArm/`
   `src/TraySkills.cpp`: the skills.
 
 Limits: the parts and glasses are boxes (the only free shape); the parts
-are found by the oracle (`perception: { oracle: always }`), as the plugin
-has no detector yet; the arms are the generic `robot_6axis`.
+are given by the simulator (`perception: { fidelity: truth }`), as the
+plugin has no detector yet; the arms are the generic `robot_6axis`.
 
 ---
 
@@ -455,7 +455,7 @@ tour: 1/1 runs passed
 How it works:
 
 - **The physics of the core.** The mission does not build its own
-  physics. In `setup` it tunes `Simulation::physicsOptions()` (a floating
+  physics. In `setup` it tunes `Cell::physicsOptions()` (a floating
   base, no gravity compensation, the step of the policy, the exact rotor
   inertia of the small servos) and the core builds the physics with the
   room and the box of the world.

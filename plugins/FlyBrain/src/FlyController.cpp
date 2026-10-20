@@ -18,20 +18,20 @@ static constexpr double LIFT_GAIN = 2.0;
 static constexpr double GROUND_Z_M = 0.19;
 static constexpr double PI = 3.14159265358979323846;
 
-/// @brief Clamps a command before it becomes a speed.
+/// Clamps a command before it becomes a speed.
 static double clampUnit(double p_value, double p_low, double p_high)
 {
     return std::clamp(p_value, p_low, p_high);
 }
 
-/// @brief Standing posture, wing stroke back to the start.
+/// Standing posture, wing stroke back to the start.
 void FlyController::reset()
 {
     m_posture = {};
     m_phase = 0.0;
 }
 
-/// @brief Integrates the thorax, then writes a posture the URDF can show.
+/// Integrates the thorax, then writes a posture the URDF can show.
 /// Lift zero holds altitude: the weight is cancelled here, not in the URDF.
 void FlyController::apply(FlyAction const& p_action,
                           FlyPlant& p_plant,

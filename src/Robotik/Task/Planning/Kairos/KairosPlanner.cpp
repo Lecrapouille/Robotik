@@ -17,7 +17,7 @@
 namespace robotik
 {
 
-/// @brief One line per diagnostic, with the source line under it.
+/// One line per diagnostic, with the source line under it.
 static std::string
 describe(std::vector<kairos::Diagnostic> const& p_diagnostics,
          std::string_view p_source)
@@ -32,7 +32,7 @@ describe(std::vector<kairos::Diagnostic> const& p_diagnostics,
 }
 
 // ****************************************************************************
-/// @brief @ref PlanningEngine on Kairos.
+/// @ref PlanningEngine on Kairos.
 // ****************************************************************************
 class KairosPlanner final: public PlanningEngine
 {

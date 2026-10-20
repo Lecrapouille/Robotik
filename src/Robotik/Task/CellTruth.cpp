@@ -293,7 +293,7 @@ std::vector<Pose> Cell::waypoints(std::string_view p_name) const
     return result;
 }
 
-/// @brief Robot an entity belongs to: its own id for a robot, the robot it
+/// Robot an entity belongs to: its own id for a robot, the robot it
 /// is mounted on for a tool, empty otherwise.
 static std::string_view assemblyOf(EntitySpec const& p_spec)
 {

@@ -107,12 +107,14 @@ public:
 
     /// Called once, after the simulation is built.
     virtual void setup(Cell& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     /// Called at each episode start, after the world is reset.
     virtual void reset(Cell& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -156,12 +158,14 @@ public:
 
     /// Called once, after the simulation is built (e.g. a ready posture).
     virtual void setup(Cell& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     /// Called at each episode start, after the world is reset.
     virtual void reset(Cell& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------
@@ -199,11 +203,13 @@ public:
 
     /// Called once, after the simulation is built.
     virtual void setup(Cell const& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
     /// Called at each episode start, after the world is reset.
     virtual void reset(Cell const& /*p_cell*/)
-    { /* nothing to do by default */
+    {
+        // Nothing to do by default.
     }
 
     // -------------------------------------------------------------------------

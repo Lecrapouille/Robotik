@@ -23,10 +23,10 @@
 #include <vector>
 
 // Offscreen picture shown in an ImGui panel.
-/// @brief The entity casts no shadow (a floor, a ground picture).
+/// The entity casts no shadow (a floor, a ground picture).
 void noShadow(compages::world::Entity p_entity);
 
-/// @brief A grey floor picture with a grid (a line every 10 cm on 3 m),
+/// A grey floor picture with a grid (a line every 10 cm on 3 m),
 /// written once into the temporary directory; its path.
 [[nodiscard]] std::filesystem::path floorGrid();
 
@@ -100,7 +100,7 @@ public:
              float p_green,
              float p_blue) override;
 
-    /// @brief Marks @p_entity as a help for the operator: the 3D view shows
+    /// Marks @p_entity as a help for the operator: the 3D view shows
     /// it, the robot cameras never see it (it would fool perception).
     void overlay(compages::world::Entity p_entity)
     {

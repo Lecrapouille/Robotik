@@ -13,7 +13,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief Lesson 3: ask for a tool position, let inverse kinematics find the
+/// Lesson 3: ask for a tool position, let inverse kinematics find the
 /// joint angles.
 ///
 /// At reset, the target is the current tool pose moved three centimetres

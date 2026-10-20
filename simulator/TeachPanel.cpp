@@ -151,7 +151,7 @@ static void syncMarkers(App& p_app)
     }
 }
 
-/// @brief Mounted tool. A change reloads the scenario with that URDF.
+/// Mounted tool. A change reloads the scenario with that URDF.
 /// @return True when the simulation was reloaded. The caller must stop using
 /// the previous robot.
 static bool changeTool(App& p_app)
@@ -201,7 +201,7 @@ static bool changeTool(App& p_app)
     return true;
 }
 
-/// @brief Actuates the mounted tool: suction, finger close, or spindle.
+/// Actuates the mounted tool: suction, finger close, or spindle.
 static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 {
     // Kind of tool: the model key of its asset id (robotik.tools.vacuum).
@@ -313,7 +313,7 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
     ImGui::TextDisabled("Trigger: this tool has none");
 }
 
-/// @brief One jog row: "-" value "+" for a translation or a rotation axis.
+/// One jog row: "-" value "+" for a translation or a rotation axis.
 static void jogRow(App& p_app,
                    char const* p_axis,
                    robotik::Vector3 const& p_shift,
@@ -345,7 +345,7 @@ static void jogRow(App& p_app,
     ImGui::PopID();
 }
 
-/// @brief The frame to move: the work frame of the robot (its tool), or any
+/// The frame to move: the work frame of the robot (its tool), or any
 /// other link: a foot of a humanoid, a leg tip of a hexapod...
 static void frameChoice(App& p_app)
 {

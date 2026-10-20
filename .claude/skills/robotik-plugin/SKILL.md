@@ -39,11 +39,11 @@ perception + BT: `plugins/PickAndPlace/`.
 class MyMission final: public robotik::Mission
 {
 public:
-    void setup(robotik::Simulation& p_sim, robotik::SceneView* p_view) override; // skills, detectors; p_view null headless
-    void reset(robotik::Simulation& p_sim, robotik::Seed p_seed) override;      // clear episode state
-    void step(robotik::Simulation& p_sim, Seconds p_dt) override;               // after each robot step
-    void measure(robotik::Simulation const& p_sim, robotik::Metrics& p_m) const override; // p_m.set("my.x", v)
-    [[nodiscard]] robotik::Status status(robotik::Simulation const& p_sim) const override; // only used without BT
+    void setup(robotik::Cell& p_cell, robotik::SceneView* p_view) override; // skills, detectors; p_view null headless
+    void reset(robotik::Cell& p_cell, robotik::Seed p_seed) override;      // clear episode state
+    void step(robotik::Cell& p_cell, Seconds p_dt) override;               // after each robot step
+    void measure(robotik::Cell const& p_cell, robotik::Metrics& p_m) const override; // p_m.set("my.x", v)
+    [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override; // only used without BT
 };
 
 class MyPlugin final: public robotik::Plugin
@@ -66,7 +66,7 @@ ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 
 Lifecycle: manifest read → dlopen on scenario choice → `setup` (no
 simulation yet) → Simulation built (`Mission::setup`, `reset`) → `start` →
-[`Simulation::step` → `Mission::step` → `Plugin::update`]* → `stop` →
+[`Simulation::step` (→ `Cell::step` → `Mission::step`) → `Plugin::update`]* → `stop` →
 `shutdown` (simulation already destroyed).
 
 Host services: `bindMission`, `simulation()` (null before attach), `log`,
@@ -83,7 +83,7 @@ Callbacks are static functions casting `user` back; wrap the canvas as
 - Do not judge in C++: publish metrics, assert in YAML. Prefix metric names.
 - Do not keep pointers to world entities across resets/shutdown; use
   `simulation.entity("id")`, `simulation.pose("id")`.
-- Must run headless (no view, no camera image → `perception: {oracle: when_blind}`).
+- Must run headless (no view, no camera image → `perception: { blind: truth }`).
 - `host.clock: plugin` (or `clock: plugin` on one scenario entry) → `update(dt)` must advance the simulation itself.
 - Models are asset ids (`robotik.robots.robot_6axis`), never paths; a
   plugin-local pack goes in `plugins/<Name>/data/pack.yaml` +
@@ -108,13 +108,13 @@ Known leaks (October 2026), to fix:
 
 | Where | Leak | Generic direction |
 |-------|------|-------------------|
-| `Systems/AbstractGrasp.cpp`, `Simulation.cpp` `trackPropPenetration` | the abstract level puts a released box at the centre of the container below (vacuum only) | done for `rigid` (`RigidGrasp`); a gripper interface for fingers (`contact`, FIDELITY.md) |
-| `SimulationTruth.cpp` `holding(g)` | only for `VacuumGripper` | a gripper interface (`holding`, `held`) for any grasping actuator |
-| `Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
-| `Simulation.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
+| `Task/Grasp/AbstractGrasp.cpp`, `Task/Cell.cpp` `trackPropPenetration` | the abstract level puts a released box at the centre of the container below (vacuum only) | done for `rigid` (`RigidGrasp`); a gripper interface for fingers (`contact`, FIDELITY.md) |
+| `Task/CellTruth.cpp` `holding(g)` | only for `VacuumGripper` | a gripper interface (`holding`, `held`) for any grasping actuator |
+| `Robot/Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
+| `Task/Cell.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
 | `simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |
 | `ecs::Shape` | box and container only | sphere, cylinder, mesh |
-| `Perception/WorldModel.cpp` monocular estimate | objects on a known top plane (tabletop) | a depth source or a declared support |
+| `Task/Perception/WorldModel.cpp` monocular estimate | objects on a known top plane (tabletop) | a depth source or a declared support |
 
 ## Errors
 

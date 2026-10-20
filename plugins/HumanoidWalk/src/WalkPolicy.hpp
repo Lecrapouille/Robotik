@@ -17,7 +17,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief What the walking policy expects, read from walk.yaml (written by
+/// What the walking policy expects, read from walk.yaml (written by
 /// prepare_assets.py from the LimX deployment config). One entry per joint,
 /// in the order of the policy.
 // ****************************************************************************
@@ -48,7 +48,7 @@ struct WalkContract
 };
 
 // ****************************************************************************
-/// @brief What the robot measures, as the policy wants it.
+/// What the robot measures, as the policy wants it.
 // ****************************************************************************
 struct WalkInput
 {
@@ -64,7 +64,7 @@ struct WalkInput
 };
 
 // ****************************************************************************
-/// @brief LimX walking policy (ONNX, 31 joints): observation history in,
+/// LimX walking policy (ONNX, 31 joints): observation history in,
 /// joint position targets out. Plain C++ over ONNX Runtime; it knows nothing
 /// of the simulation.
 ///
@@ -85,10 +85,10 @@ public:
         return m_contract;
     }
 
-    /// @brief Forgets the history and the last actions (new episode).
+    /// Forgets the history and the last actions (new episode).
     void reset();
 
-    /// @brief Runs the network once and returns one target per joint (rad).
+    /// Runs the network once and returns one target per joint (rad).
     [[nodiscard]] std::span<double const> act(WalkInput const& p_input);
 
 private:

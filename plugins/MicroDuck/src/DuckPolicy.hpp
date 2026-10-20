@@ -17,7 +17,7 @@
 #include <vector>
 
 // ****************************************************************************
-/// @brief What the walking policy expects, read from walk.yaml (written by
+/// What the walking policy expects, read from walk.yaml (written by
 /// prepare_assets.py). One entry per servo, in the order of the policy.
 /// The mouth is not in this model: the training body has 14 servos.
 // ****************************************************************************
@@ -46,7 +46,7 @@ struct DuckContract
 };
 
 // ****************************************************************************
-/// @brief What the robot measures, as the policy wants it.
+/// What the robot measures, as the policy wants it.
 // ****************************************************************************
 struct DuckInput
 {
@@ -62,7 +62,7 @@ struct DuckInput
 };
 
 // ****************************************************************************
-/// @brief Microduck walking policy (ONNX, 14 servos): one observation in,
+/// Microduck walking policy (ONNX, 14 servos): one observation in,
 /// joint position offsets out. Plain C++ over ONNX Runtime; it knows nothing
 /// of the simulation.
 ///
@@ -85,10 +85,10 @@ public:
         return m_contract;
     }
 
-    /// @brief Forgets the previous action (new episode).
+    /// Forgets the previous action (new episode).
     void reset();
 
-    /// @brief Runs the network once and returns one target per joint (rad).
+    /// Runs the network once and returns one target per joint (rad).
     [[nodiscard]] std::span<double const> act(DuckInput const& p_input);
 
 private:
