@@ -1,3 +1,18 @@
+Version 0.4.0:
+    * Library split in three layers, Robot, Task and Package, over Common;
+      make check-layers refuses an include upwards
+    * Units, Pose and Result taken from Compages; Signal for events
+    * Cell (Task) runs robots and physics; Simulation (Package) is a
+      scenario that judges a Cell; openRobot() in one call
+    * Perception fidelity per object (sensed, noisy_truth, truth), written
+      in the run report; planner effects verified when observed
+    * Every reader of files and user input returns a Result
+    * Plain structs with free functions; events as signals
+    * Faster sensors: links found once (LinkRef)
+    * Constants in UPPER_CASE, Sonar rules fixed
+    * Contract and plain intro for every public header; glossary;
+      documentation of the three layers
+
 Version 0.3.0:
     * Robot API: SoA joints in SI units, sensors with noise models,
       actuators, resources, MuJoCo and Pinocchio backends, teach pendant
