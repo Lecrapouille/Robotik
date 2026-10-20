@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Common/Must.hpp"
 
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 
@@ -57,7 +58,7 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node,
         }
         try
         {
-            literals.push_back(Literal::parse(item.scalar()));
+            literals.push_back(must(Literal::parse(item.scalar())));
         }
         catch (std::runtime_error const& error)
         {
@@ -75,7 +76,7 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
                                ConfigNode const& p_node)
 {
     PlannerSpec spec;
-    spec.domain = packageFile(p_root, p_node.text("domain"));
+    spec.domain = must(packageFile(p_root, p_node.text("domain")));
     if (spec.domain.empty())
     {
         throw std::runtime_error(
@@ -113,36 +114,44 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     return spec;
 }
 
-ScenarioSource ScenarioSource::load(std::filesystem::path const& p_scenario)
+Result<ScenarioSource> ScenarioSource::load(std::filesystem::path const& p_scenario)
 {
-    ScenarioSource source;
-    source.scenario_file =
-        std::filesystem::absolute(p_scenario).lexically_normal();
-    source.package = packageRoot(source.scenario_file);
-    source.scenario = ConfigNode::load(source.scenario_file);
-    ConfigNode const& scenario = source.scenario.at("scenario");
-    if (!scenario.isMap())
-    {
-        throw std::runtime_error(p_scenario.string() +
-                                 ": no 'scenario:' section");
-    }
-    std::string const world = scenario.text("world");
-    if (world.empty())
-    {
-        throw std::runtime_error(p_scenario.string() +
-                                 ": scenario.world is required");
-    }
+    // The border of this reader: whatever stops it inside becomes a message.
     try
     {
-        source.world_file = packageFile(source.package, world);
+        ScenarioSource source;
+        source.scenario_file =
+            std::filesystem::absolute(p_scenario).lexically_normal();
+        source.package = must(packageRoot(source.scenario_file));
+        source.scenario = must(ConfigNode::load(source.scenario_file));
+        ConfigNode const& scenario = source.scenario.at("scenario");
+        if (!scenario.isMap())
+        {
+            throw std::runtime_error(p_scenario.string() +
+                                     ": no 'scenario:' section");
+        }
+        std::string const world = scenario.text("world");
+        if (world.empty())
+        {
+            throw std::runtime_error(p_scenario.string() +
+                                     ": scenario.world is required");
+        }
+        try
+        {
+            source.world_file = must(packageFile(source.package, world));
+        }
+        catch (std::runtime_error const& error)
+        {
+            throw std::runtime_error(p_scenario.string() + ": scenario.world " +
+                                     error.what());
+        }
+        source.world = must(ConfigNode::load(source.world_file));
+        return source;
     }
-    catch (std::runtime_error const& error)
+    catch (std::exception const& error)
     {
-        throw std::runtime_error(p_scenario.string() + ": scenario.world " +
-                                 error.what());
+        return failure(error.what());
     }
-    source.world = ConfigNode::load(source.world_file);
-    return source;
 }
 
 void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
@@ -296,88 +305,96 @@ static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
     perception.max_age = Seconds(p_node.number("max_age", perception.max_age.value()));
 }
 
-Scenario Scenario::read(ScenarioSource const& p_source,
-                        AssetResolver const& p_assets)
+Result<Scenario> Scenario::read(ScenarioSource const& p_source,
+                                AssetResolver const& p_assets)
 {
-    ConfigNode const& node = p_source.scenario.at("scenario");
-    std::filesystem::path const& root = p_source.package;
-    std::string const where = p_source.scenario_file.string();
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
+    {
+        ConfigNode const& node = p_source.scenario.at("scenario");
+        std::filesystem::path const& root = p_source.package;
+        std::string const where = p_source.scenario_file.string();
 
-    Scenario scenario;
-    scenario.assets = p_assets;
-    scenario.file = p_source.scenario_file;
-    try
-    {
-        scenario.id = node.text("id");
-        if (scenario.id.empty())
+        Scenario scenario;
+        scenario.assets = p_assets;
+        scenario.file = p_source.scenario_file;
+        try
         {
-            throw std::runtime_error("scenario.id is required");
-        }
-        scenario.description = node.text("description");
-        scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
-        ConfigNode const& controller = node.at("controller");
-        scenario.controller.behavior_tree =
-            packageFile(root, controller.text("behavior_tree"));
-        if (controller.has("planner"))
-        {
-            if (!scenario.controller.behavior_tree.empty())
+            scenario.id = node.text("id");
+            if (scenario.id.empty())
             {
-                throw std::runtime_error(
-                    "controller: give a behavior_tree or a planner, not both");
+                throw std::runtime_error("scenario.id is required");
             }
-            scenario.controller.planner =
-                readPlanner(root, controller.at("planner"));
-        }
-        for (auto const& [name, file] : node.at("trajectories").entries())
-        {
-            if (!file.isScalar())
+            scenario.description = node.text("description");
+            scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
+            ConfigNode const& controller = node.at("controller");
+            scenario.controller.behavior_tree =
+                must(packageFile(root, controller.text("behavior_tree")));
+            if (controller.has("planner"))
             {
-                throw std::runtime_error("trajectories." + name +
-                                         " must be a file name");
+                if (!scenario.controller.behavior_tree.empty())
+                {
+                    throw std::runtime_error(
+                        "controller: give a behavior_tree or a planner, not both");
+                }
+                scenario.controller.planner =
+                    readPlanner(root, controller.at("planner"));
             }
-            scenario.trajectories.emplace(
-                name, loadTrajectory(packageFile(root, file.scalar())));
+            for (auto const& [name, file] : node.at("trajectories").entries())
+            {
+                if (!file.isScalar())
+                {
+                    throw std::runtime_error("trajectories." + name +
+                                             " must be a file name");
+                }
+                scenario.trajectories.emplace(
+                    name, must(loadTrajectory(must(packageFile(root, file.scalar())))));
+            }
+            readFaults(scenario, node.at("faults"));
+            readPerception(scenario, node.at("perception"));
+            readPhysics(scenario, node.at("physics"));
+            scenario.timeout = Seconds(node.number("timeout", 0.0));
+            scenario.stop_when = node.text("stop_when");
+            scenario.parameters = node.at("parameters");
+            for (ConfigNode const& item : node.at("assertions").items())
+            {
+                scenario.assertions.push_back(AssertionSpec::read(item));
+            }
         }
-        readFaults(scenario, node.at("faults"));
-        readPerception(scenario, node.at("perception"));
-        readPhysics(scenario, node.at("physics"));
-        scenario.timeout = Seconds(node.number("timeout", 0.0));
-        scenario.stop_when = node.text("stop_when");
-        scenario.parameters = node.at("parameters");
-        for (ConfigNode const& item : node.at("assertions").items())
+        catch (std::runtime_error const& error)
         {
-            scenario.assertions.push_back(AssertionSpec::read(item));
+            throw std::runtime_error(where + ": " + error.what());
         }
-    }
-    catch (std::runtime_error const& error)
-    {
-        throw std::runtime_error(where + ": " + error.what());
-    }
 
-    ConfigNode const& world = p_source.world.at("world");
-    if (!world.isMap())
-    {
-        throw std::runtime_error(p_source.world_file.string() +
-                                 ": no 'world:' section");
+        ConfigNode const& world = p_source.world.at("world");
+        if (!world.isMap())
+        {
+            throw std::runtime_error(p_source.world_file.string() +
+                                     ": no 'world:' section");
+        }
+        try
+        {
+            scenario.world = must(readWorld(world, root, p_assets));
+        }
+        catch (std::runtime_error const& error)
+        {
+            throw std::runtime_error(p_source.world_file.string() + ": " +
+                                     error.what());
+        }
+        try
+        {
+            checkPhysics(scenario);
+        }
+        catch (std::runtime_error const& error)
+        {
+            throw std::runtime_error(where + ": " + error.what());
+        }
+        return scenario;
     }
-    try
+    catch (std::exception const& error)
     {
-        scenario.world = readWorld(world, root, p_assets);
+        return failure(error.what());
     }
-    catch (std::runtime_error const& error)
-    {
-        throw std::runtime_error(p_source.world_file.string() + ": " +
-                                 error.what());
-    }
-    try
-    {
-        checkPhysics(scenario);
-    }
-    catch (std::runtime_error const& error)
-    {
-        throw std::runtime_error(where + ": " + error.what());
-    }
-    return scenario;
 }
 
 } // namespace robotik

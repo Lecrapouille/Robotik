@@ -215,8 +215,14 @@ int main(int argc, char** argv)
 
         if (robotik::Experiment::describes(options->file))
         {
-            robotik::Experiment const experiment =
+            robotik::Result<robotik::Experiment> loaded =
                 robotik::Experiment::load(options->file);
+            if (!loaded)
+            {
+                std::cerr << loaded.error() << '\n';
+                return 1;
+            }
+            robotik::Experiment const experiment = loaded.take();
             report.experiment = experiment.id;
             std::vector<std::optional<std::uint64_t>> seeds;
             if (options->seed)
@@ -248,11 +254,16 @@ int main(int argc, char** argv)
                     }
                     // Each run reads its files again: a case never inherits the
                     // world of the previous one.
-                    robotik::Scenario scenario =
+                    robotik::Result<robotik::Scenario> scenario =
                         experiment.scenario(item, session.assets());
+                    if (!scenario)
+                    {
+                        std::cerr << item.id << ": " << scenario.error() << '\n';
+                        return 1;
+                    }
                     report.runs.push_back(run(session,
                                               item.scenario,
-                                              std::move(scenario),
+                                              scenario.take(),
                                               item.id,
                                               seed,
                                               experiment.metrics,
@@ -273,8 +284,14 @@ int main(int argc, char** argv)
                           << '\n';
                 return 1;
             }
-            robotik::Scenario scenario =
+            robotik::Result<robotik::Scenario> loaded =
                 robotik::Scenario::load(options->file, session.assets());
+            if (!loaded)
+            {
+                std::cerr << loaded.error() << '\n';
+                return 1;
+            }
+            robotik::Scenario scenario = loaded.take();
             report.experiment = scenario.id;
             report.runs.push_back(run(session,
                                       options->file,

@@ -9,7 +9,6 @@
 #include "Robotik/Common/File.hpp"
 #include "BlackThorn/Builder/Yaml.hpp"
 
-#include <stdexcept>
 
 namespace robotik
 {
@@ -33,13 +32,12 @@ bool licenseVerified(AssetPack const& p_pack)
 }
 
 // -----------------------------------------------------------------------------
-AssetPack AssetPack::load(std::filesystem::path const& p_manifest)
+Result<AssetPack> loadAssetPack(std::filesystem::path const& p_manifest)
 {
     auto parsed = bt::YamlDocument::parseFile(p_manifest.string());
     if (!parsed)
     {
-        throw std::runtime_error(p_manifest.string() + ": " +
-                                 parsed.getError());
+        return failure(p_manifest.string() + ": " + parsed.getError());
     }
     bt::YamlNode const node = parsed.getValue().root();
 
@@ -52,11 +50,11 @@ AssetPack AssetPack::load(std::filesystem::path const& p_manifest)
     std::optional<Version> const version = parseVersion(text(node, "version"));
     if (pack.id.empty() || !version || pack.license.empty())
     {
-        throw std::runtime_error(p_manifest.string() +
-                                 ": id, version and license are required");
+        return failure(p_manifest.string() + ": id, version and license are required");
     }
     pack.version = *version;
 
+    std::string error;
     if (node.hasKey("models"))
     {
         node.child("models").forEachMap(
@@ -65,12 +63,19 @@ AssetPack AssetPack::load(std::filesystem::path const& p_manifest)
                 std::filesystem::path const file = pack.root / p_file.scalar();
                 if (!isRegularFile(file) || !pathInsideRoot(pack.root, file))
                 {
-                    throw std::runtime_error(p_manifest.string() + ": model '" +
-                                             std::string(p_key) +
-                                             "' is not a file of the pack");
+                    if (error.empty())
+                    {
+                        error = p_manifest.string() + ": model '" + std::string(p_key) +
+                                "' is not a file of the pack";
+                    }
+                    return;
                 }
                 pack.models.emplace(std::string(p_key), p_file.scalar());
             });
+    }
+    if (!error.empty())
+    {
+        return failure(error);
     }
     return pack;
 }

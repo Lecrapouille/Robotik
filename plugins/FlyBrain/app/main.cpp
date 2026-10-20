@@ -18,6 +18,7 @@
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
+#include <stdexcept>
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
@@ -362,9 +363,18 @@ int main(int p_argc, char** p_argv)
     {
         // The fly body is in the package's own pack (data/).
         robotik::AssetResolver assets = robotik::AssetResolver::standard();
-        assets.addRoot(robotik::packageRoot(options.scenario) / "data");
-        FlyScenario scenario = FlyScenario::from(
-            robotik::Scenario::load(options.scenario, assets));
+        robotik::Result<std::filesystem::path> const root = robotik::packageRoot(options.scenario);
+        if (!root)
+        {
+            throw std::runtime_error(root.error());
+        }
+        assets.addRoot(root.value() / "data");
+        robotik::Result<robotik::Scenario> const loaded = robotik::Scenario::load(options.scenario, assets);
+        if (!loaded)
+        {
+            throw std::runtime_error(loaded.error());
+        }
+        FlyScenario scenario = FlyScenario::from(loaded.value());
         if (!options.replay.empty())
         {
             options.envs = 1;

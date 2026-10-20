@@ -86,7 +86,7 @@ static robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
 {
     robotik::PlannerSpec spec;
     spec.domain = p_domain;
-    spec.goal = { robotik::Literal::parse("at(red_cube, bin)") };
+    spec.goal = { robotik::Literal::parse("at(red_cube, bin)").take() };
     return spec;
 }
 
@@ -100,7 +100,7 @@ static std::string problemOf(char const* p_init)
 
 TEST(Planning, ReadsLiterals)
 {
-    robotik::Literal const in = robotik::Literal::parse(" In(Red_Cube,  box) ");
+    robotik::Literal const in = robotik::Literal::parse(" In(Red_Cube,  box) ").take();
     EXPECT_TRUE(in.positive);
     EXPECT_EQ(in.atom.predicate, "in");
     ASSERT_EQ(in.atom.args.size(), 2u);
@@ -108,23 +108,22 @@ TEST(Planning, ReadsLiterals)
     EXPECT_EQ(in.toPddl(), "(in red_cube box)");
     EXPECT_EQ(in.toString(), "in(red_cube, box)");
 
-    robotik::Literal const empty = robotik::Literal::parse("not hand_empty");
+    robotik::Literal const empty = robotik::Literal::parse("not hand_empty").take();
     EXPECT_FALSE(empty.positive);
     EXPECT_TRUE(empty.atom.args.empty());
     EXPECT_EQ(empty.toPddl(), "(not (hand_empty))");
-    EXPECT_FALSE(robotik::Literal::parse("!busy()").positive);
+    EXPECT_FALSE(robotik::Literal::parse("!busy()").take().positive);
 
     // A flow list [in(a, b)] splits at the comma.
-    EXPECT_THROW((void)robotik::Literal::parse("in(red_cube"),
-                 std::runtime_error);
-    EXPECT_THROW((void)robotik::Literal::parse("box)"), std::runtime_error);
-    EXPECT_THROW((void)robotik::Literal::parse("in(a b)"), std::runtime_error);
-    EXPECT_THROW((void)robotik::Literal::parse("(in a b)"), std::runtime_error);
+    EXPECT_FALSE(robotik::Literal::parse("in(red_cube"));
+    EXPECT_FALSE(robotik::Literal::parse("box)"));
+    EXPECT_FALSE(robotik::Literal::parse("in(a b)"));
+    EXPECT_FALSE(robotik::Literal::parse("(in a b)"));
 }
 
 TEST(Planning, ReadsTheDomainSchema)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(BLOCKS);
+    robotik::DomainSchema const schema = robotik::DomainSchema::parse(BLOCKS).take();
     EXPECT_EQ(schema.name, "blocks");
     EXPECT_EQ(schema.types.at("cube"), "block");
     EXPECT_TRUE(schema.isA("cube", "block"));
@@ -148,10 +147,8 @@ TEST(Planning, ReadsTheDomainSchema)
     EXPECT_FALSE(pick.partial);
     EXPECT_TRUE(schema.actions.at("drop_all").partial);
 
-    EXPECT_THROW((void)robotik::DomainSchema::parse("(define (domain d)"),
-                 std::runtime_error);
-    EXPECT_THROW((void)robotik::DomainSchema::parse("(define (problem p))"),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::DomainSchema::parse("(define (domain d)"));
+    EXPECT_FALSE(robotik::DomainSchema::parse("(define (problem p))"));
 }
 
 TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
@@ -162,7 +159,7 @@ TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
           (:durative-action go :parameters () :duration (= ?duration 2)
             :condition (at start (not (arrived)))
             :effect (and (at start (moving)) (at end (not (moving))) (at end (arrived)))))
-    )");
+    )").take();
     robotik::ActionSchema const& go = schema.actions.at("go");
     EXPECT_TRUE(go.durative);
     ASSERT_EQ(go.effects.size(), 2u);
@@ -257,9 +254,9 @@ TEST(Planning, ExecutorListsEveryProblemOfTheSetup)
 
     robotik::PlannerSpec bad_spec =
         spec(writeDomain("robotik_blocks.pddl", BLOCKS));
-    bad_spec.facts = { robotik::Literal::parse("at(bin, red_cube)") };
-    bad_spec.goal = { robotik::Literal::parse("in(red_cube, bin)"),
-                      robotik::Literal::parse("at(red_cube)") };
+    bad_spec.facts = { robotik::Literal::parse("at(bin, red_cube)").take() };
+    bad_spec.goal = { robotik::Literal::parse("in(red_cube, bin)").take(),
+                      robotik::Literal::parse("at(red_cube)").take() };
 
     auto message = [&](robotik::PlannerSpec const& p_spec,
                        robotik::WorldDescription const& p_world,

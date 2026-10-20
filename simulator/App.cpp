@@ -204,9 +204,15 @@ void App::load(bool p_keep_tool)
             error = "this graphics demo has no viewer";
             return;
         }
-        robotik::Scenario scenario =
+        robotik::Result<robotik::Scenario> loaded =
             robotik::Scenario::load(scenario_path, plugins.assets());
-        world_path = robotik::ScenarioSource::load(scenario_path).world_file;
+        if (!loaded)
+        {
+            error = loaded.error();
+            return;
+        }
+        robotik::Scenario scenario = loaded.take();
+        world_path = robotik::ScenarioSource::load(scenario_path).value().world_file;
         world_text = readText(world_path);
         tree_text = readText(scenario.controller.behavior_tree);
         if (tool_override)

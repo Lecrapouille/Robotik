@@ -50,7 +50,7 @@ static robotik::Scenario twoArms()
     robotik::Scenario scenario;
     scenario.id = "two_arms";
     scenario.world = robotik::readWorld(
-        robotik::ConfigNode::parse(TWO_ARMS), ".", testAssets());
+        robotik::ConfigNode::parse(TWO_ARMS).take(), ".", testAssets()).take();
     return scenario;
 }
 
@@ -64,37 +64,32 @@ TEST(World, SeveralRobotsEachWithItsTool)
     EXPECT_EQ(world.mountedTool()->id, "left_cup");
 
     // Robots share one resource manager: a device name is used once.
-    robotik::ConfigNode bad = robotik::ConfigNode::parse(TWO_ARMS);
+    robotik::ConfigNode bad = robotik::ConfigNode::parse(TWO_ARMS).take();
     bad.set("entities.right_cup.actuators",
-            robotik::ConfigNode::parse("left_gripper: { type: vacuum }"));
-    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
-                 std::runtime_error);
+            robotik::ConfigNode::parse("left_gripper: { type: vacuum }").take());
+    EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
 TEST(World, ToolTouchesItsWorkpiece)
 {
     // The right cup works on the left arm: their contacts are not collisions.
-    robotik::ConfigNode node = robotik::ConfigNode::parse(TWO_ARMS);
+    robotik::ConfigNode node = robotik::ConfigNode::parse(TWO_ARMS).take();
     node.set("entities.right_cup.touches",
-             robotik::ConfigNode::parse("[left]"));
+             robotik::ConfigNode::parse("[left]").take());
     robotik::WorldDescription const world =
-        robotik::readWorld(node, ".", testAssets());
+        robotik::readWorld(node, ".", testAssets()).take();
     ASSERT_NE(world.find("right_cup"), nullptr);
     EXPECT_EQ(world.find("right_cup")->touches,
               std::vector<std::string>{ "left" });
 
     // Only a tool touches, and only another entity of the world.
-    robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS);
-    robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]"));
-    EXPECT_THROW(
-        (void)robotik::readWorld(robot, ".", testAssets()),
-        std::runtime_error);
-    robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS);
+    robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS).take();
+    robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]").take());
+    EXPECT_FALSE(robotik::readWorld(robot, ".", testAssets()));
+    robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS).take();
     unknown.set("entities.right_cup.touches",
-                robotik::ConfigNode::parse("[tray]"));
-    EXPECT_THROW(
-        (void)robotik::readWorld(unknown, ".", testAssets()),
-        std::runtime_error);
+                robotik::ConfigNode::parse("[tray]").take());
+    EXPECT_FALSE(robotik::readWorld(unknown, ".", testAssets()));
 }
 
 TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
@@ -107,10 +102,10 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
       pose: { position: [0.5, -0.2, 0.0] } }
   - { id: stand_b, type: body, model: robotik.tools.vacuum, physics: fixed,
       pose: { position: [0.5, 0.2, 0.0] } }
-)");
+)").take();
     robotik::Scenario scenario;
     scenario.id = "two_bodies";
-    scenario.world = robotik::readWorld(node, ".", testAssets());
+    scenario.world = robotik::readWorld(node, ".", testAssets()).take();
     compages::world::World world;
     robotik::Simulation simulation(world, scenario);
     simulation.step(robotik::Seconds(0.01));

@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Common/Version.hpp"
 
 #include <filesystem>
@@ -44,7 +45,7 @@ namespace robotik
 ///
 /// @code
 /// auto const pack =
-/// robotik::AssetPack::load("data/packs/robotik.tools/pack.yaml");
+/// robotik::loadAssetPack("data/packs/robotik.tools/pack.yaml");
 /// std::filesystem::path urdf = robotik::model(pack, "vacuum"); //
 /// tool_vacuum.urdf if (!robotik::licenseVerified(pack)) {
 ///     std::cerr << pack.id << ": license not checked\n";
@@ -53,16 +54,6 @@ namespace robotik
 // ****************************************************************************
 struct AssetPack
 {
-    // -------------------------------------------------------------------------
-    /// Reads a pack manifest.
-    /// @param p_manifest Path of a @c pack.yaml.
-    /// @return The pack, with absolute paths.
-    /// @throws std::runtime_error when a required field is missing, a model
-    ///   file does not exist or leaves the pack folder.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static AssetPack
-    load(std::filesystem::path const& p_manifest);
-
     /// Folder holding @c pack.yaml.
     std::filesystem::path root;
     /// Pack id, the prefix of its model names (e.g. @c robotik.tools).
@@ -78,6 +69,14 @@ struct AssetPack
     /// Model key to its file, relative to @ref root.
     std::map<std::string, std::filesystem::path> models;
 };
+
+// -------------------------------------------------------------------------
+/// Reads a pack manifest.
+/// @param p_manifest Path of a @c pack.yaml.
+/// @return The pack, with absolute paths; fails when a required field is
+///   missing, or a model file does not exist or leaves the pack folder.
+// -------------------------------------------------------------------------
+[[nodiscard]] Result<AssetPack> loadAssetPack(std::filesystem::path const& p_manifest);
 
 // -------------------------------------------------------------------------
 /// Tells whether somebody wrote down the license of the assets.

@@ -54,6 +54,7 @@
 /// storage: it is not built, but a host may mount it instead of another.
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Common/Config.hpp"
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
@@ -69,10 +70,9 @@ namespace robotik
 /// @param p_world The @c world: node.
 /// @param p_directory Package root; file names are relative to it.
 /// @param p_assets Resolves the model names.
-/// @return The world.
-/// @throws std::runtime_error naming the entity and the field at fault.
+/// @return The world; the error names the entity and the field at fault.
 // ----------------------------------------------------------------------------
-[[nodiscard]] WorldDescription readWorld(ConfigNode const& p_world,
+[[nodiscard]] Result<WorldDescription> readWorld(ConfigNode const& p_world,
                                          std::filesystem::path const& p_directory,
                                          AssetResolver const& p_assets);
 
@@ -80,10 +80,9 @@ namespace robotik
 /// Reads a world file (its root holds @c world:).
 /// @param p_path A @c x.world.yaml file.
 /// @param p_assets Resolves the model names.
-/// @return The world.
-/// @throws std::runtime_error naming the file and the field at fault.
+/// @return The world; the error names the file and the field at fault.
 // ----------------------------------------------------------------------------
-[[nodiscard]] WorldDescription loadWorld(std::filesystem::path const& p_path,
+[[nodiscard]] Result<WorldDescription> loadWorld(std::filesystem::path const& p_path,
                                          AssetResolver const& p_assets);
 
 } // namespace robotik

@@ -49,7 +49,7 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
     EXPECT_TRUE(robotik::Experiment::describes(file));
     EXPECT_FALSE(robotik::Experiment::describes(
         repoFile("plugins/Painter/scenarios/painter.scenario.yaml")));
-    robotik::Experiment const experiment = robotik::Experiment::load(file);
+    robotik::Experiment const experiment = robotik::Experiment::load(file).take();
     EXPECT_EQ(experiment.id, "painter_experiment");
     EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7u, 8u }));
     ASSERT_EQ(experiment.cases.size(), 3u);
@@ -60,27 +60,27 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
 TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
 {
     robotik::Experiment const painting = robotik::Experiment::load(
-        repoFile("plugins/Painter/experiments/painter.experiment.yaml"));
+        repoFile("plugins/Painter/experiments/painter.experiment.yaml")).take();
     robotik::Scenario const slippery =
-        painting.scenario(find(painting, "slippery_floor"), testAssets());
+        painting.scenario(find(painting, "slippery_floor"), testAssets()).take();
     EXPECT_DOUBLE_EQ(slippery.world.floor_friction, 0.1);
     EXPECT_DOUBLE_EQ(slippery.world.find("easel")->friction, 0.1);
     // The case does not leak into the next one.
     robotik::Scenario const nominal =
-        painting.scenario(find(painting, "nominal"), testAssets());
+        painting.scenario(find(painting, "nominal"), testAssets()).take();
     EXPECT_DOUBLE_EQ(nominal.world.floor_friction, 0.8);
 
     robotik::Experiment const picking = robotik::Experiment::load(repoFile(
-        "plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml"));
+        "plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml")).take();
     robotik::Scenario const camera =
-        picking.scenario(find(picking, "camera_down_at_start"), testAssets());
+        picking.scenario(find(picking, "camera_down_at_start"), testAssets()).take();
     ASSERT_EQ(camera.faults.size(), 2u);
     EXPECT_TRUE(camera.faults[0].disable);
     EXPECT_DOUBLE_EQ(camera.faults[1].at.value(), 1.5);
     EXPECT_EQ(camera.assertions.size(), 6u);
     EXPECT_EQ(camera.assertions.back().phase, robotik::AssertionPhase::Always);
     robotik::Scenario const wide =
-        picking.scenario(find(picking, "wide_layout"), testAssets());
+        picking.scenario(find(picking, "wide_layout"), testAssets()).take();
     EXPECT_DOUBLE_EQ(wide.world.find("red_cube")->randomize[0][1], 0.05);
 }
 
@@ -90,15 +90,15 @@ TEST(Experiment, InvalidFilesAreRefused)
         "robotik_twice.yaml",
         "experiment:\n  id: x\n  cases:\n    - { id: a, scenario: s.yml }\n"
         "    - { id: a, scenario: s.yml }\n");
-    EXPECT_THROW((void)robotik::Experiment::load(twice), std::runtime_error);
+    EXPECT_FALSE(robotik::Experiment::load(twice));
     std::filesystem::path const empty =
         write("robotik_empty.yaml", "experiment:\n  id: x\n  cases: []\n");
-    EXPECT_THROW((void)robotik::Experiment::load(empty), std::runtime_error);
+    EXPECT_FALSE(robotik::Experiment::load(empty));
     std::filesystem::path const setup = write(
         "robotik_setup.yaml",
         "experiment:\n  id: x\n  cases:\n    - id: a\n      scenario: s.yml\n"
         "      setup:\n        - reboot: now\n");
-    EXPECT_THROW((void)robotik::Experiment::load(setup), std::runtime_error);
+    EXPECT_FALSE(robotik::Experiment::load(setup));
 }
 
 TEST(PackagePath, NamesStartAtThePackageRootAndStayInside)
@@ -106,26 +106,22 @@ TEST(PackagePath, NamesStartAtThePackageRootAndStayInside)
     std::filesystem::path const file =
         write("robotik_root.yaml", "experiment: {}\n");
     std::filesystem::path const root =
-        std::filesystem::canonical(robotik::packageRoot(file));
+        std::filesystem::canonical(robotik::packageRoot(file).take());
     EXPECT_EQ(root,
               std::filesystem::canonical(file.parent_path().parent_path()));
-    EXPECT_EQ(robotik::packageFile(root, "scenarios/a.yml"),
+    EXPECT_EQ(robotik::packageFile(root, "scenarios/a.yml").take(),
               root / "scenarios" / "a.yml");
-    EXPECT_EQ(robotik::packageFile(root, "./worlds/b.yaml"),
+    EXPECT_EQ(robotik::packageFile(root, "./worlds/b.yaml").take(),
               root / "worlds" / "b.yaml");
     // ".." is followed: what counts is where the file really is.
-    EXPECT_EQ(robotik::packageFile(root, "experiments/../worlds/b.yaml"),
+    EXPECT_EQ(robotik::packageFile(root, "experiments/../worlds/b.yaml").take(),
               root / "worlds" / "b.yaml");
-    EXPECT_TRUE(robotik::packageFile(root, "").empty());
-    EXPECT_THROW((void)robotik::packageFile(root, "../scenarios/a.yml"),
-                 std::runtime_error);
-    EXPECT_THROW((void)robotik::packageFile(root, "scenarios/../../a.yml"),
-                 std::runtime_error);
-    EXPECT_THROW((void)robotik::packageFile(root, ".."), std::runtime_error);
-    EXPECT_THROW((void)robotik::packageFile(root, "/etc/passwd"),
-                 std::runtime_error);
-    EXPECT_THROW((void)robotik::packageRoot("/robotik_no_package/a.yml"),
-                 std::runtime_error);
+    EXPECT_TRUE(robotik::packageFile(root, "").take().empty());
+    EXPECT_FALSE(robotik::packageFile(root, "../scenarios/a.yml"));
+    EXPECT_FALSE(robotik::packageFile(root, "scenarios/../../a.yml"));
+    EXPECT_FALSE(robotik::packageFile(root, ".."));
+    EXPECT_FALSE(robotik::packageFile(root, "/etc/passwd"));
+    EXPECT_FALSE(robotik::packageRoot("/robotik_no_package/a.yml"));
 
     // A symbolic link is followed too: inside the package it is accepted,
     // pointing out of it, refused.
@@ -136,15 +132,14 @@ TEST(PackagePath, NamesStartAtThePackageRootAndStayInside)
                                               root / "inside");
     std::filesystem::create_directory_symlink(root.parent_path(),
                                               root / "outside");
-    EXPECT_EQ(robotik::packageFile(root, "inside/robotik_root.yaml"), file);
-    EXPECT_THROW((void)robotik::packageFile(root, "outside/x.yml"),
-                 std::runtime_error);
+    EXPECT_EQ(robotik::packageFile(root, "inside/robotik_root.yaml").take(), file);
+    EXPECT_FALSE(robotik::packageFile(root, "outside/x.yml"));
 
     std::filesystem::path const escape =
         write("robotik_escape.yaml",
               "experiment:\n  id: x\n  cases:\n    - { id: a, scenario: "
               "../scenarios/s.yml }\n");
-    EXPECT_THROW((void)robotik::Experiment::load(escape), std::runtime_error);
+    EXPECT_FALSE(robotik::Experiment::load(escape));
 }
 
 TEST(RunReport, JsonEscapesAndCountsRuns)
@@ -170,19 +165,18 @@ TEST(RunReport, JsonEscapesAndCountsRuns)
 TEST(Trajectory, ReadsCartesianAndJointPaths)
 {
     robotik::Trajectory const stroke = robotik::loadTrajectory(repoFile(
-        "plugins/Painter/scenarios/trajectories/red_stroke.trajectory.yaml"));
+        "plugins/Painter/scenarios/trajectories/red_stroke.trajectory.yaml")).take();
     EXPECT_EQ(stroke.type, robotik::Trajectory::Type::Cartesian);
     EXPECT_EQ(stroke.frame, "easel.canvas_mount");
     ASSERT_EQ(stroke.poses.size(), 5u);
     EXPECT_DOUBLE_EQ(stroke.poses[1].position.x, 0.08);
 
     robotik::Trajectory const joints = robotik::loadTrajectory(
-        repoFile("tests/Scenario/fixtures/joint_path.trajectory.yaml"));
+        repoFile("tests/Scenario/fixtures/joint_path.trajectory.yaml")).take();
     EXPECT_EQ(joints.type, robotik::Trajectory::Type::Joint);
     ASSERT_EQ(joints.configurations.size(), 2u);
     EXPECT_DOUBLE_EQ(joints.configurations[1][0], 0.5);
 
-    EXPECT_THROW((void)robotik::loadTrajectory(repoFile(
-                     "tests/Scenario/fixtures/bad_path.trajectory.yaml")),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::loadTrajectory(repoFile(
+                     "tests/Scenario/fixtures/bad_path.trajectory.yaml")));
 }

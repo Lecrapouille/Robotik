@@ -55,6 +55,7 @@
 #include "Robotik/Task/Faults.hpp"
 #include "Robotik/Package/Scenario/Assertions.hpp"
 #include "Robotik/Common/Config.hpp"
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Package/Scenario/Trajectory.hpp"
 #include "Robotik/Package/Scenario/World.hpp"
 #include "Robotik/Task/CellDescription.hpp"
@@ -78,11 +79,11 @@ namespace robotik
 /// an experiment applies its @c overrides.
 ///
 /// @code
-/// robotik::ScenarioSource source = robotik::ScenarioSource::load(file);
+/// robotik::ScenarioSource source = robotik::ScenarioSource::load(file).take();
 /// source.override("world.entities.easel.friction",
 /// robotik::ConfigNode("0.05")); source.override("scenario.timeout",
 /// robotik::ConfigNode("60")); robotik::Scenario const scenario =
-/// robotik::Scenario::read(source, assets);
+/// robotik::Scenario::read(source, assets).take();
 /// @endcode
 // ****************************************************************************
 struct ScenarioSource
@@ -101,10 +102,10 @@ struct ScenarioSource
     // -------------------------------------------------------------------------
     /// Reads the scenario file and the world file it names.
     /// @param p_scenario A @c x.scenario.yaml file.
-    /// @return Both trees, not interpreted yet.
-    /// @throws std::runtime_error when a file is missing or unreadable.
+    /// @return Both trees, not interpreted yet; fails when a file is missing
+    ///   or unreadable.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static ScenarioSource
+    [[nodiscard]] static Result<ScenarioSource>
     load(std::filesystem::path const& p_scenario);
 
     // -------------------------------------------------------------------------
@@ -123,7 +124,7 @@ struct ScenarioSource
 ///
 /// @code
 /// auto const assets = robotik::AssetResolver::standard();
-/// robotik::Scenario const scenario = robotik::Scenario::load(file, assets);
+/// robotik::Scenario const scenario = robotik::Scenario::load(file, assets).take();
 /// std::cout << scenario.id << ": " << scenario.world.entities.size()
 ///           << " entities, timeout " << scenario.timeout.value() << " s\n";
 /// double const h = scenario.parameters.number("approach_height", 0.1);
@@ -135,24 +136,28 @@ struct Scenario : CellDescription
     /// Interprets the two files of a scenario.
     /// @param p_source Scenario and world trees, maybe overridden.
     /// @param p_assets Resolves the model names.
-    /// @return The scenario.
-    /// @throws std::runtime_error naming the file and the field at fault, or
-    ///   a model missing from @p_assets.
+    /// @return The scenario; the error names the file and the field at
+    ///   fault, or a model missing from @p_assets.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static Scenario read(ScenarioSource const& p_source,
-                                       AssetResolver const& p_assets);
+    [[nodiscard]] static Result<Scenario> read(ScenarioSource const& p_source,
+                                               AssetResolver const& p_assets);
 
     // -------------------------------------------------------------------------
     /// Reads and interprets a scenario file and its world.
     /// @param p_path A @c x.scenario.yaml file.
     /// @param p_assets Resolves the model names.
-    /// @return The scenario.
-    /// @throws std::runtime_error as @ref read and @ref ScenarioSource::load.
+    /// @return The scenario, or the error of @ref read or
+    ///   @ref ScenarioSource::load.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static Scenario load(std::filesystem::path const& p_path,
-                                       AssetResolver const& p_assets)
+    [[nodiscard]] static Result<Scenario> load(std::filesystem::path const& p_path,
+                                               AssetResolver const& p_assets)
     {
-        return read(ScenarioSource::load(p_path), p_assets);
+        Result<ScenarioSource> source = ScenarioSource::load(p_path);
+        if (!source)
+        {
+            return failure(source.error());
+        }
+        return read(source.value(), p_assets);
     }
 
     /// Free text for the user.

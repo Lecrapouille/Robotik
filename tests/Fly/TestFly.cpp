@@ -27,7 +27,7 @@ static FlyScenario flyScenario()
     return FlyScenario::from(robotik::Scenario::load(
         repoFile(
             "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
-        testAssets()));
+        testAssets()).take());
 }
 
 /// Runs one brain until the horizon and keeps the last snapshot.
@@ -151,7 +151,7 @@ TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
     robotik::Scenario const scenario = robotik::Scenario::load(
         repoFile(
             "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
-        testAssets());
+        testAssets()).take();
     compages::world::World world;
     FlyMission mission;
     robotik::Simulation simulation(world, scenario, nullptr, &mission);

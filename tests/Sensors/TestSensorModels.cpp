@@ -113,9 +113,9 @@ entities:
       lidar: { type: range, parent: base_link, beams: 90, fov: 180, max_range: 5,
                noise: { sigma: 0.01, resolution: 0.001 } }
       wrist: { type: force_torque, link: link6, force: 0.5, torque: 0.02 }
-)");
+)").take();
     robotik::WorldDescription const description =
-        robotik::readWorld(world, ".", testAssets());
+        robotik::readWorld(world, ".", testAssets()).take();
     std::vector<robotik::SensorSpec> const& sensors =
         description.robot().sensors;
     ASSERT_EQ(sensors.size(), 4u);
@@ -134,16 +134,13 @@ entities:
 
     robotik::ConfigNode bad = world;
     bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode(""));
-    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
     bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1"));
-    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
     bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar"));
-    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
 TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
@@ -151,10 +148,10 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
     auto build = [](char const* p_policy)
     {
         robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
         source.override("scenario.perception.blind",
                         robotik::ConfigNode(p_policy));
-        return robotik::Scenario::read(source, testAssets());
+        return robotik::Scenario::read(source, testAssets()).take();
     };
     {
         PickPlaceMission mission;

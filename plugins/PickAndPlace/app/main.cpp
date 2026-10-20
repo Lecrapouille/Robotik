@@ -21,6 +21,7 @@
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
+#include <stdexcept>
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -132,8 +133,13 @@ static bool parse(int argc, char** argv, Options& p_options)
 static std::unique_ptr<robotik::SimulationEnvironment>
 makeEnvironment(Options const& p_options)
 {
-    robotik::Scenario scenario = robotik::Scenario::load(
-        p_options.scenario, robotik::AssetResolver::standard());
+    robotik::Result<robotik::Scenario> loaded =
+        robotik::Scenario::load(p_options.scenario, robotik::AssetResolver::standard());
+    if (!loaded)
+    {
+        throw std::runtime_error(loaded.error());
+    }
+    robotik::Scenario scenario = loaded.take();
     for (robotik::EntitySpec& entity : scenario.world.entities)
     {
         if (entity.id == PICK_PLACE_CUBE)

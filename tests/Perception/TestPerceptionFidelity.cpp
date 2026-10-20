@@ -21,12 +21,12 @@ static robotik::Scenario
 pickAndPlace(char const* p_file,
              std::vector<std::pair<char const*, char const*>> const& p_changes)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(p_file));
+    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(p_file)).take();
     for (auto const& [path, value] : p_changes)
     {
         source.override(path, robotik::ConfigNode(value));
     }
-    return robotik::Scenario::read(source, testAssets());
+    return robotik::Scenario::read(source, testAssets()).take();
 }
 
 /// Steps until the run ends or @p_limit seconds.

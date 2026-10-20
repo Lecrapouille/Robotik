@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Package/Scenario/Trajectory.hpp"
+#include "Robotik/Common/Must.hpp"
 
 #include "Robotik/Common/Config.hpp"
 
@@ -30,76 +31,84 @@ static std::vector<double> numbers(ConfigNode const& p_node)
     return result;
 }
 
-Trajectory loadTrajectory(std::filesystem::path const& p_path)
+Result<Trajectory> loadTrajectory(std::filesystem::path const& p_path)
 {
-    Trajectory trajectory;
-    trajectory.file = std::filesystem::absolute(p_path).lexically_normal();
+    // The border of this reader: whatever stops it inside becomes a message.
     try
     {
-        ConfigNode const root = ConfigNode::load(trajectory.file);
-        ConfigNode const& node = root.at("trajectory");
-        if (!node.isMap())
+        Trajectory trajectory;
+        trajectory.file = std::filesystem::absolute(p_path).lexically_normal();
+        try
         {
-            throw std::runtime_error("no 'trajectory:' section");
-        }
-        if (!node.at("points").isSequence() ||
-            node.at("points").items().empty())
-        {
-            throw std::runtime_error("points must be a non-empty list");
-        }
-        std::string const type = node.text("type", "cartesian");
-        if (type == "cartesian")
-        {
-            trajectory.type = Trajectory::Type::Cartesian;
-            trajectory.frame = node.text("frame");
-            Quaternion const orientation = node.pose("orientation").rotation;
-            for (ConfigNode const& point : node.at("points").items())
+            ConfigNode const root = must(ConfigNode::load(trajectory.file));
+            ConfigNode const& node = root.at("trajectory");
+            if (!node.isMap())
             {
-                if (point.isMap())
+                throw std::runtime_error("no 'trajectory:' section");
+            }
+            if (!node.at("points").isSequence() ||
+                node.at("points").items().empty())
+            {
+                throw std::runtime_error("points must be a non-empty list");
+            }
+            std::string const type = node.text("type", "cartesian");
+            if (type == "cartesian")
+            {
+                trajectory.type = Trajectory::Type::Cartesian;
+                trajectory.frame = node.text("frame");
+                Quaternion const orientation = node.pose("orientation").rotation;
+                for (ConfigNode const& point : node.at("points").items())
                 {
-                    trajectory.poses.push_back(point.asPose());
-                    continue;
+                    if (point.isMap())
+                    {
+                        trajectory.poses.push_back(point.asPose());
+                        continue;
+                    }
+                    std::vector<double> const xyz = numbers(point);
+                    if (xyz.size() != 3u)
+                    {
+                        throw std::runtime_error(
+                            "a cartesian point is [x, y, z] or a pose");
+                    }
+                    trajectory.poses.push_back(
+                        Pose{ Vector3(xyz[0], xyz[1], xyz[2]), orientation });
                 }
-                std::vector<double> const xyz = numbers(point);
-                if (xyz.size() != 3u)
+            }
+            else if (type == "joint")
+            {
+                trajectory.type = Trajectory::Type::Joint;
+                trajectory.joints = node.strings("joints");
+                if (trajectory.joints.empty())
                 {
-                    throw std::runtime_error(
-                        "a cartesian point is [x, y, z] or a pose");
+                    throw std::runtime_error("a joint trajectory names its joints");
                 }
-                trajectory.poses.push_back(
-                    Pose{ Vector3(xyz[0], xyz[1], xyz[2]), orientation });
+                for (ConfigNode const& point : node.at("points").items())
+                {
+                    std::vector<double> configuration = numbers(point);
+                    if (configuration.size() != trajectory.joints.size())
+                    {
+                        throw std::runtime_error(
+                            "every point gives one value per joint");
+                    }
+                    trajectory.configurations.push_back(std::move(configuration));
+                }
+            }
+            else
+            {
+                throw std::runtime_error("type must be cartesian or joint");
             }
         }
-        else if (type == "joint")
+        catch (std::runtime_error const& error)
         {
-            trajectory.type = Trajectory::Type::Joint;
-            trajectory.joints = node.strings("joints");
-            if (trajectory.joints.empty())
-            {
-                throw std::runtime_error("a joint trajectory names its joints");
-            }
-            for (ConfigNode const& point : node.at("points").items())
-            {
-                std::vector<double> configuration = numbers(point);
-                if (configuration.size() != trajectory.joints.size())
-                {
-                    throw std::runtime_error(
-                        "every point gives one value per joint");
-                }
-                trajectory.configurations.push_back(std::move(configuration));
-            }
+            throw std::runtime_error(trajectory.file.string() + ": " +
+                                     error.what());
         }
-        else
-        {
-            throw std::runtime_error("type must be cartesian or joint");
-        }
+        return trajectory;
     }
-    catch (std::runtime_error const& error)
+    catch (std::exception const& error)
     {
-        throw std::runtime_error(trajectory.file.string() + ": " +
-                                 error.what());
+        return failure(error.what());
     }
-    return trajectory;
 }
 
 } // namespace robotik

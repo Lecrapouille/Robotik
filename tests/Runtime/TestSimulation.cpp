@@ -49,7 +49,7 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
     robotik::Scenario const scenario =
         robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
-                                testAssets());
+                                testAssets()).take();
     EXPECT_EQ(scenario.id, "pick_and_place_faults");
     EXPECT_EQ(scenario.seed, 7u);
     EXPECT_EQ(scenario.controller.behavior_tree.filename(),
@@ -94,14 +94,14 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     source.override("world.entities.red_cube.pose.position",
-                    robotik::ConfigNode::parse("[0.30, 0.10, 0.02]"));
+                    robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take());
     source.override("world.entities.robot.sensors.wrist_camera.noise",
                     robotik::ConfigNode("0.05"));
     source.override("scenario.seed", robotik::ConfigNode("3"));
     robotik::Scenario const scenario =
-        robotik::Scenario::read(source, testAssets());
+        robotik::Scenario::read(source, testAssets()).take();
     EXPECT_EQ(scenario.seed, 3u);
     EXPECT_DOUBLE_EQ(scenario.world.find("red_cube")->pose.position.x, 0.30);
     EXPECT_DOUBLE_EQ(scenario.world.robot().sensors[0].camera.noise, 0.05);
@@ -115,26 +115,18 @@ TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 TEST(Scenario, WorldErrorsNameTheEntity)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     source.override("world.entities.box.type", robotik::ConfigNode("robot"));
-    try
-    {
-        (void)robotik::Scenario::read(source, testAssets());
-        FAIL() << "a second robot must be refused";
-    }
-    catch (std::runtime_error const& error)
-    {
-        EXPECT_NE(std::string(error.what()).find("pick_place_cell.world.yaml"),
-                  std::string::npos)
-            << error.what();
-    }
+    robotik::Result<robotik::Scenario> const read = robotik::Scenario::read(source, testAssets());
+    ASSERT_FALSE(read) << "a second robot must be refused";
+    EXPECT_NE(read.error().find("pick_place_cell.world.yaml"), std::string::npos) << read.error();
 }
 
 TEST(Simulation, AnotherToolBringsItsOwnActuators)
 {
     robotik::Scenario scenario = robotik::Scenario::load(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-        testAssets());
+        testAssets()).take();
     scenario.world.mount("fingers");
     PickPlaceMission mission;
     compages::world::World world;
@@ -155,7 +147,7 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
         robotik::Scenario::load(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()),
+            testAssets()).take(),
         nullptr,
         &mission);
 
@@ -176,7 +168,7 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
         world,
         robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
-                                testAssets()),
+                                testAssets()).take(),
         nullptr,
         &mission);
     simulation.reset(robotik::Seed{ 7 });
@@ -205,7 +197,7 @@ TEST(Simulation, SurvivesACameraFailure)
         world,
         robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
-                                testAssets()),
+                                testAssets()).take(),
         nullptr,
         &mission);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
@@ -222,7 +214,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
         robotik::Scenario::load(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()),
+            testAssets()).take(),
         nullptr,
         &mission);
     simulation.reset(robotik::Seed{ 11 });
@@ -247,7 +239,7 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
         robotik::Scenario::load(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()),
+            testAssets()).take(),
         nullptr,
         &mission);
     robotik::SkillScheduler& skills = simulation.cell().skills();

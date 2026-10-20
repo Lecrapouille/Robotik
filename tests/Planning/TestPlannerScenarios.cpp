@@ -72,7 +72,7 @@ run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
 /// Loads a scenario file from the repository.
 static robotik::Scenario scenario(char const* p_file)
 {
-    return robotik::Scenario::load(repoFile(p_file), testAssets());
+    return robotik::Scenario::load(repoFile(p_file), testAssets()).take();
 }
 
 TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
@@ -179,9 +179,8 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml")).take();
     source.override("scenario.controller.behavior_tree",
                     robotik::ConfigNode("scenarios/pick_and_place.bt.yaml"));
-    EXPECT_THROW((void)robotik::Scenario::read(source, testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::Scenario::read(source, testAssets()));
 }

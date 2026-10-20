@@ -439,13 +439,14 @@ void selectExperiment(App& p_app,
     ui.experiment_path = p_path;
     ui.experiment.reset();
     ui.experiment_error.clear();
-    try
+    robotik::Result<robotik::Experiment> loaded = robotik::Experiment::load(p_path);
+    if (loaded)
     {
-        ui.experiment = robotik::Experiment::load(p_path);
+        ui.experiment = loaded.take();
     }
-    catch (std::exception const& error)
+    else
     {
-        ui.experiment_error = error.what();
+        ui.experiment_error = loaded.error();
     }
     ui.shown_files[static_cast<std::size_t>(FileTab::Experiment)] = {
         p_path, readShown(p_path)
@@ -466,8 +467,13 @@ scenarioOfDomain(robotik::PluginPackage const& p_package,
     {
         try
         {
-            robotik::ConfigNode const node =
+            robotik::Result<robotik::ConfigNode> loaded =
                 robotik::ConfigNode::load(scenario.file);
+            if (!loaded)
+            {
+                continue;
+            }
+            robotik::ConfigNode const node = loaded.take();
             std::string const domain = node.at("scenario")
                                            .at("controller")
                                            .at("planner")

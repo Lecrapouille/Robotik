@@ -19,9 +19,9 @@
 static robotik::Scenario rigidPickAndPlace()
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     source.override("scenario.physics.fidelity", robotik::ConfigNode("rigid"));
-    return robotik::Scenario::read(source, testAssets());
+    return robotik::Scenario::read(source, testAssets()).take();
 }
 
 // Rigid level: the cube is a free body, the vacuum welds it, and it falls
@@ -63,19 +63,17 @@ TEST(RigidGrasp, PickAndPlaceDropsTheCubeIntoTheBox)
 TEST(RigidGrasp, ContactLevelIsRefusedUntilItExists)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     source.override("scenario.physics.fidelity",
                     robotik::ConfigNode("contact"));
-    EXPECT_THROW((void)robotik::Scenario::read(source, testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::Scenario::read(source, testAssets()));
 }
 
 TEST(RigidGrasp, OverrideOfAnUnknownEntityIsRefused)
 {
     robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
-        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
+        "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
     source.override("scenario.physics.overrides.blue_cube",
                     robotik::ConfigNode("rigid"));
-    EXPECT_THROW((void)robotik::Scenario::read(source, testAssets()),
-                 std::runtime_error);
+    EXPECT_FALSE(robotik::Scenario::read(source, testAssets()));
 }

@@ -25,7 +25,12 @@ Result<OpenedRobot> openRobot(std::string const& p_model, RobotOptions const& p_
         std::filesystem::path urdf = p_model;
         if (!std::filesystem::exists(urdf))
         {
-            urdf = AssetResolver::standard().resolve(p_model, ".");
+            Result<std::filesystem::path> resolved = AssetResolver::standard().resolve(p_model, ".");
+            if (!resolved)
+            {
+                return failure(p_model + ": " + resolved.error());
+            }
+            urdf = resolved.take();
         }
         OpenedRobot opened;
         opened.world = std::make_unique<compages::world::World>();

@@ -14,6 +14,8 @@
 /// lower case, as PDDL does not tell case apart.
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
+
 #include <cstdint>
 #include <map>
 #include <string>
@@ -105,10 +107,9 @@ struct Literal
     /// Reads the scenario syntax. Names are lower-cased.
     /// @param p_text @c "in(red_cube, box)", @c "not in(red_cube, box)" or
     ///   @c "hand_empty".
-    /// @return The literal.
-    /// @throws std::runtime_error on a malformed literal.
+    /// @return The literal; fails on a malformed literal.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static Literal parse(std::string_view p_text);
+    [[nodiscard]] static Result<Literal> parse(std::string_view p_text);
 
     /// @return @c "(not (in red_cube box))".
     [[nodiscard]] std::string toPddl() const;
@@ -245,11 +246,10 @@ struct DomainSchema
     /// Reads a domain. The planner checks the full syntax; this reads the
     /// sections above and ignores the rest.
     /// @param p_text PDDL text of the domain.
-    /// @return The schema.
-    /// @throws std::runtime_error on unbalanced parentheses or a missing
+    /// @return The schema; fails on unbalanced parentheses or a missing
     ///   @c define / @c domain.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static DomainSchema parse(std::string_view p_text);
+    [[nodiscard]] static Result<DomainSchema> parse(std::string_view p_text);
 
     // -------------------------------------------------------------------------
     /// @param p_type Type to test.

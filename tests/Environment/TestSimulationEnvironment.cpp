@@ -31,7 +31,7 @@ static robotik::Scenario scenario()
 {
     return robotik::Scenario::load(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-        testAssets());
+        testAssets()).take();
 }
 
 /// Throws on the third action: a solver that gives up.

@@ -135,7 +135,7 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
     robotik::Scenario const scenario = robotik::Scenario::load(
-        repo("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
+        repo("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets()).take();
     EXPECT_EQ(scenario.id, "hello");
     EXPECT_EQ(scenario.world.robot().model.filename(), "robot_6axis.urdf");
     EXPECT_TRUE(std::filesystem::exists(scenario.world.robot().model));
@@ -300,7 +300,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(scenario, session.assets()),
+        robotik::Scenario::load(scenario, session.assets()).take(),
         nullptr,
         session.mission());
     session.attach(&simulation);
@@ -355,7 +355,7 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(scenario, session.assets()),
+        robotik::Scenario::load(scenario, session.assets()).take(),
         nullptr,
         session.mission());
     session.attach(&simulation);

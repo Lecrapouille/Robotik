@@ -40,10 +40,10 @@ TEST(AssetResolver, LongestPackIdWins)
     robotik::AssetResolver assets;
     assets.addRoot(fixture("roots1"));
     ASSERT_EQ(assets.packs().size(), 2u);
-    EXPECT_EQ(assets.model("robotik.robots.arm").filename(), "arm.urdf");
-    EXPECT_EQ(assets.model("robotik.robots.abb.irb").filename(), "irb.urdf");
-    EXPECT_THROW((void)assets.model("robotik.robots.abb"), std::runtime_error);
-    EXPECT_THROW((void)assets.model("robotik.nothing.arm"), std::runtime_error);
+    EXPECT_EQ(assets.model("robotik.robots.arm").take().filename(), "arm.urdf");
+    EXPECT_EQ(assets.model("robotik.robots.abb.irb").take().filename(), "irb.urdf");
+    EXPECT_FALSE(assets.model("robotik.robots.abb"));
+    EXPECT_FALSE(assets.model("robotik.nothing.arm"));
 }
 
 TEST(AssetResolver, PathsStayRelativeToTheReferencingFile)
@@ -51,11 +51,11 @@ TEST(AssetResolver, PathsStayRelativeToTheReferencingFile)
     robotik::AssetResolver assets;
     assets.addRoot(fixture("roots1"));
     std::filesystem::path const base("/tmp/scenarios");
-    EXPECT_EQ(assets.resolve("../robots/x.urdf", base), "/tmp/robots/x.urdf");
-    EXPECT_EQ(assets.resolve("local.urdf", base), "/tmp/scenarios/local.urdf");
-    EXPECT_EQ(assets.resolve("robotik.robots.arm", base).filename(),
+    EXPECT_EQ(assets.resolve("../robots/x.urdf", base).take(), "/tmp/robots/x.urdf");
+    EXPECT_EQ(assets.resolve("local.urdf", base).take(), "/tmp/scenarios/local.urdf");
+    EXPECT_EQ(assets.resolve("robotik.robots.arm", base).take().filename(),
               "arm.urdf");
-    EXPECT_TRUE(assets.resolve("", base).empty());
+    EXPECT_TRUE(assets.resolve("", base).take().empty());
 }
 
 TEST(AssetResolver, FirstRootWinsAndAnotherVersionIsAConflict)

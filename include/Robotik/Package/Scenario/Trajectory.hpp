@@ -35,6 +35,7 @@
 /// @endcode
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Task/CellDescription.hpp"
 
 #include <filesystem>
@@ -45,9 +46,8 @@ namespace robotik
 // ----------------------------------------------------------------------------
 /// Reads a @c x.trajectory.yaml file.
 /// @param p_path File to read.
-/// @return The parsed trajectory.
-/// @throws std::runtime_error naming the file and the field at fault.
+/// @return The trajectory; the error names the file and the field at fault.
 // ----------------------------------------------------------------------------
-[[nodiscard]] Trajectory loadTrajectory(std::filesystem::path const& p_path);
+[[nodiscard]] Result<Trajectory> loadTrajectory(std::filesystem::path const& p_path);
 
 } // namespace robotik

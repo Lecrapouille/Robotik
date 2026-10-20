@@ -55,5 +55,5 @@ inline robotik::AssetResolver const& testAssets()
 /// @brief File of the model @p_id of the repository packs.
 inline std::filesystem::path assetFile(std::string_view p_id)
 {
-    return testAssets().model(p_id);
+    return testAssets().model(p_id).take();
 }

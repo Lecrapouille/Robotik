@@ -91,16 +91,13 @@ void AssetResolver::addRoot(std::filesystem::path const& p_root)
 // -----------------------------------------------------------------------------
 void AssetResolver::addPack(std::filesystem::path const& p_root)
 {
-    AssetPack pack;
-    try
+    Result<AssetPack> loaded = loadAssetPack(p_root / "pack.yaml");
+    if (!loaded)
     {
-        pack = AssetPack::load(p_root / "pack.yaml");
-    }
-    catch (std::exception const& error)
-    {
-        m_errors.emplace_back(error.what());
+        m_errors.push_back(loaded.error());
         return;
     }
+    AssetPack pack = loaded.take();
     if (AssetPack const* known = find(pack.id))
     {
         if (known->root != pack.root && known->version != pack.version)
@@ -147,7 +144,7 @@ AssetPack const* AssetResolver::require(std::string_view p_id,
 }
 
 // -----------------------------------------------------------------------------
-std::filesystem::path AssetResolver::model(std::string_view p_id) const
+Result<std::filesystem::path> AssetResolver::model(std::string_view p_id) const
 {
     AssetPack const* best = nullptr;
     for (AssetPack const& pack : m_packs)
@@ -162,33 +159,31 @@ std::filesystem::path AssetResolver::model(std::string_view p_id) const
     }
     if (best == nullptr)
     {
-        throw std::runtime_error("No asset pack provides '" +
-                                 std::string(p_id) + "'");
+        return failure("No asset pack provides '" + std::string(p_id) + "'");
     }
     std::string const key(p_id.substr(best->id.size() + 1u));
     std::filesystem::path file = robotik::model(*best, key);
     if (file.empty())
     {
-        throw std::runtime_error("Pack '" + best->id + "' has no model '" +
-                                 key + "'");
+        return failure("Pack '" + best->id + "' has no model '" + key + "'");
     }
     return file;
 }
 
 // -----------------------------------------------------------------------------
-std::filesystem::path
+Result<std::filesystem::path>
 AssetResolver::resolve(std::string const& p_reference,
                        std::filesystem::path const& p_base) const
 {
     if (p_reference.empty())
     {
-        return {};
+        return std::filesystem::path{};
     }
     bool const path = p_reference.find('/') != std::string::npos ||
                       p_reference.ends_with(".urdf");
     if (path)
     {
-        return (p_base / p_reference).lexically_normal();
+        return std::filesystem::path((p_base / p_reference).lexically_normal());
     }
     return model(p_reference);
 }

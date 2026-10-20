@@ -49,7 +49,12 @@ static std::vector<double> numbers(robotik::ConfigNode const& p_node,
 // ----------------------------------------------------------------------------
 DuckContract DuckContract::load(std::filesystem::path const& p_path)
 {
-    robotik::ConfigNode const root = robotik::ConfigNode::load(p_path);
+    robotik::Result<robotik::ConfigNode> loaded = robotik::ConfigNode::load(p_path);
+    if (!loaded)
+    {
+        throw std::runtime_error(loaded.error());
+    }
+    robotik::ConfigNode const root = loaded.take();
     robotik::ConfigNode const& walk = root.at("walk");
 
     DuckContract contract;

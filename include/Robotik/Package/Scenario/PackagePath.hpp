@@ -24,6 +24,8 @@
 /// A package is a closed folder; it can be moved or installed as a whole.
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
+
 #include <filesystem>
 #include <string>
 
@@ -41,9 +43,9 @@ namespace robotik
 /// @param p_file Any file of the package.
 /// @return Folder holding @c plugin.yaml: the folder of @p_file or one of
 ///   its parents.
-/// @throws std::runtime_error when @p_file is in no package.
+///   Fails when @p_file is in no package.
 // ----------------------------------------------------------------------------
-[[nodiscard]] std::filesystem::path
+[[nodiscard]] Result<std::filesystem::path>
 packageRoot(std::filesystem::path const& p_file);
 
 // ----------------------------------------------------------------------------
@@ -51,17 +53,18 @@ packageRoot(std::filesystem::path const& p_file);
 ///
 /// @code
 /// auto root = packageRoot(scenario_file);
-/// auto world = packageFile(root, "worlds/arm.world.yaml");
+/// if (root)
+///     auto world = packageFile(root.value(), "worlds/arm.world.yaml");
 /// @endcode
 ///
 /// @param p_root Package root, as given by @ref packageRoot.
 /// @param p_name Name relative to @p_root.
 /// @return Canonical path of @p_root / @p_name, or empty when @p_name is
 ///   empty.
-/// @throws std::runtime_error when @p_name is absolute, or when its
-///   canonical path is not inside the canonical @p_root.
+///   Fails when @p_name is absolute, or when its canonical path is not
+///   inside the canonical @p_root.
 // ----------------------------------------------------------------------------
-[[nodiscard]] std::filesystem::path
+[[nodiscard]] Result<std::filesystem::path>
 packageFile(std::filesystem::path const& p_root, std::string const& p_name);
 
 } // namespace robotik

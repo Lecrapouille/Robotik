@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Package/Scenario/World.hpp"
+#include "Robotik/Common/Must.hpp"
 
 #include "Robotik/Task/Planning/Pddl.hpp"
 #include "Robotik/Common/Config.hpp"
@@ -293,8 +294,8 @@ static EntitySpec entity(std::string const& p_world,
             // A file name (not a model id) stays in the package.
             bool const file = spec.model_ref.find('/') != std::string::npos ||
                               spec.model_ref.ends_with(".urdf");
-            spec.model = file ? packageFile(p_directory, spec.model_ref)
-                              : p_assets.model(spec.model_ref);
+            spec.model = file ? must(packageFile(p_directory, spec.model_ref))
+                              : must(p_assets.model(spec.model_ref));
         }
         if (p_node.has("shape"))
         {
@@ -408,156 +409,172 @@ static EntitySpec entity(std::string const& p_world,
     return spec;
 }
 
-WorldDescription readWorld(ConfigNode const& p_world,
-                           std::filesystem::path const& p_directory,
-                           AssetResolver const& p_assets)
+Result<WorldDescription> readWorld(ConfigNode const& p_world,
+                                   std::filesystem::path const& p_directory,
+                                   AssetResolver const& p_assets)
 {
-    WorldDescription world;
-    world.id = p_world.text("id");
-    std::string const where = "world '" + world.id + "'";
-    if (world.id.empty())
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
     {
-        fail("world", "an id is required");
-    }
-    ConfigNode const& floor = p_world.at("floor");
-    if (floor.isMap())
-    {
-        world.floor = true;
-        world.floor_friction = floor.number("friction", 1.0);
-    }
-    else if (!floor.isNull())
-    {
-        world.floor = p_world.flag("floor", false);
-    }
-    if (!p_world.at("entities").isSequence())
-    {
-        fail(where, "entities must be a list");
-    }
-    for (ConfigNode const& node : p_world.at("entities").items())
-    {
-        EntitySpec spec = entity(where, node, p_directory, p_assets);
-        if (world.find(spec.id) != nullptr)
+        WorldDescription world;
+        world.id = p_world.text("id");
+        std::string const where = "world '" + world.id + "'";
+        if (world.id.empty())
         {
-            fail(where, "entity '" + spec.id + "' is declared twice");
+            fail("world", "an id is required");
         }
-        world.entities.push_back(std::move(spec));
-    }
+        ConfigNode const& floor = p_world.at("floor");
+        if (floor.isMap())
+        {
+            world.floor = true;
+            world.floor_friction = floor.number("friction", 1.0);
+        }
+        else if (!floor.isNull())
+        {
+            world.floor = p_world.flag("floor", false);
+        }
+        if (!p_world.at("entities").isSequence())
+        {
+            fail(where, "entities must be a list");
+        }
+        for (ConfigNode const& node : p_world.at("entities").items())
+        {
+            EntitySpec spec = entity(where, node, p_directory, p_assets);
+            if (world.find(spec.id) != nullptr)
+            {
+                fail(where, "entity '" + spec.id + "' is declared twice");
+            }
+            world.entities.push_back(std::move(spec));
+        }
 
-    // --- Relations
-    // ------------------------------------------------------------
-    std::vector<EntitySpec const*> const robots = world.robots();
-    if (robots.empty())
-    {
-        fail(where, "an entity of type robot is required");
-    }
-    std::map<std::string, int> mounted;
-    for (EntitySpec const& spec : world.entities)
-    {
-        if (!spec.attach)
+        // --- Relations
+        // ------------------------------------------------------------
+        std::vector<EntitySpec const*> const robots = world.robots();
+        if (robots.empty())
         {
-            continue;
+            fail(where, "an entity of type robot is required");
         }
-        std::string const entity = where + ", entity '" + spec.id + "'";
-        EntitySpec const* parent = world.find(spec.attach->parent);
-        if (parent == nullptr || parent == &spec)
+        std::map<std::string, int> mounted;
+        for (EntitySpec const& spec : world.entities)
         {
-            fail(entity,
-                 "attach.parent '" + spec.attach->parent +
-                     "' is not another entity");
-        }
-        if (spec.type == EntitySpec::Type::Tool)
-        {
-            if (parent->type != EntitySpec::Type::Robot ||
-                spec.attach->parent_frame != FLANGE ||
-                spec.attach->frame != TOOL_MOUNT)
+            if (!spec.attach)
+            {
+                continue;
+            }
+            std::string const entity = where + ", entity '" + spec.id + "'";
+            EntitySpec const* parent = world.find(spec.attach->parent);
+            if (parent == nullptr || parent == &spec)
             {
                 fail(entity,
-                     "a tool attaches with { parent: <robot>.flange, frame: "
-                     "tool_mount }");
+                     "attach.parent '" + spec.attach->parent +
+                         "' is not another entity");
             }
-            if (++mounted[parent->id] > 1)
+            if (spec.type == EntitySpec::Type::Tool)
             {
-                fail(where,
-                     "only one tool can be mounted on robot '" + parent->id +
-                         "'");
+                if (parent->type != EntitySpec::Type::Robot ||
+                    spec.attach->parent_frame != FLANGE ||
+                    spec.attach->frame != TOOL_MOUNT)
+                {
+                    fail(entity,
+                         "a tool attaches with { parent: <robot>.flange, frame: "
+                         "tool_mount }");
+                }
+                if (++mounted[parent->id] > 1)
+                {
+                    fail(where,
+                         "only one tool can be mounted on robot '" + parent->id +
+                             "'");
+                }
             }
-        }
-        else if (spec.type == EntitySpec::Type::Robot)
-        {
-            fail(entity, "a robot cannot be attached; give it a pose");
-        }
-        else if (!spec.attach->frame.empty())
-        {
-            fail(entity, "only tools land a frame of their own on the parent");
-        }
-        else if (parent->type == EntitySpec::Type::Tool)
-        {
-            fail(entity, "cannot attach to a tool");
-        }
-        else if (parent->attach && parent->type != EntitySpec::Type::Robot)
-        {
-            if (EntitySpec const* grand = world.find(parent->attach->parent);
-                grand != nullptr && grand->attach)
+            else if (spec.type == EntitySpec::Type::Robot)
             {
-                fail(entity, "attachments nest two levels at most");
+                fail(entity, "a robot cannot be attached; give it a pose");
+            }
+            else if (!spec.attach->frame.empty())
+            {
+                fail(entity, "only tools land a frame of their own on the parent");
+            }
+            else if (parent->type == EntitySpec::Type::Tool)
+            {
+                fail(entity, "cannot attach to a tool");
+            }
+            else if (parent->attach && parent->type != EntitySpec::Type::Robot)
+            {
+                if (EntitySpec const* grand = world.find(parent->attach->parent);
+                    grand != nullptr && grand->attach)
+                {
+                    fail(entity, "attachments nest two levels at most");
+                }
             }
         }
-    }
 
-    // What a tool works on is another entity of the world.
-    for (EntitySpec const& spec : world.entities)
-    {
-        std::string const entity = where + ", entity '" + spec.id + "'";
-        if (!spec.touches.empty() && spec.type != EntitySpec::Type::Tool)
+        // What a tool works on is another entity of the world.
+        for (EntitySpec const& spec : world.entities)
         {
-            fail(entity, "only a tool touches its workpieces");
-        }
-        for (std::string const& id : spec.touches)
-        {
-            if (world.find(id) == nullptr || id == spec.id)
+            std::string const entity = where + ", entity '" + spec.id + "'";
+            if (!spec.touches.empty() && spec.type != EntitySpec::Type::Tool)
             {
-                fail(entity,
-                     "touches '" + id + "', which is not another entity");
+                fail(entity, "only a tool touches its workpieces");
+            }
+            for (std::string const& id : spec.touches)
+            {
+                if (world.find(id) == nullptr || id == spec.id)
+                {
+                    fail(entity,
+                         "touches '" + id + "', which is not another entity");
+                }
             }
         }
-    }
 
-    // Robots share one resource manager: device names are unique in the world.
-    std::map<std::string, std::string> devices;
-    for (EntitySpec const& spec : world.entities)
-    {
-        auto declare = [&](std::string const& p_name)
+        // Robots share one resource manager: device names are unique in the world.
+        std::map<std::string, std::string> devices;
+        for (EntitySpec const& spec : world.entities)
         {
-            auto const [found, inserted] = devices.emplace(p_name, spec.id);
-            if (!inserted && found->second != spec.id)
+            auto declare = [&](std::string const& p_name)
             {
-                fail(where,
-                     "device '" + p_name + "' is declared by '" +
-                         found->second + "' and by '" + spec.id +
-                         "': names are unique in the world");
+                auto const [found, inserted] = devices.emplace(p_name, spec.id);
+                if (!inserted && found->second != spec.id)
+                {
+                    fail(where,
+                         "device '" + p_name + "' is declared by '" +
+                             found->second + "' and by '" + spec.id +
+                             "': names are unique in the world");
+                }
+            };
+            for (ActuatorSpec const& actuator : spec.actuators)
+            {
+                declare(actuator.name);
             }
-        };
-        for (ActuatorSpec const& actuator : spec.actuators)
-        {
-            declare(actuator.name);
+            for (SensorSpec const& sensor : spec.sensors)
+            {
+                declare(sensor.name);
+            }
         }
-        for (SensorSpec const& sensor : spec.sensors)
-        {
-            declare(sensor.name);
-        }
+        return world;
     }
-    return world;
+    catch (std::exception const& error)
+    {
+        return failure(error.what());
+    }
 }
 
-WorldDescription loadWorld(std::filesystem::path const& p_path,
-                           AssetResolver const& p_assets)
+Result<WorldDescription> loadWorld(std::filesystem::path const& p_path,
+                                   AssetResolver const& p_assets)
 {
-    ConfigNode const file = ConfigNode::load(p_path);
-    if (!file.has("world"))
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
     {
-        throw std::runtime_error(p_path.string() + ": no 'world:' section");
+        ConfigNode const file = must(ConfigNode::load(p_path));
+        if (!file.has("world"))
+        {
+            throw std::runtime_error(p_path.string() + ": no 'world:' section");
+        }
+        return readWorld(file.at("world"), must(packageRoot(p_path)), p_assets);
     }
-    return readWorld(file.at("world"), packageRoot(p_path), p_assets);
+    catch (std::exception const& error)
+    {
+        return failure(error.what());
+    }
 }
 
 } // namespace robotik

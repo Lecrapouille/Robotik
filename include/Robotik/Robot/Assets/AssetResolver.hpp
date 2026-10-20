@@ -20,11 +20,14 @@
 ///
 /// @code
 /// robotik::AssetResolver assets = robotik::AssetResolver::standard();
-/// std::filesystem::path urdf = assets.model("robotik.tools.vacuum");
+/// auto const urdf = assets.model("robotik.tools.vacuum");
+/// if (urdf)
+///     load(urdf.value());
 /// @endcode
 
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Robot/Assets/AssetPack.hpp"
 
 #include <filesystem>
@@ -107,10 +110,9 @@ public:
     /// so @c robotik.robots.abb.irb2400 picks the pack
     /// @c robotik.robots.abb over @c robotik.robots.
     /// @param p_id Model id, @c <pack-id>.<key>.
-    /// @return Absolute file of the model.
-    /// @throws std::runtime_error when no pack provides the model.
+    /// @return Absolute file of the model; fails when no pack provides it.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::filesystem::path model(std::string_view p_id) const;
+    [[nodiscard]] Result<std::filesystem::path> model(std::string_view p_id) const;
 
     // -------------------------------------------------------------------------
     /// Gives the file named by a scenario field. A reference holding a slash
@@ -118,10 +120,9 @@ public:
     /// (see @ref model).
     /// @param p_reference Path or model id written in the YAML.
     /// @param p_base Folder a relative path starts from.
-    /// @return The file.
-    /// @throws std::runtime_error when a model id is unknown.
+    /// @return The file; fails when a model id is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::filesystem::path
+    [[nodiscard]] Result<std::filesystem::path>
     resolve(std::string const& p_reference,
             std::filesystem::path const& p_base) const;
 

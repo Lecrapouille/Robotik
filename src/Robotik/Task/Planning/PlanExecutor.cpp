@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Task/Planning/PlanExecutor.hpp"
+#include "Robotik/Common/Must.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanGraph.hpp"
 
@@ -147,7 +148,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
     m_domain_text = readFile(m_spec.domain);
     try
     {
-        m_schema = DomainSchema::parse(m_domain_text);
+        m_schema = must(DomainSchema::parse(m_domain_text));
     }
     catch (std::runtime_error const& error)
     {

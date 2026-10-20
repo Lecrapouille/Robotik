@@ -16,6 +16,7 @@
 
 #include "Compages/World/World.hpp"
 
+#include <stdexcept>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -167,13 +168,14 @@ int main(int argc, char** argv)
     try
     {
         LineFollowerMission mission(options.laps);
+        robotik::Result<robotik::Scenario> loaded =
+            robotik::Scenario::load(options.scenario, robotik::AssetResolver::standard());
+        if (!loaded)
+        {
+            throw std::runtime_error(loaded.error());
+        }
         compages::world::World world;
-        robotik::Simulation simulation(
-            world,
-            robotik::Scenario::load(options.scenario,
-                                    robotik::AssetResolver::standard()),
-            nullptr,
-            &mission);
+        robotik::Simulation simulation(world, loaded.take(), nullptr, &mission);
         simulation.reset(robotik::Seed{ options.seed });
 
         robotik::Camera* camera = simulation.cell().camera();

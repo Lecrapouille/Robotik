@@ -35,6 +35,7 @@
 /// seed. An optional @c world: replaces the world of every scenario.
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
@@ -89,10 +90,10 @@ struct Experiment
     // -------------------------------------------------------------------------
     /// Reads an experiment file.
     /// @param p_path A @c x.experiment.yaml file.
-    /// @return The parsed experiment.
-    /// @throws std::runtime_error naming the file and the field at fault.
+    /// @return The experiment; the error names the file and the field at
+    ///   fault.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static Experiment load(std::filesystem::path const& p_path);
+    [[nodiscard]] static Result<Experiment> load(std::filesystem::path const& p_path);
 
     // -------------------------------------------------------------------------
     /// Tells whether a YAML file is an experiment, whatever its name.
@@ -123,9 +124,9 @@ struct Experiment
     /// faults and extra assertions are applied.
     /// @param p_case Case of this experiment.
     /// @param p_assets Resolves the models named by the files.
-    /// @return The scenario ready to run.
+    /// @return The scenario ready to run, or why it cannot be built.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Scenario scenario(ExperimentCase const& p_case,
+    [[nodiscard]] Result<Scenario> scenario(ExperimentCase const& p_case,
                                     AssetResolver const& p_assets) const;
 };
 

@@ -436,62 +436,70 @@ std::string Atom::toString() const
 }
 
 // ----------------------------------------------------------------------------
-Literal Literal::parse(std::string_view p_text)
+Result<Literal> Literal::parse(std::string_view p_text)
 {
-    std::string text = trim(p_text);
-    Literal literal;
-    if (text.starts_with("not ") || text.starts_with("not\t"))
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
     {
-        literal.positive = false;
-        text = trim(std::string_view(text).substr(4u));
-    }
-    else if (text.starts_with("!"))
-    {
-        literal.positive = false;
-        text = trim(std::string_view(text).substr(1u));
-    }
-    std::size_t const open = text.find('(');
-    std::string const name = trim(std::string_view(text).substr(0u, open));
-    if (!validName(name))
-    {
-        throw std::runtime_error(
-            "'" + std::string(p_text) +
-            "' is not a literal such as in(red_cube, box)");
-    }
-    literal.atom.predicate = lowerCase(name);
-    if (open == std::string::npos)
-    {
+        std::string text = trim(p_text);
+        Literal literal;
+        if (text.starts_with("not ") || text.starts_with("not\t"))
+        {
+            literal.positive = false;
+            text = trim(std::string_view(text).substr(4u));
+        }
+        else if (text.starts_with("!"))
+        {
+            literal.positive = false;
+            text = trim(std::string_view(text).substr(1u));
+        }
+        std::size_t const open = text.find('(');
+        std::string const name = trim(std::string_view(text).substr(0u, open));
+        if (!validName(name))
+        {
+            throw std::runtime_error(
+                "'" + std::string(p_text) +
+                "' is not a literal such as in(red_cube, box)");
+        }
+        literal.atom.predicate = lowerCase(name);
+        if (open == std::string::npos)
+        {
+            return literal;
+        }
+        if (text.back() != ')' || text.find('(', open + 1u) != std::string::npos)
+        {
+            throw std::runtime_error(
+                "'" + std::string(p_text) +
+                "' is not a literal such as in(red_cube, box)");
+        }
+        std::string_view const inside =
+            std::string_view(text).substr(open + 1u, text.size() - open - 2u);
+        if (!trim(inside).empty())
+        {
+            std::size_t start = 0u;
+            for (;;)
+            {
+                std::size_t const comma = inside.find(',', start);
+                std::string const arg = trim(inside.substr(start, comma - start));
+                if (!validName(arg))
+                {
+                    throw std::runtime_error("'" + std::string(p_text) +
+                                             "': bad argument '" + arg + "'");
+                }
+                literal.atom.args.push_back(lowerCase(arg));
+                if (comma == std::string_view::npos)
+                {
+                    break;
+                }
+                start = comma + 1u;
+            }
+        }
         return literal;
     }
-    if (text.back() != ')' || text.find('(', open + 1u) != std::string::npos)
+    catch (std::exception const& error)
     {
-        throw std::runtime_error(
-            "'" + std::string(p_text) +
-            "' is not a literal such as in(red_cube, box)");
+        return failure(error.what());
     }
-    std::string_view const inside =
-        std::string_view(text).substr(open + 1u, text.size() - open - 2u);
-    if (!trim(inside).empty())
-    {
-        std::size_t start = 0u;
-        for (;;)
-        {
-            std::size_t const comma = inside.find(',', start);
-            std::string const arg = trim(inside.substr(start, comma - start));
-            if (!validName(arg))
-            {
-                throw std::runtime_error("'" + std::string(p_text) +
-                                         "': bad argument '" + arg + "'");
-            }
-            literal.atom.args.push_back(lowerCase(arg));
-            if (comma == std::string_view::npos)
-            {
-                break;
-            }
-            start = comma + 1u;
-        }
-    }
-    return literal;
 }
 
 // ----------------------------------------------------------------------------
@@ -535,94 +543,102 @@ bool DomainSchema::isA(std::string_view p_type,
 }
 
 // ----------------------------------------------------------------------------
-DomainSchema DomainSchema::parse(std::string_view p_text)
+Result<DomainSchema> DomainSchema::parse(std::string_view p_text)
 {
-    Sexpr const root = Reader(p_text).read();
-    if (root.head() != "define" || root.list.size() < 2u ||
-        root.list[1].head() != "domain" || root.list[1].list.size() != 2u)
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
     {
-        throw std::runtime_error(
-            "PDDL: a domain starts with (define (domain <name>)");
-    }
-    DomainSchema schema;
-    schema.name = root.list[1].list[1].atom;
-    for (std::size_t i = 2u; i < root.list.size(); ++i)
-    {
-        Sexpr const& section = root.list[i];
-        std::string_view const head = section.head();
-        if (head == ":types")
+        Sexpr const root = Reader(p_text).read();
+        if (root.head() != "define" || root.list.size() < 2u ||
+            root.list[1].head() != "domain" || root.list[1].list.size() != 2u)
         {
-            for (Parameter const& type : typedList(section.list, 1u))
-            {
-                schema.types[type.name] = type.type;
-            }
+            throw std::runtime_error(
+                "PDDL: a domain starts with (define (domain <name>)");
         }
-        else if (head == ":constants")
+        DomainSchema schema;
+        schema.name = root.list[1].list[1].atom;
+        for (std::size_t i = 2u; i < root.list.size(); ++i)
         {
-            for (Parameter const& constant : typedList(section.list, 1u))
+            Sexpr const& section = root.list[i];
+            std::string_view const head = section.head();
+            if (head == ":types")
             {
-                schema.constants[constant.name] = constant.type;
-            }
-        }
-        else if (head == ":predicates")
-        {
-            for (std::size_t k = 1u; k < section.list.size(); ++k)
-            {
-                Sexpr const& item = section.list[k];
-                if (item.head().empty())
+                for (Parameter const& type : typedList(section.list, 1u))
                 {
-                    continue;
+                    schema.types[type.name] = type.type;
                 }
-                PredicateSchema predicate;
+            }
+            else if (head == ":constants")
+            {
+                for (Parameter const& constant : typedList(section.list, 1u))
+                {
+                    schema.constants[constant.name] = constant.type;
+                }
+            }
+            else if (head == ":predicates")
+            {
+                for (std::size_t k = 1u; k < section.list.size(); ++k)
+                {
+                    Sexpr const& item = section.list[k];
+                    if (item.head().empty())
+                    {
+                        continue;
+                    }
+                    PredicateSchema predicate;
+                    predicate.name = std::string(item.head());
+                    for (Parameter const& parameter : typedList(item.list, 1u))
+                    {
+                        predicate.types.push_back(parameter.type);
+                    }
+                    schema.predicates[predicate.name] = std::move(predicate);
+                }
+            }
+            else if (head == ":derived" && section.list.size() >= 2u)
+            {
+                Sexpr const& item = section.list[1];
+                PredicateSchema& predicate =
+                    schema.predicates[std::string(item.head())];
                 predicate.name = std::string(item.head());
-                for (Parameter const& parameter : typedList(item.list, 1u))
+                predicate.derived = true;
+                if (predicate.types.empty())
                 {
-                    predicate.types.push_back(parameter.type);
-                }
-                schema.predicates[predicate.name] = std::move(predicate);
-            }
-        }
-        else if (head == ":derived" && section.list.size() >= 2u)
-        {
-            Sexpr const& item = section.list[1];
-            PredicateSchema& predicate =
-                schema.predicates[std::string(item.head())];
-            predicate.name = std::string(item.head());
-            predicate.derived = true;
-            if (predicate.types.empty())
-            {
-                for (Parameter const& parameter : typedList(item.list, 1u))
-                {
-                    predicate.types.push_back(parameter.type);
+                    for (Parameter const& parameter : typedList(item.list, 1u))
+                    {
+                        predicate.types.push_back(parameter.type);
+                    }
                 }
             }
-        }
-        else if ((head == ":action" || head == ":durative-action") &&
-                 section.list.size() >= 2u)
-        {
-            ActionSchema action;
-            action.name = section.list[1].atom;
-            action.durative = head == ":durative-action";
-            if (Sexpr const* parameters = keyed(section, ":parameters"))
+            else if ((head == ":action" || head == ":durative-action") &&
+                     section.list.size() >= 2u)
             {
-                action.parameters = typedList(parameters->list, 0u);
-            }
-            if (Sexpr const* effect = keyed(section, ":effect"))
-            {
-                collectEffects(*effect, action);
-                collectAtoms(*effect, action, true, When::Untimed);
-            }
-            for (std::string_view const key : { ":precondition", ":condition" })
-            {
-                if (Sexpr const* condition = keyed(section, key))
+                ActionSchema action;
+                action.name = section.list[1].atom;
+                action.durative = head == ":durative-action";
+                if (Sexpr const* parameters = keyed(section, ":parameters"))
                 {
-                    collectAtoms(*condition, action, false, When::Untimed);
+                    action.parameters = typedList(parameters->list, 0u);
                 }
+                if (Sexpr const* effect = keyed(section, ":effect"))
+                {
+                    collectEffects(*effect, action);
+                    collectAtoms(*effect, action, true, When::Untimed);
+                }
+                for (std::string_view const key : { ":precondition", ":condition" })
+                {
+                    if (Sexpr const* condition = keyed(section, key))
+                    {
+                        collectAtoms(*condition, action, false, When::Untimed);
+                    }
+                }
+                schema.actions[action.name] = std::move(action);
             }
-            schema.actions[action.name] = std::move(action);
         }
+        return schema;
     }
-    return schema;
+    catch (std::exception const& error)
+    {
+        return failure(error.what());
+    }
 }
 
 } // namespace robotik

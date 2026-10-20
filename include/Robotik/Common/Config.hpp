@@ -14,7 +14,7 @@
 ///
 /// @code
 /// robotik::ConfigNode world =
-/// robotik::ConfigNode::load("painting_lab.world.yaml");
+///     robotik::ConfigNode::load("painting_lab.world.yaml").take();
 /// world.set("world.entities.easel.friction", robotik::ConfigNode("0.3"));
 /// double const friction = world.at("world").at("entities")
 ///                              .item("easel").number("friction", 1.0);
@@ -22,6 +22,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Result.hpp"
 
 #include <array>
 #include <filesystem>
@@ -42,7 +43,7 @@ namespace robotik
 ///
 /// @code
 /// robotik::ConfigNode const node = robotik::ConfigNode::parse(
-///     "{ mass: 0.2, size: [0.04, 0.04, 0.04], tags: [red, small] }");
+///     "{ mass: 0.2, size: [0.04, 0.04, 0.04], tags: [red, small] }").take();
 /// double m = node.number("mass", 1.0);                          // 0.2
 /// robotik::Vector3 s = node.vector3("size", robotik::Vector3::ZERO);
 /// std::vector<std::string> tags = node.strings("tags");         // red, small
@@ -78,18 +79,16 @@ public:
     // -------------------------------------------------------------------------
     /// Reads a YAML file.
     /// @param p_path File to read.
-    /// @return The root node.
-    /// @throws std::runtime_error when the file cannot be parsed.
+    /// @return The root node; fails when the file cannot be parsed.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static ConfigNode load(std::filesystem::path const& p_path);
+    [[nodiscard]] static Result<ConfigNode> load(std::filesystem::path const& p_path);
 
     // -------------------------------------------------------------------------
     /// Parses YAML text (tests, inline values).
     /// @param p_text YAML text.
-    /// @return The root node.
-    /// @throws std::runtime_error when the text cannot be parsed.
+    /// @return The root node; fails when the text cannot be parsed.
     // -------------------------------------------------------------------------
-    [[nodiscard]] static ConfigNode parse(std::string const& p_text);
+    [[nodiscard]] static Result<ConfigNode> parse(std::string const& p_text);
 
     /// @return What the node holds.
     [[nodiscard]] Kind kind() const

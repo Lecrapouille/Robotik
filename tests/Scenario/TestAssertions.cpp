@@ -39,14 +39,14 @@ struct Board
 /// Parses one assertion from a YAML snippet.
 static robotik::AssertionSpec spec(std::string const& p_yaml)
 {
-    return robotik::AssertionSpec::read(robotik::ConfigNode::parse(p_yaml));
+    return robotik::AssertionSpec::read(robotik::ConfigNode::parse(p_yaml).take());
 }
 
 TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
 {
     robotik::ConfigNode const node = robotik::ConfigNode::parse(
         "a: 1.5\nb: [1, 2, 3]\nc: yes\nd: text\nr: [0.1, -0.1]\n"
-        "p: { position: [1, 0, 0], rpy: [0, 0, 0] }\n");
+        "p: { position: [1, 0, 0], rpy: [0, 0, 0] }\n").take();
     EXPECT_DOUBLE_EQ(node.number("a", 0.0), 1.5);
     EXPECT_DOUBLE_EQ(node.number("missing", 7.0), 7.0);
     EXPECT_DOUBLE_EQ(node.vector3("b", robotik::Vector3::ZERO).z, 3.0);
@@ -62,9 +62,9 @@ TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
 {
     robotik::ConfigNode node =
         robotik::ConfigNode::parse("world:\n  entities:\n    - { id: a, mass: "
-                                   "1 }\n    - { id: b, mass: 2 }\n");
+                                   "1 }\n    - { id: b, mass: 2 }\n").take();
     node.set("world.entities.b.mass", robotik::ConfigNode("5"));
-    node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]"));
+    node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]").take());
     node.set("world.floor.friction", robotik::ConfigNode("0.3"));
     robotik::ConfigNode const& entities = node.at("world").at("entities");
     EXPECT_DOUBLE_EQ(entities.item("b").number("mass", 0.0), 5.0);
@@ -188,16 +188,16 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     // floor: it falls far from everything. Zero robot collision, yet the
     // scene is wrong.
     robotik::ScenarioSource source = robotik::ScenarioSource::load(
-        repoFile("plugins/Painter/scenarios/painter.scenario.yaml"));
+        repoFile("plugins/Painter/scenarios/painter.scenario.yaml")).take();
     source.override("world.entities.canvas.attach.parent",
                     robotik::ConfigNode("easel"));
     source.override("world.entities.canvas.attach.transform.position",
-                    robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]"));
+                    robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]").take());
     PainterMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::read(source, testAssets()),
+        robotik::Scenario::read(source, testAssets()).take(),
         nullptr,
         &mission);
     simulation.cell().suspend(true);

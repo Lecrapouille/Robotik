@@ -68,23 +68,22 @@ static std::optional<std::size_t> index(std::string_view p_text)
     return value;
 }
 
-ConfigNode ConfigNode::load(std::filesystem::path const& p_path)
+Result<ConfigNode> ConfigNode::load(std::filesystem::path const& p_path)
 {
     auto parsed = bt::YamlDocument::parseFile(p_path.string());
     if (!parsed)
     {
-        throw std::runtime_error("Cannot read '" + p_path.string() +
-                                 "': " + parsed.getError());
+        return failure("Cannot read '" + p_path.string() + "': " + parsed.getError());
     }
     return copy(parsed.getValue().root());
 }
 
-ConfigNode ConfigNode::parse(std::string const& p_text)
+Result<ConfigNode> ConfigNode::parse(std::string const& p_text)
 {
     auto parsed = bt::YamlDocument::parseText(p_text);
     if (!parsed)
     {
-        throw std::runtime_error("Invalid YAML: " + parsed.getError());
+        return failure("Invalid YAML: " + parsed.getError());
     }
     return copy(parsed.getValue().root());
 }
