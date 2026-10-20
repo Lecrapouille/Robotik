@@ -184,7 +184,7 @@ void writeText(RunReport const& p_report, std::ostream& p_out)
         }
     }
     p_out << p_report.experiment << ": " << passed_runs << '/' << p_report.runs.size()
-          << " p_report.runs passed\n";
+          << " runs passed\n";
 }
 
 void writeJson(RunReport const& p_report, std::ostream& p_out)
