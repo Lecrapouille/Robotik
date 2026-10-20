@@ -266,7 +266,8 @@ void TrayMission::addPlanning(robotik::Cell& p_cell)
                    });
     // A token of the plan: nothing to see outside of a carry.
     domain.observe("in_motion",
-                   [](RobotContext const&, Args) { return Truth::False; });
+                   [](RobotContext const&, Args) noexcept
+                   { return Truth::False; });
     domain.observe("drilled",
                    [this](RobotContext const&, Args p_args)
                    { return robotik::truth(m_drilled.contains(p_args[0])); });

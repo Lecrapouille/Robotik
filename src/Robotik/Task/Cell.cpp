@@ -564,8 +564,8 @@ void Cell::connectBackend()
         }
         else
         {
-            ChainOptions chain{ free, record.nominal, spec.friction };
-            chain.prefix = spec.id + "/";
+            ChainOptions chain{ free, record.nominal, spec.friction,
+                                spec.id + "/" };
             (void)physics->load(spec.model, chain);
         }
     }

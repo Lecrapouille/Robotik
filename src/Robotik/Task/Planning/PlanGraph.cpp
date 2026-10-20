@@ -85,7 +85,7 @@ StepFootprint footprint(ActionSchema const& p_action,
         std::vector<Atom> result;
         for (Atom const& atom : p_atoms)
         {
-            Atom ground{ atom.predicate, {} };
+            Atom grounded{ atom.predicate, {} };
             for (std::string const& arg : atom.args)
             {
                 auto const found = std::ranges::find_if(
@@ -94,11 +94,11 @@ StepFootprint footprint(ActionSchema const& p_action,
                     { return "?" + p_parameter.name == arg; });
                 std::size_t const index = static_cast<std::size_t>(
                     found - p_action.parameters.begin());
-                ground.args.push_back(index < p_step.args.size()
-                                          ? lowerCase(p_step.args[index])
-                                          : lowerCase(arg));
+                grounded.args.push_back(index < p_step.args.size()
+                                            ? lowerCase(p_step.args[index])
+                                            : lowerCase(arg));
             }
-            result.push_back(std::move(ground));
+            result.push_back(std::move(grounded));
         }
         return result;
     };

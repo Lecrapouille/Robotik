@@ -257,17 +257,17 @@ void JointSet::publish() const
         {
             continue;
         }
-        if (auto* joint = link.find<compages::world::RevoluteJoint>())
+        if (auto* revolute = link.find<compages::world::RevoluteJoint>())
         {
-            joint->state.position.value = Radians(m_positions[i]);
-            joint->state.velocity.value = AngularVelocity(m_velocities[i]);
-            joint->state.effort.value = Torque(m_efforts[i]);
+            revolute->state.position.value = Radians(m_positions[i]);
+            revolute->state.velocity.value = AngularVelocity(m_velocities[i]);
+            revolute->state.effort.value = Torque(m_efforts[i]);
         }
-        else if (auto* joint = link.find<compages::world::PrismaticJoint>())
+        else if (auto* prismatic = link.find<compages::world::PrismaticJoint>())
         {
-            joint->state.position.value = Length(m_positions[i]);
-            joint->state.velocity.value = LinearVelocity(m_velocities[i]);
-            joint->state.effort.value = Force(m_efforts[i]);
+            prismatic->state.position.value = Length(m_positions[i]);
+            prismatic->state.velocity.value = LinearVelocity(m_velocities[i]);
+            prismatic->state.effort.value = Force(m_efforts[i]);
         }
     }
 }

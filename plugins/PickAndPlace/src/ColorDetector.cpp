@@ -36,11 +36,12 @@ static Hsv hsv(float p_r, float p_g, float p_b)
     {
         return result;
     }
-    if (high == p_r)
+    // high is one of the three channels: the largest wins.
+    if (p_r >= p_g && p_r >= p_b)
     {
         result.hue = 60.0F * std::fmod((p_g - p_b) / range + 6.0F, 6.0F);
     }
-    else if (high == p_g)
+    else if (p_g >= p_b)
     {
         result.hue = 60.0F * ((p_b - p_r) / range + 2.0F);
     }

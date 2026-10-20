@@ -64,8 +64,8 @@ void Conveyor::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
     while (travel > 0.0 && !m_path.empty())
     {
         robotik::Vector3 const& goal = m_path.front();
-        double const dx = goal.x - at.x;
-        double const dy = goal.y - at.y;
+        double const dx = goal.x - static_cast<double>(at.x);
+        double const dy = goal.y - static_cast<double>(at.y);
         double const left = std::hypot(dx, dy);
         if (left <= travel)
         {
