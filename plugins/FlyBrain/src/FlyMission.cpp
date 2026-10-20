@@ -7,11 +7,11 @@
 
 #include "FlyMission.hpp"
 
-#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
 
 #include <algorithm>
@@ -142,17 +142,17 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
 
 // --- Mission ----------------------------------------------------------------
 
-void FlyMission::setup(robotik::Simulation& p_simulation,
+void FlyMission::setup(robotik::Cell& p_cell,
                        robotik::SceneView* p_view)
 {
-    m_simulation = &p_simulation;
+    m_simulation = &p_cell;
     // The FlyWire tables sit in the pack of the fly body (the plugin's own).
     if (robotik::AssetPack const* pack =
-            p_simulation.scenario().assets.find("robotik.fly"))
+            p_cell.description().assets.find("robotik.fly"))
     {
         m_tables = pack->root / "flywire";
     }
-    FlyScenario scenario = FlyScenario::from(p_simulation.scenario());
+    FlyScenario scenario = FlyScenario::from(p_cell.description());
     m_dt = scenario.dt;
     m_kind = scenario.agent == "reflex" ? FlyBrain::Kind::Reflex
                                         : FlyBrain::Kind::Shiu;
@@ -163,7 +163,7 @@ void FlyMission::setup(robotik::Simulation& p_simulation,
 
     auto backend = std::make_unique<FlyBackend>(*m_environment);
     m_backend = backend.get();
-    p_simulation.robot().connect(std::move(backend));
+    p_cell.robot().connect(std::move(backend));
 
     if (p_view == nullptr)
     {
@@ -189,19 +189,19 @@ void FlyMission::setup(robotik::Simulation& p_simulation,
     for (std::size_t ray = 0; ray < 3u; ++ray)
     {
         // Unit length along x, stretched toward the hit at each step.
-        m_beams[ray] = p_simulation.decorate(decoration(
+        m_beams[ray] = p_cell.decorate(decoration(
             names[ray], robotik::Vector3(1.0, 0.02, 0.02), colors[ray]));
     }
     for (std::size_t i = 0; i < TRAIL; ++i)
     {
         m_trail.push_back(
-            p_simulation.decorate(decoration("trail_" + std::to_string(i),
+            p_cell.decorate(decoration("trail_" + std::to_string(i),
                                              robotik::Vector3(0.04, 0.04, 0.04),
                                              { 0.95f, 0.95f, 0.9f })));
     }
 }
 
-void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
+void FlyMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
 {
     m_seed = p_seed;
     m_collided = false;
@@ -213,12 +213,12 @@ void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     std::span<FlyBox const> const blocks = m_environment->obstacles();
     std::size_t index = 0;
     for (robotik::EntitySpec const& entity :
-         p_simulation.scenario().world.entities)
+         p_cell.description().world.entities)
     {
         if (entity.type == robotik::EntitySpec::Type::Prop &&
             entity.id.starts_with("obstacle") && index < blocks.size())
         {
-            p_simulation.entity(entity.id).position(
+            p_cell.entity(entity.id).position(
                 toFloat(blocks[index].position));
             ++index;
         }
@@ -227,14 +227,14 @@ void FlyMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     // Puts the body where the episode starts, then the first decision: the
     // first step flies with it, as in the standalone loop.
     FlyPlant const& plant = m_environment->snapshot().plant;
-    p_simulation.robot().startPose(robotik::Pose{
+    p_cell.robot().startPose(robotik::Pose{
         robotik::Vector3(plant.x, plant.y, plant.z),
         robotik::Quaternion::fromRpy(robotik::Radians(0.0), robotik::Radians(0.0), robotik::Radians(plant.yaw)) });
     decide();
     drawBeamsAndTrail();
 }
 
-void FlyMission::step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/)
+void FlyMission::step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
 {
     m_collided = m_collided || m_environment->snapshot().collided;
     if (!m_backend->done())
@@ -297,7 +297,7 @@ void FlyMission::drawBeamsAndTrail()
     }
 }
 
-void FlyMission::measure(robotik::Simulation const& /*p_simulation*/,
+void FlyMission::measure(robotik::Cell const& /*p_cell*/,
                          robotik::Metrics& p_metrics) const
 {
     FlySnapshot const& snapshot = m_environment->snapshot();
@@ -311,7 +311,7 @@ void FlyMission::measure(robotik::Simulation const& /*p_simulation*/,
 }
 
 robotik::Status
-FlyMission::status(robotik::Simulation const& /*p_simulation*/) const
+FlyMission::status(robotik::Cell const& /*p_cell*/) const
 {
     if (m_environment->snapshot().reached)
     {

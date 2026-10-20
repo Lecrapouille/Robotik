@@ -13,7 +13,7 @@
 /// deletes the mission. @ref unload closes the library after that.
 #pragma once
 
-#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Package/Plugin/PluginCatalog.hpp"
 #include "Robotik/Package/Plugin/PluginHost.hpp"
 #include "Robotik/Package/Plugin/PluginManager.hpp"

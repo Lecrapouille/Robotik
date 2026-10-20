@@ -157,7 +157,7 @@ TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
     robotik::Simulation simulation(world, scenario, nullptr, &mission);
 
     // The fly starts where the world file puts it.
-    EXPECT_NEAR(simulation.pose("fly").position.x, 0.5, 1e-6);
+    EXPECT_NEAR(simulation.cell().pose("fly").position.x, 0.5, 1e-6);
     for (int i = 0; i < 4000 && !simulation.finished(); ++i)
     {
         simulation.step(robotik::Seconds(0.01));

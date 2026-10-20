@@ -288,7 +288,7 @@ static std::string alertOf(App const& p_app, Workspace p_workspace)
             line("Emergency stop engaged.");
         }
         robotik::ResourceManager const& resources =
-            simulation.robot().resources();
+            simulation.cell().robot().resources();
         for (std::size_t i = 0; i < resources.size(); ++i)
         {
             robotik::ResourceId const id = static_cast<robotik::ResourceId>(i);

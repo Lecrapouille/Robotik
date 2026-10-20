@@ -93,7 +93,7 @@ static std::string save(robotik::PlanExecutor const& p_executor,
 /// @brief The planner of the loaded run, or null.
 static robotik::PlanExecutor* plannerOf(App& p_app)
 {
-    return p_app.simulation ? p_app.simulation->planner() : nullptr;
+    return p_app.simulation ? p_app.simulation->cell().planner() : nullptr;
 }
 
 /// @brief Folder where Save PDDL writes the texts of the run.
@@ -338,7 +338,7 @@ void beliefsView(App& p_app)
     }
     bool& only_true = p_app.ui.beliefs_only_true;
     std::vector<robotik::ObservedAtom> const atoms =
-        executor->observe(p_app.simulation->context());
+        executor->observe(p_app.simulation->cell().context());
     if (!beginTable("beliefs",
                     2,
                     ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV))
@@ -508,7 +508,7 @@ void plannerTexts(App& p_app)
         else
         {
             textView(folder / "problem.pddl",
-                     executor->problem(simulation.context()));
+                     executor->problem(simulation.cell().context()));
         }
         ImGui::EndTabItem();
     }

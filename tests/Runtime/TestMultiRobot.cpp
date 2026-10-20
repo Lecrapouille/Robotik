@@ -8,7 +8,7 @@
 #include "main.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -49,7 +49,7 @@ static robotik::Scenario twoArms()
 {
     robotik::Scenario scenario;
     scenario.id = "two_arms";
-    scenario.world = robotik::WorldDescription::read(
+    scenario.world = robotik::readWorld(
         robotik::ConfigNode::parse(TWO_ARMS), ".", testAssets());
     return scenario;
 }
@@ -67,7 +67,7 @@ TEST(World, SeveralRobotsEachWithItsTool)
     robotik::ConfigNode bad = robotik::ConfigNode::parse(TWO_ARMS);
     bad.set("entities.right_cup.actuators",
             robotik::ConfigNode::parse("left_gripper: { type: vacuum }"));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
                  std::runtime_error);
 }
 
@@ -78,7 +78,7 @@ TEST(World, ToolTouchesItsWorkpiece)
     node.set("entities.right_cup.touches",
              robotik::ConfigNode::parse("[left]"));
     robotik::WorldDescription const world =
-        robotik::WorldDescription::read(node, ".", testAssets());
+        robotik::readWorld(node, ".", testAssets());
     ASSERT_NE(world.find("right_cup"), nullptr);
     EXPECT_EQ(world.find("right_cup")->touches,
               std::vector<std::string>{ "left" });
@@ -87,13 +87,13 @@ TEST(World, ToolTouchesItsWorkpiece)
     robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS);
     robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]"));
     EXPECT_THROW(
-        (void)robotik::WorldDescription::read(robot, ".", testAssets()),
+        (void)robotik::readWorld(robot, ".", testAssets()),
         std::runtime_error);
     robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS);
     unknown.set("entities.right_cup.touches",
                 robotik::ConfigNode::parse("[tray]"));
     EXPECT_THROW(
-        (void)robotik::WorldDescription::read(unknown, ".", testAssets()),
+        (void)robotik::readWorld(unknown, ".", testAssets()),
         std::runtime_error);
 }
 
@@ -110,13 +110,13 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
 )");
     robotik::Scenario scenario;
     scenario.id = "two_bodies";
-    scenario.world = robotik::WorldDescription::read(node, ".", testAssets());
+    scenario.world = robotik::readWorld(node, ".", testAssets());
     compages::world::World world;
     robotik::Simulation simulation(world, scenario);
     simulation.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(simulation.pose("stand_a").position.y, -0.2, 1e-6);
-    EXPECT_NEAR(simulation.pose("stand_b").position.y, 0.2, 1e-6);
-    EXPECT_DOUBLE_EQ(simulation.query("touching(stand_a, stand_b)").value(),
+    EXPECT_NEAR(simulation.cell().pose("stand_a").position.y, -0.2, 1e-6);
+    EXPECT_NEAR(simulation.cell().pose("stand_b").position.y, 0.2, 1e-6);
+    EXPECT_DOUBLE_EQ(simulation.cell().query("touching(stand_a, stand_b)").value(),
                      0.0);
 }
 
@@ -124,25 +124,25 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
 {
     compages::world::World world;
     robotik::Simulation simulation(world, twoArms());
-    ASSERT_EQ(simulation.robots().size(), 2u);
-    robotik::RobotSession* left = simulation.robot("left");
-    robotik::RobotSession* right = simulation.robot("right");
+    ASSERT_EQ(simulation.cell().robots().size(), 2u);
+    robotik::RobotSession* left = simulation.cell().robot("left");
+    robotik::RobotSession* right = simulation.cell().robot("right");
     ASSERT_NE(left, nullptr);
     ASSERT_NE(right, nullptr);
-    EXPECT_EQ(&simulation.robot(), left);
-    EXPECT_EQ(&simulation.context("right").robot, right);
-    EXPECT_EQ(simulation.context("right").team.size(), 2u);
+    EXPECT_EQ(&simulation.cell().robot(), left);
+    EXPECT_EQ(&simulation.cell().context("right").robot, right);
+    EXPECT_EQ(simulation.cell().context("right").team.size(), 2u);
 
     // Each robot keeps its own joint names and its own skills.
     EXPECT_NE(left->joints().find("joint1"), robotik::NO_JOINT);
     EXPECT_NE(right->joints().find("joint1"), robotik::NO_JOINT);
-    EXPECT_NE(simulation.skills().find("left.Home"), robotik::NO_SKILL);
-    EXPECT_NE(simulation.skills().find("right.Stop"), robotik::NO_SKILL);
-    EXPECT_EQ(simulation.skills().find("Home"), robotik::NO_SKILL);
+    EXPECT_NE(simulation.cell().skills().find("left.Home"), robotik::NO_SKILL);
+    EXPECT_NE(simulation.cell().skills().find("right.Stop"), robotik::NO_SKILL);
+    EXPECT_EQ(simulation.cell().skills().find("Home"), robotik::NO_SKILL);
 
     // Bases where the world file puts them.
-    EXPECT_NEAR(simulation.pose("left").position.y, -0.6, 1e-9);
-    EXPECT_NEAR(simulation.pose("right").position.y, 0.6, 1e-9);
+    EXPECT_NEAR(simulation.cell().pose("left").position.y, -0.6, 1e-9);
+    EXPECT_NEAR(simulation.cell().pose("right").position.y, 0.6, 1e-9);
 
     // Moving the right arm leaves the left one where it is.
     robotik::JointId const joint = right->joints().find("joint1");
@@ -155,8 +155,8 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     EXPECT_NEAR(right->joints().position(joint), 0.5, 0.02);
     EXPECT_NEAR(left->joints().position(joint), left_before, 1e-3);
     EXPECT_NEAR(left->time().value(), right->time().value(), 1e-12);
-    EXPECT_DOUBLE_EQ(simulation.query("collision_count(left)").value(), 0.0);
-    EXPECT_DOUBLE_EQ(simulation.query("joint_limits_respected(right)").value(),
+    EXPECT_DOUBLE_EQ(simulation.cell().query("collision_count(left)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(simulation.cell().query("joint_limits_respected(right)").value(),
                      1.0);
-    EXPECT_DOUBLE_EQ(simulation.query("holding(right_gripper)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(simulation.cell().query("holding(right_gripper)").value(), 0.0);
 }

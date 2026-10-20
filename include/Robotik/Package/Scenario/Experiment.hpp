@@ -35,7 +35,7 @@
 /// seed. An optional @c world: replaces the world of every scenario.
 #pragma once
 
-#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
 #include <cstdint>

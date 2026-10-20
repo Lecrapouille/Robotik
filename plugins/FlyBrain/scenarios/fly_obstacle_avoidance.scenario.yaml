@@ -12,6 +12,7 @@ scenario:
     sensor_noise: 0.01     # gaussian noise on each eye
     layout_jitter: 0.02    # uniform shift of each block per episode (m)
     arena: [10.0, 10.0, 5.0]
+    horizon: 40            # episode length of the fly model (s)
 
   assertions:
     - fly.reached

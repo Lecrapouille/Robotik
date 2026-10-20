@@ -77,16 +77,13 @@ void FlyAction::write(std::span<float> p_values) const
     p_values[2] = lift;
 }
 
-FlyScenario FlyScenario::from(robotik::Scenario const& p_scenario)
+FlyScenario FlyScenario::from(robotik::CellDescription const& p_scenario)
 {
     FlyScenario scenario;
     scenario.name = p_scenario.id;
     scenario.seed = p_scenario.seed;
-    if (p_scenario.timeout.value() > 0.0)
-    {
-        scenario.horizon = p_scenario.timeout.value();
-    }
     robotik::ConfigNode const& parameters = p_scenario.parameters;
+    scenario.horizon = parameters.number("horizon", scenario.horizon);
     scenario.agent = parameters.text("brain", scenario.agent);
     if (scenario.agent != "shiu" && scenario.agent != "reflex")
     {

@@ -73,7 +73,7 @@ applications: $(DIRS_WITH_MAKEFILE)
 	@$(call print-from,"Compiling applications",$(PROJECT_NAME),$(APPLICATIONS))
 	@for i in $(APPLICATIONS);     \
 	do                             \
-		$(MAKE) -C $$i all;        \
+		$(MAKE) -C $$i all || exit 1; \
 	done;
 
 post-build:: applications

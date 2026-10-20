@@ -13,7 +13,7 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -47,11 +47,11 @@ describe(std::string p_name,
     return description;
 }
 
-void ConveyorMission::setup(robotik::Simulation& p_simulation,
+void ConveyorMission::setup(robotik::Cell& p_cell,
                             robotik::SceneView* /*p_view*/)
 {
     for (robotik::EntitySpec const& entity :
-         p_simulation.scenario().world.entities)
+         p_cell.description().world.entities)
     {
         if (entity.kind == "part")
         {
@@ -72,7 +72,7 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation,
     }
 
     // The belt is a resource of the cell, next to the arms and the cups.
-    robotik::ResourceManager& resources = p_simulation.robot().resources();
+    robotik::ResourceManager& resources = p_cell.robot().resources();
     std::vector<robotik::ResourceRequirement> const belt = {
         { resources.add(Conveyor::RESOURCE), robotik::Access::Exclusive }
     };
@@ -82,7 +82,7 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation,
         {
             for (std::string const& zone : m_zones)
             {
-                p_simulation.skills().add<ConveySkill>(
+                p_cell.skills().add<ConveySkill>(
                     describe("Convey(" + part + ", " + feeder + ", " + zone +
                                  ")",
                              {},
@@ -95,14 +95,14 @@ void ConveyorMission::setup(robotik::Simulation& p_simulation,
         }
     }
     for (std::unique_ptr<robotik::RobotSession> const& robot :
-         p_simulation.robots())
+         p_cell.robots())
     {
-        addArmSkills(p_simulation, *robot);
+        addArmSkills(p_cell, *robot);
     }
-    addPlanning(p_simulation);
+    addPlanning(p_cell);
 }
 
-void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation,
+void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
                                    robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
@@ -121,7 +121,7 @@ void ConveyorMission::addArmSkills(robotik::Simulation& p_simulation,
     // "left.Hover(p1)": one family per robot, named after its id.
     std::string const& id = p_robot.id();
     std::string const scope = id + ".";
-    robotik::SkillScheduler& skills = p_simulation.skills();
+    robotik::SkillScheduler& skills = p_cell.skills();
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));
     for (std::string const& part : m_parts)
     {
@@ -199,13 +199,13 @@ static robotik::Truth resting(robotik::RobotContext const& p_context,
     return robotik::truth(onFootprint(*part, *place));
 }
 
-void ConveyorMission::addPlanning(robotik::Simulation& p_simulation)
+void ConveyorMission::addPlanning(robotik::Cell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
     using robotik::Truth;
 
-    robotik::PlanningDomain& domain = p_simulation.planning();
+    robotik::PlanningDomain& domain = p_cell.planning();
 
     // --- State, on the shared beliefs and what each arm measures -----------
     domain.observe("free",
@@ -253,19 +253,19 @@ void ConveyorMission::addPlanning(robotik::Simulation& p_simulation)
     domain.bind("place", { "{0}.Over({2})", "{0}.Release", "{0}.Ready({3})" });
 }
 
-void ConveyorMission::reset(robotik::Simulation& /*p_simulation*/,
+void ConveyorMission::reset(robotik::Cell& /*p_cell*/,
                             robotik::Seed /*p_seed*/)
 {
     m_conveyor.reset();
     m_overlap = 0.0;
 }
 
-void ConveyorMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
+void ConveyorMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
-    m_conveyor.step(p_simulation, p_dt);
+    m_conveyor.step(p_cell, p_dt);
 
     // Both arms busy: a skill of each robot is running.
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_cell.skills();
     std::vector<std::string> busy;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
@@ -277,13 +277,13 @@ void ConveyorMission::step(robotik::Simulation& p_simulation, robotik::Seconds p
             busy.push_back(robot);
         }
     }
-    if (busy.size() >= 2u && !p_simulation.finished())
+    if (busy.size() >= 2u && !p_cell.controllerStopped())
     {
         m_overlap += p_dt.value();
     }
 }
 
-void ConveyorMission::measure(robotik::Simulation const& /*p_simulation*/,
+void ConveyorMission::measure(robotik::Cell const& /*p_cell*/,
                               robotik::Metrics& p_metrics) const
 {
     p_metrics.set("dual_arm.overlap", m_overlap);

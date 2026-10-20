@@ -30,16 +30,16 @@ class RlMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Simulation& p_simulation,
+    void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/) override
+    void step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/) override
     {
     }
     robotik::Status
-    status(robotik::Simulation const& /*p_simulation*/) const override;
+    status(robotik::Cell const& /*p_cell*/) const override;
 
     /// @brief One policy action, or the pause before the next episode.
-    void act(robotik::Simulation& p_simulation, double p_dt);
+    void act(robotik::Cell& p_cell, double p_dt);
 
     bool converged = true;
     float mix = 1.0f;

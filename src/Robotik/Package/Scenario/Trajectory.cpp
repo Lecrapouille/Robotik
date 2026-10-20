@@ -7,7 +7,7 @@
 
 #include "Robotik/Package/Scenario/Trajectory.hpp"
 
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include <stdexcept>
 
@@ -30,7 +30,7 @@ static std::vector<double> numbers(ConfigNode const& p_node)
     return result;
 }
 
-Trajectory Trajectory::load(std::filesystem::path const& p_path)
+Trajectory loadTrajectory(std::filesystem::path const& p_path)
 {
     Trajectory trajectory;
     trajectory.file = std::filesystem::absolute(p_path).lexically_normal();
@@ -50,7 +50,7 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
         std::string const type = node.text("type", "cartesian");
         if (type == "cartesian")
         {
-            trajectory.type = Type::Cartesian;
+            trajectory.type = Trajectory::Type::Cartesian;
             trajectory.frame = node.text("frame");
             Quaternion const orientation = node.pose("orientation").rotation;
             for (ConfigNode const& point : node.at("points").items())
@@ -72,7 +72,7 @@ Trajectory Trajectory::load(std::filesystem::path const& p_path)
         }
         else if (type == "joint")
         {
-            trajectory.type = Type::Joint;
+            trajectory.type = Trajectory::Type::Joint;
             trajectory.joints = node.strings("joints");
             if (trajectory.joints.empty())
             {

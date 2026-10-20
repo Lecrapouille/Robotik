@@ -10,7 +10,7 @@
 #pragma once
 
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Package/Scenario/World.hpp"
+#include "Robotik/Task/CellDescription.hpp"
 
 namespace robotik
 {

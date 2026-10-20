@@ -24,7 +24,7 @@ static void cameraCell(App& p_app,
     robotik::Simulation& simulation = *p_app.simulation;
     SimulatorView& view = *p_app.scene_view;
     bool const available =
-        simulation.robot().resources().available(p_camera.name());
+        simulation.cell().robot().resources().available(p_camera.name());
     ImGui::TextUnformatted(p_camera.name().c_str());
     ImGui::SameLine();
     ImGui::TextDisabled(
@@ -87,13 +87,13 @@ static void cameraCell(App& p_app,
         return;
     }
     // Perception runs on the first camera: draw what it found.
-    if (&p_camera != simulation.camera())
+    if (&p_camera != simulation.cell().camera())
     {
         return;
     }
     float const zoom = size.x / static_cast<float>(p_camera.intrinsics().width);
     for (robotik::Detection const& item :
-         simulation.perception().detections().items)
+         simulation.cell().perception().detections().items)
     {
         ImVec2 const top(at.x + static_cast<float>(item.box[0]) * zoom,
                          at.y + static_cast<float>(item.box[1]) * zoom);
@@ -123,7 +123,7 @@ void camerasPanel(App& p_app, char const* p_key)
         ImGui::End();
         return;
     }
-    robotik::SensorSet const& sensors = p_app.simulation->robot().sensors();
+    robotik::SensorSet const& sensors = p_app.simulation->cell().robot().sensors();
     std::vector<robotik::Camera*> cameras;
     for (std::size_t i = 0; i < sensors.size(); ++i)
     {

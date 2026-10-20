@@ -10,8 +10,8 @@
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -24,10 +24,10 @@
 /// Skill priority, as the other plugins.
 #define SKILL_PRIORITY 100
 // ----------------------------------------------------------------------------
-void DuckMission::setup(robotik::Simulation& p_simulation,
+void DuckMission::setup(robotik::Cell& p_cell,
                         robotik::SceneView* /*p_view*/)
 {
-    robotik::Scenario const& scenario = p_simulation.scenario();
+    robotik::CellDescription const& scenario = p_cell.description();
     m_base = scenario.world.robot().id + "." + TRUNK;
     std::filesystem::path const& urdf = scenario.world.robot().model;
     DuckContract contract =
@@ -37,7 +37,7 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
     // A free base on a floor, no gravity compensation. The rotors are far
     // below the default floor, so the given inertia is kept as written. The
     // core builds the physics after setup, with the room of the world.
-    robotik::MujocoOptions& options = p_simulation.physicsOptions();
+    robotik::MujocoOptions& options = p_cell.physicsOptions();
     options.floating_base = true;
     options.floor = true;
     options.timestep = m_step;
@@ -48,7 +48,7 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
         options.armature.emplace(contract.joints[i], contract.armature[i]);
         options.damping.emplace(contract.joints[i], contract.damping[i]);
     }
-    robotik::RobotSession& robot = p_simulation.robot();
+    robotik::RobotSession& robot = p_cell.robot();
 
     // The position gain of the policy, no slew: the policy targets are the
     // whole command. Viscosity is the MuJoCo damping, not this kd (it is 0).
@@ -84,7 +84,7 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
     robotik::SkillDescription describe;
     describe.priority = SKILL_PRIORITY;
     describe.resources = { robot.resources().require("body") };
-    robotik::SkillScheduler& skills = p_simulation.skills();
+    robotik::SkillScheduler& skills = p_cell.skills();
     describe.name = "Stand";
     skills.add<StandSkill>(describe, body, posture, stand);
     describe.name = "Walk";
@@ -97,11 +97,11 @@ void DuckMission::setup(robotik::Simulation& p_simulation,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::reset(robotik::Simulation& p_simulation,
+void DuckMission::reset(robotik::Cell& p_cell,
                         robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
-    robotik::Pose const base = p_simulation.pose(m_base);
+    robotik::Pose const base = p_cell.pose(m_base);
     m_height = base.position.z;
     m_height_min = base.position.z;
     m_distance = 0.0;
@@ -112,9 +112,9 @@ void DuckMission::reset(robotik::Simulation& p_simulation,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
+void DuckMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
 {
-    robotik::Pose const base = p_simulation.pose(m_base);
+    robotik::Pose const base = p_cell.pose(m_base);
     m_height = base.position.z;
     m_height_min = std::min(m_height_min, base.position.z);
     double const x = base.position.x;
@@ -125,7 +125,7 @@ void DuckMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_d
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::measure(robotik::Simulation const& /*p_simulation*/,
+void DuckMission::measure(robotik::Cell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("duck.height_min", m_height_min);

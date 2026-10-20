@@ -71,7 +71,7 @@ public:
         }
         if (robotik::Simulation* simulation = p_host.simulation())
         {
-            m_rl->act(*simulation, p_dt);
+            m_rl->act(simulation->cell(), p_dt);
         }
         return ROBOTIK_PLUGIN_OK;
     }

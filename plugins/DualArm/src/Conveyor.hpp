@@ -18,7 +18,7 @@
 
 namespace robotik
 {
-class Simulation;
+class Cell;
 }
 
 namespace dual_arm
@@ -53,7 +53,7 @@ public:
     // -------------------------------------------------------------------------
     /// @brief Moves the carried part by @p_dt, unless the resource failed.
     // -------------------------------------------------------------------------
-    void step(robotik::Simulation& p_simulation, robotik::Seconds p_dt);
+    void step(robotik::Cell& p_cell, robotik::Seconds p_dt);
 
 private:
 

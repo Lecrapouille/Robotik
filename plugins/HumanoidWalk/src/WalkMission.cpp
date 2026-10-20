@@ -11,8 +11,8 @@
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
 
 #include <cmath>
@@ -39,10 +39,10 @@ robotik::Seconds WalkMission::physicsStep()
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::setup(robotik::Simulation& p_simulation,
+void WalkMission::setup(robotik::Cell& p_cell,
                         robotik::SceneView* p_view)
 {
-    robotik::Scenario const& scenario = p_simulation.scenario();
+    robotik::CellDescription const& scenario = p_cell.description();
     m_base = scenario.world.robot().id + "." + BASE_LINK;
     std::filesystem::path const& urdf = scenario.world.robot().model;
     WalkContract contract =
@@ -61,7 +61,7 @@ void WalkMission::setup(robotik::Simulation& p_simulation,
     }
     auto physics = std::make_unique<robotik::MujocoBackend>(std::move(options));
     (void)physics->load(urdf);
-    robotik::RobotSession& robot = p_simulation.robot();
+    robotik::RobotSession& robot = p_cell.robot();
     robot.connect(std::move(physics));
 
     // The PD gains of the policy, no slew: the policy targets are smooth.
@@ -95,9 +95,9 @@ void WalkMission::setup(robotik::Simulation& p_simulation,
     describe.priority = SKILL_PRIORITY;
     describe.resources = { robot.resources().require("body") };
     describe.name = "Stand";
-    p_simulation.skills().add<StandSkill>(describe, body, posture, stand);
+    p_cell.skills().add<StandSkill>(describe, body, posture, stand);
     describe.name = "Walk";
-    m_walk = p_simulation.skills().add<WalkSkill>(
+    m_walk = p_cell.skills().add<WalkSkill>(
         describe, body, *m_policy, m_command, walk, period);
 
     if (p_view != nullptr)
@@ -133,11 +133,11 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::reset(robotik::Simulation& p_simulation,
+void WalkMission::reset(robotik::Cell& p_cell,
                         robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
-    robotik::Pose const base = p_simulation.pose(m_base);
+    robotik::Pose const base = p_cell.pose(m_base);
     m_height = base.position.z;
     m_height_min = base.position.z;
     m_distance = 0.0;
@@ -149,14 +149,14 @@ void WalkMission::reset(robotik::Simulation& p_simulation,
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
+void WalkMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
 {
-    robotik::Pose const base = p_simulation.pose(m_base);
+    robotik::Pose const base = p_cell.pose(m_base);
     m_height = base.position.z;
     m_height_min = std::min(m_height_min, base.position.z);
 
     bool const walking =
-        p_simulation.skills().state(m_walk) == robotik::SkillState::Running;
+        p_cell.skills().state(m_walk) == robotik::SkillState::Running;
     double const yaw = robotik::yaw(base.rotation).value();
     double const x = base.position.x;
     double const y = base.position.y;
@@ -165,7 +165,7 @@ void WalkMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_d
         m_distance += std::hypot(x - m_last_x, y - m_last_y);
         m_yaw_turned +=
             std::remainder(yaw - m_last_yaw, 2.0 * std::numbers::pi);
-        double const now = p_simulation.time().value();
+        double const now = p_cell.time().value();
         if (m_path.empty() || now >= m_next_sample)
         {
             m_path.push_back({ x, y });
@@ -215,7 +215,7 @@ double WalkMission::commandedRadius() const
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::measure(robotik::Simulation const& /*p_simulation*/,
+void WalkMission::measure(robotik::Cell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("humanoid.height_min", m_height_min);

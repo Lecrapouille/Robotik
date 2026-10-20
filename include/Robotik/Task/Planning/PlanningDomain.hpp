@@ -14,9 +14,9 @@
 /// mission only links names:
 ///
 /// @code
-/// void setup(robotik::Simulation& p_simulation, robotik::SceneView*) override
+/// void setup(robotik::Cell& p_cell, robotik::SceneView*) override
 /// {
-///     robotik::PlanningDomain& domain = p_simulation.planning();
+///     robotik::PlanningDomain& domain = p_cell.planning();
 ///     // State: computed on the beliefs, never on the ground truth.
 ///     domain.observe("holding", [](robotik::RobotContext const& p_context,
 ///                                  robotik::Args p_args) {

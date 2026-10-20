@@ -284,7 +284,7 @@ int main(int argc, char** argv)
             std::unique_ptr<robotik::SimulationEnvironment> const sample =
                 makeEnvironment(options);
             robotik::EpisodeLog log;
-            log.scenario = sample->simulation().scenario().id;
+            log.scenario = sample->simulation().description().id;
             log.policy = options.random ? (options.train ? "random-to-converged"
                                                          : "random")
                                         : "converged";

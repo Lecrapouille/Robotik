@@ -67,7 +67,7 @@ std::size_t JointHistory::latest() const
 
 void JointHistory::record(robotik::Simulation const& p_simulation)
 {
-    robotik::JointSet const& joints = p_simulation.robot().joints();
+    robotik::JointSet const& joints = p_simulation.cell().robot().joints();
     std::size_t const size = joints.size();
     if (position.size() != size || time.size() != CAPACITY)
     {
@@ -113,9 +113,9 @@ void JointHistory::record(robotik::Simulation const& p_simulation)
 
 static void report(robotik::Simulation const& p_simulation)
 {
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.robot().resources();
+        p_simulation.cell().robot().resources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         if (run.state == robotik::SkillState::Succeeded)
@@ -244,8 +244,8 @@ void App::load(bool p_keep_tool)
         return;
     }
     seed = simulation->seed().value;
-    ui.plotted.assign(simulation->robot().joints().size(),
-                      simulation->robot().joints().size() <= 8u);
+    ui.plotted.assign(simulation->cell().robot().joints().size(),
+                      simulation->cell().robot().joints().size() <= 8u);
     ui.place_plugin_panels = true;
     ui.focus_plugin_panel = true;
     history.record(*simulation);
@@ -257,7 +257,7 @@ void App::load(bool p_keep_tool)
         compages::world::Entity floor =
             scene->plane("Floor", compages::renderer::texture(grid.string()));
         // In the world, not on the robot: a floating base would carry it.
-        floor.parent(simulation->worldFrame())
+        floor.parent(simulation->cell().worldFrame())
             .position(0.0f, 0.0f, -0.001f)
             .scale(3.0f);
         noShadow(floor);
@@ -365,7 +365,7 @@ void App::step(double p_elapsed)
         step_once = false;
         if (teach.manual)
         {
-            teach.pendant.update(simulation->robot(), robotik::Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->cell().robot(), robotik::Seconds(SIMULATOR_DT_S));
         }
         simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);
@@ -386,7 +386,7 @@ void App::step(double p_elapsed)
     {
         if (teach.manual)
         {
-            teach.pendant.update(simulation->robot(), robotik::Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->cell().robot(), robotik::Seconds(SIMULATOR_DT_S));
         }
         simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);

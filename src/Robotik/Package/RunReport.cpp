@@ -79,7 +79,7 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     record.outcome = toString(p_simulation.outcome());
     record.time = p_simulation.time().value();
     record.passed = p_simulation.passed();
-    record.oracle = p_simulation.oracle();
+    record.oracle = p_simulation.cell().oracle();
     PhysicsSpec const& physics = p_simulation.scenario().physics;
     record.physics = toString(physics.fidelity);
     for (auto const& [id, level] : physics.overrides)
@@ -87,7 +87,7 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
         record.physics += ", " + id + ": " + toString(level);
     }
     record.checks = p_simulation.checks();
-    if (PlanExecutor const* planner = p_simulation.planner())
+    if (PlanExecutor const* planner = p_simulation.cell().planner())
     {
         PlannerSummary& summary = record.planner;
         summary.used = true;

@@ -9,7 +9,7 @@
 
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 void WaveSkill::reset()
 {
@@ -41,14 +41,14 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
     p_context.robot.joints().hold();
 }
 
-void SkillsMission::setup(robotik::Simulation& p_simulation,
+void SkillsMission::setup(robotik::Cell& p_cell,
                           robotik::SceneView* /*p_view*/)
 {
     // The skill reserves the actuator "arm" while it runs: no other skill
     // can move the arm at the same time.
     robotik::SkillDescription wave;
     wave.name = "Wave";
-    wave.resources = { p_simulation.robot().resources().require("arm") };
+    wave.resources = { p_cell.robot().resources().require("arm") };
     wave.priority = 100;
-    p_simulation.skills().add<WaveSkill>(std::move(wave));
+    p_cell.skills().add<WaveSkill>(std::move(wave));
 }

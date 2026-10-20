@@ -12,19 +12,19 @@
 
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-void PainterMission::setup(robotik::Simulation& p_simulation,
+void PainterMission::setup(robotik::Cell& p_cell,
                            robotik::SceneView* p_view)
 {
     // The easel and the canvas are entities of painting_lab.world.yaml: the
     // simulation builds them. The mission brings the gestures.
     robotik::ResourceManager const& resources =
-        p_simulation.robot().resources();
-    robotik::ActuatorSet const& actuators = p_simulation.robot().actuators();
+        p_cell.robot().resources();
+    robotik::ActuatorSet const& actuators = p_cell.robot().actuators();
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
     {
@@ -38,19 +38,19 @@ void PainterMission::setup(robotik::Simulation& p_simulation,
         description.priority = 100;
         return description;
     };
-    robotik::SkillScheduler& skills = p_simulation.skills();
+    robotik::SkillScheduler& skills = p_cell.skills();
     skills.add<painter::DipSkill>(describe("dip"), m_stroke);
     // The strokes are trajectories of the scenario, drawn in the frame of the
     // easel the world file describes.
     painter::MarkSkill::Strokes strokes;
-    for (auto const& entry : p_simulation.scenario().trajectories)
+    for (auto const& entry : p_cell.description().trajectories)
     {
-        strokes.emplace(entry.first, p_simulation.waypoints(entry.first));
-        m_paths[entry.first] = p_simulation.waypoints(entry.first);
+        strokes.emplace(entry.first, p_cell.waypoints(entry.first));
+        m_paths[entry.first] = p_cell.waypoints(entry.first);
     }
     // How the brush follows a stroke, and the gains of the arm joints: a
     // scenario (or an experiment) tunes them in parameters.
-    robotik::ConfigNode const& parameters = p_simulation.scenario().parameters;
+    robotik::ConfigNode const& parameters = p_cell.description().parameters;
     painter::MarkSkill::Settings settings;
     settings.step = parameters.number("stroke_step", settings.step);
     settings.tolerance =
@@ -60,7 +60,7 @@ void PainterMission::setup(robotik::Simulation& p_simulation,
     robotik::ConfigNode const& gains = parameters.at("arm_gains");
     if (gains.isMap())
     {
-        robotik::JointSet& joints = p_simulation.robot().joints();
+        robotik::JointSet& joints = p_cell.robot().joints();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
             robotik::JointGains& gain = joints.gains(id);
@@ -70,17 +70,17 @@ void PainterMission::setup(robotik::Simulation& p_simulation,
         }
     }
     skills.add<painter::RinseSkill>(describe("rinse"), m_stroke);
-    painter::registerNodes(p_simulation.factory(), skills);
+    painter::registerNodes(p_cell.factory(), skills);
     if (m_planner)
     {
-        registerPlanning(p_simulation);
+        registerPlanning(p_cell);
     }
 
     m_view = p_view;
     if (p_view != nullptr)
     {
         compages::world::Entity const canvas =
-            p_simulation.entity(painter::kCanvas);
+            p_cell.entity(painter::kCanvas);
         if (!canvas)
         {
             throw std::runtime_error(
@@ -90,7 +90,7 @@ void PainterMission::setup(robotik::Simulation& p_simulation,
     }
 }
 
-void PainterMission::reset(robotik::Simulation& /*p_simulation*/,
+void PainterMission::reset(robotik::Cell& /*p_cell*/,
                            robotik::Seed /*p_seed*/)
 {
     m_stroke.brush.clear();
@@ -99,7 +99,7 @@ void PainterMission::reset(robotik::Simulation& /*p_simulation*/,
     m_inked = 0;
 }
 
-void PainterMission::measure(robotik::Simulation const& /*p_simulation*/,
+void PainterMission::measure(robotik::Cell const& /*p_cell*/,
                              robotik::Metrics& p_metrics) const
 {
     p_metrics.set("painter.stroke_deviation", m_deviation);
@@ -108,11 +108,11 @@ void PainterMission::measure(robotik::Simulation const& /*p_simulation*/,
 
 // The robot cannot see the paint: what the planner knows of the brush and
 // the canvas is what the gestures did (Stroke::brush, Stroke::painted).
-void PainterMission::registerPlanning(robotik::Simulation& p_simulation)
+void PainterMission::registerPlanning(robotik::Cell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
-    robotik::PlanningDomain& domain = p_simulation.planning();
+    robotik::PlanningDomain& domain = p_cell.planning();
     painter::Stroke const& stroke = m_stroke;
     domain.observe("clean",
                    [&stroke](RobotContext const&, Args) noexcept
@@ -130,21 +130,21 @@ void PainterMission::registerPlanning(robotik::Simulation& p_simulation)
     domain.bind("rinse", { "Rinse", "Home" }, { { "color", "{0}" } });
 }
 
-void PainterMission::step(robotik::Simulation& p_simulation,
+void PainterMission::step(robotik::Cell& p_cell,
                           robotik::Seconds /*p_dt*/)
 {
     if (!m_stroke.painting)
     {
         return;
     }
-    robotik::Robot const& robot = p_simulation.robot();
+    robotik::Robot const& robot = p_cell.robot();
     if (robot.tool().empty())
     {
         return;
     }
     // Box centre frame: the painted face is the +X side, half the thickness
     // out.
-    robotik::Pose const board = p_simulation.pose(painter::kCanvas);
+    robotik::Pose const board = p_cell.pose(painter::kCanvas);
     robotik::Vector3 const local =
         board.inverse() * robot.worldPose(robot.tool()).position;
     constexpr double kFace = 0.01;

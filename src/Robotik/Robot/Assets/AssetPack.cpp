@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Package/Assets/AssetPack.hpp"
+#include "Robotik/Robot/Assets/AssetPack.hpp"
 #include "Robotik/Common/File.hpp"
 #include "BlackThorn/Builder/Yaml.hpp"
 

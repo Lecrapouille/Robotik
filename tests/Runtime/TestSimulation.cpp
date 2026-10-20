@@ -35,7 +35,7 @@ static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     Outcome outcome;
     outcome.passed = p_simulation.passed();
     outcome.time = p_simulation.time().value();
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     for (robotik::SkillRun const& entry : skills.trace())
     {
         outcome.runs.push_back(skills.name(entry.skill) + ":" +
@@ -140,10 +140,10 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
     compages::world::World world;
     robotik::Simulation simulation(
         world, std::move(scenario), nullptr, &mission);
-    EXPECT_EQ(simulation.robot().actuators().find("gripper"), nullptr);
-    EXPECT_EQ(simulation.query("tool_is_attached(fingers, robot.flange)"), 1.0);
-    EXPECT_EQ(simulation.query("tool_is_attached(vacuum, robot.flange)"), 0.0);
-    EXPECT_THROW((void)simulation.pose("vacuum"), std::invalid_argument);
+    EXPECT_EQ(simulation.cell().robot().actuators().find("gripper"), nullptr);
+    EXPECT_EQ(simulation.cell().query("tool_is_attached(fingers, robot.flange)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("tool_is_attached(vacuum, robot.flange)"), 0.0);
+    EXPECT_THROW((void)simulation.cell().pose("vacuum"), std::invalid_argument);
 }
 
 TEST(Simulation, PickAndPlaceSucceedsAndReplays)
@@ -181,19 +181,19 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
         &mission);
     simulation.reset(robotik::Seed{ 7 });
     robotik::SkillId const detect =
-        simulation.skills().find("Detect(red_cube)");
+        simulation.cell().skills().find("Detect(red_cube)");
     ASSERT_NE(detect, robotik::NO_SKILL);
     while (simulation.time() < robotik::Seconds(0.99))
     {
         simulation.step(robotik::Seconds(0.01));
-        EXPECT_NE(simulation.skills().state(detect),
+        EXPECT_NE(simulation.cell().skills().state(detect),
                   robotik::SkillState::Succeeded);
     }
     while (simulation.time() < robotik::Seconds(1.05))
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_EQ(simulation.skills().state(detect),
+    EXPECT_EQ(simulation.cell().skills().state(detect),
               robotik::SkillState::Succeeded);
 }
 
@@ -210,7 +210,7 @@ TEST(Simulation, SurvivesACameraFailure)
         &mission);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
-    EXPECT_FALSE(simulation.robot().resources().available("wrist_camera"));
+    EXPECT_FALSE(simulation.cell().robot().resources().available("wrist_camera"));
 }
 
 TEST(Simulation, FailedAssertionDoesNotStopTheRun)
@@ -250,7 +250,7 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
             testAssets()),
         nullptr,
         &mission);
-    robotik::SkillScheduler& skills = simulation.skills();
+    robotik::SkillScheduler& skills = simulation.cell().skills();
     robotik::SkillId const stop = skills.find("Stop");
     ASSERT_NE(stop, robotik::NO_SKILL);
 

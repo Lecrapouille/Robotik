@@ -294,7 +294,7 @@ void PluginSession::emitRuntimeEvents()
         }
     }
 
-    std::span<SkillRun const> const trace = m_simulation->skills().trace();
+    std::span<SkillRun const> const trace = m_simulation->cell().skills().trace();
     if (m_skills.size() > trace.size())
     {
         m_skills.clear();
@@ -310,13 +310,13 @@ void PluginSession::emitRuntimeEvents()
         if (trace[i].state == SkillState::Succeeded)
         {
             publishKind(ROBOTIK_EVENT_SKILL_COMPLETED,
-                        m_simulation->skills().name(trace[i].skill),
+                        m_simulation->cell().skills().name(trace[i].skill),
                         0);
         }
         else if (trace[i].state == SkillState::Failed)
         {
             publishKind(ROBOTIK_EVENT_SKILL_FAILED,
-                        m_simulation->skills().name(trace[i].skill),
+                        m_simulation->cell().skills().name(trace[i].skill),
                         0);
         }
     }

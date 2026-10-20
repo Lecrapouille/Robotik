@@ -9,7 +9,7 @@
 
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -45,13 +45,13 @@ void Conveyor::reset()
     m_running = false;
 }
 
-void Conveyor::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
+void Conveyor::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
-    if (!m_running || !p_simulation.robot().resources().available(RESOURCE))
+    if (!m_running || !p_cell.robot().resources().available(RESOURCE))
     {
         return;
     }
-    compages::world::Entity part = p_simulation.entity(m_part);
+    compages::world::Entity part = p_cell.entity(m_part);
     if (!part)
     {
         m_running = false;

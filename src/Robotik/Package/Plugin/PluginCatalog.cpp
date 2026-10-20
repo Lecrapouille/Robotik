@@ -7,7 +7,7 @@
 
 #include "Robotik/Package/Plugin/PluginCatalog.hpp"
 
-#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Common/File.hpp"
 #include "Robotik/Package/Plugin/PluginABI.h"
 #include "Robotik/Package/Scenario/FileRole.hpp"

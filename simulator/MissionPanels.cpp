@@ -147,7 +147,7 @@ controlFailures(robotik::Simulation const& p_simulation)
     static bt::Tree const* tree = nullptr;
     static double last_time = 0.0;
     double const now = p_simulation.time().value();
-    bt::Tree const* current = p_simulation.tree();
+    bt::Tree const* current = p_simulation.cell().tree();
     if (current != tree || now + 1e-6 < last_time)
     {
         marks.clear();
@@ -180,7 +180,7 @@ controlFailures(robotik::Simulation const& p_simulation)
 /// @brief Draw the timeline of the skill runs on a common time axis.
 static void timeline(robotik::Simulation const& p_simulation)
 {
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     std::span<robotik::SkillRun const> const runs = skills.trace();
     std::vector<ControlFailure> const& failures = controlFailures(p_simulation);
     double const span = std::max(p_simulation.time().value(), 1.0);
@@ -401,8 +401,8 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
 {
     constexpr double HOLD_S = 0.4;
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager const& resources = simulation.robot().resources();
-    robotik::SkillScheduler const& skills = simulation.skills();
+    robotik::ResourceManager const& resources = simulation.cell().robot().resources();
+    robotik::SkillScheduler const& skills = simulation.cell().skills();
     std::vector<ChipHold>& holds = p_app.ui.chip_hold;
     holds.resize(resources.size());
     ChipHold& hold = holds[p_id];
@@ -473,8 +473,8 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
 static void resourceTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager const& resources = simulation.robot().resources();
-    robotik::SkillScheduler const& skills = simulation.skills();
+    robotik::ResourceManager const& resources = simulation.cell().robot().resources();
+    robotik::SkillScheduler const& skills = simulation.cell().skills();
     if (!beginTable("resources",
                     4,
                     ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
@@ -511,7 +511,7 @@ static void resourceTable(App& p_app)
 static void expireFaults(App& p_app)
 {
     double const now = p_app.simulation->time().value();
-    robotik::ResourceManager& resources = p_app.simulation->robot().resources();
+    robotik::ResourceManager& resources = p_app.simulation->cell().robot().resources();
     std::vector<ManualFault>& faults = p_app.ui.manual_faults;
     // A replay rewinds the clock: the faults of the old run are forgotten.
     std::erase_if(faults,
@@ -534,7 +534,7 @@ static void expireFaults(App& p_app)
 static void faultForm(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager& resources = simulation.robot().resources();
+    robotik::ResourceManager& resources = simulation.cell().robot().resources();
     std::vector<ManualFault>& manual = p_app.ui.manual_faults;
     std::vector<bool>& picked = p_app.ui.fault_pick;
     picked.resize(resources.size(), false);
@@ -673,7 +673,7 @@ static void faultForm(App& p_app)
 /// @brief The fault plan of the scenario: past entries greyed out.
 static void scenarioFaults(App& p_app)
 {
-    robotik::FaultInjector& injector = p_app.simulation->faults();
+    robotik::FaultInjector& injector = p_app.simulation->cell().faults();
     if (injector.scheduled().empty() && injector.random().empty())
     {
         ImGui::TextDisabled("The scenario injects no fault.");
@@ -703,14 +703,14 @@ static void scenarioFaults(App& p_app)
 void treeView(App& p_app)
 {
     bt::Tree const* tree =
-        p_app.simulation ? p_app.simulation->tree() : nullptr;
+        p_app.simulation ? p_app.simulation->cell().tree() : nullptr;
     if (tree == nullptr)
     {
         if (!p_app.simulation)
         {
             emptyState("No scenario loaded.");
         }
-        else if (p_app.simulation->planner() != nullptr)
+        else if (p_app.simulation->cell().planner() != nullptr)
         {
             emptyState("The PDDL planner builds the tree of its plan\nwhen the "
                        "run starts "
@@ -770,7 +770,7 @@ void timelinePanel(App& p_app)
         return;
     }
     robotik::ResourceManager const& resources =
-        p_app.simulation->robot().resources();
+        p_app.simulation->cell().robot().resources();
     ImGui::AlignTextToFramePadding();
     ImGui::TextDisabled("Resources");
     ImGui::SameLine();

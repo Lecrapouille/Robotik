@@ -10,7 +10,7 @@
 #include "PickPlaceMission.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Package/Scenario/World.hpp"
 #include "Robotik/Robot/Sensors/Imu.hpp"
 #include "Robotik/Robot/Sensors/Noise.hpp"
@@ -115,7 +115,7 @@ entities:
       wrist: { type: force_torque, link: link6, force: 0.5, torque: 0.02 }
 )");
     robotik::WorldDescription const description =
-        robotik::WorldDescription::read(world, ".", testAssets());
+        robotik::readWorld(world, ".", testAssets());
     std::vector<robotik::SensorSpec> const& sensors =
         description.robot().sensors;
     ASSERT_EQ(sensors.size(), 4u);
@@ -134,15 +134,15 @@ entities:
 
     robotik::ConfigNode bad = world;
     bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode(""));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
                  std::runtime_error);
     bad = world;
     bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1"));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
                  std::runtime_error);
     bad = world;
     bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar"));
-    EXPECT_THROW((void)robotik::WorldDescription::read(bad, ".", testAssets()),
+    EXPECT_THROW((void)robotik::readWorld(bad, ".", testAssets()),
                  std::runtime_error);
 }
 
@@ -160,7 +160,7 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         PickPlaceMission mission;
         compages::world::World world;
         robotik::Simulation blind(world, build("never"), nullptr, &mission);
-        EXPECT_FALSE(blind.oracle());
+        EXPECT_FALSE(blind.cell().oracle());
         // Headless, no image: the robot never sees the cube.
         for (int i = 0; i < 300 && !blind.finished(); ++i)
         {
@@ -168,13 +168,13 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         }
         blind.conclude();
         EXPECT_FALSE(blind.passed());
-        EXPECT_FALSE(blind.worldModel().find("red_cube")->observed());
+        EXPECT_FALSE(blind.cell().worldModel().find("red_cube")->observed());
     }
     {
         PickPlaceMission mission;
         compages::world::World world;
         robotik::Simulation oracle(
             world, build("when_blind"), nullptr, &mission);
-        EXPECT_TRUE(oracle.oracle());
+        EXPECT_TRUE(oracle.cell().oracle());
     }
 }

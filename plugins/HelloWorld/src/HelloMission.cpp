@@ -7,29 +7,29 @@
 
 #include "HelloMission.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
-void HelloMission::reset(robotik::Simulation& /*p_simulation*/,
+void HelloMission::reset(robotik::Cell& /*p_cell*/,
                          robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;
 }
 
-void HelloMission::step(robotik::Simulation& /*p_simulation*/, robotik::Seconds /*p_dt*/)
+void HelloMission::step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;
 }
 
-void HelloMission::measure(robotik::Simulation const& /*p_simulation*/,
+void HelloMission::measure(robotik::Cell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks);
 }
 
 robotik::Status
-HelloMission::status(robotik::Simulation const& p_simulation) const
+HelloMission::status(robotik::Cell const& p_cell) const
 {
-    if (p_simulation.time() >= robotik::Seconds(2.0))
+    if (p_cell.time() >= robotik::Seconds(2.0))
     {
         return robotik::Status::SUCCESS;
     }

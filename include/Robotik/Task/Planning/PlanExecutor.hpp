@@ -26,7 +26,7 @@
 #include "Robotik/Task/Planning/PlanGraph.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Planning/PlanningEngine.hpp"
-#include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Task/CellDescription.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
 

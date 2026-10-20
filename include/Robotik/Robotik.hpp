@@ -35,7 +35,7 @@
 #pragma once
 
 #include "Robotik/Task/Agents/Agent.hpp"
-#include "Robotik/Package/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Task/Learning/Environment.hpp"
 #include "Robotik/Common/Math.hpp"

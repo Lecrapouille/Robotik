@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Package/Scenario/FileRole.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
@@ -167,7 +167,7 @@ static void entityRow(App& p_app,
     {
         try
         {
-            robotik::Vector3 const at = simulation.pose(p_entity.id).position;
+            robotik::Vector3 const at = simulation.cell().pose(p_entity.id).position;
             ImGui::Text("%.2f %.2f %.2f", at.x, at.y, at.z);
         }
         catch (std::exception const&)
@@ -358,7 +358,7 @@ static ShownFile shownIn(App const& p_app, FileTab p_tab)
 /// a scenario that plans.
 static void plannerTab(App& p_app)
 {
-    if (!p_app.simulation || p_app.simulation->planner() == nullptr)
+    if (!p_app.simulation || p_app.simulation->cell().planner() == nullptr)
     {
         return;
     }
@@ -509,8 +509,8 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
     }
     // The domain of the running planner: the Planner tab shows it with the
     // problems and plans made from it.
-    if (p_app.simulation && p_app.simulation->planner() != nullptr &&
-        same(p_app.simulation->planner()->spec().domain, p_path))
+    if (p_app.simulation && p_app.simulation->cell().planner() != nullptr &&
+        same(p_app.simulation->cell().planner()->spec().domain, p_path))
     {
         showView(p_app, FileTab::Planner, true);
         return;
@@ -610,7 +610,7 @@ void assertionsView(App& p_app)
     ImGui::SameLine();
     ImGui::TextDisabled("   run: %s   contacts seen: %d",
                         robotik::toString(simulation.outcome()),
-                        simulation.maxContacts());
+                        simulation.cell().maxContacts());
     ImGui::SameLine();
     helpMarker("An assertion is a condition judged at a moment. A failed one "
                "keeps its value, "

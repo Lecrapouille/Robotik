@@ -217,19 +217,6 @@ static void checkPhysics(Scenario const& p_scenario)
     }
 }
 
-char const* toString(Fidelity p_fidelity)
-{
-    switch (p_fidelity)
-    {
-        case Fidelity::Abstract:
-            return "abstract";
-        case Fidelity::Rigid:
-            return "rigid";
-        case Fidelity::Contact:
-            return "contact";
-    }
-    return "?";
-}
 
 Scenario Scenario::read(ScenarioSource const& p_source,
                         AssetResolver const& p_assets)
@@ -271,7 +258,7 @@ Scenario Scenario::read(ScenarioSource const& p_source,
                                          " must be a file name");
             }
             scenario.trajectories.emplace(
-                name, Trajectory::load(packageFile(root, file.scalar())));
+                name, loadTrajectory(packageFile(root, file.scalar())));
         }
         readFaults(scenario, node.at("faults"));
         std::string const oracle =
@@ -315,7 +302,7 @@ Scenario Scenario::read(ScenarioSource const& p_source,
     }
     try
     {
-        scenario.world = WorldDescription::read(world, root, p_assets);
+        scenario.world = readWorld(world, root, p_assets);
     }
     catch (std::runtime_error const& error)
     {

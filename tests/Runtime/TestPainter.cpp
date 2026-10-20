@@ -35,29 +35,29 @@ TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
     robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
 
     // The easel stands where the world file puts it, its canvas on the mount.
-    EXPECT_LT(gap(simulation.pose("easel"),
+    EXPECT_LT(gap(simulation.cell().pose("easel"),
                   robotik::Pose{ robotik::Vector3(0.65, 0.0, 0.0),
                                  robotik::Quaternion{} }),
               1e-3);
-    EXPECT_LT(gap(simulation.described("canvas"), simulation.pose("canvas")),
+    EXPECT_LT(gap(simulation.cell().described("canvas"), simulation.cell().pose("canvas")),
               1e-6);
-    EXPECT_EQ(simulation.query("tool_is_attached(brush, robot.flange)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("tool_is_attached(brush, robot.flange)"), 1.0);
 
     // The red stroke paints 4 cm in front of the canvas face, in its upper
     // half.
-    std::vector<robotik::Pose> const red = simulation.waypoints("red");
+    std::vector<robotik::Pose> const red = simulation.cell().waypoints("red");
     ASSERT_EQ(red.size(), 5u);
     robotik::Vector3 const local =
-        simulation.pose("canvas").inverse() * red[2].position;
+        simulation.cell().pose("canvas").inverse() * red[2].position;
     EXPECT_NEAR(local.x, 0.06 - 0.011, 1e-6);
     EXPECT_NEAR(local.z, 0.16 - 0.251, 1e-6);
     // The brush points into the canvas: its axis is the canvas -x.
     robotik::Vector3 const axis =
         red[2].rotation * robotik::Vector3(0.0, 0.0, 1.0);
     robotik::Vector3 const into =
-        simulation.pose("canvas").rotation * robotik::Vector3(-1.0, 0.0, 0.0);
+        simulation.cell().pose("canvas").rotation * robotik::Vector3(-1.0, 0.0, 0.0);
     EXPECT_NEAR(robotik::norm(axis - into), 0.0, 1e-6);
-    EXPECT_THROW((void)simulation.waypoints("purple"), std::invalid_argument);
+    EXPECT_THROW((void)simulation.cell().waypoints("purple"), std::invalid_argument);
 }
 
 TEST(Painter, CanvasRestsOnTheEasel)
@@ -67,16 +67,16 @@ TEST(Painter, CanvasRestsOnTheEasel)
     robotik::Simulation simulation(world, painterScenario(), nullptr, &mission);
 
     // The mission is suspended: nothing pushes. The canvas may settle 1 mm.
-    simulation.suspend(true);
+    simulation.cell().suspend(true);
     for (int i = 0; i < 300; ++i)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_LT(*simulation.query("pose_error(easel)"), 2e-3);
-    EXPECT_LT(*simulation.query("pose_error(canvas)"), 5e-3);
-    EXPECT_EQ(simulation.query("on(canvas, easel)"), 1.0);
-    EXPECT_EQ(simulation.query("touching(easel, canvas)"), 1.0);
-    EXPECT_EQ(simulation.query("collision_count(robot)"), 0.0);
+    EXPECT_LT(*simulation.cell().query("pose_error(easel)"), 2e-3);
+    EXPECT_LT(*simulation.cell().query("pose_error(canvas)"), 5e-3);
+    EXPECT_EQ(simulation.cell().query("on(canvas, easel)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("touching(easel, canvas)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("collision_count(robot)"), 0.0);
 }
 
 TEST(Painter, PortraitDipsAndMarks)
@@ -99,5 +99,5 @@ TEST(Painter, PortraitDipsAndMarks)
             << check.time.value() << " s";
     }
     EXPECT_TRUE(simulation.passed());
-    EXPECT_GT(simulation.pose("canvas").position.z, 0.5);
+    EXPECT_GT(simulation.cell().pose("canvas").position.z, 0.5);
 }

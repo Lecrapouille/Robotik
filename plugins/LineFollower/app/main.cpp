@@ -176,13 +176,13 @@ int main(int argc, char** argv)
             &mission);
         simulation.reset(robotik::Seed{ options.seed });
 
-        robotik::Camera* camera = simulation.camera();
+        robotik::Camera* camera = simulation.cell().camera();
         if (options.view && camera != nullptr)
         {
             camera->onFrame(
                 [&](robotik::CameraFrame const& p_frame)
                 {
-                    showCamera(p_frame, simulation.perception().detections());
+                    showCamera(p_frame, simulation.cell().perception().detections());
                     cv::imshow("Robotik map",
                                drawMap(mission.floor(),
                                        mission.truthPath(),
@@ -209,7 +209,7 @@ int main(int argc, char** argv)
                                    std::chrono::steady_clock::now() - begin)
                                    .count();
 
-        robotik::SkillScheduler const& skills = simulation.skills();
+        robotik::SkillScheduler const& skills = simulation.cell().skills();
         for (robotik::SkillRun const& run : skills.trace())
         {
             std::cout << "  " << run.start.value() << " s  "

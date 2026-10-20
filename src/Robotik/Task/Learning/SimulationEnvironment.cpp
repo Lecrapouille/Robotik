@@ -7,7 +7,7 @@
 
 #include "Robotik/Task/Learning/SimulationEnvironment.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -16,18 +16,15 @@
 namespace robotik
 {
 
-/// The agent drives and the reward judges: the scenario's own controller and
-/// end-of-run rules do not apply.
-static Scenario forLearning(Scenario p_scenario)
+/// The agent drives and the reward judges: the behavior tree of the cell does
+/// not run.
+static CellDescription forLearning(CellDescription p_description)
 {
-    p_scenario.controller.behavior_tree.clear();
-    p_scenario.assertions.clear();
-    p_scenario.stop_when.clear();
-    p_scenario.timeout = Seconds(0.0);
-    return p_scenario;
+    p_description.controller.behavior_tree.clear();
+    return p_description;
 }
 
-SimulationEnvironment::SimulationEnvironment(Scenario p_scenario,
+SimulationEnvironment::SimulationEnvironment(CellDescription p_description,
                                              Parts p_parts,
                                              EnvironmentTiming p_timing)
     : m_parts(std::move(p_parts)), m_timing(p_timing)
@@ -52,8 +49,8 @@ SimulationEnvironment::SimulationEnvironment(Scenario p_scenario,
     m_action_space = m_parts.action->space();
 
     m_simulation =
-        std::make_unique<Simulation>(m_world,
-                                     forLearning(std::move(p_scenario)),
+        std::make_unique<Cell>(m_world,
+                               forLearning(std::move(p_description)),
                                      nullptr,
                                      m_parts.mission.get());
     m_parts.observation->setup(*m_simulation);

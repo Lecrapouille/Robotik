@@ -7,7 +7,7 @@
 
 #include "Robotik/Package/Scenario/Assertions.hpp"
 
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include <algorithm>
 #include <stdexcept>

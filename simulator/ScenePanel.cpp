@@ -82,7 +82,7 @@ static void runControls(App& p_app, ImVec2 p_at)
 /// Emergency-stop button, drawn over the view when a Stop skill exists.
 static void stopButton(App& p_app, ImVec2 p_at, float p_width)
 {
-    if (p_app.simulation->skills().find(STOP) == robotik::NO_SKILL)
+    if (p_app.simulation->cell().skills().find(STOP) == robotik::NO_SKILL)
     {
         return;
     }
@@ -162,7 +162,7 @@ bool emergencyEngaged(App const& p_app)
     {
         return false;
     }
-    robotik::SkillScheduler const& skills = p_app.simulation->skills();
+    robotik::SkillScheduler const& skills = p_app.simulation->cell().skills();
     robotik::SkillId const stop = skills.find(STOP);
     if (stop == robotik::NO_SKILL)
     {
@@ -179,7 +179,7 @@ void toggleEmergency(App& p_app)
     {
         return;
     }
-    robotik::SkillScheduler& skills = p_app.simulation->skills();
+    robotik::SkillScheduler& skills = p_app.simulation->cell().skills();
     robotik::SkillId const stop = skills.find(STOP);
     if (stop == robotik::NO_SKILL)
     {

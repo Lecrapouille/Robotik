@@ -13,7 +13,7 @@
 #include "Robotik/Task/Perception/Localization.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Resources.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Robot/Sensors/Camera.hpp"
 
 #include <cmath>
@@ -47,9 +47,9 @@ void LineFollowerMission::placeTags()
     }
 }
 
-void LineFollowerMission::bindCamera(robotik::Simulation& p_simulation)
+void LineFollowerMission::bindCamera(robotik::Cell& p_cell)
 {
-    robotik::Camera* camera = p_simulation.camera();
+    robotik::Camera* camera = p_cell.camera();
     if (camera == nullptr)
     {
         throw std::runtime_error("Line follower needs a camera");
@@ -63,10 +63,10 @@ void LineFollowerMission::bindCamera(robotik::Simulation& p_simulation)
     m_source = std::make_unique<FloorCamera>(*m_floor, *m_drive);
     camera->source(m_source.get());
     camera->onFrame(
-        [this, &p_simulation](robotik::CameraFrame const& p_frame)
+        [this, &p_cell](robotik::CameraFrame const& p_frame)
         {
             if (auto fix =
-                    robotik::localize(p_simulation.perception().detections(),
+                    robotik::localize(p_cell.perception().detections(),
                                       m_floor->landmarks());
                 fix && m_navigation->fix(*fix, p_frame.stamp))
             {
@@ -80,31 +80,31 @@ void LineFollowerMission::bindCamera(robotik::Simulation& p_simulation)
         });
 }
 
-void LineFollowerMission::setup(robotik::Simulation& p_simulation,
+void LineFollowerMission::setup(robotik::Cell& p_cell,
                                 robotik::SceneView* p_view)
 {
     auto backend = std::make_unique<DiffDriveBackend>("left_wheel_joint",
                                                       "right_wheel_joint");
     m_drive = backend.get();
-    p_simulation.robot().connect(std::move(backend));
+    p_cell.robot().connect(std::move(backend));
 
     m_left =
-        p_simulation.robot().actuators().find<robotik::Motor>("left_wheel");
+        p_cell.robot().actuators().find<robotik::Motor>("left_wheel");
     m_right =
-        p_simulation.robot().actuators().find<robotik::Motor>("right_wheel");
+        p_cell.robot().actuators().find<robotik::Motor>("right_wheel");
     if (m_left == nullptr || m_right == nullptr)
     {
         throw std::runtime_error(
             "Line follower needs left_wheel and right_wheel motors");
     }
 
-    p_simulation.perception().add<AprilTagDetector>(TAG_SIZE_M);
-    p_simulation.perception().add<LineDetector>();
-    bindCamera(p_simulation);
+    p_cell.perception().add<AprilTagDetector>(TAG_SIZE_M);
+    p_cell.perception().add<LineDetector>();
+    bindCamera(p_cell);
 
     m_navigation = std::make_unique<Navigation>(m_track, m_drive->geometry());
 
-    robotik::ResourceManager& resources = p_simulation.robot().resources();
+    robotik::ResourceManager& resources = p_cell.robot().resources();
     robotik::SkillDescription describe;
     describe.priority = SKILL_PRIORITY;
     describe.resources = { resources.require("left_wheel"),
@@ -114,19 +114,19 @@ void LineFollowerMission::setup(robotik::Simulation& p_simulation,
 
     Wheels const wheels{ *m_left, *m_right, m_navigation->model };
     describe.name = "Localize";
-    p_simulation.skills().add<LocalizeSkill>(describe, wheels, *m_navigation);
+    p_cell.skills().add<LocalizeSkill>(describe, wheels, *m_navigation);
     describe.name = "ReachLine";
-    p_simulation.skills().add<ReachLineSkill>(describe, wheels, *m_navigation);
+    p_cell.skills().add<ReachLineSkill>(describe, wheels, *m_navigation);
     describe.name = "FollowLine";
     m_follow =
-        p_simulation.skills().add<FollowLineSkill>(describe,
+        p_cell.skills().add<FollowLineSkill>(describe,
                                                    wheels,
                                                    *m_navigation,
-                                                   p_simulation.perception(),
+                                                   p_cell.perception(),
                                                    m_laps,
                                                    FOLLOW_SPEED);
     m_follow_skill = &static_cast<FollowLineSkill const&>(
-        p_simulation.skills().skill(m_follow));
+        p_cell.skills().skill(m_follow));
 
     if (p_view != nullptr)
     {
@@ -137,7 +137,7 @@ void LineFollowerMission::setup(robotik::Simulation& p_simulation,
     }
 }
 
-void LineFollowerMission::reset(robotik::Simulation& p_simulation,
+void LineFollowerMission::reset(robotik::Cell& p_cell,
                                 robotik::Seed p_seed)
 {
     robotik::Random start(p_seed.derive("start"));
@@ -147,7 +147,7 @@ void LineFollowerMission::reset(robotik::Simulation& p_simulation,
     m_drive->start({ near.x - offset * std::sin(near.heading),
                      near.y + offset * std::cos(near.heading),
                      near.heading + start.uniform(-0.8, 0.8) });
-    p_simulation.robot().startPose(m_drive->pose());
+    p_cell.robot().startPose(m_drive->pose());
 
     robotik::Random calibration(p_seed.derive("odometry"));
     DriveGeometry model = m_drive->geometry();
@@ -173,7 +173,7 @@ void LineFollowerMission::reset(robotik::Simulation& p_simulation,
     m_estimate_path.clear();
 }
 
-void LineFollowerMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
+void LineFollowerMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
     if (m_left == nullptr || m_navigation == nullptr)
     {
@@ -182,7 +182,7 @@ void LineFollowerMission::step(robotik::Simulation& p_simulation, robotik::Secon
     m_navigation->odometry(
         m_left->velocity().value(), m_right->velocity().value(), p_dt.value());
 
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_cell.skills();
     bool const following =
         m_follow != robotik::NO_SKILL &&
         skills.state(m_follow) == robotik::SkillState::Running;
@@ -221,7 +221,7 @@ void LineFollowerMission::step(robotik::Simulation& p_simulation, robotik::Secon
     }
 }
 
-void LineFollowerMission::measure(robotik::Simulation const& /*p_simulation*/,
+void LineFollowerMission::measure(robotik::Cell const& /*p_cell*/,
                                   robotik::Metrics& p_metrics) const
 {
     p_metrics.set("laps", followProgress() / m_track.perimeter());

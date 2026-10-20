@@ -7,7 +7,7 @@
 
 #include "ReachMission.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <cmath>
 #include <optional>
@@ -21,10 +21,10 @@ static double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void ReachMission::reset(robotik::Simulation& p_simulation,
+void ReachMission::reset(robotik::Cell& p_cell,
                          robotik::Seed /*p_seed*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
 
     // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
     robotik::Pose const start = robot.framePose(robot.tool());
@@ -38,9 +38,9 @@ void ReachMission::reset(robotik::Simulation& p_simulation,
     m_error = distance(start, m_target);
 }
 
-void ReachMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
+void ReachMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
     robotik::JointSet& joints = robot.joints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size();
          ++id)
@@ -50,14 +50,14 @@ void ReachMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_
     m_error = distance(robot.framePose(robot.tool()), m_target);
 }
 
-void ReachMission::measure(robotik::Simulation const& /*p_simulation*/,
+void ReachMission::measure(robotik::Cell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("reach.error", m_error);
 }
 
 robotik::Status
-ReachMission::status(robotik::Simulation const& /*p_simulation*/) const
+ReachMission::status(robotik::Cell const& /*p_cell*/) const
 {
     if (m_solution.empty())
     {

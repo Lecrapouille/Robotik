@@ -7,21 +7,21 @@
 
 #include "WaveMission.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-void WaveMission::reset(robotik::Simulation& /*p_simulation*/,
+void WaveMission::reset(robotik::Cell& /*p_cell*/,
                         robotik::Seed /*p_seed*/)
 {
     m_swing = 0.0;
     m_tool_y = 0.0;
 }
 
-void WaveMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_dt*/)
+void WaveMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_simulation.robot();
+    robotik::Robot& robot = p_cell.robot();
     robotik::JointSet& joints = robot.joints();
 
     // A typed handle: the angle is in radians, the compiler checks it.
@@ -33,7 +33,7 @@ void WaveMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_d
 
     // Command: a target angle. The joint controller moves toward it.
     robotik::Radians const home = joints.home(base);
-    robotik::Radians const offset(0.6 * std::sin(p_simulation.time().value()));
+    robotik::Radians const offset(0.6 * std::sin(p_cell.time().value()));
     joints.moveTo(base, home + offset);
 
     // Measure: the angle reached, and where the tool is (forward kinematics,
@@ -43,7 +43,7 @@ void WaveMission::step(robotik::Simulation& p_simulation, robotik::Seconds /*p_d
     m_tool_y = robot.framePose(robot.tool()).position.y;
 }
 
-void WaveMission::measure(robotik::Simulation const& /*p_simulation*/,
+void WaveMission::measure(robotik::Cell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("wave.swing", m_swing);
@@ -51,9 +51,9 @@ void WaveMission::measure(robotik::Simulation const& /*p_simulation*/,
 }
 
 robotik::Status
-WaveMission::status(robotik::Simulation const& p_simulation) const
+WaveMission::status(robotik::Cell const& p_cell) const
 {
-    if (p_simulation.time() >= robotik::Seconds(6.0))
+    if (p_cell.time() >= robotik::Seconds(6.0))
     {
         return robotik::Status::SUCCESS;
     }

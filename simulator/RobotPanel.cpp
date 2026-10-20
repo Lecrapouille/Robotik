@@ -76,7 +76,7 @@ static double finiteOr(double p_value, double p_fallback)
 /// Robot name, model and joint count.
 static void header(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     robotik::Scenario const& scenario = p_app.simulation->scenario();
     ImGui::TextUnformatted(robot.name().c_str());
     ImGui::SameLine();
@@ -95,7 +95,7 @@ static void header(App& p_app)
     if (ImGui::Button("Mission drives") && manual)
     {
         p_app.teach.manual = false;
-        p_app.simulation->suspend(false);
+        p_app.simulation->cell().suspend(false);
         p_app.teach.pendant.stop(robot);
     }
     ImGui::PopStyleColor();
@@ -156,7 +156,7 @@ static void header(App& p_app)
 static void
 positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     robotik::JointSet& joints = robot.joints();
     double const position = joints.position(p_id);
     bool const commanded = joints.mode(p_id) == robotik::JointMode::Position;
@@ -232,7 +232,7 @@ positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
 /// Table of every joint: mode, position, velocity and plot toggle.
 static void jointsTable(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     robotik::JointSet& joints = robot.joints();
     if (p_app.ui.plotted.size() != joints.size())
     {
@@ -458,7 +458,7 @@ void plotsPanel(App& p_app)
         ImGui::End();
         return;
     }
-    robotik::JointSet const& joints = p_app.simulation->robot().joints();
+    robotik::JointSet const& joints = p_app.simulation->cell().robot().joints();
     JointHistory const& history = p_app.history;
     std::size_t selected = 0;
     robotik::JointId only = 0;

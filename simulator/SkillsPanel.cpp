@@ -322,7 +322,7 @@ dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
 static std::string statusText(robotik::Simulation const& p_simulation,
                               robotik::SkillId p_id)
 {
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::SkillState const state = skills.state(p_id);
     robotik::SkillReason const reason = skills.reason(p_id);
     if (state == robotik::SkillState::Waiting)
@@ -350,7 +350,7 @@ static std::string statusText(robotik::Simulation const& p_simulation,
 static void rememberFaults(BoardMemory& p_memory,
                            robotik::Simulation const& p_simulation)
 {
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     if (p_memory.simulation != &p_simulation ||
         skills.trace().size() < p_memory.trace_size)
     {
@@ -391,9 +391,9 @@ static void rememberFaults(BoardMemory& p_memory,
         robotik::ResourceId const blocker = skills.blocker(id);
         if (blocker != robotik::NO_RESOURCE)
         {
-            note.resource = p_simulation.robot().resources().name(blocker);
+            note.resource = p_simulation.cell().robot().resources().name(blocker);
         }
-        note.message = skillWhy(skills, p_simulation.robot().resources(), id);
+        note.message = skillWhy(skills, p_simulation.cell().robot().resources(), id);
         note.when = formatSeconds(run->end.value());
         p_memory.faults.push_back(std::move(note));
     }
@@ -471,12 +471,12 @@ static void card(BoardMemory& p_memory,
                  robotik::SkillId p_id,
                  bool p_blocked)
 {
-    robotik::SkillScheduler& skills = p_simulation.skills();
+    robotik::SkillScheduler& skills = p_simulation.cell().skills();
     robotik::SkillDescription const& description = skills.description(p_id);
     robotik::SkillState const state = skills.state(p_id);
     robotik::SkillReason const reason = skills.reason(p_id);
     robotik::ResourceManager const& resources =
-        p_simulation.robot().resources();
+        p_simulation.cell().robot().resources();
     int const level = priorityLevel(description.priority);
 
     ImDrawList* draw = ImGui::GetWindowDrawList();
@@ -686,8 +686,8 @@ static robotik::SkillId lastFinished(robotik::SkillScheduler const& p_skills)
 static void skillTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::SkillScheduler& skills = simulation.skills();
-    robotik::ResourceManager const& resources = simulation.robot().resources();
+    robotik::SkillScheduler& skills = simulation.cell().skills();
+    robotik::ResourceManager const& resources = simulation.cell().robot().resources();
     if (beginTable("skills",
                    6,
                    ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders |
@@ -784,7 +784,7 @@ void skillsPanel(App& p_app)
 
     static BoardMemory memory;
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::SkillScheduler& skills = simulation.skills();
+    robotik::SkillScheduler& skills = simulation.cell().skills();
     rememberFaults(memory, simulation);
     toolbar(memory);
     faultsSection(memory);

@@ -11,7 +11,7 @@
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Assertions.hpp"
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include <map>
 
@@ -200,16 +200,16 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
         robotik::Scenario::read(source, testAssets()),
         nullptr,
         &mission);
-    simulation.suspend(true);
+    simulation.cell().suspend(true);
     for (int i = 0; i < 200; ++i)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_EQ(simulation.query("on(canvas, easel)"), 0.0);
-    EXPECT_EQ(simulation.query("touching(canvas, easel)"), 0.0);
-    EXPECT_GT(*simulation.query("pose_error(canvas)"), 0.05);
-    EXPECT_EQ(simulation.query("collision_count(robot)"), 0.0);
-    EXPECT_THROW((void)simulation.query("pose_error(nobody)"),
+    EXPECT_EQ(simulation.cell().query("on(canvas, easel)"), 0.0);
+    EXPECT_EQ(simulation.cell().query("touching(canvas, easel)"), 0.0);
+    EXPECT_GT(*simulation.cell().query("pose_error(canvas)"), 0.05);
+    EXPECT_EQ(simulation.cell().query("collision_count(robot)"), 0.0);
+    EXPECT_THROW((void)simulation.cell().query("pose_error(nobody)"),
                  std::invalid_argument);
     EXPECT_FALSE(simulation.evaluate("pose_error(nobody) < 1").known);
 }

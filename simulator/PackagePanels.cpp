@@ -179,7 +179,7 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     field("oracle",
           "%s%s",
           oracleOf(scenario.oracle),
-          p_app.simulation->oracle()
+          p_app.simulation->cell().oracle()
               ? " (active: ground truth feeds the beliefs)"
               : "");
     if (p_package != nullptr)

@@ -367,7 +367,7 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     }
     EXPECT_TRUE(simulation.passed()) << p_scenario;
     p_time = simulation.time().value();
-    p_overlap = simulation.query("dual_arm.overlap").value_or(-1.0);
+    p_overlap = simulation.cell().query("dual_arm.overlap").value_or(-1.0);
     session.detach();
     return true;
 }

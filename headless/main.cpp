@@ -84,9 +84,9 @@ static std::optional<Options> parse(int argc, char** argv)
 /// Prints each skill run of the finished simulation.
 static void printTrace(robotik::Simulation const& p_simulation)
 {
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
-        p_simulation.robot().resources();
+        p_simulation.cell().robot().resources();
     for (robotik::SkillRun const& run : skills.trace())
     {
         std::cout << "  " << run.start << "  " << skills.name(run.skill) << "  "
@@ -103,7 +103,7 @@ static void printTrace(robotik::Simulation const& p_simulation)
         std::cout << "  (" << run.end - run.start << ")\n";
     }
     // The plans of the PDDL planner: when, why, what.
-    if (robotik::PlanExecutor const* planner = p_simulation.planner())
+    if (robotik::PlanExecutor const* planner = p_simulation.cell().planner())
     {
         std::size_t index = 0u;
         for (robotik::PlanningRecord const& record : planner->history())

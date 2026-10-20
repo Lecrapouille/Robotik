@@ -114,10 +114,10 @@ public:
         {
             return;
         }
-        robotik::SkillId const id = simulation->skills().find("Home");
+        robotik::SkillId const id = simulation->cell().skills().find("Home");
         if (id != robotik::NO_SKILL)
         {
-            simulation->skills().request(id);
+            simulation->cell().skills().request(id);
         }
     }
 

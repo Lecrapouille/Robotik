@@ -14,7 +14,7 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -64,11 +64,11 @@ describe(std::string p_name,
     return description;
 }
 
-void TrayMission::setup(robotik::Simulation& p_simulation,
+void TrayMission::setup(robotik::Cell& p_cell,
                         robotik::SceneView* /*p_view*/)
 {
     for (robotik::EntitySpec const& entity :
-         p_simulation.scenario().world.entities)
+         p_cell.description().world.entities)
     {
         if (entity.kind == "tray")
         {
@@ -86,7 +86,7 @@ void TrayMission::setup(robotik::Simulation& p_simulation,
     }
     // An arm with a cup carries; an arm without one drills.
     for (std::unique_ptr<robotik::RobotSession> const& robot :
-         p_simulation.robots())
+         p_cell.robots())
     {
         robotik::JointSet& joints = robot->joints();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
@@ -96,17 +96,17 @@ void TrayMission::setup(robotik::Simulation& p_simulation,
         }
         if (cupOf(*robot) != nullptr)
         {
-            addCarrierSkills(p_simulation, *robot);
+            addCarrierSkills(p_cell, *robot);
         }
         else
         {
-            addDrillSkills(p_simulation, *robot);
+            addDrillSkills(p_cell, *robot);
         }
     }
-    addPlanning(p_simulation);
+    addPlanning(p_cell);
 }
 
-void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation,
+void TrayMission::addCarrierSkills(robotik::Cell& p_cell,
                                    robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
@@ -122,7 +122,7 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation,
     // height it waits at, then rises to its bottom face.
     std::string const& id = p_robot.id();
     std::string const scope = id + ".";
-    robotik::SkillScheduler& skills = p_simulation.skills();
+    robotik::SkillScheduler& skills = p_cell.skills();
     for (std::string const& tray : m_trays)
     {
         skills.add<PathSkill>(
@@ -156,7 +156,7 @@ void TrayMission::addCarrierSkills(robotik::Simulation& p_simulation,
                           robotik::Seconds(kRetreatTime));
 }
 
-void TrayMission::addDrillSkills(robotik::Simulation& p_simulation,
+void TrayMission::addDrillSkills(robotik::Cell& p_cell,
                                  robotik::Robot const& p_robot)
 {
     std::vector<robotik::ResourceRequirement> arm;
@@ -165,7 +165,7 @@ void TrayMission::addDrillSkills(robotik::Simulation& p_simulation,
         arm.push_back(p_robot.resources().require(group->name()));
     }
     // The path is a trajectory of the scenario, drawn in the frame of the tray.
-    auto const& trajectories = p_simulation.scenario().trajectories;
+    auto const& trajectories = p_cell.description().trajectories;
     auto const found = trajectories.find(kDrillPath);
     if (found == trajectories.end())
     {
@@ -180,7 +180,7 @@ void TrayMission::addDrillSkills(robotik::Simulation& p_simulation,
     std::string const& id = p_robot.id();
     for (std::string const& tray : m_trays)
     {
-        p_simulation.skills().add<TraceSkill>(
+        p_cell.skills().add<TraceSkill>(
             describe(id + ".Trace(" + tray + ")", id, arm),
             tray,
             path,
@@ -207,13 +207,13 @@ static bool heldByAnyone(robotik::RobotContext const& p_context,
                        { return heldObject(*p_robot) == p_object; });
 }
 
-void TrayMission::addPlanning(robotik::Simulation& p_simulation)
+void TrayMission::addPlanning(robotik::Cell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
     using robotik::Truth;
 
-    robotik::PlanningDomain& domain = p_simulation.planning();
+    robotik::PlanningDomain& domain = p_cell.planning();
 
     // --- State, on the shared beliefs and what each arm measures -----------
     domain.observe("free",
@@ -283,7 +283,7 @@ void TrayMission::addPlanning(robotik::Simulation& p_simulation)
     domain.bind("set_down", { "{0}.Lower", "{0}.Release", "{0}.Retreat" });
 }
 
-void TrayMission::reset(robotik::Simulation& /*p_simulation*/,
+void TrayMission::reset(robotik::Cell& /*p_cell*/,
                         robotik::Seed /*p_seed*/)
 {
     m_drilled.clear();
@@ -291,14 +291,14 @@ void TrayMission::reset(robotik::Simulation& /*p_simulation*/,
     m_contact = 0.0;
 }
 
-void TrayMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
+void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
     // A tray is drilled once the drill followed its whole path on it.
-    robotik::SkillScheduler const& skills = p_simulation.skills();
+    robotik::SkillScheduler const& skills = p_cell.skills();
     for (std::string const& tray : m_trays)
     {
         for (std::unique_ptr<robotik::RobotSession> const& robot :
-             p_simulation.robots())
+             p_cell.robots())
         {
             robotik::SkillId const trace =
                 skills.find(robot->id() + ".Trace(" + tray + ")");
@@ -311,12 +311,12 @@ void TrayMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
     }
 
     // A tool on its workpiece: ground truth, for the metric only.
-    if (!p_simulation.finished() &&
+    if (!p_cell.controllerStopped() &&
         std::any_of(
             m_touches.begin(),
             m_touches.end(),
             [&](std::string const& p_query)
-            { return p_simulation.query(p_query).value_or(0.0) > 0.5; }))
+            { return p_cell.query(p_query).value_or(0.0) > 0.5; }))
     {
         m_contact += p_dt.value();
     }
@@ -331,13 +331,13 @@ void TrayMission::step(robotik::Simulation& p_simulation, robotik::Seconds p_dt)
             busy.insert(skills.description(id).robot);
         }
     }
-    if (busy.size() >= 2u && !p_simulation.finished())
+    if (busy.size() >= 2u && !p_cell.controllerStopped())
     {
         m_overlap += p_dt.value();
     }
 }
 
-void TrayMission::measure(robotik::Simulation const& /*p_simulation*/,
+void TrayMission::measure(robotik::Cell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("dual_arm.overlap", m_overlap);

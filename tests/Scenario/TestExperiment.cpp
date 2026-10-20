@@ -169,20 +169,20 @@ TEST(RunReport, JsonEscapesAndCountsRuns)
 
 TEST(Trajectory, ReadsCartesianAndJointPaths)
 {
-    robotik::Trajectory const stroke = robotik::Trajectory::load(repoFile(
+    robotik::Trajectory const stroke = robotik::loadTrajectory(repoFile(
         "plugins/Painter/scenarios/trajectories/red_stroke.trajectory.yaml"));
     EXPECT_EQ(stroke.type, robotik::Trajectory::Type::Cartesian);
     EXPECT_EQ(stroke.frame, "easel.canvas_mount");
     ASSERT_EQ(stroke.poses.size(), 5u);
     EXPECT_DOUBLE_EQ(stroke.poses[1].position.x, 0.08);
 
-    robotik::Trajectory const joints = robotik::Trajectory::load(
+    robotik::Trajectory const joints = robotik::loadTrajectory(
         repoFile("tests/Scenario/fixtures/joint_path.trajectory.yaml"));
     EXPECT_EQ(joints.type, robotik::Trajectory::Type::Joint);
     ASSERT_EQ(joints.configurations.size(), 2u);
     EXPECT_DOUBLE_EQ(joints.configurations[1][0], 0.5);
 
-    EXPECT_THROW((void)robotik::Trajectory::load(repoFile(
+    EXPECT_THROW((void)robotik::loadTrajectory(repoFile(
                      "tests/Scenario/fixtures/bad_path.trajectory.yaml")),
                  std::runtime_error);
 }

@@ -12,13 +12,13 @@
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 static constexpr double kApproachClearance = 0.10;
 static constexpr double kTransitClearance = 0.22;
 static constexpr int kSkillPriority = 100;
 
-void PickPlaceMission::setup(robotik::Simulation& p_simulation,
+void PickPlaceMission::setup(robotik::Cell& p_cell,
                              robotik::SceneView* /*p_view*/)
 {
     if (!m_skills)
@@ -29,7 +29,7 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
     // Perception: map each prop colour to a Detect(label) target.
     std::vector<robotik::EntitySpec const*> props;
     for (robotik::EntitySpec const& entity :
-         p_simulation.scenario().world.entities)
+         p_cell.description().world.entities)
     {
         if (entity.type == robotik::EntitySpec::Type::Prop)
         {
@@ -40,15 +40,15 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
     {
         if (m_detector == nullptr)
         {
-            m_detector = &p_simulation.perception().add<ColorDetector>();
+            m_detector = &p_cell.perception().add<ColorDetector>();
         }
         m_detector->add(prop->id, prop->shape->color);
     }
 
     robotik::ResourceManager const& resources =
-        p_simulation.robot().resources();
-    robotik::ActuatorSet const& actuators = p_simulation.robot().actuators();
-    robotik::SkillScheduler& skills = p_simulation.skills();
+        p_cell.robot().resources();
+    robotik::ActuatorSet const& actuators = p_cell.robot().actuators();
+    robotik::SkillScheduler& skills = p_cell.skills();
 
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
@@ -61,7 +61,7 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
         gripper.push_back(resources.require(vacuum->name()));
     }
     std::vector<robotik::ResourceRequirement> camera;
-    if (robotik::Camera const* found = p_simulation.camera())
+    if (robotik::Camera const* found = p_cell.camera())
     {
         camera.push_back(
             resources.require(found->name(), robotik::Access::Shared));
@@ -115,6 +115,6 @@ void PickPlaceMission::setup(robotik::Simulation& p_simulation,
 
     if (m_planner)
     {
-        registerPlanning(p_simulation.planning());
+        registerPlanning(p_cell.planning());
     }
 }

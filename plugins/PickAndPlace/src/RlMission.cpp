@@ -10,14 +10,14 @@
 #include "PickPlaceControl.hpp"
 
 #include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 #define RL_PAUSE_AFTER_S 1.2
 
-void RlMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
+void RlMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
 {
     steps = 0;
     episode_return = 0.0f;
@@ -28,9 +28,9 @@ void RlMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
     try
     {
         // Every episode starts again from the ready posture.
-        m_action.setup(p_simulation);
-        m_observation.setup(p_simulation);
-        m_reward.setup(p_simulation);
+        m_action.setup(p_cell);
+        m_observation.setup(p_cell);
+        m_reward.setup(p_cell);
         ready = true;
     }
     catch (std::exception const&)
@@ -38,15 +38,15 @@ void RlMission::reset(robotik::Simulation& p_simulation, robotik::Seed p_seed)
         ready = false;
         return;
     }
-    m_reward.reset(p_simulation);
-    p_simulation.observe();
-    m_observation.observe(p_simulation,
+    m_reward.reset(p_cell);
+    p_cell.observe();
+    m_observation.observe(p_cell,
                           { 0u, static_cast<std::uint32_t>(max_steps) },
                           observation);
 }
 
 robotik::Status
-RlMission::status(robotik::Simulation const& /*p_simulation*/) const
+RlMission::status(robotik::Cell const& /*p_cell*/) const
 {
     if (!ready)
     {
@@ -59,11 +59,11 @@ RlMission::status(robotik::Simulation const& /*p_simulation*/) const
     return robotik::Status::RUNNING;
 }
 
-void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
+void RlMission::act(robotik::Cell& p_cell, double p_dt)
 {
     if (!ready)
     {
-        p_simulation.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
+        p_cell.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
         return;
     }
     if (done)
@@ -75,7 +75,7 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
         m_pause += p_dt;
         if (m_pause >= RL_PAUSE_AFTER_S)
         {
-            p_simulation.reset(robotik::Seed{ p_simulation.seed().value + 1u });
+            p_cell.reset(robotik::Seed{ p_cell.seed().value + 1u });
         }
         return;
     }
@@ -93,17 +93,17 @@ void RlMission::act(robotik::Simulation& p_simulation, double p_dt)
             converged = true;
         }
     }
-    m_action.apply(action, p_simulation);
+    m_action.apply(action, p_cell);
     auto const substeps = static_cast<int>(
         std::lround(PICK_PLACE_CONTROL_PERIOD_S / PICK_PLACE_PHYSICS_STEP_S));
     for (int i = 0; i < substeps; ++i)
     {
-        p_simulation.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
+        p_cell.step(robotik::Seconds(PICK_PLACE_PHYSICS_STEP_S));
     }
-    p_simulation.observe();
+    p_cell.observe();
     ++steps;
-    robotik::StepResult const result = m_reward.evaluate(p_simulation);
-    m_observation.observe(p_simulation,
+    robotik::StepResult const result = m_reward.evaluate(p_cell);
+    m_observation.observe(p_cell,
                           { steps, static_cast<std::uint32_t>(max_steps) },
                           observation);
     episode_return += result.reward;

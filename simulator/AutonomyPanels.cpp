@@ -16,7 +16,7 @@
 /// Says whether beliefs are filled from the ground truth.
 static void oracleLine(robotik::Simulation const& p_simulation)
 {
-    if (p_simulation.oracle())
+    if (p_simulation.cell().oracle())
     {
         badge("ORACLE", ORANGE);
         ImGui::SameLine();
@@ -54,13 +54,13 @@ void worldModelPanel(App& p_app)
         "distance "
         "between both; 'prior' means the robot has not seen the object yet.");
 
-    robotik::WorldModel const& beliefs = simulation.worldModel();
+    robotik::WorldModel const& beliefs = simulation.cell().worldModel();
     std::unordered_set<std::string> shown;
     ImGuiTableFlags const flags =
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
     // With a planner, the symbolic beliefs share the panel with the objects.
-    bool const symbolic = simulation.planner() != nullptr;
+    bool const symbolic = simulation.cell().planner() != nullptr;
     float const objects_height = symbolic
                                      ? ImGui::GetContentRegionAvail().y * 0.5f
                                      : -ImGui::GetFrameHeightWithSpacing();
@@ -87,7 +87,7 @@ void worldModelPanel(App& p_app)
                 }
                 shown.insert(p_object.name);
                 robotik::Vector3 const at =
-                    simulation.pose(p_object.name).position;
+                    simulation.cell().pose(p_object.name).position;
                 robotik::WorldObject const* belief =
                     beliefs.find(p_object.name);
                 ImGui::TableNextRow();
@@ -114,7 +114,7 @@ void worldModelPanel(App& p_app)
                 }
                 // Beliefs are in the robot base frame.
                 robotik::Vector3 const believed =
-                    simulation.robot().base().pose * belief->position;
+                    simulation.cell().robot().base().pose * belief->position;
                 ImGui::Text(
                     "%.3f %.3f %.3f", believed.x, believed.y, believed.z);
                 ImGui::TableNextColumn();
@@ -196,7 +196,7 @@ void perceptionPanel(App& p_app)
         return;
     }
     robotik::Simulation& simulation = *p_app.simulation;
-    robotik::Camera const* camera = simulation.camera();
+    robotik::Camera const* camera = simulation.cell().camera();
     if (camera == nullptr)
     {
         emptyState("The robot has no camera: nothing to detect.");
@@ -207,7 +207,7 @@ void perceptionPanel(App& p_app)
         "Detections of %s, frame #%llu",
         camera->name().c_str(),
         static_cast<unsigned long long>(camera->frame().sequence));
-    if (!simulation.robot().resources().available(camera->name()))
+    if (!simulation.cell().robot().resources().available(camera->name()))
     {
         ImGui::SameLine();
         badge("CAMERA FAULT", RED);
@@ -215,7 +215,7 @@ void perceptionPanel(App& p_app)
             "The mission may go on with what the world model already knows.");
     }
     robotik::Detections const& detections =
-        simulation.perception().detections();
+        simulation.cell().perception().detections();
     if (detections.items.empty())
     {
         ImGui::TextDisabled("Nothing detected in the last frame.");

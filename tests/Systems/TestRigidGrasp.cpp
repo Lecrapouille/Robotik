@@ -37,7 +37,7 @@ TEST(RigidGrasp, PickAndPlaceDropsTheCubeIntoTheBox)
     while (!simulation.finished() && simulation.time() < robotik::Seconds(30.0))
     {
         simulation.step(robotik::Seconds(0.01));
-        lifted = lifted || simulation.pose("red_cube").position.z > 0.08;
+        lifted = lifted || simulation.cell().pose("red_cube").position.z > 0.08;
     }
     simulation.conclude();
     for (robotik::Check const& check : simulation.checks())
@@ -52,8 +52,8 @@ TEST(RigidGrasp, PickAndPlaceDropsTheCubeIntoTheBox)
 
     // It fell where the tool let it go: on the floor of the box (5 mm thick),
     // not put at the centre as the abstract level does.
-    robotik::Pose const cube = simulation.pose("red_cube");
-    robotik::Pose const box = simulation.pose("box");
+    robotik::Pose const cube = simulation.cell().pose("red_cube");
+    robotik::Pose const box = simulation.cell().pose("box");
     EXPECT_NEAR(cube.position.z, 0.005 + 0.02, 0.003);
     EXPECT_GT(std::hypot(cube.position.x - box.position.x,
                          cube.position.y - box.position.y),

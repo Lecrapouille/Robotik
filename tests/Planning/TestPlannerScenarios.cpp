@@ -51,7 +51,7 @@ run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
             << check.text << ": " << check.detail << " at "
             << check.time.value() << " s";
     }
-    robotik::PlanExecutor const* executor = p_simulation.planner();
+    robotik::PlanExecutor const* executor = p_simulation.cell().planner();
     EXPECT_NE(executor, nullptr);
     if (executor != nullptr)
     {
@@ -85,8 +85,8 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
             "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
         &mission);
-    ASSERT_NE(simulation.planner(), nullptr);
-    EXPECT_EQ(simulation.planner()->objects().size(), 2u);
+    ASSERT_NE(simulation.cell().planner(), nullptr);
+    EXPECT_EQ(simulation.cell().planner()->objects().size(), 2u);
 
     PlannedRun const first = run(simulation, robotik::Seed{ 42 }, 60.0);
     EXPECT_EQ(first.outcome, robotik::Simulation::Outcome::ControllerSucceeded);
@@ -97,11 +97,11 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
         << first.plans[0];
     EXPECT_NE(first.plans[0].find("(place red_cube box)"), std::string::npos)
         << first.plans[0];
-    EXPECT_EQ(simulation.planner()->done(),
-              simulation.planner()->plan().size());
+    EXPECT_EQ(simulation.cell().planner()->done(),
+              simulation.cell().planner()->plan().size());
 
     // The generated tree runs the bound skills, then checks each step.
-    std::string const& tree = simulation.planner()->history().front().tree;
+    std::string const& tree = simulation.cell().planner()->history().front().tree;
     EXPECT_NE(tree.find("\"Grasp(red_cube)\""), std::string::npos) << tree;
     EXPECT_NE(tree.find("\"Check 2. pick(red_cube)\""), std::string::npos)
         << tree;
@@ -131,14 +131,14 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
         << result.causes[1];
     EXPECT_NE(result.causes[1].find("unavailable"), std::string::npos)
         << result.causes[1];
-    EXPECT_GE(simulation.planner()->replans(), 1u);
+    EXPECT_GE(simulation.cell().planner()->replans(), 1u);
 
     // --report: the plans and the replans are in the run record.
     robotik::RunRecord const record =
         robotik::RunRecord::capture(simulation, "default", {});
     EXPECT_TRUE(record.planner.used);
     EXPECT_EQ(record.planner.plans.size(), result.plans.size());
-    EXPECT_EQ(record.planner.replans, simulation.planner()->replans());
+    EXPECT_EQ(record.planner.replans, simulation.cell().planner()->replans());
     EXPECT_EQ(record.planner.plans[1].cause, result.causes[1]);
     ASSERT_FALSE(record.planner.plans.front().steps.empty());
     EXPECT_EQ(record.planner.plans.front().steps.front(), "detect(red_cube)");
@@ -173,7 +173,7 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     EXPECT_LT(black, blue) << plan;
     EXPECT_LT(blue, gold) << plan;
     // Four dips, each followed by a rinse: the goal wants a clean brush.
-    EXPECT_EQ(simulation.planner()->plan().size(), 12u) << plan;
+    EXPECT_EQ(simulation.cell().planner()->plan().size(), 12u) << plan;
 }
 
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)

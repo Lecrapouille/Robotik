@@ -31,8 +31,8 @@ void takeArm(App& p_app)
         return;
     }
     p_app.teach.manual = true;
-    p_app.simulation->suspend(true);
-    p_app.simulation->robot().joints().hold();
+    p_app.simulation->cell().suspend(true);
+    p_app.simulation->cell().robot().joints().hold();
 }
 
 void syncTeachAxes(App& p_app, bool p_visible)
@@ -42,7 +42,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
         return;
     }
     TeachWatch& teach = p_app.teach;
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     std::string const& frame = teach.pendant.frame(robot);
     bool const show =
         p_visible && teach.show_axes && !frame.empty() && !p_app.owns_clock;
@@ -115,7 +115,7 @@ static void syncMarkers(App& p_app)
     std::span<robotik::TeachWaypoint const> const points =
         p_app.teach.pendant.waypoints();
     std::vector<compages::world::Entity>& markers = p_app.teach.markers;
-    compages::world::Entity const root = p_app.simulation->robot().root();
+    compages::world::Entity const root = p_app.simulation->cell().robot().root();
     for (std::size_t i = 0; i < points.size(); ++i)
     {
         if (i == markers.size() || !p_app.world->alive(markers[i].id()))
@@ -319,7 +319,7 @@ static void jogRow(App& p_app,
                    robotik::Vector3 const& p_shift,
                    robotik::Vector3 const& p_turn)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     ImGui::PushID(p_axis);
     ImGui::TableNextColumn();
     if (ImGui::Button("-", ImVec2(-1.0f, 0.0f)))
@@ -349,7 +349,7 @@ static void jogRow(App& p_app,
 /// other link: a foot of a humanoid, a leg tip of a hexapod...
 static void frameChoice(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
     std::string const& current = pendant.frame(robot);
     std::string const work = robot.tool().empty() ? std::string("(none)")
@@ -382,7 +382,7 @@ static void frameChoice(App& p_app)
 /// Jog buttons that move a frame by one step in the base frame.
 static void cartesianJog(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     ImGui::SeparatorText("Move a frame");
     ImGui::SameLine();
     helpMarker("Each press moves the chosen frame by one step in the robot "
@@ -458,7 +458,7 @@ static void cartesianJog(App& p_app)
 /// Record, edit and play the pendant waypoints.
 static void waypoints(App& p_app)
 {
-    robotik::RobotSession& robot = p_app.simulation->robot();
+    robotik::RobotSession& robot = p_app.simulation->cell().robot();
     robotik::TeachPendant& pendant = p_app.teach.pendant;
     ImGui::SeparatorText("Waypoints");
     ImGui::SameLine();
@@ -592,7 +592,7 @@ void teachPanel(App& p_app)
             ImGui::End();
             return;
         }
-        triggerTool(p_app, p_app.simulation->robot());
+        triggerTool(p_app, p_app.simulation->cell().robot());
     }
 
     cartesianJog(p_app);

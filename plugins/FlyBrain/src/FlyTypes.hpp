@@ -13,7 +13,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Task/CellDescription.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -194,10 +194,11 @@ struct FlyScenario
     /// @brief Reads a Robotik scenario: the robot entity is the fly (its pose
     /// is the start), the props named @c obstacle* are the blocks, the prop
     /// @c food is the target, the timeout is the horizon, and
-    /// @c parameters gives brain, sensor_noise, layout_jitter and arena.
+    /// @c parameters gives brain, sensor_noise, layout_jitter, arena and
+    /// horizon (episode length, s).
     /// @throws std::runtime_error when the world has no food.
     // ------------------------------------------------------------------------
-    [[nodiscard]] static FlyScenario from(robotik::Scenario const& p_scenario);
+    [[nodiscard]] static FlyScenario from(robotik::CellDescription const& p_scenario);
 };
 
 /// URDF prefixes of the six legs, fore to hind, left then right.

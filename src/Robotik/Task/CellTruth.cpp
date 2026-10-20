@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file SimulationTruth.cpp
-/// @brief Ground-truth queries of @ref Simulation: what the assertions
+/// @file CellTruth.cpp
+/// Ground-truth queries of @ref Cell: what the assertions
 /// measure. World frame, metres and radians.
 
-#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Cell.hpp"
 #include "ShapeOf.hpp"
 
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
@@ -135,7 +135,7 @@ static void arity(std::string const& p_name,
     }
 }
 
-Simulation::Record const* Simulation::record(std::string_view p_id) const
+Cell::Record const* Cell::record(std::string_view p_id) const
 {
     for (Record const& record : m_records)
     {
@@ -147,13 +147,13 @@ Simulation::Record const* Simulation::record(std::string_view p_id) const
     return nullptr;
 }
 
-Simulation::Record const& Simulation::require(std::string_view p_id) const
+Cell::Record const& Cell::require(std::string_view p_id) const
 {
     if (Record const* found = record(p_id))
     {
         return *found;
     }
-    if (EntitySpec const* spec = m_scenario.world.find(p_id);
+    if (EntitySpec const* spec = m_description.world.find(p_id);
         spec != nullptr && spec->type == EntitySpec::Type::Tool)
     {
         throw std::invalid_argument("tool '" + std::string(p_id) +
@@ -162,7 +162,7 @@ Simulation::Record const& Simulation::require(std::string_view p_id) const
     throw std::invalid_argument("unknown entity '" + std::string(p_id) + "'");
 }
 
-compages::world::Entity Simulation::decorate(ecs::Shape const& p_object)
+compages::world::Entity Cell::decorate(ecs::Shape const& p_object)
 {
     compages::world::Entity entity = m_world.entity(p_object.name);
     entity.parent(m_frame).set(p_object).set(ecs::Decoration{});
@@ -173,13 +173,13 @@ compages::world::Entity Simulation::decorate(ecs::Shape const& p_object)
     return entity;
 }
 
-compages::world::Entity Simulation::entity(std::string_view p_id) const
+compages::world::Entity Cell::entity(std::string_view p_id) const
 {
     Record const* found = record(p_id);
     return found != nullptr ? found->entity : compages::world::Entity{};
 }
 
-Pose Simulation::framePose(Record const& p_record,
+Pose Cell::framePose(Record const& p_record,
                            std::string_view p_frame) const
 {
     EntitySpec const& spec = *p_record.spec;
@@ -222,18 +222,18 @@ Pose Simulation::framePose(Record const& p_record,
     return base * p_record.frames->framePose(frame);
 }
 
-Pose Simulation::pose(std::string_view p_reference) const
+Pose Cell::pose(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     return framePose(require(id), frame);
 }
 
-Pose Simulation::initialPose(std::string_view p_id) const
+Pose Cell::initialPose(std::string_view p_id) const
 {
     return require(p_id).initial;
 }
 
-Pose Simulation::described(std::string_view p_reference) const
+Pose Cell::described(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     Record const& record = require(id);
@@ -267,10 +267,10 @@ Pose Simulation::described(std::string_view p_reference) const
     return record.nominal * record.frames->framePose(link);
 }
 
-std::vector<Pose> Simulation::waypoints(std::string_view p_name) const
+std::vector<Pose> Cell::waypoints(std::string_view p_name) const
 {
-    auto const found = m_scenario.trajectories.find(p_name);
-    if (found == m_scenario.trajectories.end())
+    auto const found = m_description.trajectories.find(p_name);
+    if (found == m_description.trajectories.end())
     {
         throw std::invalid_argument("the scenario has no trajectory '" +
                                     std::string(p_name) + "'");
@@ -308,7 +308,7 @@ static std::string_view assemblyOf(EntitySpec const& p_spec)
     return {};
 }
 
-int Simulation::contactsOf(Record const& p_record,
+int Cell::contactsOf(Record const& p_record,
                            std::vector<Contact> const& p_contacts) const
 {
     // A robot and its mounted tool are one assembly: a tool hitting the world
@@ -379,7 +379,7 @@ int Simulation::contactsOf(Record const& p_record,
     return count;
 }
 
-Metrics Simulation::metrics() const
+Metrics Cell::metrics() const
 {
     Metrics metrics;
     metrics.set("time", time().value());
@@ -402,7 +402,7 @@ Metrics Simulation::metrics() const
     return metrics;
 }
 
-Evaluation Simulation::evaluate(std::string_view p_condition) const
+Evaluation Cell::evaluate(std::string_view p_condition) const
 {
     Metrics const table = metrics();
     return robotik::evaluate(p_condition,
@@ -411,7 +411,7 @@ Evaluation Simulation::evaluate(std::string_view p_condition) const
                              { return query(p_term); });
 }
 
-std::optional<double> Simulation::query(std::string_view p_term) const
+std::optional<double> Cell::query(std::string_view p_term) const
 {
     if (auto const call = parseCall(p_term))
     {
@@ -421,7 +421,7 @@ std::optional<double> Simulation::query(std::string_view p_term) const
 }
 
 std::optional<double>
-Simulation::call(std::string const& p_name,
+Cell::call(std::string const& p_name,
                  std::vector<std::string> const& p_args) const
 {
     auto boolean = [](bool p_value) { return p_value ? 1.0 : 0.0; };
@@ -526,13 +526,13 @@ Simulation::call(std::string const& p_name,
     if (p_name == "tool_is_attached")
     {
         arity(p_name, p_args, 2u, 2u);
-        EntitySpec const* tool = m_scenario.world.find(p_args[0]);
+        EntitySpec const* tool = m_description.world.find(p_args[0]);
         if (tool == nullptr || tool->type != EntitySpec::Type::Tool)
         {
             throw std::invalid_argument("'" + p_args[0] + "' is not a tool");
         }
         EntitySpec const* mounted =
-            tool->attach ? m_scenario.world.mountedTool(tool->attach->parent)
+            tool->attach ? m_description.world.mountedTool(tool->attach->parent)
                          : nullptr;
         bool const attached =
             mounted == tool && p_args[1] == mounted->attach->parent + "." +

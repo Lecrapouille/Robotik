@@ -7,7 +7,7 @@
 
 #include "WalkPolicy.hpp"
 
-#include "Robotik/Package/Scenario/Config.hpp"
+#include "Robotik/Common/Config.hpp"
 
 #include <onnxruntime_cxx_api.h>
 

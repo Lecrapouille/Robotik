@@ -97,15 +97,15 @@ class FlyMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Simulation& p_simulation,
+    void setup(robotik::Cell& p_cell,
                robotik::SceneView* p_view) override;
-    void reset(robotik::Simulation& p_simulation,
+    void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Simulation& p_simulation, robotik::Seconds p_dt) override;
-    void measure(robotik::Simulation const& p_simulation,
+    void step(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
+    void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
     [[nodiscard]] robotik::Status
-    status(robotik::Simulation const& p_simulation) const override;
+    status(robotik::Cell const& p_cell) const override;
 
     // -------------------------------------------------------------------------
     /// @brief Swaps the 13-neuron circuit for the FlyWire connectome (or
@@ -161,7 +161,7 @@ private:
     std::unique_ptr<FlyEnvironment> m_environment;
     std::unique_ptr<FlyBrain> m_brain;
     FlyBackend* m_backend = nullptr;
-    robotik::Simulation* m_simulation = nullptr;
+    robotik::Cell* m_simulation = nullptr;
     std::filesystem::path m_tables;
     FlyBrain::Kind m_kind = FlyBrain::Kind::Shiu;
     robotik::Seed m_seed;

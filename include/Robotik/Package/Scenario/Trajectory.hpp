@@ -35,61 +35,19 @@
 /// @endcode
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
+#include "Robotik/Task/CellDescription.hpp"
 
-#include <cstdint>
 #include <filesystem>
-#include <string>
-#include <vector>
 
 namespace robotik
 {
 
-// ****************************************************************************
-/// Parsed trajectory file.
-///
-/// A cartesian trajectory fills @ref frame and @ref poses; a joint
-/// trajectory fills @ref joints and @ref configurations. The other fields
-/// stay empty.
-///
-/// @code
-/// auto const path = robotik::Trajectory::load(file);
-/// if (path.type == robotik::Trajectory::Type::Joint)
-///     for (auto const& q : path.configurations)
-///         follow(path.joints, q);
-/// @endcode
-// ****************************************************************************
-struct Trajectory
-{
-    // ------------------------------------------------------------------------
-    /// What a point of the trajectory describes.
-    // ------------------------------------------------------------------------
-    enum class Type : std::uint8_t
-    {
-        Cartesian, ///< Tool poses in a frame.
-        Joint,     ///< Joint values.
-    };
-
-    // ------------------------------------------------------------------------
-    /// Reads a @c x.trajectory.yaml file.
-    /// @param p_path File to read.
-    /// @return The parsed trajectory.
-    /// @throws std::runtime_error naming the file and the field at fault.
-    // ------------------------------------------------------------------------
-    [[nodiscard]] static Trajectory load(std::filesystem::path const& p_path);
-
-    /// File the trajectory was read from.
-    std::filesystem::path file;
-    /// Cartesian or joint trajectory.
-    Type type = Type::Cartesian;
-    /// Frame of the cartesian points (entity or entity.link); empty: world.
-    std::string frame;
-    /// Cartesian points, in @ref frame.
-    std::vector<Pose> poses;
-    /// Joint names of a joint trajectory.
-    std::vector<std::string> joints;
-    /// One configuration per point, aligned with @ref joints.
-    std::vector<std::vector<double>> configurations;
-};
+// ----------------------------------------------------------------------------
+/// Reads a @c x.trajectory.yaml file.
+/// @param p_path File to read.
+/// @return The parsed trajectory.
+/// @throws std::runtime_error naming the file and the field at fault.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Trajectory loadTrajectory(std::filesystem::path const& p_path);
 
 } // namespace robotik
