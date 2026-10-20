@@ -106,7 +106,7 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         }
         robotik::Vector3 const at = inBase(p_context, object->position);
         double const top =
-            inBase(p_context, robotik::Vector3(0.0, 0.0, object->top())).z;
+            inBase(p_context, robotik::Vector3(0.0, 0.0, robotik::top(*object))).z;
         double const height = top + m_clearance.value() + cup->length().value();
         robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);

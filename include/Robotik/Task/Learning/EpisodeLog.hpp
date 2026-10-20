@@ -38,7 +38,7 @@ namespace robotik
 /// log.control_period = env.timing().control_period.value();
 /// log.max_steps = env.timing().max_steps;
 /// std::ofstream file("episodes.json");
-/// log.write(file, episodes);
+/// robotik::writeEpisodeLog(log, file, episodes);
 /// @endcode
 // ****************************************************************************
 struct EpisodeLog
@@ -57,14 +57,17 @@ struct EpisodeLog
     double control_period = 0.0;
     /// Episode length limit, in steps.
     std::uint32_t max_steps = 0;
-
-    // ------------------------------------------------------------------------
-    /// Writes the log as JSON: the context, RobotIK version and commit, then
-    /// one entry per episode (environment, index, seed, return, steps, end).
-    /// @param p_out Stream receiving the JSON.
-    /// @param p_episodes Episodes to write, in the order given.
-    // ------------------------------------------------------------------------
-    void write(std::ostream& p_out, std::span<Episode const> p_episodes) const;
 };
+
+// ----------------------------------------------------------------------------
+/// Writes the log as JSON: the context, RobotIK version and commit, then one
+/// entry per episode (environment, index, seed, return, steps, end).
+/// @param p_log Context of the episodes.
+/// @param p_out Stream receiving the JSON.
+/// @param p_episodes Episodes to write, in the order given.
+// ----------------------------------------------------------------------------
+void writeEpisodeLog(EpisodeLog const& p_log,
+                     std::ostream& p_out,
+                     std::span<Episode const> p_episodes);
 
 } // namespace robotik

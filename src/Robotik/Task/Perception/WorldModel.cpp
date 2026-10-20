@@ -115,7 +115,7 @@ void WorldModel::update(Detections const& p_detections)
             Vector3 const ray =
                 camera.rotation * p_detections.intrinsics.ray(
                                       detection.center[0], detection.center[1]);
-            double const height = object->top() - camera.position.z;
+            double const height = top(*object) - camera.position.z;
             if (std::abs(ray.z) < 1e-9 || height / ray.z <= 0.0)
             {
                 continue;

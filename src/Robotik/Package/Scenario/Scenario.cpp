@@ -58,7 +58,7 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node,
         }
         try
         {
-            literals.push_back(must(Literal::parse(item.scalar())));
+            literals.push_back(must(parseLiteral(item.scalar())));
         }
         catch (std::runtime_error const& error)
         {
@@ -114,7 +114,7 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     return spec;
 }
 
-Result<ScenarioSource> ScenarioSource::load(std::filesystem::path const& p_scenario)
+Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenario)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
@@ -154,21 +154,17 @@ Result<ScenarioSource> ScenarioSource::load(std::filesystem::path const& p_scena
     }
 }
 
-void ScenarioSource::override(std::string_view p_path, ConfigNode p_value)
+Result<void> overrideValue(ScenarioSource& p_source, std::string_view p_path, ConfigNode p_value)
 {
     if (p_path.starts_with("world."))
     {
-        world.set(p_path, std::move(p_value));
+        return p_source.world.set(p_path, std::move(p_value));
     }
-    else if (p_path.starts_with("scenario."))
+    if (p_path.starts_with("scenario."))
     {
-        scenario.set(p_path, std::move(p_value));
+        return p_source.scenario.set(p_path, std::move(p_value));
     }
-    else
-    {
-        throw std::runtime_error("Override '" + std::string(p_path) +
-                                 "' must start with scenario. or world.");
-    }
+    return failure("Override '" + std::string(p_path) + "' must start with scenario. or world.");
 }
 
 /// Maps the words abstract and rigid onto the fidelity enum.
@@ -217,7 +213,7 @@ static void checkPhysics(Scenario const& p_scenario)
 {
     for (auto const& [id, level] : p_scenario.physics.overrides)
     {
-        bool known = p_scenario.world.find(id) != nullptr;
+        bool known = findEntity(p_scenario.world, id) != nullptr;
         for (EntitySpec const& entity : p_scenario.world.entities)
         {
             for (ActuatorSpec const& actuator : entity.actuators)
@@ -305,8 +301,7 @@ static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
     perception.max_age = Seconds(p_node.number("max_age", perception.max_age.value()));
 }
 
-Result<Scenario> Scenario::read(ScenarioSource const& p_source,
-                                AssetResolver const& p_assets)
+Result<Scenario> readScenario(ScenarioSource const& p_source, AssetResolver const& p_assets)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
@@ -358,7 +353,7 @@ Result<Scenario> Scenario::read(ScenarioSource const& p_source,
             scenario.parameters = node.at("parameters");
             for (ConfigNode const& item : node.at("assertions").items())
             {
-                scenario.assertions.push_back(AssertionSpec::read(item));
+                scenario.assertions.push_back(must(readAssertion(item)));
             }
         }
         catch (std::runtime_error const& error)

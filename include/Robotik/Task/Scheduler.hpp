@@ -15,6 +15,7 @@
 #pragma once
 
 #include "Robotik/Robot/Resources.hpp"
+#include "Robotik/Common/Signal.hpp"
 #include "Robotik/Task/Skills/Skill.hpp"
 
 #include <concepts>
@@ -199,6 +200,21 @@ public:
     /// Forgets every run and releases every resource (episode reset).
     // -------------------------------------------------------------------------
     void reset();
+
+    // -------------------------------------------------------------------------
+    /// Emitted when a skill is requested (@c Waiting), starts (@c Running) or
+    /// ends (@c Succeeded, @c Failed, @c Cancelled), with the skill and its
+    /// new state. Not emitted by @ref reset. A slot must not call the
+    /// scheduler back.
+    ///
+    /// @code
+    /// skills.changed.connect([&](robotik::SkillId p_id, robotik::SkillState p_state) {
+    ///     if (p_state == robotik::SkillState::Failed)
+    ///         std::cerr << skills.name(p_id) << " failed\n";
+    /// });
+    /// @endcode
+    // -------------------------------------------------------------------------
+    Signal<SkillId, SkillState> changed;
 
     // --- Introspection ------------------------------------------------------
 

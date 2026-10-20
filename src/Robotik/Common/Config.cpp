@@ -324,7 +324,7 @@ ConfigNode* ConfigNode::child(std::string_view p_segment)
     return nullptr;
 }
 
-void ConfigNode::set(std::string_view p_path, ConfigNode p_value)
+Result<void> ConfigNode::set(std::string_view p_path, ConfigNode p_value)
 {
     ConfigNode* node = this;
     std::string_view rest = p_path;
@@ -335,15 +335,15 @@ void ConfigNode::set(std::string_view p_path, ConfigNode p_value)
         ConfigNode* const next = node->child(segment);
         if (next == nullptr)
         {
-            throw std::runtime_error("Override '" + std::string(p_path) +
-                                     "': no '" + std::string(segment) +
-                                     "' here");
+            return failure("Override '" + std::string(p_path) + "': no '" +
+                           std::string(segment) + "' here");
         }
         node = next;
         rest = dot == std::string_view::npos ? std::string_view{}
                                              : rest.substr(dot + 1u);
     }
     *node = std::move(p_value);
+    return success();
 }
 
 void ConfigNode::push(ConfigNode p_value)

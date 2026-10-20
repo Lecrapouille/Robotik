@@ -23,7 +23,7 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
     {
         PrismaticLimits const limits =
             p_joints.limits(p_joints.prismatic(p_id));
-        if (limits.bounded())
+        if (bounded(limits))
         {
             return std::clamp(
                 p_value, limits.lower.value(), limits.upper.value());
@@ -32,7 +32,7 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
     else
     {
         RevoluteLimits const limits = p_joints.limits(p_joints.revolute(p_id));
-        if (limits.bounded())
+        if (bounded(limits))
         {
             return std::clamp(
                 p_value, limits.lower.value(), limits.upper.value());

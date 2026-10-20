@@ -21,12 +21,12 @@ static robotik::Scenario
 pickAndPlace(char const* p_file,
              std::vector<std::pair<char const*, char const*>> const& p_changes)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(p_file)).take();
+    robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(p_file)).take();
     for (auto const& [path, value] : p_changes)
     {
-        source.override(path, robotik::ConfigNode(value));
+        EXPECT_TRUE(robotik::overrideValue(source, path, robotik::ConfigNode(value)));
     }
-    return robotik::Scenario::read(source, testAssets()).take();
+    return robotik::readScenario(source, testAssets()).take();
 }
 
 /// Steps until the run ends or @p_limit seconds.
@@ -77,7 +77,7 @@ TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
 
     // The report says it: a mocked perception is never hidden.
     runFor(simulation, 1.0);
-    robotik::RunRecord const record = robotik::RunRecord::capture(simulation, "case", {});
+    robotik::RunRecord const record = robotik::captureRun(simulation, "case", {});
     EXPECT_TRUE(record.oracle);
     EXPECT_NE(record.perception.find("truth"), std::string::npos) << record.perception;
     EXPECT_NE(record.perception.find("box: sensed"), std::string::npos) << record.perception;
@@ -100,7 +100,7 @@ TEST(PerceptionFidelity, NoisyTruthCanMissAnObject)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_FALSE(simulation.cell().worldModel().find("red_cube")->observed());
+    EXPECT_FALSE(observed(*simulation.cell().worldModel().find("red_cube")));
 }
 
 // ----------------------------------------------------------------------------

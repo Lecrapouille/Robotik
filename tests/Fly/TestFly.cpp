@@ -24,7 +24,7 @@
 /// Loads the obstacle-avoidance scenario of the fly.
 static FlyScenario flyScenario()
 {
-    return FlyScenario::from(robotik::Scenario::load(
+    return FlyScenario::from(robotik::loadScenario(
         repoFile(
             "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take());
@@ -50,7 +50,7 @@ static robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
             FlyObservation::from(observation), robotik::Seconds(scenario.dt));
         decided.write(action);
         result = environment.step(action, observation);
-        if (result.done())
+        if (done(result))
         {
             break;
         }
@@ -100,7 +100,7 @@ TEST(FlyBrain, ReflexReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Reflex, end);
-    EXPECT_TRUE(result.terminated())
+    EXPECT_TRUE(terminated(result))
         << "x=" << end.plant.x << " y=" << end.plant.y
         << " yaw=" << end.plant.yaw << " steps=" << end.steps;
 }
@@ -109,7 +109,7 @@ TEST(FlyBrain, ShiuReachesTheFood)
 {
     FlySnapshot end;
     robotik::StepResult const result = flyToFood(FlyBrain::Kind::Shiu, end);
-    EXPECT_TRUE(result.terminated())
+    EXPECT_TRUE(terminated(result))
         << "x=" << end.plant.x << " y=" << end.plant.y
         << " yaw=" << end.plant.yaw << " steps=" << end.steps;
 }
@@ -148,7 +148,7 @@ TEST(FlyTrace, RoundTrip)
 
 TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
 {
-    robotik::Scenario const scenario = robotik::Scenario::load(
+    robotik::Scenario const scenario = robotik::loadScenario(
         repoFile(
             "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take();

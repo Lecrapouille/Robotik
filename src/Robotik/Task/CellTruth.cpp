@@ -153,7 +153,7 @@ Cell::Record const& Cell::require(std::string_view p_id) const
     {
         return *found;
     }
-    if (EntitySpec const* spec = m_description.world.find(p_id);
+    if (EntitySpec const* spec = findEntity(m_description.world, p_id);
         spec != nullptr && spec->type == EntitySpec::Type::Tool)
     {
         throw std::invalid_argument("tool '" + std::string(p_id) +
@@ -526,13 +526,13 @@ Cell::call(std::string const& p_name,
     if (p_name == "tool_is_attached")
     {
         arity(p_name, p_args, 2u, 2u);
-        EntitySpec const* tool = m_description.world.find(p_args[0]);
+        EntitySpec const* tool = findEntity(m_description.world, p_args[0]);
         if (tool == nullptr || tool->type != EntitySpec::Type::Tool)
         {
             throw std::invalid_argument("'" + p_args[0] + "' is not a tool");
         }
         EntitySpec const* mounted =
-            tool->attach ? m_description.world.mountedTool(tool->attach->parent)
+            tool->attach ? mountedTool(m_description.world, tool->attach->parent)
                          : nullptr;
         bool const attached =
             mounted == tool && p_args[1] == mounted->attach->parent + "." +

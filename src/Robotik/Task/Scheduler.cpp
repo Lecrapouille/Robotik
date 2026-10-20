@@ -127,6 +127,7 @@ void SkillScheduler::request(SkillId p_id)
     m_cancels[p_id] = 0u;
     m_orders[p_id] = m_order++;
     m_runs[p_id] = -1;
+    changed(p_id, SkillState::Waiting);
 }
 
 void SkillScheduler::cancel(SkillId p_id)
@@ -205,6 +206,7 @@ void SkillScheduler::finish(SkillId p_id,
     m_reasons[p_id] = p_reason;
     m_cancels[p_id] = 0u;
     record(p_id, p_now);
+    changed(p_id, p_state);
 }
 
 RobotContext& SkillScheduler::contextOf(SkillId p_id) const
@@ -336,6 +338,7 @@ void SkillScheduler::admit(SkillId p_id)
             m_blockers[p_id] = NO_RESOURCE;
             m_skills[p_id]->reset();
             record(p_id, now);
+            changed(p_id, SkillState::Running);
             return;
         }
         if (!preempt(p_id, conflict))

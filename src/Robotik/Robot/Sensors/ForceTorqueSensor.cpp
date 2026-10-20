@@ -55,8 +55,8 @@ bool ForceTorqueSensor::sample(Robot const& p_robot, Seconds p_now)
     reading.frame = m_config.link;
     reading.sequence = samples() + 1u;
     reading.valid = true;
-    reading.wrench.force = m_config.force.apply(wrench->force, m_random);
-    reading.wrench.torque = m_config.torque.apply(wrench->torque, m_random);
+    reading.wrench.force = applyNoise(m_config.force, wrench->force, m_random);
+    reading.wrench.torque = applyNoise(m_config.torque, wrench->torque, m_random);
     m_readings.push(p_now, std::move(reading));
     m_holder = p_robot.link(m_config.link);
     return true;

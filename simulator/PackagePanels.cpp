@@ -142,7 +142,7 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
     }
     field("id", "%s", scenario.id.c_str());
     field("world", "%s", scenario.world.id.c_str());
-    field("robot", "%s", scenario.world.robot().model_ref.c_str());
+    field("robot", "%s", robotik::firstRobot(scenario.world).model_ref.c_str());
     std::string const controller =
         scenario.controller.planner
             ? "PDDL planner, " +

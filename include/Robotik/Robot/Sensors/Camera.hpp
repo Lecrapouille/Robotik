@@ -18,6 +18,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Signal.hpp"
 #include "Robotik/Common/Random.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
 #include "Robotik/Robot/Sensors/Measurements.hpp"
@@ -236,13 +237,19 @@ public:
         return m_frame;
     }
 
+    /// Emitted after every capture with the new frame, to the slots in
+    /// connection order.
+    Signal<CameraFrame const&> frames;
+
     // -------------------------------------------------------------------------
-    /// Calls a function after every capture, in registration order.
+    /// Calls a function after every capture (a shortcut for
+    /// @c frames.connect).
     /// @param p_callback Function receiving the frame.
+    /// @return Handle to disconnect it from @ref frames.
     // -------------------------------------------------------------------------
-    void onFrame(Callback p_callback)
+    Signal<CameraFrame const&>::Id onFrame(Callback p_callback)
     {
-        m_callbacks.push_back(std::move(p_callback));
+        return frames.connect(std::move(p_callback));
     }
 
     // -------------------------------------------------------------------------
@@ -273,8 +280,6 @@ private:
     FrameSource* m_source = nullptr;
     /// Last captured frame.
     CameraFrame m_frame;
-    /// Functions called after each capture.
-    std::vector<Callback> m_callbacks;
     /// Noise generator.
     Random m_random;
 };

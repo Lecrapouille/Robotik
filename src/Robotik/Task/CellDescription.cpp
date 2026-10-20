@@ -18,31 +18,35 @@ namespace robotik
 static constexpr char const* FLANGE = "flange";
 static constexpr char const* TOOL_MOUNT = "tool_mount";
 
-EntitySpec const* WorldDescription::find(std::string_view p_id) const
+// ----------------------------------------------------------------------------
+EntitySpec const* findEntity(WorldDescription const& p_world, std::string_view p_id)
 {
-    auto const found = std::find_if(entities.begin(),
-                                    entities.end(),
+    auto const found = std::find_if(p_world.entities.begin(),
+                                    p_world.entities.end(),
                                     [p_id](EntitySpec const& p_entity)
                                     { return p_entity.id == p_id; });
-    return found == entities.end() ? nullptr : &*found;
+    return found == p_world.entities.end() ? nullptr : &*found;
 }
 
-EntitySpec const& WorldDescription::robot() const
+// ----------------------------------------------------------------------------
+EntitySpec const& firstRobot(WorldDescription const& p_world)
 {
-    for (EntitySpec const& spec : entities)
+    for (EntitySpec const& spec : p_world.entities)
     {
         if (spec.type == EntitySpec::Type::Robot)
         {
             return spec;
         }
     }
-    throw std::logic_error("World '" + id + "' has no robot");
+    // The readers refuse a world without robot: reaching here is a bug.
+    throw std::logic_error("World '" + p_world.id + "' has no robot");
 }
 
-std::vector<EntitySpec const*> WorldDescription::robots() const
+// ----------------------------------------------------------------------------
+std::vector<EntitySpec const*> robotsOf(WorldDescription const& p_world)
 {
     std::vector<EntitySpec const*> result;
-    for (EntitySpec const& spec : entities)
+    for (EntitySpec const& spec : p_world.entities)
     {
         if (spec.type == EntitySpec::Type::Robot)
         {
@@ -52,17 +56,14 @@ std::vector<EntitySpec const*> WorldDescription::robots() const
     return result;
 }
 
-EntitySpec const* WorldDescription::mountedTool() const
+// ----------------------------------------------------------------------------
+EntitySpec const* mountedTool(WorldDescription const& p_world, std::string_view p_robot)
 {
-    return mountedTool(robot().id);
-}
-
-EntitySpec const* WorldDescription::mountedTool(std::string_view p_robot) const
-{
-    for (EntitySpec const& spec : entities)
+    std::string const robot = p_robot.empty() ? firstRobot(p_world).id : std::string(p_robot);
+    for (EntitySpec const& spec : p_world.entities)
     {
         if (spec.type == EntitySpec::Type::Tool && spec.attach &&
-            spec.attach->parent == p_robot)
+            spec.attach->parent == robot)
         {
             return &spec;
         }
@@ -70,20 +71,20 @@ EntitySpec const* WorldDescription::mountedTool(std::string_view p_robot) const
     return nullptr;
 }
 
-void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
+// ----------------------------------------------------------------------------
+Result<void> mountTool(WorldDescription& p_world, std::string_view p_id, std::string_view p_robot)
 {
     std::string const robot_id =
-        p_robot.empty() ? robot().id : std::string(p_robot);
-    EntitySpec const* owner = find(robot_id);
+        p_robot.empty() ? firstRobot(p_world).id : std::string(p_robot);
+    EntitySpec const* owner = findEntity(p_world, robot_id);
     if (owner == nullptr || owner->type != EntitySpec::Type::Robot)
     {
-        throw std::invalid_argument("World '" + id + "' has no robot '" +
-                                    robot_id + "'");
+        return failure("World '" + p_world.id + "' has no robot '" + robot_id + "'");
     }
     EntitySpec* chosen = nullptr;
     if (!p_id.empty())
     {
-        for (EntitySpec& spec : entities)
+        for (EntitySpec& spec : p_world.entities)
         {
             if (spec.id == p_id && spec.type == EntitySpec::Type::Tool)
             {
@@ -92,11 +93,10 @@ void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
         }
         if (chosen == nullptr)
         {
-            throw std::invalid_argument("World '" + id + "' has no tool '" +
-                                        std::string(p_id) + "'");
+            return failure("World '" + p_world.id + "' has no tool '" + std::string(p_id) + "'");
         }
     }
-    for (EntitySpec& spec : entities)
+    for (EntitySpec& spec : p_world.entities)
     {
         if (spec.type == EntitySpec::Type::Tool && spec.attach &&
             (spec.attach->parent == robot_id || &spec == chosen))
@@ -110,9 +110,10 @@ void WorldDescription::mount(std::string_view p_id, std::string_view p_robot)
             robot_id, FLANGE, TOOL_MOUNT, Pose{ Vector3::ZERO, Quaternion{} }
         };
     }
+    return success();
 }
 
-
+// ----------------------------------------------------------------------------
 char const* toString(Fidelity p_fidelity)
 {
     switch (p_fidelity)

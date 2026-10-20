@@ -24,7 +24,7 @@
 /// parts.action = std::make_unique<MyAction>();
 /// parts.reward = std::make_unique<MyReward>();
 /// robotik::SimulationEnvironment env(
-///     robotik::Scenario::load(path, assets), std::move(parts), // a CellDescription
+///     robotik::loadScenario(path, assets), std::move(parts), // a CellDescription
 ///     robotik::EnvironmentTiming{ .control_period = Seconds(0.1), .max_steps =
 ///     100 });
 /// @endcode

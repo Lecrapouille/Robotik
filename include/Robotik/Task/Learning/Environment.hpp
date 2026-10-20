@@ -70,25 +70,25 @@ struct StepResult
     float reward = 0.0f;
     /// Why the episode ended, or @c None.
     EpisodeEnd end = EpisodeEnd::None;
-
-    /// @return True when the task ended (success or unrecoverable failure).
-    [[nodiscard]] bool terminated() const
-    {
-        return end == EpisodeEnd::Success || end == EpisodeEnd::Failure;
-    }
-
-    /// @return True when the episode was cut; the task did not end.
-    [[nodiscard]] bool truncated() const
-    {
-        return end == EpisodeEnd::TimeLimit || end == EpisodeEnd::Aborted;
-    }
-
-    /// @return True when the episode ended, for any reason.
-    [[nodiscard]] bool done() const
-    {
-        return end != EpisodeEnd::None;
-    }
 };
+
+/// @return True when the task ended (success or unrecoverable failure).
+[[nodiscard]] inline bool terminated(StepResult const& p_result)
+{
+    return p_result.end == EpisodeEnd::Success || p_result.end == EpisodeEnd::Failure;
+}
+
+/// @return True when the episode was cut; the task did not end.
+[[nodiscard]] inline bool truncated(StepResult const& p_result)
+{
+    return p_result.end == EpisodeEnd::TimeLimit || p_result.end == EpisodeEnd::Aborted;
+}
+
+/// @return True when the episode ended, for any reason.
+[[nodiscard]] inline bool done(StepResult const& p_result)
+{
+    return p_result.end != EpisodeEnd::None;
+}
 
 // ****************************************************************************
 /// One simulated world an agent acts in.
@@ -176,13 +176,13 @@ struct Episode
     std::uint32_t steps = 0;
     /// Why it ended.
     EpisodeEnd end = EpisodeEnd::None;
-
-    /// @return True when the task ended (success or failure), not cut.
-    [[nodiscard]] bool terminated() const
-    {
-        return end == EpisodeEnd::Success || end == EpisodeEnd::Failure;
-    }
 };
+
+/// @return True when the task ended (success or failure), not cut.
+[[nodiscard]] inline bool terminated(Episode const& p_episode)
+{
+    return p_episode.end == EpisodeEnd::Success || p_episode.end == EpisodeEnd::Failure;
+}
 
 // ****************************************************************************
 /// N environments stepped together on worker threads.

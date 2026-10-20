@@ -77,7 +77,7 @@ struct PlannerSummary
 ///
 /// @code
 /// robotik::RunRecord const record =
-///     robotik::RunRecord::capture(simulation, "nominal", { "time", "laps" });
+///     robotik::captureRun(simulation, "nominal", { "time", "laps" });
 /// std::cout << record.case_id << ": " << (record.passed ? "pass" : "FAIL") <<
 /// '\n';
 /// @endcode
@@ -113,19 +113,18 @@ struct RunRecord
     PlannerSummary planner;
     /// Why the run could not be built or started, if it was not.
     std::string error;
-
-    // -------------------------------------------------------------------------
-    /// Takes a snapshot of a concluded simulation.
-    /// @param p_simulation Simulation whose run has ended.
-    /// @param p_case Case id to record.
-    /// @param p_metrics Names or queries of the values to measure now.
-    /// @return The record.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static RunRecord
-    capture(Simulation const& p_simulation,
-            std::string p_case,
-            std::vector<std::string> const& p_metrics);
 };
+
+// ----------------------------------------------------------------------------
+/// Takes a snapshot of a concluded simulation.
+/// @param p_simulation Simulation whose run has ended.
+/// @param p_case Case id to record.
+/// @param p_metrics Names or queries of the values to measure now.
+/// @return The record.
+// ----------------------------------------------------------------------------
+[[nodiscard]] RunRecord captureRun(Simulation const& p_simulation,
+                                   std::string p_case,
+                                   std::vector<std::string> const& p_metrics);
 
 // ****************************************************************************
 /// Every run of an experiment (or the single run of a scenario).
@@ -134,10 +133,10 @@ struct RunRecord
 /// robotik::RunReport report;
 /// report.experiment = experiment.id;
 /// report.runs.push_back(record);
-/// report.writeText(std::cout);
+/// robotik::writeText(report, std::cout);
 /// std::ofstream json("report.json");
-/// report.writeJson(json);
-/// return report.passed() ? 0 : 2;
+/// robotik::writeJson(report, json);
+/// return robotik::passed(report) ? 0 : 2;
 /// @endcode
 // ****************************************************************************
 struct RunReport
@@ -146,24 +145,27 @@ struct RunReport
     std::string experiment;
     /// Every run, in the order they ran.
     std::vector<RunRecord> runs;
-
-    // -------------------------------------------------------------------------
-    /// @return True when every run passed.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool passed() const;
-
-    // -------------------------------------------------------------------------
-    /// Writes a summary for a human: one line per run, then the failed
-    /// assertions.
-    /// @param p_out Stream receiving the text.
-    // -------------------------------------------------------------------------
-    void writeText(std::ostream& p_out) const;
-
-    // -------------------------------------------------------------------------
-    /// Writes the whole report as JSON (for scripts comparing runs).
-    /// @param p_out Stream receiving the JSON.
-    // -------------------------------------------------------------------------
-    void writeJson(std::ostream& p_out) const;
 };
+
+// ----------------------------------------------------------------------------
+/// @param p_report Report to read.
+/// @return True when every run passed.
+// ----------------------------------------------------------------------------
+[[nodiscard]] bool passed(RunReport const& p_report);
+
+// ----------------------------------------------------------------------------
+/// Writes a summary for a human: one line per run, then the failed
+/// assertions.
+/// @param p_report Report to write.
+/// @param p_out Stream receiving the text.
+// ----------------------------------------------------------------------------
+void writeText(RunReport const& p_report, std::ostream& p_out);
+
+// ----------------------------------------------------------------------------
+/// Writes the whole report as JSON (for scripts comparing runs).
+/// @param p_report Report to write.
+/// @param p_out Stream receiving the JSON.
+// ----------------------------------------------------------------------------
+void writeJson(RunReport const& p_report, std::ostream& p_out);
 
 } // namespace robotik

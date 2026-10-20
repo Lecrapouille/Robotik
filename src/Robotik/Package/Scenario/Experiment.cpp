@@ -51,13 +51,13 @@ static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
     }
 }
 
-bool Experiment::describes(std::filesystem::path const& p_path)
+bool isExperiment(std::filesystem::path const& p_path)
 {
     Result<ConfigNode> const document = ConfigNode::load(p_path);
     return document && document.value().has("experiment");
 }
 
-Result<Experiment> Experiment::load(std::filesystem::path const& p_path)
+Result<Experiment> loadExperiment(std::filesystem::path const& p_path)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
@@ -135,7 +135,7 @@ Result<Experiment> Experiment::load(std::filesystem::path const& p_path)
             ConfigNode const& evaluation = node.at("evaluation");
             for (ConfigNode const& item : evaluation.at("assertions").items())
             {
-                experiment.assertions.push_back(AssertionSpec::read(item));
+                experiment.assertions.push_back(must(readAssertion(item)));
             }
             experiment.metrics = evaluation.strings("metrics");
         }
@@ -152,31 +152,28 @@ Result<Experiment> Experiment::load(std::filesystem::path const& p_path)
     }
 }
 
-Result<Scenario> Experiment::scenario(ExperimentCase const& p_case,
-                                      AssetResolver const& p_assets) const
+Result<Scenario> scenarioOf(Experiment const& p_experiment,
+                            ExperimentCase const& p_case,
+                            AssetResolver const& p_assets)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
     {
-        ScenarioSource source = must(ScenarioSource::load(p_case.scenario));
-        if (!world.empty())
+        ScenarioSource source = must(loadScenarioSource(p_case.scenario));
+        if (!p_experiment.world.empty())
         {
-            source.world = must(ConfigNode::load(world));
-            source.world_file = world;
+            source.world = must(ConfigNode::load(p_experiment.world));
+            source.world_file = p_experiment.world;
         }
         for (auto const& [path, value] : p_case.overrides)
         {
-            try
+            if (Result<void> const changed = overrideValue(source, path, value); !changed)
             {
-                source.override(path, value);
-            }
-            catch (std::runtime_error const& error)
-            {
-                throw std::runtime_error(file.string() + ", case '" + p_case.id +
-                                         "': " + error.what());
+                return failure(p_experiment.file.string() + ", case '" + p_case.id +
+                               "': " + changed.error());
             }
         }
-        Scenario scenario = must(Scenario::read(source, p_assets));
+        Scenario scenario = must(readScenario(source, p_assets));
         if (!p_case.behavior_tree.empty())
         {
             scenario.controller.behavior_tree = p_case.behavior_tree;
@@ -192,7 +189,7 @@ Result<Scenario> Experiment::scenario(ExperimentCase const& p_case,
                                       p_case.random_faults.begin(),
                                       p_case.random_faults.end());
         scenario.assertions.insert(
-            scenario.assertions.end(), assertions.begin(), assertions.end());
+            scenario.assertions.end(), p_experiment.assertions.begin(), p_experiment.assertions.end());
         return scenario;
     }
     catch (std::exception const& error)

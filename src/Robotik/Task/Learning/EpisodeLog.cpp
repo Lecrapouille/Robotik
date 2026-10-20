@@ -63,21 +63,22 @@ static void writeSpace(std::ostream& p_out, Space const& p_space)
     p_out << ']';
 }
 
-void EpisodeLog::write(std::ostream& p_out,
-                       std::span<Episode const> p_episodes) const
+void writeEpisodeLog(EpisodeLog const& p_log,
+                     std::ostream& p_out,
+                     std::span<Episode const> p_episodes)
 {
     p_out << "{\n  \"robotik\": { \"version\": "
           << quoted(project::info::version::full)
           << ", \"commit\": " << quoted(project::info::git::sha1) << " },\n"
-          << "  \"scenario\": " << quoted(scenario) << ",\n"
-          << "  \"policy\": " << quoted(policy) << ",\n"
-          << "  \"master_seed\": " << master_seed << ",\n"
-          << "  \"control_period\": " << number(control_period) << ",\n"
-          << "  \"max_steps\": " << max_steps << ",\n"
+          << "  \"scenario\": " << quoted(p_log.scenario) << ",\n"
+          << "  \"policy\": " << quoted(p_log.policy) << ",\n"
+          << "  \"master_seed\": " << p_log.master_seed << ",\n"
+          << "  \"control_period\": " << number(p_log.control_period) << ",\n"
+          << "  \"max_steps\": " << p_log.max_steps << ",\n"
           << "  \"observation\": ";
-    writeSpace(p_out, observation);
+    writeSpace(p_out, p_log.observation);
     p_out << ",\n  \"action\": ";
-    writeSpace(p_out, action);
+    writeSpace(p_out, p_log.action);
     p_out << ",\n  \"episodes\": [";
     for (std::size_t i = 0; i < p_episodes.size(); ++i)
     {

@@ -129,7 +129,7 @@ Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
         // Default target: hover above the object's reported top + clearance.
         Vector3 at = object->position;
         double const yaw = std::atan2(at.y, at.x);
-        robotik::Length height = robotik::Length(object->top()) + m_clearance + gripper->length();
+        robotik::Length height = robotik::Length(top(*object)) + m_clearance + gripper->length();
 
         // If the object is a box, calculate the TCP height above the inner
         // floor.

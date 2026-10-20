@@ -169,7 +169,7 @@ int main(int argc, char** argv)
     {
         LineFollowerMission mission(options.laps);
         robotik::Result<robotik::Scenario> loaded =
-            robotik::Scenario::load(options.scenario, robotik::AssetResolver::standard());
+            robotik::loadScenario(options.scenario, robotik::AssetResolver::standard());
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

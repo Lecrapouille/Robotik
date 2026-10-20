@@ -50,7 +50,7 @@ static JointInfo infoOf(robotik::JointSet const& p_joints,
         info.upper = limits.upper.value();
         info.velocity = limits.velocity.value();
         info.effort = limits.effort.value();
-        info.bounded = limits.bounded();
+        info.bounded = robotik::bounded(limits);
         return info;
     }
     auto const limits = p_joints.limits(p_joints.revolute(p_id));
@@ -58,7 +58,7 @@ static JointInfo infoOf(robotik::JointSet const& p_joints,
     info.upper = limits.upper.value();
     info.velocity = limits.velocity.value();
     info.effort = limits.effort.value();
-    info.bounded = limits.bounded();
+    info.bounded = robotik::bounded(limits);
     info.unit = DEGREES;
     info.position_unit = "°";
     info.velocity_unit = "°/s";
@@ -81,7 +81,7 @@ static void header(App& p_app)
     ImGui::TextUnformatted(robot.name().c_str());
     ImGui::SameLine();
     ImGui::TextDisabled("%s  ·  %zu joints",
-                        scenario.world.robot().model_ref.c_str(),
+                        robotik::firstRobot(scenario.world).model_ref.c_str(),
                         robot.joints().size());
 
     // Who moves the robot: the mission, or the operator.

@@ -96,7 +96,7 @@ FlyScenario FlyScenario::from(robotik::CellDescription const& p_scenario)
         parameters.number("layout_jitter", scenario.layout_jitter);
     scenario.arena = parameters.vector3("arena", scenario.arena);
 
-    robotik::EntitySpec const& fly = p_scenario.world.robot();
+    robotik::EntitySpec const& fly = robotik::firstRobot(p_scenario.world);
     scenario.robot_model = fly.model;
     scenario.fly.x = fly.pose.position.x;
     scenario.fly.y = fly.pose.position.y;

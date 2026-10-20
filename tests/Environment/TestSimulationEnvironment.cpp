@@ -29,7 +29,7 @@ static robotik::EnvironmentTiming timing(std::uint32_t p_max_steps)
 /// Loads the pick-and-place scenario used by these tests.
 static robotik::Scenario scenario()
 {
-    return robotik::Scenario::load(
+    return robotik::loadScenario(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
         testAssets()).take();
 }
@@ -107,8 +107,8 @@ TEST(SimulationEnvironment, TimeLimitTruncatesWithoutEndingTheTask)
         result = environment.step(still, observation);
     }
     EXPECT_EQ(result.end, robotik::EpisodeEnd::TimeLimit);
-    EXPECT_TRUE(result.truncated());
-    EXPECT_FALSE(result.terminated());
+    EXPECT_TRUE(truncated(result));
+    EXPECT_FALSE(terminated(result));
     EXPECT_FLOAT_EQ(observation[14], 1.0f) << "progress";
     EXPECT_NEAR(environment.simulation().time().value(), 0.3, 1e-9)
         << "three control periods";
@@ -129,7 +129,7 @@ TEST(SimulationEnvironment, ATechnicalErrorAbortsTheEpisode)
               robotik::EpisodeEnd::None);
     robotik::StepResult const result = environment.step(action, observation);
     EXPECT_EQ(result.end, robotik::EpisodeEnd::Aborted);
-    EXPECT_TRUE(result.truncated());
+    EXPECT_TRUE(truncated(result));
     EXPECT_EQ(environment.abortReason(), "no IK solution");
 }
 
@@ -159,7 +159,7 @@ TEST(EpisodeLog, KeepsWhatAReplayNeeds)
     episodes[0].seed = robotik::Seed{ 42 };
     episodes[0].end = robotik::EpisodeEnd::TimeLimit;
     std::ostringstream json;
-    log.write(json, episodes);
+    robotik::writeEpisodeLog(log, json, episodes);
     std::string const text = json.str();
     EXPECT_NE(text.find("\"commit\""), std::string::npos);
     EXPECT_NE(text.find("\"master_seed\": 9"), std::string::npos);

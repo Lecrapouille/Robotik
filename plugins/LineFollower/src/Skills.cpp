@@ -189,7 +189,7 @@ robotik::Status FollowLineSkill::tick(robotik::RobotContext& p_context,
 
     // Lift the line centroid onto the floor, in the base frame.
     robotik::Detections const& detections = m_perception.detections();
-    robotik::Detection const* line = detections.find("line");
+    robotik::Detection const* line = robotik::findDetection(detections, "line");
     if (line != nullptr && detections.stamp > m_seen)
     {
         m_seen = detections.stamp;

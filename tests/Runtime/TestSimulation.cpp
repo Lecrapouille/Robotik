@@ -47,7 +47,7 @@ static Outcome run(robotik::Simulation& p_simulation, robotik::Seed p_seed)
 TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 {
     robotik::Scenario const scenario =
-        robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
                                 testAssets()).take();
     EXPECT_EQ(scenario.id, "pick_and_place_faults");
@@ -58,7 +58,7 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 
     robotik::WorldDescription const& world = scenario.world;
     EXPECT_EQ(world.id, "pick_place_cell");
-    robotik::EntitySpec const& robot = world.robot();
+    robotik::EntitySpec const& robot = robotik::firstRobot(world);
     ASSERT_EQ(robot.sensors.size(), 1u);
     EXPECT_EQ(robot.sensors[0].name, "wrist_camera");
     EXPECT_EQ(robot.sensors[0].camera.parent, "link6");
@@ -66,7 +66,7 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 
     // The vacuum cup is a tool of its own, with its actuator; four other
     // tools wait in storage.
-    robotik::EntitySpec const* tool = world.mountedTool();
+    robotik::EntitySpec const* tool = robotik::mountedTool(world);
     ASSERT_NE(tool, nullptr);
     EXPECT_EQ(tool->id, "vacuum");
     ASSERT_EQ(tool->actuators.size(), 1u);
@@ -78,11 +78,11 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
                   { return p_entity.type == robotik::EntitySpec::Type::Tool; }),
               5);
 
-    robotik::EntitySpec const* cube = world.find("red_cube");
+    robotik::EntitySpec const* cube = robotik::findEntity(world, "red_cube");
     ASSERT_NE(cube, nullptr);
     EXPECT_EQ(cube->type, robotik::EntitySpec::Type::Prop);
     EXPECT_DOUBLE_EQ(cube->randomize[0][1], 0.02);
-    EXPECT_EQ(world.find("box")->shape->type,
+    EXPECT_EQ(robotik::findEntity(world, "box")->shape->type,
               robotik::ShapeSpec::Type::Container);
 
     ASSERT_EQ(scenario.faults.size(), 3u);
@@ -93,41 +93,38 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
 
 TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+    robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
         "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
-    source.override("world.entities.red_cube.pose.position",
-                    robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take());
-    source.override("world.entities.robot.sensors.wrist_camera.noise",
-                    robotik::ConfigNode("0.05"));
-    source.override("scenario.seed", robotik::ConfigNode("3"));
+    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.red_cube.pose.position",
+                    robotik::ConfigNode::parse("[0.30, 0.10, 0.02]").take()));
+    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.robot.sensors.wrist_camera.noise",
+                    robotik::ConfigNode("0.05")));
+    EXPECT_TRUE(robotik::overrideValue(source, "scenario.seed", robotik::ConfigNode("3")));
     robotik::Scenario const scenario =
-        robotik::Scenario::read(source, testAssets()).take();
+        robotik::readScenario(source, testAssets()).take();
     EXPECT_EQ(scenario.seed, 3u);
-    EXPECT_DOUBLE_EQ(scenario.world.find("red_cube")->pose.position.x, 0.30);
-    EXPECT_DOUBLE_EQ(scenario.world.robot().sensors[0].camera.noise, 0.05);
-    EXPECT_THROW(
-        source.override("world.entities.nobody.mass", robotik::ConfigNode("1")),
-        std::runtime_error);
-    EXPECT_THROW(source.override("seed", robotik::ConfigNode("1")),
-                 std::runtime_error);
+    EXPECT_DOUBLE_EQ(robotik::findEntity(scenario.world, "red_cube")->pose.position.x, 0.30);
+    EXPECT_DOUBLE_EQ(robotik::firstRobot(scenario.world).sensors[0].camera.noise, 0.05);
+    EXPECT_FALSE(robotik::overrideValue(source, "world.entities.nobody.mass", robotik::ConfigNode("1")));
+    EXPECT_FALSE(robotik::overrideValue(source, "seed", robotik::ConfigNode("1")));
 }
 
 TEST(Scenario, WorldErrorsNameTheEntity)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+    robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
         "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
-    source.override("world.entities.box.type", robotik::ConfigNode("robot"));
-    robotik::Result<robotik::Scenario> const read = robotik::Scenario::read(source, testAssets());
+    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.box.type", robotik::ConfigNode("robot")));
+    robotik::Result<robotik::Scenario> const read = robotik::readScenario(source, testAssets());
     ASSERT_FALSE(read) << "a second robot must be refused";
     EXPECT_NE(read.error().find("pick_place_cell.world.yaml"), std::string::npos) << read.error();
 }
 
 TEST(Simulation, AnotherToolBringsItsOwnActuators)
 {
-    robotik::Scenario scenario = robotik::Scenario::load(
+    robotik::Scenario scenario = robotik::loadScenario(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
         testAssets()).take();
-    scenario.world.mount("fingers");
+    ASSERT_TRUE(robotik::mountTool(scenario.world, "fingers"));
     PickPlaceMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
@@ -144,7 +141,7 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(
+        robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets()).take(),
@@ -166,7 +163,7 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
                                 testAssets()).take(),
         nullptr,
@@ -195,7 +192,7 @@ TEST(Simulation, SurvivesACameraFailure)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(repoFile("plugins/PickAndPlace/scenarios/"
+        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
                                          "pick_and_place_faults.scenario.yaml"),
                                 testAssets()).take(),
         nullptr,
@@ -211,7 +208,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(
+        robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets()).take(),
@@ -222,7 +219,7 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
     bool failed = false;
     for (robotik::Check const& check : simulation.checks())
     {
-        failed = failed || !check.ok();
+        failed = failed || !ok(check);
     }
     EXPECT_TRUE(failed);
     EXPECT_FALSE(simulation.finished());
@@ -236,7 +233,7 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(
+        robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
             testAssets()).take(),

@@ -17,6 +17,7 @@
 
 #include "Robotik/Package/Scenario/Assertions.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Common/Signal.hpp"
 #include "Robotik/Task/Cell.hpp"
 
 #include <cstdint>
@@ -35,7 +36,7 @@ namespace robotik
 ///
 /// @code
 /// compages::world::World world;
-/// robotik::Simulation sim(world, robotik::Scenario::load(path, assets));
+/// robotik::Simulation sim(world, robotik::loadScenario(path, assets));
 /// sim.reset(robotik::Seed{ 7 });
 /// while (!sim.finished())
 ///     sim.step(robotik::Seconds(0.01));
@@ -156,6 +157,16 @@ public:
         return m_assertions.passed();
     }
 
+    // --- Events ---------------------------------------------------------------
+
+    /// Emitted when an assertion turns green or red (see @ref ok), with its
+    /// index in @ref checks and its new color. Every assertion is emitted at
+    /// the first step of an episode.
+    Signal<std::size_t, bool> assertionChanged;
+
+    /// Emitted once when the run ends, with the reason.
+    Signal<Outcome> ended;
+
     // -------------------------------------------------------------------------
     /// Evaluates a condition on the metrics and the truth of the cell.
     /// @param p_condition E.g. @c "inside(red_cube, box)".
@@ -172,6 +183,8 @@ private:
     void settle();
     /// Ends the run: final verdicts, frozen outcome, controller stopped.
     void finish(Outcome p_outcome);
+    /// Emits @ref assertionChanged for the assertions whose color changed.
+    void announceChecks();
 
     /// The scenario being run.
     Scenario m_scenario;
@@ -181,6 +194,8 @@ private:
     AssertionEngine m_assertions;
     /// Why the run ended.
     Outcome m_outcome = Outcome::Running;
+    /// Last color announced of each assertion: 0 red, 1 green, 2 unknown.
+    std::vector<std::uint8_t> m_colors;
 };
 
 // ----------------------------------------------------------------------------

@@ -440,7 +440,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
         for (ConfigNode const& node : p_world.at("entities").items())
         {
             EntitySpec spec = entity(where, node, p_directory, p_assets);
-            if (world.find(spec.id) != nullptr)
+            if (findEntity(world, spec.id) != nullptr)
             {
                 fail(where, "entity '" + spec.id + "' is declared twice");
             }
@@ -449,7 +449,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
 
         // --- Relations
         // ------------------------------------------------------------
-        std::vector<EntitySpec const*> const robots = world.robots();
+        std::vector<EntitySpec const*> const robots = robotsOf(world);
         if (robots.empty())
         {
             fail(where, "an entity of type robot is required");
@@ -462,7 +462,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
                 continue;
             }
             std::string const entity = where + ", entity '" + spec.id + "'";
-            EntitySpec const* parent = world.find(spec.attach->parent);
+            EntitySpec const* parent = findEntity(world, spec.attach->parent);
             if (parent == nullptr || parent == &spec)
             {
                 fail(entity,
@@ -500,7 +500,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
             }
             else if (parent->attach && parent->type != EntitySpec::Type::Robot)
             {
-                if (EntitySpec const* grand = world.find(parent->attach->parent);
+                if (EntitySpec const* grand = findEntity(world, parent->attach->parent);
                     grand != nullptr && grand->attach)
                 {
                     fail(entity, "attachments nest two levels at most");
@@ -518,7 +518,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
             }
             for (std::string const& id : spec.touches)
             {
-                if (world.find(id) == nullptr || id == spec.id)
+                if (findEntity(world, id) == nullptr || id == spec.id)
                 {
                     fail(entity,
                          "touches '" + id + "', which is not another entity");

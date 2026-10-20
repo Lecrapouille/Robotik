@@ -22,8 +22,8 @@ TEST(NoiseModel, IdealChannelDrawsNothing)
     robotik::Random used(robotik::Seed{ 3 });
     robotik::Random untouched(robotik::Seed{ 3 });
     robotik::NoiseModel const ideal;
-    EXPECT_TRUE(ideal.ideal());
-    EXPECT_DOUBLE_EQ(ideal.apply(1.25, used), 1.25);
+    EXPECT_TRUE(robotik::ideal(ideal));
+    EXPECT_DOUBLE_EQ(applyNoise(ideal, 1.25, used), 1.25);
     // The stream was not consumed: both generators still agree.
     EXPECT_DOUBLE_EQ(used.uniform(), untouched.uniform());
 }
@@ -36,16 +36,16 @@ TEST(NoiseModel, BiasResolutionAndSaturation)
     model.resolution = 0.25;
     model.min = -1.0;
     model.max = 1.0;
-    EXPECT_DOUBLE_EQ(model.apply(0.1, random),
+    EXPECT_DOUBLE_EQ(applyNoise(model, 0.1, random),
                      0.5); // 0.4 rounded to 0.25 steps
-    EXPECT_DOUBLE_EQ(model.apply(5.0, random), 1.0);
-    EXPECT_DOUBLE_EQ(model.apply(-5.0, random), -1.0);
+    EXPECT_DOUBLE_EQ(applyNoise(model, 5.0, random), 1.0);
+    EXPECT_DOUBLE_EQ(applyNoise(model, -5.0, random), -1.0);
 
-    robotik::NoiseModel const noisy = robotik::NoiseModel::gaussian(0.1);
+    robotik::NoiseModel const noisy = robotik::gaussianNoise(0.1);
     double sum = 0.0;
     for (int i = 0; i < 2000; ++i)
     {
-        sum += noisy.apply(2.0, random);
+        sum += applyNoise(noisy, 2.0, random);
     }
     EXPECT_NEAR(sum / 2000.0, 2.0, 0.02);
 }
@@ -117,7 +117,7 @@ entities:
     robotik::WorldDescription const description =
         robotik::readWorld(world, ".", testAssets()).take();
     std::vector<robotik::SensorSpec> const& sensors =
-        description.robot().sensors;
+        robotik::firstRobot(description).sensors;
     ASSERT_EQ(sensors.size(), 4u);
     EXPECT_EQ(sensors[0].type, robotik::SensorSpec::Type::Camera);
     EXPECT_TRUE(sensors[0].camera.depth);
@@ -133,13 +133,13 @@ entities:
     EXPECT_EQ(sensors[3].force_torque.link, "link6");
 
     robotik::ConfigNode bad = world;
-    bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode(""));
+    EXPECT_TRUE(bad.set("entities.robot.sensors.wrist.link", robotik::ConfigNode("")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
-    bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1"));
+    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.latency", robotik::ConfigNode("0.1")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
     bad = world;
-    bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar"));
+    EXPECT_TRUE(bad.set("entities.robot.sensors.eye.type", robotik::ConfigNode("sonar")));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
@@ -147,11 +147,11 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
 {
     auto build = [](char const* p_policy)
     {
-        robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+        robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
             "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml")).take();
-        source.override("scenario.perception.blind",
-                        robotik::ConfigNode(p_policy));
-        return robotik::Scenario::read(source, testAssets()).take();
+        EXPECT_TRUE(robotik::overrideValue(source, "scenario.perception.blind",
+                        robotik::ConfigNode(p_policy)));
+        return robotik::readScenario(source, testAssets()).take();
     };
     {
         PickPlaceMission mission;
@@ -165,7 +165,7 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         }
         blind.conclude();
         EXPECT_FALSE(blind.passed());
-        EXPECT_FALSE(blind.cell().worldModel().find("red_cube")->observed());
+        EXPECT_FALSE(observed(*blind.cell().worldModel().find("red_cube")));
     }
     {
         PickPlaceMission mission;

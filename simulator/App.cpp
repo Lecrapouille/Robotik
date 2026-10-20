@@ -143,6 +143,17 @@ static void report(robotik::Simulation const& p_simulation)
               << " s checks=" << passed << '/' << checks.size() << std::endl;
 }
 
+App::~App()
+{
+    // The members go in reverse order: the session, declared first, would
+    // disconnect from the signals of a simulation already freed.
+    plugins.stop();
+    plugins.detach();
+    simulation.reset();
+    mission.reset();
+    plugins.release();
+}
+
 void App::load(bool p_keep_tool)
 {
     error.clear();
@@ -205,19 +216,24 @@ void App::load(bool p_keep_tool)
             return;
         }
         robotik::Result<robotik::Scenario> loaded =
-            robotik::Scenario::load(scenario_path, plugins.assets());
+            robotik::loadScenario(scenario_path, plugins.assets());
         if (!loaded)
         {
             error = loaded.error();
             return;
         }
         robotik::Scenario scenario = loaded.take();
-        world_path = robotik::ScenarioSource::load(scenario_path).value().world_file;
+        world_path = robotik::loadScenarioSource(scenario_path).value().world_file;
         world_text = readText(world_path);
         tree_text = readText(scenario.controller.behavior_tree);
         if (tool_override)
         {
-            scenario.world.mount(tool_override_name);
+            if (robotik::Result<void> mounted = robotik::mountTool(scenario.world, tool_override_name);
+                !mounted)
+            {
+                error = mounted.error();
+                return;
+            }
         }
         robotik::PluginPrepare const prepared = plugins.prepare(scenario_path);
         if (prepared != robotik::PluginPrepare::Ready)

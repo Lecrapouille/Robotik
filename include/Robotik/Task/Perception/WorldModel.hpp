@@ -62,24 +62,24 @@ struct WorldObject
     std::uint32_t observations = 0;
     /// Where the last value comes from.
     BeliefSource source = BeliefSource::Prior;
-
-    // -------------------------------------------------------------------------
-    /// @return True when the object was seen at least once since the reset;
-    ///   false for a prior only.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool observed() const
-    {
-        return observations > 0u;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return Height of the top face (center plus half the extent).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] double top() const
-    {
-        return position.z + 0.5 * size.z;
-    }
 };
+
+// -------------------------------------------------------------------------
+/// @return True when the object was seen at least once since the reset;
+///   false for a prior only.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline bool observed(WorldObject const& p_object)
+{
+    return p_object.observations > 0u;
+}
+
+// -------------------------------------------------------------------------
+/// @return Height of the top face (center plus half the extent).
+// -------------------------------------------------------------------------
+[[nodiscard]] inline double top(WorldObject const& p_object)
+{
+    return p_object.position.z + 0.5 * p_object.size.z;
+}
 
 // ****************************************************************************
 /// Dense list of beliefs, matched to detections by label.

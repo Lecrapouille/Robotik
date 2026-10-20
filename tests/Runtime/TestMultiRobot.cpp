@@ -57,16 +57,16 @@ static robotik::Scenario twoArms()
 TEST(World, SeveralRobotsEachWithItsTool)
 {
     robotik::WorldDescription const world = twoArms().world;
-    ASSERT_EQ(world.robots().size(), 2u);
-    EXPECT_EQ(world.robot().id, "left");
-    ASSERT_NE(world.mountedTool("right"), nullptr);
-    EXPECT_EQ(world.mountedTool("right")->id, "right_cup");
-    EXPECT_EQ(world.mountedTool()->id, "left_cup");
+    ASSERT_EQ(robotik::robotsOf(world).size(), 2u);
+    EXPECT_EQ(robotik::firstRobot(world).id, "left");
+    ASSERT_NE(robotik::mountedTool(world, "right"), nullptr);
+    EXPECT_EQ(robotik::mountedTool(world, "right")->id, "right_cup");
+    EXPECT_EQ(robotik::mountedTool(world)->id, "left_cup");
 
     // Robots share one resource manager: a device name is used once.
     robotik::ConfigNode bad = robotik::ConfigNode::parse(TWO_ARMS).take();
-    bad.set("entities.right_cup.actuators",
-            robotik::ConfigNode::parse("left_gripper: { type: vacuum }").take());
+    EXPECT_TRUE(bad.set("entities.right_cup.actuators",
+            robotik::ConfigNode::parse("left_gripper: { type: vacuum }").take()));
     EXPECT_FALSE(robotik::readWorld(bad, ".", testAssets()));
 }
 
@@ -74,21 +74,21 @@ TEST(World, ToolTouchesItsWorkpiece)
 {
     // The right cup works on the left arm: their contacts are not collisions.
     robotik::ConfigNode node = robotik::ConfigNode::parse(TWO_ARMS).take();
-    node.set("entities.right_cup.touches",
-             robotik::ConfigNode::parse("[left]").take());
+    EXPECT_TRUE(node.set("entities.right_cup.touches",
+             robotik::ConfigNode::parse("[left]").take()));
     robotik::WorldDescription const world =
         robotik::readWorld(node, ".", testAssets()).take();
-    ASSERT_NE(world.find("right_cup"), nullptr);
-    EXPECT_EQ(world.find("right_cup")->touches,
+    ASSERT_NE(robotik::findEntity(world, "right_cup"), nullptr);
+    EXPECT_EQ(robotik::findEntity(world, "right_cup")->touches,
               std::vector<std::string>{ "left" });
 
     // Only a tool touches, and only another entity of the world.
     robotik::ConfigNode robot = robotik::ConfigNode::parse(TWO_ARMS).take();
-    robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]").take());
+    EXPECT_TRUE(robot.set("entities.right.touches", robotik::ConfigNode::parse("[left]").take()));
     EXPECT_FALSE(robotik::readWorld(robot, ".", testAssets()));
     robotik::ConfigNode unknown = robotik::ConfigNode::parse(TWO_ARMS).take();
-    unknown.set("entities.right_cup.touches",
-                robotik::ConfigNode::parse("[tray]").take());
+    EXPECT_TRUE(unknown.set("entities.right_cup.touches",
+                robotik::ConfigNode::parse("[tray]").take()));
     EXPECT_FALSE(robotik::readWorld(unknown, ".", testAssets()));
 }
 

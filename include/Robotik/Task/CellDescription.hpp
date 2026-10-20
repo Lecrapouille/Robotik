@@ -20,6 +20,7 @@
 
 #include "Robotik/Common/Config.hpp"
 #include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Robot/Sensors/Camera.hpp"
@@ -250,14 +251,12 @@ struct EntitySpec
 /// robotik::WorldDescription world;
 /// world.entities.push_back({ .id = "arm", .type = robotik::EntitySpec::Type::Robot,
 ///                            .model = "arm.urdf" });
-/// robotik::EntitySpec const& robot = world.robot();
-/// world.mount("gripper");  // swap the tool of the first robot
+/// robotik::EntitySpec const& robot = robotik::firstRobot(world);
+/// (void)robotik::mountTool(world, "gripper");  // swap the tool of the first robot
 /// @endcode
 // ****************************************************************************
 struct WorldDescription
 {
-
-
     /// World id.
     std::string id;
     /// A floor plane is built.
@@ -266,34 +265,46 @@ struct WorldDescription
     double floor_friction = 1.0;
     /// Every entity, in file order.
     std::vector<EntitySpec> entities;
-
-    // -------------------------------------------------------------------------
-    /// @param p_id Entity id.
-    /// @return The entity, or null.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] EntitySpec const* find(std::string_view p_id) const;
-
-    /// @return The first robot entity (validated to exist).
-    [[nodiscard]] EntitySpec const& robot() const;
-
-    /// @return Every robot entity, in file order (one at least).
-    [[nodiscard]] std::vector<EntitySpec const*> robots() const;
-
-    /// @return Tool attached to the flange of the first robot, or null.
-    [[nodiscard]] EntitySpec const* mountedTool() const;
-
-    /// @return Tool attached to the flange of robot @p_robot, or null.
-    [[nodiscard]] EntitySpec const* mountedTool(std::string_view p_robot) const;
-
-    // -------------------------------------------------------------------------
-    /// Changes the tool of a robot. The previous tool of that robot goes back
-    /// to storage.
-    /// @param p_id Tool id; empty removes the tool.
-    /// @param p_robot Robot id; empty for the first robot.
-    /// @throws std::invalid_argument for an unknown tool or robot.
-    // -------------------------------------------------------------------------
-    void mount(std::string_view p_id, std::string_view p_robot = {});
 };
+
+// ----------------------------------------------------------------------------
+/// @param p_world World to search.
+/// @param p_id Entity id.
+/// @return The entity, or null.
+// ----------------------------------------------------------------------------
+[[nodiscard]] EntitySpec const* findEntity(WorldDescription const& p_world, std::string_view p_id);
+
+// ----------------------------------------------------------------------------
+/// @param p_world A world with one robot at least (the readers check it).
+/// @return The first robot entity.
+// ----------------------------------------------------------------------------
+[[nodiscard]] EntitySpec const& firstRobot(WorldDescription const& p_world);
+
+// ----------------------------------------------------------------------------
+/// @param p_world World to search.
+/// @return Every robot entity, in file order.
+// ----------------------------------------------------------------------------
+[[nodiscard]] std::vector<EntitySpec const*> robotsOf(WorldDescription const& p_world);
+
+// ----------------------------------------------------------------------------
+/// @param p_world World to search.
+/// @param p_robot Robot id; empty for the first robot.
+/// @return Tool attached to the flange of that robot, or null.
+// ----------------------------------------------------------------------------
+[[nodiscard]] EntitySpec const* mountedTool(WorldDescription const& p_world,
+                                            std::string_view p_robot = {});
+
+// ----------------------------------------------------------------------------
+/// Changes the tool of a robot. The previous tool of that robot goes back to
+/// storage.
+/// @param p_world World to change.
+/// @param p_id Tool id; empty removes the tool.
+/// @param p_robot Robot id; empty for the first robot.
+/// @return Fails for an unknown tool or robot.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> mountTool(WorldDescription& p_world,
+                                     std::string_view p_id,
+                                     std::string_view p_robot = {});
 
 // ****************************************************************************
 /// A path the robot follows: tool poses in a frame, or joint values.
@@ -521,28 +532,28 @@ struct PhysicsSpec
     Fidelity fidelity = Fidelity::Abstract;
     /// Level per world entity or actuator id.
     std::map<std::string, Fidelity, std::less<>> overrides;
-
-    // -------------------------------------------------------------------------
-    /// @param p_id Entity or actuator id.
-    /// @return Its level.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Fidelity of(std::string_view p_id) const
-    {
-        auto const found = overrides.find(p_id);
-        return found == overrides.end() ? fidelity : found->second;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @param p_a Id of one side.
-    /// @param p_b Id of the other side.
-    /// @return Level of an interaction: the most detailed of its two sides.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Fidelity between(std::string_view p_a,
-                                   std::string_view p_b) const
-    {
-        return std::max(of(p_a), of(p_b));
-    }
 };
+
+// -------------------------------------------------------------------------
+/// @param p_id Entity or actuator id.
+/// @return Its level.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline Fidelity fidelityOf(PhysicsSpec const& p_physics, std::string_view p_id)
+{
+    auto const found = p_physics.overrides.find(p_id);
+    return found == p_physics.overrides.end() ? p_physics.fidelity : found->second;
+}
+
+// -------------------------------------------------------------------------
+/// @param p_a Id of one side.
+/// @param p_b Id of the other side.
+/// @return Level of an interaction: the most detailed of its two sides.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline Fidelity fidelityBetween(PhysicsSpec const& p_physics, std::string_view p_a,
+                                   std::string_view p_b)
+{
+    return std::max(fidelityOf(p_physics, p_a), fidelityOf(p_physics, p_b));
+}
 
 // ****************************************************************************
 /// Everything a @ref Cell is built from.

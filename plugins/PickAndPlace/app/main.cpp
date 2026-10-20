@@ -134,7 +134,7 @@ static std::unique_ptr<robotik::SimulationEnvironment>
 makeEnvironment(Options const& p_options)
 {
     robotik::Result<robotik::Scenario> loaded =
-        robotik::Scenario::load(p_options.scenario, robotik::AssetResolver::standard());
+        robotik::loadScenario(p_options.scenario, robotik::AssetResolver::standard());
     if (!loaded)
     {
         throw std::runtime_error(loaded.error());
@@ -300,7 +300,7 @@ int main(int argc, char** argv)
             log.control_period = sample->timing().control_period.value();
             log.max_steps = sample->timing().max_steps;
             std::ofstream file(options.log);
-            log.write(file, report.episodes);
+            robotik::writeEpisodeLog(log, file, report.episodes);
             std::cout << "episodes: " << options.log.string() << '\n';
         }
 

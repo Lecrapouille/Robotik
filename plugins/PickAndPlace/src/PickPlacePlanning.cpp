@@ -32,7 +32,7 @@ void registerPlanning(robotik::PlanningDomain& p_domain)
                          robotik::WorldObject const* object =
                              p_context.world_model.find(p_args[0]);
                          return robotik::truth(object != nullptr &&
-                                               object->observed());
+                                               observed(*object));
                      });
     p_domain.observe("holding",
                      [](RobotContext const& p_context, Args p_args)
@@ -69,7 +69,7 @@ void registerPlanning(robotik::PlanningDomain& p_domain)
             {
                 return Truth::False;
             }
-            if (!object->observed() ||
+            if (!observed(*object) ||
                 (p_context.time - object->seen).value() > kFreshBelief)
             {
                 return Truth::Unknown;

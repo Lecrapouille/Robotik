@@ -47,7 +47,7 @@ static char const* const TRAY = R"(
 static std::vector<robotik::StepFootprint>
 prints(char const* p_domain, std::vector<robotik::GroundAction> const& p_steps)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(p_domain).take();
+    robotik::DomainSchema const schema = robotik::parseDomain(p_domain).take();
     std::vector<robotik::StepFootprint> result;
     for (robotik::GroundAction const& step : p_steps)
     {
@@ -74,7 +74,7 @@ static robotik::PlanEvent end(std::size_t p_step)
 
 TEST(PlanGraph, SchemaReadsEachEnd)
 {
-    robotik::DomainSchema const arms = robotik::DomainSchema::parse(ARMS).take();
+    robotik::DomainSchema const arms = robotik::parseDomain(ARMS).take();
     robotik::ActionSchema const& pick = arms.actions.at("pick");
     // A plain action reads at its start and changes at its end.
     ASSERT_EQ(pick.start.reads.size(), 2u);
@@ -84,7 +84,7 @@ TEST(PlanGraph, SchemaReadsEachEnd)
     // (at ?p ?b) is an atom, not a time.
     EXPECT_EQ(arms.actions.at("place").end.writes[0].predicate, "at");
 
-    robotik::DomainSchema const tray = robotik::DomainSchema::parse(TRAY).take();
+    robotik::DomainSchema const tray = robotik::parseDomain(TRAY).take();
     robotik::ActionSchema const& carry = tray.actions.at("carry");
     ASSERT_EQ(carry.start.writes.size(), 1u);
     EXPECT_EQ(carry.start.writes[0].predicate, "held");
@@ -175,7 +175,7 @@ TEST(PlanGraph, KairosGivesTheTimesOfATemporalPlan)
   (:goal (and (visited g1) (visited g2) (carried tray))))
 )",
                                                          {});
-    ASSERT_TRUE(result.solved()) << result.diagnostics << result.report;
+    ASSERT_TRUE(solved(result)) << result.diagnostics << result.report;
     ASSERT_EQ(result.steps.size(), 3u);
     robotik::GroundAction const& carry = result.steps.front();
     EXPECT_EQ(carry.name, "carry");

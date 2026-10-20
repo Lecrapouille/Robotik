@@ -37,9 +37,15 @@ struct Board
 };
 
 /// Parses one assertion from a YAML snippet.
+static robotik::Result<robotik::AssertionSpec> read(std::string const& p_yaml)
+{
+    return robotik::readAssertion(robotik::ConfigNode::parse(p_yaml).take());
+}
+
+/// Reads an assertion that is valid.
 static robotik::AssertionSpec spec(std::string const& p_yaml)
 {
-    return robotik::AssertionSpec::read(robotik::ConfigNode::parse(p_yaml).take());
+    return read(p_yaml).take();
 }
 
 TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
@@ -63,15 +69,14 @@ TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
     robotik::ConfigNode node =
         robotik::ConfigNode::parse("world:\n  entities:\n    - { id: a, mass: "
                                    "1 }\n    - { id: b, mass: 2 }\n").take();
-    node.set("world.entities.b.mass", robotik::ConfigNode("5"));
-    node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]").take());
-    node.set("world.floor.friction", robotik::ConfigNode("0.3"));
+    EXPECT_TRUE(node.set("world.entities.b.mass", robotik::ConfigNode("5")));
+    EXPECT_TRUE(node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]").take()));
+    EXPECT_TRUE(node.set("world.floor.friction", robotik::ConfigNode("0.3")));
     robotik::ConfigNode const& entities = node.at("world").at("entities");
     EXPECT_DOUBLE_EQ(entities.item("b").number("mass", 0.0), 5.0);
     EXPECT_TRUE(entities.item("a").at("color").isSequence());
     EXPECT_DOUBLE_EQ(node.at("world").at("floor").number("friction", 0.0), 0.3);
-    EXPECT_THROW(node.set("world.entities.c.mass", robotik::ConfigNode("1")),
-                 std::runtime_error);
+    EXPECT_FALSE(node.set("world.entities.c.mass", robotik::ConfigNode("1")));
 }
 
 TEST(Assertions, ShorthandIsJudgedAtTheEnd)
@@ -80,10 +85,10 @@ TEST(Assertions, ShorthandIsJudgedAtTheEnd)
     robotik::AssertionEngine engine({ spec("x > 1") });
     engine.update(robotik::Seconds(1.0), board.probe());
     EXPECT_EQ(engine.checks()[0].verdict, Verdict::Pending);
-    EXPECT_FALSE(engine.checks()[0].ok());
+    EXPECT_FALSE(robotik::ok(engine.checks()[0]));
     board.values["x"] = 2.0;
     engine.update(robotik::Seconds(2.0), board.probe());
-    EXPECT_TRUE(engine.checks()[0].ok());
+    EXPECT_TRUE(robotik::ok(engine.checks()[0]));
     engine.conclude(robotik::Seconds(3.0), board.probe());
     EXPECT_EQ(engine.checks()[0].verdict, Verdict::Passed);
     EXPECT_TRUE(engine.passed());
@@ -176,10 +181,9 @@ TEST(Assertions, UnknownValueFails)
 
 TEST(Assertions, InvalidSpecsAreRefused)
 {
-    EXPECT_THROW((void)spec("{ phase: always }"), std::runtime_error);
-    EXPECT_THROW((void)spec("{ condition: x, phase: sometimes }"),
-                 std::runtime_error);
-    EXPECT_THROW((void)spec("{ sequence: [a] }"), std::runtime_error);
+    EXPECT_FALSE(read("{ phase: always }"));
+    EXPECT_FALSE(read("{ condition: x, phase: sometimes }"));
+    EXPECT_FALSE(read("{ sequence: [a] }"));
 }
 
 TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
@@ -187,17 +191,17 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     // Same world, the canvas hangs 1 m behind the easel, 35 cm above the
     // floor: it falls far from everything. Zero robot collision, yet the
     // scene is wrong.
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(
+    robotik::ScenarioSource source = robotik::loadScenarioSource(
         repoFile("plugins/Painter/scenarios/painter.scenario.yaml")).take();
-    source.override("world.entities.canvas.attach.parent",
-                    robotik::ConfigNode("easel"));
-    source.override("world.entities.canvas.attach.transform.position",
-                    robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]").take());
+    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.canvas.attach.parent",
+                    robotik::ConfigNode("easel")));
+    EXPECT_TRUE(robotik::overrideValue(source, "world.entities.canvas.attach.transform.position",
+                    robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]").take()));
     PainterMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::read(source, testAssets()).take(),
+        robotik::readScenario(source, testAssets()).take(),
         nullptr,
         &mission);
     simulation.cell().suspend(true);

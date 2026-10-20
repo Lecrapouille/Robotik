@@ -132,16 +132,18 @@ struct JointLimits
     VelocityOf<Position> velocity{ std::numeric_limits<double>::infinity() };
     /// Largest torque or force, in both directions.
     EffortOf<Position> effort{ std::numeric_limits<double>::infinity() };
-
-    // ------------------------------------------------------------------------
-    /// @return True when the position range is finite and not empty.
-    // ------------------------------------------------------------------------
-    [[nodiscard]] bool bounded() const
-    {
-        return upper > lower &&
-               upper.value() < std::numeric_limits<double>::infinity();
-    }
 };
+
+// ----------------------------------------------------------------------------
+/// @param p_limits Limits of a joint.
+/// @return True when the position range is finite and not empty.
+// ----------------------------------------------------------------------------
+template <class Position>
+[[nodiscard]] bool bounded(JointLimits<Position> const& p_limits)
+{
+    return p_limits.upper > p_limits.lower &&
+           p_limits.upper.value() < std::numeric_limits<double>::infinity();
+}
 
 /// Limits of a revolute joint.
 using RevoluteLimits = JointLimits<Radians>;

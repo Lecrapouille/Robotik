@@ -194,10 +194,37 @@ void PluginSession::attach(Simulation* p_simulation)
 {
     m_simulation = p_simulation;
     m_host.attach(p_simulation);
+    m_pending_checks.clear();
+    m_pending_skills.clear();
+    if (p_simulation == nullptr)
+    {
+        m_check_link = {};
+        m_skill_link = {};
+        return;
+    }
+    // The events wait for the next afterStep: the plugin sees them after its
+    // own update, as before.
+    m_check_link = ScopedConnection<std::size_t, bool>(
+        p_simulation->assertionChanged,
+        [this](std::size_t p_index, bool p_green) { m_pending_checks.emplace_back(p_index, p_green); });
+    SkillScheduler& skills = p_simulation->cell().skills();
+    m_skill_link = ScopedConnection<SkillId, SkillState>(
+        skills.changed,
+        [this, &skills](SkillId p_id, SkillState p_state)
+        {
+            if (p_state == SkillState::Succeeded || p_state == SkillState::Failed)
+            {
+                m_pending_skills.emplace_back(skills.name(p_id), p_state);
+            }
+        });
 }
 
 void PluginSession::detach()
 {
+    m_check_link = {};
+    m_skill_link = {};
+    m_pending_checks.clear();
+    m_pending_skills.clear();
     m_simulation = nullptr;
     m_host.detach();
 }
@@ -205,7 +232,6 @@ void PluginSession::detach()
 RobotikPluginStatus PluginSession::start()
 {
     m_checks.clear();
-    m_skills.clear();
     RobotikPluginStatus const status = m_manager.start();
     if (status == ROBOTIK_PLUGIN_OK)
     {
@@ -277,49 +303,44 @@ void PluginSession::emitRuntimeEvents()
     {
         return;
     }
+    // Assertions first, then skills; one event per assertion and step, only
+    // when its color differs from the last one sent.
     std::vector<Check> const& checks = m_simulation->checks();
     if (m_checks.size() != checks.size())
     {
         m_checks.assign(checks.size(), 2u);
+        for (std::size_t i = 0; i < checks.size(); ++i)
+        {
+            m_pending_checks.emplace_back(i, ok(checks[i]));
+        }
     }
+    std::vector<std::uint8_t> latest(checks.size(), 2u);
+    for (auto const& [index, green] : m_pending_checks)
+    {
+        if (index < latest.size())
+        {
+            latest[index] = green ? 1u : 0u;
+        }
+    }
+    m_pending_checks.clear();
     for (std::size_t i = 0; i < checks.size(); ++i)
     {
-        std::uint8_t const passed = checks[i].ok() ? 1u : 0u;
-        if (m_checks[i] != passed)
+        if (latest[i] != 2u && latest[i] != m_checks[i])
         {
-            m_checks[i] = passed;
+            m_checks[i] = latest[i];
             publishKind(ROBOTIK_EVENT_ASSERTION_CHANGED,
                         checks[i].text,
-                        static_cast<std::int32_t>(passed));
+                        static_cast<std::int32_t>(latest[i]));
         }
     }
-
-    std::span<SkillRun const> const trace = m_simulation->cell().skills().trace();
-    if (m_skills.size() > trace.size())
+    for (auto const& [name, state] : m_pending_skills)
     {
-        m_skills.clear();
+        publishKind(state == SkillState::Succeeded ? ROBOTIK_EVENT_SKILL_COMPLETED
+                                                   : ROBOTIK_EVENT_SKILL_FAILED,
+                    name,
+                    0);
     }
-    m_skills.resize(trace.size(), SkillState::Idle);
-    for (std::size_t i = 0; i < trace.size(); ++i)
-    {
-        if (m_skills[i] == trace[i].state)
-        {
-            continue;
-        }
-        m_skills[i] = trace[i].state;
-        if (trace[i].state == SkillState::Succeeded)
-        {
-            publishKind(ROBOTIK_EVENT_SKILL_COMPLETED,
-                        m_simulation->cell().skills().name(trace[i].skill),
-                        0);
-        }
-        else if (trace[i].state == SkillState::Failed)
-        {
-            publishKind(ROBOTIK_EVENT_SKILL_FAILED,
-                        m_simulation->cell().skills().name(trace[i].skill),
-                        0);
-        }
-    }
+    m_pending_skills.clear();
 }
 
 void PluginSession::stop()
@@ -346,7 +367,6 @@ void PluginSession::release()
     m_host.clearMission();
     m_manager.destroy();
     m_checks.clear();
-    m_skills.clear();
 }
 
 void PluginSession::unload()

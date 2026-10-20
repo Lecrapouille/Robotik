@@ -90,10 +90,7 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
         }
     }
 
-    for (Callback const& callback : m_callbacks)
-    {
-        callback(m_frame);
-    }
+    frames(m_frame);
 
     compages::world::Entity holder = m_config.parent.empty()
                                          ? p_robot.root()

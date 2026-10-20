@@ -173,12 +173,12 @@ TEST(WorldModel, MonocularDetectionLandsOnTheTopPlane)
         static_cast<float>((*pixel)[0]), static_cast<float>((*pixel)[1]) });
     robotik::WorldModel beliefs;
     beliefs.add("cube", { 0.25, 0.15, 0.02 }, { 0.04, 0.04, 0.04 });
-    EXPECT_FALSE(beliefs.find("cube")->observed());
+    EXPECT_FALSE(observed(*beliefs.find("cube")));
 
     beliefs.update(pipeline.process(frame));
     robotik::WorldObject const* cube = beliefs.find("cube");
     ASSERT_NE(cube, nullptr);
-    EXPECT_TRUE(cube->observed());
+    EXPECT_TRUE(observed(*cube));
     EXPECT_NEAR(cube->position.x, 0.3, 1e-3);
     EXPECT_NEAR(cube->position.y, 0.1, 1e-3);
     EXPECT_NEAR(cube->position.z, 0.02, 1e-9);

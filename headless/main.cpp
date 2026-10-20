@@ -113,7 +113,7 @@ static void printTrace(robotik::Simulation const& p_simulation)
                       << "): " << robotik::toString(record.result.status);
             for (robotik::GroundAction const& step : record.result.steps)
             {
-                std::cout << ' ' << step.toPddl();
+                std::cout << ' ' << robotik::toPddl(step);
             }
             std::cout << '\n';
         }
@@ -191,7 +191,7 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
         printTrace(simulation);
     }
     robotik::RunRecord record =
-        robotik::RunRecord::capture(simulation, p_case, p_metrics);
+        robotik::captureRun(simulation, p_case, p_metrics);
     p_session.stop();
     p_session.detach();
     return record;
@@ -213,10 +213,10 @@ int main(int argc, char** argv)
         session.scan();
         robotik::RunReport report;
 
-        if (robotik::Experiment::describes(options->file))
+        if (robotik::isExperiment(options->file))
         {
             robotik::Result<robotik::Experiment> loaded =
-                robotik::Experiment::load(options->file);
+                robotik::loadExperiment(options->file);
             if (!loaded)
             {
                 std::cerr << loaded.error() << '\n';
@@ -255,7 +255,7 @@ int main(int argc, char** argv)
                     // Each run reads its files again: a case never inherits the
                     // world of the previous one.
                     robotik::Result<robotik::Scenario> scenario =
-                        experiment.scenario(item, session.assets());
+                        robotik::scenarioOf(experiment, item, session.assets());
                     if (!scenario)
                     {
                         std::cerr << item.id << ": " << scenario.error() << '\n';
@@ -285,7 +285,7 @@ int main(int argc, char** argv)
                 return 1;
             }
             robotik::Result<robotik::Scenario> loaded =
-                robotik::Scenario::load(options->file, session.assets());
+                robotik::loadScenario(options->file, session.assets());
             if (!loaded)
             {
                 std::cerr << loaded.error() << '\n';
@@ -308,11 +308,11 @@ int main(int argc, char** argv)
         }
 
         session.release();
-        report.writeText(std::cout);
+        robotik::writeText(report, std::cout);
         if (!options->report.empty())
         {
             std::ofstream file(options->report);
-            report.writeJson(file);
+            robotik::writeJson(report, file);
             std::cout << "report: " << options->report.string() << '\n';
         }
         for (robotik::RunRecord const& record : report.runs)
@@ -322,7 +322,7 @@ int main(int argc, char** argv)
                 return 1;
             }
         }
-        return report.passed() ? 0 : 2;
+        return robotik::passed(report) ? 0 : 2;
     }
     catch (std::exception const& error)
     {

@@ -47,7 +47,7 @@ public:
         {
             result.end = robotik::EpisodeEnd::TimeLimit;
         }
-        result.reward = result.terminated() ? 1.0f : -0.01f;
+        result.reward = terminated(result) ? 1.0f : -0.01f;
         return result;
     }
 
@@ -104,7 +104,7 @@ TEST(EnvironmentPool, AutoResetsWithDerivedSeeds)
         pool.step();
     }
     ASSERT_EQ(pool.episodes().size(), 3u);
-    EXPECT_FALSE(pool.episodes()[0].terminated());
+    EXPECT_FALSE(robotik::terminated(pool.episodes()[0]));
     EXPECT_EQ(pool.episodes()[0].end, robotik::EpisodeEnd::TimeLimit);
     EXPECT_EQ(pool.episodes()[0].steps, 50u);
     EXPECT_EQ(pool.dones()[1], 1u);

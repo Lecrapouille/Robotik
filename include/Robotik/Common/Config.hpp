@@ -15,7 +15,7 @@
 /// @code
 /// robotik::ConfigNode world =
 ///     robotik::ConfigNode::load("painting_lab.world.yaml").take();
-/// world.set("world.entities.easel.friction", robotik::ConfigNode("0.3"));
+/// (void)world.set("world.entities.easel.friction", robotik::ConfigNode("0.3"));
 /// double const friction = world.at("world").at("entities")
 ///                              .item("easel").number("friction", 1.0);
 /// @endcode
@@ -231,9 +231,9 @@ public:
     /// @param p_path Dotted path; segments are map keys or, in a sequence,
     ///   an item @c id or index (see @ref item).
     /// @param p_value New node.
-    /// @throws std::runtime_error when the path cannot be followed.
+    /// @return Fails when the path cannot be followed.
     // -------------------------------------------------------------------------
-    void set(std::string_view p_path, ConfigNode p_value);
+    [[nodiscard]] Result<void> set(std::string_view p_path, ConfigNode p_value);
 
     // -------------------------------------------------------------------------
     /// Appends to a sequence (a null node becomes a sequence).

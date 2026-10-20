@@ -17,7 +17,7 @@
 /// Loads the painter scenario used by these tests.
 static robotik::Scenario painterScenario()
 {
-    return robotik::Scenario::load(
+    return robotik::loadScenario(
         repoFile("plugins/Painter/scenarios/painter.scenario.yaml"),
         testAssets()).take();
 }

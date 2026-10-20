@@ -247,6 +247,9 @@ struct App
     bool tool_override = false;
     std::string tool_override_name;
 
+    /// Stops the plugin before the simulation it listens to is freed.
+    ~App();
+
     void load(bool p_keep_tool = false);
     void reset(std::uint64_t p_seed);
     void advance(double p_elapsed);

@@ -18,6 +18,7 @@
 #include "Robotik/Package/Plugin/PluginHost.hpp"
 #include "Robotik/Package/Plugin/PluginManager.hpp"
 
+#include "Robotik/Common/Signal.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 
 #include <cstdint>
@@ -213,7 +214,7 @@ private:
     void publishKind(RobotikEventKind p_kind,
                      std::string_view p_name,
                      std::int32_t p_flag);
-    /// Sends the assertion and skill events that changed since the last call.
+    /// Sends the assertion and skill events announced since the last call.
     void emitRuntimeEvents();
     /// Sets the error of the session itself (see @ref error).
     void fallback(std::string p_text) const;
@@ -242,8 +243,14 @@ private:
     Simulation* m_simulation = nullptr;
     /// Last state sent of each assertion: 0 failed, 1 passed, 2 unknown.
     std::vector<std::uint8_t> m_checks;
-    /// Last state sent of each skill run of the trace.
-    std::vector<SkillState> m_skills;
+    /// Assertion colors announced by the simulation since the last step.
+    std::vector<std::pair<std::size_t, bool>> m_pending_checks;
+    /// Skills ended since the last step: name and final state.
+    std::vector<std::pair<std::string, SkillState>> m_pending_skills;
+    /// Listens to the assertions of the attached simulation.
+    ScopedConnection<std::size_t, bool> m_check_link;
+    /// Listens to the skills of the attached simulation.
+    ScopedConnection<SkillId, SkillState> m_skill_link;
     /// Error of the session itself.
     mutable std::string m_fallback;
 };

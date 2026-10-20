@@ -81,23 +81,23 @@ struct Detections
     Seconds stamp{};
     /// Number of the camera frame, to spot a frame already processed.
     std::uint64_t sequence = 0;
-
-    // ------------------------------------------------------------------------
-    /// Finds a detection by its label.
-    /// @param p_label Label to look for.
-    /// @return First detection with @p_label, or null.
-    // ------------------------------------------------------------------------
-    [[nodiscard]] Detection const* find(std::string_view p_label) const
-    {
-        for (Detection const& detection : items)
-        {
-            if (detection.label == p_label)
-            {
-                return &detection;
-            }
-        }
-        return nullptr;
-    }
 };
+
+// ------------------------------------------------------------------------
+/// Finds a detection by its label.
+/// @param p_label Label to look for.
+/// @return First detection with @p_label, or null.
+// ------------------------------------------------------------------------
+[[nodiscard]] inline Detection const* findDetection(Detections const& p_detections, std::string_view p_label)
+{
+    for (Detection const& detection : p_detections.items)
+    {
+        if (detection.label == p_label)
+        {
+            return &detection;
+        }
+    }
+    return nullptr;
+}
 
 } // namespace robotik

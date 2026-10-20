@@ -43,8 +43,8 @@ void WalkMission::setup(robotik::Cell& p_cell,
                         robotik::SceneView* p_view)
 {
     robotik::CellDescription const& scenario = p_cell.description();
-    m_base = scenario.world.robot().id + "." + BASE_LINK;
-    std::filesystem::path const& urdf = scenario.world.robot().model;
+    m_base = robotik::firstRobot(scenario.world).id + "." + BASE_LINK;
+    std::filesystem::path const& urdf = robotik::firstRobot(scenario.world).model;
     WalkContract contract =
         WalkContract::load(urdf.parent_path() / "walk.yaml");
 

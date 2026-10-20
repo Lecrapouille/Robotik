@@ -75,7 +75,7 @@ static std::string readFile(std::filesystem::path const& p_file)
 /// @brief "pick(red_cube)" for a step.
 static std::string label(GroundAction const& p_step)
 {
-    return Atom{ p_step.name, p_step.args }.toString();
+    return toString(Atom{ p_step.name, p_step.args });
 }
 
 char const* toString(PlanState p_state)
@@ -148,7 +148,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
     m_domain_text = readFile(m_spec.domain);
     try
     {
-        m_schema = must(DomainSchema::parse(m_domain_text));
+        m_schema = must(parseDomain(m_domain_text));
     }
     catch (std::runtime_error const& error)
     {
@@ -288,13 +288,13 @@ void PlanExecutor::load(WorldDescription const& p_world,
             m_schema.predicates.find(p_literal.atom.predicate);
         if (predicate == m_schema.predicates.end())
         {
-            errors.push_back(p_where + " " + p_literal.toString() +
+            errors.push_back(p_where + " " + toString(p_literal) +
                              ": unknown predicate");
             return;
         }
         if (predicate->second.types.size() != p_literal.atom.args.size())
         {
-            errors.push_back(p_where + " " + p_literal.toString() +
+            errors.push_back(p_where + " " + toString(p_literal) +
                              ": expects " +
                              std::to_string(predicate->second.types.size()) +
                              " argument(s)");
@@ -306,13 +306,13 @@ void PlanExecutor::load(WorldDescription const& p_world,
             if (type == nullptr)
             {
                 errors.push_back(
-                    p_where + " " + p_literal.toString() + ": '" +
+                    p_where + " " + toString(p_literal) + ": '" +
                     p_literal.atom.args[i] +
                     "' is neither an entity with a kind nor a constant");
             }
-            else if (!m_schema.isA(*type, predicate->second.types[i]))
+            else if (!isA(m_schema, *type, predicate->second.types[i]))
             {
-                errors.push_back(p_where + " " + p_literal.toString() + ": '" +
+                errors.push_back(p_where + " " + toString(p_literal) + ": '" +
                                  p_literal.atom.args[i] + "' is a " + *type +
                                  ", not a " + predicate->second.types[i]);
             }
@@ -324,7 +324,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
         if (!fact.positive)
         {
             errors.push_back(
-                "planner.facts: " + fact.toString() +
+                "planner.facts: " + toString(fact) +
                 ": facts are true atoms (what is not listed is false)");
         }
     }
@@ -454,7 +454,7 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     m_plan.clear();
     m_done = 0u;
     m_tree.reset();
-    if (record.result.solved())
+    if (solved(record.result))
     {
         for (GroundAction const& step : record.result.steps)
         {
@@ -466,7 +466,7 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     m_history.push_back(std::move(record));
     PlanningResult const& result = m_history.back().result;
 
-    if (!result.solved())
+    if (!solved(result))
     {
         std::string why = std::string("planner: ") + toString(result.status);
         if (std::size_t const end = result.diagnostics.find('\n');
@@ -724,7 +724,7 @@ bt::Status PlanExecutor::check(std::size_t p_step,
             if (m_spec.observed && !seenSince(effect.atom, p_context, m_start_times[p_step]))
             {
                 m_check_failure = std::to_string(p_step + 1u) + ". " +
-                                  label(m_plan[p_step]) + ": " + effect.toString() +
+                                  label(m_plan[p_step]) + ": " + toString(effect) +
                                   " expected, not observed since the step started";
                 return bt::Status::FAILURE;
             }
@@ -733,7 +733,7 @@ bt::Status PlanExecutor::check(std::size_t p_step,
             {
                 m_check_failure =
                     std::to_string(p_step + 1u) + ". " + label(m_plan[p_step]) +
-                    ": " + effect.toString() + " expected, the beliefs say " +
+                    ": " + toString(effect) + " expected, the beliefs say " +
                     toString(value);
                 return bt::Status::FAILURE;
             }
@@ -930,7 +930,7 @@ Truth PlanExecutor::evaluate(Atom const& p_atom,
         for (std::string const& id : args)
         {
             WorldObject const* belief = p_context.world_model.find(id);
-            if (belief != nullptr && belief->observed() &&
+            if (belief != nullptr && observed(*belief) &&
                 p_context.time - belief->seen > m_max_age)
             {
                 return Truth::Unknown;
@@ -959,7 +959,7 @@ std::string PlanExecutor::goalReached(RobotContext const& p_context) const
         Truth const value = evaluate(goal.atom, p_context);
         if (value != Truth::Unknown && (value == Truth::True) != goal.positive)
         {
-            return "plan done but goal " + goal.toString() + " not reached";
+            return "plan done but goal " + toString(goal) + " not reached";
         }
     }
     return {};
@@ -1063,14 +1063,14 @@ PlanExecutor::observe(RobotContext const& p_context) const
             std::vector<std::string> names;
             for (PlanningObject const& object : m_objects)
             {
-                if (m_schema.isA(object.type, type))
+                if (isA(m_schema, object.type, type))
                 {
                     names.push_back(object.name);
                 }
             }
             for (auto const& [constant, constant_type] : m_schema.constants)
             {
-                if (m_schema.isA(constant_type, type))
+                if (isA(m_schema, constant_type, type))
                 {
                     names.push_back(constant);
                 }
@@ -1129,18 +1129,18 @@ PlanExecutor::problemOf(std::vector<ObservedAtom> const& p_observed) const
         text << "    ; facts of the scenario\n";
         for (Literal const& fact : m_spec.facts)
         {
-            if (written.insert(fact.atom.toPddl()).second)
+            if (written.insert(toPddl(fact.atom)).second)
             {
-                text << "    " << fact.atom.toPddl() << "\n";
+                text << "    " << toPddl(fact.atom) << "\n";
             }
         }
     }
     text << "    ; observed on the beliefs\n";
     for (auto const& [atom, value] : p_observed)
     {
-        if (value == Truth::True && written.insert(atom.toPddl()).second)
+        if (value == Truth::True && written.insert(toPddl(atom)).second)
         {
-            text << "    " << atom.toPddl() << "\n";
+            text << "    " << toPddl(atom) << "\n";
         }
     }
     text << "  )\n";
@@ -1153,7 +1153,7 @@ PlanExecutor::problemOf(std::vector<ObservedAtom> const& p_observed) const
         text << "  (:goal (and\n";
         for (Literal const& goal : m_spec.goal)
         {
-            text << "    " << goal.toPddl() << "\n";
+            text << "    " << toPddl(goal) << "\n";
         }
         text << "  ))\n";
     }

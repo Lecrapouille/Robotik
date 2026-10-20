@@ -86,7 +86,7 @@ static robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
 {
     robotik::PlannerSpec spec;
     spec.domain = p_domain;
-    spec.goal = { robotik::Literal::parse("at(red_cube, bin)").take() };
+    spec.goal = { robotik::parseLiteral("at(red_cube, bin)").take() };
     return spec;
 }
 
@@ -100,35 +100,35 @@ static std::string problemOf(char const* p_init)
 
 TEST(Planning, ReadsLiterals)
 {
-    robotik::Literal const in = robotik::Literal::parse(" In(Red_Cube,  box) ").take();
+    robotik::Literal const in = robotik::parseLiteral(" In(Red_Cube,  box) ").take();
     EXPECT_TRUE(in.positive);
     EXPECT_EQ(in.atom.predicate, "in");
     ASSERT_EQ(in.atom.args.size(), 2u);
     EXPECT_EQ(in.atom.args[0], "red_cube");
-    EXPECT_EQ(in.toPddl(), "(in red_cube box)");
-    EXPECT_EQ(in.toString(), "in(red_cube, box)");
+    EXPECT_EQ(robotik::toPddl(in), "(in red_cube box)");
+    EXPECT_EQ(robotik::toString(in), "in(red_cube, box)");
 
-    robotik::Literal const empty = robotik::Literal::parse("not hand_empty").take();
+    robotik::Literal const empty = robotik::parseLiteral("not hand_empty").take();
     EXPECT_FALSE(empty.positive);
     EXPECT_TRUE(empty.atom.args.empty());
-    EXPECT_EQ(empty.toPddl(), "(not (hand_empty))");
-    EXPECT_FALSE(robotik::Literal::parse("!busy()").take().positive);
+    EXPECT_EQ(robotik::toPddl(empty), "(not (hand_empty))");
+    EXPECT_FALSE(robotik::parseLiteral("!busy()").take().positive);
 
     // A flow list [in(a, b)] splits at the comma.
-    EXPECT_FALSE(robotik::Literal::parse("in(red_cube"));
-    EXPECT_FALSE(robotik::Literal::parse("box)"));
-    EXPECT_FALSE(robotik::Literal::parse("in(a b)"));
-    EXPECT_FALSE(robotik::Literal::parse("(in a b)"));
+    EXPECT_FALSE(robotik::parseLiteral("in(red_cube"));
+    EXPECT_FALSE(robotik::parseLiteral("box)"));
+    EXPECT_FALSE(robotik::parseLiteral("in(a b)"));
+    EXPECT_FALSE(robotik::parseLiteral("(in a b)"));
 }
 
 TEST(Planning, ReadsTheDomainSchema)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(BLOCKS).take();
+    robotik::DomainSchema const schema = robotik::parseDomain(BLOCKS).take();
     EXPECT_EQ(schema.name, "blocks");
     EXPECT_EQ(schema.types.at("cube"), "block");
-    EXPECT_TRUE(schema.isA("cube", "block"));
-    EXPECT_TRUE(schema.isA("cube", "object"));
-    EXPECT_FALSE(schema.isA("cube", "place"));
+    EXPECT_TRUE(robotik::isA(schema, "cube", "block"));
+    EXPECT_TRUE(robotik::isA(schema, "cube", "object"));
+    EXPECT_FALSE(robotik::isA(schema, "cube", "place"));
     EXPECT_EQ(schema.constants.at("table"), "place");
 
     ASSERT_TRUE(schema.predicates.contains("at"));
@@ -142,18 +142,18 @@ TEST(Planning, ReadsTheDomainSchema)
     EXPECT_EQ(pick.parameters[0].name, "b");
     EXPECT_EQ(pick.parameters[1].type, "place");
     ASSERT_EQ(pick.effects.size(), 3u);
-    EXPECT_EQ(pick.effects[0].toString(), "holding(?b)");
+    EXPECT_EQ(robotik::toString(pick.effects[0]), "holding(?b)");
     EXPECT_FALSE(pick.effects[1].positive);
     EXPECT_FALSE(pick.partial);
     EXPECT_TRUE(schema.actions.at("drop_all").partial);
 
-    EXPECT_FALSE(robotik::DomainSchema::parse("(define (domain d)"));
-    EXPECT_FALSE(robotik::DomainSchema::parse("(define (problem p))"));
+    EXPECT_FALSE(robotik::parseDomain("(define (domain d)"));
+    EXPECT_FALSE(robotik::parseDomain("(define (problem p))"));
 }
 
 TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
 {
-    robotik::DomainSchema const schema = robotik::DomainSchema::parse(R"(
+    robotik::DomainSchema const schema = robotik::parseDomain(R"(
         (define (domain t) (:requirements :durative-actions)
           (:predicates (moving) (arrived))
           (:durative-action go :parameters () :duration (= ?duration 2)
@@ -163,8 +163,8 @@ TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
     robotik::ActionSchema const& go = schema.actions.at("go");
     EXPECT_TRUE(go.durative);
     ASSERT_EQ(go.effects.size(), 2u);
-    EXPECT_EQ(go.effects[0].toString(), "not moving");
-    EXPECT_EQ(go.effects[1].toString(), "arrived");
+    EXPECT_EQ(robotik::toString(go.effects[0]), "not moving");
+    EXPECT_EQ(robotik::toString(go.effects[1]), "arrived");
 }
 
 TEST(Planning, ExpandsBindings)
@@ -185,10 +185,10 @@ TEST(Planning, KairosSolvesAndReportsErrors)
 
     robotik::PlanningResult const solved =
         engine->solve(problemOf("(at red_cube table) (hand_empty)"), {});
-    ASSERT_TRUE(solved.solved()) << solved.diagnostics;
+    ASSERT_TRUE(robotik::solved(solved)) << solved.diagnostics;
     ASSERT_EQ(solved.steps.size(), 2u);
-    EXPECT_EQ(solved.steps[0].toPddl(), "(pick red_cube table)");
-    EXPECT_EQ(solved.steps[1].toPddl(), "(place red_cube bin)");
+    EXPECT_EQ(robotik::toPddl(solved.steps[0]), "(pick red_cube table)");
+    EXPECT_EQ(robotik::toPddl(solved.steps[1]), "(place red_cube bin)");
     EXPECT_NE(solved.report.find("(pick red_cube table)"), std::string::npos);
 
     // Same input, same plan.
@@ -199,7 +199,7 @@ TEST(Planning, KairosSolvesAndReportsErrors)
     // Nothing holds the cube and it is nowhere: no plan.
     robotik::PlanningResult const stuck =
         engine->solve(problemOf("(hand_empty)"), {});
-    EXPECT_FALSE(stuck.solved());
+    EXPECT_FALSE(robotik::solved(stuck));
     EXPECT_NE(stuck.status, robotik::PlanningResult::Status::Invalid);
 
     robotik::PlanningResult const bad =
@@ -254,9 +254,9 @@ TEST(Planning, ExecutorListsEveryProblemOfTheSetup)
 
     robotik::PlannerSpec bad_spec =
         spec(writeDomain("robotik_blocks.pddl", BLOCKS));
-    bad_spec.facts = { robotik::Literal::parse("at(bin, red_cube)").take() };
-    bad_spec.goal = { robotik::Literal::parse("in(red_cube, bin)").take(),
-                      robotik::Literal::parse("at(red_cube)").take() };
+    bad_spec.facts = { robotik::parseLiteral("at(bin, red_cube)").take() };
+    bad_spec.goal = { robotik::parseLiteral("in(red_cube, bin)").take(),
+                      robotik::parseLiteral("at(red_cube)").take() };
 
     auto message = [&](robotik::PlannerSpec const& p_spec,
                        robotik::WorldDescription const& p_world,

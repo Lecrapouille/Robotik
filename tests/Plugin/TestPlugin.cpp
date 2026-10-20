@@ -134,11 +134,11 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
 
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
 {
-    robotik::Scenario const scenario = robotik::Scenario::load(
+    robotik::Scenario const scenario = robotik::loadScenario(
         repo("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets()).take();
     EXPECT_EQ(scenario.id, "hello");
-    EXPECT_EQ(scenario.world.robot().model.filename(), "robot_6axis.urdf");
-    EXPECT_TRUE(std::filesystem::exists(scenario.world.robot().model));
+    EXPECT_EQ(robotik::firstRobot(scenario.world).model.filename(), "robot_6axis.urdf");
+    EXPECT_TRUE(std::filesystem::exists(robotik::firstRobot(scenario.world).model));
 }
 
 TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
@@ -300,7 +300,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(scenario, session.assets()).take(),
+        robotik::loadScenario(scenario, session.assets()).take(),
         nullptr,
         session.mission());
     session.attach(&simulation);
@@ -310,7 +310,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
     EXPECT_FALSE(simulation.finished());
     for (auto const& check : simulation.checks())
     {
-        if (check.text.find("reach.error") != std::string::npos && !check.ok())
+        if (check.text.find("reach.error") != std::string::npos && !ok(check))
         {
             saw_failure = true;
         }
@@ -355,7 +355,7 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::Scenario::load(scenario, session.assets()).take(),
+        robotik::loadScenario(scenario, session.assets()).take(),
         nullptr,
         session.mission());
     session.attach(&simulation);

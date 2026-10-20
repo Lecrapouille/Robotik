@@ -60,7 +60,7 @@ run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
             std::string plan;
             for (robotik::GroundAction const& step : record.result.steps)
             {
-                plan += step.toPddl();
+                plan += robotik::toPddl(step);
             }
             result.plans.push_back(plan);
             result.causes.push_back(record.cause);
@@ -72,7 +72,7 @@ run(robotik::Simulation& p_simulation, robotik::Seed p_seed, double p_limit)
 /// Loads a scenario file from the repository.
 static robotik::Scenario scenario(char const* p_file)
 {
-    return robotik::Scenario::load(repoFile(p_file), testAssets()).take();
+    return robotik::loadScenario(repoFile(p_file), testAssets()).take();
 }
 
 TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
@@ -135,7 +135,7 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
 
     // --report: the plans and the replans are in the run record.
     robotik::RunRecord const record =
-        robotik::RunRecord::capture(simulation, "default", {});
+        robotik::captureRun(simulation, "default", {});
     EXPECT_TRUE(record.planner.used);
     EXPECT_EQ(record.planner.plans.size(), result.plans.size());
     EXPECT_EQ(record.planner.replans, simulation.cell().planner()->replans());
@@ -143,7 +143,7 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     ASSERT_FALSE(record.planner.plans.front().steps.empty());
     EXPECT_EQ(record.planner.plans.front().steps.front(), "detect(red_cube)");
     std::ostringstream json;
-    robotik::RunReport{ "x", { record } }.writeJson(json);
+    robotik::writeJson(robotik::RunReport{ "x", { record } }, json);
     EXPECT_NE(json.str().find("\"replans\": "), std::string::npos)
         << json.str();
 }
@@ -178,9 +178,9 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
-    robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
+    robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(
         "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml")).take();
-    source.override("scenario.controller.behavior_tree",
-                    robotik::ConfigNode("scenarios/pick_and_place.bt.yaml"));
-    EXPECT_FALSE(robotik::Scenario::read(source, testAssets()));
+    EXPECT_TRUE(robotik::overrideValue(source, "scenario.controller.behavior_tree",
+                    robotik::ConfigNode("scenarios/pick_and_place.bt.yaml")));
+    EXPECT_FALSE(robotik::readScenario(source, testAssets()));
 }

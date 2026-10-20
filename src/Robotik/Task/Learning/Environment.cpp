@@ -111,8 +111,8 @@ void EnvironmentPool::advance(std::size_t p_index)
     m_rewards[p_index] = result.reward;
     m_returns[p_index] += static_cast<double>(result.reward);
     ++m_steps[p_index];
-    m_dones[p_index] = result.done() ? 1u : 0u;
-    if (result.done())
+    m_dones[p_index] = done(result) ? 1u : 0u;
+    if (done(result))
     {
         m_finished_episodes[p_index] = { static_cast<std::uint32_t>(p_index),
                                          m_indices[p_index],

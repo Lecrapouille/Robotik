@@ -67,8 +67,8 @@ enum class Truth : std::uint8_t
 ///
 /// @code
 /// robotik::Atom const a{ "in", { "red_cube", "box" } };
-/// a.toPddl();   // "(in red_cube box)"
-/// a.toString(); // "in(red_cube, box)"
+/// robotik::toPddl(a);   // "(in red_cube box)"
+/// robotik::toString(a); // "in(red_cube, box)"
 /// @endcode
 // ****************************************************************************
 struct Atom
@@ -78,22 +78,22 @@ struct Atom
     /// Arguments: object names, or parameters @c ?x in a schema.
     std::vector<std::string> args;
 
-    /// @return @c "(in red_cube box)".
-    [[nodiscard]] std::string toPddl() const;
-    /// @return @c "in(red_cube, box)", or @c "hand_empty" without argument.
-    [[nodiscard]] std::string toString() const;
-
     /// Compares the predicate, then the arguments.
     auto operator<=>(Atom const&) const = default;
 };
+
+/// @return @c "(in red_cube box)".
+[[nodiscard]] std::string toPddl(Atom const& p_atom);
+/// @return @c "in(red_cube, box)", or @c "hand_empty" without argument.
+[[nodiscard]] std::string toString(Atom const& p_atom);
 
 // ****************************************************************************
 /// An atom or its negation.
 ///
 /// @code
-/// robotik::Literal const goal = robotik::Literal::parse("not in(red_cube,
-/// box)"); goal.positive;  // false goal.toPddl();  // "(not (in red_cube
-/// box))"
+/// robotik::Literal const goal = robotik::parseLiteral("not in(red_cube, box)").take();
+/// goal.positive;           // false
+/// robotik::toPddl(goal);   // "(not (in red_cube box))"
 /// @endcode
 // ****************************************************************************
 struct Literal
@@ -103,29 +103,28 @@ struct Literal
     /// False for @c not atom.
     bool positive = true;
 
-    // -------------------------------------------------------------------------
-    /// Reads the scenario syntax. Names are lower-cased.
-    /// @param p_text @c "in(red_cube, box)", @c "not in(red_cube, box)" or
-    ///   @c "hand_empty".
-    /// @return The literal; fails on a malformed literal.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<Literal> parse(std::string_view p_text);
-
-    /// @return @c "(not (in red_cube box))".
-    [[nodiscard]] std::string toPddl() const;
-    /// @return @c "not in(red_cube, box)".
-    [[nodiscard]] std::string toString() const;
-
     /// Compares the atom, then the polarity.
     auto operator<=>(Literal const&) const = default;
 };
+
+// ----------------------------------------------------------------------------
+/// Reads the scenario syntax. Names are lower-cased.
+/// @param p_text @c "in(red_cube, box)", @c "not in(red_cube, box)" or
+///   @c "hand_empty".
+/// @return The literal; fails on a malformed literal.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<Literal> parseLiteral(std::string_view p_text);
+/// @return @c "(not (in red_cube box))".
+[[nodiscard]] std::string toPddl(Literal const& p_literal);
+/// @return @c "not in(red_cube, box)".
+[[nodiscard]] std::string toString(Literal const& p_literal);
 
 // ****************************************************************************
 /// One action of a plan: @c (pick red_cube).
 ///
 /// @code
 /// for (robotik::GroundAction const& step : result.steps)
-///     std::cout << step.start << ": " << step.toPddl() << '\n';
+///     std::cout << step.start << ": " << robotik::toPddl(step) << '\n';
 /// @endcode
 // ****************************************************************************
 struct GroundAction
@@ -140,9 +139,6 @@ struct GroundAction
     /// Duration in a temporal plan; 0 for a plain action.
     double duration = 0.0;
 
-    /// @return @c "(pick red_cube)".
-    [[nodiscard]] std::string toPddl() const;
-
     /// @return True for the same action and arguments (the timing is not
     ///   compared).
     bool operator==(GroundAction const& p_other) const
@@ -150,6 +146,9 @@ struct GroundAction
         return name == p_other.name && args == p_other.args;
     }
 };
+
+/// @return @c "(pick red_cube)".
+[[nodiscard]] std::string toPddl(GroundAction const& p_action);
 
 // ****************************************************************************
 /// A typed parameter of a predicate or an action (name without @c ?).
@@ -233,32 +232,14 @@ struct ActionSchema
 /// What RobotIK reads of a PDDL domain.
 ///
 /// @code
-/// robotik::DomainSchema const domain = robotik::DomainSchema::parse(text);
-/// bool const ok = domain.isA("cube", "block");
+/// robotik::DomainSchema const domain = robotik::parseDomain(text).take();
+/// bool const ok = robotik::isA(domain, "cube", "block");
 /// for (auto const& [name, action] : domain.actions)
-///     std::cout << name << ": " << action.parameters.size() << "
-///     parameters\n";
+///     std::cout << name << ": " << action.parameters.size() << " parameters\n";
 /// @endcode
 // ****************************************************************************
 struct DomainSchema
 {
-    // -------------------------------------------------------------------------
-    /// Reads a domain. The planner checks the full syntax; this reads the
-    /// sections above and ignores the rest.
-    /// @param p_text PDDL text of the domain.
-    /// @return The schema; fails on unbalanced parentheses or a missing
-    ///   @c define / @c domain.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<DomainSchema> parse(std::string_view p_text);
-
-    // -------------------------------------------------------------------------
-    /// @param p_type Type to test.
-    /// @param p_ancestor Possible ancestor.
-    /// @return True when @p_type is @p_ancestor or derives from it.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool isA(std::string_view p_type,
-                           std::string_view p_ancestor) const;
-
     /// Domain name.
     std::string name;
     /// Each type and its parent; the root is @c object.
@@ -270,6 +251,25 @@ struct DomainSchema
     /// Actions by name.
     std::map<std::string, ActionSchema, std::less<>> actions;
 };
+
+// ----------------------------------------------------------------------------
+/// Reads a domain. The planner checks the full syntax; this reads the
+/// sections above and ignores the rest.
+/// @param p_text PDDL text of the domain.
+/// @return The schema; fails on unbalanced parentheses or a missing
+///   @c define / @c domain.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<DomainSchema> parseDomain(std::string_view p_text);
+
+// ----------------------------------------------------------------------------
+/// @param p_schema Domain read by @ref parseDomain.
+/// @param p_type Type to test.
+/// @param p_ancestor Possible ancestor.
+/// @return True when @p_type is @p_ancestor or derives from it.
+// ----------------------------------------------------------------------------
+[[nodiscard]] bool isA(DomainSchema const& p_schema,
+                       std::string_view p_type,
+                       std::string_view p_ancestor);
 
 // ----------------------------------------------------------------------------
 /// @param p_text Any text.

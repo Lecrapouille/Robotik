@@ -164,7 +164,7 @@ robotik::Status DipSkill::tick(robotik::RobotContext& p_context,
             return robotik::Status::FAILURE;
         }
         robotik::Quaternion const down = brushDown();
-        double const top = pot->top();
+        double const top = robotik::top(*pot);
         m_path = {
             { { pot->position.x, pot->position.y, top + 0.20 }, down },
             { { pot->position.x, pot->position.y, top - 0.01 }, down },
@@ -302,8 +302,8 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
         robotik::Quaternion const down = brushDown();
         double const x = water->position.x;
         double const y = water->position.y;
-        double const wet = water->top() - 0.01;
-        m_path.push_back({ { x, y, water->top() + 0.18 }, down });
+        double const wet = top(*water) - 0.01;
+        m_path.push_back({ { x, y, top(*water) + 0.18 }, down });
         constexpr int kSteps = 8;
         for (int turn = 0; turn < 2; ++turn)
         {
@@ -317,7 +317,7 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
                                    down });
             }
         }
-        m_path.push_back({ { x, y, water->top() + 0.18 }, down });
+        m_path.push_back({ { x, y, top(*water) + 0.18 }, down });
         m_move = robotik::MoveTCPSkill({}, m_path.front(), 2e-2);
         m_ready = true;
     }

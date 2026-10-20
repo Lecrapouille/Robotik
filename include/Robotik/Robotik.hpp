@@ -27,7 +27,7 @@
  * #include "Robotik/Robotik.hpp"
  *
  * compages::world::World world;
- * robotik::Simulation simulation(world, robotik::Scenario::load(path, assets));
+ * robotik::Simulation simulation(world, robotik::loadScenario(path, assets));
  * simulation.reset(robotik::Seed(42));
  * @endcode
  */

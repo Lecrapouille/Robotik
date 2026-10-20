@@ -78,15 +78,15 @@ struct PlanningResult
     std::size_t expanded = 0u;
     /// Time spent planning (wall clock).
     double milliseconds = 0.0;
-
-    // ------------------------------------------------------------------------
-    /// @return True when a plan was found.
-    // ------------------------------------------------------------------------
-    [[nodiscard]] bool solved() const
-    {
-        return status == Status::Solved;
-    }
 };
+
+// ------------------------------------------------------------------------
+/// @return True when a plan was found.
+// ------------------------------------------------------------------------
+[[nodiscard]] inline bool solved(PlanningResult const& p_result)
+{
+    return p_result.status == PlanningResult::Status::Solved;
+}
 
 // ----------------------------------------------------------------------------
 /// Names a planning status, for logs.

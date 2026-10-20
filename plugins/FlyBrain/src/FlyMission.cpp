@@ -94,7 +94,7 @@ void FlyBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
         robotik::StepResult const result =
             m_environment.step(action, m_observation);
         m_return += static_cast<double>(result.reward);
-        m_done = result.done();
+        m_done = robotik::done(result);
         m_lag -= dt;
     }
     pose(p_robot);

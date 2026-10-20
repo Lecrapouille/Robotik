@@ -84,7 +84,7 @@ StepResult SimulationEnvironment::step(std::span<float const> p_action,
         }
         ++m_clock.steps;
         result = m_parts.reward->evaluate(*m_simulation);
-        if (!result.done() && m_clock.steps >= m_timing.max_steps)
+        if (!done(result) && m_clock.steps >= m_timing.max_steps)
         {
             result.end = EpisodeEnd::TimeLimit;
         }

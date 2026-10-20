@@ -217,9 +217,9 @@ int runView(Options const& p_options, FlyScenario const& p_scenario)
         }
         robotik::StepResult const result =
             environment.step(action, observation);
-        if (result.done())
+        if (robotik::done(result))
         {
-            reached = result.terminated();
+            reached = robotik::terminated(result);
             std::cout << (reached ? "Target reached" : "Time up") << " in "
                       << environment.snapshot().steps << " steps, reward "
                       << environment.snapshot().reward << '\n';
@@ -317,7 +317,7 @@ int runHeadless(Options const& p_options, FlyScenario const& p_scenario)
     std::size_t const shown = std::min(finished.size(), p_options.episodes);
     for (std::size_t i = 0; i < shown; ++i)
     {
-        if (finished[i].terminated())
+        if (robotik::terminated(finished[i]))
         {
             ++successes;
         }
@@ -369,7 +369,7 @@ int main(int p_argc, char** p_argv)
             throw std::runtime_error(root.error());
         }
         assets.addRoot(root.value() / "data");
-        robotik::Result<robotik::Scenario> const loaded = robotik::Scenario::load(options.scenario, assets);
+        robotik::Result<robotik::Scenario> const loaded = robotik::loadScenario(options.scenario, assets);
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

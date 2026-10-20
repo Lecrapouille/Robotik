@@ -166,9 +166,9 @@ Cell::Cell(compages::world::World& p_world,
           {
               WorldDescription const& world = m_description.world;
               std::vector<std::unique_ptr<RobotSession>> robots;
-              for (EntitySpec const* spec : world.robots())
+              for (EntitySpec const* spec : robotsOf(world))
               {
-                  EntitySpec const* tool = world.mountedTool(spec->id);
+                  EntitySpec const* tool = mountedTool(world, spec->id);
                   robots.push_back(std::make_unique<RobotSession>(
                       p_world,
                       spec->model,
@@ -216,7 +216,7 @@ Cell::Cell(compages::world::World& p_world,
     }
 
     // Hold the home position, now with the backend.
-    for (EntitySpec const* spec : m_description.world.robots())
+    for (EntitySpec const* spec : robotsOf(m_description.world))
     {
         robot(spec->id)->hold(spec->home);
     }
@@ -252,10 +252,10 @@ void Cell::build(SceneView* p_view)
 
     WorldDescription const& world = m_description.world;
     bool blind = true;
-    for (EntitySpec const* robot_spec : world.robots())
+    for (EntitySpec const* robot_spec : robotsOf(world))
     {
         RobotSession& robot = *this->robot(robot_spec->id);
-        EntitySpec const* tool = world.mountedTool(robot_spec->id);
+        EntitySpec const* tool = mountedTool(world, robot_spec->id);
         buildDevices(robot, *robot_spec, tool, p_view, blind);
     }
 
@@ -483,7 +483,7 @@ Pose Cell::resolveNominal(EntitySpec const& p_spec) const
         return p_spec.pose;
     }
     Attachment const& attach = *p_spec.attach;
-    EntitySpec const* parent = m_description.world.find(attach.parent);
+    EntitySpec const* parent = findEntity(m_description.world, attach.parent);
     Pose base{ Vector3::ZERO, Quaternion{} };
     if (parent->type == EntitySpec::Type::Robot)
     {
@@ -531,14 +531,14 @@ void Cell::connectBackend()
     auto physics = std::make_shared<MujocoBackend>(options);
     // The first robot is the host chain; the others stand in the world with
     // a prefix of their own, their tool with the same prefix.
-    for (EntitySpec const* robot_spec : world.robots())
+    for (EntitySpec const* robot_spec : robotsOf(world))
     {
         std::string const prefix = prefixOf(robot_spec->id);
         ChainOptions chain;
         chain.pose = robot_spec->pose;
         chain.prefix = prefix;
         std::string const arm = physics->load(robot_spec->model, chain);
-        if (EntitySpec const* tool = world.mountedTool(robot_spec->id))
+        if (EntitySpec const* tool = mountedTool(world, robot_spec->id))
         {
             ChainOptions mount;
             mount.prefix = prefix;
@@ -586,7 +586,7 @@ bool Cell::rigidProp(EntitySpec const& p_prop) const
     {
         return false;
     }
-    if (physics.of(p_prop.id) == Fidelity::Rigid)
+    if (fidelityOf(physics, p_prop.id) == Fidelity::Rigid)
     {
         return true;
     }
@@ -599,12 +599,12 @@ bool Cell::rigidProp(EntitySpec const& p_prop) const
         {
             rigid_gripper =
                 rigid_gripper || (actuator.type == ActuatorSpec::Type::Vacuum &&
-                                  physics.of(actuator.name) == Fidelity::Rigid);
+                                  fidelityOf(physics, actuator.name) == Fidelity::Rigid);
         }
         rigid_box = rigid_box ||
                     (entity.type == EntitySpec::Type::Prop && entity.shape &&
                      entity.shape->type == ShapeSpec::Type::Box &&
-                     physics.of(entity.id) == Fidelity::Rigid);
+                     fidelityOf(physics, entity.id) == Fidelity::Rigid);
     }
     // A box a rigid gripper may take; a container a rigid object may fall in.
     return box ? rigid_gripper : (rigid_gripper || rigid_box);

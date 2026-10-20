@@ -140,7 +140,7 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
         // A miss stays at max_range: nothing was there to be noisy about.
         if (range < max_range)
         {
-            range = m_config.noise.apply(range, m_random);
+            range = applyNoise(m_config.noise, range, m_random);
         }
         scan.ranges[i] = static_cast<float>(range);
     }

@@ -90,9 +90,9 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     reading.sequence = samples() + 1u;
     reading.valid = true;
     reading.acceleration =
-        m_config.accelerometer.apply(specific_force, m_random);
+        applyNoise(m_config.accelerometer, specific_force, m_random);
     reading.angular_velocity =
-        m_config.gyroscope.apply(angular_velocity, m_random);
+        applyNoise(m_config.gyroscope, angular_velocity, m_random);
     reading.orientation = pose.rotation;
     m_readings.push(p_now, std::move(reading));
 

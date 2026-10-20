@@ -410,10 +410,10 @@ char const* toString(Truth p_truth)
 }
 
 // ----------------------------------------------------------------------------
-std::string Atom::toPddl() const
+std::string toPddl(Atom const& p_atom)
 {
-    std::string text = "(" + predicate;
-    for (std::string const& arg : args)
+    std::string text = "(" + p_atom.predicate;
+    for (std::string const& arg : p_atom.args)
     {
         text += " " + arg;
     }
@@ -421,22 +421,22 @@ std::string Atom::toPddl() const
 }
 
 // ----------------------------------------------------------------------------
-std::string Atom::toString() const
+std::string toString(Atom const& p_atom)
 {
-    if (args.empty())
+    if (p_atom.args.empty())
     {
-        return predicate;
+        return p_atom.predicate;
     }
-    std::string text = predicate + "(";
-    for (std::size_t i = 0u; i < args.size(); ++i)
+    std::string text = p_atom.predicate + "(";
+    for (std::size_t i = 0u; i < p_atom.args.size(); ++i)
     {
-        text += (i == 0u ? "" : ", ") + args[i];
+        text += (i == 0u ? "" : ", ") + p_atom.args[i];
     }
     return text + ")";
 }
 
 // ----------------------------------------------------------------------------
-Result<Literal> Literal::parse(std::string_view p_text)
+Result<Literal> parseLiteral(std::string_view p_text)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
@@ -503,37 +503,36 @@ Result<Literal> Literal::parse(std::string_view p_text)
 }
 
 // ----------------------------------------------------------------------------
-std::string Literal::toPddl() const
+std::string toPddl(Literal const& p_literal)
 {
-    return positive ? atom.toPddl() : "(not " + atom.toPddl() + ")";
+    return p_literal.positive ? toPddl(p_literal.atom) : "(not " + toPddl(p_literal.atom) + ")";
 }
 
 // ----------------------------------------------------------------------------
-std::string Literal::toString() const
+std::string toString(Literal const& p_literal)
 {
-    return positive ? atom.toString() : "not " + atom.toString();
+    return p_literal.positive ? toString(p_literal.atom) : "not " + toString(p_literal.atom);
 }
 
 // ----------------------------------------------------------------------------
-std::string GroundAction::toPddl() const
+std::string toPddl(GroundAction const& p_action)
 {
-    return Atom{ name, args }.toPddl();
+    return toPddl(Atom{ p_action.name, p_action.args });
 }
 
 // ----------------------------------------------------------------------------
-bool DomainSchema::isA(std::string_view p_type,
-                       std::string_view p_ancestor) const
+bool isA(DomainSchema const& p_schema, std::string_view p_type, std::string_view p_ancestor)
 {
     std::string current(p_type);
     // The depth bound stops a cycle in a malformed hierarchy.
-    for (std::size_t depth = 0u; depth <= types.size() + 1u; ++depth)
+    for (std::size_t depth = 0u; depth <= p_schema.types.size() + 1u; ++depth)
     {
         if (current == p_ancestor || p_ancestor == "object")
         {
             return true;
         }
-        auto const parent = types.find(current);
-        if (parent == types.end() || parent->second == current)
+        auto const parent = p_schema.types.find(current);
+        if (parent == p_schema.types.end() || parent->second == current)
         {
             return false;
         }
@@ -543,7 +542,7 @@ bool DomainSchema::isA(std::string_view p_type,
 }
 
 // ----------------------------------------------------------------------------
-Result<DomainSchema> DomainSchema::parse(std::string_view p_text)
+Result<DomainSchema> parseDomain(std::string_view p_text)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try

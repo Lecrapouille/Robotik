@@ -68,9 +68,9 @@ static std::string number(double p_value)
     return stream.str();
 }
 
-RunRecord RunRecord::capture(Simulation const& p_simulation,
-                             std::string p_case,
-                             std::vector<std::string> const& p_metrics)
+RunRecord captureRun(Simulation const& p_simulation,
+                     std::string p_case,
+                     std::vector<std::string> const& p_metrics)
 {
     RunRecord record;
     record.case_id = std::move(p_case);
@@ -103,7 +103,7 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
             entry.result = toString(plan.result.status);
             for (GroundAction const& step : plan.result.steps)
             {
-                entry.steps.push_back(Atom{ step.name, step.args }.toString());
+                entry.steps.push_back(toString(Atom{ step.name, step.args }));
             }
             entry.expanded = plan.result.expanded;
             entry.milliseconds = plan.result.milliseconds;
@@ -121,18 +121,18 @@ RunRecord RunRecord::capture(Simulation const& p_simulation,
     return record;
 }
 
-bool RunReport::passed() const
+bool passed(RunReport const& p_report)
 {
-    return !runs.empty() &&
-           std::all_of(runs.begin(),
-                       runs.end(),
+    return !p_report.runs.empty() &&
+           std::all_of(p_report.runs.begin(),
+                       p_report.runs.end(),
                        [](RunRecord const& p_run) { return p_run.passed; });
 }
 
-void RunReport::writeText(std::ostream& p_out) const
+void writeText(RunReport const& p_report, std::ostream& p_out)
 {
     std::size_t passed_runs = 0;
-    for (RunRecord const& run : runs)
+    for (RunRecord const& run : p_report.runs)
     {
         passed_runs += run.passed ? 1u : 0u;
         p_out << (run.passed ? "[PASS] " : "[FAIL] ") << std::left
@@ -183,18 +183,18 @@ void RunReport::writeText(std::ostream& p_out) const
             }
         }
     }
-    p_out << experiment << ": " << passed_runs << '/' << runs.size()
-          << " runs passed\n";
+    p_out << p_report.experiment << ": " << passed_runs << '/' << p_report.runs.size()
+          << " p_report.runs passed\n";
 }
 
-void RunReport::writeJson(std::ostream& p_out) const
+void writeJson(RunReport const& p_report, std::ostream& p_out)
 {
-    p_out << "{\n  \"experiment\": " << quoted(experiment)
-          << ",\n  \"passed\": " << (passed() ? "true" : "false")
+    p_out << "{\n  \"experiment\": " << quoted(p_report.experiment)
+          << ",\n  \"passed\": " << (passed(p_report) ? "true" : "false")
           << ",\n  \"runs\": [";
-    for (std::size_t i = 0; i < runs.size(); ++i)
+    for (std::size_t i = 0; i < p_report.runs.size(); ++i)
     {
-        RunRecord const& run = runs[i];
+        RunRecord const& run = p_report.runs[i];
         p_out << (i == 0u ? "\n" : ",\n") << "    {\n"
               << "      \"case\": " << quoted(run.case_id) << ",\n"
               << "      \"scenario\": " << quoted(run.scenario) << ",\n"
@@ -258,7 +258,7 @@ void RunReport::writeJson(std::ostream& p_out) const
         }
         p_out << (run.checks.empty() ? "]\n" : "\n      ]\n") << "    }";
     }
-    p_out << (runs.empty() ? "]\n}\n" : "\n  ]\n}\n");
+    p_out << (p_report.runs.empty() ? "]\n}\n" : "\n  ]\n}\n");
 }
 
 } // namespace robotik

@@ -30,7 +30,7 @@ namespace robotik
 /// Degradation of one measured channel, in the unit of the channel.
 ///
 /// @code
-/// robotik::NoiseModel range = robotik::NoiseModel::gaussian(0.01); // 1 cm
+/// robotik::NoiseModel range = robotik::gaussianNoise(0.01); // 1 cm
 /// range.resolution = 0.001;                                       // 1 mm
 /// steps range.min = 0.0; range.max = 10.0; double const measured =
 /// range.apply(true_distance, rng);
@@ -48,63 +48,63 @@ struct NoiseModel
     double min = -std::numeric_limits<double>::infinity();
     /// Highest output (saturation).
     double max = std::numeric_limits<double>::infinity();
-
-    // -------------------------------------------------------------------------
-    /// Builds a pure gaussian noise.
-    /// @param p_sigma Standard deviation.
-    /// @return A model without bias, quantization nor saturation.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static NoiseModel gaussian(double p_sigma)
-    {
-        NoiseModel model;
-        model.sigma = p_sigma;
-        return model;
-    }
-
-    // -------------------------------------------------------------------------
-    /// @return True when the model changes nothing (and draws nothing).
-    // -------------------------------------------------------------------------
-    [[nodiscard]] bool ideal() const
-    {
-        return sigma <= 0.0 && std::fpclassify(bias) == FP_ZERO &&
-               resolution <= 0.0 && std::isinf(min) && std::isinf(max);
-    }
-
-    // -------------------------------------------------------------------------
-    /// Degrades one value.
-    /// @param p_value True value.
-    /// @param p_random Generator of the sensor.
-    /// @return The measured value.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] double apply(double p_value, Random& p_random) const
-    {
-        double value = p_value + bias;
-        if (sigma > 0.0)
-        {
-            value = p_random.normal(value, sigma);
-        }
-        if (resolution > 0.0)
-        {
-            value = resolution * std::round(value / resolution);
-        }
-        return value < min ? min : (value > max ? max : value);
-    }
-
-    // -------------------------------------------------------------------------
-    /// Degrades a vector with the same model on the three axes (drawn x,
-    /// then y, then z).
-    /// @param p_value True vector.
-    /// @param p_random Generator of the sensor.
-    /// @return The measured vector.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Vector3 apply(Vector3 const& p_value, Random& p_random) const
-    {
-        double const x = apply(p_value.x, p_random);
-        double const y = apply(p_value.y, p_random);
-        double const z = apply(p_value.z, p_random);
-        return { x, y, z };
-    }
 };
+
+// -------------------------------------------------------------------------
+/// Builds a pure gaussian noise.
+/// @param p_sigma Standard deviation.
+/// @return A model without bias, quantization nor saturation.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline NoiseModel gaussianNoise(double p_sigma)
+{
+    NoiseModel model;
+    model.sigma = p_sigma;
+    return model;
+}
+
+// -------------------------------------------------------------------------
+/// @return True when the model changes nothing (and draws nothing).
+// -------------------------------------------------------------------------
+[[nodiscard]] inline bool ideal(NoiseModel const& p_model)
+{
+    return p_model.sigma <= 0.0 && std::fpclassify(p_model.bias) == FP_ZERO &&
+           p_model.resolution <= 0.0 && std::isinf(p_model.min) && std::isinf(p_model.max);
+}
+
+// -------------------------------------------------------------------------
+/// Degrades one value.
+/// @param p_value True value.
+/// @param p_random Generator of the sensor.
+/// @return The measured value.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline double applyNoise(NoiseModel const& p_model, double p_value, Random& p_random)
+{
+    double value = p_value + p_model.bias;
+    if (p_model.sigma > 0.0)
+    {
+        value = p_random.normal(value, p_model.sigma);
+    }
+    if (p_model.resolution > 0.0)
+    {
+        value = p_model.resolution * std::round(value / p_model.resolution);
+    }
+    return value < p_model.min ? p_model.min : (value > p_model.max ? p_model.max : value);
+}
+
+// -------------------------------------------------------------------------
+/// Degrades a vector with the same model on the three axes (drawn x,
+/// then y, then z).
+/// @param p_value True vector.
+/// @param p_random Generator of the sensor.
+/// @return The measured vector.
+// -------------------------------------------------------------------------
+[[nodiscard]] inline Vector3 applyNoise(NoiseModel const& p_model, Vector3 const& p_value, Random& p_random)
+{
+    double const x = applyNoise(p_model, p_value.x, p_random);
+    double const y = applyNoise(p_model, p_value.y, p_random);
+    double const z = applyNoise(p_model, p_value.z, p_random);
+    return { x, y, z };
+}
 
 // ****************************************************************************
 /// Delivers samples @c latency after their capture.

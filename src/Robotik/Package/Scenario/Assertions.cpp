@@ -49,70 +49,78 @@ char const* toString(Check::Verdict p_verdict)
     return "?";
 }
 
-AssertionSpec AssertionSpec::read(ConfigNode const& p_node)
+Result<AssertionSpec> readAssertion(ConfigNode const& p_node)
 {
-    AssertionSpec spec;
-    if (p_node.isScalar())
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
     {
-        spec.condition = p_node.scalar();
-        spec.name = spec.condition;
+        AssertionSpec spec;
+        if (p_node.isScalar())
+        {
+            spec.condition = p_node.scalar();
+            spec.name = spec.condition;
+            return spec;
+        }
+        if (!p_node.isMap())
+        {
+            throw std::runtime_error("an assertion is a condition or a map");
+        }
+        spec.condition = p_node.text("condition");
+        spec.stop = p_node.flag("stop", false);
+        std::string const phase = p_node.text("phase");
+        if (p_node.has("sequence"))
+        {
+            spec.phase = AssertionPhase::Sequence;
+            spec.sequence = p_node.strings("sequence");
+            if (spec.sequence.size() < 2u || !spec.condition.empty())
+            {
+                throw std::runtime_error(
+                    "a sequence lists two conditions or more, and no condition");
+            }
+        }
+        else if (p_node.has("at"))
+        {
+            spec.phase = AssertionPhase::At;
+            spec.time = Seconds(p_node.number("at", 0.0));
+        }
+        else if (p_node.has("within"))
+        {
+            spec.phase = AssertionPhase::Within;
+            spec.time = Seconds(p_node.number("within", 0.0));
+        }
+        else if (p_node.flag("eventually", false) || phase == "eventually")
+        {
+            spec.phase = AssertionPhase::Eventually;
+        }
+        else if (phase == "always")
+        {
+            spec.phase = AssertionPhase::Always;
+        }
+        else if (phase.empty() || phase == "end")
+        {
+            spec.phase = AssertionPhase::End;
+        }
+        else
+        {
+            throw std::runtime_error("phase must be always, end or eventually (or "
+                                     "use at:, within:, sequence:)");
+        }
+        if (spec.phase != AssertionPhase::Sequence && spec.condition.empty())
+        {
+            throw std::runtime_error("an assertion needs a condition");
+        }
+        spec.name = p_node.text("name");
+        if (spec.name.empty())
+        {
+            spec.name = spec.phase == AssertionPhase::Sequence ? "sequence"
+                                                               : spec.condition;
+        }
         return spec;
     }
-    if (!p_node.isMap())
+    catch (std::exception const& error)
     {
-        throw std::runtime_error("an assertion is a condition or a map");
+        return failure(error.what());
     }
-    spec.condition = p_node.text("condition");
-    spec.stop = p_node.flag("stop", false);
-    std::string const phase = p_node.text("phase");
-    if (p_node.has("sequence"))
-    {
-        spec.phase = AssertionPhase::Sequence;
-        spec.sequence = p_node.strings("sequence");
-        if (spec.sequence.size() < 2u || !spec.condition.empty())
-        {
-            throw std::runtime_error(
-                "a sequence lists two conditions or more, and no condition");
-        }
-    }
-    else if (p_node.has("at"))
-    {
-        spec.phase = AssertionPhase::At;
-        spec.time = Seconds(p_node.number("at", 0.0));
-    }
-    else if (p_node.has("within"))
-    {
-        spec.phase = AssertionPhase::Within;
-        spec.time = Seconds(p_node.number("within", 0.0));
-    }
-    else if (p_node.flag("eventually", false) || phase == "eventually")
-    {
-        spec.phase = AssertionPhase::Eventually;
-    }
-    else if (phase == "always")
-    {
-        spec.phase = AssertionPhase::Always;
-    }
-    else if (phase.empty() || phase == "end")
-    {
-        spec.phase = AssertionPhase::End;
-    }
-    else
-    {
-        throw std::runtime_error("phase must be always, end or eventually (or "
-                                 "use at:, within:, sequence:)");
-    }
-    if (spec.phase != AssertionPhase::Sequence && spec.condition.empty())
-    {
-        throw std::runtime_error("an assertion needs a condition");
-    }
-    spec.name = p_node.text("name");
-    if (spec.name.empty())
-    {
-        spec.name = spec.phase == AssertionPhase::Sequence ? "sequence"
-                                                           : spec.condition;
-    }
-    return spec;
 }
 
 AssertionEngine::AssertionEngine(std::vector<AssertionSpec> p_specs)

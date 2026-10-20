@@ -29,6 +29,7 @@
 /// simulated time; it does not stop the run unless it says @c stop: true.
 #pragma once
 
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Task/Metrics.hpp"
 
@@ -86,16 +87,15 @@ struct AssertionSpec
     Seconds time{};
     /// A failure ends the run.
     bool stop = false;
-
-    // -------------------------------------------------------------------------
-    /// Reads one entry of @c assertions:.
-    /// @param p_node A string (shorthand for phase end) or a map, see the
-    ///   file doc.
-    /// @return The assertion.
-    /// @throws std::runtime_error on an invalid entry.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static AssertionSpec read(ConfigNode const& p_node);
 };
+
+// ----------------------------------------------------------------------------
+/// Reads one entry of @c assertions:.
+/// @param p_node A string (shorthand for phase end) or a map, see the file
+///   doc.
+/// @return The assertion; fails on an invalid entry.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<AssertionSpec> readAssertion(ConfigNode const& p_node);
 
 // ****************************************************************************
 /// State of one assertion.
@@ -136,15 +136,15 @@ struct Check
     std::string detail;
     /// Simulated time of the verdict, or of the last evaluation.
     Seconds time{};
-
-    /// @return True to show it green in a live view: passed, or pending and
-    ///   holding now.
-    [[nodiscard]] bool ok() const
-    {
-        return verdict == Verdict::Passed ||
-               (verdict == Verdict::Pending && holds);
-    }
 };
+
+/// @return True to show it green in a live view: passed, or pending and
+///   holding now.
+[[nodiscard]] inline bool ok(Check const& p_check)
+{
+    return p_check.verdict == Check::Verdict::Passed ||
+           (p_check.verdict == Check::Verdict::Pending && p_check.holds);
+}
 
 // ----------------------------------------------------------------------------
 /// @param p_verdict Verdict to name.

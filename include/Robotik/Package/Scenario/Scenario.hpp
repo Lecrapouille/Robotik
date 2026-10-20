@@ -71,19 +71,18 @@
 
 namespace robotik
 {
-
 // ****************************************************************************
 /// The two files of a scenario, still editable (see @ref ConfigNode).
 ///
-/// Change values here, then interpret with @ref Scenario::read. This is how
+/// Change values here, then interpret with @ref readScenario. This is how
 /// an experiment applies its @c overrides.
 ///
 /// @code
-/// robotik::ScenarioSource source = robotik::ScenarioSource::load(file).take();
-/// source.override("world.entities.easel.friction",
-/// robotik::ConfigNode("0.05")); source.override("scenario.timeout",
+/// robotik::ScenarioSource source = robotik::loadScenarioSource(file).take();
+/// (void)robotik::overrideValue(source, "world.entities.easel.friction",
+/// robotik::ConfigNode("0.05")); (void)robotik::overrideValue(source, "scenario.timeout",
 /// robotik::ConfigNode("60")); robotik::Scenario const scenario =
-/// robotik::Scenario::read(source, assets).take();
+/// robotik::readScenario(source, assets).take();
 /// @endcode
 // ****************************************************************************
 struct ScenarioSource
@@ -98,24 +97,6 @@ struct ScenarioSource
     ConfigNode world;
     /// Path of the world file.
     std::filesystem::path world_file;
-
-    // -------------------------------------------------------------------------
-    /// Reads the scenario file and the world file it names.
-    /// @param p_scenario A @c x.scenario.yaml file.
-    /// @return Both trees, not interpreted yet; fails when a file is missing
-    ///   or unreadable.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<ScenarioSource>
-    load(std::filesystem::path const& p_scenario);
-
-    // -------------------------------------------------------------------------
-    /// Changes one value before interpretation.
-    /// @param p_path Starts with @c scenario. or @c world., e.g.
-    ///   @c world.entities.easel.friction.
-    /// @param p_value New value.
-    /// @throws std::runtime_error for another prefix or a broken path.
-    // -------------------------------------------------------------------------
-    void override(std::string_view p_path, ConfigNode p_value);
 };
 
 // ****************************************************************************
@@ -124,7 +105,7 @@ struct ScenarioSource
 ///
 /// @code
 /// auto const assets = robotik::AssetResolver::standard();
-/// robotik::Scenario const scenario = robotik::Scenario::load(file, assets).take();
+/// robotik::Scenario const scenario = robotik::loadScenario(file, assets).take();
 /// std::cout << scenario.id << ": " << scenario.world.entities.size()
 ///           << " entities, timeout " << scenario.timeout.value() << " s\n";
 /// double const h = scenario.parameters.number("approach_height", 0.1);
@@ -132,34 +113,6 @@ struct ScenarioSource
 // ****************************************************************************
 struct Scenario : CellDescription
 {
-    // -------------------------------------------------------------------------
-    /// Interprets the two files of a scenario.
-    /// @param p_source Scenario and world trees, maybe overridden.
-    /// @param p_assets Resolves the model names.
-    /// @return The scenario; the error names the file and the field at
-    ///   fault, or a model missing from @p_assets.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<Scenario> read(ScenarioSource const& p_source,
-                                               AssetResolver const& p_assets);
-
-    // -------------------------------------------------------------------------
-    /// Reads and interprets a scenario file and its world.
-    /// @param p_path A @c x.scenario.yaml file.
-    /// @param p_assets Resolves the model names.
-    /// @return The scenario, or the error of @ref read or
-    ///   @ref ScenarioSource::load.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<Scenario> load(std::filesystem::path const& p_path,
-                                               AssetResolver const& p_assets)
-    {
-        Result<ScenarioSource> source = ScenarioSource::load(p_path);
-        if (!source)
-        {
-            return failure(source.error());
-        }
-        return read(source.value(), p_assets);
-    }
-
     /// Free text for the user.
     std::string description;
     /// File the scenario was read from.
@@ -171,5 +124,53 @@ struct Scenario : CellDescription
     /// What is checked during and at the end of the run.
     std::vector<AssertionSpec> assertions;
 };
+
+// ----------------------------------------------------------------------------
+/// Reads the scenario file and the world file it names.
+/// @param p_scenario A @c x.scenario.yaml file.
+/// @return Both trees, not interpreted yet; fails when a file is missing or
+///   unreadable.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenario);
+
+// ----------------------------------------------------------------------------
+/// Changes one value before interpretation.
+/// @param p_source Trees to change.
+/// @param p_path Starts with @c scenario. or @c world., e.g.
+///   @c world.entities.easel.friction.
+/// @param p_value New value.
+/// @return Fails for another prefix or a broken path.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> overrideValue(ScenarioSource& p_source,
+                                         std::string_view p_path,
+                                         ConfigNode p_value);
+
+// ----------------------------------------------------------------------------
+/// Interprets the two files of a scenario.
+/// @param p_source Scenario and world trees, maybe overridden.
+/// @param p_assets Resolves the model names.
+/// @return The scenario; the error names the file and the field at fault, or
+///   a model missing from @p_assets.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<Scenario> readScenario(ScenarioSource const& p_source,
+                                            AssetResolver const& p_assets);
+
+// ----------------------------------------------------------------------------
+/// Reads and interprets a scenario file and its world.
+/// @param p_path A @c x.scenario.yaml file.
+/// @param p_assets Resolves the model names.
+/// @return The scenario, or the error of @ref loadScenarioSource or
+///   @ref readScenario.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline Result<Scenario> loadScenario(std::filesystem::path const& p_path,
+                                                   AssetResolver const& p_assets)
+{
+    Result<ScenarioSource> source = loadScenarioSource(p_path);
+    if (!source)
+    {
+        return failure(source.error());
+    }
+    return readScenario(source.value(), p_assets);
+}
 
 } // namespace robotik

@@ -157,7 +157,7 @@ static void syncMarkers(App& p_app)
 static bool changeTool(App& p_app)
 {
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
-    robotik::EntitySpec const* mounted = world.mountedTool();
+    robotik::EntitySpec const* mounted = robotik::mountedTool(world);
     std::string const current =
         mounted != nullptr ? mounted->id : std::string{};
     std::string const label = current.empty() ? std::string("None") : current;
@@ -206,7 +206,7 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 {
     // Kind of tool: the model key of its asset id (robotik.tools.vacuum).
     robotik::EntitySpec const* tool =
-        p_app.simulation->scenario().world.mountedTool();
+        robotik::mountedTool(p_app.simulation->scenario().world);
     std::string mounted;
     if (tool != nullptr)
     {

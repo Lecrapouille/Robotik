@@ -128,7 +128,7 @@ void worldModelPanel(App& p_app)
                 ImGui::Text("%.0f%%",
                             static_cast<double>(belief->confidence) * 100.0);
                 ImGui::TableNextColumn();
-                if (belief->observed())
+                if (robotik::observed(*belief))
                 {
                     ImGui::Text("%.2f s", belief->seen.value());
                 }

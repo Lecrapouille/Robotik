@@ -132,7 +132,7 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     std::string goal = p_executor.spec().goal_pddl;
     for (robotik::Literal const& literal : p_executor.spec().goal)
     {
-        goal += (goal.empty() ? "" : ", ") + literal.toString();
+        goal += (goal.empty() ? "" : ", ") + robotik::toString(literal);
     }
     ImGui::TextDisabled("GOAL");
     ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.2f);
@@ -248,7 +248,7 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
         }
         ImGui::TableNextColumn();
         std::string const action =
-            robotik::Atom{ plan[i].name, plan[i].args }.toString();
+            robotik::toString(robotik::Atom{ plan[i].name, plan[i].args });
         if (current)
         {
             ImGui::TextUnformatted(action.c_str());
@@ -316,7 +316,7 @@ static void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
         ImGui::TableNextColumn();
         ImGui::TextWrapped("%s", record.cause.c_str());
         ImGui::TableNextColumn();
-        ImGui::TextColored(record.result.solved() ? GREEN : RED,
+        ImGui::TextColored(robotik::solved(record.result) ? GREEN : RED,
                            "%s %zu",
                            robotik::toString(record.result.status),
                            record.result.steps.size());
@@ -374,7 +374,7 @@ void beliefsView(App& p_app)
         }
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::TextUnformatted(atom.toString().c_str());
+        ImGui::TextUnformatted(robotik::toString(atom).c_str());
         ImGui::TableNextColumn();
         ImGui::TextColored(colorOf(value), "%s", robotik::toString(value));
     }
@@ -382,7 +382,7 @@ void beliefsView(App& p_app)
     {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::TextDisabled("%s", fact.atom.toString().c_str());
+        ImGui::TextDisabled("%s", robotik::toString(fact.atom).c_str());
         ImGui::TableNextColumn();
         ImGui::TextDisabled("fact");
     }

@@ -79,29 +79,14 @@ struct ExperimentCase
 /// Each case is run once per seed; @ref scenario builds what one run needs.
 ///
 /// @code
-/// auto const experiment = robotik::Experiment::load(file);
+/// auto const experiment = robotik::loadExperiment(file).take();
 /// for (auto const& c : experiment.cases)
 ///     for (std::uint64_t seed : experiment.seeds)
-///         run(experiment.scenario(c, assets), robotik::Seed(seed));
+///         run(robotik::scenarioOf(experiment, c, assets).take(), robotik::Seed(seed));
 /// @endcode
 // ****************************************************************************
 struct Experiment
 {
-    // -------------------------------------------------------------------------
-    /// Reads an experiment file.
-    /// @param p_path A @c x.experiment.yaml file.
-    /// @return The experiment; the error names the file and the field at
-    ///   fault.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static Result<Experiment> load(std::filesystem::path const& p_path);
-
-    // -------------------------------------------------------------------------
-    /// Tells whether a YAML file is an experiment, whatever its name.
-    /// @param p_path YAML file to look at.
-    /// @return True when its root holds @c experiment:.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] static bool describes(std::filesystem::path const& p_path);
-
     /// Experiment id.
     std::string id;
     /// Free text for the user.
@@ -119,15 +104,32 @@ struct Experiment
     /// Values recorded at the end of every run (metric names or queries).
     std::vector<std::string> metrics;
 
-    // -------------------------------------------------------------------------
-    /// Builds the scenario of one case: world, overrides, controller, extra
-    /// faults and extra assertions are applied.
-    /// @param p_case Case of this experiment.
-    /// @param p_assets Resolves the models named by the files.
-    /// @return The scenario ready to run, or why it cannot be built.
-    // -------------------------------------------------------------------------
-    [[nodiscard]] Result<Scenario> scenario(ExperimentCase const& p_case,
-                                    AssetResolver const& p_assets) const;
 };
+
+// ----------------------------------------------------------------------------
+/// Reads an experiment file.
+/// @param p_path A @c x.experiment.yaml file.
+/// @return The experiment; the error names the file and the field at fault.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<Experiment> loadExperiment(std::filesystem::path const& p_path);
+
+// ----------------------------------------------------------------------------
+/// Tells whether a YAML file is an experiment, whatever its name.
+/// @param p_path YAML file to look at.
+/// @return True when its root holds @c experiment:.
+// ----------------------------------------------------------------------------
+[[nodiscard]] bool isExperiment(std::filesystem::path const& p_path);
+
+// ----------------------------------------------------------------------------
+/// Builds the scenario of one case: world, overrides, controller, extra
+/// faults and extra assertions are applied.
+/// @param p_experiment Experiment the case belongs to.
+/// @param p_case Case of this experiment.
+/// @param p_assets Resolves the models named by the files.
+/// @return The scenario ready to run, or why it cannot be built.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<Scenario> scenarioOf(Experiment const& p_experiment,
+                                          ExperimentCase const& p_case,
+                                          AssetResolver const& p_assets);
 
 } // namespace robotik

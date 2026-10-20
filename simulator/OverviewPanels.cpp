@@ -247,7 +247,7 @@ void worldView(App& p_app)
         for (robotik::EntitySpec const& entity : world.entities)
         {
             std::string const parent = parentOf(entity);
-            if (parent.empty() || world.find(parent) == nullptr)
+            if (parent.empty() || robotik::findEntity(world, parent) == nullptr)
             {
                 entityRow(p_app, world, entity);
             }
@@ -439,7 +439,7 @@ void selectExperiment(App& p_app,
     ui.experiment_path = p_path;
     ui.experiment.reset();
     ui.experiment_error.clear();
-    robotik::Result<robotik::Experiment> loaded = robotik::Experiment::load(p_path);
+    robotik::Result<robotik::Experiment> loaded = robotik::loadExperiment(p_path);
     if (loaded)
     {
         ui.experiment = loaded.take();
