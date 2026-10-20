@@ -1,3 +1,23 @@
+Version 0.3.0:
+    * Robot API: SoA joints in SI units, sensors with noise models,
+      actuators, resources, MuJoCo and Pinocchio backends, teach pendant
+    * Skills scheduled with resources, priorities and preemption; behavior
+      trees on the simulated time; faults make a resource unavailable
+    * Perception: detectors feed a WorldModel of beliefs; ground truth kept
+      for metrics and assertions
+    * PDDL planner (Kairos): parallel and temporal plans, several robots
+      in one world
+    * Plugins: plugin.yaml manifest, versioned asset packs, files named by
+      their role (world, scenario, experiment, behavior tree, domain)
+    * Scenarios: world and scenario files, assertion engine, experiments
+      with seeds and overrides, headless runner with a JSON report
+    * Reinforcement learning: environment contract, episode log
+    * Simulator: new interface, 3D view with shadows, planner and fault
+      panels, screenshots from the command line
+    * Demos: HelloWorld, PickAndPlace, Painter, LineFollower, FlyBrain,
+      HumanoidWalk, DualArm, MicroDuck
+    * Documentation rewritten in simple English
+
 Version 0.2.0:
     * Initial refactor:
       - using personal OpenGL renderer as third party managing USRD/STL and kinematic chain
