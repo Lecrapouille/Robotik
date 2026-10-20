@@ -51,6 +51,8 @@ ImFont* monoFont();
 /// a button to copy the path and one to copy the text. YAML and PDDL
 /// are coloured by syntax.
 void textView(std::filesystem::path const& p_path, std::string const& p_text);
+/// Text of @p_path, or a short note for a binary or a large file.
+std::string readShown(std::filesystem::path const& p_path);
 
 /// Horizontal bar from @p_lower to @p_upper with @p_value filled,
 /// an optional target tick, and a centred label.
@@ -110,8 +112,15 @@ void showFile(App& p_app, std::filesystem::path const& p_path);
 void selectExperiment(App& p_app,
                       std::filesystem::path const& p_path,
                       bool p_focus);
-/// Every asset pack found: models, version, license, source.
+/// Every asset pack found: models, version, license, source. A click on a
+/// model or a file of a pack shows it in the Asset tab of Files.
 void assetsPanel(App& p_app);
+/// Contents of the Asset tab of Files: the file clicked in Assets, as a 3D
+/// model, a picture or a text.
+void assetView(App& p_app);
+/// Reads the file clicked in Assets in the previous frame. Called before
+/// any panel, when no texture of the old file is drawn yet.
+void openClickedAsset(App& p_app);
 void filesPanel(App& p_app);
 
 // --- Robot workspace (RobotPanel.cpp, TeachPanel.cpp) -----------------------

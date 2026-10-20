@@ -4,10 +4,13 @@
 // This file is part of RobotIK. It is available under the GNU GPL v3 or,
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
+#include "SimulatorDisplay.hpp"
 #include "Ui.hpp"
 
 #include "Robotik/Package/Plugin/PluginABI.h"
 #include "Robotik/Package/Scenario/Scenario.hpp"
+
+#include "Compages/World/Controllers/Controls.hpp"
 
 #include <imgui.h>
 
@@ -654,6 +657,7 @@ static char const* viewName(FileTab p_view)
             return "Planner";
         case FileTab::Experiment:
             return "Experiment";
+        case FileTab::Asset:
         case FileTab::Other:
             break;
     }
@@ -662,7 +666,8 @@ static char const* viewName(FileTab p_view)
 
 void showView(App& p_app, FileTab p_view, bool p_editor)
 {
-    if (p_view == FileTab::Other)
+    // Asset and Other have no view: only the tab of Files changes.
+    if (p_view == FileTab::Asset || p_view == FileTab::Other)
     {
         if (p_editor)
         {
@@ -743,6 +748,7 @@ void viewPanel(App& p_app)
         case FileTab::Experiment:
             experimentView(p_app);
             break;
+        case FileTab::Asset:
         case FileTab::Other:
             break;
     }
@@ -809,6 +815,276 @@ void pluginPanel(App& p_app)
     ImGui::Spacing();
     dependencies(p_app, *package);
     ImGui::End();
+}
+
+/// Lower-case extension of @p_path, with its dot.
+static std::string extensionOf(std::filesystem::path const& p_path)
+{
+    std::string ext = p_path.extension().string();
+    for (char& c : ext)
+    {
+        c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    }
+    return ext;
+}
+
+/// A world of its own holding the model of @p_path, with a camera that sees
+/// all of it; null with @p_error set when the file cannot be drawn.
+static std::unique_ptr<ModelView> openModel(std::filesystem::path const& p_path,
+                                            std::string& p_error)
+{
+    auto view = std::make_unique<ModelView>();
+    view->world = std::make_unique<compages::world::World>();
+    view->scene = std::make_unique<compages::renderer::Scene>(*view->world);
+    auto const clear = viewClearColor();
+    view->scene->background(clear.x, clear.y, clear.z);
+    view->camera = view->scene->camera("PreviewCamera");
+    view->scene->activeCamera(view->camera);
+    auto loaded = view->scene->load(p_path.string());
+    if (!loaded)
+    {
+        p_error = loaded.error();
+        return nullptr;
+    }
+    // The camera and the sun are placed from the size of the model; the rig
+    // then turns around its middle.
+    compages::core::Vector3f const middle = view->scene->frameAll();
+    view->camera.add<compages::world::Rig>(middle);
+    if (compages::world::Rig* rig =
+            view->world->behavior<compages::world::Rig>(view->camera))
+    {
+        // A tool of a few centimetres as well as a whole cell.
+        rig->controller.min_distance = 0.01F;
+        rig->controller.max_distance = 50.0F;
+    }
+    if (auto prepared = view->scene->prepare(); !prepared)
+    {
+        p_error = prepared.error();
+        return nullptr;
+    }
+    return view;
+}
+
+/// Shows @p_path in the Asset tab of Files from the next frame.
+static void openPreview(App& p_app, std::filesystem::path const& p_path)
+{
+    p_app.ui.asset_preview.pending = p_path;
+    p_app.ui.select_tab = FileTab::Asset;
+}
+
+void openClickedAsset(App& p_app)
+{
+    AssetPreview& preview = p_app.ui.asset_preview;
+    if (preview.pending.empty())
+    {
+        return;
+    }
+    std::filesystem::path const path = std::move(preview.pending);
+    preview.pending.clear();
+    preview.path = path;
+    preview.text.clear();
+    preview.error.clear();
+    preview.image = compages::gpu::Texture();
+    preview.model.reset();
+    preview.show_text = false;
+    std::string const ext = extensionOf(path);
+    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" ||
+        ext == ".tga")
+    {
+        // ImGui draws the first row of the file at the top: no flip.
+        compages::gpu::LoadOptions options;
+        options.flip_vertically = false;
+        compages::Status const loaded =
+            preview.image.load(path.string(), options);
+        if (!loaded)
+        {
+            preview.error = loaded.error();
+        }
+    }
+    else if (ext == ".urdf" || ext == ".stl" || ext == ".gltf" ||
+             ext == ".glb")
+    {
+        preview.model = openModel(path, preview.error);
+        if (ext == ".urdf")
+        {
+            preview.text = readShown(path);
+        }
+    }
+    else if (ext == ".obj" || ext == ".dae")
+    {
+        std::error_code error;
+        preview.text = "# 3D mesh, " +
+                       sizeText(std::filesystem::file_size(path, error)) +
+                       ". This format has no preview.";
+    }
+    else
+    {
+        preview.text = readShown(path);
+    }
+}
+
+/// The 3D view of the model of the preview; the main loop renders it.
+static void modelView(ModelView& p_model)
+{
+    ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0F),
+                      std::max(ImGui::GetContentRegionAvail().y, 1.0F));
+    ImVec2 const scale = ImGui::GetIO().DisplayFramebufferScale;
+    auto const width = static_cast<std::uint32_t>(size.x * scale.x);
+    auto const height = static_cast<std::uint32_t>(size.y * scale.y);
+    if (width != p_model.target.width || height != p_model.target.height)
+    {
+        // A new texture holds nothing until the main loop renders into it.
+        p_model.rendered = false;
+        p_model.target.resize(width, height);
+    }
+    ImVec2 const at = ImGui::GetCursorScreenPos();
+    ImGui::InvisibleButton("##model",
+                           size,
+                           ImGuiButtonFlags_MouseButtonLeft |
+                               ImGuiButtonFlags_MouseButtonRight |
+                               ImGuiButtonFlags_MouseButtonMiddle);
+    p_model.area = ViewArea{ .x = at.x,
+                             .y = at.y,
+                             .w = size.x,
+                             .h = size.y,
+                             .hovered = ImGui::IsItemHovered() ||
+                                        ImGui::IsItemActive() };
+    if (p_model.target.width == 0 || !p_model.rendered)
+    {
+        return;
+    }
+    // The device puts the first row at the bottom.
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    draw->AddImage(
+        ImTextureRef(static_cast<ImTextureID>(p_model.target.color.nativeId())),
+        at,
+        ImVec2(at.x + size.x, at.y + size.y),
+        ImVec2(0.0F, 1.0F),
+        ImVec2(1.0F, 0.0F));
+    char const* hint = "Left drag: move   Right drag: turn   Wheel: zoom";
+    ImVec2 const text = ImGui::CalcTextSize(hint);
+    ImVec2 const corner(at.x + 8.0F, at.y + size.y - text.y - 10.0F);
+    draw->AddRectFilled(
+        corner,
+        ImVec2(corner.x + text.x + 12.0F, corner.y + text.y + 6.0F),
+        IM_COL32(20, 22, 27, 170),
+        4.0F);
+    draw->AddText(ImVec2(corner.x + 6.0F, corner.y + 3.0F),
+                  ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                  hint);
+}
+
+void assetView(App& p_app)
+{
+    AssetPreview& preview = p_app.ui.asset_preview;
+    preview.visible = true;
+    if (preview.model && !preview.text.empty())
+    {
+        if (ImGui::SmallButton(preview.show_text ? "3D" : "Text"))
+        {
+            preview.show_text = !preview.show_text;
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", preview.path.string().c_str());
+    }
+    if (!preview.error.empty())
+    {
+        ImGui::TextColored(RED, "%s", preview.error.c_str());
+    }
+    if (preview.image.valid())
+    {
+        auto const width = static_cast<float>(preview.image.width());
+        auto const height = static_cast<float>(preview.image.height());
+        ImGui::TextDisabled(
+            "%.0f x %.0f px  %s", width, height, preview.path.string().c_str());
+        // Fit the tab, never larger than the image.
+        ImVec2 const room = ImGui::GetContentRegionAvail();
+        float const scale = std::min({ 1.0F, room.x / width, room.y / height });
+        if (scale > 0.0F)
+        {
+            ImGui::Image(ImTextureRef(static_cast<ImTextureID>(
+                             preview.image.nativeId())),
+                         ImVec2(width * scale, height * scale));
+        }
+    }
+    else if (preview.model && !preview.show_text)
+    {
+        modelView(*preview.model);
+    }
+    else if (!preview.text.empty())
+    {
+        textView(preview.path, preview.text);
+    }
+}
+
+/// Files of @p_pack, relative to its folder and sorted, read once.
+static std::vector<std::filesystem::path> const&
+packFiles(App& p_app, robotik::AssetPack const& p_pack)
+{
+    auto [found, added] = p_app.ui.pack_files.try_emplace(p_pack.root);
+    if (added)
+    {
+        std::error_code error;
+        std::filesystem::recursive_directory_iterator cursor(p_pack.root,
+                                                             error);
+        for (; !error && cursor != std::filesystem::recursive_directory_iterator();
+             cursor.increment(error))
+        {
+            if (cursor->is_regular_file(error))
+            {
+                found->second.push_back(
+                    cursor->path().lexically_relative(p_pack.root));
+            }
+        }
+        std::ranges::sort(found->second);
+    }
+    return found->second;
+}
+
+/// Rows of the files of an open pack, under a node closed by default: a
+/// click shows one in the Asset tab of Files.
+static void assetFiles(App& p_app,
+                       robotik::AssetPack const& p_pack,
+                       char const* p_filter)
+{
+    std::vector<std::filesystem::path> const& files = packFiles(p_app, p_pack);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    bool const open = ImGui::TreeNodeEx("##files",
+                                        ImGuiTreeNodeFlags_SpanFullWidth,
+                                        "Files (%zu)",
+                                        files.size());
+    if (!open)
+    {
+        return;
+    }
+    for (std::filesystem::path const& file : files)
+    {
+        std::string const name = file.string();
+        if (!matches(name, p_filter) && !matches(p_pack.id, p_filter))
+        {
+            continue;
+        }
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TreeNodeEx(name.c_str(),
+                          ImGuiTreeNodeFlags_Leaf |
+                              ImGuiTreeNodeFlags_NoTreePushOnOpen |
+                              ImGuiTreeNodeFlags_SpanFullWidth);
+        if (ImGui::IsItemClicked())
+        {
+            openPreview(p_app, p_pack.root / file);
+        }
+        ImGui::SetItemTooltip("Click to see the file.");
+        ImGui::TableNextColumn();
+        ImGui::TableNextColumn();
+        ImGui::TableNextColumn();
+        std::error_code error;
+        std::uintmax_t const size =
+            std::filesystem::file_size(p_pack.root / file, error);
+        ImGui::TextDisabled("%s", error ? "?" : sizeText(size).c_str());
+    }
+    ImGui::TreePop();
 }
 
 void assetsPanel(App& p_app)
@@ -961,6 +1237,12 @@ void assetsPanel(App& p_app)
                                           ImGuiTreeNodeFlags_Bullet |
                                           ImGuiTreeNodeFlags_NoTreePushOnOpen |
                                           ImGuiTreeNodeFlags_SpanFullWidth);
+                    if (ImGui::IsItemClicked())
+                    {
+                        openPreview(p_app,
+                                    file.is_absolute() ? file
+                                                       : pack.root / file);
+                    }
                     if (ImGui::BeginPopupContextItem())
                     {
                         if (ImGui::MenuItem("Copy model id"))
@@ -969,11 +1251,13 @@ void assetsPanel(App& p_app)
                         }
                         ImGui::EndPopup();
                     }
-                    ImGui::SetItemTooltip("Right click to copy the id.");
+                    ImGui::SetItemTooltip(
+                        "Click to see the file, right click to copy the id.");
                     ImGui::TableNextColumn();
                     ImGui::TableNextColumn();
                     ImGui::TextDisabled("%s", file.string().c_str());
                 }
+                assetFiles(p_app, pack, filter);
                 ImGui::TreePop();
             }
             ImGui::PopID();

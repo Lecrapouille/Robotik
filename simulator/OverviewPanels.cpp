@@ -193,8 +193,7 @@ static void entityRow(App& p_app,
     ImGui::TreePop();
 }
 
-/// Text of @p_path, or a short note for a binary or a large file.
-static std::string readShown(std::filesystem::path const& p_path)
+std::string readShown(std::filesystem::path const& p_path)
 {
     constexpr std::uintmax_t LIMIT = 2U * 1024U * 1024U;
     std::error_code error;
@@ -282,6 +281,7 @@ static FileTab kindOf(std::filesystem::path const& p_path,
         case robotik::FileRole::Experiment:
             return FileTab::Experiment;
         case robotik::FileRole::Domain:
+            return FileTab::Planner;
         case robotik::FileRole::Trajectory:
             return FileTab::Other;
         case robotik::FileRole::Unknown:
@@ -348,20 +348,21 @@ static ShownFile shownIn(App const& p_app, FileTab p_tab)
             return {};
         case FileTab::Planner:
         case FileTab::Experiment:
+        case FileTab::Asset:
         case FileTab::Other:
             return {};
     }
     return {};
 }
 
-/// Planner tab: not one file but the texts of the planner. Only for
-/// a scenario that plans.
+/// Planner tab: not one file but the texts of the planner of a scenario
+/// that plans, or a domain chosen in Files.
 static void plannerTab(App& p_app)
 {
-    if (!p_app.simulation || p_app.simulation->cell().planner() == nullptr)
-    {
-        return;
-    }
+    ShownFile& chosen =
+        p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Planner)];
+    bool const plans =
+        p_app.simulation && p_app.simulation->cell().planner() != nullptr;
     ImGuiTabItemFlags flags = 0;
     if (p_app.ui.select_tab == FileTab::Planner)
     {
@@ -375,7 +376,33 @@ static void plannerTab(App& p_app)
             p_app.ui.active_tab = FileTab::Planner;
             p_app.ui.view = FileTab::Planner;
         }
-        plannerTexts(p_app);
+        if (chosen.path.empty() && !plans)
+        {
+            emptyState("This scenario does not plan.\nClick a .domain.pddl "
+                       "in the Plugin panel to read it.");
+        }
+        else if (chosen.path.empty())
+        {
+            plannerTexts(p_app);
+        }
+        else
+        {
+            ImGui::TextColored(ORANGE,
+                               plans ? "Not the domain of the loaded scenario."
+                                     : "The loaded scenario does not plan.");
+            if (plans)
+            {
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Show the planner"))
+                {
+                    chosen = {};
+                }
+            }
+            if (!chosen.path.empty())
+            {
+                textView(chosen.path, chosen.text);
+            }
+        }
         ImGui::EndTabItem();
     }
 }
@@ -385,7 +412,8 @@ static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
 {
     std::size_t const index = static_cast<std::size_t>(p_tab);
     ShownFile const shown = shownIn(p_app, p_tab);
-    if (shown.path.empty())
+    // The Behavior tree tab stays, empty, for a scenario without a tree.
+    if (shown.path.empty() && p_tab != FileTab::Tree)
     {
         return;
     }
@@ -399,9 +427,15 @@ static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
         flags |= ImGuiTabItemFlags_SetSelected;
         p_app.ui.select_tab.reset();
     }
+    // A scenario driven by a learned policy (x.rl.yaml) is titled RL.
+    char const* const title =
+        p_tab == FileTab::Scenario &&
+                robotik::fileRole(shown.path) == robotik::FileRole::Rl
+            ? "RL"
+            : p_label;
     std::string const label = p_tab == FileTab::Other
                                   ? shown.path.filename().string() + "###other"
-                                  : std::string(p_label) + "###" + p_label;
+                                  : std::string(title) + "###" + p_label;
     if (ImGui::BeginTabItem(label.c_str(), closable, flags))
     {
         // The view panel follows the tab read here.
@@ -422,12 +456,47 @@ static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
                 p_app.ui.shown_files[index] = {};
             }
         }
-        textView(shown.path, shown.text);
+        if (shown.path.empty())
+        {
+            emptyState("This scenario has no behavior tree.\nClick a .bt.yaml "
+                       "in the Plugin panel to read it.");
+        }
+        else
+        {
+            textView(shown.path, shown.text);
+        }
         ImGui::EndTabItem();
     }
     if (!keep)
     {
         p_app.ui.shown_files[index] = {};
+    }
+}
+
+/// Asset tab: the file clicked in the Assets panel.
+static void assetTab(App& p_app)
+{
+    AssetPreview& preview = p_app.ui.asset_preview;
+    ImGuiTabItemFlags flags = 0;
+    if (p_app.ui.select_tab == FileTab::Asset)
+    {
+        flags |= ImGuiTabItemFlags_SetSelected;
+        p_app.ui.select_tab.reset();
+    }
+    if (ImGui::BeginTabItem("Asset###Asset", nullptr, flags))
+    {
+        p_app.ui.active_tab = FileTab::Asset;
+        if (preview.path.empty())
+        {
+            emptyState("No asset shown.\nClick a model or a file in the "
+                       "Assets panel.");
+        }
+        else
+        {
+            ImGui::SetItemTooltip("%s", preview.path.string().c_str());
+            assetView(p_app);
+        }
+        ImGui::EndTabItem();
     }
 }
 
@@ -518,6 +587,7 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
     if (p_app.simulation && p_app.simulation->cell().planner() != nullptr &&
         same(p_app.simulation->cell().planner()->spec().domain, p_path))
     {
+        p_app.ui.shown_files[static_cast<std::size_t>(FileTab::Planner)] = {};
         showView(p_app, FileTab::Planner, true);
         return;
     }
@@ -532,6 +602,8 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
             requestScenario(p_app, *scenario);
             p_app.ui
                 .shown_files[static_cast<std::size_t>(FileTab::Scenario)] = {};
+            p_app.ui
+                .shown_files[static_cast<std::size_t>(FileTab::Planner)] = {};
             showView(p_app, FileTab::Planner, true);
             return;
         }
@@ -564,18 +636,13 @@ void filesPanel(App& p_app)
     if (ui.shown_for != p_app.scenario_path)
     {
         ui.shown_for = p_app.scenario_path;
-        for (FileTab const tab :
-             { FileTab::Scenario, FileTab::World, FileTab::Tree })
+        for (FileTab const tab : { FileTab::Scenario,
+                                   FileTab::World,
+                                   FileTab::Tree,
+                                   FileTab::Planner })
         {
             ui.shown_files[static_cast<std::size_t>(tab)] = {};
         }
-    }
-    if (p_app.scenario_text.empty() &&
-        ui.shown_files[static_cast<std::size_t>(FileTab::Other)].path.empty())
-    {
-        emptyState("No file loaded.\nClick a file in the Plugin panel.");
-        ImGui::End();
-        return;
     }
     if (ImGui::BeginTabBar("files", ImGuiTabBarFlags_FittingPolicyScroll))
     {
@@ -584,6 +651,7 @@ void filesPanel(App& p_app)
         fileTab(p_app, FileTab::Tree, "Behavior tree");
         plannerTab(p_app);
         fileTab(p_app, FileTab::Experiment, "Experiment");
+        assetTab(p_app);
         fileTab(p_app, FileTab::Other, "File");
         ImGui::EndTabBar();
     }

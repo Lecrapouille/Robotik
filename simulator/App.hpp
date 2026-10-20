@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "SimFrame.hpp"
 #include "SimulatorView.hpp"
 
 #include "Robotik/Package/Plugin/PluginSession.hpp"
@@ -21,6 +22,7 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
@@ -82,14 +84,17 @@ enum class FileTab : std::uint8_t
     Scenario,
     World,
     Tree,
-    /// The texts of the PDDL planner: domain, problem, output, tree.
+    /// The texts of the PDDL planner: domain, problem, output, tree; or a
+    /// domain chosen in Files.
     Planner,
     Experiment,
+    /// A file of an asset pack clicked in Assets: a model, a picture, a text.
+    Asset,
     /// Any other file of the package (plugin.yaml, a URDF...).
     Other,
 };
 
-inline constexpr std::size_t FILE_TAB_COUNT = 6U;
+inline constexpr std::size_t FILE_TAB_COUNT = 7U;
 
 // ****************************************************************************
 /// A file shown read-only in the Files panel.
@@ -98,6 +103,45 @@ struct ShownFile
 {
     std::filesystem::path path;
     std::string text;
+};
+
+// ****************************************************************************
+/// A model (URDF, STL, glTF) drawn alone in the Asset tab of Files: its own
+/// world and scene, and a camera that turns around it with the mouse.
+// ****************************************************************************
+struct ModelView
+{
+    std::unique_ptr<compages::world::World> world;
+    std::unique_ptr<compages::renderer::Scene> scene;
+    compages::world::Entity camera;
+    RenderTarget target;
+    ViewArea area;
+    /// The main loop rendered the model at the size of @c target; until
+    /// then the tab shows the background, not an empty texture.
+    bool rendered = false;
+};
+
+// ****************************************************************************
+/// A file of an asset pack shown in the Asset tab of Files: a model in 3D,
+/// a picture, or its text.
+// ****************************************************************************
+struct AssetPreview
+{
+    std::filesystem::path path;
+    std::string text;
+    compages::gpu::Texture image;
+    /// Set for a model; null for any other file.
+    std::unique_ptr<ModelView> model;
+    /// A model shows its text instead of the 3D view.
+    bool show_text = false;
+    /// Why the image could not be read; empty when it was.
+    std::string error;
+    /// File clicked in Assets, opened at the start of the next frame: the
+    /// textures of the file shown may still be drawn in this one.
+    std::filesystem::path pending;
+    /// The tab was drawn this frame: only then the main loop renders the
+    /// model. Cleared before the panels are drawn.
+    bool visible = false;
 };
 
 // ****************************************************************************
@@ -163,6 +207,11 @@ struct UiState
     /// Assets panel: text filter, and only the packs of the running scenario.
     std::array<char, 64> asset_filter{};
     bool assets_in_use = false;
+    /// Asset tab of Files, and the files of each pack opened in the
+    /// Assets panel (pack folder to paths relative to it), read once.
+    AssetPreview asset_preview;
+    std::map<std::filesystem::path, std::vector<std::filesystem::path>>
+        pack_files;
     /// Planner: plan whose texts are shown (-1: the last one), result of
     /// Save PDDL, and the beliefs filter.
     int planner_record = -1;

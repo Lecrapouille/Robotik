@@ -60,6 +60,20 @@ void runMainLoop(Window& p_window, App& p_app)
                 compages::gpu::PassDesc{ .color = viewClearColor() });
             p_app.scene->render(p_app.view_camera);
         }
+        // --- Model of the Asset tab of Files, in its own world ---
+        AssetPreview& preview = p_app.ui.asset_preview;
+        if (ModelView* model = preview.model.get();
+            model != nullptr && preview.visible && !preview.show_text &&
+            model->target.width > 0)
+        {
+            model->world->update(viewFrame(
+                model->target, model->area, p_window, elapsed, total));
+            compages::gpu::RenderPass pass(
+                model->target.framebuffer,
+                compages::gpu::PassDesc{ .color = viewClearColor() });
+            model->scene->render(model->camera);
+            model->rendered = true;
+        }
         // --screenshot: the 3D view at the asked time, then quit.
         if (!p_app.screenshot.empty() && p_app.simulation &&
             p_app.view.width > 0 &&

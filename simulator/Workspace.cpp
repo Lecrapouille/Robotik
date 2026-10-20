@@ -639,6 +639,7 @@ void drawPanels(App& p_app)
         p_app.ui.pending_scenario.clear();
         p_app.load();
     }
+    openClickedAsset(p_app);
     shortcuts(p_app);
     mainMenu(p_app);
     statusBar(p_app);
@@ -660,6 +661,12 @@ void drawPanels(App& p_app)
     if (workspace != Workspace::Plugin)
     {
         scenePanel(p_app, info.key);
+    }
+    // Set again by the Asset tab of Files when it is drawn.
+    p_app.ui.asset_preview.visible = false;
+    if (p_app.ui.asset_preview.model)
+    {
+        p_app.ui.asset_preview.model->area.hovered = false;
     }
     switch (workspace)
     {
@@ -692,9 +699,15 @@ void drawPanels(App& p_app)
 
     syncTeachAxes(p_app, workspace == Workspace::Robot);
 
-    // Plugin panels follow the workspace: they join its side column.
+    // Plugin panels follow the workspace: they join its side column. The
+    // Plugin workspace reads the package and shows none: they wait there
+    // for the next workspace.
     ImGuiID target = 0;
-    if (p_app.ui.place_plugin_panels)
+    if (workspace == Workspace::Plugin)
+    {
+        p_app.ui.focus_plugin_panel = false;
+    }
+    else if (p_app.ui.place_plugin_panels)
     {
         ImGuiWindow const* anchor = ImGui::FindWindowByName(info.anchor);
         if (anchor != nullptr && anchor->DockId != 0)
@@ -708,7 +721,10 @@ void drawPanels(App& p_app)
     {
         p_app.ui.focus_plugin_panel = false;
     }
-    drawPluginPanels(p_app, target, focus);
+    if (workspace != Workspace::Plugin)
+    {
+        drawPluginPanels(p_app, target, focus);
+    }
 
     openDialog(p_app);
     shortcutsWindow(p_app);
