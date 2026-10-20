@@ -119,8 +119,11 @@ private:
     ForceTorqueConfig m_config;
     /// Readings waiting for their latency, and the current one.
     LatencyBuffer<ForceTorqueReading> m_readings;
-    /// Link entity the delivered reading is attached to.
+    /// Link entity the delivered reading is attached to, found at the first
+    /// sample of an episode.
     compages::world::Entity m_holder;
+    /// True once @ref m_holder is found.
+    bool m_resolved = false;
     /// Noise generator.
     Random m_random;
 };

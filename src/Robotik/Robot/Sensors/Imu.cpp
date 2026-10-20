@@ -43,6 +43,7 @@ Imu::Imu(std::string p_name, ImuConfig p_config)
 
 void Imu::restart()
 {
+    m_resolved = false;
     m_history = 0;
     m_previous_velocity = Vector3::ZERO;
     m_readings.clear();
@@ -54,7 +55,7 @@ void Imu::deliver(Seconds p_now)
     {
         return;
     }
-    if (compages::world::Entity holder = m_holder)
+    if (compages::world::Entity holder = m_link.entity)
     {
         holder.set(m_readings.current());
     }
@@ -62,7 +63,12 @@ void Imu::deliver(Seconds p_now)
 
 bool Imu::sample(Robot const& p_robot, Seconds p_now)
 {
-    Pose const pose = p_robot.worldPose(m_config.parent) * m_config.mount;
+    if (!m_resolved)
+    {
+        m_link = p_robot.resolve(m_config.parent);
+        m_resolved = true;
+    }
+    Pose const pose = p_robot.worldPose(m_link) * m_config.mount;
     Vector3 velocity = Vector3::ZERO;
     Vector3 acceleration = Vector3::ZERO;
     Vector3 angular_velocity = Vector3::ZERO;
@@ -100,9 +106,6 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     m_previous_velocity = velocity;
     m_previous_stamp = p_now;
     m_history = std::min(m_history + 1, 2);
-
-    m_holder = m_config.parent.empty() ? p_robot.root()
-                                       : p_robot.link(m_config.parent);
     return true;
 }
 

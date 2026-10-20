@@ -160,6 +160,47 @@ Units are part of the API contract:
 Typed handles (`Revolute`, `Prismatic`) carry these units at compile time.
 Conversions to the simulator or the hardware stay in the backends.
 
+### Fast data: what is ECS, what stays a class
+
+ECS (entity, component, system) is a way to store data: an *entity* is only
+an id, a *component* is plain data put on it (a pose, a reading), a *system*
+is a loop over all the entities that have some components. The data of one
+kind sits side by side in memory, so the loop is fast. Compages stores the
+world this way; Robotik uses it for what runs at every step.
+
+Rules:
+
+1. **Find by name once, then use a handle.** A name is for people and YAML
+   files. Searching it walks a tree and compares strings. Code that runs at
+   every step keeps a handle found once: `JointId` for a joint, `LinkRef`
+   (`Robot::resolve`) for a link, `ResourceId` for a resource. A handle found
+   during an episode is dropped at the reset and found again.
+2. **Many small values of one kind: arrays.** `JointSet` keeps one array per
+   field, not one object per joint (see above).
+3. **Results of the step: components.** A sensor puts its last reading on the
+   entity of its link (`ImuReading`, `RangeScan`...). The 3D view and the
+   inspectors read the components; they do not ask the sensor.
+4. **Rare events and choices of the user: classes.** `Mission`, `Plugin`,
+   `PlanningEngine`, `Skill`, `SceneView`, `RobotBackend` keep virtual
+   methods. They run a few times per step at most, and a plugin must be able
+   to add its own kind.
+
+**Measure before you change the storage.** The sensor pilot shows why. With
+64 IMUs and 8 lidars on one arm (`tests/Sensors/BenchSensors.cpp`, physics
+off, debug build), a step took 130 µs. The profiler gave: 66 % to find the
+link of each sensor by its name at each sample, 8 % to find its kinematic
+frame by its name, and almost nothing to the virtual `Sensor::sample` calls.
+After rule 1 (`LinkRef`), a step takes 27 µs: 4.7 times faster. Same
+readings, same seeds, same scenario reports. A contiguous storage per sensor
+type would remove the virtual calls, but they cost under 1 % of the step: it
+is not worth the change of API today.
+
+What costs now, in order: `compages::world::World::update` (31 %, the scene
+graph of Compages, outside the sensors), the IMU computation (16 %), and the
+copy of each reading into its component (15 %). The next candidates are, in
+this order: the scene graph update, then the actuators and the skills, then
+the grasp systems. Each one starts with a benchmark and a profile.
+
 ---
 
 ## 5. Actuators, resources, faults

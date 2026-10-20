@@ -165,6 +165,14 @@ public:
     [[nodiscard]] Pose framePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
+    /// Same as @ref framePose(std::string const&) const, with no search by
+    /// name.
+    /// @param p_frame Frame index from @ref frameId.
+    /// @return The pose in the robot base frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose framePose(std::size_t p_frame) const;
+
+    // -------------------------------------------------------------------------
     /// Damped least-squares IK: moves @b q step by step until the frame
     /// reaches the target.
     /// @param p_frame Link or frame name (e.g. tool link).

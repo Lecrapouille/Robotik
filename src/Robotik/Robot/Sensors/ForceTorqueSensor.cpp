@@ -22,6 +22,7 @@ ForceTorqueSensor::ForceTorqueSensor(std::string p_name,
 
 void ForceTorqueSensor::restart()
 {
+    m_resolved = false;
     m_readings.clear();
 }
 
@@ -58,7 +59,11 @@ bool ForceTorqueSensor::sample(Robot const& p_robot, Seconds p_now)
     reading.wrench.force = applyNoise(m_config.force, wrench->force, m_random);
     reading.wrench.torque = applyNoise(m_config.torque, wrench->torque, m_random);
     m_readings.push(p_now, std::move(reading));
-    m_holder = p_robot.link(m_config.link);
+    if (!m_resolved)
+    {
+        m_holder = p_robot.link(m_config.link);
+        m_resolved = true;
+    }
     return true;
 }
 

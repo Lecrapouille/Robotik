@@ -12,6 +12,7 @@
 #include "Robotik/Common/Random.hpp"
 #include "Robotik/Robot/Sensors/Measurements.hpp"
 #include "Robotik/Robot/Sensors/Noise.hpp"
+#include "Robotik/Robot/LinkRef.hpp"
 #include "Robotik/Robot/Sensors/Sensor.hpp"
 
 #include "Compages/World/Entity.hpp"
@@ -123,8 +124,11 @@ private:
     RangeScannerConfig m_config;
     /// Scans waiting for their latency, and the current one.
     LatencyBuffer<RangeScan> m_scans;
-    /// Link entity the delivered scan is attached to.
-    compages::world::Entity m_holder;
+    /// Link carrying the sensor, found at the first sample of an episode;
+    /// the delivered reading is attached to its entity.
+    LinkRef m_link;
+    /// True once @ref m_link is found.
+    bool m_resolved = false;
     /// Noise generator.
     Random m_random;
 };

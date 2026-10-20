@@ -20,6 +20,7 @@
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Devices.hpp"
 #include "Robotik/Robot/Joints.hpp"
+#include "Robotik/Robot/LinkRef.hpp"
 #include "Robotik/Robot/Resources.hpp"
 #include "Robotik/Robot/Sensors/Measurements.hpp"
 #include "Robotik/Robot/Sensors/Sensor.hpp"
@@ -59,9 +60,9 @@ using JointPosture = std::unordered_map<std::string, double>;
 ///
 /// @code
 /// robotik::Robot& robot = p_context.robot;
-/// robotik::Pose const tool = robot.framePose(robot.tool());       // base
-/// frame robotik::Pose const in_world = robot.worldPose(robot.tool());   //
-/// world frame if (auto const q = robot.inverseKinematics(robot.tool(), goal))
+/// robotik::Pose const tool = robot.framePose(robot.tool());     // base frame
+/// robotik::Pose const in_world = robot.worldPose(robot.tool()); // world frame
+/// if (auto const q = robot.inverseKinematics(robot.tool(), goal))
 ///     for (robotik::JointId id = 0; id < q->size(); ++id)
 ///         robot.joints().moveTo(id, (*q)[id]);
 /// @endcode
@@ -226,6 +227,22 @@ public:
     /// @throws std::invalid_argument if the frame is unknown.
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose worldPose(std::string const& p_frame) const;
+
+    // -------------------------------------------------------------------------
+    /// Finds a link once, for code that reads its pose at every step (see
+    /// @ref LinkRef).
+    /// @param p_name Link name; empty for the robot base.
+    /// @return The handles of the link.
+    /// @throws std::invalid_argument if the frame is unknown.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] LinkRef resolve(std::string const& p_name) const;
+
+    // -------------------------------------------------------------------------
+    /// Pose of a link in the world frame, with no search by name.
+    /// @param p_link Link found by @ref resolve.
+    /// @return The pose.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose worldPose(LinkRef const& p_link) const;
 
     // -------------------------------------------------------------------------
     /// Solves the inverse kinematics from the measured joints.

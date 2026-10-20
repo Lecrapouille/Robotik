@@ -267,6 +267,26 @@ Pose Robot::worldPose(std::string const& p_frame) const
     return p_frame.empty() ? m_base.pose : m_base.pose * framePose(p_frame);
 }
 
+LinkRef Robot::resolve(std::string const& p_name) const
+{
+    if (p_name.empty())
+    {
+        return LinkRef{ m_root, LinkRef::BASE };
+    }
+    if (!m_kinematics->hasFrame(p_name))
+    {
+        throw std::invalid_argument("Unknown Pinocchio frame: " + p_name);
+    }
+    return LinkRef{ link(p_name), m_kinematics->frameId(p_name) };
+}
+
+Pose Robot::worldPose(LinkRef const& p_link) const
+{
+    return p_link.frame == LinkRef::BASE
+               ? m_base.pose
+               : m_base.pose * m_kinematics->framePose(p_link.frame);
+}
+
 std::optional<std::vector<double>>
 Robot::inverseKinematics(std::string const& p_frame, Pose const& p_target) const
 {

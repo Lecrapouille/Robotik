@@ -73,6 +73,7 @@ RangeScanner::RangeScanner(std::string p_name, RangeScannerConfig p_config)
 
 void RangeScanner::restart()
 {
+    m_resolved = false;
     m_scans.clear();
 }
 
@@ -82,7 +83,7 @@ void RangeScanner::deliver(Seconds p_now)
     {
         return;
     }
-    if (compages::world::Entity holder = m_holder)
+    if (compages::world::Entity holder = m_link.entity)
     {
         holder.set(m_scans.current());
     }
@@ -90,7 +91,12 @@ void RangeScanner::deliver(Seconds p_now)
 
 bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
 {
-    Pose const pose = p_robot.worldPose(m_config.parent) * m_config.mount;
+    if (!m_resolved)
+    {
+        m_link = p_robot.resolve(m_config.parent);
+        m_resolved = true;
+    }
+    Pose const pose = p_robot.worldPose(m_link) * m_config.mount;
     double const max_range = m_config.max_range.value();
     double const fov = m_config.field_of_view.value();
     bool const full_turn = fov >= 2.0 * std::numbers::pi - 1e-9;
@@ -152,8 +158,6 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
     scan.sequence = samples() + 1u;
     scan.valid = true;
     m_scans.push(p_now, std::move(scan));
-    m_holder = m_config.parent.empty() ? p_robot.root()
-                                       : p_robot.link(m_config.parent);
     return true;
 }
 

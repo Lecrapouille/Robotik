@@ -211,8 +211,12 @@ Pose PinocchioBackend::framePose(std::string const& p_frame) const
     {
         throw std::invalid_argument("Unknown Pinocchio frame: " + p_frame);
     }
-    auto const id = m_impl->model.getFrameId(p_frame);
-    pinocchio::SE3 const& placement = m_impl->data->oMf[id];
+    return framePose(static_cast<std::size_t>(m_impl->model.getFrameId(p_frame)));
+}
+
+Pose PinocchioBackend::framePose(std::size_t p_frame) const
+{
+    pinocchio::SE3 const& placement = m_impl->data->oMf[p_frame];
     Eigen::Quaterniond const rotation(placement.rotation());
     return Pose{ { placement.translation().x(),
                    placement.translation().y(),

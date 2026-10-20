@@ -12,6 +12,7 @@
 #include "Robotik/Common/Random.hpp"
 #include "Robotik/Robot/Sensors/Measurements.hpp"
 #include "Robotik/Robot/Sensors/Noise.hpp"
+#include "Robotik/Robot/LinkRef.hpp"
 #include "Robotik/Robot/Sensors/Sensor.hpp"
 
 #include "Compages/World/Entity.hpp"
@@ -119,8 +120,11 @@ private:
     ImuConfig m_config;
     /// Readings waiting for their latency, and the current one.
     LatencyBuffer<ImuReading> m_readings;
-    /// Link entity the delivered reading is attached to.
-    compages::world::Entity m_holder;
+    /// Link carrying the sensor, found at the first sample of an episode;
+    /// the delivered reading is attached to its entity.
+    LinkRef m_link;
+    /// True once @ref m_link is found.
+    bool m_resolved = false;
     /// Noise generator.
     Random m_random;
     /// World pose of the IMU frame at the previous sample.
