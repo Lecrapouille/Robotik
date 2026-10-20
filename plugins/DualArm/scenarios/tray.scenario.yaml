@@ -32,7 +32,7 @@ scenario:
     overrides:
       left_gripper: rigid
 
-  perception: { oracle: always }
+  perception: { fidelity: truth }   # the simulator gives the poses
 
   timeout: 90
 

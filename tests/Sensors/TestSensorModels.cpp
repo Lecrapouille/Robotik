@@ -152,14 +152,14 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
     {
         robotik::ScenarioSource source = robotik::ScenarioSource::load(repoFile(
             "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"));
-        source.override("scenario.perception.oracle",
+        source.override("scenario.perception.blind",
                         robotik::ConfigNode(p_policy));
         return robotik::Scenario::read(source, testAssets());
     };
     {
         PickPlaceMission mission;
         compages::world::World world;
-        robotik::Simulation blind(world, build("never"), nullptr, &mission);
+        robotik::Simulation blind(world, build("sensed"), nullptr, &mission);
         EXPECT_FALSE(blind.cell().oracle());
         // Headless, no image: the robot never sees the cube.
         for (int i = 0; i < 300 && !blind.finished(); ++i)
@@ -174,7 +174,7 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         PickPlaceMission mission;
         compages::world::World world;
         robotik::Simulation oracle(
-            world, build("when_blind"), nullptr, &mission);
+            world, build("truth"), nullptr, &mission);
         EXPECT_TRUE(oracle.cell().oracle());
     }
 }

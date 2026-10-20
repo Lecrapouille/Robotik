@@ -23,7 +23,7 @@ scenario:
 
   # The parts are found by their true pose (no color detector in this
   # plugin); the wrist cameras still render in the simulator.
-  perception: { oracle: always }
+  perception: { fidelity: truth }   # the simulator gives the poses
 
   timeout: 120
 

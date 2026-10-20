@@ -127,4 +127,30 @@ char const* toString(Fidelity p_fidelity)
     return "?";
 }
 
+// ----------------------------------------------------------------------------
+char const* toString(PerceptionFidelity p_fidelity)
+{
+    switch (p_fidelity)
+    {
+        case PerceptionFidelity::Sensed:
+            return "sensed";
+        case PerceptionFidelity::NoisyTruth:
+            return "noisy_truth";
+        case PerceptionFidelity::Truth:
+            return "truth";
+    }
+    return "?";
+}
+
+// ----------------------------------------------------------------------------
+PerceptionFidelity fidelityOf(PerceptionSpec const& p_perception,
+                              std::string_view p_id,
+                              bool p_blind)
+{
+    auto const found = p_perception.overrides.find(p_id);
+    PerceptionFidelity const level =
+        found == p_perception.overrides.end() ? p_perception.fidelity : found->second;
+    return level == PerceptionFidelity::Sensed && p_blind ? p_perception.blind : level;
+}
+
 } // namespace robotik

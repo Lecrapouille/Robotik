@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Task/Planning/PlanExecutor.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanGraph.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
@@ -496,6 +497,7 @@ void PlanExecutor::compile()
 {
     m_order = partialOrder();
     m_started.assign(m_plan.size(), false);
+    m_start_times.assign(m_plan.size(), Seconds(0.0));
     m_after.assign(m_plan.size(), {});
     for (std::size_t k = 0u; k < m_order.size(); ++k)
     {
@@ -718,6 +720,13 @@ bt::Status PlanExecutor::check(std::size_t p_step,
         for (Literal const& effect : effects(p_step, partial))
         {
             Truth const value = evaluate(effect.atom, p_context);
+            if (m_spec.observed && !seenSince(effect.atom, p_context, m_start_times[p_step]))
+            {
+                m_check_failure = std::to_string(p_step + 1u) + ". " +
+                                  label(m_plan[p_step]) + ": " + effect.toString() +
+                                  " expected, not observed since the step started";
+                return bt::Status::FAILURE;
+            }
             if (value != Truth::Unknown &&
                 (value == Truth::True) != effect.positive)
             {
@@ -790,6 +799,7 @@ bt::Status PlanExecutor::ready(std::size_t p_step)
         }
     }
     m_started[p_step] = true;
+    m_start_times[p_step] = m_context != nullptr ? m_context->time : Seconds(0.0);
     return bt::Status::SUCCESS;
 }
 
@@ -887,12 +897,44 @@ std::vector<StepOrder> PlanExecutor::partialOrder() const
 }
 
 // ----------------------------------------------------------------------------
+bool PlanExecutor::seenSince(Atom const& p_atom,
+                             RobotContext const& p_context,
+                             Seconds p_since) const
+{
+    if (evaluate(p_atom, p_context) == Truth::Unknown)
+    {
+        return false; // the beliefs cannot tell
+    }
+    // Every object of the atom the robot has beliefs about must have been
+    // observed again since the step started.
+    for (std::string const& id : ids(p_atom.args))
+    {
+        WorldObject const* belief = p_context.world_model.find(id);
+        if (belief != nullptr && belief->seen < p_since)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ----------------------------------------------------------------------------
 Truth PlanExecutor::evaluate(Atom const& p_atom,
                              RobotContext const& p_context) const
 {
     if (Observer const* observer = m_domain.observer(p_atom.predicate))
     {
         std::vector<std::string> const args = ids(p_atom.args);
+        // A belief too old says nothing any more.
+        for (std::string const& id : args)
+        {
+            WorldObject const* belief = p_context.world_model.find(id);
+            if (belief != nullptr && belief->observed() &&
+                p_context.time - belief->seen > m_max_age)
+            {
+                return Truth::Unknown;
+            }
+        }
         return (*observer)(p_context, args);
     }
     auto const predicate = m_schema.predicates.find(p_atom.predicate);

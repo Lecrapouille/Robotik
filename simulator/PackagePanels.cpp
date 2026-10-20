@@ -18,21 +18,6 @@
 #include <string>
 #include <vector>
 
-/// Display name of an oracle policy.
-static char const* oracleOf(robotik::OraclePolicy p_policy)
-{
-    switch (p_policy)
-    {
-        case robotik::OraclePolicy::Never:
-            return "never";
-        case robotik::OraclePolicy::WhenBlind:
-            return "when blind";
-        case robotik::OraclePolicy::Always:
-            return "always";
-    }
-    return "";
-}
-
 /// @brief Two-column "key  value" rows.
 static void field(char const* p_key, char const* p_format, ...) IM_FMTARGS(2);
 static void field(char const* p_key, char const* p_format, ...)
@@ -176,11 +161,11 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
           "%zu planned, %zu random",
           scenario.faults.size(),
           scenario.random_faults.size());
-    field("oracle",
+    field("perception",
           "%s%s",
-          oracleOf(scenario.oracle),
+          p_app.simulation->cell().perceptionSummary().c_str(),
           p_app.simulation->cell().oracle()
-              ? " (active: ground truth feeds the beliefs)"
+              ? " (the simulator gives the true poses)"
               : "");
     if (p_package != nullptr)
     {

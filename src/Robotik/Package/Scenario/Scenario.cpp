@@ -98,7 +98,15 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     spec.max_replans = static_cast<std::uint32_t>(max);
     spec.replan_delay =
         Seconds(replan.number("delay", spec.replan_delay.value()));
-    spec.verify = p_node.flag("verify", spec.verify);
+    if (p_node.text("verify") == "observed")
+    {
+        spec.verify = true;
+        spec.observed = true;
+    }
+    else
+    {
+        spec.verify = p_node.flag("verify", spec.verify);
+    }
     spec.parallel = p_node.flag("parallel", spec.parallel);
     spec.search = p_node.text("search", spec.search);
     spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
@@ -218,6 +226,76 @@ static void checkPhysics(Scenario const& p_scenario)
 }
 
 
+// ----------------------------------------------------------------------------
+/// Reads a perception level name.
+/// @param p_text "sensed", "noisy_truth" or "truth".
+/// @param p_where Field, for the error message.
+/// @return The level.
+// ----------------------------------------------------------------------------
+static PerceptionFidelity readPerceptionLevel(std::string const& p_text,
+                                              std::string const& p_where)
+{
+    if (p_text == "sensed")
+    {
+        return PerceptionFidelity::Sensed;
+    }
+    if (p_text == "noisy_truth")
+    {
+        return PerceptionFidelity::NoisyTruth;
+    }
+    if (p_text == "truth")
+    {
+        return PerceptionFidelity::Truth;
+    }
+    throw std::runtime_error(p_where + " must be sensed, noisy_truth or truth, not '" +
+                             p_text + "'");
+}
+
+// ----------------------------------------------------------------------------
+/// Reads the @c perception: section. The older @c oracle: key still works:
+/// @c always is @c fidelity: truth, @c when_blind is @c blind: truth.
+/// @param p_scenario Scenario to fill.
+/// @param p_node The @c perception: node (may be null).
+// ----------------------------------------------------------------------------
+static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
+{
+    PerceptionSpec& perception = p_scenario.perception;
+    if (p_node.has("oracle"))
+    {
+        std::string const oracle = p_node.text("oracle");
+        if (oracle == "always")
+        {
+            perception.fidelity = PerceptionFidelity::Truth;
+        }
+        else if (oracle == "when_blind")
+        {
+            perception.blind = PerceptionFidelity::Truth;
+        }
+        else if (oracle != "never")
+        {
+            throw std::runtime_error("perception.oracle must be never, when_blind or always");
+        }
+    }
+    if (p_node.has("fidelity"))
+    {
+        perception.fidelity = readPerceptionLevel(p_node.text("fidelity"), "perception.fidelity");
+    }
+    if (p_node.has("blind"))
+    {
+        perception.blind = readPerceptionLevel(p_node.text("blind"), "perception.blind");
+    }
+    for (auto const& [id, level] : p_node.at("overrides").entries())
+    {
+        perception.overrides.emplace(
+            id, readPerceptionLevel(level.scalar(), "perception.overrides." + id));
+    }
+    ConfigNode const& noise = p_node.at("noise");
+    perception.noise.sigma = noise.number("sigma", perception.noise.sigma);
+    perception.noise.dropout = noise.number("dropout", perception.noise.dropout);
+    perception.noise.range = noise.number("range", perception.noise.range);
+    perception.max_age = Seconds(p_node.number("max_age", perception.max_age.value()));
+}
+
 Scenario Scenario::read(ScenarioSource const& p_source,
                         AssetResolver const& p_assets)
 {
@@ -261,25 +339,7 @@ Scenario Scenario::read(ScenarioSource const& p_source,
                 name, loadTrajectory(packageFile(root, file.scalar())));
         }
         readFaults(scenario, node.at("faults"));
-        std::string const oracle =
-            node.at("perception").text("oracle", "never");
-        if (oracle == "never")
-        {
-            scenario.oracle = OraclePolicy::Never;
-        }
-        else if (oracle == "when_blind")
-        {
-            scenario.oracle = OraclePolicy::WhenBlind;
-        }
-        else if (oracle == "always")
-        {
-            scenario.oracle = OraclePolicy::Always;
-        }
-        else
-        {
-            throw std::runtime_error(
-                "perception.oracle must be never, when_blind or always");
-        }
+        readPerception(scenario, node.at("perception"));
         readPhysics(scenario, node.at("physics"));
         scenario.timeout = Seconds(node.number("timeout", 0.0));
         scenario.stop_when = node.text("stop_when");

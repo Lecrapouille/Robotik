@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <map>
 #include <stdexcept>
 #include <string>
 
@@ -219,7 +220,7 @@ Cell::Cell(compages::world::World& p_world,
     {
         robot(spec->id)->hold(spec->home);
     }
-    if (!m_oracle)
+    if (m_any_sensed)
     {
         m_world_model.gate(WORLD_MODEL_GATE_M);
     }
@@ -236,6 +237,7 @@ Cell::Cell(compages::world::World& p_world,
                                            m_factory,
                                            *m_scheduler);
         m_executor->clock(simulatedClock());
+        m_executor->maxAge(m_description.perception.max_age);
     }
     reset();
 }
@@ -256,8 +258,6 @@ void Cell::build(SceneView* p_view)
         EntitySpec const* tool = world.mountedTool(robot_spec->id);
         buildDevices(robot, *robot_spec, tool, p_view, blind);
     }
-    m_oracle = m_description.oracle == OraclePolicy::Always ||
-               (m_description.oracle == OraclePolicy::WhenBlind && blind);
 
     // --- Entities: one record each, in file order. ---------------------------
     m_frame = m_world.entity(WORLD_FRAME_ENTITY);
@@ -272,6 +272,21 @@ void Cell::build(SceneView* p_view)
         Record& record = m_records.emplace_back();
         record.spec = &spec;
         buildRecord(record, p_view);
+    }
+
+    // --- Where the beliefs about each prop come from. -----------------------
+    m_oracle = false;
+    // Beliefs a mission adds itself follow the default level.
+    m_any_sensed = fidelityOf(m_description.perception, "", blind) == PerceptionFidelity::Sensed;
+    for (Record& record : m_records)
+    {
+        if (record.spec->type != EntitySpec::Type::Prop)
+        {
+            continue;
+        }
+        record.perception = fidelityOf(m_description.perception, record.spec->id, blind);
+        m_oracle = m_oracle || record.perception != PerceptionFidelity::Sensed;
+        m_any_sensed = m_any_sensed || record.perception == PerceptionFidelity::Sensed;
     }
 }
 
@@ -844,6 +859,7 @@ void Cell::reset(Seed p_seed)
     m_resources->restoreAll();
     m_scheduler->reset();
     m_faults.reset(p_seed.derive("faults"));
+    m_perception_random = Random(p_seed.derive("perception"));
 
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -978,6 +994,96 @@ void Cell::observe()
     }
 }
 
+void Cell::perceiveTruth()
+{
+    // Same rule as the cameras: something must still be able to see.
+    bool any = false;
+    bool sees = false;
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        SensorSet const& sensors = robot->sensors();
+        for (std::size_t i = 0; i < sensors.size(); ++i)
+        {
+            any = true;
+            sees = sees || sensors.available(i);
+        }
+    }
+    if (any && !sees)
+    {
+        return;
+    }
+    Pose const to_base = beliefFrame().inverse();
+    TruthNoise const& noise = m_description.perception.noise;
+    for (Record const& record : m_records)
+    {
+        if (record.perception == PerceptionFidelity::Sensed ||
+            record.spec->type != EntitySpec::Type::Prop)
+        {
+            continue;
+        }
+        Vector3 truth = positionOf(record.entity);
+        if (record.perception == PerceptionFidelity::Truth)
+        {
+            m_world_model.place(record.spec->id, to_base * truth, m_robot->time(),
+                                BeliefSource::Truth);
+            continue;
+        }
+        // Noisy truth: in range of a robot, not missed, with noise.
+        bool near = false;
+        for (std::unique_ptr<RobotSession> const& robot : m_robots)
+        {
+            near = near || norm(truth - robot->base().pose.position) <= noise.range;
+        }
+        if (!near || m_perception_random.chance(noise.dropout))
+        {
+            continue;
+        }
+        truth.x = m_perception_random.normal(truth.x, noise.sigma);
+        truth.y = m_perception_random.normal(truth.y, noise.sigma);
+        truth.z = m_perception_random.normal(truth.z, noise.sigma);
+        m_world_model.place(record.spec->id, to_base * truth, m_robot->time(),
+                            BeliefSource::NoisyTruth);
+    }
+}
+
+PerceptionFidelity Cell::perceptionOf(std::string_view p_id) const
+{
+    Record const* found = record(p_id);
+    return found != nullptr ? found->perception : PerceptionFidelity::Sensed;
+}
+
+std::string Cell::perceptionSummary() const
+{
+    // The level of most props, then the exceptions: "truth, red_cube: sensed".
+    std::map<PerceptionFidelity, int> count;
+    for (Record const& record : m_records)
+    {
+        if (record.spec->type == EntitySpec::Type::Prop)
+        {
+            ++count[record.perception];
+        }
+    }
+    if (count.empty())
+    {
+        return toString(m_description.perception.fidelity);
+    }
+    // Ties go to the default level of the description.
+    PerceptionFidelity main = m_description.perception.fidelity;
+    for (auto const& [level, n] : count)
+    {
+        main = n > count[main] ? level : main;
+    }
+    std::string text = toString(main);
+    for (Record const& record : m_records)
+    {
+        if (record.spec->type == EntitySpec::Type::Prop && record.perception != main)
+        {
+            text += ", " + record.spec->id + ": " + toString(record.perception);
+        }
+    }
+    return text;
+}
+
 void Cell::syncBodies()
 {
     RobotBackend const* backend = m_robot->backend();
@@ -1076,7 +1182,7 @@ void Cell::step(Seconds p_dt)
     }
     if (m_oracle)
     {
-        observe();
+        perceiveTruth();
     }
     track();
     syncBodies();

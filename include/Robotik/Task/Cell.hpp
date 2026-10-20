@@ -276,12 +276,24 @@ public:
     /// @return First camera of the robots, or null.
     [[nodiscard]] Camera* camera() const;
 
-    /// @return True when the ground truth feeds the world model (see
-    ///   @ref OraclePolicy).
+    /// @return True when the simulator feeds the beliefs of a prop or more
+    ///   (see @ref PerceptionFidelity).
     [[nodiscard]] bool oracle() const
     {
         return m_oracle;
     }
+
+    // -------------------------------------------------------------------------
+    /// @param p_id Entity id of a prop.
+    /// @return Where the beliefs about it come from.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] PerceptionFidelity perceptionOf(std::string_view p_id) const;
+
+    // -------------------------------------------------------------------------
+    /// @return The perception level of most props, then the exceptions, e.g.
+    ///   "truth, red_cube: sensed", for reports.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::string perceptionSummary() const;
 
     /// @return Behavior tree, or null if the controller has none. With a
     ///   planner: the tree of the current plan.
@@ -421,6 +433,13 @@ public:
     // -------------------------------------------------------------------------
     void observe();
 
+private:
+
+    /// Writes the beliefs of the props at the truth or noisy_truth level.
+    void perceiveTruth();
+
+public:
+
     /// @return Task plugin, or null.
     [[nodiscard]] Mission* mission() const
     {
@@ -447,6 +466,8 @@ private:
         Pose initial{ Vector3::ZERO, Quaternion{} };
         /// Peak contacts with other entities (floor excluded).
         int peak_contacts = 0;
+        /// Where the beliefs about this prop come from.
+        PerceptionFidelity perception = PerceptionFidelity::Sensed;
     };
 
     /// Builds the robots, the entities and the physics of the world.
@@ -535,8 +556,12 @@ private:
     compages::world::Entity m_frame;
     /// One per world entity, in file order (a tool in storage has none).
     std::vector<Record> m_records;
-    /// The ground truth feeds the world model.
+    /// The simulator feeds the beliefs of a prop or more.
     bool m_oracle = false;
+    /// A prop or more is seen by the perception pipeline (gate its updates).
+    bool m_any_sensed = true;
+    /// Noise and misses of the noisy_truth level.
+    Random m_perception_random;
 
     /// Factory of the behavior tree nodes.
     bt::NodeFactory m_factory;

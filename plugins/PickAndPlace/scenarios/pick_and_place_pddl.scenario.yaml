@@ -16,7 +16,7 @@ scenario:
 
   # Headless runs render no image: the true cube pose stands in for the
   # camera there. The simulator renders it and uses real perception.
-  perception: { oracle: when_blind }
+  perception: { blind: truth }   # true poses when no camera has an image
 
   timeout: 60
 

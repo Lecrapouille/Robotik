@@ -25,6 +25,18 @@ namespace robotik
 {
 
 // ****************************************************************************
+/// Where a belief comes from: a robot can never tell, but a report and a
+/// test must (see @ref PerceptionFidelity).
+// ****************************************************************************
+enum class BeliefSource : std::uint8_t
+{
+    Prior,      ///< Told by the mission (the layout); never observed.
+    Sensed,     ///< Observed by the perception pipeline.
+    NoisyTruth, ///< Written by the simulator from the truth, degraded.
+    Truth,      ///< Written by the simulator from the truth (a mock).
+};
+
+// ****************************************************************************
 /// Belief about one object, in the robot base frame (in the world frame when
 /// several robots share the beliefs: Simulation::beliefFrame).
 ///
@@ -48,6 +60,8 @@ struct WorldObject
     Seconds seen{ -1.0 };
     /// Number of observations since the last reset.
     std::uint32_t observations = 0;
+    /// Where the last value comes from.
+    BeliefSource source = BeliefSource::Prior;
 
     // -------------------------------------------------------------------------
     /// @return True when the object was seen at least once since the reset;
@@ -147,9 +161,12 @@ public:
     /// @param p_name Object name.
     /// @param p_position New center (m).
     /// @param p_stamp Time of the observation.
+    /// @param p_source Where the value comes from.
     // -------------------------------------------------------------------------
-    void
-    place(std::string_view p_name, Vector3 const& p_position, Seconds p_stamp);
+    void place(std::string_view p_name,
+               Vector3 const& p_position,
+               Seconds p_stamp,
+               BeliefSource p_source = BeliefSource::Truth);
 
     // -------------------------------------------------------------------------
     /// Folds the detections of one frame into the beliefs.

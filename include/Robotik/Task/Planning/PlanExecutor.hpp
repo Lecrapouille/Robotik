@@ -31,6 +31,7 @@
 #include "BlackThorn/BlackThorn.hpp"
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <string>
 #include <utility>
@@ -168,6 +169,16 @@ public:
         SkillScheduler& p_skills,
         std::unique_ptr<PlanningEngine> p_engine = makeKairosPlanner());
     ~PlanExecutor();
+
+    // -------------------------------------------------------------------------
+    /// Sets the age after which a belief is unknown to the planner: an
+    /// observer naming an object seen longer ago answers @c Unknown.
+    /// @param p_age Largest age; infinite by default.
+    // -------------------------------------------------------------------------
+    void maxAge(Seconds p_age)
+    {
+        m_max_age = p_age;
+    }
 
     // -------------------------------------------------------------------------
     /// Sets the clock of the trees built from the plans (the simulated
@@ -349,6 +360,11 @@ private:
     /// @p_partial tells that some effects cannot be checked.
     [[nodiscard]] std::vector<Literal> effects(std::size_t p_step,
                                                bool& p_partial) const;
+    /// True when the atom is known and every belief it names was observed
+    /// at or after @p_since (the @c observed check).
+    [[nodiscard]] bool seenSince(Atom const& p_atom,
+                                 RobotContext const& p_context,
+                                 Seconds p_since) const;
     /// Value of a ground atom: a fact, or its observer on the beliefs.
     [[nodiscard]] Truth evaluate(Atom const& p_atom,
                                  RobotContext const& p_context) const;
@@ -409,6 +425,10 @@ private:
     std::vector<StepOrder> m_order;
     /// The start of each step happened.
     std::vector<bool> m_started;
+    /// Simulated time each step started.
+    std::vector<Seconds> m_start_times;
+    /// A belief older than this is unknown (see @ref maxAge).
+    Seconds m_max_age{ std::numeric_limits<double>::infinity() };
     /// Set by a failed check: why the tree failed.
     std::string m_check_failure;
     /// Context of the tick in progress, for the check nodes.

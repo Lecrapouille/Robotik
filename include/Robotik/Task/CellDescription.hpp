@@ -33,6 +33,7 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <limits>
 #include <map>
 #include <optional>
 #include <string>
@@ -361,6 +362,10 @@ struct PlannerSpec
     Seconds replan_delay{ 0.5 };
     /// Checks the effects of each action on the beliefs once it is done.
     bool verify = true;
+    /// With @ref verify: an effect counts only when the beliefs confirm it
+    /// with an observation made after the step started (@c verify: observed).
+    /// Otherwise an effect the beliefs cannot tell (unknown) is accepted.
+    bool observed = false;
     /// Runs together the steps that do not depend on each other (see
     /// PlanGraph.hpp); false runs the plan step by step.
     bool parallel = true;
@@ -382,10 +387,11 @@ struct PlannerSpec
 ///       - compatible(vacuum, cube)        # would split at the comma
 ///     goal:
 ///       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
-///     replan: { max: 3, delay: 0.5 }      # new plans, simulated seconds
-///     before each verify: true                        # check the effects on
-///     the beliefs parallel: true                      # independent steps run
-///     together search: lama                        # planner search preset
+///     replan: { max: 3, delay: 0.5 }      # new plans; simulated s before each
+///     verify: true                        # check the effects on the beliefs
+///                                         # (observed: only fresh observations)
+///     parallel: true                      # independent steps run together
+///     search: lama                        # planner search preset
 ///     timeout: 10                         # wall-clock safety net (s)
 /// @endcode
 ///
@@ -401,14 +407,82 @@ struct ControllerSpec
 };
 
 // ****************************************************************************
-/// When the ground truth may stand in for perception (@c perception.oracle:).
+/// Where the robot's beliefs about an object come from (@c perception:).
+///
+/// Giving the robot the true pose of an object is not cheating when it is
+/// chosen, said and recorded: like a simpler physics, it lets a test focus
+/// on what it checks. A planning test can skip image processing; a car
+/// simulator can hand over the lane marks and the pedestrians instead of
+/// running vision on photo-realistic images.
+///
+/// @code{.yaml}
+/// perception:
+///   fidelity: sensed          # truth | noisy_truth | sensed (default)
+///   overrides: { red_cube: truth }
+///   blind: truth              # when no camera has an image (a headless run)
+///   noise: { sigma: 0.005, dropout: 0.1, range: 2.0 }   # for noisy_truth
+///   max_age: 2.0              # older beliefs are unknown to the planner (s)
+/// @endcode
 // ****************************************************************************
-enum class OraclePolicy : std::uint8_t
+enum class PerceptionFidelity : std::uint8_t
 {
-    Never,     ///< @c never: beliefs come from perception only.
-    WhenBlind, ///< @c when_blind: when no camera has an image source.
-    Always,    ///< @c always: the true poses, whatever the cameras.
+    /// The perception pipeline (detectors on camera images) fills the
+    /// beliefs.
+    Sensed,
+    /// The simulator writes the true position, degraded by
+    /// @ref PerceptionSpec::noise (noise, missed observations, range).
+    NoisyTruth,
+    /// The simulator writes the true position (a mock of perception).
+    Truth,
 };
+
+// ----------------------------------------------------------------------------
+/// @param p_fidelity Level to name.
+/// @return "sensed", "noisy_truth" or "truth".
+// ----------------------------------------------------------------------------
+[[nodiscard]] char const* toString(PerceptionFidelity p_fidelity);
+
+// ****************************************************************************
+/// How the true position is degraded at the @c noisy_truth level.
+// ****************************************************************************
+struct TruthNoise
+{
+    /// Gaussian noise on each axis (m).
+    double sigma = 0.0;
+    /// Chance that an object is not seen at a step, in [0, 1].
+    double dropout = 0.0;
+    /// Objects farther than this from every robot base are not seen (m).
+    double range = std::numeric_limits<double>::infinity();
+};
+
+// ****************************************************************************
+/// Section @c perception: of a scenario (see @ref PerceptionFidelity).
+// ****************************************************************************
+struct PerceptionSpec
+{
+    /// Level of every object not in @ref overrides.
+    PerceptionFidelity fidelity = PerceptionFidelity::Sensed;
+    /// Level per world entity id.
+    std::map<std::string, PerceptionFidelity, std::less<>> overrides;
+    /// Level of the @c sensed objects when no camera has an image source (a
+    /// headless run); @c Sensed keeps them unseen.
+    PerceptionFidelity blind = PerceptionFidelity::Sensed;
+    /// Degradation of the @c noisy_truth level.
+    TruthNoise noise;
+    /// A belief older than this is unknown to the planner; infinite by
+    /// default.
+    Seconds max_age{ std::numeric_limits<double>::infinity() };
+};
+
+// ----------------------------------------------------------------------------
+/// @param p_perception Perception section.
+/// @param p_id Entity id.
+/// @param p_blind True when no camera has an image source.
+/// @return The level of that entity.
+// ----------------------------------------------------------------------------
+[[nodiscard]] PerceptionFidelity fidelityOf(PerceptionSpec const& p_perception,
+                                            std::string_view p_id,
+                                            bool p_blind);
 
 // ****************************************************************************
 /// How finely the physics simulates an interaction (FIDELITY.md).
@@ -498,8 +572,8 @@ struct CellDescription
     std::vector<Fault> faults;
     /// Faults drawn at random.
     std::vector<RandomFault> random_faults;
-    /// When the ground truth may stand in for perception.
-    OraclePolicy oracle = OraclePolicy::Never;
+    /// Where the beliefs about each object come from.
+    PerceptionSpec perception;
     /// Fidelity of the physics, per entity.
     PhysicsSpec physics;
     /// Values the mission reads (gains, model choices...).

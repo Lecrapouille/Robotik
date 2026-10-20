@@ -96,8 +96,12 @@ struct RunRecord
     double time = 0.0;
     /// True when every assertion holds.
     bool passed = false;
-    /// The ground truth stood in for perception (see @ref OraclePolicy).
+    /// The simulator gave the beliefs of a prop or more (see
+    /// @ref PerceptionFidelity).
     bool oracle = false;
+    /// Perception level of the props, e.g. "truth, red_cube: sensed" (see
+    /// @ref PerceptionFidelity).
+    std::string perception;
     /// Physics fidelity, e.g. "abstract" or "abstract, red_cube: rigid":
     /// never compare metrics of runs at different levels.
     std::string physics;
