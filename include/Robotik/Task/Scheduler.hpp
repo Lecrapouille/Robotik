@@ -30,7 +30,7 @@ namespace robotik
 /// Index of a skill in its @ref SkillScheduler.
 using SkillId = std::uint32_t;
 /// No skill (e.g. not found).
-inline constexpr SkillId NO_SKILL = 0xFFFFFFFFu;
+inline constexpr SkillId NO_SKILL = 0xFFFFFFFFU;
 
 // ****************************************************************************
 /// Life cycle of one skill run.

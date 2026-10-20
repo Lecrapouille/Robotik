@@ -67,7 +67,7 @@ struct AssetPack
     /// Free text shown in the credits.
     std::string description;
     /// Model key to its file, relative to @ref root.
-    std::map<std::string, std::filesystem::path> models;
+    std::map<std::string, std::filesystem::path, std::less<>> models;
 };
 
 // -------------------------------------------------------------------------

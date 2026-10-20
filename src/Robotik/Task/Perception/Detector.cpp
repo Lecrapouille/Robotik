@@ -56,7 +56,7 @@ void DepthEstimator::detect(CameraFrame const& p_frame,
                  x <= std::min(width - 1, u + m_radius);
                  ++x)
             {
-                if (std::isfinite(row[x]) && row[x] > 0.0f)
+                if (std::isfinite(row[x]) && row[x] > 0.0F)
                 {
                     m_samples.push_back(row[x]);
                 }
@@ -67,8 +67,8 @@ void DepthEstimator::detect(CameraFrame const& p_frame,
             continue;
         }
         auto const middle =
-            m_samples.begin() + std::ptrdiff_t(m_samples.size() / 2u);
-        std::nth_element(m_samples.begin(), middle, m_samples.end());
+            m_samples.begin() + std::ptrdiff_t(m_samples.size() / 2U);
+        std::ranges::nth_element(m_samples, middle);
         Vector3 const ray =
             p_frame.intrinsics.ray(detection.center[0], detection.center[1]);
         // The depth is measured along the optical axis, not along the ray.

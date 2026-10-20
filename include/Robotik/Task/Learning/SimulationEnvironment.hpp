@@ -96,10 +96,14 @@ public:
     [[nodiscard]] virtual Space space() const = 0;
 
     /// Called once, after the simulation is built.
-    virtual void setup(Cell& /*p_cell*/) {}
+    virtual void setup(Cell& /*p_cell*/)
+    { /* nothing to do by default */
+    }
 
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell& /*p_cell*/) {}
+    virtual void reset(Cell& /*p_cell*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Writes the observation of the current state.
@@ -141,10 +145,14 @@ public:
     [[nodiscard]] virtual Space space() const = 0;
 
     /// Called once, after the simulation is built (e.g. a ready posture).
-    virtual void setup(Cell& /*p_cell*/) {}
+    virtual void setup(Cell& /*p_cell*/)
+    { /* nothing to do by default */
+    }
 
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell& /*p_cell*/) {}
+    virtual void reset(Cell& /*p_cell*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Writes the robot commands of an action.
@@ -180,9 +188,13 @@ public:
     virtual ~RewardEvaluator() = default;
 
     /// Called once, after the simulation is built.
-    virtual void setup(Cell const& /*p_cell*/) {}
+    virtual void setup(Cell const& /*p_cell*/)
+    { /* nothing to do by default */
+    }
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell const& /*p_cell*/) {}
+    virtual void reset(Cell const& /*p_cell*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Scores the step that just ended.

@@ -35,7 +35,7 @@ struct PlanningOptions
     /// Search preset of the planner (Kairos: ff, lama, eager-lama...).
     std::string search = "lama";
     /// Seed of the search, for the planners that draw at random.
-    std::uint64_t seed = 0u;
+    std::uint64_t seed = 0U;
     /// Safety net only: a plan found before it does not depend on it.
     std::chrono::milliseconds timeout{ std::chrono::seconds(10) };
 };
@@ -75,7 +75,7 @@ struct PlanningResult
     /// Raw answer of the planner (status, plan text, statistics).
     std::string report;
     /// Number of states the search expanded.
-    std::size_t expanded = 0u;
+    std::size_t expanded = 0U;
     /// Time spent planning (wall clock).
     double milliseconds = 0.0;
 };

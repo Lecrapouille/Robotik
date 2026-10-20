@@ -81,10 +81,10 @@ WalkContract WalkContract::load(std::filesystem::path const& p_path)
         walk.number("scale_dof_pos", contract.scale_dof_pos);
     contract.scale_dof_vel =
         walk.number("scale_dof_vel", contract.scale_dof_vel);
-    std::vector<double> const command = numbers(walk, "max_command", 3u);
-    std::copy(command.begin(), command.end(), contract.max_command.begin());
+    std::vector<double> const command = numbers(walk, "max_command", 3U);
+    std::ranges::copy(command, contract.max_command.begin());
 
-    if (contract.observations != static_cast<int>(9u + 3u * count))
+    if (contract.observations != static_cast<int>(9U + 3U * count))
     {
         throw std::runtime_error("walk.observations must be 9 + 3 x joints");
     }
@@ -139,8 +139,8 @@ WalkPolicy::WalkPolicy(std::filesystem::path const& p_model,
     std::size_t const count = m_contract.joints.size();
     m_history.assign(
         static_cast<std::size_t>(m_contract.history * m_contract.observations),
-        0.0f);
-    m_actions.assign(count, 0.0f);
+        0.0F);
+    m_actions.assign(count, 0.0F);
     m_targets.assign(m_contract.default_angle.begin(),
                      m_contract.default_angle.end());
 }
@@ -150,8 +150,8 @@ WalkPolicy::~WalkPolicy() = default;
 // ----------------------------------------------------------------------------
 void WalkPolicy::reset()
 {
-    std::fill(m_history.begin(), m_history.end(), 0.0f);
-    std::fill(m_actions.begin(), m_actions.end(), 0.0f);
+    std::ranges::fill(m_history, 0.0F);
+    std::ranges::fill(m_actions, 0.0F);
     m_targets.assign(m_contract.default_angle.begin(),
                      m_contract.default_angle.end());
     m_fresh = true;
@@ -200,9 +200,8 @@ void WalkPolicy::observe(WalkInput const& p_input)
     {
         for (std::size_t k = 0; k < static_cast<std::size_t>(c.history); ++k)
         {
-            std::copy(obs.begin(),
-                      obs.end(),
-                      m_history.begin() + static_cast<long>(k * size));
+            std::ranges::copy(obs,
+                              m_history.begin() + static_cast<long>(k * size));
         }
         m_fresh = false;
         return;
@@ -210,7 +209,7 @@ void WalkPolicy::observe(WalkInput const& p_input)
     std::copy_backward(m_history.begin(),
                        m_history.end() - static_cast<long>(size),
                        m_history.end());
-    std::copy(obs.begin(), obs.end(), m_history.begin());
+    std::ranges::copy(obs, m_history.begin());
 }
 
 // ----------------------------------------------------------------------------
@@ -230,7 +229,7 @@ std::span<double const> WalkPolicy::act(WalkInput const& p_input)
     char const* const inputs[] = { m_onnx->input.c_str() };
     char const* const outputs[] = { m_onnx->output.c_str() };
     std::vector<Ort::Value> result = m_onnx->session.Run(
-        Ort::RunOptions{ nullptr }, inputs, &input, 1u, outputs, 1u);
+        Ort::RunOptions{ nullptr }, inputs, &input, 1U, outputs, 1U);
 
     float const* const actions = result.front().GetTensorData<float>();
     for (std::size_t i = 0; i < m_actions.size(); ++i)

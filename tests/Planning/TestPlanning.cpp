@@ -103,7 +103,7 @@ TEST(Planning, ReadsLiterals)
     robotik::Literal const in = robotik::parseLiteral(" In(Red_Cube,  box) ").take();
     EXPECT_TRUE(in.positive);
     EXPECT_EQ(in.atom.predicate, "in");
-    ASSERT_EQ(in.atom.args.size(), 2u);
+    ASSERT_EQ(in.atom.args.size(), 2U);
     EXPECT_EQ(in.atom.args[0], "red_cube");
     EXPECT_EQ(robotik::toPddl(in), "(in red_cube box)");
     EXPECT_EQ(robotik::toString(in), "in(red_cube, box)");
@@ -138,10 +138,10 @@ TEST(Planning, ReadsTheDomainSchema)
     EXPECT_TRUE(schema.predicates.at("busy").derived);
 
     robotik::ActionSchema const& pick = schema.actions.at("pick");
-    ASSERT_EQ(pick.parameters.size(), 2u);
+    ASSERT_EQ(pick.parameters.size(), 2U);
     EXPECT_EQ(pick.parameters[0].name, "b");
     EXPECT_EQ(pick.parameters[1].type, "place");
-    ASSERT_EQ(pick.effects.size(), 3u);
+    ASSERT_EQ(pick.effects.size(), 3U);
     EXPECT_EQ(robotik::toString(pick.effects[0]), "holding(?b)");
     EXPECT_FALSE(pick.effects[1].positive);
     EXPECT_FALSE(pick.partial);
@@ -162,7 +162,7 @@ TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
     )").take();
     robotik::ActionSchema const& go = schema.actions.at("go");
     EXPECT_TRUE(go.durative);
-    ASSERT_EQ(go.effects.size(), 2u);
+    ASSERT_EQ(go.effects.size(), 2U);
     EXPECT_EQ(robotik::toString(go.effects[0]), "not moving");
     EXPECT_EQ(robotik::toString(go.effects[1]), "arrived");
 }
@@ -186,7 +186,7 @@ TEST(Planning, KairosSolvesAndReportsErrors)
     robotik::PlanningResult const solved =
         engine->solve(problemOf("(at red_cube table) (hand_empty)"), {});
     ASSERT_TRUE(robotik::solved(solved)) << solved.diagnostics;
-    ASSERT_EQ(solved.steps.size(), 2u);
+    ASSERT_EQ(solved.steps.size(), 2U);
     EXPECT_EQ(robotik::toPddl(solved.steps[0]), "(pick red_cube table)");
     EXPECT_EQ(robotik::toPddl(solved.steps[1]), "(place red_cube bin)");
     EXPECT_NE(solved.report.find("(pick red_cube table)"), std::string::npos);
@@ -226,7 +226,7 @@ TEST(Planning, ExecutorAcceptsAConsistentSetup)
         "My scenario",
         factory,
         skills);
-    ASSERT_EQ(executor.objects().size(), 2u);
+    ASSERT_EQ(executor.objects().size(), 2U);
     EXPECT_EQ(executor.objects()[0].id, "Red_Cube");
     EXPECT_EQ(executor.objects()[0].name, "red_cube");
     EXPECT_EQ(executor.objects()[0].type, "cube");

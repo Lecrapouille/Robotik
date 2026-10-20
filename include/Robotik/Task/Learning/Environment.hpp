@@ -67,7 +67,7 @@ enum class EpisodeEnd : std::uint8_t
 struct StepResult
 {
     /// Reward of this step.
-    float reward = 0.0f;
+    float reward = 0.0F;
     /// Why the episode ended, or @c None.
     EpisodeEnd end = EpisodeEnd::None;
 };

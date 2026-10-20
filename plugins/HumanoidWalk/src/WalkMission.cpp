@@ -30,8 +30,8 @@
 /// The walked path is sampled at this period (s) for the circle fit.
 #define PATH_PERIOD_S 0.05
 /// Painted ground in the simulator: side and tile (m).
-#define GROUND_SIZE_M 12u
-#define GROUND_TILE_M 1u
+#define GROUND_SIZE_M 12U
+#define GROUND_TILE_M 1U
 
 robotik::Seconds WalkMission::physicsStep()
 {
@@ -111,7 +111,7 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
 {
     // Grey tiles of one metre: the circle of one metre is easy to read.
     constexpr std::uint32_t TILES = GROUND_SIZE_M / GROUND_TILE_M;
-    constexpr std::uint32_t PIXELS = 8u;
+    constexpr std::uint32_t PIXELS = 8U;
     robotik::Image ground(
         TILES * PIXELS, TILES * PIXELS, robotik::PixelFormat::RGB8);
     std::span<std::uint8_t> bytes = ground.bytes();
@@ -119,12 +119,12 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
     {
         for (std::uint32_t column = 0; column < ground.width(); ++column)
         {
-            bool const dark = ((row / PIXELS) + (column / PIXELS)) % 2u == 0u;
-            std::uint8_t const level = dark ? 96u : 140u;
-            std::size_t const at = 3u * (row * ground.width() + column);
+            bool const dark = ((row / PIXELS) + (column / PIXELS)) % 2U == 0U;
+            std::uint8_t const level = dark ? 96U : 140U;
+            std::size_t const at = 3U * (row * ground.width() + column);
             bytes[at] = level;
-            bytes[at + 1u] = level;
-            bytes[at + 2u] = static_cast<std::uint8_t>(level + 8u);
+            bytes[at + 1U] = level;
+            bytes[at + 2U] = static_cast<std::uint8_t>(level + 8U);
         }
     }
     p_view.ground(ground,

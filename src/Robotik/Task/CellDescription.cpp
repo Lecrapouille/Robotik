@@ -21,10 +21,9 @@ static constexpr char const* TOOL_MOUNT = "tool_mount";
 // ----------------------------------------------------------------------------
 EntitySpec const* findEntity(WorldDescription const& p_world, std::string_view p_id)
 {
-    auto const found = std::find_if(p_world.entities.begin(),
-                                    p_world.entities.end(),
-                                    [p_id](EntitySpec const& p_entity)
-                                    { return p_entity.id == p_id; });
+    auto const found = std::ranges::find_if(p_world.entities,
+                                            [p_id](EntitySpec const& p_entity)
+                                            { return p_entity.id == p_id; });
     return found == p_world.entities.end() ? nullptr : &*found;
 }
 

@@ -50,19 +50,19 @@ static void cameraCell(App& p_app,
         picture = &view.cameras()[p_index]->target();
     }
     float const room =
-        std::max(p_cell.y - ImGui::GetFrameHeightWithSpacing(), 16.0f);
+        std::max(p_cell.y - ImGui::GetFrameHeightWithSpacing(), 16.0F);
     if (picture == nullptr || picture->width == 0)
     {
         ImGui::Dummy(ImVec2(p_cell.x, room));
         ImVec2 const min = ImGui::GetItemRectMin();
         ImVec2 const max = ImGui::GetItemRectMax();
         ImGui::GetWindowDrawList()->AddRect(
-            min, max, ImGui::GetColorU32(ImGuiCol_Border), 4.0f);
+            min, max, ImGui::GetColorU32(ImGuiCol_Border), 4.0F);
         char const* text = "No frame yet: press Play or Step.";
         ImVec2 const size = ImGui::CalcTextSize(text);
         ImGui::GetWindowDrawList()->AddText(
-            ImVec2((min.x + max.x - size.x) * 0.5f,
-                   (min.y + max.y - size.y) * 0.5f),
+            ImVec2((min.x + max.x - size.x) * 0.5F,
+                   (min.y + max.y - size.y) * 0.5F),
             ImGui::GetColorU32(ImGuiCol_TextDisabled),
             text);
         return;
@@ -72,13 +72,13 @@ static void cameraCell(App& p_app,
     float const width = std::min(p_cell.x, room / aspect);
     ImVec2 const size(std::floor(width), std::floor(width * aspect));
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
-                         std::max(0.0f, (p_cell.x - size.x) * 0.5f));
+                         std::max(0.0F, (p_cell.x - size.x) * 0.5F));
     ImVec2 const at = ImGui::GetCursorScreenPos();
     ImGui::Image(
         ImTextureRef(static_cast<ImTextureID>(picture->color.nativeId())),
         size,
-        ImVec2(0.0f, 1.0f),
-        ImVec2(1.0f, 0.0f));
+        ImVec2(0.0F, 1.0F),
+        ImVec2(1.0F, 0.0F));
     ImDrawList* draw = ImGui::GetWindowDrawList();
     if (!available)
     {
@@ -99,8 +99,8 @@ static void cameraCell(App& p_app,
                          at.y + static_cast<float>(item.box[1]) * zoom);
         ImVec2 const end(at.x + static_cast<float>(item.box[2] + 1) * zoom,
                          at.y + static_cast<float>(item.box[3] + 1) * zoom);
-        draw->AddRect(top, end, IM_COL32(80, 255, 120, 255), 0.0f, 0, 2.0f);
-        draw->AddText(ImVec2(top.x, std::max(at.y, top.y - 16.0f)),
+        draw->AddRect(top, end, IM_COL32(80, 255, 120, 255), 0.0F, 0, 2.0F);
+        draw->AddText(ImVec2(top.x, std::max(at.y, top.y - 16.0F)),
                       IM_COL32(80, 255, 120, 255),
                       item.label.c_str());
     }
@@ -142,23 +142,23 @@ void camerasPanel(App& p_app, char const* p_key)
     ImVec2 const avail = ImGui::GetContentRegionAvail();
     std::size_t const count = cameras.size();
     std::size_t const columns =
-        avail.x > avail.y ? std::min<std::size_t>(count, 3u) : 1u;
-    std::size_t const rows = (count + columns - 1u) / columns;
+        avail.x > avail.y ? std::min<std::size_t>(count, 3U) : 1U;
+    std::size_t const rows = (count + columns - 1U) / columns;
     float const spacing = ImGui::GetStyle().ItemSpacing.x;
-    ImVec2 const cell((avail.x - spacing * static_cast<float>(columns - 1u)) /
+    ImVec2 const cell((avail.x - spacing * static_cast<float>(columns - 1U)) /
                           static_cast<float>(columns),
                       avail.y / static_cast<float>(rows) -
                           ImGui::GetStyle().ItemSpacing.y);
     for (std::size_t i = 0; i < count; ++i)
     {
-        if (i % columns != 0u)
+        if (i % columns != 0U)
         {
             ImGui::SameLine();
         }
         ImGui::PushID(static_cast<int>(i));
         ImGui::BeginGroup();
         // Keeps every column as wide as the cell, whatever the picture.
-        ImGui::Dummy(ImVec2(cell.x, 0.0f));
+        ImGui::Dummy(ImVec2(cell.x, 0.0F));
         ImGui::PushItemWidth(cell.x);
         cameraCell(p_app, *cameras[i], i, cell);
         ImGui::PopItemWidth();

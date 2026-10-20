@@ -26,7 +26,7 @@
 #include <string>
 
 static constexpr std::size_t TRAIL = 240;
-static constexpr float PI = 3.14159265358979323846f;
+static constexpr float PI = 3.14159265358979323846F;
 
 /// @brief Loads the URDF into the window scene. No extra cameras or ground:
 /// the fly demo builds those itself.
@@ -126,9 +126,9 @@ bool FlyView::open()
 
     m_gpu->world = std::make_unique<compages::world::World>();
     m_gpu->scene = std::make_unique<compages::renderer::Scene>(*m_gpu->world);
-    m_gpu->scene->background(0.55f, 0.74f, 0.90f).ambient(0.42f, 0.42f, 0.44f);
+    m_gpu->scene->background(0.55F, 0.74F, 0.90F).ambient(0.42F, 0.42F, 0.44F);
     m_gpu->scene->sun("Sun").rotation(
-        robotik::Radians(-0.9f), compages::core::Vector3f(1.0f, 0.3f, 0.0f));
+        robotik::Radians(-0.9F), compages::core::Vector3f(1.0F, 0.3F, 0.0F));
     m_gpu->camera = m_gpu->scene->camera("View");
     m_gpu->scene->activeCamera(m_gpu->camera);
 
@@ -143,19 +143,19 @@ bool FlyView::open()
     if (m_gpu->eyes[0])
     {
         m_gpu->eyes[0].get<compages::world::Camera>().viewport = {
-            0.02f, 0.04f, 0.24f, 0.30f
+            0.02F, 0.04F, 0.24F, 0.30F
         };
     }
     if (m_gpu->eyes[1])
     {
         m_gpu->eyes[1].get<compages::world::Camera>().viewport = {
-            0.74f, 0.04f, 0.24f, 0.30f
+            0.74F, 0.04F, 0.24F, 0.30F
         };
     }
 
     // Boxes are Z-up in the scenario. Compages Y is up, so height and depth
     // swap.
-    auto brown = compages::renderer::color(0.45f, 0.32f, 0.18f);
+    auto brown = compages::renderer::color(0.45F, 0.32F, 0.18F);
     int index = 0;
     for (FlyBox const& box : m_scenario.obstacles)
     {
@@ -168,23 +168,23 @@ bool FlyView::open()
         ++index;
     }
     compages::core::Vector3f const food = flyToView(m_scenario.target);
-    m_gpu->scene->sphere("food", compages::renderer::color(0.95f, 0.75f, 0.15f))
+    m_gpu->scene->sphere("food", compages::renderer::color(0.95F, 0.75F, 0.15F))
         .position(food.x, food.y, food.z)
-        .scale(0.18f);
+        .scale(0.18F);
     compages::core::Vector3f const middle =
         flyToView(robotik::Vector3(m_scenario.arena.x * 0.5, 0.0, 0.0));
-    m_gpu->scene->plane("Floor", compages::renderer::color(0.55f, 0.62f, 0.38f))
-        .position(middle.x, 0.0f, middle.z)
-        .rotation(robotik::Radians(-0.5f * PI),
-                  compages::core::Vector3f(1.0f, 0.0f, 0.0f))
+    m_gpu->scene->plane("Floor", compages::renderer::color(0.55F, 0.62F, 0.38F))
+        .position(middle.x, 0.0F, middle.z)
+        .rotation(robotik::Radians(-0.5F * PI),
+                  compages::core::Vector3f(1.0F, 0.0F, 0.0F))
         .scale(static_cast<float>(m_scenario.arena.x + 4.0),
                static_cast<float>(m_scenario.arena.y + 4.0),
-               1.0f);
+               1.0F);
 
     // Yellow left, red centre, blue right. A sphere marks each end of the cone.
-    auto const left = compages::renderer::color(0.95f, 0.75f, 0.2f);
-    auto const center = compages::renderer::color(0.95f, 0.25f, 0.2f);
-    auto const right = compages::renderer::color(0.25f, 0.45f, 1.0f);
+    auto const left = compages::renderer::color(0.95F, 0.75F, 0.2F);
+    auto const center = compages::renderer::color(0.95F, 0.25F, 0.2F);
+    auto const right = compages::renderer::color(0.25F, 0.45F, 1.0F);
     compages::renderer::Look const looks[3] = { left, center, right };
     char const* names[3] = { "ray_left", "ray_center", "ray_right" };
     for (int ray = 0; ray < 3; ++ray)
@@ -196,13 +196,13 @@ bool FlyView::open()
         m_gpu->beam_to[ray] =
             m_gpu->scene->sphere(std::string(names[ray]) + "_to", looks[ray]);
     }
-    auto crumb = compages::renderer::color(0.95f, 0.95f, 0.9f);
+    auto crumb = compages::renderer::color(0.95F, 0.95F, 0.9F);
     for (std::size_t i = 0; i < TRAIL; ++i)
     {
         m_gpu->trail[i] =
             m_gpu->scene->sphere("trail_" + std::to_string(i), crumb)
-                .position(0.0f, -8.0f, 0.0f)
-                .scale(0.04f);
+                .position(0.0F, -8.0F, 0.0F)
+                .scale(0.04F);
     }
 
     if (auto prepared = m_gpu->scene->prepare(); !prepared)
@@ -257,7 +257,7 @@ bool FlyView::frame(FlyEnvironment const& p_environment)
 
     compages::core::Vector3f const thorax = flyToView(
         robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z));
-    m_gpu->camera.position(thorax.x - 2.4f, thorax.y + 1.8f, thorax.z + 2.6f)
+    m_gpu->camera.position(thorax.x - 2.4F, thorax.y + 1.8F, thorax.z + 2.6F)
         .lookAt(thorax);
     m_gpu->world->update();
 
@@ -269,7 +269,7 @@ bool FlyView::frame(FlyEnvironment const& p_environment)
         compages::gpu::RenderPass pass(compages::gpu::PassDesc{
             .width = static_cast<std::uint32_t>(width),
             .height = static_cast<std::uint32_t>(height),
-            .color = { 0.55f, 0.74f, 0.90f, 1.0f } });
+            .color = { 0.55F, 0.74F, 0.90F, 1.0F } });
         // The chase view first. Each eye camera then clears only its inset.
         m_gpu->scene->render(m_gpu->camera);
         if (m_gpu->eyes[0])

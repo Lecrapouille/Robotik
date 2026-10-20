@@ -46,7 +46,7 @@ private:
     robotik::SceneView* m_view = nullptr;
     painter::Stroke m_stroke;
     /// Waypoints of each stroke, in the world frame.
-    std::map<std::string, std::vector<robotik::Pose>> m_paths;
+    std::map<std::string, std::vector<robotik::Pose>, std::less<>> m_paths;
     double m_deviation = 0.0;
     int m_inked = 0;
 };

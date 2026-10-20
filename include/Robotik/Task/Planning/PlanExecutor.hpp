@@ -402,13 +402,13 @@ private:
     std::vector<PlanningObject> m_objects;
 
     /// Seed of the episode.
-    std::uint64_t m_seed = 0u;
+    std::uint64_t m_seed = 0U;
     /// Where the executor is in the episode.
     PlanState m_state = PlanState::Planning;
     /// Simulated time to plan again, in @ref PlanState::Waiting.
     Seconds m_resume{};
     /// Replans since the reset.
-    std::uint32_t m_replans = 0u;
+    std::uint32_t m_replans = 0U;
     /// Last thing that went wrong.
     std::string m_failure;
     /// Every call to the planner.
@@ -416,7 +416,7 @@ private:
     /// Steps of the current plan.
     std::vector<GroundAction> m_plan;
     /// Steps done or skipped.
-    std::size_t m_done = 0u;
+    std::size_t m_done = 0U;
     /// Status of each step.
     std::vector<StepStatus> m_steps;
     /// Steps each step waits for before it starts.

@@ -49,7 +49,7 @@ FlyEnvironment::FlyEnvironment(FlyScenario p_scenario,
     {
         throw std::invalid_argument("Fly scenario dt must be positive");
     }
-    if (m_max_steps == 0u)
+    if (m_max_steps == 0U)
     {
         m_max_steps =
             static_cast<std::uint32_t>(m_scenario.horizon / m_scenario.dt);
@@ -79,10 +79,10 @@ void FlyEnvironment::reset(robotik::Seed p_seed, std::span<float> p_observation)
     m_snapshot.observation = {};
     m_snapshot.action = {};
     m_snapshot.posture = {};
-    m_snapshot.vision.left = 0.0f;
-    m_snapshot.vision.center = 0.0f;
-    m_snapshot.vision.right = 0.0f;
-    m_snapshot.vision.distance = 0.0f;
+    m_snapshot.vision.left = 0.0F;
+    m_snapshot.vision.center = 0.0F;
+    m_snapshot.vision.right = 0.0F;
+    m_snapshot.vision.distance = 0.0F;
 
     // Reset the vision origins and ends.
     for (int ray = 0; ray < 3; ++ray)

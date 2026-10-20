@@ -36,9 +36,9 @@ namespace robotik
 // -------------------------------------------------------------------------
 [[nodiscard]] constexpr std::uint64_t mix64(std::uint64_t p_value)
 {
-    p_value += 0x9E3779B97F4A7C15ull;
-    p_value = (p_value ^ (p_value >> 30)) * 0xBF58476D1CE4E5B9ull;
-    p_value = (p_value ^ (p_value >> 27)) * 0x94D049BB133111EBull;
+    p_value += 0x9E3779B97F4A7C15ULL;
+    p_value = (p_value ^ (p_value >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    p_value = (p_value ^ (p_value >> 27)) * 0x94D049BB133111EBULL;
     return p_value ^ (p_value >> 31);
 }
 
@@ -72,7 +72,7 @@ struct Seed
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::uint64_t p_index) const
     {
-        return Seed(mix64(value ^ mix64(p_index + 0x632BE59BD9B4E019ull)));
+        return Seed(mix64(value ^ mix64(p_index + 0x632BE59BD9B4E019ULL)));
     }
 
     // -------------------------------------------------------------------------
@@ -82,10 +82,10 @@ struct Seed
     // -------------------------------------------------------------------------
     [[nodiscard]] constexpr Seed derive(std::string_view p_name) const
     {
-        std::uint64_t hash = 0xCBF29CE484222325ull; // FNV-1a
+        std::uint64_t hash = 0xCBF29CE484222325ULL; // FNV-1a
         for (char const c : p_name)
         {
-            hash = (hash ^ static_cast<std::uint8_t>(c)) * 0x100000001B3ull;
+            hash = (hash ^ static_cast<std::uint8_t>(c)) * 0x100000001B3ULL;
         }
         return derive(hash);
     }
@@ -121,10 +121,10 @@ public:
     // -------------------------------------------------------------------------
     constexpr std::uint64_t next()
     {
-        m_state += 0x9E3779B97F4A7C15ull;
+        m_state += 0x9E3779B97F4A7C15ULL;
         std::uint64_t z = m_state;
-        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ull;
-        z = (z ^ (z >> 27)) * 0x94D049BB133111EBull;
+        z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        z = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
         return z ^ (z >> 31);
     }
 

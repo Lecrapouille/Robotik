@@ -61,7 +61,9 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_view Rendering hooks; null for a headless run.
     // -------------------------------------------------------------------------
-    virtual void setup(Cell& /*p_cell*/, SceneView* /*p_view*/) {}
+    virtual void setup(Cell& /*p_cell*/, SceneView* /*p_view*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Called at each episode start, after the robot and the objects are
@@ -69,14 +71,18 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_seed Seed of the episode; derive random streams from it.
     // -------------------------------------------------------------------------
-    virtual void reset(Cell& /*p_cell*/, Seed /*p_seed*/) {}
+    virtual void reset(Cell& /*p_cell*/, Seed /*p_seed*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Called after each robot step. Update the counters here.
     /// @param p_cell The cell running the mission.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
-    virtual void step(Cell& /*p_cell*/, Seconds /*p_dt*/) {}
+    virtual void step(Cell& /*p_cell*/, Seconds /*p_dt*/)
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Publishes the mission metrics (called on demand). The scenario

@@ -24,9 +24,9 @@
 namespace robotik
 {
 
-static constexpr robotik::Length kDefaultCubeHalfHeight{ 0.02 };
-static constexpr robotik::Length kTransitClearanceThreshold{ 0.08 };
-static constexpr robotik::Length kMaxFinalApproachClearance{ 0.03 };
+static constexpr robotik::Length DEFAULT_CUBE_HALF_HEIGHT{ 0.02 };
+static constexpr robotik::Length TRANSIT_CLEARANCE_THRESHOLD{ 0.08 };
+static constexpr robotik::Length MAX_FINAL_APPROACH_CLEARANCE{ 0.03 };
 
 /// @brief If the gripper is not holding an object, return the default cube half
 /// height. Otherwise, return the half height of the object.
@@ -35,13 +35,13 @@ static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
 {
     if (!p_gripper.holding() || !p_world.alive(p_gripper.held()))
     {
-        return kDefaultCubeHalfHeight;
+        return DEFAULT_CUBE_HALF_HEIGHT;
     }
     ecs::Shape const* shape =
         p_world.entity(p_gripper.held()).find<ecs::Shape>();
     if (shape == nullptr)
     {
-        return kDefaultCubeHalfHeight;
+        return DEFAULT_CUBE_HALF_HEIGHT;
     }
     return shape->size[2] * 0.5;
 }
@@ -52,11 +52,11 @@ static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
 static robotik::Length clearanceAboveCavity(robotik::Length p_clearance)
 {
     // Transit keeps full clearance; Reach (≈ 0) caps at 3 cm above the cavity.
-    if (p_clearance >= kTransitClearanceThreshold)
+    if (p_clearance >= TRANSIT_CLEARANCE_THRESHOLD)
     {
         return p_clearance;
     }
-    return std::min(p_clearance, kMaxFinalApproachClearance);
+    return std::min(p_clearance, MAX_FINAL_APPROACH_CLEARANCE);
 }
 
 /// TCP height over an open box. @p_at is the believed centre (perception or

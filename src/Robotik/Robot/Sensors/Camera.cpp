@@ -77,7 +77,7 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
     {
         return false;
     }
-    m_frame.sequence = samples() + 1u;
+    m_frame.sequence = samples() + 1U;
     m_frame.valid = true;
 
     if (m_config.noise > 0.0 && m_frame.rgb.format() != PixelFormat::Depth32F)

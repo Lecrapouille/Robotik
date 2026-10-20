@@ -32,7 +32,7 @@ std::vector<std::filesystem::path> AssetResolver::standardRoots()
                 roots.emplace_back(item);
             }
             paths = colon == std::string_view::npos ? std::string_view{}
-                                                    : paths.substr(colon + 1u);
+                                                    : paths.substr(colon + 1U);
         }
     }
     if (std::filesystem::path const exe = executableDirectory(); !exe.empty())
@@ -81,7 +81,7 @@ void AssetResolver::addRoot(std::filesystem::path const& p_root)
         }
     }
     // Directory order is not portable: sort for a reproducible winner.
-    std::sort(children.begin(), children.end());
+    std::ranges::sort(children);
     for (std::filesystem::path const& child : children)
     {
         addPack(child);
@@ -115,10 +115,8 @@ void AssetResolver::addPack(std::filesystem::path const& p_root)
 // -----------------------------------------------------------------------------
 AssetPack const* AssetResolver::find(std::string_view p_id) const
 {
-    auto const found = std::find_if(m_packs.begin(),
-                                    m_packs.end(),
-                                    [p_id](AssetPack const& p_pack)
-                                    { return p_pack.id == p_id; });
+    auto const found = std::ranges::find_if(
+        m_packs, [p_id](AssetPack const& p_pack) { return p_pack.id == p_id; });
     return found == m_packs.end() ? nullptr : &*found;
 }
 
@@ -149,7 +147,7 @@ Result<std::filesystem::path> AssetResolver::model(std::string_view p_id) const
     AssetPack const* best = nullptr;
     for (AssetPack const& pack : m_packs)
     {
-        bool const prefix = p_id.size() > pack.id.size() + 1u &&
+        bool const prefix = p_id.size() > pack.id.size() + 1U &&
                             p_id.starts_with(pack.id) &&
                             p_id[pack.id.size()] == '.';
         if (prefix && (best == nullptr || pack.id.size() > best->id.size()))
@@ -161,7 +159,7 @@ Result<std::filesystem::path> AssetResolver::model(std::string_view p_id) const
     {
         return failure("No asset pack provides '" + std::string(p_id) + "'");
     }
-    std::string const key(p_id.substr(best->id.size() + 1u));
+    std::string const key(p_id.substr(best->id.size() + 1U));
     std::filesystem::path file = robotik::model(*best, key);
     if (file.empty())
     {

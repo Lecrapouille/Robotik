@@ -38,7 +38,7 @@ static std::string_view trim(std::string_view p_text)
         return {};
     }
     std::size_t const last = p_text.find_last_not_of(" \t");
-    return p_text.substr(first, last - first + 1u);
+    return p_text.substr(first, last - first + 1U);
 }
 
 /// "name(a, b)" -> name and its arguments (commas inside parentheses kept,
@@ -48,23 +48,23 @@ parseCall(std::string_view p_term)
 {
     std::string_view const term = trim(p_term);
     std::size_t const open = term.find('(');
-    if (open == std::string_view::npos || open == 0u || term.back() != ')')
+    if (open == std::string_view::npos || open == 0U || term.back() != ')')
     {
         return std::nullopt;
     }
     std::pair<std::string, std::vector<std::string>> call;
     call.first = std::string(trim(term.substr(0, open)));
     std::string_view const inside =
-        term.substr(open + 1u, term.size() - open - 2u);
+        term.substr(open + 1U, term.size() - open - 2U);
     int depth = 0;
     std::size_t start = 0;
     auto push = [&](std::size_t p_end)
     {
         std::string_view argument = trim(inside.substr(start, p_end - start));
-        if (argument.size() >= 2u && argument.front() == '"' &&
+        if (argument.size() >= 2U && argument.front() == '"' &&
             argument.back() == '"')
         {
-            argument = argument.substr(1u, argument.size() - 2u);
+            argument = argument.substr(1U, argument.size() - 2U);
         }
         if (!argument.empty())
         {
@@ -84,7 +84,7 @@ parseCall(std::string_view p_term)
         else if (inside[i] == ',' && depth == 0)
         {
             push(i);
-            start = i + 1u;
+            start = i + 1U;
         }
     }
     push(inside.size());
@@ -100,7 +100,7 @@ splitReference(std::string_view p_reference)
     {
         return { p_reference, {} };
     }
-    return { p_reference.substr(0, dot), p_reference.substr(dot + 1u) };
+    return { p_reference.substr(0, dot), p_reference.substr(dot + 1U) };
 }
 
 /// Angle in radians between two orientations.
@@ -318,13 +318,13 @@ int Cell::contactsOf(Record const& p_record,
     auto inAssembly = [&](std::string const& p_body)
     {
         return !assembly.empty() &&
-               std::any_of(m_records.begin(),
-                           m_records.end(),
-                           [&](Record const& p_peer)
-                           {
-                               return assemblyOf(*p_peer.spec) == assembly &&
-                                      p_peer.links.contains(p_body);
-                           });
+               std::ranges::any_of(m_records,
+                                   [&](Record const& p_peer)
+                                   {
+                                       return assemblyOf(*p_peer.spec) ==
+                                                  assembly &&
+                                              p_peer.links.contains(p_body);
+                                   });
     };
     auto mine = [&](std::string const& p_body)
     {
@@ -336,23 +336,22 @@ int Cell::contactsOf(Record const& p_record,
     auto works =
         [&](std::string const& p_tool_body, std::string const& p_other_body)
     {
-        auto const tool = std::find_if(
-            m_records.begin(),
-            m_records.end(),
+        auto const tool = std::ranges::find_if(
+            m_records,
             [&](Record const& p_peer)
             {
                 return p_peer.spec->type == EntitySpec::Type::Tool &&
                        p_peer.links.contains(p_tool_body);
             });
         return tool != m_records.end() &&
-               std::any_of(tool->spec->touches.begin(),
-                           tool->spec->touches.end(),
-                           [&](std::string const& p_id)
-                           {
-                               Record const* workpiece = record(p_id);
-                               return workpiece != nullptr &&
-                                      workpiece->links.contains(p_other_body);
-                           });
+               std::ranges::any_of(tool->spec->touches,
+                                   [&](std::string const& p_id)
+                                   {
+                                       Record const* workpiece = record(p_id);
+                                       return workpiece != nullptr &&
+                                              workpiece->links.contains(
+                                                  p_other_body);
+                                   });
     };
     int count = 0;
     for (Contact const& contact : p_contacts)
@@ -428,7 +427,7 @@ Cell::call(std::string const& p_name,
 
     if (p_name == "pose_error" || p_name == "orientation_error")
     {
-        arity(p_name, p_args, 1u, 1u);
+        arity(p_name, p_args, 1U, 1U);
         Record const& record = require(p_args[0]);
         Pose const now = framePose(record, {});
         if (p_name == "pose_error")
@@ -439,12 +438,12 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "distance")
     {
-        arity(p_name, p_args, 2u, 2u);
+        arity(p_name, p_args, 2U, 2U);
         return norm(pose(p_args[0]).position - pose(p_args[1]).position);
     }
     if (p_name == "inside")
     {
-        arity(p_name, p_args, 2u, 2u);
+        arity(p_name, p_args, 2U, 2U);
         Record const& object = require(p_args[0]);
         Record const& container = require(p_args[1]);
         if (!object.spec->shape || !container.spec->shape)
@@ -466,7 +465,7 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "touching" || p_name == "on")
     {
-        arity(p_name, p_args, 2u, 2u);
+        arity(p_name, p_args, 2U, 2U);
         Record const& upper = require(p_args[0]);
         Record const& lower = require(p_args[1]);
         RobotBackend const* backend = m_robot->backend();
@@ -513,7 +512,7 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "collision_count")
     {
-        arity(p_name, p_args, 1u, 1u);
+        arity(p_name, p_args, 1U, 1U);
         Record const& record = require(p_args[0]);
         int count = record.peak_contacts;
         if (record.spec->type == EntitySpec::Type::Robot &&
@@ -525,7 +524,7 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "tool_is_attached")
     {
-        arity(p_name, p_args, 2u, 2u);
+        arity(p_name, p_args, 2U, 2U);
         EntitySpec const* tool = findEntity(m_description.world, p_args[0]);
         if (tool == nullptr || tool->type != EntitySpec::Type::Tool)
         {
@@ -541,7 +540,7 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "joint_limits_respected")
     {
-        arity(p_name, p_args, 1u, 1u);
+        arity(p_name, p_args, 1U, 1U);
         EntitySpec const& spec = *require(p_args[0]).spec;
         if (spec.type != EntitySpec::Type::Robot)
         {
@@ -575,7 +574,7 @@ Cell::call(std::string const& p_name,
     }
     if (p_name == "holding")
     {
-        arity(p_name, p_args, 1u, 2u);
+        arity(p_name, p_args, 1U, 2U);
         VacuumGripper const* gripper = nullptr;
         for (std::unique_ptr<RobotSession> const& robot : m_robots)
         {
@@ -592,7 +591,7 @@ Cell::call(std::string const& p_name,
         {
             return 0.0;
         }
-        if (p_args.size() == 1u)
+        if (p_args.size() == 1U)
         {
             return 1.0;
         }
@@ -602,7 +601,7 @@ Cell::call(std::string const& p_name,
     if (p_name == "skill_started" || p_name == "skill_succeeded" ||
         p_name == "skill_failed")
     {
-        arity(p_name, p_args, 1u, 1u);
+        arity(p_name, p_args, 1U, 1U);
         SkillId const id = m_scheduler->find(p_args[0]);
         if (id == NO_SKILL)
         {

@@ -27,7 +27,7 @@
 void runMainLoop(Window& p_window, App& p_app)
 {
     double last = glfwGetTime();
-    float total = 0.0f;
+    float total = 0.0F;
 
     while (glfwWindowShouldClose(p_window.handle) == GLFW_FALSE)
     {
@@ -85,7 +85,7 @@ void runMainLoop(Window& p_window, App& p_app)
             compages::gpu::RenderPass pass(compages::gpu::PassDesc{
                 .width = static_cast<std::uint32_t>(width),
                 .height = static_cast<std::uint32_t>(height),
-                .color = { 0.05f, 0.05f, 0.06f, 1.0f } });
+                .color = { 0.05F, 0.05F, 0.06F, 1.0F } });
         }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(p_window.handle);

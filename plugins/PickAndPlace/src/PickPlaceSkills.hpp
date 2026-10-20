@@ -125,7 +125,7 @@ public:
     void reset() override
     {
         m_started = false;
-        m_observations_at_start = 0u;
+        m_observations_at_start = 0U;
         m_why.clear();
     }
 
@@ -144,7 +144,7 @@ private:
     robotik::Seconds m_timeout;
     robotik::Seconds m_start{};
     bool m_started = false;
-    std::uint32_t m_observations_at_start = 0u;
+    std::uint32_t m_observations_at_start = 0U;
 };
 
 /// @brief Gripper named @p_name, or the first one when empty.

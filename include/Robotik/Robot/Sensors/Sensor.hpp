@@ -115,7 +115,9 @@ public:
     /// The sensor resource failed: the published reading becomes invalid
     /// until the next sample.
     // -------------------------------------------------------------------------
-    virtual void invalidate() {}
+    virtual void invalidate()
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Forgets the sampling history (episode reset).
@@ -153,14 +155,18 @@ protected:
     // -------------------------------------------------------------------------
     /// Drops the state carried between samples (see @ref rewind).
     // -------------------------------------------------------------------------
-    virtual void restart() {}
+    virtual void restart()
+    { /* nothing to do by default */
+    }
 
     // -------------------------------------------------------------------------
     /// Publishes the samples whose latency has elapsed. Called at every
     /// update, sampled or not.
     /// @param p_now Robot clock.
     // -------------------------------------------------------------------------
-    virtual void deliver(Seconds /*p_now*/) {}
+    virtual void deliver(Seconds /*p_now*/)
+    { /* nothing to do by default */
+    }
 
 private:
 

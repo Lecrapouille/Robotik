@@ -105,7 +105,7 @@ static void printTrace(robotik::Simulation const& p_simulation)
     // The plans of the PDDL planner: when, why, what.
     if (robotik::PlanExecutor const* planner = p_simulation.cell().planner())
     {
-        std::size_t index = 0u;
+        std::size_t index = 0U;
         for (robotik::PlanningRecord const& record : planner->history())
         {
             std::cout << "  plan " << index++ << " at " << record.time << " ("

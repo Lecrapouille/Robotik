@@ -95,9 +95,9 @@ StepResult SimulationEnvironment::step(std::span<float const> p_action,
         // A solver or a part gave up: the episode says nothing about the
         // policy. The pool restarts it like any other ended episode.
         m_abort = error.what();
-        result.reward = 0.0f;
+        result.reward = 0.0F;
         result.end = EpisodeEnd::Aborted;
-        std::fill(p_observation.begin(), p_observation.end(), 0.0f);
+        std::ranges::fill(p_observation, 0.0F);
     }
     return result;
 }

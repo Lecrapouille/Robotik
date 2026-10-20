@@ -22,8 +22,8 @@ static void tuneViewRig(compages::world::World& p_world,
     if (compages::world::Rig* rig =
             p_world.behavior<compages::world::Rig>(p_camera))
     {
-        rig->controller.min_distance = 0.15f;
-        rig->controller.max_distance = 20.0f;
+        rig->controller.min_distance = 0.15F;
+        rig->controller.max_distance = 20.0F;
     }
 }
 
@@ -62,7 +62,7 @@ std::size_t JointHistory::latest() const
     {
         return CAPACITY;
     }
-    return (head + count - 1u) % CAPACITY;
+    return (head + count - 1U) % CAPACITY;
 }
 
 void JointHistory::record(robotik::Simulation const& p_simulation)
@@ -72,11 +72,11 @@ void JointHistory::record(robotik::Simulation const& p_simulation)
     if (position.size() != size || time.size() != CAPACITY)
     {
         clear();
-        time.assign(CAPACITY, 0.0f);
-        position.assign(size, std::vector<float>(CAPACITY, 0.0f));
-        velocity.assign(size, std::vector<float>(CAPACITY, 0.0f));
-        acceleration.assign(size, std::vector<float>(CAPACITY, 0.0f));
-        effort.assign(size, std::vector<float>(CAPACITY, 0.0f));
+        time.assign(CAPACITY, 0.0F);
+        position.assign(size, std::vector<float>(CAPACITY, 0.0F));
+        velocity.assign(size, std::vector<float>(CAPACITY, 0.0F));
+        acceleration.assign(size, std::vector<float>(CAPACITY, 0.0F));
+        effort.assign(size, std::vector<float>(CAPACITY, 0.0F));
     }
     std::size_t const previous = latest();
     float const now = static_cast<float>(p_simulation.time().value());
@@ -93,7 +93,7 @@ void JointHistory::record(robotik::Simulation const& p_simulation)
     else
     {
         slot = head;
-        head = (head + 1u) % CAPACITY;
+        head = (head + 1U) % CAPACITY;
     }
     time[slot] = now;
     for (robotik::JointId id = 0; id < size; ++id)
@@ -102,7 +102,7 @@ void JointHistory::record(robotik::Simulation const& p_simulation)
         position[id][slot] = static_cast<float>(joints.position(id));
         velocity[id][slot] = speed;
         effort[id][slot] = static_cast<float>(joints.effort(id));
-        float accel = 0.0f;
+        float accel = 0.0F;
         if (previous != CAPACITY && now > time[previous])
         {
             accel = (speed - velocity[id][previous]) / (now - time[previous]);
@@ -135,7 +135,7 @@ static void report(robotik::Simulation const& p_simulation)
     auto const& checks = p_simulation.checks();
     for (robotik::Check const& check : checks)
     {
-        passed += check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
+        passed += check.verdict == robotik::Check::Verdict::Passed ? 1U : 0U;
     }
     std::cout << "Run " << robotik::toString(p_simulation.outcome())
               << " seed=" << p_simulation.seed().value
@@ -163,7 +163,7 @@ void App::load(bool p_keep_tool)
     world_text.clear();
     tree_text.clear();
     history.clear();
-    ui.realtime_factor = 0.0f;
+    ui.realtime_factor = 0.0F;
     ui.manual_faults.clear();
     ui.fault_pick.clear();
     ui.chip_hold.clear();
@@ -188,11 +188,11 @@ void App::load(bool p_keep_tool)
     world = std::make_unique<compages::world::World>();
     scene = std::make_unique<compages::renderer::Scene>(*world);
     auto const clear = viewClearColor();
-    scene->background(clear.x, clear.y, clear.z).ambient(0.35f, 0.35f, 0.38f);
+    scene->background(clear.x, clear.y, clear.z).ambient(0.35F, 0.35F, 0.38F);
     // A sun about 40 degrees high, from the side: the shadows stretch on
     // the floor and show where each object stands.
-    scene->sun("Sun").rotation(robotik::Radians(-0.75f),
-                               compages::core::Vector3f(1.0f, 0.0f, 0.6f));
+    scene->sun("Sun").rotation(robotik::Radians(-0.75F),
+                               compages::core::Vector3f(1.0F, 0.0F, 0.6F));
     view_camera = scene->camera("ViewCamera");
     scene->activeCamera(view_camera);
     scene_view = std::make_unique<SimulatorView>(*scene);
@@ -267,7 +267,7 @@ void App::load(bool p_keep_tool)
     }
     seed = simulation->seed().value;
     ui.plotted.assign(simulation->cell().robot().joints().size(),
-                      simulation->cell().robot().joints().size() <= 8u);
+                      simulation->cell().robot().joints().size() <= 8U);
     ui.place_plugin_panels = true;
     ui.focus_plugin_panel = true;
     history.record(*simulation);
@@ -280,8 +280,8 @@ void App::load(bool p_keep_tool)
             scene->plane("Floor", compages::renderer::texture(grid.string()));
         // In the world, not on the robot: a floating base would carry it.
         floor.parent(simulation->cell().worldFrame())
-            .position(0.0f, 0.0f, -0.001f)
-            .scale(3.0f);
+            .position(0.0F, 0.0F, -0.001F)
+            .scale(3.0F);
         noShadow(floor);
     }
     // Compages world is Y-up. The robot stands on XZ after the URDF
@@ -297,9 +297,9 @@ void App::load(bool p_keep_tool)
     }
     else
     {
-        view_camera.position(1.6f, 1.2f, 1.6f)
+        view_camera.position(1.6F, 1.2F, 1.6F)
             .add<compages::world::Rig>(
-                compages::core::Vector3f(0.35f, 0.15f, 0.0f));
+                compages::core::Vector3f(0.35F, 0.15F, 0.0F));
     }
     tuneViewRig(*world, view_camera);
     if (auto prepared = scene->prepare(); !prepared)
@@ -343,11 +343,11 @@ void App::advance(double p_elapsed)
         {
             float const rate = static_cast<float>(
                 (simulation->time().value() - before) / p_elapsed);
-            ui.realtime_factor = 0.9f * ui.realtime_factor + 0.1f * rate;
+            ui.realtime_factor = 0.9F * ui.realtime_factor + 0.1F * rate;
         }
         else
         {
-            ui.realtime_factor = 0.0f;
+            ui.realtime_factor = 0.0F;
         }
     }
 }
@@ -402,7 +402,7 @@ void App::step(double p_elapsed)
         return;
     }
     plugins.setPaused(false);
-    m_lag += p_elapsed * static_cast<double>(playing ? speed : 1.0f);
+    m_lag += p_elapsed * static_cast<double>(playing ? speed : 1.0F);
     int steps = 0;
     while (m_lag >= SIMULATOR_DT_S && steps < SIMULATOR_MAX_STEPS_PER_FRAME)
     {

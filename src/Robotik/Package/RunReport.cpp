@@ -40,7 +40,7 @@ static std::string quoted(std::string_view p_text)
                 result += "\\t";
                 break;
             default:
-                if (static_cast<unsigned char>(character) < 0x20u)
+                if (static_cast<unsigned char>(character) < 0x20U)
                 {
                     std::ostringstream code;
                     code << "\\u" << std::hex << std::setw(4)
@@ -124,9 +124,9 @@ RunRecord captureRun(Simulation const& p_simulation,
 bool passed(RunReport const& p_report)
 {
     return !p_report.runs.empty() &&
-           std::all_of(p_report.runs.begin(),
-                       p_report.runs.end(),
-                       [](RunRecord const& p_run) { return p_run.passed; });
+           std::ranges::all_of(p_report.runs,
+                               [](RunRecord const& p_run)
+                               { return p_run.passed; });
 }
 
 void writeText(RunReport const& p_report, std::ostream& p_out)
@@ -134,7 +134,7 @@ void writeText(RunReport const& p_report, std::ostream& p_out)
     std::size_t passed_runs = 0;
     for (RunRecord const& run : p_report.runs)
     {
-        passed_runs += run.passed ? 1u : 0u;
+        passed_runs += run.passed ? 1U : 0U;
         p_out << (run.passed ? "[PASS] " : "[FAIL] ") << std::left
               << std::setw(24) << run.case_id << " seed=" << std::setw(6)
               << run.seed;
@@ -195,7 +195,7 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
     for (std::size_t i = 0; i < p_report.runs.size(); ++i)
     {
         RunRecord const& run = p_report.runs[i];
-        p_out << (i == 0u ? "\n" : ",\n") << "    {\n"
+        p_out << (i == 0U ? "\n" : ",\n") << "    {\n"
               << "      \"case\": " << quoted(run.case_id) << ",\n"
               << "      \"scenario\": " << quoted(run.scenario) << ",\n"
               << "      \"seed\": " << run.seed << ",\n"
@@ -220,7 +220,7 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
             for (std::size_t p = 0; p < planner.plans.size(); ++p)
             {
                 PlanSummary const& plan = planner.plans[p];
-                p_out << (p == 0u ? "\n" : ",\n")
+                p_out << (p == 0U ? "\n" : ",\n")
                       << "          { \"time\": " << number(plan.time)
                       << ", \"cause\": " << quoted(plan.cause)
                       << ", \"result\": " << quoted(plan.result)
@@ -229,7 +229,7 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
                       << ", \"steps\": [";
                 for (std::size_t k = 0; k < plan.steps.size(); ++k)
                 {
-                    p_out << (k == 0u ? "" : ", ") << quoted(plan.steps[k]);
+                    p_out << (k == 0U ? "" : ", ") << quoted(plan.steps[k]);
                 }
                 p_out << "] }";
             }
@@ -240,14 +240,14 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
         for (std::size_t m = 0; m < run.metrics.size(); ++m)
         {
             auto const& [name, value] = run.metrics[m];
-            p_out << (m == 0u ? "" : ", ") << quoted(name) << ": "
+            p_out << (m == 0U ? "" : ", ") << quoted(name) << ": "
                   << (value ? number(*value) : std::string("null"));
         }
         p_out << "},\n      \"assertions\": [";
         for (std::size_t c = 0; c < run.checks.size(); ++c)
         {
             Check const& check = run.checks[c];
-            p_out << (c == 0u ? "\n" : ",\n")
+            p_out << (c == 0U ? "\n" : ",\n")
                   << "        { \"name\": " << quoted(check.text)
                   << ", \"phase\": " << quoted(toString(check.phase))
                   << ", \"verdict\": " << quoted(toString(check.verdict))

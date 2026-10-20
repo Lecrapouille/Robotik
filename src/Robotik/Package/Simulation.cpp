@@ -118,15 +118,15 @@ void Simulation::announceChecks()
     std::vector<Check> const& checks = m_assertions.checks();
     if (m_colors.size() != checks.size())
     {
-        m_colors.assign(checks.size(), 2u);
+        m_colors.assign(checks.size(), 2U);
     }
     for (std::size_t i = 0; i < checks.size(); ++i)
     {
-        std::uint8_t const green = ok(checks[i]) ? 1u : 0u;
+        std::uint8_t const green = ok(checks[i]) ? 1U : 0U;
         if (m_colors[i] != green)
         {
             m_colors[i] = green;
-            assertionChanged(i, green == 1u);
+            assertionChanged(i, green == 1U);
         }
     }
 }

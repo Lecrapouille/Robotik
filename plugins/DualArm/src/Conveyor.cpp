@@ -19,10 +19,10 @@ namespace dual_arm
 {
 
 /// Belt speed (m/s).
-static constexpr double kSpeed = 0.40;
+static constexpr double SPEED = 0.40;
 /// The part crosses to its lane this far in front of the feeder, where the
 /// belt has no divider (m).
-static constexpr double kTransfer = 0.11;
+static constexpr double TRANSFER = 0.11;
 
 void Conveyor::carry(std::string p_part, std::vector<robotik::Vector3> p_path)
 {
@@ -60,7 +60,7 @@ void Conveyor::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
     // Child of the Z-up frame of the world: its local position is the world
     // one. The belt keeps its speed through the corners of the path.
     auto at = part.position();
-    double travel = kSpeed * p_dt.value();
+    double travel = SPEED * p_dt.value();
     while (travel > 0.0 && !m_path.empty())
     {
         robotik::Vector3 const& goal = m_path.front();
@@ -121,7 +121,7 @@ robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
         }
         // Off the feeder, across to the lane of the zone, down the lane.
         double const transfer =
-            feeder->position.x - 0.5 * feeder->size.x - kTransfer;
+            feeder->position.x - 0.5 * feeder->size.x - TRANSFER;
         m_conveyor.carry(
             m_part,
             { robotik::Vector3(transfer, part->position.y, 0.0),

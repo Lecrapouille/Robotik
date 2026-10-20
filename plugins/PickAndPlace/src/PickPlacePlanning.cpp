@@ -17,7 +17,7 @@
 
 /// A belief older than this says nothing about where the object is now: the
 /// camera may be down since.
-static constexpr double kFreshBelief = 0.5;
+static constexpr double FRESH_BELIEF = 0.5;
 
 void registerPlanning(robotik::PlanningDomain& p_domain)
 {
@@ -70,7 +70,7 @@ void registerPlanning(robotik::PlanningDomain& p_domain)
                 return Truth::False;
             }
             if (!observed(*object) ||
-                (p_context.time - object->seen).value() > kFreshBelief)
+                (p_context.time - object->seen).value() > FRESH_BELIEF)
             {
                 return Truth::Unknown;
             }

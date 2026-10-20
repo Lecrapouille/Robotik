@@ -10,9 +10,9 @@
 #include <algorithm>
 #include <cmath>
 
-#define COLOR_MAX_HUE_DISTANCE 15.0f
-#define COLOR_MIN_SATURATION 0.45f
-#define COLOR_MIN_VALUE 0.15f
+#define COLOR_MAX_HUE_DISTANCE 15.0F
+#define COLOR_MIN_SATURATION 0.45F
+#define COLOR_MIN_VALUE 0.15F
 #define COLOR_MIN_PIXELS 20
 
 // RGB [0,1] to HSV for hue-based segmentation.
@@ -31,22 +31,22 @@ static Hsv hsv(float p_r, float p_g, float p_b)
     float const high = std::max({ p_r, p_g, p_b });
     float const low = std::min({ p_r, p_g, p_b });
     float const range = high - low;
-    Hsv result{ 0.0f, high > 0.0f ? range / high : 0.0f, high };
-    if (range <= 0.0f)
+    Hsv result{ 0.0F, high > 0.0F ? range / high : 0.0F, high };
+    if (range <= 0.0F)
     {
         return result;
     }
     if (high == p_r)
     {
-        result.hue = 60.0f * std::fmod((p_g - p_b) / range + 6.0f, 6.0f);
+        result.hue = 60.0F * std::fmod((p_g - p_b) / range + 6.0F, 6.0F);
     }
     else if (high == p_g)
     {
-        result.hue = 60.0f * ((p_b - p_r) / range + 2.0f);
+        result.hue = 60.0F * ((p_b - p_r) / range + 2.0F);
     }
     else
     {
-        result.hue = 60.0f * ((p_r - p_g) / range + 4.0f);
+        result.hue = 60.0F * ((p_r - p_g) / range + 4.0F);
     }
     return result;
 }
@@ -55,7 +55,7 @@ static Hsv hsv(float p_r, float p_g, float p_b)
 static float hueDistance(float p_a, float p_b)
 {
     float const distance = std::abs(p_a - p_b);
-    return std::min(distance, 360.0f - distance);
+    return std::min(distance, 360.0F - distance);
 }
 
 void ColorDetector::detect(robotik::CameraFrame const& p_frame,
@@ -82,7 +82,7 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
             for (std::uint32_t x = 0; x < width; ++x, pixel += 3)
             {
                 Hsv const have = hsv(
-                    pixel[0] / 255.0f, pixel[1] / 255.0f, pixel[2] / 255.0f);
+                    pixel[0] / 255.0F, pixel[1] / 255.0F, pixel[2] / 255.0F);
                 mask[x] =
                     have.value >= COLOR_MIN_VALUE &&
                     have.saturation >= COLOR_MIN_SATURATION &&
@@ -130,9 +130,9 @@ void ColorDetector::detect(robotik::CameraFrame const& p_frame,
                     }
                 };
                 if (x > 0)
-                    visit(at - 1u);
+                    visit(at - 1U);
                 if (x + 1 < static_cast<int>(width))
-                    visit(at + 1u);
+                    visit(at + 1U);
                 if (y > 0)
                     visit(at - width);
                 if (y + 1 < static_cast<int>(height))

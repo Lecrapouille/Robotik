@@ -83,7 +83,7 @@ TEST(Imu, ReadingHasAHeaderALatencyAndGoesInvalidOnFailure)
     robot.step(robotik::Seconds(0.01));
     ASSERT_TRUE(imu.reading().valid);
     EXPECT_EQ(imu.reading().frame, "imu");
-    EXPECT_EQ(imu.reading().sequence, 1u);
+    EXPECT_EQ(imu.reading().sequence, 1U);
     EXPECT_DOUBLE_EQ(imu.reading().stamp.value(), 0.01);
     // At rest the accelerometer reads the reaction to gravity, upward.
     EXPECT_NEAR(imu.reading().acceleration.z, 9.80665, 1e-6);
@@ -118,7 +118,7 @@ entities:
         robotik::readWorld(world, ".", testAssets()).take();
     std::vector<robotik::SensorSpec> const& sensors =
         robotik::firstRobot(description).sensors;
-    ASSERT_EQ(sensors.size(), 4u);
+    ASSERT_EQ(sensors.size(), 4U);
     EXPECT_EQ(sensors[0].type, robotik::SensorSpec::Type::Camera);
     EXPECT_TRUE(sensors[0].camera.depth);
     EXPECT_EQ(sensors[1].type, robotik::SensorSpec::Type::Imu);
@@ -127,7 +127,7 @@ entities:
     EXPECT_DOUBLE_EQ(sensors[1].imu.accelerometer.max, 160.0);
     EXPECT_DOUBLE_EQ(sensors[1].imu.gyroscope.sigma, 0.001);
     EXPECT_EQ(sensors[2].type, robotik::SensorSpec::Type::Range);
-    EXPECT_EQ(sensors[2].range.beams, 90u);
+    EXPECT_EQ(sensors[2].range.beams, 90U);
     EXPECT_DOUBLE_EQ(sensors[2].range.noise.resolution, 0.001);
     EXPECT_EQ(sensors[3].type, robotik::SensorSpec::Type::ForceTorque);
     EXPECT_EQ(sensors[3].force_torque.link, "link6");

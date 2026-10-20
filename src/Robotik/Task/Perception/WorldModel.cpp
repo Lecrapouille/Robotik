@@ -23,7 +23,7 @@ WorldModel::add(std::string p_name, Vector3 p_position, Vector3 p_size)
     }
     object->position = p_position;
     object->size = p_size;
-    object->confidence = 0.0f;
+    object->confidence = 0.0F;
     object->seen = Seconds(-1.0);
     object->observations = 0;
     object->source = BeliefSource::Prior;
@@ -82,7 +82,7 @@ void WorldModel::place(std::string_view p_name,
     if (WorldObject* object = find(p_name))
     {
         object->position = p_position;
-        object->confidence = 1.0f;
+        object->confidence = 1.0F;
         object->seen = p_stamp;
         object->source = p_source;
         ++object->observations;

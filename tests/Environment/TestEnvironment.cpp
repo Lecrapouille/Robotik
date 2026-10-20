@@ -16,12 +16,12 @@ public:
 
     std::size_t observationSize() const override
     {
-        return 2u;
+        return 2U;
     }
 
     std::size_t actionSize() const override
     {
-        return 1u;
+        return 1U;
     }
 
     void reset(robotik::Seed p_seed, std::span<float> p_observation) override
@@ -47,7 +47,7 @@ public:
         {
             result.end = robotik::EpisodeEnd::TimeLimit;
         }
-        result.reward = terminated(result) ? 1.0f : -0.01f;
+        result.reward = terminated(result) ? 1.0F : -0.01F;
         return result;
     }
 
@@ -67,7 +67,7 @@ private:
 static std::vector<robotik::Episode> play(std::size_t p_threads)
 {
     robotik::EnvironmentPool pool(
-        8u,
+        8U,
         [](std::size_t) { return std::make_unique<WalkEnvironment>(); },
         robotik::Seed{ 5 },
         p_threads);
@@ -87,35 +87,35 @@ static std::vector<robotik::Episode> play(std::size_t p_threads)
 TEST(EnvironmentPool, AutoResetsWithDerivedSeeds)
 {
     robotik::EnvironmentPool pool(
-        3u,
+        3U,
         [](std::size_t) { return std::make_unique<WalkEnvironment>(); },
         robotik::Seed{ 1 },
-        1u);
-    EXPECT_EQ(pool.observationSize(), 2u);
-    EXPECT_EQ(pool.actionSize(), 1u);
+        1U);
+    EXPECT_EQ(pool.observationSize(), 2U);
+    EXPECT_EQ(pool.actionSize(), 1U);
     pool.reset();
-    EXPECT_EQ(pool.seed(2), robotik::Seed{ 1 }.derive(2u).derive(0u));
+    EXPECT_EQ(pool.seed(2), robotik::Seed{ 1 }.derive(2U).derive(0U));
     for (float& action : pool.actions())
     {
-        action = 0.0f;
+        action = 0.0F;
     }
     for (int t = 0; t < 50; ++t)
     {
         pool.step();
     }
-    ASSERT_EQ(pool.episodes().size(), 3u);
+    ASSERT_EQ(pool.episodes().size(), 3U);
     EXPECT_FALSE(robotik::terminated(pool.episodes()[0]));
     EXPECT_EQ(pool.episodes()[0].end, robotik::EpisodeEnd::TimeLimit);
-    EXPECT_EQ(pool.episodes()[0].steps, 50u);
-    EXPECT_EQ(pool.dones()[1], 1u);
-    EXPECT_EQ(pool.observation(1)[1], 0.0f) << "restarted at once";
-    EXPECT_EQ(pool.seed(1), robotik::Seed{ 1 }.derive(1u).derive(1u));
+    EXPECT_EQ(pool.episodes()[0].steps, 50U);
+    EXPECT_EQ(pool.dones()[1], 1U);
+    EXPECT_EQ(pool.observation(1)[1], 0.0F) << "restarted at once";
+    EXPECT_EQ(pool.seed(1), robotik::Seed{ 1 }.derive(1U).derive(1U));
 }
 
 TEST(EnvironmentPool, ThreadsDoNotChangeTheResults)
 {
-    std::vector<robotik::Episode> const serial = play(1u);
-    std::vector<robotik::Episode> const parallel = play(4u);
+    std::vector<robotik::Episode> const serial = play(1U);
+    std::vector<robotik::Episode> const parallel = play(4U);
     ASSERT_EQ(serial.size(), parallel.size());
     ASSERT_FALSE(serial.empty());
     for (std::size_t i = 0; i < serial.size(); ++i)

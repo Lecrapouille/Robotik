@@ -37,7 +37,7 @@ JointId JointSet::append(std::string p_name,
     m_efforts.push_back(0.0);
     m_targets.push_back(0.0);
     m_references.push_back(0.0);
-    return static_cast<JointId>(m_names.size() - 1u);
+    return static_cast<JointId>(m_names.size() - 1U);
 }
 
 JointId JointSet::add(std::string p_name, compages::world::Entity p_link)
@@ -96,7 +96,7 @@ Prismatic JointSet::add(std::string p_name, PrismaticLimits const& p_limits)
 
 JointId JointSet::find(std::string_view p_name) const
 {
-    auto const found = std::find(m_names.begin(), m_names.end(), p_name);
+    auto const found = std::ranges::find(m_names, p_name);
     return found == m_names.end()
                ? NO_JOINT
                : static_cast<JointId>(found - m_names.begin());

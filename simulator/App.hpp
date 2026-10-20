@@ -38,14 +38,14 @@ enum class Workspace : std::uint8_t
     Autonomy, ///< Beliefs against truth, perception.
 };
 
-inline constexpr std::size_t WORKSPACE_COUNT = 4u;
+inline constexpr std::size_t WORKSPACE_COUNT = 4U;
 
 // ****************************************************************************
 /// @brief Recent joint states, for the plots. A ring buffer per series.
 // ****************************************************************************
 struct JointHistory
 {
-    static constexpr std::size_t CAPACITY = 3000u;
+    static constexpr std::size_t CAPACITY = 3000U;
 
     std::vector<float> time;
     std::vector<std::vector<float>> position;
@@ -89,7 +89,7 @@ enum class FileTab : std::uint8_t
     Other,
 };
 
-inline constexpr std::size_t FILE_TAB_COUNT = 6u;
+inline constexpr std::size_t FILE_TAB_COUNT = 6U;
 
 // ****************************************************************************
 /// @brief A file shown read-only in the Files panel.
@@ -173,25 +173,25 @@ struct UiState
     /// Resources panel: resources ticked for the next fault, its duration
     /// and the faults injected by hand.
     std::vector<bool> fault_pick;
-    float fault_duration = 0.0f;
+    float fault_duration = 0.0F;
     std::vector<ManualFault> manual_faults;
     /// Timeline: what each resource chip shows.
     std::vector<ChipHold> chip_hold;
     /// Joints drawn in the plots.
     std::vector<bool> plotted;
-    float plot_window_s = 10.0f;
+    float plot_window_s = 10.0F;
     /// Simulated seconds per real second, smoothed.
-    float realtime_factor = 0.0f;
+    float realtime_factor = 0.0F;
 };
 
 struct TeachWatch
 {
     bool manual = false;
     bool loop = false;
-    float joint_step = 0.05f;
-    float linear_step = 0.01f;
-    float angular_step = 0.05f;
-    float duration = 2.0f;
+    float joint_step = 0.05F;
+    float linear_step = 0.01F;
+    float angular_step = 0.05F;
+    float duration = 2.0F;
     std::string label;
     robotik::TeachPendant pendant;
     std::vector<compages::world::Entity> markers;
@@ -230,10 +230,10 @@ struct App
     bool view_hovered = false;
     /// Top-left corner and size of the 3D view on the screen (ImGui pixels):
     /// the camera rig turns the mouse into a point of the ground.
-    float view_x = 0.0f;
-    float view_y = 0.0f;
-    float view_w = 1.0f;
-    float view_h = 1.0f;
+    float view_x = 0.0F;
+    float view_y = 0.0F;
+    float view_w = 1.0F;
+    float view_h = 1.0F;
 
     bool playing = false;
     /// --screenshot: the PNG to save of the 3D view, then quit; empty: none.
@@ -241,7 +241,7 @@ struct App
     /// --screenshot: simulated seconds to play before the picture.
     double screenshot_at = 3.0;
     bool step_once = false;
-    float speed = 1.0f;
+    float speed = 1.0F;
     std::uint64_t seed = 0;
     /// @brief When set, replaces @c robot.tool read from the scenario file.
     bool tool_override = false;

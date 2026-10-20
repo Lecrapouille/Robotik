@@ -18,7 +18,7 @@
 #define LOCALIZE_SPEED 0.2
 #define LOCALIZE_ADVANCE_S 2.5
 #define NAVIGATION_GATE_M 0.30
-#define NAVIGATION_RELOCALIZE 5u
+#define NAVIGATION_RELOCALIZE 5U
 #define REACH_LOOKAHEAD_M 0.45
 #define REACH_SPEED 0.25
 #define REACH_GAIN 2.0
@@ -31,7 +31,7 @@
 
 bool Navigation::fix(robotik::Localization const& p_fix, robotik::Seconds p_stamp)
 {
-    if (fixes > 0u &&
+    if (fixes > 0U &&
         std::hypot(p_fix.pose.position.x - estimate.x,
                    p_fix.pose.position.y - estimate.y) > NAVIGATION_GATE_M &&
         ++streak < NAVIGATION_RELOCALIZE)

@@ -107,16 +107,12 @@ void hostRemoveUi(RobotikHost* p_host, std::uint32_t p_handle)
     {
         return;
     }
-    auto const menu = std::remove_if(host->m_menus.begin(),
-                                     host->m_menus.end(),
-                                     [p_handle](PluginMenuItem const& p_item)
-                                     { return p_item.id == p_handle; });
-    host->m_menus.erase(menu, host->m_menus.end());
-    auto const panel = std::remove_if(host->m_panels.begin(),
-                                      host->m_panels.end(),
-                                      [p_handle](PluginPanel const& p_item)
-                                      { return p_item.id == p_handle; });
-    host->m_panels.erase(panel, host->m_panels.end());
+    std::erase_if(host->m_menus,
+                  [p_handle](PluginMenuItem const& p_item)
+                  { return p_item.id == p_handle; });
+    std::erase_if(host->m_panels,
+                  [p_handle](PluginPanel const& p_item)
+                  { return p_item.id == p_handle; });
 }
 
 char const* hostScenarioPath(RobotikHost* p_host)

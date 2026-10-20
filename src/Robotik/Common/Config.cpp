@@ -194,7 +194,7 @@ Vector3 ConfigNode::vector3(std::string_view p_key, Vector3 p_default) const
     std::optional<double> x;
     std::optional<double> y;
     std::optional<double> z;
-    if (value.isSequence() && value.items().size() == 3u)
+    if (value.isSequence() && value.items().size() == 3U)
     {
         x = value.items()[0].asNumber();
         y = value.items()[1].asNumber();
@@ -217,7 +217,7 @@ std::array<double, 2> ConfigNode::range(std::string_view p_key) const
     }
     std::optional<double> low;
     std::optional<double> high;
-    if (value.isSequence() && value.items().size() == 2u)
+    if (value.isSequence() && value.items().size() == 2U)
     {
         low = value.items()[0].asNumber();
         high = value.items()[1].asNumber();
@@ -271,15 +271,14 @@ Pose ConfigNode::asPose() const
     if (!quaternion.isNull())
     {
         std::array<std::optional<double>, 4> q;
-        if (quaternion.isSequence() && quaternion.items().size() == 4u)
+        if (quaternion.isSequence() && quaternion.items().size() == 4U)
         {
-            for (std::size_t i = 0; i < 4u; ++i)
+            for (std::size_t i = 0; i < 4U; ++i)
             {
                 q[i] = quaternion.items()[i].asNumber();
             }
         }
-        if (std::any_of(
-                q.begin(), q.end(), [](auto const& p_v) { return !p_v; }))
+        if (std::ranges::any_of(q, [](auto const& p_v) { return !p_v; }))
         {
             throw std::runtime_error("'quaternion' must be [w, x, y, z]");
         }
@@ -340,7 +339,7 @@ Result<void> ConfigNode::set(std::string_view p_path, ConfigNode p_value)
         }
         node = next;
         rest = dot == std::string_view::npos ? std::string_view{}
-                                             : rest.substr(dot + 1u);
+                                             : rest.substr(dot + 1U);
     }
     *node = std::move(p_value);
     return success();

@@ -79,8 +79,7 @@ void PainterMission::setup(robotik::Cell& p_cell,
     m_view = p_view;
     if (p_view != nullptr)
     {
-        compages::world::Entity const canvas =
-            p_cell.entity(painter::kCanvas);
+        compages::world::Entity const canvas = p_cell.entity(painter::CANVAS);
         if (!canvas)
         {
             throw std::runtime_error(
@@ -144,11 +143,11 @@ void PainterMission::step(robotik::Cell& p_cell,
     }
     // Box centre frame: the painted face is the +X side, half the thickness
     // out.
-    robotik::Pose const board = p_cell.pose(painter::kCanvas);
+    robotik::Pose const board = p_cell.pose(painter::CANVAS);
     robotik::Vector3 const local =
         board.inverse() * robot.worldPose(robot.tool()).position;
-    constexpr double kFace = 0.01;
-    if (local.x < kFace || local.x > kFace + 0.05 || std::abs(local.y) > 0.19 ||
+    constexpr double FACE = 0.01;
+    if (local.x < FACE || local.x > FACE + 0.05 || std::abs(local.y) > 0.19 ||
         std::abs(local.z) > 0.24)
     {
         return;
@@ -157,7 +156,7 @@ void PainterMission::step(robotik::Cell& p_cell,
     // third and fourth waypoints), in the plane of the canvas?
     ++m_inked;
     if (auto const path = m_paths.find(m_stroke.color);
-        path != m_paths.end() && path->second.size() >= 4u)
+        path != m_paths.end() && path->second.size() >= 4U)
     {
         robotik::Vector3 const a = board.inverse() * path->second[2].position;
         robotik::Vector3 const b = board.inverse() * path->second[3].position;
@@ -179,9 +178,9 @@ void PainterMission::step(robotik::Cell& p_cell,
     {
         return;
     }
-    float red = 0.0f;
-    float green = 0.0f;
-    float blue = 0.0f;
+    float red = 0.0F;
+    float green = 0.0F;
+    float blue = 0.0F;
     painter::colorRgb(m_stroke.color, red, green, blue);
     m_view->ink(local.y, local.z, red, green, blue);
 }

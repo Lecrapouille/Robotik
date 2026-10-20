@@ -21,20 +21,20 @@ TEST(ResourceManager, ExclusiveLeaseBlocksOthers)
     EXPECT_EQ(resources.find("arm"), arm);
 
     robotik::ResourceLease lease =
-        resources.acquire({ resources.require("arm") }, 1u);
+        resources.acquire({ resources.require("arm") }, 1U);
     ASSERT_TRUE(lease);
-    EXPECT_EQ(resources.owner(arm), 1u);
+    EXPECT_EQ(resources.owner(arm), 1U);
 
     robotik::Conflict const conflict =
         resources.conflict(std::vector{ resources.require("arm") });
     ASSERT_TRUE(conflict);
     EXPECT_EQ(conflict.resource, arm);
-    EXPECT_EQ(conflict.owner, 1u);
-    EXPECT_FALSE(resources.acquire({ resources.require("arm") }, 2u));
+    EXPECT_EQ(conflict.owner, 1U);
+    EXPECT_FALSE(resources.acquire({ resources.require("arm") }, 2U));
 
     lease.release();
     EXPECT_EQ(resources.owner(arm), robotik::NO_OWNER);
-    EXPECT_TRUE(resources.acquire({ resources.require("arm") }, 2u));
+    EXPECT_TRUE(resources.acquire({ resources.require("arm") }, 2U));
 }
 
 TEST(ResourceManager, SharedLeasesCoexist)
@@ -42,18 +42,18 @@ TEST(ResourceManager, SharedLeasesCoexist)
     ResourceManager resources;
     auto const camera = resources.add("camera");
     auto a =
-        resources.acquire({ resources.require("camera", Access::Shared) }, 1u);
+        resources.acquire({ resources.require("camera", Access::Shared) }, 1U);
     auto b =
-        resources.acquire({ resources.require("camera", Access::Shared) }, 2u);
+        resources.acquire({ resources.require("camera", Access::Shared) }, 2U);
     EXPECT_TRUE(a);
     EXPECT_TRUE(b);
-    EXPECT_EQ(resources.users(camera), 2u);
-    EXPECT_FALSE(resources.acquire({ resources.require("camera") }, 3u));
+    EXPECT_EQ(resources.users(camera), 2U);
+    EXPECT_FALSE(resources.acquire({ resources.require("camera") }, 3U));
     {
         robotik::ResourceLease moved = std::move(a);
         EXPECT_FALSE(a);
     }
-    EXPECT_EQ(resources.users(camera), 1u);
+    EXPECT_EQ(resources.users(camera), 1U);
 }
 
 TEST(ResourceManager, FailedResourceIsUnavailable)

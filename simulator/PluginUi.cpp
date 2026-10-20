@@ -29,7 +29,7 @@ static void canvasColor(RobotikCanvas const* /*p_canvas*/,
                         float p_blue,
                         char const* p_line)
 {
-    ImGui::TextColored(ImVec4(p_red, p_green, p_blue, 1.0f),
+    ImGui::TextColored(ImVec4(p_red, p_green, p_blue, 1.0F),
                        "%s",
                        p_line != nullptr ? p_line : "");
 }
@@ -131,8 +131,7 @@ void drawDemosMenu(App& p_app)
         for (robotik::PluginScenario const& scenario : package.scenarios)
         {
             if (!scenario.menu.empty() &&
-                std::find(submenus.begin(), submenus.end(), scenario.menu) ==
-                    submenus.end())
+                std::ranges::find(submenus, scenario.menu) == submenus.end())
             {
                 submenus.push_back(scenario.menu);
             }
@@ -168,7 +167,7 @@ void drawPluginMenus(App& p_app)
     std::vector<std::string> menus;
     for (robotik::PluginMenuItem const& item : p_app.plugins.host().menus())
     {
-        if (std::find(menus.begin(), menus.end(), item.menu) == menus.end())
+        if (std::ranges::find(menus, item.menu) == menus.end())
         {
             menus.push_back(item.menu);
         }

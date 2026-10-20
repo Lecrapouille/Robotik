@@ -27,7 +27,7 @@ static bool unify(Atom const& p_a, Atom const& p_b)
     {
         return false;
     }
-    for (std::size_t i = 0u; i < p_a.args.size(); ++i)
+    for (std::size_t i = 0U; i < p_a.args.size(); ++i)
     {
         if (!wildcard(p_a.args[i]) && !wildcard(p_b.args[i]) &&
             p_a.args[i] != p_b.args[i])
@@ -41,15 +41,13 @@ static bool unify(Atom const& p_a, Atom const& p_b)
 /// @brief Some atom of @p_a may be some atom of @p_b.
 static bool overlap(std::vector<Atom> const& p_a, std::vector<Atom> const& p_b)
 {
-    return std::any_of(p_a.begin(),
-                       p_a.end(),
-                       [&](Atom const& p_x)
-                       {
-                           return std::any_of(p_b.begin(),
-                                              p_b.end(),
-                                              [&](Atom const& p_y)
-                                              { return unify(p_x, p_y); });
-                       });
+    return std::ranges::any_of(
+        p_a,
+        [&](Atom const& p_x)
+        {
+            return std::ranges::any_of(
+                p_b, [&](Atom const& p_y) { return unify(p_x, p_y); });
+        });
 }
 
 /// @brief One event reads what the other changes, or both change it.
@@ -90,11 +88,10 @@ StepFootprint footprint(ActionSchema const& p_action,
             Atom ground{ atom.predicate, {} };
             for (std::string const& arg : atom.args)
             {
-                auto const found =
-                    std::find_if(p_action.parameters.begin(),
-                                 p_action.parameters.end(),
-                                 [&](Parameter const& p_parameter)
-                                 { return "?" + p_parameter.name == arg; });
+                auto const found = std::ranges::find_if(
+                    p_action.parameters,
+                    [&](Parameter const& p_parameter)
+                    { return "?" + p_parameter.name == arg; });
                 std::size_t const index = static_cast<std::size_t>(
                     found - p_action.parameters.begin());
                 ground.args.push_back(index < p_step.args.size()
@@ -120,7 +117,7 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
     // Events in plan order: by time, then step, then the start first.
     std::size_t const n = p_steps.size();
     std::vector<PlanEvent> events;
-    for (std::size_t k = 0u; k < n; ++k)
+    for (std::size_t k = 0U; k < n; ++k)
     {
         events.push_back({ k, false });
         events.push_back({ k, true });
@@ -130,13 +127,13 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
         return p_event.end ? p_steps[p_event.step].end_time
                            : p_steps[p_event.step].start_time;
     };
-    std::stable_sort(events.begin(),
-                     events.end(),
-                     [&](PlanEvent const& p_a, PlanEvent const& p_b)
-                     {
-                         return std::make_tuple(time(p_a), p_a.step, p_a.end) <
-                                std::make_tuple(time(p_b), p_b.step, p_b.end);
-                     });
+    std::ranges::stable_sort(
+        events,
+        [&](PlanEvent const& p_a, PlanEvent const& p_b)
+        {
+            return std::make_tuple(time(p_a), p_a.step, p_a.end) <
+                   std::make_tuple(time(p_b), p_b.step, p_b.end);
+        });
     std::size_t const m = events.size();
     auto phase = [&](PlanEvent const& p_event) -> ActionSchema::Phase const&
     {
@@ -146,9 +143,9 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
 
     // before[i][j]: event i must happen before event j (i < j in plan order).
     std::vector<std::vector<bool>> before(m, std::vector<bool>(m, false));
-    for (std::size_t j = 0u; j < m; ++j)
+    for (std::size_t j = 0U; j < m; ++j)
     {
-        for (std::size_t i = 0u; i < j; ++i)
+        for (std::size_t i = 0U; i < j; ++i)
         {
             PlanEvent const& a = events[i];
             PlanEvent const& b = events[j];
@@ -167,15 +164,15 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
         }
     }
     // Transitive closure, in plan order (i < k < j).
-    for (std::size_t k = 0u; k < m; ++k)
+    for (std::size_t k = 0U; k < m; ++k)
     {
-        for (std::size_t i = 0u; i < k; ++i)
+        for (std::size_t i = 0U; i < k; ++i)
         {
             if (!before[i][k])
             {
                 continue;
             }
-            for (std::size_t j = k + 1u; j < m; ++j)
+            for (std::size_t j = k + 1U; j < m; ++j)
             {
                 before[i][j] = before[i][j] || before[k][j];
             }
@@ -183,12 +180,12 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
     }
     // Reduction: keep i -> j unless some i -> k -> j; drop start -> own end.
     std::vector<StepOrder> result(n);
-    for (std::size_t j = 0u; j < m; ++j)
+    for (std::size_t j = 0U; j < m; ++j)
     {
-        for (std::size_t i = 0u; i < j; ++i)
+        for (std::size_t i = 0U; i < j; ++i)
         {
             bool implied = false;
-            for (std::size_t k = i + 1u; k < j && !implied; ++k)
+            for (std::size_t k = i + 1U; k < j && !implied; ++k)
             {
                 implied = before[i][k] && before[k][j];
             }
@@ -212,11 +209,11 @@ std::vector<StepOrder> orderSteps(std::span<StepFootprint const> p_steps)
 // ----------------------------------------------------------------------------
 bool sequential(std::span<StepOrder const> p_order)
 {
-    for (std::size_t k = 0u; k < p_order.size(); ++k)
+    for (std::size_t k = 0U; k < p_order.size(); ++k)
     {
         std::vector<PlanEvent> const previous =
-            k == 0u ? std::vector<PlanEvent>{}
-                    : std::vector<PlanEvent>{ { k - 1u, true } };
+            k == 0U ? std::vector<PlanEvent>{}
+                    : std::vector<PlanEvent>{ { k - 1U, true } };
         if (p_order[k].start_after != previous || !p_order[k].end_after.empty())
         {
             return false;

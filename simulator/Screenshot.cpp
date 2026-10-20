@@ -29,7 +29,7 @@
 std::string saveScreenshot(RenderTarget const& p_target,
                            std::filesystem::path const& p_path)
 {
-    if (p_target.width == 0u || p_target.height == 0u)
+    if (p_target.width == 0U || p_target.height == 0U)
     {
         return "the 3D view is not drawn yet";
     }
@@ -50,6 +50,6 @@ std::string saveScreenshot(RenderTarget const& p_target,
                                        static_cast<int>(p_target.height),
                                        4,
                                        pixels.value().data(),
-                                       static_cast<int>(p_target.width * 4u));
+                                       static_cast<int>(p_target.width * 4U));
     return written != 0 ? std::string() : "cannot write " + p_path.string();
 }

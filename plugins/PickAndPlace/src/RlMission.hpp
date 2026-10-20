@@ -42,13 +42,13 @@ public:
     void act(robotik::Cell& p_cell, double p_dt);
 
     bool converged = true;
-    float mix = 1.0f;
+    float mix = 1.0F;
     bool repeat = true;
     int max_steps = 120;
     std::array<float, RL_OBSERVATIONS> observation{};
     std::array<float, RL_ACTIONS> action{};
     std::uint32_t steps = 0;
-    float episode_return = 0.0f;
+    float episode_return = 0.0F;
     std::uint32_t delivered = 0;
     std::uint32_t failed = 0;
     bool done = false;

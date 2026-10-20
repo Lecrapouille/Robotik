@@ -158,7 +158,7 @@ void FlyMission::setup(robotik::Cell& p_cell,
                                         : FlyBrain::Kind::Shiu;
     float const cruise = static_cast<float>(scenario.target.z);
     robotik::Vector3 const arena = scenario.arena;
-    m_environment = std::make_unique<FlyEnvironment>(std::move(scenario), 0u);
+    m_environment = std::make_unique<FlyEnvironment>(std::move(scenario), 0U);
     m_brain = std::make_unique<FlyBrain>(m_kind, cruise);
 
     auto backend = std::make_unique<FlyBackend>(*m_environment);
@@ -170,23 +170,23 @@ void FlyMission::setup(robotik::Cell& p_cell,
         return;
     }
     // A meadow under the arena, then the beams of the eyes and the trail.
-    robotik::Image meadow(2u, 2u, robotik::PixelFormat::RGB8);
-    for (std::size_t i = 0; i < meadow.bytes().size(); i += 3u)
+    robotik::Image meadow(2U, 2U, robotik::PixelFormat::RGB8);
+    for (std::size_t i = 0; i < meadow.bytes().size(); i += 3U)
     {
         meadow.bytes()[i] = 140;
-        meadow.bytes()[i + 1u] = 158;
-        meadow.bytes()[i + 2u] = 97;
+        meadow.bytes()[i + 1U] = 158;
+        meadow.bytes()[i + 2U] = 97;
     }
     double const extent = 2.0 * (std::max(arena.x, arena.y) + 2.0);
     p_view->ground(meadow, extent, extent);
 
     std::array<std::array<float, 3>, 3> const colors = {
-        { { 0.95f, 0.75f, 0.2f },
-          { 0.95f, 0.25f, 0.2f },
-          { 0.25f, 0.45f, 1.0f } }
+        { { 0.95F, 0.75F, 0.2F },
+          { 0.95F, 0.25F, 0.2F },
+          { 0.25F, 0.45F, 1.0F } }
     };
     char const* names[3] = { "ray_left", "ray_center", "ray_right" };
-    for (std::size_t ray = 0; ray < 3u; ++ray)
+    for (std::size_t ray = 0; ray < 3U; ++ray)
     {
         // Unit length along x, stretched toward the hit at each step.
         m_beams[ray] = p_cell.decorate(decoration(
@@ -196,8 +196,8 @@ void FlyMission::setup(robotik::Cell& p_cell,
     {
         m_trail.push_back(
             p_cell.decorate(decoration("trail_" + std::to_string(i),
-                                             robotik::Vector3(0.04, 0.04, 0.04),
-                                             { 0.95f, 0.95f, 0.9f })));
+                                       robotik::Vector3(0.04, 0.04, 0.04),
+                                       { 0.95F, 0.95F, 0.9F })));
     }
 }
 
@@ -258,7 +258,7 @@ void FlyMission::drawBeamsAndTrail()
         return;
     }
     FlyVision const& vision = m_environment->snapshot().vision;
-    for (std::size_t ray = 0; ray < 3u; ++ray)
+    for (std::size_t ray = 0; ray < 3U; ++ray)
     {
         robotik::Vector3 const from = vision.origins[ray];
         robotik::Vector3 const span = vision.ends[ray] - from;
@@ -266,7 +266,7 @@ void FlyMission::drawBeamsAndTrail()
         compages::world::Entity beam = m_beams[ray];
         if (length < 1e-6)
         {
-            beam.position(0.0f, 0.0f, -20.0f);
+            beam.position(0.0F, 0.0F, -20.0F);
             continue;
         }
         robotik::Vector3 const along = span * (1.0 / length);
@@ -280,7 +280,7 @@ void FlyMission::drawBeamsAndTrail()
                 : robotik::Quaternion::fromAngleAxis(robotik::Radians(angle), axis);
         beam.position(toFloat(from + span * 0.5))
             .rotation(toFloat(turn))
-            .scale(static_cast<float>(length), 1.0f, 1.0f);
+            .scale(static_cast<float>(length), 1.0F, 1.0F);
     }
     std::span<robotik::Vector3 const> const trail = m_environment->trail();
     for (std::size_t i = 0; i < m_trail.size(); ++i)
@@ -292,7 +292,7 @@ void FlyMission::drawBeamsAndTrail()
         }
         else
         {
-            crumb.position(0.0f, 0.0f, -20.0f);
+            crumb.position(0.0F, 0.0F, -20.0F);
         }
     }
 }

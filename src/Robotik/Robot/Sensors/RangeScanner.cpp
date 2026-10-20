@@ -64,7 +64,7 @@ RangeScanner::RangeScanner(std::string p_name, RangeScannerConfig p_config)
     : Sensor(std::move(p_name), p_config.frequency),
       m_config(std::move(p_config))
 {
-    m_config.beams = std::max(m_config.beams, 1u);
+    m_config.beams = std::max(m_config.beams, 1U);
     m_config.noise.min = std::max(m_config.noise.min, 0.0);
     m_config.noise.max =
         std::min(m_config.noise.max, m_config.max_range.value());
@@ -155,7 +155,7 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
     scan.max_range = m_config.max_range;
     scan.stamp = p_now;
     scan.frame = name();
-    scan.sequence = samples() + 1u;
+    scan.sequence = samples() + 1U;
     scan.valid = true;
     m_scans.push(p_now, std::move(scan));
     return true;

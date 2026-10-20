@@ -183,7 +183,7 @@ Cell::Cell(compages::world::World& p_world,
       m_scheduler(std::make_unique<SkillScheduler>(*m_resources)),
       m_faults(m_description.faults, m_description.random_faults)
 {
-    if (m_robots.size() > 1u)
+    if (m_robots.size() > 1U)
     {
         for (std::unique_ptr<RobotSession> const& robot : m_robots)
         {
@@ -206,10 +206,9 @@ Cell::Cell(compages::world::World& p_world,
         m_mission->setup(*this, p_view);
     }
     bool const plugged =
-        std::any_of(m_robots.begin(),
-                    m_robots.end(),
-                    [](std::unique_ptr<RobotSession> const& p_robot)
-                    { return p_robot->backend() != nullptr; });
+        std::ranges::any_of(m_robots,
+                            [](std::unique_ptr<RobotSession> const& p_robot)
+                            { return p_robot->backend() != nullptr; });
     if (!plugged)
     {
         connectBackend();
@@ -375,7 +374,7 @@ void Cell::buildDevices(RobotSession& p_robot,
             [this, &p_robot](CameraFrame const& p_frame)
             {
                 Detections const& detections = m_perception.process(p_frame);
-                if (m_robots.size() == 1u)
+                if (m_robots.size() == 1U)
                 {
                     m_world_model.update(detections);
                     return;
@@ -518,14 +517,13 @@ void Cell::connectBackend()
     WorldDescription const& world = m_description.world;
     MujocoOptions options = m_physics_options;
     // Rigid props rest on the ground: they need a floor.
-    bool const rigid =
-        std::any_of(world.entities.begin(),
-                    world.entities.end(),
-                    [this](EntitySpec const& p_entity)
-                    {
-                        return p_entity.type == EntitySpec::Type::Prop &&
-                               rigidProp(p_entity);
-                    });
+    bool const rigid = std::ranges::any_of(
+        world.entities,
+        [this](EntitySpec const& p_entity)
+        {
+            return p_entity.type == EntitySpec::Type::Prop &&
+                   rigidProp(p_entity);
+        });
     options.floor = options.floor || world.floor || rigid;
     options.floor_friction = world.floor_friction;
     auto physics = std::make_shared<MujocoBackend>(options);
@@ -741,7 +739,7 @@ void Cell::addSkills()
         ResourceManager const& resources = robot->resources();
         ActuatorSet const& actuators = robot->actuators();
         std::string const scope =
-            m_robots.size() > 1u ? robot->id() + "." : std::string();
+            m_robots.size() > 1U ? robot->id() + "." : std::string();
 
         std::vector<ResourceRequirement> arm;
         if (auto const* group = actuators.first<JointGroup>())
@@ -771,7 +769,7 @@ void Cell::addSkills()
 
 Pose Cell::beliefFrame() const
 {
-    return m_robots.size() == 1u ? m_robot->base().pose
+    return m_robots.size() == 1U ? m_robot->base().pose
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 

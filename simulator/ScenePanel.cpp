@@ -16,7 +16,7 @@ static constexpr char const* STOP = "Stop";
 /// @brief Run controls drawn over the top-left corner of the 3D view.
 static void runControls(App& p_app, ImVec2 p_at)
 {
-    ImGui::SetCursorScreenPos(ImVec2(p_at.x + 10.0f, p_at.y + 8.0f));
+    ImGui::SetCursorScreenPos(ImVec2(p_at.x + 10.0F, p_at.y + 8.0F));
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImDrawListSplitter layers;
     layers.Split(draw, 2);
@@ -25,9 +25,9 @@ static void runControls(App& p_app, ImVec2 p_at)
 
     bool const owns_clock = p_app.owns_clock;
     ImGui::PushStyleColor(ImGuiCol_Button,
-                          p_app.playing ? ImVec4(0.55f, 0.38f, 0.10f, 1.0f)
-                                        : ImVec4(0.16f, 0.45f, 0.22f, 1.0f));
-    if (ImGui::Button(p_app.playing ? "Pause" : "Play", ImVec2(64.0f, 0.0f)))
+                          p_app.playing ? ImVec4(0.55F, 0.38F, 0.10F, 1.0F)
+                                        : ImVec4(0.16F, 0.45F, 0.22F, 1.0F));
+    if (ImGui::Button(p_app.playing ? "Pause" : "Play", ImVec2(64.0F, 0.0F)))
     {
         p_app.playing = !p_app.playing;
     }
@@ -41,14 +41,14 @@ static void runControls(App& p_app, ImVec2 p_at)
     }
     ImGui::EndDisabled();
     ImGui::SetItemTooltip("One step of 10 ms  (.)");
-    ImGui::SameLine(0.0f, 16.0f);
+    ImGui::SameLine(0.0F, 16.0F);
     if (ImGui::Button("Replay"))
     {
         p_app.reset(p_app.seed);
     }
     ImGui::SetItemTooltip("Start again with this seed and play  (Ctrl+R)");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(96.0f);
+    ImGui::SetNextItemWidth(96.0F);
     ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
     ImGui::SetItemTooltip(
         "Seed: object layout, sensor noise and random faults derive from it.\n"
@@ -56,12 +56,12 @@ static void runControls(App& p_app, ImVec2 p_at)
     ImGui::SameLine();
     if (ImGui::Button("Next seed"))
     {
-        p_app.reset(p_app.seed + 1u);
+        p_app.reset(p_app.seed + 1U);
     }
     ImGui::SetItemTooltip("Ctrl+N");
-    ImGui::SameLine(0.0f, 16.0f);
-    ImGui::SetNextItemWidth(120.0f);
-    ImGui::SliderFloat("##speed", &p_app.speed, 0.1f, 4.0f, "speed x%.1f");
+    ImGui::SameLine(0.0F, 16.0F);
+    ImGui::SetNextItemWidth(120.0F);
+    ImGui::SliderFloat("##speed", &p_app.speed, 0.1F, 4.0F, "speed x%.1f");
     if (owns_clock)
     {
         ImGui::SameLine();
@@ -72,10 +72,10 @@ static void runControls(App& p_app, ImVec2 p_at)
     ImVec2 const min = ImGui::GetItemRectMin();
     ImVec2 const max = ImGui::GetItemRectMax();
     layers.SetCurrentChannel(draw, 0);
-    draw->AddRectFilled(ImVec2(min.x - 6.0f, min.y - 5.0f),
-                        ImVec2(max.x + 6.0f, max.y + 5.0f),
+    draw->AddRectFilled(ImVec2(min.x - 6.0F, min.y - 5.0F),
+                        ImVec2(max.x + 6.0F, max.y + 5.0F),
                         IM_COL32(20, 22, 27, 200),
-                        6.0f);
+                        6.0F);
     layers.Merge(draw);
 }
 
@@ -88,16 +88,16 @@ static void stopButton(App& p_app, ImVec2 p_at, float p_width)
     }
     bool const engaged = emergencyEngaged(p_app);
     char const* label = engaged ? "Release stop" : "EMERGENCY STOP";
-    ImVec2 const size(ImGui::CalcTextSize(label).x + 28.0f,
-                      ImGui::GetFrameHeight() + 8.0f);
+    ImVec2 const size(ImGui::CalcTextSize(label).x + 28.0F,
+                      ImGui::GetFrameHeight() + 8.0F);
     ImGui::SetCursorScreenPos(
-        ImVec2(p_at.x + p_width - size.x - 10.0f, p_at.y + 6.0f));
+        ImVec2(p_at.x + p_width - size.x - 10.0F, p_at.y + 6.0F));
     ImGui::PushStyleColor(ImGuiCol_Button,
-                          engaged ? ImVec4(0.30f, 0.30f, 0.32f, 1.0f)
-                                  : ImVec4(0.75f, 0.12f, 0.12f, 1.0f));
+                          engaged ? ImVec4(0.30F, 0.30F, 0.32F, 1.0F)
+                                  : ImVec4(0.75F, 0.12F, 0.12F, 1.0F));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                          engaged ? ImVec4(0.40f, 0.40f, 0.42f, 1.0f)
-                                  : ImVec4(0.90f, 0.18f, 0.18f, 1.0f));
+                          engaged ? ImVec4(0.40F, 0.40F, 0.42F, 1.0F)
+                                  : ImVec4(0.90F, 0.18F, 0.18F, 1.0F));
     if (ImGui::Button(label, size))
     {
         toggleEmergency(p_app);
@@ -114,13 +114,13 @@ static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
     {
         return;
     }
-    constexpr float THICKNESS = 3.0f;
-    float const half = THICKNESS * 0.5f;
+    constexpr float THICKNESS = 3.0F;
+    float const half = THICKNESS * 0.5F;
     ImGui::GetWindowDrawList()->AddRect(
         ImVec2(p_at.x + half, p_at.y + half),
         ImVec2(p_at.x + p_size.x - half, p_at.y + p_size.y - half),
         ImGui::GetColorU32(color),
-        0.0f,
+        0.0F,
         0,
         THICKNESS);
 }
@@ -197,7 +197,7 @@ void toggleEmergency(App& p_app)
 
 void scenePanel(App& p_app, char const* p_key)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
     std::string const title = panelTitle("Scene", p_key);
     bool const visible = ImGui::Begin(title.c_str(),
                                       nullptr,
@@ -219,8 +219,8 @@ void scenePanel(App& p_app, char const* p_key)
         ImGui::End();
         return;
     }
-    ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0f),
-                      std::max(ImGui::GetContentRegionAvail().y, 1.0f));
+    ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0F),
+                      std::max(ImGui::GetContentRegionAvail().y, 1.0F));
     ImVec2 const scale = ImGui::GetIO().DisplayFramebufferScale;
     p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
                       static_cast<std::uint32_t>(size.y * scale.y));
@@ -244,8 +244,8 @@ void scenePanel(App& p_app, char const* p_key)
             ImTextureRef(static_cast<ImTextureID>(p_app.view.color.nativeId())),
             at,
             ImVec2(at.x + size.x, at.y + size.y),
-            ImVec2(0.0f, 1.0f),
-            ImVec2(1.0f, 0.0f));
+            ImVec2(0.0F, 1.0F),
+            ImVec2(1.0F, 0.0F));
     }
     runFrame(p_app, at, size);
     runControls(p_app, at);
@@ -253,14 +253,14 @@ void scenePanel(App& p_app, char const* p_key)
     char const* hint =
         "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);
-    ImVec2 const corner(at.x + 10.0f, at.y + size.y - text.y - 12.0f);
+    ImVec2 const corner(at.x + 10.0F, at.y + size.y - text.y - 12.0F);
     ImDrawList* draw = ImGui::GetWindowDrawList();
     draw->AddRectFilled(
         corner,
-        ImVec2(corner.x + text.x + 12.0f, corner.y + text.y + 6.0f),
+        ImVec2(corner.x + text.x + 12.0F, corner.y + text.y + 6.0F),
         IM_COL32(20, 22, 27, 170),
-        4.0f);
-    draw->AddText(ImVec2(corner.x + 6.0f, corner.y + 3.0f),
+        4.0F);
+    draw->AddText(ImVec2(corner.x + 6.0F, corner.y + 3.0F),
                   ImGui::GetColorU32(ImGuiCol_TextDisabled),
                   hint);
     ImGui::End();

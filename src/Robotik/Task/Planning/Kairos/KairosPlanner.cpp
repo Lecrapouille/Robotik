@@ -72,7 +72,7 @@ public:
         kairos::SolveOptions options;
         options.timeout = p_options.timeout;
         options.anytime = false;
-        options.threads = 1u;
+        options.threads = 1U;
         options.seed = p_options.seed;
         options.search = p_options.search;
         // Silent: what matters comes back as diagnostics and in the report.

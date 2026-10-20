@@ -87,7 +87,7 @@ std::string roleStem(std::filesystem::path const& p_file)
     {
         name.resize(name.size() - SCENARIO.size());
     }
-    std::replace(name.begin(), name.end(), '.', '_');
+    std::ranges::replace(name, '.', '_');
     return name;
 }
 

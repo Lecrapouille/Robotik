@@ -91,7 +91,7 @@ private:
 
     [[nodiscard]] std::size_t line() const
     {
-        return 1u + static_cast<std::size_t>(
+        return 1U + static_cast<std::size_t>(
                         std::count(m_text.begin(),
                                    m_text.begin() + static_cast<long>(m_at),
                                    '\n'));
@@ -141,7 +141,7 @@ private:
     }
 
     std::string_view m_text;
-    std::size_t m_at = 0u;
+    std::size_t m_at = 0U;
 };
 
 // ----------------------------------------------------------------------------
@@ -156,7 +156,7 @@ static std::vector<Parameter> typedList(std::vector<Sexpr> const& p_items,
     for (std::size_t i = p_from; i < p_items.size(); ++i)
     {
         Sexpr const& item = p_items[i];
-        if (item.isAtom("-") && i + 1u < p_items.size())
+        if (item.isAtom("-") && i + 1U < p_items.size())
         {
             Sexpr const& type = p_items[++i];
             std::string const name =
@@ -187,7 +187,7 @@ static Atom atomOf(Sexpr const& p_node)
 {
     Atom atom;
     atom.predicate = std::string(p_node.head());
-    for (std::size_t i = 1u; i < p_node.list.size(); ++i)
+    for (std::size_t i = 1U; i < p_node.list.size(); ++i)
     {
         atom.args.push_back(p_node.list[i].atom);
     }
@@ -208,19 +208,19 @@ static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
     }
     if (head == "and")
     {
-        for (std::size_t i = 1u; i < p_node.list.size(); ++i)
+        for (std::size_t i = 1U; i < p_node.list.size(); ++i)
         {
             collectEffects(p_node.list[i], p_action);
         }
     }
-    else if (head == "at" && p_node.list.size() == 3u)
+    else if (head == "at" && p_node.list.size() == 3U)
     {
         if (p_node.list[1].isAtom("end"))
         {
             collectEffects(p_node.list[2], p_action);
         }
     }
-    else if (head == "not" && p_node.list.size() == 2u &&
+    else if (head == "not" && p_node.list.size() == 2U &&
              p_node.list[1].is_list)
     {
         p_action.effects.push_back({ atomOf(p_node.list[1]), false });
@@ -286,7 +286,7 @@ static void collectAtoms(Sexpr const& p_node,
     std::string_view const head = p_node.head();
     // (at ?r ?room) is an atom; (at start φ) and (over all φ) are not.
     bool const timed =
-        p_node.list.size() == 3u && !p_node.list[1].is_list &&
+        p_node.list.size() == 3U && !p_node.list[1].is_list &&
         (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
          p_node.list[1].isAtom("all"));
     bool const word =
@@ -326,7 +326,7 @@ static void collectAtoms(Sexpr const& p_node,
         collectAtoms(p_node.list[2], p_action, p_effect, when);
         return;
     }
-    std::size_t const first = head == "forall" || head == "exists" ? 2u : 1u;
+    std::size_t const first = head == "forall" || head == "exists" ? 2U : 1U;
     for (std::size_t i = first; i < p_node.list.size(); ++i)
     {
         collectAtoms(p_node.list[i], p_action, p_effect, p_when);
@@ -338,11 +338,11 @@ static void collectAtoms(Sexpr const& p_node,
 // ----------------------------------------------------------------------------
 static Sexpr const* keyed(Sexpr const& p_node, std::string_view p_key)
 {
-    for (std::size_t i = 0u; i + 1u < p_node.list.size(); ++i)
+    for (std::size_t i = 0U; i + 1U < p_node.list.size(); ++i)
     {
         if (p_node.list[i].isAtom(p_key))
         {
-            return &p_node.list[i + 1u];
+            return &p_node.list[i + 1U];
         }
     }
     return nullptr;
@@ -351,7 +351,7 @@ static Sexpr const* keyed(Sexpr const& p_node, std::string_view p_key)
 /// Drops leading and trailing whitespace.
 static std::string trim(std::string_view p_text)
 {
-    std::size_t first = 0u;
+    std::size_t first = 0U;
     std::size_t last = p_text.size();
     while (first < last &&
            std::isspace(static_cast<unsigned char>(p_text[first])) != 0)
@@ -359,7 +359,7 @@ static std::string trim(std::string_view p_text)
         ++first;
     }
     while (last > first &&
-           std::isspace(static_cast<unsigned char>(p_text[last - 1u])) != 0)
+           std::isspace(static_cast<unsigned char>(p_text[last - 1U])) != 0)
     {
         --last;
     }
@@ -374,24 +374,22 @@ static bool validName(std::string_view p_name)
     {
         return false;
     }
-    return std::all_of(p_name.begin(),
-                       p_name.end(),
-                       [](char p_c)
-                       {
-                           return std::isalnum(
-                                      static_cast<unsigned char>(p_c)) != 0 ||
-                                  p_c == '_' || p_c == '-';
-                       });
+    return std::ranges::all_of(
+        p_name,
+        [](char p_c)
+        {
+            return std::isalnum(static_cast<unsigned char>(p_c)) != 0 ||
+                   p_c == '_' || p_c == '-';
+        });
 }
 
 std::string lowerCase(std::string_view p_text)
 {
     std::string result(p_text);
-    std::transform(result.begin(),
-                   result.end(),
-                   result.begin(),
-                   [](unsigned char p_c)
-                   { return static_cast<char>(std::tolower(p_c)); });
+    std::ranges::transform(result,
+                           result.begin(),
+                           [](unsigned char p_c)
+                           { return static_cast<char>(std::tolower(p_c)); });
     return result;
 }
 
@@ -428,9 +426,9 @@ std::string toString(Atom const& p_atom)
         return p_atom.predicate;
     }
     std::string text = p_atom.predicate + "(";
-    for (std::size_t i = 0u; i < p_atom.args.size(); ++i)
+    for (std::size_t i = 0U; i < p_atom.args.size(); ++i)
     {
-        text += (i == 0u ? "" : ", ") + p_atom.args[i];
+        text += (i == 0U ? "" : ", ") + p_atom.args[i];
     }
     return text + ")";
 }
@@ -446,15 +444,15 @@ Result<Literal> parseLiteral(std::string_view p_text)
         if (text.starts_with("not ") || text.starts_with("not\t"))
         {
             literal.positive = false;
-            text = trim(std::string_view(text).substr(4u));
+            text = trim(std::string_view(text).substr(4U));
         }
         else if (text.starts_with("!"))
         {
             literal.positive = false;
-            text = trim(std::string_view(text).substr(1u));
+            text = trim(std::string_view(text).substr(1U));
         }
         std::size_t const open = text.find('(');
-        std::string const name = trim(std::string_view(text).substr(0u, open));
+        std::string const name = trim(std::string_view(text).substr(0U, open));
         if (!validName(name))
         {
             throw std::runtime_error(
@@ -466,17 +464,18 @@ Result<Literal> parseLiteral(std::string_view p_text)
         {
             return literal;
         }
-        if (text.back() != ')' || text.find('(', open + 1u) != std::string::npos)
+        if (text.back() != ')' ||
+            text.find('(', open + 1U) != std::string::npos)
         {
             throw std::runtime_error(
                 "'" + std::string(p_text) +
                 "' is not a literal such as in(red_cube, box)");
         }
         std::string_view const inside =
-            std::string_view(text).substr(open + 1u, text.size() - open - 2u);
+            std::string_view(text).substr(open + 1U, text.size() - open - 2U);
         if (!trim(inside).empty())
         {
-            std::size_t start = 0u;
+            std::size_t start = 0U;
             for (;;)
             {
                 std::size_t const comma = inside.find(',', start);
@@ -491,7 +490,7 @@ Result<Literal> parseLiteral(std::string_view p_text)
                 {
                     break;
                 }
-                start = comma + 1u;
+                start = comma + 1U;
             }
         }
         return literal;
@@ -525,7 +524,7 @@ bool isA(DomainSchema const& p_schema, std::string_view p_type, std::string_view
 {
     std::string current(p_type);
     // The depth bound stops a cycle in a malformed hierarchy.
-    for (std::size_t depth = 0u; depth <= p_schema.types.size() + 1u; ++depth)
+    for (std::size_t depth = 0U; depth <= p_schema.types.size() + 1U; ++depth)
     {
         if (current == p_ancestor || p_ancestor == "object")
         {
@@ -548,35 +547,35 @@ Result<DomainSchema> parseDomain(std::string_view p_text)
     try
     {
         Sexpr const root = Reader(p_text).read();
-        if (root.head() != "define" || root.list.size() < 2u ||
-            root.list[1].head() != "domain" || root.list[1].list.size() != 2u)
+        if (root.head() != "define" || root.list.size() < 2U ||
+            root.list[1].head() != "domain" || root.list[1].list.size() != 2U)
         {
             throw std::runtime_error(
                 "PDDL: a domain starts with (define (domain <name>)");
         }
         DomainSchema schema;
         schema.name = root.list[1].list[1].atom;
-        for (std::size_t i = 2u; i < root.list.size(); ++i)
+        for (std::size_t i = 2U; i < root.list.size(); ++i)
         {
             Sexpr const& section = root.list[i];
             std::string_view const head = section.head();
             if (head == ":types")
             {
-                for (Parameter const& type : typedList(section.list, 1u))
+                for (Parameter const& type : typedList(section.list, 1U))
                 {
                     schema.types[type.name] = type.type;
                 }
             }
             else if (head == ":constants")
             {
-                for (Parameter const& constant : typedList(section.list, 1u))
+                for (Parameter const& constant : typedList(section.list, 1U))
                 {
                     schema.constants[constant.name] = constant.type;
                 }
             }
             else if (head == ":predicates")
             {
-                for (std::size_t k = 1u; k < section.list.size(); ++k)
+                for (std::size_t k = 1U; k < section.list.size(); ++k)
                 {
                     Sexpr const& item = section.list[k];
                     if (item.head().empty())
@@ -585,14 +584,14 @@ Result<DomainSchema> parseDomain(std::string_view p_text)
                     }
                     PredicateSchema predicate;
                     predicate.name = std::string(item.head());
-                    for (Parameter const& parameter : typedList(item.list, 1u))
+                    for (Parameter const& parameter : typedList(item.list, 1U))
                     {
                         predicate.types.push_back(parameter.type);
                     }
                     schema.predicates[predicate.name] = std::move(predicate);
                 }
             }
-            else if (head == ":derived" && section.list.size() >= 2u)
+            else if (head == ":derived" && section.list.size() >= 2U)
             {
                 Sexpr const& item = section.list[1];
                 PredicateSchema& predicate =
@@ -601,21 +600,21 @@ Result<DomainSchema> parseDomain(std::string_view p_text)
                 predicate.derived = true;
                 if (predicate.types.empty())
                 {
-                    for (Parameter const& parameter : typedList(item.list, 1u))
+                    for (Parameter const& parameter : typedList(item.list, 1U))
                     {
                         predicate.types.push_back(parameter.type);
                     }
                 }
             }
             else if ((head == ":action" || head == ":durative-action") &&
-                     section.list.size() >= 2u)
+                     section.list.size() >= 2U)
             {
                 ActionSchema action;
                 action.name = section.list[1].atom;
                 action.durative = head == ":durative-action";
                 if (Sexpr const* parameters = keyed(section, ":parameters"))
                 {
-                    action.parameters = typedList(parameters->list, 0u);
+                    action.parameters = typedList(parameters->list, 0U);
                 }
                 if (Sexpr const* effect = keyed(section, ":effect"))
                 {

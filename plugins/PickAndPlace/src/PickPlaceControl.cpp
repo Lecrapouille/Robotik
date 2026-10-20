@@ -20,8 +20,8 @@
 
 #define STEP_M 0.03
 #define READY_STEPS 20
-#define REWARD_GRASP 2.0f
-#define REWARD_SUCCESS 10.0f
+#define REWARD_GRASP 2.0F
+#define REWARD_SUCCESS 10.0F
 #define EXPERT_HOVER_M 0.10
 #define EXPERT_CARRY_Z_M 0.22
 #define EXPERT_DROP_Z_M 0.12
@@ -120,14 +120,14 @@ static robotik::Vector3 believed(robotik::Cell const& p_cell,
 robotik::Space PickPlaceObservation::space() const
 {
     robotik::Space space;
-    space.add3("tip", -1.5f, 1.5f, "m")
-        .add3("cube", -1.5f, 1.5f, "m")
-        .add3("box", -1.5f, 1.5f, "m")
-        .add3("cube_from_tip", -3.0f, 3.0f, "m")
-        .add("holding", 0.0f, 1.0f)
-        .add("suction", 0.0f, 1.0f)
-        .add("progress", 0.0f, 1.0f)
-        .add("delivered", 0.0f, 1.0f, "", true);
+    space.add3("tip", -1.5F, 1.5F, "m")
+        .add3("cube", -1.5F, 1.5F, "m")
+        .add3("box", -1.5F, 1.5F, "m")
+        .add3("cube_from_tip", -3.0F, 3.0F, "m")
+        .add("holding", 0.0F, 1.0F)
+        .add("suction", 0.0F, 1.0F)
+        .add("progress", 0.0F, 1.0F)
+        .add("delivered", 0.0F, 1.0F, "", true);
     return space;
 }
 
@@ -159,12 +159,12 @@ void PickPlaceObservation::observe(robotik::Cell const& p_cell,
         *out++ = static_cast<float>(v.y);
         *out++ = static_cast<float>(v.z);
     }
-    *out++ = m_gripper->holding() ? 1.0f : 0.0f;
-    *out++ = m_gripper->suction() ? 1.0f : 0.0f;
-    *out++ = p_clock.max_steps > 0u ? static_cast<float>(p_clock.steps) /
+    *out++ = m_gripper->holding() ? 1.0F : 0.0F;
+    *out++ = m_gripper->suction() ? 1.0F : 0.0F;
+    *out++ = p_clock.max_steps > 0U ? static_cast<float>(p_clock.steps) /
                                           static_cast<float>(p_clock.max_steps)
-                                    : 0.0f;
-    *out = cubeInBox(p_cell, *m_gripper) ? 1.0f : 0.0f;
+                                    : 0.0F;
+    *out = cubeInBox(p_cell, *m_gripper) ? 1.0F : 0.0F;
 }
 
 // --- Action ---------------------------------------------------------------
@@ -173,10 +173,10 @@ robotik::Space PickPlaceAction::space() const
 {
     robotik::Space space;
     // Fractions of STEP_M per control period.
-    space.add("move.x", -1.0f, 1.0f)
-        .add("move.y", -1.0f, 1.0f)
-        .add("move.z", -1.0f, 1.0f);
-    space.add("suction", -1.0f, 1.0f);
+    space.add("move.x", -1.0F, 1.0F)
+        .add("move.y", -1.0F, 1.0F)
+        .add("move.z", -1.0F, 1.0F);
+    space.add("suction", -1.0F, 1.0F);
     return space;
 }
 
@@ -204,7 +204,7 @@ void PickPlaceAction::apply(std::span<float const> p_action,
     };
     robotik::Vector3 const target = clampWorkspace(
         m_gripper->tip(robot) + robotik::Vector3{ axis(0), axis(1), axis(2) });
-    m_gripper->suction(p_action[3] > 0.0f);
+    m_gripper->suction(p_action[3] > 0.0F);
 
     robotik::Pose const flange{
         target + robotik::Vector3{ 0.0, 0.0, m_gripper->length().value() },
@@ -251,7 +251,7 @@ PickPlaceReward::evaluate(robotik::Cell const& p_cell)
     if (m_gripper->holding())
     {
         robotik::Vector3 const above{ box.x, box.y, box.z + 0.1 };
-        result.reward = 1.0f - static_cast<float>(robotik::norm(cube - above));
+        result.reward = 1.0F - static_cast<float>(robotik::norm(cube - above));
         if (!m_grasped)
         {
             m_grasped = true;
@@ -294,7 +294,7 @@ void convergedPolicy(std::span<float const> p_observation,
     robotik::Vector3 const box{ p_observation[6],
                                 p_observation[7],
                                 p_observation[8] };
-    bool const holding = p_observation[12] > 0.5f;
+    bool const holding = p_observation[12] > 0.5F;
     bool suction = holding;
 
     robotik::Vector3 goal;
@@ -334,7 +334,7 @@ void convergedPolicy(std::span<float const> p_observation,
     p_action[0] = static_cast<float>(std::clamp(move.x, -1.0, 1.0));
     p_action[1] = static_cast<float>(std::clamp(move.y, -1.0, 1.0));
     p_action[2] = static_cast<float>(std::clamp(move.z, -1.0, 1.0));
-    p_action[3] = suction ? 1.0f : -1.0f;
+    p_action[3] = suction ? 1.0F : -1.0F;
 }
 
 void pickPlacePolicy(std::span<float const> p_observation,
@@ -342,13 +342,13 @@ void pickPlacePolicy(std::span<float const> p_observation,
                      float p_mix,
                      robotik::Random* p_noise)
 {
-    float const mix = std::clamp(p_mix, 0.0f, 1.0f);
-    if (mix >= 1.0f || p_noise == nullptr)
+    float const mix = std::clamp(p_mix, 0.0F, 1.0F);
+    if (mix >= 1.0F || p_noise == nullptr)
     {
         convergedPolicy(p_observation, p_action);
         return;
     }
-    if (mix <= 0.0f)
+    if (mix <= 0.0F)
     {
         for (float& value : p_action)
         {
@@ -362,7 +362,7 @@ void pickPlacePolicy(std::span<float const> p_observation,
     {
         float const noise = static_cast<float>(p_noise->uniform(-1.0, 1.0));
         p_action[i] =
-            std::clamp((1.0f - mix) * noise + mix * teacher[i], -1.0f, 1.0f);
+            std::clamp((1.0F - mix) * noise + mix * teacher[i], -1.0F, 1.0F);
     }
 }
 
@@ -372,7 +372,7 @@ char const* policyPhase(std::span<float const> p_observation)
     {
         return "idle";
     }
-    if (p_observation[15] > 0.5f)
+    if (p_observation[15] > 0.5F)
     {
         return "delivered";
     }
@@ -385,7 +385,7 @@ char const* policyPhase(std::span<float const> p_observation)
     robotik::Vector3 const box{ p_observation[6],
                                 p_observation[7],
                                 p_observation[8] };
-    bool const holding = p_observation[12] > 0.5f;
+    bool const holding = p_observation[12] > 0.5F;
     if (!holding)
     {
         return std::hypot(cube.x - tip.x, cube.y - tip.y) > EXPERT_ALIGN_M &&

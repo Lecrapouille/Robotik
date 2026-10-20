@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-static constexpr float kPriorityWidth = 16.0f;
-static constexpr float kIconWidth = 14.0f;
+static constexpr float PRIORITY_WIDTH = 16.0F;
+static constexpr float ICON_WIDTH = 14.0F;
 
 /// A fault kept on the board until the run changes.
 struct FaultNote
@@ -158,7 +158,7 @@ static bool terminal(robotik::SkillState p_state)
 /// Width of a small outlined label, including its padding.
 static float chipWidth(std::string const& p_text)
 {
-    return ImGui::CalcTextSize(p_text.c_str()).x + 12.0f;
+    return ImGui::CalcTextSize(p_text.c_str()).x + 12.0F;
 }
 
 /// Draws a small outlined label at the cursor.
@@ -171,10 +171,10 @@ static void chip(std::string const& p_text)
     draw->AddRect(at,
                   ImVec2(at.x + size.x, at.y + size.y),
                   colorMuted(),
-                  size.y * 0.5f,
+                  size.y * 0.5F,
                   0,
-                  1.2f);
-    draw->AddText(ImVec2(at.x + 6.0f, at.y), colorMuted(), p_text.c_str());
+                  1.2F);
+    draw->AddText(ImVec2(at.x + 6.0F, at.y), colorMuted(), p_text.c_str());
 }
 
 /// Draws the four priority bars, filled up to the band.
@@ -183,19 +183,19 @@ static void priorityBars(int p_level, robotik::Priority p_value)
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 const at = ImGui::GetCursorScreenPos();
     float const height = ImGui::GetTextLineHeight();
-    ImGui::Dummy(ImVec2(kPriorityWidth, height));
+    ImGui::Dummy(ImVec2(PRIORITY_WIDTH, height));
     ImU32 const on = colorPriority(p_level);
-    ImU32 const off = (on & 0x00FFFFFFu) | (70u << 24);
+    ImU32 const off = (on & 0x00FFFFFFU) | (70U << 24);
     for (int bar = 0; bar < 3; ++bar)
     {
-        float const bar_height = 6.0f + 4.0f * static_cast<float>(bar);
-        ImVec2 const corner(at.x + static_cast<float>(bar) * 6.0f,
-                            at.y + height - bar_height - 1.0f);
+        float const bar_height = 6.0F + 4.0F * static_cast<float>(bar);
+        ImVec2 const corner(at.x + static_cast<float>(bar) * 6.0F,
+                            at.y + height - bar_height - 1.0F);
         bool const lit = bar < p_level;
         draw->AddRectFilled(corner,
-                            ImVec2(corner.x + 4.0f, at.y + height - 1.0f),
+                            ImVec2(corner.x + 4.0F, at.y + height - 1.0F),
                             lit ? on : off,
-                            1.5f);
+                            1.5F);
     }
     if (ImGui::IsItemHovered())
     {
@@ -212,9 +212,9 @@ static void stateIcon(robotik::SkillState p_state,
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec2 const at = ImGui::GetCursorScreenPos();
     float const height = ImGui::GetTextLineHeight();
-    float const radius = 5.0f;
-    ImGui::Dummy(ImVec2(kIconWidth, height));
-    ImVec2 const center(at.x + kIconWidth * 0.5f, at.y + height * 0.5f);
+    float const radius = 5.0F;
+    ImGui::Dummy(ImVec2(ICON_WIDTH, height));
+    ImVec2 const center(at.x + ICON_WIDTH * 0.5F, at.y + height * 0.5F);
     ImU32 const color = ImGui::GetColorU32(colorOf(p_state));
     switch (p_state)
     {
@@ -225,23 +225,23 @@ static void stateIcon(robotik::SkillState p_state,
                                   ImVec2(center.x + radius, center.y - radius),
                                   center,
                                   color,
-                                  1.5f);
+                                  1.5F);
                 draw->AddTriangle(ImVec2(center.x - radius, center.y + radius),
                                   ImVec2(center.x + radius, center.y + radius),
                                   center,
                                   color,
-                                  1.5f);
+                                  1.5F);
             }
             else
             {
-                draw->AddCircle(center, radius, color, 0, 1.5f);
+                draw->AddCircle(center, radius, color, 0, 1.5F);
             }
             break;
         case robotik::SkillState::Running:
         {
-            float const angle = static_cast<float>(ImGui::GetTime()) * 5.0f;
-            draw->PathArcTo(center, radius, angle, angle + 4.2f);
-            draw->PathStroke(color, 0, 2.0f);
+            float const angle = static_cast<float>(ImGui::GetTime()) * 5.0F;
+            draw->PathArcTo(center, radius, angle, angle + 4.2F);
+            draw->PathStroke(color, 0, 2.0F);
             break;
         }
         case robotik::SkillState::Cancelled:
@@ -249,42 +249,42 @@ static void stateIcon(robotik::SkillState p_state,
             {
                 draw->AddRectFilled(
                     ImVec2(center.x - radius, center.y - radius),
-                    ImVec2(center.x - 1.5f, center.y + radius),
+                    ImVec2(center.x - 1.5F, center.y + radius),
                     color);
                 draw->AddRectFilled(
-                    ImVec2(center.x + 1.5f, center.y - radius),
+                    ImVec2(center.x + 1.5F, center.y - radius),
                     ImVec2(center.x + radius, center.y + radius),
                     color);
                 break;
             }
-            draw->AddCircle(center, radius, color, 0, 1.5f);
+            draw->AddCircle(center, radius, color, 0, 1.5F);
             draw->AddLine(ImVec2(center.x - radius, center.y + radius),
                           ImVec2(center.x + radius, center.y - radius),
                           color,
-                          1.5f);
+                          1.5F);
             break;
         case robotik::SkillState::Succeeded:
         {
             ImVec2 const points[3] = {
                 ImVec2(center.x - radius, center.y),
-                ImVec2(center.x - 1.5f, center.y + radius - 1.5f),
-                ImVec2(center.x + radius, center.y - radius + 1.0f)
+                ImVec2(center.x - 1.5F, center.y + radius - 1.5F),
+                ImVec2(center.x + radius, center.y - radius + 1.0F)
             };
-            draw->AddPolyline(points, 3, color, 0, 2.0f);
+            draw->AddPolyline(points, 3, color, 0, 2.0F);
             break;
         }
         case robotik::SkillState::Failed:
             draw->AddLine(ImVec2(center.x - radius, center.y - radius),
                           ImVec2(center.x + radius, center.y + radius),
                           color,
-                          2.0f);
+                          2.0F);
             draw->AddLine(ImVec2(center.x - radius, center.y + radius),
                           ImVec2(center.x + radius, center.y - radius),
                           color,
-                          2.0f);
+                          2.0F);
             break;
         case robotik::SkillState::Idle:
-            draw->AddCircle(center, radius, color, 0, 1.5f);
+            draw->AddCircle(center, radius, color, 0, 1.5F);
             break;
     }
 }
@@ -296,20 +296,20 @@ dashedRect(ImDrawList* p_draw, ImVec2 p_a, ImVec2 p_b, ImU32 p_color)
     auto line = [&](ImVec2 p_from, ImVec2 p_to)
     {
         float const length = std::hypot(p_to.x - p_from.x, p_to.y - p_from.y);
-        if (length < 1.0f)
+        if (length < 1.0F)
         {
             return;
         }
         ImVec2 const step((p_to.x - p_from.x) / length,
                           (p_to.y - p_from.y) / length);
-        for (float along = 0.0f; along < length; along += 10.0f)
+        for (float along = 0.0F; along < length; along += 10.0F)
         {
-            float const end = std::min(along + 6.0f, length);
+            float const end = std::min(along + 6.0F, length);
             p_draw->AddLine(
                 ImVec2(p_from.x + step.x * along, p_from.y + step.y * along),
                 ImVec2(p_from.x + step.x * end, p_from.y + step.y * end),
                 p_color,
-                1.5f);
+                1.5F);
         }
     };
     line(p_a, ImVec2(p_b.x, p_a.y));
@@ -373,13 +373,12 @@ static void rememberFaults(BoardMemory& p_memory,
         {
             continue;
         }
-        bool const known = std::any_of(p_memory.faults.begin(),
-                                       p_memory.faults.end(),
-                                       [&](FaultNote const& p_note)
-                                       { return p_note.run == index; }) ||
-                           std::find(p_memory.acknowledged.begin(),
-                                     p_memory.acknowledged.end(),
-                                     index) != p_memory.acknowledged.end();
+        bool const known =
+            std::ranges::any_of(p_memory.faults,
+                                [&](FaultNote const& p_note)
+                                { return p_note.run == index; }) ||
+            std::ranges::find(p_memory.acknowledged, index) !=
+                p_memory.acknowledged.end();
         if (known)
         {
             continue;
@@ -409,9 +408,9 @@ static void toolbar(BoardMemory& p_memory)
     }
     for (int level : { 3, 2, 1 })
     {
-        ImGui::SameLine(0.0f, 12.0f);
+        ImGui::SameLine(0.0F, 12.0F);
         priorityBars(level, level >= 3 ? 1000 : level == 2 ? 100 : 0);
-        ImGui::SameLine(0.0f, 4.0f);
+        ImGui::SameLine(0.0F, 4.0F);
         ImGui::TextDisabled("%s", priorityLabel(level));
     }
 }
@@ -485,8 +484,8 @@ static void card(BoardMemory& p_memory,
     ImDrawListSplitter split;
     split.Split(draw, 2);
     split.SetCurrentChannel(draw, 1);
-    ImGui::Dummy(ImVec2(0.0f, 2.0f));
-    ImGui::Indent(8.0f);
+    ImGui::Dummy(ImVec2(0.0F, 2.0F));
+    ImGui::Indent(8.0F);
     ImGui::PushID(static_cast<int>(p_id));
 
     if (p_memory.force_open)
@@ -516,42 +515,42 @@ static void card(BoardMemory& p_memory,
     bool const active = state == robotik::SkillState::Running || waiting;
     char const* const action = active ? "Cancel" : "Request";
     float const action_w =
-        ImGui::CalcTextSize(action).x + ImGui::GetStyle().FramePadding.x * 2.0f;
-    constexpr float kGap = 6.0f;
-    float cluster = kIconWidth + kPriorityWidth + kGap + action_w + kGap;
+        ImGui::CalcTextSize(action).x + ImGui::GetStyle().FramePadding.x * 2.0F;
+    constexpr float GAP = 6.0F;
+    float cluster = ICON_WIDTH + PRIORITY_WIDTH + GAP + action_w + GAP;
     if (!status.empty())
     {
-        cluster += 4.0f + ImGui::CalcTextSize(status.c_str()).x;
+        cluster += 4.0F + ImGui::CalcTextSize(status.c_str()).x;
     }
     for (std::string const& label : labels)
     {
-        cluster += chipWidth(label) + kGap;
+        cluster += chipWidth(label) + GAP;
     }
-    float const right = row_x + available - cluster - 8.0f;
+    float const right = row_x + available - cluster - 8.0F;
     if (right > ImGui::GetCursorPosX())
     {
         ImGui::SameLine(right);
     }
     else
     {
-        ImGui::SameLine(0.0f, kGap);
+        ImGui::SameLine(0.0F, GAP);
     }
     for (std::string const& label : labels)
     {
         chip(label);
-        ImGui::SameLine(0.0f, kGap);
+        ImGui::SameLine(0.0F, GAP);
     }
     priorityBars(level, description.priority);
-    ImGui::SameLine(0.0f, kGap);
+    ImGui::SameLine(0.0F, GAP);
     stateIcon(state, reason, p_blocked);
     if (!status.empty())
     {
-        ImGui::SameLine(0.0f, 4.0f);
+        ImGui::SameLine(0.0F, 4.0F);
         ImGui::PushStyleColor(ImGuiCol_Text, colorOf(state));
         ImGui::TextUnformatted(status.c_str());
         ImGui::PopStyleColor();
     }
-    ImGui::SameLine(0.0f, kGap);
+    ImGui::SameLine(0.0F, GAP);
     if (ImGui::SmallButton(action))
     {
         if (active)
@@ -601,12 +600,12 @@ static void card(BoardMemory& p_memory,
     }
 
     ImGui::PopID();
-    ImGui::Unindent(8.0f);
-    ImGui::Dummy(ImVec2(0.0f, 2.0f));
+    ImGui::Unindent(8.0F);
+    ImGui::Dummy(ImVec2(0.0F, 2.0F));
     ImVec2 const end(origin.x + width, ImGui::GetCursorScreenPos().y);
 
     split.SetCurrentChannel(draw, 0);
-    draw->AddRectFilled(origin, end, IM_COL32(255, 255, 255, 8), 8.0f);
+    draw->AddRectFilled(origin, end, IM_COL32(255, 255, 255, 8), 8.0F);
     ImU32 const border = ImGui::GetColorU32(colorOf(state));
     bool const dashed = state == robotik::SkillState::Waiting ||
                         state == robotik::SkillState::Cancelled ||
@@ -617,19 +616,19 @@ static void card(BoardMemory& p_memory,
     }
     else
     {
-        draw->AddRect(origin, end, border, 8.0f, 0, 1.5f);
+        draw->AddRect(origin, end, border, 8.0F, 0, 1.5F);
     }
     if (state == robotik::SkillState::Failed)
     {
-        draw->AddRect(ImVec2(origin.x + 3.0f, origin.y + 3.0f),
-                      ImVec2(end.x - 3.0f, end.y - 3.0f),
+        draw->AddRect(ImVec2(origin.x + 3.0F, origin.y + 3.0F),
+                      ImVec2(end.x - 3.0F, end.y - 3.0F),
                       border,
-                      6.0f,
+                      6.0F,
                       0,
-                      1.5f);
+                      1.5F);
     }
     split.Merge(draw);
-    ImGui::Dummy(ImVec2(0.0f, 6.0f));
+    ImGui::Dummy(ImVec2(0.0F, 6.0F));
 }
 
 /// A collapsible group of skill cards.
@@ -815,8 +814,8 @@ void skillsPanel(App& p_app)
         robotik::Priority const b = skills.description(p_b).priority;
         return a != b ? a > b : p_a < p_b;
     };
-    std::stable_sort(running.begin(), running.end(), by_priority);
-    std::stable_sort(waiting.begin(), waiting.end(), by_priority);
+    std::ranges::stable_sort(running, by_priority);
+    std::ranges::stable_sort(waiting, by_priority);
 
     section(
         "RUNNING", "Robot is idle", running, memory, simulation, skills, true);

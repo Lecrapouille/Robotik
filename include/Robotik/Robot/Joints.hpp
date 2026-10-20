@@ -41,7 +41,7 @@ namespace robotik
 /// Index of a joint in its @ref JointSet (untyped).
 using JointId = std::uint16_t;
 /// No joint (e.g. not found).
-inline constexpr JointId NO_JOINT = 0xFFFFu;
+inline constexpr JointId NO_JOINT = 0xFFFFU;
 
 // ****************************************************************************
 /// Kind of a joint, read from the URDF.

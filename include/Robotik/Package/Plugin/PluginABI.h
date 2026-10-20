@@ -39,18 +39,18 @@ extern "C"
 #endif
 
 /// Version of this boundary; host and plugin must agree.
-#define ROBOTIK_PLUGIN_ABI_VERSION 1u
+#define ROBOTIK_PLUGIN_ABI_VERSION 1U
 
 /// Size of @ref RobotikPluginInfo::id, final zero included.
-#define ROBOTIK_PLUGIN_ID_CAP 64u
+#define ROBOTIK_PLUGIN_ID_CAP 64U
 /// Size of @ref RobotikPluginInfo::name.
-#define ROBOTIK_PLUGIN_NAME_CAP 96u
+#define ROBOTIK_PLUGIN_NAME_CAP 96U
 /// Size of @ref RobotikPluginInfo::version.
-#define ROBOTIK_PLUGIN_VERSION_CAP 32u
+#define ROBOTIK_PLUGIN_VERSION_CAP 32U
 /// Size of @ref RobotikPluginInfo::category.
-#define ROBOTIK_PLUGIN_CATEGORY_CAP 48u
+#define ROBOTIK_PLUGIN_CATEGORY_CAP 48U
 /// Size of @ref RobotikEvent::name.
-#define ROBOTIK_PLUGIN_EVENT_NAME_CAP 96u
+#define ROBOTIK_PLUGIN_EVENT_NAME_CAP 96U
 
 /// Log level: information.
 #define ROBOTIK_LOG_INFO 0

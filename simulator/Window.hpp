@@ -36,5 +36,5 @@ private:
 
     static void onScroll(GLFWwindow* p_window, double p_x, double p_y);
 
-    float m_scroll = 0.0f;
+    float m_scroll = 0.0F;
 };

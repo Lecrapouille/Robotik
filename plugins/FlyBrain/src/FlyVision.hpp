@@ -26,13 +26,13 @@
 struct FlyVision
 {
     /// Left eye, in [0, 1].
-    float left = 0.0f;
+    float left = 0.0F;
     /// Centre eye, in [0, 1].
-    float center = 0.0f;
+    float center = 0.0F;
     /// Right eye, in [0, 1].
-    float right = 0.0f;
+    float right = 0.0F;
     /// Distance along the nearest ray that hit (SI: m). The range, if none did.
-    float distance = 0.0f;
+    float distance = 0.0F;
     /// Start of each beam, on the head (SI: m, z up).
     robotik::Vector3 origins[3]{};
     /// End of each beam (SI: m, z up).

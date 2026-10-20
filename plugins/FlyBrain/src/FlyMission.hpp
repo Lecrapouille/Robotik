@@ -73,7 +73,9 @@ public:
     /// @brief Starts over (the environment was reset by the mission).
     void restart();
 
-    void attach(robotik::Robot& /*p_robot*/) override {}
+    void attach(robotik::Robot& /*p_robot*/) override
+    { /* nothing to attach: the fly has no device */
+    }
     void reset(robotik::Robot& p_robot) override;
     void step(robotik::Robot& p_robot, robotik::Seconds p_dt) override;
 

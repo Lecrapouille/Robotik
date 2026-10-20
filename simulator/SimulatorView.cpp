@@ -74,8 +74,8 @@ RenderedCamera::RenderedCamera(
     sync(p_camera);
     auto& lens = m_entity.get<compages::world::Camera>();
     lens.fov = units::angle::radian_t(p_camera.intrinsics().fov().value());
-    lens.near_plane = 0.03f;
-    lens.far_plane = 20.0f;
+    lens.near_plane = 0.03F;
+    lens.far_plane = 20.0F;
     if (active)
     {
         p_scene.activeCamera(active);
@@ -131,7 +131,7 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
     for (std::uint32_t y = 0; y < intrinsics.height; ++y)
     {
         std::memcpy(p_frame.rgb.row<std::uint8_t>(y),
-                    bytes.data() + (intrinsics.height - 1u - y) * stride,
+                    bytes.data() + (intrinsics.height - 1U - y) * stride,
                     stride);
     }
     return true;
@@ -202,7 +202,7 @@ void SimulatorView::object(compages::world::Entity p_entity,
     };
     if (p_object.type == robotik::ecs::Shape::Type::BOX)
     {
-        part("_mesh", 0.0f, 0.0f, 0.0f, x, y, z);
+        part("_mesh", 0.0F, 0.0F, 0.0F, x, y, z);
         return;
     }
     // Open-top bin: same wall thickness (m) as scene::innerBounds /
@@ -210,13 +210,13 @@ void SimulatorView::object(compages::world::Entity p_entity,
     // would flicker. North and south run the full length, east and west fit
     // between them, the floor fits inside the four walls.
     float const wall = static_cast<float>(robotik::ecs::CONTAINER_WALL_M);
-    float const inner_x = std::max(x - 2.0f * wall, 0.0f);
-    float const inner_y = std::max(y - 2.0f * wall, 0.0f);
-    part("_floor", 0.0f, 0.0f, (wall - z) * 0.5f, inner_x, inner_y, wall);
-    part("_north", 0.0f, (y - wall) * 0.5f, 0.0f, x, wall, z);
-    part("_south", 0.0f, (wall - y) * 0.5f, 0.0f, x, wall, z);
-    part("_east", (x - wall) * 0.5f, 0.0f, 0.0f, wall, inner_y, z);
-    part("_west", (wall - x) * 0.5f, 0.0f, 0.0f, wall, inner_y, z);
+    float const inner_x = std::max(x - 2.0F * wall, 0.0F);
+    float const inner_y = std::max(y - 2.0F * wall, 0.0F);
+    part("_floor", 0.0F, 0.0F, (wall - z) * 0.5F, inner_x, inner_y, wall);
+    part("_north", 0.0F, (y - wall) * 0.5F, 0.0F, x, wall, z);
+    part("_south", 0.0F, (wall - y) * 0.5F, 0.0F, x, wall, z);
+    part("_east", (x - wall) * 0.5F, 0.0F, 0.0F, wall, inner_y, z);
+    part("_west", (wall - x) * 0.5F, 0.0F, 0.0F, wall, inner_y, z);
 }
 
 void noShadow(compages::world::Entity p_entity)
@@ -237,7 +237,7 @@ std::filesystem::path floorGrid()
         std::filesystem::temp_directory_path() / "robotik_floor.ppm";
     std::ofstream file(path, std::ios::binary);
     file << "P6\n" << SIZE << ' ' << SIZE << "\n255\n";
-    std::vector<unsigned char> row(static_cast<std::size_t>(SIZE) * 3u);
+    std::vector<unsigned char> row(static_cast<std::size_t>(SIZE) * 3U);
     for (int v = 0; v < SIZE; ++v)
     {
         for (int u = 0; u < SIZE; ++u)
@@ -247,10 +247,10 @@ std::filesystem::path floorGrid()
             bool const major = line(u, CELL * 5, 4) || line(v, CELL * 5, 4);
             bool const minor = line(u, CELL, 2) || line(v, CELL, 2);
             unsigned char const shade = major ? 58 : minor ? 70 : 82;
-            std::size_t const i = static_cast<std::size_t>(u) * 3u;
+            std::size_t const i = static_cast<std::size_t>(u) * 3U;
             row[i] = shade;
-            row[i + 1u] = static_cast<unsigned char>(shade + 2);
-            row[i + 2u] = static_cast<unsigned char>(shade + 5);
+            row[i + 1U] = static_cast<unsigned char>(shade + 2);
+            row[i + 2U] = static_cast<unsigned char>(shade + 5);
         }
         file.write(reinterpret_cast<char const*>(row.data()),
                    static_cast<std::streamsize>(row.size()));
@@ -289,10 +289,10 @@ void SimulatorView::ground(robotik::Image const& p_image,
     compages::world::Entity ground = m_scene.plane(
         "Ground", compages::renderer::texture(m_ground_file.string()));
     ground
-        .rotation(robotik::Radians(-0.5f * std::numbers::pi_v<float>),
-                  compages::core::Vector3f(1.0f, 0.0f, 0.0f))
-        .position(0.0f, 0.0f, 0.0f)
-        .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0f);
+        .rotation(robotik::Radians(-0.5F * std::numbers::pi_v<float>),
+                  compages::core::Vector3f(1.0F, 0.0F, 0.0F))
+        .position(0.0F, 0.0F, 0.0F)
+        .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0F);
     noShadow(ground);
     m_grounded = true;
 }
@@ -305,7 +305,7 @@ bool SimulatorView::openCanvas(compages::world::Entity p_parent,
     {
         return false;
     }
-    if (!m_paint.create(512u, 512u))
+    if (!m_paint.create(512U, 512U))
     {
         return false;
     }
@@ -317,11 +317,11 @@ bool SimulatorView::openCanvas(compages::world::Entity p_parent,
     // the parent's +X (the painted normal) and the plane's +Y onto +Z.
     m_sheet = m_scene.plane("CanvasPaint")
                   .parent(p_parent)
-                  .position(0.012f, 0.0f, 0.0f)
-                  .rotation(compages::core::Quatf(0.5f, 0.5f, 0.5f, 0.5f))
+                  .position(0.012F, 0.0F, 0.0F)
+                  .rotation(compages::core::Quatf(0.5F, 0.5F, 0.5F, 0.5F))
                   .scale(static_cast<float>(p_width),
                          static_cast<float>(p_height),
-                         1.0f);
+                         1.0F);
     m_paint.applyLook(m_scene, m_sheet.id());
     m_sheet_width = p_width;
     m_sheet_height = p_height;
@@ -340,13 +340,13 @@ void SimulatorView::ink(double p_y,
         return;
     }
     auto const color = compages::renderer::CanvasTexture::Color::rgb(
-        static_cast<std::uint8_t>(p_red * 255.0f),
-        static_cast<std::uint8_t>(p_green * 255.0f),
-        static_cast<std::uint8_t>(p_blue * 255.0f));
+        static_cast<std::uint8_t>(p_red * 255.0F),
+        static_cast<std::uint8_t>(p_green * 255.0F),
+        static_cast<std::uint8_t>(p_blue * 255.0F));
     // Mapping covers the unit plane (-0.5..0.5). Scale turns that into metres.
     float const u = static_cast<float>(p_y / m_sheet_width);
     float const v = static_cast<float>(p_z / m_sheet_height);
-    m_paint.paintLocal({ u, v, 0.0f }, color, 0.035f);
+    m_paint.paintLocal({ u, v, 0.0F }, color, 0.035F);
     (void)m_paint.sync();
 }
 
@@ -377,7 +377,7 @@ bool SimulatorView::showFrame(std::size_t p_index,
     std::size_t const stride = image.stride();
     for (std::uint32_t y = 0; y < image.height(); ++y)
     {
-        std::memcpy(pixels.data() + (image.height() - 1u - y) * stride,
+        std::memcpy(pixels.data() + (image.height() - 1U - y) * stride,
                     image.row<std::uint8_t>(y),
                     stride);
     }

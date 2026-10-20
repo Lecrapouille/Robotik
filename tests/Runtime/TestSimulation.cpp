@@ -51,7 +51,7 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
                                          "pick_and_place_faults.scenario.yaml"),
                                 testAssets()).take();
     EXPECT_EQ(scenario.id, "pick_and_place_faults");
-    EXPECT_EQ(scenario.seed, 7u);
+    EXPECT_EQ(scenario.seed, 7U);
     EXPECT_EQ(scenario.controller.behavior_tree.filename(),
               "pick_and_place.bt.yaml");
     EXPECT_DOUBLE_EQ(scenario.timeout.value(), 60.0);
@@ -59,21 +59,20 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
     robotik::WorldDescription const& world = scenario.world;
     EXPECT_EQ(world.id, "pick_place_cell");
     robotik::EntitySpec const& robot = robotik::firstRobot(world);
-    ASSERT_EQ(robot.sensors.size(), 1u);
+    ASSERT_EQ(robot.sensors.size(), 1U);
     EXPECT_EQ(robot.sensors[0].name, "wrist_camera");
     EXPECT_EQ(robot.sensors[0].camera.parent, "link6");
-    ASSERT_EQ(robot.actuators.size(), 1u);
+    ASSERT_EQ(robot.actuators.size(), 1U);
 
     // The vacuum cup is a tool of its own, with its actuator; four other
     // tools wait in storage.
     robotik::EntitySpec const* tool = robotik::mountedTool(world);
     ASSERT_NE(tool, nullptr);
     EXPECT_EQ(tool->id, "vacuum");
-    ASSERT_EQ(tool->actuators.size(), 1u);
+    ASSERT_EQ(tool->actuators.size(), 1U);
     EXPECT_EQ(tool->actuators[0].type, robotik::ActuatorSpec::Type::Vacuum);
-    EXPECT_EQ(std::count_if(
-                  world.entities.begin(),
-                  world.entities.end(),
+    EXPECT_EQ(std::ranges::count_if(
+                  world.entities,
                   [](robotik::EntitySpec const& p_entity)
                   { return p_entity.type == robotik::EntitySpec::Type::Tool; }),
               5);
@@ -85,9 +84,9 @@ TEST(Scenario, LoadsWorldEntitiesFaultsAndAssertions)
     EXPECT_EQ(robotik::findEntity(world, "box")->shape->type,
               robotik::ShapeSpec::Type::Container);
 
-    ASSERT_EQ(scenario.faults.size(), 3u);
+    ASSERT_EQ(scenario.faults.size(), 3U);
     EXPECT_FALSE(scenario.faults[1].disable);
-    ASSERT_EQ(scenario.assertions.size(), 5u);
+    ASSERT_EQ(scenario.assertions.size(), 5U);
     EXPECT_EQ(scenario.assertions[3].phase, robotik::AssertionPhase::Always);
 }
 
@@ -102,7 +101,7 @@ TEST(Scenario, OverridesChangeTheWorldBeforeItIsRead)
     EXPECT_TRUE(robotik::overrideValue(source, "scenario.seed", robotik::ConfigNode("3")));
     robotik::Scenario const scenario =
         robotik::readScenario(source, testAssets()).take();
-    EXPECT_EQ(scenario.seed, 3u);
+    EXPECT_EQ(scenario.seed, 3U);
     EXPECT_DOUBLE_EQ(robotik::findEntity(scenario.world, "red_cube")->pose.position.x, 0.30);
     EXPECT_DOUBLE_EQ(robotik::firstRobot(scenario.world).sensors[0].camera.noise, 0.05);
     EXPECT_FALSE(robotik::overrideValue(source, "world.entities.nobody.mass", robotik::ConfigNode("1")));

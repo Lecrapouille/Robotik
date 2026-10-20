@@ -64,7 +64,7 @@ void FlyTrace::save(std::filesystem::path const& p_path) const
         file << "],\"a\":[";
         writeAction(file, actions[i]);
         file << "]}";
-        if (i + 1u < count)
+        if (i + 1U < count)
         {
             file << ',';
         }

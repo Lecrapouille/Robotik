@@ -52,7 +52,7 @@ static void writeSpace(std::ostream& p_out, Space const& p_space)
     for (std::size_t i = 0; i < p_space.dimensions.size(); ++i)
     {
         Space::Dimension const& dimension = p_space.dimensions[i];
-        p_out << (i == 0u ? "" : ", ")
+        p_out << (i == 0U ? "" : ", ")
               << "{ \"name\": " << quoted(dimension.name)
               << ", \"low\": " << number(dimension.low)
               << ", \"high\": " << number(dimension.high)
@@ -83,7 +83,7 @@ void writeEpisodeLog(EpisodeLog const& p_log,
     for (std::size_t i = 0; i < p_episodes.size(); ++i)
     {
         Episode const& episode = p_episodes[i];
-        p_out << (i == 0u ? "\n" : ",\n")
+        p_out << (i == 0U ? "\n" : ",\n")
               << "    { \"environment\": " << episode.environment
               << ", \"index\": " << episode.index
               << ", \"seed\": " << episode.seed.value

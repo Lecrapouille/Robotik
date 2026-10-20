@@ -135,7 +135,7 @@ public:
         std::size_t count = 0;
         for (Entry const& entry : m_slots)
         {
-            count += entry.slot ? 1u : 0u;
+            count += entry.slot ? 1U : 0U;
         }
         return count;
     }

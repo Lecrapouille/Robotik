@@ -38,14 +38,14 @@ enum class PixelFormat : std::uint8_t
     switch (p_format)
     {
         case PixelFormat::Gray8:
-            return 1u;
+            return 1U;
         case PixelFormat::RGB8:
-            return 3u;
+            return 3U;
         case PixelFormat::RGBA8:
         case PixelFormat::Depth32F:
-            return 4u;
+            return 4U;
     }
-    return 1u;
+    return 1U;
 }
 
 // ****************************************************************************

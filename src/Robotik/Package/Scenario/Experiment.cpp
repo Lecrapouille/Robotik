@@ -181,10 +181,9 @@ Result<Scenario> scenarioOf(Experiment const& p_experiment,
         scenario.faults.insert(
             scenario.faults.end(), p_case.faults.begin(), p_case.faults.end());
         // The injector expects its plan in time order.
-        std::stable_sort(scenario.faults.begin(),
-                         scenario.faults.end(),
-                         [](Fault const& p_a, Fault const& p_b)
-                         { return p_a.at < p_b.at; });
+        std::ranges::stable_sort(scenario.faults,
+                                 [](Fault const& p_a, Fault const& p_b)
+                                 { return p_a.at < p_b.at; });
         scenario.random_faults.insert(scenario.random_faults.end(),
                                       p_case.random_faults.begin(),
                                       p_case.random_faults.end());

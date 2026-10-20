@@ -31,23 +31,23 @@
 struct FlyObservation
 {
     /// Left eye, 1 when an obstacle touches the eye, 0 at the end of the ray.
-    float visual_left = 0.0f;
+    float visual_left = 0.0F;
     /// Centre eye, same scale as @ref visual_left.
-    float visual_center = 0.0f;
+    float visual_center = 0.0F;
     /// Right eye, same scale as @ref visual_left.
-    float visual_right = 0.0f;
+    float visual_right = 0.0F;
     /// Yaw rate of the thorax (SI: rad/s). Positive yaws left.
-    float angular_velocity = 0.0f;
+    float angular_velocity = 0.0F;
     /// Speed along the heading (SI: m/s).
-    float forward_velocity = 0.0f;
+    float forward_velocity = 0.0F;
     /// Thorax height (SI: m).
-    float altitude = 0.0f;
+    float altitude = 0.0F;
     /// Range of the nearest obstacle along the three rays (SI: m).
-    float distance_to_obstacle = 0.0f;
+    float distance_to_obstacle = 0.0F;
     /// Food direction relative to the heading (SI: rad). Positive is left.
-    float target_bearing = 0.0f;
+    float target_bearing = 0.0F;
     /// Horizontal distance from the thorax to the food (SI: m).
-    float target_distance = 0.0f;
+    float target_distance = 0.0F;
 
     /// Number of floats @ref from and @ref write exchange.
     static constexpr std::size_t SIZE = 9;
@@ -71,11 +71,11 @@ struct FlyObservation
 struct FlyAction
 {
     /// Forward command in [-1, 1]. Positive goes along the heading.
-    float forward = 0.0f;
+    float forward = 0.0F;
     /// Yaw command in [-1, 1]. Positive yaws left.
-    float turn = 0.0f;
+    float turn = 0.0F;
     /// Vertical command in [-1, 1]. Positive climbs. Zero holds altitude.
-    float lift = 0.0f;
+    float lift = 0.0F;
 
     /// Number of floats @ref from and @ref write exchange.
     static constexpr std::size_t SIZE = 3;

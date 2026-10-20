@@ -35,7 +35,7 @@ std::optional<Localization> localize(Detections const& p_detections,
                               camera_in_base_inverse;
             // q and -q are the same rotation: align before summing.
             Quaternion q = base.rotation;
-            if (count == 0u)
+            if (count == 0U)
             {
                 reference = q;
             }
@@ -52,7 +52,7 @@ std::optional<Localization> localize(Detections const& p_detections,
         }
     }
 
-    if (count == 0u)
+    if (count == 0U)
     {
         return std::nullopt;
     }

@@ -78,7 +78,7 @@ blockingResources(robotik::SkillScheduler const& p_skills,
         robotik::OwnerId const owner = p_resources.owner(need.id);
         bool const taken = owner != robotik::NO_OWNER && owner != p_id;
         bool const shared = need.access == robotik::Access::Exclusive &&
-                            p_resources.users(need.id) > 0u;
+                            p_resources.users(need.id) > 0U;
         if (!taken && !shared)
         {
             continue;
@@ -98,11 +98,10 @@ inline std::string formatHeld(std::vector<HeldResource> const& p_held)
         return {};
     }
     std::string const& holder = p_held.front().holder;
-    bool const same =
-        std::all_of(p_held.begin(),
-                    p_held.end(),
-                    [&](HeldResource const& p_item)
-                    { return !p_item.unavailable && p_item.holder == holder; });
+    bool const same = std::ranges::all_of(
+        p_held,
+        [&](HeldResource const& p_item)
+        { return !p_item.unavailable && p_item.holder == holder; });
     std::string text;
     if (same)
     {

@@ -57,13 +57,13 @@ void ShiuNetwork::addSynapse(std::uint32_t p_pre,
     m_pending_pre.push_back(p_pre);
     m_pending_post.push_back(p_post);
     m_pending_count.push_back(p_count);
-    m_count = std::max(m_count, std::max(p_pre, p_post) + 1u);
+    m_count = std::max(m_count, std::max(p_pre, p_post) + 1U);
     m_built = false;
 }
 
 void ShiuNetwork::addDrive(std::uint32_t p_neuron)
 {
-    m_count = std::max(m_count, p_neuron + 1u);
+    m_count = std::max(m_count, p_neuron + 1U);
     m_drives.push_back(p_neuron);
     if (p_neuron < m_drive.size())
     {
@@ -73,7 +73,7 @@ void ShiuNetwork::addDrive(std::uint32_t p_neuron)
 
 void ShiuNetwork::silence(std::uint32_t p_neuron)
 {
-    m_count = std::max(m_count, p_neuron + 1u);
+    m_count = std::max(m_count, p_neuron + 1U);
     if (m_silent.size() < m_count)
     {
         m_silent.resize(m_count, 0);
@@ -84,17 +84,17 @@ void ShiuNetwork::silence(std::uint32_t p_neuron)
 void ShiuNetwork::build()
 {
     // Histogram of outgoing edges, then the exclusive prefix that is the CSR.
-    m_row.assign(static_cast<std::size_t>(m_count) + 1u, 0u);
+    m_row.assign(static_cast<std::size_t>(m_count) + 1U, 0U);
     for (std::uint32_t pre : m_pending_pre)
     {
-        ++m_row[static_cast<std::size_t>(pre) + 1u];
+        ++m_row[static_cast<std::size_t>(pre) + 1U];
     }
     for (std::uint32_t neuron = 0; neuron < m_count; ++neuron)
     {
-        m_row[neuron + 1u] += m_row[neuron];
+        m_row[neuron + 1U] += m_row[neuron];
     }
-    m_column.assign(m_pending_pre.size(), 0u);
-    m_weight.assign(m_pending_pre.size(), 0.0f);
+    m_column.assign(m_pending_pre.size(), 0U);
+    m_weight.assign(m_pending_pre.size(), 0.0F);
     std::vector<std::uint32_t> cursor(m_row.begin(), m_row.end() - 1);
 
     // Turn the queued edges into a CSR matrix.
@@ -107,9 +107,9 @@ void ShiuNetwork::build()
 
     // Allocate the state at rest.
     m_voltage.assign(m_count, static_cast<float>(V_REST_MV));
-    m_conductance.assign(m_count, 0.0f);
-    m_refractory.assign(m_count, 0.0f);
-    m_rate.assign(m_count, 0.0f);
+    m_conductance.assign(m_count, 0.0F);
+    m_refractory.assign(m_count, 0.0F);
+    m_rate.assign(m_count, 0.0F);
     m_drive.assign(m_count, 0);
 
     // Set the drives and the silent cells.
@@ -129,13 +129,13 @@ void ShiuNetwork::build()
 
     // One slot per substep of the delay, plus the slot being delivered now.
     // The touch lists name the few cells a slot actually hits.
-    m_ring.assign(static_cast<std::size_t>(RING) * m_count, 0.0f);
+    m_ring.assign(static_cast<std::size_t>(RING) * m_count, 0.0F);
     m_dirty.assign(RING, 0);
     m_touch.assign(RING, {});
-    m_listed.assign(m_count, 0u);
+    m_listed.assign(m_count, 0U);
     m_awake.clear();
     m_awake_mark.assign(m_count, 0);
-    m_spikes.assign(m_count, 0u);
+    m_spikes.assign(m_count, 0U);
     m_fired.clear();
     m_residual = 0.0;
     m_step = 0;
@@ -149,14 +149,13 @@ void ShiuNetwork::reset(robotik::Seed p_seed)
         build();
     }
 
-    std::fill(
-        m_voltage.begin(), m_voltage.end(), static_cast<float>(V_REST_MV));
-    std::fill(m_conductance.begin(), m_conductance.end(), 0.0f);
-    std::fill(m_refractory.begin(), m_refractory.end(), 0.0f);
-    std::fill(m_rate.begin(), m_rate.end(), 0.0f);
-    std::fill(m_ring.begin(), m_ring.end(), 0.0f);
-    std::fill(m_dirty.begin(), m_dirty.end(), 0);
-    std::fill(m_spikes.begin(), m_spikes.end(), 0u);
+    std::ranges::fill(m_voltage, static_cast<float>(V_REST_MV));
+    std::ranges::fill(m_conductance, 0.0F);
+    std::ranges::fill(m_refractory, 0.0F);
+    std::ranges::fill(m_rate, 0.0F);
+    std::ranges::fill(m_ring, 0.0F);
+    std::ranges::fill(m_dirty, 0);
+    std::ranges::fill(m_spikes, 0U);
     for (std::uint32_t neuron : m_awake)
     {
         if (neuron < m_awake_mark.size())
@@ -169,7 +168,7 @@ void ShiuNetwork::reset(robotik::Seed p_seed)
     {
         touch.clear();
     }
-    std::fill(m_listed.begin(), m_listed.end(), 0u);
+    std::ranges::fill(m_listed, 0U);
 
     m_residual = 0.0;
     m_step = 0;
@@ -186,7 +185,7 @@ void ShiuNetwork::setRate(std::uint32_t p_neuron, double p_hertz)
 
 void ShiuNetwork::clearSpikes()
 {
-    std::fill(m_spikes.begin(), m_spikes.end(), 0u);
+    std::ranges::fill(m_spikes, 0U);
 }
 
 void ShiuNetwork::step(double p_dt)
@@ -226,9 +225,9 @@ void ShiuNetwork::substep()
         for (std::uint32_t neuron : m_touch[slot])
         {
             float const kick = incoming[neuron];
-            incoming[neuron] = 0.0f;
+            incoming[neuron] = 0.0F;
             if (m_silent[neuron] != 0 ||
-                std::bit_cast<std::uint32_t>(kick) == 0u)
+                std::bit_cast<std::uint32_t>(kick) == 0U)
             {
                 continue;
             }
@@ -275,15 +274,15 @@ void ShiuNetwork::substep()
         {
             active = false;
         }
-        else if (m_refractory[neuron] > 0.0f)
+        else if (m_refractory[neuron] > 0.0F)
         {
             // The kick delivered above waits out the refractory period.
             m_refractory[neuron] -= static_cast<float>(SUBSTEP_MS);
-            if (m_refractory[neuron] <= 0.0f)
+            if (m_refractory[neuron] <= 0.0F)
             {
-                m_refractory[neuron] = 0.0f;
+                m_refractory[neuron] = 0.0F;
                 active =
-                    std::bit_cast<std::uint32_t>(m_conductance[neuron]) != 0u ||
+                    std::bit_cast<std::uint32_t>(m_conductance[neuron]) != 0U ||
                     std::bit_cast<std::uint32_t>(m_voltage[neuron]) !=
                         rest_bits;
             }
@@ -300,10 +299,10 @@ void ShiuNetwork::substep()
                 static_cast<float>(static_cast<double>(conductance) * decay_g);
 
             // Close enough to rest that the next substep can skip the cell.
-            if (std::fabs(m_conductance[neuron]) < 1.0e-5f &&
-                std::fabs(m_voltage[neuron] - rest) < 1.0e-4f)
+            if (std::fabs(m_conductance[neuron]) < 1.0e-5F &&
+                std::fabs(m_voltage[neuron] - rest) < 1.0e-4F)
             {
-                m_conductance[neuron] = 0.0f;
+                m_conductance[neuron] = 0.0F;
                 m_voltage[neuron] = rest;
                 active = false;
             }
@@ -313,7 +312,7 @@ void ShiuNetwork::substep()
             if (m_voltage[neuron] >= static_cast<float>(V_THRESHOLD_MV))
             {
                 m_voltage[neuron] = static_cast<float>(V_RESET_MV);
-                m_conductance[neuron] = 0.0f;
+                m_conductance[neuron] = 0.0F;
                 if (m_drive[neuron] == 0)
                 {
                     m_refractory[neuron] = static_cast<float>(T_REFRACTORY_MS);
@@ -352,7 +351,7 @@ void ShiuNetwork::substep()
             m_step + static_cast<std::uint32_t>(DELAY_STEPS);
         for (std::uint32_t neuron : m_fired)
         {
-            for (std::uint32_t edge = m_row[neuron]; edge < m_row[neuron + 1u];
+            for (std::uint32_t edge = m_row[neuron]; edge < m_row[neuron + 1U];
                  ++edge)
             {
                 std::uint32_t const post = m_column[edge];

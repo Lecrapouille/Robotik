@@ -22,16 +22,16 @@ namespace dual_arm
 {
 
 /// Height of the cup over a part before and after the grasp (m).
-static constexpr double kHover = 0.08;
+static constexpr double HOVER = 0.08;
 /// Height of the cup over a part to grasp it: the cup takes it within 2 cm,
 /// and a lower cup would push the part through the floor of its tray.
-static constexpr double kContact = 0.012;
+static constexpr double CONTACT = 0.012;
 /// Height of the cup over the walls of a bin when it drops a part (m).
-static constexpr double kOverBin = 0.12;
+static constexpr double OVER_BIN = 0.12;
 /// Height of a part (m): an arm waits over its pick zone at the height it
-/// takes the next part from, kHover above its top.
-static constexpr double kPartHeight = 0.04;
-static constexpr int kPriority = 100;
+/// takes the next part from, HOVER above its top.
+static constexpr double PART_HEIGHT = 0.04;
+static constexpr int PRIORITY = 100;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
 static robotik::SkillDescription
@@ -43,7 +43,7 @@ describe(std::string p_name,
     description.name = std::move(p_name);
     description.robot = std::move(p_robot);
     description.resources = std::move(p_resources);
-    description.priority = kPriority;
+    description.priority = PRIORITY;
     return description;
 }
 
@@ -127,10 +127,10 @@ void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
     {
         skills.add<HoverSkill>(describe(scope + "Hover(" + part + ")", id, arm),
                                part,
-                               robotik::Length(kHover));
+                               robotik::Length(HOVER));
         skills.add<HoverSkill>(describe(scope + "Reach(" + part + ")", id, arm),
                                part,
-                               robotik::Length(kContact));
+                               robotik::Length(CONTACT));
         robotik::SkillDescription grasp =
             describe(scope + "Grasp(" + part + ")", id, cup);
         grasp.wait = false;
@@ -140,14 +140,14 @@ void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
     {
         skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm),
                                bin,
-                               robotik::Length(kOverBin));
+                               robotik::Length(OVER_BIN));
     }
     // Back over a pick zone, where the next part arrives.
     for (std::string const& zone : m_zones)
     {
         skills.add<HoverSkill>(describe(scope + "Ready(" + zone + ")", id, arm),
                                zone,
-                               robotik::Length(kPartHeight + kHover));
+                               robotik::Length(PART_HEIGHT + HOVER));
     }
 }
 
@@ -272,12 +272,12 @@ void ConveyorMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
         std::string const& robot = skills.description(id).robot;
         if (!robot.empty() &&
             skills.state(id) == robotik::SkillState::Running &&
-            std::find(busy.begin(), busy.end(), robot) == busy.end())
+            std::ranges::find(busy, robot) == busy.end())
         {
             busy.push_back(robot);
         }
     }
-    if (busy.size() >= 2u && !p_cell.controllerStopped())
+    if (busy.size() >= 2U && !p_cell.controllerStopped())
     {
         m_overlap += p_dt.value();
     }

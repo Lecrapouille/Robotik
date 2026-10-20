@@ -86,12 +86,12 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
         nullptr,
         &mission);
     ASSERT_NE(simulation.cell().planner(), nullptr);
-    EXPECT_EQ(simulation.cell().planner()->objects().size(), 2u);
+    EXPECT_EQ(simulation.cell().planner()->objects().size(), 2U);
 
     PlannedRun const first = run(simulation, robotik::Seed{ 42 }, 60.0);
     EXPECT_EQ(first.outcome, robotik::Simulation::Outcome::ControllerSucceeded);
     EXPECT_TRUE(first.passed);
-    ASSERT_EQ(first.plans.size(), 1u);
+    ASSERT_EQ(first.plans.size(), 1U);
     EXPECT_EQ(first.causes[0], "start");
     EXPECT_NE(first.plans[0].find("(pick red_cube)"), std::string::npos)
         << first.plans[0];
@@ -126,12 +126,12 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     EXPECT_EQ(result.outcome,
               robotik::Simulation::Outcome::ControllerSucceeded);
     EXPECT_TRUE(result.passed);
-    ASSERT_GE(result.plans.size(), 2u);
+    ASSERT_GE(result.plans.size(), 2U);
     EXPECT_NE(result.causes[1].find("Detect(red_cube)"), std::string::npos)
         << result.causes[1];
     EXPECT_NE(result.causes[1].find("unavailable"), std::string::npos)
         << result.causes[1];
-    EXPECT_GE(simulation.cell().planner()->replans(), 1u);
+    EXPECT_GE(simulation.cell().planner()->replans(), 1U);
 
     // --report: the plans and the replans are in the run record.
     robotik::RunRecord const record =
@@ -162,7 +162,7 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     EXPECT_EQ(result.outcome,
               robotik::Simulation::Outcome::ControllerSucceeded);
     EXPECT_TRUE(result.passed);
-    ASSERT_EQ(result.plans.size(), 1u);
+    ASSERT_EQ(result.plans.size(), 1U);
     std::string const& plan = result.plans[0];
     std::size_t const red = plan.find("(mark red)");
     std::size_t const black = plan.find("(mark black)");
@@ -173,7 +173,7 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     EXPECT_LT(black, blue) << plan;
     EXPECT_LT(blue, gold) << plan;
     // Four dips, each followed by a rinse: the goal wants a clean brush.
-    EXPECT_EQ(simulation.cell().planner()->plan().size(), 12u) << plan;
+    EXPECT_EQ(simulation.cell().planner()->plan().size(), 12U) << plan;
 }
 
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)

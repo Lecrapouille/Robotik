@@ -51,10 +51,10 @@ TEST(Experiment, ReadsCasesSeedsAndEvaluation)
         repoFile("plugins/Painter/scenarios/painter.scenario.yaml")));
     robotik::Experiment const experiment = robotik::loadExperiment(file).take();
     EXPECT_EQ(experiment.id, "painter_experiment");
-    EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7u, 8u }));
-    ASSERT_EQ(experiment.cases.size(), 3u);
-    EXPECT_EQ(experiment.cases[1].overrides.size(), 2u);
-    EXPECT_EQ(experiment.metrics.size(), 6u);
+    EXPECT_EQ(experiment.seeds, (std::vector<std::uint64_t>{ 7U, 8U }));
+    ASSERT_EQ(experiment.cases.size(), 3U);
+    EXPECT_EQ(experiment.cases[1].overrides.size(), 2U);
+    EXPECT_EQ(experiment.metrics.size(), 6U);
 }
 
 TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
@@ -74,10 +74,10 @@ TEST(Experiment, CaseAppliesOverridesFaultsAndAssertions)
         "plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml")).take();
     robotik::Scenario const camera =
         robotik::scenarioOf(picking, find(picking, "camera_down_at_start"), testAssets()).take();
-    ASSERT_EQ(camera.faults.size(), 2u);
+    ASSERT_EQ(camera.faults.size(), 2U);
     EXPECT_TRUE(camera.faults[0].disable);
     EXPECT_DOUBLE_EQ(camera.faults[1].at.value(), 1.5);
-    EXPECT_EQ(camera.assertions.size(), 6u);
+    EXPECT_EQ(camera.assertions.size(), 6U);
     EXPECT_EQ(camera.assertions.back().phase, robotik::AssertionPhase::Always);
     robotik::Scenario const wide =
         robotik::scenarioOf(picking, find(picking, "wide_layout"), testAssets()).take();
@@ -168,13 +168,13 @@ TEST(Trajectory, ReadsCartesianAndJointPaths)
         "plugins/Painter/scenarios/trajectories/red_stroke.trajectory.yaml")).take();
     EXPECT_EQ(stroke.type, robotik::Trajectory::Type::Cartesian);
     EXPECT_EQ(stroke.frame, "easel.canvas_mount");
-    ASSERT_EQ(stroke.poses.size(), 5u);
+    ASSERT_EQ(stroke.poses.size(), 5U);
     EXPECT_DOUBLE_EQ(stroke.poses[1].position.x, 0.08);
 
     robotik::Trajectory const joints = robotik::loadTrajectory(
         repoFile("tests/Scenario/fixtures/joint_path.trajectory.yaml")).take();
     EXPECT_EQ(joints.type, robotik::Trajectory::Type::Joint);
-    ASSERT_EQ(joints.configurations.size(), 2u);
+    ASSERT_EQ(joints.configurations.size(), 2U);
     EXPECT_DOUBLE_EQ(joints.configurations[1][0], 0.5);
 
     EXPECT_FALSE(robotik::loadTrajectory(repoFile(

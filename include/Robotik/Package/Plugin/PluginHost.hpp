@@ -142,7 +142,7 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] bool subscribed(std::uint32_t p_kind) const
     {
-        return m_subscriptions.find(p_kind) != m_subscriptions.end();
+        return m_subscriptions.contains(p_kind);
     }
 
     // -------------------------------------------------------------------------

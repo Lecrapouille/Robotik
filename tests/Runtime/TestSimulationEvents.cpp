@@ -29,7 +29,7 @@ TEST(SimulationEvents, ToldWhenSkillsEndAndAssertionsChange)
         nullptr,
         &mission);
 
-    std::map<std::string, robotik::SkillState> skills;
+    std::map<std::string, robotik::SkillState, std::less<>> skills;
     simulation.cell().skills().changed.connect(
         [&](robotik::SkillId p_id, robotik::SkillState p_state)
         { skills[simulation.cell().skills().name(p_id)] = p_state; });

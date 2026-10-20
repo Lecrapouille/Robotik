@@ -28,14 +28,14 @@ namespace robotik
 /// Index of a resource in its @ref ResourceManager.
 using ResourceId = std::uint16_t;
 /// No resource (e.g. not found, no conflict).
-inline constexpr ResourceId NO_RESOURCE = 0xFFFFu;
+inline constexpr ResourceId NO_RESOURCE = 0xFFFFU;
 
 /// Identifies who holds a lease (a skill id, or any user number).
 using OwnerId = std::uint32_t;
 /// No owner.
-inline constexpr OwnerId NO_OWNER = 0xFFFFFFFFu;
+inline constexpr OwnerId NO_OWNER = 0xFFFFFFFFU;
 /// Owner of a lease taken outside the scheduler.
-inline constexpr OwnerId ANONYMOUS = 0xFFFFFFFEu;
+inline constexpr OwnerId ANONYMOUS = 0xFFFFFFFEU;
 
 // ****************************************************************************
 /// Access mode of a reservation.
@@ -111,7 +111,7 @@ class ResourceLease
 public:
 
     /// Largest number of resources in one lease.
-    static constexpr std::size_t CAPACITY = 8u;
+    static constexpr std::size_t CAPACITY = 8U;
 
     /// Empty lease (holds nothing).
     ResourceLease() = default;
@@ -237,7 +237,7 @@ public:
     /// @return False when resource @p_id failed or is unknown.
     [[nodiscard]] bool available(ResourceId p_id) const
     {
-        return p_id < m_failed.size() && m_failed[p_id] == 0u;
+        return p_id < m_failed.size() && m_failed[p_id] == 0U;
     }
 
     /// @return False when resource @p_name failed or is unknown.

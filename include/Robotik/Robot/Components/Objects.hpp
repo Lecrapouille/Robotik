@@ -57,7 +57,7 @@ struct Shape
     /// Full extents (SI: m) along X, Y, Z.
     std::array<Length, 3> size{ Length(0.04), Length(0.04), Length(0.04) };
     /// RGB color in @c [0, 1] for rendering and color detection.
-    std::array<float, 3> color{ 0.8f, 0.8f, 0.8f };
+    std::array<float, 3> color{ 0.8F, 0.8F, 0.8F };
 };
 
 // ****************************************************************************

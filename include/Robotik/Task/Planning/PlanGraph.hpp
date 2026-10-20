@@ -75,7 +75,7 @@ struct StepFootprint
 struct PlanEvent
 {
     /// Index of the step in the plan.
-    std::size_t step = 0u;
+    std::size_t step = 0U;
     /// True for the end of the step, false for its start.
     bool end = false;
 

@@ -21,12 +21,12 @@ namespace robotik
 static void
 copyName(char* p_dest, std::size_t p_capacity, std::string_view p_value)
 {
-    if (p_dest == nullptr || p_capacity == 0u)
+    if (p_dest == nullptr || p_capacity == 0U)
     {
         return;
     }
-    std::size_t const count = std::min(p_value.size(), p_capacity - 1u);
-    if (count > 0u)
+    std::size_t const count = std::min(p_value.size(), p_capacity - 1U);
+    if (count > 0U)
     {
         std::memcpy(p_dest, p_value.data(), count);
     }
@@ -308,24 +308,24 @@ void PluginSession::emitRuntimeEvents()
     std::vector<Check> const& checks = m_simulation->checks();
     if (m_checks.size() != checks.size())
     {
-        m_checks.assign(checks.size(), 2u);
+        m_checks.assign(checks.size(), 2U);
         for (std::size_t i = 0; i < checks.size(); ++i)
         {
             m_pending_checks.emplace_back(i, ok(checks[i]));
         }
     }
-    std::vector<std::uint8_t> latest(checks.size(), 2u);
+    std::vector<std::uint8_t> latest(checks.size(), 2U);
     for (auto const& [index, green] : m_pending_checks)
     {
         if (index < latest.size())
         {
-            latest[index] = green ? 1u : 0u;
+            latest[index] = green ? 1U : 0U;
         }
     }
     m_pending_checks.clear();
     for (std::size_t i = 0; i < checks.size(); ++i)
     {
-        if (latest[i] != 2u && latest[i] != m_checks[i])
+        if (latest[i] != 2U && latest[i] != m_checks[i])
         {
             m_checks[i] = latest[i];
             publishKind(ROBOTIK_EVENT_ASSERTION_CHANGED,

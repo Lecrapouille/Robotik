@@ -17,10 +17,9 @@ FaultInjector::FaultInjector(std::vector<Fault> p_scheduled,
                              std::vector<RandomFault> p_random)
     : m_scheduled(std::move(p_scheduled)), m_random_faults(std::move(p_random))
 {
-    std::stable_sort(m_scheduled.begin(),
-                     m_scheduled.end(),
-                     [](Fault const& p_a, Fault const& p_b)
-                     { return p_a.at < p_b.at; });
+    std::ranges::stable_sort(m_scheduled,
+                             [](Fault const& p_a, Fault const& p_b)
+                             { return p_a.at < p_b.at; });
 }
 
 void FaultInjector::reset(Seed p_seed)

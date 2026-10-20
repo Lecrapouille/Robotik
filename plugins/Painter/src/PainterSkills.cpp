@@ -216,14 +216,14 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
     if (!m_ready)
     {
         auto const stroke = m_strokes.find(m_color);
-        if (stroke == m_strokes.end() || stroke->second.size() < 3u)
+        if (stroke == m_strokes.end() || stroke->second.size() < 3U)
         {
             return robotik::Status::FAILURE;
         }
         // Straight lines in Cartesian space: cut each segment into small
         // steps, each one solved by IK.
         std::vector<robotik::Pose> const& points = stroke->second;
-        m_path.assign(1u, points.front());
+        m_path.assign(1U, points.front());
         for (std::size_t i = 1; i < points.size(); ++i)
         {
             robotik::Vector3 const from = points[i - 1].position;
@@ -231,10 +231,10 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
             double const length = (to - from).norm();
             std::size_t const steps =
                 m_settings.step > 0.0
-                    ? std::max<std::size_t>(1u,
+                    ? std::max<std::size_t>(1U,
                                             static_cast<std::size_t>(std::ceil(
                                                 length / m_settings.step)))
-                    : 1u;
+                    : 1U;
             for (std::size_t k = 1; k <= steps; ++k)
             {
                 double const t =
@@ -242,13 +242,13 @@ robotik::Status MarkSkill::tick(robotik::RobotContext& p_context,
                 m_path.push_back(robotik::Pose{ from + (to - from) * t,
                                                 points[i].rotation });
             }
-            if (i == 1u)
+            if (i == 1U)
             {
                 m_paint_begin = m_path.size() - steps;
             }
-            if (i + 2u == points.size())
+            if (i + 2U == points.size())
             {
-                m_paint_end = m_path.size() - 1u;
+                m_paint_end = m_path.size() - 1U;
             }
         }
         m_move =
@@ -304,13 +304,13 @@ robotik::Status RinseSkill::tick(robotik::RobotContext& p_context,
         double const y = water->position.y;
         double const wet = top(*water) - 0.01;
         m_path.push_back({ { x, y, top(*water) + 0.18 }, down });
-        constexpr int kSteps = 8;
+        constexpr int STEPS = 8;
         for (int turn = 0; turn < 2; ++turn)
         {
-            for (int i = 0; i < kSteps; ++i)
+            for (int i = 0; i < STEPS; ++i)
             {
                 double const angle =
-                    (turn * kSteps + i) * (2.0 * std::numbers::pi / kSteps);
+                    (turn * STEPS + i) * (2.0 * std::numbers::pi / STEPS);
                 m_path.push_back({ { x + 0.02 * std::cos(angle),
                                      y + 0.02 * std::sin(angle),
                                      wet },

@@ -14,9 +14,9 @@
 #include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Task/Cell.hpp"
 
-static constexpr double kApproachClearance = 0.10;
-static constexpr double kTransitClearance = 0.22;
-static constexpr int kSkillPriority = 100;
+static constexpr double APPROACH_CLEARANCE = 0.10;
+static constexpr double TRANSIT_CLEARANCE = 0.22;
+static constexpr int SKILL_PRIORITY = 100;
 
 void PickPlaceMission::setup(robotik::Cell& p_cell,
                              robotik::SceneView* /*p_view*/)
@@ -73,7 +73,7 @@ void PickPlaceMission::setup(robotik::Cell& p_cell,
         robotik::SkillDescription description;
         description.name = std::move(p_name);
         description.resources = std::move(p_resources);
-        description.priority = kSkillPriority;
+        description.priority = SKILL_PRIORITY;
         return description;
     };
 
@@ -88,7 +88,7 @@ void PickPlaceMission::setup(robotik::Cell& p_cell,
         skills.add<robotik::ApproachSkill>(
             describe("Approach(" + name + ")", arm),
             name,
-            robotik::Length(kApproachClearance));
+            robotik::Length(APPROACH_CLEARANCE));
         skills.add<robotik::ApproachSkill>(
             describe("Reach(" + name + ")", arm), name, robotik::Length{});
 
@@ -109,7 +109,7 @@ void PickPlaceMission::setup(robotik::Cell& p_cell,
             skills.add<robotik::ApproachSkill>(
                 describe("Transit(" + name + ")", arm),
                 name,
-                robotik::Length(kTransitClearance));
+                robotik::Length(TRANSIT_CLEARANCE));
         }
     }
 

@@ -72,7 +72,7 @@ static std::string save(robotik::PlanExecutor const& p_executor,
     std::ofstream(p_folder / p_executor.spec().domain.filename())
         << p_executor.domain();
     std::vector<robotik::PlanningRecord> const& history = p_executor.history();
-    for (std::size_t i = 0u; i < history.size(); ++i)
+    for (std::size_t i = 0U; i < history.size(); ++i)
     {
         std::string const n = std::to_string(i);
         std::ofstream(p_folder / ("problem_" + n + ".pddl"))
@@ -114,7 +114,7 @@ static std::size_t shownRecord(App& p_app,
     {
         picked = -1;
     }
-    return picked < 0 ? count - 1u : static_cast<std::size_t>(picked);
+    return picked < 0 ? count - 1U : static_cast<std::size_t>(picked);
 }
 
 /// Placeholder when the scenario has no PDDL planner.
@@ -135,7 +135,7 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
         goal += (goal.empty() ? "" : ", ") + robotik::toString(literal);
     }
     ImGui::TextDisabled("GOAL");
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.2f);
+    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.2F);
     ImGui::TextWrapped("%s", goal.c_str());
     ImGui::PopFont();
 
@@ -143,15 +143,15 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     ImGui::SameLine();
     std::size_t const steps = p_executor.plan().size();
     float const progress =
-        steps == 0u
-            ? (p_executor.state() == robotik::PlanState::Succeeded ? 1.0f
-                                                                   : 0.0f)
+        steps == 0U
+            ? (p_executor.state() == robotik::PlanState::Succeeded ? 1.0F
+                                                                   : 0.0F)
             : static_cast<float>(p_executor.done()) / static_cast<float>(steps);
     char overlay[48];
     std::snprintf(
         overlay, sizeof overlay, "step %zu / %zu", p_executor.done(), steps);
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, colorOf(p_executor.state()));
-    ImGui::ProgressBar(progress, ImVec2(160.0f, 0.0f), overlay);
+    ImGui::ProgressBar(progress, ImVec2(160.0F, 0.0F), overlay);
     ImGui::PopStyleColor();
     ImGui::SameLine();
     ImGui::TextDisabled(
@@ -194,9 +194,9 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
         return;
     }
     ImGui::TableSetupColumn("##state", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-    ImGui::TableSetupColumn("Skills", ImGuiTableColumnFlags_WidthStretch, 1.4f);
-    for (std::size_t i = 0u; i < plan.size(); ++i)
+    ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthStretch, 1.0F);
+    ImGui::TableSetupColumn("Skills", ImGuiTableColumnFlags_WidthStretch, 1.4F);
+    for (std::size_t i = 0U; i < plan.size(); ++i)
     {
         robotik::StepStatus const status = i < p_executor.steps().size()
                                                ? p_executor.steps()[i]
@@ -206,7 +206,7 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
         if (current)
         {
             ImVec4 highlight = BLUE;
-            highlight.w = 0.25f;
+            highlight.w = 0.25F;
             ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1,
                                    ImGui::GetColorU32(highlight));
         }
@@ -214,25 +214,25 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
         switch (status)
         {
             case robotik::StepStatus::Done:
-                ImGui::TextColored(GREEN, "%2zu  done", i + 1u);
+                ImGui::TextColored(GREEN, "%2zu  done", i + 1U);
                 break;
             case robotik::StepStatus::Skipped:
-                ImGui::TextColored(GREEN, "%2zu  skip", i + 1u);
+                ImGui::TextColored(GREEN, "%2zu  skip", i + 1U);
                 ImGui::SetItemTooltip(
                     "Its effects already held in the beliefs: nothing to do");
                 break;
             case robotik::StepStatus::Failed:
-                ImGui::TextColored(RED, "%2zu  FAIL", i + 1u);
+                ImGui::TextColored(RED, "%2zu  FAIL", i + 1U);
                 ImGui::SetItemTooltip("%s", p_executor.failure().c_str());
                 break;
             case robotik::StepStatus::Pending:
                 if (current)
                 {
-                    ImGui::TextColored(BLUE, "%2zu  now", i + 1u);
+                    ImGui::TextColored(BLUE, "%2zu  now", i + 1U);
                 }
                 else
                 {
-                    ImGui::TextDisabled("%2zu", i + 1u);
+                    ImGui::TextDisabled("%2zu", i + 1U);
                 }
                 if (i < p_executor.after().size() &&
                     !p_executor.after()[i].empty())
@@ -240,7 +240,7 @@ static void planSteps(robotik::PlanExecutor const& p_executor)
                     std::string after = "Waits for step";
                     for (std::size_t const step : p_executor.after()[i])
                     {
-                        after += " " + std::to_string(step + 1u);
+                        after += " " + std::to_string(step + 1U);
                     }
                     ImGui::SetItemTooltip("%s", after.c_str());
                 }
@@ -296,7 +296,7 @@ static void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
     ImGui::TableSetupColumn("Result", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn("Search", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableHeadersRow();
-    for (std::size_t i = 0u; i < history.size(); ++i)
+    for (std::size_t i = 0U; i < history.size(); ++i)
     {
         robotik::PlanningRecord const& record = history[i];
         ImGui::TableNextRow();
@@ -307,7 +307,7 @@ static void historyTable(App& p_app, robotik::PlanExecutor const& p_executor)
                 label, i == shown, ImGuiSelectableFlags_SpanAllColumns))
         {
             p_app.ui.planner_record =
-                i + 1u == history.size() ? -1 : static_cast<int>(i);
+                i + 1U == history.size() ? -1 : static_cast<int>(i);
         }
         ImGui::SetItemTooltip(
             "Pick this plan for Files > Planner (problem, output, tree)");
@@ -450,10 +450,10 @@ void plannerTexts(App& p_app)
                       record->cause.c_str(),
                       p_app.ui.planner_record < 0 ? "  last" : "");
         ImGui::SetNextItemWidth(
-            std::max(ImGui::GetContentRegionAvail().x - 110.0f, 120.0f));
+            std::max(ImGui::GetContentRegionAvail().x - 110.0F, 120.0F));
         if (ImGui::BeginCombo("##record", preview))
         {
-            for (std::size_t i = 0u; i < history.size(); ++i)
+            for (std::size_t i = 0U; i < history.size(); ++i)
             {
                 char item[160];
                 std::snprintf(item,
@@ -465,7 +465,7 @@ void plannerTexts(App& p_app)
                 if (ImGui::Selectable(item, i == index))
                 {
                     p_app.ui.planner_record =
-                        i + 1u == history.size() ? -1 : static_cast<int>(i);
+                        i + 1U == history.size() ? -1 : static_cast<int>(i);
                 }
             }
             ImGui::EndCombo();

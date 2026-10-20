@@ -119,7 +119,7 @@ TEST_F(SchedulerTest, RunsUntilSuccessAndReleases)
     update(2);
     EXPECT_EQ(skills.state(id), SkillState::Succeeded);
     EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
-    ASSERT_EQ(skills.trace().size(), 1u);
+    ASSERT_EQ(skills.trace().size(), 1U);
     EXPECT_EQ(skills.trace()[0].state, SkillState::Succeeded);
 }
 

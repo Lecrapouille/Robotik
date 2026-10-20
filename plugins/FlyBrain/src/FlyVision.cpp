@@ -105,7 +105,7 @@ static float channel(double p_distance, double p_range)
 {
     if (p_distance > p_range)
     {
-        return 0.0f;
+        return 0.0F;
     }
     return static_cast<float>(1.0 - p_distance / p_range);
 }
@@ -153,7 +153,7 @@ FlyVision senseFly(FlyPlant const& p_plant,
         if (p_noise != nullptr && p_sigma > 0.0)
         {
             value += static_cast<float>(p_noise->normal(0.0, p_sigma));
-            value = std::clamp(value, 0.0f, 1.0f);
+            value = std::clamp(value, 0.0F, 1.0F);
         }
 
         // Write the value to the appropriate channel.

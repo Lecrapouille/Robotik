@@ -41,7 +41,7 @@ public:
 
     [[nodiscard]] robotik::Space space() const override
     {
-        return robotik::Space::unnamed("a", 4u);
+        return robotik::Space::unnamed("a", 4U);
     }
 
     void apply(std::span<float const> /*p_action*/,
@@ -84,7 +84,7 @@ TEST(SimulationEnvironment, ResetReplaysAndSeedsDiffer)
     std::vector<float> first(environment.observationSize());
     std::vector<float> again(environment.observationSize());
     std::vector<float> other(environment.observationSize());
-    std::vector<float> const action{ 0.5f, -0.5f, 0.0f, -1.0f };
+    std::vector<float> const action{ 0.5F, -0.5F, 0.0F, -1.0F };
     environment.reset(robotik::Seed{ 5 }, first);
     (void)environment.step(action, first);
     environment.reset(robotik::Seed{ 5 }, again);
@@ -99,7 +99,7 @@ TEST(SimulationEnvironment, TimeLimitTruncatesWithoutEndingTheTask)
     robotik::SimulationEnvironment environment(
         scenario(), pickPlaceParts(), timing(3));
     std::vector<float> observation(environment.observationSize());
-    std::vector<float> const still(environment.actionSize(), 0.0f);
+    std::vector<float> const still(environment.actionSize(), 0.0F);
     environment.reset(robotik::Seed{ 1 }, observation);
     robotik::StepResult result;
     for (int i = 0; i < 3; ++i)
@@ -109,7 +109,7 @@ TEST(SimulationEnvironment, TimeLimitTruncatesWithoutEndingTheTask)
     EXPECT_EQ(result.end, robotik::EpisodeEnd::TimeLimit);
     EXPECT_TRUE(truncated(result));
     EXPECT_FALSE(terminated(result));
-    EXPECT_FLOAT_EQ(observation[14], 1.0f) << "progress";
+    EXPECT_FLOAT_EQ(observation[14], 1.0F) << "progress";
     EXPECT_NEAR(environment.simulation().time().value(), 0.3, 1e-9)
         << "three control periods";
 }
@@ -121,7 +121,7 @@ TEST(SimulationEnvironment, ATechnicalErrorAbortsTheEpisode)
     robotik::SimulationEnvironment environment(
         scenario(), std::move(parts), timing(20));
     std::vector<float> observation(environment.observationSize());
-    std::vector<float> const action(environment.actionSize(), 0.0f);
+    std::vector<float> const action(environment.actionSize(), 0.0F);
     environment.reset(robotik::Seed{ 1 }, observation);
     EXPECT_EQ(environment.step(action, observation).end,
               robotik::EpisodeEnd::None);
@@ -153,8 +153,8 @@ TEST(EpisodeLog, KeepsWhatAReplayNeeds)
     log.scenario = "pick_and_place";
     log.policy = "converged";
     log.master_seed = 9;
-    log.observation.add("x", -1.0f, 1.0f, "m")
-        .add("hint", 0.0f, 1.0f, "", true);
+    log.observation.add("x", -1.0F, 1.0F, "m")
+        .add("hint", 0.0F, 1.0F, "", true);
     std::vector<robotik::Episode> episodes(1);
     episodes[0].seed = robotik::Seed{ 42 };
     episodes[0].end = robotik::EpisodeEnd::TimeLimit;

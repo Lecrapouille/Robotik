@@ -9,10 +9,10 @@
 
 #include "Compages/Core/Vector.hpp"
 
-#define VIEW_CLEAR_R 0.12f
-#define VIEW_CLEAR_G 0.14f
-#define VIEW_CLEAR_B 0.18f
-#define VIEW_CLEAR_A 1.0f
+#define VIEW_CLEAR_R 0.12F
+#define VIEW_CLEAR_G 0.14F
+#define VIEW_CLEAR_B 0.18F
+#define VIEW_CLEAR_A 1.0F
 
 inline compages::core::Vector4f viewClearColor()
 {

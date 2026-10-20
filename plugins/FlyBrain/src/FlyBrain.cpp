@@ -100,24 +100,24 @@ void FlyBrain::buildEmbedded()
     };
 
     // Cruise, unless the centre eye sees an obstacle.
-    synapse(InBias, OutForward, 400.0f);
-    synapse(InCenter, OutForward, -650.0f);
+    synapse(InBias, OutForward, 400.0F);
+    synapse(InCenter, OutForward, -650.0F);
 
     // Each eye turns the fly away from itself, and inhibits the turn toward it.
-    synapse(InLeft, OutTurnRight, 700.0f);
-    synapse(InRight, OutTurnLeft, 700.0f);
-    synapse(InLeft, OutTurnLeft, -300.0f);
-    synapse(InRight, OutTurnRight, -300.0f);
+    synapse(InLeft, OutTurnRight, 700.0F);
+    synapse(InRight, OutTurnLeft, 700.0F);
+    synapse(InLeft, OutTurnLeft, -300.0F);
+    synapse(InRight, OutTurnRight, -300.0F);
 
     // Food beacon. A head-on obstacle (centre eye, no side winner) prefers
     // left.
-    synapse(InSeekLeft, OutTurnLeft, 420.0f);
-    synapse(InSeekRight, OutTurnRight, 420.0f);
-    synapse(InCenter, OutTurnLeft, 220.0f);
+    synapse(InSeekLeft, OutTurnLeft, 420.0F);
+    synapse(InSeekRight, OutTurnRight, 420.0F);
+    synapse(InCenter, OutTurnLeft, 220.0F);
 
     // Altitude error about the food height.
-    synapse(InTooLow, OutUp, 400.0f);
-    synapse(InTooHigh, OutDown, 400.0f);
+    synapse(InTooLow, OutUp, 400.0F);
+    synapse(InTooHigh, OutDown, 400.0F);
 
     // The sensor roles are Poisson inputs. Motor cells spike on
     // their own synapses.
@@ -131,12 +131,12 @@ void FlyBrain::buildEmbedded()
 
 std::uint32_t FlyBrain::neurons() const
 {
-    return m_network ? m_network->neurons() : 0u;
+    return m_network ? m_network->neurons() : 0U;
 }
 
 std::uint64_t FlyBrain::synapses() const
 {
-    return m_network ? m_network->synapses() : 0u;
+    return m_network ? m_network->synapses() : 0U;
 }
 
 void FlyBrain::loadConnectome(std::filesystem::path const& p_edges,
@@ -219,7 +219,7 @@ void FlyBrain::bind(std::filesystem::path const& p_path)
 void FlyBrain::reset(robotik::Seed p_seed)
 {
     // Clear the exponential averages.
-    std::fill(std::begin(m_ema), std::end(m_ema), 0.0f);
+    std::fill(std::begin(m_ema), std::end(m_ema), 0.0F);
     if (m_network)
     {
         m_network->reset(p_seed.derive("shiu"));
@@ -317,35 +317,35 @@ FlyAction FlyBrain::reflex(FlyObservation const& p_observation) const
     float avoid = p_observation.visual_right - p_observation.visual_left;
 
     // Head-on: the two eyes agree, so pick a side instead of flying in.
-    if (p_observation.visual_center > 0.22f && std::fabs(avoid) < 0.06f)
+    if (p_observation.visual_center > 0.22F && std::fabs(avoid) < 0.06F)
     {
-        avoid = 1.0f;
+        avoid = 1.0F;
     }
 
     // Calculate the seek level.
     float const seek =
-        std::clamp(p_observation.target_bearing / 0.8f, -1.0f, 1.0f);
+        std::clamp(p_observation.target_bearing / 0.8F, -1.0F, 1.0F);
 
     // Calculate the action.
     FlyAction action;
     action.turn = static_cast<float>(
-        clamp11(static_cast<double>(seek) * static_cast<double>(1.0f - threat) +
+        clamp11(static_cast<double>(seek) * static_cast<double>(1.0F - threat) +
                 1.6 * static_cast<double>(avoid)));
 
     // If the obstacle is close, stop chasing the food and turn hard.
-    if (p_observation.visual_center > 0.4f)
+    if (p_observation.visual_center > 0.4F)
     {
         action.turn =
             static_cast<float>(clamp11(static_cast<double>(avoid) * 2.0));
-        action.forward = 0.4f;
+        action.forward = 0.4F;
     }
-    else if (threat > 0.25f)
+    else if (threat > 0.25F)
     {
-        action.forward = 0.7f;
+        action.forward = 0.7F;
     }
     else
     {
-        action.forward = 1.0f;
+        action.forward = 1.0F;
     }
 
     // Calculate the lift level.

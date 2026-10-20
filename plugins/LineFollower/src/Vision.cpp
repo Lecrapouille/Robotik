@@ -21,8 +21,8 @@
 #define LINE_THRESHOLD 80
 #define LINE_MIN_AREA 40
 #define LINE_TRACKING_PX 60.0
-#define TAG_MARGIN_SCALE 0.01f
-#define TAG_MIN_MARGIN 40.0f
+#define TAG_MARGIN_SCALE 0.01F
+#define TAG_MIN_MARGIN 40.0F
 #define TAG_MIN_SIDE_PX 18.0
 #define TAG_HAMMING_BITS 1
 #define TAG_MAX_DISTANCE_M 1.5
@@ -43,7 +43,7 @@ AprilTagDetector::AprilTagDetector(double p_tag_size)
       m_detector(apriltag_detector_create())
 {
     apriltag_detector_add_family_bits(m_detector, m_family, TAG_HAMMING_BITS);
-    m_detector->quad_decimate = 1.0f;
+    m_detector->quad_decimate = 1.0F;
     m_detector->nthreads = 1;
 }
 
@@ -98,7 +98,7 @@ void AprilTagDetector::detect(robotik::CameraFrame const& p_frame,
         detection.label = "tag36h11";
         detection.id = tag->id;
         detection.confidence =
-            std::clamp(tag->decision_margin * TAG_MARGIN_SCALE, 0.0f, 1.0f);
+            std::clamp(tag->decision_margin * TAG_MARGIN_SCALE, 0.0F, 1.0F);
         detection.center = { static_cast<float>(tag->c[0]),
                              static_cast<float>(tag->c[1]) };
         double x0 = tag->p[0][0], x1 = x0, y0 = tag->p[0][1], y1 = y0;
@@ -169,7 +169,7 @@ void LineDetector::detect(robotik::CameraFrame const& p_frame,
 
     robotik::Detection detection;
     detection.label = "line";
-    detection.confidence = 1.0f;
+    detection.confidence = 1.0F;
     detection.center = { static_cast<float>(m_last_x),
                          static_cast<float>(top +
                                             m_centroids.at<double>(best, 1)) };

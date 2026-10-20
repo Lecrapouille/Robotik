@@ -166,10 +166,10 @@ controlFailures(robotik::Simulation const& p_simulation)
     next.reserve(labels.size());
     for (std::string const& label : labels)
     {
-        auto const known = std::find_if(marks.begin(),
-                                        marks.end(),
-                                        [&](ControlFailure const& p_mark)
-                                        { return p_mark.label == label; });
+        auto const known =
+            std::ranges::find_if(marks,
+                                 [&](ControlFailure const& p_mark)
+                                 { return p_mark.label == label; });
         next.push_back(known == marks.end() ? ControlFailure{ label, now }
                                             : *known);
     }
@@ -186,14 +186,14 @@ static void timeline(robotik::Simulation const& p_simulation)
     double const span = std::max(p_simulation.time().value(), 1.0);
     ImVec2 const at = ImGui::GetCursorScreenPos();
     float const width = ImGui::GetContentRegionAvail().x;
-    float label = 120.0f;
+    float label = 120.0F;
     for (ControlFailure const& failure : failures)
     {
         label = std::max(label,
-                         ImGui::CalcTextSize(failure.label.c_str()).x + 12.0f);
+                         ImGui::CalcTextSize(failure.label.c_str()).x + 12.0F);
     }
-    float const row = 16.0f;
-    float const scale = std::max(width - label - 10.0f, 10.0f);
+    float const row = 16.0F;
+    float const scale = std::max(width - label - 10.0F, 10.0F);
     ImDrawList* draw = ImGui::GetWindowDrawList();
     // Time ruler: a tick every 1, 2, 5, 10... seconds, about 80 px apart.
     double tick = 1.0;
@@ -207,7 +207,7 @@ static void timeline(robotik::Simulation const& p_simulation)
         }
     }
     ImU32 const muted = ImGui::GetColorU32(ImGuiCol_TextDisabled);
-    ImU32 const grid = ImGui::GetColorU32(ImGuiCol_Separator, 0.35f);
+    ImU32 const grid = ImGui::GetColorU32(ImGuiCol_Separator, 0.35F);
     float const rows_height =
         static_cast<float>(failures.size() + skills.size()) * row + row;
     for (double t = 0.0; t <= span + 1e-9; t += tick)
@@ -215,7 +215,7 @@ static void timeline(robotik::Simulation const& p_simulation)
         float const x = at.x + label + static_cast<float>(t / span) * scale;
         char text[16];
         std::snprintf(text, sizeof text, "%g s", t);
-        draw->AddText(ImVec2(x + 2.0f, at.y), muted, text);
+        draw->AddText(ImVec2(x + 2.0F, at.y), muted, text);
         draw->AddLine(ImVec2(x, at.y), ImVec2(x, at.y + rows_height), grid);
     }
     float const ruler = row;
@@ -230,10 +230,10 @@ static void timeline(robotik::Simulation const& p_simulation)
         float const x1 =
             at.x + label +
             static_cast<float>(p_simulation.time().value() / span) * scale;
-        draw->AddRectFilled(ImVec2(x0, y + 3.0f),
-                            ImVec2(std::max(x1, x0 + 6.0f), y + row - 3.0f),
+        draw->AddRectFilled(ImVec2(x0, y + 3.0F),
+                            ImVec2(std::max(x1, x0 + 6.0F), y + row - 3.0F),
                             red,
-                            2.0f);
+                            2.0F);
     }
     for (std::size_t id = 0; id < skills.size(); ++id)
     {
@@ -249,13 +249,13 @@ static void timeline(robotik::Simulation const& p_simulation)
             at.x + label + static_cast<float>(run.start.value() / span) * scale;
         float const x1 =
             at.x + label + static_cast<float>(run.end.value() / span) * scale;
-        draw->AddRectFilled(ImVec2(x0, y + 3.0f),
-                            ImVec2(std::max(x1, x0 + 2.0f), y + row - 3.0f),
+        draw->AddRectFilled(ImVec2(x0, y + 3.0F),
+                            ImVec2(std::max(x1, x0 + 2.0F), y + row - 3.0F),
                             ImGui::GetColorU32(::colorOf(run.state)),
-                            2.0f);
+                            2.0F);
     }
     ImGui::Dummy(
-        ImVec2(width, head + static_cast<float>(skills.size()) * row + 4.0f));
+        ImVec2(width, head + static_cast<float>(skills.size()) * row + 4.0F));
 }
 
 /// @brief Names of the skills currently holding @p_id, exclusive or shared.
@@ -271,7 +271,7 @@ holdersOf(robotik::SkillScheduler const& p_skills,
         return names;
     }
     std::uint16_t const shared = p_resources.users(p_id);
-    if (shared == 0u)
+    if (shared == 0U)
     {
         return names;
     }
@@ -341,7 +341,7 @@ static char const* accessOf(robotik::ResourceManager const& p_resources,
 {
     return !p_resources.available(p_id)                   ? "in fault"
            : p_resources.owner(p_id) != robotik::NO_OWNER ? "exclusive"
-           : p_resources.users(p_id) > 0u                 ? "shared"
+           : p_resources.users(p_id) > 0U                 ? "shared"
                                                           : "free";
 }
 
@@ -351,7 +351,7 @@ static ImVec4 colorOf(robotik::ResourceManager const& p_resources,
 {
     return !p_resources.available(p_id)                   ? RED
            : p_resources.owner(p_id) != robotik::NO_OWNER ? ORANGE
-           : p_resources.users(p_id) > 0u                 ? BLUE
+           : p_resources.users(p_id) > 0U                 ? BLUE
                                                           : GREY;
 }
 
@@ -376,7 +376,7 @@ static void resourceTooltip(robotik::SkillScheduler const& p_skills,
             ImGui::TableNextColumn();
             ImGui::TextDisabled("%s", p_key);
             ImGui::TableNextColumn();
-            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 320.0f);
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + 320.0F);
             ImGui::TextColored(p_color, "%s", p_value.c_str());
             ImGui::PopTextWrapPos();
         };
@@ -408,7 +408,7 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     ChipHold& hold = holds[p_id];
     double const now = ImGui::GetTime();
     std::size_t const holders = holdersOf(skills, resources, p_id).size();
-    if (holders > 0u || now >= hold.until)
+    if (holders > 0U || now >= hold.until)
     {
         hold = { holders,
                  resources.owner(p_id) != robotik::NO_OWNER,
@@ -422,19 +422,19 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     {
         text += "  FAULT";
     }
-    else if (hold.holders > 0u)
+    else if (hold.holders > 0U)
     {
         text += "  " + std::to_string(hold.holders);
     }
     ImVec4 const color = !available           ? RED
-                         : hold.holders == 0u ? GREY
+                         : hold.holders == 0U ? GREY
                          : hold.exclusive     ? ORANGE
                                               : BLUE;
-    ImVec2 const pad(8.0f, 2.0f);
+    ImVec2 const pad(8.0F, 2.0F);
     float const widest =
         std::max(ImGui::CalcTextSize((name + "  FAULT").c_str()).x,
                  ImGui::CalcTextSize((name + "  99").c_str()).x);
-    ImVec2 const size(widest + 2.0f * pad.x, ImGui::GetFrameHeight());
+    ImVec2 const size(widest + 2.0F * pad.x, ImGui::GetFrameHeight());
     if (ImGui::GetContentRegionAvail().x < size.x)
     {
         ImGui::NewLine();
@@ -445,20 +445,20 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
     bool const hovered = ImGui::IsItemHovered();
     ImDrawList* draw = ImGui::GetWindowDrawList();
     ImVec4 fill = color;
-    fill.w = (available && hold.holders == 0u) ? (hovered ? 0.12f : 0.0f)
-                                               : (hovered ? 0.45f : 0.30f);
+    fill.w = (available && hold.holders == 0U) ? (hovered ? 0.12F : 0.0F)
+                                               : (hovered ? 0.45F : 0.30F);
     draw->AddRectFilled(at,
                         ImVec2(at.x + size.x, at.y + size.y),
                         ImGui::GetColorU32(fill),
-                        size.y * 0.5f);
+                        size.y * 0.5F);
     draw->AddRect(at,
                   ImVec2(at.x + size.x, at.y + size.y),
                   ImGui::GetColorU32(color),
-                  size.y * 0.5f,
+                  size.y * 0.5F,
                   0,
-                  1.2f);
+                  1.2F);
     draw->AddText(ImVec2(at.x + pad.x,
-                         at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5f),
+                         at.y + (size.y - ImGui::GetTextLineHeight()) * 0.5F),
                   ImGui::GetColorU32(ImGuiCol_Text),
                   text.c_str());
     if (hovered)
@@ -466,7 +466,7 @@ static void resourceChip(App& p_app, robotik::ResourceId p_id)
         resourceTooltip(skills, resources, p_id);
     }
     ImGui::PopID();
-    ImGui::SameLine(0.0f, 6.0f);
+    ImGui::SameLine(0.0F, 6.0F);
 }
 
 /// @brief Who holds what: one row per resource.
@@ -556,10 +556,9 @@ static void faultForm(App& p_app)
             std::string const& name = resources.name(id);
             bool const available = resources.available(id);
             auto const by_hand =
-                std::find_if(manual.begin(),
-                             manual.end(),
-                             [&](ManualFault const& p_fault)
-                             { return p_fault.resource == name; });
+                std::ranges::find_if(manual,
+                                     [&](ManualFault const& p_fault)
+                                     { return p_fault.resource == name; });
             // Keyed by name: an index would clash with the IDs of the header
             // cells (column index + label).
             ImGui::PushID(name.c_str());
@@ -611,29 +610,29 @@ static void faultForm(App& p_app)
     }
 
     // Actions on the ticked resources.
-    std::size_t const count = static_cast<std::size_t>(
-        std::count(picked.begin(), picked.end(), true));
+    std::size_t const count =
+        static_cast<std::size_t>(std::ranges::count(picked, true));
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("For");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(110.0f);
+    ImGui::SetNextItemWidth(110.0F);
     ImGui::InputFloat("##duration",
                       &p_app.ui.fault_duration,
-                      0.5f,
-                      1.0f,
-                      p_app.ui.fault_duration > 0.0f ? "%.1f s" : "ever");
-    p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0f);
+                      0.5F,
+                      1.0F,
+                      p_app.ui.fault_duration > 0.0F ? "%.1f s" : "ever");
+    p_app.ui.fault_duration = std::max(p_app.ui.fault_duration, 0.0F);
     ImGui::SetItemTooltip("Simulated time before the resources come back. 0: "
                           "until restored by hand.");
     ImGui::SameLine();
-    ImGui::BeginDisabled(count == 0u);
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60f, 0.15f, 0.15f, 1.0f));
+    ImGui::BeginDisabled(count == 0U);
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.60F, 0.15F, 0.15F, 1.0F));
     char apply[48];
     std::snprintf(apply,
                   sizeof apply,
                   "Inject %zu fault%s",
                   count,
-                  count > 1u ? "s" : "");
+                  count > 1U ? "s" : "");
     if (ImGui::Button(apply))
     {
         double const duration = static_cast<double>(p_app.ui.fault_duration);

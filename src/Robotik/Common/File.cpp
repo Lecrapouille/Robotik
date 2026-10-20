@@ -47,10 +47,9 @@ bool pathInsideRoot(std::filesystem::path const& p_root,
     {
         return false;
     }
-    return std::none_of(relative.begin(),
-                        relative.end(),
-                        [](std::filesystem::path const& p_part)
-                        { return p_part == ".."; });
+    return std::ranges::none_of(relative,
+                                [](std::filesystem::path const& p_part)
+                                { return p_part == ".."; });
 }
 
 // -----------------------------------------------------------------------------

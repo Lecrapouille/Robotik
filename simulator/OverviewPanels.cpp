@@ -150,9 +150,9 @@ static void entityRow(App& p_app,
                            ImVec4(p_entity.shape->color[0],
                                   p_entity.shape->color[1],
                                   p_entity.shape->color[2],
-                                  1.0f),
+                                  1.0F),
                            ImGuiColorEditFlags_NoTooltip,
-                           ImVec2(10.0f, 10.0f));
+                           ImVec2(10.0F, 10.0F));
         ImGui::SameLine();
         ImGui::Text("%s %.2fx%.2fx%.2f m",
                     p_entity.shape->type == robotik::ShapeSpec::Type::Container
@@ -196,7 +196,7 @@ static void entityRow(App& p_app,
 /// @brief Text of @p_path, or a short note for a binary or a large file.
 static std::string readShown(std::filesystem::path const& p_path)
 {
-    constexpr std::uintmax_t LIMIT = 2u * 1024u * 1024u;
+    constexpr std::uintmax_t LIMIT = 2U * 1024U * 1024U;
     std::error_code error;
     std::uintmax_t const size = std::filesystem::file_size(p_path, error);
     if (error)
@@ -205,7 +205,7 @@ static std::string readShown(std::filesystem::path const& p_path)
     }
     if (size > LIMIT)
     {
-        return "# " + std::to_string(size / (1024u * 1024u)) +
+        return "# " + std::to_string(size / (1024U * 1024U)) +
                " MB: too large to show here.";
     }
     std::ifstream file(p_path, std::ios::binary);
@@ -237,12 +237,12 @@ void worldView(App& p_app)
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn(
-            "Entity", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+            "Entity", ImGuiTableColumnFlags_WidthStretch, 1.5F);
         ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn(
-            "Model", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+            "Model", ImGuiTableColumnFlags_WidthStretch, 1.5F);
         ImGui::TableSetupColumn(
-            "Position (m)", ImGuiTableColumnFlags_WidthStretch, 1.3f);
+            "Position (m)", ImGuiTableColumnFlags_WidthStretch, 1.3F);
         ImGui::TableHeadersRow();
         for (robotik::EntitySpec const& entity : world.entities)
         {
@@ -298,7 +298,7 @@ static FileTab kindOf(std::filesystem::path const& p_path,
         std::size_t const end = rest.find('\n');
         std::string_view const line = rest.substr(0, end);
         rest = end == std::string_view::npos ? std::string_view{}
-                                             : rest.substr(end + 1u);
+                                             : rest.substr(end + 1U);
         if (line.empty() || line.front() == '#' || line.front() == ' ')
         {
             continue;
@@ -604,13 +604,13 @@ void assertionsView(App& p_app)
     std::size_t failed = 0;
     for (robotik::Check const& check : simulation.checks())
     {
-        passed += check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
-        failed += check.verdict == robotik::Check::Verdict::Failed ? 1u : 0u;
+        passed += check.verdict == robotik::Check::Verdict::Passed ? 1U : 0U;
+        failed += check.verdict == robotik::Check::Verdict::Failed ? 1U : 0U;
     }
     std::size_t const pending = simulation.checks().size() - passed - failed;
     ImGui::TextColored(GREEN, "%zu passed", passed);
     ImGui::SameLine();
-    ImGui::TextColored(failed > 0u ? RED : GREY, "%zu failed", failed);
+    ImGui::TextColored(failed > 0U ? RED : GREY, "%zu failed", failed);
     ImGui::SameLine();
     ImGui::TextColored(GREY, "%zu pending", pending);
     ImGui::SameLine();
@@ -633,12 +633,12 @@ void assertionsView(App& p_app)
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn("Status", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn(
-            "Assertion", ImGuiTableColumnFlags_WidthStretch, 2.0f);
+            "Assertion", ImGuiTableColumnFlags_WidthStretch, 2.0F);
         ImGui::TableSetupColumn("When", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn(
-            "Value", ImGuiTableColumnFlags_WidthStretch, 0.7f);
+            "Value", ImGuiTableColumnFlags_WidthStretch, 0.7F);
         ImGui::TableSetupColumn(
-            "Expected", ImGuiTableColumnFlags_WidthStretch, 0.7f);
+            "Expected", ImGuiTableColumnFlags_WidthStretch, 0.7F);
         ImGui::TableSetupColumn("At", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (robotik::Check const& check : simulation.checks())

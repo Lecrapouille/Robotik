@@ -116,11 +116,11 @@ static bool matches(std::string const& p_text, char const* p_filter)
     std::string filter = p_filter;
     auto lower = [](std::string& p_s)
     {
-        std::transform(p_s.begin(),
-                       p_s.end(),
-                       p_s.begin(),
-                       [](unsigned char p_c)
-                       { return static_cast<char>(std::tolower(p_c)); });
+        std::ranges::transform(
+            p_s,
+            p_s.begin(),
+            [](unsigned char p_c)
+            { return static_cast<char>(std::tolower(p_c)); });
     };
     lower(text);
     lower(filter);
@@ -201,9 +201,9 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
         return;
     }
     ImGui::TableSetupColumn("Kind", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+    ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 1.4F);
     ImGui::TableSetupColumn(
-        "License / status", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        "License / status", ImGuiTableColumnFlags_WidthStretch, 1.0F);
     ImGui::TableHeadersRow();
 
     if (!p_package.resources.empty())
@@ -308,11 +308,11 @@ static void dependencies(App& p_app, robotik::PluginPackage const& p_package)
 static std::string sizeText(std::uintmax_t p_bytes)
 {
     char text[32];
-    if (p_bytes < 1024u)
+    if (p_bytes < 1024U)
     {
         std::snprintf(text, sizeof(text), "%ju B", p_bytes);
     }
-    else if (p_bytes < 1024u * 1024u)
+    else if (p_bytes < 1024U * 1024U)
     {
         std::snprintf(text,
                       sizeof(text),
@@ -362,13 +362,12 @@ static PackageEntry readFolder(std::filesystem::path const& p_folder,
             entry.children.push_back(std::move(file));
         }
     }
-    std::sort(entry.children.begin(),
-              entry.children.end(),
-              [](PackageEntry const& p_a, PackageEntry const& p_b)
-              {
-                  return p_a.folder != p_b.folder ? p_a.folder
-                                                  : p_a.name < p_b.name;
-              });
+    std::ranges::sort(entry.children,
+                      [](PackageEntry const& p_a, PackageEntry const& p_b)
+                      {
+                          return p_a.folder != p_b.folder ? p_a.folder
+                                                          : p_a.name < p_b.name;
+                      });
     for (PackageEntry const& child : entry.children)
     {
         entry.size += child.size;
@@ -430,8 +429,7 @@ static void fileRow(App& p_app,
         return;
     }
     bool const loaded =
-        std::find(p_loaded.begin(), p_loaded.end(), p_entry.path) !=
-        p_loaded.end();
+        std::ranges::find(p_loaded, p_entry.path) != p_loaded.end();
     if (loaded)
     {
         ImGui::PushStyleColor(ImGuiCol_Text, GREEN);
@@ -544,13 +542,13 @@ static void experimentCases(App& p_app, robotik::Experiment const& p_experiment)
     {
         return;
     }
-    ImGui::TableSetupColumn("Case", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+    ImGui::TableSetupColumn("Case", ImGuiTableColumnFlags_WidthStretch, 1.0F);
     ImGui::TableSetupColumn(
-        "Scenario", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        "Scenario", ImGuiTableColumnFlags_WidthStretch, 1.0F);
     ImGui::TableSetupColumn(
-        "Controller", ImGuiTableColumnFlags_WidthStretch, 0.9f);
+        "Controller", ImGuiTableColumnFlags_WidthStretch, 0.9F);
     ImGui::TableSetupColumn(
-        "Changes", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+        "Changes", ImGuiTableColumnFlags_WidthStretch, 1.4F);
     ImGui::TableHeadersRow();
     for (robotik::ExperimentCase const& item : p_experiment.cases)
     {
@@ -786,7 +784,7 @@ void pluginPanel(App& p_app)
     }
 
     ImGui::SeparatorText("Description");
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.35f);
+    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.35F);
     ImGui::TextUnformatted(package->name.c_str());
     ImGui::PopFont();
     badge(package->category.c_str(), BLUE);
@@ -836,16 +834,16 @@ void assetsPanel(App& p_app)
     for (robotik::AssetPack const& pack : assets.packs())
     {
         models += pack.models.size();
-        unchecked += robotik::licenseVerified(pack) ? 0u : 1u;
+        unchecked += robotik::licenseVerified(pack) ? 0U : 1U;
     }
     ImGui::Text("%zu packs, %zu models", assets.packs().size(), models);
-    if (unchecked > 0u)
+    if (unchecked > 0U)
     {
         ImGui::SameLine();
         ImGui::TextColored(ORANGE,
                            "  %zu license%s not checked",
                            unchecked,
-                           unchecked > 1u ? "s" : "");
+                           unchecked > 1U ? "s" : "");
     }
     ImGui::SameLine();
     helpMarker(
@@ -857,7 +855,7 @@ void assetsPanel(App& p_app)
 
     char* const filter = p_app.ui.asset_filter.data();
     ImGui::SetNextItemWidth(
-        std::min(220.0f, ImGui::GetContentRegionAvail().x * 0.5f));
+        std::min(220.0F, ImGui::GetContentRegionAvail().x * 0.5F));
     ImGui::InputTextWithHint("##filter",
                              "Filter packs and models",
                              filter,
@@ -870,16 +868,16 @@ void assetsPanel(App& p_app)
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
     float const errors_height =
-        assets.errors().empty() ? 0.0f
-                                : ImGui::GetTextLineHeightWithSpacing() * 4.0f;
-    if (beginTable("packs", 4, flags, ImVec2(0.0f, -errors_height)))
+        assets.errors().empty() ? 0.0F
+                                : ImGui::GetTextLineHeightWithSpacing() * 4.0F;
+    if (beginTable("packs", 4, flags, ImVec2(0.0F, -errors_height)))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn(
-            "Pack / model", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+            "Pack / model", ImGuiTableColumnFlags_WidthStretch, 1.6F);
         ImGui::TableSetupColumn("Version", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn(
-            "License", ImGuiTableColumnFlags_WidthStretch, 1.2f);
+            "License", ImGuiTableColumnFlags_WidthStretch, 1.2F);
         ImGui::TableSetupColumn("Models", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (robotik::AssetPack const& pack : assets.packs())
@@ -1010,7 +1008,7 @@ void experimentView(App& p_app)
     }
     robotik::Experiment const& experiment = *ui.experiment;
 
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.2f);
+    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.2F);
     ImGui::TextUnformatted(experiment.id.c_str());
     ImGui::PopFont();
     ImGui::SameLine();
@@ -1042,7 +1040,7 @@ void experimentView(App& p_app)
         field("runs",
               "%zu",
               experiment.cases.size() *
-                  std::max<std::size_t>(experiment.seeds.size(), 1u));
+                  std::max<std::size_t>(experiment.seeds.size(), 1U));
         if (!experiment.world.empty())
         {
             field("world",

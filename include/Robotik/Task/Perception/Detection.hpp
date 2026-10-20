@@ -46,11 +46,11 @@ struct Detection
     /// Instance id when the detector knows it (fiducial id), else -1.
     int id = -1;
     /// Detector confidence in [0, 1].
-    float confidence = 0.0f;
+    float confidence = 0.0F;
     /// Bounding box in pixels, inclusive, top-left origin: x0, y0, x1, y1.
     std::array<int, 4> box{ 0, 0, 0, 0 };
     /// Image point standing for the detection (centroid), in pixels.
-    std::array<float, 2> center{ 0.0f, 0.0f };
+    std::array<float, 2> center{ 0.0F, 0.0F };
     /// 3D point in the optical frame (m), e.g. from depth.
     std::optional<Vector3> position;
     /// Full pose in the optical frame (m), e.g. from a fiducial.

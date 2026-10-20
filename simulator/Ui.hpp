@@ -41,7 +41,7 @@ void emptyState(char const* p_text);
 bool beginTable(char const* p_id,
                 int p_columns,
                 ImGuiTableFlags p_flags = 0,
-                ImVec2 const& p_size = ImVec2(0.0f, 0.0f));
+                ImVec2 const& p_size = ImVec2(0.0F, 0.0F));
 void endTable();
 
 /// @brief The monospace font (Cousine), or null when it is not loaded.

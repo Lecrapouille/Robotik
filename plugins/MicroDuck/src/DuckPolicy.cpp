@@ -80,8 +80,8 @@ DuckContract DuckContract::load(std::filesystem::path const& p_path)
     {
         throw std::runtime_error("walk.observations must be 61");
     }
-    std::vector<double> const command = numbers(walk, "max_command", 3u);
-    std::copy(command.begin(), command.end(), contract.max_command.begin());
+    std::vector<double> const command = numbers(walk, "max_command", 3U);
+    std::ranges::copy(command, contract.max_command.begin());
     return contract;
 }
 
@@ -101,7 +101,7 @@ struct DuckPolicy::Onnx
             session.GetInputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
         std::vector<std::int64_t> const out =
             session.GetOutputTypeInfo(0).GetTensorTypeAndShapeInfo().GetShape();
-        if (in.size() != 2u || in.back() != OBS_LEN || out.size() != 2u ||
+        if (in.size() != 2U || in.back() != OBS_LEN || out.size() != 2U ||
             out.back() != ACTION_LEN)
         {
             throw std::runtime_error("policy graph is not [1,61] -> [1,14]");
@@ -145,8 +145,8 @@ DuckPolicy::DuckPolicy(std::filesystem::path const& p_model,
                                  "': " + e.what());
     }
     std::size_t const count = m_contract.joints.size();
-    m_observation.assign(OBS_LEN, 0.0f);
-    m_actions.assign(count, 0.0f);
+    m_observation.assign(OBS_LEN, 0.0F);
+    m_actions.assign(count, 0.0F);
     m_targets.assign(m_contract.default_angle.begin(),
                      m_contract.default_angle.end());
 }
@@ -156,7 +156,7 @@ DuckPolicy::~DuckPolicy() = default;
 // ----------------------------------------------------------------------------
 void DuckPolicy::reset()
 {
-    std::fill(m_actions.begin(), m_actions.end(), 0.0f);
+    std::ranges::fill(m_actions, 0.0F);
     m_targets.assign(m_contract.default_angle.begin(),
                      m_contract.default_angle.end());
 }
@@ -212,7 +212,7 @@ std::span<double const> DuckPolicy::act(DuckInput const& p_input)
     char const* const inputs[] = { m_onnx->input.c_str() };
     char const* const outputs[] = { m_onnx->output.c_str() };
     std::vector<Ort::Value> result = m_onnx->session.Run(
-        Ort::RunOptions{ nullptr }, inputs, &input, 1u, outputs, 1u);
+        Ort::RunOptions{ nullptr }, inputs, &input, 1U, outputs, 1U);
 
     float const* const actions = result.front().GetTensorData<float>();
     for (std::size_t i = 0; i < count; ++i)

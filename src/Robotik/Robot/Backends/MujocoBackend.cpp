@@ -258,7 +258,7 @@ withInertia(std::filesystem::path const& p_filename)
     }
 
     // One file per instance: parallel environments load the same model.
-    static std::atomic<unsigned> s_counter{ 0u };
+    static std::atomic<unsigned> s_counter{ 0U };
     std::filesystem::path const output =
         std::filesystem::temp_directory_path() /
         ("robotik-" + std::to_string(::getpid()) + "-" +
@@ -540,8 +540,8 @@ void MujocoBackend::addWeld(std::string p_name,
     {
         throw std::runtime_error("MuJoCo: a weld needs a name and two bodies");
     }
-    m_impl->welds.push_back(Impl::Weld{
-        std::move(p_name), std::move(p_body1), std::move(p_body2) });
+    m_impl->welds.emplace_back(
+        std::move(p_name), std::move(p_body1), std::move(p_body2));
     invalidate();
 }
 
@@ -686,15 +686,14 @@ void MujocoBackend::detach(std::string const& p_robot1,
 {
     std::vector<Impl::Graft>& grafts = m_impl->grafts;
     auto const found =
-        std::find_if(grafts.begin(),
-                     grafts.end(),
-                     [&](Impl::Graft const& p_graft)
-                     {
-                         return p_graft.parent == p_robot1 &&
-                                p_graft.parent_mount == p_joint1 &&
-                                p_graft.child == p_robot2 &&
-                                p_graft.child_mount == p_joint2;
-                     });
+        std::ranges::find_if(grafts,
+                             [&](Impl::Graft const& p_graft)
+                             {
+                                 return p_graft.parent == p_robot1 &&
+                                        p_graft.parent_mount == p_joint1 &&
+                                        p_graft.child == p_robot2 &&
+                                        p_graft.child_mount == p_joint2;
+                             });
     if (found == grafts.end())
     {
         throw std::runtime_error("MuJoCo: '" + p_robot2 +
@@ -954,10 +953,9 @@ void MujocoBackend::join(Robot& p_robot, std::string const& p_prefix)
         compile();
     }
     std::vector<Member>& members = m_impl->members;
-    auto found = std::find_if(members.begin(),
-                              members.end(),
-                              [&](Member const& p_member)
-                              { return p_member.robot == &p_robot; });
+    auto found = std::ranges::find_if(members,
+                                      [&](Member const& p_member)
+                                      { return p_member.robot == &p_robot; });
     if (found == members.end())
     {
         found = members.insert(members.end(), Member{});
@@ -992,10 +990,9 @@ void MujocoBackend::bind(Member& p_member)
     for (Impl::Chain const& candidate : m_impl->chains)
     {
         bool const grafted =
-            std::any_of(m_impl->grafts.begin(),
-                        m_impl->grafts.end(),
-                        [&](Impl::Graft const& p_graft)
-                        { return p_graft.child == candidate.name; });
+            std::ranges::any_of(m_impl->grafts,
+                                [&](Impl::Graft const& p_graft)
+                                { return p_graft.child == candidate.name; });
         bool const host = candidate.name == m_impl->host;
         if (p_member.prefix.empty()
                 ? host

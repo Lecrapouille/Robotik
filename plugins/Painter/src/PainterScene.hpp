@@ -25,8 +25,8 @@ namespace painter
 {
 
 /// World entity ids.
-inline constexpr char const* kCanvas = "canvas";
-inline constexpr char const* kEasel = "easel";
+inline constexpr char const* CANVAS = "canvas";
+inline constexpr char const* EASEL = "easel";
 
 /// Tool straight down, for dipping into a pot.
 inline robotik::Quaternion brushDown()
@@ -70,24 +70,24 @@ colorRgb(std::string_view p_name, float& p_r, float& p_g, float& p_b)
     switch (colorIndex(p_name))
     {
         case 0:
-            p_r = 0.82f;
-            p_g = 0.18f;
-            p_b = 0.18f;
+            p_r = 0.82F;
+            p_g = 0.18F;
+            p_b = 0.18F;
             break;
         case 1:
-            p_r = 0.08f;
-            p_g = 0.08f;
-            p_b = 0.10f;
+            p_r = 0.08F;
+            p_g = 0.08F;
+            p_b = 0.10F;
             break;
         case 2:
-            p_r = 0.10f;
-            p_g = 0.22f;
-            p_b = 0.62f;
+            p_r = 0.10F;
+            p_g = 0.22F;
+            p_b = 0.62F;
             break;
         default:
-            p_r = 0.86f;
-            p_g = 0.67f;
-            p_b = 0.16f;
+            p_r = 0.86F;
+            p_g = 0.67F;
+            p_b = 0.16F;
             break;
     }
 }

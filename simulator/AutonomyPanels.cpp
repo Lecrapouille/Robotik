@@ -62,17 +62,17 @@ void worldModelPanel(App& p_app)
     // With a planner, the symbolic beliefs share the panel with the objects.
     bool const symbolic = simulation.cell().planner() != nullptr;
     float const objects_height = symbolic
-                                     ? ImGui::GetContentRegionAvail().y * 0.5f
+                                     ? ImGui::GetContentRegionAvail().y * 0.5F
                                      : -ImGui::GetFrameHeightWithSpacing();
-    if (beginTable("objects", 6, flags, ImVec2(0.0f, objects_height)))
+    if (beginTable("objects", 6, flags, ImVec2(0.0F, objects_height)))
     {
         ImGui::TableSetupScrollFreeze(1, 1);
         ImGui::TableSetupColumn(
-            "Object", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+            "Object", ImGuiTableColumnFlags_WidthStretch, 1.0F);
         ImGui::TableSetupColumn(
-            "Truth (m)", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+            "Truth (m)", ImGuiTableColumnFlags_WidthStretch, 1.4F);
         ImGui::TableSetupColumn(
-            "Belief (m)", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+            "Belief (m)", ImGuiTableColumnFlags_WidthStretch, 1.4F);
         ImGui::TableSetupColumn("Error", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Conf.", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Seen", ImGuiTableColumnFlags_WidthFixed);
@@ -96,9 +96,9 @@ void worldModelPanel(App& p_app)
                                    ImVec4(p_object.color[0],
                                           p_object.color[1],
                                           p_object.color[2],
-                                          1.0f),
+                                          1.0F),
                                    ImGuiColorEditFlags_NoTooltip,
-                                   ImVec2(10.0f, 10.0f));
+                                   ImVec2(10.0F, 10.0F));
                 ImGui::SameLine();
                 ImGui::TextUnformatted(p_object.name.c_str());
                 ImGui::TableNextColumn();

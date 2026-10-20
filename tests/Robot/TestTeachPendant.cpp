@@ -22,7 +22,7 @@ TEST(TeachPendant, QuinticReturnsToTheRecordedJoints)
     robotik::TeachPendant pendant;
 
     std::size_t const home = pendant.record(robot, "home", 1.0);
-    EXPECT_EQ(home, 0u);
+    EXPECT_EQ(home, 0U);
     ASSERT_TRUE(pendant.jogJoint(robot, 0, 0.4));
     EXPECT_NEAR(robot.joints().target(0), 0.4, 1e-12);
 
@@ -80,7 +80,7 @@ TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
                  { "joint5", 1.54 },
                  { "joint6", 0.0 } });
     std::vector<std::string> const links = robot.kinematics().linkFrames();
-    ASSERT_NE(std::find(links.begin(), links.end(), "link3"), links.end());
+    ASSERT_NE(std::ranges::find(links, "link3"), links.end());
 
     robotik::TeachPendant pendant;
     EXPECT_EQ(pendant.frame(robot), robot.tool());

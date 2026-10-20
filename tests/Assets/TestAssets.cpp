@@ -39,7 +39,7 @@ TEST(AssetResolver, LongestPackIdWins)
 {
     robotik::AssetResolver assets;
     assets.addRoot(fixture("roots1"));
-    ASSERT_EQ(assets.packs().size(), 2u);
+    ASSERT_EQ(assets.packs().size(), 2U);
     EXPECT_EQ(assets.model("robotik.robots.arm").take().filename(), "arm.urdf");
     EXPECT_EQ(assets.model("robotik.robots.abb.irb").take().filename(), "irb.urdf");
     EXPECT_FALSE(assets.model("robotik.robots.abb"));
@@ -63,13 +63,13 @@ TEST(AssetResolver, FirstRootWinsAndAnotherVersionIsAConflict)
     robotik::AssetResolver assets;
     assets.addRoot(fixture("roots1"));
     assets.addRoot(fixture("roots2"));
-    ASSERT_EQ(assets.errors().size(), 1u);
+    ASSERT_EQ(assets.errors().size(), 1U);
     EXPECT_NE(assets.errors().front().find("conflicts"), std::string::npos);
     EXPECT_EQ(robotik::toString(assets.find("robotik.robots")->version),
               "1.2.0");
     // Scanning the same root twice is not a conflict.
     assets.addRoot(fixture("roots1"));
-    EXPECT_EQ(assets.errors().size(), 1u);
+    EXPECT_EQ(assets.errors().size(), 1U);
 }
 
 TEST(AssetResolver, RequireChecksTheVersion)
@@ -102,7 +102,7 @@ TEST(AssetPack, ModelLeavingThePackIsRejected)
     robotik::AssetResolver assets;
     assets.addRoot(fixture("escape"));
     EXPECT_TRUE(assets.packs().empty());
-    ASSERT_EQ(assets.errors().size(), 1u);
+    ASSERT_EQ(assets.errors().size(), 1U);
     EXPECT_NE(assets.errors().front().find("passwd"), std::string::npos);
 }
 

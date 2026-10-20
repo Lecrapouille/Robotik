@@ -55,7 +55,7 @@ struct WorldObject
     /// Known extents (m); zero when unknown.
     Vector3 size;
     /// Confidence of the last observation; 0 for a prior never observed.
-    float confidence = 0.0f;
+    float confidence = 0.0F;
     /// Time of the last observation.
     Seconds seen{ -1.0 };
     /// Number of observations since the last reset.
@@ -70,7 +70,7 @@ struct WorldObject
 // -------------------------------------------------------------------------
 [[nodiscard]] inline bool observed(WorldObject const& p_object)
 {
-    return p_object.observations > 0u;
+    return p_object.observations > 0U;
 }
 
 // -------------------------------------------------------------------------

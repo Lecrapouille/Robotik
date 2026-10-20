@@ -57,7 +57,7 @@ static robotik::Scenario twoArms()
 TEST(World, SeveralRobotsEachWithItsTool)
 {
     robotik::WorldDescription const world = twoArms().world;
-    ASSERT_EQ(robotik::robotsOf(world).size(), 2u);
+    ASSERT_EQ(robotik::robotsOf(world).size(), 2U);
     EXPECT_EQ(robotik::firstRobot(world).id, "left");
     ASSERT_NE(robotik::mountedTool(world, "right"), nullptr);
     EXPECT_EQ(robotik::mountedTool(world, "right")->id, "right_cup");
@@ -119,14 +119,14 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
 {
     compages::world::World world;
     robotik::Simulation simulation(world, twoArms());
-    ASSERT_EQ(simulation.cell().robots().size(), 2u);
+    ASSERT_EQ(simulation.cell().robots().size(), 2U);
     robotik::RobotSession* left = simulation.cell().robot("left");
     robotik::RobotSession* right = simulation.cell().robot("right");
     ASSERT_NE(left, nullptr);
     ASSERT_NE(right, nullptr);
     EXPECT_EQ(&simulation.cell().robot(), left);
     EXPECT_EQ(&simulation.cell().context("right").robot, right);
-    EXPECT_EQ(simulation.cell().context("right").team.size(), 2u);
+    EXPECT_EQ(simulation.cell().context("right").team.size(), 2U);
 
     // Each robot keeps its own joint names and its own skills.
     EXPECT_NE(left->joints().find("joint1"), robotik::NO_JOINT);

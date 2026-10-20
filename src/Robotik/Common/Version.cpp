@@ -25,7 +25,7 @@ std::optional<Version> parseVersion(std::string_view p_text)
     char const* const end = p_text.data() + p_text.size();
     while (true)
     {
-        if (index == 3u || cursor == end)
+        if (index == 3U || cursor == end)
         {
             return std::nullopt;
         }

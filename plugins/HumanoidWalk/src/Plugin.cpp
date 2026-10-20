@@ -133,7 +133,7 @@ private:
                              m_mission->distance()));
         if (m_mission->height() < 0.6)
         {
-            p_canvas.textColored(0.90f, 0.25f, 0.25f, "The robot fell: Replay");
+            p_canvas.textColored(0.90F, 0.25F, 0.25F, "The robot fell: Replay");
         }
         else
         {

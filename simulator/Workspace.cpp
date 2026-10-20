@@ -102,9 +102,9 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             // No 3D view: this workspace reads the package. The plugin on
             // the left, the files in the middle, beside them one panel for
             // the view of the file read (scenario, world, tree, experiment).
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.24f);
-            ImGuiID right = split(center, ImGuiDir_Right, 0.40f);
-            ImGuiID const assets = split(right, ImGuiDir_Down, 0.30f);
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.24F);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.40F);
+            ImGuiID const assets = split(right, ImGuiDir_Down, 0.30F);
             dock("Plugin", left);
             dock("Files", center);
             dock("###View", right);
@@ -113,10 +113,10 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Robot:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.36f);
-            ImGuiID right = split(center, ImGuiDir_Right, 0.28f);
-            ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42f);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.36F);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.28F);
+            ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42F);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40F);
             dock("Joints", left);
             dock(panelTitle("Scene", key), center);
             dock("Joint plots", bottom);
@@ -126,9 +126,9 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Mission:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.22f);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.32f);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40f);
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.22F);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.32F);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40F);
             dock(panelTitle("Behavior tree", key), left);
             dock(panelTitle("Scene", key), center);
             dock(panelTitle("Assertions", key), bottom);
@@ -140,9 +140,9 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Autonomy:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.30f);
-            ImGuiID right = split(center, ImGuiDir_Right, 0.32f);
-            ImGuiID const perception = split(right, ImGuiDir_Down, 0.45f);
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.30F);
+            ImGuiID right = split(center, ImGuiDir_Right, 0.32F);
+            ImGuiID const perception = split(right, ImGuiDir_Down, 0.45F);
             dock("World model", left);
             dock(panelTitle("Scene", key), center);
             dock(panelTitle("Cameras", key), right);
@@ -225,7 +225,7 @@ static void shortcuts(App& p_app)
     }
     if (ctrl && ImGui::IsKeyPressed(ImGuiKey_N, false))
     {
-        p_app.reset(p_app.seed + 1u);
+        p_app.reset(p_app.seed + 1U);
     }
     if (ctrl && ImGui::IsKeyPressed(ImGuiKey_E, false))
     {
@@ -305,13 +305,13 @@ static std::string alertOf(App const& p_app, Workspace p_workspace)
 static void workspaceTabs(App& p_app)
 {
     // Centred in the free part of the menu bar.
-    float width = 0.0f;
+    float width = 0.0F;
     for (WorkspaceInfo const& info : WORKSPACES)
     {
         width += ImGui::CalcTextSize(info.name).x +
-                 ImGui::GetStyle().FramePadding.x * 4.0f;
+                 ImGui::GetStyle().FramePadding.x * 4.0F;
     }
-    float const center = (ImGui::GetWindowWidth() - width) * 0.5f;
+    float const center = (ImGui::GetWindowWidth() - width) * 0.5F;
     if (center > ImGui::GetCursorPosX())
     {
         ImGui::SetCursorPosX(center);
@@ -324,7 +324,7 @@ static void workspaceTabs(App& p_app)
         ImGui::PushStyleColor(
             ImGuiCol_Button,
             current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
-                    : ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+                    : ImVec4(0.0F, 0.0F, 0.0F, 0.0F));
         ImGui::PushStyleColor(
             ImGuiCol_Text,
             !alert.empty() ? RED
@@ -456,7 +456,7 @@ static Outcome outcomeOf(App const& p_app)
 /// Bottom bar: outcome, time and the loaded scenario.
 static void statusBar(App& p_app)
 {
-    float const height = ImGui::GetFrameHeight() + 4.0f;
+    float const height = ImGui::GetFrameHeight() + 4.0F;
     ImGuiWindowFlags const flags = ImGuiWindowFlags_NoScrollbar |
                                    ImGuiWindowFlags_NoSavedSettings |
                                    ImGuiWindowFlags_MenuBar;
@@ -484,9 +484,9 @@ static void statusBar(App& p_app)
             for (robotik::Check const& check : checks)
             {
                 passed +=
-                    check.verdict == robotik::Check::Verdict::Passed ? 1u : 0u;
+                    check.verdict == robotik::Check::Verdict::Passed ? 1U : 0U;
                 failed +=
-                    check.verdict == robotik::Check::Verdict::Failed ? 1u : 0u;
+                    check.verdict == robotik::Check::Verdict::Failed ? 1U : 0U;
             }
             char text[64];
             std::snprintf(text,
@@ -494,13 +494,13 @@ static void statusBar(App& p_app)
                           "Assertions %zu/%zu%s",
                           passed,
                           checks.size(),
-                          failed > 0u ? "  failed" : "");
+                          failed > 0U ? "  failed" : "");
             ImGui::PushStyleColor(ImGuiCol_Text,
-                                  failed > 0u               ? RED
+                                  failed > 0U               ? RED
                                   : passed == checks.size() ? GREEN
                                                             : GREY);
             if (ImGui::Selectable(
-                    text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0f)))
+                    text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0F)))
             {
                 select(p_app, Workspace::Plugin);
             }
@@ -549,7 +549,7 @@ static void openDialog(App& p_app)
         p_app.ui.open_path = p_app.scenario_path.string();
         ImGui::OpenPopup("Open scenario");
     }
-    ImGui::SetNextWindowSize(ImVec2(620.0f, 0.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(620.0F, 0.0F), ImGuiCond_Appearing);
     if (!ImGui::BeginPopupModal(
             "Open scenario", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
     {
@@ -557,7 +557,7 @@ static void openDialog(App& p_app)
     }
     ImGui::TextUnformatted("Scenario file (.scenario.yaml), listed in the "
                            "plugin.yaml of its package:");
-    ImGui::SetNextItemWidth(600.0f);
+    ImGui::SetNextItemWidth(600.0F);
     if (ImGui::IsWindowAppearing())
     {
         ImGui::SetKeyboardFocusHere();
@@ -586,10 +586,10 @@ static void shortcutsWindow(App& p_app)
     {
         return;
     }
-    ImGui::SetNextWindowSize(ImVec2(420.0f, 0.0f), ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize(ImVec2(420.0F, 0.0F), ImGuiCond_Appearing);
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(),
                             ImGuiCond_Appearing,
-                            ImVec2(0.5f, 0.5f));
+                            ImVec2(0.5F, 0.5F));
     if (ImGui::Begin("Keyboard shortcuts",
                      &p_app.ui.show_shortcuts,
                      ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoCollapse |

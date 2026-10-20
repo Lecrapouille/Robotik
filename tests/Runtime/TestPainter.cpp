@@ -46,7 +46,7 @@ TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
     // The red stroke paints 4 cm in front of the canvas face, in its upper
     // half.
     std::vector<robotik::Pose> const red = simulation.cell().waypoints("red");
-    ASSERT_EQ(red.size(), 5u);
+    ASSERT_EQ(red.size(), 5U);
     robotik::Vector3 const local =
         simulation.cell().pose("canvas").inverse() * red[2].position;
     EXPECT_NEAR(local.x, 0.06 - 0.011, 1e-6);

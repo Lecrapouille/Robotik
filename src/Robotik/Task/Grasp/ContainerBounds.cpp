@@ -13,7 +13,7 @@
 namespace robotik::scene
 {
 
-static constexpr double kFloorContactEpsilonM = 1e-3;
+static constexpr double FLOOR_CONTACT_EPSILON_M = 1e-3;
 
 std::optional<ContainerInner> innerBounds(ecs::Shape const& p_object,
                                           Vector3 const& p_center)
@@ -62,7 +62,7 @@ bool fitsInside(ContainerInner const& p_inner,
            p_point.x + p_half.x <= p_inner.center.x + p_inner.half_x &&
            p_point.y - p_half.y >= p_inner.center.y - p_inner.half_y &&
            p_point.y + p_half.y <= p_inner.center.y + p_inner.half_y &&
-           p_point.z - p_half.z >= p_inner.floor_z - kFloorContactEpsilonM;
+           p_point.z - p_half.z >= p_inner.floor_z - FLOOR_CONTACT_EPSILON_M;
 }
 
 bool restsInside(ecs::Shape const& p_container,
@@ -79,8 +79,8 @@ bool restsInside(ecs::Shape const& p_container,
     double const bottom = p_object_center.z - p_object_half.z;
     double const top = p_object_center.z + p_object_half.z;
     return fitsInside(*inner, p_object_center, p_object_half) &&
-           top <= inner->rim_z + kFloorContactEpsilonM &&
-           bottom <= inner->floor_z + kFloorContactEpsilonM;
+           top <= inner->rim_z + FLOOR_CONTACT_EPSILON_M &&
+           bottom <= inner->floor_z + FLOOR_CONTACT_EPSILON_M;
 }
 
 bool penetratesContainer(ecs::Shape const& p_container,
@@ -103,7 +103,8 @@ bool penetratesContainer(ecs::Shape const& p_container,
     {
         return false;
     }
-    if (p_cube_center.z - p_cube_half.z > inner->rim_z + kFloorContactEpsilonM)
+    if (p_cube_center.z - p_cube_half.z >
+        inner->rim_z + FLOOR_CONTACT_EPSILON_M)
     {
         return false;
     }

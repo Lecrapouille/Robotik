@@ -53,13 +53,13 @@ void syncTeachAxes(App& p_app, bool p_visible)
             return;
         }
         // Red X, green Y, blue Z, as in 3D modelling tools.
-        constexpr float COLORS[3][3] = { { 0.95f, 0.20f, 0.20f },
-                                         { 0.25f, 0.85f, 0.30f },
-                                         { 0.25f, 0.45f, 1.00f } };
+        constexpr float COLORS[3][3] = { { 0.95F, 0.20F, 0.20F },
+                                         { 0.25F, 0.85F, 0.30F },
+                                         { 0.25F, 0.45F, 1.00F } };
         constexpr char const* NAMES[3] = { "teach_axis_x",
                                            "teach_axis_y",
                                            "teach_axis_z" };
-        for (std::size_t i = 0; i < 3u; ++i)
+        for (std::size_t i = 0; i < 3U; ++i)
         {
             teach.axes[i] =
                 p_app.scene->box(NAMES[i],
@@ -81,13 +81,13 @@ void syncTeachAxes(App& p_app, bool p_visible)
     // Each arrow is a thin box from the frame origin along its axis. Poses
     // are in the robot base frame, like the waypoint markers.
     constexpr double LENGTH = 0.10;
-    constexpr float THICKNESS = 0.004f;
+    constexpr float THICKNESS = 0.004F;
     robotik::Pose const pose = robot.framePose(frame);
     compages::core::Quatf const rotation(static_cast<float>(pose.rotation.w),
                                          static_cast<float>(pose.rotation.x),
                                          static_cast<float>(pose.rotation.y),
                                          static_cast<float>(pose.rotation.z));
-    for (std::size_t i = 0; i < 3u; ++i)
+    for (std::size_t i = 0; i < 3U; ++i)
     {
         robotik::Vector3 half = robotik::Vector3::ZERO;
         half[static_cast<int>(i)] = 0.5 * LENGTH;
@@ -99,9 +99,9 @@ void syncTeachAxes(App& p_app, bool p_visible)
                       static_cast<float>(center.y),
                       static_cast<float>(center.z))
             .rotation(rotation)
-            .scale(i == 0u ? length : THICKNESS,
-                   i == 1u ? length : THICKNESS,
-                   i == 2u ? length : THICKNESS);
+            .scale(i == 0U ? length : THICKNESS,
+                   i == 1U ? length : THICKNESS,
+                   i == 2U ? length : THICKNESS);
     }
 }
 
@@ -122,8 +122,8 @@ static void syncMarkers(App& p_app)
         {
             compages::world::Entity marker = p_app.scene->box(
                 "teach_" + std::to_string(++p_app.teach.marker_serial),
-                compages::renderer::color(1.0f, 0.72f, 0.15f));
-            marker.parent(root).scale(0.02f);
+                compages::renderer::color(1.0F, 0.72F, 0.15F));
+            marker.parent(root).scale(0.02F);
             p_app.scene_view->overlay(marker);
             if (i == markers.size())
             {
@@ -164,7 +164,7 @@ static bool changeTool(App& p_app)
 
     bool changed = false;
     std::string chosen;
-    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::SetNextItemWidth(-1.0F);
     if (!ImGui::BeginCombo("##tool", label.c_str()))
     {
         return false;
@@ -211,7 +211,7 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
     if (tool != nullptr)
     {
         mounted =
-            tool->model_ref.substr(tool->model_ref.find_last_of('.') + 1u);
+            tool->model_ref.substr(tool->model_ref.find_last_of('.') + 1U);
     }
     robotik::JointSet& joints = p_robot.joints();
     if (mounted == "vacuum")
@@ -322,7 +322,7 @@ static void jogRow(App& p_app,
     robotik::RobotSession& robot = p_app.simulation->cell().robot();
     ImGui::PushID(p_axis);
     ImGui::TableNextColumn();
-    if (ImGui::Button("-", ImVec2(-1.0f, 0.0f)))
+    if (ImGui::Button("-", ImVec2(-1.0F, 0.0F)))
     {
         takeArm(p_app);
         p_app.teach.pendant.jogTool(
@@ -334,10 +334,10 @@ static void jogRow(App& p_app,
     ImGui::AlignTextToFramePadding();
     float const width = ImGui::CalcTextSize(p_axis).x;
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
-                         (ImGui::GetContentRegionAvail().x - width) * 0.5f);
+                         (ImGui::GetContentRegionAvail().x - width) * 0.5F);
     ImGui::TextUnformatted(p_axis);
     ImGui::TableNextColumn();
-    if (ImGui::Button("+", ImVec2(-1.0f, 0.0f)))
+    if (ImGui::Button("+", ImVec2(-1.0F, 0.0F)))
     {
         takeArm(p_app);
         p_app.teach.pendant.jogTool(robot, p_shift, p_turn);
@@ -423,7 +423,7 @@ static void cartesianJog(App& p_app)
                                     column == 3
                                         ? ImGuiTableColumnFlags_WidthFixed
                                         : ImGuiTableColumnFlags_WidthStretch,
-                                    column == 3 ? 12.0f : 0.0f);
+                                    column == 3 ? 12.0F : 0.0F);
         }
         jogRow(p_app, "X", { linear, 0.0, 0.0 }, none);
         ImGui::TableNextColumn();
@@ -438,19 +438,19 @@ static void cartesianJog(App& p_app)
     }
     float const half =
         (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) *
-        0.5f;
+        0.5F;
     ImGui::SetNextItemWidth(half);
     ImGui::SliderFloat(
-        "##linear", &p_app.teach.linear_step, 0.001f, 0.05f, "step %.3f m");
+        "##linear", &p_app.teach.linear_step, 0.001F, 0.05F, "step %.3f m");
     ImGui::SameLine();
     ImGui::SetNextItemWidth(half);
     ImGui::SliderFloat(
-        "##angular", &p_app.teach.angular_step, 0.01f, 0.30f, "step %.2f rad");
+        "##angular", &p_app.teach.angular_step, 0.01F, 0.30F, "step %.2f rad");
     ImGui::SetNextItemWidth(half);
     ImGui::SliderFloat("##joint",
                        &p_app.teach.joint_step,
-                       0.01f,
-                       0.40f,
+                       0.01F,
+                       0.40F,
                        "joint step %.2f rad");
     ImGui::SetItemTooltip("Step of the - and + buttons of the Joints panel.");
 }
@@ -467,14 +467,14 @@ static void waypoints(App& p_app)
         "The duration is the time to reach the waypoint from the previous "
         "one.");
     float const width = ImGui::GetContentRegionAvail().x;
-    ImGui::SetNextItemWidth(width * 0.45f);
+    ImGui::SetNextItemWidth(width * 0.45F);
     ImGui::InputTextWithHint("##label", "label (optional)", &p_app.teach.label);
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(width * 0.30f);
+    ImGui::SetNextItemWidth(width * 0.30F);
     ImGui::SliderFloat(
-        "##duration", &p_app.teach.duration, 0.2f, 8.0f, "%.1f s");
+        "##duration", &p_app.teach.duration, 0.2F, 8.0F, "%.1f s");
     ImGui::SameLine();
-    if (ImGui::Button("Record", ImVec2(-1.0f, 0.0f)))
+    if (ImGui::Button("Record", ImVec2(-1.0F, 0.0F)))
     {
         pendant.record(robot,
                        p_app.teach.label,
@@ -579,9 +579,8 @@ void teachPanel(App& p_app)
 
     // A humanoid or a fly has no tool to mount: no Tool section.
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
-    bool const tools = std::any_of(
-        world.entities.begin(),
-        world.entities.end(),
+    bool const tools = std::ranges::any_of(
+        world.entities,
         [](robotik::EntitySpec const& p_entity)
         { return p_entity.type == robotik::EntitySpec::Type::Tool; });
     if (tools)

@@ -94,7 +94,7 @@ public:
                       "that recipe.");
         if (p_canvas.checkbox("Converged", m_rl->converged) && m_rl->converged)
         {
-            m_rl->mix = 1.0f;
+            m_rl->mix = 1.0F;
         }
         bool random = !m_rl->converged;
         if (p_canvas.checkbox("Random", random))
@@ -102,7 +102,7 @@ public:
             m_rl->converged = !random;
             if (random)
             {
-                m_rl->mix = 0.0f;
+                m_rl->mix = 0.0F;
             }
         }
         std::ostringstream mix;
@@ -116,7 +116,7 @@ public:
             if (robotik::Simulation* simulation = m_host.simulation())
             {
                 simulation->reset(
-                    robotik::Seed{ simulation->seed().value + 1u });
+                    robotik::Seed{ simulation->seed().value + 1U });
             }
         }
         p_canvas.separator();
@@ -132,20 +132,20 @@ public:
         if (!m_rl->ready)
         {
             p_canvas.textColored(
-                0.90f,
-                0.25f,
-                0.25f,
+                0.90F,
+                0.25F,
+                0.25F,
                 "Needs an arm joint group and a vacuum gripper");
         }
         else if (m_rl->success)
         {
             p_canvas.textColored(
-                0.35f, 0.85f, 0.40f, "Delivered — cube is in the box");
+                0.35F, 0.85F, 0.40F, "Delivered — cube is in the box");
         }
         else if (m_rl->done)
         {
             p_canvas.textColored(
-                0.90f, 0.25f, 0.25f, "Truncated — out of steps");
+                0.90F, 0.25F, 0.25F, "Truncated — out of steps");
         }
         else
         {

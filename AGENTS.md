@@ -114,7 +114,7 @@ libraries are then built by Make rules, there is no `external/compilation`.
 ## Style
 
 - `.clang-format` (Google based, braces on their own line, 4 spaces).
-- Parameters `p_name`, members `m_name`, constants `kName` or `UPPER_CASE`.
+- Parameters `p_name`, members `m_name`, constants `UPPER_CASE`.
 - Doxygen `///` comments (`///<` on the same line); class banners `// ****...`, method banners `// ----...`. File-local functions are `static`, with a `///` comment.
 - Every source file starts with the SPDX header
   `GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial` (copy it from a neighbour).

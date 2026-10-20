@@ -26,7 +26,7 @@ TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
 {
     robotik::PinocchioBackend kinematics(
         assetFile("robotik.robots.simple_revolute_robot"));
-    EXPECT_EQ(kinematics.nq(), 1u);
+    EXPECT_EQ(kinematics.nq(), 1U);
     ASSERT_TRUE(kinematics.hasFrame("arm_link"));
     robotik::Pose const pose = kinematics.framePose("arm_link");
     EXPECT_NEAR(pose.position.z, 0.05, 1e-6);
@@ -37,8 +37,8 @@ TEST(RobotSession, LoadsJointsFromUrdf)
 {
     compages::world::World world;
     robotik::RobotSession robot(world, assetFile("robotik.robots.robot_6axis"));
-    EXPECT_EQ(robot.joints().size(), 6u);
-    EXPECT_EQ(robot.joints().find("joint3"), 2u);
+    EXPECT_EQ(robot.joints().size(), 6U);
+    EXPECT_EQ(robot.joints().find("joint3"), 2U);
     EXPECT_EQ(robot.joints().find("nope"), robotik::NO_JOINT);
     EXPECT_FALSE(robot.tool().empty());
     EXPECT_TRUE(robot.link(robot.tool()));
@@ -51,7 +51,7 @@ TEST(RobotSession, GripperJointsJoinTheArm)
                                 assetFile("robotik.robots.robot_6axis"),
                                 nullptr,
                                 assetFile("robotik.tools.gripper"));
-    EXPECT_EQ(robot.joints().size(), 8u);
+    EXPECT_EQ(robot.joints().size(), 8U);
     EXPECT_NE(robot.joints().find("gripper_finger_left_joint"),
               robotik::NO_JOINT);
     EXPECT_NE(robot.joints().find("gripper_finger_right_joint"),
@@ -105,7 +105,7 @@ TEST(RobotSession, GripperJointsJoinTheArmInTheScene)
                                 assetFile("robotik.robots.robot_6axis"),
                                 &view,
                                 assetFile("robotik.tools.gripper"));
-    EXPECT_EQ(robot.joints().size(), 8u);
+    EXPECT_EQ(robot.joints().size(), 8U);
     EXPECT_TRUE(robot.joints().isPrismatic(
         robot.joints().find("gripper_finger_left_joint")));
     EXPECT_TRUE(robot.joints().isPrismatic(

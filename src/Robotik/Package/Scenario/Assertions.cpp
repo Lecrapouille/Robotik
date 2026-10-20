@@ -72,7 +72,7 @@ Result<AssertionSpec> readAssertion(ConfigNode const& p_node)
         {
             spec.phase = AssertionPhase::Sequence;
             spec.sequence = p_node.strings("sequence");
-            if (spec.sequence.size() < 2u || !spec.condition.empty())
+            if (spec.sequence.size() < 2U || !spec.condition.empty())
             {
                 throw std::runtime_error(
                     "a sequence lists two conditions or more, and no condition");
@@ -143,7 +143,7 @@ void AssertionEngine::reset()
         }
         m_checks.push_back(std::move(check));
     }
-    m_progress.assign(m_specs.size(), 0u);
+    m_progress.assign(m_specs.size(), 0U);
     m_concluded = false;
 }
 
@@ -162,10 +162,10 @@ bool AssertionEngine::stopRequested() const
 bool AssertionEngine::passed() const
 {
     return m_concluded &&
-           std::all_of(m_checks.begin(),
-                       m_checks.end(),
-                       [](Check const& p_check)
-                       { return p_check.verdict == Check::Verdict::Passed; });
+           std::ranges::all_of(
+               m_checks,
+               [](Check const& p_check)
+               { return p_check.verdict == Check::Verdict::Passed; });
 }
 
 void AssertionEngine::fail(Check& p_check, Seconds p_now, std::string p_why)
@@ -209,7 +209,7 @@ void AssertionEngine::judge(std::size_t p_index,
             }
             ++next;
         }
-        for (std::size_t later = next + 1u; later < spec.sequence.size();
+        for (std::size_t later = next + 1U; later < spec.sequence.size();
              ++later)
         {
             if (p_probe(spec.sequence[later]).holds)

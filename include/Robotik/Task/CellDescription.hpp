@@ -146,7 +146,7 @@ struct ShapeSpec
     /// Full extents along X, Y, Z (m).
     Vector3 size = Vector3(0.04, 0.04, 0.04);
     /// RGB color in [0, 1].
-    std::array<float, 3> color{ 0.8f, 0.8f, 0.8f };
+    std::array<float, 3> color{ 0.8F, 0.8F, 0.8F };
 };
 
 // ****************************************************************************
@@ -368,7 +368,7 @@ struct PlannerSpec
     /// Replaces @ref goal; not checked against the beliefs.
     std::string goal_pddl;
     /// New plans allowed after the first one (failure, effect not seen).
-    std::uint32_t max_replans = 3u;
+    std::uint32_t max_replans = 3U;
     /// Simulated time waited before a new plan.
     Seconds replan_delay{ 0.5 };
     /// Checks the effects of each action on the beliefs once it is done.

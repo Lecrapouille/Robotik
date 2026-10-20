@@ -181,7 +181,7 @@ std::size_t TeachPendant::record(Robot const& p_robot,
     waypoint.duration = std::max(p_duration, 0.05);
     m_waypoints.push_back(std::move(waypoint));
     m_error.clear();
-    return m_waypoints.size() - 1u;
+    return m_waypoints.size() - 1U;
 }
 
 void TeachPendant::erase(std::size_t p_index)

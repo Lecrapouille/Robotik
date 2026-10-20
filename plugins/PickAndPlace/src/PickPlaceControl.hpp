@@ -20,7 +20,7 @@
 #include <span>
 
 // Random → converged: one action (Simulator) or 8 episodes (CLI --train).
-inline constexpr float PICK_PLACE_TRAIN_STEP = 1.0f / 400.0f;
+inline constexpr float PICK_PLACE_TRAIN_STEP = 1.0F / 400.0F;
 inline constexpr std::uint32_t PICK_PLACE_TRAIN_EPISODES = 8;
 
 namespace robotik

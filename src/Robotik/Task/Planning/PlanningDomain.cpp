@@ -43,14 +43,14 @@ std::string expand(std::string_view p_pattern,
                    std::span<std::string const> p_args)
 {
     std::string result;
-    for (std::size_t i = 0u; i < p_pattern.size(); ++i)
+    for (std::size_t i = 0U; i < p_pattern.size(); ++i)
     {
         std::size_t const close = p_pattern.find('}', i);
         if (p_pattern[i] == '{' && close != std::string_view::npos &&
-            close > i + 1u)
+            close > i + 1U)
         {
             std::string_view const index =
-                p_pattern.substr(i + 1u, close - i - 1u);
+                p_pattern.substr(i + 1U, close - i - 1U);
             bool digits = true;
             for (char const c : index)
             {

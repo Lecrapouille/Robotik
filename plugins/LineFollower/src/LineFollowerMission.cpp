@@ -214,7 +214,7 @@ void LineFollowerMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
         m_cross_max = std::max(m_cross_max, error);
         ++m_cross_count;
     }
-    if (++m_steps % 5u == 0u)
+    if (++m_steps % 5U == 0U)
     {
         m_truth_path.push_back(m_drive->truth());
         m_estimate_path.push_back(m_navigation->estimate);
@@ -227,7 +227,7 @@ void LineFollowerMission::measure(robotik::Cell const& /*p_cell*/,
     p_metrics.set("laps", followProgress() / m_track.perimeter());
     p_metrics.set("cross_track.max", m_cross_max);
     p_metrics.set("cross_track.mean",
-                  m_cross_count > 0u
+                  m_cross_count > 0U
                       ? m_cross_sum / static_cast<double>(m_cross_count)
                       : 0.0);
     p_metrics.set("fix.error.mean", fixErrorMean());
@@ -247,6 +247,6 @@ double LineFollowerMission::followProgress() const
 
 double LineFollowerMission::fixErrorMean() const
 {
-    return m_fix_count > 0u ? m_fix_error_sum / static_cast<double>(m_fix_count)
+    return m_fix_count > 0U ? m_fix_error_sum / static_cast<double>(m_fix_count)
                             : 0.0;
 }

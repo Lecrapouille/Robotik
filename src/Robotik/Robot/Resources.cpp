@@ -64,10 +64,10 @@ ResourceId ResourceManager::add(std::string p_name)
         throw std::length_error("Too many resources");
     }
     m_names.push_back(std::move(p_name));
-    m_failed.push_back(0u);
+    m_failed.push_back(0U);
     m_owners.push_back(NO_OWNER);
-    m_users.push_back(0u);
-    return static_cast<ResourceId>(m_names.size() - 1u);
+    m_users.push_back(0U);
+    return static_cast<ResourceId>(m_names.size() - 1U);
 }
 
 ResourceId ResourceManager::find(std::string_view p_name) const
@@ -98,7 +98,7 @@ void ResourceManager::fail(ResourceId p_id)
 {
     if (p_id < m_failed.size())
     {
-        m_failed[p_id] = 1u;
+        m_failed[p_id] = 1U;
     }
 }
 
@@ -106,7 +106,7 @@ void ResourceManager::restore(ResourceId p_id)
 {
     if (p_id < m_failed.size())
     {
-        m_failed[p_id] = 0u;
+        m_failed[p_id] = 0U;
     }
 }
 
@@ -122,7 +122,7 @@ void ResourceManager::restore(std::string_view p_name)
 
 void ResourceManager::restoreAll()
 {
-    std::fill(m_failed.begin(), m_failed.end(), std::uint8_t(0u));
+    std::ranges::fill(m_failed, std::uint8_t(0U));
 }
 
 Conflict ResourceManager::conflict(
@@ -139,7 +139,7 @@ Conflict ResourceManager::conflict(
         {
             return { id, m_owners[id], false };
         }
-        if (requirement.access == Access::Exclusive && m_users[id] > 0u)
+        if (requirement.access == Access::Exclusive && m_users[id] > 0U)
         {
             return { id, NO_OWNER, false };
         }
@@ -182,7 +182,7 @@ void ResourceManager::release(ResourceLease& p_lease)
         {
             m_owners[requirement.id] = NO_OWNER;
         }
-        else if (m_users[requirement.id] > 0u)
+        else if (m_users[requirement.id] > 0U)
         {
             --m_users[requirement.id];
         }

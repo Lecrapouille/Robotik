@@ -25,30 +25,30 @@ namespace dual_arm
 
 /// Gap between the cup and the bottom face of the tray to grasp it: the
 /// weld holds it as it is (m).
-static constexpr double kContact = 0.005;
+static constexpr double CONTACT = 0.005;
 /// The tray goes up, and back down, by this much: clear of the rails (m).
-static constexpr double kLift = 0.05;
+static constexpr double LIFT = 0.05;
 /// The cup goes down after the release (m).
-static constexpr double kRetreat = 0.04;
+static constexpr double RETREAT = 0.04;
 /// Force of the drill on the tray, felt by its force sensor (N).
-static constexpr double kDrillForce = 5.0;
+static constexpr double DRILL_FORCE = 5.0;
 /// Speed of the drill along its path on the tray (m/s).
-static constexpr double kDrillSpeed = 0.06;
+static constexpr double DRILL_SPEED = 0.06;
 /// Name of the path of the drill among the trajectories of the scenario.
-static constexpr char const* kDrillPath = "drill";
+static constexpr char const* DRILL_PATH = "drill";
 /// Times of the smooth moves (s): slow enough for the glasses.
-static constexpr double kApproachTime = 2.5;
-static constexpr double kReachTime = 1.0;
-static constexpr double kRaiseTime = 2.0;
-static constexpr double kCarryTime = 20.0;
-static constexpr double kLowerTime = 2.0;
-static constexpr double kRetreatTime = 1.0;
-static constexpr int kPriority = 100;
+static constexpr double APPROACH_TIME = 2.5;
+static constexpr double REACH_TIME = 1.0;
+static constexpr double RAISE_TIME = 2.0;
+static constexpr double CARRY_TIME = 20.0;
+static constexpr double LOWER_TIME = 2.0;
+static constexpr double RETREAT_TIME = 1.0;
+static constexpr int PRIORITY = 100;
 /// Joint servo gains of the arms: stiff enough to carry the tray and its
 /// glasses (0.7 kg) without sagging (the gravity compensation of the drive
 /// does not know the payload).
-static constexpr double kStiffKp = 800.0;
-static constexpr double kStiffKd = 50.0;
+static constexpr double STIFF_KP = 800.0;
+static constexpr double STIFF_KD = 50.0;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
 static robotik::SkillDescription
@@ -60,7 +60,7 @@ describe(std::string p_name,
     description.name = std::move(p_name);
     description.robot = std::move(p_robot);
     description.resources = std::move(p_resources);
-    description.priority = kPriority;
+    description.priority = PRIORITY;
     return description;
 }
 
@@ -91,8 +91,8 @@ void TrayMission::setup(robotik::Cell& p_cell,
         robotik::JointSet& joints = robot->joints();
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
-            joints.gains(id).kp = kStiffKp;
-            joints.gains(id).kd = kStiffKd;
+            joints.gains(id).kp = STIFF_KP;
+            joints.gains(id).kd = STIFF_KD;
         }
         if (cupOf(*robot) != nullptr)
         {
@@ -128,11 +128,11 @@ void TrayMission::addCarrierSkills(robotik::Cell& p_cell,
         skills.add<PathSkill>(
             describe(scope + "Approach(" + tray + ")", id, arm),
             tray,
-            robotik::Seconds(kApproachTime));
+            robotik::Seconds(APPROACH_TIME));
         skills.add<PathSkill>(describe(scope + "Reach(" + tray + ")", id, arm),
                               tray,
-                              robotik::Length(kContact),
-                              robotik::Seconds(kReachTime));
+                              robotik::Length(CONTACT),
+                              robotik::Seconds(REACH_TIME));
         robotik::SkillDescription grasp =
             describe(scope + "Grasp(" + tray + ")", id, cup);
         grasp.wait = false;
@@ -142,18 +142,18 @@ void TrayMission::addCarrierSkills(robotik::Cell& p_cell,
     {
         skills.add<PathSkill>(describe(scope + "Carry(" + pad + ")", id, arm),
                               pad,
-                              robotik::Seconds(kCarryTime));
+                              robotik::Seconds(CARRY_TIME));
     }
     skills.add<PathSkill>(describe(scope + "Raise", id, arm),
-                          robotik::Vector3(0.0, 0.0, kLift),
-                          robotik::Seconds(kRaiseTime));
+                          robotik::Vector3(0.0, 0.0, LIFT),
+                          robotik::Seconds(RAISE_TIME));
     skills.add<PathSkill>(describe(scope + "Lower", id, arm),
-                          robotik::Vector3(0.0, 0.0, -kLift),
-                          robotik::Seconds(kLowerTime));
+                          robotik::Vector3(0.0, 0.0, -LIFT),
+                          robotik::Seconds(LOWER_TIME));
     skills.add<ReleaseSkill>(describe(scope + "Release", id, cup));
     skills.add<PathSkill>(describe(scope + "Retreat", id, arm),
-                          robotik::Vector3(0.0, 0.0, -kRetreat),
-                          robotik::Seconds(kRetreatTime));
+                          robotik::Vector3(0.0, 0.0, -RETREAT),
+                          robotik::Seconds(RETREAT_TIME));
 }
 
 void TrayMission::addDrillSkills(robotik::Cell& p_cell,
@@ -166,11 +166,11 @@ void TrayMission::addDrillSkills(robotik::Cell& p_cell,
     }
     // The path is a trajectory of the scenario, drawn in the frame of the tray.
     auto const& trajectories = p_cell.description().trajectories;
-    auto const found = trajectories.find(kDrillPath);
+    auto const found = trajectories.find(DRILL_PATH);
     if (found == trajectories.end())
     {
         throw std::runtime_error(
-            std::string("the scenario has no trajectory '") + kDrillPath + "'");
+            std::string("the scenario has no trajectory '") + DRILL_PATH + "'");
     }
     std::vector<robotik::Vector3> path;
     for (robotik::Pose const& point : found->second.poses)
@@ -184,8 +184,8 @@ void TrayMission::addDrillSkills(robotik::Cell& p_cell,
             describe(id + ".Trace(" + tray + ")", id, arm),
             tray,
             path,
-            robotik::LinearVelocity(kDrillSpeed),
-            robotik::Force(kDrillForce));
+            robotik::LinearVelocity(DRILL_SPEED),
+            robotik::Force(DRILL_FORCE));
     }
 }
 
@@ -201,10 +201,9 @@ static bool overFootprint(robotik::WorldObject const& p_a,
 static bool heldByAnyone(robotik::RobotContext const& p_context,
                          std::string const& p_object)
 {
-    return std::any_of(p_context.team.begin(),
-                       p_context.team.end(),
-                       [&](robotik::Robot const* p_robot)
-                       { return heldObject(*p_robot) == p_object; });
+    return std::ranges::any_of(p_context.team,
+                               [&](robotik::Robot const* p_robot)
+                               { return heldObject(*p_robot) == p_object; });
 }
 
 void TrayMission::addPlanning(robotik::Cell& p_cell)
@@ -312,9 +311,8 @@ void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 
     // A tool on its workpiece: ground truth, for the metric only.
     if (!p_cell.controllerStopped() &&
-        std::any_of(
-            m_touches.begin(),
-            m_touches.end(),
+        std::ranges::any_of(
+            m_touches,
             [&](std::string const& p_query)
             { return p_cell.query(p_query).value_or(0.0) > 0.5; }))
     {
@@ -322,7 +320,7 @@ void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
     }
 
     // Both arms busy: a skill of each robot is running.
-    std::set<std::string> busy;
+    std::set<std::string, std::less<>> busy;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
         if (!skills.description(id).robot.empty() &&
@@ -331,7 +329,7 @@ void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
             busy.insert(skills.description(id).robot);
         }
     }
-    if (busy.size() >= 2u && !p_cell.controllerStopped())
+    if (busy.size() >= 2U && !p_cell.controllerStopped())
     {
         m_overlap += p_dt.value();
     }

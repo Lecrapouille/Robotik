@@ -171,9 +171,9 @@ struct PluginPackage
     /// @c host.view is given: use @ref eye and @ref target.
     bool has_view = false;
     /// Camera position of the 3D view (m).
-    float eye[3] = { 1.6f, 1.2f, 1.6f };
+    float eye[3] = { 1.6F, 1.2F, 1.6F };
     /// Point the camera of the 3D view looks at (m).
-    float target[3] = { 0.35f, 0.15f, 0.0f };
+    float target[3] = { 0.35F, 0.15F, 0.0F };
     /// Absolute path of the shared library.
     std::filesystem::path library;
     /// Scenario files.

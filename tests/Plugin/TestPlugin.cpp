@@ -79,10 +79,10 @@ TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
     robotik::PluginPackage const* follower =
         catalog.findPackage("robotik.line_follower");
     ASSERT_NE(follower, nullptr);
-    ASSERT_EQ(follower->system.size(), 1u);
+    ASSERT_EQ(follower->system.size(), 1U);
     EXPECT_EQ(follower->system[0].name, "opencv4");
     EXPECT_EQ(follower->system[0].license, "Apache-2.0");
-    ASSERT_EQ(follower->thirdparties.size(), 1u);
+    ASSERT_EQ(follower->thirdparties.size(), 1U);
     EXPECT_EQ(follower->thirdparties[0].name, "AprilRobotics/apriltag");
     EXPECT_EQ(follower->thirdparties[0].url,
               "https://github.com/AprilRobotics/apriltag");
@@ -91,7 +91,7 @@ TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
     robotik::PluginPackage const* walk =
         catalog.findPackage("robotik.humanoid_walk");
     ASSERT_NE(walk, nullptr);
-    ASSERT_EQ(walk->thirdparties.size(), 3u);
+    ASSERT_EQ(walk->thirdparties.size(), 3U);
     // A quoted value keeps its colon; an entry without repo keeps its url.
     EXPECT_EQ(walk->thirdparties[0].description,
               "LimX HU_D04 humanoid: URDF and meshes");
@@ -107,10 +107,10 @@ TEST(PluginCatalog, OnePluginListsSeveralScenarios)
     std::vector<std::filesystem::path> const roots{ repo(
         "plugins/HelloWorld") };
     catalog.scan(roots);
-    ASSERT_EQ(catalog.packages().size(), 1u);
+    ASSERT_EQ(catalog.packages().size(), 1U);
     robotik::PluginPackage const& package = catalog.packages().front();
     EXPECT_EQ(package.id, "robotik.hello_world");
-    ASSERT_EQ(package.scenarios.size(), 4u);
+    ASSERT_EQ(package.scenarios.size(), 4U);
     EXPECT_EQ(package.scenarios[0].id, "hello");
     EXPECT_EQ(package.scenarios[1].id, "wave");
     EXPECT_EQ(package.scenarios[2].id, "reach");
@@ -129,7 +129,7 @@ TEST(PluginCatalog, RejectsPathsThatLeaveThePackage)
     };
     catalog.scan(roots);
     EXPECT_TRUE(catalog.packages().empty());
-    EXPECT_GE(catalog.errors().size(), 2u);
+    EXPECT_GE(catalog.errors().size(), 2U);
 }
 
 TEST(Scenario, ModelIdResolvesThroughTheAssetPacks)
@@ -148,7 +148,7 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
         repo("plugins/Painter"), repo("plugins/PickAndPlace")
     };
     catalog.scan(roots);
-    ASSERT_EQ(catalog.packages().size(), 2u)
+    ASSERT_EQ(catalog.packages().size(), 2U)
         << (catalog.errors().empty() ? "" : catalog.errors().front());
     robotik::PluginPackage const* painter =
         catalog.findPackage("robotik.painter");
@@ -156,7 +156,7 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
     EXPECT_EQ(painter->api_version, ROBOTIK_PLUGIN_ABI_VERSION);
     EXPECT_EQ(robotik::toString(painter->version), "1.0.0");
     EXPECT_EQ(painter->resources.filename(), "data");
-    ASSERT_EQ(painter->packs.size(), 2u);
+    ASSERT_EQ(painter->packs.size(), 2U);
     EXPECT_EQ(painter->packs[0].id, "robotik.robots");
     EXPECT_EQ(robotik::toString(painter->packs[0].version), "1.0.0");
     EXPECT_FALSE(painter->owns_clock);
@@ -169,10 +169,9 @@ TEST(PluginCatalog, ReadsTheResourcesAndHostSections)
     EXPECT_FALSE(pick->scenarios.front().owns_clock);
     EXPECT_EQ(pick->scenarios.front().menu, "Behavior tree");
     auto const rl =
-        std::find_if(pick->scenarios.begin(),
-                     pick->scenarios.end(),
-                     [](robotik::PluginScenario const& p_scenario)
-                     { return p_scenario.id == "pick_and_place_rl"; });
+        std::ranges::find_if(pick->scenarios,
+                             [](robotik::PluginScenario const& p_scenario)
+                             { return p_scenario.id == "pick_and_place_rl"; });
     ASSERT_NE(rl, pick->scenarios.end());
     EXPECT_TRUE(rl->owns_clock);
     EXPECT_EQ(rl->menu, "Reinforcement learning");
@@ -185,7 +184,7 @@ TEST(PluginCatalog, RejectsAnotherPluginApi)
         "tests/Plugin/fixtures/api") };
     catalog.scan(roots);
     EXPECT_TRUE(catalog.packages().empty());
-    ASSERT_EQ(catalog.errors().size(), 1u);
+    ASSERT_EQ(catalog.errors().size(), 1U);
     EXPECT_NE(catalog.errors().front().find("plugin API 99"),
               std::string::npos);
 }

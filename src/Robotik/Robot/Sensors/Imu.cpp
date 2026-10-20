@@ -93,7 +93,7 @@ bool Imu::sample(Robot const& p_robot, Seconds p_now)
     ImuReading reading;
     reading.stamp = p_now;
     reading.frame = name();
-    reading.sequence = samples() + 1u;
+    reading.sequence = samples() + 1U;
     reading.valid = true;
     reading.acceleration =
         applyNoise(m_config.accelerometer, specific_force, m_random);

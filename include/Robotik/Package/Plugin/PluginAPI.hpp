@@ -565,7 +565,7 @@ inline void report(RobotikHostAPI const* p_api, char const* p_message)
 inline bool
 copyField(char* p_dest, std::size_t p_capacity, std::string_view p_value)
 {
-    if (p_dest == nullptr || p_value.size() + 1u > p_capacity)
+    if (p_dest == nullptr || p_value.size() + 1U > p_capacity)
     {
         return false;
     }

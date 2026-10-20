@@ -99,9 +99,9 @@ static void header(App& p_app)
         p_app.teach.pendant.stop(robot);
     }
     ImGui::PopStyleColor();
-    ImGui::SameLine(0.0f, 0.0f);
+    ImGui::SameLine(0.0F, 0.0F);
     ImGui::PushStyleColor(ImGuiCol_Button,
-                          manual ? ImVec4(0.55f, 0.38f, 0.10f, 1.0f)
+                          manual ? ImVec4(0.55F, 0.38F, 0.10F, 1.0F)
                                  : ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
     if (ImGui::Button("Manual") && !manual)
     {
@@ -177,7 +177,7 @@ positionCell(App& p_app, robotik::JointId p_id, JointInfo const& p_info)
         // takes the robot from the mission (Manual mode).
         double const shown = p_app.teach.manual ? target : position;
         float value = static_cast<float>(shown * p_info.unit);
-        ImGui::SetNextItemWidth(-1.0f);
+        ImGui::SetNextItemWidth(-1.0F);
         if (ImGui::SliderFloat("##target",
                                &value,
                                static_cast<float>(lower * p_info.unit),
@@ -236,7 +236,7 @@ static void jointsTable(App& p_app)
     robotik::JointSet& joints = robot.joints();
     if (p_app.ui.plotted.size() != joints.size())
     {
-        p_app.ui.plotted.assign(joints.size(), joints.size() <= 8u);
+        p_app.ui.plotted.assign(joints.size(), joints.size() <= 8U);
     }
     std::size_t const latest = p_app.history.latest();
     ImGuiTableFlags const flags =
@@ -262,14 +262,14 @@ static void jointsTable(App& p_app)
     ImGui::TableSetupColumn(
         "Joint", ImGuiTableColumnFlags_WidthFixed, name_width);
     ImGui::TableSetupColumn(
-        "Position", ImGuiTableColumnFlags_WidthStretch, 2.2f);
+        "Position", ImGuiTableColumnFlags_WidthStretch, 2.2F);
     ImGui::TableSetupColumn("Min", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn("Max", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn(
-        "Velocity / limit", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+        "Velocity / limit", ImGuiTableColumnFlags_WidthStretch, 1.4F);
     ImGui::TableSetupColumn("Accel.", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableSetupColumn(
-        "Effort / limit", ImGuiTableColumnFlags_WidthStretch, 1.4f);
+        "Effort / limit", ImGuiTableColumnFlags_WidthStretch, 1.4F);
     ImGui::TableSetupColumn("Jog", ImGuiTableColumnFlags_WidthFixed);
     ImGui::TableHeadersRow();
     for (robotik::JointId id = 0; id < joints.size(); ++id)
@@ -391,7 +391,7 @@ static void jointsTable(App& p_app)
             takeArm(p_app);
             p_app.teach.pendant.jogJoint(robot, id, -step);
         }
-        ImGui::SameLine(0.0f, 2.0f);
+        ImGui::SameLine(0.0F, 2.0F);
         if (ImGui::SmallButton(" + "))
         {
             takeArm(p_app);
@@ -452,7 +452,7 @@ void plotsPanel(App& p_app)
         ImGui::End();
         return;
     }
-    if (!p_app.simulation || p_app.history.count == 0u)
+    if (!p_app.simulation || p_app.history.count == 0U)
     {
         emptyState("No data yet: press Play.");
         ImGui::End();
@@ -472,15 +472,15 @@ void plotsPanel(App& p_app)
             only = id;
         }
     }
-    ImGui::SetNextItemWidth(160.0f);
+    ImGui::SetNextItemWidth(160.0F);
     ImGui::SliderFloat(
-        "##window", &p_app.ui.plot_window_s, 2.0f, 30.0f, "last %.0f s");
+        "##window", &p_app.ui.plot_window_s, 2.0F, 30.0F, "last %.0f s");
     ImGui::SameLine();
-    ImGui::TextDisabled(selected == 1u
+    ImGui::TextDisabled(selected == 1U
                             ? "red lines: limits of %s"
                             : "tick the Plot column of the Robot panel%s",
-                        selected == 1u ? joints.name(only).c_str() : "");
-    if (selected == 0u)
+                        selected == 1U ? joints.name(only).c_str() : "");
+    if (selected == 0U)
     {
         ImGui::End();
         return;
@@ -501,13 +501,13 @@ void plotsPanel(App& p_app)
         ImPlotSubplotFlags_LinkAllX | ImPlotSubplotFlags_ShareItems;
     ImVec2 const area = ImGui::GetContentRegionAvail();
     // Two by two when there is room for it, one column otherwise.
-    int const columns = area.x > 1.6f * area.y ? 2 : 1;
+    int const columns = area.x > 1.6F * area.y ? 2 : 1;
     if (ImPlot::BeginSubplots("##joints", 4 / columns, columns, area, flags))
     {
         for (int row = 0; row < 4; ++row)
         {
             if (!ImPlot::BeginPlot(
-                    TITLES[row], ImVec2(-1.0f, 0.0f), ImPlotFlags_NoMenus))
+                    TITLES[row], ImVec2(-1.0F, 0.0F), ImPlotFlags_NoMenus))
             {
                 continue;
             }
@@ -534,7 +534,7 @@ void plotsPanel(App& p_app)
                                   &sample,
                                   &series,
                                   static_cast<int>(history.count));
-                if (selected == 1u)
+                if (selected == 1U)
                 {
                     double limits[2] = { 0.0, 0.0 };
                     int count = 0;
@@ -559,7 +559,7 @@ void plotsPanel(App& p_app)
                     if (count > 0)
                     {
                         ImPlotSpec spec;
-                        spec.LineColor = ImVec4(0.95f, 0.35f, 0.35f, 0.6f);
+                        spec.LineColor = ImVec4(0.95F, 0.35F, 0.35F, 0.6F);
                         spec.Flags =
                             static_cast<int>(ImPlotInfLinesFlags_Horizontal) |
                             static_cast<int>(ImPlotItemFlags_NoLegend);

@@ -33,14 +33,13 @@ static bool pddlName(std::string_view p_name)
     {
         return false;
     }
-    return std::all_of(p_name.begin(),
-                       p_name.end(),
-                       [](char p_c)
-                       {
-                           return std::isalnum(
-                                      static_cast<unsigned char>(p_c)) != 0 ||
-                                  p_c == '_' || p_c == '-';
-                       });
+    return std::ranges::all_of(
+        p_name,
+        [](char p_c)
+        {
+            return std::isalnum(static_cast<unsigned char>(p_c)) != 0 ||
+                   p_c == '_' || p_c == '-';
+        });
 }
 
 /// @brief YAML double-quoted scalar.
@@ -166,7 +165,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
     { return p_type == "object" || m_schema.types.contains(p_type); };
 
     // --- Objects: the entities with a kind ----------------------------------
-    std::set<std::string> names;
+    std::set<std::string, std::less<>> names;
     for (auto const& [constant, type] : m_schema.constants)
     {
         names.insert(constant);
@@ -204,7 +203,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
     }
 
     // --- Mission: observers and bindings ------------------------------------
-    std::set<std::string> fact_predicates;
+    std::set<std::string, std::less<>> fact_predicates;
     for (Literal const& fact : m_spec.facts)
     {
         fact_predicates.insert(fact.atom.predicate);
@@ -300,7 +299,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
                              " argument(s)");
             return;
         }
-        for (std::size_t i = 0u; i < p_literal.atom.args.size(); ++i)
+        for (std::size_t i = 0U; i < p_literal.atom.args.size(); ++i)
         {
             std::string const* type = typeOf(p_literal.atom.args[i]);
             if (type == nullptr)
@@ -351,11 +350,11 @@ void PlanExecutor::reset(Seed p_seed)
     m_seed = p_seed.value;
     m_state = PlanState::Planning;
     m_resume = Seconds{};
-    m_replans = 0u;
+    m_replans = 0U;
     m_failure.clear();
     m_history.clear();
     m_plan.clear();
-    m_done = 0u;
+    m_done = 0U;
     m_steps.clear();
     m_after.clear();
     m_order.clear();
@@ -452,7 +451,7 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     record.result = m_engine->solve(record.problem, options);
 
     m_plan.clear();
-    m_done = 0u;
+    m_done = 0U;
     m_tree.reset();
     if (solved(record.result))
     {
@@ -470,9 +469,9 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
     {
         std::string why = std::string("planner: ") + toString(result.status);
         if (std::size_t const end = result.diagnostics.find('\n');
-            end != 0u && !result.diagnostics.empty())
+            end != 0U && !result.diagnostics.empty())
         {
-            why += " (" + result.diagnostics.substr(0u, end) + ")";
+            why += " (" + result.diagnostics.substr(0U, end) + ")";
         }
         // A wrong problem will not get better by waiting.
         if (result.status == PlanningResult::Status::Invalid)
@@ -500,7 +499,7 @@ void PlanExecutor::compile()
     m_started.assign(m_plan.size(), false);
     m_start_times.assign(m_plan.size(), Seconds(0.0));
     m_after.assign(m_plan.size(), {});
-    for (std::size_t k = 0u; k < m_order.size(); ++k)
+    for (std::size_t k = 0U; k < m_order.size(); ++k)
     {
         for (PlanEvent const& event : m_order[k].start_after)
         {
@@ -516,7 +515,7 @@ void PlanExecutor::compile()
         {
             text += (text.empty() ? "" : ", ") +
                     std::string(event.end ? "" : "start of ") +
-                    std::to_string(event.step + 1u);
+                    std::to_string(event.step + 1U);
         }
         return text;
     };
@@ -534,10 +533,10 @@ void PlanExecutor::compile()
              << "    success_on_all: true\n    fail_on_all: false\n    "
                 "children:\n";
     }
-    for (std::size_t k = 0u; k < m_plan.size(); ++k)
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
     {
         GroundAction const& step = m_plan[k];
-        std::string const title = std::to_string(k + 1u) + ". " + label(step);
+        std::string const title = std::to_string(k + 1U) + ". " + label(step);
         std::string indent = "      ";
         if (!chain)
         {
@@ -577,10 +576,10 @@ void PlanExecutor::compile()
         }
     }
     yaml << "SubTrees:\n";
-    for (std::size_t k = 0u; k < m_plan.size(); ++k)
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
     {
         GroundAction const& step = m_plan[k];
-        std::string const title = std::to_string(k + 1u) + ". " + label(step);
+        std::string const title = std::to_string(k + 1U) + ". " + label(step);
         // A step whose effects already hold is skipped: the beliefs may have
         // changed since the plan (an object seen on the way).
         std::string const skip = "Done already? " + title;
@@ -693,10 +692,9 @@ std::vector<Literal> PlanExecutor::effects(std::size_t p_step,
         for (std::string const& arg : effect.atom.args)
         {
             auto const found =
-                std::find_if(parameters.begin(),
-                             parameters.end(),
-                             [&](Parameter const& p_parameter)
-                             { return "?" + p_parameter.name == arg; });
+                std::ranges::find_if(parameters,
+                                     [&](Parameter const& p_parameter)
+                                     { return "?" + p_parameter.name == arg; });
             std::size_t const index =
                 static_cast<std::size_t>(found - parameters.begin());
             ground.atom.args.push_back(
@@ -723,16 +721,17 @@ bt::Status PlanExecutor::check(std::size_t p_step,
             Truth const value = evaluate(effect.atom, p_context);
             if (m_spec.observed && !seenSince(effect.atom, p_context, m_start_times[p_step]))
             {
-                m_check_failure = std::to_string(p_step + 1u) + ". " +
-                                  label(m_plan[p_step]) + ": " + toString(effect) +
-                                  " expected, not observed since the step started";
+                m_check_failure =
+                    std::to_string(p_step + 1U) + ". " + label(m_plan[p_step]) +
+                    ": " + toString(effect) +
+                    " expected, not observed since the step started";
                 return bt::Status::FAILURE;
             }
             if (value != Truth::Unknown &&
                 (value == Truth::True) != effect.positive)
             {
                 m_check_failure =
-                    std::to_string(p_step + 1u) + ". " + label(m_plan[p_step]) +
+                    std::to_string(p_step + 1U) + ". " + label(m_plan[p_step]) +
                     ": " + toString(effect) + " expected, the beliefs say " +
                     toString(value);
                 return bt::Status::FAILURE;
@@ -783,10 +782,9 @@ bool PlanExecutor::running(std::size_t p_step) const
     {
         return false;
     }
-    return std::all_of(m_order[p_step].start_after.begin(),
-                       m_order[p_step].start_after.end(),
-                       [this](PlanEvent const& p_event)
-                       { return reached(p_event); });
+    return std::ranges::all_of(m_order[p_step].start_after,
+                               [this](PlanEvent const& p_event)
+                               { return reached(p_event); });
 }
 
 // ----------------------------------------------------------------------------
@@ -821,9 +819,8 @@ bt::Status PlanExecutor::mayEnd(std::size_t p_step) const
 void PlanExecutor::finish(std::size_t p_step, StepStatus p_status)
 {
     m_steps[p_step] = p_status;
-    m_done = static_cast<std::size_t>(std::count_if(
-        m_steps.begin(),
-        m_steps.end(),
+    m_done = static_cast<std::size_t>(std::ranges::count_if(
+        m_steps,
         [](StepStatus p_s)
         { return p_s == StepStatus::Done || p_s == StepStatus::Skipped; }));
 }
@@ -832,7 +829,7 @@ void PlanExecutor::finish(std::size_t p_step, StepStatus p_status)
 std::size_t PlanExecutor::failingStep() const
 {
     std::size_t first = m_plan.size();
-    for (std::size_t k = 0u; k < m_plan.size(); ++k)
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
     {
         if (m_steps[k] != StepStatus::Pending)
         {
@@ -849,9 +846,8 @@ std::size_t PlanExecutor::failingStep() const
         }
         bool const going =
             k < m_order.size() &&
-            std::all_of(
-                m_order[k].start_after.begin(),
-                m_order[k].start_after.end(),
+            std::ranges::all_of(
+                m_order[k].start_after,
                 [this](PlanEvent const& p_event) { return reached(p_event); });
         if (first == m_plan.size() && going)
         {
@@ -865,9 +861,9 @@ std::size_t PlanExecutor::failingStep() const
 std::vector<StepOrder> PlanExecutor::partialOrder() const
 {
     std::vector<StepOrder> chain(m_plan.size());
-    for (std::size_t k = 1u; k < m_plan.size(); ++k)
+    for (std::size_t k = 1U; k < m_plan.size(); ++k)
     {
-        chain[k].start_after = { { k - 1u, true } };
+        chain[k].start_after = { { k - 1U, true } };
     }
     if (!m_spec.parallel)
     {
@@ -944,10 +940,9 @@ Truth PlanExecutor::evaluate(Atom const& p_atom,
         return Truth::Unknown;
     }
     // A static predicate: true when listed in the facts.
-    bool const listed = std::any_of(m_spec.facts.begin(),
-                                    m_spec.facts.end(),
-                                    [&](Literal const& p_fact)
-                                    { return p_fact.atom == p_atom; });
+    bool const listed = std::ranges::any_of(m_spec.facts,
+                                            [&](Literal const& p_fact)
+                                            { return p_fact.atom == p_atom; });
     return truth(listed);
 }
 
@@ -974,7 +969,7 @@ std::string PlanExecutor::stepFailure(RobotContext const& p_context) const
         return "the plan failed";
     }
     GroundAction const& step = m_plan[failed];
-    std::string const title = std::to_string(failed + 1u) + ". " + label(step);
+    std::string const title = std::to_string(failed + 1U) + ". " + label(step);
     for (std::string const& node : nodes(step))
     {
         SkillId const id = m_skills.find(node);
@@ -1035,10 +1030,10 @@ PlanExecutor::ids(std::vector<std::string> const& p_names) const
     result.reserve(p_names.size());
     for (std::string const& name : p_names)
     {
-        auto const object = std::find_if(m_objects.begin(),
-                                         m_objects.end(),
-                                         [&](PlanningObject const& p_object)
-                                         { return p_object.name == name; });
+        auto const object =
+            std::ranges::find_if(m_objects,
+                                 [&](PlanningObject const& p_object)
+                                 { return p_object.name == name; });
         result.push_back(object != m_objects.end() ? object->id : name);
     }
     return result;
@@ -1090,10 +1085,10 @@ PlanExecutor::observe(RobotContext const& p_context) const
             for (std::string const& candidate : candidates[p_index])
             {
                 tuple[p_index] = candidate;
-                visit(p_index + 1u);
+                visit(p_index + 1U);
             }
         };
-        visit(0u);
+        visit(0U);
     }
     return result;
 }
@@ -1123,7 +1118,7 @@ PlanExecutor::problemOf(std::vector<ObservedAtom> const& p_observed) const
         text << "  )\n";
     }
     text << "  (:init\n";
-    std::set<std::string> written;
+    std::set<std::string, std::less<>> written;
     if (!m_spec.facts.empty())
     {
         text << "    ; facts of the scenario\n";

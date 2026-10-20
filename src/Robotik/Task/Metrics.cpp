@@ -25,7 +25,7 @@ static std::string_view trim(std::string_view p_text)
         return {};
     }
     std::size_t const last = p_text.find_last_not_of(" \t");
-    return p_text.substr(first, last - first + 1u);
+    return p_text.substr(first, last - first + 1U);
 }
 
 /// One metric condition split into a name, an operator and a number.

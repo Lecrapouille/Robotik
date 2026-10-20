@@ -85,12 +85,12 @@ SkillId SkillScheduler::add(SkillDescription p_description,
     m_states.push_back(SkillState::Idle);
     m_reasons.push_back(SkillReason::None);
     m_blockers.push_back(NO_RESOURCE);
-    m_preconditions.push_back(0u);
-    m_cancels.push_back(0u);
-    m_orders.push_back(0u);
+    m_preconditions.push_back(0U);
+    m_cancels.push_back(0U);
+    m_orders.push_back(0U);
     m_runs.push_back(-1);
     m_leases.emplace_back();
-    return static_cast<SkillId>(m_skills.size() - 1u);
+    return static_cast<SkillId>(m_skills.size() - 1U);
 }
 
 SkillId SkillScheduler::find(std::string_view p_name) const
@@ -124,7 +124,7 @@ void SkillScheduler::request(SkillId p_id)
     m_states[p_id] = SkillState::Waiting;
     m_reasons[p_id] = SkillReason::None;
     m_blockers[p_id] = NO_RESOURCE;
-    m_cancels[p_id] = 0u;
+    m_cancels[p_id] = 0U;
     m_orders[p_id] = m_order++;
     m_runs[p_id] = -1;
     changed(p_id, SkillState::Waiting);
@@ -135,7 +135,7 @@ void SkillScheduler::cancel(SkillId p_id)
     if (m_states[p_id] == SkillState::Waiting ||
         m_states[p_id] == SkillState::Running)
     {
-        m_cancels[p_id] = 1u;
+        m_cancels[p_id] = 1U;
     }
 }
 
@@ -155,7 +155,7 @@ void SkillScheduler::reset()
         m_states[id] = SkillState::Idle;
         m_reasons[id] = SkillReason::None;
         m_blockers[id] = NO_RESOURCE;
-        m_cancels[id] = 0u;
+        m_cancels[id] = 0U;
         m_runs[id] = -1;
     }
     m_trace.clear();
@@ -204,7 +204,7 @@ void SkillScheduler::finish(SkillId p_id,
     m_leases[p_id].release();
     m_states[p_id] = p_state;
     m_reasons[p_id] = p_reason;
-    m_cancels[p_id] = 0u;
+    m_cancels[p_id] = 0U;
     record(p_id, p_now);
     changed(p_id, p_state);
 }
@@ -361,7 +361,7 @@ void SkillScheduler::admit(SkillId p_id)
 
 void SkillScheduler::update(RobotContext& p_context)
 {
-    update(std::span<RobotContext>(&p_context, 1u));
+    update(std::span<RobotContext>(&p_context, 1U));
 }
 
 void SkillScheduler::update(std::span<RobotContext> p_contexts)
@@ -375,7 +375,7 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
     // Explicit cancellations.
     for (SkillId id = 0; id < m_skills.size(); ++id)
     {
-        if (m_cancels[id] != 0u)
+        if (m_cancels[id] != 0U)
         {
             stop(id, SkillState::Cancelled, SkillReason::Cancelled);
         }
@@ -415,7 +415,7 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
             m_queue.push_back(id);
         }
     }
-    std::sort(m_queue.begin(), m_queue.end(), by_priority);
+    std::ranges::sort(m_queue, by_priority);
     for (SkillId const id : m_queue)
     {
         if (m_states[id] == SkillState::Waiting)
@@ -433,7 +433,7 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
             m_queue.push_back(id);
         }
     }
-    std::sort(m_queue.begin(), m_queue.end(), by_priority);
+    std::ranges::sort(m_queue, by_priority);
     for (SkillId const id : m_queue)
     {
         if (m_states[id] != SkillState::Running)

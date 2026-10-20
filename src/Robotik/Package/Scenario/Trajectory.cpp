@@ -65,7 +65,7 @@ Result<Trajectory> loadTrajectory(std::filesystem::path const& p_path)
                         continue;
                     }
                     std::vector<double> const xyz = numbers(point);
-                    if (xyz.size() != 3u)
+                    if (xyz.size() != 3U)
                     {
                         throw std::runtime_error(
                             "a cartesian point is [x, y, z] or a pose");

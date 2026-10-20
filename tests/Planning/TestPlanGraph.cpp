@@ -77,22 +77,22 @@ TEST(PlanGraph, SchemaReadsEachEnd)
     robotik::DomainSchema const arms = robotik::parseDomain(ARMS).take();
     robotik::ActionSchema const& pick = arms.actions.at("pick");
     // A plain action reads at its start and changes at its end.
-    ASSERT_EQ(pick.start.reads.size(), 2u);
+    ASSERT_EQ(pick.start.reads.size(), 2U);
     EXPECT_EQ(pick.start.reads[0].predicate, "free");
     EXPECT_TRUE(pick.start.writes.empty());
-    EXPECT_EQ(pick.end.writes.size(), 3u);
+    EXPECT_EQ(pick.end.writes.size(), 3U);
     // (at ?p ?b) is an atom, not a time.
     EXPECT_EQ(arms.actions.at("place").end.writes[0].predicate, "at");
 
     robotik::DomainSchema const tray = robotik::parseDomain(TRAY).take();
     robotik::ActionSchema const& carry = tray.actions.at("carry");
-    ASSERT_EQ(carry.start.writes.size(), 1u);
+    ASSERT_EQ(carry.start.writes.size(), 1U);
     EXPECT_EQ(carry.start.writes[0].predicate, "held");
-    EXPECT_EQ(carry.end.writes.size(), 2u);
+    EXPECT_EQ(carry.end.writes.size(), 2U);
     // over all: read at both ends.
     robotik::ActionSchema const& visit = tray.actions.at("visit");
-    EXPECT_EQ(visit.start.reads.size(), 2u);
-    EXPECT_EQ(visit.end.reads.size(), 2u);
+    EXPECT_EQ(visit.start.reads.size(), 2U);
+    EXPECT_EQ(visit.end.reads.size(), 2U);
 }
 
 TEST(PlanGraph, OneArmStaysInOrder)
@@ -115,7 +115,7 @@ TEST(PlanGraph, TwoArmsWorkTogether)
                  at(1, "pick", { "right", "b" }),
                  at(2, "place", { "left", "a", "bin" }),
                  at(3, "place", { "right", "b", "bin" }) }));
-    ASSERT_EQ(order.size(), 4u);
+    ASSERT_EQ(order.size(), 4U);
     EXPECT_TRUE(order[0].start_after.empty());
     EXPECT_TRUE(order[1].start_after.empty());
     EXPECT_EQ(order[2].start_after, std::vector<robotik::PlanEvent>{ end(0) });
@@ -129,12 +129,12 @@ TEST(PlanGraph, SharedResourceKeepsTheOrder)
         ARMS,
         { at(0, "pick", { "left", "a" }), at(1, "pick", { "right", "b" }) });
     // One needs the camera alone: no overlap.
-    steps[0].resources = { { 3u, robotik::Access::Exclusive } };
-    steps[1].resources = { { 3u, robotik::Access::Shared } };
+    steps[0].resources = { { 3U, robotik::Access::Exclusive } };
+    steps[1].resources = { { 3U, robotik::Access::Shared } };
     EXPECT_EQ(robotik::orderSteps(steps)[1].start_after,
               std::vector<robotik::PlanEvent>{ end(0) });
     // Both only watch the stream: they may share it.
-    steps[0].resources = { { 3u, robotik::Access::Shared } };
+    steps[0].resources = { { 3U, robotik::Access::Shared } };
     EXPECT_TRUE(robotik::orderSteps(steps)[1].start_after.empty());
 }
 
@@ -158,7 +158,7 @@ TEST(PlanGraph, HeldAllAlongTheVisit)
                { { "carry", { "left", "tray" }, 0.0, 10.0 },
                  { "visit", { "right", "g1", "tray" }, 1.0, 2.0 } }));
     EXPECT_EQ(order[1].start_after,
-              (std::vector<robotik::PlanEvent>{ { 0u, false } }));
+              (std::vector<robotik::PlanEvent>{ { 0U, false } }));
     EXPECT_EQ(order[0].end_after, (std::vector<robotik::PlanEvent>{ end(1) }));
     EXPECT_FALSE(robotik::sequential(order));
 }
@@ -176,11 +176,11 @@ TEST(PlanGraph, KairosGivesTheTimesOfATemporalPlan)
 )",
                                                          {});
     ASSERT_TRUE(solved(result)) << result.diagnostics << result.report;
-    ASSERT_EQ(result.steps.size(), 3u);
+    ASSERT_EQ(result.steps.size(), 3U);
     robotik::GroundAction const& carry = result.steps.front();
     EXPECT_EQ(carry.name, "carry");
     EXPECT_DOUBLE_EQ(carry.duration, 10.0);
-    for (std::size_t k = 1u; k < 3u; ++k)
+    for (std::size_t k = 1U; k < 3U; ++k)
     {
         // Each visit lies within the carry.
         EXPECT_EQ(result.steps[k].name, "visit");

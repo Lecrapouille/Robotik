@@ -129,7 +129,7 @@ private:
         p_canvas.text(format("Distance %.2f m", m_mission->distance()));
         if (m_mission->height() < FALLEN_HEIGHT_M)
         {
-            p_canvas.textColored(0.90f, 0.25f, 0.25f, "The duck fell: Replay");
+            p_canvas.textColored(0.90F, 0.25F, 0.25F, "The duck fell: Replay");
         }
         else
         {

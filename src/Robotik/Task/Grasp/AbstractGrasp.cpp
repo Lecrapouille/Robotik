@@ -20,10 +20,10 @@
 namespace robotik
 {
 
-static constexpr Length kVacuumContactDistance{ 0.02 };
-static constexpr Length kReleaseFloorLift{ 1e-4 };
+static constexpr Length VACUUM_CONTACT_DISTANCE{ 0.02 };
+static constexpr Length RELEASE_FLOOR_LIFT{ 1e-4 };
 /// Extra reach beyond the outer walls when choosing a bin to drop into.
-static constexpr Length kOuterFootprintSlack{ 0.05 };
+static constexpr Length OUTER_FOOTPRINT_SLACK{ 0.05 };
 
 static Vector3 positionOf(compages::world::Entity p_entity)
 {
@@ -90,8 +90,8 @@ static Vector3 settle(compages::world::World& p_world,
                                 center,
                                 p_at,
                                 half_z,
-                                kReleaseFloorLift.value(),
-                                kOuterFootprintSlack.value());
+                                RELEASE_FLOOR_LIFT.value(),
+                                OUTER_FOOTPRINT_SLACK.value());
             if (!pose)
             {
                 return;
@@ -114,12 +114,12 @@ static Vector3 settle(compages::world::World& p_world,
 }
 
 /// Nearest graspable cube whose top or bottom face is within
-/// @ref kVacuumContactDistance: a cup takes it from above or from below.
+/// @ref VACUUM_CONTACT_DISTANCE: a cup takes it from above or from below.
 static compages::world::EntityId touched(compages::world::World& p_world,
                                          Vector3 const& p_tip)
 {
     compages::world::EntityId found{};
-    Length best = kVacuumContactDistance;
+    Length best = VACUUM_CONTACT_DISTANCE;
     p_world.each<ecs::Shape>(
         [&](compages::world::Entity p_entity, ecs::Shape const& p_object)
         {

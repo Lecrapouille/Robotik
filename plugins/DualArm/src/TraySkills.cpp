@@ -24,28 +24,28 @@ namespace dual_arm
 using robotik::Status;
 
 /// Tool close enough to the end of a straight move (m).
-static constexpr double kPathTolerance = 0.015;
+static constexpr double PATH_TOLERANCE = 0.015;
 /// The tool first comes this high above the start of the path (m): clear
 /// of the glasses.
-static constexpr double kApproachHeight = 0.12;
+static constexpr double APPROACH_HEIGHT = 0.12;
 /// Close enough to the approach point to go down (m).
-static constexpr double kApproachTolerance = 0.02;
+static constexpr double APPROACH_TOLERANCE = 0.02;
 /// On its way to the tray, the tool chases a point at most this far ahead
 /// of it: small steps for the inverse kinematics (m).
-static constexpr double kApproachStep = 0.05;
+static constexpr double APPROACH_STEP = 0.05;
 /// Vertical speed of the tool on its way down to the tray and back up (m/s).
-static constexpr double kDescentSpeed = 0.06;
+static constexpr double DESCENT_SPEED = 0.06;
 /// Slower when it looks for the contact, the last centimetres (m/s).
-static constexpr double kSearchSpeed = 0.01;
+static constexpr double SEARCH_SPEED = 0.01;
 /// Height above the believed top where the search starts (m).
-static constexpr double kSearchHeight = 0.01;
+static constexpr double SEARCH_HEIGHT = 0.01;
 /// The tool touches when it feels this force (N).
-static constexpr double kTouchForce = 1.0;
+static constexpr double TOUCH_FORCE = 1.0;
 /// Speed of the tool per newton of force error, keeping the force (m/s/N).
-static constexpr double kAdmittance = 0.002;
+static constexpr double ADMITTANCE = 0.002;
 /// The tool does not go deeper than this under the believed top: no tray
 /// there (m).
-static constexpr double kDeepest = 0.02;
+static constexpr double DEEPEST = 0.02;
 
 /// @brief Puts the tool of the robot of @p_context at @p_target (base
 /// frame): one inverse kinematics from the current joints, then each joint
@@ -139,7 +139,7 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         return Status::FAILURE;
     }
     double const left = (robot.framePose(robot.tool()).position - m_to).norm();
-    return s >= 1.0 && left < kPathTolerance ? Status::SUCCESS
+    return s >= 1.0 && left < PATH_TOLERANCE ? Status::SUCCESS
                                              : Status::RUNNING;
 }
 
@@ -215,7 +215,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         {
             m_offsets.push_back(carrier.inverse() * (tray->position + point));
         }
-        m_height = kApproachHeight;
+        m_height = APPROACH_HEIGHT;
     }
 
     // Force of the contact along the tool, pushing it back (N): the tool
@@ -232,7 +232,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         {
             robotik::Vector3 const above = carrier * m_offsets.front() +
                                            robotik::Vector3(0.0, 0.0, m_height);
-            if ((tool - above).norm() < kApproachTolerance)
+            if ((tool - above).norm() < APPROACH_TOLERANCE)
             {
                 // Nothing touches yet: what the sensor reads is the tool.
                 m_tare = sensor->reading().wrench.force;
@@ -242,12 +242,12 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         }
         case Phase::Descend:
             m_height -=
-                (m_height > kSearchHeight ? kDescentSpeed : kSearchSpeed) * dt;
-            if (felt > kTouchForce)
+                (m_height > SEARCH_HEIGHT ? DESCENT_SPEED : SEARCH_SPEED) * dt;
+            if (felt > TOUCH_FORCE)
             {
                 m_phase = Phase::Follow;
             }
-            else if (m_height < -kDeepest)
+            else if (m_height < -DEEPEST)
             {
                 m_why = "the tool felt no " + m_tray + " under it";
                 return Status::FAILURE;
@@ -265,24 +265,24 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
                 return total;
             }();
             // Too much force: up; too little: down.
-            m_height += std::clamp(kAdmittance * (felt - m_force.value()),
-                                   -kSearchSpeed,
-                                   kSearchSpeed) *
+            m_height += std::clamp(ADMITTANCE * (felt - m_force.value()),
+                                   -SEARCH_SPEED,
+                                   SEARCH_SPEED) *
                         dt;
-            m_height = std::max(m_height, -kDeepest);
+            m_height = std::max(m_height, -DEEPEST);
             m_travel = std::min(length, m_travel + m_speed.value() * dt);
             m_phase = m_travel >= length ? Phase::Lift : m_phase;
             break;
         }
         case Phase::Lift:
-            m_height = std::min(kApproachHeight, m_height + kDescentSpeed * dt);
+            m_height = std::min(APPROACH_HEIGHT, m_height + DESCENT_SPEED * dt);
             break;
     }
     robotik::Vector3 goal =
         carrier * along(m_travel) + robotik::Vector3(0.0, 0.0, m_height);
-    if (m_phase == Phase::Approach && (goal - tool).norm() > kApproachStep)
+    if (m_phase == Phase::Approach && (goal - tool).norm() > APPROACH_STEP)
     {
-        goal = tool + (kApproachStep / (goal - tool).norm()) * (goal - tool);
+        goal = tool + (APPROACH_STEP / (goal - tool).norm()) * (goal - tool);
     }
     robotik::Vector3 const at = inBase(p_context, goal);
     if (!servo(p_context, { at, pointingDown(at) }))
@@ -291,7 +291,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         return Status::FAILURE;
     }
 
-    if (m_phase == Phase::Lift && m_height >= kApproachHeight)
+    if (m_phase == Phase::Lift && m_height >= APPROACH_HEIGHT)
     {
         return Status::SUCCESS;
     }

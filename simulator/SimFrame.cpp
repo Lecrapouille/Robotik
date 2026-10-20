@@ -32,15 +32,15 @@ compages::world::ViewFrame viewFrame(App const& p_app,
     {
         frame.input.mouse_delta =
             compages::core::Vector2f(io.MouseDelta.x, -io.MouseDelta.y);
-        frame.input.scroll = std::clamp(p_window.scroll(), -1.0f, 1.0f);
+        frame.input.scroll = std::clamp(p_window.scroll(), -1.0F, 1.0F);
         frame.input.mouse_left = io.MouseDown[ImGuiMouseButton_Left];
         frame.input.mouse_right = io.MouseDown[ImGuiMouseButton_Right];
         frame.input.mouse_middle = io.MouseDown[ImGuiMouseButton_Middle];
         // In the pixels of the frame, origin bottom-left.
         float const sx =
-            static_cast<float>(p_app.view.width) / std::max(p_app.view_w, 1.0f);
+            static_cast<float>(p_app.view.width) / std::max(p_app.view_w, 1.0F);
         float const sy = static_cast<float>(p_app.view.height) /
-                         std::max(p_app.view_h, 1.0f);
+                         std::max(p_app.view_h, 1.0F);
         frame.input.mouse = compages::core::Vector2f(
             (io.MousePos.x - p_app.view_x) * sx,
             (p_app.view_y + p_app.view_h - io.MousePos.y) * sy);

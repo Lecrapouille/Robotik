@@ -22,7 +22,7 @@ TEST(Signal, CallsSlotsInConnectionOrder)
     signal(1);
     signal.emit(2);
     EXPECT_EQ(calls, (std::vector<std::string>{ "a1", "b1", "a2", "b2" }));
-    EXPECT_EQ(signal.size(), 2u);
+    EXPECT_EQ(signal.size(), 2U);
 }
 
 // ----------------------------------------------------------------------------
@@ -43,7 +43,7 @@ TEST(Signal, DisconnectDuringEmission)
     signal();
     EXPECT_EQ(first, 2);
     EXPECT_EQ(second, 0); // disconnected before its turn
-    EXPECT_EQ(signal.size(), 1u);
+    EXPECT_EQ(signal.size(), 1U);
 }
 
 // ----------------------------------------------------------------------------
@@ -66,9 +66,9 @@ TEST(Signal, ScopedConnectionEndsWithItsScope)
     {
         robotik::ScopedConnection<int> link(signal, [&](int p_value) { last = p_value; });
         signal(3);
-        EXPECT_EQ(signal.size(), 1u);
+        EXPECT_EQ(signal.size(), 1U);
     }
     signal(4);
     EXPECT_EQ(last, 3);
-    EXPECT_EQ(signal.size(), 0u);
+    EXPECT_EQ(signal.size(), 0U);
 }

@@ -79,7 +79,7 @@ public:
               << snapshot.plant.y << ", " << snapshot.plant.z << " m";
         if (snapshot.reached)
         {
-            p_canvas.textColored(0.35f, 0.85f, 0.40f, state.str());
+            p_canvas.textColored(0.35F, 0.85F, 0.40F, state.str());
         }
         else
         {
@@ -166,7 +166,7 @@ private:
                  << (m_target ? "FlyWire connectome" : "small circuit")
                  << "... " << elapsed.count()
                  << " s  (the fly keeps its current brain meanwhile)";
-            p_canvas.textColored(1.00f, 0.70f, 0.20f, text.str());
+            p_canvas.textColored(1.00F, 0.70F, 0.20F, text.str());
             return;
         }
         std::ostringstream size;
@@ -178,7 +178,7 @@ private:
         p_canvas.text(size.str());
         if (!m_error.empty())
         {
-            p_canvas.textColored(0.90f, 0.25f, 0.25f, m_error);
+            p_canvas.textColored(0.90F, 0.25F, 0.25F, m_error);
         }
     }
 

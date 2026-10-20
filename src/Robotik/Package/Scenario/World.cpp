@@ -77,7 +77,7 @@ cameraConfig(std::string const& p_where, ConfigNode const& p_node, bool p_depth)
     double height = 240.0;
     if (!resolution.isNull())
     {
-        if (!resolution.isSequence() || resolution.items().size() != 2u ||
+        if (!resolution.isSequence() || resolution.items().size() != 2U ||
             !resolution.items()[0].asNumber() ||
             !resolution.items()[1].asNumber())
         {
@@ -198,7 +198,7 @@ static ActuatorSpec actuator(std::string const& p_where,
     {
         spec.type = ActuatorSpec::Type::Motor;
         spec.joints = p_node.strings("joint");
-        if (spec.joints.size() != 1u)
+        if (spec.joints.size() != 1U)
         {
             fail(where, "a motor needs one joint");
         }
@@ -268,7 +268,7 @@ static std::pair<std::string, std::string> splitFrame(std::string const& p_text)
     {
         return { p_text, {} };
     }
-    return { p_text.substr(0, dot), p_text.substr(dot + 1u) };
+    return { p_text.substr(0, dot), p_text.substr(dot + 1U) };
 }
 
 /// Reads one entity, including its model, shape and devices.
@@ -454,7 +454,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
         {
             fail(where, "an entity of type robot is required");
         }
-        std::map<std::string, int> mounted;
+        std::map<std::string, int, std::less<>> mounted;
         for (EntitySpec const& spec : world.entities)
         {
             if (!spec.attach)
@@ -527,7 +527,7 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
         }
 
         // Robots share one resource manager: device names are unique in the world.
-        std::map<std::string, std::string> devices;
+        std::map<std::string, std::string, std::less<>> devices;
         for (EntitySpec const& spec : world.entities)
         {
             auto declare = [&](std::string const& p_name)

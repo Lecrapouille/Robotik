@@ -62,8 +62,8 @@ static robotik::StepResult flyToFood(FlyBrain::Kind p_kind, FlySnapshot& p_end)
 TEST(FlyScenario, LoadsObstacleAvoidance)
 {
     FlyScenario const scenario = flyScenario();
-    EXPECT_EQ(scenario.seed, 123456u);
-    EXPECT_EQ(scenario.obstacles.size(), 2u);
+    EXPECT_EQ(scenario.seed, 123456U);
+    EXPECT_EQ(scenario.obstacles.size(), 2U);
     EXPECT_NEAR(scenario.target.x, 8.0, 1.0e-9);
     EXPECT_TRUE(std::filesystem::exists(scenario.robot_model));
 }
@@ -76,24 +76,24 @@ TEST(ShiuNetwork, SilentNetworkDoesNotSpike)
     network.build();
     network.reset(robotik::Seed{ 1 });
     network.step(0.05);
-    EXPECT_EQ(network.spikes(0), 0u);
-    EXPECT_EQ(network.spikes(1), 0u);
+    EXPECT_EQ(network.spikes(0), 0U);
+    EXPECT_EQ(network.spikes(1), 0U);
 }
 
 TEST(FlyBrain, ShiuTurnsAwayFromTheLeftEye)
 {
-    FlyBrain brain(FlyBrain::Kind::Shiu, 1.0f);
+    FlyBrain brain(FlyBrain::Kind::Shiu, 1.0F);
     brain.reset(robotik::Seed{ 7 });
     FlyObservation observation;
-    observation.altitude = 1.0f;
-    observation.visual_left = 1.0f;
+    observation.altitude = 1.0F;
+    observation.visual_left = 1.0F;
     FlyAction action;
     for (int step = 0; step < 200; ++step)
     {
         action = brain.update(observation, robotik::Seconds(0.01));
     }
-    EXPECT_LT(action.turn, -0.3f);
-    EXPECT_GT(action.forward, 0.4f);
+    EXPECT_LT(action.turn, -0.3F);
+    EXPECT_GT(action.forward, 0.4F);
 }
 
 TEST(FlyBrain, ReflexReachesTheFood)
@@ -132,18 +132,18 @@ TEST(FlyTrace, RoundTrip)
     trace.seed = 99;
     trace.dt = 0.01;
     trace.observations.push_back(FlyObservation{
-        0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 1.0f, 2.0f, -0.2f, 3.0f });
-    trace.actions.push_back(FlyAction{ 0.8f, -0.2f, 0.1f });
+        0.1F, 0.2F, 0.3F, 0.4F, 0.5F, 1.0F, 2.0F, -0.2F, 3.0F });
+    trace.actions.push_back(FlyAction{ 0.8F, -0.2F, 0.1F });
     std::filesystem::path const path =
         std::filesystem::temp_directory_path() / "robotik_fly_trace.json";
     trace.save(path);
     FlyTrace const loaded = FlyTrace::load(path);
-    EXPECT_EQ(loaded.seed, 99u);
-    ASSERT_EQ(loaded.actions.size(), 1u);
-    EXPECT_NEAR(loaded.actions[0].forward, 0.8f, 1.0e-5f);
-    EXPECT_NEAR(loaded.actions[0].turn, -0.2f, 1.0e-5f);
-    ASSERT_EQ(loaded.observations.size(), 1u);
-    EXPECT_NEAR(loaded.observations[0].visual_center, 0.2f, 1.0e-5f);
+    EXPECT_EQ(loaded.seed, 99U);
+    ASSERT_EQ(loaded.actions.size(), 1U);
+    EXPECT_NEAR(loaded.actions[0].forward, 0.8F, 1.0e-5F);
+    EXPECT_NEAR(loaded.actions[0].turn, -0.2F, 1.0e-5F);
+    ASSERT_EQ(loaded.observations.size(), 1U);
+    EXPECT_NEAR(loaded.observations[0].visual_center, 0.2F, 1.0e-5F);
 }
 
 TEST(FlyMission, ReachesTheFoodAsARegularPlugin)

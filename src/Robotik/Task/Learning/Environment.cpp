@@ -37,7 +37,7 @@ EnvironmentPool::EnvironmentPool(std::size_t p_count,
                                  std::size_t p_threads)
     : m_master(p_master)
 {
-    if (p_count == 0u)
+    if (p_count == 0U)
     {
         throw std::invalid_argument("An environment pool needs environments");
     }
@@ -56,20 +56,20 @@ EnvironmentPool::EnvironmentPool(std::size_t p_count,
         }
     }
 
-    m_actions.assign(p_count * m_action_size, 0.0f);
-    m_observations.assign(p_count * m_observation_size, 0.0f);
-    m_rewards.assign(p_count, 0.0f);
-    m_dones.assign(p_count, 0u);
-    m_indices.assign(p_count, 0u);
+    m_actions.assign(p_count * m_action_size, 0.0F);
+    m_observations.assign(p_count * m_observation_size, 0.0F);
+    m_rewards.assign(p_count, 0.0F);
+    m_dones.assign(p_count, 0U);
+    m_indices.assign(p_count, 0U);
     m_returns.assign(p_count, 0.0);
-    m_steps.assign(p_count, 0u);
+    m_steps.assign(p_count, 0U);
     m_finished_episodes.assign(p_count, Episode{});
 
     std::size_t workers =
-        p_threads != 0u ? p_threads
-                        : std::max(1u, std::thread::hardware_concurrency());
+        p_threads != 0U ? p_threads
+                        : std::max(1U, std::thread::hardware_concurrency());
     workers = std::min(workers, p_count);
-    if (workers > 1u)
+    if (workers > 1U)
     {
         for (std::size_t w = 0; w < workers; ++w)
         {
@@ -98,7 +98,7 @@ void EnvironmentPool::restart(std::size_t p_index)
                                m_observation_size);
     m_environments[p_index]->reset(seed(p_index), row);
     m_returns[p_index] = 0.0;
-    m_steps[p_index] = 0u;
+    m_steps[p_index] = 0U;
 }
 
 void EnvironmentPool::advance(std::size_t p_index)
@@ -111,7 +111,7 @@ void EnvironmentPool::advance(std::size_t p_index)
     m_rewards[p_index] = result.reward;
     m_returns[p_index] += static_cast<double>(result.reward);
     ++m_steps[p_index];
-    m_dones[p_index] = done(result) ? 1u : 0u;
+    m_dones[p_index] = done(result) ? 1U : 0U;
     if (done(result))
     {
         m_finished_episodes[p_index] = { static_cast<std::uint32_t>(p_index),
@@ -127,7 +127,7 @@ void EnvironmentPool::advance(std::size_t p_index)
 
 void EnvironmentPool::run(std::size_t p_worker)
 {
-    std::size_t const stride = std::max<std::size_t>(1u, m_workers.size());
+    std::size_t const stride = std::max<std::size_t>(1U, m_workers.size());
     for (std::size_t i = p_worker; i < m_environments.size(); i += stride)
     {
         if (m_reset)
@@ -170,7 +170,7 @@ void EnvironmentPool::dispatch(bool p_reset)
     m_reset = p_reset;
     if (m_workers.empty())
     {
-        run(0u);
+        run(0U);
         return;
     }
     {
@@ -180,14 +180,14 @@ void EnvironmentPool::dispatch(bool p_reset)
     }
     m_start.notify_all();
     std::unique_lock lock(m_mutex);
-    m_finished.wait(lock, [this]() { return m_pending == 0u; });
+    m_finished.wait(lock, [this]() { return m_pending == 0U; });
 }
 
 void EnvironmentPool::reset()
 {
-    std::fill(m_indices.begin(), m_indices.end(), 0u);
-    std::fill(m_dones.begin(), m_dones.end(), 0u);
-    std::fill(m_rewards.begin(), m_rewards.end(), 0.0f);
+    std::ranges::fill(m_indices, 0U);
+    std::ranges::fill(m_dones, 0U);
+    std::ranges::fill(m_rewards, 0.0F);
     m_episodes.clear();
     dispatch(true);
 }
@@ -199,7 +199,7 @@ void EnvironmentPool::step()
     // Logged in environment order: the log does not depend on the threads.
     for (std::size_t i = 0; i < m_environments.size(); ++i)
     {
-        if (m_dones[i] != 0u)
+        if (m_dones[i] != 0U)
         {
             m_episodes.push_back(m_finished_episodes[i]);
         }

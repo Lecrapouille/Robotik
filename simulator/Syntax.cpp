@@ -54,7 +54,7 @@ void pushSpan(std::vector<Span>& p_spans,
         p_spans.back().end = p_end;
         return;
     }
-    p_spans.push_back(Span{ p_begin, p_end, p_tone });
+    p_spans.emplace_back(p_begin, p_end, p_tone);
 }
 
 /// Colour of a tone, or null for the default text colour.
@@ -62,10 +62,10 @@ ImVec4 const* toneColor(Tone p_tone)
 {
     // Keys and PDDL sections use BLUE, numbers ORANGE, comments GREY.
     // The other tones belong to syntax only.
-    static ImVec4 const keyword(0.78f, 0.56f, 0.96f, 1.0f);
-    static ImVec4 const string_color(0.86f, 0.75f, 0.52f, 1.0f);
-    static ImVec4 const variable(0.45f, 0.82f, 0.78f, 1.0f);
-    static ImVec4 const punct(0.58f, 0.62f, 0.68f, 1.0f);
+    static ImVec4 const keyword(0.78F, 0.56F, 0.96F, 1.0F);
+    static ImVec4 const string_color(0.86F, 0.75F, 0.52F, 1.0F);
+    static ImVec4 const variable(0.45F, 0.82F, 0.78F, 1.0F);
+    static ImVec4 const punct(0.58F, 0.62F, 0.68F, 1.0F);
     switch (p_tone)
     {
         case Tone::Plain:
@@ -100,7 +100,7 @@ void drawSpans(std::string_view p_line, std::vector<Span> const& p_spans)
     {
         if (i != 0)
         {
-            ImGui::SameLine(0.0f, 0.0f);
+            ImGui::SameLine(0.0F, 0.0F);
         }
         Span const& span = p_spans[i];
         ImVec4 const* color = toneColor(span.tone);
@@ -419,7 +419,7 @@ void colorYamlCode(std::string_view p_line,
                    YamlCursor& p_cursor,
                    std::vector<Span>& p_spans)
 {
-    static constexpr std::string_view kBools[] = {
+    static constexpr std::string_view BOOLS[] = {
         "false", "no", "null", "off", "on", "true", "yes", "~",
     };
     bool block = false;
@@ -552,7 +552,7 @@ void colorYamlCode(std::string_view p_line,
         {
             tone = Tone::Number;
         }
-        else if (oneOf(token, kBools))
+        else if (oneOf(token, BOOLS))
         {
             tone = Tone::Keyword;
         }
@@ -611,13 +611,13 @@ void colorYaml(std::string_view p_line,
 /// A PDDL structure word (`and`, `define`, `forall`...), not a name.
 bool isPddlKeyword(std::string_view p_word)
 {
-    static constexpr std::string_view kWords[] = {
+    static constexpr std::string_view WORDS[] = {
         "all",      "and",    "assign", "at",     "decrease", "define",
         "domain",   "either", "end",    "exists", "forall",   "imply",
         "increase", "not",    "or",     "over",   "problem",  "scale-down",
         "scale-up", "start",  "when",
     };
-    return oneOf(p_word, kWords);
+    return oneOf(p_word, WORDS);
 }
 
 /// Colours one PDDL line. Comments run from `;` to the end of the line.

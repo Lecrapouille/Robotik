@@ -32,7 +32,7 @@ static std::string field(bt::YamlNode const& p_node, std::string_view p_key)
 /// True when the text is a plausible shared-library file name.
 static bool libraryName(std::string const& p_name)
 {
-    if (p_name.size() < 4u || !p_name.ends_with(".so"))
+    if (p_name.size() < 4U || !p_name.ends_with(".so"))
     {
         return false;
     }
@@ -201,7 +201,7 @@ static bool readEntries(bt::YamlNode const& p_section,
                 files.push_back(file);
             }
         }
-        std::sort(files.begin(), files.end());
+        std::ranges::sort(files);
         for (std::filesystem::path const& file : files)
         {
             PluginScenario entry;
@@ -237,7 +237,7 @@ static ThirdParty libraryOf(bt::YamlNode const& p_item)
     {
         if (std::size_t const at = repo.find('@'); at != std::string::npos)
         {
-            entry.reference = repo.substr(at + 1u);
+            entry.reference = repo.substr(at + 1U);
             repo.resize(at);
         }
         if (std::size_t const option = repo.find(':');
@@ -279,7 +279,7 @@ void PluginCatalog::scan(std::filesystem::path const& p_extra)
                 roots.emplace_back(item);
             }
             paths = colon == std::string_view::npos ? std::string_view{}
-                                                    : paths.substr(colon + 1u);
+                                                    : paths.substr(colon + 1U);
         }
     }
     // Build tree (build/Robotik-Headless, build/plugins) and install prefix
