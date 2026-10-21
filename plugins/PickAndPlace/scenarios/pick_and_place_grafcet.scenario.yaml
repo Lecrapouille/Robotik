@@ -1,0 +1,33 @@
+# The pick and place of pick_and_place_faults.scenario.yaml, driven by a
+# GRAFCET (IEC 60848 chart, drawn with TimedPetriNetEditor) instead of a
+# behavior tree. Each step requests a skill (its action); each transition
+# waits for done(Skill) or reads a belief (holding(red_cube)). When the
+# camera is lost, failed(Detect(red_cube)) leads to a Retry step that waits
+# 500 ms (500ms/X2) before detecting again.
+scenario:
+  id: pick_and_place_grafcet
+  description: Pick the red cube and put it in the box, driven by a GRAFCET, with a camera failure.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 7
+
+  controller:
+    grafcet:
+      file: scenarios/pick_and_place.grafcet.json
+      success: X11              # the End step
+
+  # Headless runs render no image: the true cube pose stands in for the
+  # camera there. The simulator renders it and uses real perception.
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  faults:
+    - { at: 0.0, resource: wrist_camera, action: disable }
+    - { at: 1.0, resource: wrist_camera, action: restore }
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 30

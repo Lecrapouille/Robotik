@@ -372,6 +372,8 @@ static FileTab kindOf(std::filesystem::path const& p_path,
         case robotik::FileRole::Domain:
             return FileTab::Planner;
         case robotik::FileRole::Trajectory:
+        case robotik::FileRole::Grafcet:
+        case robotik::FileRole::Workflow:
             return FileTab::Other;
         case robotik::FileRole::Unknown:
             break;

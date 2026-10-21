@@ -238,6 +238,16 @@ Cell::Cell(compages::world::World& p_world,
         m_executor->clock(simulatedClock());
         m_executor->maxAge(m_description.perception.max_age);
     }
+    if (m_description.controller.grafcet)
+    {
+        auto loaded = GrafcetController::load(*m_description.controller.grafcet,
+                                              *m_scheduler, m_planning);
+        if (!loaded)
+        {
+            throw std::runtime_error(loaded.error());
+        }
+        m_grafcet = loaded.take();
+    }
     reset();
 }
 
@@ -943,6 +953,10 @@ void Cell::reset(Seed p_seed)
     {
         m_executor->reset(p_seed);
     }
+    if (m_grafcet)
+    {
+        m_grafcet->reset();
+    }
     if (m_mission != nullptr)
     {
         m_mission->reset(*this, p_seed);
@@ -1148,6 +1162,10 @@ void Cell::step(Seconds p_dt)
         {
             m_status = m_tree->tick();
         }
+        else if (m_grafcet && !m_controller_stopped)
+        {
+            m_status = m_grafcet->tick(m_contexts.front());
+        }
         m_scheduler->update(m_contexts);
     }
 
@@ -1192,7 +1210,7 @@ void Cell::step(Seconds p_dt)
     if (m_mission != nullptr)
     {
         m_mission->step(*this, p_dt);
-        if (m_tree == nullptr && m_executor == nullptr)
+        if (m_tree == nullptr && m_executor == nullptr && m_grafcet == nullptr)
         {
             switch (m_mission->status(*this))
             {

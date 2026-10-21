@@ -101,8 +101,8 @@ libraries are then built by Make rules, there is no `external/compilation`.
   `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
 - Plugins publish metrics (`Mission::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
-- `Mission::status` ends a run only when the scenario has no behavior tree
-  and no planner.
+- `Mission::status` ends a run only when the scenario has no behavior tree,
+  no planner and no GRAFCET.
 - Several robots in a world share one physics, one `ResourceManager`, one
   `SkillScheduler` and the beliefs: device names are unique in the world;
   `SkillDescription::robot` says which robot a skill drives; with several

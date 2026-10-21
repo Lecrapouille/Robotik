@@ -1,0 +1,30 @@
+# A GEMMA (start and stop modes of a machine) of three graphs:
+# - Safety: Normal, or D1 Emergency stop (Stop skill, forces Control and
+#   Production to their initial steps) while AU is pressed, until Rearm;
+# - Control: A1 Initial stop, F1 Production after a rising edge of Dcy,
+#   A2 End of cycle;
+# - Production: one pick and place cycle while Control is in F1.
+# The operator presses Dcy at the start: one cycle, then back to A1.
+scenario:
+  id: pick_and_place_gemma
+  description: One production cycle started by the Dcy button of a GEMMA.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      file: scenarios/pick_and_place_gemma.grafcet.json
+      # Back in A1 after one second at least in F1 (and until 1000 s after).
+      success: Control:X0 . 1s/Control:X1/1000s
+      inputs: { Dcy: 1 }
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 30

@@ -49,6 +49,8 @@ enum class FileRole
     Domain,     ///< @c x.domain.pddl: a PDDL domain.
     Trajectory, ///< @c x.trajectory.yaml: a list of waypoints.
     Experiment, ///< @c x.experiment.yaml: several runs to compare.
+    Grafcet,    ///< @c x.grafcet.json: a GRAFCET (TimedPetriNetEditor file).
+    Workflow,   ///< @c x.workflow.yaml: machines, products and routes of a cell.
     /// No known double extension.
     Unknown,
 };

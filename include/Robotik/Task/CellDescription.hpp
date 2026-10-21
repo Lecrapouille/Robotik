@@ -394,8 +394,51 @@ struct PlannerSpec
 };
 
 // ****************************************************************************
-/// The strategy driving the robot: a behavior tree, a planner goal, or
-/// neither (the mission drives it).
+/// A GRAFCET driving the robots (@c controller.grafcet:, see
+/// @ref ControllerSpec for the YAML). The file is made with
+/// TimedPetriNetEditor: one or several graphs (a GEMMA has three).
+///
+/// Its actions are skills: an action named like a skill
+/// (@c Approach(red_cube)) requests the skill when it becomes true and
+/// cancels it when it becomes false while the skill runs. Its receptivities
+/// read the beliefs only:
+/// - @c done(Skill), @c failed(Skill), @c running(Skill): state of a skill;
+/// - a predicate of the planning domain of the mission (@c holding(cube)),
+///   computed by its observer;
+/// - any other name is an operator input (a button of a GEMMA: @c Dcy, @c AU),
+///   set by @ref inputs, by the simulator, or by the mission.
+// ****************************************************************************
+struct GrafcetSpec
+{
+    /// An operator input changed at a given simulated time (a button pressed
+    /// in a headless run).
+    struct Event
+    {
+        /// Simulated time of the change.
+        Seconds at{};
+        /// Operator input name.
+        std::string input;
+        /// New value.
+        int value = 1;
+    };
+
+    /// GRAFCET file of the package (@c x.grafcet.json).
+    std::filesystem::path file;
+    /// Receptivity ending the run with a success (e.g. @c X9), or empty.
+    std::string success;
+    /// Receptivity ending the run with a failure (e.g. @c Safety:X2), or
+    /// empty. Without success nor failure the GRAFCET runs until the scenario
+    /// time limit and the assertions decide.
+    std::string failure;
+    /// Initial values of operator inputs (@c Dcy: 1), over the file's ones.
+    std::map<std::string, int> inputs;
+    /// Changes of operator inputs during the run, sorted by time.
+    std::vector<Event> events;
+};
+
+// ****************************************************************************
+/// The strategy driving the robot: a behavior tree, a planner goal, a
+/// GRAFCET, or none of them (the mission drives it).
 ///
 /// @code
 /// controller:
@@ -413,6 +456,18 @@ struct PlannerSpec
 ///     timeout: 10                         # wall-clock safety net (s)
 /// @endcode
 ///
+/// @code
+/// controller:
+///   grafcet:
+///     file: scenarios/pick_and_place.grafcet.json
+///     success: X9                         # receptivity: run succeeded
+///     failure: Safety:X2                  # receptivity: run failed
+///     inputs: { Dcy: 1 }                  # operator inputs at start
+///     events:                             # operator inputs later
+///       - { at: 4.0, input: AU, value: 1 }
+/// @endcode
+/// (@c grafcet: scenarios/x.grafcet.json is the short form.)
+///
 /// The objects of the problem are the world entities with a @c kind; the
 /// state comes from the observers of the plugin (@ref PlanningDomain).
 // ****************************************************************************
@@ -422,6 +477,8 @@ struct ControllerSpec
     std::filesystem::path behavior_tree;
     /// Planner goal, or nothing.
     std::optional<PlannerSpec> planner;
+    /// GRAFCET, or nothing.
+    std::optional<GrafcetSpec> grafcet;
 };
 
 // ****************************************************************************

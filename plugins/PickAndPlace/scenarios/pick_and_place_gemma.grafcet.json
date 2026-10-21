@@ -1,0 +1,132 @@
+{
+  "revision": 5,
+  "type": "GRAFCET",
+  "nets": [
+    {
+       "name": "Safety",
+       "places": [
+            { "id": 0, "caption": "Normal", "tokens": 1, "x": 100, "y": 80 },
+            { "id": 1, "caption": "D1 Emergency stop", "tokens": 0, "x": 100, "y": 280 }
+       ],
+       "transitions": [
+            { "id": 0, "caption": "AU", "x": 100, "y": 180 },
+            { "id": 1, "caption": "/AU . ↑Rearm", "x": 0, "y": 180 }
+       ],
+       "arcs": [
+            { "from": "P0", "to": "T0" },
+            { "from": "T0", "to": "P1", "duration": 0 },
+            { "from": "P1", "to": "T1" },
+            { "from": "T1", "to": "P0", "duration": 0 }
+       ],
+       "actions": [
+            { "place_id": 1, "qualifier": "N", "color": "green", "name": "Stop", "script": "skill: stop every motion", "duration": 0 },
+            { "place_id": 1, "qualifier": "N", "color": "green", "name": "F/Control", "script": "forcing", "duration": 0, "forcing": ["Control:{init}"] },
+            { "place_id": 1, "qualifier": "N", "color": "green", "name": "F/Production", "script": "forcing", "duration": 0, "forcing": ["Production:{init}"] }
+       ]
+    },
+    {
+       "name": "Control",
+       "places": [
+            { "id": 0, "caption": "A1 Initial stop", "tokens": 1, "x": 100, "y": 80 },
+            { "id": 1, "caption": "F1 Production", "tokens": 0, "x": 100, "y": 280 },
+            { "id": 2, "caption": "A2 End of cycle", "tokens": 0, "x": 100, "y": 480 }
+       ],
+       "transitions": [
+            { "id": 0, "caption": "↑Dcy . Safety:X0", "x": 100, "y": 180 },
+            { "id": 1, "caption": "Production:X12", "x": 100, "y": 380 },
+            { "id": 2, "caption": "Production:X0", "x": -20, "y": 280 }
+       ],
+       "arcs": [
+            { "from": "P0", "to": "T0" },
+            { "from": "T0", "to": "P1", "duration": 0 },
+            { "from": "P1", "to": "T1" },
+            { "from": "T1", "to": "P2", "duration": 0 },
+            { "from": "P2", "to": "T2" },
+            { "from": "T2", "to": "P0", "duration": 0 }
+       ],
+       "actions": [
+       ]
+    },
+    {
+       "name": "Production",
+       "places": [
+            { "id": 0, "caption": "Wait", "tokens": 1, "x": 250, "y": 80 },
+            { "id": 1, "caption": "Home", "tokens": 0, "x": 250, "y": 180 },
+            { "id": 2, "caption": "Detect", "tokens": 0, "x": 250, "y": 280 },
+            { "id": 3, "caption": "Retry", "tokens": 0, "x": 470, "y": 380 },
+            { "id": 4, "caption": "Approach", "tokens": 0, "x": 250, "y": 380 },
+            { "id": 5, "caption": "Reach", "tokens": 0, "x": 250, "y": 480 },
+            { "id": 6, "caption": "Grasp", "tokens": 0, "x": 250, "y": 580 },
+            { "id": 7, "caption": "Lift", "tokens": 0, "x": 250, "y": 680 },
+            { "id": 8, "caption": "Transit", "tokens": 0, "x": 250, "y": 780 },
+            { "id": 9, "caption": "Above box", "tokens": 0, "x": 250, "y": 880 },
+            { "id": 10, "caption": "Release", "tokens": 0, "x": 250, "y": 980 },
+            { "id": 11, "caption": "Home", "tokens": 0, "x": 250, "y": 1080 },
+            { "id": 12, "caption": "End of cycle", "tokens": 0, "x": 250, "y": 1280 }
+       ],
+       "transitions": [
+            { "id": 0, "caption": "Control:X1", "x": 250, "y": 130.0 },
+            { "id": 1, "caption": "done(Home)", "x": 250, "y": 230.0 },
+            { "id": 2, "caption": "done(Detect(red_cube))", "x": 250, "y": 330.0 },
+            { "id": 3, "caption": "failed(Detect(red_cube))", "x": 360, "y": 350 },
+            { "id": 4, "caption": "500ms/X3", "x": 470, "y": 330 },
+            { "id": 5, "caption": "done(Approach(red_cube))", "x": 250, "y": 430.0 },
+            { "id": 6, "caption": "done(Reach(red_cube))", "x": 250, "y": 530.0 },
+            { "id": 7, "caption": "done(Grasp(red_cube)) . holding(red_cube)", "x": 250, "y": 630.0 },
+            { "id": 8, "caption": "done(Approach(red_cube))", "x": 250, "y": 730.0 },
+            { "id": 9, "caption": "done(Transit(box))", "x": 250, "y": 830.0 },
+            { "id": 10, "caption": "done(Approach(box))", "x": 250, "y": 930.0 },
+            { "id": 11, "caption": "done(Release)", "x": 250, "y": 1030.0 },
+            { "id": 12, "caption": "done(Home)", "x": 250, "y": 1180.0 },
+            { "id": 13, "caption": "Control:X2", "x": 120, "y": 680.0 }
+       ],
+       "arcs": [
+            { "from": "P0", "to": "T0" },
+            { "from": "T0", "to": "P1", "duration": 0 },
+            { "from": "P1", "to": "T1" },
+            { "from": "T1", "to": "P2", "duration": 0 },
+            { "from": "P2", "to": "T2" },
+            { "from": "T2", "to": "P4", "duration": 0 },
+            { "from": "P2", "to": "T3" },
+            { "from": "T3", "to": "P3", "duration": 0 },
+            { "from": "P3", "to": "T4" },
+            { "from": "T4", "to": "P2", "duration": 0 },
+            { "from": "P4", "to": "T5" },
+            { "from": "T5", "to": "P5", "duration": 0 },
+            { "from": "P5", "to": "T6" },
+            { "from": "T6", "to": "P6", "duration": 0 },
+            { "from": "P6", "to": "T7" },
+            { "from": "T7", "to": "P7", "duration": 0 },
+            { "from": "P7", "to": "T8" },
+            { "from": "T8", "to": "P8", "duration": 0 },
+            { "from": "P8", "to": "T9" },
+            { "from": "T9", "to": "P9", "duration": 0 },
+            { "from": "P9", "to": "T10" },
+            { "from": "T10", "to": "P10", "duration": 0 },
+            { "from": "P10", "to": "T11" },
+            { "from": "T11", "to": "P11", "duration": 0 },
+            { "from": "P11", "to": "T12" },
+            { "from": "T12", "to": "P12", "duration": 0 },
+            { "from": "P12", "to": "T13" },
+            { "from": "T13", "to": "P0", "duration": 0 }
+       ],
+       "actions": [
+            { "place_id": 1, "qualifier": "N", "color": "green", "name": "Home", "script": "skill", "duration": 0 },
+            { "place_id": 2, "qualifier": "N", "color": "green", "name": "Detect(red_cube)", "script": "skill", "duration": 0 },
+            { "place_id": 4, "qualifier": "N", "color": "green", "name": "Approach(red_cube)", "script": "skill", "duration": 0 },
+            { "place_id": 5, "qualifier": "N", "color": "green", "name": "Reach(red_cube)", "script": "skill", "duration": 0 },
+            { "place_id": 6, "qualifier": "N", "color": "green", "name": "Grasp(red_cube)", "script": "skill", "duration": 0 },
+            { "place_id": 7, "qualifier": "N", "color": "green", "name": "Approach(red_cube)", "script": "skill", "duration": 0 },
+            { "place_id": 8, "qualifier": "N", "color": "green", "name": "Transit(box)", "script": "skill", "duration": 0 },
+            { "place_id": 9, "qualifier": "N", "color": "green", "name": "Approach(box)", "script": "skill", "duration": 0 },
+            { "place_id": 10, "qualifier": "N", "color": "green", "name": "Release", "script": "skill", "duration": 0 },
+            { "place_id": 11, "qualifier": "N", "color": "green", "name": "Home", "script": "skill", "duration": 0 }
+       ]
+    }
+  ],
+  "inputs": [
+    { "name": "AU", "initial": 0 },
+    { "name": "Dcy", "initial": 0 },
+    { "name": "Rearm", "initial": 0 }
+  ]
+}

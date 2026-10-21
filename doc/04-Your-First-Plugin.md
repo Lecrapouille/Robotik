@@ -143,7 +143,7 @@ The five methods of a `Mission`, all optional:
 | `reset(simulation, seed)` | At each episode start | Clear your state. Derive random numbers from `seed` |
 | `step(simulation, dt)` | After each simulation step | Command the robot, update your state |
 | `measure(simulation, metrics)` | When the assertions need values | Publish named numbers |
-| `status(simulation)` | After each step, **only if the scenario has no behavior tree** | Return `SUCCESS` or `FAILURE` to end the run |
+| `status(simulation)` | After each step, **only if the scenario has no controller** (behavior tree, planner or GRAFCET) | Return `SUCCESS` or `FAILURE` to end the run |
 
 > **Rule:** the plugin does not judge itself. It publishes metrics; the
 > scenario file decides what is a success. Do not write `assert` or

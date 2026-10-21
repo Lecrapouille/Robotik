@@ -4,7 +4,7 @@ plugin:
   version: 1.0.0
   api_version: 1
   category: Manipulation
-  description: A robot arm picks a cube and puts it in a box, driven by a behavior tree or by the PDDL planner (with faults to recover from), or by a reinforcement learning policy.
+  description: A robot arm picks a cube and puts it in a box, driven by a behavior tree, by the PDDL planner or by a GRAFCET/GEMMA (with faults to recover from), or by a reinforcement learning policy.
 
 library:
   entrypoint: librobotik_pick_and_place.so
@@ -23,6 +23,9 @@ scenarios:
     - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.scenario.yaml, menu: Behavior tree }
     - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.scenario.yaml, menu: PDDL planner }
     - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_grafcet, name: Pick and place (faults), file: pick_and_place_grafcet.scenario.yaml, menu: GRAFCET }
+    - { id: pick_and_place_gemma, name: GEMMA production cycle, file: pick_and_place_gemma.scenario.yaml, menu: GRAFCET }
+    - { id: pick_and_place_gemma_stop, name: GEMMA emergency stop, file: pick_and_place_gemma_stop.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place.rl.yaml, menu: Reinforcement learning, clock: plugin }
 
 experiments:

@@ -74,6 +74,20 @@ THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 USER_LDFLAGS += -ldl
 
 ###############################################################################
+# TimedPetriNet (from thirdparties): nets, GRAFCET engine and (max,+)
+# algorithms of TimedPetriNetEditor, compiled into this library like
+# BlackThorn. Only src/Robotik/Task/Grafcet includes its headers.
+#
+TPNE_DIR := $(THIRD_PARTIES_DIR)/TimedPetriNetEditor
+include $(TPNE_DIR)/TimedPetriNet.mk
+
+INCLUDES += $(TPNE_INCLUDES)
+VPATH += $(TPNE_VPATH)
+LIB_FILES += $(TPNE_SOURCES)
+USER_CXXFLAGS += $(TPNE_CXXFLAGS)
+USER_CCFLAGS += $(TPNE_CFLAGS)
+
+###############################################################################
 # Kairos PDDL planner (from thirdparties, built by Makefile.common).
 #
 # Link flags in Makefile.common: whoever links the core links Kairos too.

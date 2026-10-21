@@ -61,6 +61,19 @@ PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
 USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
 THIRD_PARTIES_LIBS += $(BLACKTHORN_STATIC_DEPS)
 
+###################################################
+# Set TimedPetriNet (GRAFCET engine, (max,+) algorithms), compiled like
+# robotik-core does.
+#
+TPNE_DIR := $(THIRD_PARTIES_DIR)/TimedPetriNetEditor
+include $(TPNE_DIR)/TimedPetriNet.mk
+
+INCLUDES += $(TPNE_INCLUDES)
+VPATH += $(TPNE_VPATH)
+SRC_FILES += $(TPNE_SOURCES)
+USER_CXXFLAGS += $(TPNE_CXXFLAGS)
+USER_CCFLAGS += $(TPNE_CFLAGS)
+
 ###############################################################################
 # GTest and GMock
 #

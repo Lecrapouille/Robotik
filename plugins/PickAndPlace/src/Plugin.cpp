@@ -43,8 +43,13 @@ public:
             p_host.bindMission(*m_tree);
             return ROBOTIK_PLUGIN_OK;
         }
+        // The planner and the GRAFCET read the observers of the planning
+        // domain (holding(red_cube) ...).
         if (p_scenario == "pick_and_place_pddl" ||
-            p_scenario == "pick_and_place_pddl_faults")
+            p_scenario == "pick_and_place_pddl_faults" ||
+            p_scenario == "pick_and_place_grafcet" ||
+            p_scenario == "pick_and_place_gemma" ||
+            p_scenario == "pick_and_place_gemma_stop")
         {
             m_tree = std::make_unique<PickPlaceMission>(true, true);
             p_host.bindMission(*m_tree);

@@ -35,4 +35,9 @@ Lecrapouille/Compages:recurse
 ### License: Apache-2.0
 PlanSys2/kairos@1.0.0
 
+### Timed Petri nets, GRAFCET engine and (max,+) algebra, behind Task/Grafcet
+### and Task/Workflow (only its library and its net viewer are compiled)
+### License: GPL-3.0-or-later OR commercial
+Lecrapouille/TimedPetriNetEditor
+
 ### Libraries used by one plugin only are listed in the dependencies of its plugin.yaml.

@@ -109,8 +109,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Outcome for missions without behavior tree nor planner. Ignored
-    /// otherwise.
+    /// Outcome for missions without behavior tree, planner nor GRAFCET.
+    /// Ignored otherwise.
     /// @param p_cell The cell running the mission.
     /// @return @ref Status::SUCCESS or @ref Status::FAILURE end the episode;
     ///   any other value lets it go on.

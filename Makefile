@@ -49,8 +49,13 @@ FORGE_DIR := $(THIRD_PARTIES_DIR)/forge
 MAMBA_ROOT := $(THIRD_PARTIES_DIR)/.micromamba
 PLUGINS_WITH_LIBS := $(dir $(shell grep -l '^  thirdparties:' $(P)/plugins/*/plugin.yaml))
 
+TPNE_EXTERNAL := $(THIRD_PARTIES_DIR)/TimedPetriNetEditor/external
+
 download-external-libs::
 	@cp $(THIRD_PARTIES_DIR)/units/include/units.h $(THIRD_PARTIES_DIR)/units/units.hpp
+	@# TimedPetriNetEditor: only the two libraries of its core, not its editor.
+	@[ -d $(TPNE_EXTERNAL)/json ] || git clone --depth 1 https://github.com/nlohmann/json.git $(TPNE_EXTERNAL)/json
+	@[ -d $(TPNE_EXTERNAL)/tinyxml2 ] || git clone --depth 1 https://github.com/leethomason/tinyxml2.git $(TPNE_EXTERNAL)/tinyxml2
 	@$(MAKE) --no-print-directory -C $(THIRD_PARTIES_DIR)/Compages download-external-libs
 	@if [ -z "$$(find $(FORGE_DIR) -path '*/pkgconfig/pinocchio.pc' -print -quit 2>/dev/null)" ] || \
 	    [ -z "$$(find $(FORGE_DIR) -name 'libmujoco.so*' -print -quit 2>/dev/null)" ]; then \

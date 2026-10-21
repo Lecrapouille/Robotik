@@ -22,7 +22,7 @@ struct Spelling
     std::string_view extension;
 };
 
-static constexpr std::array<Spelling, 13> SPELLINGS{ {
+static constexpr std::array<Spelling, 16> SPELLINGS{ {
     { FileRole::World, ".world.yaml" },
     { FileRole::Scenario, ".scenario.yaml" },
     { FileRole::Rl, ".rl.yaml" },
@@ -30,12 +30,15 @@ static constexpr std::array<Spelling, 13> SPELLINGS{ {
     { FileRole::Domain, ".domain.pddl" },
     { FileRole::Trajectory, ".trajectory.yaml" },
     { FileRole::Experiment, ".experiment.yaml" },
+    { FileRole::Grafcet, ".grafcet.json" },
+    { FileRole::Workflow, ".workflow.yaml" },
     { FileRole::World, ".world.yml" },
     { FileRole::Scenario, ".scenario.yml" },
     { FileRole::Rl, ".rl.yml" },
     { FileRole::Tree, ".bt.yml" },
     { FileRole::Trajectory, ".trajectory.yml" },
     { FileRole::Experiment, ".experiment.yml" },
+    { FileRole::Workflow, ".workflow.yml" },
 } };
 
 /// True when the file name ends with .yaml or .yml.
@@ -73,7 +76,7 @@ char const* roleExtension(FileRole p_role)
 std::string roleStem(std::filesystem::path const& p_file)
 {
     std::string name = p_file.filename().string();
-    for (std::string_view const extension : { ".yaml", ".yml", ".pddl" })
+    for (std::string_view const extension : { ".yaml", ".yml", ".pddl", ".json" })
     {
         if (name.ends_with(extension) && name.size() > extension.size())
         {
@@ -105,6 +108,8 @@ bool runnableRole(std::filesystem::path const& p_file)
         case FileRole::Tree:
         case FileRole::Domain:
         case FileRole::Trajectory:
+        case FileRole::Grafcet:
+        case FileRole::Workflow:
             break;
     }
     return false;

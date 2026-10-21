@@ -8,8 +8,10 @@
 #include "Robotik/Package/Scenario/Scenario.hpp"
 #include "Robotik/Common/Must.hpp"
 
+#include "Robotik/Package/Scenario/FileRole.hpp"
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 
 namespace robotik
@@ -111,6 +113,57 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     spec.parallel = p_node.flag("parallel", spec.parallel);
     spec.search = p_node.text("search", spec.search);
     spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
+    return spec;
+}
+
+/// Reads the grafcet block: a file name, or a map with the file, the end
+/// conditions and the initial operator inputs.
+static GrafcetSpec readGrafcet(std::filesystem::path const& p_root,
+                               ConfigNode const& p_node)
+{
+    GrafcetSpec spec;
+    spec.file = must(packageFile(
+        p_root, p_node.isScalar() ? p_node.scalar() : p_node.text("file")));
+    if (spec.file.empty())
+    {
+        throw std::runtime_error(
+            "grafcet.file is required (a .grafcet.json file of the package)");
+    }
+    if (fileRole(spec.file) != FileRole::Grafcet)
+    {
+        throw std::runtime_error("grafcet: '" + spec.file.filename().string() +
+                                 "' is not a .grafcet.json file");
+    }
+    if (p_node.isMap())
+    {
+        spec.success = p_node.text("success");
+        spec.failure = p_node.text("failure");
+        for (auto const& [name, value] : p_node.at("inputs").entries())
+        {
+            if (!value.isScalar())
+            {
+                throw std::runtime_error("grafcet.inputs." + name +
+                                         " must be a number");
+            }
+            spec.inputs[name] =
+                static_cast<int>(p_node.at("inputs").number(name, 0.0));
+        }
+        for (ConfigNode const& item : p_node.at("events").items())
+        {
+            GrafcetSpec::Event event;
+            event.at = Seconds(item.number("at", -1.0));
+            event.input = item.text("input");
+            event.value = static_cast<int>(item.number("value", 1.0));
+            if (event.at.value() < 0.0 || event.input.empty())
+            {
+                throw std::runtime_error(
+                    "grafcet.events: each event needs 'at' (s) and 'input'");
+            }
+            spec.events.push_back(event);
+        }
+        std::ranges::stable_sort(spec.events, {}, [](GrafcetSpec::Event const& p_event)
+                                 { return p_event.at.value(); });
+    }
     return spec;
 }
 
@@ -327,13 +380,22 @@ Result<Scenario> readScenario(ScenarioSource const& p_source, AssetResolver cons
                 must(packageFile(root, controller.text("behavior_tree")));
             if (controller.has("planner"))
             {
-                if (!scenario.controller.behavior_tree.empty())
-                {
-                    throw std::runtime_error(
-                        "controller: give a behavior_tree or a planner, not both");
-                }
                 scenario.controller.planner =
                     readPlanner(root, controller.at("planner"));
+            }
+            if (controller.has("grafcet"))
+            {
+                scenario.controller.grafcet =
+                    readGrafcet(root, controller.at("grafcet"));
+            }
+            int const controllers =
+                int(!scenario.controller.behavior_tree.empty()) +
+                int(scenario.controller.planner.has_value()) +
+                int(scenario.controller.grafcet.has_value());
+            if (controllers > 1)
+            {
+                throw std::runtime_error("controller: give one of behavior_tree, "
+                                         "planner or grafcet, not several");
             }
             for (auto const& [name, file] : node.at("trajectories").entries())
             {

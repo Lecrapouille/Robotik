@@ -34,6 +34,7 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/Faults.hpp"
+#include "Robotik/Task/Grafcet/GrafcetController.hpp"
 #include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/RobotContext.hpp"
@@ -334,6 +335,12 @@ public:
         return m_executor.get();
     }
 
+    /// @return The GRAFCET controller, or null when the scenario has none.
+    [[nodiscard]] GrafcetController* grafcet() const
+    {
+        return m_grafcet.get();
+    }
+
     /// @return Controller status (behavior tree, or mission without one).
     [[nodiscard]] bt::Status status() const
     {
@@ -613,6 +620,8 @@ private:
     PlanningDomain m_planning;
     /// After the factory and the scheduler it uses.
     std::unique_ptr<PlanExecutor> m_executor;
+    /// GRAFCET controller (@c controller.grafcet), or null.
+    std::unique_ptr<GrafcetController> m_grafcet;
 };
 
 

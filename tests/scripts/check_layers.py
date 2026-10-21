@@ -14,8 +14,13 @@ Task robots doing a job (skills, beliefs, plans); Package the files on disk
 (YAML scenarios, asset packs, plugins). Each layer works without the ones
 above it, so an application can stop at the layer it needs.
 
-A second rule keeps the ground truth away from the robot's decisions: skills
-and the planner read the beliefs (WorldModel), never the simulator truth.
+A second rule keeps the ground truth away from the robot's decisions: skills,
+the planner and the GRAFCET controller read the beliefs (WorldModel), never
+the simulator truth.
+
+A third rule keeps third-party engines behind one folder each: only
+Task/Planning/Kairos includes Kairos, only Task/Grafcet and Task/Workflow
+include TimedPetriNetEditor (PetriNet/...).
 
 Usage: check_layers.py [repository root]. Exit code 1 when a rule is broken.
 """
@@ -27,7 +32,13 @@ LAYERS = ["Common", "Robot", "Task", "Package"]
 INCLUDE = re.compile(r'#include\s+"Robotik/([A-Za-z]+)/')
 # Truth API of the simulation: forbidden in what drives the robot.
 TRUTH = re.compile(r"\b(Simulation|Cell)\b[^;\n]*\.\s*(pose|query|initialPose|entity)\s*\(")
-NO_TRUTH = ["Task/Skills", "Task/Planning"]
+NO_TRUTH = ["Task/Skills", "Task/Planning", "Task/Grafcet"]
+# Third-party headers allowed only in the given folders of src/Robotik.
+ENGINES = [
+    (re.compile(r'#include\s+[<"]kairos/'), ["src/Robotik/Task/Planning/Kairos/"]),
+    (re.compile(r'#include\s+"PetriNet/'), ["src/Robotik/Task/Grafcet/",
+                                            "src/Robotik/Task/Workflow/"]),
+]
 
 
 def layer_of(path, root):
@@ -56,6 +67,12 @@ def main():
                     if LAYERS.index(other) > LAYERS.index(own):
                         errors.append(f"{path.relative_to(root)}:{number}: {own} includes {other}")
             rel = str(path.relative_to(root))
+            for pattern, allowed in ENGINES:
+                if any(rel.startswith(folder) for folder in allowed):
+                    continue
+                for number, line in enumerate(text.splitlines(), 1):
+                    if pattern.search(line):
+                        errors.append(f"{rel}:{number}: includes {line.split()[1]} outside {', '.join(allowed)}")
             if any(f"/{part}/" in rel for part in NO_TRUTH):
                 for number, line in enumerate(text.splitlines(), 1):
                     if TRUTH.search(line):

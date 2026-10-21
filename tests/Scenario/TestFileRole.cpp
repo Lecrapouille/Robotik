@@ -24,6 +24,10 @@ TEST(FileRole, DoubleExtensionGivesTheRole)
               FileRole::Trajectory);
     EXPECT_EQ(robotik::fileRole("experiments/bench.experiment.yaml"),
               FileRole::Experiment);
+    EXPECT_EQ(robotik::fileRole("scenarios/pick.grafcet.json"),
+              FileRole::Grafcet);
+    EXPECT_EQ(robotik::fileRole("workflows/line.workflow.yaml"),
+              FileRole::Workflow);
     EXPECT_EQ(robotik::fileRole("scenarios/wave.yml"), FileRole::Unknown);
     // The role alone is not a name.
     EXPECT_EQ(robotik::fileRole("scenarios/.scenario.yaml"), FileRole::Unknown);
@@ -37,6 +41,7 @@ TEST(FileRole, IdFromTheFileName)
     EXPECT_EQ(robotik::roleStem("experiments/hello.experiment.yaml"),
               "hello_experiment");
     EXPECT_EQ(robotik::roleStem("scenarios/wave.yml"), "wave");
+    EXPECT_EQ(robotik::roleStem("scenarios/pick.grafcet.json"), "pick_grafcet");
     EXPECT_STREQ(robotik::roleExtension(robotik::FileRole::World),
                  ".world.yaml");
 }
@@ -51,5 +56,7 @@ TEST(FileRole, OnlyRunnableFilesAreScenarios)
     EXPECT_FALSE(robotik::runnableRole("a.world.yaml"));
     EXPECT_FALSE(robotik::runnableRole("a.trajectory.yaml"));
     EXPECT_FALSE(robotik::runnableRole("a.domain.pddl"));
+    EXPECT_FALSE(robotik::runnableRole("a.grafcet.json"));
+    EXPECT_FALSE(robotik::runnableRole("a.workflow.yaml"));
     EXPECT_FALSE(robotik::runnableRole("notes.txt"));
 }

@@ -1,0 +1,26 @@
+# The GEMMA of pick_and_place_gemma.scenario.yaml, with the emergency stop
+# button AU pressed during the cycle: Safety goes to D1, stops the robot and
+# forces Control and Production back to their initial steps.
+scenario:
+  id: pick_and_place_gemma_stop
+  description: Emergency stop of a GEMMA during the production cycle.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      file: scenarios/pick_and_place_gemma.grafcet.json
+      # In D1 for two seconds, Control held in A1 by the forcing.
+      success: Safety:X1 . 2s/Safety:X1 . Control:X0 . Production:X0
+      inputs: { Dcy: 1 }
+      events:
+        - { at: 3.0, input: AU, value: 1 }
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  timeout: 30
+
+  assertions:
+    - controller.success
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 10
