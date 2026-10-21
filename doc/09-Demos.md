@@ -433,6 +433,18 @@ the skill scheduler makes one branch wait. It ends in about 17 s.
 `conveyor.workflow.yaml` describes the cell as a flowshop and gives its cycle
 time and its bottleneck (the right arm).
 
+**Factory** (`factory.scenario.yaml`, `worlds/factory_cell.world.yaml`): the
+flowshop of TimedPetriNetEditor (`data/examples/simple.flowshop`) with robots.
+The two arms are the machines M1 and M2; three kinds of parts (P1 red, P2
+green, P3 blue) in two lots go from the stock of M1 to a station of their
+kind, then to the output of M2. The GRAFCET (`factory.grafcet.json`, 126
+steps) is the event graph of the flowshop: one sequence of steps per
+operation, AND convergences for the order of the machines and of the parts,
+machining as a time receptivity while the arm holds the part, and a Station
+step as a semaphore between the arms. It ends in about 50 s.
+`factory.workflow.yaml` holds the machining times of `simple.flowshop`: cycle
+time 6 s, M1 is the bottleneck.
+
 ## 9. Micro Duck
 
 **A small legged robot in a room.** The Pollen Robotics Microduck (14

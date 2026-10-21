@@ -1,0 +1,58 @@
+# A small factory: the flowshop of TimedPetriNetEditor
+# (data/examples/simple.flowshop) with robots. Two arms are the machines M1
+# and M2; three kinds of parts P1 (red), P2 (green), P3 (blue) come in two
+# lots. M1 takes a part from its stock, machines it while holding it, and
+# puts it on the station of its kind (slot1..3, between the arms); M2 takes
+# it there, carries it over the output bin, machines it, and drops it.
+# Machining times (s), as in simple.flowshop:  P1  P2  P3
+#                                          M1   2   3   1
+#                                          M2   1   2   1.5
+world:
+  id: factory_cell
+
+  entities:
+    - id: M1
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, -0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M1_arm: { type: joint_group }
+    - id: M1_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M1.flange, frame: tool_mount }
+      actuators:
+        M1_gripper: { type: vacuum }
+
+    - id: M2
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, 0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M2_arm: { type: joint_group }
+    - id: M2_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M2.flange, frame: tool_mount }
+      actuators:
+        M2_gripper: { type: vacuum }
+
+    # Stock of M1: lot a in front, lot b behind.
+    - { id: p1a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.50, 0.02] } }
+    - { id: p2a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.50, 0.02] } }
+    - { id: p3a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.50, 0.02] } }
+    - { id: p1b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.60, 0.02] } }
+    - { id: p2b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.60, 0.02] } }
+    - { id: p3b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.60, 0.02] } }
+
+    # Stations between the two machines, one per kind of part.
+    - { id: slot1, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.9, 0.6, 0.6], pose: { position: [0.25, 0.0, 0.005] } }
+    - { id: slot2, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.9, 0.6], pose: { position: [0.36, 0.0, 0.005] } }
+    - { id: slot3, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.6, 0.9], pose: { position: [0.47, 0.0, 0.005] } }
+
+    # Output of M2.
+    - { id: output, type: prop, kind: bin, shape: { type: container, size: [0.20, 0.20, 0.08] }, color: [0.8, 0.8, 0.8], pose: { position: [0.18, 0.55, 0.04] } }

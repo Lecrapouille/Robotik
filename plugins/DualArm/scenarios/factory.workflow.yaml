@@ -1,0 +1,22 @@
+# The factory as a flowshop: the processing times of simple.flowshop
+# (TimedPetriNetEditor data/examples), machining only (the moves of the arms
+# are not counted here). P1 P2 P3 visit M1 then M2.
+#   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.workflow.yaml
+workflow:
+  id: factory_line
+  operators:
+    - { id: M1, entity: M1 }
+    - { id: M2, entity: M2 }
+  products:
+    - id: P1
+      route:
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+    - id: P2
+      route:
+        - { name: machining, on: M1, duration: 3.0 }
+        - { name: machining, on: M2, duration: 2.0 }
+    - id: P3
+      route:
+        - { name: machining, on: M1, duration: 1.0 }
+        - { name: machining, on: M2, duration: 1.5 }

@@ -281,7 +281,31 @@ routes (a jobshop) are refused for now. Not done yet: transport media and
 buffers between operators (the media of SynDEx), and the generation of
 distributed code.
 
-## 7. From C++
+## 7. A factory
+
+`plugins/DualArm/scenarios/factory.scenario.yaml` puts both parts together:
+the flowshop of `simple.flowshop` (TimedPetriNetEditor) is played by two arms
+(machines M1 and M2) on three kinds of parts in two lots, and driven by a
+GRAFCET of 126 steps that is the event graph of the flowshop:
+
+```text
+M1 idle . slotK free ──> hover, reach, grasp, lift, machine (2s/X), wait station
+wait station . Station ──> over slotK, release, leave (Home)
+                         ──> M1 idle . "part machined by M1" . Station
+M2 idle . "part machined by M1" ──> wait station
+M2 wait station . Station ──> hover, reach, grasp, lift, over output
+                         ──> machine (1s/X) . Station . slotK free ──> release
+```
+
+The AND convergences say what the flowshop says: a machine works on one part
+at a time, in a fixed order; a part goes to M2 once machined by M1; the next
+part of a kind enters once the previous one left its station. The **Station**
+step is a semaphore: the arms never work between the machines at the same
+time, M2 first (the receptivity of M1 is `/(X.. + X..)` on the waiting steps of
+M2). `factory.workflow.yaml` gives the cycle time of the machining alone
+(6 s, M1 is the bottleneck); the run adds the moves of the arms.
+
+## 8. From C++
 
 ```cpp
 #include "Robotik/Package/Scenario/Workflow.hpp"
