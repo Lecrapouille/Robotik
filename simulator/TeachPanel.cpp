@@ -17,6 +17,7 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 #include <span>
@@ -314,13 +315,18 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
 }
 
 /// One jog row: "-" value "+" for a translation or a rotation axis.
+/// Greyed when the joints above the frame cannot move along @p_axis.
 static void jogRow(App& p_app,
                    char const* p_axis,
                    robotik::Vector3 const& p_shift,
-                   robotik::Vector3 const& p_turn)
+                   robotik::Vector3 const& p_turn,
+                   bool p_movable)
 {
     robotik::RobotSession& robot = p_app.simulation->cell().robot();
     ImGui::PushID(p_axis);
+    ImGui::BeginDisabled(!p_movable);
+    char const* const why = "The joints above this frame cannot move it "
+                            "along this axis now.";
     ImGui::TableNextColumn();
     if (ImGui::Button("-", ImVec2(-1.0F, 0.0F)))
     {
@@ -329,6 +335,10 @@ static void jogRow(App& p_app,
             robot,
             robotik::Vector3(-p_shift.x, -p_shift.y, -p_shift.z),
             robotik::Vector3(-p_turn.x, -p_turn.y, -p_turn.z));
+    }
+    if (!p_movable)
+    {
+        ImGui::SetItemTooltip("%s", why);
     }
     ImGui::TableNextColumn();
     ImGui::AlignTextToFramePadding();
@@ -342,6 +352,11 @@ static void jogRow(App& p_app,
         takeArm(p_app);
         p_app.teach.pendant.jogTool(robot, p_shift, p_turn);
     }
+    if (!p_movable)
+    {
+        ImGui::SetItemTooltip("%s", why);
+    }
+    ImGui::EndDisabled();
     ImGui::PopID();
 }
 
@@ -367,7 +382,8 @@ static void frameChoice(App& p_app)
     ImGui::Separator();
     for (std::string const& link : robot.kinematics().linkFrames())
     {
-        if (link == robot.tool())
+        // The base and the links fixed to it: no joint moves them.
+        if (link == robot.tool() || robot.kinematics().chainDofs(link) == 0U)
         {
             continue;
         }
@@ -410,7 +426,16 @@ static void cartesianJog(App& p_app)
                             pose.position.x,
                             pose.position.y,
                             pose.position.z);
+        std::size_t const dofs = robot.kinematics().chainDofs(frame);
+        if (dofs < 6U)
+        {
+            ImGui::TextDisabled("%zu joint%s above it: a move places its "
+                                "position or its orientation, not both.",
+                                dofs,
+                                dofs == 1U ? "" : "s");
+        }
     }
+    std::array<bool, 6> const axes = p_app.teach.pendant.jogAxes(robot);
     float const linear = p_app.teach.linear_step;
     float const angular = p_app.teach.angular_step;
     robotik::Vector3 const none = robotik::Vector3::ZERO;
@@ -425,15 +450,15 @@ static void cartesianJog(App& p_app)
                                         : ImGuiTableColumnFlags_WidthStretch,
                                     column == 3 ? 12.0F : 0.0F);
         }
-        jogRow(p_app, "X", { linear, 0.0, 0.0 }, none);
+        jogRow(p_app, "X", { linear, 0.0, 0.0 }, none, axes[0]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Rx", none, { angular, 0.0, 0.0 });
-        jogRow(p_app, "Y", { 0.0, linear, 0.0 }, none);
+        jogRow(p_app, "Rx", none, { angular, 0.0, 0.0 }, axes[3]);
+        jogRow(p_app, "Y", { 0.0, linear, 0.0 }, none, axes[1]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Ry", none, { 0.0, angular, 0.0 });
-        jogRow(p_app, "Z", { 0.0, 0.0, linear }, none);
+        jogRow(p_app, "Ry", none, { 0.0, angular, 0.0 }, axes[4]);
+        jogRow(p_app, "Z", { 0.0, 0.0, linear }, none, axes[2]);
         ImGui::TableNextColumn();
-        jogRow(p_app, "Rz", none, { 0.0, 0.0, angular });
+        jogRow(p_app, "Rz", none, { 0.0, 0.0, angular }, axes[5]);
         endTable();
     }
     float const half =

@@ -288,10 +288,12 @@ Pose Robot::worldPose(LinkRef const& p_link) const
 }
 
 std::optional<std::vector<double>>
-Robot::inverseKinematics(std::string const& p_frame, Pose const& p_target) const
+Robot::inverseKinematics(std::string const& p_frame,
+                         Pose const& p_target,
+                         IkGoal p_goal) const
 {
-    auto solution =
-        m_kinematics->solveIK(p_frame, p_target, m_kinematics->configuration());
+    auto solution = m_kinematics->solveIK(
+        p_frame, p_target, m_kinematics->configuration(), p_goal);
     if (!solution)
     {
         return std::nullopt;

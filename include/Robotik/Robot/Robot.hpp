@@ -25,6 +25,7 @@
 ///   @ref robotik::openRobot, which returns a @c Result.
 #pragma once
 
+#include "Robotik/Robot/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Backends/RobotBackend.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Common/Math.hpp"
@@ -52,8 +53,6 @@ class World;
 
 namespace robotik
 {
-
-class PinocchioBackend;
 
 /// Sensors of a robot.
 using SensorSet = DeviceSet<Sensor>;
@@ -261,9 +260,13 @@ public:
     /// @param p_target Pose wanted, in the robot base frame.
     /// @return Joint positions indexed by @ref JointId in the SI unit of each
     ///   joint, or nothing if the solver does not converge.
+    /// @param p_goal The whole pose, or only its position or orientation
+    ///   (a link with fewer than six joints above it).
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<std::vector<double>>
-    inverseKinematics(std::string const& p_frame, Pose const& p_target) const;
+    inverseKinematics(std::string const& p_frame,
+                      Pose const& p_target,
+                      IkGoal p_goal = IkGoal::Whole) const;
 
     /// @return Analytical model (Pinocchio) for advanced queries.
     [[nodiscard]] PinocchioBackend& kinematics() const

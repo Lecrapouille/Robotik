@@ -25,6 +25,7 @@
 #include "Robotik/Robot/Joints.hpp"
 #include "Robotik/Robot/Robot.hpp"
 
+#include <array>
 #include <cstddef>
 #include <span>
 #include <string>
@@ -140,7 +141,28 @@ public:
     bool jogJoint(Robot& p_robot, JointId p_joint, double p_delta);
 
     // -------------------------------------------------------------------------
-    /// Shifts the tool in the base frame and solves IK. Stops playback.
+    /// What @ref jogTool places. With six joints or more above the frame:
+    /// the whole pose (a translation keeps the orientation). With fewer (a
+    /// link of the arm, a knee): only what the jog changes, the position
+    /// for a translation, the orientation for a rotation.
+    /// @param p_robot Robot driven by the pendant.
+    /// @param p_rotation True for a rotation jog.
+    /// @return The goal of the IK.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] IkGoal jogGoal(Robot const& p_robot, bool p_rotation) const;
+
+    // -------------------------------------------------------------------------
+    /// Axes along which @ref jogTool can move the frame now: base X, Y, Z
+    /// translations then rotations. A link with no joint above it has none;
+    /// link1 of an arm turns about Z only.
+    /// @param p_robot Robot driven by the pendant.
+    /// @return One flag per axis; all false without a frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::array<bool, 6> jogAxes(Robot const& p_robot) const;
+
+    // -------------------------------------------------------------------------
+    /// Shifts the frame in the base frame and solves IK (see @ref jogGoal).
+    /// Stops playback.
     /// @param p_robot Robot to move.
     /// @param p_translation Shift along the base axes X, Y, Z (m).
     /// @param p_rotation Small rotations about the base axes X, Y, Z (rad).

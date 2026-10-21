@@ -194,7 +194,7 @@ Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 | `tool()` | Working frame: `tcp` with a tool, `tool0` without |
 | `framePose("frame")` | **Forward kinematics**: pose of a frame in the robot base frame |
 | `worldPose("frame")` | Same, in the world frame |
-| `inverseKinematics("frame", Pose)` | **Inverse kinematics**: `std::optional<std::vector<double>>`, one value per joint |
+| `inverseKinematics("frame", Pose[, IkGoal])` | **Inverse kinematics**: `std::optional<std::vector<double>>`, one value per joint. `IkGoal::Position` or `Orientation` places only that part, for a link with fewer than six joints above it (the closest reachable one) |
 | `kinematics()` | The `PinocchioBackend` (Jacobians…) |
 | `base()` | State of a mobile base |
 

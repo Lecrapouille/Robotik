@@ -23,6 +23,8 @@
 
 #include "Robotik/Common/Math.hpp"
 
+#include <array>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <optional>
@@ -32,6 +34,20 @@
 
 namespace robotik
 {
+
+// ****************************************************************************
+/// What an IK solve places. A link with fewer than six joints above it
+/// cannot reach a whole pose, but may still reach a position (its
+/// orientation then follows) or an orientation (its position follows).
+// ****************************************************************************
+enum class IkGoal : std::uint8_t
+{
+    Whole,       ///< Position and orientation.
+    Position,    ///< Position only; the orientation is free.
+    Orientation, ///< Orientation only; the position is free.
+};
+// A part goal out of reach gives the closest reachable one (least
+// squares), not a failure: check the direction first (movableAxes).
 
 // ****************************************************************************
 /// Analytical kinematics backend built on Pinocchio.
@@ -193,10 +209,38 @@ public:
     ///   used.
     /// @return Joint vector on success, or empty if iteration did not converge.
     // -------------------------------------------------------------------------
+    /// @param p_goal What to place: the whole pose, or a part of it (the
+    ///   other part of @p_target is ignored). A part goal returns the
+    ///   closest reachable one when the target is out of reach.
     [[nodiscard]] std::optional<std::vector<double>>
     solveIK(std::string const& p_frame,
             Pose const& p_target,
-            std::span<double const> p_seed) const;
+            std::span<double const> p_seed,
+            IkGoal p_goal = IkGoal::Whole) const;
+
+    // -------------------------------------------------------------------------
+    /// Degrees of freedom of the joints between the base and a frame: six
+    /// or more can place its whole pose, none cannot move it.
+    /// @param p_frame Link or frame name.
+    /// @return The count; 0 for the base and the links fixed to it.
+    /// @throws std::invalid_argument for an unknown frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::size_t chainDofs(std::string const& p_frame) const;
+
+    // -------------------------------------------------------------------------
+    /// Directions in which a frame can move now, from the current @b q: a
+    /// direction is movable when its joints can produce it (it lies in the
+    /// span of the frame Jacobian). Axes of the base frame, about the frame
+    /// origin: X, Y, Z translations then X, Y, Z rotations.
+    /// @param p_frame Link or frame name.
+    /// @param p_goal @c Whole: a move keeps the rest of the pose (a
+    ///   translation keeps the orientation). @c Position or @c Orientation:
+    ///   a translation frees the orientation, a rotation frees the position.
+    /// @return One flag per axis.
+    /// @throws std::invalid_argument for an unknown frame.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::array<bool, 6>
+    movableAxes(std::string const& p_frame, IkGoal p_goal) const;
 
 private:
 

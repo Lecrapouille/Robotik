@@ -123,6 +123,30 @@ std::string const& TeachPendant::frame(Robot const& p_robot) const
     return m_frame.empty() ? p_robot.tool() : m_frame;
 }
 
+IkGoal TeachPendant::jogGoal(Robot const& p_robot, bool p_rotation) const
+{
+    std::string const& moved = frame(p_robot);
+    if (moved.empty() || p_robot.kinematics().chainDofs(moved) >= 6U)
+    {
+        return IkGoal::Whole;
+    }
+    return p_rotation ? IkGoal::Orientation : IkGoal::Position;
+}
+
+std::array<bool, 6> TeachPendant::jogAxes(Robot const& p_robot) const
+{
+    std::string const& moved = frame(p_robot);
+    if (moved.empty())
+    {
+        return {};
+    }
+    // Position and Orientation give the same flags: each block alone.
+    return p_robot.kinematics().movableAxes(
+        moved,
+        jogGoal(p_robot, false) == IkGoal::Whole ? IkGoal::Whole
+                                                 : IkGoal::Position);
+}
+
 bool TeachPendant::jogTool(Robot& p_robot,
                            Vector3 const& p_translation,
                            Vector3 const& p_rotation)
@@ -143,15 +167,37 @@ bool TeachPendant::jogTool(Robot& p_robot,
             std::abs(p_rotation.z) >
         0.0)
     {
-        target.rotation =
-            Quaternion::fromAngleAxis(Radians(p_rotation.x), Vector3(1.0, 0.0, 0.0)) *
-            Quaternion::fromAngleAxis(Radians(p_rotation.y), Vector3(0.0, 1.0, 0.0)) *
-            Quaternion::fromAngleAxis(Radians(p_rotation.z), Vector3(0.0, 0.0, 1.0)) *
-            target.rotation;
+        target.rotation = Quaternion::fromAngleAxis(Radians(p_rotation.x),
+                                                    Vector3(1.0, 0.0, 0.0)) *
+                          Quaternion::fromAngleAxis(Radians(p_rotation.y),
+                                                    Vector3(0.0, 1.0, 0.0)) *
+                          Quaternion::fromAngleAxis(Radians(p_rotation.z),
+                                                    Vector3(0.0, 0.0, 1.0)) *
+                          target.rotation;
     }
 
+    bool const turn = std::abs(p_rotation.x) + std::abs(p_rotation.y) +
+                          std::abs(p_rotation.z) >
+                      0.0;
+    IkGoal const goal = jogGoal(p_robot, turn);
+    if (goal != IkGoal::Whole)
+    {
+        // Few joints: the move goes to the closest point, so it must be
+        // mostly along the asked axes.
+        std::array<bool, 6> const axes = jogAxes(p_robot);
+        Vector3 const& asked = turn ? p_rotation : p_translation;
+        std::size_t const first = turn ? 3U : 0U;
+        if ((asked.x != 0.0 && !axes[first]) ||
+            (asked.y != 0.0 && !axes[first + 1U]) ||
+            (asked.z != 0.0 && !axes[first + 2U]))
+        {
+            m_error = moved + " cannot move along this axis: its joints do "
+                              "not allow it";
+            return false;
+        }
+    }
     std::optional<std::vector<double>> const solution =
-        p_robot.inverseKinematics(moved, target);
+        p_robot.inverseKinematics(moved, target, goal);
     if (!solution)
     {
         m_error = moved +
