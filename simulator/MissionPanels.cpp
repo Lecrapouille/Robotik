@@ -715,6 +715,10 @@ void treeView(App& p_app)
                        "run starts "
                        "(see the Planner panel).");
         }
+        else if (p_app.simulation->cell().grafcet() != nullptr)
+        {
+            emptyState("A GRAFCET drives the robot\n(see the GRAFCET panel).");
+        }
         else
         {
             emptyState("This scenario has no behavior tree:\nthe plugin "

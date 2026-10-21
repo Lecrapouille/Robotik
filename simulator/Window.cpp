@@ -56,6 +56,16 @@ static void loadFonts()
     if (std::filesystem::exists(text) &&
         io.Fonts->AddFontFromFileTTF(text.string().c_str(), 15.0F) != nullptr)
     {
+#ifdef ROBOTIK_MATH_FONT
+        // Symbols of GRAFCET receptivities and (max,+) algebra (↑ ↓ ⨁ ⊗ ≥),
+        // missing from the text font.
+        if (std::filesystem::exists(ROBOTIK_MATH_FONT))
+        {
+            ImFontConfig merge;
+            merge.MergeMode = true;
+            io.Fonts->AddFontFromFileTTF(ROBOTIK_MATH_FONT, 15.0F, &merge);
+        }
+#endif
         // Second font, for the file viewer (see monoFont).
         if (std::filesystem::exists(mono))
         {

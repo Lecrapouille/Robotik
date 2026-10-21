@@ -13,7 +13,7 @@
             { "id": 5, "caption": "Grasp", "tokens": 0, "x": 250, "y": 480 },
             { "id": 6, "caption": "Lift", "tokens": 0, "x": 250, "y": 580 },
             { "id": 7, "caption": "Transit", "tokens": 0, "x": 250, "y": 680 },
-            { "id": 8, "caption": "Above box", "tokens": 0, "x": 250, "y": 780 },
+            { "id": 8, "caption": "Above", "tokens": 0, "x": 250, "y": 780 },
             { "id": 9, "caption": "Release", "tokens": 0, "x": 250, "y": 880 },
             { "id": 10, "caption": "Home", "tokens": 0, "x": 250, "y": 980 },
             { "id": 11, "caption": "End", "tokens": 0, "x": 250, "y": 1180 }

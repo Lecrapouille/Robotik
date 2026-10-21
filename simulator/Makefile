@@ -28,7 +28,7 @@ SRC_FILES += $(CURRENT_DIR)/RobotPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/TeachPanel.cpp $(CURRENT_DIR)/MissionPanels.cpp
 SRC_FILES += $(CURRENT_DIR)/SkillsPanel.cpp $(CURRENT_DIR)/AutonomyPanels.cpp
 SRC_FILES += $(CURRENT_DIR)/PluginUi.cpp $(CURRENT_DIR)/PlannerPanel.cpp
-SRC_FILES += $(CURRENT_DIR)/Screenshot.cpp
+SRC_FILES += $(CURRENT_DIR)/Screenshot.cpp $(CURRENT_DIR)/GrafcetPanel.cpp
 # stb_image_write, shipped with Compages, for --screenshot.
 INCLUDES += $(THIRD_PARTIES_DIR)/Compages/external/stb
 PKG_LIBS += glfw3
@@ -50,6 +50,15 @@ IMGUI_FILES += $(IMGUI_DIR)/misc/cpp/imgui_stdlib.cpp
 SRC_FILES += $(IMGUI_FILES)
 INCLUDES += $(IMGUI_DIR) $(IMGUI_DIR)/backends $(IMGUI_DIR)/misc/cpp
 VPATH += $(IMGUI_DIR) $(IMGUI_DIR)/backends $(IMGUI_DIR)/misc/cpp
+
+# Net viewer of TimedPetriNetEditor (GRAFCET panel). Its sources include
+# "imgui/imgui.h": they find the Dear ImGui compiled above.
+TPNE_DIR := $(THIRD_PARTIES_DIR)/TimedPetriNetEditor
+include $(TPNE_DIR)/TimedPetriNet.mk
+SRC_FILES += $(TPNE_VIEWER_SOURCES)
+INCLUDES += $(TPNE_INCLUDES) $(THIRD_PARTIES_DIR)
+USER_CXXFLAGS += -isystem $(abspath $(TPNE_DIR)/external/json/include)
+DEFINES += -DROBOTIK_MATH_FONT=\"$(abspath $(TPNE_DIR)/data/math.ttf)\"
 
 # Joint plots of the Robot workspace.
 IMPLOT_DIR := $(THIRD_PARTIES_DIR)/implot
