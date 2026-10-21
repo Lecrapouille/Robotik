@@ -1,0 +1,18 @@
+# The workflow of the pick and place cell: who works, on what, how long.
+# Robotik-Headless reads it and prints the cycle time, the throughput and the
+# critical circuit (the bottleneck) without running the robot:
+#   ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.workflow.yaml
+# The durations come from a run of pick_and_place.scenario.yaml.
+workflow:
+  id: pick_and_place_line
+  operators:                    # in the order the products visit them
+    - { id: camera, entity: robot }
+    - { id: arm, entity: robot }
+    - { id: gripper, entity: vacuum }
+  products:
+    - id: red_cube
+      count: 1                  # cubes in the cell at once
+      route:
+        - { name: detect, on: camera, skill: "Detect(red_cube)", duration: 0.05 }
+        - { name: approach and reach, on: arm, duration: 2.9 }
+        - { name: grasp and carry, on: gripper, duration: 2.1 }

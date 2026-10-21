@@ -6,7 +6,8 @@
 // See LICENSING.md for details.
 
 /// @file main.cpp
-/// Runs a scenario, or every case of an experiment, without a window.
+/// Runs a scenario, or every case of an experiment, without a window. Given a
+/// workflow (x.workflow.yaml), prints its cycle time and bottleneck instead.
 ///
 /// Exit code: 0 when every run passed its assertions, 2 when one failed, 1
 /// when a file or a plugin could not be loaded.
@@ -15,10 +16,14 @@
 #include "Robotik/Package/RunReport.hpp"
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Experiment.hpp"
+#include "Robotik/Package/Scenario/FileRole.hpp"
+#include "Robotik/Package/Scenario/Workflow.hpp"
+#include "Robotik/Task/Workflow/WorkflowAnalysis.hpp"
 
 #include "Compages/Core/Units.hpp"
 #include "Compages/World/World.hpp"
 
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -36,6 +41,8 @@ struct Options
     std::optional<std::uint64_t> seed;
     std::filesystem::path report;
     bool trace = false;
+    /// Cycles of the schedule printed for a workflow.
+    std::size_t cycles = 2U;
 };
 
 /// Prints the command line on the error stream.
@@ -43,7 +50,8 @@ static void usage()
 {
     std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | "
                  "x.experiment.yaml> [--seed N]\n"
-                 "                        [--report report.json] [--trace]\n";
+                 "                        [--report report.json] [--trace]\n"
+                 "       Robotik-Headless <x.workflow.yaml> [--cycles N]\n";
 }
 
 /// Reads the scenario path and the optional flags.
@@ -64,6 +72,10 @@ static std::optional<Options> parse(int argc, char** argv)
         else if (argument == "--trace")
         {
             options.trace = true;
+        }
+        else if (argument == "--cycles" && i + 1 < argc)
+        {
+            options.cycles = std::stoul(argv[++i]);
         }
         else if (options.file.empty())
         {
@@ -197,6 +209,47 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     return record;
 }
 
+/// Prints the cycle time, the throughput, the critical circuit and the
+/// first cycles of a workflow.
+/// @return Exit code: 0, or 1 when the file is wrong.
+static int analyse(Options const& p_options)
+{
+    robotik::Result<robotik::WorkflowDescription> workflow =
+        robotik::loadWorkflow(p_options.file);
+    if (!workflow)
+    {
+        std::cerr << workflow.error() << '\n';
+        return 1;
+    }
+    robotik::Result<robotik::WorkflowAnalysis> result =
+        robotik::analyseWorkflow(workflow.value(), p_options.cycles);
+    if (!result)
+    {
+        std::cerr << result.error() << '\n';
+        return 1;
+    }
+    robotik::WorkflowAnalysis const& analysis = result.value();
+    std::cout << "workflow " << workflow.value().id << ": "
+              << workflow.value().operators.size() << " operators, "
+              << workflow.value().products.size() << " products\n"
+              << "cycle time: " << analysis.cycle_time.value() << " s\n"
+              << "throughput: " << analysis.throughput * 60.0
+              << " products/min\n"
+              << "critical circuit:\n";
+    for (std::string const& operation : analysis.critical)
+    {
+        std::cout << "  " << operation << '\n';
+    }
+    std::cout << "earliest schedule (" << p_options.cycles << " cycles):\n";
+    for (robotik::WorkflowBar const& bar : analysis.bars)
+    {
+        std::printf("  %7.2f s .. %7.2f s  %-10s %-10s %s #%zu\n",
+                    bar.start.value(), bar.end.value(), bar.on.c_str(),
+                    bar.product.c_str(), bar.operation.c_str(), bar.cycle + 1U);
+    }
+    return 0;
+}
+
 int main(int argc, char** argv)
 {
     std::optional<Options> const options = parse(argc, argv);
@@ -204,6 +257,10 @@ int main(int argc, char** argv)
     {
         usage();
         return 1;
+    }
+    if (robotik::fileRole(options->file) == robotik::FileRole::Workflow)
+    {
+        return analyse(*options);
     }
 
     try

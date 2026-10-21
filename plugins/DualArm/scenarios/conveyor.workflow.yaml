@@ -1,0 +1,22 @@
+# The workflow of the conveyor cell: the conveyor brings parts, the left arm
+# sorts the parts of kind A, the right arm the parts of kind B. Two parts of
+# each kind are in the cell at once. The arms work in parallel: the critical
+# circuit says which one, or the conveyor, limits the throughput.
+#   ./build/Robotik-Headless build/plugins/DualArm/scenarios/conveyor.workflow.yaml
+workflow:
+  id: conveyor_line
+  operators:
+    - { id: conveyor, entity: conveyor }
+    - { id: left, entity: left }
+    - { id: right, entity: right }
+  products:
+    - id: part_a
+      count: 2
+      route:
+        - { name: bring, on: conveyor, duration: 1.5 }
+        - { name: sort to bin_left, on: left, duration: 5.0 }
+    - id: part_b
+      count: 2
+      route:
+        - { name: bring, on: conveyor, duration: 1.5 }
+        - { name: sort to bin_right, on: right, duration: 6.0 }
