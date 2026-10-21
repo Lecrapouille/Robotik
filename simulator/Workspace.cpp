@@ -47,7 +47,7 @@ static std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
       "Ctrl+3",
       "Skills",
       "The execution: behavior tree, skills, resources and their timeline, the "
-      "PDDL planner, the GRAFCET." },
+      "PDDL planner, the GRAFCET, the workflow of the cell." },
     { "Autonomy",
       "autonomy",
       "Ctrl+4",
@@ -137,6 +137,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             dock("Skills", right);
             dock("Planner", right);
             dock("GRAFCET", right);
+            dock("Workflow", right);
             break;
         }
         case Workspace::Autonomy:
@@ -649,7 +650,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/8";
+    constexpr char const* LAYOUT_VERSION = "/9";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
@@ -691,6 +692,7 @@ void drawPanels(App& p_app)
             skillsPanel(p_app);
             plannerPanel(p_app);
             grafcetPanel(p_app);
+            workflowPanel(p_app);
             break;
         case Workspace::Autonomy:
             worldModelPanel(p_app);

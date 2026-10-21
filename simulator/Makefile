@@ -29,6 +29,7 @@ SRC_FILES += $(CURRENT_DIR)/TeachPanel.cpp $(CURRENT_DIR)/MissionPanels.cpp
 SRC_FILES += $(CURRENT_DIR)/SkillsPanel.cpp $(CURRENT_DIR)/AutonomyPanels.cpp
 SRC_FILES += $(CURRENT_DIR)/PluginUi.cpp $(CURRENT_DIR)/PlannerPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/Screenshot.cpp $(CURRENT_DIR)/GrafcetPanel.cpp
+SRC_FILES += $(CURRENT_DIR)/WorkflowPanel.cpp
 # stb_image_write, shipped with Compages, for --screenshot.
 INCLUDES += $(THIRD_PARTIES_DIR)/Compages/external/stb
 PKG_LIBS += glfw3

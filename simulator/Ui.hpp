@@ -145,6 +145,9 @@ void plannerPanel(App& p_app);
 /// The GRAFCET controller: operator inputs, active steps, graphs
 /// (GrafcetPanel.cpp).
 void grafcetPanel(App& p_app);
+/// The workflows of the package: cycle time, bottleneck, Gantt chart
+/// (WorkflowPanel.cpp).
+void workflowPanel(App& p_app);
 /// Contents of the Planner panel, without its window.
 void plannerView(App& p_app);
 /// Texts behind a plan: domain, problem, output, generated tree
