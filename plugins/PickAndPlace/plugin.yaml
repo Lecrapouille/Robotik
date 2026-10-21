@@ -26,6 +26,7 @@ scenarios:
     - { id: pick_and_place_grafcet, name: Pick and place (faults), file: pick_and_place_grafcet.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_gemma, name: GEMMA production cycle, file: pick_and_place_gemma.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_gemma_stop, name: GEMMA emergency stop, file: pick_and_place_gemma_stop.scenario.yaml, menu: GRAFCET }
+    - { id: pick_and_place_gemma_rearm, name: GEMMA stop and rearm, file: pick_and_place_gemma_rearm.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_rl, name: Pick and place RL, file: pick_and_place.rl.yaml, menu: Reinforcement learning, clock: plugin }
 
 experiments:

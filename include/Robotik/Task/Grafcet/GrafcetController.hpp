@@ -115,6 +115,16 @@ public:
     bool setInput(std::string const& p_name, int p_value);
 
     // -------------------------------------------------------------------------
+    /// Presses a push button: the operator input is 1 during the next cycle
+    /// only, then 0 again (a rising then a falling edge), even if the
+    /// simulation is paused until then. Use it for Dcy, Rearm...; use
+    /// @ref setInput for a latched button (AU).
+    /// @param p_name Input name.
+    /// @return False if the name is not an operator input.
+    // -------------------------------------------------------------------------
+    bool pulse(std::string const& p_name);
+
+    // -------------------------------------------------------------------------
     /// @return Operator inputs and their values (the other inputs are
     ///   computed from the beliefs).
     // -------------------------------------------------------------------------

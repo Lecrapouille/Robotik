@@ -154,6 +154,7 @@ static GrafcetSpec readGrafcet(std::filesystem::path const& p_root,
             event.at = Seconds(item.number("at", -1.0));
             event.input = item.text("input");
             event.value = static_cast<int>(item.number("value", 1.0));
+            event.pulse = item.flag("pulse", false);
             if (event.at.value() < 0.0 || event.input.empty())
             {
                 throw std::runtime_error(

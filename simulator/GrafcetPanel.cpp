@@ -39,7 +39,8 @@ static bool actionRuns(size_t p_place, size_t p_action, void* p_data)
     return graph.engine->actionState(*graph.net, p_place, p_action).active;
 }
 
-/// Operator inputs as toggle buttons: pressed (green) when 1.
+/// Operator inputs: a click is a push button (1 during one cycle: Dcy,
+/// Rearm), a right click latches or releases it (AU). Green while 1.
 static void operatorInputs(robotik::GrafcetController& p_grafcet)
 {
     std::map<std::string, int> const inputs = p_grafcet.operatorInputs();
@@ -50,7 +51,9 @@ static void operatorInputs(robotik::GrafcetController& p_grafcet)
     ImGui::TextUnformatted("Operator");
     ImGui::SameLine();
     helpMarker("Inputs no skill nor observer gives: the buttons of the "
-               "operator desk. Click to toggle.");
+               "operator desk. Click: push button (1 during one cycle of the "
+               "GRAFCET, for Dcy, Rearm). Right click: latch or release (for "
+               "an emergency stop AU).");
     for (auto const& [name, value] : inputs)
     {
         ImGui::SameLine();
@@ -62,11 +65,20 @@ static void operatorInputs(robotik::GrafcetController& p_grafcet)
         }
         if (ImGui::SmallButton(name.c_str()))
         {
+            p_grafcet.pulse(name);
+        }
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        {
             p_grafcet.setInput(name, on ? 0 : 1);
         }
         if (on)
         {
             ImGui::PopStyleColor(2);
+        }
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("%s = %d\nclick: push, right click: %s", name.c_str(), value,
+                              on ? "release" : "latch");
         }
     }
 }

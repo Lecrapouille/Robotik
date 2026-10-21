@@ -16,7 +16,8 @@ scenario:
       file: scenarios/pick_and_place_gemma.grafcet.json
       # Back in A1 after one second at least in F1 (and until 1000 s after).
       success: Control:X0 . 1s/Control:X1/1000s
-      inputs: { Dcy: 1 }
+      events:
+        - { at: 0.0, input: Dcy, pulse: true }   # the operator pushes Dcy
 
   perception: { blind: truth }   # true poses when no camera has an image
 

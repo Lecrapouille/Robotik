@@ -26,6 +26,8 @@ static char const* const GEMMA =
     "plugins/PickAndPlace/scenarios/pick_and_place_gemma.scenario.yaml";
 static char const* const GEMMA_STOP =
     "plugins/PickAndPlace/scenarios/pick_and_place_gemma_stop.scenario.yaml";
+static char const* const GEMMA_REARM =
+    "plugins/PickAndPlace/scenarios/pick_and_place_gemma_rearm.scenario.yaml";
 
 /// The scenario source of a file, to edit before reading it.
 static robotik::ScenarioSource source(char const* p_file)
@@ -47,10 +49,13 @@ TEST(GrafcetScenario, ReadsTheGrafcetBlock)
     robotik::GrafcetSpec const& spec = *scenario.controller.grafcet;
     EXPECT_EQ(spec.file.filename(), "pick_and_place_gemma.grafcet.json");
     EXPECT_EQ(spec.success, "Safety:X1 . 2s/Safety:X1 . Control:X0 . Production:X0");
-    EXPECT_EQ(spec.inputs.at("Dcy"), 1);
-    ASSERT_EQ(spec.events.size(), 1U);
-    EXPECT_DOUBLE_EQ(spec.events[0].at.value(), 3.0);
-    EXPECT_EQ(spec.events[0].input, "AU");
+    EXPECT_TRUE(spec.inputs.empty());
+    ASSERT_EQ(spec.events.size(), 2U);
+    EXPECT_EQ(spec.events[0].input, "Dcy");
+    EXPECT_TRUE(spec.events[0].pulse);
+    EXPECT_DOUBLE_EQ(spec.events[1].at.value(), 3.0);
+    EXPECT_EQ(spec.events[1].input, "AU");
+    EXPECT_FALSE(spec.events[1].pulse);
     EXPECT_TRUE(scenario.controller.behavior_tree.empty());
     EXPECT_FALSE(scenario.controller.planner.has_value());
 }
@@ -144,4 +149,37 @@ TEST(GrafcetScenario, GemmaRunsOneCycleThenStopsOnAU)
         EXPECT_EQ(simulation.cell().grafcet()->operatorInputs().at("AU"), 1);
         EXPECT_NEAR(simulation.time().value(), 5.0, 0.1);
     }
+}
+
+TEST(GrafcetScenario, GemmaRearmsAndRestartsWithPushButtons)
+{
+    PickPlaceMission mission(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world, robotik::loadScenario(repoFile(GEMMA_REARM), testAssets()).take(),
+        nullptr, &mission);
+    EXPECT_EQ(runToTheEnd(simulation, 60.0),
+              robotik::Simulation::Outcome::ControllerSucceeded);
+    // Push buttons are back to 0 after their cycle.
+    std::map<std::string, int> const inputs = simulation.cell().grafcet()->operatorInputs();
+    EXPECT_EQ(inputs.at("Dcy"), 0);
+    EXPECT_EQ(inputs.at("Rearm"), 0);
+    EXPECT_EQ(inputs.at("AU"), 0);
+}
+
+TEST(GrafcetScenario, PushButtonLastsOneCycleEvenWhenPaused)
+{
+    PickPlaceMission mission(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world, robotik::loadScenario(repoFile(GEMMA_STOP), testAssets()).take(),
+        nullptr, &mission);
+    simulation.reset(robotik::Seed{ 42 });
+    robotik::GrafcetController& grafcet = *simulation.cell().grafcet();
+    // Pressed while no step runs: still 1 for the next cycle.
+    ASSERT_TRUE(grafcet.pulse("Rearm"));
+    EXPECT_EQ(grafcet.operatorInputs().at("Rearm"), 1);
+    simulation.step(robotik::Seconds(0.01));
+    EXPECT_EQ(grafcet.operatorInputs().at("Rearm"), 0);
+    EXPECT_FALSE(grafcet.pulse("done(Home)")) << "not an operator input";
 }

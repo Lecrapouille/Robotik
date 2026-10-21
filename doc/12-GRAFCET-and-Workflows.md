@@ -151,7 +151,10 @@ A **forcing order** (`Production:{init}`) is an action of a step: while the
 step is active, the forced graph is held in its initial situation and does
 not evolve. This is how the safety graph stops everything.
 
-The scenario presses the buttons: `inputs:` at the start, `events:` later.
+The scenario presses the buttons with `events:`. Dcy and Rearm are **push
+buttons** (`pulse: true`: 1 during one cycle, so that their rising edge
+counts once); AU is a **latched** button (`value: 1`, then `value: 0` to
+release it).
 
 ```yaml
 # plugins/PickAndPlace/scenarios/pick_and_place_gemma_stop.scenario.yaml
@@ -159,8 +162,8 @@ The scenario presses the buttons: `inputs:` at the start, `events:` later.
     grafcet:
       file: scenarios/pick_and_place_gemma.grafcet.json
       success: Safety:X1 . 2s/Safety:X1 . Control:X0 . Production:X0
-      inputs: { Dcy: 1 }
       events:
+        - { at: 0.0, input: Dcy, pulse: true }   # push button
         - { at: 3.0, input: AU, value: 1 }
 ```
 
@@ -172,8 +175,13 @@ The scenario presses the buttons: `inputs:` at the start, `events:` later.
 pick_and_place_gemma_stop: 1/1 runs passed
 ```
 
+`pick_and_place_gemma_rearm.scenario.yaml` goes further: AU at 1 s, AU
+released at 2 s, Rearm at 2.5 s, Dcy at 3 s, and the cycle ends at 11.55 s
+with the cube in the box.
+
 In the simulator, the operator inputs are buttons at the top of the GRAFCET
-panel: press **Dcy** to start a cycle, **AU** for the emergency stop.
+panel. A click is a push button (Dcy to start a cycle, Rearm), a right click
+latches or releases a button (AU for the emergency stop).
 
 ## 5. Reference: `controller.grafcet`
 
@@ -182,8 +190,8 @@ panel: press **Dcy** to start a cycle, **AU** for the emergency stop.
 | `file` | The `.grafcet.json` file (path from the package root). `grafcet: scenarios/x.grafcet.json` is the short form |
 | `success` | Receptivity: the run succeeds when it is true (`X11`) |
 | `failure` | Receptivity: the run fails when it is true |
-| `inputs` | Operator inputs at the start (`{ Dcy: 1 }`) |
-| `events` | Operator inputs later: `- { at: 3.0, input: AU, value: 1 }` |
+| `inputs` | Operator inputs at the start (`{ Manual: 1 }`); an edge needs a change, use a push button event for it |
+| `events` | Operator inputs later: `- { at: 3.0, input: AU, value: 1 }` (latched), `- { at: 0.0, input: Dcy, pulse: true }` (push button: 1 during one cycle) |
 
 Without `success` nor `failure`, the GRAFCET runs until the `timeout` of the
 scenario, and the assertions decide. A scenario has one controller: a

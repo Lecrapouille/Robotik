@@ -1,0 +1,33 @@
+# The GEMMA of pick_and_place_gemma.scenario.yaml: the emergency stop AU is
+# pressed during the approach, released, the operator rearms (Rearm) and
+# starts a new cycle (Dcy). Dcy and Rearm are push buttons (one cycle at 1,
+# their rising edge counts); AU is a latched button.
+scenario:
+  id: pick_and_place_gemma_rearm
+  description: Emergency stop, rearm and restart of a GEMMA.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      file: scenarios/pick_and_place_gemma.grafcet.json
+      # Back in A1 after a full production cycle (5 s at least in F1): the
+      # first cycle, stopped after 1 s, does not count.
+      success: Control:X0 . Safety:X0 . 5s/Control:X1/1000s
+      events:
+        - { at: 0.0, input: Dcy, pulse: true }
+        - { at: 1.0, input: AU, value: 1 }      # emergency stop
+        - { at: 2.0, input: AU, value: 0 }      # released
+        - { at: 2.5, input: Rearm, pulse: true }
+        - { at: 3.0, input: Dcy, pulse: true }  # new cycle
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 30

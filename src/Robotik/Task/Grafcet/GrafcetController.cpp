@@ -121,6 +121,8 @@ struct GrafcetController::Impl
     std::vector<std::string> warnings;
     /// Next event of the scenario to apply (GrafcetSpec::events).
     std::size_t next_event = 0U;
+    /// Push buttons pressed: back to 0 after the next cycle.
+    std::vector<std::string> pulses;
 };
 
 /// Splits "name(a, b)" into "name" and its arguments ("a", "b"). The
@@ -235,6 +237,7 @@ static Result<void> start(GrafcetController::Impl& p_impl)
         action.previous = false;
     }
     p_impl.next_event = 0U;
+    p_impl.pulses.clear();
     return success();
 }
 
@@ -386,7 +389,11 @@ bt::Status GrafcetController::tick(RobotContext const& p_context)
            impl.spec.events[impl.next_event].at.value() <= p_context.time.value())
     {
         GrafcetSpec::Event const& event = impl.spec.events[impl.next_event++];
-        impl.engine.setInput(event.input, event.value);
+        impl.engine.setInput(event.input, event.pulse ? 1 : event.value);
+        if (event.pulse)
+        {
+            impl.pulses.push_back(event.input);
+        }
     }
     for (GrafcetInput const& input : impl.inputs)
     {
@@ -396,8 +403,14 @@ bt::Status GrafcetController::tick(RobotContext const& p_context)
         }
     }
 
-    // 2. Evolution of the graphs, then actions.
+    // 2. Evolution of the graphs, then actions. Push buttons are released
+    // after one cycle: their rising edge has been seen.
     impl.engine.step(dt);
+    for (std::string const& name : impl.pulses)
+    {
+        impl.engine.setInput(name, 0);
+    }
+    impl.pulses.clear();
 
     // 3. Actions to skills: request on the rising edge, cancel on the falling
     // edge if the skill still waits or runs.
@@ -450,6 +463,16 @@ bool GrafcetController::setInput(std::string const& p_name, int p_value)
         }
     }
     return false;
+}
+
+bool GrafcetController::pulse(std::string const& p_name)
+{
+    if (!setInput(p_name, 1))
+    {
+        return false;
+    }
+    m_impl->pulses.push_back(p_name);
+    return true;
 }
 
 std::map<std::string, int> GrafcetController::operatorInputs() const

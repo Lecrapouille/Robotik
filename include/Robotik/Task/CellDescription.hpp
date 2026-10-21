@@ -420,6 +420,8 @@ struct GrafcetSpec
         std::string input;
         /// New value.
         int value = 1;
+        /// A push button: 1 during one cycle, then 0 (@c value is ignored).
+        bool pulse = false;
     };
 
     /// GRAFCET file of the package (@c x.grafcet.json).
@@ -464,7 +466,8 @@ struct GrafcetSpec
 ///     failure: Safety:X2                  # receptivity: run failed
 ///     inputs: { Dcy: 1 }                  # operator inputs at start
 ///     events:                             # operator inputs later
-///       - { at: 4.0, input: AU, value: 1 }
+///       - { at: 0.0, input: Dcy, pulse: true }   # push button
+///       - { at: 4.0, input: AU, value: 1 }       # latched button
 /// @endcode
 /// (@c grafcet: scenarios/x.grafcet.json is the short form.)
 ///

@@ -12,8 +12,8 @@ scenario:
       file: scenarios/pick_and_place_gemma.grafcet.json
       # In D1 for two seconds, Control held in A1 by the forcing.
       success: Safety:X1 . 2s/Safety:X1 . Control:X0 . Production:X0
-      inputs: { Dcy: 1 }
       events:
+        - { at: 0.0, input: Dcy, pulse: true }   # push button
         - { at: 3.0, input: AU, value: 1 }
 
   perception: { blind: truth }   # true poses when no camera has an image
