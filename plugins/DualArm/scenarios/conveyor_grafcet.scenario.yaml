@@ -1,0 +1,34 @@
+# The conveyor of conveyor.scenario.yaml, driven by a GRAFCET instead of the
+# PDDL planner (scenarios/conveyor.grafcet.json, drawn with
+# TimedPetriNetEditor). One parallel branch per arm (AND divergence after
+# Start); inside a branch, a second AND divergence lets the conveyor bring
+# the next part while the arm carries the last one to its bin, and an AND
+# convergence waits for both. The conveyor is a resource of the skills: when
+# both branches ask for it, the skill scheduler makes one of them wait.
+# conveyor.workflow.yaml gives the cycle time of this cell.
+scenario:
+  id: conveyor_grafcet
+  description: Sort the parts with a GRAFCET of two parallel branches, one per arm.
+  world: worlds/conveyor_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      file: scenarios/conveyor.grafcet.json
+      success: X35              # End: both branches are done
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1, bin_left)
+    - inside(p2, bin_right)
+    - inside(p3, bin_left)
+    - inside(p4, bin_right)
+    - { condition: "collision_count(left) == 0", phase: always }
+    - { condition: "collision_count(right) == 0", phase: always }
+    # Both arms moved at the same time for a while.
+    - dual_arm.overlap > 2
+    - time < 20

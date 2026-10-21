@@ -3,6 +3,8 @@
 # each kind are in the cell at once. The arms work in parallel: the critical
 # circuit says which one, or the conveyor, limits the throughput.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/conveyor.workflow.yaml
+# The bring operations name the Convey skill: after a run of conveyor or
+# conveyor_grafcet, the Workflow panel can use their measured durations.
 workflow:
   id: conveyor_line
   operators:
@@ -13,10 +15,10 @@ workflow:
     - id: part_a
       count: 2
       route:
-        - { name: bring, on: conveyor, duration: 1.5 }
+        - { name: bring, on: conveyor, skill: "Convey(p1, feeder, zone_left)", duration: 1.5 }
         - { name: sort to bin_left, on: left, duration: 5.0 }
     - id: part_b
       count: 2
       route:
-        - { name: bring, on: conveyor, duration: 1.5 }
+        - { name: bring, on: conveyor, skill: "Convey(p2, feeder, zone_right)", duration: 1.5 }
         - { name: sort to bin_right, on: right, duration: 6.0 }

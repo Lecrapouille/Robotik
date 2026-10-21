@@ -425,6 +425,14 @@ plugin has no detector yet; the arms are the generic `robot_6axis`.
 
 ---
 
+The conveyor also runs with a GRAFCET (`conveyor_grafcet.scenario.yaml`,
+[chapter 12](12-GRAFCET-and-Workflows.md)): one parallel branch per arm, and
+in each branch the conveyor brings the next part while the arm carries the
+last one (AND divergence and convergence). The shared conveyor is a resource:
+the skill scheduler makes one branch wait. It ends in about 17 s.
+`conveyor.workflow.yaml` describes the cell as a flowshop and gives its cycle
+time and its bottleneck (the right arm).
+
 ## 9. Micro Duck
 
 **A small legged robot in a room.** The Pollen Robotics Microduck (14

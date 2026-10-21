@@ -159,6 +159,32 @@ static std::string splitCall(std::string const& p_text, std::vector<std::string>
     return p_text.substr(0, open);
 }
 
+/// Finds a skill by name, ignoring spaces: the receptivity parser drops the
+/// spaces between arguments ("Convey(p1,feeder,zone)" for the skill
+/// "Convey(p1, feeder, zone)").
+static SkillId findSkill(SkillScheduler const& p_skills, std::string const& p_name)
+{
+    SkillId const exact = p_skills.find(p_name);
+    if (exact != NO_SKILL)
+    {
+        return exact;
+    }
+    auto const compact = [](std::string p_text)
+    {
+        std::erase(p_text, ' ');
+        return p_text;
+    };
+    std::string const wanted = compact(p_name);
+    for (SkillId id = 0U; id < p_skills.size(); ++id)
+    {
+        if (compact(p_skills.name(id)) == wanted)
+        {
+            return id;
+        }
+    }
+    return NO_SKILL;
+}
+
 /// Finds where each input of the engine comes from.
 static Result<void> bindInputs(GrafcetController::Impl& p_impl)
 {
@@ -175,7 +201,7 @@ static Result<void> bindInputs(GrafcetController::Impl& p_impl)
             input.kind = (head == "done")     ? GrafcetInput::Kind::Done
                          : (head == "failed") ? GrafcetInput::Kind::Failed
                                               : GrafcetInput::Kind::Running;
-            input.skill = p_impl.skills.find(input.args.front());
+            input.skill = findSkill(p_impl.skills, input.args.front());
             if (input.skill == NO_SKILL)
             {
                 errors += "\n  " + name + ": unknown skill '" + input.args.front() + "'";
@@ -202,7 +228,7 @@ static Result<void> bindActions(GrafcetController::Impl& p_impl)
     for (auto const& [name, value] : p_impl.engine.outputs())
     {
         (void)value;
-        SkillId const skill = p_impl.skills.find(name);
+        SkillId const skill = findSkill(p_impl.skills, name);
         if (skill == NO_SKILL)
         {
             errors += "\n  action '" + name + "' is not a skill";
