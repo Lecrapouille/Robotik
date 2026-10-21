@@ -444,6 +444,15 @@ public:
     [[nodiscard]] std::vector<Pose> waypoints(std::string_view p_name) const;
 
     // -------------------------------------------------------------------------
+    /// Whether a prop is a body of the physics backend: its level is rigid,
+    /// or it is a box a rigid gripper may take, or a container a rigid
+    /// object may fall into (FIDELITY.md). Read from the description only.
+    /// @param p_prop An entity of the world.
+    /// @return False for anything else than a prop with a shape.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] bool rigidProp(EntitySpec const& p_prop) const;
+
+    // -------------------------------------------------------------------------
     /// Copies the ground-truth prop positions into the @ref WorldModel. Used
     /// by the RL overlay (same observations as the headless env).
     // -------------------------------------------------------------------------
@@ -497,10 +506,6 @@ private:
                       bool& p_blind);
     /// Builds the ECS entity of one world entity (shape or model).
     void buildRecord(Record& p_record, SceneView* p_view);
-    /// True when @p_prop is a body of the physics backend: its level is
-    /// rigid, or it is a box a rigid gripper may take, or a container a
-    /// rigid object may fall into (FIDELITY.md).
-    [[nodiscard]] bool rigidProp(EntitySpec const& p_prop) const;
     /// Free boxes, container walls and grasp welds of the rigid props.
     void addRigidProps(MujocoBackend& p_physics);
     /// Builds the shared MuJoCo physics and connects every robot to it.

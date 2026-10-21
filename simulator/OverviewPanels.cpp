@@ -98,6 +98,62 @@ static void children(App& p_app,
     }
 }
 
+/// Physics cell of an entity or an actuator: its level, then what the
+/// physics backend makes of it. A level set in physics.overrides is bright,
+/// the level of the scenario is grey.
+static void physicsCell(App const& p_app,
+                        std::string const& p_id,
+                        char const* p_engine)
+{
+    robotik::PhysicsSpec const& physics =
+        p_app.simulation->scenario().physics;
+    bool const own = physics.overrides.contains(p_id);
+    char const* const level = robotik::toString(fidelityOf(physics, p_id));
+    if (own)
+    {
+        ImGui::TextUnformatted(level);
+    }
+    else
+    {
+        ImGui::TextDisabled("%s", level);
+    }
+    ImGui::SetItemTooltip(own ? "Set for %s in physics.overrides."
+                              : "Level of the scenario (physics.fidelity).",
+                          p_id.c_str());
+    if (p_engine != nullptr)
+    {
+        ImGui::SameLine();
+        ImGui::TextDisabled("· %s", p_engine);
+    }
+}
+
+/// What the physics backend makes of an entity, read from the description
+/// like the cell does when it builds the physics.
+static char const* engineOf(App const& p_app,
+                            robotik::EntitySpec const& p_entity)
+{
+    switch (p_entity.type)
+    {
+        case robotik::EntitySpec::Type::Robot:
+            return "joints";
+        case robotik::EntitySpec::Type::Tool:
+            return "on the flange";
+        case robotik::EntitySpec::Type::Body:
+            return p_entity.physics == robotik::EntitySpec::Physics::Free
+                       ? "free body"
+                       : "fixed";
+        case robotik::EntitySpec::Type::Prop:
+            if (!p_app.simulation->cell().rigidProp(p_entity))
+            {
+                return "moved by the grasp";
+            }
+            return p_entity.shape->type == robotik::ShapeSpec::Type::Box
+                       ? "free body"
+                       : "static walls";
+    }
+    return "";
+}
+
 /// One childless row: name, type and a detail.
 static void leaf(char const* p_name, char const* p_type, char const* p_detail)
 {
@@ -111,6 +167,7 @@ static void leaf(char const* p_name, char const* p_type, char const* p_detail)
     ImGui::TextDisabled("%s", p_type);
     ImGui::TableNextColumn();
     ImGui::TextUnformatted(p_detail);
+    ImGui::TableNextColumn();
     ImGui::TableNextColumn();
 }
 
@@ -163,6 +220,8 @@ static void entityRow(App& p_app,
                     size.z);
     }
     ImGui::TableNextColumn();
+    physicsCell(p_app, p_entity.id, engineOf(p_app, p_entity));
+    ImGui::TableNextColumn();
     if (p_entity.type != robotik::EntitySpec::Type::Robot)
     {
         try
@@ -188,6 +247,16 @@ static void entityRow(App& p_app,
     for (robotik::ActuatorSpec const& actuator : p_entity.actuators)
     {
         leaf(actuator.name.c_str(), "actuator", typeOf(actuator.type));
+        if (actuator.type == robotik::ActuatorSpec::Type::Vacuum)
+        {
+            // The level of a gripper says how it holds: the cell welds the
+            // object at rigid, moves it with the tool at abstract.
+            ImGui::TableSetColumnIndex(3);
+            bool const rigid =
+                fidelityOf(p_app.simulation->scenario().physics,
+                           actuator.name) != robotik::Fidelity::Abstract;
+            physicsCell(p_app, actuator.name, rigid ? "welds" : "carries");
+        }
     }
     children(p_app, p_world, p_entity.id);
     ImGui::TreePop();
@@ -225,14 +294,32 @@ void worldView(App& p_app)
         return;
     }
     robotik::WorldDescription const& world = p_app.simulation->scenario().world;
-    ImGui::TextDisabled("%s  ·  %zu entities  ·  %s",
+    robotik::PhysicsSpec const& physics = p_app.simulation->scenario().physics;
+    ImGui::TextDisabled("%s  ·  %zu entities  ·  %s  ·  physics %s, %zu "
+                        "override%s",
                         world.id.c_str(),
                         world.entities.size(),
-                        world.floor ? "physical floor" : "no physical floor");
+                        world.floor ? "physical floor" : "no physical floor",
+                        robotik::toString(physics.fidelity),
+                        physics.overrides.size(),
+                        physics.overrides.size() == 1U ? "" : "s");
+    ImGui::SameLine();
+    helpMarker(
+        "Physics: the level of each entity, then what the physics engine "
+        "makes of it.\n\n"
+        "abstract: a held object follows the tool, a released one is put "
+        "down where it belongs. No contact, no fall.\n"
+        "rigid: objects are bodies of the engine; a grasp welds the object "
+        "to the tool, a release lets it fall.\n"
+        "contact: the tool holds by force (suction, friction). Not built "
+        "yet.\n\n"
+        "Bright: set in physics.overrides of the scenario. Grey: the level "
+        "of the scenario. A rigid gripper makes the boxes it may take free "
+        "bodies, even at the abstract level.");
     ImGuiTableFlags const flags =
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
         ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY;
-    if (beginTable("entities", 4, flags))
+    if (beginTable("entities", 5, flags))
     {
         ImGui::TableSetupScrollFreeze(0, 1);
         ImGui::TableSetupColumn(
@@ -240,6 +327,8 @@ void worldView(App& p_app)
         ImGui::TableSetupColumn("Type", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn(
             "Model", ImGuiTableColumnFlags_WidthStretch, 1.5F);
+        ImGui::TableSetupColumn(
+            "Physics", ImGuiTableColumnFlags_WidthStretch, 1.3F);
         ImGui::TableSetupColumn(
             "Position (m)", ImGuiTableColumnFlags_WidthStretch, 1.3F);
         ImGui::TableHeadersRow();
