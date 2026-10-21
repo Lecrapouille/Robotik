@@ -38,6 +38,8 @@ struct WorkflowState
     std::filesystem::path package;
     std::vector<std::filesystem::path> files;
     std::size_t selected = 0U;
+    /// Scenario the selection was made for.
+    std::string scenario;
     bool measured = false;
     int cycles = 3;
     bool dirty = true;
@@ -223,6 +225,22 @@ void workflowPanel(App& p_app)
         state.files = root.empty() ? std::vector<std::filesystem::path>{} : workflowFiles(root);
         state.selected = 0U;
         state.dirty = true;
+        state.scenario.clear();
+    }
+    // The workflow named after the scenario, when there is one
+    // (factory.scenario.yaml -> factory.workflow.yaml).
+    std::string const scenario = p_app.simulation ? p_app.simulation->scenario().id : std::string();
+    if (scenario != state.scenario)
+    {
+        state.scenario = scenario;
+        for (std::size_t i = 0U; i < state.files.size(); ++i)
+        {
+            if (robotik::roleStem(state.files[i]) == scenario + "_workflow")
+            {
+                state.selected = i;
+                state.dirty = true;
+            }
+        }
     }
     if (state.files.empty())
     {
