@@ -13,6 +13,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 | Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/03-Worlds-and-Scenarios.md |
 | Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/05-Skills-and-Behavior-Trees.md |
 | Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/11-PDDL-Planner.md |
+| Drive a cell with a GRAFCET/GEMMA, analyse a workflow | `robotik-skill` | doc/12-GRAFCET-and-Workflows.md |
 | Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/02-Getting-Started.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
 | Write an app in C++ without YAML (Robot or Task layer) | — | doc/02-Getting-Started.md §7 |
@@ -38,7 +39,8 @@ include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementat
             controllers, perception fidelity), Mission, SkillScheduler,
             RobotContext, Faults, Metrics, Skills/, Perception/ (WorldModel),
             Planning/ (Pddl, PlanningDomain, PlanExecutor, PlanGraph,
-            Kairos/), Grasp/, Learning/ (RL environments), Agents/
+            Kairos/), Grafcet/ (GRAFCET controller), Workflow/ (cycle time
+            of a x.workflow.yaml), Grasp/, Learning/ (RL environments), Agents/
   Package/  files and plugins: Simulation (scenario = cell + verdict),
             RunReport, Scenario/ (World, Scenario, Experiment, Assertions,
             Trajectory, PackagePath, FileRole), Plugin/ (PluginABI.h,
@@ -88,7 +90,8 @@ libraries are then built by Make rules, there is no `external/compilation`.
   never by a skill.
 - File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
   `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
-  `x.experiment.yaml` (doc/03 §1). id = name without `.yaml` and
+  `x.experiment.yaml`, `x.grafcet.json`, `x.workflow.yaml` (doc/03 §1).
+  id = name without `.yaml` and
   `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`).
 - Paths in world/scenario/experiment YAML start at the package root (folder
   of `plugin.yaml`): `world: worlds/arm.world.yaml`. `..` and symlinks are allowed
@@ -113,7 +116,11 @@ libraries are then built by Make rules, there is no `external/compilation`.
   and from the resources of its skills. Do not add ordering in C++.
 - Planner: the PDDL domain is the only place of actions and effects (no
   symbolic effects in C++); observers read beliefs, never the truth; only
-  `src/Robotik/Task/Planning/Kairos/` includes Kairos headers. An effect is
+  `src/Robotik/Task/Planning/Kairos/` includes Kairos headers, only
+  `src/Robotik/Task/Grafcet/` and `Task/Workflow/` include
+  TimedPetriNetEditor headers (`make check-layers`).
+- GRAFCET: actions are skills, receptivities read `done/failed/running(S)`,
+  observers and operator inputs; no GRAFCET logic in C++. An effect is
   done only when the beliefs show it (`verify: observed`: seen after the
   start of the step).
 - Names must match: `TARGET_NAME robotik_x` → `librobotik_x.so` =

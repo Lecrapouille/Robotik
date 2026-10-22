@@ -80,6 +80,14 @@ and uses the colour detector.
 The fault scenario does not only check that things fail: it checks that the
 architecture **reacts** (retry, fall back, abort).
 
+The same job runs with the other controllers: the PDDL planner
+(`pick_and_place_pddl*.scenario.yaml`, [chapter 11](11-PDDL-Planner.md)),
+and a GRAFCET (`pick_and_place_grafcet.scenario.yaml`, with a Retry step
+when the camera is lost) or a GEMMA of three graphs with its operator buttons
+Dcy, AU, Rearm (`pick_and_place_gemma*.scenario.yaml`,
+[chapter 12](12-GRAFCET-and-Workflows.md)). `pick_and_place.workflow.yaml`
+gives the cycle time of the cell.
+
 ```bash
 ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --seed 11
 ./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \

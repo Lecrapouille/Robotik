@@ -1,6 +1,6 @@
 ---
 name: robotik-skill
-description: Write a RobotIK skill (robotik::Skill), register it on the SkillScheduler with resources/priority/preconditions, call it from a BlackThorn behavior tree (.bt.yaml), or make a tree react to faults. Use for skill code, *.bt.yaml files, preemption and fault-recovery questions.
+description: Write a RobotIK skill (robotik::Skill), register it on the SkillScheduler with resources/priority/preconditions, call it from a BlackThorn behavior tree (.bt.yaml) or a GRAFCET (.grafcet.json), or make a tree react to faults. Use for skill code, *.bt.yaml files, preemption and fault-recovery questions.
 ---
 
 # RobotIK skills and behavior trees
@@ -87,6 +87,19 @@ call `clock()`.
 Faults: declare in scenario `faults:` or experiment `setup: inject_fault`.
 No fault code in skills; the tree reacts (retry, fallback, abort).
 Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yaml`.
+
+## GRAFCET instead of a tree
+
+`controller.grafcet: { file: scenarios/x.grafcet.json, success: X11, inputs:
+{ Dcy: 1 }, events: [{ at: 3.0, input: AU }] }` (drawn in TimedPetriNetEditor,
+`"type": "GRAFCET"`). An action named like a skill requests it on its rising
+edge and cancels it on its falling edge. Receptivities (IEC 60848 infix:
+`a . b + /c`, `↑a`, `3s/X2`, `Graph:X3`) read `done(S)`, `failed(S)`,
+`running(S)`, observers of the PlanningDomain (register them in setup, as for
+the planner), and operator inputs (other names). GEMMA = 3 graphs with forcing
+orders `Production:{init}`. Code: `src/Robotik/Task/Grafcet/`. Workflows
+(`x.workflow.yaml`, cycle time, bottleneck): `Task/Workflow/`. Details:
+doc/12-GRAFCET-and-Workflows.md.
 
 ## PDDL planner instead of a tree
 

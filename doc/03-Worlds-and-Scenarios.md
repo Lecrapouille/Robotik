@@ -62,6 +62,8 @@ use it.
 | `.domain.pddl` | PDDL domain of the planner ([chapter 11](11-PDDL-Planner.md)) | `scenarios/pick_and_place.domain.pddl` |
 | `.trajectory.yaml` | trajectory (§8) | `scenarios/trajectories/red_stroke.trajectory.yaml` |
 | `.experiment.yaml` | experiment | `experiments/hello.experiment.yaml` |
+| `.grafcet.json` | GRAFCET made with TimedPetriNetEditor ([chapter 12](12-GRAFCET-and-Workflows.md)) | `scenarios/pick_and_place.grafcet.json` |
+| `.workflow.yaml` | workflow of a cell: operators, products, routes ([chapter 12](12-GRAFCET-and-Workflows.md#6-workflows-how-fast-can-the-cell-work)) | `scenarios/conveyor.workflow.yaml` |
 
 Rules:
 
@@ -434,7 +436,7 @@ scenario:
 |-----|------|
 | `world` | The world file, relative to the package root (see below) |
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
-| `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([chapter 11](11-PDDL-Planner.md#5-reference)). Without it, the plugin mission drives the robot |
+| `controller` | The default strategy: a `behavior_tree`, a goal for the PDDL `planner` ([chapter 11](11-PDDL-Planner.md#5-reference)), or a `grafcet` ([chapter 12](12-GRAFCET-and-Workflows.md#5-reference-controllergrafcet)). Only one of them. Without it, the plugin mission drives the robot |
 | `trajectories` | Named paths, one file each (§8) |
 | `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` (§7) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
@@ -512,7 +514,8 @@ Rules:
 
 A run ends when:
 
-1. the controller (behavior tree or mission) **succeeds** or **fails**;
+1. the controller (behavior tree, planner, GRAFCET or mission) **succeeds**
+   or **fails**;
 2. `stop_when` becomes true;
 3. `timeout` is reached;
 4. an assertion declared with `stop: true` fails.

@@ -155,7 +155,7 @@ The tree only uses the names of the skills. It says the order, and what to do wh
 - Action: { name: Grasp(red_cube) }
 ```
 
-Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([doc/11](doc/11-PDDL-Planner.md)).
+Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as behavior tree, and plans again when one fails ([doc/11](doc/11-PDDL-Planner.md)).
 
 ### 🎬 4. The scenario: what happens, and what is checked
 
@@ -291,6 +291,7 @@ RobotIK does not rewrite robotics. It makes proven libraries work together behin
 | 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
 | 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
 | 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([doc/11](doc/11-PDDL-Planner.md)) |
+| 🏭 [TimedPetriNetEditor](https://github.com/Lecrapouille/TimedPetriNetEditor) | GRAFCET engine and (max,+) algebra: GRAFCET controller, cycle time of a workflow ([doc/12](doc/12-GRAFCET-and-Workflows.md)) |
 | 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](external/BlackThorn/doc/README.md)) |
 | 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](external/Compages/doc/README.md)) |
 | OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
@@ -371,6 +372,7 @@ Chapters 1 to 5 are for everybody; 6 to 11 are references.
 | 9 | [Demos](doc/09-Demos.md) | 🎬 HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
 | 10 | [Tools and frames](doc/10-Tools-and-Frames.md) | 🔧 Flange, tool, TCP |
 | 11 | [The PDDL planner](doc/11-PDDL-Planner.md) | 🧠 A goal instead of a behavior tree (Kairos) |
+| 12 | [GRAFCET, GEMMA and workflows](doc/12-GRAFCET-and-Workflows.md) | 🏭 A GRAFCET instead of a tree, cycle time and bottleneck of a cell |
 | | [Glossary](doc/Glossary.md) | 📕 The words of RobotIK in simple English |
 
 The libraries RobotIK is built on have their own documentation, written the same way: [Compages](external/Compages/doc/README.md) and [BlackThorn](external/BlackThorn/doc/README.md).

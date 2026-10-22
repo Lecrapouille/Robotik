@@ -2,7 +2,7 @@
 
 Read the chapters in order: each one uses the words of the previous ones.
 Chapters 1 to 5 are for everybody, even without any robotics background.
-Chapters 6 to 11 are references: open them when you need them.
+Chapters 6 to 12 are references: open them when you need them.
 
 ## Learn
 
@@ -24,6 +24,7 @@ Chapters 6 to 11 are references: open them when you need them.
 | 9 | [Demos](09-Demos.md) | Every plugin of the repository, and how to write a good demo |
 | 10 | [Tools and frames](10-Tools-and-Frames.md) | Flange, `tool0`, `tool_mount`, TCP; mounting a tool |
 | 11 | [The PDDL planner](11-PDDL-Planner.md) | A goal instead of a tree: domain, observers, bindings, replanning |
+| 12 | [GRAFCET, GEMMA and workflows](12-GRAFCET-and-Workflows.md) | A GRAFCET instead of a tree, start and stop modes (GEMMA), cycle time and bottleneck of a cell |
 | — | [Glossary](Glossary.md) | The words of RobotIK (asset, pack, skill, belief, fidelity...) in simple English |
 
 ## Quick paths

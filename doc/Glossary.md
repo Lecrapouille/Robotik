@@ -132,6 +132,32 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Predicate**: the name of a kind of fact (`holding`, `in`).
 - **Replan**: plan again when a step fails or an effect is not seen.
 
+## GRAFCET and workflows
+
+- **Critical circuit**: the circuit of a timed event graph that sets the
+  cycle time: the bottleneck of the cell.
+- **Cycle time (λ)**: the period of a cell in steady state; the throughput is
+  the number of products per cycle divided by λ.
+- **Flowshop**: a cell where every product visits the operators in the same
+  order.
+- **Forcing order**: an action of a GRAFCET step that holds another graph in a
+  given situation (`Production:{init}`); the forced graph does not evolve.
+- **GEMMA**: a guide to describe the start, stop and emergency modes of a
+  machine; in RobotIK, a GRAFCET of three graphs (safety, control,
+  production).
+- **GRAFCET**: a chart of steps and transitions (IEC 60848). An active step
+  does its actions; a transition fires when the steps above it are active and
+  its receptivity is true.
+- **Operator (workflow)**: who works in a cell: a robot, a machine, a camera
+  (word of SynDEx).
+- **Operator input**: an input of a GRAFCET that no skill nor observer gives:
+  a button (`Dcy`, `AU`).
+- **Receptivity**: the condition of a GRAFCET transition (`done(Home) . /AU`).
+- **Timed event graph**: a Petri net where each place has one input and one
+  output transition; its behavior is linear in the (max,+) algebra.
+- **Workflow**: the operators, products and routes of a cell
+  (`x.workflow.yaml`).
+
 ## Scenarios and runs
 
 - **Assertion**: a condition checked during or at the end of a run
