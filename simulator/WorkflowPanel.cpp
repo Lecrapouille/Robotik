@@ -141,7 +141,7 @@ static void durationsTable(WorkflowState const& p_state)
             }
         }
     }
-    ImGui::EndTable();
+    endTable();
 }
 
 /// Earliest schedule: one row per operator, one color per product.
