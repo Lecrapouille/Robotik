@@ -1,0 +1,91 @@
+name: Publish the online Robotik Simulator on GitHub page
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    branches:
+      - master
+
+jobs:
+  # A page opened alone in a browser needs the plain Emscripten build. The
+  # ExaequOS build only runs inside the ExaequOS desktop (see build_exaequos).
+  # Pinocchio, MuJoCo and the OpenGL 4.5 view are not in this page: it opens
+  # the plugins (worlds, scenarios, manifests) and the panels.
+  build_html5:
+    name: Publish on gh-pages
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install pkg-config cmake libeigen3-dev
+      - name: Install Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+      - name: Checkout Robotik
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Compile Robotik-Simulator
+        run: |
+          make download-external-libs
+          emmake make -C simulator -j`nproc --all`
+      - name: Deploy
+        run: |
+          git config --global user.name 'GitHub CI'
+          git config --global user.email 'github-ci@users.noreply.github.com'
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git fetch origin gh-pages || true
+          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf . >/dev/null 2>&1 || true
+          fi
+          cp build/Robotik-Simulator.* .
+          touch .nojekyll
+          git add .nojekyll Robotik-Simulator.*
+          if git diff --cached --quiet; then
+            echo "Nothing new to publish"
+          else
+            git commit -m "Automated commit"
+            git push -u origin gh-pages
+          fi
+
+  # The image sets EXAEQUOS and puts emscripten-exa on PATH.
+  build_exaequos:
+    name: Compile for ExaequOS
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Robotik
+        uses: actions/checkout@v6
+        with:
+          submodules: true
+      - name: Compile with ExaequOS
+        run: |
+          mkdir -p "$HOME/.cache/exaequos"
+          # The image has no cmake package. On its PATH, cmake is the
+          # toolchain directory, so emcmake cannot start the real program.
+          # Install it as root, then compile as the runner.
+          docker run --rm \
+            --user root \
+            -e HOST_UID="$(id -u)" \
+            -e HOST_GID="$(id -g)" \
+            -v "$PWD:$PWD" \
+            -v "$HOME/.cache/exaequos:/opt/emscripten-exa/cache" \
+            -w "$PWD" \
+            lecrapouille/exaequos:light \
+            bash -s <<'EOF'
+          set -e
+          apt-get update
+          apt-get install -y --no-install-recommends cmake
+          chown "$HOST_UID:$HOST_GID" /opt/emscripten-exa/cache
+          exec python3 -c 'import os; os.environ["HOME"]="/tmp"; os.setgid(int(os.environ["HOST_GID"])); os.setuid(int(os.environ["HOST_UID"])); os.execvp("bash", ["bash", "-c", "make download-external-libs && make -C simulator -j$(nproc)"])'
+          EOF
+      - name: Keep the ExaequOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Robotik-Simulator-exaequos
+          path: build/Robotik-Simulator.*

@@ -119,7 +119,9 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
             Vector3 const half(0.5 * p_object.size[0].value(),
                                0.5 * p_object.size[1].value(),
                                0.5 * p_object.size[2].value());
-            Vector3 const c(center.x, center.y, center.z);
+            Vector3 const c(static_cast<double>(center.x),
+                            static_cast<double>(center.y),
+                            static_cast<double>(center.z));
             boxes.push_back({ c - half, c + half });
         });
 

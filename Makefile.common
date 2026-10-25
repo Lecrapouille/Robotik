@@ -63,6 +63,9 @@ pre-build:: $(COMPAGES_STATIC)
 
 $(COMPAGES_STATIC):
 	$(MAKE) -C $(COMPAGES_DIR) download-external-libs
+ifneq ($(or $(EMSCRIPTEN),$(EXAEQUOS)),)
+	python3 $(abspath $(P)/scripts/prepare-compages-web.py) $(COMPAGES_DIR)
+endif
 	$(MAKE) -C $(COMPAGES_DIR) COMPILATION_MODE=release $(COMPAGES_STATIC)
 
 ###############################################################################
@@ -71,23 +74,35 @@ $(COMPAGES_STATIC):
 # by the Makefiles that link it (they depend on BLACKTHORN_STATIC_DEPS).
 #
 RYML_SRC := $(ROBOTIK_EXTERNAL)/rapidyaml
+# A native archive and a WebAssembly one cannot share a folder.
+ifneq ($(or $(EMSCRIPTEN),$(EXAEQUOS)),)
+RYML_STATIC := $(RYML_SRC)/build-wasm/libryml.a
+else
 RYML_STATIC := $(RYML_SRC)/build/libryml.a
+endif
 
 $(RYML_STATIC):
 	@test -f $(RYML_SRC)/CMakeLists.txt || \
 	    (echo "Missing $(RYML_SRC): run make download-external-libs" && false)
 	@test -f $(RYML_SRC)/ext/c4core/CMakeLists.txt || \
 	    (cd $(RYML_SRC) && git submodule update --init --recursive)
+ifneq ($(or $(EMSCRIPTEN),$(EXAEQUOS)),)
+	emcmake cmake -S $(RYML_SRC) -B $(RYML_SRC)/build-wasm -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DRYML_BUILD_SHARED_LIBS=OFF \
+	    -DRYML_BUILD_TESTS=OFF -DRYML_BUILD_BENCHMARKS=OFF -DRYML_BUILD_API=OFF
+	cmake --build $(RYML_SRC)/build-wasm --target ryml -j$(shell nproc)
+else
 	cmake -S $(RYML_SRC) -B $(RYML_SRC)/build -DCMAKE_BUILD_TYPE=Release \
 	    -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DRYML_BUILD_SHARED_LIBS=OFF \
 	    -DRYML_BUILD_TESTS=OFF -DRYML_BUILD_BENCHMARKS=OFF -DRYML_BUILD_API=OFF
 	cmake --build $(RYML_SRC)/build --target ryml -j$(shell nproc)
+endif
 
 ###############################################################################
-# Kairos, the PDDL planner of the Planning module: a shared library built by
-# its CMake. Only src/Robotik/Planning/Kairos includes its headers, but every
-# program linking the core (static or shared) links it, found by its rpath.
-#
+# Kairos, the PDDL planner. The web build has no shared object to link: the
+# planner sources stay out of that binary (see src/Robotik/Makefile).
+ifndef EMSCRIPTEN
+ifndef EXAEQUOS
 KAIROS_SRC := $(ROBOTIK_EXTERNAL)/kairos
 KAIROS_BUILD := $(KAIROS_SRC)/build
 KAIROS_SHARED := $(KAIROS_BUILD)/src/libkairos.so
@@ -99,10 +114,18 @@ $(KAIROS_SHARED):
 	cmake -S $(KAIROS_SRC) -B $(KAIROS_BUILD) -DCMAKE_BUILD_TYPE=Release \
 	    -DKAIROS_BUILD_TESTS=OFF -DKAIROS_BUILD_CLI=ON
 	cmake --build $(KAIROS_BUILD) -j$(shell nproc)
+endif
+endif
 
+# Pinocchio and MuJoCo are native shared libraries. They are not part of the
+# web build (the page still opens the plugins and the panels).
+ifndef EMSCRIPTEN
+ifndef EXAEQUOS
 FORGE_PREFIX := $(abspath $(P)/external/forge)
 ifneq ($(wildcard $(FORGE_PREFIX)/include/pinocchio/parsers/urdf.hpp),)
 USER_CXXFLAGS += -isystem $(FORGE_PREFIX)/include
 USER_LDFLAGS += -L$(FORGE_PREFIX)/lib -Wl,-rpath,$(FORGE_PREFIX)/lib
 USER_LDFLAGS += -lpinocchio_parsers -lpinocchio_default -lmujoco
+endif
+endif
 endif

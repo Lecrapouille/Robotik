@@ -43,7 +43,9 @@ namespace robotik
 static Vector3 positionOf(compages::world::Entity p_entity)
 {
     auto const at = p_entity.position();
-    return { at.x, at.y, at.z };
+    return { static_cast<double>(at.x),
+             static_cast<double>(at.y),
+             static_cast<double>(at.z) };
 }
 
 /// Converts a double vector to the float vector the scene stores.

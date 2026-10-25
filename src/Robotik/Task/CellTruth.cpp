@@ -201,7 +201,10 @@ Pose Cell::framePose(Record const& p_record,
                                             "' has no frame '" + frame + "'");
             }
             auto const at = p_record.entity.position();
-            return { Vector3(at.x, at.y, at.z), p_record.nominal.rotation };
+            return { Vector3(static_cast<double>(at.x),
+                              static_cast<double>(at.y),
+                              static_cast<double>(at.z)),
+                     p_record.nominal.rotation };
         }
         case EntitySpec::Type::Body:
             break;

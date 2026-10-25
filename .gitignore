@@ -1,4 +1,6 @@
 build/
+build-*/
+media/
 .cache/
 doc/code-coverage/*
 doc/doxygen/*

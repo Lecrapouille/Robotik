@@ -33,6 +33,8 @@ build/
     └── ...
 ```
 
+The CI also publishes the simulator as a web page: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The versioned files of `plugins/` are in the page. Pinocchio, MuJoCo and the 3D view are not.
+
 Unit tests, for developers:
 
 ```bash
