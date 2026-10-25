@@ -8,8 +8,8 @@
 #include "Robotik/Task/Workflow/WorkflowAnalysis.hpp"
 
 // Only this folder and Task/Grafcet include TimedPetriNetEditor.
-#include "PetriNet/Algorithms.hpp"
-#include "PetriNet/Flowshop.hpp"
+#include "MaxPlus/Algorithms.hpp"
+#include "MaxPlus/Flowshop.hpp"
 #include "PetriNet/PetriNet.hpp"
 
 #include <algorithm>
@@ -26,10 +26,10 @@ static std::string captionOf(std::string const& p_operator, std::string const& p
 Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
                                          std::size_t p_cycles)
 {
-    // Flowshop: machines are the operators, pieces the product kinds.
+    // Flowshop: machines are the operators, conveyors the product kinds.
     tpne::Flowshop shop;
     shop.nmachines = p_workflow.operators.size();
-    shop.npieces = p_workflow.products.size();
+    shop.nconveyors = p_workflow.products.size();
     for (WorkflowOperator const& op : p_workflow.operators)
     {
         shop.machineNames.push_back(op.id);
@@ -37,11 +37,11 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
     }
     for (WorkflowProduct const& product : p_workflow.products)
     {
-        shop.pieceNames.push_back(product.id);
+        shop.conveyorNames.push_back(product.id);
         shop.np.push_back(product.count);
     }
     shop.PT.assign(shop.nmachines,
-                   std::vector<float>(shop.npieces, tpne::flowshopNoOperation()));
+                   std::vector<float>(shop.nconveyors, tpne::flowshopNoOperation()));
     // Where each operation is, by transition caption.
     struct Where { WorkflowProduct const* product; WorkflowOperation const* operation; };
     std::map<std::string, Where> operations;
@@ -66,7 +66,7 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
         return failure(p_workflow.file.string() + ": " + error);
     }
 
-    auto net = std::make_shared<tpne::Net>(tpne::TypeOfNet::TimedEventGraph);
+    auto net = std::make_shared<tpne::Net>(tpne::TypeOfNet::TimedPetriNet);
     tpne::buildFlowshop(*net, shop);
     net->name = p_workflow.id;
 
@@ -86,21 +86,15 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
         lambda > 0.0 ? static_cast<double>(p_workflow.products.size()) / lambda : 0.0;
 
     // Critical operations: transitions at the start of a critical arc.
-    auto const& arcs = net->arcs();
-    for (tpne::Arc const* arc : cycle.arcs)
+    analysis.critical_arcs = cycle.arcs;
+    for (std::size_t const a : cycle.arcs)
     {
-        for (std::size_t i = 0U; i < arcs.size(); ++i)
-        {
-            if (&arcs[i] == arc)
-            {
-                analysis.critical_arcs.push_back(i);
-            }
-        }
-        if (arc->from.type != tpne::Node::Type::Transition)
+        tpne::Arc const& arc = net->arcs()[a];
+        if (!arc.from.isTransition())
         {
             continue;
         }
-        auto const found = operations.find(arc->from.caption);
+        auto const found = operations.find(net->transitions()[arc.from.id].caption);
         if (found == operations.end())
         {
             continue;

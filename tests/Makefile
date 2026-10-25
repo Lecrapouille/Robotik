@@ -84,6 +84,8 @@ USER_LDFLAGS += -ldl
 # Compile the unit tests
 #
 SRC_FILES += $(call rwildcard,$(P)/src/Robotik,*.cpp)
+# The web stand-ins of MuJoCo, Pinocchio and Kairos are for Emscripten only.
+SRC_FILES := $(filter-out %/WebBackends.cpp %/WebPlanner.cpp,$(SRC_FILES))
 SRC_FILES += $(call rwildcard,$(P)/tests,*.cpp)
 PICK_DIR := $(P)/plugins/PickAndPlace/src
 FLY_DIR := $(P)/plugins/FlyBrain/src

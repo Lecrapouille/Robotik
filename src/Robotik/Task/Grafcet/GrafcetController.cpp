@@ -13,8 +13,8 @@
 #include "Robotik/Task/Scheduler.hpp"
 
 // Only this folder includes TimedPetriNetEditor (make check-layers).
+#include "IO/Imports/Imports.hpp"
 #include "PetriNet/GrafcetEngine.hpp"
-#include "PetriNet/Imports/Imports.hpp"
 #include "PetriNet/PetriNet.hpp"
 
 #include <span>
@@ -32,7 +32,7 @@ struct GrafcetInput
         Done,     ///< done(S): the run of skill S succeeded.
         Failed,   ///< failed(S): the run of skill S failed or was cancelled.
         Running,  ///< running(S): skill S waits or runs.
-        Observer, ///< predicate(args) of the planning domain.
+        Predicate, ///< predicate(args) of the planning domain.
         Operator, ///< set by the operator (button), the scenario or the mission.
     };
 
@@ -209,7 +209,7 @@ static Result<void> bindInputs(GrafcetController::Impl& p_impl)
         }
         else if (Observer const* observer = p_impl.domain.observer(head))
         {
-            input.kind = GrafcetInput::Kind::Observer;
+            input.kind = GrafcetInput::Kind::Predicate;
             input.observer = observer;
         }
         p_impl.inputs.push_back(std::move(input));
@@ -396,7 +396,7 @@ static int valueOf(GrafcetInput const& p_input, GrafcetController::Impl const& p
             SkillState const state = p_impl.skills.state(p_input.skill);
             return state == SkillState::Waiting || state == SkillState::Running;
         }
-        case GrafcetInput::Kind::Observer:
+        case GrafcetInput::Kind::Predicate:
             return (*p_input.observer)(p_context, std::span<std::string const>(p_input.args)) ==
                    Truth::True;
         case GrafcetInput::Kind::Operator:
