@@ -41,6 +41,9 @@ int main(int argc, char** argv)
             app.scenario_path = std::filesystem::path(argument);
         }
     }
+#if !defined(__EMSCRIPTEN__) || defined(EXAEQUOS)
+    // The browser page opens on the plugin list. A scenario given on the
+    // command line is still loaded, below.
     if (app.scenario_path.empty())
     {
         for (robotik::PluginPackage const& package :
@@ -55,6 +58,7 @@ int main(int argc, char** argv)
             }
         }
     }
+#endif
     if (!app.scenario_path.empty())
     {
         app.load();

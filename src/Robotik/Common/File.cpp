@@ -55,10 +55,15 @@ bool pathInsideRoot(std::filesystem::path const& p_root,
 // -----------------------------------------------------------------------------
 std::filesystem::path executableDirectory()
 {
+#if defined(__EMSCRIPTEN__)
+    // The page has no host path. Plugins are preloaded at /plugins.
+    return "/";
+#else
     std::error_code error;
     std::filesystem::path const exe =
         std::filesystem::read_symlink("/proc/self/exe", error);
     return error ? std::filesystem::path{} : exe.parent_path();
+#endif
 }
 
 } // namespace robotik

@@ -6,6 +6,9 @@
 
 > ⚠️ **Active project: the API is still evolving.** Scenarios, demos and tests are the best examples of the current API. No physical robot has been driven yet.
 
+> **🌐 Try the online version instantly:**
+> 👉 [Click here to launch the Robotik Simulator in your browser!](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html)
+
 ---
 
 ## 🤔 What is it for?
@@ -349,6 +352,8 @@ make -j"$(nproc --all)"
 ./build/Robotik-Headless build/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
 ./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
+
+A web version, built with Emscripten by the CI: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).
 
 Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md).
 

@@ -59,10 +59,14 @@ download-external-libs::
 	@$(MAKE) --no-print-directory -C $(THIRD_PARTIES_DIR)/Compages download-external-libs
 	@if [ -z "$$(find $(FORGE_DIR) -path '*/pkgconfig/pinocchio.pc' -print -quit 2>/dev/null)" ] || \
 	    [ -z "$$(find $(FORGE_DIR) -name 'libmujoco.so*' -print -quit 2>/dev/null)" ]; then \
+	    if [ -n "$$EMSCRIPTEN" ] || [ -n "$$EXAEQUOS" ]; then \
+	        echo "Skipping Pinocchio and MuJoCo: they are native libraries."; \
+	    else \
 	    mkdir -p $(MAMBA_ROOT) && \
 	    ( [ -x $(MAMBA_ROOT)/bin/micromamba ] || \
 	      curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj -C $(MAMBA_ROOT) bin/micromamba ) && \
 	    $(MAMBA_ROOT)/bin/micromamba create -y -p $(FORGE_DIR) -c conda-forge pinocchio mujoco; \
+	    fi; \
 	fi
 	@for d in $(PLUGINS_WITH_LIBS); do \
 	    $(MAKE) --no-print-directory -C $$d download-external-libs || exit 1; \

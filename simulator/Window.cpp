@@ -21,6 +21,11 @@
 #include <iostream>
 #include <string>
 
+#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
+#    include <emscripten.h>
+#    include <emscripten/html5.h>
+#endif
+
 /// imgui.ini lives in the user configuration, not in the folder the
 /// simulator was started from.
 static std::string settingsFile()
@@ -136,10 +141,22 @@ bool Window::open()
         return false;
     }
     glfw_ready = true;
+#if defined(__EMSCRIPTEN__)
+    // WebGL 2 (OpenGL ES 3). Compages still asks for OpenGL 4.5: if the
+    // driver cannot give it, the panels open without the 3D view.
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+#    if defined(GLFW_SCALE_TO_MONITOR) && !defined(EXAEQUOS)
+    glfwWindowHint(GLFW_SCALE_TO_MONITOR, GLFW_TRUE);
+#    endif
+    char const* glsl_version = "#version 300 es";
+#else
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DEPTH_BITS, 24);
+    char const* glsl_version = "#version 450";
+#endif
     handle = glfwCreateWindow(1600, 900, "Robotik Simulator", nullptr, nullptr);
     if (handle == nullptr)
     {
@@ -151,6 +168,10 @@ bool Window::open()
     glfwSetScrollCallback(handle, &Window::onScroll);
     glfwSwapInterval(1);
 
+#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
+    // The page is WebGL 2. Compages draws with OpenGL 4.5, which this
+    // context does not have: the panels still open, without the 3D view.
+#else
     auto ready = compages::gpu::init(
         reinterpret_cast<compages::gpu::LoadProc>(glfwGetProcAddress));
     if (!ready)
@@ -159,6 +180,7 @@ bool Window::open()
         return false;
     }
     device_ready = true;
+#endif
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -169,7 +191,24 @@ bool Window::open()
     applyStyle();
     loadFonts();
     ImGui_ImplGlfw_InitForOpenGL(handle, true);
-    ImGui_ImplOpenGL3_Init("#version 450");
+    ImGui_ImplOpenGL3_Init(glsl_version);
+#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
+    // Dear ImGui fixes the mouse wheel; the window follows the page.
+    ImGui_ImplGlfw_InstallEmscriptenCallbacks(handle, "#canvas");
+    emscripten_set_resize_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW,
+        handle,
+        false,
+        [](int /*event_type*/, EmscriptenUiEvent const* event, void* window) -> EM_BOOL {
+            glfwSetWindowSize(static_cast<GLFWwindow*>(window),
+                              event->windowInnerWidth,
+                              event->windowInnerHeight);
+            return EM_TRUE;
+        });
+    int const page_width = EM_ASM_INT({ return window.innerWidth; });
+    int const page_height = EM_ASM_INT({ return window.innerHeight; });
+    glfwSetWindowSize(handle, page_width, page_height);
+#endif
     imgui_ready = true;
     return true;
 }

@@ -30,6 +30,7 @@
 #include <filesystem>
 #include <map>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 /// What the panel shows, computed when the file or the durations change.
@@ -207,6 +208,19 @@ static void gantt(WorkflowState const& p_state)
     ImPlot::EndPlot();
 }
 
+/// GitHub's viewer highlights arcs by index in Net::arcs(). The local
+/// robotik-integration viewer highlights Arc pointers. One of the two
+/// assignments is compiled.
+template <typename Options>
+static void highlightCritical(Options& p_options, WorkflowState const& p_state)
+{
+    using Highlighted = std::remove_pointer_t<decltype(p_options.highlighted_arcs)>;
+    if constexpr (std::is_same_v<typename Highlighted::value_type, std::size_t>)
+        p_options.highlighted_arcs = &p_state.analysis.critical_arcs;
+    else
+        p_options.highlighted_arcs = &p_state.critical_arcs;
+}
+
 void workflowPanel(App& p_app)
 {
     static WorkflowState state;
@@ -315,7 +329,7 @@ void workflowPanel(App& p_app)
         if (ImGui::BeginTabItem("Event graph"))
         {
             tpne::NetViewer::Options options;
-            options.highlighted_arcs = &state.critical_arcs;
+            highlightCritical(options, state);
             state.viewer.draw("##graph", *analysis.graph, options);
             ImGui::EndTabItem();
         }

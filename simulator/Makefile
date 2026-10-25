@@ -32,10 +32,16 @@ SRC_FILES += $(CURRENT_DIR)/Screenshot.cpp $(CURRENT_DIR)/GrafcetPanel.cpp
 SRC_FILES += $(CURRENT_DIR)/WorkflowPanel.cpp
 # stb_image_write, shipped with Compages, for --screenshot.
 INCLUDES += $(THIRD_PARTIES_DIR)/Compages/external/stb
+ifneq ($(OS),Emscripten)
 PKG_LIBS += glfw3
+endif
 
 BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
 RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
+ifeq ($(OS),Emscripten)
+BLACKTHORN_WITH_NETWORK := 0
+OAKULAR_WITH_SERVER := 0
+endif
 include $(BLACKTHORN_DIR)/BlackThorn.mk
 INCLUDES += $(BLACKTHORN_INCLUDES)
 DEFINES += $(BLACKTHORN_DEFINES)
@@ -75,7 +81,40 @@ USER_CXXFLAGS += -Wno-float-equal -Wno-undef -Wno-shadow -Wno-double-promotion
 USER_CXXFLAGS += -Wno-cast-qual -Wno-switch-default -Wno-useless-cast
 USER_CXXFLAGS += -Wno-zero-as-null-pointer-constant -Wno-format-nonliteral
 USER_CXXFLAGS += -Wno-suggest-attribute=noreturn
+ifndef EMSCRIPTEN
 USER_LDFLAGS += -ldl
+endif
+
+# The web build uses the GLFW and WebGL 2 that Emscripten ships. plugins/ is
+# preloaded at /plugins, which is where the catalog looks (next to the
+# program). Generated meshes, the flywire tables and third-party clones are
+# not part of the page: they are not in git, and the flywire edge table alone
+# is over 200 MB.
+ifeq ($(OS),Emscripten)
+    ifdef EXAEQUOS
+        LINKER_FLAGS += -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3
+        PKG_LIBS += exa-wayland --static glfw
+    else
+        LINKER_FLAGS += -s USE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3
+        LINKER_FLAGS += --shell-file $(abspath $(CURRENT_DIR)/shell.html)
+        LINKER_FLAGS += --preload-file $(abspath $(P)/plugins)@/plugins
+        LINKER_FLAGS += --exclude-file '*/external/*' --exclude-file '*.csv'
+        LINKER_FLAGS += --exclude-file '*.stl' --exclude-file '*.onnx'
+        LINKER_FLAGS += --exclude-file '*.so' --exclude-file '*.a' --exclude-file '*.o'
+        LINKER_FLAGS += -s FORCE_FILESYSTEM=1 -s ASYNCIFY -s ALLOW_MEMORY_GROWTH=1
+        LINKER_FLAGS += -s GL_ENABLE_GET_PROC_ADDRESS
+    endif
+    USER_CXXFLAGS += -Wno-unknown-warning-option -Wno-unused-parameter
+endif
 
 include $(M)/rules/Makefile
+# Emscripten ignores this Linux flag and warns on every translation unit.
+ifeq ($(OS),Emscripten)
+CXXFLAGS := $(filter-out -fstack-clash-protection,$(CXXFLAGS))
+endif
 include $(P)/Makefile.relink
+
+# The core is an internal library: MyMakefile expects the archive to exist
+# already. A clean tree (the web CI) builds it from here.
+$(INTERNAL_LIBS):
+	$(MAKE) -C $(P)/src/Robotik $(INTERNAL_LIBS)

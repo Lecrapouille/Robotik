@@ -24,6 +24,12 @@
 
 #include <iostream>
 
+#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
+#    include <emscripten.h>
+#endif
+
+#include "Browser.hpp"
+
 void runMainLoop(Window& p_window, App& p_app)
 {
     double last = glfwGetTime();
@@ -51,7 +57,7 @@ void runMainLoop(Window& p_window, App& p_app)
         drawPanels(p_app);
 
         // --- World simulation and 3D views (when scenario loaded) ---
-        if (p_app.simulation && p_app.view.width > 0)
+        if (p_window.device_ready && p_app.simulation && p_app.view.width > 0)
         {
             p_app.advance(elapsed);
             p_app.world->update(viewFrame(p_app, p_window, elapsed, total));
@@ -85,6 +91,10 @@ void runMainLoop(Window& p_window, App& p_app)
             std::cerr << (failed.empty() ? "wrote " + p_app.screenshot.string()
                                          : failed)
                       << '\n';
+            if (failed.empty())
+            {
+                robotik::download(p_app.screenshot.string());
+            }
             p_app.screenshot.clear();
             glfwSetWindowShouldClose(p_window.handle, GLFW_TRUE);
         }
@@ -95,6 +105,7 @@ void runMainLoop(Window& p_window, App& p_app)
         int width = 0;
         int height = 0;
         glfwGetFramebufferSize(p_window.handle, &width, &height);
+        if (p_window.device_ready)
         {
             compages::gpu::RenderPass pass(compages::gpu::PassDesc{
                 .width = static_cast<std::uint32_t>(width),
@@ -103,5 +114,9 @@ void runMainLoop(Window& p_window, App& p_app)
         }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(p_window.handle);
+
+#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
+        emscripten_sleep(0);
+#endif
     }
 }
