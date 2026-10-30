@@ -144,6 +144,8 @@ A layer only uses the layers under it; `make check-layers` checks it.
   cycle time: the bottleneck of the cell.
 - **Cycle time (λ)**: the period of a cell in steady state; the throughput is
   the number of products per cycle divided by λ.
+- **Deadlock**: a situation where nothing can go on: each part waits for
+  what another one holds (a step holds the belt, another step waits for it).
 - **Flowshop**: a cell where every product visits the operators in the same
   order.
 - **Forcing order**: an action of a GRAFCET step that holds another graph in a

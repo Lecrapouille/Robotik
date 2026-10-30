@@ -166,6 +166,7 @@ Options:
 | `--report file.json` | Writes a full JSON report: outcome, metrics, assertions, and the plans of the PDDL planner |
 | `--trace` | Prints the history of the skills |
 | `--cadence file.flowshop` | Measures how long each operator works on each part when the GRAFCET is generated from a workflow, over every run, and writes the table for TimedPetriNetEditor ([chapter 12](12-GRAFCET-and-Workflows.md)) |
+| `--deadlocks` | Before each run, looks for the deadlocks of the GRAFCET and the resources of its skills; exit code 2 when there is one ([chapter 12](12-GRAFCET-and-Workflows.md)) |
 
 ```bash
 ./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace

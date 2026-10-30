@@ -172,6 +172,11 @@ public:
     // -------------------------------------------------------------------------
     [[nodiscard]] bool generated() const;
 
+    /// @return The receptivity true at the normal end of the graphs: the End
+    ///   step of a generated GRAFCET, else the success of the scenario (or
+    ///   empty).
+    [[nodiscard]] std::string const& endCondition() const;
+
     // -------------------------------------------------------------------------
     /// @return Every transition fired since the last reset, in order, with
     ///   its time (to measure how long the operations of a cell take).

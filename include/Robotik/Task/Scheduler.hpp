@@ -270,6 +270,12 @@ public:
         return m_descriptions[p_id];
     }
 
+    /// @return The resources the skills reserve.
+    [[nodiscard]] ResourceManager const& resources() const
+    {
+        return m_resources;
+    }
+
     // -------------------------------------------------------------------------
     /// @param p_id Skill id.
     /// @return The skill name.

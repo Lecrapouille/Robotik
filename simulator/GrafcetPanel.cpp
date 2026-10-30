@@ -10,12 +10,15 @@
 // steps, and one tab per graph drawn by the net viewer of
 // TimedPetriNetEditor (active steps outlined, running actions in green). A
 // GRAFCET generated from the workflow can be saved to open it in the editor.
+// "Check deadlocks" looks for the situations where the steps and the
+// resources of their skills block each other, before the run.
 
 #include "Colors.hpp"
 #include "Ui.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Task/Grafcet/GrafcetController.hpp"
+#include "Robotik/Task/Grafcet/GrafcetDeadlocks.hpp"
 
 #include "Editor/NetViewer.hpp"
 #include "PetriNet/GrafcetEngine.hpp"
@@ -24,6 +27,7 @@
 #include <imgui.h>
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -127,6 +131,8 @@ void grafcetPanel(App& p_app)
     static robotik::Simulation const* seen = nullptr;
     static std::vector<tpne::NetViewer> viewers;
     static std::string message;
+    static std::optional<robotik::GrafcetDeadlocks> deadlocks;
+    static tpne::NetViewer resources_viewer;
 
     if (!ImGui::Begin("GRAFCET"))
     {
@@ -148,6 +154,7 @@ void grafcetPanel(App& p_app)
         seen = simulation;
         viewers.assign(graphs.size(), tpne::NetViewer{});
         message.clear();
+        deadlocks.reset();
         ImGui::SetWindowFocus();
     }
 
@@ -164,6 +171,28 @@ void grafcetPanel(App& p_app)
     if (!message.empty())
     {
         ImGui::TextDisabled("%s", message.c_str());
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Check deadlocks"))
+    {
+        deadlocks = robotik::findDeadlocks(*grafcet, simulation->cell().skills());
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Looks, before the run, for the situations where steps\n"
+                          "and the resources of their skills block each other\n"
+                          "(receptivities taken as true some day).");
+    }
+    if (deadlocks)
+    {
+        std::string const summary = std::to_string(deadlocks->deadlocks.size()) + " deadlock(s) in " +
+                                    std::to_string(deadlocks->states) + " markings" +
+                                    (deadlocks->complete ? "" : " (not all)");
+        ImGui::TextColored(deadlocks->deadlocks.empty() ? GREEN : RED, "%s", summary.c_str());
+        for (std::string const& deadlock : deadlocks->deadlocks)
+        {
+            ImGui::BulletText("%s", deadlock.c_str());
+        }
     }
 
     tpne::GrafcetEngine const& engine = grafcet->engine();
@@ -182,6 +211,12 @@ void grafcetPanel(App& p_app)
             options.data = &actions;
             ImGui::TextDisabled("Drag to pan, wheel to zoom, double click to fit.");
             viewers[i].draw("##net", graphs[i], options);
+            ImGui::EndTabItem();
+        }
+        if (deadlocks && deadlocks->net && ImGui::BeginTabItem("Steps and resources"))
+        {
+            ImGui::TextDisabled("The net checked: the steps, and one place per resource.");
+            resources_viewer.draw("##resources", *deadlocks->net, tpne::NetViewer::Options{});
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

@@ -18,6 +18,7 @@
 #include "Robotik/Package/Scenario/Experiment.hpp"
 #include "Robotik/Package/Scenario/FileRole.hpp"
 #include "Robotik/Package/Scenario/Workflow.hpp"
+#include "Robotik/Task/Grafcet/GrafcetDeadlocks.hpp"
 #include "Robotik/Task/Workflow/WorkflowAnalysis.hpp"
 #include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
 
@@ -49,7 +50,12 @@ struct Options
     std::size_t cycles = 2U;
     /// Flowshop file receiving the measured durations, or empty.
     std::filesystem::path cadence;
+    /// Look for deadlocks of the GRAFCET and its resources before each run.
+    bool deadlocks = false;
 };
+
+/// Deadlocks found before the runs (--deadlocks).
+static std::size_t g_deadlocks = 0U;
 
 /// Durations of the operations measured in the runs (--cadence).
 struct Cadence
@@ -68,7 +74,7 @@ static void usage()
     std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | "
                  "x.experiment.yaml> [--seed N]\n"
                  "                        [--report report.json] [--trace]\n"
-                 "                        [--cadence measured.flowshop]\n"
+                 "                        [--cadence measured.flowshop] [--deadlocks]\n"
                  "       Robotik-Headless <x.workflow.yaml> [--cycles N]\n";
 }
 
@@ -90,6 +96,10 @@ static std::optional<Options> parse(int argc, char** argv)
         else if (argument == "--trace")
         {
             options.trace = true;
+        }
+        else if (argument == "--deadlocks")
+        {
+            options.deadlocks = true;
         }
         else if (argument == "--cadence" && i + 1 < argc)
         {
@@ -255,6 +265,27 @@ static int writeCadence(Cadence const& p_cadence, std::filesystem::path const& p
     return 0;
 }
 
+/// Prints the deadlocks of the GRAFCET of the cell and the resources of its
+/// skills, found before the run.
+static void checkDeadlocks(robotik::Simulation& p_simulation)
+{
+    robotik::GrafcetController const* grafcet = p_simulation.cell().grafcet();
+    if (grafcet == nullptr)
+    {
+        std::cout << "deadlocks: no GRAFCET to check\n";
+        return;
+    }
+    robotik::GrafcetDeadlocks const found =
+        robotik::findDeadlocks(*grafcet, p_simulation.cell().skills());
+    std::cout << "deadlocks: " << found.deadlocks.size() << " in " << found.states
+              << (found.complete ? "" : " (not all)") << " markings of the steps and resources\n";
+    for (std::string const& deadlock : found.deadlocks)
+    {
+        std::cout << "  " << deadlock << '\n';
+    }
+    g_deadlocks += found.deadlocks.size();
+}
+
 static robotik::RunRecord run(robotik::PluginSession& p_session,
                               std::filesystem::path const& p_file,
                               robotik::Scenario p_scenario,
@@ -262,7 +293,8 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
                               std::optional<std::uint64_t> p_seed,
                               std::vector<std::string> const& p_metrics,
                               bool p_trace,
-                              Cadence* p_cadence)
+                              Cadence* p_cadence,
+                              bool p_deadlocks)
 {
     robotik::RunRecord failed;
     failed.case_id = p_case;
@@ -288,6 +320,10 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     if (p_seed)
     {
         simulation.reset(robotik::Seed{ *p_seed });
+    }
+    if (p_deadlocks)
+    {
+        checkDeadlocks(simulation);
     }
 
     // Simulated time is summed across resets: a plugin that owns the clock
@@ -446,7 +482,8 @@ int main(int argc, char** argv)
                                               seed,
                                               experiment.metrics,
                                               options->trace,
-                                              measuring));
+                                              measuring,
+                                              options->deadlocks));
                     robotik::RunRecord const& last = report.runs.back();
                     std::cout << (last.passed ? "[PASS] " : "[FAIL] ")
                               << item.id << " seed=" << last.seed << std::endl;
@@ -479,7 +516,8 @@ int main(int argc, char** argv)
                                       options->seed,
                                       { "time" },
                                       true,
-                                      measuring));
+                                      measuring,
+                                      options->deadlocks));
             for (robotik::Check const& check : report.runs.back().checks)
             {
                 std::cout << '[' << robotik::toString(check.verdict) << "] "
@@ -506,7 +544,7 @@ int main(int argc, char** argv)
                 return 1;
             }
         }
-        return robotik::passed(report) ? 0 : 2;
+        return robotik::passed(report) && g_deadlocks == 0U ? 0 : 2;
     }
     catch (std::exception const& error)
     {

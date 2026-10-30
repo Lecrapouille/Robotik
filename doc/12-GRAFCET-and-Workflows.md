@@ -473,6 +473,38 @@ the stock by up to 1 cm at each seed. `factory.flowshop` is the table of the
 measured means, which TimedPetriNetEditor opens (machines in rows, products
 in columns).
 
+### Find deadlocks before the run
+
+A skill takes all its resources at once, so two skills never block each
+other. A GRAFCET can: a step whose action holds a resource (a belt that runs,
+an arm) until the step ends, while the step can only end after another step
+whose skill needs that resource. **Check deadlocks** in the GRAFCET panel (or
+`--deadlocks` of `Robotik-Headless`) builds one Petri net of the steps and of
+the exclusive resources of their skills, and explores every marking it can
+reach (TimedPetriNetEditor):
+
+```text
+step X (action S, S needs the arm)      place "arm" (1 token)
+  X --[X takes arm]--> X holds arm --[transition after X]--> next step, arm back
+```
+
+Receptivities are taken as true some day: only the tokens decide. A marking
+where nothing can fire is a deadlock, unless the normal end is reached (the
+`End` step of a generated GRAFCET, else the steps of the `success` of the
+scenario). The graphs Safety and Control of a GEMMA are left out: they loop.
+The tab **Steps and resources** draws the net checked.
+
+```bash
+./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.scenario.yaml --deadlocks
+```
+
+```text
+deadlocks: 0 in 2102 markings of the steps and resources
+```
+
+A deadlock prints its active steps and what they hold or wait for, e.g.
+`G:X1 (run) holds belt; G:X2 (use) waits for belt`, and the exit code is 2.
+
 ## 8. From C++
 
 ```cpp

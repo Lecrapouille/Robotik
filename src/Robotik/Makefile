@@ -91,7 +91,8 @@ endif
 ###############################################################################
 # TimedPetriNet (from thirdparties): nets, GRAFCET engine and (max,+)
 # algorithms of TimedPetriNetEditor, compiled into this library like
-# BlackThorn. Only src/Robotik/Task/Grafcet includes its headers.
+# BlackThorn, with its analysis of the nets (deadlocks). Only
+# src/Robotik/Task/Grafcet and Task/Workflow include its headers.
 #
 TPNE_DIR := $(THIRD_PARTIES_DIR)/TimedPetriNetEditor
 include $(TPNE_DIR)/TimedPetriNet.mk
@@ -99,6 +100,7 @@ include $(TPNE_DIR)/TimedPetriNet.mk
 INCLUDES += $(TPNE_INCLUDES)
 VPATH += $(TPNE_VPATH)
 LIB_FILES += $(TPNE_SOURCES)
+LIB_FILES += $(TPNE_ANALYSIS_SOURCES)
 USER_CXXFLAGS += $(TPNE_CXXFLAGS)
 USER_CCFLAGS += $(TPNE_CFLAGS)
 

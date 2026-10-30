@@ -127,6 +127,8 @@ struct GrafcetController::Impl
     std::vector<std::string> pulses;
     /// Transitions fired since the start, with their time.
     std::vector<GrafcetFiring> history;
+    /// End step of a generated GRAFCET, or empty.
+    std::string generated_end;
 };
 
 /// Splits "name(a, b)" into "name" and its arguments ("a", "b"). The
@@ -304,6 +306,7 @@ GrafcetController::load(GrafcetSpec const& p_spec, SkillScheduler& p_skills,
         // scenario says otherwise.
         std::string end;
         ROBOTIK_TRY_ASSIGN(end, workflowGrafcet(*p_spec.workflow, impl.graphs));
+        impl.generated_end = end;
         if (impl.spec.success.empty())
         {
             impl.spec.success = end;
@@ -571,6 +574,11 @@ tpne::GrafcetEngine const& GrafcetController::engine() const
 std::vector<GrafcetFiring> const& GrafcetController::history() const
 {
     return m_impl->history;
+}
+
+std::string const& GrafcetController::endCondition() const
+{
+    return m_impl->generated_end.empty() ? m_impl->spec.success : m_impl->generated_end;
 }
 
 bool GrafcetController::generated() const
