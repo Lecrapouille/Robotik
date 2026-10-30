@@ -181,4 +181,30 @@ std::size_t useMeasuredDurations(WorkflowDescription& p_workflow,
     return changed;
 }
 
+std::vector<std::size_t> eventGraphMarking(tpne::Net const& p_graph,
+                                           std::map<std::string, std::size_t> const& p_started)
+{
+    auto const firings = [&p_graph, &p_started](std::size_t p_transition)
+    {
+        auto const found = p_started.find(p_graph.transitions()[p_transition].caption);
+        return found == p_started.end() ? 0L : static_cast<long>(found->second);
+    };
+    std::vector<std::size_t> marking;
+    marking.reserve(p_graph.places().size());
+    for (tpne::Place const& place : p_graph.places())
+    {
+        long tokens = static_cast<long>(place.tokens);
+        for (tpne::Arc const& arc : p_graph.arcsIn(place))
+        {
+            tokens += firings(arc.from.id);
+        }
+        for (tpne::Arc const& arc : p_graph.arcsOut(place))
+        {
+            tokens -= firings(arc.to.id);
+        }
+        marking.push_back(static_cast<std::size_t>(std::max(0L, tokens)));
+    }
+    return marking;
+}
+
 } // namespace robotik

@@ -262,7 +262,7 @@ give it a second gripper (`capacity: 2`), and the cycle time goes down.
 
 In the simulator, the **Workflow** panel of the Mission workspace shows the
 same results with a Gantt chart and the event graph (critical circuit in
-red). **Bottleneck in 3D** draws the operators of the critical circuit in red
+red). In the **Event graph** tab, **Follow the run** moves the tokens as the run goes, when the GRAFCET of the scenario is generated from this workflow: a token moves when an operation starts. **Bottleneck in 3D** draws the operators of the critical circuit in red
 in the 3D view (the entity of each one: a robot with its tool, a belt), so
 that you see which machine to make faster or to double. **Measured durations** replaces the declared duration of an operation
 that names a `skill:` by the mean duration of this skill in the current run.

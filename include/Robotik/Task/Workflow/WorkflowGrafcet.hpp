@@ -51,6 +51,7 @@
 #include "Robotik/Common/Result.hpp"
 #include "Robotik/Task/WorkflowDescription.hpp"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -71,5 +72,17 @@ namespace robotik
 // ----------------------------------------------------------------------------
 [[nodiscard]] Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
                                                   std::vector<tpne::Net>& p_graphs);
+
+// ----------------------------------------------------------------------------
+/// How many operations started in a run of a GRAFCET generated from this
+/// workflow, read from its active steps: the steps of each operator follow
+/// one another, so the operations before its active step have started.
+/// @param p_workflow Workflow the GRAFCET was generated from.
+/// @param p_graphs Graphs of the GRAFCET controller, now.
+/// @return For each operation that started, by transition of the event
+///   graph of @c analyseWorkflow (@c M1_P1: operator, product), the count.
+// ----------------------------------------------------------------------------
+[[nodiscard]] std::map<std::string, std::size_t>
+startedOperations(WorkflowDescription const& p_workflow, std::vector<tpne::Net> const& p_graphs);
 
 } // namespace robotik

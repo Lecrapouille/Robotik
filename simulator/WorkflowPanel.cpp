@@ -19,6 +19,7 @@
 #include "Robotik/Package/Scenario/Workflow.hpp"
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Task/Workflow/WorkflowAnalysis.hpp"
+#include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
 
 #include "Editor/NetViewer.hpp"
 #include "PetriNet/PetriNet.hpp"
@@ -29,6 +30,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -50,6 +52,10 @@ struct WorkflowState
     robotik::WorkflowAnalysis analysis;
     std::vector<tpne::Arc const*> critical_arcs;
     tpne::NetViewer viewer;
+    /// The event graph drawn: a copy whose tokens follow the run.
+    std::unique_ptr<tpne::Net> live;
+    /// The marking follows the run.
+    bool live_marking = true;
     /// Draw the operators of the critical circuit in red in the 3D view.
     bool tint = true;
     /// Entities drawn in red, and the simulation they belong to.
@@ -101,7 +107,8 @@ static void analyse(WorkflowState& p_state, robotik::Simulation const* p_simulat
         return;
     }
     p_state.analysis = analysis.take();
-    auto const& arcs = p_state.analysis.graph->arcs();
+    p_state.live = std::make_unique<tpne::Net>(*p_state.analysis.graph);
+    auto const& arcs = p_state.live->arcs();
     for (std::size_t index : p_state.analysis.critical_arcs)
     {
         p_state.critical_arcs.push_back(&arcs[index]);
@@ -280,6 +287,28 @@ static void tintCritical(App& p_app, WorkflowState& p_state)
     p_state.tinted = std::move(wanted);
 }
 
+/// The tokens of the event graph where the run is: the operations started
+/// in the GRAFCET generated from this workflow. Else its initial marking.
+/// @return True when the marking follows the run.
+static bool followRun(App const& p_app, WorkflowState& p_state)
+{
+    tpne::Net const& graph = *p_state.analysis.graph;
+    robotik::Simulation const* simulation = p_app.simulation.get();
+    robotik::GrafcetController const* grafcet =
+        (simulation != nullptr) ? simulation->cell().grafcet() : nullptr;
+    robotik::GrafcetSpec const* spec =
+        (grafcet != nullptr) ? &*simulation->cell().description().controller.grafcet : nullptr;
+    if (!p_state.live_marking || spec == nullptr || !spec->workflow ||
+        spec->workflow->id != p_state.used.id)
+    {
+        (void)p_state.live->tokens(graph.tokens());
+        return false;
+    }
+    (void)p_state.live->tokens(robotik::eventGraphMarking(
+        graph, robotik::startedOperations(*spec->workflow, grafcet->graphs())));
+    return true;
+}
+
 void workflowPanel(App& p_app)
 {
     static WorkflowState state;
@@ -393,9 +422,19 @@ void workflowPanel(App& p_app)
         }
         if (ImGui::BeginTabItem("Event graph"))
         {
+            ImGui::Checkbox("Follow the run", &state.live_marking);
+            ImGui::SameLine();
+            helpMarker("When the GRAFCET of the scenario is generated from this "
+                       "workflow, the tokens show where the run is: a token "
+                       "moves when an operation starts.");
+            if (followRun(p_app, state))
+            {
+                ImGui::SameLine();
+                ImGui::TextColored(GREEN, "live");
+            }
             tpne::NetViewer::Options options;
             highlightCritical(options, state);
-            state.viewer.draw("##graph", *analysis.graph, options);
+            state.viewer.draw("##graph", *state.live, options);
             ImGui::EndTabItem();
         }
         ImGui::EndTabBar();

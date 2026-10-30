@@ -496,4 +496,51 @@ Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
     }
 }
 
+std::map<std::string, std::size_t> startedOperations(WorkflowDescription const& p_workflow,
+                                                     std::vector<tpne::Net> const& p_graphs)
+{
+    std::map<std::string, std::size_t> started;
+    auto const production = std::ranges::find(p_graphs, std::string("Production"), &tpne::Net::name);
+    if (production == p_graphs.end())
+    {
+        return started;
+    }
+    for (WorkflowOperator const& op : p_workflow.operators)
+    {
+        // The active step the furthest in the sequence of the operator.
+        std::string const prefix = op.id + " ";
+        std::optional<std::size_t> furthest;
+        for (tpne::Place const& place : production->places())
+        {
+            if (place.tokens > 0U && place.caption.starts_with(prefix))
+            {
+                furthest = place.id;
+            }
+        }
+        if (!furthest)
+        {
+            continue;
+        }
+        // Its work steps up to there: "M1 machining P1 (2 s)".
+        for (WorkflowProduct const& product : p_workflow.products)
+        {
+            auto const at = std::ranges::find(product.route, op.id, &WorkflowOperation::on);
+            if (at == product.route.end())
+            {
+                continue;
+            }
+            std::string const work = prefix + at->name + " " + product.id;
+            for (tpne::Place const& place : production->places())
+            {
+                if (place.id <= *furthest && place.caption.starts_with(work) &&
+                    (place.caption.size() == work.size() || place.caption[work.size()] == ' '))
+                {
+                    ++started[op.id + "_" + product.id];
+                }
+            }
+        }
+    }
+    return started;
+}
+
 } // namespace robotik

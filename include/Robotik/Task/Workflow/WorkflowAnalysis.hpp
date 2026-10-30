@@ -100,6 +100,18 @@ struct WorkflowAnalysis
                                                        std::size_t p_cycles = 3U);
 
 // ----------------------------------------------------------------------------
+/// Marking of the event graph after some operations started (the state
+/// equation of an event graph: a place has its initial tokens, plus the
+/// firings of the transition before it, minus the firings of the one after).
+/// @param p_graph Event graph of @ref WorkflowAnalysis::graph.
+/// @param p_started Firings by transition caption (@c M1_P1), see
+///   @c startedOperations (WorkflowGrafcet.hpp).
+/// @return Tokens of each place, by place index.
+// ----------------------------------------------------------------------------
+[[nodiscard]] std::vector<std::size_t>
+eventGraphMarking(tpne::Net const& p_graph, std::map<std::string, std::size_t> const& p_started);
+
+// ----------------------------------------------------------------------------
 /// Mean duration of the successful runs of each skill.
 /// @param p_skills Scheduler of a finished run.
 /// @return Duration by skill name (skills that never succeeded are absent).

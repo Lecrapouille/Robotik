@@ -170,6 +170,47 @@ TEST(WorkflowGrafcet, RunsTheSkillOfAnOperationAndSharesAPlace)
     ASSERT_FALSE(both);
 }
 
+TEST(WorkflowGrafcet, StartedOperationsMoveTheTokensOfTheEventGraph)
+{
+    robotik::WorkflowDescription const workflow =
+        robotik::loadWorkflow(repoFile(FACTORY)).take();
+    std::vector<tpne::Net> graphs;
+    (void)robotik::workflowGrafcet(workflow, graphs).take();
+    // At the start nothing started.
+    EXPECT_TRUE(robotik::startedOperations(workflow, graphs).empty());
+
+    // M1 machines its second part (p2a), M2 still waits for its first one.
+    tpne::Net& production = graphs.front();
+    for (tpne::Place& place : production.places())
+    {
+        place.tokens = 0U;
+    }
+    auto const step = [&production](std::string const& p_caption)
+    {
+        return std::ranges::find(production.places(), p_caption, &tpne::Place::caption);
+    };
+    step("M1 machining P2 (3 s)")->tokens = 1U;
+    step("M2 idle")->tokens = 1U;
+    std::map<std::string, std::size_t> const started = robotik::startedOperations(workflow, graphs);
+    EXPECT_EQ(started, (std::map<std::string, std::size_t>{ { "M1_P1", 1U }, { "M1_P2", 1U } }));
+
+    // The tokens move, none is lost (each transition takes and gives two).
+    robotik::WorkflowAnalysis const analysis = robotik::analyseWorkflow(workflow).take();
+    std::vector<std::size_t> const before = analysis.graph->tokens();
+    std::vector<std::size_t> const after = robotik::eventGraphMarking(*analysis.graph, started);
+    ASSERT_EQ(after.size(), before.size());
+    EXPECT_NE(after, before);
+    std::size_t total_before = 0U;
+    std::size_t total_after = 0U;
+    for (std::size_t i = 0U; i < before.size(); ++i)
+    {
+        total_before += before[i];
+        total_after += after[i];
+    }
+    EXPECT_EQ(total_after, total_before);
+    EXPECT_EQ(robotik::eventGraphMarking(*analysis.graph, {}), before);
+}
+
 TEST(WorkflowGrafcet, GeneratesTheGemmaOfTheCell)
 {
     robotik::WorkflowDescription workflow = read(LINE).take();
