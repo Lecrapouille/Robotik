@@ -16,6 +16,7 @@
 #include "Robotik/Robot/Sensors/ForceTorqueSensor.hpp"
 #include "Robotik/Robot/Sensors/Imu.hpp"
 #include "Robotik/Robot/Sensors/RangeScanner.hpp"
+#include "Robotik/Task/Skills/DeviceSkills.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 #include "Robotik/Task/Skills/SkillNodes.hpp"
 #include "Robotik/Task/Grasp/GraspModel.hpp"
@@ -26,6 +27,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -181,6 +183,7 @@ Cell::Cell(compages::world::World& p_world,
               }
               return robots;
           }()),
+      m_devices(*m_resources),
       m_robot(m_robots.front().get()),
       m_scheduler(std::make_unique<SkillScheduler>(*m_resources)),
       m_faults(m_description.faults, m_description.random_faults)
@@ -284,6 +287,7 @@ void Cell::build(SceneView* p_view)
         record.spec = &spec;
         buildRecord(record, p_view);
     }
+    buildBelts();
 
     // --- Where the beliefs about each prop come from. -----------------------
     m_oracle = false;
@@ -333,6 +337,9 @@ void Cell::buildDevices(RobotSession& p_robot,
                 actuators.add<VacuumGripper>(
                     actuator.name, actuator.link, actuator.length);
                 break;
+            case ActuatorSpec::Type::Conveyor:
+                throw std::logic_error("Robot '" + p_spec.id + "': a conveyor is a device of "
+                                       "the cell, on a fixed box body");
         }
     }
 
@@ -566,13 +573,15 @@ void Cell::connectBackend()
         bool const free = spec.physics == EntitySpec::Physics::Free;
         if (spec.shape)
         {
-            physics->addBox(
-                FreeBox{ spec.id,
+            FreeBox box{ spec.id,
                          spec.shape->size,
                          spec.mass,
                          boxInertia(spec.mass, spec.shape->size),
                          record.nominal,
-                         spec.friction < 0.0 ? 1.0 : spec.friction });
+                         spec.friction < 0.0 ? 1.0 : spec.friction };
+            // A fixed box: furniture, the box of a conveyor belt.
+            box.fixed = !free;
+            physics->addBox(box);
         }
         else
         {
@@ -582,6 +591,7 @@ void Cell::connectBackend()
         }
     }
     addRigidProps(*physics);
+    m_physics = physics;
     // One physics for the cell; each robot reaches it through its names.
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -777,6 +787,107 @@ void Cell::addSkills()
             skills.add<StopSkill>(std::move(stop));
         }
     }
+
+    // Run of each conveyor belt: "feeder.Run" while it is requested.
+    for (Belt const& belt : m_belts)
+    {
+        SkillDescription run = describe(belt.device->name() + ".Run",
+                                        { { m_devices.resource(belt.index), Access::Exclusive } });
+        skills.add<RunBeltSkill>(std::move(run), *belt.device);
+    }
+}
+
+void Cell::buildBelts()
+{
+    m_belts.clear();
+    m_carried.clear();
+    for (std::size_t r = 0U; r < m_records.size(); ++r)
+    {
+        EntitySpec const& spec = *m_records[r].spec;
+        if (spec.type == EntitySpec::Type::Prop && spec.shape &&
+            spec.shape->type == ShapeSpec::Type::Box)
+        {
+            m_carried.push_back({ r, -1 });
+        }
+        for (ActuatorSpec const& actuator : spec.actuators)
+        {
+            if (actuator.type != ActuatorSpec::Type::Conveyor)
+            {
+                continue;
+            }
+            if (spec.type != EntitySpec::Type::Body || !spec.shape)
+            {
+                throw std::logic_error("Entity '" + spec.id +
+                                       "': a conveyor is the top of a fixed box body");
+            }
+            Belt belt;
+            belt.device = &m_devices.add<ConveyorBelt>(actuator.name, spec.id,
+                                                       actuator.direction, actuator.speed);
+            belt.index = m_devices.size() - 1U;
+            belt.pose = m_records[r].nominal;
+            belt.size = spec.shape->size;
+            belt.friction = spec.friction < 0.0 ? 1.0 : spec.friction;
+            m_belts.push_back(belt);
+        }
+    }
+}
+
+void Cell::driveBelts(Seconds p_dt)
+{
+    if (m_belts.empty())
+    {
+        return;
+    }
+    // A part rests on a belt when its centre is above the top face and its
+    // bottom touches it (1 cm).
+    static constexpr double TOUCH = 0.01;
+    for (Carried const& carried : m_carried)
+    {
+        Record const& record = m_records[carried.record];
+        compages::world::Entity entity = record.entity;
+        if (!entity)
+        {
+            continue;
+        }
+        auto const at = entity.position();
+        Vector3 const position(at.x, at.y, at.z);
+        double const half = 0.5 * record.spec->shape->size.z;
+        Belt const* under = nullptr;
+        for (Belt const& belt : m_belts)
+        {
+            Vector3 const local = belt.pose.inverse() * position;
+            if (std::abs(local.x) <= 0.5 * belt.size.x && std::abs(local.y) <= 0.5 * belt.size.y &&
+                std::abs(local.z - half - 0.5 * belt.size.z) <= TOUCH)
+            {
+                under = &belt;
+                break;
+            }
+        }
+        Vector3 velocity = Vector3::ZERO;
+        bool const moving =
+            under != nullptr && under->device->running() && m_devices.available(under->index);
+        if (moving)
+        {
+            Vector3 const direction =
+                Pose{ Vector3::ZERO, under->pose.rotation } * under->device->direction();
+            velocity = direction * under->device->speed().value();
+        }
+        if (carried.body >= 0)
+        {
+            // The physics moves it: mass, inertia, slip against an obstacle.
+            m_physics->drive(carried.body, velocity, under != nullptr ? under->friction : 0.0,
+                             half);
+        }
+        else if (moving)
+        {
+            // Child of the Z-up frame of the world: its local position is
+            // the world one.
+            Vector3 const next = position + velocity * p_dt.value();
+            entity.position(compages::core::Vector3f(static_cast<float>(next.x),
+                                                     static_cast<float>(next.y),
+                                                     static_cast<float>(next.z)));
+        }
+    }
 }
 
 Pose Cell::beliefFrame() const
@@ -912,6 +1023,21 @@ void Cell::reset(Seed p_seed)
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
         robot->reset();
+    }
+
+    // Belts stopped; the parts they carry found again in the physics.
+    for (std::size_t i = 0U; i < m_devices.size(); ++i)
+    {
+        m_devices[i].stop();
+    }
+    for (Carried& carried : m_carried)
+    {
+        std::string const& body = m_records[carried.record].body;
+        carried.body = (m_physics && !body.empty()) ? m_physics->freeBody(body) : -1;
+        if (carried.body >= 0)
+        {
+            m_physics->drive(carried.body, Vector3::ZERO, 0.0, 0.0);
+        }
     }
 
     // Props: the robot only knows the nominal layout (in its base frame); the
@@ -1170,6 +1296,8 @@ void Cell::step(Seconds p_dt)
         }
         m_scheduler->update(m_contexts);
     }
+
+    driveBelts(p_dt);
 
     // MuJoCo arms and rigid bodies (one step for all), then what the grippers
     // hold.

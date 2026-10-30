@@ -13,6 +13,7 @@
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <map>
 #include <numbers>
 #include <stdexcept>
@@ -209,9 +210,23 @@ static ActuatorSpec actuator(std::string const& p_where,
         spec.link = p_node.text("parent");
         spec.length = Length(p_node.number("length", 0.0));
     }
+    else if (type == "conveyor")
+    {
+        spec.type = ActuatorSpec::Type::Conveyor;
+        spec.speed = LinearVelocity(p_node.number("speed", spec.speed.value()));
+        spec.direction = p_node.vector3("direction", spec.direction);
+        if (spec.speed.value() <= 0.0)
+        {
+            fail(where, "speed (m/s) must be above 0");
+        }
+        if (std::hypot(spec.direction.x, spec.direction.y) < 1e-9)
+        {
+            fail(where, "direction needs x or y (the belt is the top face)");
+        }
+    }
     else
     {
-        fail(where, "unknown type '" + type + "' (joint_group, motor, vacuum)");
+        fail(where, "unknown type '" + type + "' (joint_group, motor, vacuum, conveyor)");
     }
     return spec;
 }
@@ -378,6 +393,14 @@ static EntitySpec entity(std::string const& p_world,
             {
                 fail(where, "a robot or a tool needs a URDF model");
             }
+            for (ActuatorSpec const& actuator : spec.actuators)
+            {
+                if (actuator.type == ActuatorSpec::Type::Conveyor)
+                {
+                    fail(where, "actuator '" + actuator.name +
+                                    "': a conveyor is the top of a fixed box body, not of a robot");
+                }
+            }
             break;
         case EntitySpec::Type::Body:
             if (spec.physics == EntitySpec::Physics::None)
@@ -388,15 +411,25 @@ static EntitySpec entity(std::string const& p_world,
             {
                 fail(where, "a body shape must be a box");
             }
-            if (spec.shape && spec.physics == EntitySpec::Physics::Fixed)
+            for (ActuatorSpec const& actuator : spec.actuators)
             {
-                fail(where, "a primitive body must be free");
+                if (actuator.type != ActuatorSpec::Type::Conveyor || !spec.shape ||
+                    spec.physics != EntitySpec::Physics::Fixed)
+                {
+                    fail(where, "actuator '" + actuator.name +
+                                    "': a body only carries a conveyor, on a fixed box "
+                                    "(physics: fixed)");
+                }
             }
             break;
         case EntitySpec::Type::Prop:
             if (!spec.shape || spec.physics != EntitySpec::Physics::None)
             {
                 fail(where, "a prop is a shape without physics");
+            }
+            if (!spec.actuators.empty())
+            {
+                fail(where, "a prop has no actuator (a conveyor is a fixed box body)");
             }
             break;
     }

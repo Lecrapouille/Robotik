@@ -236,6 +236,27 @@ public:
 
     // -------------------------------------------------------------------------
     /// @param p_body Body name.
+    /// @return Index of a free body (one free joint), to give to @ref drive;
+    ///   -1 when unknown or not free.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] int freeBody(std::string const& p_body) const;
+
+    // -------------------------------------------------------------------------
+    /// Drags a free body in the horizontal plane, as a belt under it would:
+    /// a force at its centre pulls it toward @p_velocity, at most the
+    /// friction force @c μ·m·g, plus the friction it slides against (so a
+    /// part moving with the belt keeps its speed; a blocked part slips). The
+    /// force stays until the next call; @p_friction 0 removes it.
+    /// @param p_body Index from @ref freeBody.
+    /// @param p_velocity Velocity of the belt surface (world frame, z ignored).
+    /// @param p_friction Friction coefficient between the belt and the body.
+    /// @param p_height Height of the centre of the body above the belt: the
+    ///   force acts at the bottom face, as the belt does (no tipping).
+    // -------------------------------------------------------------------------
+    void drive(int p_body, Vector3 const& p_velocity, double p_friction, double p_height);
+
+    // -------------------------------------------------------------------------
+    /// @param p_body Body name.
     /// @return World pose of the body after the last step or reset, or
     ///   nothing when unknown.
     // -------------------------------------------------------------------------

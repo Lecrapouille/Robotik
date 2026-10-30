@@ -187,6 +187,15 @@ bool MujocoBackend::placeBody(std::string const&, Pose const&)
     return false;
 }
 
+int MujocoBackend::freeBody(std::string const&) const
+{
+    return -1;
+}
+
+void MujocoBackend::drive(int, Vector3 const&, double, double)
+{
+}
+
 std::optional<Pose> MujocoBackend::bodyPose(std::string const&) const
 {
     return std::nullopt;

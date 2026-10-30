@@ -136,6 +136,10 @@ A layer only uses the layers under it; `make check-layers` checks it.
 
 - **Buffer**: where parts wait between an operator and the next one of
   their route; one part per place (`buffers:` of a workflow).
+- **Cell device**: a device of the cell that belongs to no robot (a conveyor
+  belt); its name is a resource of the cell (`Cell::devices()`).
+- **Conveyor belt**: the top face of a fixed box body; the parts resting on
+  it go at its speed while it runs (`type: conveyor`, skill `<belt>.Run`).
 - **Critical circuit**: the circuit of a timed event graph that sets the
   cycle time: the bottleneck of the cell.
 - **Cycle time (λ)**: the period of a cell in steady state; the throughput is

@@ -237,7 +237,7 @@ world:
 |------|------------|---------|
 | `robot` | A robot you control (one or more, see [Several robots](#several-robots)). Keys: `home`, `sensors`, `actuators` | Its chain, fixed at its `pose` |
 | `tool` | A tool. It keeps its identity once mounted and brings its own actuators and sensors | Hangs on the flange |
-| `body` | A simulated rigid body: a URDF model (`physics: free` or `fixed`) or a box (`free`, with `mass`) | Yes: gravity, contacts, friction |
+| `body` | A simulated rigid body: a URDF model or a box (`physics: free` or `fixed`; a free box has a `mass`). A fixed box may carry a `conveyor` | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
 
 Use a `prop` when you want a simple, exact scene. Use a `body` when physics
@@ -390,6 +390,25 @@ skills reserve it, faults make it unavailable.
 | `joint_group` | a set of joints (all of them by default) |
 | `motor` | one joint |
 | `vacuum` | a vacuum gripper: grasps what touches it |
+| `conveyor` | a conveyor belt, on a fixed box body: the parts resting on its top face go at `speed` (m/s, default 0.2) along `direction` (frame of the body, default `[1, 0, 0]`) while it runs |
+
+**Conveyor belt.** A belt is a device of the cell, not of a robot: its name
+is a resource, and the cell adds the skill `<name>.Run`, which runs the belt
+while it is requested (an action of a GRAFCET step, a node of a tree). With
+`physics.fidelity: rigid` MuJoCo pulls each box resting on the belt to the
+belt speed, by friction (a blocked box slips, its mass and inertia count);
+with `abstract`, the box moves at the belt speed until its centre leaves the
+belt. A failed resource stops the belt.
+
+```yaml
+    - id: feeder
+      type: body
+      physics: fixed
+      shape: { type: box, size: [1.0, 0.2, 0.1] }
+      pose: { position: [0.5, -0.8, 0.05] }
+      actuators:
+        feeder_belt: { type: conveyor, speed: 0.2, direction: [1, 0, 0] }
+```
 
 **Noise.** A noise channel is a standard deviation (`noise: 0.01`) or a full
 model `{ sigma, bias, resolution, saturation: [min, max] }`, applied in this

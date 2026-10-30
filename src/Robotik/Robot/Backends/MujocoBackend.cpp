@@ -612,6 +612,68 @@ bool MujocoBackend::placeBody(std::string const& p_body, Pose const& p_pose)
     return true;
 }
 
+int MujocoBackend::freeBody(std::string const& p_body) const
+{
+    mjModel const* const model = m_impl->model;
+    if (model == nullptr)
+    {
+        return -1;
+    }
+    int const body = mj_name2id(model, mjOBJ_BODY, p_body.c_str());
+    if (body < 0 || model->body_jntnum[body] != 1 ||
+        model->jnt_type[model->body_jntadr[body]] != mjJNT_FREE)
+    {
+        return -1;
+    }
+    return body;
+}
+
+void MujocoBackend::drive(int p_body, Vector3 const& p_velocity, double p_friction,
+                          double p_height)
+{
+    mjModel const* const model = m_impl->model;
+    mjData* const data = m_impl->data;
+    if (model == nullptr || data == nullptr || p_body < 0 || p_body >= model->nbody)
+    {
+        return;
+    }
+    mjtNum* const force = data->xfrc_applied + 6 * p_body;
+    mju_zero(force, 6);
+    if (p_friction <= 0.0)
+    {
+        return;
+    }
+    // Gain of the pull toward the belt speed (1/s): the lag is a few
+    // hundredths of a second, stable at the usual time steps.
+    static constexpr double GAIN = 50.0;
+    double const mass = model->body_subtreemass[p_body];
+    double const limit = p_friction * mass * std::abs(model->opt.gravity[2]);
+    mjtNum const* const velocity = data->qvel + model->jnt_dofadr[model->body_jntadr[p_body]];
+    double const sx = velocity[0];
+    double const sy = velocity[1];
+    double fx = mass * GAIN * (p_velocity.x - sx);
+    double fy = mass * GAIN * (p_velocity.y - sy);
+    double const pull = std::hypot(fx, fy);
+    if (pull > limit)
+    {
+        fx *= limit / pull;
+        fy *= limit / pull;
+    }
+    // The belt carries the part: the friction of the fixed box under it is
+    // given back while it slides.
+    double const slide = std::hypot(sx, sy);
+    if (slide > 1e-3)
+    {
+        fx += limit * sx / slide;
+        fy += limit * sy / slide;
+    }
+    // At the bottom face: the torque of the force about the centre.
+    force[0] = fx;
+    force[1] = fy;
+    force[3] = p_height * fy;
+    force[4] = -p_height * fx;
+}
+
 std::optional<Pose> MujocoBackend::bodyPose(std::string const& p_body) const
 {
     mjModel const* const model = m_impl->model;

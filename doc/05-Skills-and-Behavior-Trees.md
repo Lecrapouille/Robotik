@@ -75,6 +75,7 @@ must work on a real robot.
 |-------|-------|-------|
 | `Home` | `HomeSkill` | Added by every simulation that has a `joint_group` actuator. Moves the joints to `home`. One per robot, `left.Home`, when the world has several |
 | `Stop` | `StopSkill` | Added by every simulation. Reserves **all** actuators with the highest priority and holds the joints: an emergency stop. It never ends by itself (always `RUNNING`). One per robot, `left.Stop`, when the world has several |
+| `<belt>.Run` | `RunBeltSkill` | Added for each `conveyor` of the world ([chapter 3](03-Worlds-and-Scenarios.md)). Runs the belt until it is cancelled (always `RUNNING`) |
 | — | `MoveJointSkill(joint, target)` | One joint to an angle |
 | — | `MoveJointsSkill(posture)` | Several joints, `{ "joint1": 0.5, ... }` |
 | — | `MoveTCPSkill(frame)` + `goal(pose)` | A frame to a pose (IK once per goal). Useful **inside** your own skills |

@@ -119,6 +119,7 @@ struct ActuatorSpec
         JointGroup, ///< @ref JointGroup.
         Motor,      ///< @ref Motor.
         Vacuum,     ///< @ref VacuumGripper.
+        Conveyor,   ///< @ref ConveyorBelt: the top of a box body (a cell device).
     };
 
     /// Actuator name, also its resource name.
@@ -131,6 +132,10 @@ struct ActuatorSpec
     std::string link;
     /// Flange to cup tip distance of a vacuum gripper.
     Length length{ 0.0 };
+    /// Speed of the parts on a conveyor.
+    LinearVelocity speed{ 0.2 };
+    /// Direction of the parts on a conveyor, in the frame of its body.
+    Vector3 direction{ 1.0, 0.0, 0.0 };
 };
 
 // ****************************************************************************

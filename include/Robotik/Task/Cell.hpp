@@ -40,6 +40,7 @@
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 #include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/CellDevices.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
 
@@ -269,6 +270,18 @@ public:
     [[nodiscard]] bt::NodeFactory& factory()
     {
         return m_factory;
+    }
+
+    /// @return Devices of the cell that belong to no robot (conveyor belts).
+    [[nodiscard]] CellDevices& devices()
+    {
+        return m_devices;
+    }
+
+    /// @copydoc devices()
+    [[nodiscard]] CellDevices const& devices() const
+    {
+        return m_devices;
     }
 
     /// @return The faults of the scenario.
@@ -528,6 +541,11 @@ private:
     void loadTree();
     /// Copies the physics poses of the bodies to their ECS entities.
     void syncBodies();
+    /// The belts found in the world, and the parts they may carry.
+    void buildBelts();
+    /// Moves the parts resting on running belts: a force in the physics for
+    /// a rigid part, a kinematic move for the others.
+    void driveBelts(Seconds p_dt);
     /// Counts the contacts of each entity after a step.
     void track();
 
@@ -566,6 +584,33 @@ private:
     std::shared_ptr<ResourceManager> m_resources;
     /// Every robot, in world file order.
     std::vector<std::unique_ptr<RobotSession>> m_robots;
+    /// Devices of no robot (conveyor belts), resources in @ref m_resources.
+    CellDevices m_devices;
+    /// The physics built by connectBackend, or null (a backend of the
+    /// mission).
+    std::shared_ptr<MujocoBackend> m_physics;
+    /// A belt and its box, found once.
+    struct Belt
+    {
+        ConveyorBelt* device = nullptr;
+        /// Index in @ref m_devices.
+        std::size_t index = 0U;
+        /// Pose of the box (world frame) and its size.
+        Pose pose{ Vector3::ZERO, Quaternion{} };
+        Vector3 size = Vector3::ZERO;
+        /// Friction between the belt and a part.
+        double friction = 1.0;
+    };
+    std::vector<Belt> m_belts;
+    /// A box prop a belt may carry.
+    struct Carried
+    {
+        /// Index in @ref m_records.
+        std::size_t record = 0U;
+        /// Free body in the physics, or -1 (moved without physics).
+        int body = -1;
+    };
+    std::vector<Carried> m_carried;
     /// The first robot.
     RobotSession* m_robot = nullptr;
     /// @ref RobotContext::team — every robot when there are several.
