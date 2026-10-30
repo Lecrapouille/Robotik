@@ -130,6 +130,10 @@ struct WorkflowDescription
     /// World entity receiving the finished parts (the @c {to} of the last
     /// operation), or empty.
     std::string output;
+    /// GEMMA of the cell: empty (no GEMMA) or @c default (A1, F1, A2, D1,
+    /// A5, A6 of TimedPetriNetEditor). The generated GRAFCET then has the
+    /// graphs Safety and Control, and the production runs in F1.
+    std::string gemma;
 };
 
 } // namespace robotik

@@ -87,7 +87,7 @@ TEST(WorkflowGrafcet, GeneratesTheFactory)
     // (zone and 3 places), the two first idle steps, End.
     EXPECT_EQ(net.places().size(), 6U * 11U + 6U * 9U + 6U + 1U);
     EXPECT_EQ(net.transitions().size(), 6U * 10U + 6U * 9U + 1U);
-    EXPECT_EQ(end, "X" + std::to_string(net.places().size() - 1U));
+    EXPECT_EQ(end, "Production:X" + std::to_string(net.places().size() - 1U));
     EXPECT_EQ(net.places().back().caption, "End");
 
     auto const hasTransition = [&net](std::string const& p_code)
@@ -123,6 +123,34 @@ TEST(WorkflowGrafcet, GeneratesTheFactory)
     EXPECT_EQ(read[0].transitions().size(), net.transitions().size());
     EXPECT_EQ(read[0].tokens(), net.tokens());
     EXPECT_EQ(read[0].places()[10].actions.size(), net.places()[10].actions.size());
+}
+
+TEST(WorkflowGrafcet, GeneratesTheGemmaOfTheCell)
+{
+    robotik::WorkflowDescription workflow = read(LINE).take();
+    workflow.gemma = "default";
+    std::vector<tpne::Net> graphs;
+    std::string const end = robotik::workflowGrafcet(workflow, graphs).take();
+    ASSERT_EQ(graphs.size(), 3U);
+    EXPECT_EQ(graphs[0].name, "Safety");
+    EXPECT_EQ(graphs[1].name, "Control");
+    EXPECT_EQ(graphs[2].name, "Production");
+    EXPECT_TRUE(end.starts_with("Production:X"));
+
+    // The part starts in F1 only; A2 goes back to A1 when a and b are idle.
+    auto const has = [](tpne::Net const& p_net, auto p_test)
+    { return std::ranges::any_of(p_net.transitions(), p_test); };
+    EXPECT_TRUE(has(graphs[2], [](tpne::Transition const& p_t)
+                    { return p_t.caption.starts_with("Control:X"); }));
+    EXPECT_FALSE(has(graphs[1], [](tpne::Transition const& p_t)
+                     { return p_t.caption == "Production:X0"; }));
+    EXPECT_TRUE(has(graphs[1], [](tpne::Transition const& p_t)
+                    { return p_t.caption.starts_with("(Production:X") &&
+                             p_t.caption.find(") . (Production:X") != std::string::npos; }));
+
+    auto const unknown = read(LINE + "  gemma: custom\n");
+    ASSERT_FALSE(unknown);
+    EXPECT_NE(unknown.error().find("gemma: 'custom'"), std::string::npos) << unknown.error();
 }
 
 TEST(WorkflowGrafcet, RefusesWhatCannotBeGenerated)

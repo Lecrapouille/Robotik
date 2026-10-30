@@ -446,6 +446,9 @@ convergences for the order of the machines and of the parts, machining as a
 time receptivity while the arm holds the part, and the station as a zone
 (one arm at a time, M2 first). It ends in about 50 s. The same file gives
 the cycle time: 6 s, M1 is the bottleneck.
+`factory_gemma.scenario.yaml` drives the same cell with a GEMMA: Start, then
+Stop at 20 s; the arms finish the parts they hold and the cell goes back to
+its initial stop.
 
 ## 9. Micro Duck
 

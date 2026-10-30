@@ -193,6 +193,11 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
     }
     readBuffers(p_node, workflow);
     workflow.output = p_node.text("output");
+    workflow.gemma = p_node.text("gemma");
+    if (!workflow.gemma.empty() && workflow.gemma != "default")
+    {
+        throw std::runtime_error("workflow.gemma: '" + workflow.gemma + "' is not known (default)");
+    }
     return workflow;
 }
 

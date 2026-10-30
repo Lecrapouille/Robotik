@@ -7,6 +7,7 @@
 
 #include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
 
+#include "PetriNet/Gemma.hpp"
 #include "PetriNet/PetriNet.hpp"
 
 #include <algorithm>
@@ -208,9 +209,21 @@ static std::size_t operatorIndex(WorkflowDescription const& p_workflow, std::str
     return static_cast<std::size_t>(found - p_workflow.operators.begin());
 }
 
-/// Builds the production graph; throws what is missing in the workflow.
-static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net)
+/// What the production graph tells the other graphs.
+struct Production
 {
+    /// Step End.
+    std::size_t end = 0U;
+    /// Steps where each operator waits between two parts (idle, done).
+    std::vector<std::vector<std::size_t>> idle;
+};
+
+/// Builds the production graph; a part starts only when @p_start is true
+/// ("1": always). Throws what is missing in the workflow.
+static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
+                        std::string const& p_start)
+{
+    Production production;
     std::vector<Job> const jobs = jobsOf(p_workflow);
     std::size_t const operators = p_workflow.operators.size();
 
@@ -236,6 +249,7 @@ static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net
     // Step "part done by the operator": given to the next operator.
     std::map<std::pair<std::size_t, std::size_t>, std::size_t> given;
     std::vector<std::size_t> done;
+    production.idle.resize(operators);
     for (std::size_t k = 0U; k < operators; ++k)
     {
         WorkflowOperator const& op = p_workflow.operators[k];
@@ -255,6 +269,7 @@ static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net
             if (!idle)
             {
                 idle = addStep(p_net, op.id + " idle", 1U, builder.x, 40.0F);
+                production.idle[k].push_back(*idle);
             }
 
             // The buffer it takes the part from, the one it gives it to.
@@ -289,7 +304,7 @@ static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net
             // Start: idle, the part given by the previous operator, its place
             // in the next buffer free.
             builder.inputs = { *idle };
-            builder.code = "1";
+            builder.code = p_start;
             if (from != nullptr)
             {
                 builder.inputs.push_back(given.at({ j, r - 1U }));
@@ -346,6 +361,7 @@ static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net
             std::vector<std::size_t> outputs;
             idle = addStep(p_net, op.id + (last ? " done" : " idle"), 0U, builder.x, builder.y);
             outputs.push_back(*idle);
+            production.idle[k].push_back(*idle);
             if (to != nullptr)
             {
                 std::size_t const handed =
@@ -391,7 +407,54 @@ static std::size_t build(WorkflowDescription const& p_workflow, tpne::Net& p_net
     {
         end.y = std::max(end.y, p_net.position(*p_net.findPlace(step)).y + ROW * 2.0F);
     }
-    return advance(end, "End");
+    production.end = advance(end, "End");
+    return production;
+}
+
+/// Receptivity of another graph: Production at rest, every operator between
+/// two parts ("(Production:X1 + Production:X12) . (...)").
+static std::string atRest(Production const& p_production)
+{
+    std::string code;
+    for (std::vector<std::size_t> const& steps : p_production.idle)
+    {
+        if (steps.empty())
+        {
+            continue;
+        }
+        code += code.empty() ? "(" : " . (";
+        for (std::size_t i = 0U; i < steps.size(); ++i)
+        {
+            code += (i == 0U ? "Production:X" : " + Production:X") + std::to_string(steps[i]);
+        }
+        code += ")";
+    }
+    return code;
+}
+
+/// Adds the Safety and Control graphs of the default GEMMA: the production
+/// starts a part only in F1; Control leaves A2 (end of cycle) when every
+/// operator is between two parts. Returns the End step of Production.
+static std::size_t addGemma(WorkflowDescription const& p_workflow, std::vector<tpne::Net>& p_graphs)
+{
+    tpne::Gemma const gemma = tpne::defaultGemma();
+    tpne::Net safety(tpne::TypeOfNet::GRAFCET);
+    tpne::Net control(tpne::TypeOfNet::GRAFCET);
+    tpne::generateGemma(gemma, safety, control);
+    std::map<std::string, std::size_t> const steps = tpne::gemmaSteps(control);
+
+    tpne::Net& production = p_graphs.back();
+    Production const built =
+        build(p_workflow, production, "Control:X" + std::to_string(steps.at("F1")));
+    for (tpne::Transition& transition : control.transitions())
+    {
+        if (transition.caption == "Production:X0")
+        {
+            transition.caption = atRest(built);
+        }
+    }
+    p_graphs.insert(p_graphs.begin(), { std::move(safety), std::move(control) });
+    return built.end;
 }
 
 Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
@@ -406,8 +469,9 @@ Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
         tpne::Net& net = p_graphs.back();
         net.name = "Production";
         net.description = "Generated from the workflow " + p_workflow.id;
-        std::size_t const end = build(p_workflow, net);
-        return "X" + std::to_string(end);
+        std::size_t const end = p_workflow.gemma.empty() ? build(p_workflow, net, "1").end
+                                                         : addGemma(p_workflow, p_graphs);
+        return "Production:X" + std::to_string(end);
     }
     catch (std::runtime_error const& error)
     {

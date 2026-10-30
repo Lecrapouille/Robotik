@@ -30,9 +30,16 @@
 /// (@c 2s/X10) while the operator holds the part. In a zone the operator
 /// taking parts goes first: the other one waits.
 ///
+/// With @c gemma: @c default the graphs Safety and Control of the default
+/// GEMMA of TimedPetriNetEditor come first: a part starts only while Control
+/// is in F1 (normal production), so @c Stop lets the operators finish the
+/// parts they hold, and Control leaves A2 (end of cycle) for A1 when every
+/// operator is between two parts.
+///
 /// @par Contract
-/// - Promises: one GRAFCET graph named @c Production; the receptivity
-///   ending it (@c X<n> of its @c End step).
+/// - Promises: a GRAFCET graph named @c Production (after Safety and Control
+///   with a GEMMA); the receptivity ending it (@c Production:X<n> of its
+///   @c End step).
 /// - Expects: a workflow read by @c loadWorkflow.
 /// - Errors: no part to make, an operator of capacity above 1 (a GRAFCET
 ///   step holds one token: declare two operators), a product going from an
@@ -59,7 +66,7 @@ namespace robotik
 /// Generates the production GRAFCET of a workflow.
 /// @param p_workflow Operators, recipes, buffers, products and their parts.
 /// @param p_graphs Receives the graphs (replaced).
-/// @return The receptivity true at the end of the production (@c X126), or
+/// @return The receptivity true at the end of the production (@c Production:X126), or
 ///   what is missing in the workflow.
 // ----------------------------------------------------------------------------
 [[nodiscard]] Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,

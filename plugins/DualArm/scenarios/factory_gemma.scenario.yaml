@@ -1,0 +1,35 @@
+# The factory of factory.scenario.yaml driven by the default GEMMA of
+# TimedPetriNetEditor: Safety (emergency stop), Control (A1 initial stop,
+# F1 normal production, A2 end of cycle, D1, A5, A6) and the Production
+# generated from the workflow. A part starts only in F1. The operator
+# pushes Start, then Stop at 20 s: the arms finish the parts they hold
+# (M1 puts p3a in the station, M2 drops p2a), Control goes A2 then back to
+# A1 when both arms are between two parts. p3a waits in the station, lot b
+# stays in the stock: Start again goes on from there.
+scenario:
+  id: factory_gemma
+  description: The factory with a GEMMA - Start, then Stop at 20 s ends the cycle.
+  world: worlds/factory_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory.workflow.yaml
+      gemma: default
+      success: Control:X0 . 1s/Control:X0   # back to A1 (initial stop) for 1 s
+      events:
+        - { at: 0.0, input: Start, pulse: true }
+        - { at: 20.0, input: Stop, pulse: true }
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1a, output)
+    - inside(p2a, output)
+    - on(p3a, slot3)
+    - inside(p1b, output) == 0
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }

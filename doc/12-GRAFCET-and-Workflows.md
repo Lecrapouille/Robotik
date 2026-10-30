@@ -189,6 +189,7 @@ latches or releases a button (AU for the emergency stop).
 |-----|---------|
 | `file` | The `.grafcet.json` file (path from the package root). `grafcet: scenarios/x.grafcet.json` is the short form |
 | `workflow` | Instead of `file`: the `.workflow.yaml` file the GRAFCET is generated from ([§7](#7-a-factory)) |
+| `gemma` | With `workflow`: `default` adds the default GEMMA (over the `gemma` of the workflow) |
 | `success` | Receptivity: the run succeeds when it is true (`X11`). A generated GRAFCET succeeds by default at its `End` step |
 | `failure` | Receptivity: the run fails when it is true |
 | `inputs` | Operator inputs at the start (`{ Manual: 1 }`); an edge needs a change, use a push button event for it |
@@ -280,6 +281,7 @@ that names a `skill:` by the mean duration of this skill in the current run.
 | `products[].parts` | World entities of this kind, one per lot (§7) |
 | `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it (§7) |
 | `output` | World entity receiving the finished parts (the `{to}` of the last operation) |
+| `gemma` | `default`: the generated GRAFCET has the default GEMMA (§7) |
 
 The routes must form a **flowshop**: every product visits the operators in the
 order of the `operators` list, and skips the ones it does not need. Other
@@ -363,6 +365,35 @@ the arms.
 In the simulator, **Save .grafcet.json** in the GRAFCET panel writes the
 generated GRAFCET next to the workflow (`factory.grafcet.json`), to open it
 in TimedPetriNetEditor.
+
+**With a GEMMA.** `gemma: default` (in the workflow, or in the `grafcet:`
+block of the scenario) adds the graphs Safety and Control of the default
+GEMMA of TimedPetriNetEditor before the Production: A1 initial stop, F1
+normal production, A2 end of cycle, D1 emergency stop, A5 and A6 to restart.
+A part starts only while Control is in F1. `Stop` lets the arms finish the
+parts they hold; Control leaves A2 for A1 when every arm is between two
+parts. The operator inputs are `Start`, `Stop`, `EStop`, `Rearm`, `Ack` and
+`InitialPosition`: buttons of the GRAFCET panel, or `events:` of the
+scenario.
+
+```yaml
+# plugins/DualArm/scenarios/factory_gemma.scenario.yaml
+    grafcet:
+      workflow: scenarios/factory.workflow.yaml
+      gemma: default
+      success: Control:X0 . 1s/Control:X0   # back to A1 (initial stop) for 1 s
+      events:
+        - { at: 0.0, input: Start, pulse: true }
+        - { at: 20.0, input: Stop, pulse: true }
+```
+
+The run: after `Stop` at 20 s, M1 puts p3a in the station and M2 drops p2a;
+Control is back in A1 at 22.09 s and the run succeeds at 23.09 s. p3a waits in
+the station and lot b stays in the stock. After an emergency stop, Safety
+puts Production back in its initial situation: the parts must be put back
+too (A6, `InitialPosition`). For now the GEMMA is the one of the whole cell,
+not one per machine: the machines share the station, so their sequences are
+joined in one Production graph.
 
 The generator refuses, with a message: a workflow without parts, an operator
 of capacity above 1, a part going from an operator to the next one without a

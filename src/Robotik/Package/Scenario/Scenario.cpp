@@ -137,6 +137,16 @@ static GrafcetSpec readGrafcet(std::filesystem::path const& p_root,
                                      "' is not a .workflow.yaml file");
         }
         spec.workflow = must(loadWorkflow(spec.file));
+        // The scenario may drive the same cell with a GEMMA.
+        if (p_node.has("gemma"))
+        {
+            spec.workflow->gemma = p_node.text("gemma");
+            if (spec.workflow->gemma != "default" && !spec.workflow->gemma.empty())
+            {
+                throw std::runtime_error("grafcet.gemma: '" + spec.workflow->gemma +
+                                         "' is not known (default)");
+            }
+        }
     }
     else
     {

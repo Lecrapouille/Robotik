@@ -31,7 +31,8 @@ public:
                               std::string_view p_scenario) override
     {
         if (p_scenario == "conveyor" || p_scenario == "conveyor_sequential" ||
-            p_scenario == "conveyor_grafcet" || p_scenario == "factory")
+            p_scenario == "conveyor_grafcet" || p_scenario == "factory" ||
+            p_scenario == "factory_gemma")
         {
             m_mission = std::make_unique<dual_arm::ConveyorMission>();
             p_host.bindMission(*m_mission);
