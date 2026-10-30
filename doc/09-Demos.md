@@ -449,6 +449,8 @@ the cycle time: 6 s, M1 is the bottleneck.
 `factory_gemma.scenario.yaml` drives the same cell with a GEMMA: Start, then
 Stop at 20 s; the arms finish the parts they hold and the cell goes back to
 its initial stop.
+`factory_belt.scenario.yaml` feeds the same factory with a conveyor belt: the
+belt brings each part to M1, when the pick place at its end is free.
 
 ## 9. Micro Duck
 

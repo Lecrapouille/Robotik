@@ -93,8 +93,9 @@ TEST(ConveyorBelt, StopsTheCubeAtItsEnd)
     robotik::Cell cell(world, beltCell(robotik::Fidelity::Abstract));
     cell.devices().find<robotik::ConveyorBelt>("feeder_belt")->run(true);
     run(cell, 5.0);
-    // Without physics the part stops when its centre leaves the belt.
-    EXPECT_NEAR(cell.pose("cube").position.x, 1.0, 0.01);
+    // Without physics the part stops at the end of the belt (1 m), on it.
+    EXPECT_NEAR(cell.pose("cube").position.x, 1.0 - 0.02, 1e-6);
+    EXPECT_NEAR(cell.pose("cube").position.z, 0.12, 1e-6);
 }
 
 TEST(ConveyorBelt, PhysicsCarriesARigidCube)

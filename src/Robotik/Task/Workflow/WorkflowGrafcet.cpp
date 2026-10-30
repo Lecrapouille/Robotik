@@ -161,6 +161,8 @@ struct BufferSteps
     std::optional<std::size_t> zone;
     /// Step "place free" of each product kind.
     std::map<std::string, std::size_t> places;
+    /// World entity of the place of each product kind.
+    std::map<std::string, std::string> entities;
     /// Steps where the operator taking parts waits for the zone.
     std::vector<std::size_t> takers;
     /// Transitions where the operator giving parts enters the zone.
@@ -242,7 +244,19 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
         for (auto const& [product, entity] : buffer.places)
         {
             steps.places[product] = addStep(p_net, entity + " free", 1U, x, 120.0F);
+            steps.entities[product] = entity;
             x += 120.0F;
+        }
+        if (!buffer.place.empty())
+        {
+            // One place for every product kind.
+            std::size_t const shared = addStep(p_net, buffer.place + " free", 1U, x, 120.0F);
+            x += 120.0F;
+            for (WorkflowProduct const& product : p_workflow.products)
+            {
+                steps.places[product.id] = shared;
+                steps.entities[product.id] = buffer.place;
+            }
         }
     }
 
@@ -295,11 +309,7 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
                 }
             }
             std::string const destination =
-                (to != nullptr)
-                    ? std::ranges::find(to->buffer->places, product.id,
-                                        &std::pair<std::string, std::string>::first)
-                          ->second
-                    : p_workflow.output;
+                (to != nullptr) ? to->entities.at(product.id) : p_workflow.output;
 
             // Start: idle, the part given by the previous operator, its place
             // in the next buffer free.
@@ -329,13 +339,20 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
                     builder.extra.push_back(*from->zone);
                 }
             }
+            // The work: a skill (a belt runs) for its duration or until done,
+            // or a duration alone (the operator holds the part).
             double const duration = at->duration.value();
-            if (duration > 0.0)
+            if (duration > 0.0 || !at->skill.empty())
             {
-                std::size_t const machining =
-                    advance(builder, op.id + " " + at->name + " " + product.id + " (" +
-                                         seconds(duration) + " s)");
-                builder.code = seconds(duration) + "s/X" + std::to_string(machining);
+                std::string caption = op.id + " " + at->name + " " + product.id;
+                if (duration > 0.0)
+                {
+                    caption += " (" + seconds(duration) + " s)";
+                }
+                std::size_t const work = advance(builder, caption, at->skill);
+                builder.code = (duration > 0.0)
+                                   ? seconds(duration) + "s/X" + std::to_string(work)
+                                   : "done(" + at->skill + ")";
             }
             if (to != nullptr && to->zone)
             {

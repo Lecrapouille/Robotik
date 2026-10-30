@@ -880,9 +880,16 @@ void Cell::driveBelts(Seconds p_dt)
         }
         else if (moving)
         {
-            // Child of the Z-up frame of the world: its local position is
-            // the world one.
-            Vector3 const next = position + velocity * p_dt.value();
+            // A stop at the end of the belt: the part stays on it. Child of
+            // the Z-up frame of the world: its local position is the world
+            // one.
+            Vector3 local = under->pose.inverse() * (position + velocity * p_dt.value());
+            Vector3 const& size = record.spec->shape->size;
+            double const room_x = std::max(0.0, 0.5 * (under->size.x - size.x));
+            double const room_y = std::max(0.0, 0.5 * (under->size.y - size.y));
+            local.x = std::clamp(local.x, -room_x, room_x);
+            local.y = std::clamp(local.y, -room_y, room_y);
+            Vector3 const next = under->pose * local;
             entity.position(compages::core::Vector3f(static_cast<float>(next.x),
                                                      static_cast<float>(next.y),
                                                      static_cast<float>(next.z)));

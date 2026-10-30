@@ -69,6 +69,9 @@ struct WorkflowBuffer
     /// Place of each product kind in the buffer: product id, world entity
     /// (the @c {to} of the recipe giving the part). One part per place.
     std::vector<std::pair<std::string, std::string>> places;
+    /// One place for every product kind (the end of a feeder belt), instead
+    /// of @ref places, or empty.
+    std::string place;
     /// One operator at a time in the buffer (a shared zone); the one taking
     /// parts goes first.
     bool zone = false;
@@ -84,7 +87,9 @@ struct WorkflowOperation
     /// Operator doing it (@ref WorkflowOperator::id).
     std::string on;
     /// Skill doing it in a simulation, or empty: its measured duration can
-    /// replace @ref duration.
+    /// replace @ref duration. In a generated GRAFCET it is the action of the
+    /// step of the operation, for @ref duration (a belt runs 0.5 s) or until
+    /// it is done when the duration is 0.
     std::string skill;
     /// Declared duration.
     Seconds duration{};

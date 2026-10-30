@@ -277,9 +277,9 @@ that names a `skill:` by the mean duration of this skill in the current run.
 | `operators[].give` | Recipe to give the part to the next operator (§7) |
 | `products[].id` | Product kind |
 | `products[].count` | Products of this kind in the cell at once (default 1) |
-| `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional) |
+| `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional). In a generated GRAFCET the skill is the action of the step of the operation: it runs `duration` (a belt runs 0.55 s), or until it is done when `duration` is 0 |
 | `products[].parts` | World entities of this kind, one per lot (§7) |
-| `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it (§7) |
+| `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it; `place` instead of `places`: one place for every product kind (the end of a belt) (§7) |
 | `output` | World entity receiving the finished parts (the `{to}` of the last operation) |
 | `gemma` | `default`: the generated GRAFCET has the default GEMMA (§7) |
 
@@ -294,7 +294,7 @@ units that are not the same (a fast arm and a slow one) are two operators.
 The GRAFCET generator only takes `capacity: 1`, because a GRAFCET step holds
 one token: write one operator per unit.
 
-Not done yet: conveyors as operators of the cell, and the generation of
+Not done yet: transport between two machines on a belt, and the generation of
 distributed code.
 
 ## 7. A factory
@@ -365,6 +365,36 @@ the arms.
 In the simulator, **Save .grafcet.json** in the GRAFCET panel writes the
 generated GRAFCET next to the workflow (`factory.grafcet.json`), to open it
 in TimedPetriNetEditor.
+
+**Fed by a belt.** `factory_belt.scenario.yaml` puts the six parts on a
+conveyor belt ([chapter 3](03-Worlds-and-Scenarios.md), `type: conveyor`),
+one pitch apart. The belt is the first operator of the workflow: its
+operation runs the skill of the belt for 0.55 s, when the pick place at its
+end is free; M1 takes the part there.
+
+```yaml
+# plugins/DualArm/scenarios/factory_belt.workflow.yaml (part of it)
+  operators:
+    - id: feeder
+      entity: feeder
+    - id: M1
+      ...
+  buffers:
+    - { id: pick, after: feeder, place: pick }   # the end of the belt, one part
+    ...
+  products:
+    - id: P1
+      parts: [p1a, p1b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+```
+
+The belt runs six times, each time just after M1 took the last part
+(`0 s`, `2.57 s`, `9.7 s` ...), and the run ends at 50.66 s. 0.55 s at 0.2 m/s
+is 11 cm, a little more than the pitch: the stop at the end of the belt holds
+the part, the next ones come closer.
 
 **With a GEMMA.** `gemma: default` (in the workflow, or in the `grafcet:`
 block of the scenario) adds the graphs Safety and Control of the default

@@ -125,6 +125,46 @@ TEST(WorkflowGrafcet, GeneratesTheFactory)
     EXPECT_EQ(read[0].places()[10].actions.size(), net.places()[10].actions.size());
 }
 
+TEST(WorkflowGrafcet, RunsTheSkillOfAnOperationAndSharesAPlace)
+{
+    robotik::WorkflowDescription const workflow =
+        robotik::loadWorkflow(repoFile("plugins/DualArm/scenarios/factory_belt.workflow.yaml"))
+            .take();
+    ASSERT_EQ(workflow.buffers.size(), 2U);
+    EXPECT_EQ(workflow.buffers[0].place, "pick");
+    EXPECT_TRUE(workflow.buffers[0].places.empty());
+
+    std::vector<tpne::Net> graphs;
+    (void)robotik::workflowGrafcet(workflow, graphs).take();
+    tpne::Net const& net = graphs.front();
+    // One step "pick free" for the three kinds.
+    auto const free = std::ranges::count_if(net.places(), [](tpne::Place const& p_place)
+                                            { return p_place.caption == "pick free"; });
+    EXPECT_EQ(free, 1);
+    // The belt runs 0.55 s for each part: the action of the step of the
+    // operation, ended by a time receptivity.
+    auto const bring = std::ranges::find(net.places(), std::string("feeder bring P2 (0.55 s)"),
+                                         &tpne::Place::caption);
+    ASSERT_NE(bring, net.places().end());
+    ASSERT_EQ(bring->actions.size(), 1U);
+    EXPECT_EQ(bring->actions[0].name, "feeder_belt.Run");
+    EXPECT_TRUE(std::ranges::any_of(net.transitions(), [&bring](tpne::Transition const& p_t)
+                                    { return p_t.caption == "0.55s/X" + std::to_string(bring->id); }));
+
+    // Without a duration the step waits for the skill.
+    robotik::WorkflowDescription untimed = workflow;
+    for (robotik::WorkflowProduct& product : untimed.products)
+    {
+        product.route[0].duration = robotik::Seconds(0.0);
+    }
+    (void)robotik::workflowGrafcet(untimed, graphs).take();
+    EXPECT_TRUE(std::ranges::any_of(graphs.front().transitions(), [](tpne::Transition const& p_t)
+                                    { return p_t.caption == "done(feeder_belt.Run)"; }));
+
+    auto const both = read(LINE + "  buffers: [ { id: tray, after: a, place: s, places: { p: x } } ]\n");
+    ASSERT_FALSE(both);
+}
+
 TEST(WorkflowGrafcet, GeneratesTheGemmaOfTheCell)
 {
     robotik::WorkflowDescription workflow = read(LINE).take();

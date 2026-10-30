@@ -60,6 +60,7 @@ static void readBuffers(ConfigNode const& p_node, WorkflowDescription& p_workflo
         buffer.id = item.text("id");
         buffer.after = item.text("after");
         buffer.zone = item.flag("zone", false);
+        buffer.place = item.text("place");
         std::string const where = "buffer " + buffer.id;
         if (buffer.id.empty() || buffer.after.empty())
         {
@@ -89,6 +90,10 @@ static void readBuffers(ConfigNode const& p_node, WorkflowDescription& p_workflo
                 throw std::runtime_error(where + ".places: unknown product '" + product + "'");
             }
             buffer.places.emplace_back(product, entity.scalar());
+        }
+        if (!buffer.place.empty() && !buffer.places.empty())
+        {
+            throw std::runtime_error(where + ": 'place' (one for all) or 'places', not both");
         }
         p_workflow.buffers.push_back(std::move(buffer));
     }

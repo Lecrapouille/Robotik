@@ -397,8 +397,8 @@ is a resource, and the cell adds the skill `<name>.Run`, which runs the belt
 while it is requested (an action of a GRAFCET step, a node of a tree). With
 `physics.fidelity: rigid` MuJoCo pulls each box resting on the belt to the
 belt speed, by friction (a blocked box slips, its mass and inertia count);
-with `abstract`, the box moves at the belt speed until its centre leaves the
-belt. A failed resource stops the belt.
+with `abstract`, the box moves at the belt speed and stops at the end of the
+belt, still on it (a stop). With `rigid` nothing stops it: it falls at the end. A failed resource stops the belt.
 
 ```yaml
     - id: feeder
