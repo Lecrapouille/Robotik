@@ -78,6 +78,9 @@ struct WorkflowAnalysis
     double throughput = 0.0;
     /// Operations of the critical circuit, as "product: operation (operator)".
     std::vector<std::string> critical;
+    /// Operators of the critical circuit (@ref WorkflowOperator::id), once
+    /// each: the machines to make faster or to double.
+    std::vector<std::string> critical_operators;
     /// Earliest schedule of the first cycles.
     std::vector<WorkflowBar> bars;
     /// Timed event graph of the workflow, for viewers that include

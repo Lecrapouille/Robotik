@@ -50,6 +50,11 @@ struct WorkflowState
     robotik::WorkflowAnalysis analysis;
     std::vector<tpne::Arc const*> critical_arcs;
     tpne::NetViewer viewer;
+    /// Draw the operators of the critical circuit in red in the 3D view.
+    bool tint = true;
+    /// Entities drawn in red, and the simulation they belong to.
+    std::vector<compages::world::Entity> tinted;
+    robotik::Simulation const* tinted_in = nullptr;
 };
 
 /// Workflow files of the package, sorted.
@@ -221,6 +226,60 @@ static void highlightCritical(Options& p_options, WorkflowState const& p_state)
         p_options.highlighted_arcs = &p_state.critical_arcs;
 }
 
+/// Draws the entities of the operators of the critical circuit in red in the
+/// 3D view (the bottleneck), and the other ones back in their colors.
+static void tintCritical(App& p_app, WorkflowState& p_state)
+{
+    robotik::Simulation const* simulation = p_app.simulation.get();
+    if (simulation != p_state.tinted_in)
+    {
+        // A new simulation: the entities drawn in red are gone.
+        p_state.tinted.clear();
+        p_state.tinted_in = simulation;
+    }
+    if (simulation == nullptr || !p_app.scene_view)
+    {
+        return;
+    }
+    std::vector<compages::world::Entity> wanted;
+    if (p_state.tint && p_state.error.empty())
+    {
+        for (std::string const& id : p_state.analysis.critical_operators)
+        {
+            auto const op = std::ranges::find(p_state.used.operators, id, &robotik::WorkflowOperator::id);
+            if (op == p_state.used.operators.end() || op->entity.empty())
+            {
+                continue;
+            }
+            if (compages::world::Entity entity = simulation->cell().entity(op->entity))
+            {
+                wanted.push_back(entity);
+            }
+        }
+    }
+    auto const among = [](std::vector<compages::world::Entity> const& p_list,
+                          compages::world::Entity const& p_entity)
+    {
+        return std::ranges::any_of(p_list, [&p_entity](compages::world::Entity const& p_other)
+                                   { return p_other.id() == p_entity.id(); });
+    };
+    for (compages::world::Entity const& entity : p_state.tinted)
+    {
+        if (!among(wanted, entity))
+        {
+            p_app.scene_view->tint(entity, false);
+        }
+    }
+    for (compages::world::Entity const& entity : wanted)
+    {
+        if (!among(p_state.tinted, entity))
+        {
+            p_app.scene_view->tint(entity, true);
+        }
+    }
+    p_state.tinted = std::move(wanted);
+}
+
 void workflowPanel(App& p_app)
 {
     static WorkflowState state;
@@ -288,10 +347,16 @@ void workflowPanel(App& p_app)
     ImGui::SameLine();
     ImGui::SetNextItemWidth(100.0F);
     state.dirty |= ImGui::SliderInt("Cycles", &state.cycles, 1, 10);
+    ImGui::SameLine();
+    ImGui::Checkbox("Bottleneck in 3D", &state.tint);
+    ImGui::SameLine();
+    helpMarker("Draw in red, in the 3D view, the machines of the critical "
+               "circuit: the ones that set the cycle time.");
     if (state.dirty)
     {
         analyse(state, p_app.simulation.get());
     }
+    tintCritical(p_app, state);
     if (!state.error.empty())
     {
         ImGui::TextColored(RED, "%s", state.error.c_str());

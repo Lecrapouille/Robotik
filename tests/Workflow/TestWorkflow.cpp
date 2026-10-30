@@ -44,6 +44,7 @@ TEST(Workflow, CycleTimeAndBottleneckOfTheConveyor)
     EXPECT_DOUBLE_EQ(analysis.throughput, 2.0 / 6.0);
     EXPECT_EQ(analysis.critical,
               std::vector<std::string>{ "part_b: sort to bin_right (right)" });
+    EXPECT_EQ(analysis.critical_operators, std::vector<std::string>{ "right" });
     // 4 operations, 2 cycles.
     ASSERT_EQ(analysis.bars.size(), 8U);
     EXPECT_DOUBLE_EQ(analysis.bars.front().start.value(), 0.0);

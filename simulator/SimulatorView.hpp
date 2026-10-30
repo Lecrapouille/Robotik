@@ -107,6 +107,10 @@ public:
         m_overlays.push_back(p_entity.id());
     }
 
+    /// Draws @p_root and everything under it (a robot and its tool) in
+    /// red, the color of a bottleneck (@p_on), or back in its own colors.
+    void tint(compages::world::Entity p_root, bool p_on);
+
     [[nodiscard]] bool hasGround() const override
     {
         return m_grounded;
@@ -130,6 +134,11 @@ private:
     std::vector<std::unique_ptr<RenderedCamera>> m_cameras;
     std::vector<std::unique_ptr<RenderTarget>> m_frames;
     std::vector<compages::world::EntityId> m_overlays;
+    /// Look of a tinted mesh, made at the first tint.
+    compages::renderer::MaterialInstanceId m_tint{};
+    /// Meshes tinted, with their own look.
+    std::vector<std::pair<compages::world::EntityId, compages::renderer::MaterialInstanceId>>
+        m_tinted;
     bool m_grounded = false;
     std::filesystem::path m_ground_file;
     compages::renderer::CanvasTexture m_paint;

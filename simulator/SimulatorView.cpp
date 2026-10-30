@@ -383,3 +383,32 @@ bool SimulatorView::showFrame(std::size_t p_index,
     }
     return static_cast<bool>(target.color.write(pixels));
 }
+
+void SimulatorView::tint(compages::world::Entity p_root, bool p_on)
+{
+    if (!m_tint.valid())
+    {
+        m_tint = m_scene.material("robotik_bottleneck",
+                                  compages::renderer::color(0.90F, 0.15F, 0.10F));
+    }
+    auto const walk = [this, p_on](auto const& p_self, compages::world::Entity p_entity) -> void
+    {
+        if (auto* mesh = p_entity.find<compages::renderer::MeshRenderer>())
+        {
+            auto const saved = std::ranges::find(m_tinted, p_entity.id(),
+                                                 &decltype(m_tinted)::value_type::first);
+            if (p_on && saved == m_tinted.end())
+            {
+                m_tinted.emplace_back(p_entity.id(), mesh->material_instance);
+                mesh->material_instance = m_tint;
+            }
+            else if (!p_on && saved != m_tinted.end())
+            {
+                mesh->material_instance = saved->second;
+                m_tinted.erase(saved);
+            }
+        }
+        p_entity.children([&p_self](compages::world::Entity p_child) { p_self(p_self, p_child); });
+    };
+    walk(walk, p_root);
+}

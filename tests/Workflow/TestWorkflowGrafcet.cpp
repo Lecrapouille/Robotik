@@ -12,6 +12,7 @@
 
 #include "Robotik/Package/Scenario/Scenario.hpp"
 #include "Robotik/Package/Scenario/Workflow.hpp"
+#include "Robotik/Task/Workflow/WorkflowAnalysis.hpp"
 #include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
 
 #include "IO/Exports/Exports.hpp"
@@ -70,6 +71,10 @@ TEST(WorkflowGrafcet, ReadsRecipesBuffersAndParts)
     EXPECT_EQ(workflow.buffers[0].places[1].second, "slot2");
     EXPECT_EQ(workflow.output, "output");
     EXPECT_EQ(workflow.products[2].parts, (std::vector<std::string>{ "p3a", "p3b" }));
+
+    // M1 is the bottleneck of the factory: the simulator draws it in red.
+    robotik::WorkflowAnalysis const analysis = robotik::analyseWorkflow(workflow).take();
+    EXPECT_EQ(analysis.critical_operators, std::vector<std::string>{ "M1" });
 }
 
 TEST(WorkflowGrafcet, GeneratesTheFactory)

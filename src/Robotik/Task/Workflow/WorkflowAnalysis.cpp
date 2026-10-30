@@ -106,6 +106,11 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
         {
             analysis.critical.push_back(text);
         }
+        std::string const& on = found->second.operation->on;
+        if (std::ranges::find(analysis.critical_operators, on) == analysis.critical_operators.end())
+        {
+            analysis.critical_operators.push_back(on);
+        }
     }
 
     // Earliest schedule: an operation transition fires when it starts.
