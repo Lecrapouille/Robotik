@@ -10,6 +10,7 @@
 #include "Robotik/Common/Config.hpp"
 #include "Robotik/Common/Must.hpp"
 
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 
@@ -25,6 +26,72 @@ static std::uint32_t count(ConfigNode const& p_node, char const* p_key, std::str
         throw std::runtime_error(p_where + "." + p_key + " must be 1 or more");
     }
     return static_cast<std::uint32_t>(value);
+}
+
+/// Reads a recipe and checks its placeholders ({part}, {to}, {on}).
+static std::vector<std::string> recipe(ConfigNode const& p_node, char const* p_key,
+                                       std::string const& p_where)
+{
+    std::vector<std::string> steps = p_node.strings(p_key);
+    for (std::string const& step : steps)
+    {
+        for (std::size_t open = step.find('{'); open != std::string::npos;
+             open = step.find('{', open + 1U))
+        {
+            std::size_t const close = step.find('}', open);
+            std::string const name =
+                (close == std::string::npos) ? step.substr(open) : step.substr(open, close - open + 1U);
+            if (name != "{part}" && name != "{to}" && name != "{on}")
+            {
+                throw std::runtime_error(p_where + "." + p_key + ": unknown placeholder '" + name +
+                                         "' in '" + step + "' ({part}, {to}, {on})");
+            }
+        }
+    }
+    return steps;
+}
+
+/// Reads the buffers between the operators.
+static void readBuffers(ConfigNode const& p_node, WorkflowDescription& p_workflow)
+{
+    for (ConfigNode const& item : p_node.at("buffers").items())
+    {
+        WorkflowBuffer buffer;
+        buffer.id = item.text("id");
+        buffer.after = item.text("after");
+        buffer.zone = item.flag("zone", false);
+        std::string const where = "buffer " + buffer.id;
+        if (buffer.id.empty() || buffer.after.empty())
+        {
+            throw std::runtime_error("every buffer needs an id and 'after' (an operator)");
+        }
+        auto const known = [&p_workflow](std::string const& p_id)
+        {
+            return std::ranges::any_of(p_workflow.operators,
+                                       [&p_id](WorkflowOperator const& p_op) { return p_op.id == p_id; });
+        };
+        if (!known(buffer.after))
+        {
+            throw std::runtime_error(where + ": unknown operator '" + buffer.after + "'");
+        }
+        for (WorkflowBuffer const& other : p_workflow.buffers)
+        {
+            if (other.id == buffer.id || other.after == buffer.after)
+            {
+                throw std::runtime_error(where + ": one buffer per name and per operator");
+            }
+        }
+        for (auto const& [product, entity] : item.at("places").entries())
+        {
+            if (std::ranges::none_of(p_workflow.products, [&product](WorkflowProduct const& p_product)
+                                     { return p_product.id == product; }))
+            {
+                throw std::runtime_error(where + ".places: unknown product '" + product + "'");
+            }
+            buffer.places.emplace_back(product, entity.scalar());
+        }
+        p_workflow.buffers.push_back(std::move(buffer));
+    }
 }
 
 /// Reads the operators and products, and checks the routes.
@@ -53,6 +120,8 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
         }
         op.entity = item.text("entity");
         op.capacity = count(item, "capacity", "operator " + op.id);
+        op.take = recipe(item, "take", "operator " + op.id);
+        op.give = recipe(item, "give", "operator " + op.id);
         workflow.operators.push_back(std::move(op));
     }
     if (workflow.operators.empty())
@@ -69,6 +138,7 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
             throw std::runtime_error("every product needs an id");
         }
         product.count = count(item, "count", "product " + product.id);
+        product.parts = item.strings("parts");
         std::size_t previous = 0U;
         for (ConfigNode const& step : item.at("route").items())
         {
@@ -121,6 +191,8 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
     {
         throw std::runtime_error("workflow.products: at least one product");
     }
+    readBuffers(p_node, workflow);
+    workflow.output = p_node.text("output");
     return workflow;
 }
 

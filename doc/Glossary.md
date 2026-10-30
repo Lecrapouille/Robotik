@@ -134,6 +134,8 @@ A layer only uses the layers under it; `make check-layers` checks it.
 
 ## GRAFCET and workflows
 
+- **Buffer**: where parts wait between an operator and the next one of
+  their route; one part per place (`buffers:` of a workflow).
 - **Critical circuit**: the circuit of a timed event graph that sets the
   cycle time: the bottleneck of the cell.
 - **Cycle time (λ)**: the period of a cell in steady state; the throughput is
@@ -152,11 +154,17 @@ A layer only uses the layers under it; `make check-layers` checks it.
   (word of SynDEx).
 - **Operator input**: an input of a GRAFCET that no skill nor observer gives:
   a button (`Dcy`, `AU`).
+- **Recipe**: the skills an operator runs to take a part or to give it
+  (`take:`, `give:` of a workflow); the generated GRAFCET has one step per
+  skill.
 - **Receptivity**: the condition of a GRAFCET transition (`done(Home) . /AU`).
 - **Timed event graph**: a Petri net where each place has one input and one
   output transition; its behavior is linear in the (max,+) algebra.
 - **Workflow**: the operators, products and routes of a cell
-  (`x.workflow.yaml`).
+  (`x.workflow.yaml`); with recipes, buffers and parts, the GRAFCET of the
+  cell is generated from it.
+- **Zone**: a buffer where one operator at a time may work; the one taking
+  parts goes first.
 
 ## Scenarios and runs
 

@@ -8,7 +8,8 @@
 // The GRAFCET controller at work (controller.grafcet of the scenario): the
 // operator inputs as buttons (the desk of a GEMMA: Dcy, AU ...), the active
 // steps, and one tab per graph drawn by the net viewer of
-// TimedPetriNetEditor (active steps outlined, running actions in green).
+// TimedPetriNetEditor (active steps outlined, running actions in green). A
+// GRAFCET generated from the workflow can be saved to open it in the editor.
 
 #include "Colors.hpp"
 #include "Ui.hpp"
@@ -22,6 +23,7 @@
 
 #include <imgui.h>
 
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -83,12 +85,48 @@ static void operatorInputs(robotik::GrafcetController& p_grafcet)
     }
 }
 
+/// The file a generated GRAFCET is saved to: next to its workflow,
+/// x.workflow.yaml -> x.grafcet.json.
+static std::filesystem::path savedFile(std::filesystem::path const& p_workflow)
+{
+    std::string name = p_workflow.filename().string();
+    std::string const suffix = ".workflow.yaml";
+    if (name.ends_with(suffix))
+    {
+        name.resize(name.size() - suffix.size());
+    }
+    return p_workflow.parent_path() / (name + ".grafcet.json");
+}
+
+/// Saves a generated GRAFCET, and says where (or what went wrong).
+static void saveButton(robotik::GrafcetController const& p_grafcet,
+                       std::filesystem::path const& p_workflow, std::string& p_message)
+{
+    if (!p_grafcet.generated())
+    {
+        return;
+    }
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Save .grafcet.json"))
+    {
+        std::filesystem::path const file = savedFile(p_workflow);
+        auto const saved = p_grafcet.save(file);
+        p_message = saved ? "Saved " + file.string() : saved.error();
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("This GRAFCET is generated from the workflow of the cell.\n"
+                          "Save it to open it in TimedPetriNetEditor.");
+    }
+}
+
 void grafcetPanel(App& p_app)
 {
     // One viewer per graph, kept while the same simulation is shown (pan
     // and zoom of the user).
     static robotik::Simulation const* seen = nullptr;
     static std::vector<tpne::NetViewer> viewers;
+    static std::string message;
 
     if (!ImGui::Begin("GRAFCET"))
     {
@@ -109,6 +147,7 @@ void grafcetPanel(App& p_app)
     {
         seen = simulation;
         viewers.assign(graphs.size(), tpne::NetViewer{});
+        message.clear();
         ImGui::SetWindowFocus();
     }
 
@@ -121,6 +160,11 @@ void grafcetPanel(App& p_app)
     ImGui::TextColored(ORANGE, "%s", steps.c_str());
     ImGui::SameLine();
     ImGui::TextDisabled("(%zu firings)", grafcet->firings());
+    saveButton(*grafcet, simulation->cell().description().controller.grafcet->file, message);
+    if (!message.empty())
+    {
+        ImGui::TextDisabled("%s", message.c_str());
+    }
 
     tpne::GrafcetEngine const& engine = grafcet->engine();
     if (ImGui::BeginTabBar("##graphs"))

@@ -11,8 +11,10 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Scheduler.hpp"
+#include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
 
 // Only this folder includes TimedPetriNetEditor (make check-layers).
+#include "IO/Exports/Exports.hpp"
 #include "IO/Imports/Imports.hpp"
 #include "PetriNet/GrafcetEngine.hpp"
 #include "PetriNet/PetriNet.hpp"
@@ -293,10 +295,24 @@ GrafcetController::load(GrafcetSpec const& p_spec, SkillScheduler& p_skills,
     controller->m_impl = std::make_unique<Impl>(p_spec, p_skills, p_domain);
     Impl& impl = *controller->m_impl;
 
-    std::string const error = tpne::importAllNetsFromJSON(impl.graphs, p_spec.file.string());
-    if (!error.empty())
+    if (p_spec.workflow)
     {
-        return failure(error);
+        // Generated from the workflow: it ends with its End step unless the
+        // scenario says otherwise.
+        std::string end;
+        ROBOTIK_TRY_ASSIGN(end, workflowGrafcet(*p_spec.workflow, impl.graphs));
+        if (impl.spec.success.empty())
+        {
+            impl.spec.success = end;
+        }
+    }
+    else
+    {
+        std::string const error = tpne::importAllNetsFromJSON(impl.graphs, p_spec.file.string());
+        if (!error.empty())
+        {
+            return failure(error);
+        }
     }
     if (impl.graphs.empty() || impl.graphs.front().type() != tpne::TypeOfNet::GRAFCET)
     {
@@ -305,7 +321,7 @@ GrafcetController::load(GrafcetSpec const& p_spec, SkillScheduler& p_skills,
 
     // The end conditions are read like receptivities: their inputs are
     // computed with the others.
-    for (std::string const* code : { &p_spec.success, &p_spec.failure })
+    for (std::string const* code : { &impl.spec.success, &impl.spec.failure })
     {
         for (std::string const& name : tpne::Receptivity::inputs(*code))
         {
@@ -325,7 +341,7 @@ GrafcetController::load(GrafcetSpec const& p_spec, SkillScheduler& p_skills,
     ROBOTIK_TRY(start(impl));
     ROBOTIK_TRY(bindInputs(impl));
     ROBOTIK_TRY(bindActions(impl));
-    ROBOTIK_TRY(compileEnd(impl, impl.success, p_spec.success, "success"));
+    ROBOTIK_TRY(compileEnd(impl, impl.success, impl.spec.success, "success"));
     ROBOTIK_TRY(compileEnd(impl, impl.failure, p_spec.failure, "failure"));
     for (auto const& [name, value] : p_spec.inputs)
     {
@@ -543,6 +559,28 @@ std::vector<tpne::Net> const& GrafcetController::graphs() const
 tpne::GrafcetEngine const& GrafcetController::engine() const
 {
     return m_impl->engine;
+}
+
+bool GrafcetController::generated() const
+{
+    return m_impl->spec.workflow.has_value();
+}
+
+Result<void> GrafcetController::save(std::filesystem::path const& p_file) const
+{
+    // The engine knows the graphs by their address: the initial marking is
+    // read on the originals and given to the copies.
+    std::vector<tpne::Net> graphs = m_impl->graphs;
+    for (std::size_t i = 0U; i < graphs.size(); ++i)
+    {
+        (void)graphs[i].tokens(m_impl->engine.initialMarking(m_impl->graphs[i]));
+    }
+    std::string const error = tpne::exportAllNetsToJSON(graphs, p_file.string());
+    if (!error.empty())
+    {
+        return failure(p_file.string() + ": " + error);
+    }
+    return success();
 }
 
 } // namespace robotik

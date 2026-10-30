@@ -23,9 +23,27 @@
 ///         - { name: move, on: arm, duration: 6.0 }
 /// @endcode
 ///
+/// To generate the GRAFCET of the cell (Task/Workflow/WorkflowGrafcet.hpp),
+/// an operator also has its recipes, a product its parts, and the buffers
+/// and the output are given:
+///
+/// @code
+///   operators:
+///     - id: M1
+///       take: [ "M1.Hover({part})", "M1.Grasp({part}) . holding(M1, {part})" ]
+///       give: [ "M1.Over({to})", "M1.Release" ]
+///   buffers:
+///     - { id: station, after: M1, places: { P1: slot1 }, zone: true }
+///   output: bin
+///   products:
+///     - { id: P1, parts: [p1a, p1b], route: [...] }
+/// @endcode
+///
 /// @par Contract
 /// - Promises: a route only names known operators, in the order of the
-///   operators list (a flowshop), each at most once.
+///   operators list (a flowshop), each at most once. Recipes only use the
+///   placeholders @c {part}, @c {to}, @c {on}; a buffer follows a known
+///   operator (one buffer per operator) and names known products.
 /// - Errors: a missing or wrong field is a failure naming the file and the
 ///   field.
 #pragma once

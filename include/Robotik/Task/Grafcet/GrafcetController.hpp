@@ -40,6 +40,7 @@
 
 #include "BlackThorn/BlackThorn.hpp"
 
+#include <filesystem>
 #include <map>
 #include <memory>
 #include <string>
@@ -150,6 +151,21 @@ public:
     /// @return The engine (inputs, outputs, action states) for viewers.
     // -------------------------------------------------------------------------
     [[nodiscard]] tpne::GrafcetEngine const& engine() const;
+
+    // -------------------------------------------------------------------------
+    /// @return True when the graphs were generated from the workflow of the
+    ///   cell (@ref GrafcetSpec::workflow), not read from a file.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] bool generated() const;
+
+    // -------------------------------------------------------------------------
+    /// Saves the graphs in their initial situation, as a GRAFCET file that
+    /// TimedPetriNetEditor opens (to look at a generated GRAFCET, to replay
+    /// it or to change it by hand).
+    /// @param p_file A @c x.grafcet.json file.
+    /// @return What went wrong while writing.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Result<void> save(std::filesystem::path const& p_file) const;
 
     /// Implementation (hides TimedPetriNetEditor from the users).
     struct Impl;

@@ -36,6 +36,7 @@
 #include "Robotik/Robot/Sensors/RangeScanner.hpp"
 #include "Robotik/Task/Faults.hpp"
 #include "Robotik/Task/Planning/Pddl.hpp"
+#include "Robotik/Task/WorkflowDescription.hpp"
 
 #include <algorithm>
 #include <array>
@@ -407,6 +408,10 @@ struct PlannerSpec
 ///   computed by its observer;
 /// - any other name is an operator input (a button of a GEMMA: @c Dcy, @c AU),
 ///   set by @ref inputs, by the simulator, or by the mission.
+///
+/// Instead of a file, the GRAFCET can be generated from the workflow of the
+/// cell (@c grafcet: @c { workflow: scenarios/x.workflow.yaml }, see
+/// Task/Workflow/WorkflowGrafcet.hpp).
 // ****************************************************************************
 struct GrafcetSpec
 {
@@ -424,9 +429,13 @@ struct GrafcetSpec
         bool pulse = false;
     };
 
-    /// GRAFCET file of the package (@c x.grafcet.json).
+    /// GRAFCET file of the package (@c x.grafcet.json), or the workflow file
+    /// it is generated from.
     std::filesystem::path file;
-    /// Receptivity ending the run with a success (e.g. @c X9), or empty.
+    /// Workflow to generate the GRAFCET from, instead of reading @ref file.
+    std::optional<WorkflowDescription> workflow;
+    /// Receptivity ending the run with a success (e.g. @c X9), or empty (a
+    /// generated GRAFCET then ends with its @c End step).
     std::string success;
     /// Receptivity ending the run with a failure (e.g. @c Safety:X2), or
     /// empty. Without success nor failure the GRAFCET runs until the scenario

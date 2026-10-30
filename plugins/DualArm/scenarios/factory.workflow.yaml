@@ -2,21 +2,43 @@
 # (TimedPetriNetEditor data/examples), machining only (the moves of the arms
 # are not counted here). P1 P2 P3 visit M1 then M2.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.workflow.yaml
+#
+# It also drives the cell (factory.scenario.yaml: grafcet: { workflow: ... }):
+# the GRAFCET is generated from the recipes of the arms, the station between
+# them and the parts of each lot. M1 takes a part from its stock, machines it
+# while holding it, and gives it to the place of its kind in the station; M2
+# takes it there, carries it over the output, machines it and drops it. One
+# arm at a time in the station (zone), M2 first.
 workflow:
   id: factory_line
   operators:
-    - { id: M1, entity: M1 }
-    - { id: M2, entity: M2 }
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+  buffers:
+    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
+  output: output
   products:
     - id: P1
+      parts: [p1a, p1b]
       route:
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
     - id: P2
+      parts: [p2a, p2b]
       route:
         - { name: machining, on: M1, duration: 3.0 }
         - { name: machining, on: M2, duration: 2.0 }
     - id: P3
+      parts: [p3a, p3b]
       route:
         - { name: machining, on: M1, duration: 1.0 }
         - { name: machining, on: M2, duration: 1.5 }

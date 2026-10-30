@@ -2,14 +2,13 @@
 # (data/examples/simple.flowshop) with two arms as the machines M1 and M2,
 # three kinds of parts and two lots (worlds/factory_cell.world.yaml).
 #
-# scenarios/factory.grafcet.json is the event graph of the flowshop written as
-# a GRAFCET (126 steps): one sequence of steps per operation (machine, part);
+# The GRAFCET is generated from scenarios/factory.workflow.yaml: one sequence
+# of steps per operation (machine, part) made of the recipes of the arms;
 # AND convergences give the order of each machine and of each part (a part
-# goes to M2 once machined by M1; the slot of a kind is free again once M2
-# took the part). Machining is a time receptivity (2s/X12) while the arm
-# holds the part. A Station step is a semaphore: one arm at a time between
-# the machines, M2 first. factory.workflow.yaml gives the cycle time of the
-# flowshop.
+# goes to M2 once machined by M1; the place of a kind in the station is free
+# again once M2 took the part). Machining is a time receptivity (2s/X10)
+# while the arm holds the part. The station is a zone: one arm at a time,
+# M2 first. The same file gives the cycle time of the flowshop.
 scenario:
   id: factory
   description: Two machines, three kinds of parts, two lots - the flowshop of simple.flowshop with robots.
@@ -18,8 +17,7 @@ scenario:
 
   controller:
     grafcet:
-      file: scenarios/factory.grafcet.json
-      success: X125             # End: M2 dropped the last part
+      workflow: scenarios/factory.workflow.yaml   # ends at its End step
 
   perception: { fidelity: truth }   # the simulator gives the poses
 

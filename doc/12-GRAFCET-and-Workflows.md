@@ -188,7 +188,8 @@ latches or releases a button (AU for the emergency stop).
 | Key | Meaning |
 |-----|---------|
 | `file` | The `.grafcet.json` file (path from the package root). `grafcet: scenarios/x.grafcet.json` is the short form |
-| `success` | Receptivity: the run succeeds when it is true (`X11`) |
+| `workflow` | Instead of `file`: the `.workflow.yaml` file the GRAFCET is generated from ([§7](#7-a-factory)) |
+| `success` | Receptivity: the run succeeds when it is true (`X11`). A generated GRAFCET succeeds by default at its `End` step |
 | `failure` | Receptivity: the run fails when it is true |
 | `inputs` | Operator inputs at the start (`{ Manual: 1 }`); an edge needs a change, use a push button event for it |
 | `events` | Operator inputs later: `- { at: 3.0, input: AU, value: 1 }` (latched), `- { at: 0.0, input: Dcy, pulse: true }` (push button: 1 during one cycle) |
@@ -271,39 +272,111 @@ that names a `skill:` by the mean duration of this skill in the current run.
 | `operators[].id` | Name used by the routes |
 | `operators[].entity` | World entity it stands for (information) |
 | `operators[].capacity` | Products it works on at once (default 1) |
+| `operators[].take` | Recipe to take a part: skill calls, one step each (§7) |
+| `operators[].give` | Recipe to give the part to the next operator (§7) |
 | `products[].id` | Product kind |
 | `products[].count` | Products of this kind in the cell at once (default 1) |
 | `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional) |
+| `products[].parts` | World entities of this kind, one per lot (§7) |
+| `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it (§7) |
+| `output` | World entity receiving the finished parts (the `{to}` of the last operation) |
 
 The routes must form a **flowshop**: every product visits the operators in the
 order of the `operators` list, and skips the ones it does not need. Other
-routes (a jobshop) are refused for now. Not done yet: transport media and
-buffers between operators (the media of SynDEx), and the generation of
+routes (a jobshop) are refused for now.
+
+**Capacity** is a number of tokens, not of machines. `capacity: 2` says that
+two *interchangeable* units work at once (two grippers on the same arm, two
+spindles); the analysis divides the time of the operator circuit by two. Two
+units that are not the same (a fast arm and a slow one) are two operators.
+The GRAFCET generator only takes `capacity: 1`, because a GRAFCET step holds
+one token: write one operator per unit.
+
+Not done yet: conveyors as operators of the cell, and the generation of
 distributed code.
 
 ## 7. A factory
 
 `plugins/DualArm/scenarios/factory.scenario.yaml` puts both parts together:
 the flowshop of `simple.flowshop` (TimedPetriNetEditor) is played by two arms
-(machines M1 and M2) on three kinds of parts in two lots, and driven by a
-GRAFCET of 126 steps that is the event graph of the flowshop:
+(machines M1 and M2) on three kinds of parts in two lots. Only the workflow
+describes the cell; Robotik **generates** the GRAFCET from it:
+
+```yaml
+# plugins/DualArm/scenarios/factory.scenario.yaml
+  controller:
+    grafcet:
+      workflow: scenarios/factory.workflow.yaml   # ends at its End step
+```
+
+The workflow gives, on top of the routes and the durations, how each arm
+works (its **recipes**), where the parts wait between the arms (a
+**buffer**), and the parts of each lot:
+
+```yaml
+# plugins/DualArm/scenarios/factory.workflow.yaml (part of it)
+  operators:
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      ...
+  buffers:
+    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
+  output: output
+  products:
+    - id: P1
+      parts: [p1a, p1b]
+      route:
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+```
+
+A recipe is a list of skill calls. Each one becomes a step whose action is
+the skill; its receptivity is `done(skill)`, and what follows ` . ` is added
+to it (`done(M1.Grasp(p1a)) . holding(M1, p1a)`). `{part}` is the part,
+`{to}` its place in the next buffer (or `output` at the end), `{on}` the
+operator. For each part on each operator the generator writes:
 
 ```text
-M1 idle . slotK free ──> hover, reach, grasp, lift, machine (2s/X), wait station
-wait station . Station ──> over slotK, release, leave (Home)
-                         ──> M1 idle . "part machined by M1" . Station
-M2 idle . "part machined by M1" ──> wait station
-M2 wait station . Station ──> hover, reach, grasp, lift, over output
-                         ──> machine (1s/X) . Station . slotK free ──> release
+idle . part done by the previous operator . its place in the next buffer free
+  (wait for the zone of the buffer it takes from)  take recipe
+  machining: a step with the time receptivity 2s/X10 (the arm holds the part)
+  (wait for the zone of the buffer it gives to)    give recipe
+  ──> idle (or done after its last part) . "part done by <operator>" . zone free
+every operator done ──> End
 ```
 
 The AND convergences say what the flowshop says: a machine works on one part
-at a time, in a fixed order; a part goes to M2 once machined by M1; the next
-part of a kind enters once the previous one left its station. The **Station**
-step is a semaphore: the arms never work between the machines at the same
-time, M2 first (the receptivity of M1 is `/(X.. + X..)` on the waiting steps of
-M2). `factory.workflow.yaml` gives the cycle time of the machining alone
-(6 s, M1 is the bottleneck); the run adds the moves of the arms.
+at a time, in the order of the products and lot after lot; a part goes to M2
+once machined by M1; the place of a kind in the station is free again once M2
+took the part. The station is a **zone**: one arm at a time in it, M2 first
+(the operator taking parts goes first, so the line empties: the zone
+receptivity of M1 is `/(X.. + X..)` on the waiting steps of M2). For the
+factory this makes 127 steps; the run is the same as with the GRAFCET drawn
+by hand before (50.23 s). `factory.workflow.yaml` also gives the cycle time of
+the machining alone (6 s, M1 is the bottleneck); the run adds the moves of
+the arms.
+
+In the simulator, **Save .grafcet.json** in the GRAFCET panel writes the
+generated GRAFCET next to the workflow (`factory.grafcet.json`), to open it
+in TimedPetriNetEditor.
+
+The generator refuses, with a message: a workflow without parts, an operator
+of capacity above 1, a part going from an operator to the next one without a
+buffer after the first, a buffer without a place for the product, `{to}` in
+the last recipe without `output`, and an unknown placeholder.
+
+**A behavior tree or a GRAFCET?** A plan, a behavior tree and a GRAFCET can
+say the same order. A tree with only `Sequence` and `Parallel` says only
+series-parallel orders. The planner of Robotik writes any partial order: a
+`Parallel` of the steps, each one waiting for the events it needs
+([chapter 11](11-PDDL-Planner.md)). The GRAFCET says it with AND convergences.
+Choose by the job: the planner and the trees for robots that decide; the
+GRAFCET and the GEMMA for a factory cell, the language of automation
+engineers.
 
 ## 8. From C++
 
@@ -318,6 +391,11 @@ robotik::useMeasuredDurations(workflow,
 robotik::WorkflowAnalysis const analysis =
     robotik::analyseWorkflow(workflow).take();
 std::cout << analysis.cycle_time.value() << " s\n";
+
+// The GRAFCET of the cell (needs recipes, buffers and parts).
+#include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
+std::vector<tpne::Net> graphs;
+std::string const end = robotik::workflowGrafcet(workflow, graphs).take();
 ```
 
 The GRAFCET controller is `robotik::GrafcetController`

@@ -10,6 +10,7 @@
 
 #include "Robotik/Package/Scenario/FileRole.hpp"
 #include "Robotik/Package/Scenario/PackagePath.hpp"
+#include "Robotik/Package/Scenario/Workflow.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -116,23 +117,41 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     return spec;
 }
 
-/// Reads the grafcet block: a file name, or a map with the file, the end
-/// conditions and the initial operator inputs.
+/// Reads the grafcet block: a file name, or a map with the file (or the
+/// workflow to generate it from), the end conditions and the initial
+/// operator inputs.
 static GrafcetSpec readGrafcet(std::filesystem::path const& p_root,
                                ConfigNode const& p_node)
 {
     GrafcetSpec spec;
-    spec.file = must(packageFile(
-        p_root, p_node.isScalar() ? p_node.scalar() : p_node.text("file")));
-    if (spec.file.empty())
+    if (p_node.isMap() && p_node.has("workflow"))
     {
-        throw std::runtime_error(
-            "grafcet.file is required (a .grafcet.json file of the package)");
+        if (p_node.has("file"))
+        {
+            throw std::runtime_error("grafcet: a file or a workflow, not both");
+        }
+        spec.file = must(packageFile(p_root, p_node.text("workflow")));
+        if (fileRole(spec.file) != FileRole::Workflow)
+        {
+            throw std::runtime_error("grafcet.workflow: '" + spec.file.filename().string() +
+                                     "' is not a .workflow.yaml file");
+        }
+        spec.workflow = must(loadWorkflow(spec.file));
     }
-    if (fileRole(spec.file) != FileRole::Grafcet)
+    else
     {
-        throw std::runtime_error("grafcet: '" + spec.file.filename().string() +
-                                 "' is not a .grafcet.json file");
+        spec.file = must(packageFile(
+            p_root, p_node.isScalar() ? p_node.scalar() : p_node.text("file")));
+        if (spec.file.empty())
+        {
+            throw std::runtime_error(
+                "grafcet.file is required (a .grafcet.json file of the package)");
+        }
+        if (fileRole(spec.file) != FileRole::Grafcet)
+        {
+            throw std::runtime_error("grafcet: '" + spec.file.filename().string() +
+                                     "' is not a .grafcet.json file");
+        }
     }
     if (p_node.isMap())
     {

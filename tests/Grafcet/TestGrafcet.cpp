@@ -17,6 +17,9 @@
 #include "Robotik/Task/Grafcet/GrafcetController.hpp"
 
 #include "Compages/World/World.hpp"
+#include "IO/Imports/Imports.hpp"
+#include "PetriNet/GrafcetEngine.hpp"
+#include "PetriNet/PetriNet.hpp"
 
 #include <algorithm>
 
@@ -182,4 +185,27 @@ TEST(GrafcetScenario, PushButtonLastsOneCycleEvenWhenPaused)
     simulation.step(robotik::Seconds(0.01));
     EXPECT_EQ(grafcet.operatorInputs().at("Rearm"), 0);
     EXPECT_FALSE(grafcet.pulse("done(Home)")) << "not an operator input";
+}
+
+TEST(GrafcetScenario, SavesTheGraphsInTheirInitialSituation)
+{
+    PickPlaceMission mission(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world, robotik::loadScenario(repoFile(SEQUENCE), testAssets()).take(),
+        nullptr, &mission);
+    EXPECT_EQ(runToTheEnd(simulation, 60.0),
+              robotik::Simulation::Outcome::ControllerSucceeded);
+    robotik::GrafcetController const& grafcet = *simulation.cell().grafcet();
+    EXPECT_FALSE(grafcet.generated());
+
+    // At the end the last step is active; the file has the initial one.
+    std::filesystem::path const file =
+        std::filesystem::temp_directory_path() / "robotik_saved.grafcet.json";
+    ASSERT_TRUE(grafcet.save(file));
+    std::vector<tpne::Net> saved;
+    ASSERT_EQ(tpne::importAllNetsFromJSON(saved, file.string()), "");
+    ASSERT_EQ(saved.size(), grafcet.graphs().size());
+    EXPECT_EQ(saved[0].tokens(), grafcet.engine().initialMarking(grafcet.graphs()[0]));
+    EXPECT_NE(saved[0].tokens(), grafcet.graphs()[0].tokens());
 }

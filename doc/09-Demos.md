@@ -437,13 +437,15 @@ time and its bottleneck (the right arm).
 flowshop of TimedPetriNetEditor (`data/examples/simple.flowshop`) with robots.
 The two arms are the machines M1 and M2; three kinds of parts (P1 red, P2
 green, P3 blue) in two lots go from the stock of M1 to a station of their
-kind, then to the output of M2. The GRAFCET (`factory.grafcet.json`, 126
-steps) is the event graph of the flowshop: one sequence of steps per
-operation, AND convergences for the order of the machines and of the parts,
-machining as a time receptivity while the arm holds the part, and a Station
-step as a semaphore between the arms. It ends in about 50 s.
-`factory.workflow.yaml` holds the machining times of `simple.flowshop`: cycle
-time 6 s, M1 is the bottleneck.
+kind, then to the output of M2. Only `factory.workflow.yaml` describes the
+cell: the recipes of the arms (the skills to take and to give a part), the
+station between them, the parts of each lot and the machining times of
+`simple.flowshop`. Robotik generates the GRAFCET from it (127 steps, the event
+graph of the flowshop): one sequence of steps per operation, AND
+convergences for the order of the machines and of the parts, machining as a
+time receptivity while the arm holds the part, and the station as a zone
+(one arm at a time, M2 first). It ends in about 50 s. The same file gives
+the cycle time: 6 s, M1 is the bottleneck.
 
 ## 9. Micro Duck
 

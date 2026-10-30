@@ -16,6 +16,12 @@
 /// cell is a @e flowshop: every product visits the operators in the order of
 /// @ref WorkflowDescription::operators (it may skip some).
 ///
+/// A workflow can also say how the cell does its work, to generate the
+/// GRAFCET driving it (Task/Workflow/WorkflowGrafcet.hpp): the skills of
+/// each operator to take and to give a part (its @e recipe), the @e buffers
+/// where parts wait between two operators, and the parts of each product
+/// kind (one per lot).
+///
 /// @par Contract
 /// - Promises: plain data, no behavior.
 /// - Expects: checked by the reader (known operators, flowshop order).
@@ -26,6 +32,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace robotik
@@ -42,6 +49,29 @@ struct WorkflowOperator
     std::string entity;
     /// Products it works on at once (tokens of its circuit).
     std::uint32_t capacity = 1U;
+    /// Recipe to take a part: one skill call per step, optionally followed
+    /// by " . " and more of the receptivity ("Grasp({part}) . holding({part})").
+    /// @c {part}, @c {to} and @c {on} are replaced. Empty: nothing to do.
+    std::vector<std::string> take;
+    /// Recipe to give the part to the next operator, as @ref take.
+    std::vector<std::string> give;
+};
+
+// ****************************************************************************
+/// Where parts wait between an operator and the next one of their route.
+// ****************************************************************************
+struct WorkflowBuffer
+{
+    /// Name of the buffer.
+    std::string id;
+    /// Operator giving the parts (@ref WorkflowOperator::id).
+    std::string after;
+    /// Place of each product kind in the buffer: product id, world entity
+    /// (the @c {to} of the recipe giving the part). One part per place.
+    std::vector<std::pair<std::string, std::string>> places;
+    /// One operator at a time in the buffer (a shared zone); the one taking
+    /// parts goes first.
+    bool zone = false;
 };
 
 // ****************************************************************************
@@ -71,6 +101,8 @@ struct WorkflowProduct
     std::uint32_t count = 1U;
     /// Operations in order.
     std::vector<WorkflowOperation> route;
+    /// World entities of this kind, one per lot, in the order they are made.
+    std::vector<std::string> parts;
 };
 
 // ****************************************************************************
@@ -93,6 +125,11 @@ struct WorkflowDescription
     std::vector<WorkflowOperator> operators;
     /// Product kinds, in the order the operators work on them.
     std::vector<WorkflowProduct> products;
+    /// Buffers between the operators.
+    std::vector<WorkflowBuffer> buffers;
+    /// World entity receiving the finished parts (the @c {to} of the last
+    /// operation), or empty.
+    std::string output;
 };
 
 } // namespace robotik
