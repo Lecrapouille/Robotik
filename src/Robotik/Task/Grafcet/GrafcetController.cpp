@@ -125,6 +125,8 @@ struct GrafcetController::Impl
     std::size_t next_event = 0U;
     /// Push buttons pressed: back to 0 after the next cycle.
     std::vector<std::string> pulses;
+    /// Transitions fired since the start, with their time.
+    std::vector<GrafcetFiring> history;
 };
 
 /// Splits "name(a, b)" into "name" and its arguments ("a", "b"). The
@@ -266,6 +268,7 @@ static Result<void> start(GrafcetController::Impl& p_impl)
     }
     p_impl.next_event = 0U;
     p_impl.pulses.clear();
+    p_impl.history.clear();
     return success();
 }
 
@@ -448,6 +451,10 @@ bt::Status GrafcetController::tick(RobotContext const& p_context)
     // 2. Evolution of the graphs, then actions. Push buttons are released
     // after one cycle: their rising edge has been seen.
     impl.engine.step(dt);
+    for (tpne::GrafcetEngine::Firing const& firing : impl.engine.firings())
+    {
+        impl.history.push_back({ p_context.time, impl.graphs[firing.graph].name, firing.transition });
+    }
     for (std::string const& name : impl.pulses)
     {
         impl.engine.setInput(name, 0);
@@ -559,6 +566,11 @@ std::vector<tpne::Net> const& GrafcetController::graphs() const
 tpne::GrafcetEngine const& GrafcetController::engine() const
 {
     return m_impl->engine;
+}
+
+std::vector<GrafcetFiring> const& GrafcetController::history() const
+{
+    return m_impl->history;
 }
 
 bool GrafcetController::generated() const

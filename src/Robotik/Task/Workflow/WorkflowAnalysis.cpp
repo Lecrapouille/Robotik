@@ -23,10 +23,18 @@ static std::string captionOf(std::string const& p_operator, std::string const& p
     return p_operator + "_" + p_product;
 }
 
-Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
-                                         std::size_t p_cycles)
+/// Where an operation is in the workflow, by the caption of its transition.
+struct Where
 {
-    // Flowshop: machines are the operators, conveyors the product kinds.
+    WorkflowProduct const* product;
+    WorkflowOperation const* operation;
+};
+
+/// The flowshop of a workflow (machines: the operators, conveyors: the
+/// product kinds), and where each operation is.
+static tpne::Flowshop flowshopOf(WorkflowDescription const& p_workflow,
+                                 std::map<std::string, Where>& p_operations)
+{
     tpne::Flowshop shop;
     shop.nmachines = p_workflow.operators.size();
     shop.nconveyors = p_workflow.products.size();
@@ -42,9 +50,6 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
     }
     shop.PT.assign(shop.nmachines,
                    std::vector<float>(shop.nconveyors, tpne::flowshopNoOperation()));
-    // Where each operation is, by transition caption.
-    struct Where { WorkflowProduct const* product; WorkflowOperation const* operation; };
-    std::map<std::string, Where> operations;
     for (std::size_t p = 0U; p < p_workflow.products.size(); ++p)
     {
         WorkflowProduct const& product = p_workflow.products[p];
@@ -57,9 +62,17 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
                     shop.PT[m][p] = static_cast<float>(operation.duration.value());
                 }
             }
-            operations[captionOf(operation.on, product.id)] = { &product, &operation };
+            p_operations[captionOf(operation.on, product.id)] = { &product, &operation };
         }
     }
+    return shop;
+}
+
+Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
+                                         std::size_t p_cycles)
+{
+    std::map<std::string, Where> operations;
+    tpne::Flowshop const shop = flowshopOf(p_workflow, operations);
     std::string const error = tpne::checkFlowshop(shop);
     if (!error.empty())
     {
@@ -205,6 +218,19 @@ std::vector<std::size_t> eventGraphMarking(tpne::Net const& p_graph,
         marking.push_back(static_cast<std::size_t>(std::max(0L, tokens)));
     }
     return marking;
+}
+
+Result<void> writeFlowshop(WorkflowDescription const& p_workflow, std::ostream& p_out)
+{
+    std::map<std::string, Where> operations;
+    tpne::Flowshop const shop = flowshopOf(p_workflow, operations);
+    std::string const error = tpne::checkFlowshop(shop);
+    if (!error.empty())
+    {
+        return failure(p_workflow.file.string() + ": " + error);
+    }
+    tpne::writeFlowshopCSV(p_out, shop);
+    return success();
 }
 
 } // namespace robotik

@@ -36,6 +36,7 @@
 ///   @c done(S) on an unknown skill.
 #pragma once
 
+#include "Robotik/Common/Math.hpp"
 #include "Robotik/Common/Result.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
@@ -59,6 +60,19 @@ class SkillScheduler;
 class PlanningDomain;
 struct RobotContext;
 struct GrafcetSpec;
+
+// ****************************************************************************
+/// A transition that fired, and when (see @ref GrafcetController::history).
+// ****************************************************************************
+struct GrafcetFiring
+{
+    /// Simulated time of the cycle it fired in.
+    Seconds time{};
+    /// Name of its graph.
+    std::string graph;
+    /// Transition id in its graph.
+    std::size_t transition = 0U;
+};
 
 // ****************************************************************************
 /// Runs a GRAFCET file on the skills of a cell (see the file comment).
@@ -157,6 +171,12 @@ public:
     ///   cell (@ref GrafcetSpec::workflow), not read from a file.
     // -------------------------------------------------------------------------
     [[nodiscard]] bool generated() const;
+
+    // -------------------------------------------------------------------------
+    /// @return Every transition fired since the last reset, in order, with
+    ///   its time (to measure how long the operations of a cell take).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<GrafcetFiring> const& history() const;
 
     // -------------------------------------------------------------------------
     /// Saves the graphs in their initial situation, as a GRAFCET file that

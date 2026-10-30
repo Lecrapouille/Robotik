@@ -1,0 +1,27 @@
+# The cadence of the factory measured over several runs:
+#   ./build/Robotik-Headless build/plugins/DualArm/experiments/factory.experiment.yaml \
+#       --cadence factory.flowshop
+# Each run moves the parts of the stock by up to 1 cm: the arms take a
+# little more or less time. --cadence prints the busy time of each arm per
+# part (take, machining, give, without the waits for the station), its mean
+# over the runs, the cycle time with it, and writes the table for
+# TimedPetriNetEditor.
+experiment:
+  id: factory_experiment
+  description: The cadence of each machine of the factory, measured over several runs.
+  seeds: [1, 2, 3, 4]
+
+  cases:
+    - id: shifted_stock
+      scenario: scenarios/factory.scenario.yaml
+      overrides:
+        world.entities.p1a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p2a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p3a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p1b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p2b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p3b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+
+  evaluation:
+    metrics:
+      - time

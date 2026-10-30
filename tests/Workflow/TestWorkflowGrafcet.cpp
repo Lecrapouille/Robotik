@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <sstream>
 
 static char const* const FACTORY = "plugins/DualArm/scenarios/factory.workflow.yaml";
 
@@ -209,6 +210,48 @@ TEST(WorkflowGrafcet, StartedOperationsMoveTheTokensOfTheEventGraph)
     }
     EXPECT_EQ(total_after, total_before);
     EXPECT_EQ(robotik::eventGraphMarking(*analysis.graph, {}), before);
+}
+
+TEST(WorkflowGrafcet, MeasuresTheBusyTimeOfEachJob)
+{
+    robotik::WorkflowDescription workflow = read(LINE).take();
+    std::vector<robotik::WorkflowJob> const jobs = robotik::workflowJobs(workflow).take();
+    ASSERT_EQ(jobs.size(), 2U); // p1 on a, then on b
+    EXPECT_EQ(jobs[0].on, "a");
+    EXPECT_EQ(jobs[1].on, "b");
+    EXPECT_EQ(jobs[1].part, "p1");
+    EXPECT_LT(jobs[0].start, jobs[0].end);
+
+    // a works from 0 to 4 s; b from 4 s to 9 s, but waits 2 s in it.
+    robotik::WorkflowJob waiting = jobs[1];
+    waiting.waits = { { 100U, 101U } };
+    std::vector<robotik::GrafcetFiring> const history = {
+        { robotik::Seconds(0.0), "Production", jobs[0].start },
+        { robotik::Seconds(4.0), "Production", jobs[0].end },
+        { robotik::Seconds(4.0), "Production", jobs[1].start },
+        { robotik::Seconds(5.0), "Production", 100U },
+        { robotik::Seconds(7.0), "Production", 101U },
+        { robotik::Seconds(9.0), "Production", jobs[1].end },
+        { robotik::Seconds(1.0), "Control", jobs[0].start }, // another graph
+    };
+    auto const measured = robotik::measuredOperations({ jobs[0], waiting }, history);
+    ASSERT_EQ(measured.size(), 2U);
+    EXPECT_DOUBLE_EQ(measured.at("a_p").front().value(), 4.0);
+    EXPECT_DOUBLE_EQ(measured.at("b_p").front().value(), 3.0);
+
+    // A job not ended is not measured; the mean replaces the duration.
+    EXPECT_TRUE(robotik::measuredOperations(jobs, { history[0] }).empty());
+    std::map<std::string, std::vector<robotik::Seconds>> const runs = {
+        { "a_p", { robotik::Seconds(4.0), robotik::Seconds(6.0) } }
+    };
+    EXPECT_EQ(robotik::useMeasuredOperations(workflow, runs), 1U);
+    EXPECT_DOUBLE_EQ(workflow.products[0].route[0].duration.value(), 5.0);
+    EXPECT_DOUBLE_EQ(workflow.products[0].route[1].duration.value(), 0.5);
+
+    // TimedPetriNetEditor reads the table back.
+    std::ostringstream table;
+    ASSERT_TRUE(robotik::writeFlowshop(workflow, table));
+    EXPECT_NE(table.str().find("a,5"), std::string::npos) << table.str();
 }
 
 TEST(WorkflowGrafcet, GeneratesTheGemmaOfTheCell)

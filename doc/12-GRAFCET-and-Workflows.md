@@ -441,6 +441,38 @@ Choose by the job: the planner and the trees for robots that decide; the
 GRAFCET and the GEMMA for a factory cell, the language of automation
 engineers.
 
+### Measure the cadence
+
+Typing the time of each operation by hand is long, and the declared
+machining time is not what a machine really takes: the arm also has to take
+and give the part. When the GRAFCET is generated from the workflow,
+`--cadence` measures it in the runs: for each part on each operator, the
+time from the start of its job to its end, without the waits for a zone.
+With an experiment, the runs of all its seeds are put together.
+
+```bash
+./build/Robotik-Headless build/plugins/DualArm/experiments/factory.experiment.yaml \
+    --cadence factory.flowshop
+```
+
+```text
+cadence of factory_line (busy time of each operator per part, waits for a zone left out):
+  operator   product      declared   measured        max  runs
+  M1         P1              2.00s      7.56s      7.64s     8
+  M2         P1              1.00s      5.51s      5.91s     8
+  M1         P2              3.00s      7.87s      7.92s     8
+  M2         P2              2.00s      6.51s      6.51s     8
+  M1         P3              1.00s      5.44s      5.65s     8
+  M2         P3              1.50s      5.75s      5.75s     8
+cycle time with the measured durations: 20.8713 s, critical: M1
+flowshop: factory.flowshop (0 runs without a generated GRAFCET)
+```
+
+The experiment (`experiments/factory.experiment.yaml`) moves the parts of
+the stock by up to 1 cm at each seed. `factory.flowshop` is the table of the
+measured means, which TimedPetriNetEditor opens (machines in rows, products
+in columns).
+
 ## 8. From C++
 
 ```cpp
@@ -454,6 +486,14 @@ robotik::useMeasuredDurations(workflow,
 robotik::WorkflowAnalysis const analysis =
     robotik::analyseWorkflow(workflow).take();
 std::cout << analysis.cycle_time.value() << " s\n";
+
+// Measured in a run of the generated GRAFCET (the --cadence of Robotik-Headless).
+#include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"
+auto const jobs = robotik::workflowJobs(workflow).take();
+robotik::useMeasuredOperations(
+    workflow, robotik::measuredOperations(jobs, cell.grafcet()->history()));
+std::ofstream table("measured.flowshop");
+(void)robotik::writeFlowshop(workflow, table);
 
 // The GRAFCET of the cell (needs recipes, buffers and parts).
 #include "Robotik/Task/Workflow/WorkflowGrafcet.hpp"

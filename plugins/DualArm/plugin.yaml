@@ -26,3 +26,8 @@ scenarios:
     - { id: factory, name: Factory (flowshop), file: factory.scenario.yaml, menu: GRAFCET }
     - { id: factory_gemma, name: Factory with a GEMMA, file: factory_gemma.scenario.yaml, menu: GRAFCET }
     - { id: factory_belt, name: Factory fed by a belt, file: factory_belt.scenario.yaml, menu: GRAFCET }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: factory_experiment, name: Factory cadence, file: factory.experiment.yaml }

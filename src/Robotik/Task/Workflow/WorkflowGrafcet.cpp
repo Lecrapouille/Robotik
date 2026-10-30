@@ -218,6 +218,8 @@ struct Production
     std::size_t end = 0U;
     /// Steps where each operator waits between two parts (idle, done).
     std::vector<std::vector<std::size_t>> idle;
+    /// Each part on each operator.
+    std::vector<WorkflowJob> jobs;
 };
 
 /// Builds the production graph; a part starts only when @p_start is true
@@ -311,6 +313,8 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             std::string const destination =
                 (to != nullptr) ? to->entities.at(product.id) : p_workflow.output;
 
+            WorkflowJob job{ op.id, product.id, part, p_net.transitions().size(), 0U, {} };
+
             // Start: idle, the part given by the previous operator, its place
             // in the next buffer free.
             builder.inputs = { *idle };
@@ -325,8 +329,10 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             }
             if (from != nullptr && from->zone)
             {
+                std::size_t const enter = p_net.transitions().size();
                 from->takers.push_back(
                     advance(builder, op.id + " waits " + from->buffer->id + " for " + part));
+                job.waits.emplace_back(enter, p_net.transitions().size());
                 builder.inputs.push_back(*from->zone);
             }
             runRecipe(builder, op.take, part, destination, op.id, where);
@@ -356,7 +362,9 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             }
             if (to != nullptr && to->zone)
             {
+                std::size_t const enter = p_net.transitions().size();
                 (void)advance(builder, op.id + " waits " + to->buffer->id);
+                job.waits.emplace_back(enter, p_net.transitions().size());
                 builder.inputs.push_back(*to->zone);
                 builder.code = "1";
                 // The transition entering the zone is the next one.
@@ -390,7 +398,8 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             {
                 builder.extra.push_back(*to->zone);
             }
-            (void)fire(builder, outputs);
+            job.end = fire(builder, outputs);
+            production.jobs.push_back(std::move(job));
             builder.y += ROW;
             if (last)
             {
@@ -451,8 +460,8 @@ static std::string atRest(Production const& p_production)
 
 /// Adds the Safety and Control graphs of the default GEMMA: the production
 /// starts a part only in F1; Control leaves A2 (end of cycle) when every
-/// operator is between two parts. Returns the End step of Production.
-static std::size_t addGemma(WorkflowDescription const& p_workflow, std::vector<tpne::Net>& p_graphs)
+/// operator is between two parts. Returns what Production tells.
+static Production addGemma(WorkflowDescription const& p_workflow, std::vector<tpne::Net>& p_graphs)
 {
     tpne::Gemma const gemma = tpne::defaultGemma();
     tpne::Net safety(tpne::TypeOfNet::GRAFCET);
@@ -471,11 +480,12 @@ static std::size_t addGemma(WorkflowDescription const& p_workflow, std::vector<t
         }
     }
     p_graphs.insert(p_graphs.begin(), { std::move(safety), std::move(control) });
-    return built.end;
+    return built;
 }
 
 Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
-                                    std::vector<tpne::Net>& p_graphs)
+                                    std::vector<tpne::Net>& p_graphs,
+                                    std::vector<WorkflowJob>* p_jobs)
 {
     // The border of this generator: what is missing in the workflow becomes
     // a message.
@@ -486,9 +496,13 @@ Result<std::string> workflowGrafcet(WorkflowDescription const& p_workflow,
         tpne::Net& net = p_graphs.back();
         net.name = "Production";
         net.description = "Generated from the workflow " + p_workflow.id;
-        std::size_t const end = p_workflow.gemma.empty() ? build(p_workflow, net, "1").end
-                                                         : addGemma(p_workflow, p_graphs);
-        return "Production:X" + std::to_string(end);
+        Production built = p_workflow.gemma.empty() ? build(p_workflow, net, "1")
+                                                    : addGemma(p_workflow, p_graphs);
+        if (p_jobs != nullptr)
+        {
+            *p_jobs = std::move(built.jobs);
+        }
+        return "Production:X" + std::to_string(built.end);
     }
     catch (std::runtime_error const& error)
     {
@@ -541,6 +555,76 @@ std::map<std::string, std::size_t> startedOperations(WorkflowDescription const& 
         }
     }
     return started;
+}
+
+Result<std::vector<WorkflowJob>> workflowJobs(WorkflowDescription const& p_workflow)
+{
+    std::vector<tpne::Net> graphs;
+    std::vector<WorkflowJob> jobs;
+    ROBOTIK_TRY(workflowGrafcet(p_workflow, graphs, &jobs));
+    return jobs;
+}
+
+std::map<std::string, std::vector<Seconds>>
+measuredOperations(std::vector<WorkflowJob> const& p_jobs,
+                   std::vector<GrafcetFiring> const& p_history)
+{
+    // Each transition of the generated Production fires once.
+    std::map<std::size_t, Seconds> fired;
+    for (GrafcetFiring const& firing : p_history)
+    {
+        if (firing.graph == "Production")
+        {
+            fired.try_emplace(firing.transition, firing.time);
+        }
+    }
+    std::map<std::string, std::vector<Seconds>> measured;
+    for (WorkflowJob const& job : p_jobs)
+    {
+        auto const start = fired.find(job.start);
+        auto const end = fired.find(job.end);
+        if (start == fired.end() || end == fired.end())
+        {
+            continue; // Not done in this run.
+        }
+        double busy = (end->second - start->second).value();
+        for (auto const& [enter, leave] : job.waits)
+        {
+            auto const in = fired.find(enter);
+            auto const out = fired.find(leave);
+            if (in != fired.end() && out != fired.end())
+            {
+                busy -= (out->second - in->second).value();
+            }
+        }
+        measured[job.on + "_" + job.product].push_back(Seconds(busy));
+    }
+    return measured;
+}
+
+std::size_t useMeasuredOperations(WorkflowDescription& p_workflow,
+                                  std::map<std::string, std::vector<Seconds>> const& p_measured)
+{
+    std::size_t changed = 0U;
+    for (WorkflowProduct& product : p_workflow.products)
+    {
+        for (WorkflowOperation& operation : product.route)
+        {
+            auto const found = p_measured.find(operation.on + "_" + product.id);
+            if (found == p_measured.end() || found->second.empty())
+            {
+                continue;
+            }
+            double sum = 0.0;
+            for (Seconds const duration : found->second)
+            {
+                sum += duration.value();
+            }
+            operation.duration = Seconds(sum / static_cast<double>(found->second.size()));
+            ++changed;
+        }
+    }
+    return changed;
 }
 
 } // namespace robotik

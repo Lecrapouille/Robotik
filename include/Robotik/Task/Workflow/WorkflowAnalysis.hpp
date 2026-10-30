@@ -36,6 +36,7 @@
 #include "Robotik/Task/Scheduler.hpp"
 #include "Robotik/Task/WorkflowDescription.hpp"
 
+#include <iosfwd>
 #include <map>
 #include <memory>
 #include <string>
@@ -110,6 +111,16 @@ struct WorkflowAnalysis
 // ----------------------------------------------------------------------------
 [[nodiscard]] std::vector<std::size_t>
 eventGraphMarking(tpne::Net const& p_graph, std::map<std::string, std::size_t> const& p_started);
+
+// ----------------------------------------------------------------------------
+/// Writes the workflow as a flowshop table that TimedPetriNetEditor opens
+/// (@c x.flowshop: the operators in rows, the products in columns, the
+/// durations in the cells).
+/// @param p_workflow Workflow to write.
+/// @param p_out Stream receiving the table.
+/// @return What is wrong in the workflow.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> writeFlowshop(WorkflowDescription const& p_workflow, std::ostream& p_out);
 
 // ----------------------------------------------------------------------------
 /// Mean duration of the successful runs of each skill.
