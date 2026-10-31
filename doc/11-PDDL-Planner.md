@@ -39,7 +39,7 @@ The words of this chapter:
 ## 2. Tutorial: run a planned pick and place
 
 ```bash
-./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place_pddl_faults.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_pddl_faults.scenario.yaml --trace
 ```
 
 The camera is down at the start, back at 1 s, then down for good at 3 s. The trace (real output) ends with one line per plan:

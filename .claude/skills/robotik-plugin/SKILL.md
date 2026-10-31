@@ -14,9 +14,10 @@ perception + BT: `plugins/PickAndPlace/`.
 1. `cp -r plugins/HelloWorld plugins/<Name>`; drop unused `src/` files,
    `experiments/`, scenarios.
 2. Keep these names consistent (otherwise the host refuses the package):
-   - `Makefile`: `TARGET_NAME := robotik_<snake>` → builds `librobotik_<snake>.so`;
-     `PLUGIN_NAME := <Name>`; `PLUGIN_DIR := $(P)/plugins/<Name>`;
-     `LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp ...` (every .cpp).
+   - `<Name>.mk`: `TARGETS += robotik_<snake>` → builds `librobotik_<snake>.so`;
+     `robotik_<snake>.SOURCES := src/*.cpp`;
+     `$(eval $(call ROBOTIK_PLUGIN,robotik_<snake>,<Name>))`; add `<Name>` to
+     `PLUGINS` of the root `Makefile`.
    - `plugin.yaml`: `plugin.id: robotik.<snake>`, `api_version: 1`,
      `library.entrypoint: librobotik_<snake>.so`, `resources.packs` used by
      the worlds, `scenarios.entries[] {id, name, file}`.
@@ -28,10 +29,10 @@ perception + BT: `plugins/PickAndPlace/`.
 4. Every new file starts with the SPDX header (copy from HelloWorld).
 5. Build + run:
    ```bash
-   make -C plugins/<Name> -j"$(nproc)"
-   ./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
+   make <target>
+   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
    ```
-   No list to update: the root Makefile builds every `plugins/*/Makefile`.
+   The root `make` builds the plugins listed in `PLUGINS` (root `Makefile`).
 
 ## Skeleton
 
@@ -122,7 +123,7 @@ Known leaks (October 2026), to fix:
 |---------|-----|
 | `scenario is not in a plugin package` | list the file in `plugin.yaml` |
 | `plugin id does not match plugin.yaml` | `describe().id` = `plugin.id` |
-| `plugin library not found: ...` | `entrypoint` = `lib` + `TARGET_NAME` + `.so`; build it |
+| `plugin library not found: ...` | `entrypoint` = `lib` + target name + `.so`; build it |
 | `built for plugin API N` | `api_version: 1` |
 | `Unknown Pinocchio frame: tcp` | no tool mounted: use `robot.tool0` |
 

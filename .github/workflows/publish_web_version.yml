@@ -21,7 +21,7 @@ jobs:
       - name: Install system packages
         run: |
           sudo apt-get update
-          sudo apt-get install pkg-config cmake libeigen3-dev
+          sudo apt-get install pkg-config cmake
       - name: Install Emscripten
         uses: mymindstorm/setup-emsdk@v14
       - name: Checkout Robotik
@@ -30,8 +30,7 @@ jobs:
           submodules: true
       - name: Compile Robotik-Simulator
         run: |
-          make download-external-libs
-          emmake make -C simulator -j`nproc --all`
+          emmake make Robotik-Simulator
       - name: Deploy
         run: |
           git config --global user.name 'GitHub CI'
@@ -44,7 +43,7 @@ jobs:
             git checkout --orphan gh-pages
             git rm -rf . >/dev/null 2>&1 || true
           fi
-          cp build/Robotik-Simulator.* .
+          cp build/emscripten-debug/bin/Robotik-Simulator.* .
           touch .nojekyll
           git add .nojekyll Robotik-Simulator.*
           if git diff --cached --quiet; then
@@ -82,10 +81,10 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends cmake
           chown "$HOST_UID:$HOST_GID" /opt/emscripten-exa/cache
-          exec python3 -c 'import os; os.environ["HOME"]="/tmp"; os.setgid(int(os.environ["HOST_GID"])); os.setuid(int(os.environ["HOST_UID"])); os.execvp("bash", ["bash", "-c", "make download-external-libs && make -C simulator -j$(nproc)"])'
+          exec python3 -c 'import os; os.environ["HOME"]="/tmp"; os.setgid(int(os.environ["HOST_GID"])); os.setuid(int(os.environ["HOST_UID"])); os.execvp("bash", ["bash", "-c", "make Robotik-Simulator"])'
           EOF
       - name: Keep the ExaequOS build
         uses: actions/upload-artifact@v4
         with:
           name: Robotik-Simulator-exaequos
-          path: build/Robotik-Simulator.*
+          path: build/exaequos-debug/bin/Robotik-Simulator.*

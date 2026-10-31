@@ -33,8 +33,8 @@ Root README.md has a doc table: keep it in sync when a chapter is added or renam
 ## Rules
 
 - Every tutorial step and every quoted output must be run for real
-  (`./build/Robotik-Headless ... --trace`) and pasted, not invented.
-  Experiment on the `build/plugins/...` copy, then `make -C plugins/<Name>`
+  (`./build/linux-gcc-debug/bin/Robotik-Headless ... --trace`) and pasted, not invented.
+  Experiment on the `build/linux-gcc-debug/lib/robotik/plugins/...` copy, then `make <target>`
   restores it.
 - Code excerpts come from real files (prefer HelloWorld); keep them in sync
   when the code changes.

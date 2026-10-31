@@ -123,7 +123,7 @@ buffers ready for a learner. Episode `k` of environment `i` uses the seed
 result does not depend on the number of threads.
 
 ```bash
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
+./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
     --log episodes.json
 ```
 

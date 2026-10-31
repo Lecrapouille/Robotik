@@ -12,10 +12,9 @@ committed, `plugin.yaml` credits them.
 ## Build and run
 
 ```bash
-make -C plugins/MicroDuck download-external-libs   # microduck_rl + ONNX Runtime release
-make -C plugins/MicroDuck -j"$(nproc)"             # runs prepare_assets.py once, then builds
-./build/Robotik-Headless build/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
-./build/Robotik-Simulator build/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
+make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
 ```
 
 Without ONNX Runtime or the clone, `make` skips the plugin.
