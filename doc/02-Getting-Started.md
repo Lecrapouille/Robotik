@@ -15,22 +15,26 @@ macOS: the display needs OpenGL 4.3 or more.
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
 
-make download-external-libs      # once: fetch MuJoCo, Pinocchio, ... and the
-                                 # libraries of each plugin
-make -j"$(nproc --all)"          # the libraries, Robotik, the two hosts and all plugins
+make forge                       # optional, once: Pinocchio and MuJoCo in external/forge
+make                             # the libraries, Robotik, the two hosts and the plugins
 ```
 
-After the build, the `build/` folder contains:
+The first `make` fetches the third parties ([MyMakefile](https://github.com/Lecrapouille/MyMakefile)): Compages, BlackThorn, TimedPetriNetEditor, Dear ImGui, kairos and the libraries of the plugins, at the commits of `external/versions.lock`. `PLUGINS` lists the plugins built; MicroDuck and HumanoidWalk download large models: `make PLUGINS+="MicroDuck HumanoidWalk"`.
+
+After the build, the `build/linux-gcc-debug/` folder contains:
 
 ```text
-build/
-├── Robotik-Simulator      the 3D window
-├── Robotik-Headless       the same, without window
-├── librobotik-core.so     the library
-└── plugins/               one folder per plugin (demo), ready to run
-    ├── HelloWorld/
-    ├── PickAndPlace/
-    └── ...
+build/linux-gcc-debug/
+├── bin/
+│   ├── Robotik-Simulator      the 3D window
+│   └── Robotik-Headless       the same, without window
+├── lib/
+│   ├── librobotik-core.so     the library
+│   └── robotik/plugins/       one folder per plugin (demo), ready to run
+│       ├── HelloWorld/
+│       ├── PickAndPlace/
+│       └── ...
+└── share/robotik/packs        the asset packs (a link to data/packs)
 ```
 
 The CI also publishes the simulator as a web page: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The versioned files of `plugins/` are in the page. Pinocchio, MuJoCo and the 3D view are not.
@@ -46,7 +50,7 @@ make tests -j"$(nproc --all)"
 ## 2. Watch a robot: the simulator
 
 ```bash
-./build/Robotik-Simulator
+./build/linux-gcc-debug/bin/Robotik-Simulator
 ```
 
 Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
@@ -116,7 +120,7 @@ frame rate.
 You can also give a scenario file directly:
 
 ```bash
-./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/wave.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
 `--screenshot view.png` plays the scenario, saves the 3D view into a PNG
@@ -124,7 +128,7 @@ file and quits; `--at 6` takes it after 6 simulated seconds (3 by
 default, or at the end of the run if it ends before):
 
 ```bash
-./build/Robotik-Simulator build/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
 ```
 
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
@@ -137,7 +141,7 @@ a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 The same scenario, in a terminal:
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
 Output:
@@ -169,7 +173,7 @@ Options:
 | `--deadlocks` | Before each run, looks for the deadlocks of the GRAFCET and the resources of its skills; exit code 2 when there is one ([chapter 12](12-GRAFCET-and-Workflows.md)) |
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -186,7 +190,7 @@ Options:
 
 The goal: see that a scenario *is* a test.
 
-1. Open `build/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a
+1. Open `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a
    copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`).
    Do not create a new file there yet: a scenario must be listed in
    `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
@@ -194,7 +198,7 @@ The goal: see that a scenario *is* a test.
 3. Run it again:
 
    ```bash
-   ./build/Robotik-Headless build/plugins/HelloWorld/scenarios/wave.scenario.yaml; echo "exit code: $?"
+   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml; echo "exit code: $?"
    ```
 
    ```text
@@ -223,8 +227,8 @@ An **experiment** runs several variants of a scenario, with several seeds,
 and compares them.
 
 ```bash
-./build/Robotik-Headless \
-    build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
+./build/linux-gcc-debug/bin/Robotik-Headless \
+    build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
     --report pick.json
 ```
 
@@ -249,11 +253,11 @@ scenario asks with `perception: { blind: truth }`. See
 Some demos also have their own program, for uses the two hosts do not cover:
 
 ```bash
-./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # draws the path
-./build/Robotik-LineFollower --view                              # shows the camera
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
-./build/Robotik-Fly --brain reflex
-./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # draws the path
+./build/linux-gcc-debug/bin/Robotik-LineFollower --view                              # shows the camera
+./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
+./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
+./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
 All demos are described in [09-Demos.md](09-Demos.md).

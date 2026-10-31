@@ -125,8 +125,8 @@ assertions:
 **Step 3.** Build and run:
 
 ```bash
-make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml
+make robotik_hello_world
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 ```text
@@ -152,7 +152,7 @@ hello: 1/1 runs passed
 **Step 5.** Open it in the simulator to see the scene:
 
 ```bash
-./build/Robotik-Simulator build/plugins/HelloWorld/scenarios/hello.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 Of course, a real mission would ask the robot to *move* the cube. This is
@@ -179,7 +179,7 @@ The random numbers come from the **seed** of the scenario (`seed: 1`). Same
 seed, same run, always. Another seed, another layout:
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml --seed 7
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml --seed 7
 ```
 
 The robot knows only the *nominal* position (the one written in the file).
@@ -553,8 +553,8 @@ before `timeout`:
 ```
 
 ```bash
-make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+make robotik_hello_world
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -742,7 +742,7 @@ experiment:
 ```
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/experiments/hello.experiment.yaml \
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/experiments/hello.experiment.yaml \
     --report hello.json
 ```
 

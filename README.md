@@ -186,7 +186,7 @@ scenario:
 Run it without a window, the way CI does:
 
 ```text
-$ ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
+$ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
 
   0.99 s  Detect(red_cube)  FAILED (unavailable: wrist_camera)  (0 s)
   1.01 s  Detect(red_cube)  SUCCEEDED  (0.01 s)
@@ -205,7 +205,7 @@ $ ./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place_f
 pick_and_place_faults: 1/1 runs passed
 ```
 
-The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/Robotik-Simulator` to watch the arm, the tree and the skills live.
+The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/linux-gcc-debug/bin/Robotik-Simulator` to watch the arm, the tree and the skills live.
 
 ### 🧪 5. The experiment: the same task, several ways
 
@@ -232,7 +232,7 @@ experiment:
 ```
 
 ```text
-$ ./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
+$ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
 [PASS] nominal                  seed=11     controller succeeded at 7.4 s ...  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0149
 [PASS] wide_layout              seed=12     controller succeeded at 7.54 s ...  time=7.54  collision_count(robot)=0  distance(red_cube, box)=0.0149
 [PASS] rigid                    seed=13     controller succeeded at 7.4 s ... (physics rigid)  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0337539
@@ -344,13 +344,12 @@ Linux only, plain `make` (no CMake). macOS is not supported: the simulator needs
 ```bash
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
-make download-external-libs
-make -j"$(nproc --all)"
+make
 
-./build/Robotik-Simulator          # Demos menu: every plugin and its scenarios
-./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
-./build/Robotik-Headless build/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
+./build/linux-gcc-debug/bin/Robotik-Simulator          # Demos menu: every plugin and its scenarios
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
+./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
 
 A web version, built with Emscripten by the CI: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).

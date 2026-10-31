@@ -1298,9 +1298,9 @@ void experimentView(App& p_app)
     ImGui::SameLine();
     if (ImGui::SmallButton("Copy command"))
     {
-        std::string const command = "./build/Robotik-Headless " +
+        std::string const command = "make run-Robotik-Headless ARGS=\"" +
                                     experiment.file.string() + " --report " +
-                                    experiment.id + ".json";
+                                    experiment.id + ".json\"";
         ImGui::SetClipboardText(command.c_str());
     }
     ImGui::SameLine();

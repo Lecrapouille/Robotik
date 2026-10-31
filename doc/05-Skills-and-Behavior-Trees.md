@@ -333,8 +333,8 @@ add a fault that takes the arm away between 1 s and 2 s:
 **Step 1: no recovery.** Run it:
 
 ```bash
-make -C plugins/HelloWorld
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+make robotik_hello_world
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text

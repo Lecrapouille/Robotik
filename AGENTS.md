@@ -60,20 +60,21 @@ walking robot pushing a box in a room, ONNX policy).
 ## Commands
 
 ```bash
-make -j"$(nproc)"                         # core, hosts, every plugins/*/Makefile
-make -C plugins/<Name> -j"$(nproc)"       # one plugin; stages build/plugins/<Name>/
-make tests -j"$(nproc)"                   # builds and runs build/Robotik-tests
+make                                      # core, hosts, the plugins of PLUGINS
+make <target>       # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
+make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
 make check-layers                         # no include upwards, no truth call in skills/planning
-./build/Robotik-tests --gtest_filter='Plugin*'
-./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
+./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```
 
 Headless exit code: 0 pass, 2 a run failed, 1 load error. `make` copies
-`worlds/ scenarios/ experiments/ data/` over `build/plugins/<Name>/`: edit
-sources, not `build/`. First build only: `make download-external-libs`
-(core `external/manifest`, then the `dependencies.thirdparties` of each
-`plugin.yaml`);
-libraries are then built by Make rules, there is no `external/compilation`.
+`worlds/ scenarios/ experiments/ data/` over `build/linux-gcc-debug/lib/robotik/plugins/<Name>/`: edit
+sources, not `build/`. Third parties are MyMakefile 3 targets: the core
+ones in `external/external.mk` (Compages, BlackThorn, TimedPetriNetEditor
+read by their `.mk` files), a plugin's own in its `<Name>.mk`; their commits
+are in `external/versions.lock`. `PLUGINS` (root `Makefile`) lists the plugins
+built.
 
 ## Rules that are easy to break
 
@@ -123,7 +124,7 @@ libraries are then built by Make rules, there is no `external/compilation`.
   observers and operator inputs; no GRAFCET logic in C++. An effect is
   done only when the beliefs show it (`verify: observed`: seen after the
   start of the step).
-- Names must match: `TARGET_NAME robotik_x` → `librobotik_x.so` =
+- Names must match: target `robotik_x` → `librobotik_x.so` =
   `library.entrypoint`; `plugin.id` = `describe().id`; scenario `id` in
   `plugin.yaml` = string tested in `Plugin::setup`. A scenario not listed in
   `plugin.yaml` is refused ("scenario is not in a plugin package").

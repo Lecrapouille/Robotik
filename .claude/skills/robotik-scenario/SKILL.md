@@ -8,7 +8,7 @@ description: Write or fix RobotIK world (worlds/*.world.yaml), scenario (scenari
 World = what exists. Scenario = what happens, when it stops, what is
 checked. Experiment = variants × seeds. Paths are relative to the package root (folder of plugin.yaml); `..` and symlinks are allowed but the canonical path must stay in the package; absolute paths are refused.
 Scenario/experiment files must be listed in the plugin `plugin.yaml`.
-Edit `plugins/...`, then `make -C plugins/<Name>` (it overwrites `build/`).
+Edit `plugins/...`, then `make <target>` (it overwrites `build/`).
 File names carry their role (doc/03 §1): `x.world.yaml`, `x.scenario.yaml`,
 `x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
 `x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`. id = name without `.yaml`
@@ -165,6 +165,6 @@ experiment:
 ## Verify
 
 ```bash
-./build/Robotik-Headless build/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
-./build/Robotik-Headless build/plugins/<Name>/experiments/<e>.experiment.yaml --report r.json
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/experiments/<e>.experiment.yaml --report r.json
 ```

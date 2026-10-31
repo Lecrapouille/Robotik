@@ -19,8 +19,8 @@ to create your own plugin from zero.
 Run them first, to know what you are reading:
 
 ```bash
-./build/Robotik-Simulator          # Demos → Hello world → ...
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/hello.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator          # Demos → Hello world → ...
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 ---
@@ -203,7 +203,7 @@ The scenario checks the result and the safety:
 ```
 
 **Try it:** change `0.6` into `0.2` in the code, rebuild
-(`make -C plugins/HelloWorld`), run again. `wave.swing > 0.4` now fails, and
+(`make robotik_hello_world`), run again. `wave.swing > 0.4` now fails, and
 the report tells you the joint swung only 0.2 rad.
 
 ---
@@ -341,7 +341,7 @@ And the scenario uses it as its controller:
 ```
 
 ```bash
-./build/Robotik-Headless build/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -535,6 +535,7 @@ Let us create `MyRobot`, from HelloWorld.
 
 ```bash
 cp -r plugins/HelloWorld plugins/MyRobot
+mv plugins/MyRobot/HelloWorld.mk plugins/MyRobot/MyRobot.mk
 rm -rf plugins/MyRobot/experiments
 ```
 
@@ -543,7 +544,7 @@ the package.
 
 | File | Change |
 |------|--------|
-| `plugins/MyRobot/Makefile` | `TARGET_NAME := robotik_my_robot`, `PLUGIN_NAME := MyRobot`, `PLUGIN_DIR := $(P)/plugins/MyRobot`, `TARGET_DESCRIPTION` |
+| `plugins/MyRobot/MyRobot.mk` | the target `robotik_my_robot` (in `TARGETS`, its variables, and `$(call ROBOTIK_PLUGIN,robotik_my_robot,MyRobot)`), its `DESCRIPTION` |
 | `plugins/MyRobot/plugin.yaml` | `plugin.id: robotik.my_robot`, `plugin.name`, `library.entrypoint: librobotik_my_robot.so`, the scenario list |
 | `plugins/MyRobot/src/Plugin.cpp` | `describe()` returns `{ .id = "robotik.my_robot" }`; rename the class |
 | `plugins/MyRobot/scenarios/*.scenario.yaml` | Keep only what you need; the `id` of each file must match an entry of `plugin.yaml` |
@@ -551,7 +552,7 @@ the package.
 The rules:
 
 ```text
-Makefile  TARGET_NAME := robotik_my_robot
+MyRobot.mk  TARGETS += robotik_my_robot
                  │
                  └──► produces librobotik_my_robot.so
                                     │
@@ -565,24 +566,24 @@ Plugin.cpp   setup(host, "patrol")                            (same scenario id)
 ```
 
 **Step 3. Keep one scenario and one mission.** For example, delete the
-lessons you do not need from `src/` and from `LIB_FILES` in the `Makefile`:
+lessons you do not need from `src/`. `MyRobot.mk` compiles every `src/*.cpp`; to list them instead:
 
 ```make
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/PatrolMission.cpp
+robotik_my_robot.SOURCES := src/Plugin.cpp src/PatrolMission.cpp
 ```
 
 **Step 4. Build and run.**
 
 ```bash
-make -C plugins/MyRobot -j"$(nproc)"
-./build/Robotik-Headless build/plugins/MyRobot/scenarios/patrol.scenario.yaml
-./build/Robotik-Simulator          # Demos → My robot → ...
+make robotik_my_robot
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/MyRobot/scenarios/patrol.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator          # Demos → My robot → ...
 ```
 
-The root `make` builds every `plugins/*/Makefile` automatically: there is no
-list to update. `make` compiles the `.so` and copies `plugin.yaml`, the
+Add `MyRobot` to `PLUGINS` in the root `Makefile` (or `make PLUGINS+=MyRobot`),
+so that its `MyRobot.mk` is read. `make` compiles the `.so` and copies `plugin.yaml`, the
 library, and the folders `worlds/`, `scenarios/`, `experiments/` and `data/`
-into `build/plugins/MyRobot/`.
+into `build/linux-gcc-debug/lib/robotik/plugins/MyRobot/`.
 
 **Step 5. Use another robot.** Change the `model` of the robot in your world
 file. Available models are listed in the `pack.yaml` files of `data/packs/`:
@@ -595,11 +596,11 @@ cat data/packs/*/pack.yaml
 
 | Message | Cause |
 |---------|-------|
-| `scenario is not in a plugin package` | The file is not listed in `plugin.yaml`, or you ran a file outside `build/plugins/` and `plugins/` |
+| `scenario is not in a plugin package` | The file is not listed in `plugin.yaml`, or you ran a file outside `build/linux-gcc-debug/lib/robotik/plugins/` and `plugins/` |
 | `unknown ... scenario: X` | `setup` does not know the scenario id `X` |
 | `plugin id does not match plugin.yaml` | `describe().id` differs from `plugin.id` |
 | `built for plugin API 99 ...` | `api_version` in `plugin.yaml` differs from the host ABI (`1`) |
-| `plugin library not found: ...` | `library.entrypoint` differs from the `.so` built by `TARGET_NAME`, or the plugin was not built |
+| `plugin library not found: ...` | `library.entrypoint` differs from the `.so` built by the target (`lib` + its name + `.so`), or the plugin was not built |
 | a pack `robotik.xxx` is named in the error | A pack of `resources.packs` is not found, or has an incompatible version |
 | `Unknown Pinocchio frame: tcp` | An assertion uses `robot.tcp` but no tool is mounted: use `robot.tool0` |
 | a `body` falls forever | The world has no `floor:` |
@@ -697,57 +698,52 @@ experiments:
 
 ### Third-party libraries of a plugin
 
-A library that only one plugin uses is not listed in the `external/manifest`
-of the core, but in `dependencies:` of the `plugin.yaml` of the plugin, with
-its license (the Plugin panel of the simulator shows them as credits). One
-entry per line:
+A library that only one plugin uses is declared in the `<Name>.mk` of the
+plugin, as a target of [MyMakefile](https://github.com/Lecrapouille/MyMakefile):
+fetched on the first build, at the commit locked in `external/versions.lock`,
+and built once in the cache of MyMakefile. `dependencies:` of `plugin.yaml`
+lists them with their license, for the credits of the Plugin panel of the
+simulator:
 
 ```yaml
 dependencies:
   system:                          # installed on the system: pkg-config names
     - { name: opencv4, license: Apache-2.0 }
-  thirdparties:                    # cloned into external/ and built by the Makefile
+  thirdparties:                    # declared in <Name>.mk
     - { repo: AprilRobotics/apriltag, license: BSD-2-Clause, description: AprilTag fiducial detection }
     - { name: onnxruntime, url: "https://github.com/microsoft/onnxruntime", license: MIT }
 ```
 
 | Field | Notes |
 |-------|-------|
-| `repo` | GitHub `user/repo[:recurse][@ref]`, the syntax of `external/manifest` |
-| `name`, `url` | A library without a repository to clone (a release the Makefile downloads) |
+| `repo` | GitHub `user/repo[@ref]` |
+| `name`, `url` | A library without a repository (a release of binaries) |
 | `license` | SPDX name. Required: without it the library shows "not checked" |
 | `description` | Optional. Put a value with a comma between quotes |
 
-`make download-external-libs` writes the `repo` entries as a manifest
-(`build/manifests/<Name>`, made by `plugins/dependencies.awk`) and
-clones them into `plugins/<Name>/external/`. Nothing in `external/` is
-versioned. When a `system` library is not found by `pkg-config`, `make`
-skips the plugin and says why. The Makefile of the plugin builds a cloned
-library with a normal Make rule, the first time it is needed; there is no
-compilation script:
+`plugins/LineFollower/LineFollower.mk` builds AprilTag with its CMake, and is
+not built when OpenCV is not installed:
 
 ```make
-APRILTAG_DIR := $(THIRD_PARTIES_DIR)/apriltag      # the plugin's external/
-APRILTAG_LIB := $(APRILTAG_DIR)/build/libapriltag.a
-THIRD_PARTIES_LIBS += $(APRILTAG_LIB)
-PLUGIN_REQUIRES := $(APRILTAG_DIR)/apriltag.h      # missing: plugin skipped
-PLUGIN_DEPENDS := $(APRILTAG_LIB)                  # made before the link
+ifeq ($(call robotik-missing,opencv4),)
+    TARGETS += apriltag robotik_line_follower
+    apriltag.GIT := https://github.com/AprilRobotics/apriltag.git
+    apriltag.TYPE := cmake
+    apriltag.PUBLIC_INCLUDES := include/apriltag
+    apriltag.LIBRARIES := apriltag
 
-include $(P)/plugins/plugin.mk
-
-$(APRILTAG_LIB):
-	cmake -S $(APRILTAG_DIR) -B $(APRILTAG_DIR)/build ...
-	cmake --build $(APRILTAG_DIR)/build --target apriltag
+    robotik_line_follower.SOURCES := src/*.cpp
+    robotik_line_follower.DEPENDS := apriltag
+    robotik_line_follower.PKG_CONFIG := opencv4
+    $(eval $(call ROBOTIK_PLUGIN,robotik_line_follower,LineFollower))
+else
+    $(call print-warning,LineFollower skipped: ...)
+endif
 ```
 
-| Variable | Notes |
-|----------|-------|
-| `THIRD_PARTIES_DIR` | In a plugin Makefile: `plugins/<Name>/external`. The core one is `ROBOTIK_EXTERNAL` |
-| `PLUGIN_REQUIRES` | Files that must exist. When one is missing, `make` skips the plugin and says how to download it |
-| `PLUGIN_DEPENDS` | Files made by the rules of the plugin (an archive, generated data). They are made before the library is linked and the package is staged |
-
-`make -C plugins/<Name> download-external-libs` downloads the libraries of
-one plugin only.
+A release of binaries is a target with a `URL` (ONNX Runtime:
+`$(eval $(ROBOTIK_ONNXRUNTIME))` of `plugins/plugin.mk`); data made by a
+script is a Make rule the plugin target depends on (`MicroDuck.mk`).
 
 ---
 
@@ -757,8 +753,8 @@ Nothing depends on the current folder. Both hosts search, in this order:
 
 1. the path given to `scan`, if any;
 2. each folder of `$ROBOTIK_PLUGINS` (separated by `:`);
-3. `plugins/` next to the executable (`build/plugins` in the build tree);
-4. `lib/robotik/plugins` of the install prefix.
+3. `plugins/` next to the executable;
+4. `../lib/robotik/plugins` from the executable: `build/linux-gcc-debug/lib/robotik/plugins` in the build tree, `lib/robotik/plugins` of the install prefix.
 
 A scenario given by its path brings its package with it:
 `Robotik-Headless plugins/Painter/scenarios/painter.scenario.yaml` works from the

@@ -19,7 +19,7 @@ Headless.
 All demos open from the simulator **Demos** menu, and run with:
 
 ```bash
-./build/Robotik-Headless build/plugins/<Plugin>/scenarios/<scenario>.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Plugin>/scenarios/<scenario>.scenario.yaml
 ```
 
 ---
@@ -89,8 +89,8 @@ Dcy, AU, Rearm (`pick_and_place_gemma*.scenario.yaml`,
 gives the cycle time of the cell.
 
 ```bash
-./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --seed 11
-./build/Robotik-Headless build/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --seed 11
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
     --report pick.json
 ```
 
@@ -171,9 +171,9 @@ odometry would prove nothing about localisation. The tags correct the
 estimate, and you can draw the truth against the estimate:
 
 ```bash
-./build/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # green: truth, red: estimate
-./build/Robotik-LineFollower --view                              # camera on screen
-./build/Robotik-Headless build/plugins/LineFollower/scenarios/line_follower.scenario.yaml --seed 4
+./build/linux-gcc-debug/bin/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # green: truth, red: estimate
+./build/linux-gcc-debug/bin/Robotik-LineFollower --view                              # camera on screen
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/LineFollower/scenarios/line_follower.scenario.yaml --seed 4
 ```
 
 Tree: `Localize`, then `UntilSuccess` (3 attempts) of `ReachLine` +
@@ -190,7 +190,7 @@ pool, reproducibility. Training a real PPO or SAC policy is **not** the goal
 here: it validates the infrastructure.
 
 ```bash
-./build/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
+./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
     --log episodes.json
 ```
 
@@ -223,10 +223,10 @@ mission runs. The eye beams and the trail are decorations: ignored by
 grasping, range sensors and ground truth.
 
 ```bash
-./build/Robotik-Fly --brain reflex
-./build/Robotik-Fly --view
-./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
-./build/Robotik-Headless build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
+./build/linux-gcc-debug/bin/Robotik-Fly --view
+./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 In the simulator, the **Fly brain** panel shows the state and chooses the
@@ -243,9 +243,8 @@ robot come from the LimX repositories (Apache-2.0), and ONNX Runtime runs the
 policy. It shows that a **learned controller** is just another skill.
 
 ```bash
-make -C plugins/HumanoidWalk download-external-libs   # LimX repositories + ONNX Runtime release
-make -C plugins/HumanoidWalk -j"$(nproc)"             # prepares data/hu_d04/ once, then builds
-./build/Robotik-Headless build/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
+make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
 ```
 
 ```text
@@ -288,8 +287,8 @@ steps that do not depend on each other ([11 §4](11-PDDL-Planner.md#steps-that-r
 No behavior tree is written.
 
 ```bash
-make -C plugins/DualArm -j"$(nproc)"
-./build/Robotik-Headless build/plugins/DualArm/scenarios/conveyor.scenario.yaml --trace
+make robotik_dual_arm
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.scenario.yaml --trace
 ```
 
 | Scenario | What happens |
@@ -461,9 +460,8 @@ the furniture are one fixed body of MuJoCo, and a light toy box is a free
 body the duck pushes. No training is needed.
 
 ```bash
-make -C plugins/MicroDuck download-external-libs   # microduck_rl + ONNX Runtime release
-make -C plugins/MicroDuck -j"$(nproc)"             # prepares data/microduck/ once, then builds
-./build/Robotik-Headless build/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
+make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
 ```
 
 | Scenario | What happens |

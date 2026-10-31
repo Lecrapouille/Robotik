@@ -68,7 +68,7 @@ The scenario only names the file and the step that ends the run:
 Run it:
 
 ```bash
-./build/Robotik-Headless build/plugins/PickAndPlace/scenarios/pick_and_place_grafcet.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_grafcet.scenario.yaml
 ```
 
 ```text
@@ -237,7 +237,7 @@ period, the **cycle time** λ. The longest circuit of the graph, the
 goes down; shorten another one and nothing changes.
 
 ```bash
-./build/Robotik-Headless build/plugins/DualArm/scenarios/conveyor.workflow.yaml
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.workflow.yaml
 ```
 
 ```text
@@ -451,7 +451,7 @@ time from the start of its job to its end, without the waits for a zone.
 With an experiment, the runs of all its seeds are put together.
 
 ```bash
-./build/Robotik-Headless build/plugins/DualArm/experiments/factory.experiment.yaml \
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/experiments/factory.experiment.yaml \
     --cadence factory.flowshop
 ```
 
@@ -495,7 +495,7 @@ scenario). The graphs Safety and Control of a GEMMA are left out: they loop.
 The tab **Steps and resources** draws the net checked.
 
 ```bash
-./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.scenario.yaml --deadlocks
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/factory.scenario.yaml --deadlocks
 ```
 
 ```text

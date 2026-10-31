@@ -1,0 +1,42 @@
+# Commits of the third parties of Robotik, written by MyMakefile:
+# commit this file. 'make update-externals' moves them to the last commit of
+# their VERSION.
+
+BlackThorn.LOCKED_REF := HEAD
+BlackThorn.LOCKED := 7ac5f2794b15e917a3537a52f4d577ff72f8492d
+CompagesProject.LOCKED_REF := HEAD
+CompagesProject.LOCKED := 1d8f02f89c1c7a000dfc49e777495122433c1c8e
+ImGuiFileDialog.LOCKED_REF := HEAD
+ImGuiFileDialog.LOCKED := d0e97b2adc3d3452d72c750c7305dc0291acd052
+TimedPetriNetEditor.LOCKED_REF := HEAD
+TimedPetriNetEditor.LOCKED := 24eb974a889dc5b46487676fb280252ab0f39bd3
+apriltag.LOCKED_REF := HEAD
+apriltag.LOCKED := b7c0ebe9aa20f82ec7a828579004f9e706bfecd9
+backward-cpp.LOCKED_REF := HEAD
+backward-cpp.LOCKED := 78b2541c9d3c44bc81e2c5f4f34aa3503ac985de
+cgltf.LOCKED_REF := HEAD
+cgltf.LOCKED := 85cd62382dfea638278962690cf515023f33ed00
+dbg-macro.LOCKED_REF := HEAD
+dbg-macro.LOCKED := a94fa67eca61e245cf33bdd340110329ea9f1b05
+eigen.LOCKED_REF := 3.4.0
+eigen.LOCKED := 3147391d946bb4b6c68edd901f2add6ac1f31f8c
+entt.LOCKED_REF := v4.0.0
+entt.LOCKED := 85c6bba014049b5de8fad49d25424df2f1f6a8c1
+imgui.LOCKED_REF := docking
+imgui.LOCKED := d682dc41f58b98c9343ffbaa7d94f07e9024b3ca
+implot.LOCKED_REF := HEAD
+implot.LOCKED := 72de27832d1e6299bcc930ce01073d899d420392
+json.LOCKED_REF := HEAD
+json.LOCKED := f8b47ff6f6de8b80bea03d685d646eb93b66b98d
+kairos.LOCKED_REF := 1.0.0
+kairos.LOCKED := e7ed5b2660f29241a885034f44950f6ac5a5ba5f
+pugixml.LOCKED_REF := v1.16
+pugixml.LOCKED := c8033ce9d039e7f9d134877c363397b3cfe20816
+rapidyaml.LOCKED_REF := v0.15.2
+rapidyaml.LOCKED := 85bfe56e32b1cfe715aa1c39885b1b10761e7482
+stb.LOCKED_REF := HEAD
+stb.LOCKED := 2c980bb59875b0d32144a71867fbdebb2f77cd20
+tinyxml2.LOCKED_REF := HEAD
+tinyxml2.LOCKED := 8224e427b655b83dae5e2298f1e6919523a78737
+units.LOCKED_REF := v2.3.3
+units.LOCKED := b04d436aaae198939e46194a43ea65b32e44ca6e

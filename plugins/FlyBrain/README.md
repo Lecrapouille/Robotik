@@ -116,13 +116,12 @@ Reading output rates is not a third manipulation. It is the measurement, as in t
 The connectome is the FlyWire v783 synapse list: for each edge, the presynaptic index, the postsynaptic index, and "Excitatory x Connectivity". A neuron index is its row number in `Completeness_783.csv`, as in `model.py`.
 
 The repository is listed in `dependencies.thirdparties` of `plugins/FlyBrain/plugin.yaml`. It is
-optional: without it, the plugin builds with the 13-neuron circuit only. The
-Makefile of the plugin extracts the tables (`prepare_edges.py`, which needs
-pandas and pyarrow) when the clone is there:
+optional: without it, the plugin builds with the 13-neuron circuit only. With
+`FLYBRAIN_CONNECTOME=1`, `FlyBrain.mk` fetches it and extracts the tables
+(`prepare_edges.py`, which needs pandas and pyarrow):
 
 ```bash
-make -C plugins/FlyBrain download-external-libs
-make -C plugins/FlyBrain
+make FLYBRAIN_CONNECTOME=1 robotik_fly
 ```
 
 That writes `data/flywire/edges.csv` and `data/flywire/completeness.csv`. Both are in `.gitignore`: the parquet is about 100 MB, and the edge list is larger. `data/flywire/binding.txt` is versioned. It is the role file: which indices receive activation, which are read, and which are silenced.
@@ -132,7 +131,7 @@ The shipped numbers are real synapses from the graph, chosen because the weight 
 A line `silence 50` removes neuron 50. Several such lines are allowed. A role absent from the file is simply not wired: no activation, or an output that stays at zero.
 
 ```bash
-./build/Robotik-Fly \
+./build/linux-gcc-debug/bin/Robotik-Fly \
     --edges plugins/FlyBrain/data/flywire/edges.csv \
     --binding plugins/FlyBrain/data/flywire/binding.txt \
     --headless
@@ -148,7 +147,7 @@ fixes obstacle jitter, sensor noise, and the Poisson draws. Two runs with the
 same seed play the same episode.
 
 ```bash
-./build/Robotik-Fly --brain reflex
+./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
 ```
 
 Same headless episode, but the explicit rule replaces the neural network. Use
@@ -156,7 +155,7 @@ it to check that the sensors → action → body loop reaches the food before
 blaming the model.
 
 ```bash
-./build/Robotik-Fly --view
+./build/linux-gcc-debug/bin/Robotik-Fly --view
 ```
 
 Opens a window. The camera follows the thorax. Obstacles are brown, the food
@@ -165,7 +164,7 @@ The brain stays Shiu, unless `--brain reflex` is added. Bottom left is the
 left eye; bottom right is the right eye.
 
 ```bash
-./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
 Eight worlds in parallel, no window, seed fixed. The program stops when eight
@@ -175,7 +174,7 @@ the set is reproducible. The final line reports how many of those episodes
 reached the food.
 
 ```bash
-./build/Robotik-Fly --record fly_run.json
+./build/linux-gcc-debug/bin/Robotik-Fly --record fly_run.json
 ```
 
 Plays one headless episode and writes `fly_run.json`: the seed, the time
@@ -183,7 +182,7 @@ step, then each observation (9 numbers) and the action that followed
 (`forward`, `turn`, `lift`).
 
 ```bash
-./build/Robotik-Fly --replay fly_run.json --view
+./build/linux-gcc-debug/bin/Robotik-Fly --replay fly_run.json --view
 ```
 
 Replays that file instead of querying the brain: the recorded actions are
@@ -196,7 +195,7 @@ switches to the connectome (`data/flywire/edges.csv` and `binding.txt`) and
 restarts the episode. Both eyes are in the "Robot camera" panel.
 
 ```bash
-./build/Robotik-Simulator build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 ## Colored rays

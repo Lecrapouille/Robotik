@@ -117,7 +117,7 @@ void drawDemosMenu(App& p_app)
     }
     if (p_app.plugins.catalog().packages().empty())
     {
-        ImGui::TextDisabled("No plugin package found in build/plugins");
+        ImGui::TextDisabled("No plugin package found in lib/robotik/plugins");
     }
     for (robotik::PluginPackage const& package :
          p_app.plugins.catalog().packages())
