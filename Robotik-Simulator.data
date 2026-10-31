@@ -4,24 +4,14 @@
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin DualArm. Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := robotik_dual_arm
-TARGET_DESCRIPTION := Two arms planned in parallel
-PLUGIN_NAME := DualArm
-PLUGIN_DIR := $(P)/plugins/DualArm
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
-
-LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
-
-include $(P)/plugins/plugin.mk
+TARGETS += robotik_dual_arm
+robotik_dual_arm.DESCRIPTION := Two arms planned in parallel
+robotik_dual_arm.SOURCES := src/*.cpp
+$(eval $(call ROBOTIK_PLUGIN,robotik_dual_arm,DualArm))
 <?xml version="1.0"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
      Copyright (c) 2020-2026 Quentin Quadrat
@@ -331,6 +321,33 @@ models:
     </visual>
   </link>
 </robot>
+# The cadence of the factory measured over several runs:
+#   ./build/Robotik-Headless build/plugins/DualArm/experiments/factory.experiment.yaml \
+#       --cadence factory.flowshop
+# Each run moves the parts of the stock by up to 1 cm: the arms take a
+# little more or less time. --cadence prints the busy time of each arm per
+# part (take, machining, give, without the waits for the station), its mean
+# over the runs, the cycle time with it, and writes the table for
+# TimedPetriNetEditor.
+experiment:
+  id: factory_experiment
+  description: The cadence of each machine of the factory, measured over several runs.
+  seeds: [1, 2, 3, 4]
+
+  cases:
+    - id: shifted_stock
+      scenario: scenarios/factory.scenario.yaml
+      overrides:
+        world.entities.p1a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p2a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p3a.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p1b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p2b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+        world.entities.p3b.randomize: { x: [-0.01, 0.01], y: [-0.01, 0.01] }
+
+  evaluation:
+    metrics:
+      - time
 plugin:
   id: robotik.dual_arm
   name: Dual arm
@@ -357,6 +374,13 @@ scenarios:
     - { id: tray, name: Tray of glasses, file: tray.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_grafcet, name: Conveyor (GRAFCET), file: conveyor_grafcet.scenario.yaml, menu: GRAFCET }
     - { id: factory, name: Factory (flowshop), file: factory.scenario.yaml, menu: GRAFCET }
+    - { id: factory_gemma, name: Factory with a GEMMA, file: factory_gemma.scenario.yaml, menu: GRAFCET }
+    - { id: factory_belt, name: Factory fed by a belt, file: factory_belt.scenario.yaml, menu: GRAFCET }
+
+experiments:
+  directory: experiments
+  entries:
+    - { id: factory_experiment, name: Factory cadence, file: factory.experiment.yaml }
 ; Two arms sort the parts a conveyor brings. The objects are the world
 ; entities with a kind (arm, part, feeder, zone, bin); the state is read on
 ; the shared beliefs by the observers of the mission (ConveyorMission.cpp).
@@ -731,631 +755,17 @@ scenario:
     - planner.replans == 0
     # Never two arms at once.
     - dual_arm.overlap == 0
-{
-  "revision": 5,
-  "type": "GRAFCET",
-  "nets": [
-    {
-       "name": "Factory",
-       "places": [
-            { "id": 0, "caption": "M1 idle", "tokens": 1, "x": 80, "y": 40 },
-            { "id": 1, "caption": "M2 idle", "tokens": 1, "x": 760, "y": 40 },
-            { "id": 2, "caption": "Station free", "tokens": 1, "x": 420, "y": 40 },
-            { "id": 3, "caption": "slot1 free", "tokens": 1, "x": 300, "y": 120 },
-            { "id": 4, "caption": "slot2 free", "tokens": 1, "x": 420, "y": 120 },
-            { "id": 5, "caption": "slot3 free", "tokens": 1, "x": 540, "y": 120 },
-            { "id": 6, "caption": "M1 hover p1a", "tokens": 0, "x": 80, "y": 230 },
-            { "id": 7, "caption": "reach", "tokens": 0, "x": 80, "y": 300 },
-            { "id": 8, "caption": "grasp", "tokens": 0, "x": 80, "y": 370 },
-            { "id": 9, "caption": "lift", "tokens": 0, "x": 80, "y": 440 },
-            { "id": 10, "caption": "M1 machines P1 (2 s)", "tokens": 0, "x": 80, "y": 510 },
-            { "id": 11, "caption": "wait station", "tokens": 0, "x": 80, "y": 580 },
-            { "id": 12, "caption": "over slot1", "tokens": 0, "x": 80, "y": 650 },
-            { "id": 13, "caption": "release", "tokens": 0, "x": 80, "y": 720 },
-            { "id": 14, "caption": "leave", "tokens": 0, "x": 80, "y": 790 },
-            { "id": 15, "caption": "M1 idle", "tokens": 0, "x": 80, "y": 860 },
-            { "id": 16, "caption": "p1a machined by M1", "tokens": 0, "x": 540, "y": 860 },
-            { "id": 17, "caption": "M1 hover p2a", "tokens": 0, "x": 80, "y": 930 },
-            { "id": 18, "caption": "reach", "tokens": 0, "x": 80, "y": 1000 },
-            { "id": 19, "caption": "grasp", "tokens": 0, "x": 80, "y": 1070 },
-            { "id": 20, "caption": "lift", "tokens": 0, "x": 80, "y": 1140 },
-            { "id": 21, "caption": "M1 machines P2 (3 s)", "tokens": 0, "x": 80, "y": 1210 },
-            { "id": 22, "caption": "wait station", "tokens": 0, "x": 80, "y": 1280 },
-            { "id": 23, "caption": "over slot2", "tokens": 0, "x": 80, "y": 1350 },
-            { "id": 24, "caption": "release", "tokens": 0, "x": 80, "y": 1420 },
-            { "id": 25, "caption": "leave", "tokens": 0, "x": 80, "y": 1490 },
-            { "id": 26, "caption": "M1 idle", "tokens": 0, "x": 80, "y": 1560 },
-            { "id": 27, "caption": "p2a machined by M1", "tokens": 0, "x": 540, "y": 1560 },
-            { "id": 28, "caption": "M1 hover p3a", "tokens": 0, "x": 80, "y": 1630 },
-            { "id": 29, "caption": "reach", "tokens": 0, "x": 80, "y": 1700 },
-            { "id": 30, "caption": "grasp", "tokens": 0, "x": 80, "y": 1770 },
-            { "id": 31, "caption": "lift", "tokens": 0, "x": 80, "y": 1840 },
-            { "id": 32, "caption": "M1 machines P3 (1 s)", "tokens": 0, "x": 80, "y": 1910 },
-            { "id": 33, "caption": "wait station", "tokens": 0, "x": 80, "y": 1980 },
-            { "id": 34, "caption": "over slot3", "tokens": 0, "x": 80, "y": 2050 },
-            { "id": 35, "caption": "release", "tokens": 0, "x": 80, "y": 2120 },
-            { "id": 36, "caption": "leave", "tokens": 0, "x": 80, "y": 2190 },
-            { "id": 37, "caption": "M1 idle", "tokens": 0, "x": 80, "y": 2260 },
-            { "id": 38, "caption": "p3a machined by M1", "tokens": 0, "x": 540, "y": 2260 },
-            { "id": 39, "caption": "M1 hover p1b", "tokens": 0, "x": 80, "y": 2330 },
-            { "id": 40, "caption": "reach", "tokens": 0, "x": 80, "y": 2400 },
-            { "id": 41, "caption": "grasp", "tokens": 0, "x": 80, "y": 2470 },
-            { "id": 42, "caption": "lift", "tokens": 0, "x": 80, "y": 2540 },
-            { "id": 43, "caption": "M1 machines P1 (2 s)", "tokens": 0, "x": 80, "y": 2610 },
-            { "id": 44, "caption": "wait station", "tokens": 0, "x": 80, "y": 2680 },
-            { "id": 45, "caption": "over slot1", "tokens": 0, "x": 80, "y": 2750 },
-            { "id": 46, "caption": "release", "tokens": 0, "x": 80, "y": 2820 },
-            { "id": 47, "caption": "leave", "tokens": 0, "x": 80, "y": 2890 },
-            { "id": 48, "caption": "M1 idle", "tokens": 0, "x": 80, "y": 2960 },
-            { "id": 49, "caption": "p1b machined by M1", "tokens": 0, "x": 540, "y": 2960 },
-            { "id": 50, "caption": "M1 hover p2b", "tokens": 0, "x": 80, "y": 3030 },
-            { "id": 51, "caption": "reach", "tokens": 0, "x": 80, "y": 3100 },
-            { "id": 52, "caption": "grasp", "tokens": 0, "x": 80, "y": 3170 },
-            { "id": 53, "caption": "lift", "tokens": 0, "x": 80, "y": 3240 },
-            { "id": 54, "caption": "M1 machines P2 (3 s)", "tokens": 0, "x": 80, "y": 3310 },
-            { "id": 55, "caption": "wait station", "tokens": 0, "x": 80, "y": 3380 },
-            { "id": 56, "caption": "over slot2", "tokens": 0, "x": 80, "y": 3450 },
-            { "id": 57, "caption": "release", "tokens": 0, "x": 80, "y": 3520 },
-            { "id": 58, "caption": "leave", "tokens": 0, "x": 80, "y": 3590 },
-            { "id": 59, "caption": "M1 idle", "tokens": 0, "x": 80, "y": 3660 },
-            { "id": 60, "caption": "p2b machined by M1", "tokens": 0, "x": 540, "y": 3660 },
-            { "id": 61, "caption": "M1 hover p3b", "tokens": 0, "x": 80, "y": 3730 },
-            { "id": 62, "caption": "reach", "tokens": 0, "x": 80, "y": 3800 },
-            { "id": 63, "caption": "grasp", "tokens": 0, "x": 80, "y": 3870 },
-            { "id": 64, "caption": "lift", "tokens": 0, "x": 80, "y": 3940 },
-            { "id": 65, "caption": "M1 machines P3 (1 s)", "tokens": 0, "x": 80, "y": 4010 },
-            { "id": 66, "caption": "wait station", "tokens": 0, "x": 80, "y": 4080 },
-            { "id": 67, "caption": "over slot3", "tokens": 0, "x": 80, "y": 4150 },
-            { "id": 68, "caption": "release", "tokens": 0, "x": 80, "y": 4220 },
-            { "id": 69, "caption": "leave", "tokens": 0, "x": 80, "y": 4290 },
-            { "id": 70, "caption": "M1 done", "tokens": 0, "x": 80, "y": 4360 },
-            { "id": 71, "caption": "p3b machined by M1", "tokens": 0, "x": 540, "y": 4360 },
-            { "id": 72, "caption": "M2 wait station for p1a", "tokens": 0, "x": 760, "y": 930 },
-            { "id": 73, "caption": "M2 hover p1a", "tokens": 0, "x": 760, "y": 1000 },
-            { "id": 74, "caption": "reach", "tokens": 0, "x": 760, "y": 1070 },
-            { "id": 75, "caption": "grasp", "tokens": 0, "x": 760, "y": 1140 },
-            { "id": 76, "caption": "lift", "tokens": 0, "x": 760, "y": 1210 },
-            { "id": 77, "caption": "over output", "tokens": 0, "x": 760, "y": 1280 },
-            { "id": 78, "caption": "M2 machines P1 (1 s)", "tokens": 0, "x": 760, "y": 1350 },
-            { "id": 79, "caption": "release", "tokens": 0, "x": 760, "y": 1420 },
-            { "id": 80, "caption": "M2 idle", "tokens": 0, "x": 760, "y": 1490 },
-            { "id": 81, "caption": "M2 wait station for p2a", "tokens": 0, "x": 760, "y": 1630 },
-            { "id": 82, "caption": "M2 hover p2a", "tokens": 0, "x": 760, "y": 1700 },
-            { "id": 83, "caption": "reach", "tokens": 0, "x": 760, "y": 1770 },
-            { "id": 84, "caption": "grasp", "tokens": 0, "x": 760, "y": 1840 },
-            { "id": 85, "caption": "lift", "tokens": 0, "x": 760, "y": 1910 },
-            { "id": 86, "caption": "over output", "tokens": 0, "x": 760, "y": 1980 },
-            { "id": 87, "caption": "M2 machines P2 (2 s)", "tokens": 0, "x": 760, "y": 2050 },
-            { "id": 88, "caption": "release", "tokens": 0, "x": 760, "y": 2120 },
-            { "id": 89, "caption": "M2 idle", "tokens": 0, "x": 760, "y": 2190 },
-            { "id": 90, "caption": "M2 wait station for p3a", "tokens": 0, "x": 760, "y": 2330 },
-            { "id": 91, "caption": "M2 hover p3a", "tokens": 0, "x": 760, "y": 2400 },
-            { "id": 92, "caption": "reach", "tokens": 0, "x": 760, "y": 2470 },
-            { "id": 93, "caption": "grasp", "tokens": 0, "x": 760, "y": 2540 },
-            { "id": 94, "caption": "lift", "tokens": 0, "x": 760, "y": 2610 },
-            { "id": 95, "caption": "over output", "tokens": 0, "x": 760, "y": 2680 },
-            { "id": 96, "caption": "M2 machines P3 (1.5 s)", "tokens": 0, "x": 760, "y": 2750 },
-            { "id": 97, "caption": "release", "tokens": 0, "x": 760, "y": 2820 },
-            { "id": 98, "caption": "M2 idle", "tokens": 0, "x": 760, "y": 2890 },
-            { "id": 99, "caption": "M2 wait station for p1b", "tokens": 0, "x": 760, "y": 3030 },
-            { "id": 100, "caption": "M2 hover p1b", "tokens": 0, "x": 760, "y": 3100 },
-            { "id": 101, "caption": "reach", "tokens": 0, "x": 760, "y": 3170 },
-            { "id": 102, "caption": "grasp", "tokens": 0, "x": 760, "y": 3240 },
-            { "id": 103, "caption": "lift", "tokens": 0, "x": 760, "y": 3310 },
-            { "id": 104, "caption": "over output", "tokens": 0, "x": 760, "y": 3380 },
-            { "id": 105, "caption": "M2 machines P1 (1 s)", "tokens": 0, "x": 760, "y": 3450 },
-            { "id": 106, "caption": "release", "tokens": 0, "x": 760, "y": 3520 },
-            { "id": 107, "caption": "M2 idle", "tokens": 0, "x": 760, "y": 3590 },
-            { "id": 108, "caption": "M2 wait station for p2b", "tokens": 0, "x": 760, "y": 3730 },
-            { "id": 109, "caption": "M2 hover p2b", "tokens": 0, "x": 760, "y": 3800 },
-            { "id": 110, "caption": "reach", "tokens": 0, "x": 760, "y": 3870 },
-            { "id": 111, "caption": "grasp", "tokens": 0, "x": 760, "y": 3940 },
-            { "id": 112, "caption": "lift", "tokens": 0, "x": 760, "y": 4010 },
-            { "id": 113, "caption": "over output", "tokens": 0, "x": 760, "y": 4080 },
-            { "id": 114, "caption": "M2 machines P2 (2 s)", "tokens": 0, "x": 760, "y": 4150 },
-            { "id": 115, "caption": "release", "tokens": 0, "x": 760, "y": 4220 },
-            { "id": 116, "caption": "M2 idle", "tokens": 0, "x": 760, "y": 4290 },
-            { "id": 117, "caption": "M2 wait station for p3b", "tokens": 0, "x": 760, "y": 4430 },
-            { "id": 118, "caption": "M2 hover p3b", "tokens": 0, "x": 760, "y": 4500 },
-            { "id": 119, "caption": "reach", "tokens": 0, "x": 760, "y": 4570 },
-            { "id": 120, "caption": "grasp", "tokens": 0, "x": 760, "y": 4640 },
-            { "id": 121, "caption": "lift", "tokens": 0, "x": 760, "y": 4710 },
-            { "id": 122, "caption": "over output", "tokens": 0, "x": 760, "y": 4780 },
-            { "id": 123, "caption": "M2 machines P3 (1.5 s)", "tokens": 0, "x": 760, "y": 4850 },
-            { "id": 124, "caption": "release", "tokens": 0, "x": 760, "y": 4920 },
-            { "id": 125, "caption": "End", "tokens": 0, "x": 760, "y": 4990 }
-       ],
-       "transitions": [
-            { "id": 0, "caption": "1", "x": 80, "y": 195.0 },
-            { "id": 1, "caption": "done(M1.Hover(p1a))", "x": 80, "y": 265.0 },
-            { "id": 2, "caption": "done(M1.Reach(p1a))", "x": 80, "y": 335.0 },
-            { "id": 3, "caption": "done(M1.Grasp(p1a)) . holding(M1, p1a)", "x": 80, "y": 405.0 },
-            { "id": 4, "caption": "done(M1.Hover(p1a))", "x": 80, "y": 475.0 },
-            { "id": 5, "caption": "2s/X10", "x": 80, "y": 545.0 },
-            { "id": 6, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 615.0 },
-            { "id": 7, "caption": "done(M1.Over(slot1))", "x": 80, "y": 685.0 },
-            { "id": 8, "caption": "done(M1.Release)", "x": 80, "y": 755.0 },
-            { "id": 9, "caption": "done(M1.Home)", "x": 80, "y": 825.0 },
-            { "id": 10, "caption": "1", "x": 80, "y": 895.0 },
-            { "id": 11, "caption": "done(M1.Hover(p2a))", "x": 80, "y": 965.0 },
-            { "id": 12, "caption": "done(M1.Reach(p2a))", "x": 80, "y": 1035.0 },
-            { "id": 13, "caption": "done(M1.Grasp(p2a)) . holding(M1, p2a)", "x": 80, "y": 1105.0 },
-            { "id": 14, "caption": "done(M1.Hover(p2a))", "x": 80, "y": 1175.0 },
-            { "id": 15, "caption": "3s/X21", "x": 80, "y": 1245.0 },
-            { "id": 16, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 1315.0 },
-            { "id": 17, "caption": "done(M1.Over(slot2))", "x": 80, "y": 1385.0 },
-            { "id": 18, "caption": "done(M1.Release)", "x": 80, "y": 1455.0 },
-            { "id": 19, "caption": "done(M1.Home)", "x": 80, "y": 1525.0 },
-            { "id": 20, "caption": "1", "x": 80, "y": 1595.0 },
-            { "id": 21, "caption": "done(M1.Hover(p3a))", "x": 80, "y": 1665.0 },
-            { "id": 22, "caption": "done(M1.Reach(p3a))", "x": 80, "y": 1735.0 },
-            { "id": 23, "caption": "done(M1.Grasp(p3a)) . holding(M1, p3a)", "x": 80, "y": 1805.0 },
-            { "id": 24, "caption": "done(M1.Hover(p3a))", "x": 80, "y": 1875.0 },
-            { "id": 25, "caption": "1s/X32", "x": 80, "y": 1945.0 },
-            { "id": 26, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 2015.0 },
-            { "id": 27, "caption": "done(M1.Over(slot3))", "x": 80, "y": 2085.0 },
-            { "id": 28, "caption": "done(M1.Release)", "x": 80, "y": 2155.0 },
-            { "id": 29, "caption": "done(M1.Home)", "x": 80, "y": 2225.0 },
-            { "id": 30, "caption": "1", "x": 80, "y": 2295.0 },
-            { "id": 31, "caption": "done(M1.Hover(p1b))", "x": 80, "y": 2365.0 },
-            { "id": 32, "caption": "done(M1.Reach(p1b))", "x": 80, "y": 2435.0 },
-            { "id": 33, "caption": "done(M1.Grasp(p1b)) . holding(M1, p1b)", "x": 80, "y": 2505.0 },
-            { "id": 34, "caption": "done(M1.Hover(p1b))", "x": 80, "y": 2575.0 },
-            { "id": 35, "caption": "2s/X43", "x": 80, "y": 2645.0 },
-            { "id": 36, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 2715.0 },
-            { "id": 37, "caption": "done(M1.Over(slot1))", "x": 80, "y": 2785.0 },
-            { "id": 38, "caption": "done(M1.Release)", "x": 80, "y": 2855.0 },
-            { "id": 39, "caption": "done(M1.Home)", "x": 80, "y": 2925.0 },
-            { "id": 40, "caption": "1", "x": 80, "y": 2995.0 },
-            { "id": 41, "caption": "done(M1.Hover(p2b))", "x": 80, "y": 3065.0 },
-            { "id": 42, "caption": "done(M1.Reach(p2b))", "x": 80, "y": 3135.0 },
-            { "id": 43, "caption": "done(M1.Grasp(p2b)) . holding(M1, p2b)", "x": 80, "y": 3205.0 },
-            { "id": 44, "caption": "done(M1.Hover(p2b))", "x": 80, "y": 3275.0 },
-            { "id": 45, "caption": "3s/X54", "x": 80, "y": 3345.0 },
-            { "id": 46, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 3415.0 },
-            { "id": 47, "caption": "done(M1.Over(slot2))", "x": 80, "y": 3485.0 },
-            { "id": 48, "caption": "done(M1.Release)", "x": 80, "y": 3555.0 },
-            { "id": 49, "caption": "done(M1.Home)", "x": 80, "y": 3625.0 },
-            { "id": 50, "caption": "1", "x": 80, "y": 3695.0 },
-            { "id": 51, "caption": "done(M1.Hover(p3b))", "x": 80, "y": 3765.0 },
-            { "id": 52, "caption": "done(M1.Reach(p3b))", "x": 80, "y": 3835.0 },
-            { "id": 53, "caption": "done(M1.Grasp(p3b)) . holding(M1, p3b)", "x": 80, "y": 3905.0 },
-            { "id": 54, "caption": "done(M1.Hover(p3b))", "x": 80, "y": 3975.0 },
-            { "id": 55, "caption": "1s/X65", "x": 80, "y": 4045.0 },
-            { "id": 56, "caption": "/(X72 + X81 + X90 + X99 + X108 + X117)", "x": 80, "y": 4115.0 },
-            { "id": 57, "caption": "done(M1.Over(slot3))", "x": 80, "y": 4185.0 },
-            { "id": 58, "caption": "done(M1.Release)", "x": 80, "y": 4255.0 },
-            { "id": 59, "caption": "done(M1.Home)", "x": 80, "y": 4325.0 },
-            { "id": 60, "caption": "1", "x": 760, "y": 895.0 },
-            { "id": 61, "caption": "1", "x": 760, "y": 965.0 },
-            { "id": 62, "caption": "done(M2.Hover(p1a))", "x": 760, "y": 1035.0 },
-            { "id": 63, "caption": "done(M2.Reach(p1a))", "x": 760, "y": 1105.0 },
-            { "id": 64, "caption": "done(M2.Grasp(p1a)) . holding(M2, p1a)", "x": 760, "y": 1175.0 },
-            { "id": 65, "caption": "done(M2.Hover(p1a))", "x": 760, "y": 1245.0 },
-            { "id": 66, "caption": "done(M2.Over(output))", "x": 760, "y": 1315.0 },
-            { "id": 67, "caption": "1s/X78", "x": 760, "y": 1385.0 },
-            { "id": 68, "caption": "done(M2.Release)", "x": 760, "y": 1455.0 },
-            { "id": 69, "caption": "1", "x": 760, "y": 1595.0 },
-            { "id": 70, "caption": "1", "x": 760, "y": 1665.0 },
-            { "id": 71, "caption": "done(M2.Hover(p2a))", "x": 760, "y": 1735.0 },
-            { "id": 72, "caption": "done(M2.Reach(p2a))", "x": 760, "y": 1805.0 },
-            { "id": 73, "caption": "done(M2.Grasp(p2a)) . holding(M2, p2a)", "x": 760, "y": 1875.0 },
-            { "id": 74, "caption": "done(M2.Hover(p2a))", "x": 760, "y": 1945.0 },
-            { "id": 75, "caption": "done(M2.Over(output))", "x": 760, "y": 2015.0 },
-            { "id": 76, "caption": "2s/X87", "x": 760, "y": 2085.0 },
-            { "id": 77, "caption": "done(M2.Release)", "x": 760, "y": 2155.0 },
-            { "id": 78, "caption": "1", "x": 760, "y": 2295.0 },
-            { "id": 79, "caption": "1", "x": 760, "y": 2365.0 },
-            { "id": 80, "caption": "done(M2.Hover(p3a))", "x": 760, "y": 2435.0 },
-            { "id": 81, "caption": "done(M2.Reach(p3a))", "x": 760, "y": 2505.0 },
-            { "id": 82, "caption": "done(M2.Grasp(p3a)) . holding(M2, p3a)", "x": 760, "y": 2575.0 },
-            { "id": 83, "caption": "done(M2.Hover(p3a))", "x": 760, "y": 2645.0 },
-            { "id": 84, "caption": "done(M2.Over(output))", "x": 760, "y": 2715.0 },
-            { "id": 85, "caption": "1.5s/X96", "x": 760, "y": 2785.0 },
-            { "id": 86, "caption": "done(M2.Release)", "x": 760, "y": 2855.0 },
-            { "id": 87, "caption": "1", "x": 760, "y": 2995.0 },
-            { "id": 88, "caption": "1", "x": 760, "y": 3065.0 },
-            { "id": 89, "caption": "done(M2.Hover(p1b))", "x": 760, "y": 3135.0 },
-            { "id": 90, "caption": "done(M2.Reach(p1b))", "x": 760, "y": 3205.0 },
-            { "id": 91, "caption": "done(M2.Grasp(p1b)) . holding(M2, p1b)", "x": 760, "y": 3275.0 },
-            { "id": 92, "caption": "done(M2.Hover(p1b))", "x": 760, "y": 3345.0 },
-            { "id": 93, "caption": "done(M2.Over(output))", "x": 760, "y": 3415.0 },
-            { "id": 94, "caption": "1s/X105", "x": 760, "y": 3485.0 },
-            { "id": 95, "caption": "done(M2.Release)", "x": 760, "y": 3555.0 },
-            { "id": 96, "caption": "1", "x": 760, "y": 3695.0 },
-            { "id": 97, "caption": "1", "x": 760, "y": 3765.0 },
-            { "id": 98, "caption": "done(M2.Hover(p2b))", "x": 760, "y": 3835.0 },
-            { "id": 99, "caption": "done(M2.Reach(p2b))", "x": 760, "y": 3905.0 },
-            { "id": 100, "caption": "done(M2.Grasp(p2b)) . holding(M2, p2b)", "x": 760, "y": 3975.0 },
-            { "id": 101, "caption": "done(M2.Hover(p2b))", "x": 760, "y": 4045.0 },
-            { "id": 102, "caption": "done(M2.Over(output))", "x": 760, "y": 4115.0 },
-            { "id": 103, "caption": "2s/X114", "x": 760, "y": 4185.0 },
-            { "id": 104, "caption": "done(M2.Release)", "x": 760, "y": 4255.0 },
-            { "id": 105, "caption": "1", "x": 760, "y": 4395.0 },
-            { "id": 106, "caption": "1", "x": 760, "y": 4465.0 },
-            { "id": 107, "caption": "done(M2.Hover(p3b))", "x": 760, "y": 4535.0 },
-            { "id": 108, "caption": "done(M2.Reach(p3b))", "x": 760, "y": 4605.0 },
-            { "id": 109, "caption": "done(M2.Grasp(p3b)) . holding(M2, p3b)", "x": 760, "y": 4675.0 },
-            { "id": 110, "caption": "done(M2.Hover(p3b))", "x": 760, "y": 4745.0 },
-            { "id": 111, "caption": "done(M2.Over(output))", "x": 760, "y": 4815.0 },
-            { "id": 112, "caption": "1.5s/X123", "x": 760, "y": 4885.0 },
-            { "id": 113, "caption": "done(M2.Release)", "x": 760, "y": 4955.0 }
-       ],
-       "arcs": [
-            { "from": "P0", "to": "T0" },
-            { "from": "P3", "to": "T0" },
-            { "from": "T0", "to": "P6", "duration": 0 },
-            { "from": "P6", "to": "T1" },
-            { "from": "T1", "to": "P7", "duration": 0 },
-            { "from": "P7", "to": "T2" },
-            { "from": "T2", "to": "P8", "duration": 0 },
-            { "from": "P8", "to": "T3" },
-            { "from": "T3", "to": "P9", "duration": 0 },
-            { "from": "P9", "to": "T4" },
-            { "from": "T4", "to": "P10", "duration": 0 },
-            { "from": "P10", "to": "T5" },
-            { "from": "T5", "to": "P11", "duration": 0 },
-            { "from": "P11", "to": "T6" },
-            { "from": "P2", "to": "T6" },
-            { "from": "T6", "to": "P12", "duration": 0 },
-            { "from": "P12", "to": "T7" },
-            { "from": "T7", "to": "P13", "duration": 0 },
-            { "from": "P13", "to": "T8" },
-            { "from": "T8", "to": "P14", "duration": 0 },
-            { "from": "P14", "to": "T9" },
-            { "from": "T9", "to": "P15", "duration": 0 },
-            { "from": "T9", "to": "P16", "duration": 0 },
-            { "from": "T9", "to": "P2", "duration": 0 },
-            { "from": "P15", "to": "T10" },
-            { "from": "P4", "to": "T10" },
-            { "from": "T10", "to": "P17", "duration": 0 },
-            { "from": "P17", "to": "T11" },
-            { "from": "T11", "to": "P18", "duration": 0 },
-            { "from": "P18", "to": "T12" },
-            { "from": "T12", "to": "P19", "duration": 0 },
-            { "from": "P19", "to": "T13" },
-            { "from": "T13", "to": "P20", "duration": 0 },
-            { "from": "P20", "to": "T14" },
-            { "from": "T14", "to": "P21", "duration": 0 },
-            { "from": "P21", "to": "T15" },
-            { "from": "T15", "to": "P22", "duration": 0 },
-            { "from": "P22", "to": "T16" },
-            { "from": "P2", "to": "T16" },
-            { "from": "T16", "to": "P23", "duration": 0 },
-            { "from": "P23", "to": "T17" },
-            { "from": "T17", "to": "P24", "duration": 0 },
-            { "from": "P24", "to": "T18" },
-            { "from": "T18", "to": "P25", "duration": 0 },
-            { "from": "P25", "to": "T19" },
-            { "from": "T19", "to": "P26", "duration": 0 },
-            { "from": "T19", "to": "P27", "duration": 0 },
-            { "from": "T19", "to": "P2", "duration": 0 },
-            { "from": "P26", "to": "T20" },
-            { "from": "P5", "to": "T20" },
-            { "from": "T20", "to": "P28", "duration": 0 },
-            { "from": "P28", "to": "T21" },
-            { "from": "T21", "to": "P29", "duration": 0 },
-            { "from": "P29", "to": "T22" },
-            { "from": "T22", "to": "P30", "duration": 0 },
-            { "from": "P30", "to": "T23" },
-            { "from": "T23", "to": "P31", "duration": 0 },
-            { "from": "P31", "to": "T24" },
-            { "from": "T24", "to": "P32", "duration": 0 },
-            { "from": "P32", "to": "T25" },
-            { "from": "T25", "to": "P33", "duration": 0 },
-            { "from": "P33", "to": "T26" },
-            { "from": "P2", "to": "T26" },
-            { "from": "T26", "to": "P34", "duration": 0 },
-            { "from": "P34", "to": "T27" },
-            { "from": "T27", "to": "P35", "duration": 0 },
-            { "from": "P35", "to": "T28" },
-            { "from": "T28", "to": "P36", "duration": 0 },
-            { "from": "P36", "to": "T29" },
-            { "from": "T29", "to": "P37", "duration": 0 },
-            { "from": "T29", "to": "P38", "duration": 0 },
-            { "from": "T29", "to": "P2", "duration": 0 },
-            { "from": "P37", "to": "T30" },
-            { "from": "P3", "to": "T30" },
-            { "from": "T30", "to": "P39", "duration": 0 },
-            { "from": "P39", "to": "T31" },
-            { "from": "T31", "to": "P40", "duration": 0 },
-            { "from": "P40", "to": "T32" },
-            { "from": "T32", "to": "P41", "duration": 0 },
-            { "from": "P41", "to": "T33" },
-            { "from": "T33", "to": "P42", "duration": 0 },
-            { "from": "P42", "to": "T34" },
-            { "from": "T34", "to": "P43", "duration": 0 },
-            { "from": "P43", "to": "T35" },
-            { "from": "T35", "to": "P44", "duration": 0 },
-            { "from": "P44", "to": "T36" },
-            { "from": "P2", "to": "T36" },
-            { "from": "T36", "to": "P45", "duration": 0 },
-            { "from": "P45", "to": "T37" },
-            { "from": "T37", "to": "P46", "duration": 0 },
-            { "from": "P46", "to": "T38" },
-            { "from": "T38", "to": "P47", "duration": 0 },
-            { "from": "P47", "to": "T39" },
-            { "from": "T39", "to": "P48", "duration": 0 },
-            { "from": "T39", "to": "P49", "duration": 0 },
-            { "from": "T39", "to": "P2", "duration": 0 },
-            { "from": "P48", "to": "T40" },
-            { "from": "P4", "to": "T40" },
-            { "from": "T40", "to": "P50", "duration": 0 },
-            { "from": "P50", "to": "T41" },
-            { "from": "T41", "to": "P51", "duration": 0 },
-            { "from": "P51", "to": "T42" },
-            { "from": "T42", "to": "P52", "duration": 0 },
-            { "from": "P52", "to": "T43" },
-            { "from": "T43", "to": "P53", "duration": 0 },
-            { "from": "P53", "to": "T44" },
-            { "from": "T44", "to": "P54", "duration": 0 },
-            { "from": "P54", "to": "T45" },
-            { "from": "T45", "to": "P55", "duration": 0 },
-            { "from": "P55", "to": "T46" },
-            { "from": "P2", "to": "T46" },
-            { "from": "T46", "to": "P56", "duration": 0 },
-            { "from": "P56", "to": "T47" },
-            { "from": "T47", "to": "P57", "duration": 0 },
-            { "from": "P57", "to": "T48" },
-            { "from": "T48", "to": "P58", "duration": 0 },
-            { "from": "P58", "to": "T49" },
-            { "from": "T49", "to": "P59", "duration": 0 },
-            { "from": "T49", "to": "P60", "duration": 0 },
-            { "from": "T49", "to": "P2", "duration": 0 },
-            { "from": "P59", "to": "T50" },
-            { "from": "P5", "to": "T50" },
-            { "from": "T50", "to": "P61", "duration": 0 },
-            { "from": "P61", "to": "T51" },
-            { "from": "T51", "to": "P62", "duration": 0 },
-            { "from": "P62", "to": "T52" },
-            { "from": "T52", "to": "P63", "duration": 0 },
-            { "from": "P63", "to": "T53" },
-            { "from": "T53", "to": "P64", "duration": 0 },
-            { "from": "P64", "to": "T54" },
-            { "from": "T54", "to": "P65", "duration": 0 },
-            { "from": "P65", "to": "T55" },
-            { "from": "T55", "to": "P66", "duration": 0 },
-            { "from": "P66", "to": "T56" },
-            { "from": "P2", "to": "T56" },
-            { "from": "T56", "to": "P67", "duration": 0 },
-            { "from": "P67", "to": "T57" },
-            { "from": "T57", "to": "P68", "duration": 0 },
-            { "from": "P68", "to": "T58" },
-            { "from": "T58", "to": "P69", "duration": 0 },
-            { "from": "P69", "to": "T59" },
-            { "from": "T59", "to": "P70", "duration": 0 },
-            { "from": "T59", "to": "P71", "duration": 0 },
-            { "from": "T59", "to": "P2", "duration": 0 },
-            { "from": "P1", "to": "T60" },
-            { "from": "P16", "to": "T60" },
-            { "from": "T60", "to": "P72", "duration": 0 },
-            { "from": "P72", "to": "T61" },
-            { "from": "P2", "to": "T61" },
-            { "from": "T61", "to": "P73", "duration": 0 },
-            { "from": "P73", "to": "T62" },
-            { "from": "T62", "to": "P74", "duration": 0 },
-            { "from": "P74", "to": "T63" },
-            { "from": "T63", "to": "P75", "duration": 0 },
-            { "from": "P75", "to": "T64" },
-            { "from": "T64", "to": "P76", "duration": 0 },
-            { "from": "P76", "to": "T65" },
-            { "from": "T65", "to": "P77", "duration": 0 },
-            { "from": "P77", "to": "T66" },
-            { "from": "T66", "to": "P78", "duration": 0 },
-            { "from": "T66", "to": "P2", "duration": 0 },
-            { "from": "T66", "to": "P3", "duration": 0 },
-            { "from": "P78", "to": "T67" },
-            { "from": "T67", "to": "P79", "duration": 0 },
-            { "from": "P79", "to": "T68" },
-            { "from": "T68", "to": "P80", "duration": 0 },
-            { "from": "P80", "to": "T69" },
-            { "from": "P27", "to": "T69" },
-            { "from": "T69", "to": "P81", "duration": 0 },
-            { "from": "P81", "to": "T70" },
-            { "from": "P2", "to": "T70" },
-            { "from": "T70", "to": "P82", "duration": 0 },
-            { "from": "P82", "to": "T71" },
-            { "from": "T71", "to": "P83", "duration": 0 },
-            { "from": "P83", "to": "T72" },
-            { "from": "T72", "to": "P84", "duration": 0 },
-            { "from": "P84", "to": "T73" },
-            { "from": "T73", "to": "P85", "duration": 0 },
-            { "from": "P85", "to": "T74" },
-            { "from": "T74", "to": "P86", "duration": 0 },
-            { "from": "P86", "to": "T75" },
-            { "from": "T75", "to": "P87", "duration": 0 },
-            { "from": "T75", "to": "P2", "duration": 0 },
-            { "from": "T75", "to": "P4", "duration": 0 },
-            { "from": "P87", "to": "T76" },
-            { "from": "T76", "to": "P88", "duration": 0 },
-            { "from": "P88", "to": "T77" },
-            { "from": "T77", "to": "P89", "duration": 0 },
-            { "from": "P89", "to": "T78" },
-            { "from": "P38", "to": "T78" },
-            { "from": "T78", "to": "P90", "duration": 0 },
-            { "from": "P90", "to": "T79" },
-            { "from": "P2", "to": "T79" },
-            { "from": "T79", "to": "P91", "duration": 0 },
-            { "from": "P91", "to": "T80" },
-            { "from": "T80", "to": "P92", "duration": 0 },
-            { "from": "P92", "to": "T81" },
-            { "from": "T81", "to": "P93", "duration": 0 },
-            { "from": "P93", "to": "T82" },
-            { "from": "T82", "to": "P94", "duration": 0 },
-            { "from": "P94", "to": "T83" },
-            { "from": "T83", "to": "P95", "duration": 0 },
-            { "from": "P95", "to": "T84" },
-            { "from": "T84", "to": "P96", "duration": 0 },
-            { "from": "T84", "to": "P2", "duration": 0 },
-            { "from": "T84", "to": "P5", "duration": 0 },
-            { "from": "P96", "to": "T85" },
-            { "from": "T85", "to": "P97", "duration": 0 },
-            { "from": "P97", "to": "T86" },
-            { "from": "T86", "to": "P98", "duration": 0 },
-            { "from": "P98", "to": "T87" },
-            { "from": "P49", "to": "T87" },
-            { "from": "T87", "to": "P99", "duration": 0 },
-            { "from": "P99", "to": "T88" },
-            { "from": "P2", "to": "T88" },
-            { "from": "T88", "to": "P100", "duration": 0 },
-            { "from": "P100", "to": "T89" },
-            { "from": "T89", "to": "P101", "duration": 0 },
-            { "from": "P101", "to": "T90" },
-            { "from": "T90", "to": "P102", "duration": 0 },
-            { "from": "P102", "to": "T91" },
-            { "from": "T91", "to": "P103", "duration": 0 },
-            { "from": "P103", "to": "T92" },
-            { "from": "T92", "to": "P104", "duration": 0 },
-            { "from": "P104", "to": "T93" },
-            { "from": "T93", "to": "P105", "duration": 0 },
-            { "from": "T93", "to": "P2", "duration": 0 },
-            { "from": "T93", "to": "P3", "duration": 0 },
-            { "from": "P105", "to": "T94" },
-            { "from": "T94", "to": "P106", "duration": 0 },
-            { "from": "P106", "to": "T95" },
-            { "from": "T95", "to": "P107", "duration": 0 },
-            { "from": "P107", "to": "T96" },
-            { "from": "P60", "to": "T96" },
-            { "from": "T96", "to": "P108", "duration": 0 },
-            { "from": "P108", "to": "T97" },
-            { "from": "P2", "to": "T97" },
-            { "from": "T97", "to": "P109", "duration": 0 },
-            { "from": "P109", "to": "T98" },
-            { "from": "T98", "to": "P110", "duration": 0 },
-            { "from": "P110", "to": "T99" },
-            { "from": "T99", "to": "P111", "duration": 0 },
-            { "from": "P111", "to": "T100" },
-            { "from": "T100", "to": "P112", "duration": 0 },
-            { "from": "P112", "to": "T101" },
-            { "from": "T101", "to": "P113", "duration": 0 },
-            { "from": "P113", "to": "T102" },
-            { "from": "T102", "to": "P114", "duration": 0 },
-            { "from": "T102", "to": "P2", "duration": 0 },
-            { "from": "T102", "to": "P4", "duration": 0 },
-            { "from": "P114", "to": "T103" },
-            { "from": "T103", "to": "P115", "duration": 0 },
-            { "from": "P115", "to": "T104" },
-            { "from": "T104", "to": "P116", "duration": 0 },
-            { "from": "P116", "to": "T105" },
-            { "from": "P71", "to": "T105" },
-            { "from": "T105", "to": "P117", "duration": 0 },
-            { "from": "P117", "to": "T106" },
-            { "from": "P2", "to": "T106" },
-            { "from": "T106", "to": "P118", "duration": 0 },
-            { "from": "P118", "to": "T107" },
-            { "from": "T107", "to": "P119", "duration": 0 },
-            { "from": "P119", "to": "T108" },
-            { "from": "T108", "to": "P120", "duration": 0 },
-            { "from": "P120", "to": "T109" },
-            { "from": "T109", "to": "P121", "duration": 0 },
-            { "from": "P121", "to": "T110" },
-            { "from": "T110", "to": "P122", "duration": 0 },
-            { "from": "P122", "to": "T111" },
-            { "from": "T111", "to": "P123", "duration": 0 },
-            { "from": "T111", "to": "P2", "duration": 0 },
-            { "from": "T111", "to": "P5", "duration": 0 },
-            { "from": "P123", "to": "T112" },
-            { "from": "T112", "to": "P124", "duration": 0 },
-            { "from": "P124", "to": "T113" },
-            { "from": "T113", "to": "P125", "duration": 0 }
-       ],
-       "actions": [
-            { "place_id": 6, "qualifier": "N", "color": "green", "name": "M1.Hover(p1a)", "script": "", "duration": 0 },
-            { "place_id": 7, "qualifier": "N", "color": "green", "name": "M1.Reach(p1a)", "script": "", "duration": 0 },
-            { "place_id": 8, "qualifier": "N", "color": "green", "name": "M1.Grasp(p1a)", "script": "", "duration": 0 },
-            { "place_id": 9, "qualifier": "N", "color": "green", "name": "M1.Hover(p1a)", "script": "", "duration": 0 },
-            { "place_id": 12, "qualifier": "N", "color": "green", "name": "M1.Over(slot1)", "script": "", "duration": 0 },
-            { "place_id": 13, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 14, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 17, "qualifier": "N", "color": "green", "name": "M1.Hover(p2a)", "script": "", "duration": 0 },
-            { "place_id": 18, "qualifier": "N", "color": "green", "name": "M1.Reach(p2a)", "script": "", "duration": 0 },
-            { "place_id": 19, "qualifier": "N", "color": "green", "name": "M1.Grasp(p2a)", "script": "", "duration": 0 },
-            { "place_id": 20, "qualifier": "N", "color": "green", "name": "M1.Hover(p2a)", "script": "", "duration": 0 },
-            { "place_id": 23, "qualifier": "N", "color": "green", "name": "M1.Over(slot2)", "script": "", "duration": 0 },
-            { "place_id": 24, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 25, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 28, "qualifier": "N", "color": "green", "name": "M1.Hover(p3a)", "script": "", "duration": 0 },
-            { "place_id": 29, "qualifier": "N", "color": "green", "name": "M1.Reach(p3a)", "script": "", "duration": 0 },
-            { "place_id": 30, "qualifier": "N", "color": "green", "name": "M1.Grasp(p3a)", "script": "", "duration": 0 },
-            { "place_id": 31, "qualifier": "N", "color": "green", "name": "M1.Hover(p3a)", "script": "", "duration": 0 },
-            { "place_id": 34, "qualifier": "N", "color": "green", "name": "M1.Over(slot3)", "script": "", "duration": 0 },
-            { "place_id": 35, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 36, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 39, "qualifier": "N", "color": "green", "name": "M1.Hover(p1b)", "script": "", "duration": 0 },
-            { "place_id": 40, "qualifier": "N", "color": "green", "name": "M1.Reach(p1b)", "script": "", "duration": 0 },
-            { "place_id": 41, "qualifier": "N", "color": "green", "name": "M1.Grasp(p1b)", "script": "", "duration": 0 },
-            { "place_id": 42, "qualifier": "N", "color": "green", "name": "M1.Hover(p1b)", "script": "", "duration": 0 },
-            { "place_id": 45, "qualifier": "N", "color": "green", "name": "M1.Over(slot1)", "script": "", "duration": 0 },
-            { "place_id": 46, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 47, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 50, "qualifier": "N", "color": "green", "name": "M1.Hover(p2b)", "script": "", "duration": 0 },
-            { "place_id": 51, "qualifier": "N", "color": "green", "name": "M1.Reach(p2b)", "script": "", "duration": 0 },
-            { "place_id": 52, "qualifier": "N", "color": "green", "name": "M1.Grasp(p2b)", "script": "", "duration": 0 },
-            { "place_id": 53, "qualifier": "N", "color": "green", "name": "M1.Hover(p2b)", "script": "", "duration": 0 },
-            { "place_id": 56, "qualifier": "N", "color": "green", "name": "M1.Over(slot2)", "script": "", "duration": 0 },
-            { "place_id": 57, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 58, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 61, "qualifier": "N", "color": "green", "name": "M1.Hover(p3b)", "script": "", "duration": 0 },
-            { "place_id": 62, "qualifier": "N", "color": "green", "name": "M1.Reach(p3b)", "script": "", "duration": 0 },
-            { "place_id": 63, "qualifier": "N", "color": "green", "name": "M1.Grasp(p3b)", "script": "", "duration": 0 },
-            { "place_id": 64, "qualifier": "N", "color": "green", "name": "M1.Hover(p3b)", "script": "", "duration": 0 },
-            { "place_id": 67, "qualifier": "N", "color": "green", "name": "M1.Over(slot3)", "script": "", "duration": 0 },
-            { "place_id": 68, "qualifier": "N", "color": "green", "name": "M1.Release", "script": "", "duration": 0 },
-            { "place_id": 69, "qualifier": "N", "color": "green", "name": "M1.Home", "script": "", "duration": 0 },
-            { "place_id": 73, "qualifier": "N", "color": "green", "name": "M2.Hover(p1a)", "script": "", "duration": 0 },
-            { "place_id": 74, "qualifier": "N", "color": "green", "name": "M2.Reach(p1a)", "script": "", "duration": 0 },
-            { "place_id": 75, "qualifier": "N", "color": "green", "name": "M2.Grasp(p1a)", "script": "", "duration": 0 },
-            { "place_id": 76, "qualifier": "N", "color": "green", "name": "M2.Hover(p1a)", "script": "", "duration": 0 },
-            { "place_id": 77, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 79, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 },
-            { "place_id": 82, "qualifier": "N", "color": "green", "name": "M2.Hover(p2a)", "script": "", "duration": 0 },
-            { "place_id": 83, "qualifier": "N", "color": "green", "name": "M2.Reach(p2a)", "script": "", "duration": 0 },
-            { "place_id": 84, "qualifier": "N", "color": "green", "name": "M2.Grasp(p2a)", "script": "", "duration": 0 },
-            { "place_id": 85, "qualifier": "N", "color": "green", "name": "M2.Hover(p2a)", "script": "", "duration": 0 },
-            { "place_id": 86, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 88, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 },
-            { "place_id": 91, "qualifier": "N", "color": "green", "name": "M2.Hover(p3a)", "script": "", "duration": 0 },
-            { "place_id": 92, "qualifier": "N", "color": "green", "name": "M2.Reach(p3a)", "script": "", "duration": 0 },
-            { "place_id": 93, "qualifier": "N", "color": "green", "name": "M2.Grasp(p3a)", "script": "", "duration": 0 },
-            { "place_id": 94, "qualifier": "N", "color": "green", "name": "M2.Hover(p3a)", "script": "", "duration": 0 },
-            { "place_id": 95, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 97, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 },
-            { "place_id": 100, "qualifier": "N", "color": "green", "name": "M2.Hover(p1b)", "script": "", "duration": 0 },
-            { "place_id": 101, "qualifier": "N", "color": "green", "name": "M2.Reach(p1b)", "script": "", "duration": 0 },
-            { "place_id": 102, "qualifier": "N", "color": "green", "name": "M2.Grasp(p1b)", "script": "", "duration": 0 },
-            { "place_id": 103, "qualifier": "N", "color": "green", "name": "M2.Hover(p1b)", "script": "", "duration": 0 },
-            { "place_id": 104, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 106, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 },
-            { "place_id": 109, "qualifier": "N", "color": "green", "name": "M2.Hover(p2b)", "script": "", "duration": 0 },
-            { "place_id": 110, "qualifier": "N", "color": "green", "name": "M2.Reach(p2b)", "script": "", "duration": 0 },
-            { "place_id": 111, "qualifier": "N", "color": "green", "name": "M2.Grasp(p2b)", "script": "", "duration": 0 },
-            { "place_id": 112, "qualifier": "N", "color": "green", "name": "M2.Hover(p2b)", "script": "", "duration": 0 },
-            { "place_id": 113, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 115, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 },
-            { "place_id": 118, "qualifier": "N", "color": "green", "name": "M2.Hover(p3b)", "script": "", "duration": 0 },
-            { "place_id": 119, "qualifier": "N", "color": "green", "name": "M2.Reach(p3b)", "script": "", "duration": 0 },
-            { "place_id": 120, "qualifier": "N", "color": "green", "name": "M2.Grasp(p3b)", "script": "", "duration": 0 },
-            { "place_id": 121, "qualifier": "N", "color": "green", "name": "M2.Hover(p3b)", "script": "", "duration": 0 },
-            { "place_id": 122, "qualifier": "N", "color": "green", "name": "M2.Over(output)", "script": "", "duration": 0 },
-            { "place_id": 124, "qualifier": "N", "color": "green", "name": "M2.Release", "script": "", "duration": 0 }
-       ]
-    }
-  ],
-  "inputs": [
-  ]
-}
 # A small factory driven by a GRAFCET: the flowshop of TimedPetriNetEditor
 # (data/examples/simple.flowshop) with two arms as the machines M1 and M2,
 # three kinds of parts and two lots (worlds/factory_cell.world.yaml).
 #
-# scenarios/factory.grafcet.json is the event graph of the flowshop written as
-# a GRAFCET (126 steps): one sequence of steps per operation (machine, part);
+# The GRAFCET is generated from scenarios/factory.workflow.yaml: one sequence
+# of steps per operation (machine, part) made of the recipes of the arms;
 # AND convergences give the order of each machine and of each part (a part
-# goes to M2 once machined by M1; the slot of a kind is free again once M2
-# took the part). Machining is a time receptivity (2s/X12) while the arm
-# holds the part. A Station step is a semaphore: one arm at a time between
-# the machines, M2 first. factory.workflow.yaml gives the cycle time of the
-# flowshop.
+# goes to M2 once machined by M1; the place of a kind in the station is free
+# again once M2 took the part). Machining is a time receptivity (2s/X10)
+# while the arm holds the part. The station is a zone: one arm at a time,
+# M2 first. The same file gives the cycle time of the flowshop.
 scenario:
   id: factory
   description: Two machines, three kinds of parts, two lots - the flowshop of simple.flowshop with robots.
@@ -1364,8 +774,7 @@ scenario:
 
   controller:
     grafcet:
-      file: scenarios/factory.grafcet.json
-      success: X125             # End: M2 dropped the last part
+      workflow: scenarios/factory.workflow.yaml   # ends at its End step
 
   perception: { fidelity: truth }   # the simulator gives the poses
 
@@ -1388,24 +797,156 @@ scenario:
 # (TimedPetriNetEditor data/examples), machining only (the moves of the arms
 # are not counted here). P1 P2 P3 visit M1 then M2.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.workflow.yaml
+#
+# It also drives the cell (factory.scenario.yaml: grafcet: { workflow: ... }):
+# the GRAFCET is generated from the recipes of the arms, the station between
+# them and the parts of each lot. M1 takes a part from its stock, machines it
+# while holding it, and gives it to the place of its kind in the station; M2
+# takes it there, carries it over the output, machines it and drops it. One
+# arm at a time in the station (zone), M2 first.
 workflow:
   id: factory_line
   operators:
-    - { id: M1, entity: M1 }
-    - { id: M2, entity: M2 }
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+  buffers:
+    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
+  output: output
   products:
     - id: P1
+      parts: [p1a, p1b]
       route:
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
     - id: P2
+      parts: [p2a, p2b]
       route:
         - { name: machining, on: M1, duration: 3.0 }
         - { name: machining, on: M2, duration: 2.0 }
     - id: P3
+      parts: [p3a, p3b]
       route:
         - { name: machining, on: M1, duration: 1.0 }
         - { name: machining, on: M2, duration: 1.5 }
+# The factory fed by a conveyor belt (worlds/factory_belt_cell.world.yaml):
+# the GRAFCET generated from scenarios/factory_belt.workflow.yaml runs the
+# belt (skill feeder_belt.Run, a device of the cell) for each part, when the
+# pick place at its end is free; M1 takes the part there.
+scenario:
+  id: factory_belt
+  description: The factory fed by a conveyor belt - the belt brings each part to M1.
+  world: worlds/factory_belt_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory_belt.workflow.yaml   # ends at its End step
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 240
+
+  assertions:
+    - controller.success
+    - inside(p1a, output)
+    - inside(p2a, output)
+    - inside(p3a, output)
+    - inside(p1b, output)
+    - inside(p2b, output)
+    - inside(p3b, output)
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }
+    - skill_succeeded(M1.Grasp(p3b))
+    - time < 90
+# The factory of factory.workflow.yaml fed by a conveyor belt
+# (worlds/factory_belt_cell.world.yaml). The feeder is the first operator:
+# its operation runs the belt 0.55 s (a pitch of 10 cm at 0.2 m/s, a little
+# more: the stop at the end holds the part), when the pick place is free.
+# M1 takes the part there; then as in factory.workflow.yaml.
+#   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory_belt.workflow.yaml
+workflow:
+  id: factory_belt_line
+  operators:
+    - id: feeder
+      entity: feeder
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+  buffers:
+    - { id: pick, after: feeder, place: pick }   # the end of the belt, one part
+    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
+  output: output
+  products:
+    - id: P1
+      parts: [p1a, p1b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+    - id: P2
+      parts: [p2a, p2b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: machining, on: M1, duration: 3.0 }
+        - { name: machining, on: M2, duration: 2.0 }
+    - id: P3
+      parts: [p3a, p3b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: machining, on: M1, duration: 1.0 }
+        - { name: machining, on: M2, duration: 1.5 }
+# The factory of factory.scenario.yaml driven by the default GEMMA of
+# TimedPetriNetEditor: Safety (emergency stop), Control (A1 initial stop,
+# F1 normal production, A2 end of cycle, D1, A5, A6) and the Production
+# generated from the workflow. A part starts only in F1. The operator
+# pushes Start, then Stop at 20 s: the arms finish the parts they hold
+# (M1 puts p3a in the station, M2 drops p2a), Control goes A2 then back to
+# A1 when both arms are between two parts. p3a waits in the station, lot b
+# stays in the stock: Start again goes on from there.
+scenario:
+  id: factory_gemma
+  description: The factory with a GEMMA - Start, then Stop at 20 s ends the cycle.
+  world: worlds/factory_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory.workflow.yaml
+      gemma: default
+      success: Control:X0 . 1s/Control:X0   # back to A1 (initial stop) for 1 s
+      events:
+        - { at: 0.0, input: Start, pulse: true }
+        - { at: 20.0, input: Stop, pulse: true }
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1a, output)
+    - inside(p2a, output)
+    - on(p3a, slot3)
+    - inside(p1b, output) == 0
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }
 # Path of the drill on the tray, in the frame of the tray: its centre,
 # x and y along its sides, z up; z = 0.006 is the top face. The glasses
 # stand at (+-0.09, +-0.10): the path draws a target between them. It
@@ -2524,7 +2065,8 @@ public:
                               std::string_view p_scenario) override
     {
         if (p_scenario == "conveyor" || p_scenario == "conveyor_sequential" ||
-            p_scenario == "conveyor_grafcet" || p_scenario == "factory")
+            p_scenario == "conveyor_grafcet" || p_scenario == "factory" ||
+            p_scenario == "factory_gemma" || p_scenario == "factory_belt")
         {
             m_mission = std::make_unique<dual_arm::ConveyorMission>();
             p_host.bindMission(*m_mission);
@@ -3552,6 +3094,75 @@ world:
       shape: { type: container, size: [0.16, 0.16, 0.08] }
       color: [0.5, 0.6, 0.95]
       pose: { position: [0.05, 0.75, 0.04] }
+# The small factory of factory_cell.world.yaml, fed by a conveyor belt: the
+# six parts wait on the feeder in the order M1 takes them, one pitch (10 cm)
+# apart. Each run of the belt brings the next part to the pick place, at the
+# end of the belt, where a stop holds it (no physics: abstract fidelity).
+# Then as in factory_cell: M1 machines the part while holding it and puts it
+# on the station of its kind; M2 takes it, machines it and drops it.
+# Machining times (s), as in simple.flowshop:  P1  P2  P3
+#                                          M1   2   3   1
+#                                          M2   1   2   1.5
+world:
+  id: factory_belt_cell
+
+  entities:
+    - id: M1
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, -0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M1_arm: { type: joint_group }
+    - id: M1_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M1.flange, frame: tool_mount }
+      actuators:
+        M1_gripper: { type: vacuum }
+
+    - id: M2
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, 0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M2_arm: { type: joint_group }
+    - id: M2_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M2.flange, frame: tool_mount }
+      actuators:
+        M2_gripper: { type: vacuum }
+
+    # The feeder: a belt of 70 cm along x, 4 cm high; the parts go to -x and
+    # stop at its end (x = 0.20), the pick place of M1.
+    - id: feeder
+      type: body
+      physics: fixed
+      shape: { type: box, size: [0.70, 0.10, 0.04] }
+      color: [0.25, 0.25, 0.28]
+      pose: { position: [0.55, -0.55, 0.02] }
+      actuators:
+        feeder_belt: { type: conveyor, speed: 0.2, direction: [-1, 0, 0] }
+
+    # The parts on the feeder, in the order M1 takes them.
+    - { id: p1a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
+    - { id: p2a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
+    - { id: p3a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
+    - { id: p1b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
+    - { id: p2b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
+    - { id: p3b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
+
+    # Stations between the two machines, one per kind of part.
+    - { id: slot1, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.9, 0.6, 0.6], pose: { position: [0.25, 0.0, 0.005] } }
+    - { id: slot2, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.9, 0.6], pose: { position: [0.36, 0.0, 0.005] } }
+    - { id: slot3, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.6, 0.9], pose: { position: [0.47, 0.0, 0.005] } }
+
+    # Output of M2.
+    - { id: output, type: prop, kind: bin, shape: { type: container, size: [0.20, 0.20, 0.08] }, color: [0.8, 0.8, 0.8], pose: { position: [0.18, 0.55, 0.04] } }
 # A small factory: the flowshop of TimedPetriNetEditor
 # (data/examples/simple.flowshop) with robots. Two arms are the machines M1
 # and M2; three kinds of parts P1 (red), P2 (green), P3 (blue) come in two
@@ -3748,45 +3359,39 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin FlyBrain: a fly brain closed loop, with a circuit of 13
+# neurons, or with the whole connectome of Drosophila_brain_model (about
+# 100 MB) when FLYBRAIN_CONNECTOME=1. Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
+#? 1: fetch the connectome of the fly and extract its edges.
+FLYBRAIN_CONNECTOME ?= 0
 
-include $(P)/Makefile.common
-TARGET_NAME := robotik_fly
-TARGET_DESCRIPTION := Fly demonstration package
-PLUGIN_NAME := FlyBrain
-PLUGIN_DIR := $(P)/plugins/FlyBrain
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
+TARGETS += robotik_fly
 
-# FlyView and FlyDraw belong to the standalone Robotik-Fly window only.
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/FlyMission.cpp
-LIB_FILES += $(PLUGIN_SRC)/FlyScenario.cpp $(PLUGIN_SRC)/FlyVision.cpp
-LIB_FILES += $(PLUGIN_SRC)/FlyController.cpp $(PLUGIN_SRC)/FlyEnvironment.cpp
-LIB_FILES += $(PLUGIN_SRC)/FlyBrain.cpp $(PLUGIN_SRC)/ShiuNetwork.cpp
+robotik_fly.DESCRIPTION := Fly demonstration package
+robotik_fly.SOURCES := src/Plugin.cpp src/FlyMission.cpp src/FlyScenario.cpp src/FlyVision.cpp \
+    src/FlyController.cpp src/FlyEnvironment.cpp src/FlyBrain.cpp src/ShiuNetwork.cpp
+$(eval $(call ROBOTIK_PLUGIN,robotik_fly,FlyBrain))
 
-# FlyWire v783 tables (Shiu et al. 2024, dependencies of plugin.yaml), written
-# into the pack as data/flywire/. Optional: without the clone, the plugin is
-# built anyway and only the 13-neuron circuit is available. The parquet is
-# read with pyarrow, installed in external/.pydeps when the system lacks it.
-FLY_SRC := $(THIRD_PARTIES_DIR)/Drosophila_brain_model
-FLY_DATA := $(abspath $(PLUGIN_DIR)/data/flywire)
-FLY_PY := $(THIRD_PARTIES_DIR)/.pydeps
-ifneq ($(wildcard $(FLY_SRC)/Connectivity_783.parquet),)
-PLUGIN_DEPENDS := $(FLY_DATA)/edges.csv
-endif
+ifeq ($(FLYBRAIN_CONNECTOME),1)
+### Whole adult fly brain model (Shiu et al. 2024). License: MIT
+TARGETS += Drosophila_brain_model
+Drosophila_brain_model.GIT := https://github.com/philshiu/Drosophila_brain_model.git
 
-include $(P)/plugins/plugin.mk
-
-$(FLY_DATA)/edges.csv: $(FLY_SRC)/Connectivity_783.parquet $(FLY_SRC)/Completeness_783.csv
+# The edges of the connectome, made from its parquet file (with pyarrow).
+FLY_DIR := $(HERE)
+FLY_DATA := $(abspath $(HERE)data/flywire)
+FLY_PY := $(abspath $(BUILD_DIR)/pydeps)
+robotik_fly: $(FLY_DATA)/edges.csv
+$(FLY_DATA)/edges.csv: | Drosophila_brain_model
 	@PYTHONPATH=$(FLY_PY) python3 -c "import pyarrow" 2> /dev/null || \
 	    python3 -m pip install --target $(FLY_PY) pyarrow
-	PYTHONPATH=$(FLY_PY) python3 $(PLUGIN_DIR)/prepare_edges.py $^ $@
-	cp -f $(FLY_SRC)/Completeness_783.csv $(FLY_DATA)/completeness.csv
+	PYTHONPATH=$(FLY_PY) python3 $(FLY_DIR)prepare_edges.py $(Drosophila_brain_model.DIR)Connectivity_783.parquet \
+	    $(Drosophila_brain_model.DIR)Completeness_783.csv $@
+	cp -f $(Drosophila_brain_model.DIR)Completeness_783.csv $(FLY_DATA)/completeness.csv
+endif
 # Fly Brain demo
 
 A fly (URDF scaled ×100) flies toward a food source while avoiding obstacles. The brain never sees MuJoCo, Compages, or the URDF: it reads an observation and returns an action (`forward`, `turn`, `lift`).
@@ -3905,13 +3510,12 @@ Reading output rates is not a third manipulation. It is the measurement, as in t
 The connectome is the FlyWire v783 synapse list: for each edge, the presynaptic index, the postsynaptic index, and "Excitatory x Connectivity". A neuron index is its row number in `Completeness_783.csv`, as in `model.py`.
 
 The repository is listed in `dependencies.thirdparties` of `plugins/FlyBrain/plugin.yaml`. It is
-optional: without it, the plugin builds with the 13-neuron circuit only. The
-Makefile of the plugin extracts the tables (`prepare_edges.py`, which needs
-pandas and pyarrow) when the clone is there:
+optional: without it, the plugin builds with the 13-neuron circuit only. With
+`FLYBRAIN_CONNECTOME=1`, `FlyBrain.mk` fetches it and extracts the tables
+(`prepare_edges.py`, which needs pandas and pyarrow):
 
 ```bash
-make -C plugins/FlyBrain download-external-libs
-make -C plugins/FlyBrain
+make FLYBRAIN_CONNECTOME=1 robotik_fly
 ```
 
 That writes `data/flywire/edges.csv` and `data/flywire/completeness.csv`. Both are in `.gitignore`: the parquet is about 100 MB, and the edge list is larger. `data/flywire/binding.txt` is versioned. It is the role file: which indices receive activation, which are read, and which are silenced.
@@ -3921,7 +3525,7 @@ The shipped numbers are real synapses from the graph, chosen because the weight 
 A line `silence 50` removes neuron 50. Several such lines are allowed. A role absent from the file is simply not wired: no activation, or an output that stays at zero.
 
 ```bash
-./build/Robotik-Fly \
+./build/linux-gcc-debug/bin/Robotik-Fly \
     --edges plugins/FlyBrain/data/flywire/edges.csv \
     --binding plugins/FlyBrain/data/flywire/binding.txt \
     --headless
@@ -3937,7 +3541,7 @@ fixes obstacle jitter, sensor noise, and the Poisson draws. Two runs with the
 same seed play the same episode.
 
 ```bash
-./build/Robotik-Fly --brain reflex
+./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
 ```
 
 Same headless episode, but the explicit rule replaces the neural network. Use
@@ -3945,7 +3549,7 @@ it to check that the sensors → action → body loop reaches the food before
 blaming the model.
 
 ```bash
-./build/Robotik-Fly --view
+./build/linux-gcc-debug/bin/Robotik-Fly --view
 ```
 
 Opens a window. The camera follows the thorax. Obstacles are brown, the food
@@ -3954,7 +3558,7 @@ The brain stays Shiu, unless `--brain reflex` is added. Bottom left is the
 left eye; bottom right is the right eye.
 
 ```bash
-./build/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
 Eight worlds in parallel, no window, seed fixed. The program stops when eight
@@ -3964,7 +3568,7 @@ the set is reproducible. The final line reports how many of those episodes
 reached the food.
 
 ```bash
-./build/Robotik-Fly --record fly_run.json
+./build/linux-gcc-debug/bin/Robotik-Fly --record fly_run.json
 ```
 
 Plays one headless episode and writes `fly_run.json`: the seed, the time
@@ -3972,7 +3576,7 @@ step, then each observation (9 numbers) and the action that followed
 (`forward`, `turn`, `lift`).
 
 ```bash
-./build/Robotik-Fly --replay fly_run.json --view
+./build/linux-gcc-debug/bin/Robotik-Fly --replay fly_run.json --view
 ```
 
 Replays that file instead of querying the brain: the recorded actions are
@@ -3985,7 +3589,7 @@ switches to the connectome (`data/flywire/edges.csv` and `binding.txt`) and
 restarts the episode. Both eyes are in the "Robot camera" panel.
 
 ```bash
-./build/Robotik-Simulator build/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 ## Colored rays
@@ -4016,38 +3620,16 @@ left eye, then right eye.
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# Demo: a fly brain closed loop, headless or in Compages.
 
-P := ../../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := Robotik-Fly
-TARGET_DESCRIPTION := Demo: a fly brain closed loop, headless or in Compages
-include $(M)/project/Makefile
-
-APP_DIR := $(P)/plugins/FlyBrain/app
-DEMO_DIR := $(P)/plugins/FlyBrain/src
-INCLUDES += $(APP_DIR) $(DEMO_DIR) $(P)/include $(P)/src
-VPATH += $(APP_DIR) $(DEMO_DIR)
-INTERNAL_LIBS += $(call internal-lib,robotik-core)
-SRC_FILES := $(APP_DIR)/main.cpp
-SRC_FILES += $(filter-out $(DEMO_DIR)/Plugin.cpp,$(wildcard $(DEMO_DIR)/*.cpp))
-
-PKG_LIBS += glfw3 glew gl
-
-BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
-RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
-include $(BLACKTHORN_DIR)/BlackThorn.mk
-INCLUDES += $(BLACKTHORN_INCLUDES)
-DEFINES += $(BLACKTHORN_DEFINES)
-USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
-PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
-
-include $(M)/rules/Makefile
-include $(P)/Makefile.relink
+TARGETS += Robotik-Fly
+Robotik-Fly.DESCRIPTION := Demo: a fly brain closed loop, headless or in Compages
+Robotik-Fly.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
+Robotik-Fly.INCLUDES := . ../src
+Robotik-Fly.DEPENDS := robotik-core
+Robotik-Fly.PKG_CONFIG := glfw3 glew gl
 // SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 // Copyright (c) 2020-2026 Quentin Quadrat
 //
@@ -11224,26 +10806,14 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin HelloWorld. Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := robotik_hello_world
-TARGET_DESCRIPTION := Tutorial plugin: one small lesson per scenario
-PLUGIN_NAME := HelloWorld
-PLUGIN_DIR := $(P)/plugins/HelloWorld
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
-
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/HelloMission.cpp
-LIB_FILES += $(PLUGIN_SRC)/WaveMission.cpp $(PLUGIN_SRC)/ReachMission.cpp
-LIB_FILES += $(PLUGIN_SRC)/WaveSkill.cpp
-
-include $(P)/plugins/plugin.mk
+TARGETS += robotik_hello_world
+robotik_hello_world.DESCRIPTION := Tutorial plugin: one small lesson per scenario
+robotik_hello_world.SOURCES := src/*.cpp
+$(eval $(call ROBOTIK_PLUGIN,robotik_hello_world,HelloWorld))
 # Runs the lessons as variants and compares them. Each case rebuilds its world.
 experiment:
   id: hello_experiment
@@ -11928,55 +11498,30 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin HumanoidWalk: a LimX humanoid walking by a learned policy
+# (built only with PLUGINS+=HumanoidWalk). Paths are relative to this
+# directory.
 
-P := ../..
-M := $(P)/.makefile
+$(eval $(ROBOTIK_ONNXRUNTIME))
+TARGETS += humanoid-description humanoid-rl-deploy-cpp robotik_humanoid_walk
 
-include $(P)/Makefile.common
-TARGET_NAME := robotik_humanoid_walk
-TARGET_DESCRIPTION := Humanoid walking by a learned policy
-PLUGIN_NAME := HumanoidWalk
-PLUGIN_DIR := $(P)/plugins/HumanoidWalk
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
+### LimX HU_D04 humanoid: URDF and meshes. License: Apache-2.0
+humanoid-description.GIT := https://github.com/limxdynamics/humanoid-description.git
+### LimX controllers: the trained walking policy. License: Apache-2.0
+humanoid-rl-deploy-cpp.GIT := https://github.com/limxdynamics/humanoid-rl-deploy-cpp.git
 
-LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
+robotik_humanoid_walk.DESCRIPTION := Humanoid walking by a learned policy
+robotik_humanoid_walk.SOURCES := src/*.cpp
+robotik_humanoid_walk.DEPENDS := onnxruntime
+$(eval $(call ROBOTIK_PLUGIN,robotik_humanoid_walk,HumanoidWalk))
 
-# The LimX repositories (dependencies of plugin.yaml) and the ONNX
-# Runtime release (downloaded below) are private to this plugin. Without them
-# the plugin is skipped. The asset pack data/hu_d04 is made from the clones.
-ORT_VERSION := 1.20.1
-ONNXRUNTIME_DIR := $(THIRD_PARTIES_DIR)/onnxruntime
-LIMX_DESCRIPTION := $(THIRD_PARTIES_DIR)/humanoid-description
-LIMX_CONTROLLERS := $(THIRD_PARTIES_DIR)/humanoid-rl-deploy-cpp
-HU_D04 := $(abspath $(PLUGIN_DIR)/data/hu_d04)
-PLUGIN_REQUIRES := $(ONNXRUNTIME_DIR)/include/onnxruntime_cxx_api.h
-PLUGIN_REQUIRES += $(LIMX_DESCRIPTION) $(LIMX_CONTROLLERS)
-PLUGIN_DEPENDS := $(HU_D04)/walk.onnx
-
-USER_CXXFLAGS += -isystem $(ONNXRUNTIME_DIR)/include
-USER_LDFLAGS += -L$(ONNXRUNTIME_DIR)/lib -Wl,-rpath,$(ONNXRUNTIME_DIR)/lib -lonnxruntime
-
-include $(P)/plugins/plugin.mk
-
-$(HU_D04)/walk.onnx:
-	python3 -I $(PLUGIN_DIR)/prepare_assets.py $(LIMX_DESCRIPTION) $(LIMX_CONTROLLERS) $(PLUGIN_DIR)/data
-
-# Prebuilt release of Microsoft: nothing to compile.
-download-external-libs::
-	@if [ ! -f $(ONNXRUNTIME_DIR)/include/onnxruntime_cxx_api.h ]; then \
-	    case "$$(uname -m)" in \
-	        x86_64) arch=x64 ;; aarch64) arch=aarch64 ;; \
-	        *) echo "No ONNX Runtime release for $$(uname -m)"; exit 1 ;; \
-	    esac; \
-	    name=onnxruntime-linux-$$arch-$(ORT_VERSION); \
-	    cd $(THIRD_PARTIES_DIR) && \
-	    curl -Ls https://github.com/microsoft/onnxruntime/releases/download/v$(ORT_VERSION)/$$name.tgz | tar -xz && \
-	    rm -rf onnxruntime && mv $$name onnxruntime; \
-	fi
+# The body and the policy, made from the two repositories of LimX.
+HU_D04_DIR := $(HERE)
+robotik_humanoid_walk: $(abspath $(HERE)data/hu_d04)/walk.onnx
+$(abspath $(HERE)data/hu_d04)/walk.onnx: | humanoid-description humanoid-rl-deploy-cpp
+	python3 -I $(HU_D04_DIR)prepare_assets.py $(humanoid-description.DIR) $(humanoid-rl-deploy-cpp.DIR) $(HU_D04_DIR)data
 # HumanoidWalk
 
 A LimX HU_D04_01 humanoid (31 joints) walks in a circle with the walking
@@ -11988,10 +11533,9 @@ the robot with [humanoid-description](https://github.com/limxdynamics/humanoid-d
 ## Build
 
 ```bash
-make -C plugins/HumanoidWalk download-external-libs   # LimX repositories (dependencies of plugin.yaml) + ONNX Runtime release
-make -C plugins/HumanoidWalk -j"$(nproc)"             # runs prepare_assets.py once, then builds
-./build/Robotik-Simulator build/plugins/HumanoidWalk/scenarios/walk.scenario.yaml   # Space: play
-./build/Robotik-Headless build/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
+make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk.scenario.yaml   # Space: play
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
 ```
 
 Two scenarios:
@@ -13435,94 +12979,49 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin LineFollower: AprilTag localization and line following, with
+# OpenCV (opencv4, not built without it). Paths are relative to this
+# directory.
 
-P := ../..
-M := $(P)/.makefile
+ifeq ($(call robotik-missing,opencv4),)
+    TARGETS += apriltag robotik_line_follower
 
-include $(P)/Makefile.common
-TARGET_NAME := robotik_line_follower
-TARGET_DESCRIPTION := Line follower demonstration
-PLUGIN_NAME := LineFollower
-PLUGIN_DIR := $(P)/plugins/LineFollower
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
+    ### AprilTag fiducial detection. License: BSD-2-Clause
+    apriltag.GIT := https://github.com/AprilRobotics/apriltag.git
+    apriltag.TYPE := cmake
+    # Release, as its debug build names its library libapriltagd.a.
+    apriltag.CMAKE_ARGS := -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_WRAPPER=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
+    apriltag.PUBLIC_INCLUDES := include/apriltag
+    apriltag.LIBRARIES := apriltag
 
-LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
-
-USER_CXXFLAGS += $(patsubst -I%,-isystem %,$(shell pkg-config --cflags-only-I opencv4))
-USER_LDFLAGS += -Wl,-rpath-link,$(shell pkg-config --variable=libdir opencv4)
-USER_LDFLAGS += $(shell pkg-config --libs-only-L opencv4) -lopencv_imgproc -lopencv_core
-USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion
-USER_CXXFLAGS += -Wno-double-promotion -Wno-useless-cast
-
-# AprilTag (dependencies of plugin.yaml): a static PIC archive, private
-# to this tree, built by the rule below.
-APRILTAG_DIR := $(THIRD_PARTIES_DIR)/apriltag
-APRILTAG_LIB := $(APRILTAG_DIR)/build/libapriltag.a
-INCLUDES += $(APRILTAG_DIR)
-THIRD_PARTIES_LIBS += $(APRILTAG_LIB)
-PLUGIN_REQUIRES := $(APRILTAG_DIR)/apriltag.h
-PLUGIN_DEPENDS := $(APRILTAG_LIB)
-
-include $(P)/plugins/plugin.mk
-
-$(APRILTAG_LIB):
-	cmake -S $(APRILTAG_DIR) -B $(APRILTAG_DIR)/build -DCMAKE_BUILD_TYPE=Release \
-	    -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DBUILD_SHARED_LIBS=OFF \
-	    -DBUILD_PYTHON_WRAPPER=OFF -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF
-	cmake --build $(APRILTAG_DIR)/build --target apriltag -j$(shell nproc)
+    robotik_line_follower.DESCRIPTION := Line follower demonstration
+    robotik_line_follower.SOURCES := src/*.cpp
+    robotik_line_follower.DEPENDS := apriltag
+    robotik_line_follower.PKG_CONFIG := opencv4
+    robotik_line_follower.CXXFLAGS := -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion \
+        -Wno-double-promotion -Wno-useless-cast
+    $(eval $(call ROBOTIK_PLUGIN,robotik_line_follower,LineFollower))
+else
+    $(call print-warning,LineFollower skipped: system library $(call robotik-missing,opencv4) not found by pkg-config)
+endif
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# Demo: AprilTag localization and line following (OpenCV).
 
-P := ../../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := Robotik-LineFollower
-TARGET_DESCRIPTION := Demo: AprilTag localization and line following (OpenCV)
-include $(M)/project/Makefile
-
-APP_DIR := $(P)/plugins/LineFollower/app
-DEMO_DIR := $(P)/plugins/LineFollower/src
-INCLUDES += $(APP_DIR) $(DEMO_DIR) $(P)/include $(P)/src
-VPATH += $(APP_DIR) $(DEMO_DIR)
-INTERNAL_LIBS += $(call internal-lib,robotik-core)
-SRC_FILES := $(APP_DIR)/main.cpp
-SRC_FILES += $(filter-out $(DEMO_DIR)/Plugin.cpp,$(wildcard $(DEMO_DIR)/*.cpp))
-
-BLACKTHORN_DIR := $(ROBOTIK_EXTERNAL)/BlackThorn
-RYML_DIR := $(ROBOTIK_EXTERNAL)/rapidyaml
-include $(BLACKTHORN_DIR)/BlackThorn.mk
-INCLUDES += $(BLACKTHORN_INCLUDES)
-DEFINES += $(BLACKTHORN_DEFINES)
-USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
-PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
-
-USER_CXXFLAGS += $(patsubst -I%,-isystem %,$(shell pkg-config --cflags-only-I opencv4))
-USER_LDFLAGS += -Wl,-rpath-link,$(shell pkg-config --variable=libdir opencv4)
-USER_LDFLAGS += $(shell pkg-config --libs-only-L opencv4) -lopencv_highgui -lopencv_imgcodecs -lopencv_imgproc -lopencv_core
-# Cloned and built by the plugin (dependencies of plugins/LineFollower/plugin.yaml).
-APRILTAG_DIR := $(P)/plugins/LineFollower/external/apriltag
-APRILTAG_LIB := $(abspath $(APRILTAG_DIR)/build/libapriltag.a)
-INCLUDES += $(APRILTAG_DIR)
-THIRD_PARTIES_LIBS += $(APRILTAG_LIB)
-USER_CXXFLAGS += -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion
-USER_CXXFLAGS += -Wno-double-promotion -Wno-useless-cast
-
-include $(M)/rules/Makefile
-include $(P)/Makefile.relink
-
-$(TARGET_BINARY_NAME): $(APRILTAG_LIB)
-
-$(APRILTAG_LIB):
-	$(MAKE) --no-print-directory -C $(P)/plugins/LineFollower $@
+ifneq ($(filter robotik_line_follower,$(TARGETS)),)
+    TARGETS += Robotik-LineFollower
+    Robotik-LineFollower.DESCRIPTION := Demo: AprilTag localization and line following (OpenCV)
+    Robotik-LineFollower.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
+    Robotik-LineFollower.INCLUDES := . ../src
+    Robotik-LineFollower.DEPENDS := robotik-core apriltag
+    Robotik-LineFollower.PKG_CONFIG := opencv4
+    Robotik-LineFollower.CXXFLAGS := $(robotik_line_follower.CXXFLAGS)
+endif
 // SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 // Copyright (c) 2020-2026 Quentin Quadrat
 //
@@ -15574,54 +15073,28 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin MicroDuck: a microduck walking by a learned policy (built only
+# with PLUGINS+=MicroDuck). Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
+$(eval $(ROBOTIK_ONNXRUNTIME))
+TARGETS += microduck_rl robotik_microduck
 
-include $(P)/Makefile.common
-TARGET_NAME := robotik_microduck
-TARGET_DESCRIPTION := Microduck walking by a learned policy
-PLUGIN_NAME := MicroDuck
-PLUGIN_DIR := $(P)/plugins/MicroDuck
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
+### Microduck body and scenes (meshes CC BY-NC-SA 4.0). License: Apache-2.0
+microduck_rl.GIT := https://github.com/pollen-robotics/microduck_rl.git
+microduck_rl.VERSION := develop
 
-LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
+robotik_microduck.DESCRIPTION := Microduck walking by a learned policy
+robotik_microduck.SOURCES := src/*.cpp
+robotik_microduck.DEPENDS := onnxruntime
+$(eval $(call ROBOTIK_PLUGIN,robotik_microduck,MicroDuck))
 
-# microduck_rl (dependencies of plugin.yaml) and the ONNX Runtime release
-# (downloaded below) are private to this plugin. Without them the plugin is
-# skipped. The asset pack data/microduck is made from the clone.
-ORT_VERSION := 1.20.1
-ONNXRUNTIME_DIR := $(THIRD_PARTIES_DIR)/onnxruntime
-MICRODUCK_RL := $(THIRD_PARTIES_DIR)/microduck_rl
-DUCK := $(abspath $(PLUGIN_DIR)/data/microduck)
-PLUGIN_REQUIRES := $(ONNXRUNTIME_DIR)/include/onnxruntime_cxx_api.h
-PLUGIN_REQUIRES += $(MICRODUCK_RL)
-PLUGIN_DEPENDS := $(DUCK)/walk.onnx
-
-USER_CXXFLAGS += -isystem $(ONNXRUNTIME_DIR)/include
-USER_LDFLAGS += -L$(ONNXRUNTIME_DIR)/lib -Wl,-rpath,$(ONNXRUNTIME_DIR)/lib -lonnxruntime
-
-include $(P)/plugins/plugin.mk
-
-$(DUCK)/walk.onnx: $(PLUGIN_DIR)/prepare_assets.py $(MICRODUCK_RL)/src/mjlab_microduck/robot/microduck/robot_groundcontact.xml
-	python3 -I $(PLUGIN_DIR)/prepare_assets.py $(MICRODUCK_RL) $(PLUGIN_DIR)
-
-# Prebuilt release of Microsoft: nothing to compile.
-download-external-libs::
-	@if [ ! -f $(ONNXRUNTIME_DIR)/include/onnxruntime_cxx_api.h ]; then \
-	    case "$$(uname -m)" in \
-	        x86_64) arch=x64 ;; aarch64) arch=aarch64 ;; \
-	        *) echo "No ONNX Runtime release for $$(uname -m)"; exit 1 ;; \
-	    esac; \
-	    name=onnxruntime-linux-$$arch-$(ORT_VERSION); \
-	    cd $(THIRD_PARTIES_DIR) && \
-	    curl -Ls https://github.com/microsoft/onnxruntime/releases/download/v$(ORT_VERSION)/$$name.tgz | tar -xz && \
-	    rm -rf onnxruntime && mv $$name onnxruntime; \
-	fi
+# The body, the scenes and the policy, made from microduck_rl.
+DUCK_DIR := $(HERE)
+robotik_microduck: $(abspath $(HERE)data/microduck)/walk.onnx
+$(abspath $(HERE)data/microduck)/walk.onnx: $(HERE)prepare_assets.py | microduck_rl
+	python3 -I $(DUCK_DIR)prepare_assets.py $(microduck_rl.DIR) $(DUCK_DIR)
 # MicroDuck
 
 A Pollen Robotics Microduck (14 servos, about 25 cm) walks in a small room
@@ -15636,10 +15109,9 @@ committed, `plugin.yaml` credits them.
 ## Build and run
 
 ```bash
-make -C plugins/MicroDuck download-external-libs   # microduck_rl + ONNX Runtime release
-make -C plugins/MicroDuck -j"$(nproc)"             # runs prepare_assets.py once, then builds
-./build/Robotik-Headless build/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
-./build/Robotik-Simulator build/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
+make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
+./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
 ```
 
 Without ONNX Runtime or the clone, `make` skips the plugin.
@@ -17329,25 +16801,14 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin Painter. Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := robotik_painter
-TARGET_DESCRIPTION := Robotic painter demonstration
-PLUGIN_NAME := Painter
-PLUGIN_DIR := $(P)/plugins/Painter
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
-
-LIB_FILES := $(PLUGIN_SRC)/Plugin.cpp $(PLUGIN_SRC)/PainterMission.cpp
-LIB_FILES += $(PLUGIN_SRC)/PainterSkills.cpp
-
-include $(P)/plugins/plugin.mk
+TARGETS += robotik_painter
+robotik_painter.DESCRIPTION := Robotic painter demonstration
+robotik_painter.SOURCES := src/*.cpp
+$(eval $(call ROBOTIK_PLUGIN,robotik_painter,Painter))
 <?xml version="1.0"?>
 <!-- Chevalet de peintre (sans tableau). Repère de base : origine au sol au centre de l'empreinte,
      x = vers le peintre/robot (face du tableau), y = latéral, z = haut. Unités : SI. -->
@@ -18767,59 +18228,28 @@ world:
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# The plugin PickAndPlace. Paths are relative to this directory.
 
-P := ../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := robotik_pick_and_place
-TARGET_DESCRIPTION := Pick and place demonstrations
-PLUGIN_NAME := PickAndPlace
-PLUGIN_DIR := $(P)/plugins/PickAndPlace
-PLUGIN_SRC := $(PLUGIN_DIR)/src
-include $(M)/project/Makefile
-
-LIB_FILES := $(wildcard $(PLUGIN_SRC)/*.cpp)
-
-include $(P)/plugins/plugin.mk
+TARGETS += robotik_pick_and_place
+robotik_pick_and_place.DESCRIPTION := Pick and place demonstrations
+robotik_pick_and_place.SOURCES := src/*.cpp
+$(eval $(call ROBOTIK_PLUGIN,robotik_pick_and_place,PickAndPlace))
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
+# This file is part of RobotIK. See LICENSING.md for details.
+#
+# Demo: pick and place as N parallel reinforcement learning environments.
 
-P := ../../..
-M := $(P)/.makefile
-
-include $(P)/Makefile.common
-TARGET_NAME := Robotik-PickAndPlaceRL
-TARGET_DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
-include $(M)/project/Makefile
-
-APP_DIR := $(P)/plugins/PickAndPlace/app
-PICK_DIR := $(P)/plugins/PickAndPlace/src
-INCLUDES += $(APP_DIR) $(PICK_DIR) $(P)/include $(P)/src
-VPATH += $(APP_DIR) $(PICK_DIR)
-INTERNAL_LIBS += $(call internal-lib,robotik-core)
-SRC_FILES := $(wildcard $(APP_DIR)/*.cpp)
-SRC_FILES += $(PICK_DIR)/ColorDetector.cpp $(PICK_DIR)/PickPlaceMission.cpp
-SRC_FILES += $(PICK_DIR)/PickPlaceSkills.cpp $(PICK_DIR)/PickPlaceControl.cpp
-SRC_FILES += $(PICK_DIR)/PickPlacePlanning.cpp
-
-BLACKTHORN_DIR := $(THIRD_PARTIES_DIR)/BlackThorn
-RYML_DIR := $(THIRD_PARTIES_DIR)/rapidyaml
-include $(BLACKTHORN_DIR)/BlackThorn.mk
-INCLUDES += $(BLACKTHORN_INCLUDES)
-DEFINES += $(BLACKTHORN_DEFINES)
-USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
-PKG_LIBS += $(BLACKTHORN_PKG_LIBS)
-
-include $(M)/rules/Makefile
-include $(P)/Makefile.relink
+TARGETS += Robotik-PickAndPlaceRL
+Robotik-PickAndPlaceRL.DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
+Robotik-PickAndPlaceRL.SOURCES := *.cpp ../src/ColorDetector.cpp ../src/PickPlaceMission.cpp \
+    ../src/PickPlaceSkills.cpp ../src/PickPlaceControl.cpp ../src/PickPlacePlanning.cpp
+Robotik-PickAndPlaceRL.INCLUDES := . ../src
+Robotik-PickAndPlaceRL.DEPENDS := robotik-core
+Robotik-PickAndPlaceRL.LIBS := -ldl
 // SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 // Copyright (c) 2020-2026 Quentin Quadrat
 //
@@ -21802,98 +21232,48 @@ inside && current == section && /^ +- / {
 # SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 # Copyright (c) 2020-2026 Quentin Quadrat
 #
-# This file is part of RobotIK. It is available under the GNU GPL v3 or,
-# for users who cannot use the GPL, under a commercial license.
-# See LICENSING.md for details.
-
-# Shared recipe for a plugin package.
-# The including Makefile sets TARGET_NAME, PLUGIN_NAME, PLUGIN_DIR,
-# PLUGIN_SRC and LIB_FILES, then includes this file. The staged package is
-# build/plugins/$(PLUGIN_NAME)/: plugin.yaml, the .so, and the content
-# folders the package has (worlds/, scenarios/, experiments/, data/ with
-# its asset pack).
+# This file is part of RobotIK. See LICENSING.md for details.
 #
-# Libraries of the plugin are listed in dependencies: of its plugin.yaml,
-# with their license (see dependencies.awk):
-#   system:        pkg-config packages; when one is missing the plugin is
-#                  skipped;
-#   thirdparties:  { repo: user/repo, license: ... } entries are written as
-#                  a MyMakefile manifest in build/manifests/<Name> (generated)
-#                  and cloned into $(PLUGIN_DIR)/external by make
-#                  download-external-libs. THIRD_PARTIES_DIR is that folder
-#                  (see Makefile.common).
-# The including Makefile may also set:
-#   PLUGIN_REQUIRES  files that must exist, or the plugin is skipped (not
-#                    failed) with a hint to download its libraries;
-#   PLUGIN_DEPENDS   files its own rules make (an archive, generated data):
-#                    they are made before the library is linked and staged.
-# Its rules come after the include of this file.
+# What the plugins share. A plugin is a shared library loaded by the
+# simulator and the headless runtime, found with its plugin.yaml and its
+# content in BUILD/lib/robotik/plugins/<Name>/, where the executables of
+# BUILD/bin look for them (as once installed).
+#
+#   TARGETS += robotik_hello_world
+#   robotik_hello_world.SOURCES := src/*.cpp
+#   $(eval $(call ROBOTIK_PLUGIN,robotik_hello_world,HelloWorld))
+#
+# A plugin needing system packages not found by pkg-config is not built:
+#   ifneq ($(call robotik-missing,opencv4),)
 
-PLUGIN_AWK := $(abspath $(P)/plugins/dependencies.awk)
-PLUGIN_YAML := $(abspath $(PLUGIN_DIR)/plugin.yaml)
-# Generated: kept in build/, not beside the sources.
-PROJECT_MANIFEST_THIRD_PARTIES := $(BUILD_PATH)/manifests/$(PLUGIN_NAME)
-$(shell manifest="$$(awk -v section=thirdparties -f $(PLUGIN_AWK) $(PLUGIN_YAML))"; \
-    if [ -n "$$manifest" ]; then mkdir -p $(THIRD_PARTIES_DIR) $(BUILD_PATH)/manifests && \
-    printf '%s\n' "$$manifest" > $(PROJECT_MANIFEST_THIRD_PARTIES); fi)
-PLUGIN_SYSTEM := $(shell awk -v section=system -f $(PLUGIN_AWK) $(PLUGIN_YAML))
-PLUGIN_SYSTEM_MISSING := $(strip $(foreach p,$(PLUGIN_SYSTEM),$(if $(shell pkg-config --exists $(p) && echo y),,$(p))))
+ROBOTIK_PLUGINS_DIR = $(BUILD)/lib/robotik/plugins
 
-PLUGIN_MISSING := $(strip $(foreach f,$(PLUGIN_REQUIRES),$(if $(wildcard $(f)),,$(f))))
-ifneq ($(PLUGIN_MISSING)$(PLUGIN_SYSTEM_MISSING),)
+# The pkg-config packages not installed.
+robotik-missing = $(strip $(foreach p,$1,$(if $(shell $(PKG_CONFIG) --exists $p && echo y),,$p)))
 
-.DEFAULT_GOAL := all
-.PHONY: all clean download-external-libs
-all:
-ifneq ($(PLUGIN_SYSTEM_MISSING),)
-	@echo "$(PLUGIN_NAME) skipped: system library $(PLUGIN_SYSTEM_MISSING) not found by pkg-config."
-endif
-ifneq ($(PLUGIN_MISSING),)
-	@echo "$(PLUGIN_NAME) skipped: missing $(notdir $(PLUGIN_MISSING))."
-	@echo "  Run: make -C plugins/$(PLUGIN_NAME) download-external-libs, then make"
-endif
-clean:
-download-external-libs::
-ifneq ($(wildcard $(PROJECT_MANIFEST_THIRD_PARTIES)),)
-	$(Q)cd $(THIRD_PARTIES_DIR) && bash $(SCRIPT_DOWNLOAD_THIRD_PARTIES) $(PROJECT_NAME) $(PROJECT_MANIFEST_THIRD_PARTIES)
-endif
+# $(1): target, $(2): name of the plugin. Read in the file of the plugin.
+define ROBOTIK_PLUGIN
+$(1).TYPE := shared
+$(1).INCLUDES += src
+$(1).DEPENDS += robotik-core
+$(1).INSTALL := no
+$(1).CLEAN := $$(ROBOTIK_PLUGINS_DIR)/$(2)
+$(1).POST_BUILD := mkdir -p $$(ROBOTIK_PLUGINS_DIR)/$(2) \
+    && cp $(HERE)plugin.yaml $$(ROBOTIK_PLUGINS_DIR)/$(2)/ \
+    && for d in $(notdir $(wildcard $(addprefix $(HERE),worlds scenarios experiments data))); do \
+        rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$$$$$d && cp -R $(HERE)$$$$$$$$d $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$$$$$d; done \
+    && rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/external \
+    && cp -L $$(BUILD)/lib/lib$(1).so $$(ROBOTIK_PLUGINS_DIR)/$(2)/
+endef
 
-else
-
-INCLUDES += $(PLUGIN_SRC) $(P)/include $(P)/src
-VPATH += $(PLUGIN_SRC)
-DIRS_WITH_MAKEFILE := $(P)/src/Robotik
-DO_NOT_COMPILE_STATIC_LIB := 1
-USER_LDFLAGS += -L$(BUILD_PATH) -Wl,-rpath,$(BUILD_PATH) -Wl,-rpath,'$$ORIGIN/../..'
-USER_LDFLAGS += -lrobotik-core -ldl
-
-BLACKTHORN_DIR := $(ROBOTIK_EXTERNAL)/BlackThorn
-RYML_DIR := $(ROBOTIK_EXTERNAL)/rapidyaml
-include $(BLACKTHORN_DIR)/BlackThorn.mk
-INCLUDES += $(BLACKTHORN_INCLUDES)
-DEFINES += $(BLACKTHORN_DEFINES)
-USER_CXXFLAGS += $(BLACKTHORN_CXXFLAGS)
-
-include $(M)/rules/Makefile
-include $(P)/Makefile.relink
-
-PLUGIN_STAGE := $(BUILD_PATH)/plugins/$(PLUGIN_NAME)
-PLUGIN_CONTENT := $(notdir $(wildcard $(addprefix $(PLUGIN_DIR)/,worlds scenarios experiments data)))
-
-$(TARGET_SHARED_LIB_NAME): $(PLUGIN_DEPENDS)
-
-# Content folders are mirrored: a file removed from the sources must not
-# survive in the stage. rsync copies only what changed (data/ may hold
-# hundreds of MB); without it the folder is copied whole. external/ is not
-# staged: the libraries and their licenses are listed in plugin.yaml.
-post-build:: $(TARGET_SHARED_LIB_NAME)
-	@$(MKDIR) $(PLUGIN_STAGE)
-	$(Q)cp $(PLUGIN_DIR)/plugin.yaml $(PLUGIN_STAGE)/plugin.yaml
-	$(Q)for d in $(PLUGIN_CONTENT); do \
-	    if command -v rsync > /dev/null; then rsync -a --delete $(PLUGIN_DIR)/$$d/ $(PLUGIN_STAGE)/$$d/; \
-	    else rm -rf $(PLUGIN_STAGE)/$$d && cp -R $(PLUGIN_DIR)/$$d $(PLUGIN_STAGE)/$$d; fi; \
-	done
-	$(Q)cp $(TARGET_SHARED_LIB_NAME) $(PLUGIN_STAGE)/
-	$(Q)rm -rf $(PLUGIN_STAGE)/external
-
-endif
+# ONNX Runtime, the inference of the walking policies (MicroDuck,
+# HumanoidWalk): a release of binaries, once in the cache. License: MIT
+ORT_VERSION := 1.20.1
+ORT_ARCH := $(if $(filter aarch64 arm64,$(HOST_ARCH)),aarch64,x64)
+define ROBOTIK_ONNXRUNTIME
+TARGETS += onnxruntime
+onnxruntime.URL := https://github.com/microsoft/onnxruntime/releases/download/v$(ORT_VERSION)/onnxruntime-linux-$(ORT_ARCH)-$(ORT_VERSION).tgz
+onnxruntime.SUBDIR := onnxruntime-linux-$(ORT_ARCH)-$(ORT_VERSION)
+onnxruntime.PUBLIC_INCLUDES := include
+onnxruntime.LIBRARIES := lib/libonnxruntime.so
+endef
