@@ -210,6 +210,14 @@ struct ActionSchema
     std::vector<Literal> effects;
     /// Some effects are conditional, quantified or numeric: not checked.
     bool partial = false;
+    /// Plain preconditions: the literals of the precondition, or the
+    /// @c at @c start and @c over @c all conditions of a durative action.
+    /// Arguments are parameters (@c ?o) or constants. Used to grow a
+    /// reactive tree backwards from the goal (Backchaining.hpp).
+    std::vector<Literal> preconditions;
+    /// Some conditions are disjunctive, quantified, numeric or @c at
+    /// @c end: they are not in @ref preconditions.
+    bool partial_preconditions = false;
     /// Declared with @c :durative-action.
     bool durative = false;
     // ------------------------------------------------------------------------

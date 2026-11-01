@@ -194,6 +194,20 @@ static Atom atomOf(Sexpr const& p_node)
     return atom;
 }
 
+/// True for @c (at start ...), @c (at end ...) and @c (over all ...) of a
+/// durative action; @c (at ?p ?l) is a predicate named at.
+static bool isTimed(Sexpr const& p_node)
+{
+    std::string_view const head = p_node.head();
+    if (!p_node.is_list || p_node.list.size() != 3U)
+    {
+        return false;
+    }
+    return (head == "at" &&
+            (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end"))) ||
+           (head == "over" && p_node.list[1].isAtom("all"));
+}
+
 // ----------------------------------------------------------------------------
 /// Collects the plain effects of @p_node into @p_action. Conditional,
 /// quantified and numeric effects mark the action as partial. For a durative
@@ -213,7 +227,7 @@ static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
             collectEffects(p_node.list[i], p_action);
         }
     }
-    else if (head == "at" && p_node.list.size() == 3U)
+    else if (isTimed(p_node))
     {
         if (p_node.list[1].isAtom("end"))
         {
@@ -258,6 +272,60 @@ static bool connective(std::string_view p_head)
         }
     }
     return false;
+}
+
+/// True for an atom of a formula: a predicate and its arguments, the
+/// predicate @c at included.
+static bool atomic(Sexpr const& p_node)
+{
+    return p_node.is_list && !p_node.list.empty() && !p_node.head().empty() &&
+           (!connective(p_node.head()) ||
+            (p_node.head() == "at" && !isTimed(p_node)));
+}
+
+// ----------------------------------------------------------------------------
+/// Collects the plain preconditions of @p_node into @p_action: a conjunction
+/// of atoms and negated atoms (@c at @c start and @c over @c all for a
+/// durative action). Anything else marks them partial.
+// ----------------------------------------------------------------------------
+static void collectPreconditions(Sexpr const& p_node, ActionSchema& p_action)
+{
+    std::string_view const head = p_node.head();
+    if (!p_node.is_list || p_node.list.empty())
+    {
+        return;
+    }
+    if (head == "and")
+    {
+        for (std::size_t i = 1U; i < p_node.list.size(); ++i)
+        {
+            collectPreconditions(p_node.list[i], p_action);
+        }
+    }
+    else if (isTimed(p_node))
+    {
+        if (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("all"))
+        {
+            collectPreconditions(p_node.list[2], p_action);
+        }
+        else
+        {
+            p_action.partial_preconditions = true;
+        }
+    }
+    else if (head == "not" && p_node.list.size() == 2U &&
+             atomic(p_node.list[1]))
+    {
+        p_action.preconditions.push_back({ atomOf(p_node.list[1]), false });
+    }
+    else if (atomic(p_node))
+    {
+        p_action.preconditions.push_back({ atomOf(p_node), true });
+    }
+    else
+    {
+        p_action.partial_preconditions = true;
+    }
 }
 
 /// When a part of a formula applies.
@@ -626,6 +694,7 @@ Result<DomainSchema> parseDomain(std::string_view p_text)
                     if (Sexpr const* condition = keyed(section, key))
                     {
                         collectAtoms(*condition, action, false, When::Untimed);
+                        collectPreconditions(*condition, action);
                     }
                 }
                 schema.actions[action.name] = std::move(action);

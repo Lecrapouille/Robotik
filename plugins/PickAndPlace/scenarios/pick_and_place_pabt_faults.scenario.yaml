@@ -1,0 +1,35 @@
+# pick_and_place_pddl_faults.scenario.yaml with the tree grown from the goal
+# (PA-BT): Detect fails while the camera is down, the executor waits
+# replan.delay (simulated seconds) and ticks the same tree again. Once the
+# cube is seen, the camera fails for good and the robot goes on from its
+# world model.
+scenario:
+  id: pick_and_place_pabt_faults
+  description: Grow a reactive tree from the goal and put the red cube in the box, with a camera failure.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 7
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      method: pabt
+      goal:
+        - in(red_cube, box)
+      replan: { max: 5, delay: 0.5 }
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  faults:
+    - { at: 0.0, resource: wrist_camera, action: disable }
+    - { at: 1.0, resource: wrist_camera, action: restore }
+    - { at: 3.0, resource: wrist_camera, action: disable }
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans >= 1
+    - time < 30

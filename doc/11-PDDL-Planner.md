@@ -284,6 +284,90 @@ planned duration.
 
 **Reproducible.** The planner runs inside a simulation step: simulated time does not move during the search. It uses one thread, a fixed search (`search: lama`) and no "anytime" improvement. The same seed gives the same plans. `timeout` is only a safety net on the wall clock.
 
+### Without search: a tree grown from the goal (PA-BT)
+
+`method: pabt` makes no search. The behavior tree grows backwards from the
+goal, as in PA-BT (*Planning and Acting with Behavior Trees*, Colledanchise,
+Marzinotto and Ögren): the same domain, observers and bindings, another way
+to use them.
+
+```yaml
+controller:
+  planner:
+    domain: scenarios/pick_and_place.domain.pddl
+    method: pabt
+    goal:
+      - in(red_cube, box)
+```
+
+The tree starts with the conditions of the goal. When it fails on a
+condition, the executor puts under it the actions of the domain whose
+effects make it true, each with its preconditions as new conditions, then
+ticks again. A condition becomes:
+
+```text
+ReactiveSelector            condition true?   yes: SUCCESS, nothing to do
+  condition?                else: an action that makes it true
+  ReactiveSequence
+    precondition?           (grown the same way when it fails)
+    Sequence: the nodes of the binding, then "Done"
+```
+
+The run of `pick_and_place_pabt.scenario.yaml` grows the tree twice, from
+the goal down to what already holds (`seen(red_cube)` and `hand_empty`):
+
+```text
+  plan 0 at 0 s (start): solved
+  plan 1 at 0 s (in(red_cube, box) is false: put 1 action(s) under it): solved (place red_cube box)
+  plan 2 at 0.01 s (holding(red_cube) is false: put 1 action(s) under it): solved (place red_cube box) (pick red_cube)
+```
+
+and runs this tree (shortened):
+
+```text
+ReactiveSequence "Goal"
+  ReactiveSelector "in(red_cube, box)"
+    in(red_cube, box)? #1
+    ReactiveSequence "1. place(red_cube, box)"
+      ReactiveSelector "holding(red_cube)"
+        holding(red_cube)? #2
+        ReactiveSequence "2. pick(red_cube)"
+          seen(red_cube)? #3
+          hand_empty? #4
+          Sequence "Do 2. pick(red_cube)": Approach, Reach, Grasp, Approach, Done
+      Sequence "Do 1. place(red_cube, box)": Transit(box), Approach(box), Release, Done
+```
+
+What changes from the search:
+
+- **It reacts without planning again.** Each tick reads the conditions on
+  the beliefs again. When a condition reached before becomes false (an
+  object moved), the tree goes back to the actions that make it true, at
+  the end of the running action, with no new plan.
+- **An action is atomic, as in PDDL.** Its preconditions are read before
+  it starts; the condition it makes true does not stop it (`holding` is
+  true after `Grasp`, the arm still lifts the cube).
+- **Which action first.** A condition gets at most 16 actions, those with
+  the fewest false preconditions first. An action that needs a false
+  static atom (a `fact`, or a predicate no action changes) is left out, and
+  so is one that needs a condition the tree is already making true above it
+  (it would go round in a circle).
+- **A failed action** (a skill fails) does not grow the tree: the executor
+  waits `replan.delay` and ticks the same tree again, `replan.max` times.
+- **One goal condition after the other.** The goal is a `ReactiveSequence`:
+  `parallel` does not apply, two arms do not work together.
+  `conveyor_pabt` takes 34.99 s, like the step-by-step plan (34.87 s); the
+  parallel plan takes 17.44 s.
+- The **History** has one record per growth of the tree; **Plan** lists
+  the actions of the tree, in the order they were added.
+
+| Demo | Search | PA-BT |
+|------|--------|-------|
+| PickAndPlace (`pick_and_place_pddl`, `_pabt`) | 4.99 s | 4.99 s |
+| PickAndPlace with camera faults (`_faults`) | 6.04 s | 6.07 s |
+| Painter (`painter_pddl`, `painter_pabt`) | 64.01 s | 64.13 s |
+| DualArm conveyor (`conveyor_sequential`, `conveyor_pabt`) | 34.87 s | 34.99 s |
+
 ---
 
 ## 5. Reference
@@ -293,10 +377,11 @@ planned duration.
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `domain` | required | The PDDL domain, relative to the package root |
+| `method` | `search` | `search`: a planner finds the plan; `pabt`: a reactive tree grows from the goal ([§4](#without-search-a-tree-grown-from-the-goal-pa-bt)) |
 | `facts` | none | True atoms that never change and are not observed |
 | `goal` | required (or `goal_pddl`) | Literals to reach: `in(a, b)`, `not holding(a)`, `hand_empty` |
-| `goal_pddl` | none | The goal in PDDL, for what a list cannot say (`(forall ...)`). Not checked on the beliefs |
-| `replan.max` | 3 | New plans allowed after the first one |
+| `goal_pddl` | none | The goal in PDDL, for what a list cannot say (`(forall ...)`). Not checked on the beliefs. Not with `pabt` |
+| `replan.max` | 3 | New plans allowed after the first one (`pabt`: new tries after a failed action) |
 | `replan.delay` | 0.5 | Simulated seconds waited before a new plan |
 | `verify` | true | Check the effects of each action on the beliefs. `observed`: an effect counts only when a belief was seen again after the start of the step (a failed grasp is not taken for a held object); `false`: no check |
 | `parallel` | true | Run together the steps that do not depend on each other ([§4](#steps-that-run-together)); `false` runs the plan step by step |
@@ -328,6 +413,7 @@ right one".
 | `orderSteps`, `StepFootprint`, `StepOrder` (`Robotik/Planning/PlanGraph.hpp`) | The partial order of a plan: start and end events, what each one waits for |
 | `PlanningEngine` (`Robotik/Planning/PlanningEngine.hpp`) | The planner interface; `makeKairosPlanner()`. No Kairos type leaves `src/Robotik/Planning/Kairos/` |
 | `Literal`, `Atom`, `DomainSchema` (`Robotik/Planning/Pddl.hpp`) | Symbols, and what RobotIK reads of a domain |
+| `BackchainTree`, `achievers`, `groundPreconditions`, `ancestors` (`Robotik/Task/Planning/Backchaining.hpp`) | The tree of PA-BT as data: conditions, the actions that make them true; `PlanExecutor::backchain()` gives the one of the run |
 
 `Simulation::planning()` gives the `PlanningDomain` to fill;
 `Simulation::planner()` the executor, or null without a planner.
@@ -376,6 +462,12 @@ right one".
   one wait for the resource.
 - Two steps running together share the blackboard of the tree: two
   `parameters` of the same name in parallel bindings would clash.
+- PA-BT reads only the plain preconditions (atoms and `not` atoms, `at
+  start` and `over all`). A `forall`, an `or` or a number is not read:
+  Painter paints its layers in the right order only because its goal lists
+  them in that order. PA-BT does not move a subtree when an action undoes a
+  condition reached before it (the "conflicts" of the paper): the tree
+  reaches the condition again.
 - The PickAndPlace, Painter and DualArm demos have PDDL scenarios.
   LineFollower and HumanoidWalk do not.
 

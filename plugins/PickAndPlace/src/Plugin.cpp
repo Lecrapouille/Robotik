@@ -44,7 +44,9 @@ public:
             return ROBOTIK_PLUGIN_OK;
         }
         if (p_scenario == "pick_and_place_pddl" ||
-            p_scenario == "pick_and_place_pddl_faults")
+            p_scenario == "pick_and_place_pddl_faults" ||
+            p_scenario == "pick_and_place_pabt" ||
+            p_scenario == "pick_and_place_pabt_faults")
         {
             m_tree = std::make_unique<PickPlaceMission>(true, true);
             p_host.bindMission(*m_tree);
