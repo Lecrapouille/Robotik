@@ -46,6 +46,18 @@ static std::filesystem::path buildRoot()
     return "build";
 }
 
+/// Directory of the built plugins: next to the test program
+/// (<build>/bin/Robotik-tests, <build>/lib/robotik/plugins).
+static std::filesystem::path pluginsRoot()
+{
+    std::error_code error;
+    std::filesystem::path const program =
+        std::filesystem::read_symlink("/proc/self/exe", error);
+    return error ? buildRoot() / "plugins"
+                 : program.parent_path().parent_path() / "lib" / "robotik" /
+                       "plugins";
+}
+
 /// Draws the first plugin panel and returns the text it wrote.
 static std::string drawPanel(robotik::PluginHost const& p_host)
 {
@@ -231,8 +243,7 @@ TEST(PluginManager, MissingLibraryAndIncompatibleAbi)
 
 TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
 {
-    std::filesystem::path const package =
-        buildRoot() / "plugins" / "HelloWorld";
+    std::filesystem::path const package = pluginsRoot() / "HelloWorld";
     std::filesystem::path const library = package / "librobotik_hello_world.so";
     if (!std::filesystem::is_regular_file(library))
     {
@@ -281,18 +292,16 @@ TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
 
 TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 {
-    std::filesystem::path const scenario = buildRoot() / "plugins" /
-                                           "HelloWorld" / "scenarios" /
-                                           "reach.scenario.yaml";
-    if (!std::filesystem::is_regular_file(buildRoot() / "plugins" /
-                                          "HelloWorld" /
+    std::filesystem::path const scenario =
+        pluginsRoot() / "HelloWorld" / "scenarios" / "reach.scenario.yaml";
+    if (!std::filesystem::is_regular_file(pluginsRoot() / "HelloWorld" /
                                           "librobotik_hello_world.so"))
     {
         GTEST_SKIP() << "hello world plugin is not built";
     }
     robotik::PluginSession session;
     session.setHeadless(true);
-    session.scan(buildRoot() / "plugins");
+    session.scan(pluginsRoot());
     ASSERT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready)
         << session.error();
 
@@ -338,17 +347,17 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 static bool
 runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
 {
-    std::filesystem::path const scenario = buildRoot() / "plugins" / "DualArm" /
+    std::filesystem::path const scenario = pluginsRoot() / "DualArm" /
                                            "scenarios" /
                                            (p_scenario + ".scenario.yaml");
-    if (!std::filesystem::is_regular_file(buildRoot() / "plugins" / "DualArm" /
+    if (!std::filesystem::is_regular_file(pluginsRoot() / "DualArm" /
                                           "librobotik_dual_arm.so"))
     {
         return false;
     }
     robotik::PluginSession session;
     session.setHeadless(true);
-    session.scan(buildRoot() / "plugins");
+    session.scan(pluginsRoot());
     EXPECT_EQ(session.prepare(scenario), robotik::PluginPrepare::Ready)
         << session.error();
     compages::world::World world;
