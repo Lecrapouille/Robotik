@@ -13,7 +13,7 @@
 #include "Robotik/Robot/Sensors/Image.hpp"
 
 #include "Compages/GPU/RenderPass.hpp"
-#include "Compages/Renderer/Assets/CanvasTexture.hpp"
+#include "Compages/Renderer/Procedural/CanvasTexture.hpp"
 #include "Compages/Renderer/Components/MeshRenderer.hpp"
 #include "Compages/World/Components/Camera.hpp"
 

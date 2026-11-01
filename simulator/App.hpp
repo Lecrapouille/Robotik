@@ -16,7 +16,7 @@
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Experiment.hpp"
 
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/World.hpp"
 
 #include <array>

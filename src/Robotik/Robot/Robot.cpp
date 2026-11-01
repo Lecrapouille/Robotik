@@ -10,7 +10,7 @@
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Components/Robots.hpp"
 
-#include "Compages/Renderer/Assets/UrdfLoader.hpp"
+#include "Compages/World/Import/UrdfLoader.hpp"
 #include "Compages/World/World.hpp"
 
 #include <pugixml.hpp>
@@ -111,7 +111,7 @@ static compages::world::Entity loadTool(compages::world::World& p_world,
     {
         return p_view->model(p_world, p_urdf);
     }
-    auto loaded = compages::renderer::loadUrdf(p_world, p_urdf.string());
+    auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
     if (!loaded)
     {
         throw std::runtime_error(loaded.error());
@@ -164,7 +164,7 @@ Robot::Robot(compages::world::World& p_world,
     }
     else
     {
-        auto loaded = compages::renderer::loadUrdf(p_world, p_urdf.string());
+        auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

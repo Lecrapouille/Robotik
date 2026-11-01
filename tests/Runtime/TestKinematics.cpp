@@ -14,7 +14,7 @@
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/World.hpp"
 #include "Robotik/Common/Math.hpp"
 

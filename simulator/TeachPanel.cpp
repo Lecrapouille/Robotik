@@ -11,7 +11,7 @@
 #include "Robotik/Robot/Components/Robots.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 
 #include "imgui_stdlib.h"
 #include <imgui.h>

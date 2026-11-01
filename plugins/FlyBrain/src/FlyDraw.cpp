@@ -9,7 +9,7 @@
 
 #include "Robotik/Robot/Robot.hpp"
 
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
 
 #include <cmath>
