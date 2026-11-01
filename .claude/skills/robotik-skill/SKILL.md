@@ -98,7 +98,9 @@ edge and cancels it on its falling edge. Receptivities (IEC 60848 infix:
 `running(S)`, observers of the PlanningDomain (register them in setup, as for
 the planner), and operator inputs (other names). GEMMA = 3 graphs with forcing
 orders `Production:{init}`. Code: `src/Robotik/Task/Grafcet/`. Workflows
-(`x.workflow.yaml`, cycle time, bottleneck): `Task/Workflow/`. Details:
+(`x.workflow.yaml`, cycle time, bottleneck; `reject: { when, to }` on an
+operation sends a bad part elsewhere, the next operators skip it; product
+`color` colors its tokens): `Task/Workflow/`. Details:
 doc/12-GRAFCET-and-Workflows.md.
 
 ## PDDL planner instead of a tree

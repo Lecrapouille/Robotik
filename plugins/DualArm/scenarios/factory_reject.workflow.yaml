@@ -1,0 +1,56 @@
+# factory.workflow.yaml with an inspection: after machining a part, M1
+# measures it; a defective part (defective({part}), read on the beliefs)
+# goes to the scrap bin instead of the station, and M2 and the outfeed skip
+# it. The colors of the products are the colors of their parts: the tokens
+# of the graphs (GRAFCET panel, event graph of the Workflow panel) have them.
+#   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/factory_reject.workflow.yaml
+workflow:
+  id: factory_reject_line
+  operators:
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+    - id: outfeed                    # takes the finished parts away
+      entity: outfeed
+  buffers:
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
+  products:
+    - id: P1
+      color: [0.9, 0.1, 0.1]          # the color of its parts in the graphs
+      parts: [p1a, p1b]
+      route:
+        - name: machining
+          on: M1
+          duration: 2.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P2
+      color: [0.1, 0.75, 0.2]
+      parts: [p2a, p2b]
+      route:
+        - name: machining
+          on: M1
+          duration: 3.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P3
+      color: [0.1, 0.3, 0.9]
+      parts: [p3a, p3b]
+      route:
+        - name: machining
+          on: M1
+          duration: 1.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }

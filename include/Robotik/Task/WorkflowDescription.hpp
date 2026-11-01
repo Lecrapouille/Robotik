@@ -29,8 +29,10 @@
 
 #include "Robotik/Common/Math.hpp"
 
+#include <array>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -78,6 +80,20 @@ struct WorkflowBuffer
 };
 
 // ****************************************************************************
+/// Where a part goes when an operation rejects it (a failed inspection): it
+/// leaves the route, the operators after this one skip it.
+// ****************************************************************************
+struct WorkflowReject
+{
+    /// Receptivity read at the end of the operation (@c {part} replaced):
+    /// true rejects the part ("failed(Inspect({part}))", "defective({part})").
+    std::string when;
+    /// World entity receiving the rejected part (the @c {to} of the give
+    /// recipe of the operator).
+    std::string to;
+};
+
+// ****************************************************************************
 /// One step of the route of a product.
 // ****************************************************************************
 struct WorkflowOperation
@@ -93,6 +109,9 @@ struct WorkflowOperation
     std::string skill;
     /// Declared duration.
     Seconds duration{};
+    /// Where the part goes when the operation rejects it, or nothing. The
+    /// analysis of the cycle time counts every part as good.
+    std::optional<WorkflowReject> reject;
 };
 
 // ****************************************************************************
@@ -108,6 +127,9 @@ struct WorkflowProduct
     std::vector<WorkflowOperation> route;
     /// World entities of this kind, one per lot, in the order they are made.
     std::vector<std::string> parts;
+    /// RGB color in [0, 1] of its tokens in the graphs (the color of its
+    /// parts), or nothing: a color picked from its rank.
+    std::optional<std::array<float, 3>> color;
 };
 
 // ****************************************************************************

@@ -33,6 +33,8 @@ static constexpr double OVER_BIN = 0.12;
 /// Height of a part (m): an arm waits over its pick zone at the height it
 /// takes the next part from, HOVER above its top.
 static constexpr double PART_HEIGHT = 0.04;
+/// Largest error on the height of a good part (m).
+static constexpr double DEFECT = 0.002;
 /// Room between the bottom of a part and a belt when an arm puts it there
 /// (m), and between the part and the upstream end of the belt.
 static constexpr double OVER_BELT = 0.01;
@@ -315,6 +317,25 @@ void ConveyorMission::addPlanning(robotik::Cell& p_cell)
                        }
                        return Truth::True;
                    });
+
+    // An inspection of the GRAFCET (reject: in a workflow): a part whose
+    // measured height is off by more than DEFECT is defective (a chipped
+    // part). The planner domains do not name it.
+    if (!p_cell.description().controller.planner)
+    {
+        domain.observe("defective",
+                       [](RobotContext const& p_context, Args p_args)
+                       {
+                           robotik::WorldObject const* part =
+                               p_context.world_model.find(p_args[0]);
+                           if (part == nullptr || !robotik::observed(*part))
+                           {
+                               return Truth::Unknown;
+                           }
+                           return robotik::truth(
+                               std::abs(part->size.z - PART_HEIGHT) > DEFECT);
+                       });
+    }
 
     // --- Actions, as skills of each robot ----------------------------------
     domain.bind("convey", { "Convey({0}, {1}, {2})" });

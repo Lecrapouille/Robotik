@@ -13,6 +13,8 @@
 #include "PetriNet/PetriNet.hpp"
 
 #include <algorithm>
+#include <cstdint>
+#include <optional>
 
 namespace robotik
 {
@@ -68,6 +70,29 @@ static tpne::Flowshop flowshopOf(WorkflowDescription const& p_workflow,
     return shop;
 }
 
+void colorEventGraph(tpne::Net& p_graph, WorkflowDescription const& p_workflow)
+{
+    std::map<std::string, Where> operations;
+    tpne::colorFlowshopTokens(p_graph, flowshopOf(p_workflow, operations));
+    for (WorkflowProduct const& product : p_workflow.products)
+    {
+        std::optional<tpne::Color> const color =
+            p_graph.colors.find(product.id);
+        if (color && product.color)
+        {
+            auto const byte = [](float p_value)
+            {
+                return static_cast<std::uint32_t>(
+                    std::clamp(p_value, 0.0F, 1.0F) * 255.0F + 0.5F);
+            };
+            p_graph.colors.rgb(*color,
+                               (byte((*product.color)[0]) << 16U) |
+                                   (byte((*product.color)[1]) << 8U) |
+                                   byte((*product.color)[2]));
+        }
+    }
+}
+
 Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
                                          std::size_t p_cycles)
 {
@@ -82,6 +107,7 @@ Result<WorkflowAnalysis> analyseWorkflow(WorkflowDescription const& p_workflow,
     auto net = std::make_shared<tpne::Net>(tpne::TypeOfNet::TimedPetriNet);
     tpne::buildFlowshop(*net, shop);
     net->name = p_workflow.id;
+    colorEventGraph(*net, p_workflow);
 
     WorkflowAnalysis analysis;
     tpne::CriticalCycleResult const cycle = tpne::findCriticalCycle(*net);

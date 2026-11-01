@@ -280,6 +280,8 @@ that names a `skill:` by the mean duration of this skill in the current run.
 | `products[].id` | Product kind |
 | `products[].count` | Products of this kind in the cell at once (default 1) |
 | `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional). In a generated GRAFCET the skill is the action of the step of the operation: it runs `duration` (a belt runs 0.52 s), or until it is done when `duration` is 0 |
+| `products[].route[].reject` | `{ when, to }`: a receptivity read at the end of the operation (`{part}` replaced) and the entity receiving the part when it is true. The give recipe takes it there; the next operators skip the part (§7) |
+| `products[].color` | `[r, g, b]` in [0, 1]: the color of the tokens of the product in the graphs (§7) |
 | `products[].parts` | World entities of this kind, one per lot (§7) |
 | `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it; `place` instead of `places`: one place for every product kind (the end of a belt) (§7) |
 | `output` | World entity receiving the finished parts (the `{to}` of the last operation) |
@@ -448,6 +450,43 @@ at 61.37 s; `experiments/factory_rigid.experiment.yaml` runs it also with
 the rigid physics (65.08 s): MuJoCo carries the parts of 50 g by friction
 and the stops hold them. The workflow gives a cycle time of 7.92 s.
 
+**Reject a part.** An operation can end in two ways: the part is good and
+goes on, or an inspection rejects it. `reject:` gives the receptivity read
+at the end of the operation and the entity receiving the rejected part:
+
+```yaml
+# plugins/DualArm/scenarios/factory_reject.workflow.yaml (part of it)
+    - id: P2
+      color: [0.1, 0.75, 0.2]
+      parts: [p2a, p2b]
+      route:
+        - name: machining
+          on: M1
+          duration: 3.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+```
+
+The generated GRAFCET has an OR divergence after the machining:
+`(3s/X..) . /(defective(p2b))` goes on to the station,
+`(3s/X..) . (defective(p2b))` runs the give recipe of M1 with `{to}` =
+`scrap` (`M1.Over(scrap)`, `M1.Release`, `M1.Home`). The place of the part
+in the station is free again, and each operator after M1 on the route gets
+a step "p2b rejected for M2" that makes it skip the part. In
+`factory_reject.scenario.yaml`, p2b is 6 mm too thin (a chipped part): the
+observer `defective` of the DualArm plugin compares the believed height of
+the part with 4 cm. M1 drops p2b in the scrap bin, M2 and the outfeed skip
+it, and the five good parts go out at 50.93 s (50.62 s with the rigid
+physics; its outfeed is 80 cm long, so that the parts on it are never
+pressed together). No deadlock: `--deadlocks` explores 24766 markings. The
+cycle time of the workflow counts every part as good.
+
+**Colors of the products.** `color: [r, g, b]` on a product is the color of
+its tokens in the graphs. In the generated GRAFCET, an active step of a part
+has the color of its product (the dot of the step in the GRAFCET panel). In
+the event graph of the Workflow panel, the tokens of each product circuit
+have the color of the product, during the run too ("Follow the run").
+Without `color`, the product gets a hue picked from its rank.
+
 **With a GEMMA.** `gemma: default` (in the workflow, or in the `grafcet:`
 block of the scenario) adds the graphs Safety and Control of the default
 GEMMA of TimedPetriNetEditor before the Production: A1 initial stop, F1
@@ -481,7 +520,9 @@ joined in one Production graph.
 The generator refuses, with a message: a workflow without parts, an operator
 of capacity above 1, a part going from an operator to the next one without a
 buffer after the first, a buffer without a place for the product, `{to}` in
-the last recipe without `output`, and an unknown placeholder.
+the last recipe without `output`, and an unknown placeholder. A `reject`
+without `when` or `to`, and a `color` out of [0, 1], are refused when the
+workflow is read.
 
 **A behavior tree or a GRAFCET?** A plan, a behavior tree and a GRAFCET can
 say the same order. A tree with only `Sequence` and `Parallel` says only

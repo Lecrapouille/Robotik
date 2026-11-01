@@ -36,6 +36,7 @@ workflow:
     - { id: exit, after: M2, place: outfeed }            # M2.Over(outfeed): its entry
   products:
     - id: P1
+      color: [0.9, 0.1, 0.1]
       parts: [p1a, p1b]
       route:
         - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
@@ -44,6 +45,7 @@ workflow:
         - { name: machining, on: M2, duration: 1.0 }
         - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P2
+      color: [0.1, 0.75, 0.2]
       parts: [p2a, p2b]
       route:
         - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
@@ -52,6 +54,7 @@ workflow:
         - { name: machining, on: M2, duration: 2.0 }
         - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P3
+      color: [0.1, 0.3, 0.9]
       parts: [p3a, p3b]
       route:
         - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }

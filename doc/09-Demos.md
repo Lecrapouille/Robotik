@@ -463,8 +463,11 @@ its initial stop.
 belt brings each part to M1, when the pick place at its end is free.
 `factory_transfer.scenario.yaml` puts M1 and M2 one metre apart, linked by
 a transfer belt in place of the station; an outfeed belt takes the finished
-parts away. The stops at the end of the belts hold the parts: the
-experiment `factory_rigid.experiment.yaml` runs the four factories with the
+parts away. `factory_reject.scenario.yaml` adds an inspection: M1 measures
+each part after machining it, drops the chipped one (p2b) in a scrap bin,
+and M2 and the outfeed skip it (`reject:` of the workflow, [12 §7](12-GRAFCET-and-Workflows.md#7-a-factory)).
+The stops at the end of the belts hold the parts: the
+experiment `factory_rigid.experiment.yaml` runs the five factories with the
 rigid physics.
 
 ## 9. Micro Duck

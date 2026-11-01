@@ -25,6 +25,20 @@
 /// all the operators done -> End
 /// @endcode
 ///
+/// An operation with @c reject ends in two branches: the part is good, or
+/// the receptivity @c when is true and the operator gives the part to
+/// @c reject.to (its give recipe), its place in the next buffer is free
+/// again, and each operator after it on the route skips the part:
+///
+/// @code
+///   work done . /(when) -> next buffer      work done . (when) -> give to scrap
+///                                            -> "p1a rejected for M2" ...
+///   M2: [idle . p1a rejected for M2] -> idle   (skips p1a)
+/// @endcode
+///
+/// The Production graph has one color per product (named as the product,
+/// drawn with @c color when the workflow gives one).
+///
 /// A step of the recipe is a skill call; its receptivity is @c done(skill)
 /// and what follows " . " in the recipe. Machining is a time receptivity
 /// (@c 2s/X10) while the operator holds the part. In a zone the operator
@@ -82,6 +96,9 @@ struct WorkflowJob
     std::size_t end = 0U;
     /// Waits for a zone: the transition entering the wait, the one leaving it.
     std::vector<std::pair<std::size_t, std::size_t>> waits;
+    /// Steps of the Production graph about this part on this operator: an
+    /// active one is drawn with the color of the product.
+    std::vector<std::size_t> steps;
 };
 
 // ----------------------------------------------------------------------------

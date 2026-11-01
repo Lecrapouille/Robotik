@@ -129,7 +129,41 @@ struct GrafcetController::Impl
     std::vector<GrafcetFiring> history;
     /// End step of a generated GRAFCET, or empty.
     std::string generated_end;
+    /// Jobs of a generated GRAFCET (a part on an operator), to draw their
+    /// active steps with the color of the product.
+    std::vector<WorkflowJob> jobs;
 };
+
+/// Gives the active steps of each job the color of its product, in the
+/// Production graph of a generated GRAFCET (drawn by the GRAFCET panel).
+static void paintJobs(GrafcetController::Impl& p_impl)
+{
+    for (tpne::Net& net : p_impl.graphs)
+    {
+        if (net.name != "Production")
+        {
+            continue;
+        }
+        for (WorkflowJob const& job : p_impl.jobs)
+        {
+            std::optional<tpne::Color> const color =
+                net.colors.find(job.product);
+            for (std::size_t const step : job.steps)
+            {
+                tpne::Place* place = net.findPlace(step);
+                if (place == nullptr || !color)
+                {
+                    continue;
+                }
+                place->colors.clear();
+                if (place->tokens > 0U)
+                {
+                    place->colors.push_back({ *color, place->tokens });
+                }
+            }
+        }
+    }
+}
 
 /// Splits "name(a, b)" into "name" and its arguments ("a", "b"). The
 /// arguments keep their own parentheses: done(Grasp(cube)) -> Grasp(cube).
@@ -305,7 +339,8 @@ GrafcetController::load(GrafcetSpec const& p_spec, SkillScheduler& p_skills,
         // Generated from the workflow: it ends with its End step unless the
         // scenario says otherwise.
         std::string end;
-        ROBOTIK_TRY_ASSIGN(end, workflowGrafcet(*p_spec.workflow, impl.graphs));
+        ROBOTIK_TRY_ASSIGN(
+            end, workflowGrafcet(*p_spec.workflow, impl.graphs, &impl.jobs));
         impl.generated_end = end;
         if (impl.spec.success.empty())
         {
@@ -376,6 +411,7 @@ void GrafcetController::reset()
     m_impl->engine.stop();
     // The file was checked by load(): it compiles again.
     (void)start(*m_impl);
+    paintJobs(*m_impl);
     m_impl->warnings.clear();
     std::string const& success = m_impl->spec.success;
     std::string const& failure = m_impl->spec.failure;
@@ -454,6 +490,7 @@ bt::Status GrafcetController::tick(RobotContext const& p_context)
     // 2. Evolution of the graphs, then actions. Push buttons are released
     // after one cycle: their rising edge has been seen.
     impl.engine.step(dt);
+    paintJobs(impl);
     for (tpne::GrafcetEngine::Firing const& firing : impl.engine.firings())
     {
         impl.history.push_back({ p_context.time, impl.graphs[firing.graph].name, firing.transition });

@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <sstream>
@@ -231,6 +232,24 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
     std::vector<Job> const jobs = jobsOf(p_workflow);
     std::size_t const operators = p_workflow.operators.size();
 
+    // One color per product, drawn with the color of its parts if given.
+    for (WorkflowProduct const& product : p_workflow.products)
+    {
+        tpne::Color const color = p_net.colors.add(product.id);
+        if (product.color)
+        {
+            auto const byte = [](float p_value)
+            {
+                return static_cast<std::uint32_t>(
+                    std::clamp(p_value, 0.0F, 1.0F) * 255.0F + 0.5F);
+            };
+            p_net.colors.rgb(color,
+                             (byte((*product.color)[0]) << 16U) |
+                                 (byte((*product.color)[1]) << 8U) |
+                                 byte((*product.color)[2]));
+        }
+    }
+
     // Shared steps on the first row: zones and places of the buffers.
     std::vector<BufferSteps> buffers(operators);
     float x = COLUMN / 2.0F;
@@ -264,6 +283,8 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
 
     // Step "part done by the operator": given to the next operator.
     std::map<std::pair<std::size_t, std::size_t>, std::size_t> given;
+    // Step "part rejected for the operator" (job, operator): it skips it.
+    std::map<std::pair<std::size_t, std::size_t>, std::size_t> rejected;
     std::vector<std::size_t> done;
     production.idle.resize(operators);
     for (std::size_t k = 0U; k < operators; ++k)
@@ -313,7 +334,11 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             std::string const destination =
                 (to != nullptr) ? to->entities.at(product.id) : p_workflow.output;
 
-            WorkflowJob job{ op.id, product.id, part, p_net.transitions().size(), 0U, {} };
+            WorkflowJob job{
+                op.id, product.id, part, p_net.transitions().size(), 0U, {}, {}
+            };
+            std::size_t const first_step = p_net.places().size();
+            std::size_t const idle_before = *idle;
 
             // Start: idle, the part given by the previous operator, its place
             // in the next buffer free.
@@ -373,6 +398,20 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
             {
                 taken();
             }
+            // Rejected: another branch gives the part elsewhere.
+            std::optional<Builder> reject;
+            if (at->reject)
+            {
+                std::string const when =
+                    "(" + replaced(at->reject->when, "{part}", part) + ")";
+                std::string const end =
+                    builder.code.empty() ? std::string("1") : builder.code;
+                reject.emplace(builder);
+                reject->code = "(" + end + ") . " + when;
+                reject->x += COLUMN * 0.5F;
+                builder.code = "(" + end + ") . /" + when;
+                runRecipe(*reject, op.give, part, at->reject->to, op.id, where);
+            }
             if (to != nullptr && to->zone)
             {
                 std::size_t const enter = p_net.transitions().size();
@@ -412,6 +451,51 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
                 builder.extra.push_back(*to->zone);
             }
             job.end = fire(builder, outputs);
+            if (reject)
+            {
+                // Idle again, its place in the next buffer free, and a token
+                // for each operator after it on the route: they skip the part.
+                std::vector<std::size_t> skipped{ *idle };
+                if (to != nullptr)
+                {
+                    skipped.push_back(to->places.at(product.id));
+                }
+                float y = reject->y;
+                for (std::size_t n = r + 1U; n < product.route.size(); ++n)
+                {
+                    std::size_t const next =
+                        operatorIndex(p_workflow, product.route[n].on);
+                    std::size_t const step =
+                        addStep(p_net,
+                                part + " rejected for " + product.route[n].on,
+                                0U,
+                                reject->x + 160.0F,
+                                y);
+                    y += ROW;
+                    rejected[{ j, next }] = step;
+                    skipped.push_back(step);
+                }
+                (void)fire(*reject, skipped);
+            }
+            // Rejected before: skip it.
+            if (auto const skip = rejected.find({ j, k });
+                skip != rejected.end())
+            {
+                Builder skipping{ p_net,
+                                  { idle_before, skip->second },
+                                  "1",
+                                  {},
+                                  builder.x - 60.0F,
+                                  builder.y };
+                (void)fire(skipping, { *idle });
+            }
+            for (std::size_t s = first_step; s < p_net.places().size(); ++s)
+            {
+                if (s != *idle)
+                {
+                    job.steps.push_back(s);
+                }
+            }
             production.jobs.push_back(std::move(job));
             builder.y += ROW;
             if (last)

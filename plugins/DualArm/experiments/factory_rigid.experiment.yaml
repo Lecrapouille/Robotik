@@ -26,6 +26,10 @@ experiment:
       scenario: scenarios/factory_transfer.scenario.yaml
       overrides:
         scenario.physics.fidelity: rigid
+    - id: factory_reject
+      scenario: scenarios/factory_reject.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
 
   evaluation:
     metrics:

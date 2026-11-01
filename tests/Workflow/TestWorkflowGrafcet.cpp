@@ -338,6 +338,103 @@ TEST(WorkflowGrafcet, GeneratesTheGemmaOfTheCell)
     EXPECT_NE(unknown.error().find("gemma: 'custom'"), std::string::npos) << unknown.error();
 }
 
+TEST(WorkflowGrafcet, RejectsAPartAndTheNextOperatorsSkipIt)
+{
+    std::string text = LINE;
+    text = text.replace(
+        text.find("        - { name: cut, on: a, duration: 1 }"),
+        std::string("        - { name: cut, on: a, duration: 1 }").size(),
+        "        - name: cut\n"
+        "          on: a\n"
+        "          duration: 1\n"
+        "          reject: { when: \"bad({part})\", to: scrap }");
+    text = text.replace(text.find("      parts: [p1]"),
+                        std::string("      parts: [p1]").size(),
+                        "      parts: [p1]\n      color: [1, 0, 0]");
+    robotik::WorkflowDescription const workflow = read(text).take();
+    ASSERT_TRUE(workflow.products[0].route[0].reject);
+    EXPECT_EQ(workflow.products[0].route[0].reject->to, "scrap");
+    ASSERT_TRUE(workflow.products[0].color);
+
+    std::vector<tpne::Net> graphs;
+    std::vector<robotik::WorkflowJob> jobs;
+    (void)robotik::workflowGrafcet(workflow, graphs, &jobs).take();
+    tpne::Net const& net = graphs.front();
+    auto const find = [&net](std::string const& p_caption)
+    {
+        return std::ranges::find(
+            net.places(), p_caption, &tpne::Place::caption);
+    };
+    auto const cut = find("a cut p (1 s)");
+    ASSERT_NE(cut, net.places().end());
+    std::string const done = "(1s/X" + std::to_string(cut->id) + ")";
+    auto const transition = [&net](std::string const& p_code)
+    {
+        return std::ranges::find(
+            net.transitions(), p_code, &tpne::Transition::caption);
+    };
+    // Good: on to the tray. Bad: a.Place(scrap), then b skips the part.
+    EXPECT_NE(transition(done + " . /(bad(p1))"), net.transitions().end());
+    ASSERT_NE(transition(done + " . (bad(p1))"), net.transitions().end());
+    auto const scrap = find("a.Place(scrap)");
+    ASSERT_NE(scrap, net.places().end());
+    auto const rejected = find("p1 rejected for b");
+    ASSERT_NE(rejected, net.places().end());
+    // The rejected step leaves by the skip of b: b idle -> b done.
+    ASSERT_EQ(net.arcsOut(*rejected).size(), 1U);
+    tpne::Transition const& skip =
+        net.transitions()[net.arcsOut(*rejected).begin()->to.id];
+    EXPECT_EQ(skip.caption, "1");
+    ASSERT_EQ(net.arcsOut(skip).size(), 1U);
+    EXPECT_EQ(net.places()[net.arcsOut(skip).begin()->to.id].caption, "b done");
+    // Also given back by the reject: the place of the part in the tray.
+    tpne::Transition const& reject =
+        net.transitions()[net.arcsIn(*rejected).begin()->from.id];
+    bool frees = false;
+    for (tpne::Arc const& arc : net.arcsOut(reject))
+    {
+        frees = frees || net.places()[arc.to.id].caption == "spot free";
+    }
+    EXPECT_TRUE(frees);
+
+    // The product has its color; each job lists its steps.
+    std::optional<tpne::Color> const red = net.colors.find("p");
+    ASSERT_TRUE(red);
+    EXPECT_EQ(net.colors.rgb(*red), 0xFF0000U);
+    ASSERT_EQ(jobs.size(), 2U);
+    EXPECT_TRUE(std::ranges::find(jobs[0].steps, rejected->id) !=
+                jobs[0].steps.end());
+    EXPECT_TRUE(std::ranges::find(jobs[0].steps, cut->id) !=
+                jobs[0].steps.end());
+    EXPECT_FALSE(jobs[1].steps.empty());
+
+    // The event graph: the tokens of the product have its color.
+    robotik::WorkflowAnalysis const analysis =
+        robotik::analyseWorkflow(workflow).take();
+    tpne::Net graph = *analysis.graph;
+    std::optional<tpne::Color> const product = graph.colors.find("p");
+    ASSERT_TRUE(product);
+    EXPECT_EQ(graph.colors.rgb(*product), 0xFF0000U);
+    std::size_t colored = 0U;
+    for (tpne::Place const& place : graph.places())
+    {
+        colored += place.colors.empty() ? 0U : 1U;
+    }
+    EXPECT_EQ(colored, 1U); // the feed of the product, its one token
+    (void)graph.tokens(robotik::eventGraphMarking(graph, { { "a_p", 1U } }));
+    robotik::colorEventGraph(graph, workflow);
+    colored = 0U;
+    for (tpne::Place const& place : graph.places())
+    {
+        if (!place.colors.empty())
+        {
+            EXPECT_EQ(place.colors[0].first, *product);
+            ++colored;
+        }
+    }
+    EXPECT_EQ(colored, 1U); // the part between a and b
+}
+
 TEST(WorkflowGrafcet, RefusesWhatCannotBeGenerated)
 {
     robotik::WorkflowDescription const line = read(LINE).take();

@@ -144,6 +144,19 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
         }
         product.count = count(item, "count", "product " + product.id);
         product.parts = item.strings("parts");
+        if (item.has("color"))
+        {
+            Vector3 const color = item.vector3("color", Vector3::ZERO);
+            if (color.x < 0.0 || color.y < 0.0 || color.z < 0.0 ||
+                color.x > 1.0 || color.y > 1.0 || color.z > 1.0)
+            {
+                throw std::runtime_error("product " + product.id +
+                                         ": color is [r, g, b] in [0, 1]");
+            }
+            product.color = std::array<float, 3>{ static_cast<float>(color.x),
+                                                  static_cast<float>(color.y),
+                                                  static_cast<float>(color.z) };
+        }
         std::size_t previous = 0U;
         for (ConfigNode const& step : item.at("route").items())
         {
@@ -162,6 +175,19 @@ static WorkflowDescription readWorkflow(ConfigNode const& p_node)
             if (operation.duration.value() < 0.0)
             {
                 throw std::runtime_error(where + ": duration (s) is required");
+            }
+            if (step.has("reject"))
+            {
+                ConfigNode const& reject = step.at("reject");
+                operation.reject =
+                    WorkflowReject{ reject.text("when"), reject.text("to") };
+                if (operation.reject->when.empty() ||
+                    operation.reject->to.empty())
+                {
+                    throw std::runtime_error(
+                        where + ": reject needs 'when' (a receptivity) and "
+                                "'to' (an entity)");
+                }
             }
             std::size_t index = workflow.operators.size();
             for (std::size_t i = 0U; i < workflow.operators.size(); ++i)

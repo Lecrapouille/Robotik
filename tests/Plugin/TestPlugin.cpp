@@ -10,12 +10,17 @@
 #include <algorithm>
 
 #include "Robotik/Package/Plugin/PluginSession.hpp"
-#include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Grafcet/GrafcetController.hpp"
+
+#include "PetriNet/PetriNet.hpp"
 
 #include "Compages/World/World.hpp"
 
 #include <cstdlib>
+#include <functional>
+#include <set>
 #include <string>
 
 /// Resolves a path from the repository root, from build/ or from src.
@@ -345,7 +350,10 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
 
 /// Runs a scenario of the DualArm plugin to its end; false when not built.
 static bool
-runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
+runDualArm(std::string const& p_scenario,
+           double& p_time,
+           double& p_overlap,
+           std::function<void(robotik::Simulation const&)> const& p_each = {})
 {
     std::filesystem::path const scenario = pluginsRoot() / "DualArm" /
                                            "scenarios" /
@@ -372,6 +380,10 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
     {
         simulation.step(robotik::Seconds(0.01));
         session.afterStep(0.01);
+        if (p_each)
+        {
+            p_each(simulation);
+        }
     }
     EXPECT_TRUE(simulation.passed()) << p_scenario;
     p_time = simulation.time().value();
@@ -406,4 +418,39 @@ TEST(PluginSession, OneArmHoldsTheTrayFromBelowWhileTheOtherDrillsIt)
     }
     // The drilling ran during the carry (required concurrency).
     EXPECT_GT(overlap, 4.0);
+}
+
+TEST(PluginSession, AnInspectionDropsTheChippedPartAndColorsTheSteps)
+{
+    double time = 0.0;
+    double overlap = 0.0;
+    // The colors of the products seen on the active steps of the run.
+    std::set<std::string> seen;
+    auto const look = [&seen](robotik::Simulation const& p_simulation)
+    {
+        robotik::GrafcetController const* grafcet =
+            p_simulation.cell().grafcet();
+        if (grafcet == nullptr)
+        {
+            return;
+        }
+        for (tpne::Net const& net : grafcet->graphs())
+        {
+            for (tpne::Place const& place : net.places())
+            {
+                if (place.tokens > 0U && !place.colors.empty())
+                {
+                    seen.insert(net.colors.name(place.colors.front().first));
+                }
+            }
+        }
+    };
+    if (!runDualArm("factory_reject", time, overlap, look))
+    {
+        GTEST_SKIP() << "dual arm plugin is not built";
+    }
+    // p2b in the scrap bin, the others out (the assertions of the scenario),
+    // sooner than the six parts of factory (53.18 s).
+    EXPECT_LT(time, 53.0);
+    EXPECT_EQ(seen, (std::set<std::string>{ "P1", "P2", "P3" }));
 }

@@ -171,6 +171,11 @@ A layer only uses the layers under it; `make check-layers` checks it.
   (`take:`, `give:` of a workflow); the generated GRAFCET has one step per
   skill.
 - **Receptivity**: the condition of a GRAFCET transition (`done(Home) . /AU`).
+- **Reject**: an operation of a workflow that may send the part elsewhere
+  (`reject: { when, to }`): the next operators of its route skip it.
+- **Token color**: what a token of a Petri net stands for (a product, a
+  result); a workflow product gives its `color`, and the tokens and active
+  steps of its parts have it in the graphs.
 - **Timed event graph**: a Petri net where each place has one input and one
   output transition; its behavior is linear in the (max,+) algebra.
 - **Workflow**: the operators, products and routes of a cell

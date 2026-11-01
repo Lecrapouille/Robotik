@@ -302,10 +302,12 @@ static bool followRun(App const& p_app, WorkflowState& p_state)
         spec->workflow->id != p_state.used.id)
     {
         (void)p_state.live->tokens(graph.tokens());
+        robotik::colorEventGraph(*p_state.live, p_state.used);
         return false;
     }
     (void)p_state.live->tokens(robotik::eventGraphMarking(
         graph, robotik::startedOperations(*spec->workflow, grafcet->graphs())));
+    robotik::colorEventGraph(*p_state.live, *spec->workflow);
     return true;
 }
 

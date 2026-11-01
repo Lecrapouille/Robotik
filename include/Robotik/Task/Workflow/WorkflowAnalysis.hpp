@@ -113,6 +113,16 @@ struct WorkflowAnalysis
 eventGraphMarking(tpne::Net const& p_graph, std::map<std::string, std::size_t> const& p_started);
 
 // ----------------------------------------------------------------------------
+/// Gives the tokens of each product circuit of the event graph the color of
+/// the product (drawn with @c WorkflowProduct::color when given). Call it
+/// again after a new marking (@ref eventGraphMarking): the colors follow the
+/// tokens.
+/// @param p_graph Event graph of @ref WorkflowAnalysis::graph, or a copy.
+/// @param p_workflow Workflow it was built from.
+// ----------------------------------------------------------------------------
+void colorEventGraph(tpne::Net& p_graph, WorkflowDescription const& p_workflow);
+
+// ----------------------------------------------------------------------------
 /// Writes the workflow as a flowshop table that TimedPetriNetEditor opens
 /// (@c x.flowshop: the operators in rows, the products in columns, the
 /// durations in the cells).

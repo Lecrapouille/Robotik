@@ -1,0 +1,30 @@
+# The factory with an inspection (scenarios/factory_reject.workflow.yaml):
+# p2b is chipped (worlds/factory_reject_cell.world.yaml). M1 measures each
+# part after machining it and drops p2b in the scrap bin; M2 and the outfeed
+# skip it, the five good parts go out as in factory.scenario.yaml.
+scenario:
+  id: factory_reject
+  description: The factory with an inspection - M1 drops the chipped part in the scrap bin, the others skip it.
+  world: worlds/factory_reject_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory_reject.workflow.yaml   # ends at its End step
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 240
+
+  assertions:
+    - controller.success
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p3b, outfeed)
+    - inside(p2b, scrap)
+    - { condition: "on(p2b, outfeed) == 0", phase: always }
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }
+    - time < 70
