@@ -851,7 +851,7 @@ static std::unique_ptr<ModelView> openModel(std::filesystem::path const& p_path,
     compages::core::Vector3f const middle = view->scene->frameAll();
     view->camera.add<compages::world::Rig>(middle);
     if (compages::world::Rig* rig =
-            view->world->behavior<compages::world::Rig>(view->camera))
+            view->world->routines().find<compages::world::Rig>(view->camera))
     {
         // A tool of a few centimetres as well as a whole cell.
         rig->controller.min_distance = 0.01F;
