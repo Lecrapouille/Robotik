@@ -1,140 +1,161 @@
 {
-    // Coverage Gutters
-    "coverage-gutters.coverageReportFileName": "doc/code-coverage/lcov.info",
-    "coverage-gutters.showLineCoverage": true,
-    "coverage-gutters.showRulerCoverage": true,
-    // clang-format
-    "editor.formatOnSave": true,
-    "editor.formatOnSaveMode": "file",
+    // ------------------------------------------------------------------------
+    // C++: IntelliSense of cpptools from compile_commands.json, written by
+    // MyMakefile ('make compile-commands', also done by the default build
+    // task). No bear needed.
+    // ------------------------------------------------------------------------
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/compile_commands.json",
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.cStandard": "c17",
+    "C_Cpp.default.intelliSenseMode": "linux-gcc-x64",
+    "C_Cpp.errorSquiggles": "enabled",
+    "C_Cpp.doxygen.generatedStyle": "///",
+    // The project is built by MyMakefile: Makefile Tools must not run its own
+    // dry run nor configure IntelliSense.
+    "makefile.configureOnOpen": false,
+    "makefile.configureOnEdit": false,
+    "makefile.configureAfterCommand": false,
+
+    // ------------------------------------------------------------------------
+    // Formatting: the system clang-format, the same as 'make format', with
+    // the .clang-format of the project.
+    // ------------------------------------------------------------------------
+    "clang-format.executable": "clang-format",
+    "clang-format.style": "file",
     "[cpp]": {
         "editor.defaultFormatter": "xaver.clang-format",
-        "editor.formatOnSave": true,
-        "editor.formatOnType": false,
-        "editor.formatOnPaste": false
+        "editor.formatOnSave": true
     },
     "[c]": {
         "editor.defaultFormatter": "xaver.clang-format",
-        "editor.formatOnSave": true,
-        "editor.formatOnType": false,
-        "editor.formatOnPaste": false
+        "editor.formatOnSave": true
     },
-    "[hpp]": {
-        "editor.defaultFormatter": "xaver.clang-format",
-        "editor.formatOnSave": true,
-        "editor.formatOnType": false,
-        "editor.formatOnPaste": false
+    "[makefile]": {
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false
     },
-    "[h]": {
-        "editor.defaultFormatter": "xaver.clang-format",
-        "editor.formatOnSave": true,
-        "editor.formatOnType": false,
-        "editor.formatOnPaste": false
+    "[markdown]": {
+        "files.trimTrailingWhitespace": false,
+        "editor.wordWrap": "on"
     },
-    // Configuration pour l'extension clang-format dédiée (xaver.clang-format)
-    "clang-format.executable": "/usr/bin/clang-format",
-    "clang-format.style": "file",
-    "clang-format.fallbackStyle": "Google",
-    // Error squiggles
-    "C_Cpp.errorSquiggles": "enabled",
-    // Remove trailing whitespace
+    "[yaml]": {
+        "editor.tabSize": 2
+    },
+
+    // ------------------------------------------------------------------------
+    // Editor
+    // ------------------------------------------------------------------------
+    "editor.rulers": [80],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.renderWhitespace": "trailing",
+    "editor.guides.bracketPairs": "active",
+    "editor.stickyScroll.enabled": true,
     "files.trimTrailingWhitespace": true,
-    // SonarLint
-    "sonarlint.disableTelemetry": true,
-    "sonarlint.output.showVerboseLogs": true,
-    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
-    // Makefile needed for SonarLint
-    "makefile.compileCommandsPath": "${workspaceFolder}/compile_commands.json",
-    "makefile.configurations": [
-        {
-            "name": "MyConfiguration",
-            "problemMatchers": [
-                "$gcc"
-            ],
-            "makeArgs": []
-        }
-    ],
+    "files.insertFinalNewline": true,
+    "files.trimFinalNewlines": true,
+    "files.eol": "\n",
     "files.associations": {
-        "random": "cpp",
-        "iomanip": "cpp",
-        "iostream": "cpp",
-        "ostream": "cpp",
-        "array": "cpp",
-        "bitset": "cpp",
-        "string_view": "cpp",
-        "initializer_list": "cpp",
-        "ranges": "cpp",
-        "span": "cpp",
-        "regex": "cpp",
-        "valarray": "cpp",
-        "any": "cpp",
-        "atomic": "cpp",
-        "bit": "cpp",
-        "*.tcc": "cpp",
-        "cctype": "cpp",
-        "chrono": "cpp",
-        "clocale": "cpp",
-        "cmath": "cpp",
-        "codecvt": "cpp",
-        "compare": "cpp",
-        "concepts": "cpp",
-        "condition_variable": "cpp",
-        "csignal": "cpp",
-        "cstdarg": "cpp",
-        "cstddef": "cpp",
-        "cstdint": "cpp",
-        "cstdio": "cpp",
-        "cstdlib": "cpp",
-        "cstring": "cpp",
-        "ctime": "cpp",
-        "cwchar": "cpp",
-        "cwctype": "cpp",
-        "deque": "cpp",
-        "forward_list": "cpp",
-        "list": "cpp",
-        "map": "cpp",
-        "set": "cpp",
-        "string": "cpp",
-        "unordered_map": "cpp",
-        "unordered_set": "cpp",
-        "vector": "cpp",
-        "exception": "cpp",
-        "algorithm": "cpp",
-        "functional": "cpp",
-        "iterator": "cpp",
-        "memory": "cpp",
-        "memory_resource": "cpp",
-        "numeric": "cpp",
-        "optional": "cpp",
-        "ratio": "cpp",
-        "system_error": "cpp",
-        "tuple": "cpp",
-        "type_traits": "cpp",
-        "utility": "cpp",
-        "fstream": "cpp",
-        "iosfwd": "cpp",
-        "istream": "cpp",
-        "limits": "cpp",
-        "mutex": "cpp",
-        "new": "cpp",
-        "numbers": "cpp",
-        "semaphore": "cpp",
-        "sstream": "cpp",
-        "stdexcept": "cpp",
-        "stop_token": "cpp",
-        "streambuf": "cpp",
-        "thread": "cpp",
-        "cinttypes": "cpp",
-        "typeinfo": "cpp",
-        "variant": "cpp",
-        "*.m": "cpp",
-        "future": "cpp",
-        "stack": "cpp",
-        "cassert": "cpp",
-        "*.tpp": "cpp",
-        "shared_mutex": "cpp",
-        "strstream": "cpp",
-        "complex": "cpp",
-        "cfenv": "cpp",
-        "typeindex": "cpp"
-    }
+        "*.mk": "makefile",
+        "ChangeLog": "plaintext",
+        "*.urdf": "xml",
+        "*.xacro": "xml",
+        "*.pddl": "lisp",
+        "*.flowshop": "plaintext",
+        "*.inl": "cpp",
+        "*.tpp": "cpp"
+    },
+
+    // ------------------------------------------------------------------------
+    // Neither show nor search the objects, the builds, the clones of the
+    // third parties and the caches.
+    // ------------------------------------------------------------------------
+    "files.exclude": {
+        "**/*.o": true,
+        "**/*.d": true,
+        "**/*.gcda": true,
+        "**/*.gcno": true,
+        ".vscode/browse.vc.db*": true
+    },
+    "search.exclude": {
+        "build/**": true,
+        "external/*/**": true,
+        ".cache/**": true,
+        "doc/code-coverage/**": true,
+        "compile_commands.json": true
+    },
+    "files.watcherExclude": {
+        "**/build/**": true,
+        "**/external/*/**": true,
+        "**/.cache/**": true
+    },
+    // A .hpp under its .cpp, the project files under the Makefile.
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*.cpp": "${capture}.hpp, ${capture}.h",
+        "Makefile": "*.mk, .clang-format, compile_commands.json, .gitignore, .gitmodules",
+        "README.md": "AUTHORS, ChangeLog, LICENSE, LICENSING.md, AGENTS.md, CLAUDE.md"
+    },
+
+    // ------------------------------------------------------------------------
+    // Terminal and tasks
+    // ------------------------------------------------------------------------
+    "terminal.integrated.scrollback": 10000,
+    "task.problemMatchers.neverPrompt": true,
+
+    // ------------------------------------------------------------------------
+    // Extensions
+    // ------------------------------------------------------------------------
+    // SonarLint: its settings belong here, VS Code does not read a
+    // sonarlint.json. Off: too many parameters (S107), mergeable ifs
+    // (S1066), unused labels (S1065).
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "sonarlint.disableTelemetry": true,
+    "sonarlint.rules": {
+        "cpp:S107": { "level": "off" },
+        "cpp:S1066": { "level": "off" },
+        "cpp:S1065": { "level": "off" }
+    },
+
+    // Coverage Gutters: the report of 'make coverage'.
+    "coverage-gutters.coverageBaseDir": "doc/code-coverage",
+    "coverage-gutters.coverageFileNames": ["lcov.info"],
+
+    // Todo Tree
+    "todo-tree.general.tags": ["TODO", "FIXME", "XXX", "HACK", "BUG", "NOTE"],
+    "todo-tree.filtering.excludeGlobs": [
+        "**/build/**",
+        "**/external/*/**",
+        "**/.makefile/**"
+    ],
+
+    // Error Lens: the errors and warnings at the end of their line.
+    "errorLens.enabledDiagnosticLevels": ["error", "warning"],
+
+    // Code Spell Checker: the comments are in English.
+    "cSpell.language": "en",
+    "cSpell.words": [
+        "BlackThorn",
+        "Compages",
+        "GEMMA",
+        "GRAFCET",
+        "gmock",
+        "gtest",
+        "imgui",
+        "implot",
+        "Kairos",
+        "MuJoCo",
+        "PDDL",
+        "Pinocchio",
+        "RobotIK",
+        "SCARA",
+        "URDF"
+    ],
+    "cSpell.ignorePaths": [
+        "build/**",
+        "external/**",
+        ".makefile/**",
+        "compile_commands.json"
+    ]
 }

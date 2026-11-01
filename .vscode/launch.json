@@ -1,45 +1,136 @@
 {
+    // F5: build with the task named in preLaunchTask, then debug in gdb.
+    // The binaries are those of COMPILATION_MODE=debug (the default of the
+    // Makefile): build/linux-gcc-debug/bin. They find the plugins in
+    // build/linux-gcc-debug/lib/robotik/plugins.
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Robotik-tests with gdb",
+            "name": "Simulator",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Robotik-tests",
+            "program": "${workspaceFolder}/build/linux-gcc-debug/bin/Robotik-Simulator",
             "args": [],
-            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
+            "preLaunchTask": "Build",
             "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
             "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": false
-                }
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true },
+                { "description": "Intel syntax for the disassembly", "text": "-gdb-set disassembly-flavor intel", "ignoreFailures": true }
             ]
         },
         {
-            "name": "Robotik-viewer with gdb",
+            "name": "Simulator: one scenario",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Robotik-Viewer",
-            "args": [
-                "${workspaceFolder}/data/scara_robot.urdf"
-            ],
-            "stopAtEntry": true,
+            "program": "${workspaceFolder}/build/linux-gcc-debug/bin/Robotik-Simulator",
+            "args": ["${input:scenario}"],
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": true,
+            "preLaunchTask": "Build",
             "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
             "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": false
-                }
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true },
+                { "description": "Intel syntax for the disassembly", "text": "-gdb-set disassembly-flavor intel", "ignoreFailures": true }
             ]
+        },
+        {
+            "name": "Headless: one scenario",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/linux-gcc-debug/bin/Robotik-Headless",
+            "args": ["${input:scenario}"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
+            "setupCommands": [
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+            ]
+        },
+        {
+            "name": "Unit tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/linux-gcc-debug/bin/Robotik-tests",
+            "args": ["--gtest_filter=${input:gtestFilter}", "--gtest_break_on_failure"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
+            "setupCommands": [
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+            ]
+        },
+        {
+            "name": "Simulator with sanitizers",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/linux-gcc-debug-address-undefined/bin/Robotik-Simulator",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build with sanitizers",
+            // Stop in gdb at the first error found by ASan or UBSan.
+            "environment": [
+                { "name": "ASAN_OPTIONS", "value": "abort_on_error=1:detect_leaks=0" },
+                { "name": "UBSAN_OPTIONS", "value": "print_stacktrace=1:halt_on_error=1:abort_on_error=1" }
+            ],
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
+            "setupCommands": [
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+            ]
+        },
+        {
+            "name": "Unit tests with sanitizers",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/linux-gcc-debug-address-undefined/bin/Robotik-tests",
+            "args": ["--gtest_filter=${input:gtestFilter}"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build with sanitizers",
+            "environment": [
+                { "name": "ASAN_OPTIONS", "value": "abort_on_error=1:detect_leaks=0" },
+                { "name": "UBSAN_OPTIONS", "value": "print_stacktrace=1:halt_on_error=1:abort_on_error=1" }
+            ],
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "externalConsole": false,
+            "setupCommands": [
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+            ]
+        },
+        {
+            "name": "Attach to a running program",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/build/linux-gcc-debug/bin/Robotik-Simulator",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb",
+            "setupCommands": [
+                { "description": "Pretty printers of the STL", "text": "-enable-pretty-printing", "ignoreFailures": true }
+            ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "scenario",
+            "type": "promptString",
+            "description": "Scenario, experiment or workflow, from the root of the project",
+            "default": "build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/factory_transfer.scenario.yaml"
+        },
+        {
+            "id": "gtestFilter",
+            "type": "promptString",
+            "description": "Google Test filter, such as 'Plugin*' or 'ConveyorBelt.*'",
+            "default": "*"
         }
     ]
 }
