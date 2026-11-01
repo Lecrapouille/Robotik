@@ -15,12 +15,13 @@ $(eval $(call ROBOTIK_PLUGIN,robotik_dual_arm,DualArm))
 <?xml version="1.0"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
      Copyright (c) 2020-2026 Quentin Quadrat
-     Conveyor of the DualArm cell: a belt of two lanes split by a divider,
-     an end stop on the near side, an infeed table on the far side.
+     Frame of the conveyor of the DualArm cell: two lanes split by a
+     divider, an end stop on the near side, an infeed table on the far side.
+     The belts of the lanes are not here: they are conveyor belts of the
+     cell (fixed box bodies of the world file, x from 0.02 to 1.00).
      Base frame: origin on the floor at the middle of the end stop, x along
      the belt toward the infeed table, z up. The belt top is 0.10 m high. -->
 <robot name="conveyor">
-  <material name="belt"><color rgba="0.10 0.10 0.11 1"/></material>
   <material name="steel"><color rgba="0.55 0.57 0.60 1"/></material>
   <material name="aluminium"><color rgba="0.78 0.80 0.83 1"/></material>
   <material name="yellow"><color rgba="0.95 0.75 0.10 1"/></material>
@@ -32,17 +33,6 @@ $(eval $(call ROBOTIK_PLUGIN,robotik_dual_arm,DualArm))
       <mass value="40.0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
-    <visual>
-      <!-- belt -->
-      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
-      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
-      <material name="belt"/>
-    </visual>
-    <collision>
-      <!-- belt -->
-      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
-      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
-    </collision>
     <visual>
       <!-- infeed_table -->
       <origin xyz="1.0700 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
@@ -348,6 +338,42 @@ experiment:
   evaluation:
     metrics:
       - time
+# The factories with the rigid physics:
+#   ./build/Robotik-Headless build/plugins/DualArm/experiments/factory_rigid.experiment.yaml
+# The scenarios run at abstract (the belts move the parts and stop them at
+# their end). Here MuJoCo carries the parts of 50 g by friction, the stops at
+# the end of the belts hold them, and a part put on a belt lands on it for
+# real. Do not compare the times of the two levels.
+experiment:
+  id: factory_rigid_experiment
+  description: The factories with the rigid physics - the belts and their stops hold the parts.
+  seeds: [42]
+
+  cases:
+    - id: factory
+      scenario: scenarios/factory.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_gemma
+      scenario: scenarios/factory_gemma.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_belt
+      scenario: scenarios/factory_belt.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_transfer
+      scenario: scenarios/factory_transfer.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_reject
+      scenario: scenarios/factory_reject.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+
+  evaluation:
+    metrics:
+      - time
 plugin:
   id: robotik.dual_arm
   name: Dual arm
@@ -371,16 +397,20 @@ scenarios:
   entries:
     - { id: conveyor, name: Conveyor (parallel), file: conveyor.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_sequential, name: Conveyor (step by step), file: conveyor_sequential.scenario.yaml, menu: PDDL planner }
+    - { id: conveyor_pabt, name: Conveyor (PA-BT), file: conveyor_pabt.scenario.yaml, menu: PDDL planner }
     - { id: tray, name: Tray of glasses, file: tray.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_grafcet, name: Conveyor (GRAFCET), file: conveyor_grafcet.scenario.yaml, menu: GRAFCET }
     - { id: factory, name: Factory (flowshop), file: factory.scenario.yaml, menu: GRAFCET }
     - { id: factory_gemma, name: Factory with a GEMMA, file: factory_gemma.scenario.yaml, menu: GRAFCET }
     - { id: factory_belt, name: Factory fed by a belt, file: factory_belt.scenario.yaml, menu: GRAFCET }
+    - { id: factory_transfer, name: Factory with a transfer belt, file: factory_transfer.scenario.yaml, menu: GRAFCET }
+    - { id: factory_reject, name: Factory with an inspection, file: factory_reject.scenario.yaml, menu: GRAFCET }
 
 experiments:
   directory: experiments
   entries:
     - { id: factory_experiment, name: Factory cadence, file: factory.experiment.yaml }
+    - { id: factory_rigid_experiment, name: Factories with the rigid physics, file: factory_rigid.experiment.yaml }
 ; Two arms sort the parts a conveyor brings. The objects are the world
 ; entities with a kind (arm, part, feeder, zone, bin); the state is read on
 ; the shared beliefs by the observers of the mission (ConveyorMission.cpp).
@@ -686,7 +716,7 @@ workflow:
 # TimedPetriNetEditor). One parallel branch per arm (AND divergence after
 # Start); inside a branch, a second AND divergence lets the conveyor bring
 # the next part while the arm carries the last one to its bin, and an AND
-# convergence waits for both. The conveyor is a resource of the skills: when
+# convergence waits for both. The pusher is a resource of the skills: when
 # both branches ask for it, the skill scheduler makes one of them wait.
 # conveyor.workflow.yaml gives the cycle time of this cell.
 scenario:
@@ -715,6 +745,48 @@ scenario:
     # Both arms moved at the same time for a while.
     - dual_arm.overlap > 2
     - time < 20
+# The same cell as conveyor.scenario.yaml, with no search: the behavior tree
+# grows backwards from the goal (PA-BT). It reaches the goal conditions one
+# after the other, so one arm or the conveyor moves at a time, as in
+# conveyor_sequential.scenario.yaml.
+scenario:
+  id: conveyor_pabt
+  description: Sort the parts with a reactive tree grown from the goal, one step at a time.
+  world: worlds/conveyor_cell.world.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/conveyor.domain.pddl
+      method: pabt
+      facts:
+        - reaches(left, zone_left)
+        - reaches(right, zone_right)
+        - near(left, bin_left)
+        - near(right, bin_right)
+      goal:
+        - at(p1, bin_left)
+        - at(p2, bin_right)
+        - at(p3, bin_left)
+        - at(p4, bin_right)
+
+  # The parts are found by their true pose (no color detector in this
+  # plugin); the wrist cameras still render in the simulator.
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 120
+
+  assertions:
+    - controller.success
+    - inside(p1, bin_left)
+    - inside(p2, bin_right)
+    - inside(p3, bin_left)
+    - inside(p4, bin_right)
+    - { condition: "collision_count(left) == 0", phase: always }
+    - { condition: "collision_count(right) == 0", phase: always }
+    - planner.replans == 0
+    # Never two arms at once.
+    - dual_arm.overlap == 0
 # The same cell as conveyor.scenario.yaml, the plan run step by step: one
 # arm or the conveyor moves at a time. Compare the end time of both runs.
 scenario:
@@ -782,12 +854,12 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1a, output)
-    - inside(p2a, output)
-    - inside(p3a, output)
-    - inside(p1b, output)
-    - inside(p2b, output)
-    - inside(p3b, output)
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p2b, outfeed)
+    - on(p3b, outfeed)
     - { condition: "collision_count(M1) == 0", phase: always }
     - { condition: "collision_count(M2) == 0", phase: always }
     # The machines work at the same time for a while.
@@ -795,15 +867,16 @@ scenario:
     - time < 70
 # The factory as a flowshop: the processing times of simple.flowshop
 # (TimedPetriNetEditor data/examples), machining only (the moves of the arms
-# are not counted here). P1 P2 P3 visit M1 then M2.
+# are not counted here). P1 P2 P3 visit M1 then M2, then the outfeed belt.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory.workflow.yaml
 #
 # It also drives the cell (factory.scenario.yaml: grafcet: { workflow: ... }):
 # the GRAFCET is generated from the recipes of the arms, the station between
 # them and the parts of each lot. M1 takes a part from its stock, machines it
 # while holding it, and gives it to the place of its kind in the station; M2
-# takes it there, carries it over the output, machines it and drops it. One
-# arm at a time in the station (zone), M2 first.
+# takes it there, carries it over the entry of the outfeed belt, machines it
+# and puts it there; the belt runs 0.4 s (12 cm) to make room for the next
+# one. One arm at a time in the station (zone), M2 first.
 workflow:
   id: factory_line
   operators:
@@ -818,25 +891,33 @@ workflow:
               "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
               "M2.Over({to})" ]
       give: [ "M2.Release" ]
+    - id: outfeed                    # takes the finished parts away
+      entity: outfeed
   buffers:
-    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
-  output: output
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
   products:
     - id: P1
+      color: [0.9, 0.1, 0.1]
       parts: [p1a, p1b]
       route:
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P2
+      color: [0.1, 0.75, 0.2]
       parts: [p2a, p2b]
       route:
         - { name: machining, on: M1, duration: 3.0 }
         - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P3
+      color: [0.1, 0.3, 0.9]
       parts: [p3a, p3b]
       route:
         - { name: machining, on: M1, duration: 1.0 }
         - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
 # The factory fed by a conveyor belt (worlds/factory_belt_cell.world.yaml):
 # the GRAFCET generated from scenarios/factory_belt.workflow.yaml runs the
 # belt (skill feeder_belt.Run, a device of the cell) for each part, when the
@@ -857,19 +938,19 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1a, output)
-    - inside(p2a, output)
-    - inside(p3a, output)
-    - inside(p1b, output)
-    - inside(p2b, output)
-    - inside(p3b, output)
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p2b, outfeed)
+    - on(p3b, outfeed)
     - { condition: "collision_count(M1) == 0", phase: always }
     - { condition: "collision_count(M2) == 0", phase: always }
     - skill_succeeded(M1.Grasp(p3b))
     - time < 90
 # The factory of factory.workflow.yaml fed by a conveyor belt
 # (worlds/factory_belt_cell.world.yaml). The feeder is the first operator:
-# its operation runs the belt 0.55 s (a pitch of 10 cm at 0.2 m/s, a little
+# its operation runs the belt 0.52 s (a pitch of 10 cm at 0.2 m/s, a little
 # more: the stop at the end holds the part), when the pick place is free.
 # M1 takes the part there; then as in factory.workflow.yaml.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory_belt.workflow.yaml
@@ -889,35 +970,43 @@ workflow:
               "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
               "M2.Over({to})" ]
       give: [ "M2.Release" ]
+    - id: outfeed                    # takes the finished parts away
+      entity: outfeed
   buffers:
     - { id: pick, after: feeder, place: pick }   # the end of the belt, one part
-    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
-  output: output
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
   products:
     - id: P1
+      color: [0.9, 0.1, 0.1]
       parts: [p1a, p1b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P2
+      color: [0.1, 0.75, 0.2]
       parts: [p2a, p2b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 3.0 }
         - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P3
+      color: [0.1, 0.3, 0.9]
       parts: [p3a, p3b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 1.0 }
         - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
 # The factory of factory.scenario.yaml driven by the default GEMMA of
 # TimedPetriNetEditor: Safety (emergency stop), Control (A1 initial stop,
 # F1 normal production, A2 end of cycle, D1, A5, A6) and the Production
 # generated from the workflow. A part starts only in F1. The operator
 # pushes Start, then Stop at 20 s: the arms finish the parts they hold
-# (M1 puts p3a in the station, M2 drops p2a), Control goes A2 then back to
+# (M1 puts p3a in the station, M2 puts p2a on the outfeed), Control goes A2 then back to
 # A1 when both arms are between two parts. p3a waits in the station, lot b
 # stays in the stock: Start again goes on from there.
 scenario:
@@ -941,12 +1030,197 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1a, output)
-    - inside(p2a, output)
-    - on(p3a, slot3)
-    - inside(p1b, output) == 0
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, station_3)
+    - on(p1b, outfeed) == 0
     - { condition: "collision_count(M1) == 0", phase: always }
     - { condition: "collision_count(M2) == 0", phase: always }
+# The factory with an inspection (scenarios/factory_reject.workflow.yaml):
+# p2b is chipped (worlds/factory_reject_cell.world.yaml). M1 measures each
+# part after machining it and drops p2b in the scrap bin; M2 and the outfeed
+# skip it, the five good parts go out as in factory.scenario.yaml.
+scenario:
+  id: factory_reject
+  description: The factory with an inspection - M1 drops the chipped part in the scrap bin, the others skip it.
+  world: worlds/factory_reject_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory_reject.workflow.yaml   # ends at its End step
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 240
+
+  assertions:
+    - controller.success
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p3b, outfeed)
+    - inside(p2b, scrap)
+    - { condition: "on(p2b, outfeed) == 0", phase: always }
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }
+    - time < 70
+# factory.workflow.yaml with an inspection: after machining a part, M1
+# measures it; a defective part (defective({part}), read on the beliefs)
+# goes to the scrap bin instead of the station, and M2 and the outfeed skip
+# it. The colors of the products are the colors of their parts: the tokens
+# of the graphs (GRAFCET panel, event graph of the Workflow panel) have them.
+#   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/factory_reject.workflow.yaml
+workflow:
+  id: factory_reject_line
+  operators:
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+    - id: outfeed                    # takes the finished parts away
+      entity: outfeed
+  buffers:
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
+  products:
+    - id: P1
+      color: [0.9, 0.1, 0.1]          # the color of its parts in the graphs
+      parts: [p1a, p1b]
+      route:
+        - name: machining
+          on: M1
+          duration: 2.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P2
+      color: [0.1, 0.75, 0.2]
+      parts: [p2a, p2b]
+      route:
+        - name: machining
+          on: M1
+          duration: 3.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P3
+      color: [0.1, 0.3, 0.9]
+      parts: [p3a, p3b]
+      route:
+        - name: machining
+          on: M1
+          duration: 1.0
+          reject: { when: "defective({part})", to: scrap }   # M1 measures it
+        - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+# Two machines one metre apart, linked by a conveyor belt
+# (worlds/factory_transfer_cell.world.yaml): the GRAFCET generated from
+# scenarios/factory_transfer.workflow.yaml runs the feeder for each part, M1
+# machines it and puts it at the entry of the transfer belt, the belt
+# carries it to M2 (skill transfer_belt.Run), M2 machines it and puts it on
+# the outfeed belt. The belt replaces the station of factory: a cheap device
+# in place of a shared zone, the arms never meet. The stops hold the parts
+# at the end of the belts with every physics:
+# experiments/factory_rigid.experiment.yaml runs it also at rigid.
+scenario:
+  id: factory_transfer
+  description: Two machines linked by a transfer belt - the belt carries each part from M1 to M2.
+  world: worlds/factory_transfer_cell.world.yaml
+  seed: 42
+
+  controller:
+    grafcet:
+      workflow: scenarios/factory_transfer.workflow.yaml   # ends at its End step
+
+  perception: { fidelity: truth }   # the simulator gives the poses
+
+  timeout: 240
+
+  assertions:
+    - controller.success
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p2b, outfeed)
+    - on(p3b, outfeed)
+    - { condition: "collision_count(M1) == 0", phase: always }
+    - { condition: "collision_count(M2) == 0", phase: always }
+    - skill_succeeded(M1.Over(transfer))
+    - time < 90
+# The factory of factory_belt.workflow.yaml where a transfer belt carries
+# each part from M1 to M2 (worlds/factory_transfer_cell.world.yaml): the
+# belt is an operator between the two machines, with one place at its entry
+# (M1 puts the part there) and one at its end (M2 takes it there). It runs
+# 2 s per part (54 cm at 0.3 m/s, a little more: the stop holds the part),
+# when its end is free, and its entry is free again once the part is there.
+# M2 puts the machined part at the entry of the outfeed belt, the last
+# operator, which runs 0.4 s (12 cm) to make room for the next one. The
+# feeder runs 0.52 s for a pitch of 10 cm: a little more, the stop holds the
+# part, and the parts behind it do not catch up with it.
+#   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory_transfer.workflow.yaml
+workflow:
+  id: factory_transfer_line
+  operators:
+    - id: feeder
+      entity: feeder
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: transfer
+      entity: transfer
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+    - id: outfeed
+      entity: outfeed
+  buffers:
+    - { id: pick, after: feeder, place: pick }           # the end of the feeder
+    - { id: entry, after: M1, place: transfer }          # M1.Over(transfer): its entry
+    - { id: arrival, after: transfer, place: arrival }   # the end of the transfer belt
+    - { id: exit, after: M2, place: outfeed }            # M2.Over(outfeed): its entry
+  products:
+    - id: P1
+      color: [0.9, 0.1, 0.1]
+      parts: [p1a, p1b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P2
+      color: [0.1, 0.75, 0.2]
+      parts: [p2a, p2b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 3.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P3
+      color: [0.1, 0.3, 0.9]
+      parts: [p3a, p3b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 1.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
 # Path of the drill on the tray, in the frame of the tray: its centre,
 # x and y along its sides, z up; z = 0.006 is the top face. The glasses
 # stand at (+-0.09, +-0.10): the path draws a target between them. It
@@ -1183,6 +1457,15 @@ HoverSkill::HoverSkill(std::string p_object, robotik::Length p_clearance)
 {
 }
 
+HoverSkill::HoverSkill(robotik::Vector3 p_surface,
+                       std::string p_name,
+                       robotik::Length p_clearance)
+    : m_object(std::move(p_name)),
+      m_surface(p_surface),
+      m_clearance(p_clearance)
+{
+}
+
 void HoverSkill::reset()
 {
     m_planned = false;
@@ -1194,19 +1477,34 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     if (!m_planned)
     {
-        // Believed pose (perception or oracle), never the ground truth.
-        robotik::WorldObject const* object =
-            p_context.world_model.find(m_object);
         robotik::VacuumGripper const* cup = cupOf(p_context.robot);
-        if (object == nullptr || cup == nullptr)
+        robotik::Vector3 at;
+        double top = 0.0;
+        if (m_surface)
         {
-            m_why = object == nullptr ? m_object + " is not in the beliefs"
-                                      : "no vacuum cup";
+            at = p_context.robot.base().pose.inverse() * *m_surface;
+            top = at.z;
+        }
+        else
+        {
+            // Believed pose (perception or oracle), never the ground truth.
+            robotik::WorldObject const* object =
+                p_context.world_model.find(m_object);
+            if (object == nullptr)
+            {
+                m_why = m_object + " is not in the beliefs";
+                return Status::FAILURE;
+            }
+            at = inBase(p_context, object->position);
+            top = inBase(p_context,
+                         robotik::Vector3(0.0, 0.0, robotik::top(*object)))
+                      .z;
+        }
+        if (cup == nullptr)
+        {
+            m_why = "no vacuum cup";
             return Status::FAILURE;
         }
-        robotik::Vector3 const at = inBase(p_context, object->position);
-        double const top =
-            inBase(p_context, robotik::Vector3(0.0, 0.0, robotik::top(*object))).z;
         double const height = top + m_clearance.value() + cup->length().value();
         robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);
@@ -1305,6 +1603,7 @@ Status ReleaseSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_d
 
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
+#include <optional>
 #include <string>
 
 namespace robotik
@@ -1343,13 +1642,19 @@ teammate(robotik::RobotContext const& p_context, std::string_view p_id);
 
 // ****************************************************************************
 /// Brings the cup @p_clearance above the top of an object (a part,
-/// or the walls of a bin), pointing down.
+/// or the walls of a bin), pointing down. Or above a point of the layout of
+/// the cell (the entry of a belt: fixed furniture, known from the world file).
 // ****************************************************************************
 class HoverSkill final: public robotik::Skill
 {
 public:
 
     HoverSkill(std::string p_object, robotik::Length p_clearance);
+    /// @param p_surface Point of a fixed surface, world frame.
+    /// @param p_name What it is, for the messages.
+    HoverSkill(robotik::Vector3 p_surface,
+               std::string p_name,
+               robotik::Length p_clearance);
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
@@ -1364,6 +1669,7 @@ public:
 private:
 
     std::string m_object;
+    std::optional<robotik::Vector3> m_surface;
     robotik::Length m_clearance;
     robotik::MoveTCPSkill m_move;
     bool m_planned = false;
@@ -1443,265 +1749,20 @@ private:
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Conveyor.hpp"
-
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
-
-#include "Compages/World/World.hpp"
-
-#include <cmath>
-
-namespace dual_arm
-{
-
-/// Belt speed (m/s).
-static constexpr double SPEED = 0.40;
-/// The part crosses to its lane this far in front of the feeder, where the
-/// belt has no divider (m).
-static constexpr double TRANSFER = 0.11;
-
-void Conveyor::carry(std::string p_part, std::vector<robotik::Vector3> p_path)
-{
-    m_part = std::move(p_part);
-    m_path = std::move(p_path);
-    m_delivered.clear();
-    m_running = !m_path.empty();
-}
-
-void Conveyor::stop()
-{
-    m_running = false;
-}
-
-void Conveyor::reset()
-{
-    m_part.clear();
-    m_delivered.clear();
-    m_path.clear();
-    m_running = false;
-}
-
-void Conveyor::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
-{
-    if (!m_running || !p_cell.robot().resources().available(RESOURCE))
-    {
-        return;
-    }
-    compages::world::Entity part = p_cell.entity(m_part);
-    if (!part)
-    {
-        m_running = false;
-        return;
-    }
-    // Child of the Z-up frame of the world: its local position is the world
-    // one. The belt keeps its speed through the corners of the path.
-    auto at = part.position();
-    double travel = SPEED * p_dt.value();
-    while (travel > 0.0 && !m_path.empty())
-    {
-        robotik::Vector3 const& goal = m_path.front();
-        double const dx = goal.x - static_cast<double>(at.x);
-        double const dy = goal.y - static_cast<double>(at.y);
-        double const left = std::hypot(dx, dy);
-        if (left <= travel)
-        {
-            at.x = static_cast<float>(goal.x);
-            at.y = static_cast<float>(goal.y);
-            travel -= left;
-            m_path.erase(m_path.begin());
-        }
-        else
-        {
-            at.x += static_cast<float>(travel * dx / left);
-            at.y += static_cast<float>(travel * dy / left);
-            travel = 0.0;
-        }
-    }
-    part.position(at);
-    if (m_path.empty())
-    {
-        m_delivered = m_part;
-        m_running = false;
-    }
-}
-
-// ----------------------------------------------------------------------------
-ConveySkill::ConveySkill(Conveyor& p_conveyor,
-                         std::string p_part,
-                         std::string p_feeder,
-                         std::string p_zone)
-    : m_conveyor(p_conveyor),
-      m_part(std::move(p_part)),
-      m_feeder(std::move(p_feeder)),
-      m_zone(std::move(p_zone))
-{
-}
-
-robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
-                                  robotik::Seconds /*p_dt*/)
-{
-    if (!m_started)
-    {
-        // The belt runs in the world frame, as the shared beliefs.
-        robotik::WorldModel const& beliefs = p_context.world_model;
-        robotik::WorldObject const* part = beliefs.find(m_part);
-        robotik::WorldObject const* feeder = beliefs.find(m_feeder);
-        robotik::WorldObject const* zone = beliefs.find(m_zone);
-        if (part == nullptr || feeder == nullptr || zone == nullptr)
-        {
-            m_why = (part == nullptr     ? m_part
-                     : feeder == nullptr ? m_feeder
-                                         : m_zone) +
-                    " is not in the beliefs";
-            return robotik::Status::FAILURE;
-        }
-        // Off the feeder, across to the lane of the zone, down the lane.
-        double const transfer =
-            feeder->position.x - 0.5 * feeder->size.x - TRANSFER;
-        m_conveyor.carry(
-            m_part,
-            { robotik::Vector3(transfer, part->position.y, 0.0),
-              robotik::Vector3(transfer, zone->position.y, 0.0),
-              robotik::Vector3(zone->position.x, zone->position.y, 0.0) });
-        m_started = true;
-    }
-    return m_conveyor.delivered() == m_part ? robotik::Status::SUCCESS
-                                            : robotik::Status::RUNNING;
-}
-
-void ConveySkill::cancel(robotik::RobotContext& /*p_context*/)
-{
-    m_conveyor.stop();
-}
-
-} // namespace dual_arm
-// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
-// Copyright (c) 2020-2026 Quentin Quadrat
-//
-// This file is part of RobotIK. It is available under the GNU GPL v3 or,
-// for users who cannot use the GPL, under a commercial license.
-// See LICENSING.md for details.
-
-/// @file Conveyor.hpp
-/// The conveyor of the cell: the skill commands it, the mission moves
-/// the part it carries (abstract physics: the part rides at the belt speed).
-#pragma once
-
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/Skills/Skill.hpp"
-
-#include <string>
-#include <vector>
-
-namespace robotik
-{
-class Cell;
-}
-
-namespace dual_arm
-{
-
-// ****************************************************************************
-/// The belt: carries one part at a time along a path of the world
-/// (off the infeed table, across to a lane, down the lane).
-// ****************************************************************************
-class Conveyor
-{
-public:
-
-    /// Resource of the belt: the skill holds it alone, a fault stops it.
-    static constexpr char const* RESOURCE = "conveyor";
-
-    /// Starts carrying @p_part through @p_path (world frame, x and y).
-    void carry(std::string p_part, std::vector<robotik::Vector3> p_path);
-
-    /// Stops the belt where it is.
-    void stop();
-
-    /// Forgets the last delivery (new episode).
-    void reset();
-
-    /// Part brought to its goal by the last @ref carry, or empty.
-    [[nodiscard]] std::string const& delivered() const
-    {
-        return m_delivered;
-    }
-
-    // -------------------------------------------------------------------------
-    /// Moves the carried part by @p_dt, unless the resource failed.
-    // -------------------------------------------------------------------------
-    void step(robotik::Cell& p_cell, robotik::Seconds p_dt);
-
-private:
-
-    std::string m_part;
-    std::string m_delivered;
-    /// Points left to reach, the next one first.
-    std::vector<robotik::Vector3> m_path;
-    bool m_running = false;
-};
-
-// ****************************************************************************
-/// Convey(part, feeder, zone): the belt pushes the part off the
-/// feeder, across to the lane of the zone, and down the lane to the believed
-/// centre of the zone.
-// ****************************************************************************
-class ConveySkill final: public robotik::Skill
-{
-public:
-
-    ConveySkill(Conveyor& p_conveyor,
-                std::string p_part,
-                std::string p_feeder,
-                std::string p_zone);
-
-    void reset() override
-    {
-        m_started = false;
-        m_why.clear();
-    }
-
-    robotik::Status tick(robotik::RobotContext& p_context,
-                         robotik::Seconds p_dt) override;
-    void cancel(robotik::RobotContext& p_context) override;
-
-    [[nodiscard]] std::string why() const override
-    {
-        return m_why;
-    }
-
-private:
-
-    Conveyor& m_conveyor;
-    std::string m_part;
-    std::string m_feeder;
-    std::string m_zone;
-    bool m_started = false;
-    std::string m_why;
-};
-
-} // namespace dual_arm
-// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
-// Copyright (c) 2020-2026 Quentin Quadrat
-//
-// This file is part of RobotIK. It is available under the GNU GPL v3 or,
-// for users who cannot use the GPL, under a commercial license.
-// See LICENSING.md for details.
-
 #include "ConveyorMission.hpp"
 
 #include "ArmSkills.hpp"
 
+#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/CellDevices.hpp"
+#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace dual_arm
 {
@@ -1716,6 +1777,12 @@ static constexpr double OVER_BIN = 0.12;
 /// Height of a part (m): an arm waits over its pick zone at the height it
 /// takes the next part from, HOVER above its top.
 static constexpr double PART_HEIGHT = 0.04;
+/// Largest error on the height of a good part (m).
+static constexpr double DEFECT = 0.002;
+/// Room between the bottom of a part and a belt when an arm puts it there
+/// (m), and between the part and the upstream end of the belt.
+static constexpr double OVER_BELT = 0.01;
+static constexpr double BELT_MARGIN = 0.04;
 static constexpr int PRIORITY = 100;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
@@ -1730,6 +1797,16 @@ describe(std::string p_name,
     description.resources = std::move(p_resources);
     description.priority = PRIORITY;
     return description;
+}
+
+/// True when @p_point lies over the footprint of the box body @p_body.
+static bool above(robotik::Vector3 const& p_point,
+                  robotik::EntitySpec const& p_body)
+{
+    robotik::Vector3 const local = p_body.pose.inverse() * p_point;
+    robotik::Vector3 const& size = p_body.shape->size;
+    return std::abs(local.x) <= 0.5 * size.x &&
+           std::abs(local.y) <= 0.5 * size.y && local.z >= 0.0;
 }
 
 void ConveyorMission::setup(robotik::Cell& p_cell,
@@ -1754,28 +1831,77 @@ void ConveyorMission::setup(robotik::Cell& p_cell,
         {
             m_bins.push_back(entity.id);
         }
+        // A belt is fixed furniture: its entry comes from the layout.
+        for (robotik::ActuatorSpec const& actuator : entity.actuators)
+        {
+            if (actuator.type != robotik::ActuatorSpec::Type::Conveyor ||
+                !entity.shape)
+            {
+                continue;
+            }
+            robotik::Vector3 const& size = entity.shape->size;
+            double const length =
+                std::hypot(actuator.direction.x, actuator.direction.y);
+            double const dx = actuator.direction.x / length;
+            double const dy = actuator.direction.y / length;
+            double const half =
+                0.5 * (std::abs(dx) * size.x + std::abs(dy) * size.y);
+            double const back = half - BELT_MARGIN;
+            m_belt_entries.emplace_back(
+                entity.id,
+                entity.pose *
+                    robotik::Vector3(-dx * back, -dy * back, 0.5 * size.z));
+        }
     }
 
-    // The belt is a resource of the cell, next to the arms and the cups.
+    // The pusher is a resource of the cell, next to the arms, the cups and
+    // the belts of the lanes.
     robotik::ResourceManager& resources = p_cell.robot().resources();
-    std::vector<robotik::ResourceRequirement> const belt = {
-        { resources.add(Conveyor::RESOURCE), robotik::Access::Exclusive }
+    robotik::ResourceRequirement const pusher = {
+        resources.add(Pusher::RESOURCE), robotik::Access::Exclusive
     };
-    for (std::string const& part : m_parts)
+    for (std::string const& zone : m_zones)
     {
-        for (std::string const& feeder : m_feeders)
+        // The lane of a zone: the belt under it, in the layout.
+        robotik::EntitySpec const* place =
+            robotik::findEntity(p_cell.description().world, zone);
+        robotik::ConveyorBelt* lane = nullptr;
+        for (robotik::EntitySpec const& entity :
+             p_cell.description().world.entities)
         {
-            for (std::string const& zone : m_zones)
+            for (robotik::ActuatorSpec const& actuator : entity.actuators)
             {
-                p_cell.skills().add<ConveySkill>(
-                    describe("Convey(" + part + ", " + feeder + ", " + zone +
-                                 ")",
-                             {},
-                             belt),
-                    m_conveyor,
-                    part,
-                    feeder,
-                    zone);
+                if (actuator.type == robotik::ActuatorSpec::Type::Conveyor &&
+                    entity.shape && place != nullptr &&
+                    above(place->pose.position, entity))
+                {
+                    lane = p_cell.devices().find<robotik::ConveyorBelt>(
+                        actuator.name);
+                }
+            }
+        }
+        if (lane == nullptr)
+        {
+            throw std::runtime_error("zone '" + zone +
+                                     "' is on no conveyor belt");
+        }
+        std::vector<robotik::ResourceRequirement> const needs = {
+            pusher, resources.require(lane->name())
+        };
+        for (std::string const& part : m_parts)
+        {
+            for (std::string const& feeder : m_feeders)
+            {
+                p_cell.skills().add<ConveySkill>(describe("Convey(" + part +
+                                                              ", " + feeder +
+                                                              ", " + zone + ")",
+                                                          {},
+                                                          needs),
+                                                 m_pusher,
+                                                 *lane,
+                                                 part,
+                                                 feeder,
+                                                 zone);
             }
         }
     }
@@ -1826,6 +1952,14 @@ void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
         skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm),
                                bin,
                                robotik::Length(OVER_BIN));
+    }
+    // Over the entry of a belt, the part held just above it.
+    for (auto const& [belt, entry] : m_belt_entries)
+    {
+        skills.add<HoverSkill>(describe(scope + "Over(" + belt + ")", id, arm),
+                               entry,
+                               belt + " entry",
+                               robotik::Length(PART_HEIGHT + OVER_BELT));
     }
     // Back over a pick zone, where the next part arrives.
     for (std::string const& zone : m_zones)
@@ -1928,6 +2062,25 @@ void ConveyorMission::addPlanning(robotik::Cell& p_cell)
                        return Truth::True;
                    });
 
+    // An inspection of the GRAFCET (reject: in a workflow): a part whose
+    // measured height is off by more than DEFECT is defective (a chipped
+    // part). The planner domains do not name it.
+    if (!p_cell.description().controller.planner)
+    {
+        domain.observe("defective",
+                       [](RobotContext const& p_context, Args p_args)
+                       {
+                           robotik::WorldObject const* part =
+                               p_context.world_model.find(p_args[0]);
+                           if (part == nullptr || !robotik::observed(*part))
+                           {
+                               return Truth::Unknown;
+                           }
+                           return robotik::truth(
+                               std::abs(part->size.z - PART_HEIGHT) > DEFECT);
+                       });
+    }
+
     // --- Actions, as skills of each robot ----------------------------------
     domain.bind("convey", { "Convey({0}, {1}, {2})" });
     domain.bind("pick",
@@ -1941,13 +2094,13 @@ void ConveyorMission::addPlanning(robotik::Cell& p_cell)
 void ConveyorMission::reset(robotik::Cell& /*p_cell*/,
                             robotik::Seed /*p_seed*/)
 {
-    m_conveyor.reset();
+    m_pusher.reset();
     m_overlap = 0.0;
 }
 
 void ConveyorMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
-    m_conveyor.step(p_cell, p_dt);
+    m_pusher.step(p_cell, p_dt);
 
     // Both arms busy: a skill of each robot is running.
     robotik::SkillScheduler const& skills = p_cell.skills();
@@ -1984,15 +2137,16 @@ void ConveyorMission::measure(robotik::Cell const& /*p_cell*/,
 
 /// @file ConveyorMission.hpp
 /// Two arms and a conveyor: the skills of each robot, the observers
-/// and bindings of the PDDL domain, and the belt.
+/// and bindings of the PDDL domain, and the pusher of the sorter.
 #pragma once
 
-#include "Conveyor.hpp"
+#include "Pusher.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/Mission.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace dual_arm
@@ -2022,12 +2176,15 @@ private:
 
 private:
 
-    Conveyor m_conveyor;
+    Pusher m_pusher;
     /// World entities of each kind (ids).
     std::vector<std::string> m_parts;
     std::vector<std::string> m_feeders;
     std::vector<std::string> m_zones;
     std::vector<std::string> m_bins;
+    /// Entry of each conveyor belt of the cell (box body), where an arm puts
+    /// a part: belt entity, point of its top face (world frame).
+    std::vector<std::pair<std::string, robotik::Vector3>> m_belt_entries;
     double m_overlap = 0.0;
 };
 
@@ -2065,8 +2222,10 @@ public:
                               std::string_view p_scenario) override
     {
         if (p_scenario == "conveyor" || p_scenario == "conveyor_sequential" ||
-            p_scenario == "conveyor_grafcet" || p_scenario == "factory" ||
-            p_scenario == "factory_gemma" || p_scenario == "factory_belt")
+            p_scenario == "conveyor_pabt" || p_scenario == "conveyor_grafcet" ||
+            p_scenario == "factory" || p_scenario == "factory_gemma" ||
+            p_scenario == "factory_belt" || p_scenario == "factory_transfer" ||
+            p_scenario == "factory_reject")
         {
             m_mission = std::make_unique<dual_arm::ConveyorMission>();
             p_host.bindMission(*m_mission);
@@ -2094,6 +2253,280 @@ private:
 };
 
 ROBOTIK_EXPORT_PLUGIN(DualArmPlugin)
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+#include "Pusher.hpp"
+
+#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/CellDevices.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/RobotContext.hpp"
+
+#include "Compages/World/World.hpp"
+
+#include <cmath>
+
+namespace dual_arm
+{
+
+/// Pusher speed (m/s).
+static constexpr double SPEED = 0.40;
+/// The part crosses to its lane this far in front of the feeder, where the
+/// conveyor has no divider (m).
+static constexpr double TRANSFER = 0.11;
+
+void Pusher::carry(std::string p_part, std::vector<robotik::Vector3> p_path)
+{
+    m_part = std::move(p_part);
+    m_path = std::move(p_path);
+    m_pushed.clear();
+    m_running = !m_path.empty();
+}
+
+void Pusher::stop()
+{
+    m_running = false;
+}
+
+void Pusher::reset()
+{
+    m_part.clear();
+    m_pushed.clear();
+    m_path.clear();
+    m_running = false;
+}
+
+void Pusher::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
+{
+    if (!m_running || !p_cell.robot().resources().available(RESOURCE))
+    {
+        return;
+    }
+    compages::world::Entity part = p_cell.entity(m_part);
+    if (!part)
+    {
+        m_running = false;
+        return;
+    }
+    // Child of the Z-up frame of the world: its local position is the world
+    // one. The pusher keeps its speed through the corners of the path.
+    auto at = part.position();
+    double travel = SPEED * p_dt.value();
+    while (travel > 0.0 && !m_path.empty())
+    {
+        robotik::Vector3 const& goal = m_path.front();
+        double const dx = goal.x - static_cast<double>(at.x);
+        double const dy = goal.y - static_cast<double>(at.y);
+        double const left = std::hypot(dx, dy);
+        if (left <= travel)
+        {
+            at.x = static_cast<float>(goal.x);
+            at.y = static_cast<float>(goal.y);
+            travel -= left;
+            m_path.erase(m_path.begin());
+        }
+        else
+        {
+            at.x += static_cast<float>(travel * dx / left);
+            at.y += static_cast<float>(travel * dy / left);
+            travel = 0.0;
+        }
+    }
+    part.position(at);
+    if (m_path.empty())
+    {
+        m_pushed = m_part;
+        m_running = false;
+    }
+}
+
+// ----------------------------------------------------------------------------
+ConveySkill::ConveySkill(Pusher& p_pusher,
+                         robotik::ConveyorBelt& p_lane,
+                         std::string p_part,
+                         std::string p_feeder,
+                         std::string p_zone)
+    : m_pusher(p_pusher),
+      m_lane(p_lane),
+      m_part(std::move(p_part)),
+      m_feeder(std::move(p_feeder)),
+      m_zone(std::move(p_zone))
+{
+}
+
+robotik::Status ConveySkill::tick(robotik::RobotContext& p_context,
+                                  robotik::Seconds /*p_dt*/)
+{
+    // The conveyor runs in the world frame, as the shared beliefs.
+    robotik::WorldModel const& beliefs = p_context.world_model;
+    robotik::WorldObject const* part = beliefs.find(m_part);
+    robotik::WorldObject const* feeder = beliefs.find(m_feeder);
+    robotik::WorldObject const* zone = beliefs.find(m_zone);
+    if (part == nullptr || feeder == nullptr || zone == nullptr)
+    {
+        m_why = (part == nullptr     ? m_part
+                 : feeder == nullptr ? m_feeder
+                                     : m_zone) +
+                " is not in the beliefs";
+        return robotik::Status::FAILURE;
+    }
+    if (!m_started)
+    {
+        // Off the feeder, across to the lane of the zone.
+        double const transfer =
+            feeder->position.x - 0.5 * feeder->size.x - TRANSFER;
+        m_pusher.carry(m_part,
+                       { robotik::Vector3(transfer, part->position.y, 0.0),
+                         robotik::Vector3(transfer, zone->position.y, 0.0) });
+        m_started = true;
+    }
+    if (m_pusher.pushed() != m_part)
+    {
+        return robotik::Status::RUNNING;
+    }
+    // On its lane: the belt carries it to the end stop, on the zone.
+    m_lane.run(true);
+    bool const on_zone =
+        std::abs(part->position.x - zone->position.x) < 0.5 * zone->size.x &&
+        std::abs(part->position.y - zone->position.y) < 0.5 * zone->size.y;
+    bool const still = m_last && robotik::norm(part->position - *m_last) < 1e-6;
+    m_last = part->position;
+    if (on_zone && still)
+    {
+        m_lane.run(false);
+        return robotik::Status::SUCCESS;
+    }
+    return robotik::Status::RUNNING;
+}
+
+void ConveySkill::cancel(robotik::RobotContext& /*p_context*/)
+{
+    m_pusher.stop();
+    m_lane.run(false);
+}
+
+} // namespace dual_arm
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+/// @file Pusher.hpp
+/// The sorter of the conveyor cell: a pusher takes one part off the infeed
+/// table and across to the lane of its pick zone; the lane is a conveyor
+/// belt of the cell (a core device) that carries it to the end stop. Only
+/// the pusher moves the part itself (abstract physics: the part slides at
+/// its speed).
+#pragma once
+
+#include "Robotik/Common/Math.hpp"
+#include "Robotik/Task/Skills/Skill.hpp"
+
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace robotik
+{
+class Cell;
+class ConveyorBelt;
+} // namespace robotik
+
+namespace dual_arm
+{
+
+// ****************************************************************************
+/// The pusher: moves one part at a time along a path of the world (off the
+/// infeed table, across to a lane).
+// ****************************************************************************
+class Pusher
+{
+public:
+
+    /// Resource of the pusher: the skill holds it alone, a fault stops it.
+    static constexpr char const* RESOURCE = "pusher";
+
+    /// Starts pushing @p_part through @p_path (world frame, x and y).
+    void carry(std::string p_part, std::vector<robotik::Vector3> p_path);
+
+    /// Stops the pusher where it is.
+    void stop();
+
+    /// Forgets the last push (new episode).
+    void reset();
+
+    /// Part brought to the end of its path by the last @ref carry, or empty.
+    [[nodiscard]] std::string const& pushed() const
+    {
+        return m_pushed;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Moves the pushed part by @p_dt, unless the resource failed.
+    // -------------------------------------------------------------------------
+    void step(robotik::Cell& p_cell, robotik::Seconds p_dt);
+
+private:
+
+    std::string m_part;
+    std::string m_pushed;
+    /// Points left to reach, the next one first.
+    std::vector<robotik::Vector3> m_path;
+    bool m_running = false;
+};
+
+// ****************************************************************************
+/// Convey(part, feeder, zone): the pusher takes the part off the feeder and
+/// across to the lane of the zone; the belt of the lane carries it to the end
+/// stop, on the zone. Done when the believed part rests on the zone.
+// ****************************************************************************
+class ConveySkill final: public robotik::Skill
+{
+public:
+
+    ConveySkill(Pusher& p_pusher,
+                robotik::ConveyorBelt& p_lane,
+                std::string p_part,
+                std::string p_feeder,
+                std::string p_zone);
+
+    void reset() override
+    {
+        m_started = false;
+        m_last.reset();
+        m_why.clear();
+    }
+
+    robotik::Status tick(robotik::RobotContext& p_context,
+                         robotik::Seconds p_dt) override;
+    void cancel(robotik::RobotContext& p_context) override;
+
+    [[nodiscard]] std::string why() const override
+    {
+        return m_why;
+    }
+
+private:
+
+    Pusher& m_pusher;
+    robotik::ConveyorBelt& m_lane;
+    std::string m_part;
+    std::string m_feeder;
+    std::string m_zone;
+    bool m_started = false;
+    /// Believed position of the part at the last tick, once on its lane.
+    std::optional<robotik::Vector3> m_last;
+    std::string m_why;
+};
+
+} // namespace dual_arm
 // SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
 // Copyright (c) 2020-2026 Quentin Quadrat
 //
@@ -2967,14 +3400,15 @@ private:
 } // namespace dual_arm
 # Two 6-axis arms side by side, each with a vacuum cup and a wrist camera.
 # A conveyor of two lanes runs between them. The parts wait on its infeed
-# table, far in front of both arms; the belt pushes one onto a lane and
+# table, far in front of both arms; a pusher (the skill Convey) takes one
+# onto a lane, and the belt of the lane, a conveyor belt of the cell,
 # carries it to the end stop, on the pick zone of that lane. Each arm drops
 # its parts in its own bin. Z-up, metres, radians. Seen from above:
 #
 #     bin_left (0.05, -0.75)                          bin_right (0.05, 0.75)
 #   left (0, -0.35)                                          right (0, 0.35)
-#        end stop (0.30)  zone_left (0.40, -0.13)  ... lane ...  infeed (1.37): p1 p2 p3 p4
-#                         zone_right (0.40, 0.13)  ... lane ...
+#        end stop (0.32)  zone_left (0.38, -0.13)  ... lane_left ...  infeed (1.37): p1 p2 p3 p4
+#                         zone_right (0.38, 0.13)  ... lane_right ...
 world:
   id: conveyor_cell
 
@@ -3026,13 +3460,28 @@ world:
       actuators:
         right_gripper: { type: vacuum }
 
-    # The conveyor: a fixed body, its belt top 0.10 m high. The belt runs
-    # from x = 0.30 (end stop) to x = 1.30, then the infeed table to 1.44.
+    # The conveyor: a fixed body (frame, divider, end stop, infeed table),
+    # its belts 0.10 m high. The lanes run from x = 1.30 to the end stop
+    # (x = 0.32), the infeed table from 1.30 to 1.44.
     - id: conveyor
       type: body
       model: robotik.dual_arm.conveyor
       physics: fixed
       pose: { position: [0.30, 0.0, 0.0] }
+    - id: lane_left
+      type: conveyor
+      size: [0.98, 0.25, 0.01]
+      color: [0.10, 0.10, 0.11]
+      pose: { position: [0.81, -0.125, 0.095] }
+      speed: 0.4
+      direction: [-1, 0, 0]
+    - id: lane_right
+      type: conveyor
+      size: [0.98, 0.25, 0.01]
+      color: [0.10, 0.10, 0.11]
+      pose: { position: [0.81, 0.125, 0.095] }
+      speed: 0.4
+      direction: [-1, 0, 0]
 
     # Places on the belt: flat frames, their floor 1 mm above the belt (not
     # at the same height: the two surfaces would flicker).
@@ -3047,13 +3496,13 @@ world:
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
       color: [0.95, 0.75, 0.10]
-      pose: { position: [0.40, -0.13, 0.101] }
+      pose: { position: [0.38, -0.13, 0.101] }
     - id: zone_right
       type: prop
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
       color: [0.95, 0.75, 0.10]
-      pose: { position: [0.40, 0.13, 0.101] }
+      pose: { position: [0.38, 0.13, 0.101] }
 
     # Parts waiting on the infeed table, out of reach of both arms, red and
     # blue mixed: the belt sends each one to the lane of its arm.
@@ -3097,9 +3546,10 @@ world:
 # The small factory of factory_cell.world.yaml, fed by a conveyor belt: the
 # six parts wait on the feeder in the order M1 takes them, one pitch (10 cm)
 # apart. Each run of the belt brings the next part to the pick place, at the
-# end of the belt, where a stop holds it (no physics: abstract fidelity).
+# end of the belt, where a stop holds it (stop: true, with every physics).
 # Then as in factory_cell: M1 machines the part while holding it and puts it
-# on the station of its kind; M2 takes it, machines it and drops it.
+# on the station of its kind; M2 takes it, machines it and puts it on the
+# outfeed belt. The parts weigh 50 g (rigid physics).
 # Machining times (s), as in simple.flowshop:  P1  P2  P3
 #                                          M1   2   3   1
 #                                          M2   1   2   1.5
@@ -3138,37 +3588,51 @@ world:
         M2_gripper: { type: vacuum }
 
     # The feeder: a belt of 70 cm along x, 4 cm high; the parts go to -x and
-    # stop at its end (x = 0.20), the pick place of M1.
+    # stop at its end (x = 0.20), the pick place of M1, against the stop
+    # feeder_stop added there.
     - id: feeder
-      type: body
-      physics: fixed
-      shape: { type: box, size: [0.70, 0.10, 0.04] }
-      color: [0.25, 0.25, 0.28]
+      type: conveyor
+      size: [0.70, 0.10, 0.04]
       pose: { position: [0.55, -0.55, 0.02] }
-      actuators:
-        feeder_belt: { type: conveyor, speed: 0.2, direction: [-1, 0, 0] }
+      speed: 0.2
+      direction: [-1, 0, 0]
+      stop: true
 
     # The parts on the feeder, in the order M1 takes them.
-    - { id: p1a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
-    - { id: p2a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
-    - { id: p3a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
-    - { id: p1b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
-    - { id: p2b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
-    - { id: p3b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
+    - { id: p1a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
+    - { id: p2a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
+    - { id: p3a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
+    - { id: p1b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
+    - { id: p2b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
+    - { id: p3b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
 
-    # Stations between the two machines, one per kind of part.
-    - { id: slot1, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.9, 0.6, 0.6], pose: { position: [0.25, 0.0, 0.005] } }
-    - { id: slot2, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.9, 0.6], pose: { position: [0.36, 0.0, 0.005] } }
-    - { id: slot3, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.6, 0.9], pose: { position: [0.47, 0.0, 0.005] } }
+    # The station between the two machines: one place per kind of part,
+    # station_1 .. station_3 along x, 11 cm apart.
+    - id: station
+      type: buffer
+      kind: bin
+      places: 3
+      size: [0.10, 0.10, 0.01]
+      pitch: 0.11
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
 
-    # Output of M2.
-    - { id: output, type: prop, kind: bin, shape: { type: container, size: [0.20, 0.20, 0.08] }, color: [0.8, 0.8, 0.8], pose: { position: [0.18, 0.55, 0.04] } }
+    # The outfeed of M2: 60 cm along x (entry at x = 0.09); each part goes
+    # one pitch (12 cm) away, the first ones wait against outfeed_stop.
+    - id: outfeed
+      type: conveyor
+      size: [0.60, 0.10, 0.04]
+      pose: { position: [0.35, 0.55, 0.02] }
+      speed: 0.3
+      direction: [1, 0, 0]
+      stop: true
 # A small factory: the flowshop of TimedPetriNetEditor
 # (data/examples/simple.flowshop) with robots. Two arms are the machines M1
 # and M2; three kinds of parts P1 (red), P2 (green), P3 (blue) come in two
 # lots. M1 takes a part from its stock, machines it while holding it, and
-# puts it on the station of its kind (slot1..3, between the arms); M2 takes
-# it there, carries it over the output bin, machines it, and drops it.
+# puts it on the station of its kind (station_1..3, between the arms); M2 takes
+# it there, carries it over the outfeed belt, machines it, and puts it on
+# the belt, which takes it away. The parts weigh 50 g (rigid physics).
 # Machining times (s), as in simple.flowshop:  P1  P2  P3
 #                                          M1   2   3   1
 #                                          M2   1   2   1.5
@@ -3207,20 +3671,189 @@ world:
         M2_gripper: { type: vacuum }
 
     # Stock of M1: lot a in front, lot b behind.
-    - { id: p1a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.50, 0.02] } }
-    - { id: p2a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.50, 0.02] } }
-    - { id: p3a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.50, 0.02] } }
-    - { id: p1b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.60, 0.02] } }
-    - { id: p2b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.60, 0.02] } }
-    - { id: p3b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.60, 0.02] } }
+    - { id: p1a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.50, 0.02] } }
+    - { id: p2a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.50, 0.02] } }
+    - { id: p3a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.50, 0.02] } }
+    - { id: p1b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.60, 0.02] } }
+    - { id: p2b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.60, 0.02] } }
+    - { id: p3b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.60, 0.02] } }
 
-    # Stations between the two machines, one per kind of part.
-    - { id: slot1, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.9, 0.6, 0.6], pose: { position: [0.25, 0.0, 0.005] } }
-    - { id: slot2, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.9, 0.6], pose: { position: [0.36, 0.0, 0.005] } }
-    - { id: slot3, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.6, 0.9], pose: { position: [0.47, 0.0, 0.005] } }
+    # The station between the two machines: one place per kind of part,
+    # station_1 .. station_3 along x, 11 cm apart.
+    - id: station
+      type: buffer
+      kind: bin
+      places: 3
+      size: [0.10, 0.10, 0.01]
+      pitch: 0.11
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
 
-    # Output of M2.
-    - { id: output, type: prop, kind: bin, shape: { type: container, size: [0.20, 0.20, 0.08] }, color: [0.8, 0.8, 0.8], pose: { position: [0.18, 0.55, 0.04] } }
+    # The outfeed of M2: 60 cm along x (entry at x = 0.09); each part goes
+    # one pitch (12 cm) away, the first ones wait against outfeed_stop.
+    - id: outfeed
+      type: conveyor
+      size: [0.60, 0.10, 0.04]
+      pose: { position: [0.35, 0.55, 0.02] }
+      speed: 0.3
+      direction: [1, 0, 0]
+      stop: true
+# The factory of factory_cell.world.yaml with a defect: p2b is 6 mm too
+# thin (a chipped part). M1 measures each part after machining it
+# (defective(part), from its believed size) and drops the bad ones in the
+# scrap bin; M2 and the outfeed skip them.
+world:
+  id: factory_reject_cell
+
+  entities:
+    - id: M1
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, -0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M1_arm: { type: joint_group }
+    - id: M1_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M1.flange, frame: tool_mount }
+      actuators:
+        M1_gripper: { type: vacuum }
+
+    - id: M2
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, 0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M2_arm: { type: joint_group }
+    - id: M2_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M2.flange, frame: tool_mount }
+      actuators:
+        M2_gripper: { type: vacuum }
+
+    # Stock of M1: lot a in front, lot b behind.
+    - { id: p1a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.50, 0.02] } }
+    - { id: p2a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.50, 0.02] } }
+    - { id: p3a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.50, 0.02] } }
+    - { id: p1b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.15, -0.60, 0.02] } }
+    - { id: p2b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.034] }, color: [0.1, 0.75, 0.2], pose: { position: [0.25, -0.60, 0.017] } }   # chipped: 6 mm too thin
+    - { id: p3b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.35, -0.60, 0.02] } }
+
+    # The station between the two machines: one place per kind of part,
+    # station_1 .. station_3 along x, 11 cm apart.
+    - id: station
+      type: buffer
+      kind: bin
+      places: 3
+      size: [0.10, 0.10, 0.01]
+      pitch: 0.11
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
+
+    # The outfeed of M2: 60 cm along x (entry at x = 0.09); each part goes
+    # one pitch (12 cm) away, the first ones wait against outfeed_stop.
+    # 80 cm (60 in factory_cell), the same entry: the five good parts stay
+    # apart, none pressed against another one by the belt.
+    - id: outfeed
+      type: conveyor
+      size: [0.80, 0.10, 0.04]
+      pose: { position: [0.45, 0.55, 0.02] }
+      speed: 0.3
+      direction: [1, 0, 0]
+      stop: true
+
+    # The scrap bin of M1: the parts the inspection rejects.
+    - id: scrap
+      type: prop
+      kind: bin
+      shape: { type: container, size: [0.16, 0.16, 0.08] }
+      color: [0.35, 0.35, 0.35]
+      pose: { position: [-0.05, -0.60, 0.04] }
+# Two machines one metre apart, a conveyor belt between them: the factory of
+# factory_belt_cell.world.yaml where the station is a transfer belt. The
+# feeder brings each part to M1; M1 machines it while holding it and puts it
+# at the entry of the transfer belt; the belt carries it to its end, where a
+# stop holds it; M2 takes it there, machines it and puts it on the outfeed
+# belt, which takes it away. The parts weigh 50 g (rigid physics).
+# Machining times (s), as in simple.flowshop:  P1  P2  P3
+#                                          M1   2   3   1
+#                                          M2   1   2   1.5
+world:
+  id: factory_transfer_cell
+
+  entities:
+    - id: M1
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, -0.25, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M1_arm: { type: joint_group }
+    - id: M1_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M1.flange, frame: tool_mount }
+      actuators:
+        M1_gripper: { type: vacuum }
+
+    - id: M2
+      type: robot
+      kind: arm
+      model: robotik.robots.robot_6axis
+      pose: { position: [0.0, 0.75, 0.0] }
+      home: { joint1: 0.0, joint2: 0.3, joint3: 1.3, joint4: 0.0, joint5: 1.54, joint6: 0.0 }
+      actuators:
+        M2_arm: { type: joint_group }
+    - id: M2_cup
+      type: tool
+      model: robotik.tools.vacuum
+      attach: { parent: M2.flange, frame: tool_mount }
+      actuators:
+        M2_gripper: { type: vacuum }
+
+    # The feeder: a belt of 70 cm along x, 4 cm high; the parts go to -x and
+    # stop at its end (x = 0.20), the pick place of M1, against feeder_stop.
+    - id: feeder
+      type: conveyor
+      size: [0.70, 0.10, 0.04]
+      pose: { position: [0.55, -0.55, 0.02] }
+      speed: 0.2
+      direction: [-1, 0, 0]
+      stop: true
+
+    # The transfer belt: 60 cm along y, from M1 (entry at y = -0.06) to M2
+    # (end at y = 0.50, against transfer_stop).
+    - id: transfer
+      type: conveyor
+      size: [0.10, 0.60, 0.04]
+      pose: { position: [0.30, 0.20, 0.02] }
+      speed: 0.3
+      direction: [0, 1, 0]
+      stop: true
+
+    # The parts on the feeder, in the order M1 takes them.
+    - { id: p1a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
+    - { id: p2a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
+    - { id: p3a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
+    - { id: p1b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
+    - { id: p2b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
+    - { id: p3b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
+
+    # The outfeed: 60 cm along x, behind M2 (entry at x = 0.09); each part
+    # goes one pitch (12 cm) away, the first ones wait against outfeed_stop.
+    - id: outfeed
+      type: conveyor
+      size: [0.60, 0.10, 0.04]
+      pose: { position: [0.35, 1.05, 0.02] }
+      speed: 0.3
+      direction: [1, 0, 0]
+      stop: true
 # Two 6-axis arms face to face. The left one holds a tray with a vacuum cup
 # from below, its cup pointing up between the rails of a stand, and carries
 # it from one stand to the other. The right one stands on a pedestal; its
@@ -7566,7 +8199,7 @@ private:
 
 #include "Robotik/Robot/Robot.hpp"
 
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
 
 #include <cmath>
@@ -9369,7 +10002,7 @@ inline constexpr char const* FLY_LEG_NAMES[] = { "LF", "LM", "LH",
 
 #include "Compages/GPU/GPU.hpp"
 #include "Compages/GPU/RenderPass.hpp"
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
 #include "Compages/World/World.hpp"
 
@@ -17047,6 +17680,7 @@ scenarios:
   entries:
     - { id: painter, name: Robotic painter, file: painter.scenario.yaml, menu: Behavior tree }
     - { id: painter_pddl, name: Robotic painter, file: painter_pddl.scenario.yaml, menu: PDDL planner }
+    - { id: painter_pabt, name: Robotic painter (PA-BT), file: painter_pabt.scenario.yaml, menu: PDDL planner }
 
 experiments:
   directory: experiments
@@ -17169,6 +17803,63 @@ scenario:
     - { condition: "joint_limits_respected(robot)", phase: always }
     - { condition: "collision_count(robot) == 0", phase: always }
     # Zero collision does not prove the easel stayed put: measure it.
+    - { condition: "pose_error(easel) < 0.002", phase: always }
+    - { condition: "pose_error(canvas) < 0.005", phase: always }
+    - { condition: "on(canvas, easel)", phase: end }
+    - name: brush loaded before the first stroke
+      sequence:
+        - skill_succeeded(dip)
+        - skill_started(mark)
+# The portrait of painter.scenario.yaml, with no behavior tree: the planner finds the
+# dips, strokes and rinses from the goal, in the order of the layers.
+scenario:
+  id: painter_pabt
+  description: |
+    Plan the dips, strokes and rinses that paint the four layers, then do
+    them, without moving the easel.
+  world: worlds/painting_lab.world.yaml
+  seed: 7
+
+  controller:
+    planner:
+      domain: scenarios/painter.domain.pddl
+      method: pabt
+      facts:
+        - before(red, black)
+        - before(black, blue)
+        - before(blue, gold)
+      goal:
+        - painted(red)
+        - painted(black)
+        - painted(blue)
+        - painted(gold)
+        - clean
+
+  # One stroke per colour, read by the Mark gesture.
+  trajectories:
+    red: scenarios/trajectories/red_stroke.trajectory.yaml
+    black: scenarios/trajectories/black_stroke.trajectory.yaml
+    blue: scenarios/trajectories/blue_stroke.trajectory.yaml
+    gold: scenarios/trajectories/gold_stroke.trajectory.yaml
+
+  # The brush follows each stroke in 2 mm Cartesian steps (each one an IK
+  # target), with stiff joints: the strokes are straight lines (deviation
+  # about 1.5 mm). Joint gains alone do not do it: between two far targets
+  # each joint moves on its own and the brush draws an arc (about 2 cm).
+  parameters:
+    stroke_step: 0.002      # m, longest step between two IK targets
+    stroke_tolerance: 0.02  # rad, joint error to go on to the next target
+    arm_gains: { kp: 1500, kd: 80 }   # N.m/rad, N.m.s/rad, every arm joint
+
+  timeout: 160
+
+  assertions:
+    - { condition: "painter.stroke_deviation < 0.003", phase: end }   # straight strokes (m)
+    - controller.success
+    - planner.replans == 0
+    - { condition: "tool_is_attached(brush, robot.flange)", phase: always }
+    - { condition: "joint_limits_respected(robot)", phase: always }
+    - { condition: "collision_count(robot) == 0", phase: always }
     - { condition: "pose_error(easel) < 0.002", phase: always }
     - { condition: "pose_error(canvas) < 0.005", phase: always }
     - { condition: "on(canvas, easel)", phase: end }
@@ -18129,13 +18820,14 @@ public:
                               std::string_view p_scenario) override
     {
         m_mission.reset();
-        if (p_scenario != "painter" && p_scenario != "painter_pddl")
+        bool const planned =
+            p_scenario == "painter_pddl" || p_scenario == "painter_pabt";
+        if (p_scenario != "painter" && !planned)
         {
             p_host.error("unknown painter scenario");
             return ROBOTIK_PLUGIN_ERR_SETUP;
         }
-        m_mission =
-            std::make_unique<PainterMission>(p_scenario == "painter_pddl");
+        m_mission = std::make_unique<PainterMission>(planned);
         p_host.bindMission(*m_mission);
         return ROBOTIK_PLUGIN_OK;
     }
@@ -18638,6 +19330,8 @@ scenarios:
     - { id: pick_and_place_faults, name: Pick and place (faults), file: pick_and_place_faults.scenario.yaml, menu: Behavior tree }
     - { id: pick_and_place_pddl, name: Pick and place, file: pick_and_place_pddl.scenario.yaml, menu: PDDL planner }
     - { id: pick_and_place_pddl_faults, name: Pick and place (faults), file: pick_and_place_pddl_faults.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_pabt, name: Pick and place (PA-BT), file: pick_and_place_pabt.scenario.yaml, menu: PDDL planner }
+    - { id: pick_and_place_pabt_faults, name: Pick and place (PA-BT, faults), file: pick_and_place_pabt_faults.scenario.yaml, menu: PDDL planner }
     - { id: pick_and_place_grafcet, name: Pick and place (faults), file: pick_and_place_grafcet.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_gemma, name: GEMMA production cycle, file: pick_and_place_gemma.scenario.yaml, menu: GRAFCET }
     - { id: pick_and_place_gemma_stop, name: GEMMA emergency stop, file: pick_and_place_gemma_stop.scenario.yaml, menu: GRAFCET }
@@ -19136,6 +19830,71 @@ scenario:
     - inside(red_cube, box)
     - holding(gripper) == 0
     - { condition: "collision_count(robot) == 0", phase: always }
+    - time < 30
+# The task of pick_and_place_pddl.scenario.yaml, with the same domain and
+# the same mission, but no search: the behavior tree grows backwards from
+# the goal (PA-BT). It starts with in(red_cube, box)?; when it is false,
+# place(red_cube, box) goes under it, which needs holding(red_cube)?, which
+# gets pick(red_cube), which needs seen(red_cube)? and hand_empty?, and so
+# on. Each tick reads the conditions on the beliefs again.
+scenario:
+  id: pick_and_place_pabt
+  description: Grow a reactive behavior tree from the goal, then put the red cube in the box.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      method: pabt
+      goal:
+        - in(red_cube, box)
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans == 0
+    - time < 30
+# pick_and_place_pddl_faults.scenario.yaml with the tree grown from the goal
+# (PA-BT): Detect fails while the camera is down, the executor waits
+# replan.delay (simulated seconds) and ticks the same tree again. Once the
+# cube is seen, the camera fails for good and the robot goes on from its
+# world model.
+scenario:
+  id: pick_and_place_pabt_faults
+  description: Grow a reactive tree from the goal and put the red cube in the box, with a camera failure.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 7
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      method: pabt
+      goal:
+        - in(red_cube, box)
+      replan: { max: 5, delay: 0.5 }
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  faults:
+    - { at: 0.0, resource: wrist_camera, action: disable }
+    - { at: 1.0, resource: wrist_camera, action: restore }
+    - { at: 3.0, resource: wrist_camera, action: disable }
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans >= 1
     - time < 30
 # The same task as pick_and_place.scenario.yaml, with no behavior tree: the PDDL
 # planner finds the steps from the goal. The domain lists the actions; the
@@ -20722,6 +21481,8 @@ public:
         // domain (holding(red_cube) ...).
         if (p_scenario == "pick_and_place_pddl" ||
             p_scenario == "pick_and_place_pddl_faults" ||
+            p_scenario == "pick_and_place_pabt" ||
+            p_scenario == "pick_and_place_pabt_faults" ||
             p_scenario == "pick_and_place_grafcet" ||
             p_scenario == "pick_and_place_gemma" ||
             p_scenario == "pick_and_place_gemma_stop" ||
