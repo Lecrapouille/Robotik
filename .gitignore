@@ -6,6 +6,8 @@ doc/code-coverage/*
 doc/doxygen/*
 external/*/
 old/*
+compile_commands.json
+.vscode/browse.vc.db*
 
 # Python
 __pycache__
