@@ -1,0 +1,61 @@
+# The factory of factory_belt.workflow.yaml where a transfer belt carries
+# each part from M1 to M2 (worlds/factory_transfer_cell.world.yaml): the
+# belt is an operator between the two machines, with one place at its entry
+# (M1 puts the part there) and one at its end (M2 takes it there). It runs
+# 2 s per part (54 cm at 0.3 m/s, a little more: the stop holds the part),
+# when its end is free, and its entry is free again once the part is there.
+# M2 puts the machined part at the entry of the outfeed belt, the last
+# operator, which runs 0.4 s (12 cm) to make room for the next one. The
+# feeder runs 0.52 s for a pitch of 10 cm: a little more, the stop holds the
+# part, and the parts behind it do not catch up with it.
+#   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory_transfer.workflow.yaml
+workflow:
+  id: factory_transfer_line
+  operators:
+    - id: feeder
+      entity: feeder
+    - id: M1
+      entity: M1
+      take: [ "M1.Hover({part})", "M1.Reach({part})",
+              "M1.Grasp({part}) . holding(M1, {part})", "M1.Hover({part})" ]
+      give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
+    - id: transfer
+      entity: transfer
+    - id: M2
+      entity: M2
+      take: [ "M2.Hover({part})", "M2.Reach({part})",
+              "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
+              "M2.Over({to})" ]
+      give: [ "M2.Release" ]
+    - id: outfeed
+      entity: outfeed
+  buffers:
+    - { id: pick, after: feeder, place: pick }           # the end of the feeder
+    - { id: entry, after: M1, place: transfer }          # M1.Over(transfer): its entry
+    - { id: arrival, after: transfer, place: arrival }   # the end of the transfer belt
+    - { id: exit, after: M2, place: outfeed }            # M2.Over(outfeed): its entry
+  products:
+    - id: P1
+      parts: [p1a, p1b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P2
+      parts: [p2a, p2b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 3.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+    - id: P3
+      parts: [p3a, p3b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 1.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }

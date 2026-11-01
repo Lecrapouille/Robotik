@@ -59,7 +59,25 @@ world:
       friction: 0.6
     - { id: canvas, type: body, shape: { type: box, size: [0.02, 0.4, 0.5] }, mass: 0.5,
         physics: free, attach: { parent: easel.canvas_mount, transform: { position: [0.011, 0, 0.251] } } }
+    - id: feeder                       # shorthand: fixed box body, belt feeder_belt (skill feeder_belt.Run)
+      type: conveyor
+      size: [0.70, 0.10, 0.04]          # the box; the belt is its top face
+      pose: { position: [0.55, -0.55, 0.02] }
+      speed: 0.2
+      direction: [-1, 0, 0]             # frame of the box
+      stop: true                        # adds the fixed box feeder_stop at the end
+    - id: station                      # shorthand: containers station_1 .. station_3
+      type: buffer
+      kind: bin
+      places: 3
+      pitch: 0.11                       # along direction (default [1, 0, 0]); pose = middle
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
 ```
+
+A belt moves every box resting on it while `<belt>.Run` runs (abstract: at
+its speed, kept on it at the end; rigid: friction, falls at the end without
+`stop`). A part put on a belt lands on its top face.
 
 Each sensor/actuator name is also a resource (skills reserve it, faults
 disable it). Noise: a sigma, or `{sigma, bias, resolution, saturation}`.

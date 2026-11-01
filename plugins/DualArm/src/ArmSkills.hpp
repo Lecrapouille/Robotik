@@ -14,6 +14,7 @@
 
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
+#include <optional>
 #include <string>
 
 namespace robotik
@@ -52,13 +53,19 @@ teammate(robotik::RobotContext const& p_context, std::string_view p_id);
 
 // ****************************************************************************
 /// Brings the cup @p_clearance above the top of an object (a part,
-/// or the walls of a bin), pointing down.
+/// or the walls of a bin), pointing down. Or above a point of the layout of
+/// the cell (the entry of a belt: fixed furniture, known from the world file).
 // ****************************************************************************
 class HoverSkill final: public robotik::Skill
 {
 public:
 
     HoverSkill(std::string p_object, robotik::Length p_clearance);
+    /// @param p_surface Point of a fixed surface, world frame.
+    /// @param p_name What it is, for the messages.
+    HoverSkill(robotik::Vector3 p_surface,
+               std::string p_name,
+               robotik::Length p_clearance);
 
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
@@ -73,6 +80,7 @@ public:
 private:
 
     std::string m_object;
+    std::optional<robotik::Vector3> m_surface;
     robotik::Length m_clearance;
     robotik::MoveTCPSkill m_move;
     bool m_planned = false;

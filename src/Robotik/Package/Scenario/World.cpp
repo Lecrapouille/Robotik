@@ -13,6 +13,7 @@
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <map>
 #include <numbers>
@@ -215,6 +216,7 @@ static ActuatorSpec actuator(std::string const& p_where,
         spec.type = ActuatorSpec::Type::Conveyor;
         spec.speed = LinearVelocity(p_node.number("speed", spec.speed.value()));
         spec.direction = p_node.vector3("direction", spec.direction);
+        spec.stop = p_node.flag("stop", false);
         if (spec.speed.value() <= 0.0)
         {
             fail(where, "speed (m/s) must be above 0");
@@ -244,7 +246,8 @@ static EntitySpec::Type entityType(std::string const& p_where,
     if (p_text == "prop")
         return EntitySpec::Type::Prop;
     fail(p_where,
-         "type must be robot, tool, body or prop, not '" + p_text + "'");
+         "type must be robot, tool, body, prop, conveyor or buffer, not '" +
+             p_text + "'");
 }
 
 /// Reads the shape block of an entity.
@@ -442,6 +445,122 @@ static EntitySpec entity(std::string const& p_world,
     return spec;
 }
 
+/// Color of an entity from the YAML, or @p_default.
+static std::array<float, 3> colorOf(ConfigNode const& p_node,
+                                    std::string_view p_key,
+                                    Vector3 const& p_default)
+{
+    Vector3 const color = p_node.vector3(p_key, p_default);
+    return { static_cast<float>(color.x),
+             static_cast<float>(color.y),
+             static_cast<float>(color.z) };
+}
+
+/// A @c type: conveyor entry: a fixed box body whose top face is a belt
+/// named <id>_belt (or @c belt:), with its stop.
+static EntitySpec conveyor(std::string const& p_world, ConfigNode const& p_node)
+{
+    EntitySpec spec;
+    spec.id = p_node.text("id");
+    std::string const where = p_world + ", entity '" + spec.id + "'";
+    if (p_node.has("shape") || p_node.has("model") || p_node.has("actuators"))
+    {
+        fail(where,
+             "a conveyor has a size and a speed, not a shape, a model or "
+             "actuators");
+    }
+    if (!p_node.has("size"))
+    {
+        fail(where,
+             "a conveyor needs a size [x, y, z] (its box; the belt is the top "
+             "face)");
+    }
+    spec.type = EntitySpec::Type::Body;
+    spec.physics = EntitySpec::Physics::Fixed;
+    spec.kind = lowerCase(p_node.text("kind"));
+    ShapeSpec shape;
+    shape.size = p_node.vector3("size", shape.size);
+    shape.color = colorOf(p_node, "color", { 0.25, 0.25, 0.28 });
+    spec.shape = shape;
+    spec.pose = p_node.pose("pose");
+    spec.friction = p_node.number("friction", spec.friction);
+    std::string name = p_node.text("belt");
+    spec.actuators.push_back(
+        actuator(where, name.empty() ? spec.id + "_belt" : name, p_node));
+    return spec;
+}
+
+/// A @c type: buffer entry: @c places containers of @c size in a row along
+/// @c direction (frame of the pose, which is the middle of the row), @c pitch
+/// apart, named <id>_1 .. <id>_N.
+static std::vector<EntitySpec> buffer(std::string const& p_world,
+                                      ConfigNode const& p_node)
+{
+    std::string const id = p_node.text("id");
+    std::string const where = p_world + ", entity '" + id + "'";
+    if (p_node.has("shape") || p_node.has("model"))
+    {
+        fail(where, "a buffer has places and a size, not a shape or a model");
+    }
+    double const places = p_node.number("places", 0.0);
+    if (places < 1.0 || places != std::floor(places))
+    {
+        fail(where, "places must be a whole number above 0");
+    }
+    Vector3 const size = p_node.vector3("size", Vector3(0.10, 0.10, 0.01));
+    double const pitch = p_node.number("pitch", size.x + 0.01);
+    Vector3 direction = p_node.vector3("direction", Vector3(1.0, 0.0, 0.0));
+    double const length = std::hypot(direction.x, direction.y);
+    if (length < 1e-9 || pitch <= 0.0)
+    {
+        fail(where, "direction needs x or y and pitch must be above 0");
+    }
+    direction = Vector3(direction.x / length, direction.y / length, 0.0);
+    ConfigNode const& colors = p_node.at("colors");
+    std::size_t const count = static_cast<std::size_t>(places);
+    if (!colors.isNull() &&
+        (!colors.isSequence() || colors.items().size() != count))
+    {
+        fail(where, "colors needs one [r, g, b] per place");
+    }
+    Pose const middle = p_node.pose("pose");
+    std::vector<EntitySpec> row;
+    for (std::size_t i = 0U; i < count; ++i)
+    {
+        EntitySpec spec;
+        spec.id = id + "_" + std::to_string(i + 1U);
+        spec.type = EntitySpec::Type::Prop;
+        spec.kind = lowerCase(p_node.text("kind"));
+        ShapeSpec shape;
+        shape.type = ShapeSpec::Type::Container;
+        shape.size = size;
+        shape.color = colorOf(p_node, "color", { 0.8, 0.8, 0.8 });
+        if (!colors.isNull())
+        {
+            std::vector<ConfigNode> const& rgb = colors.items()[i].items();
+            for (std::size_t c = 0U; c < 3U && rgb.size() == 3U; ++c)
+            {
+                std::optional<double> const value = rgb[c].asNumber();
+                if (!value)
+                {
+                    fail(where, "colors needs one [r, g, b] per place");
+                }
+                shape.color[c] = static_cast<float>(*value);
+            }
+            if (rgb.size() != 3U)
+            {
+                fail(where, "colors needs one [r, g, b] per place");
+            }
+        }
+        spec.shape = shape;
+        double const offset =
+            pitch * (static_cast<double>(i) - 0.5 * (places - 1.0));
+        spec.pose = middle * Pose{ direction * offset, Quaternion{} };
+        row.push_back(std::move(spec));
+    }
+    return row;
+}
+
 Result<WorldDescription> readWorld(ConfigNode const& p_world,
                                    std::filesystem::path const& p_directory,
                                    AssetResolver const& p_assets)
@@ -472,12 +591,37 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
         }
         for (ConfigNode const& node : p_world.at("entities").items())
         {
-            EntitySpec spec = entity(where, node, p_directory, p_assets);
-            if (findEntity(world, spec.id) != nullptr)
+            // A conveyor and a buffer are shorthands: entities of their own.
+            std::string const type = node.text("type");
+            std::vector<EntitySpec> specs;
+            if (type == "conveyor" || type == "buffer")
             {
-                fail(where, "entity '" + spec.id + "' is declared twice");
+                std::string const id = node.text("id");
+                if (id.empty() || id.find('.') != std::string::npos)
+                {
+                    fail(where, "every entity needs an id without '.'");
+                }
+                specs = (type == "conveyor")
+                            ? std::vector<EntitySpec>{ conveyor(where, node) }
+                            : buffer(where, node);
             }
-            world.entities.push_back(std::move(spec));
+            else
+            {
+                specs.push_back(entity(where, node, p_directory, p_assets));
+            }
+            for (EntitySpec& spec : specs)
+            {
+                if (findEntity(world, spec.id) != nullptr)
+                {
+                    fail(where, "entity '" + spec.id + "' is declared twice");
+                }
+                world.entities.push_back(std::move(spec));
+            }
+        }
+        // The stops of the belts: entities of their own (drawn, in the physics).
+        if (Result<void> const stops = addBeltStops(world); !stops)
+        {
+            fail(where, stops.error());
         }
 
         // --- Relations

@@ -21,7 +21,7 @@
 /// - Promises: plain data and free functions; nothing here reads a file.
 /// - Expects: entity ids are unique in the world; a robot named by a device or
 ///   a skill exists.
-/// - Errors: @c mountTool returns a @c Result; building a @ref robotik::Cell
+/// - Errors: @c mountTool and @c addBeltStops return a @c Result; building a @ref robotik::Cell
 ///   from a wrong description throws (see @ref robotik::Cell).
 #pragma once
 
@@ -136,6 +136,10 @@ struct ActuatorSpec
     LinearVelocity speed{ 0.2 };
     /// Direction of the parts on a conveyor, in the frame of its body.
     Vector3 direction{ 1.0, 0.0, 0.0 };
+    /// A stop at the end of a conveyor: @ref addBeltStops (called by the
+    /// world reader) adds the fixed box @c <entity>_stop there, which holds
+    /// the parts with every physics.
+    bool stop = false;
 };
 
 // ****************************************************************************
@@ -318,6 +322,17 @@ struct WorldDescription
 [[nodiscard]] Result<void> mountTool(WorldDescription& p_world,
                                      std::string_view p_id,
                                      std::string_view p_robot = {});
+
+// ----------------------------------------------------------------------------
+/// Adds the stop of each conveyor with @c stop: a fixed box body
+/// @c <entity>_stop just past the end of the belt, across it, from the
+/// bottom of the belt box to 2 cm above its top face. The world reader calls
+/// it; a world built in C++ calls it once.
+/// @param p_world World to change.
+/// @return Fails for a belt placed by @c attach, or when @c <entity>_stop is
+///   already an entity.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> addBeltStops(WorldDescription& p_world);
 
 // ****************************************************************************
 /// A path the robot follows: tool poses in a frame, or joint values.

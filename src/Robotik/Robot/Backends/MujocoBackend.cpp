@@ -639,7 +639,8 @@ void MujocoBackend::drive(int p_body, Vector3 const& p_velocity, double p_fricti
     }
     mjtNum* const force = data->xfrc_applied + 6 * p_body;
     mju_zero(force, 6);
-    if (p_friction <= 0.0)
+    // A stopped belt is a still surface: the friction of MuJoCo alone.
+    if (p_friction <= 0.0 || std::hypot(p_velocity.x, p_velocity.y) < 1e-9)
     {
         return;
     }

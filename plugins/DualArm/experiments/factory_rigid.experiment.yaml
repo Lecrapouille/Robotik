@@ -1,0 +1,32 @@
+# The factories with the rigid physics:
+#   ./build/Robotik-Headless build/plugins/DualArm/experiments/factory_rigid.experiment.yaml
+# The scenarios run at abstract (the belts move the parts and stop them at
+# their end). Here MuJoCo carries the parts of 50 g by friction, the stops at
+# the end of the belts hold them, and a part put on a belt lands on it for
+# real. Do not compare the times of the two levels.
+experiment:
+  id: factory_rigid_experiment
+  description: The factories with the rigid physics - the belts and their stops hold the parts.
+  seeds: [42]
+
+  cases:
+    - id: factory
+      scenario: scenarios/factory.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_gemma
+      scenario: scenarios/factory_gemma.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_belt
+      scenario: scenarios/factory_belt.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+    - id: factory_transfer
+      scenario: scenarios/factory_transfer.scenario.yaml
+      overrides:
+        scenario.physics.fidelity: rigid
+
+  evaluation:
+    metrics:
+      - time

@@ -9,6 +9,7 @@
 #include "Robotik/Task/CellDescription.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace robotik
@@ -108,6 +109,75 @@ Result<void> mountTool(WorldDescription& p_world, std::string_view p_id, std::st
         chosen->attach = Attachment{
             robot_id, FLANGE, TOOL_MOUNT, Pose{ Vector3::ZERO, Quaternion{} }
         };
+    }
+    return success();
+}
+
+/// Thickness of the stop at the end of a belt, and its height above the belt (m).
+static constexpr double STOP_THICKNESS = 0.01;
+static constexpr double STOP_HEIGHT = 0.02;
+
+/// The stop at the end of a belt: a fixed box just past its end, across it.
+static EntitySpec beltStop(EntitySpec const& p_belt,
+                           ActuatorSpec const& p_conveyor)
+{
+    Vector3 const& size = p_belt.shape->size;
+    double const length =
+        std::hypot(p_conveyor.direction.x, p_conveyor.direction.y);
+    double const dx = p_conveyor.direction.x / length;
+    double const dy = p_conveyor.direction.y / length;
+    // Half length of the belt along the direction, its width across it.
+    double const half = 0.5 * (std::abs(dx) * size.x + std::abs(dy) * size.y);
+    double const width = std::abs(dy) * size.x + std::abs(dx) * size.y;
+
+    EntitySpec stop;
+    stop.id = p_belt.id + "_stop";
+    stop.type = EntitySpec::Type::Body;
+    stop.physics = EntitySpec::Physics::Fixed;
+    stop.friction = p_belt.friction;
+    ShapeSpec shape = *p_belt.shape;
+    shape.size = Vector3(STOP_THICKNESS, width, size.z + STOP_HEIGHT);
+    shape.color = { 0.75F, 0.55F, 0.1F };
+    stop.shape = shape;
+    Pose const local{ Vector3(dx * (half + 0.5 * STOP_THICKNESS),
+                              dy * (half + 0.5 * STOP_THICKNESS),
+                              0.5 * STOP_HEIGHT),
+                      Quaternion::fromAngleAxis(Radians(std::atan2(dy, dx)),
+                                                Vector3(0.0, 0.0, 1.0)) };
+    stop.pose = p_belt.pose * local;
+    return stop;
+}
+
+// ----------------------------------------------------------------------------
+Result<void> addBeltStops(WorldDescription& p_world)
+{
+    std::vector<EntitySpec> stops;
+    for (EntitySpec const& spec : p_world.entities)
+    {
+        for (ActuatorSpec const& actuator : spec.actuators)
+        {
+            if (actuator.type != ActuatorSpec::Type::Conveyor ||
+                !actuator.stop || !spec.shape)
+            {
+                continue;
+            }
+            if (spec.attach)
+            {
+                return failure("Entity '" + spec.id +
+                               "': a belt with a stop is placed by its pose, "
+                               "not attached");
+            }
+            stops.push_back(beltStop(spec, actuator));
+            if (findEntity(p_world, stops.back().id) != nullptr)
+            {
+                return failure("Entity '" + stops.back().id +
+                               "' is the stop of a belt: choose another id");
+            }
+        }
+    }
+    for (EntitySpec& stop : stops)
+    {
+        p_world.entities.push_back(std::move(stop));
     }
     return success();
 }

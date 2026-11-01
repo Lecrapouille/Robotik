@@ -9,14 +9,16 @@
 
 #include "ArmSkills.hpp"
 
+#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/CellDevices.hpp"
+#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace dual_arm
 {
@@ -31,6 +33,10 @@ static constexpr double OVER_BIN = 0.12;
 /// Height of a part (m): an arm waits over its pick zone at the height it
 /// takes the next part from, HOVER above its top.
 static constexpr double PART_HEIGHT = 0.04;
+/// Room between the bottom of a part and a belt when an arm puts it there
+/// (m), and between the part and the upstream end of the belt.
+static constexpr double OVER_BELT = 0.01;
+static constexpr double BELT_MARGIN = 0.04;
 static constexpr int PRIORITY = 100;
 
 /// A skill named @p_name on robot @p_robot holding @p_resources.
@@ -45,6 +51,16 @@ describe(std::string p_name,
     description.resources = std::move(p_resources);
     description.priority = PRIORITY;
     return description;
+}
+
+/// True when @p_point lies over the footprint of the box body @p_body.
+static bool above(robotik::Vector3 const& p_point,
+                  robotik::EntitySpec const& p_body)
+{
+    robotik::Vector3 const local = p_body.pose.inverse() * p_point;
+    robotik::Vector3 const& size = p_body.shape->size;
+    return std::abs(local.x) <= 0.5 * size.x &&
+           std::abs(local.y) <= 0.5 * size.y && local.z >= 0.0;
 }
 
 void ConveyorMission::setup(robotik::Cell& p_cell,
@@ -69,28 +85,77 @@ void ConveyorMission::setup(robotik::Cell& p_cell,
         {
             m_bins.push_back(entity.id);
         }
+        // A belt is fixed furniture: its entry comes from the layout.
+        for (robotik::ActuatorSpec const& actuator : entity.actuators)
+        {
+            if (actuator.type != robotik::ActuatorSpec::Type::Conveyor ||
+                !entity.shape)
+            {
+                continue;
+            }
+            robotik::Vector3 const& size = entity.shape->size;
+            double const length =
+                std::hypot(actuator.direction.x, actuator.direction.y);
+            double const dx = actuator.direction.x / length;
+            double const dy = actuator.direction.y / length;
+            double const half =
+                0.5 * (std::abs(dx) * size.x + std::abs(dy) * size.y);
+            double const back = half - BELT_MARGIN;
+            m_belt_entries.emplace_back(
+                entity.id,
+                entity.pose *
+                    robotik::Vector3(-dx * back, -dy * back, 0.5 * size.z));
+        }
     }
 
-    // The belt is a resource of the cell, next to the arms and the cups.
+    // The pusher is a resource of the cell, next to the arms, the cups and
+    // the belts of the lanes.
     robotik::ResourceManager& resources = p_cell.robot().resources();
-    std::vector<robotik::ResourceRequirement> const belt = {
-        { resources.add(Conveyor::RESOURCE), robotik::Access::Exclusive }
+    robotik::ResourceRequirement const pusher = {
+        resources.add(Pusher::RESOURCE), robotik::Access::Exclusive
     };
-    for (std::string const& part : m_parts)
+    for (std::string const& zone : m_zones)
     {
-        for (std::string const& feeder : m_feeders)
+        // The lane of a zone: the belt under it, in the layout.
+        robotik::EntitySpec const* place =
+            robotik::findEntity(p_cell.description().world, zone);
+        robotik::ConveyorBelt* lane = nullptr;
+        for (robotik::EntitySpec const& entity :
+             p_cell.description().world.entities)
         {
-            for (std::string const& zone : m_zones)
+            for (robotik::ActuatorSpec const& actuator : entity.actuators)
             {
-                p_cell.skills().add<ConveySkill>(
-                    describe("Convey(" + part + ", " + feeder + ", " + zone +
-                                 ")",
-                             {},
-                             belt),
-                    m_conveyor,
-                    part,
-                    feeder,
-                    zone);
+                if (actuator.type == robotik::ActuatorSpec::Type::Conveyor &&
+                    entity.shape && place != nullptr &&
+                    above(place->pose.position, entity))
+                {
+                    lane = p_cell.devices().find<robotik::ConveyorBelt>(
+                        actuator.name);
+                }
+            }
+        }
+        if (lane == nullptr)
+        {
+            throw std::runtime_error("zone '" + zone +
+                                     "' is on no conveyor belt");
+        }
+        std::vector<robotik::ResourceRequirement> const needs = {
+            pusher, resources.require(lane->name())
+        };
+        for (std::string const& part : m_parts)
+        {
+            for (std::string const& feeder : m_feeders)
+            {
+                p_cell.skills().add<ConveySkill>(describe("Convey(" + part +
+                                                              ", " + feeder +
+                                                              ", " + zone + ")",
+                                                          {},
+                                                          needs),
+                                                 m_pusher,
+                                                 *lane,
+                                                 part,
+                                                 feeder,
+                                                 zone);
             }
         }
     }
@@ -141,6 +206,14 @@ void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
         skills.add<HoverSkill>(describe(scope + "Over(" + bin + ")", id, arm),
                                bin,
                                robotik::Length(OVER_BIN));
+    }
+    // Over the entry of a belt, the part held just above it.
+    for (auto const& [belt, entry] : m_belt_entries)
+    {
+        skills.add<HoverSkill>(describe(scope + "Over(" + belt + ")", id, arm),
+                               entry,
+                               belt + " entry",
+                               robotik::Length(PART_HEIGHT + OVER_BELT));
     }
     // Back over a pick zone, where the next part arrives.
     for (std::string const& zone : m_zones)
@@ -256,13 +329,13 @@ void ConveyorMission::addPlanning(robotik::Cell& p_cell)
 void ConveyorMission::reset(robotik::Cell& /*p_cell*/,
                             robotik::Seed /*p_seed*/)
 {
-    m_conveyor.reset();
+    m_pusher.reset();
     m_overlap = 0.0;
 }
 
 void ConveyorMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
-    m_conveyor.step(p_cell, p_dt);
+    m_pusher.step(p_cell, p_dt);
 
     // Both arms busy: a skill of each robot is running.
     robotik::SkillScheduler const& skills = p_cell.skills();

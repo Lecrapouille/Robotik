@@ -135,11 +135,14 @@ A layer only uses the layers under it; `make check-layers` checks it.
 ## GRAFCET and workflows
 
 - **Buffer**: where parts wait between an operator and the next one of
-  their route; one part per place (`buffers:` of a workflow).
+  their route; one part per place (`buffers:` of a workflow). In a world,
+  `type: buffer` makes a row of places.
 - **Cell device**: a device of the cell that belongs to no robot (a conveyor
   belt); its name is a resource of the cell (`Cell::devices()`).
 - **Conveyor belt**: the top face of a fixed box body; the parts resting on
-  it go at its speed while it runs (`type: conveyor`, skill `<belt>.Run`).
+  it go at its speed while it runs (an actuator `type: conveyor`, or the
+  entity shorthand `type: conveyor`; skill `<belt>.Run`).
+  Its **stop** (`stop: true`) is a fixed box at its end that holds the parts.
 - **Critical circuit**: the circuit of a timed event graph that sets the
   cycle time: the bottleneck of the cell.
 - **Cycle time (λ)**: the period of a cell in steady state; the throughput is

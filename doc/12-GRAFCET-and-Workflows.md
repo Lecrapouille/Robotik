@@ -279,7 +279,7 @@ that names a `skill:` by the mean duration of this skill in the current run.
 | `operators[].give` | Recipe to give the part to the next operator (§7) |
 | `products[].id` | Product kind |
 | `products[].count` | Products of this kind in the cell at once (default 1) |
-| `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional). In a generated GRAFCET the skill is the action of the step of the operation: it runs `duration` (a belt runs 0.55 s), or until it is done when `duration` is 0 |
+| `products[].route[]` | `{ name, on, duration, skill }`: operation, operator, declared duration (s), skill measured in runs (optional). In a generated GRAFCET the skill is the action of the step of the operation: it runs `duration` (a belt runs 0.52 s), or until it is done when `duration` is 0 |
 | `products[].parts` | World entities of this kind, one per lot (§7) |
 | `buffers[]` | `{ id, after, places, zone }`: where parts wait after the operator `after`; `places` gives the entity of each product kind (one part per place); `zone: true` lets one operator at a time in it; `place` instead of `places`: one place for every product kind (the end of a belt) (§7) |
 | `output` | World entity receiving the finished parts (the `{to}` of the last operation) |
@@ -327,15 +327,18 @@ works (its **recipes**), where the parts wait between the arms (a
       give: [ "M1.Over({to})", "M1.Release", "M1.Home" ]
     - id: M2
       ...
+    - id: outfeed                    # a belt takes the finished parts away
+      entity: outfeed
   buffers:
-    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
-  output: output
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
   products:
     - id: P1
       parts: [p1a, p1b]
       route:
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
 ```
 
 A recipe is a list of skill calls. Each one becomes a step whose action is
@@ -358,11 +361,15 @@ at a time, in the order of the products and lot after lot; a part goes to M2
 once machined by M1; the place of a kind in the station is free again once M2
 took the part. The station is a **zone**: one arm at a time in it, M2 first
 (the operator taking parts goes first, so the line empties: the zone
-receptivity of M1 is `/(X.. + X..)` on the waiting steps of M2). For the
-factory this makes 127 steps; the run is the same as with the GRAFCET drawn
-by hand before (50.23 s). `factory.workflow.yaml` also gives the cycle time of
+receptivity of M1 is `/(X.. + X..)` on the waiting steps of M2). The
+outfeed belt, the last operator, runs 0.4 s for each part M2 put on it
+(12 cm: room for the next one). For the factory this makes 147 steps; the
+run ends at 53.18 s. `factory.workflow.yaml` also gives the cycle time of
 the machining alone (6 s, M1 is the bottleneck); the run adds the moves of
-the arms.
+the arms. With the rigid physics the parts would stack up above the walls
+of a bin dropped at its centre: the outfeed puts them one after the other
+(`experiments/factory_rigid.experiment.yaml` runs the factories at
+`rigid`).
 
 In the simulator, **Save .grafcet.json** in the GRAFCET panel writes the
 generated GRAFCET next to the workflow (`factory.grafcet.json`), to open it
@@ -371,7 +378,7 @@ in TimedPetriNetEditor.
 **Fed by a belt.** `factory_belt.scenario.yaml` puts the six parts on a
 conveyor belt ([chapter 3](03-Worlds-and-Scenarios.md), `type: conveyor`),
 one pitch apart. The belt is the first operator of the workflow: its
-operation runs the skill of the belt for 0.55 s, when the pick place at its
+operation runs the skill of the belt for 0.52 s, when the pick place at its
 end is free; M1 takes the part there.
 
 ```yaml
@@ -388,15 +395,58 @@ end is free; M1 takes the part there.
     - id: P1
       parts: [p1a, p1b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
 ```
 
-The belt runs six times, each time just after M1 took the last part
-(`0 s`, `2.57 s`, `9.7 s` ...), and the run ends at 50.66 s. 0.55 s at 0.2 m/s
-is 11 cm, a little more than the pitch: the stop at the end of the belt holds
-the part, the next ones come closer.
+The belt runs six times, each time just after M1 took the last part, and
+the run ends at 53.4 s. 0.52 s at 0.2 m/s is 10.4 cm, a little more than
+the pitch: the stop at the end of the belt (`stop: true`) holds the part,
+and the next ones do not catch up with it (with 11 cm the parts close up,
+and with the rigid physics M1 hits the next part).
+
+**A belt between two machines.** `factory_transfer.scenario.yaml` puts M1
+and M2 one metre apart and replaces the station by a transfer belt: a cheap
+device in place of a shared zone. The belt is an operator between the two
+machines, with a place at its entry (M1 puts the part there) and a place at
+its end (M2 takes it there). A last belt, the outfeed, takes the finished
+parts away.
+
+```yaml
+# plugins/DualArm/scenarios/factory_transfer.workflow.yaml (part of it)
+  operators:
+    - { id: feeder, entity: feeder }
+    - { id: M1, ... give: [ "M1.Over({to})", "M1.Release", "M1.Home" ] }
+    - { id: transfer, entity: transfer }
+    - { id: M2, ... }
+    - { id: outfeed, entity: outfeed }
+  buffers:
+    - { id: pick, after: feeder, place: pick }
+    - { id: entry, after: M1, place: transfer }          # M1.Over(transfer)
+    - { id: arrival, after: transfer, place: arrival }   # the end of the belt
+    - { id: exit, after: M2, place: outfeed }            # M2.Over(outfeed)
+  products:
+    - id: P1
+      parts: [p1a, p1b]
+      route:
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
+        - { name: machining, on: M1, duration: 2.0 }
+        - { name: carry, on: transfer, skill: transfer_belt.Run, duration: 2.0 }
+        - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
+```
+
+An operator without a `take` recipe (a belt) does not pick the part up: it
+carries it away. So the place it takes the part from is free again at the
+**end** of its operation, not at its start: M1 puts the next part on the
+belt only once the belt has stopped. The belt runs when its end is free,
+that is when M2 has taken the part before. `M1.Over(transfer)` is a skill of
+the DualArm plugin: the entry of the belt comes from the world file (the
+layout of the cell), as a taught point, not from the beliefs. The run ends
+at 61.37 s; `experiments/factory_rigid.experiment.yaml` runs it also with
+the rigid physics (65.08 s): MuJoCo carries the parts of 50 g by friction
+and the stops hold them. The workflow gives a cycle time of 7.92 s.
 
 **With a GEMMA.** `gemma: default` (in the workflow, or in the `grafcet:`
 block of the scenario) adds the graphs Safety and Control of the default
@@ -419,8 +469,9 @@ scenario.
         - { at: 20.0, input: Stop, pulse: true }
 ```
 
-The run: after `Stop` at 20 s, M1 puts p3a in the station and M2 drops p2a;
-Control is back in A1 at 22.09 s and the run succeeds at 23.09 s. p3a waits in
+The run: after `Stop` at 20 s, M1 puts p3a in the station and M2 puts p2a on
+the outfeed; Control is back in A1 and the run succeeds 1 s later, at
+23.59 s. p3a waits in
 the station and lot b stays in the stock. After an emergency stop, Safety
 puts Production back in its initial situation: the parts must be put back
 too (A6, `InitialPosition`). For now the GEMMA is the one of the whole cell,

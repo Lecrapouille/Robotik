@@ -18,12 +18,12 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1a, output)
-    - inside(p2a, output)
-    - inside(p3a, output)
-    - inside(p1b, output)
-    - inside(p2b, output)
-    - inside(p3b, output)
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, outfeed)
+    - on(p1b, outfeed)
+    - on(p2b, outfeed)
+    - on(p3b, outfeed)
     - { condition: "collision_count(M1) == 0", phase: always }
     - { condition: "collision_count(M2) == 0", phase: always }
     - skill_succeeded(M1.Grasp(p3b))

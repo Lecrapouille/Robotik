@@ -61,16 +61,17 @@ TEST(WorkflowGrafcet, ReadsRecipesBuffersAndParts)
 {
     robotik::WorkflowDescription const workflow =
         robotik::loadWorkflow(repoFile(FACTORY)).take();
-    ASSERT_EQ(workflow.operators.size(), 2U);
+    ASSERT_EQ(workflow.operators.size(), 3U);
     EXPECT_EQ(workflow.operators[0].take.size(), 4U);
     EXPECT_EQ(workflow.operators[0].give.size(), 3U);
     EXPECT_EQ(workflow.operators[1].take.back(), "M2.Over({to})");
-    ASSERT_EQ(workflow.buffers.size(), 1U);
+    ASSERT_EQ(workflow.buffers.size(), 2U);
     EXPECT_EQ(workflow.buffers[0].after, "M1");
     EXPECT_TRUE(workflow.buffers[0].zone);
     ASSERT_EQ(workflow.buffers[0].places.size(), 3U);
-    EXPECT_EQ(workflow.buffers[0].places[1].second, "slot2");
-    EXPECT_EQ(workflow.output, "output");
+    EXPECT_EQ(workflow.buffers[0].places[1].second, "station_2");
+    EXPECT_EQ(workflow.buffers[1].place, "outfeed");
+    EXPECT_TRUE(workflow.output.empty());
     EXPECT_EQ(workflow.products[2].parts, (std::vector<std::string>{ "p3a", "p3b" }));
 
     // M1 is the bottleneck of the factory: the simulator draws it in red.
@@ -89,10 +90,11 @@ TEST(WorkflowGrafcet, GeneratesTheFactory)
     EXPECT_EQ(net.type(), tpne::TypeOfNet::GRAFCET);
     EXPECT_EQ(net.name, "Production");
     // Per part: M1 4 take, machining, wait, 3 give, idle, part done (11);
-    // M2 wait, 5 take, machining, give, idle (9). Six parts, the station
-    // (zone and 3 places), the two first idle steps, End.
-    EXPECT_EQ(net.places().size(), 6U * 11U + 6U * 9U + 6U + 1U);
-    EXPECT_EQ(net.transitions().size(), 6U * 10U + 6U * 9U + 1U);
+    // M2 wait, 5 take, machining, give, idle, part done (10); the outfeed
+    // runs, idle (2). Six parts, the station (zone and 3 places), the entry
+    // of the outfeed, the three first idle steps, End.
+    EXPECT_EQ(net.places().size(), 6U * 11U + 6U * 10U + 6U * 2U + 8U + 1U);
+    EXPECT_EQ(net.transitions().size(), 6U * 10U + 6U * 9U + 6U * 2U + 1U);
     EXPECT_EQ(end, "Production:X" + std::to_string(net.places().size() - 1U));
     EXPECT_EQ(net.places().back().caption, "End");
 
@@ -102,7 +104,7 @@ TEST(WorkflowGrafcet, GeneratesTheFactory)
                                    { return p_t.caption == p_code; });
     };
     EXPECT_TRUE(hasTransition("done(M1.Grasp(p1a)) . holding(M1, p1a)"));
-    EXPECT_TRUE(hasTransition("done(M2.Over(output))"));
+    EXPECT_TRUE(hasTransition("done(M2.Over(outfeed))"));
     // M1 machines P1 for 2 s, then waits for the station: M2 goes first.
     auto const machining = std::ranges::find(net.places(), std::string("M1 machining P1 (2 s)"),
                                              &tpne::Place::caption);
@@ -136,7 +138,7 @@ TEST(WorkflowGrafcet, RunsTheSkillOfAnOperationAndSharesAPlace)
     robotik::WorkflowDescription const workflow =
         robotik::loadWorkflow(repoFile("plugins/DualArm/scenarios/factory_belt.workflow.yaml"))
             .take();
-    ASSERT_EQ(workflow.buffers.size(), 2U);
+    ASSERT_EQ(workflow.buffers.size(), 3U);
     EXPECT_EQ(workflow.buffers[0].place, "pick");
     EXPECT_TRUE(workflow.buffers[0].places.empty());
 
@@ -147,15 +149,19 @@ TEST(WorkflowGrafcet, RunsTheSkillOfAnOperationAndSharesAPlace)
     auto const free = std::ranges::count_if(net.places(), [](tpne::Place const& p_place)
                                             { return p_place.caption == "pick free"; });
     EXPECT_EQ(free, 1);
-    // The belt runs 0.55 s for each part: the action of the step of the
+    // The belt runs 0.52 s for each part: the action of the step of the
     // operation, ended by a time receptivity.
-    auto const bring = std::ranges::find(net.places(), std::string("feeder bring P2 (0.55 s)"),
-                                         &tpne::Place::caption);
+    auto const bring =
+        std::ranges::find(net.places(),
+                          std::string("feeder bring P2 (0.52 s)"),
+                          &tpne::Place::caption);
     ASSERT_NE(bring, net.places().end());
     ASSERT_EQ(bring->actions.size(), 1U);
     EXPECT_EQ(bring->actions[0].name, "feeder_belt.Run");
-    EXPECT_TRUE(std::ranges::any_of(net.transitions(), [&bring](tpne::Transition const& p_t)
-                                    { return p_t.caption == "0.55s/X" + std::to_string(bring->id); }));
+    EXPECT_TRUE(std::ranges::any_of(
+        net.transitions(),
+        [&bring](tpne::Transition const& p_t)
+        { return p_t.caption == "0.52s/X" + std::to_string(bring->id); }));
 
     // Without a duration the step waits for the skill.
     robotik::WorkflowDescription untimed = workflow;
@@ -169,6 +175,56 @@ TEST(WorkflowGrafcet, RunsTheSkillOfAnOperationAndSharesAPlace)
 
     auto const both = read(LINE + "  buffers: [ { id: tray, after: a, place: s, places: { p: x } } ]\n");
     ASSERT_FALSE(both);
+}
+
+TEST(WorkflowGrafcet, ABeltBetweenTwoMachinesFreesItsEntryOnceThePartIsCarried)
+{
+    robotik::WorkflowDescription const workflow =
+        robotik::loadWorkflow(
+            repoFile(
+                "plugins/DualArm/scenarios/factory_transfer.workflow.yaml"))
+            .take();
+    std::vector<tpne::Net> graphs;
+    (void)robotik::workflowGrafcet(workflow, graphs).take();
+    tpne::Net const& net = graphs.front();
+    auto const step = [&net](std::string const& p_caption)
+    {
+        auto const found =
+            std::ranges::find(net.places(), p_caption, &tpne::Place::caption);
+        EXPECT_NE(found, net.places().end()) << p_caption;
+        return found->id;
+    };
+    // M1 gives the part to the entry of the belt: M1.Over(transfer).
+    (void)step("M1.Over(transfer)");
+    // The belt has no recipe to take the part: the entry is free again when
+    // the carry ends (2s/X of its step), not when it starts.
+    std::size_t const carry = step("transfer carry P1 (2 s)");
+    std::size_t const entry = step("transfer free");
+    auto const freedBy = [&net, entry](tpne::Transition const& p_transition)
+    {
+        for (tpne::Arc const& arc : net.arcsOut(p_transition))
+        {
+            if (arc.to.id == entry)
+            {
+                return true;
+            }
+        }
+        return false;
+    };
+    bool after_carry = false;
+    for (tpne::Transition const& transition : net.transitions())
+    {
+        if (transition.caption == "2s/X" + std::to_string(carry))
+        {
+            after_carry = freedBy(transition);
+        }
+        for (tpne::Arc const& arc : net.arcsOut(transition))
+        {
+            // The transition entering the carry does not free the entry.
+            EXPECT_FALSE(arc.to.id == carry && freedBy(transition));
+        }
+    }
+    EXPECT_TRUE(after_carry);
 }
 
 TEST(WorkflowGrafcet, StartedOperationsMoveTheTokensOfTheEventGraph)

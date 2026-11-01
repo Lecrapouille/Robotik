@@ -336,14 +336,23 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
                 builder.inputs.push_back(*from->zone);
             }
             runRecipe(builder, op.take, part, destination, op.id, where);
-            if (from != nullptr)
+            // Taken: its place and the zone are free again. Without a recipe
+            // to take it (a belt carries the part away), at the end of the
+            // work.
+            auto const taken = [&builder, from, &product]
             {
-                // Taken: its place and the zone are free again.
-                builder.extra.push_back(from->places.at(product.id));
-                if (from->zone)
+                if (from != nullptr)
                 {
-                    builder.extra.push_back(*from->zone);
+                    builder.extra.push_back(from->places.at(product.id));
+                    if (from->zone)
+                    {
+                        builder.extra.push_back(*from->zone);
+                    }
                 }
+            };
+            if (!op.take.empty())
+            {
+                taken();
             }
             // The work: a skill (a belt runs) for its duration or until done,
             // or a duration alone (the operator holds the part).
@@ -359,6 +368,10 @@ static Production build(WorkflowDescription const& p_workflow, tpne::Net& p_net,
                 builder.code = (duration > 0.0)
                                    ? seconds(duration) + "s/X" + std::to_string(work)
                                    : "done(" + at->skill + ")";
+            }
+            if (op.take.empty())
+            {
+                taken();
             }
             if (to != nullptr && to->zone)
             {

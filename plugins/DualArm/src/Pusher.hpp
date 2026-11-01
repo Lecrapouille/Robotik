@@ -5,75 +5,81 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file Conveyor.hpp
-/// The conveyor of the cell: the skill commands it, the mission moves
-/// the part it carries (abstract physics: the part rides at the belt speed).
+/// @file Pusher.hpp
+/// The sorter of the conveyor cell: a pusher takes one part off the infeed
+/// table and across to the lane of its pick zone; the lane is a conveyor
+/// belt of the cell (a core device) that carries it to the end stop. Only
+/// the pusher moves the part itself (abstract physics: the part slides at
+/// its speed).
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Task/Skills/Skill.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
 namespace robotik
 {
 class Cell;
-}
+class ConveyorBelt;
+} // namespace robotik
 
 namespace dual_arm
 {
 
 // ****************************************************************************
-/// The belt: carries one part at a time along a path of the world
-/// (off the infeed table, across to a lane, down the lane).
+/// The pusher: moves one part at a time along a path of the world (off the
+/// infeed table, across to a lane).
 // ****************************************************************************
-class Conveyor
+class Pusher
 {
 public:
 
-    /// Resource of the belt: the skill holds it alone, a fault stops it.
-    static constexpr char const* RESOURCE = "conveyor";
+    /// Resource of the pusher: the skill holds it alone, a fault stops it.
+    static constexpr char const* RESOURCE = "pusher";
 
-    /// Starts carrying @p_part through @p_path (world frame, x and y).
+    /// Starts pushing @p_part through @p_path (world frame, x and y).
     void carry(std::string p_part, std::vector<robotik::Vector3> p_path);
 
-    /// Stops the belt where it is.
+    /// Stops the pusher where it is.
     void stop();
 
-    /// Forgets the last delivery (new episode).
+    /// Forgets the last push (new episode).
     void reset();
 
-    /// Part brought to its goal by the last @ref carry, or empty.
-    [[nodiscard]] std::string const& delivered() const
+    /// Part brought to the end of its path by the last @ref carry, or empty.
+    [[nodiscard]] std::string const& pushed() const
     {
-        return m_delivered;
+        return m_pushed;
     }
 
     // -------------------------------------------------------------------------
-    /// Moves the carried part by @p_dt, unless the resource failed.
+    /// Moves the pushed part by @p_dt, unless the resource failed.
     // -------------------------------------------------------------------------
     void step(robotik::Cell& p_cell, robotik::Seconds p_dt);
 
 private:
 
     std::string m_part;
-    std::string m_delivered;
+    std::string m_pushed;
     /// Points left to reach, the next one first.
     std::vector<robotik::Vector3> m_path;
     bool m_running = false;
 };
 
 // ****************************************************************************
-/// Convey(part, feeder, zone): the belt pushes the part off the
-/// feeder, across to the lane of the zone, and down the lane to the believed
-/// centre of the zone.
+/// Convey(part, feeder, zone): the pusher takes the part off the feeder and
+/// across to the lane of the zone; the belt of the lane carries it to the end
+/// stop, on the zone. Done when the believed part rests on the zone.
 // ****************************************************************************
 class ConveySkill final: public robotik::Skill
 {
 public:
 
-    ConveySkill(Conveyor& p_conveyor,
+    ConveySkill(Pusher& p_pusher,
+                robotik::ConveyorBelt& p_lane,
                 std::string p_part,
                 std::string p_feeder,
                 std::string p_zone);
@@ -81,6 +87,7 @@ public:
     void reset() override
     {
         m_started = false;
+        m_last.reset();
         m_why.clear();
     }
 
@@ -95,11 +102,14 @@ public:
 
 private:
 
-    Conveyor& m_conveyor;
+    Pusher& m_pusher;
+    robotik::ConveyorBelt& m_lane;
     std::string m_part;
     std::string m_feeder;
     std::string m_zone;
     bool m_started = false;
+    /// Believed position of the part at the last tick, once on its lane.
+    std::optional<robotik::Vector3> m_last;
     std::string m_why;
 };
 

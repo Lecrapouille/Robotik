@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
      Copyright (c) 2020-2026 Quentin Quadrat
-     Conveyor of the DualArm cell: a belt of two lanes split by a divider,
-     an end stop on the near side, an infeed table on the far side.
+     Frame of the conveyor of the DualArm cell: two lanes split by a
+     divider, an end stop on the near side, an infeed table on the far side.
+     The belts of the lanes are not here: they are conveyor belts of the
+     cell (fixed box bodies of the world file, x from 0.02 to 1.00).
      Base frame: origin on the floor at the middle of the end stop, x along
      the belt toward the infeed table, z up. The belt top is 0.10 m high. -->
 <robot name="conveyor">
-  <material name="belt"><color rgba="0.10 0.10 0.11 1"/></material>
   <material name="steel"><color rgba="0.55 0.57 0.60 1"/></material>
   <material name="aluminium"><color rgba="0.78 0.80 0.83 1"/></material>
   <material name="yellow"><color rgba="0.95 0.75 0.10 1"/></material>
@@ -18,17 +19,6 @@
       <mass value="40.0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
-    <visual>
-      <!-- belt -->
-      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
-      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
-      <material name="belt"/>
-    </visual>
-    <collision>
-      <!-- belt -->
-      <origin xyz="0.5000 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>
-      <geometry><box size="1.0000 0.5000 0.0100"/></geometry>
-    </collision>
     <visual>
       <!-- infeed_table -->
       <origin xyz="1.0700 0.0000 0.0950" rpy="0.0000 0.0000 0.0000"/>

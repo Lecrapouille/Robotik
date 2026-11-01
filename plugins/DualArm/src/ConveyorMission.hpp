@@ -7,15 +7,16 @@
 
 /// @file ConveyorMission.hpp
 /// Two arms and a conveyor: the skills of each robot, the observers
-/// and bindings of the PDDL domain, and the belt.
+/// and bindings of the PDDL domain, and the pusher of the sorter.
 #pragma once
 
-#include "Conveyor.hpp"
+#include "Pusher.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/Mission.hpp"
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace dual_arm
@@ -45,12 +46,15 @@ private:
 
 private:
 
-    Conveyor m_conveyor;
+    Pusher m_pusher;
     /// World entities of each kind (ids).
     std::vector<std::string> m_parts;
     std::vector<std::string> m_feeders;
     std::vector<std::string> m_zones;
     std::vector<std::string> m_bins;
+    /// Entry of each conveyor belt of the cell (box body), where an arm puts
+    /// a part: belt entity, point of its top face (world frame).
+    std::vector<std::pair<std::string, robotik::Vector3>> m_belt_entries;
     double m_overlap = 0.0;
 };
 

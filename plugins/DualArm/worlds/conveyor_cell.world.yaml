@@ -1,13 +1,14 @@
 # Two 6-axis arms side by side, each with a vacuum cup and a wrist camera.
 # A conveyor of two lanes runs between them. The parts wait on its infeed
-# table, far in front of both arms; the belt pushes one onto a lane and
+# table, far in front of both arms; a pusher (the skill Convey) takes one
+# onto a lane, and the belt of the lane, a conveyor belt of the cell,
 # carries it to the end stop, on the pick zone of that lane. Each arm drops
 # its parts in its own bin. Z-up, metres, radians. Seen from above:
 #
 #     bin_left (0.05, -0.75)                          bin_right (0.05, 0.75)
 #   left (0, -0.35)                                          right (0, 0.35)
-#        end stop (0.30)  zone_left (0.40, -0.13)  ... lane ...  infeed (1.37): p1 p2 p3 p4
-#                         zone_right (0.40, 0.13)  ... lane ...
+#        end stop (0.32)  zone_left (0.38, -0.13)  ... lane_left ...  infeed (1.37): p1 p2 p3 p4
+#                         zone_right (0.38, 0.13)  ... lane_right ...
 world:
   id: conveyor_cell
 
@@ -59,13 +60,28 @@ world:
       actuators:
         right_gripper: { type: vacuum }
 
-    # The conveyor: a fixed body, its belt top 0.10 m high. The belt runs
-    # from x = 0.30 (end stop) to x = 1.30, then the infeed table to 1.44.
+    # The conveyor: a fixed body (frame, divider, end stop, infeed table),
+    # its belts 0.10 m high. The lanes run from x = 1.30 to the end stop
+    # (x = 0.32), the infeed table from 1.30 to 1.44.
     - id: conveyor
       type: body
       model: robotik.dual_arm.conveyor
       physics: fixed
       pose: { position: [0.30, 0.0, 0.0] }
+    - id: lane_left
+      type: conveyor
+      size: [0.98, 0.25, 0.01]
+      color: [0.10, 0.10, 0.11]
+      pose: { position: [0.81, -0.125, 0.095] }
+      speed: 0.4
+      direction: [-1, 0, 0]
+    - id: lane_right
+      type: conveyor
+      size: [0.98, 0.25, 0.01]
+      color: [0.10, 0.10, 0.11]
+      pose: { position: [0.81, 0.125, 0.095] }
+      speed: 0.4
+      direction: [-1, 0, 0]
 
     # Places on the belt: flat frames, their floor 1 mm above the belt (not
     # at the same height: the two surfaces would flicker).
@@ -80,13 +96,13 @@ world:
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
       color: [0.95, 0.75, 0.10]
-      pose: { position: [0.40, -0.13, 0.101] }
+      pose: { position: [0.38, -0.13, 0.101] }
     - id: zone_right
       type: prop
       kind: zone
       shape: { type: container, size: [0.12, 0.12, 0.01] }
       color: [0.95, 0.75, 0.10]
-      pose: { position: [0.40, 0.13, 0.101] }
+      pose: { position: [0.38, 0.13, 0.101] }
 
     # Parts waiting on the infeed table, out of reach of both arms, red and
     # blue mixed: the belt sends each one to the lane of its arm.

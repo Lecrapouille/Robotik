@@ -3,7 +3,7 @@
 # TimedPetriNetEditor). One parallel branch per arm (AND divergence after
 # Start); inside a branch, a second AND divergence lets the conveyor bring
 # the next part while the arm carries the last one to its bin, and an AND
-# convergence waits for both. The conveyor is a resource of the skills: when
+# convergence waits for both. The pusher is a resource of the skills: when
 # both branches ask for it, the skill scheduler makes one of them wait.
 # conveyor.workflow.yaml gives the cycle time of this cell.
 scenario:

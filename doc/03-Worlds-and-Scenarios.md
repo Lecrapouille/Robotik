@@ -239,6 +239,8 @@ world:
 | `tool` | A tool. It keeps its identity once mounted and brings its own actuators and sensors | Hangs on the flange |
 | `body` | A simulated rigid body: a URDF model or a box (`physics: free` or `fixed`; a free box has a `mass`). A fixed box may carry a `conveyor` | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
+| `conveyor` | A shorthand for a conveyor belt: a fixed box `body` whose top face is the belt (see **Conveyor belt** below) | As a fixed `body` |
+| `buffer` | A shorthand for a row of places: `places` containers named `<id>_1` .. `<id>_N` (see below) | As `prop`s |
 
 Use a `prop` when you want a simple, exact scene. Use a `body` when physics
 matters: "does the easel slide when the brush pushes it?".
@@ -390,7 +392,7 @@ skills reserve it, faults make it unavailable.
 | `joint_group` | a set of joints (all of them by default) |
 | `motor` | one joint |
 | `vacuum` | a vacuum gripper: grasps what touches it |
-| `conveyor` | a conveyor belt, on a fixed box body: the parts resting on its top face go at `speed` (m/s, default 0.2) along `direction` (frame of the body, default `[1, 0, 0]`) while it runs |
+| `conveyor` | a conveyor belt, on a fixed box body: the parts resting on its top face go at `speed` (m/s, default 0.2) along `direction` (frame of the body, default `[1, 0, 0]`) while it runs; `stop: true` puts a stop at its end |
 
 **Conveyor belt.** A belt is a device of the cell, not of a robot: its name
 is a resource, and the cell adds the skill `<name>.Run`, which runs the belt
@@ -398,7 +400,13 @@ while it is requested (an action of a GRAFCET step, a node of a tree). With
 `physics.fidelity: rigid` MuJoCo pulls each box resting on the belt to the
 belt speed, by friction (a blocked box slips, its mass and inertia count);
 with `abstract`, the box moves at the belt speed and stops at the end of the
-belt, still on it (a stop). With `rigid` nothing stops it: it falls at the end. A failed resource stops the belt.
+belt, still on it. With `rigid` the box falls at the end, unless the belt
+has a stop: `stop: true` adds the fixed box `<entity>_stop` just past the
+end of the belt, across it, 2 cm higher than the belt (an entity of its own:
+drawn, in the physics, usable in assertions). A stopped belt holds the parts
+by friction. A part put on a belt lands on it, at every fidelity (with
+`abstract`, the top of a box body is a support, as the floor of a
+container). A failed resource stops the belt.
 
 ```yaml
     - id: feeder
@@ -407,7 +415,40 @@ belt, still on it (a stop). With `rigid` nothing stops it: it falls at the end. 
       shape: { type: box, size: [1.0, 0.2, 0.1] }
       pose: { position: [0.5, -0.8, 0.05] }
       actuators:
-        feeder_belt: { type: conveyor, speed: 0.2, direction: [1, 0, 0] }
+        feeder_belt: { type: conveyor, speed: 0.2, direction: [1, 0, 0], stop: true }
+```
+
+The same belt is shorter with `type: conveyor`: the box is `size`, the belt
+is named `<id>_belt` (or `belt:`), and `speed`, `direction`, `stop`,
+`color`, `friction` are keys of the entity. The reader makes the entry
+above from it.
+
+```yaml
+    - id: feeder
+      type: conveyor
+      size: [1.0, 0.2, 0.1]
+      pose: { position: [0.5, -0.8, 0.05] }
+      speed: 0.2
+      direction: [1, 0, 0]
+      stop: true
+```
+
+**Buffer.** `type: buffer` makes a row of places where parts wait (the
+places of a workflow buffer, [chapter 12](12-GRAFCET-and-Workflows.md)):
+`places` containers of `size` (default `[0.10, 0.10, 0.01]`), `pitch`
+apart (default `size.x + 0.01`), along `direction` (in the frame of the
+pose, default `[1, 0, 0]`). The `pose` is the middle of the row. They are
+named `<id>_1` .. `<id>_N`, all of the same `kind`; `colors` gives one
+`[r, g, b]` per place, or `color` one for all.
+
+```yaml
+    - id: station                      # station_1, station_2, station_3
+      type: buffer
+      kind: bin
+      places: 3
+      pitch: 0.11
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
 ```
 
 **Noise.** A noise channel is a standard deviation (`noise: 0.01`) or a full

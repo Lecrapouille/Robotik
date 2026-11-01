@@ -3,7 +3,7 @@
 # F1 normal production, A2 end of cycle, D1, A5, A6) and the Production
 # generated from the workflow. A part starts only in F1. The operator
 # pushes Start, then Stop at 20 s: the arms finish the parts they hold
-# (M1 puts p3a in the station, M2 drops p2a), Control goes A2 then back to
+# (M1 puts p3a in the station, M2 puts p2a on the outfeed), Control goes A2 then back to
 # A1 when both arms are between two parts. p3a waits in the station, lot b
 # stays in the stock: Start again goes on from there.
 scenario:
@@ -27,9 +27,9 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1a, output)
-    - inside(p2a, output)
-    - on(p3a, slot3)
-    - inside(p1b, output) == 0
+    - on(p1a, outfeed)
+    - on(p2a, outfeed)
+    - on(p3a, station_3)
+    - on(p1b, outfeed) == 0
     - { condition: "collision_count(M1) == 0", phase: always }
     - { condition: "collision_count(M2) == 0", phase: always }

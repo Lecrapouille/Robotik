@@ -15,6 +15,7 @@
 #include "Robotik/Common/Math.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 
 namespace robotik
@@ -38,7 +39,34 @@ static bool simulated(compages::world::Entity p_entity)
            p_entity.find<ecs::Decoration>() != nullptr;
 }
 
-/// Height of the support below @p_at: a container floor or the ground (z = 0).
+/// Top of a box body of the physics (a conveyor belt, a table) when @p_at
+/// is above it, or nothing.
+static std::optional<Length> topBelow(compages::world::Entity p_entity,
+                                      ecs::Shape const& p_object,
+                                      Vector3 const& p_at)
+{
+    if (p_object.type != ecs::Shape::Type::BOX ||
+        p_entity.find<ecs::Decoration>() != nullptr)
+    {
+        return std::nullopt;
+    }
+    auto const turn = p_entity.rotation();
+    Pose const pose{ positionOf(p_entity),
+                     Quaternion(turn.w, turn.x, turn.y, turn.z) };
+    Vector3 const local = pose.inverse() * p_at;
+    Vector3 const half(0.5 * p_object.size[0].value(),
+                       0.5 * p_object.size[1].value(),
+                       0.5 * p_object.size[2].value());
+    if (std::abs(local.x) > half.x || std::abs(local.y) > half.y ||
+        local.z < half.z)
+    {
+        return std::nullopt;
+    }
+    return Length((pose * Vector3(local.x, local.y, half.z)).z);
+}
+
+/// Height of the support below @p_at: a container floor, the top of a box
+/// body, or the ground (z = 0).
 static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
 {
     Length floor{ 0.0 };
@@ -48,6 +76,11 @@ static Length supportBelow(compages::world::World& p_world, Vector3 const& p_at)
         {
             if (simulated(p_entity))
             {
+                if (std::optional<Length> const top =
+                        topBelow(p_entity, p_object, p_at))
+                {
+                    floor = std::max(floor, *top);
+                }
                 return;
             }
             Vector3 const center = positionOf(p_entity);

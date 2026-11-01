@@ -1,9 +1,10 @@
 # The small factory of factory_cell.world.yaml, fed by a conveyor belt: the
 # six parts wait on the feeder in the order M1 takes them, one pitch (10 cm)
 # apart. Each run of the belt brings the next part to the pick place, at the
-# end of the belt, where a stop holds it (no physics: abstract fidelity).
+# end of the belt, where a stop holds it (stop: true, with every physics).
 # Then as in factory_cell: M1 machines the part while holding it and puts it
-# on the station of its kind; M2 takes it, machines it and drops it.
+# on the station of its kind; M2 takes it, machines it and puts it on the
+# outfeed belt. The parts weigh 50 g (rigid physics).
 # Machining times (s), as in simple.flowshop:  P1  P2  P3
 #                                          M1   2   3   1
 #                                          M2   1   2   1.5
@@ -42,28 +43,41 @@ world:
         M2_gripper: { type: vacuum }
 
     # The feeder: a belt of 70 cm along x, 4 cm high; the parts go to -x and
-    # stop at its end (x = 0.20), the pick place of M1.
+    # stop at its end (x = 0.20), the pick place of M1, against the stop
+    # feeder_stop added there.
     - id: feeder
-      type: body
-      physics: fixed
-      shape: { type: box, size: [0.70, 0.10, 0.04] }
-      color: [0.25, 0.25, 0.28]
+      type: conveyor
+      size: [0.70, 0.10, 0.04]
       pose: { position: [0.55, -0.55, 0.02] }
-      actuators:
-        feeder_belt: { type: conveyor, speed: 0.2, direction: [-1, 0, 0] }
+      speed: 0.2
+      direction: [-1, 0, 0]
+      stop: true
 
     # The parts on the feeder, in the order M1 takes them.
-    - { id: p1a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
-    - { id: p2a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
-    - { id: p3a, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
-    - { id: p1b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
-    - { id: p2b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
-    - { id: p3b, type: prop, kind: part, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
+    - { id: p1a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.32, -0.55, 0.06] } }
+    - { id: p2a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.42, -0.55, 0.06] } }
+    - { id: p3a, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.52, -0.55, 0.06] } }
+    - { id: p1b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.9, 0.1, 0.1], pose: { position: [0.62, -0.55, 0.06] } }
+    - { id: p2b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.75, 0.2], pose: { position: [0.72, -0.55, 0.06] } }
+    - { id: p3b, type: prop, kind: part, mass: 0.05, shape: { type: box, size: [0.04, 0.04, 0.04] }, color: [0.1, 0.3, 0.9], pose: { position: [0.82, -0.55, 0.06] } }
 
-    # Stations between the two machines, one per kind of part.
-    - { id: slot1, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.9, 0.6, 0.6], pose: { position: [0.25, 0.0, 0.005] } }
-    - { id: slot2, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.9, 0.6], pose: { position: [0.36, 0.0, 0.005] } }
-    - { id: slot3, type: prop, kind: bin, shape: { type: container, size: [0.10, 0.10, 0.01] }, color: [0.6, 0.6, 0.9], pose: { position: [0.47, 0.0, 0.005] } }
+    # The station between the two machines: one place per kind of part,
+    # station_1 .. station_3 along x, 11 cm apart.
+    - id: station
+      type: buffer
+      kind: bin
+      places: 3
+      size: [0.10, 0.10, 0.01]
+      pitch: 0.11
+      colors: [[0.9, 0.6, 0.6], [0.6, 0.9, 0.6], [0.6, 0.6, 0.9]]
+      pose: { position: [0.36, 0.0, 0.005] }
 
-    # Output of M2.
-    - { id: output, type: prop, kind: bin, shape: { type: container, size: [0.20, 0.20, 0.08] }, color: [0.8, 0.8, 0.8], pose: { position: [0.18, 0.55, 0.04] } }
+    # The outfeed of M2: 60 cm along x (entry at x = 0.09); each part goes
+    # one pitch (12 cm) away, the first ones wait against outfeed_stop.
+    - id: outfeed
+      type: conveyor
+      size: [0.60, 0.10, 0.04]
+      pose: { position: [0.35, 0.55, 0.02] }
+      speed: 0.3
+      direction: [1, 0, 0]
+      stop: true

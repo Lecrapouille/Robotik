@@ -246,7 +246,8 @@ public:
     /// a force at its centre pulls it toward @p_velocity, at most the
     /// friction force @c μ·m·g, plus the friction it slides against (so a
     /// part moving with the belt keeps its speed; a blocked part slips). The
-    /// force stays until the next call; @p_friction 0 removes it.
+    /// force stays until the next call; @p_friction 0 or a zero velocity (a
+    /// stopped belt, a still surface) removes it.
     /// @param p_body Index from @ref freeBody.
     /// @param p_velocity Velocity of the belt surface (world frame, z ignored).
     /// @param p_friction Friction coefficient between the belt and the body.

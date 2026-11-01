@@ -300,33 +300,38 @@ make robotik_dual_arm
 **Conveyor.** One plan of 12 steps; the times show the overlap:
 
 ```text
-  0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.56 s)
-  2.57 s  right.Hover(p4)  SUCCEEDED  (0.95 s)
-  2.57 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (2.91 s)
-  3.53 s  right.Reach(p4)  SUCCEEDED  (0.4 s)
-  3.94 s  right.Grasp(p4)  SUCCEEDED  (0.01 s)
-  3.96 s  right.Hover(p4)  SUCCEEDED  (0.41 s)
-  4.38 s  right.Over(bin_right)  SUCCEEDED  (2.09 s)
-  5.49 s  left.Hover(p3)  SUCCEEDED  (0.95 s)
-  5.49 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (2.91 s)
-  6.45 s  left.Reach(p3)  SUCCEEDED  (0.4 s)
-  6.48 s  right.Release  SUCCEEDED  (0.01 s)
-  6.5 s  right.Ready(zone_right)  SUCCEEDED  (2.08 s)
+  0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.72 s)
+  2.73 s  right.Hover(p4)  SUCCEEDED  (0.98 s)
+  2.73 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (3.07 s)
+  3.72 s  right.Reach(p4)  SUCCEEDED  (0.4 s)
+  4.13 s  right.Grasp(p4)  SUCCEEDED  (0.01 s)
+  4.15 s  right.Hover(p4)  SUCCEEDED  (0.42 s)
+  4.58 s  right.Over(bin_right)  SUCCEEDED  (2.16 s)
+  5.81 s  left.Hover(p3)  SUCCEEDED  (0.98 s)
+  5.81 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (3.07 s)
+  6.75 s  right.Release  SUCCEEDED  (0.01 s)
+  6.77 s  right.Ready(zone_right)  SUCCEEDED  (2.1 s)
+  6.8 s  left.Reach(p3)  SUCCEEDED  (0.4 s)
   ...
-  8.59 s  right.Hover(p2)  SUCCEEDED  (0.28 s)
+  8.89 s  right.Hover(p2)  SUCCEEDED  (0.3 s)
   ...
-[PASS] dual_arm.overlap > 2  (dual_arm.overlap = 8.22)
-[PASS] time < 20  (time = 16.85)
+[PASS] dual_arm.overlap > 2  (dual_arm.overlap = 8.33)
+[PASS] time < 20  (time = 17.44)
 ```
 
-Run step by step, the same plan ends at 33.27 s instead of 16.85 s.
+Run step by step, the same plan ends at 34.87 s instead of 17.44 s.
 
-- **The belt.** The conveyor is a fixed body (`robotik.dual_arm.conveyor`,
-  a model of the plugin pack in `data/`). The belt is a device of the
-  plugin with its resource `conveyor`: `Convey(part, feeder, zone)` pushes
-  the part off the infeed table, across to the lane of the zone, and down
-  the lane to its end stop. It holds the resource alone, so two conveys
-  never overlap, and a fault on `conveyor` stops the belt.
+- **The sorter.** The conveyor is a fixed body (`robotik.dual_arm.conveyor`,
+  a model of the plugin pack in `data/`: frame, divider, end stop, infeed
+  table). Each lane is a conveyor belt of the cell (`lane_left`,
+  `lane_right`, [chapter 3](03-Worlds-and-Scenarios.md)). The pusher is a
+  device of the plugin with its resource `pusher`:
+  `Convey(part, feeder, zone)` pushes the part off the infeed table and
+  across to the lane of the zone, then runs the belt of the lane until the
+  part rests on the zone, against the end stop. It holds the pusher and the
+  belt alone, so two conveys never overlap, and a fault on `pusher` or on
+  the belt stops it. The pusher moves the part without physics: the
+  conveyor scenarios stay at `abstract`.
 - **Waiting at the right place.** `place` ends with `Ready(zone)`: the arm
   comes back over its pick zone, at the height it takes the next part from.
   The part arrives under the cup (`right.Ready(zone_right)` runs during
@@ -415,7 +420,7 @@ Files: `plugins/DualArm/`
 - `scenarios/trajectories/drill_target.trajectory.yaml` (the path of the drill);
 - `scenarios/conveyor.domain.pddl` (classical), `scenarios/tray.domain.pddl` (temporal);
 - `src/ConveyorMission.cpp`, `src/TrayMission.cpp`: skills of each robot,
-  observers, bindings; `src/Conveyor.cpp`: the belt; `src/ArmSkills.cpp`,
+  observers, bindings; `src/Pusher.cpp`: the pusher of the sorter; `src/ArmSkills.cpp`,
   `src/TraySkills.cpp`: the skills.
 
 Limits: the parts and glasses are boxes (the only free shape); the parts
@@ -427,7 +432,7 @@ plugin has no detector yet; the arms are the generic `robot_6axis`.
 The conveyor also runs with a GRAFCET (`conveyor_grafcet.scenario.yaml`,
 [chapter 12](12-GRAFCET-and-Workflows.md)): one parallel branch per arm, and
 in each branch the conveyor brings the next part while the arm carries the
-last one (AND divergence and convergence). The shared conveyor is a resource:
+last one (AND divergence and convergence). The shared pusher is a resource:
 the skill scheduler makes one branch wait. It ends in about 17 s.
 `conveyor.workflow.yaml` describes the cell as a flowshop and gives its cycle
 time and its bottleneck (the right arm).
@@ -436,20 +441,25 @@ time and its bottleneck (the right arm).
 flowshop of TimedPetriNetEditor (`data/examples/simple.flowshop`) with robots.
 The two arms are the machines M1 and M2; three kinds of parts (P1 red, P2
 green, P3 blue) in two lots go from the stock of M1 to a station of their
-kind, then to the output of M2. Only `factory.workflow.yaml` describes the
+kind, then to the outfeed belt of M2. Only `factory.workflow.yaml` describes the
 cell: the recipes of the arms (the skills to take and to give a part), the
 station between them, the parts of each lot and the machining times of
-`simple.flowshop`. Robotik generates the GRAFCET from it (127 steps, the event
+`simple.flowshop`. Robotik generates the GRAFCET from it (147 steps, the event
 graph of the flowshop): one sequence of steps per operation, AND
 convergences for the order of the machines and of the parts, machining as a
 time receptivity while the arm holds the part, and the station as a zone
-(one arm at a time, M2 first). It ends in about 50 s. The same file gives
+(one arm at a time, M2 first). It ends in about 53 s. The same file gives
 the cycle time: 6 s, M1 is the bottleneck.
 `factory_gemma.scenario.yaml` drives the same cell with a GEMMA: Start, then
 Stop at 20 s; the arms finish the parts they hold and the cell goes back to
 its initial stop.
 `factory_belt.scenario.yaml` feeds the same factory with a conveyor belt: the
 belt brings each part to M1, when the pick place at its end is free.
+`factory_transfer.scenario.yaml` puts M1 and M2 one metre apart, linked by
+a transfer belt in place of the station; an outfeed belt takes the finished
+parts away. The stops at the end of the belts hold the parts: the
+experiment `factory_rigid.experiment.yaml` runs the four factories with the
+rigid physics.
 
 ## 9. Micro Duck
 

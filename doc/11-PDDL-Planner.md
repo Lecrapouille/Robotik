@@ -247,17 +247,17 @@ for two arms and one conveyor. The same plan, run both ways:
 
 ```text
 conveyor (parallel: true)
-  0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.56 s)
-  2.57 s  right.Hover(p4)  SUCCEEDED  (0.95 s)
-  2.57 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (2.91 s)
+  0 s  Convey(p4, feeder, zone_right)  SUCCEEDED  (2.72 s)
+  2.73 s  right.Hover(p4)  SUCCEEDED  (0.98 s)
+  2.73 s  Convey(p3, feeder, zone_left)  SUCCEEDED  (3.07 s)
   ...
-  5.49 s  left.Hover(p3)  SUCCEEDED  (0.95 s)
-  5.49 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (2.91 s)
+  5.81 s  left.Hover(p3)  SUCCEEDED  (0.98 s)
+  5.81 s  Convey(p2, feeder, zone_right)  SUCCEEDED  (3.07 s)
   ...
-[PASS] default                  seed=42     controller succeeded at 16.85 s (oracle perception)  time=16.85
+[PASS] default                  seed=42     controller succeeded at 17.44 s (perception truth)  time=17.44
 
 conveyor_sequential (parallel: false)
-[PASS] default                  seed=42     controller succeeded at 33.27 s (oracle perception)  time=33.27
+[PASS] default                  seed=42     controller succeeded at 34.87 s (perception truth)  time=34.87
 ```
 
 **Durative actions.** In a temporal domain (`:durative-action`), the

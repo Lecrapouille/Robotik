@@ -83,6 +83,15 @@ HoverSkill::HoverSkill(std::string p_object, robotik::Length p_clearance)
 {
 }
 
+HoverSkill::HoverSkill(robotik::Vector3 p_surface,
+                       std::string p_name,
+                       robotik::Length p_clearance)
+    : m_object(std::move(p_name)),
+      m_surface(p_surface),
+      m_clearance(p_clearance)
+{
+}
+
 void HoverSkill::reset()
 {
     m_planned = false;
@@ -94,19 +103,34 @@ Status HoverSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
 {
     if (!m_planned)
     {
-        // Believed pose (perception or oracle), never the ground truth.
-        robotik::WorldObject const* object =
-            p_context.world_model.find(m_object);
         robotik::VacuumGripper const* cup = cupOf(p_context.robot);
-        if (object == nullptr || cup == nullptr)
+        robotik::Vector3 at;
+        double top = 0.0;
+        if (m_surface)
         {
-            m_why = object == nullptr ? m_object + " is not in the beliefs"
-                                      : "no vacuum cup";
+            at = p_context.robot.base().pose.inverse() * *m_surface;
+            top = at.z;
+        }
+        else
+        {
+            // Believed pose (perception or oracle), never the ground truth.
+            robotik::WorldObject const* object =
+                p_context.world_model.find(m_object);
+            if (object == nullptr)
+            {
+                m_why = m_object + " is not in the beliefs";
+                return Status::FAILURE;
+            }
+            at = inBase(p_context, object->position);
+            top = inBase(p_context,
+                         robotik::Vector3(0.0, 0.0, robotik::top(*object)))
+                      .z;
+        }
+        if (cup == nullptr)
+        {
+            m_why = "no vacuum cup";
             return Status::FAILURE;
         }
-        robotik::Vector3 const at = inBase(p_context, object->position);
-        double const top =
-            inBase(p_context, robotik::Vector3(0.0, 0.0, robotik::top(*object))).z;
         double const height = top + m_clearance.value() + cup->length().value();
         robotik::Pose const target{ { at.x, at.y, height }, pointingDown(at) };
         m_move = robotik::MoveTCPSkill(cup->link(), target);

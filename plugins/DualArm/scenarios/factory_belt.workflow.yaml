@@ -1,6 +1,6 @@
 # The factory of factory.workflow.yaml fed by a conveyor belt
 # (worlds/factory_belt_cell.world.yaml). The feeder is the first operator:
-# its operation runs the belt 0.55 s (a pitch of 10 cm at 0.2 m/s, a little
+# its operation runs the belt 0.52 s (a pitch of 10 cm at 0.2 m/s, a little
 # more: the stop at the end holds the part), when the pick place is free.
 # M1 takes the part there; then as in factory.workflow.yaml.
 #   ./build/Robotik-Headless build/plugins/DualArm/scenarios/factory_belt.workflow.yaml
@@ -20,26 +20,31 @@ workflow:
               "M2.Grasp({part}) . holding(M2, {part})", "M2.Hover({part})",
               "M2.Over({to})" ]
       give: [ "M2.Release" ]
+    - id: outfeed                    # takes the finished parts away
+      entity: outfeed
   buffers:
     - { id: pick, after: feeder, place: pick }   # the end of the belt, one part
-    - { id: station, after: M1, places: { P1: slot1, P2: slot2, P3: slot3 }, zone: true }
-  output: output
+    - { id: station, after: M1, places: { P1: station_1, P2: station_2, P3: station_3 }, zone: true }
+    - { id: exit, after: M2, place: outfeed }   # M2.Over(outfeed): its entry
   products:
     - id: P1
       parts: [p1a, p1b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 2.0 }
         - { name: machining, on: M2, duration: 1.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P2
       parts: [p2a, p2b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 3.0 }
         - { name: machining, on: M2, duration: 2.0 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
     - id: P3
       parts: [p3a, p3b]
       route:
-        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.55 }
+        - { name: bring, on: feeder, skill: feeder_belt.Run, duration: 0.52 }
         - { name: machining, on: M1, duration: 1.0 }
         - { name: machining, on: M2, duration: 1.5 }
+        - { name: out, on: outfeed, skill: outfeed_belt.Run, duration: 0.4 }
