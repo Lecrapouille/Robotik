@@ -21,6 +21,7 @@ scenarios:
   entries:
     - { id: conveyor, name: Conveyor (parallel), file: conveyor.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_sequential, name: Conveyor (step by step), file: conveyor_sequential.scenario.yaml, menu: PDDL planner }
+    - { id: conveyor_pabt, name: Conveyor (PA-BT), file: conveyor_pabt.scenario.yaml, menu: PDDL planner }
     - { id: tray, name: Tray of glasses, file: tray.scenario.yaml, menu: PDDL planner }
     - { id: conveyor_grafcet, name: Conveyor (GRAFCET), file: conveyor_grafcet.scenario.yaml, menu: GRAFCET }
     - { id: factory, name: Factory (flowshop), file: factory.scenario.yaml, menu: GRAFCET }

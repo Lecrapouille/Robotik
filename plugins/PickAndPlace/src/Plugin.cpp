@@ -47,6 +47,8 @@ public:
         // domain (holding(red_cube) ...).
         if (p_scenario == "pick_and_place_pddl" ||
             p_scenario == "pick_and_place_pddl_faults" ||
+            p_scenario == "pick_and_place_pabt" ||
+            p_scenario == "pick_and_place_pabt_faults" ||
             p_scenario == "pick_and_place_grafcet" ||
             p_scenario == "pick_and_place_gemma" ||
             p_scenario == "pick_and_place_gemma_stop" ||

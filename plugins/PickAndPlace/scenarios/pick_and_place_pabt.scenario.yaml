@@ -1,0 +1,30 @@
+# The task of pick_and_place_pddl.scenario.yaml, with the same domain and
+# the same mission, but no search: the behavior tree grows backwards from
+# the goal (PA-BT). It starts with in(red_cube, box)?; when it is false,
+# place(red_cube, box) goes under it, which needs holding(red_cube)?, which
+# gets pick(red_cube), which needs seen(red_cube)? and hand_empty?, and so
+# on. Each tick reads the conditions on the beliefs again.
+scenario:
+  id: pick_and_place_pabt
+  description: Grow a reactive behavior tree from the goal, then put the red cube in the box.
+  world: worlds/pick_place_cell.world.yaml
+  seed: 42
+
+  controller:
+    planner:
+      domain: scenarios/pick_and_place.domain.pddl
+      method: pabt
+      goal:
+        - in(red_cube, box)
+
+  perception: { blind: truth }   # true poses when no camera has an image
+
+  timeout: 60
+
+  assertions:
+    - controller.success
+    - inside(red_cube, box)
+    - holding(gripper) == 0
+    - { condition: "collision_count(robot) == 0", phase: always }
+    - planner.replans == 0
+    - time < 30

@@ -375,6 +375,27 @@ struct Trajectory
 };
 
 // ****************************************************************************
+/// How the planner reaches the goal (@c planner.method:).
+// ****************************************************************************
+enum class PlannerMethod : std::uint8_t
+{
+    /// @c search: a planner finds the whole plan, the executor runs it and
+    /// plans again when the beliefs disagree.
+    Search,
+    /// @c pabt: no search. A reactive behavior tree grows backwards from the
+    /// goal (PA-BT, see Backchaining.hpp): a false condition gets the
+    /// actions that make it true, and the tree reacts to the beliefs at each
+    /// tick without planning again.
+    Backchaining,
+};
+
+// ----------------------------------------------------------------------------
+/// @param p_method Method to name.
+/// @return "search" or "pabt", as in the YAML.
+// ----------------------------------------------------------------------------
+[[nodiscard]] char const* toString(PlannerMethod p_method);
+
+// ****************************************************************************
 /// Goal and settings of the PDDL planner (@c controller.planner:, see
 /// @ref ControllerSpec for the YAML).
 ///
@@ -390,6 +411,8 @@ struct PlannerSpec
     std::filesystem::path domain;
     /// What cannot be observed and does not change: compatible(vacuum, cube).
     std::vector<Literal> facts;
+    /// Search for a plan, or grow a reactive tree from the goal.
+    PlannerMethod method = PlannerMethod::Search;
     /// Conjunction to reach.
     std::vector<Literal> goal;
     /// Goal in PDDL, for what a list of literals cannot say (forall...).
@@ -475,11 +498,13 @@ struct GrafcetSpec
 /// controller:
 ///   planner:
 ///     domain: scenarios/pick_and_place.domain.pddl
+///     method: search                      # or pabt: reactive tree, no search
 ///     facts:                              # block lists: a flow list [a(x, y)]
 ///       - compatible(vacuum, cube)        # would split at the comma
 ///     goal:
 ///       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
-///     replan: { max: 3, delay: 0.5 }      # new plans; simulated s before each
+///     replan: { max: 3, delay: 0.5 }      # new plans (pabt: retries after a
+///                                         # failed action); simulated s before
 ///     verify: true                        # check the effects on the beliefs
 ///                                         # (observed: only fresh observations)
 ///     parallel: true                      # independent steps run together

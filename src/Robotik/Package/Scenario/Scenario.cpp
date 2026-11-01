@@ -85,6 +85,16 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
         throw std::runtime_error(
             "planner.domain is required (a PDDL file of the package)");
     }
+    if (std::string const method = p_node.text("method", "search");
+        method == "pabt")
+    {
+        spec.method = PlannerMethod::Backchaining;
+    }
+    else if (method != "search")
+    {
+        throw std::runtime_error("planner.method: '" + method +
+                                 "' is not search or pabt");
+    }
     spec.facts = readLiterals(p_node, "facts");
     spec.goal = readLiterals(p_node, "goal");
     spec.goal_pddl = p_node.text("goal_pddl");

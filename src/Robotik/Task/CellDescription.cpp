@@ -198,6 +198,19 @@ char const* toString(Fidelity p_fidelity)
 }
 
 // ----------------------------------------------------------------------------
+char const* toString(PlannerMethod p_method)
+{
+    switch (p_method)
+    {
+        case PlannerMethod::Search:
+            return "search";
+        case PlannerMethod::Backchaining:
+            return "pabt";
+    }
+    return "?";
+}
+
+// ----------------------------------------------------------------------------
 char const* toString(PerceptionFidelity p_fidelity)
 {
     switch (p_fidelity)

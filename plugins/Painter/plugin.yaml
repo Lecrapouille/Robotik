@@ -21,6 +21,7 @@ scenarios:
   entries:
     - { id: painter, name: Robotic painter, file: painter.scenario.yaml, menu: Behavior tree }
     - { id: painter_pddl, name: Robotic painter, file: painter_pddl.scenario.yaml, menu: PDDL planner }
+    - { id: painter_pabt, name: Robotic painter (PA-BT), file: painter_pabt.scenario.yaml, menu: PDDL planner }
 
 experiments:
   directory: experiments

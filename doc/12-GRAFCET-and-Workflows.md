@@ -487,7 +487,9 @@ the last recipe without `output`, and an unknown placeholder.
 say the same order. A tree with only `Sequence` and `Parallel` says only
 series-parallel orders. The planner of Robotik writes any partial order: a
 `Parallel` of the steps, each one waiting for the events it needs
-([chapter 11](11-PDDL-Planner.md)). The GRAFCET says it with AND convergences.
+([chapter 11](11-PDDL-Planner.md)). With `method: pabt` the tree grows
+backwards from the goal (PA-BT) and reacts to the beliefs without planning
+again. The GRAFCET says it with AND convergences.
 Choose by the job: the planner and the trees for robots that decide; the
 GRAFCET and the GEMMA for a factory cell, the language of automation
 engineers.

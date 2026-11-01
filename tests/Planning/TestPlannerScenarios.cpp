@@ -176,6 +176,80 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
     EXPECT_EQ(simulation.cell().planner()->plan().size(), 12U) << plan;
 }
 
+TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
+{
+    PickPlaceMission mission(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world,
+        scenario(
+            "plugins/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"),
+        nullptr,
+        &mission);
+
+    PlannedRun const first = run(simulation, robotik::Seed{ 42 }, 60.0);
+    EXPECT_EQ(first.outcome, robotik::Simulation::Outcome::ControllerSucceeded);
+    EXPECT_TRUE(first.passed);
+    // The goal, then one growth per false condition, back to what holds.
+    ASSERT_EQ(first.causes.size(), 3U);
+    EXPECT_EQ(first.causes[0], "start");
+    EXPECT_EQ(first.causes[1],
+              "in(red_cube, box) is false: put 1 action(s) under it");
+    EXPECT_EQ(first.causes[2],
+              "holding(red_cube) is false: put 1 action(s) under it");
+    EXPECT_EQ(first.plans[2], "(place red_cube box)(pick red_cube)");
+
+    robotik::PlanExecutor const& executor = *simulation.cell().planner();
+    EXPECT_EQ(executor.done(), 2U);
+    ASSERT_EQ(executor.backchain().actions.size(), 2U);
+    EXPECT_EQ(executor.backchain().conditions[0].achievers,
+              (std::vector<std::size_t>{ 0U }));
+    std::string const& tree = executor.history().back().tree;
+    EXPECT_NE(tree.find("ReactiveSelector"), std::string::npos) << tree;
+    EXPECT_NE(tree.find("\"holding(red_cube)? #2\""), std::string::npos)
+        << tree;
+    EXPECT_NE(tree.find("\"Grasp(red_cube)\""), std::string::npos) << tree;
+
+    PlannedRun const again = run(simulation, robotik::Seed{ 42 }, 60.0);
+    EXPECT_EQ(first.plans, again.plans);
+    EXPECT_DOUBLE_EQ(first.time, again.time);
+}
+
+TEST(PlannerScenario, PickAndPlaceTreeRetriesAFailedAction)
+{
+    PickPlaceMission mission(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world,
+        scenario("plugins/PickAndPlace/scenarios/"
+                 "pick_and_place_pabt_faults.scenario.yaml"),
+        nullptr,
+        &mission);
+
+    PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 60.0);
+    EXPECT_EQ(result.outcome,
+              robotik::Simulation::Outcome::ControllerSucceeded);
+    EXPECT_TRUE(result.passed);
+    ASSERT_GE(result.causes.size(), 5U);
+    EXPECT_NE(result.causes[4].find("skill Detect(red_cube) FAILED"),
+              std::string::npos)
+        << result.causes[4];
+    EXPECT_GE(simulation.cell().planner()->replans(), 1U);
+}
+
+TEST(PlannerScenario, PlannerRefusesAnUnknownMethod)
+{
+    robotik::ScenarioSource source =
+        robotik::loadScenarioSource(
+            repoFile("plugins/PickAndPlace/scenarios/"
+                     "pick_and_place_pabt.scenario.yaml"))
+            .take();
+    EXPECT_TRUE(robotik::overrideValue(source,
+                                       "scenario.controller.planner.method",
+                                       robotik::ConfigNode("magic")));
+    EXPECT_FALSE(robotik::readScenario(source, testAssets()));
+}
+
 TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
 {
     robotik::ScenarioSource source = robotik::loadScenarioSource(repoFile(

@@ -18,6 +18,17 @@
 ///   -> cancel, wait replan.delay (simulated), plan again (replan.max times)
 /// @endcode
 ///
+/// With @c planner.method: @c pabt there is no search: the tree grows
+/// backwards from the goal (Backchaining.hpp). It starts with the goal
+/// conditions; when it fails on a condition, the actions that make it true
+/// are put under it, with their preconditions. Every tick reads the
+/// conditions on the beliefs again, so the tree reacts without planning
+/// again. An action is atomic, as in PDDL: its preconditions are read
+/// before it starts, and the condition it makes true does not stop it.
+/// When an action fails, the executor waits replan.delay and tries again
+/// (replan.max times). @ref plan lists the actions of the tree, and each
+/// growth of the tree is one record of @ref history.
+///
 /// Planning happens inside a simulation step: simulated time does not move
 /// during the search, and the search is deterministic (@ref
 /// robotik::PlanningOptions).
@@ -32,16 +43,19 @@
 #pragma once
 
 #include "Robotik/Common/Random.hpp"
+#include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/Planning/Backchaining.hpp"
 #include "Robotik/Task/Planning/PlanGraph.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Planning/PlanningEngine.hpp"
-#include "Robotik/Task/CellDescription.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
 
 #include <cstdint>
 #include <limits>
+#include <map>
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -322,6 +336,12 @@ public:
         return m_replans;
     }
 
+    /// @return The tree grown from the goal (@c planner.method: @c pabt);
+    ///   its actions are the steps of @ref plan, in the same order.
+    [[nodiscard]] BackchainTree const& backchain() const
+    {
+        return m_backchain;
+    }
     /// @return Tree of the current plan, or null.
     [[nodiscard]] bt::Tree const* tree() const
     {
@@ -341,6 +361,16 @@ private:
     void plan(RobotContext const& p_context, std::string p_cause);
     /// Orders the steps and builds the behavior tree of the plan.
     void compile();
+    /// PA-BT: builds the behavior tree of @ref m_backchain.
+    void compileBackchain(RobotContext const& p_context, std::string p_cause);
+    /// PA-BT: puts the actions that make true the first condition that
+    /// failed at the last tick under it. @return False when none can be.
+    [[nodiscard]] bool grow(RobotContext const& p_context);
+    /// PA-BT tree node: SUCCESS when condition @p_condition holds.
+    [[nodiscard]] bt::Status condition(std::size_t p_condition,
+                                       RobotContext const& p_context);
+    /// PA-BT: true while action @p_action runs in the tree.
+    [[nodiscard]] bool acting(std::size_t p_action) const;
     /// Ends the episode in @ref PlanState::Failed.
     void fail(std::string p_why);
     /// Waits replan.delay then plans again, or fails when no replan is left.
@@ -448,6 +478,16 @@ private:
     bt::Tree::Ptr m_tree;
     /// Clock given to the trees.
     bt::Tree::ClockFunction m_clock;
+    /// PA-BT: the tree grown from the goal.
+    BackchainTree m_backchain;
+    /// PA-BT: conditions that failed at the last tick, in the order ticked.
+    std::vector<std::size_t> m_failed;
+    /// PA-BT: the node running each action in the tree.
+    std::vector<bt::Node const*> m_acting;
+    /// PA-BT: objects and constants by PDDL name, with their type.
+    std::map<std::string, std::string, std::less<>> m_typed;
+    /// PA-BT: predicates no action changes.
+    std::set<std::string, std::less<>> m_static;
 };
 
 } // namespace robotik

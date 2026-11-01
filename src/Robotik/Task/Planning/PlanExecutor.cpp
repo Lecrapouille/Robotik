@@ -331,6 +331,11 @@ void PlanExecutor::load(WorldDescription const& p_world,
     {
         checkLiteral(goal, "planner.goal:");
     }
+    if (m_spec.method == PlannerMethod::Backchaining && m_spec.goal.empty())
+    {
+        errors.push_back("planner.method pabt grows its tree from a goal "
+                         "list: goal_pddl is for the search only");
+    }
 
     if (!errors.empty())
     {
@@ -342,6 +347,15 @@ void PlanExecutor::load(WorldDescription const& p_world,
         }
         throw std::runtime_error(text);
     }
+    for (auto const& [constant, type] : m_schema.constants)
+    {
+        m_typed[constant] = type;
+    }
+    for (PlanningObject const& object : m_objects)
+    {
+        m_typed[object.name] = object.type;
+    }
+    m_static = staticPredicates(m_schema);
 }
 
 // ----------------------------------------------------------------------------
@@ -361,6 +375,9 @@ void PlanExecutor::reset(Seed p_seed)
     m_started.clear();
     m_check_failure.clear();
     m_tree.reset();
+    m_backchain = {};
+    m_failed.clear();
+    m_acting.clear();
 }
 
 // ----------------------------------------------------------------------------
@@ -385,11 +402,25 @@ bt::Status PlanExecutor::tick(RobotContext const& p_context)
     }
     if (m_state == PlanState::Planning)
     {
-        plan(p_context, m_history.empty() ? std::string("start") : m_failure);
+        std::string cause =
+            m_history.empty() ? std::string("start") : m_failure;
+        if (m_spec.method == PlannerMethod::Backchaining)
+        {
+            if (m_backchain.conditions.empty())
+            {
+                m_backchain = backchainTree(m_spec.goal);
+            }
+            compileBackchain(p_context, std::move(cause));
+        }
+        else
+        {
+            plan(p_context, std::move(cause));
+        }
     }
     if (m_state == PlanState::Executing)
     {
         m_check_failure.clear();
+        m_failed.clear();
         switch (m_tree->tick())
         {
             case bt::Status::SUCCESS:
@@ -408,13 +439,27 @@ bt::Status PlanExecutor::tick(RobotContext const& p_context)
                 std::string cause = m_check_failure.empty()
                                         ? stepFailure(p_context)
                                         : m_check_failure;
-                if (std::size_t const failed = failingStep();
-                    failed < m_steps.size())
+                std::size_t const failed = failingStep();
+                if (failed < m_steps.size())
                 {
                     m_steps[failed] = StepStatus::Failed;
                 }
                 m_tree->halt();
                 m_skills.cancelAll();
+                if (m_spec.method == PlannerMethod::Backchaining)
+                {
+                    // A condition no action was put under yet: grow the
+                    // tree. Else an action failed: try again later.
+                    if (grow(p_context))
+                    {
+                        compileBackchain(p_context, m_failure);
+                        break;
+                    }
+                    if (failed >= m_steps.size() && !m_failure.empty())
+                    {
+                        cause = m_failure;
+                    }
+                }
                 retry(p_context, std::move(cause));
                 break;
             }
@@ -777,6 +822,10 @@ bool PlanExecutor::reached(PlanEvent const& p_event) const
 // ----------------------------------------------------------------------------
 bool PlanExecutor::running(std::size_t p_step) const
 {
+    if (m_spec.method == PlannerMethod::Backchaining)
+    {
+        return m_state == PlanState::Executing && acting(p_step);
+    }
     if (m_state != PlanState::Executing || p_step >= m_steps.size() ||
         p_step >= m_order.size() || m_steps[p_step] != StepStatus::Pending)
     {
@@ -849,7 +898,10 @@ std::size_t PlanExecutor::failingStep() const
             std::ranges::all_of(
                 m_order[k].start_after,
                 [this](PlanEvent const& p_event) { return reached(p_event); });
-        if (first == m_plan.size() && going)
+        // A tree grown from the goal has no order: only a failed skill
+        // tells the step.
+        if (first == m_plan.size() && going &&
+            m_spec.method != PlannerMethod::Backchaining)
         {
             first = k;
         }
@@ -1154,6 +1206,294 @@ PlanExecutor::problemOf(std::vector<ObservedAtom> const& p_observed) const
     }
     text << ")\n";
     return text.str();
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::acting(std::size_t p_action) const
+{
+    return p_action < m_acting.size() && m_acting[p_action] != nullptr &&
+           m_acting[p_action]->status() == bt::Status::RUNNING;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::condition(std::size_t p_condition,
+                                   RobotContext const& p_context)
+{
+    BackchainCondition const& condition = m_backchain.conditions[p_condition];
+    // Actions are atomic, as in PDDL: the preconditions of a running action
+    // were read when it started, and the condition it makes true waits for
+    // its end (the status of the nodes is the one of the last tick).
+    if (acting(condition.action))
+    {
+        return bt::Status::SUCCESS;
+    }
+    if (std::ranges::any_of(condition.achievers,
+                            [this](std::size_t p_action)
+                            { return acting(p_action); }))
+    {
+        return bt::Status::FAILURE;
+    }
+    // Closed world, as for the planner: unknown is false.
+    Truth const value = evaluate(condition.literal.atom, p_context);
+    bool const holds = condition.literal.positive ? value == Truth::True
+                                                  : value != Truth::True;
+    if (holds)
+    {
+        return bt::Status::SUCCESS;
+    }
+    m_failed.push_back(p_condition);
+    return bt::Status::FAILURE;
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::grow(RobotContext const& p_context)
+{
+    /// Most actions put under one condition: the ones that need the fewest
+    /// changes first.
+    static constexpr std::size_t MAX_ACHIEVERS = 16U;
+    /// Most actions in the whole tree.
+    static constexpr std::size_t MAX_ACTIONS = 512U;
+
+    auto holds = [&](Literal const& p_literal)
+    {
+        Truth const value = evaluate(p_literal.atom, p_context);
+        return p_literal.positive ? value == Truth::True : value != Truth::True;
+    };
+    for (std::size_t const index : m_failed)
+    {
+        if (m_backchain.conditions[index].expanded)
+        {
+            continue;
+        }
+        m_backchain.conditions[index].expanded = true;
+        Literal const literal = m_backchain.conditions[index].literal;
+        std::vector<Literal> const above = ancestors(m_backchain, index);
+        struct Candidate
+        {
+            GroundAction action;
+            std::vector<Literal> preconditions;
+            std::size_t missing = 0U;
+        };
+        std::vector<Candidate> candidates;
+        for (GroundAction& action : achievers(m_schema, m_typed, literal))
+        {
+            Candidate candidate{ std::move(action), {}, 0U };
+            candidate.preconditions =
+                groundPreconditions(m_schema, candidate.action);
+            bool useful = true;
+            for (Literal const& precondition : candidate.preconditions)
+            {
+                bool const now = holds(precondition);
+                // A static condition that is false stays false; one that is
+                // being made true above would go round in a circle.
+                if ((!now && m_static.contains(precondition.atom.predicate)) ||
+                    std::ranges::find(above, precondition) != above.end())
+                {
+                    useful = false;
+                    break;
+                }
+                candidate.missing += now ? 0U : 1U;
+            }
+            if (useful)
+            {
+                candidates.push_back(std::move(candidate));
+            }
+        }
+        std::ranges::stable_sort(candidates, {}, &Candidate::missing);
+        if (candidates.size() > MAX_ACHIEVERS)
+        {
+            candidates.resize(MAX_ACHIEVERS);
+        }
+        if (candidates.empty())
+        {
+            m_failure = "no action makes " + toString(literal) + " true";
+            continue;
+        }
+        if (m_backchain.actions.size() + candidates.size() > MAX_ACTIONS)
+        {
+            m_failure =
+                "the tree grown from the goal is too large (more than " +
+                std::to_string(MAX_ACTIONS) + " actions)";
+            return false;
+        }
+        for (Candidate& candidate : candidates)
+        {
+            (void)attach(m_backchain,
+                         index,
+                         std::move(candidate.action),
+                         candidate.preconditions);
+        }
+        m_failure = toString(literal) + " is false: put " +
+                    std::to_string(candidates.size()) + " action(s) under it";
+        return true;
+    }
+    return false;
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::compileBackchain(RobotContext const& p_context,
+                                    std::string p_cause)
+{
+    // The steps are the actions of the tree; the ones done stay done.
+    std::size_t const known = m_plan.size();
+    for (std::size_t k = known; k < m_backchain.actions.size(); ++k)
+    {
+        GroundAction const& action = m_backchain.actions[k].action;
+        m_plan.push_back({ action.name, ids(action.args), 0.0, 0.0 });
+    }
+    m_steps.resize(m_plan.size(), StepStatus::Pending);
+    m_order.assign(m_plan.size(), {});
+    m_after.assign(m_plan.size(), {});
+    m_started.assign(m_plan.size(), false);
+    m_start_times.assign(m_plan.size(), Seconds(0.0));
+
+    PlanningRecord record;
+    record.time = p_context.time;
+    record.cause = std::move(p_cause);
+    record.observed = observe(p_context);
+    record.result.status = PlanningResult::Status::Solved;
+    for (GroundAction const& step : m_plan)
+    {
+        record.result.steps.push_back(step);
+    }
+    m_history.push_back(std::move(record));
+
+    auto title = [this](std::size_t p_action)
+    { return std::to_string(p_action + 1U) + ". " + label(m_plan[p_action]); };
+    std::ostringstream yaml;
+    std::ostringstream subtrees;
+    // Writes condition p_index and what grew under it.
+    auto write = [&](auto const& p_self,
+                     std::size_t p_index,
+                     std::string const& p_indent) -> void
+    {
+        BackchainCondition const& condition = m_backchain.conditions[p_index];
+        std::string const text = toString(condition.literal);
+        std::string const leaf = text + "? #" + std::to_string(p_index + 1U);
+        m_factory.registerNode(leaf,
+                               [this, p_index]()
+                               {
+                                   return std::make_unique<bt::CallbackLeaf>(
+                                       [this, p_index]()
+                                       {
+                                           return m_context != nullptr
+                                                      ? this->condition(
+                                                            p_index, *m_context)
+                                                      : bt::Status::FAILURE;
+                                       });
+                               });
+        if (condition.achievers.empty())
+        {
+            yaml << p_indent << "- Action:\n"
+                 << p_indent << "    name: " << yamlQuoted(leaf) << "\n";
+            return;
+        }
+        yaml << p_indent << "- ReactiveSelector:\n"
+             << p_indent << "    name: " << yamlQuoted(text) << "\n"
+             << p_indent << "    children:\n"
+             << p_indent << "      - Action:\n"
+             << p_indent << "          name: " << yamlQuoted(leaf) << "\n";
+        for (std::size_t const k : condition.achievers)
+        {
+            std::string const inner = p_indent + "            ";
+            yaml << p_indent << "      - ReactiveSequence:\n"
+                 << p_indent << "          name: " << yamlQuoted(title(k))
+                 << "\n"
+                 << p_indent << "          children:\n";
+            for (std::size_t const precondition :
+                 m_backchain.actions[k].preconditions)
+            {
+                p_self(p_self, precondition, inner);
+            }
+            // The action: its nodes in order, then it is done.
+            std::string const done = "Done " + title(k);
+            m_factory.registerNode(
+                done,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]()
+                        {
+                            finish(k, StepStatus::Done);
+                            return bt::Status::SUCCESS;
+                        });
+                });
+            std::ostringstream body;
+            body << "    Sequence:\n      name: "
+                 << yamlQuoted("Do " + title(k)) << "\n      children:\n";
+            for (std::string const& node : nodes(m_plan[k]))
+            {
+                body << "        - Action:\n            name: "
+                     << yamlQuoted(node) << "\n";
+            }
+            body << "        - Action:\n            name: " << yamlQuoted(done)
+                 << "\n";
+            ActionBinding const* binding = m_domain.binding(m_plan[k].name);
+            if (binding != nullptr && !binding->parameters.empty())
+            {
+                yaml << inner << "- SubTree:\n"
+                     << inner << "    name: " << yamlQuoted("Do " + title(k))
+                     << "\n"
+                     << inner << "    reference: action_" << k << "\n"
+                     << inner << "    parameters:\n";
+                for (auto const& [key, value] : binding->parameters)
+                {
+                    yaml << inner << "      " << key << ": "
+                         << yamlQuoted(expand(
+                                value, m_backchain.actions[k].action.args))
+                         << "\n";
+                }
+                subtrees << "  action_" << k << ":\n" << body.str();
+            }
+            else
+            {
+                // The same body, as an item of the list of children.
+                std::istringstream lines(body.str());
+                bool first = true;
+                for (std::string line; std::getline(lines, line); first = false)
+                {
+                    yaml << inner
+                         << (first ? "- " + line.substr(4U) : line.substr(2U))
+                         << "\n";
+                }
+            }
+        }
+    };
+    yaml << "BehaviorTree:\n  ReactiveSequence:\n    name: \"Goal\"\n"
+         << "    children:\n";
+    for (std::size_t const goal : m_backchain.goal)
+    {
+        write(write, goal, "      ");
+    }
+    std::string text = yaml.str();
+    if (std::string const more = subtrees.str(); !more.empty())
+    {
+        text += "SubTrees:\n" + more;
+    }
+    m_history.back().tree = text;
+    m_blackboard = std::make_shared<bt::Blackboard>();
+    auto built = bt::Builder::fromText(m_factory, text, m_blackboard);
+    if (!built)
+    {
+        m_tree.reset();
+        fail("behavior tree grown from the goal: " + built.getError() +
+             " (a binding names a node that is not a skill?)");
+        return;
+    }
+    m_tree = std::move(built.getValue());
+    m_tree->clock(m_clock);
+    m_acting.assign(m_plan.size(), nullptr);
+    for (bt::Node const* node : m_tree->nodes())
+    {
+        for (std::size_t k = 0U; k < m_plan.size(); ++k)
+        {
+            if (node != nullptr && node->name == "Do " + title(k))
+            {
+                m_acting[k] = node;
+            }
+        }
+    }
+    m_state = PlanState::Executing;
 }
 
 } // namespace robotik

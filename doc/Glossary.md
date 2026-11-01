@@ -125,6 +125,10 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Kairos**: the PDDL planner RobotIK uses.
 - **Observer**: a function that tells whether a predicate holds, from the
   beliefs, never from the ground truth.
+- **PA-BT** (Planning and Acting with Behavior Trees): `planner.method:
+  pabt`. No search: a reactive behavior tree grows backwards from the goal,
+  each false condition getting the actions that make it true
+  ([11 §4](11-PDDL-Planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
 - **PDDL**: a language to describe a planning problem: what can be done and
   what is wanted.
 - **Plan**: the list of actions the planner found. Steps that do not depend

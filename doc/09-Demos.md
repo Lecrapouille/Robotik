@@ -7,13 +7,13 @@ Headless.
 | Plugin | Idea | Scenarios | Experiment | Extra program |
 |--------|------|-----------|------------|---------------|
 | [HelloWorld](#1-helloworld) | Learn the API, one lesson per scenario | hello, wave, reach, skills | `hello_experiment` | — |
-| [PickAndPlace](#2-pick-and-place) | Perception + skills + behavior tree or PDDL planner + faults | nominal, faults, pddl, pddl_faults | `pick_and_place_experiment` | — |
-| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved", planned layers | painter, painter_pddl | `painter_experiment` | — |
+| [PickAndPlace](#2-pick-and-place) | Perception + skills + behavior tree or PDDL planner + faults | nominal, faults, pddl, pddl_faults, pabt, pabt_faults | `pick_and_place_experiment` | — |
+| [Painter](#3-painter) | Free bodies, trajectories in files, "nothing moved", planned layers | painter, painter_pddl, painter_pabt | `painter_experiment` | — |
 | [LineFollower](#4-line-follower) | Mobile robot, localisation, control loop | line_follower | — | `Robotik-LineFollower` |
 | [PickAndPlace](#5-pick-and-place-rl) | RL environment, parallel pool | pick_and_place_rl | — | `Robotik-PickAndPlaceRL` |
 | [FlyBrain](#6-fly-brain) | A biological brain as an agent | fly_obstacle_avoidance | — | `Robotik-Fly` |
 | [HumanoidWalk](#7-humanoid-walk) | A walking policy learned elsewhere (ONNX), on a floating base | walk, walk_circle | — | — |
-| [DualArm](#8-dual-arm) | Two robots, one plan: steps in parallel, required concurrency | conveyor, conveyor_sequential, tray | — | — |
+| [DualArm](#8-dual-arm) | Two robots, one plan: steps in parallel, required concurrency | conveyor, conveyor_sequential, conveyor_pabt, tray | — | — |
 | [MicroDuck](#9-micro-duck) | A small walking robot in a room: a learned policy, real contacts | walk_forward, tour, drive | — | — |
 
 All demos open from the simulator **Demos** menu, and run with:
@@ -104,6 +104,8 @@ goal `in(red_cube, box)`. The domain is
 the state on the beliefs and binds each action to the same skills. With the
 camera down, the executor plans again until it can go on. See
 [11. The PDDL planner](11-PDDL-Planner.md#2-tutorial-run-a-planned-pick-and-place).
+`pick_and_place_pabt*.scenario.yaml` do the same with no search: the tree
+grows from the goal (PA-BT, [11 §4](11-PDDL-Planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
 
 ---
 
@@ -153,7 +155,9 @@ four layers painted and a clean brush. The facts `before(red, black)`… give
 the order of the layers; the planner finds the twelve gestures (dip, mark,
 rinse per colour). The robot cannot see the paint: the observers read what
 the gestures did (`Stroke::brush`, `Stroke::painted` in
-`src/PainterScene.hpp`).
+`src/PainterScene.hpp`). `painter_pabt.scenario.yaml` grows a tree from the
+goal instead (PA-BT): it does not read the `forall` of the layer order, it
+paints them in the order of the goal.
 
 ---
 
@@ -284,7 +288,9 @@ More details in [plugins/HumanoidWalk/README.md](../plugins/HumanoidWalk/README.
 physics, one scheduler and their beliefs ([03 §4](03-Worlds-and-Scenarios.md#several-robots)).
 The PDDL planner plans for both, and the executor runs at the same time the
 steps that do not depend on each other ([11 §4](11-PDDL-Planner.md#steps-that-run-together)).
-No behavior tree is written.
+No behavior tree is written. `conveyor_pabt` grows a tree from the goal
+(PA-BT) instead of planning: one goal condition after the other, so one arm
+at a time, like `conveyor_sequential`.
 
 ```bash
 make robotik_dual_arm
