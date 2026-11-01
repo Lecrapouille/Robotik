@@ -5,7 +5,7 @@
 BlackThorn.LOCKED_REF := HEAD
 BlackThorn.LOCKED := 7ac5f2794b15e917a3537a52f4d577ff72f8492d
 CompagesProject.LOCKED_REF := HEAD
-CompagesProject.LOCKED := b0f9763a02e60b2454ceaca8f2ee3801420d9046
+CompagesProject.LOCKED := 2c39088bd2bd7847dcc5916cbc84e0719163c325
 ImGuiFileDialog.LOCKED_REF := HEAD
 ImGuiFileDialog.LOCKED := d0e97b2adc3d3452d72c750c7305dc0291acd052
 TimedPetriNetEditor.LOCKED_REF := HEAD
