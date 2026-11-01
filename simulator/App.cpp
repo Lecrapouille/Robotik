@@ -20,7 +20,7 @@ static void tuneViewRig(compages::world::World& p_world,
                         compages::world::Entity p_camera)
 {
     if (compages::world::Rig* rig =
-            p_world.behavior<compages::world::Rig>(p_camera))
+            p_world.routines().find<compages::world::Rig>(p_camera))
     {
         rig->controller.min_distance = 0.15F;
         rig->controller.max_distance = 20.0F;
