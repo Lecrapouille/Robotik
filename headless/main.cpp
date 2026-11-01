@@ -26,13 +26,17 @@
 #include "Compages/World/World.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <mutex>
 #include <optional>
+#include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #define HEADLESS_DT_S 0.01
@@ -52,10 +56,12 @@ struct Options
     std::filesystem::path cadence;
     /// Look for deadlocks of the GRAFCET and its resources before each run.
     bool deadlocks = false;
+    /// Runs of an experiment done at the same time (0: one per core).
+    std::size_t jobs = 1U;
 };
 
-/// Deadlocks found before the runs (--deadlocks).
-static std::size_t g_deadlocks = 0U;
+/// Deadlocks found before the runs (--deadlocks), by every thread.
+static std::atomic<std::size_t> g_deadlocks{ 0U };
 
 /// Durations of the operations measured in the runs (--cadence).
 struct Cadence
@@ -68,13 +74,30 @@ struct Cadence
     std::size_t skipped = 0U;
 };
 
+/// One run of an experiment: a case and a seed, then what it gave.
+struct Job
+{
+    robotik::ExperimentCase const* item = nullptr;
+    std::optional<std::uint64_t> seed;
+    robotik::RunRecord record;
+    /// Durations measured in this run (--cadence).
+    Cadence cadence;
+    /// What the run printed (deadlocks, trace), shown in the order of the jobs.
+    std::string text;
+    /// A file or a plugin that could not be loaded.
+    std::string error;
+};
+
 /// Prints the command line on the error stream.
 static void usage()
 {
     std::cerr << "usage: Robotik-Headless <x.scenario.yaml | x.rl.yaml | "
                  "x.experiment.yaml> [--seed N]\n"
                  "                        [--report report.json] [--trace]\n"
-                 "                        [--cadence measured.flowshop] [--deadlocks]\n"
+                 "                        [--cadence measured.flowshop] "
+                 "[--deadlocks]\n"
+                 "                        [--jobs N]  (runs of an experiment "
+                 "at the same time)\n"
                  "       Robotik-Headless <x.workflow.yaml> [--cycles N]\n";
 }
 
@@ -105,6 +128,10 @@ static std::optional<Options> parse(int argc, char** argv)
         {
             options.cadence = argv[++i];
         }
+        else if (argument == "--jobs" && i + 1 < argc)
+        {
+            options.jobs = std::stoul(argv[++i]);
+        }
         else if (argument == "--cycles" && i + 1 < argc)
         {
             options.cycles = std::stoul(argv[++i]);
@@ -126,25 +153,26 @@ static std::optional<Options> parse(int argc, char** argv)
 }
 
 /// Prints each skill run of the finished simulation.
-static void printTrace(robotik::Simulation const& p_simulation)
+static void printTrace(robotik::Simulation const& p_simulation,
+                       std::ostream& p_out)
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
         p_simulation.cell().robot().resources();
     for (robotik::SkillRun const& run : skills.trace())
     {
-        std::cout << "  " << run.start << "  " << skills.name(run.skill) << "  "
-                  << robotik::toString(run.state);
+        p_out << "  " << run.start << "  " << skills.name(run.skill) << "  "
+              << robotik::toString(run.state);
         if (run.reason != robotik::SkillReason::None)
         {
-            std::cout << " (" << robotik::toString(run.reason);
+            p_out << " (" << robotik::toString(run.reason);
             if (run.blocker != robotik::NO_RESOURCE)
             {
-                std::cout << ": " << resources.name(run.blocker);
+                p_out << ": " << resources.name(run.blocker);
             }
-            std::cout << ')';
+            p_out << ')';
         }
-        std::cout << "  (" << run.end - run.start << ")\n";
+        p_out << "  (" << run.end - run.start << ")\n";
     }
     // The plans of the PDDL planner: when, why, what.
     if (robotik::PlanExecutor const* planner = p_simulation.cell().planner())
@@ -152,19 +180,19 @@ static void printTrace(robotik::Simulation const& p_simulation)
         std::size_t index = 0U;
         for (robotik::PlanningRecord const& record : planner->history())
         {
-            std::cout << "  plan " << index++ << " at " << record.time << " ("
-                      << record.cause
-                      << "): " << robotik::toString(record.result.status);
+            p_out << "  plan " << index++ << " at " << record.time << " ("
+                  << record.cause
+                  << "): " << robotik::toString(record.result.status);
             for (robotik::GroundAction const& step : record.result.steps)
             {
-                std::cout << ' ' << robotik::toPddl(step);
+                p_out << ' ' << robotik::toPddl(step);
             }
-            std::cout << '\n';
+            p_out << '\n';
         }
         if (planner->state() == robotik::PlanState::Failed)
         {
-            std::cout << "  planner: " << robotik::toString(planner->state())
-                      << ", " << planner->failure() << '\n';
+            p_out << "  planner: " << robotik::toString(planner->state())
+                  << ", " << planner->failure() << '\n';
         }
     }
 }
@@ -267,21 +295,23 @@ static int writeCadence(Cadence const& p_cadence, std::filesystem::path const& p
 
 /// Prints the deadlocks of the GRAFCET of the cell and the resources of its
 /// skills, found before the run.
-static void checkDeadlocks(robotik::Simulation& p_simulation)
+static void checkDeadlocks(robotik::Simulation& p_simulation,
+                           std::ostream& p_out)
 {
     robotik::GrafcetController const* grafcet = p_simulation.cell().grafcet();
     if (grafcet == nullptr)
     {
-        std::cout << "deadlocks: no GRAFCET to check\n";
+        p_out << "deadlocks: no GRAFCET to check\n";
         return;
     }
     robotik::GrafcetDeadlocks const found =
         robotik::findDeadlocks(*grafcet, p_simulation.cell().skills());
-    std::cout << "deadlocks: " << found.deadlocks.size() << " in " << found.states
-              << (found.complete ? "" : " (not all)") << " markings of the steps and resources\n";
+    p_out << "deadlocks: " << found.deadlocks.size() << " in " << found.states
+          << (found.complete ? "" : " (not all)")
+          << " markings of the steps and resources\n";
     for (std::string const& deadlock : found.deadlocks)
     {
-        std::cout << "  " << deadlock << '\n';
+        p_out << "  " << deadlock << '\n';
     }
     g_deadlocks += found.deadlocks.size();
 }
@@ -294,7 +324,8 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
                               std::vector<std::string> const& p_metrics,
                               bool p_trace,
                               Cadence* p_cadence,
-                              bool p_deadlocks)
+                              bool p_deadlocks,
+                              std::ostream& p_out)
 {
     robotik::RunRecord failed;
     failed.case_id = p_case;
@@ -323,7 +354,7 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     }
     if (p_deadlocks)
     {
-        checkDeadlocks(simulation);
+        checkDeadlocks(simulation, p_out);
     }
 
     // Simulated time is summed across resets: a plugin that owns the clock
@@ -355,13 +386,125 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     }
     if (p_trace)
     {
-        printTrace(simulation);
+        printTrace(simulation, p_out);
     }
     robotik::RunRecord record =
         robotik::captureRun(simulation, p_case, p_metrics);
     p_session.stop();
     p_session.detach();
     return record;
+}
+
+/// Loads the scenario of a case of @p_experiment with the files of
+/// @p_session, then runs it. A load error goes to @c Job::error.
+static void runJob(robotik::PluginSession& p_session,
+                   robotik::Experiment const& p_experiment,
+                   Options const& p_options,
+                   Job& p_job)
+{
+    robotik::ExperimentCase const& item = *p_job.item;
+    try
+    {
+        // A scenario outside the catalog brings its package (and its asset
+        // pack) along.
+        if (p_session.catalog().matchScenario(item.scenario).package == nullptr)
+        {
+            (void)p_session.prepare(item.scenario);
+        }
+        // Each run reads its files again: a case never inherits the world of
+        // the previous one.
+        robotik::Result<robotik::Scenario> scenario =
+            robotik::scenarioOf(p_experiment, item, p_session.assets());
+        if (!scenario)
+        {
+            p_job.error = item.id + ": " + scenario.error();
+            return;
+        }
+        std::ostringstream out;
+        p_job.record = run(p_session,
+                           item.scenario,
+                           scenario.take(),
+                           item.id,
+                           p_job.seed,
+                           p_experiment.metrics,
+                           p_options.trace,
+                           p_options.cadence.empty() ? nullptr : &p_job.cadence,
+                           p_options.deadlocks,
+                           out);
+        p_job.text = out.str();
+    }
+    catch (std::exception const& e)
+    {
+        p_job.error = item.id + ": " + e.what();
+    }
+}
+
+/// Prints what a finished job printed, then its verdict.
+static void printJob(Job const& p_job)
+{
+    std::cout << p_job.text;
+    if (!p_job.error.empty())
+    {
+        std::cerr << p_job.error << '\n';
+        return;
+    }
+    std::cout << (p_job.record.passed ? "[PASS] " : "[FAIL] ") << p_job.item->id
+              << " seed=" << p_job.record.seed << std::endl;
+}
+
+// ----------------------------------------------------------------------------
+/// Runs the jobs of an experiment on @p_threads threads at the same time.
+/// Each thread has its own plugin session (its own plugin instance) and each
+/// run its own world: the runs share nothing, the results do not depend on
+/// the number of threads. The jobs are printed in their order, as soon as
+/// the ones before them are done.
+// ----------------------------------------------------------------------------
+static void runJobs(robotik::Experiment const& p_experiment,
+                    Options const& p_options,
+                    std::size_t p_threads,
+                    std::vector<Job>& p_jobs)
+{
+    std::atomic<std::size_t> next{ 0U };
+    std::mutex printing;
+    std::vector<bool> done(p_jobs.size(), false);
+    std::size_t printed = 0U;
+    auto const worker = [&]()
+    {
+        robotik::PluginSession session;
+        session.setHeadless(true);
+        session.scan();
+        for (std::size_t i = next++; i < p_jobs.size(); i = next++)
+        {
+            runJob(session, p_experiment, p_options, p_jobs[i]);
+            std::scoped_lock const lock(printing);
+            done[i] = true;
+            for (; printed < p_jobs.size() && done[printed]; ++printed)
+            {
+                printJob(p_jobs[printed]);
+            }
+        }
+        session.release();
+    };
+    std::vector<std::jthread> threads;
+    for (std::size_t t = 0U; t < std::min(p_threads, p_jobs.size()); ++t)
+    {
+        threads.emplace_back(worker);
+    }
+}
+
+/// Adds the durations measured by a run to those of the experiment.
+static void merge(Cadence const& p_run, Cadence& p_all)
+{
+    if (!p_all.workflow && p_run.workflow)
+    {
+        p_all.workflow = p_run.workflow;
+    }
+    for (auto const& [operation, durations] : p_run.measured)
+    {
+        std::vector<robotik::Seconds>& all = p_all.measured[operation];
+        all.insert(all.end(), durations.begin(), durations.end());
+    }
+    p_all.skipped += p_run.skipped;
 }
 
 /// Prints the cycle time, the throughput, the critical circuit and the
@@ -454,40 +597,31 @@ int main(int argc, char** argv)
             {
                 seeds.emplace_back(std::nullopt);
             }
+            std::vector<Job> jobs;
             for (robotik::ExperimentCase const& item : experiment.cases)
             {
                 for (std::optional<std::uint64_t> const seed : seeds)
                 {
-                    // A scenario outside the catalog brings its package (and
-                    // its asset pack) along.
-                    if (session.catalog()
-                            .matchScenario(item.scenario)
-                            .package == nullptr)
-                    {
-                        (void)session.prepare(item.scenario);
-                    }
-                    // Each run reads its files again: a case never inherits the
-                    // world of the previous one.
-                    robotik::Result<robotik::Scenario> scenario =
-                        robotik::scenarioOf(experiment, item, session.assets());
-                    if (!scenario)
-                    {
-                        std::cerr << item.id << ": " << scenario.error() << '\n';
-                        return 1;
-                    }
-                    report.runs.push_back(run(session,
-                                              item.scenario,
-                                              scenario.take(),
-                                              item.id,
-                                              seed,
-                                              experiment.metrics,
-                                              options->trace,
-                                              measuring,
-                                              options->deadlocks));
-                    robotik::RunRecord const& last = report.runs.back();
-                    std::cout << (last.passed ? "[PASS] " : "[FAIL] ")
-                              << item.id << " seed=" << last.seed << std::endl;
+                    Job& job = jobs.emplace_back();
+                    job.item = &item;
+                    job.seed = seed;
                 }
+            }
+            std::size_t const threads =
+                options->jobs != 0U
+                    ? options->jobs
+                    : std::max(1U, std::thread::hardware_concurrency());
+            runJobs(experiment, *options, threads, jobs);
+            bool failed = false;
+            for (Job const& job : jobs)
+            {
+                failed = failed || !job.error.empty();
+                report.runs.push_back(job.record);
+                merge(job.cadence, cadence);
+            }
+            if (failed)
+            {
+                return 1;
             }
         }
         else
@@ -517,7 +651,8 @@ int main(int argc, char** argv)
                                       { "time" },
                                       true,
                                       measuring,
-                                      options->deadlocks));
+                                      options->deadlocks,
+                                      std::cout));
             for (robotik::Check const& check : report.runs.back().checks)
             {
                 std::cout << '[' << robotik::toString(check.verdict) << "] "

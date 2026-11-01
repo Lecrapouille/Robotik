@@ -499,22 +499,28 @@ machining time is not what a machine really takes: the arm also has to take
 and give the part. When the GRAFCET is generated from the workflow,
 `--cadence` measures it in the runs: for each part on each operator, the
 time from the start of its job to its end, without the waits for a zone.
-With an experiment, the runs of all its seeds are put together.
+With an experiment, the runs of all its seeds are put together. `--jobs N`
+does N runs at the same time, each in its own thread with its own world and
+its own plugin instance: the results are the same as one run after another,
+only faster (`--jobs 0`: one run per core).
 
 ```bash
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/DualArm/experiments/factory.experiment.yaml \
-    --cadence factory.flowshop
+    --cadence factory.flowshop --jobs 4
 ```
 
 ```text
 cadence of factory_line (busy time of each operator per part, waits for a zone left out):
   operator   product      declared   measured        max  runs
   M1         P1              2.00s      7.56s      7.64s     8
-  M2         P1              1.00s      5.51s      5.91s     8
+  M2         P1              1.00s      5.89s      6.41s     8
+  outfeed    P1              0.40s      0.40s      0.40s     8
   M1         P2              3.00s      7.87s      7.92s     8
-  M2         P2              2.00s      6.51s      6.51s     8
+  M2         P2              2.00s      7.01s      7.01s     8
+  outfeed    P2              0.40s      0.40s      0.40s     8
   M1         P3              1.00s      5.44s      5.65s     8
-  M2         P3              1.50s      5.75s      5.75s     8
+  M2         P3              1.50s      6.25s      6.25s     8
+  outfeed    P3              0.40s      0.40s      0.40s     8
 cycle time with the measured durations: 20.8713 s, critical: M1
 flowshop: factory.flowshop (0 runs without a generated GRAFCET)
 ```

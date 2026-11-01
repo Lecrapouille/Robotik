@@ -171,6 +171,7 @@ Options:
 | `--trace` | Prints the history of the skills |
 | `--cadence file.flowshop` | Measures how long each operator works on each part when the GRAFCET is generated from a workflow, over every run, and writes the table for TimedPetriNetEditor ([chapter 12](12-GRAFCET-and-Workflows.md)) |
 | `--deadlocks` | Before each run, looks for the deadlocks of the GRAFCET and the resources of its skills; exit code 2 when there is one ([chapter 12](12-GRAFCET-and-Workflows.md)) |
+| `--jobs N` | Does N runs of an experiment at the same time, one thread each (`0`: one per core); the results do not change, the runs are printed in their order |
 
 ```bash
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
