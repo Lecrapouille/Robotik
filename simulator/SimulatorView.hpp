@@ -12,8 +12,8 @@
 
 #include "Compages/GPU/Framebuffer.hpp"
 #include "Compages/GPU/Texture.hpp"
-#include "Compages/Renderer/Assets/CanvasTexture.hpp"
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Procedural/CanvasTexture.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 
 #include <filesystem>
 

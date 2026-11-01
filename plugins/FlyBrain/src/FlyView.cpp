@@ -14,7 +14,7 @@
 
 #include "Compages/GPU/GPU.hpp"
 #include "Compages/GPU/RenderPass.hpp"
-#include "Compages/Renderer/Scene.hpp"
+#include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
 #include "Compages/World/World.hpp"
 

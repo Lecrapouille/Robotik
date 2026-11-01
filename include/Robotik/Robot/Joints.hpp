@@ -35,7 +35,7 @@
 #pragma once
 
 #include "Compages/World/Entity.hpp"
-#include "Compages/World/Spatial/Joint.hpp"
+#include "Compages/World/Kinematics/Joint.hpp"
 #include "Robotik/Common/Math.hpp"
 
 #include <cstdint>

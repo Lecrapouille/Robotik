@@ -20,7 +20,7 @@
 /// - Errors: a 3D file that cannot be loaded throws @c std::runtime_error.
 #pragma once
 
-#include "Compages/Renderer/Assets/UrdfLoader.hpp"
+#include "Compages/World/Import/UrdfLoader.hpp"
 #include "Compages/World/Entity.hpp"
 
 #include <filesystem>
@@ -100,7 +100,7 @@ public:
     virtual compages::world::Entity model(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf)
     {
-        auto loaded = compages::renderer::loadUrdf(p_world, p_urdf.string());
+        auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());
