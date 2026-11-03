@@ -29,7 +29,7 @@ class Scene;
 /// Z-up metres to the Compages view (Y up): (x, y, z) becomes
 /// (x, z, -y).
 // ------------------------------------------------------------------------
-[[nodiscard]] compages::core::Vector3f
+[[nodiscard]] compages::Vector3f
 flyToView(robotik::Vector3 const& p_z_up);
 
 // ------------------------------------------------------------------------

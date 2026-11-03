@@ -149,7 +149,7 @@ void RenderedCamera::sync(robotik::Camera const& p_camera)
         .position(static_cast<float>(mount.position.x),
                   static_cast<float>(mount.position.y),
                   static_cast<float>(mount.position.z))
-        .rotation(compages::core::Quatf(static_cast<float>(rotation.w),
+        .rotation(compages::Quatf(static_cast<float>(rotation.w),
                                         static_cast<float>(rotation.x),
                                         static_cast<float>(rotation.y),
                                         static_cast<float>(rotation.z)));
@@ -159,7 +159,7 @@ compages::world::Entity
 SimulatorView::model(compages::world::World& /*p_world*/,
                      std::filesystem::path const& p_urdf)
 {
-    auto loaded = m_scene.load(p_urdf.string());
+    auto loaded = m_scene.loadFile(p_urdf);
     if (!loaded)
     {
         throw std::runtime_error(loaded.error());
@@ -171,7 +171,7 @@ compages::world::Entity
 SimulatorView::robot(compages::world::World& /*p_world*/,
                      std::filesystem::path const& p_urdf)
 {
-    auto loaded = m_scene.load(p_urdf.string());
+    auto loaded = m_scene.loadFile(p_urdf);
     if (!loaded)
     {
         throw std::runtime_error(loaded.error());
@@ -290,7 +290,7 @@ void SimulatorView::ground(robotik::Image const& p_image,
         "Ground", compages::renderer::texture(m_ground_file.string()));
     ground
         .rotation(robotik::Radians(-0.5F * std::numbers::pi_v<float>),
-                  compages::core::Vector3f(1.0F, 0.0F, 0.0F))
+                  compages::Vector3f(1.0F, 0.0F, 0.0F))
         .position(0.0F, 0.0F, 0.0F)
         .scale(static_cast<float>(p_width), static_cast<float>(p_height), 1.0F);
     noShadow(ground);
@@ -318,7 +318,7 @@ bool SimulatorView::openCanvas(compages::world::Entity p_parent,
     m_sheet = m_scene.plane("CanvasPaint")
                   .parent(p_parent)
                   .position(0.012F, 0.0F, 0.0F)
-                  .rotation(compages::core::Quatf(0.5F, 0.5F, 0.5F, 0.5F))
+                  .rotation(compages::Quatf(0.5F, 0.5F, 0.5F, 0.5F))
                   .scale(static_cast<float>(p_width),
                          static_cast<float>(p_height),
                          1.0F);

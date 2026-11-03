@@ -63,7 +63,7 @@ void runMainLoop(Window& p_window, App& p_app)
             p_app.world->update(viewFrame(p_app, p_window, elapsed, total));
             compages::gpu::RenderPass pass(
                 p_app.view.framebuffer,
-                compages::gpu::PassDesc{ .color = viewClearColor() });
+                compages::gpu::PassDesc{ .color = p_app.clear_color });
             p_app.scene->render(p_app.view_camera);
         }
         // --- Model of the Asset tab of Files, in its own world ---

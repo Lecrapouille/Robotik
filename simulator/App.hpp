@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include "SimulatorDisplay.hpp"
 #include "SimFrame.hpp"
 #include "SimulatorView.hpp"
 
@@ -274,6 +275,8 @@ struct App
     UiState ui;
     JointHistory history;
     compages::world::Entity view_camera;
+    /// Color behind the 3D view (a package may change it).
+    compages::Vector4f clear_color = viewClearColor();
 
     RenderTarget view;
     bool view_hovered = false;

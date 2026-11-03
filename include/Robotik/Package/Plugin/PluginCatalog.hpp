@@ -34,6 +34,10 @@
 ///   graphics: false
 ///   clock: simulation         # or plugin: its update advances time
 ///   view: { eye: [1.6, 1.2, 1.6], target: [0.35, 0.15, 0.0] }
+///   # optional: zoom range and depth range of the camera (m), no floor
+///   # grid, color behind the scene (a large outdoor or space scene)
+///   # view: { ..., distance: [2, 5000], clip: [0.5, 300000], floor: false,
+///   #         background: [0, 0, 0] }
 /// scenarios:
 ///   directory: scenarios
 ///   entries:                  # optional; default: every runnable file
@@ -178,6 +182,16 @@ struct PluginPackage
     float eye[3] = { 1.6F, 1.2F, 1.6F };
     /// Point the camera of the 3D view looks at (m).
     float target[3] = { 0.35F, 0.15F, 0.0F };
+    /// Closest and farthest distance of the camera to its target (m).
+    float distance[2] = { 0.15F, 20.0F };
+    /// Near and far planes of the camera of the 3D view (m).
+    float clip[2] = { 0.1F, 1000.0F };
+    /// Draw the floor grid when the world paints no ground.
+    bool floor = true;
+    /// @c host.view.background is given: use @ref background.
+    bool has_background = false;
+    /// Color behind the scene (red, green, blue in [0, 1]).
+    float background[3] = { 0.0F, 0.0F, 0.0F };
     /// Absolute path of the shared library.
     std::filesystem::path library;
     /// Scenario files.

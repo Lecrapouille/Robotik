@@ -25,7 +25,7 @@ static Vector3 rotationVector(Quaternion p_q)
         p_q = Quaternion(-p_q.w, -p_q.x, -p_q.y, -p_q.z);
     }
     Vector3 const axis(p_q.x, p_q.y, p_q.z);
-    double const sine = compages::core::vector::norm(axis);
+    double const sine = compages::vector::norm(axis);
     if (sine < 1e-12)
     {
         return axis * 2.0;

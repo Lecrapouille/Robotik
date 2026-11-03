@@ -49,13 +49,13 @@ using compages::si::Seconds;             ///< Duration (s).
 using compages::si::Torque;              ///< Torque (N.m).
 
 /// Position (m) or direction, in double precision.
-using Vector3 = compages::core::Vector3g;
+using Vector3 = compages::Vector3g;
 /// Rotation as a unit quaternion (w, x, y, z).
-using Quaternion = compages::core::Quatd;
+using Quaternion = compages::Quatd;
 /// Where a frame is and how it is turned, in its parent frame (position in m).
-using Pose = compages::core::Posed;
+using Pose = compages::Posed;
 
-using compages::core::yaw;          ///< Heading about Z of a rotation.
-using compages::core::vector::norm; ///< Length of a vector.
+using compages::yaw;          ///< Heading about Z of a rotation.
+using compages::vector::norm; ///< Length of a vector.
 
 } // namespace robotik

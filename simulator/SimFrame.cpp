@@ -32,7 +32,7 @@ compages::world::ViewFrame viewFrame(RenderTarget const& p_target,
     if (p_area.hovered)
     {
         frame.input.mouse_delta =
-            compages::core::Vector2f(io.MouseDelta.x, -io.MouseDelta.y);
+            compages::Vector2f(io.MouseDelta.x, -io.MouseDelta.y);
         frame.input.scroll = std::clamp(p_window.scroll(), -1.0F, 1.0F);
         frame.input.mouse_left = io.MouseDown[ImGuiMouseButton_Left];
         frame.input.mouse_right = io.MouseDown[ImGuiMouseButton_Right];
@@ -42,7 +42,7 @@ compages::world::ViewFrame viewFrame(RenderTarget const& p_target,
             static_cast<float>(p_target.width) / std::max(p_area.w, 1.0F);
         float const sy = static_cast<float>(p_target.height) /
                          std::max(p_area.h, 1.0F);
-        frame.input.mouse = compages::core::Vector2f(
+        frame.input.mouse = compages::Vector2f(
             (io.MousePos.x - p_area.x) * sx,
             (p_area.y + p_area.h - io.MousePos.y) * sy);
         // The keys move the camera only over the view, not while a text

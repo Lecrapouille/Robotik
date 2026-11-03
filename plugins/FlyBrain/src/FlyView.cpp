@@ -44,7 +44,7 @@ public:
     compages::world::Entity robot(compages::world::World& /*p_world*/,
                                   std::filesystem::path const& p_urdf) override
     {
-        auto loaded = m_scene.load(p_urdf.string());
+        auto loaded = m_scene.loadFile(p_urdf);
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());
@@ -128,7 +128,7 @@ bool FlyView::open()
     m_gpu->scene = std::make_unique<compages::renderer::Scene>(*m_gpu->world);
     m_gpu->scene->background(0.55F, 0.74F, 0.90F).ambient(0.42F, 0.42F, 0.44F);
     m_gpu->scene->sun("Sun").rotation(
-        robotik::Radians(-0.9F), compages::core::Vector3f(1.0F, 0.3F, 0.0F));
+        robotik::Radians(-0.9F), compages::Vector3f(1.0F, 0.3F, 0.0F));
     m_gpu->camera = m_gpu->scene->camera("View");
     m_gpu->scene->activeCamera(m_gpu->camera);
 
@@ -159,7 +159,7 @@ bool FlyView::open()
     int index = 0;
     for (FlyBox const& box : m_scenario.obstacles)
     {
-        compages::core::Vector3f const at = flyToView(box.position);
+        compages::Vector3f const at = flyToView(box.position);
         m_gpu->scene->box("obstacle_" + std::to_string(index), brown)
             .position(at.x, at.y, at.z)
             .scale(static_cast<float>(box.size.x),
@@ -167,16 +167,16 @@ bool FlyView::open()
                    static_cast<float>(box.size.y));
         ++index;
     }
-    compages::core::Vector3f const food = flyToView(m_scenario.target);
+    compages::Vector3f const food = flyToView(m_scenario.target);
     m_gpu->scene->sphere("food", compages::renderer::color(0.95F, 0.75F, 0.15F))
         .position(food.x, food.y, food.z)
         .scale(0.18F);
-    compages::core::Vector3f const middle =
+    compages::Vector3f const middle =
         flyToView(robotik::Vector3(m_scenario.arena.x * 0.5, 0.0, 0.0));
     m_gpu->scene->plane("Floor", compages::renderer::color(0.55F, 0.62F, 0.38F))
         .position(middle.x, 0.0F, middle.z)
         .rotation(robotik::Radians(-0.5F * PI),
-                  compages::core::Vector3f(1.0F, 0.0F, 0.0F))
+                  compages::Vector3f(1.0F, 0.0F, 0.0F))
         .scale(static_cast<float>(m_scenario.arena.x + 4.0),
                static_cast<float>(m_scenario.arena.y + 4.0),
                1.0F);
@@ -251,11 +251,11 @@ bool FlyView::frame(FlyEnvironment const& p_environment)
     std::size_t const shown = std::min(trail.size(), TRAIL);
     for (std::size_t i = 0; i < shown; ++i)
     {
-        compages::core::Vector3f const at = flyToView(trail[i]);
+        compages::Vector3f const at = flyToView(trail[i]);
         m_gpu->trail[i].position(at.x, at.y, at.z);
     }
 
-    compages::core::Vector3f const thorax = flyToView(
+    compages::Vector3f const thorax = flyToView(
         robotik::Vector3(snapshot.plant.x, snapshot.plant.y, snapshot.plant.z));
     m_gpu->camera.position(thorax.x - 2.4F, thorax.y + 1.8F, thorax.z + 2.6F)
         .lookAt(thorax);
