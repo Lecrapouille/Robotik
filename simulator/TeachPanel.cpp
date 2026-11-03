@@ -84,7 +84,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
     constexpr double LENGTH = 0.10;
     constexpr float THICKNESS = 0.004F;
     robotik::Pose const pose = robot.framePose(frame);
-    compages::core::Quatf const rotation(static_cast<float>(pose.rotation.w),
+    compages::Quatf const rotation(static_cast<float>(pose.rotation.w),
                                          static_cast<float>(pose.rotation.x),
                                          static_cast<float>(pose.rotation.y),
                                          static_cast<float>(pose.rotation.z));

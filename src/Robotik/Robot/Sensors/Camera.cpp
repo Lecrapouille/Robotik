@@ -38,7 +38,7 @@ Radians CameraIntrinsics::fov() const
 
 Vector3 CameraIntrinsics::ray(double p_u, double p_v) const
 {
-    return compages::core::vector::normalize(
+    return compages::vector::normalize(
         Vector3((p_u - cx) / fx, (p_v - cy) / fy, 1.0));
 }
 

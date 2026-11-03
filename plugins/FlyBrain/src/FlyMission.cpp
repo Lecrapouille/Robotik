@@ -22,7 +22,7 @@
 static constexpr std::size_t TRAIL = 240;
 
 /// Converts a double vector to the float vector the scene stores.
-static compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
+static compages::Vector3f toFloat(robotik::Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x),
              static_cast<float>(p_v.y),
@@ -30,7 +30,7 @@ static compages::core::Vector3f toFloat(robotik::Vector3 const& p_v)
 }
 
 /// Converts a double quaternion to the float quaternion the scene stores.
-static compages::core::Quatf toFloat(robotik::Quaternion const& p_q)
+static compages::Quatf toFloat(robotik::Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),

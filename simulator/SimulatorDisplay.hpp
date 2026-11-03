@@ -14,7 +14,7 @@
 #define VIEW_CLEAR_B 0.18F
 #define VIEW_CLEAR_A 1.0F
 
-inline compages::core::Vector4f viewClearColor()
+inline compages::Vector4f viewClearColor()
 {
     return { VIEW_CLEAR_R, VIEW_CLEAR_G, VIEW_CLEAR_B, VIEW_CLEAR_A };
 }

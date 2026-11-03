@@ -11,22 +11,25 @@
 
 #include "Robotik/Package/Scenario/Scenario.hpp"
 
+#include "Compages/World/Components/Camera.hpp"
 #include "Compages/World/Controllers/Controls.hpp"
 #include "Robotik/Common/Math.hpp"
 
-/// Limits of the camera rig for a robot cell: from a few centimetres to
-/// a few metres.
+/// Limits of the camera rig: from a few centimetres to a few metres for a
+/// robot cell, or what the package asks.
 static void tuneViewRig(compages::world::World& p_world,
-                        compages::world::Entity p_camera)
+                        compages::world::Entity p_camera,
+                        std::array<float, 2> const& p_distance)
 {
     if (compages::world::Rig* rig =
             p_world.routines().find<compages::world::Rig>(p_camera))
     {
-        rig->controller.min_distance = 0.15F;
-        rig->controller.max_distance = 20.0F;
+        rig->controller.min_distance = p_distance[0];
+        rig->controller.max_distance = p_distance[1];
     }
 }
 
+#include <array>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -192,7 +195,7 @@ void App::load(bool p_keep_tool)
     // A sun about 40 degrees high, from the side: the shadows stretch on
     // the floor and show where each object stands.
     scene->sun("Sun").rotation(robotik::Radians(-0.75F),
-                               compages::core::Vector3f(1.0F, 0.0F, 0.6F));
+                               compages::Vector3f(1.0F, 0.0F, 0.6F));
     view_camera = scene->camera("ViewCamera");
     scene->activeCamera(view_camera);
     scene_view = std::make_unique<SimulatorView>(*scene);
@@ -272,7 +275,13 @@ void App::load(bool p_keep_tool)
     ui.focus_plugin_panel = true;
     history.record(*simulation);
 
-    if (!scene_view->hasGround())
+    // Compages world is Y-up. The robot stands on XZ after the URDF
+    // conversion; look at the table from above-front. A package may override
+    // it.
+    robotik::PluginPackage const* package =
+        plugins.catalog().matchScenario(scenario_path).package;
+    bool const has_view = package != nullptr && package->has_view;
+    if (!scene_view->hasGround() && (!has_view || package->floor))
     {
         // A grid on the floor: distances and heights read at a glance.
         static std::filesystem::path const grid = floorGrid();
@@ -284,24 +293,30 @@ void App::load(bool p_keep_tool)
             .scale(3.0F);
         noShadow(floor);
     }
-    // Compages world is Y-up. The robot stands on XZ after the URDF
-    // conversion; look at the table from above-front. A package may override
-    // it.
-    robotik::PluginPackage const* package =
-        plugins.catalog().matchScenario(scenario_path).package;
-    if (package != nullptr && package->has_view)
+    clear_color = viewClearColor();
+    if (has_view)
     {
         view_camera.position(package->eye[0], package->eye[1], package->eye[2])
-            .add<compages::world::Rig>(compages::core::Vector3f(
+            .add<compages::world::Rig>(compages::Vector3f(
                 package->target[0], package->target[1], package->target[2]));
+        tuneViewRig(*world, view_camera,
+                    { package->distance[0], package->distance[1] });
+        auto& lens = view_camera.get<compages::world::Camera>();
+        lens.near_plane = package->clip[0];
+        lens.far_plane = package->clip[1];
+        if (package->has_background)
+        {
+            clear_color = { package->background[0], package->background[1],
+                            package->background[2], 1.0F };
+        }
     }
     else
     {
         view_camera.position(1.6F, 1.2F, 1.6F)
             .add<compages::world::Rig>(
-                compages::core::Vector3f(0.35F, 0.15F, 0.0F));
+                compages::Vector3f(0.35F, 0.15F, 0.0F));
+        tuneViewRig(*world, view_camera, { 0.15F, 20.0F });
     }
-    tuneViewRig(*world, view_camera);
     if (auto prepared = scene->prepare(); !prepared)
     {
         error = prepared.error();

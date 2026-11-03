@@ -86,7 +86,7 @@ static compages::world::Entity findNamed(compages::world::Entity p_root,
 }
 
 /// Converts a double vector to the float vector the scene stores.
-static compages::core::Vector3f toFloat(Vector3 const& p_v)
+static compages::Vector3f toFloat(Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x),
              static_cast<float>(p_v.y),
@@ -94,7 +94,7 @@ static compages::core::Vector3f toFloat(Vector3 const& p_v)
 }
 
 /// Converts a double quaternion to the float quaternion the scene stores.
-static compages::core::Quatf toFloat(Quaternion const& p_q)
+static compages::Quatf toFloat(Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),
@@ -111,7 +111,7 @@ static compages::world::Entity loadTool(compages::world::World& p_world,
     {
         return p_view->model(p_world, p_urdf);
     }
-    auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
+    auto loaded = compages::world::loadUrdf(p_world, p_urdf);
     if (!loaded)
     {
         throw std::runtime_error(loaded.error());
@@ -164,7 +164,7 @@ Robot::Robot(compages::world::World& p_world,
     }
     else
     {
-        auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
+        auto loaded = compages::world::loadUrdf(p_world, p_urdf);
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

@@ -543,26 +543,32 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     if (host.hasKey("view"))
     {
         bt::YamlNode const view = host.child("view");
-        auto read3 = [](bt::YamlNode const& p_node, float p_out[3])
+        auto read = [](bt::YamlNode const& p_node, float* p_out, int p_size)
         {
             if (!p_node.isSeq())
             {
-                return;
+                return false;
             }
             int index = 0;
             p_node.forEachSeq(
                 [&](bt::YamlNode p_item)
                 {
-                    if (index < 3)
+                    if (index < p_size)
                     {
                         p_out[index] = static_cast<float>(
                             p_item.asDouble().value_or(p_out[index]));
                         ++index;
                     }
                 });
+            return true;
         };
-        read3(view.child("eye"), package.eye);
-        read3(view.child("target"), package.target);
+        read(view.child("eye"), package.eye, 3);
+        read(view.child("target"), package.target, 3);
+        read(view.child("distance"), package.distance, 2);
+        read(view.child("clip"), package.clip, 2);
+        package.floor = view.child("floor").asBool().value_or(true);
+        package.has_background =
+            read(view.child("background"), package.background, 3);
         package.has_view = true;
     }
 

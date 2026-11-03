@@ -100,7 +100,7 @@ public:
     virtual compages::world::Entity model(compages::world::World& p_world,
                                           std::filesystem::path const& p_urdf)
     {
-        auto loaded = compages::world::loadUrdf(p_world, p_urdf.string());
+        auto loaded = compages::world::loadUrdf(p_world, p_urdf);
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

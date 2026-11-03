@@ -51,7 +51,7 @@ static Vector3 positionOf(compages::world::Entity p_entity)
 }
 
 /// Converts a double vector to the float vector the scene stores.
-static compages::core::Vector3f toFloat(Vector3 const& p_v)
+static compages::Vector3f toFloat(Vector3 const& p_v)
 {
     return { static_cast<float>(p_v.x),
              static_cast<float>(p_v.y),
@@ -59,7 +59,7 @@ static compages::core::Vector3f toFloat(Vector3 const& p_v)
 }
 
 /// Converts a double quaternion to the float quaternion the scene stores.
-static compages::core::Quatf toFloat(Quaternion const& p_q)
+static compages::Quatf toFloat(Quaternion const& p_q)
 {
     return { static_cast<float>(p_q.w),
              static_cast<float>(p_q.x),
@@ -890,7 +890,7 @@ void Cell::driveBelts(Seconds p_dt)
             local.x = std::clamp(local.x, -room_x, room_x);
             local.y = std::clamp(local.y, -room_y, room_y);
             Vector3 const next = under->pose * local;
-            entity.position(compages::core::Vector3f(static_cast<float>(next.x),
+            entity.position(compages::Vector3f(static_cast<float>(next.x),
                                                      static_cast<float>(next.y),
                                                      static_cast<float>(next.z)));
         }
@@ -1234,7 +1234,7 @@ std::string Cell::perceptionSummary() const
 void Cell::syncBodies()
 {
     RobotBackend const* backend = m_robot->backend();
-    compages::core::Quatf const& up = m_robot->urdfFrame();
+    compages::Quatf const& up = m_robot->urdfFrame();
     for (Record const& record : m_records)
     {
         if (record.body.empty() || !record.entity)

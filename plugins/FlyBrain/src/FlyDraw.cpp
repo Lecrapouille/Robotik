@@ -18,7 +18,7 @@
 static constexpr float PI = 3.14159265358979323846F;
 
 /// Euclidean length. The beam math stays in float, the view's unit.
-static float lengthOf(compages::core::Vector3f const& p_vector)
+static float lengthOf(compages::Vector3f const& p_vector)
 {
     return std::sqrt(p_vector.x * p_vector.x + p_vector.y * p_vector.y +
                      p_vector.z * p_vector.z);
@@ -36,7 +36,7 @@ poseJoint(robotik::Robot& p_robot, std::string const& p_name, double p_angle)
     }
 }
 
-compages::core::Vector3f flyToView(robotik::Vector3 const& p_z_up)
+compages::Vector3f flyToView(robotik::Vector3 const& p_z_up)
 {
     return { static_cast<float>(p_z_up.x),
              static_cast<float>(p_z_up.z),
@@ -93,14 +93,14 @@ void aimFlyBeam(compages::world::Entity p_beam,
                 float p_strength)
 {
     // Convert the positions to the view frame.
-    compages::core::Vector3f const from = flyToView(p_from);
-    compages::core::Vector3f const to = flyToView(p_to);
+    compages::Vector3f const from = flyToView(p_from);
+    compages::Vector3f const to = flyToView(p_to);
     p_start.position(from.x, from.y, from.z).scale(0.06F);
     float const tip = 0.08F + 0.1F * p_strength;
     p_end.position(to.x, to.y, to.z).scale(tip);
 
     // Calculate the span of the beam.
-    compages::core::Vector3f const delta(
+    compages::Vector3f const delta(
         to.x - from.x, to.y - from.y, to.z - from.z);
     float const span = lengthOf(delta);
     if (span < 1.0e-4F)
@@ -110,7 +110,7 @@ void aimFlyBeam(compages::world::Entity p_beam,
     }
 
     // Calculate the direction of the beam.
-    compages::core::Vector3f const direction(
+    compages::Vector3f const direction(
         delta.x / span, delta.y / span, delta.z / span);
 
     // Built-in cone: tip at local +Y, base at local -Y, one unit tall.
@@ -121,18 +121,18 @@ void aimFlyBeam(compages::world::Entity p_beam,
 
     // cross(+Y, direction) is the axis that carries the cone's +Y onto the
     // beam.
-    compages::core::Vector3f const axis(direction.z, 0.0F, -direction.x);
+    compages::Vector3f const axis(direction.z, 0.0F, -direction.x);
     float const sine = lengthOf(axis);
     if (sine < 1.0e-4F)
     {
         if (direction.y < 0.0F)
         {
             p_beam.rotation(robotik::Radians(PI),
-                            compages::core::Vector3f(1.0F, 0.0F, 0.0F));
+                            compages::Vector3f(1.0F, 0.0F, 0.0F));
         }
         else
         {
-            p_beam.rotation(compages::core::Quatf(1.0F, 0.0F, 0.0F, 0.0F));
+            p_beam.rotation(compages::Quatf(1.0F, 0.0F, 0.0F, 0.0F));
         }
     }
     else
@@ -164,7 +164,7 @@ compages::world::Entity mountFlyEye(compages::renderer::Scene& p_scene,
         p_scene.camera(std::string(p_name))
             .parent(link)
             .position(0.04F, 0.0F, 0.0F)
-            .rotation(compages::core::Quatf(static_cast<float>(lens.w),
+            .rotation(compages::Quatf(static_cast<float>(lens.w),
                                             static_cast<float>(lens.x),
                                             static_cast<float>(lens.y),
                                             static_cast<float>(lens.z)));

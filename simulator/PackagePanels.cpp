@@ -840,7 +840,7 @@ static std::unique_ptr<ModelView> openModel(std::filesystem::path const& p_path,
     view->scene->background(clear.x, clear.y, clear.z);
     view->camera = view->scene->camera("PreviewCamera");
     view->scene->activeCamera(view->camera);
-    auto loaded = view->scene->load(p_path.string());
+    auto loaded = view->scene->loadFile(p_path);
     if (!loaded)
     {
         p_error = loaded.error();
@@ -848,7 +848,7 @@ static std::unique_ptr<ModelView> openModel(std::filesystem::path const& p_path,
     }
     // The camera and the sun are placed from the size of the model; the rig
     // then turns around its middle.
-    compages::core::Vector3f const middle = view->scene->frameAll();
+    compages::Vector3f const middle = view->scene->frameAll();
     view->camera.add<compages::world::Rig>(middle);
     if (compages::world::Rig* rig =
             view->world->routines().find<compages::world::Rig>(view->camera))
@@ -895,7 +895,7 @@ void openClickedAsset(App& p_app)
         compages::gpu::LoadOptions options;
         options.flip_vertically = false;
         compages::Status const loaded =
-            preview.image.load(path.string(), options);
+            preview.image.loadFile(path, options);
         if (!loaded)
         {
             preview.error = loaded.error();

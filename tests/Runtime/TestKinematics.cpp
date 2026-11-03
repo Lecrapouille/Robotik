@@ -85,7 +85,7 @@ private:
 
     compages::world::Entity load(std::filesystem::path const& p_urdf)
     {
-        auto loaded = m_scene.load(p_urdf.string());
+        auto loaded = m_scene.loadFile(p_urdf);
         if (!loaded)
         {
             throw std::runtime_error(loaded.error());

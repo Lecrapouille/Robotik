@@ -214,7 +214,7 @@ public:
 
     /// @return Rotation from the URDF frame (Z-up, the world frame of
     ///   Robotik) to the Compages frame (Y-up) the entities are drawn in.
-    [[nodiscard]] compages::core::Quatf const& urdfFrame() const
+    [[nodiscard]] compages::Quatf const& urdfFrame() const
     {
         return m_world_from_urdf;
     }
@@ -323,7 +323,7 @@ protected:
     /// Compages is Y-up; URDF / Pinocchio / MuJoCo stay Z-up. The loader
     /// hangs the robot under this rotation; @ref propagate composes it with
     /// the measured base instead of overwriting it.
-    compages::core::Quatf m_world_from_urdf{};
+    compages::Quatf m_world_from_urdf{};
     /// Pinocchio q index of each joint (-1 when not modeled).
     std::vector<int> m_q_indices;
     /// Pinocchio v index of each joint (-1 when not modeled).
