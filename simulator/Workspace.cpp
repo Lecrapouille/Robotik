@@ -39,19 +39,19 @@ static std::array<WorkspaceInfo, WORKSPACE_COUNT> const WORKSPACES{ {
     { "Robot",
       "robot",
       "Ctrl+2",
-      "Teach Pendant",
+      "Inspector##robot",
       "The robot body: joints and their limits, plots, manual moves, "
       "cameras." },
     { "Mission",
       "mission",
       "Ctrl+3",
-      "Skills",
+      "Inspector##mission",
       "The execution: behavior tree, skills, resources and their timeline, the "
       "PDDL planner." },
     { "Autonomy",
       "autonomy",
       "Ctrl+4",
-      "World model",
+      "Inspector##autonomy",
       "What the robot believes against the ground truth, and what it "
       "perceives." },
 } };
@@ -119,32 +119,8 @@ PanelVisibility defaultPanels(Workspace p_workspace)
     { result[static_cast<std::size_t>(p_panel)] = true; };
     if (p_workspace != Workspace::Plugin)
         open(PanelKind::Inspector);
-    if (p_workspace == Workspace::Robot)
-    {
-        for (auto panel : { PanelKind::Joints,
-                            PanelKind::Plots,
-                            PanelKind::Teach,
-                            PanelKind::Cameras })
-            open(panel);
-    }
     if (p_workspace == Workspace::Mission)
-    {
-        for (auto panel : { PanelKind::Tree,
-                            PanelKind::Assertions,
-                            PanelKind::Timeline,
-                            PanelKind::Events,
-                            PanelKind::Resources,
-                            PanelKind::Skills,
-                            PanelKind::Planner })
-            open(panel);
-    }
-    if (p_workspace == Workspace::Autonomy)
-    {
-        for (auto panel : { PanelKind::WorldModel,
-                            PanelKind::Perception,
-                            PanelKind::Cameras })
-            open(panel);
-    }
+        open(PanelKind::Timeline);
     return result;
 }
 
@@ -190,7 +166,7 @@ void showPanel(App& p_app, PanelKind p_panel)
 void initializePanelSettings(App& p_app)
 {
     ImGuiSettingsHandler handler;
-    handler.TypeName = "RobotikPanels";
+    handler.TypeName = "RobotikPanels2";
     handler.TypeHash = ImHashStr(handler.TypeName);
     handler.UserData = &p_app.ui;
     handler.ReadOpenFn =
@@ -214,7 +190,7 @@ void initializePanelSettings(App& p_app)
                             ImGuiTextBuffer* p_buffer)
     {
         auto const& ui = *static_cast<UiState*>(p_handler->UserData);
-        p_buffer->append("[RobotikPanels][Visibility]\n");
+        p_buffer->appendf("[%s][Visibility]\n", p_handler->TypeName);
         for (std::size_t workspace = 0; workspace < WORKSPACE_COUNT;
              ++workspace)
         {
@@ -234,7 +210,7 @@ void shutdownPanelSettings()
 {
     if (ImGui::GetIO().IniFilename != nullptr)
         ImGui::SaveIniSettingsToDisk(ImGui::GetIO().IniFilename);
-    ImGui::RemoveSettingsHandler("RobotikPanels");
+    ImGui::RemoveSettingsHandler("RobotikPanels2");
     // App is destroyed before Window: avoid a second save without this handler.
     ImGui::GetIO().IniFilename = nullptr;
 }
@@ -279,55 +255,26 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             break;
         }
         case Workspace::Robot:
-        {
-            // Three areas around the main one: the joints, the plots under
-            // it, and one column of tabs (the camera is already over the
-            // scene, its panel waits behind the pendant).
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.30F);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.26F);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.32F);
-            dock("Joints", left);
-            dock(mainWindowId(key), center);
-            dock("Joint plots", bottom);
-            dock(panelTitle("Inspector", key), right);
-            dock(panelTitle("Cameras", key), right);
-            dock("Teach Pendant", right);
-            break;
-        }
         case Workspace::Mission:
-        {
-            // The Timeline takes the whole width: a time axis needs it.
-            // Above it the scene, between the tree (with the verdict below)
-            // and the skills.
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.30F);
-            ImGuiID left = split(center, ImGuiDir_Left, 0.20F);
-            ImGuiID const verdict = split(left, ImGuiDir_Down, 0.40F);
-            ImGuiID inspector = split(center, ImGuiDir_Right, 0.30F);
-            ImGuiID const right = split(inspector, ImGuiDir_Down, 0.45F);
-            dock(panelTitle("Behavior tree", key), left);
-            dock(panelTitle("Assertions", key), verdict);
-            dock(mainWindowId(key), center);
-            dock("Events", bottom);
-            dock("Timeline", bottom);
-            dock(panelTitle("Inspector", key), inspector);
-            // The last one docked is in front: Skills.
-            dock("Planner", right);
-            dock("Resources", right);
-            dock("Skills", right);
-            break;
-        }
         case Workspace::Autonomy:
         {
-            // What the robot believes and perceives on the left, the item
-            // inspected on the right (the camera is over the scene).
-            ImGuiID left = split(center, ImGuiDir_Left, 0.28F);
-            ImGuiID const perception = split(left, ImGuiDir_Down, 0.40F);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.26F);
-            dock("World model", left);
-            dock("Perception", perception);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.24F);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.22F);
             dock(mainWindowId(key), center);
-            dock(panelTitle("Cameras", key), right);
-            dock(panelTitle("Inspector", key), right);
+            // Optional windows have a home, but empty docks take no space.
+            for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+            {
+                PanelInfo const& panel = PANELS[i];
+                bool const wide = panel.view == ViewKind::Timeline ||
+                                  panel.view == ViewKind::Events ||
+                                  panel.view == ViewKind::Plots;
+                std::string const title = panel.workspace_title
+                                              ? panelTitle(panel.name, key)
+                                              : panel.name;
+                dock(title, wide ? bottom : right);
+            }
+            if (auto* node = ImGui::DockBuilderGetNode(center))
+                node->LocalFlags |= ImGuiDockNodeFlags_AutoHideTabBar;
             break;
         }
     }
@@ -773,7 +720,13 @@ static void mainMenu(App& p_app)
         if (ImGui::MenuItem("Reset layout"))
         {
             p_app.ui.reset_layout = true;
+            p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)] =
+                defaultPanels(p_app.ui.workspace);
+            p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)] =
+                ViewKind::Scene;
+            p_app.ui.maximized = ViewKind::None;
             p_app.ui.place_plugin_panels = true;
+            ImGui::MarkIniSettingsDirty();
         }
         ImGui::EndMenu();
     }
@@ -1218,7 +1171,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/14";
+    constexpr char const* LAYOUT_VERSION = "/15";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
@@ -1232,23 +1185,19 @@ void drawPanels(App& p_app)
     if (p_app.ui.reset_layout || node == nullptr || broken)
     {
         layout(workspace, dock);
+        if (workspace == Workspace::Robot && p_app.simulation &&
+            p_app.ui.selection.kind == SelectionKind::None &&
+            !p_app.simulation->cell().robots().empty())
+            p_app.ui.selection = {
+                SelectionKind::Robot,
+                p_app.simulation->cell().robots().front()->id()
+            };
         p_app.ui.reset_layout = false;
-        // Docking does not choose the tab in front.
-        switch (workspace)
+        if (workspace != Workspace::Plugin)
         {
-            case Workspace::Robot:
-                p_app.ui.focus_windows.emplace_back("Teach Pendant");
-                break;
-            case Workspace::Mission:
-                p_app.ui.focus_windows.emplace_back("Skills");
+            p_app.ui.focus_windows.push_back(panelTitle("Inspector", info.key));
+            if (workspace == Workspace::Mission)
                 p_app.ui.focus_windows.emplace_back("Timeline");
-                break;
-            case Workspace::Autonomy:
-                p_app.ui.focus_windows.push_back(
-                    panelTitle("Inspector", info.key));
-                break;
-            case Workspace::Plugin:
-                break;
         }
     }
     ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());

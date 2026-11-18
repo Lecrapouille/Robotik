@@ -57,20 +57,20 @@ Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
 scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and
 right for six seconds.
 
-The window has five parts:
+The default Mission layout keeps the scene, an Inspector and a short Timeline:
 
 ```text
-┌ File  Demos  View  <plugin menus>  Help      [Plugin] [Robot] [Mission] [Autonomy] ┐  menu + workspaces
-│ [Play] [Step]  4.20 s RUNNING  [Replay] seed [Next seed] speed     [EMERGENCY STOP] │  run bar
-├──────────────┬───────────────────────────────────────────────┬─────────────────────┤
-│  panels of   │               3D scene                        │  Inspector          │
-│  the         │                                               ├─────────────────────┤
-│  workspace   │                                               │  panels, plugin     │
-├──────────────┴───────────────────────────────────────────────┴─────────────────────┤
-│  Timeline (Mission)                                                                 │
-├─────────────────────────────────────────────────────────────────────────────────────┤
-│ Pick and place  seed 42  Assertions 3/5  1 in fault | Grasp     x1.0 real time  60 fps │  status bar
-└─────────────────────────────────────────────────────────────────────────────────────┘
+┌ File  Demos  View  Help                    [Plugin] [Robot] [Mission] [Autonomy] ┐
+│ Play / Step    time and state    Replay / seed / speed           Emergency stop │
+├──────────────────────────────────────────────────────────┬────────────────────┤
+│                                                          │ Inspector          │
+│                    3D scene                              │                    │
+│                                      camera inset        │ selected item      │
+├──────────────────────────────────────────────────────────┤                    │
+│ Timeline                                                 │                    │
+├──────────────────────────────────────────────────────────┴────────────────────┤
+│ Scenario / assertions / faults / selection                                    │
+└───────────────────────────────────────────────────────────────────────────────┘
 ```
 
 The **run bar** is the same in every workspace: play, step, the simulated
@@ -140,14 +140,14 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 | Workspace | Panels | Use it to |
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
-| **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints; a link with fewer than six joints above it moves its position or its orientation alone, and the axes its joints cannot follow are greyed), Cameras and Inspector as tabs behind it | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
-| **Mission** | Behavior tree, Assertions, Inspector, Events (what happened, one dated line each), Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
-| **Autonomy** | World model (belief against truth; click an object to inspect it) with Perception (detections) under it, Inspector (with Cameras behind it) | Check what the robot believes and sees |
+| **Robot** | Scene with camera inset, Inspector showing the robot. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
+| **Mission** | Scene with camera inset, Inspector and compact Timeline. Open Behavior tree, Skills, Resources, Planner, Events or Assertions from **View** | Watch execution and inspect a problem |
+| **Autonomy** | Scene with camera inset and Inspector. Open World model, Perception or Cameras from **View** | Compare beliefs and perception with the scene |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the
 panels of the workspace, except in **Plugin**, which only reads the package. You can move and dock every panel; the layout of
 each workspace is saved in `~/.config/robotik/simulator.ini`. **View → Reset
-layout** puts it back.
+layout** restores its default windows and scene view.
 
 Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 
@@ -336,7 +336,7 @@ the [glossary](Glossary.md).
 
 | Layer | You have… | You write… |
 |-------|-----------|------------|
-| **Robot** | a URDF file | one robot, its joints and its physics |
+| **Robot** | Scene with camera inset, Inspector showing the robot. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
 | **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
 | **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
 
