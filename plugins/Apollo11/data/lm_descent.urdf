@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<!-- LM Eagle descent stage, DPS engine, four landing legs (q = 0: deployed), at scale -->
+<robot name="lm_descent">
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_descent_gold.stl"/></geometry>
+      <material name="base_0"><color rgba="0.860 0.660 0.220 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_descent_black.stl"/></geometry>
+      <material name="base_1"><color rgba="0.080 0.080 0.090 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_descent_engine.stl"/></geometry>
+      <material name="base_2"><color rgba="0.300 0.290 0.280 1"/></material>
+    </visual>
+    <inertial><mass value="2030"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <link name="leg_1">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_1_gold.stl"/></geometry>
+      <material name="leg_1_0"><color rgba="0.860 0.660 0.220 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_1_pad.stl"/></geometry>
+      <material name="leg_1_1"><color rgba="0.580 0.580 0.550 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="leg_1" type="revolute">
+    <parent link="base"/>
+    <child link="leg_1"/>
+    <origin xyz="1.41421 1.41421 0.4" rpy="0 0 0.785398"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.3" upper="0.05" effort="1000" velocity="1"/>
+  </joint>
+  <link name="leg_2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_2_gold.stl"/></geometry>
+      <material name="leg_2_0"><color rgba="0.860 0.660 0.220 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_2_pad.stl"/></geometry>
+      <material name="leg_2_1"><color rgba="0.580 0.580 0.550 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="leg_2" type="revolute">
+    <parent link="base"/>
+    <child link="leg_2"/>
+    <origin xyz="-1.41421 1.41421 0.4" rpy="0 0 2.35619"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.3" upper="0.05" effort="1000" velocity="1"/>
+  </joint>
+  <link name="leg_3">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_3_gold.stl"/></geometry>
+      <material name="leg_3_0"><color rgba="0.860 0.660 0.220 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_3_pad.stl"/></geometry>
+      <material name="leg_3_1"><color rgba="0.580 0.580 0.550 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="leg_3" type="revolute">
+    <parent link="base"/>
+    <child link="leg_3"/>
+    <origin xyz="-1.41421 -1.41421 0.4" rpy="0 0 3.92699"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.3" upper="0.05" effort="1000" velocity="1"/>
+  </joint>
+  <link name="leg_4">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_4_gold.stl"/></geometry>
+      <material name="leg_4_0"><color rgba="0.860 0.660 0.220 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/lm_leg_4_pad.stl"/></geometry>
+      <material name="leg_4_1"><color rgba="0.580 0.580 0.550 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="leg_4" type="revolute">
+    <parent link="base"/>
+    <child link="leg_4"/>
+    <origin xyz="1.41421 -1.41421 0.4" rpy="0 0 5.49779"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.3" upper="0.05" effort="1000" velocity="1"/>
+  </joint>
+</robot>

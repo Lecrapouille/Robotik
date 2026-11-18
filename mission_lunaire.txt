@@ -1,0 +1,1472 @@
+Oui. C'est même un excellent démonstrateur pour RobotIK, car la mission Apollo 11 permet de mettre en œuvre presque toutes les notions que tu souhaites développer dans ta bibliothèque : robots, articulations, cinématique, dynamique, environnement, planification, tâches, compétences (skills), gestion des ressources et éventuellement IA.
+
+Je te propose de ne pas chercher à reproduire fidèlement la physique spatiale d'Apollo 11. L'objectif serait plutôt de construire une simulation robotique et multi-agents d'une mission spatiale, avec une physique simplifiée mais des séquences opérationnelles réalistes.
+
+Il y a une distinction importante à faire : une fusée n'est pas vraiment un robot articulé. En revanche, le module de commande, le module lunaire et leurs mécanismes peuvent être représentés comme des robots ou des systèmes mécatroniques. La mission, elle, peut être pilotée par ton système de planification.
+
+# 1. Comprendre Apollo 11
+
+[Apollo 11 liftoff from pad 39A | The Planetary Society](https://images.openai.com/static-rsc-4/F8E3HyNHgMLQDLfUo1NeGjfBtayD_njii5Fz8JuDggIn2SR1RPeAJ-Kzm1XI0pus90EsFIPYHsaWcAlkwjmufel4DMpYB07-kf-hjOV_Ls-fibn_mcNfO2rDcFsZbvhvlx4DmH1uCbhmDXevjVC1at6snKz2BzMI1y7x9jDfP_s?purpose=inline)
+
+[Classified Apollo 11 Anomaly Threatened to Crash First Moon Astronauts - Business Insider](https://images.openai.com/static-rsc-4/zqT6SQGa6GS07f8L_SlzxedRhQ1dipq2y28fpIdhxQTb5mmMq6jT8CJMtYe4A_CqGF3t9KoidBIpisiPXMb4dX14K05K1wpgZ9aZdgdBbs8V05nGES0SkPUkMw0NzbVpdR9snakPucR8ZAlWI1-QERF7bLx4YrlvyDGp3mmFC-A?purpose=inline)
+
+[Far above the Earth, NASA's Apollo lunar lander put astronauts on the moon](https://images.openai.com/static-rsc-4/k-KFc0tHpWk6LZO0eTJUlCl5jfWQ8w1D0OsVLW62QaYN85KGoxMCShwVOSUMdFtyO-3G1aucGoq0HJJrO2Cm3nBK3hrljIS_QT1JK0To5wYc7-XXpRUkd6BZ6L6J3WdSU1I4fIKG2yiIEI0mJre5j6vkB2yIiImrkC7J-fWKPKo?purpose=inline)
+
+7
+
+Apollo 11, en juillet 1969, est constituée de trois éléments principaux :
+
+| Élément                          | Rôle                                                  |
+| -------------------------------- | ----------------------------------------------------- |
+| Saturn V                         | Lance la mission depuis la Terre                      |
+| CSM (Command and Service Module) | Transporte les astronautes et reste en orbite lunaire |
+| LM (Lunar Module)                | Descend sur la Lune puis remonte en orbite            |
+
+Le voyage comporte plusieurs phases.
+
+## Les grandes étapes de la mission
+
+1. Décollage terrestre
+
+   [Apollo 11 liftoff from pad 39A | The Planetary Society](https://images.openai.com/static-rsc-4/F8E3HyNHgMLQDLfUo1NeGjfBtayD_njii5Fz8JuDggIn2SR1RPeAJ-Kzm1XI0pus90EsFIPYHsaWcAlkwjmufel4DMpYB07-kf-hjOV_Ls-fibn_mcNfO2rDcFsZbvhvlx4DmH1uCbhmDXevjVC1at6snKz2BzMI1y7x9jDfP_s?purpose=inline)
+
+   [planetary.org](https://www.planetary.org/space-images/apollo-11-liftoff-from-pad?utm_source=chatgpt.com)
+
+   La fusée Saturn V décolle et utilise successivement ses étages pour atteindre l'orbite terrestre.
+2. Mise en orbite terrestre et injection translunaire
+
+   [ESA - Apollo lunar mission profile](https://images.openai.com/static-rsc-4/jS9MBSlapYMt63c4jAC_UF97Ci0gQ1jeA2xJXc0fq3FNVU-pCMUIVczok-Nw-VPkGr4H9nzgxamUd4msN_QA1-_-YbhtwC6k8qQG1VZeSEnfk_htHoDdswK3P6POLpIfxcHTxg55zgC2fRpvj2eQZQPiGjhEg07SKzl8ht1N2ZU?purpose=inline)
+
+   [esa.int](https://www.esa.int/ESA_Multimedia/Images/2019/07/Apollo_lunar_mission_profile?utm_source=chatgpt.com)
+
+   Le vaisseau atteint l'orbite terrestre, puis une dernière poussée l'envoie vers la Lune.
+3. Séparation du module lunaire
+
+   [Apollo Docking And Extraction by Science Photo Library](https://images.openai.com/static-rsc-4/V4MRFyA232_7ahsghiUmrYoy4CwP1y0tzd0d9nH0L56SBgezx5nrN043sHn6LK9-D5ZtbD2XeM2KdhoKmAonUkPz5BWoxLrnTNdMgkqa4s4huDiSYhvDhLXoKSAx1SRF_LARgqUSltvlwEIIOaDT5MyEIlckKZfISsHC8zmOfKo?purpose=inline)
+
+   [sciencephotogallery.com](https://sciencephotogallery.com/featured/apollo-docking-and-extraction-carlos-clarivanscience-photo-library.html?utm_source=chatgpt.com)
+
+   Le CSM se sépare de l'étage supérieur, fait demi-tour, récupère le LM et s'y amarre.
+4. Mise en orbite lunaire
+
+   [�������-11](https://images.openai.com/static-rsc-4/irB2EG0li28Pc1as1HXeszroJv9EME2KbGCw4Itkepc_k68D5lQ_2jN6yhEnyUf0CWv6pfNOEx2JlzoLkMQMqjwowjF7iWZjb7GWVgbGSMyR5ZtGF160ydaN2feZFjqLl6tP4jP-fFFPEoKbTvf84qozxxyACsHFhjCskngTMXM?purpose=inline)
+
+   [epizodsspace.airbase.ru](https://epizodsspace.airbase.ru/e2/foto-e2/a-11/a11.html?utm_source=chatgpt.com)
+
+   Le vaisseau ralentit pour être capturé par la gravité lunaire.
+5. Séparation et descente du LM
+
+   [Apollo 11: the story of the Moon landing | BBC Sky at Night Magazine](https://images.openai.com/static-rsc-4/h9W3E3Qfkk7B5j9UaDR4-gnGNqGpi9x8epLFC4q0e6xqq8XlfRKpWZhH0e-Yn6MIKolG-UnDVu4yLY198CuP6J0TfC8SLIhGCuaMF_FVPYmIDj7UZq44e_nfaBUKS0X6Rq9KCwCtEe3j_j96khhYzKghFJJFnKu8HFcql9NPTHI?purpose=inline)
+
+   [skyatnightmagazine.com](https://www.skyatnightmagazine.com/space-missions/apollo-11-story-of-moon-landing?utm_source=chatgpt.com)
+
+   Le module lunaire se détache du CSM et effectue une descente motorisée.
+6. Alunissage
+
+   [SimplyScience: L’Aigle a atterri…](https://images.openai.com/static-rsc-4/oU4VcUK9JrrYf7EGi-zeY2vmKhg2KLeat8tOnohxzBD-1wjcXuAoXUyj8XBeoCPaX8l7GQR15-oFNtcx905QDHSdqZtvRq46E4bYI3Fx1IobF35M1239G98wbFXkRNJUzAeGzBEiaSQbXJiRDytybonCBr148YyzMvBtH2ZRpPs?purpose=inline)
+
+   [simplyscience.ch](https://www.simplyscience.ch/fr/jeunes/decouvre/laigle-a-atterri?utm_source=chatgpt.com)
+
+   Le LM se pose sur la surface lunaire.
+7. Décollage lunaire et rendez-vous
+
+   [Lunar Landing: How we got to the moon, from man to machinery | The Spokesman-Review](https://images.openai.com/static-rsc-4/dqQivvq2zRpRTO1l2zAsx9KkowC8dEZQyX5LfCkL4tJGm32NsyK1uHtnLM22l-_Ap1CvIr3t84CDk-2wz6WmGDnC1LudLvIUv_tIzMZvFJl74RacqFHIgBYxr8VTZZ1q_C8rwOykhiDfOuEkcEFqxr8_Qo_3b5avrX40LZ9k83M?purpose=inline)
+
+   [spokesman.com](https://www.spokesman.com/further-review/apollo-11/?utm_source=chatgpt.com)
+
+   L'étage de remontée du LM décolle et rejoint le CSM en orbite.
+8. Amarrage et retour terrestre
+
+   [File:Apollo 11 CSM photographed from Lunar Module (AS11-37-5445).jpg - Wikimedia Commons](https://images.openai.com/static-rsc-4/McizUntcdrCaCtmF1nKN7Kh2tZAYi4aJKlpMeMN9kKcpRSRYiLS57LbTKqDEzdaJyZa6G3Klwarrc978gEzF5INCJPw1dHGlyVhaVFzOXISVg10n0um7oDQzxJdyc285UTmFiOI_4wuLb4-PBKh4LYVJZKTst1FaGKDkrI4abME?purpose=inline)
+
+   [commons.wikimedia.org](https://commons.wikimedia.org/wiki/File%3AApollo_11_CSM_photographed_from_Lunar_Module_%28AS11-37-5445%29.jpg?utm_source=chatgpt.com)
+
+   Les astronautes rejoignent le CSM, larguent le LM et repartent vers la Terre.
+
+Le détail intéressant est que le module lunaire n'est pas un seul véhicule qui fait tout : son étage de descente reste sur la Lune tandis que son étage de remontée rejoint le CSM.
+
+# 2. Comment représenter cela dans RobotIK ?
+
+Je partirais sur cinq entités physiques.
+
+[NASA's Mighty Saturn V Moon Rocket: 10 Surprising Facts | Space](https://images.openai.com/static-rsc-4/mMkqCPYbdOJuVsgVbsvQL0znUh4EHHwr9yfyoKwXLJILXZ41cU35Qy7JiU2V7__5aBoRJMpD54CbnbJEOGqd1gupAwCAxwt5EPndTxILNleEsaOq8pVCx45ckwBepT3QxSsSFJhPYplV4z2QtoTwgPMNIaY358U1dNG7DUw224c?purpose=inline)
+
+1\. Saturn V
+
+Un véhicule composé de plusieurs étages indépendants. Chaque étage possède un moteur, du carburant et une masse. Les étages sont largués successivement.
+
+[Rechargeable Hearing Aid Batteries Draw from NASA Research | NASA Spinoff](https://images.openai.com/static-rsc-4/mXfVyPfXkEZ9I_BYU3Lp9NOtPxSQX33fAJFVBMQ_LeIz0kakEAJO6OtgUL3PjJwIVLcaN34_GKsMAgMs3z31fDU9Iy6v3U4Z9GqDCOtkthETTR6-6kTlHzohoTYt7RZ7f_t9FphAsJNZNJeMNza1c95R8zcutUkjUSHEOkTvqRY?purpose=inline)
+
+2\. CSM – Columbia
+
+Le véhicule principal. Il transporte l'équipage, possède un moteur de propulsion et des petits moteurs d'orientation. Il reste en orbite lunaire pendant l'alunissage.
+
+[Лунный модуль - Факты программы «Аполлон»](https://images.openai.com/static-rsc-4/l9UfuZV2xerWZRWk-BKZAbIYd0re-kSdynPB12HXeJ8WVGJ3-4eKUFPjxS8pXE-RrIRjZ8Tbi6I1Wy9DjxVi1vu0iH6UQT7N-04TLerr19xwNH4ewpQGp6x6EyWzWtsYL5sK5kl7V-AaYBx0MXmSTwG4upw4tc_VjnAJkHDU0M0?purpose=inline)
+
+3\. LM – Eagle
+
+Deux parties :
+
+- Étage de descente : moteurs, pieds, réservoirs.
+- Étage de remontée : cabine, moteurs et système de rendez-vous.
+
+[File:The Command Service Module and Lunar Module orientation before contact.png - Wikimedia Commons](https://images.openai.com/static-rsc-4/Ll0EGxRPHCxfJ_XJ6xm4AFOpv2xNGSWu1VIE4YIWZkMlc57TG4SF_dloH6763V6jOwCnqaV2j5_CTaN9j2RPIQykSsmIAcc7Arr1WFpC8C3z7EeHetHei4wINqC7tYX_HmpRhFw0bAWHXCjxagML3UtwgXujwRRpn3dC1c2Rr18?purpose=inline)
+
+4\. Système d'amarrage
+
+Un mécanisme permettant de connecter deux véhicules, de verrouiller leur position relative et de les désolidariser.
+
+[Five Things to Know about the Moon - NASA Science](https://images.openai.com/static-rsc-4/mBzQFufJhMXXK_DDFm-dSJup3G32x5sSy91Kg68lhyBMZ0dHenybgnp_CTM1KAQIzHlVqv_izuijS44ejO4QsECjjkcNYCBoLqFgxEhhZZtyhlfQHwc5u3H70YrfgDTdQvxqfe2CtLNUwdstClDtpvmWamv29RGuPM_AAmdaoxk?purpose=inline)
+
+5\. Environnement spatial
+
+Terre, Lune, orbites, gravité, moteurs, collisions et éventuellement Soleil.
+
+Une remarque architecturale importante : je ne modéliserais pas la fusée comme une chaîne cinématique classique.
+
+Je distinguerais trois notions :
+
+- Scene graph : où se trouve chaque véhicule et comment les éléments sont organisés.
+- Rigid body : position, orientation, vitesse, masse et inertie de chaque véhicule.
+- Kinematic chain : les mécanismes réellement articulés, comme les pieds d'atterrissage ou les dispositifs d'amarrage.
+
+C'est justement une bonne occasion de vérifier que l'architecture de Compages et RobotIK sait gérer à la fois des objets articulés et des objets physiques indépendants.
+
+# 3. La physique : ne pas chercher à tout simuler
+
+C'est probablement la partie la plus délicate. Il existe plusieurs niveaux de fidélité.
+
+| Niveau | Ce qu'on simule                            | Difficulté |
+| ------ | ------------------------------------------ | ---------- |
+| 1      | Trajectoires prédéfinies                   | Faible     |
+| 2      | Propulsion, gravité et inertie simplifiées | Moyenne    |
+| 3      | Mécanique orbitale réaliste                | Élevée     |
+| 4      | Navigation et contrôle autonomes           | Élevée     |
+
+Je te conseille de commencer par le niveau 2, avec quelques éléments du niveau 3.
+
+Les notions physiques à connaître :
+
+A. La gravité
+
+La Terre et la Lune attirent les véhicules. La gravité lunaire est environ six fois plus faible que celle de la Terre.
+
+Pour commencer, tu peux utiliser :
+
+\\[ F_g = m \times g \\]
+
+B. La propulsion
+
+Un moteur produit une poussée dans une direction donnée.
+
+\\[ F = \dot m \times v_e \\]
+
+Avec :
+
+- \\(F\\) : poussée du moteur.
+- \\(\dot m\\) : débit massique du carburant.
+- \\(v_e\\) : vitesse d'éjection des gaz.
+
+Pour une première simulation, tu peux simplement définir une poussée constante et une consommation de carburant.
+
+C. Le mouvement
+
+Tu dois calculer la position et la vitesse en fonction des forces :
+
+\\[ a = \frac{F\_{\text{total}}}{m} \\]
+
+\\[ v\_{t+\Delta t} = v_t + a\Delta t \\]
+
+\\[ p\_{t+\Delta t} = p_t + v\_{t+\Delta t}\Delta t \\]
+
+C'est suffisant pour un premier modèle de vol simplifié.
+
+D. Les orbites
+
+C'est là qu'il y a une subtilité : aller vers la Lune ne consiste pas à pointer une fusée vers elle et à accélérer.
+
+Il faut atteindre une vitesse et une trajectoire particulières. On utilise notamment des orbites elliptiques et des manœuvres de transfert.
+
+Pour ta première version, tu peux utiliser des trajectoires orbitales prédéfinies, puis remplacer progressivement ces trajectoires par un calcul gravitationnel.
+
+[Apollo 11 Moon Landing Timeline: From Liftoff to Splashdown | HISTORY](https://images.openai.com/static-rsc-4/VKygRJFcBxBRptKts_6aMEtabgo6QVxF7YkOctH5P1lV6o8fTXw-d0fy3aGvWUwU6Cnt1YwNsZHZ-KO4v-TF7XoSGiwjhajbIP3vZaMT0fHOP9Jpipq04d_1Vtk1hSwcYhUtEE4k1z300PfJtQhgWdb6m3NPFdPnb-eFefwvENY?purpose=inline)
+
+[history.com](https://www.history.com/news/apollo-11-moon-landing-timeline?utm_source=chatgpt.com)
+
+Je ferais donc deux simulateurs physiques distincts, partageant une même interface :
+
+- Un simulateur orbital simplifié pour le voyage Terre-Lune.
+- Un simulateur local pour les opérations proches de la surface lunaire : descente, atterrissage et décollage.
+
+MuJoCo pourrait être particulièrement intéressant pour la seconde partie, notamment pour les contacts avec le sol, les pieds d'atterrissage et les mouvements du véhicule. Je ne chercherais pas à lui faire gérer toute la mécanique orbitale.
+
+# 4. Le plus intéressant : piloter la mission avec RobotIK
+
+C'est ici que ton projet peut devenir vraiment intéressant.
+
+Tu as déjà les concepts de Mission, Task, Skill, Goal et Action. Apollo 11 est un excellent cas concret pour les mettre en pratique.
+
+Je représenterais la mission ainsi :
+
+## Mission Apollo 11
+
+Mission globale
+
+Goal : déposer les astronautes sur la Lune et les ramener sur Terre.
+
+1. Task : Earth Launch
+   - Skill : StartEngines
+   - Skill : SeparateFirstStage
+   - Skill : SeparateSecondStage
+   - Skill : EnterEarthOrbit
+2. Task : Trans Lunar Injection
+   - Skill : OrientSpacecraft
+   - Skill : ExecuteBurn
+   - Skill : JettisonSIVB
+3. Task : Docking
+   - Skill : SeparateCSM
+   - Skill : TurnAround
+   - Skill : ApproachLM
+   - Skill : Dock
+4. Task : Lunar Orbit
+   - Skill : LunarOrbitInsertion
+   - Skill : OrbitCorrection
+5. Task : Lunar Landing
+   - Skill : UndockLM
+   - Skill : DescentOrbitInsertion
+   - Skill : PoweredDescent
+   - Skill : Landing
+6. Task : Lunar Ascent
+   - Skill : StartAscentEngine
+   - Skill : LeaveDescentStage
+   - Skill : Rendezvous
+   - Skill : Dock
+7. Task : Return to Earth
+   - Skill : TransferToCSM
+   - Skill : JettisonLM
+   - Skill : TransEarthInjection
+   - Skill : EarthReentry
+   - Skill : DeployParachutes
+
+Attention à une subtilité : une Skill ne devrait pas être une simple animation.
+
+Par exemple, `Dock` devrait être une véritable compétence qui :
+
+1. Observe la position relative des deux véhicules.
+2. Vérifie leur vitesse relative.
+3. Oriente le véhicule.
+4. Effectue une approche contrôlée.
+5. Réalise le contact.
+6. Verrouille les mécanismes d'amarrage.
+7. Vérifie que l'amarrage est réussi.
+
+Elle peut échouer, être interrompue ou nécessiter plusieurs tentatives.
+
+C'est une bonne manière de tester ton système de Skills et de gestion des ressources.
+
+# 5. Réseaux de Petri et GRAFCET : un cas d'utilisation idéal
+
+Je pense que ton TimedPetriNetEditor aurait ici une vraie utilité.
+
+Une mission spatiale est une succession d'opérations avec :
+
+- Des préconditions.
+- Des opérations qui peuvent durer.
+- Des événements déclencheurs.
+- Des ressources partagées.
+- Des conditions de sécurité.
+- Des possibilités d'abandon ou de reprise.
+
+Par exemple, le décollage lunaire ne doit pas être possible si le module n'est pas correctement préparé.
+
+Tu pourrais avoir un GRAFCET de mission :
+
+\#chatgpt-mermaid-\_r_1uq\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_1uq\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1uq\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_1uq\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_1uq\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_1uq\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_1uq\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_1uq\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_1uq\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_1uq\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1uq\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1uq\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;}#chatgpt-mermaid-\_r_1uq\_ p{margin:0;}#chatgpt-mermaid-\_r_1uq\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_1uq\_ .label text,#chatgpt-mermaid-\_r_1uq\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .node rect,#chatgpt-mermaid-\_r_1uq\_ .node circle,#chatgpt-mermaid-\_r_1uq\_ .node ellipse,#chatgpt-mermaid-\_r_1uq\_ .node polygon,#chatgpt-mermaid-\_r_1uq\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .rough-node .label text,#chatgpt-mermaid-\_r_1uq\_ .node .label text,#chatgpt-mermaid-\_r_1uq\_ .image-shape .label,#chatgpt-mermaid-\_r_1uq\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_1uq\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .rough-node .label,#chatgpt-mermaid-\_r_1uq\_ .node .label,#chatgpt-mermaid-\_r_1uq\_ .image-shape .label,#chatgpt-mermaid-\_r_1uq\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_1uq\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_1uq\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1uq\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1uq\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_1uq\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1uq\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1uq\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1uq\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_1uq\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_1uq\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_1uq\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_1uq\_ .icon-shape,#chatgpt-mermaid-\_r_1uq\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_1uq\_ .icon-shape p,#chatgpt-mermaid-\_r_1uq\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_1uq\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_1uq\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_1uq\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_1uq\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_1uq\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_1uq\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_1uq\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_1uq\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_1uq\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1uq\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_1uq\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_1uq\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1uq\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_1uq\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_1uq\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_1uq\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .node rect,#chatgpt-mermaid-\_r_1uq\_ .node circle,#chatgpt-mermaid-\_r_1uq\_ .node ellipse,#chatgpt-mermaid-\_r_1uq\_ .node polygon,#chatgpt-mermaid-\_r_1uq\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_1uq\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_1uq\_ .mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2px,2px;}#chatgpt-mermaid-\_r_1uq\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_1uq\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_1uq\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;}Préparation missionSystèmes OK ?Décollage TerreOrbite terrestreTransfert vers LuneAmarrage CSM + LMOrbite lunaireDescente LMAlunissage réussi ?Abandon / récupérationMission lunaireDécollage lunaireRendez-vous CSMAmarrage réussi ?Transfert équipageRetour TerreMission terminéeNonOuiNonOuiNonOui
+
+Tu pourrais même distinguer plusieurs GRAFCET :
+
+- GRAFCET de mission : les grandes étapes.
+- GRAFCET du CSM : propulsion, orientation, amarrage.
+- GRAFCET du LM : descente, alunissage, remontée.
+- GRAFCET de sécurité : conditions d'abandon et procédures d'urgence.
+
+Les réseaux de Petri pourraient gérer les synchronisations entre les différents véhicules.
+
+Par exemple, pour autoriser un amarrage, il faut que :
+
+- Le CSM soit en orbite.
+- Le LM soit disponible.
+- Les deux véhicules soient suffisamment proches.
+- Leur vitesse relative soit compatible.
+
+C'est également un bon exemple de gestion de ressources : le moteur, le carburant, les systèmes de navigation et les mécanismes d'amarrage ne sont pas disponibles indéfiniment.
+
+# 6. À quoi pourrait ressembler le simulateur ?
+
+Je verrais bien un démonstrateur visuel dans Compages, piloté par RobotIK.
+
+[Apollo XI,  Earth to Moon / Moon to Earth diagrams. :: Behance](https://images.openai.com/static-rsc-4/cTtAnBMHcOSTpYnVWWqbUInEOKD42_i_AasfKp1b69Lx3-Y1YJgRu6BHu1ix2492vBCASCoS1jGoF-BCF09YjKFU8k1ESy_tgdqW94S2UcUm5mix71jBFTN2pvutdDRAfOuqIDmva0HGdYGmgbMayPZYZeQiGlS-KUCaoRNFnxc?purpose=inline)
+
+[Apollo Docking And Extraction by Science Photo Library](https://images.openai.com/static-rsc-4/V4MRFyA232_7ahsghiUmrYoy4CwP1y0tzd0d9nH0L56SBgezx5nrN043sHn6LK9-D5ZtbD2XeM2KdhoKmAonUkPz5BWoxLrnTNdMgkqa4s4huDiSYhvDhLXoKSAx1SRF_LARgqUSltvlwEIIOaDT5MyEIlckKZfISsHC8zmOfKo?purpose=inline)
+
+[Slijetanje na Mjesec, 20. srpnja 1969. godine - 3D scene -  HR Mozaik digitalno obrazovanje i učenje](https://images.openai.com/static-rsc-4/H2CuhTOC3KoyGDCqY4tv7IvvYVsfZQqPzxUWwC5w35vrjARnvRbyOeJloCDqPvq1Er94I2-g2L9aMH4XSlNSCE_Rqa_vtxnKcq1gLz_RbLcQ2bzeudofRzuYYoBhBo8Rq3YL3ngCyf1I4d6kB6gp4HvsWDhHFGGXvyZJ4H7kCKk?purpose=inline)
+
+10
+
+Une interface avec plusieurs vues :
+
+1. Vue globale : Terre, Lune, trajectoire et véhicules.
+2. Vue rapprochée : séparation, approche et amarrage.
+3. Vue lunaire : descente et atterrissage.
+4. Vue contrôle de mission : état des Tasks, Skills, GRAFCET et ressources.
+
+Je mettrais également une timeline permettant de :
+
+- Mettre en pause.
+- Accélérer le temps (x10, x100, x1000).
+- Rejouer une étape.
+- Déclencher une panne.
+- Visualiser les forces, vitesses et trajectoires.
+- Observer les transitions du réseau de Petri.
+
+Cela permettrait de faire de la simulation une sorte de laboratoire pédagogique.
+
+# 7. Mon architecture proposée pour RobotIK
+
+Voici comment je répartirais les responsabilités :
+
+Apollo Mission Plugin
+
+Scénario YAML, configuration et objectifs
+
+Mission Planner
+
+PDDL / Prolog
+
+Mission Runtime
+
+GRAFCET / Petri / Skills
+
+Spacecraft layer
+
+Saturn V
+
+CSM
+
+LM
+
+Rigid bodies, propulsion, articulation, docking, sensors
+
+Physics backend
+
+Orbital mechanics, gravité, propulsion, MuJoCo
+
+Compages
+
+Scene graph, rendu 3D, caméra, timeline
+
+Je garderais surtout une séparation nette entre le contrôleur de mission et la physique.
+
+Le planner ne doit pas savoir comment fonctionne la gravité. Il doit seulement savoir si un véhicule est en orbite, si le LM est amarré ou si l'atterrissage a réussi.
+
+De même, le simulateur physique ne doit pas connaître les notions de Mission ou de Task.
+
+# 8. Roadmap de développement
+
+Je te propose de procéder en six étapes, sans essayer de faire Apollo 11 entièrement dès le départ.
+
+| Étape | Démonstrateur        | Résultat attendu                              |
+| ----- | -------------------- | --------------------------------------------- |
+| 1     | Fusée Terre          | Décollage, propulsion, séparation des étages  |
+| 2     | Transfert Terre-Lune | Trajectoire entre deux corps célestes         |
+| 3     | CSM + LM             | Séparation, approche, amarrage                |
+| 4     | Alunissage           | Descente, contrôle de vitesse, contact au sol |
+| 5     | Retour en orbite     | Décollage lunaire, rendez-vous, amarrage      |
+| 6     | Mission complète     | Planification et exécution autonomes          |
+
+Mon conseil : commence par l'étape 3, avant même de faire la fusée.
+
+Pourquoi ? Parce qu'elle teste une fonctionnalité fondamentale de RobotIK : deux véhicules indépendants, chacun ayant son propre état physique, qui doivent se rejoindre et s'amarrer.
+
+C'est beaucoup plus intéressant architecturalement que de simplement animer une fusée qui monte.
+
+Ensuite, tu construis les étapes précédentes et suivantes autour de cette fonctionnalité.
+
+## 9. Quelques ressources pour apprendre le fonctionnement d'Apollo
+
+La NASA dispose de documents historiques très intéressants :
+
+- [Apollo 11 Mission Overview](https://www.nasa.gov/history/apollo-11-mission-overview/?utm_source=chatgpt.com) : le déroulement complet de la mission.
+- [Apollo 11 Mission Report](https://www.nasa.gov/wp-content/uploads/static/apollo50th/pdf/A11_MissionReport.pdf?utm_source=chatgpt.com) : le rapport technique avec les horaires des événements et les manœuvres.
+- [Apollo 11 Press Kit](https://science.nasa.gov/wp-content/uploads/2023/09/Apollo_11.pdf?utm_source=chatgpt.com) : les décisions GO/NO-GO et les procédures de mission.
+- [Apollo 11 – The Journey Home](https://www.nasa.gov/history/50-years-ago-apollo-11-the-journey-home/?utm_source=chatgpt.com) : particulièrement intéressant pour comprendre le rendez-vous et l'amarrage après le décollage lunaire.
+
+# 10. Trois choix de conception à trancher
+
+Avant de commencer à coder, je voudrais définir avec toi l'ambition du démonstrateur.
+
+1\. Quel niveau de physique souhaites-tu ?
+
+Cinématique : trajectoires et animations prédéfinies.
+
+Hybride : gravité, poussée, inertie et orbites simplifiées.
+
+Physique orbitale : mécanique gravitationnelle plus réaliste.
+
+2\. Qui pilote les véhicules ?
+
+Un scénario prédéfini (script).
+
+RobotIK : Planner, Skills et GRAFCET pilotent la mission.
+
+Un opérateur humain peut intervenir pendant la mission.
+
+3\. Quel est le périmètre du premier démonstrateur ?
+
+Apollo 11 complète, Terre → Lune → Terre.
+
+Uniquement la partie lunaire : orbite, séparation, alunissage et retour.
+
+Un démonstrateur CSM + LM avec séparation et amarrage.
+
+Valider ces choix
+
+Mon intuition serait de choisir le modèle hybride, avec un pilotage autonome par RobotIK et une mission complète à terme.
+
+Cela pourrait devenir un démonstrateur particulièrement représentatif de RobotIK : une mission complexe, multi-véhicules, planifiée, exécutée et supervisée par ta bibliothèque, plutôt qu'un simple simulateur spatial.
+
+---
+
+Pour le démonstrateur Apollo 11 de RobotIK, voici mes choix : physique = hybrid ; pilotage = autonomous ; périmètre = complete. Propose-moi une architecture technique et une roadmap détaillées.
+
+# RobotIK – Apollo 11 : architecture technique et roadmap
+
+
+
+Architecture proposée
+
+Physique hybride
+
+Pilotage autonome
+
+
+
+Je retiendrais une architecture dans laquelle Apollo 11 devient un véritable scénario d'intégration de RobotIK, et pas un programme indépendant qui simule simplement une fusée.
+
+L'objectif est de démontrer qu'une mission complexe peut être :
+
+- Décrite avec des objectifs de haut niveau.
+- Décomposée en Tasks et Skills.
+- Planifiée par PDDL et éventuellement Prolog.
+- Exécutée par ton runtime GRAFCET / Petri / Behavior Tree.
+- Pilotée par des contrôleurs physiques indépendants.
+- Simulée et visualisée avec MuJoCo et Compages.
+- Testée automatiquement, avec des assertions sur les résultats.
+
+Je ferais toutefois un choix architectural fondamental :
+
+Apollo 11 doit être un scénario de robotique spatiale construit au-dessus de RobotIK, et non une nouvelle couche métier ajoutée au cœur de RobotIK.
+
+Cela permettra de réutiliser ensuite les mêmes mécanismes pour des drones, des véhicules autonomes, des robots mobiles ou des cellules industrielles.
+
+[Katherine Johnson.  NASA Mathematician. — Black Ladies](https://images.openai.com/static-rsc-4/UaGD70athyGALytSUyJvnqigz7lIwV77ucILBNRfVWDi5CNuNxcSEkR5qrl0B7CGIdieBjXJz-evzhJ0KlOQj6O5Dpo4P_BzszntxxdSb_MCKkxfKaMguVrdYvcE2E2U-jF6LY4VDbtlm98juKZ0gAhTG7-lP5Je6vmaK3JTO4U?purpose=inline)
+
+[black-ladies.org](https://www.black-ladies.org/katherine-johnson-nasa?utm_source=chatgpt.com)
+
+# 1. Définir précisément le périmètre physique
+
+Il faut distinguer trois systèmes physiques.
+
+| Système              | Modèle physique                        | Backend                |
+| -------------------- | -------------------------------------- | ---------------------- |
+| Voyage Terre-Lune    | Gravitation, poussée, inertie, orbites | Moteur orbital RobotIK |
+| Véhicules spatiaux   | Corps rigides, propulsion, attitude    | Moteur orbital RobotIK |
+| Contact avec la Lune | Collisions, contacts, pieds, stabilité | MuJoCo                 |
+
+Je déconseille de faire simuler l'ensemble par MuJoCo.
+
+MuJoCo est intéressant pour les contacts et la dynamique des corps rigides, mais la mécanique orbitale n'est pas son domaine de prédilection. Tu risques de construire beaucoup de contournements pour quelque chose qu'un intégrateur numérique classique sait faire simplement.
+
+Je ferais donc une architecture hybride avec une interface commune.
+
+## 1.1 Les trois environnements physiques
+
+A. Environnement orbital
+
+[Apollo 11 Moon Landing Timeline: From Liftoff to Splashdown | HISTORY](https://images.openai.com/static-rsc-4/VKygRJFcBxBRptKts_6aMEtabgo6QVxF7YkOctH5P1lV6o8fTXw-d0fy3aGvWUwU6Cnt1YwNsZHZ-KO4v-TF7XoSGiwjhajbIP3vZaMT0fHOP9Jpipq04d_1Vtk1hSwcYhUtEE4k1z300PfJtQhgWdb6m3NPFdPnb-eFefwvENY?purpose=inline)
+
+[history.com](https://www.history.com/news/apollo-11-moon-landing-timeline?utm_source=chatgpt.com)
+
+- Terre et Lune comme corps gravitationnels.
+- Véhicules comme corps rigides.
+- Propulsion par poussée.
+- Calcul de trajectoires et d'orbites.
+- Séparation et amarrage.
+
+B. Environnement lunaire
+
+[Can we protect historical sites on the moon before it's too late? | Space](https://images.openai.com/static-rsc-4/dQ1Ad3-6qr-PUf_UAQbgWXkO___z_UAAyHdEwlDnMBgA_HSgSQ-8Od3CEz8GEsf-I-Snq4QeJQJSEprdbP0b6x1eKnHeIIvBEJFH-gznrx9XWwgxNXwQfc437vedrEv8ra37fM-k2xBEt_16tUp_nu8qlcI3I7lvRglC0I68oVc?purpose=inline)
+
+[space.com](https://www.space.com/astronomy/moon/can-we-protect-historical-sites-on-the-moon-before-its-too-late?utm_source=chatgpt.com)
+
+- Gravité lunaire.
+- Terrain lunaire simplifié.
+- Pieds d'atterrissage.
+- Contact et stabilité.
+- Simulation du décollage.
+
+C. Environnement visuel
+
+[Ride Along with the Apollo 11 Crew on Their Historic First Lunar Landing Mission! | Space](https://images.openai.com/static-rsc-4/QossUM5FQBBhSt7sS3GlkRUsQ4aYayWHh9fwUJ8opw3r9fWoQyhJB7wzNut_2qsLb_WxncFJ45NYotefM1HL3wCP09J6l8CzMx4hA2Np7tfjlxM-UwsuiljI6_vwBo2vKwb0ySQFlb_xAJh7qffcHt4UJNXjvdIceulfwZs5wUE?purpose=inline)
+
+[space.com](https://www.space.com/track-apollo-11-with-starry-night.html?utm_source=chatgpt.com)
+
+- Système Terre-Lune.
+- Scène 3D.
+- Caméras.
+- Trajectoires.
+- Instruments de télémétrie.
+
+Attention : lorsque le véhicule passe d'un environnement à l'autre, il ne faut pas perdre son état physique. Il doit conserver sa position, son orientation, sa vitesse, sa masse et son état de propulsion.
+
+Il faudra donc un mécanisme de transfert d'état entre les deux backends.
+
+# 2. Architecture logicielle proposée
+
+Je conserverais les trois couches que tu as définies dans RobotIK :
+
+- Robot
+- Task
+- Cell
+
+Et j'ajouterais Apollo comme un plugin de démonstration qui exploite ces couches.
+
+Voici l'architecture logique :
+
+\#chatgpt-mermaid-\_r_218\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_218\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_218\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_218\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_218\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_218\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_218\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_218\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_218\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_218\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_218\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_218\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;}#chatgpt-mermaid-\_r_218\_ p{margin:0;}#chatgpt-mermaid-\_r_218\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_218\_ .label text,#chatgpt-mermaid-\_r_218\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .node rect,#chatgpt-mermaid-\_r_218\_ .node circle,#chatgpt-mermaid-\_r_218\_ .node ellipse,#chatgpt-mermaid-\_r_218\_ .node polygon,#chatgpt-mermaid-\_r_218\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .rough-node .label text,#chatgpt-mermaid-\_r_218\_ .node .label text,#chatgpt-mermaid-\_r_218\_ .image-shape .label,#chatgpt-mermaid-\_r_218\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_218\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .rough-node .label,#chatgpt-mermaid-\_r_218\_ .node .label,#chatgpt-mermaid-\_r_218\_ .image-shape .label,#chatgpt-mermaid-\_r_218\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_218\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_218\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_218\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_218\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_218\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_218\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_218\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_218\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_218\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_218\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_218\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_218\_ .icon-shape,#chatgpt-mermaid-\_r_218\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_218\_ .icon-shape p,#chatgpt-mermaid-\_r_218\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_218\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_218\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_218\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_218\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_218\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_218\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_218\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_218\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_218\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_218\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_218\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_218\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_218\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_218\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_218\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_218\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_218\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .node rect,#chatgpt-mermaid-\_r_218\_ .node circle,#chatgpt-mermaid-\_r_218\_ .node ellipse,#chatgpt-mermaid-\_r_218\_ .node polygon,#chatgpt-mermaid-\_r_218\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_218\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_218\_ .mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2px,2px;}#chatgpt-mermaid-\_r_218\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_218\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_218\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;}VisualizationPhysics LayerRobot LayerTask / Cell LayerMission LayerCompagesMission DashboardOrbital PhysicsMuJoCo BackendPhysics State AdapterSaturn VCommand Service ModuleLunar ModuleDocking SystemMission TasksSkillsGRAFCET / Petri RuntimeApollo MissionPDDL / Prolog PlannerMission RuntimeApollo 11 Demo Plugin
+
+Il y a une règle à préserver : le planner ne commande jamais directement un moteur physique.
+
+Il demande une compétence telle que `ExecuteTranslunarInjection`. Cette compétence utilise un contrôleur de propulsion, qui commande ensuite le véhicule.
+
+C'est cette séparation qui rendra ton architecture réutilisable.
+
+# 3. Concevoir les modèles physiques
+
+C'est une partie que je développerais indépendamment du plugin Apollo.
+
+## 3.1 Un modèle générique de corps spatial
+
+Je créerais une abstraction `Spacecraft` ou, plus génériquement, `SpaceVehicle`.
+
+Elle ne doit pas dépendre de la mission Apollo.
+
+Par exemple :
+
+```
+struct SpacecraftState
+{
+    Position3 position;
+    Orientation3 orientation;
+
+    LinearVelocity3 linear_velocity;
+    AngularVelocity3 angular_velocity;
+
+    Mass mass;
+};
+
+class Spacecraft
+{
+public:
+    SpacecraftState state() const;
+
+    void apply_force(Force3 force);
+    void apply_torque(Torque3 torque);
+
+    void integrate(Duration dt);
+};
+```
+
+Les types sont indicatifs : je réutiliserais tes types SI et tes conventions de RobotIK plutôt que de créer une seconde bibliothèque de quantités physiques.
+
+Chaque véhicule possède des composants :
+
+```
+Spacecraft
+ ├── RigidBody
+ ├── MassProperties
+ ├── PropulsionSystem
+ │    ├── MainEngine
+ │    └── ReactionControlSystem
+ ├── FuelTank
+ ├── NavigationSystem
+ ├── Sensors
+ └── DockingPort
+```
+
+Le moteur principal produit une poussée importante. Le RCS (Reaction Control System) utilise de petits propulseurs pour contrôler l'orientation et effectuer de petites corrections de trajectoire.
+
+Tu pourras ensuite réutiliser ces composants pour d'autres véhicules.
+
+## 3.2 Les modèles Apollo
+
+Je ne ferais pas un seul objet `ApolloRocket`.
+
+Je créerais une composition de véhicules indépendants.
+
+[Falcon Heavy vs. the classic Saturn V](https://images.openai.com/static-rsc-4/MHDXK_uefZErtzrUPPVj-6VehTv4Q7TyJQxLNdcsUDI3fDBHzbUVlryfO1BQibkM2-GGJYMEMA8xba-SbfrQrBzDTc7hlZJWaD5qTbDMU0OueBNYEWiL3VB0Is41UEtdYYlYaLkzu99kNrzPoN_N8ENSVGDQSN4K2DVnImWEAJ0?purpose=inline)
+
+[newatlas.com](https://newatlas.com/falcon-heavy-saturn-v/53090/?utm_source=chatgpt.com)
+
+| Objet        | Composition                        |
+| ------------ | ---------------------------------- |
+| Saturn V     | S-IC, S-II, S-IVB, Instrument Unit |
+| CSM Columbia | Command Module + Service Module    |
+| LM Eagle     | Descent Stage + Ascent Stage       |
+
+Les étages doivent pouvoir être séparés physiquement.
+
+Par exemple :
+
+```
+class StagingSystem
+{
+public:
+    void separate(StageId stage);
+};
+```
+
+Au moment de la séparation :
+
+- Le véhicule parent perd la masse de l'étage.
+- L'étage devient un corps indépendant.
+- Sa vitesse initiale correspond à celle du véhicule parent, plus éventuellement une vitesse de séparation.
+- Les connexions mécaniques et électriques concernées sont rompues.
+
+Il faudra aussi modéliser le fait que le CSM effectue une manœuvre de transposition pour récupérer le LM dans l'adaptateur du S-IVB. Ce n'est pas simplement une séparation suivie d'un rattachement automatique.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.nasa.gov\&sz=32)
+
+NASA+1
+
+
+
+## 3.3 Les deux moteurs physiques
+
+Je définirais une interface commune :
+
+```
+class IPhysicsBackend
+{
+public:
+    virtual ~IPhysicsBackend() = default;
+
+    virtual void add_body(BodyDescription const&) = 0;
+    virtual void remove_body(BodyId) = 0;
+
+    virtual void apply_force(BodyId, Force3) = 0;
+    virtual void apply_torque(BodyId, Torque3) = 0;
+
+    virtual void step(Duration dt) = 0;
+
+    virtual BodyState state(BodyId) const = 0;
+};
+```
+
+Avec deux implémentations :
+
+```
+IPhysicsBackend
+    |
+    +-- OrbitalPhysicsBackend
+    |
+    +-- MuJoCoPhysicsBackend
+```
+
+Je ne ferais cependant pas semblant que les deux backends sont interchangeables dans tous les domaines.
+
+Le backend orbital gère :
+
+- La gravité terrestre et lunaire.
+- Les trajectoires.
+- Les accélérations dues aux moteurs.
+- Les changements de masse.
+- Les mouvements de translation et de rotation.
+
+Le backend MuJoCo gère :
+
+- Le contact des pieds avec le sol.
+- La stabilité au toucher.
+- Les irrégularités du terrain.
+- Les collisions.
+- Les mouvements mécaniques locaux.
+
+### Comment passer d'un backend à l'autre ?
+
+Je créerais un `PhysicsDomainManager`.
+
+Il serait responsable des domaines physiques actifs et des transferts d'état.
+
+```
+Orbital Domain
+      |
+      | Enter landing simulation
+      v
+State Transfer
+      |
+      v
+Lunar Surface Domain (MuJoCo)
+      |
+      | Takeoff / leave surface
+      v
+State Transfer
+      |
+      v
+Orbital Domain
+```
+
+Il faut toutefois éviter de basculer tout le véhicule dans MuJoCo simplement parce qu'il approche de la Lune.
+
+Je garderais la dynamique orbitale comme référence et utiliserais MuJoCo comme simulateur local de contact, avec un couplage explicite des forces et des états pendant la phase d'atterrissage.
+
+C'est plus complexe qu'un simple transfert de position, mais cela évite les discontinuités physiques.
+
+Pour une première version, un domaine local de contact simplifié avec gravité lunaire constante suffit.
+
+## 3.4 Le moteur orbital
+
+Pour commencer, je recommande un modèle gravitationnel à deux corps dominants :
+
+\\[ \vec{F} = -\frac{GMm}{r^3}\vec{r} \\]
+
+Tu calcules la gravité terrestre et lunaire séparément et tu additionnes les forces.
+
+Ensuite :
+
+\\[ m\vec{a} = \sum \vec{F} \\]
+
+Tu ajoutes la poussée des moteurs.
+
+Pour l'intégration numérique, je choisirais :
+
+- RK4 pour commencer.
+- Une intégration adaptative ultérieurement si nécessaire.
+- Un pas de simulation indépendant du pas d'affichage.
+
+Il n'est pas nécessaire de simuler chaque seconde de voyage en temps réel. Tu peux accélérer le temps de simulation.
+
+Je distinguerais trois horloges :
+
+| Horloge      | Fonction                            |
+| ------------ | ----------------------------------- |
+| Physics time | Intégration des équations physiques |
+| Mission time | Temps écoulé depuis le décollage    |
+| Wall clock   | Temps réel de l'application         |
+
+C'est indispensable pour accélérer un voyage de plusieurs jours tout en conservant une simulation stable.
+
+# 4. Concevoir les Skills et les contrôleurs
+
+C'est probablement la partie la plus importante pour RobotIK.
+
+Je séparerais systématiquement :
+
+1. La Skill, qui décrit une opération métier.
+2. Le Controller, qui pilote physiquement un véhicule.
+3. Le Sensor, qui fournit les observations.
+
+Exemple : `Dock`.
+
+\#chatgpt-mermaid-\_r_22n\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_22n\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_22n\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_22n\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_22n\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_22n\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_22n\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_22n\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_22n\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_22n\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_22n\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_22n\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;}#chatgpt-mermaid-\_r_22n\_ p{margin:0;}#chatgpt-mermaid-\_r_22n\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_22n\_ .label text,#chatgpt-mermaid-\_r_22n\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .node rect,#chatgpt-mermaid-\_r_22n\_ .node circle,#chatgpt-mermaid-\_r_22n\_ .node ellipse,#chatgpt-mermaid-\_r_22n\_ .node polygon,#chatgpt-mermaid-\_r_22n\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .rough-node .label text,#chatgpt-mermaid-\_r_22n\_ .node .label text,#chatgpt-mermaid-\_r_22n\_ .image-shape .label,#chatgpt-mermaid-\_r_22n\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_22n\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .rough-node .label,#chatgpt-mermaid-\_r_22n\_ .node .label,#chatgpt-mermaid-\_r_22n\_ .image-shape .label,#chatgpt-mermaid-\_r_22n\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_22n\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_22n\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_22n\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_22n\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_22n\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_22n\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_22n\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_22n\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_22n\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_22n\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_22n\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_22n\_ .icon-shape,#chatgpt-mermaid-\_r_22n\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_22n\_ .icon-shape p,#chatgpt-mermaid-\_r_22n\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_22n\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_22n\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_22n\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_22n\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_22n\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_22n\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_22n\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_22n\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_22n\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_22n\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_22n\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_22n\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_22n\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_22n\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_22n\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_22n\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .node rect,#chatgpt-mermaid-\_r_22n\_ .node circle,#chatgpt-mermaid-\_r_22n\_ .node ellipse,#chatgpt-mermaid-\_r_22n\_ .node polygon,#chatgpt-mermaid-\_r_22n\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_22n\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_22n\_ .mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2px,2px;}#chatgpt-mermaid-\_r_22n\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_22n\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_22n\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;}Dock SkillObserve relative poseWithin approach range?Approach ControllerAlign docking portsRelative velocity OK?Relative motion controllerFinal approachContact detected?Lock docking mechanismLock confirmed?FailureSuccessNoYesNoYesNoYesNoYes
+
+Je développerais les contrôleurs génériques suivants :
+
+| Controller           | Responsabilité                   |
+| -------------------- | -------------------------------- |
+| AttitudeController   | Orientation du véhicule          |
+| ThrustController     | Gestion de la poussée            |
+| OrbitController      | Corrections orbitales            |
+| RendezvousController | Approche d'un autre véhicule     |
+| DockingController    | Alignement et amarrage           |
+| DescentController    | Descente vers la surface         |
+| LandingController    | Contrôle final de l'atterrissage |
+| AscentController     | Décollage lunaire                |
+
+Ces contrôleurs doivent être indépendants de PDDL, GRAFCET et du scénario Apollo.
+
+Ils peuvent être des composants de RobotIK ou des bibliothèques spécialisées du plugin selon leur degré de généricité.
+
+## 4.1 Une Skill doit être observable
+
+Je garderais une interface de ce type, adaptée à ton système actuel :
+
+```
+class Skill
+{
+public:
+    virtual void start(Context&) = 0;
+    virtual void update(Context&, Duration dt) = 0;
+    virtual void cancel(Context&) = 0;
+
+    virtual SkillStatus status() const = 0;
+};
+```
+
+Avec des états explicites :
+
+```
+Idle
+Running
+Succeeded
+Failed
+Cancelled
+```
+
+Une Skill expose également :
+
+- Ses préconditions.
+- Ses effets.
+- Ses ressources nécessaires.
+- Ses paramètres.
+- Ses observations.
+- Ses conditions de succès et d'échec.
+
+Par exemple, `Dock` peut réserver les ports d'amarrage des deux véhicules, utiliser les capteurs de navigation et réclamer l'autorisation du contrôleur de proximité.
+
+C'est un excellent test de ta gestion des ressources asynchrones.
+
+# 5. La planification autonome
+
+Je ne donnerais pas la totalité des 195 heures de mission à un planner PDDL.
+
+Ce serait une mauvaise séparation des responsabilités.
+
+Je ferais trois niveaux de décision.
+
+Niveau 1
+
+Mission Planner – PDDL / Prolog
+
+Décide des objectifs et de l'ordre des grandes opérations.
+
+Exemple : atteindre l'orbite lunaire avant d'autoriser la séparation du LM.
+
+Niveau 2
+
+Mission Runtime – Petri / GRAFCET
+
+Gère les séquences, synchronisations, transitions, ressources et procédures de sécurité.
+
+Niveau 3
+
+Skill Controllers
+
+Réalisent les opérations physiques en boucle fermée : orientation, poussée, approche, atterrissage.
+
+### Exemple de domaine PDDL simplifié
+
+Voici les prédicats que je définirais :
+
+```
+(:predicates
+    (on-earth ?vehicle)
+    (in-earth-orbit ?vehicle)
+    (in-translunar-trajectory ?vehicle)
+    (in-lunar-orbit ?vehicle)
+    (landed-on-moon ?vehicle)
+
+    (docked ?vehicle1 ?vehicle2)
+    (separated ?vehicle1 ?vehicle2)
+
+    (fuel-available ?vehicle)
+    (mission-safe)
+    (crew-transferred)
+)
+```
+
+Une action conceptuelle :
+
+```
+(:action undock-lm
+    :parameters (?csm ?lm)
+    :precondition
+        (and
+            (docked ?csm ?lm)
+            (in-lunar-orbit ?csm)
+            (mission-safe)
+        )
+    :effect
+        (and
+            (separated ?csm ?lm)
+            (not (docked ?csm ?lm))
+        )
+)
+```
+
+Le planner génère une séquence d'opérations. Le runtime vérifie que les conditions réelles permettent de les exécuter.
+
+Important : les prédicats doivent provenir de l'état réel du simulateur, et non d'un scénario qui déclare arbitrairement qu'une opération est terminée.
+
+Je garderais aussi les conditions de sécurité indépendantes du planner : un planner ne doit jamais pouvoir contourner une interdiction physique ou une condition d'abandon.
+
+# 6. Modélisation complète de la mission Apollo 11
+
+Je découperais la mission en neuf grandes Tasks.
+
+Il est important de reproduire les événements réellement importants, mais pas nécessairement les durées exactes. Le rapport de mission NASA et le plan de vol historique constituent de bonnes références pour établir les séquences et les conditions de transition.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://www.nasa.gov\&sz=32)
+
+NASA+1
+
+
+
+[How NASA Got the Apollo 11 Astronauts Home](https://images.openai.com/static-rsc-4/43X-O5J1dzQfwuPloO-NAbvb6sLdtXxE2LMG2g9Ux5dIpEup5pXQeqyVP1sDFlyUtgk6K7LDW8p6nExBaI3Jcloju5RoYj2LXCirbzIW_hXYgHAXcY48wZi5iKMQhuLQ7s7ICMQjItFKZZ_ad94RDsAhSOIPRRAlNtDFdSZN88g?purpose=inline)
+
+[popularmechanics.com](https://www.popularmechanics.com/space/moon-mars/a28451454/apollo-11-return/?utm_source=chatgpt.com)
+
+## Task 1 – Earth Launch
+
+[Hace 51 años el Apolo 11 comenzaba su viaje histórico a la Luna - LA NACION](https://images.openai.com/static-rsc-4/1J_53lfmz7DBdLqdvp3PnlBnS6y-BJAV-0E6i9VExtWo25CkZZFvP1YTx84AnNFqVGzUNSu801yPJljY3j2gM8AGxNYbCHDZkzfhkfGHKvQLJsPn0U3QS_dfZk7gfWQ3gZ0JYHpcCIj-vQVmFCz3Gwf68F9bMWUdW0Pighh6pt8?purpose=inline)
+
+[lanacion.com.ar](https://www.lanacion.com.ar/lifestyle/apolo-11-nasa-nid2397859/?utm_source=chatgpt.com)
+
+Objectif : mettre l'ensemble spatial en orbite terrestre.
+
+| Skill           | Résultat attendu            |
+| --------------- | --------------------------- |
+| PrepareLaunch   | Vérification des systèmes   |
+| IgniteSIC       | Allumage du premier étage   |
+| Launch          | Décollage                   |
+| SeparateSIC     | Largage du premier étage    |
+| IgniteSII       | Allumage du deuxième étage  |
+| SeparateSII     | Largage du deuxième étage   |
+| IgniteSIVB      | Allumage du troisième étage |
+| EnterEarthOrbit | Insertion en orbite         |
+
+La fusée doit perdre progressivement de la masse et modifier son accélération.
+
+## Task 2 – Trans Lunar Injection
+
+[File:Apollo-11-mission-profile.png - Wikimedia Commons](https://images.openai.com/static-rsc-4/k0zJBOwVw7wWhj34DXSZUfTYetOWmR84y3Dec2YOr1G5_FIIiShRHOjWcEbTN-jSjciJYGMgZ8o8MsFawBLZm1Wh--R0qADPJwT-tv2ABYLPj4mozVLul18Lz-MoGGImoXhNvUflj_yHtn3L8TWoKzFDbTGM6ouPVCax_s0bFu4?purpose=inline)
+
+[commons.wikimedia.org](https://commons.wikimedia.org/wiki/File%3AApollo-11-mission-profile.png?utm_source=chatgpt.com)
+
+Objectif : quitter l'orbite terrestre et rejoindre la trajectoire lunaire.
+
+| Skill             | Résultat attendu             |
+| ----------------- | ---------------------------- |
+| AlignForTLI       | Orientation du véhicule      |
+| ExecuteTLI        | Poussée translunaire         |
+| ShutdownSIVB      | Arrêt du moteur              |
+| PrepareSeparation | Préparation de la séparation |
+
+Tu peux commencer avec une trajectoire de transfert elliptique calculée à l'avance, puis passer à un calcul dynamique.
+
+## Task 3 – CSM Transposition and Docking
+
+[Apollo CSM and LEM Tech Readout \[new\] by unusualsuspex on DeviantArt](https://images.openai.com/static-rsc-4/Xo3pK4_OM3MI24OI-Tmb1c7kqT3wfcFsYrrzhndeCMVNNEFw_id9h2XeAElgD1z24JbTXSrxLN_haZJRR98mq1zSRAQbVpYxBj8HvYpgv-1yDph_YPHZQ6wdcLKiXiXP_-J6QPojofVNIc3O61SqmkbAwAxy01NaqTMnkQ5cuZ4?purpose=inline)
+
+[deviantart.com](https://www.deviantart.com/unusualsuspex/art/Apollo-CSM-and-LEM-Tech-Readout-new-466589293?utm_source=chatgpt.com)
+
+C'est une phase particulièrement intéressante.
+
+Le CSM se sépare du troisième étage, effectue une rotation, puis revient s'amarrer au LM encore installé dans l'adaptateur.
+
+| Skill        | Résultat attendu              |
+| ------------ | ----------------------------- |
+| SeparateCSM  | Séparation                    |
+| RotateCSM    | Rotation de 180°              |
+| ExtractLM    | Retrait du LM                 |
+| ApproachLM   | Approche                      |
+| DockCSMtoLM  | Amarrage                      |
+| SeparateSIVB | Éjection de l'ensemble CSM/LM |
+
+Le S-IVB est ensuite abandonné.
+
+## Task 4 – Lunar Transfer and Orbit Insertion
+
+[File:Apollo-Moon-mission-profile.png - Wikimedia Commons](https://images.openai.com/static-rsc-4/TksaLTnnQ36GPC96qcrJaHihvpESZML4XDpxM2-SBMR8wwoJ2oGTx7odogP7Zb-eJqkYx3nVTzT1s7OSOvznk97nADXEfMkYmQo--rdkQioCsSkMg_SKy-NoHZ2B_QfUtXPDNRTGlnBCAxKnLU4w4aO_MfftFFHiISnW-W7vqho?purpose=inline)
+
+[commons.wikimedia.org](https://commons.wikimedia.org/wiki/File%3AApollo-Moon-mission-profile.png?utm_source=chatgpt.com)
+
+Objectif : rejoindre une orbite lunaire.
+
+| Skill                      | Résultat attendu          |
+| -------------------------- | ------------------------- |
+| NavigateToMoon             | Navigation                |
+| ExecuteMidcourseCorrection | Correction de trajectoire |
+| PrepareLunarOrbitInsertion | Préparation               |
+| ExecuteLOI                 | Freinage orbital          |
+| StabilizeLunarOrbit        | Stabilisation             |
+
+Le CSM et le LM sont encore amarrés.
+
+## Task 5 – Lunar Descent
+
+[Why the Lunar Module Looked So Much Like a Moon Bug | Space](https://images.openai.com/static-rsc-4/eP459qK4mVQvd96yqZeKfNFQcEkMkeJ9KBodxMhPGqsjsXNn2D2wBf2MjJHJ5GqQlCWhd7dmoCWLq4SxcmfgYpvKeCncFHYXEElGmsRLw6Hlvo-JCZjedroKVimauMGd0AFwtPnqOIrv-v10jvz8OEYoB3S_hLH5Pfr7cOFkUWY?purpose=inline)
+
+[space.com](https://www.space.com/apollo-program-lunar-module-design-explained.html?utm_source=chatgpt.com)
+
+Objectif : poser le LM sur la Lune.
+
+| Skill                        | Résultat attendu          |
+| ---------------------------- | ------------------------- |
+| PrepareLM                    | Vérification des systèmes |
+| UndockLM                     | Séparation du CSM         |
+| ExecuteDescentOrbitInsertion | Modification de l'orbite  |
+| PoweredDescent               | Descente motorisée        |
+| AvoidObstacles               | Évitement local           |
+| Landing                      | Contact avec le sol       |
+| StabilizeLander              | Stabilisation             |
+
+Tu peux introduire un capteur d'altitude et un radar de vitesse pour contrôler la descente.
+
+C'est également l'occasion d'utiliser ton abstraction de capteurs.
+
+## Task 6 – Lunar Surface Operations
+
+[Moon landing, 50 years after Apollo 11 | Astrotourism.com](https://images.openai.com/static-rsc-4/r_4O_tN0Ba9s9kPd5mIFJEvwfQoIyB2RysGqHfqxH4CAEN3Lyriw-ijGhZ-j0uE18SfWDBMpsKUvL6x7FkDGdzNhZ_fwh4lcdZDDzJCSmBo4IHS7tfkpodpXmUdEQemVH9_5kYbp3r1V4J3NKzIG5tQxvTP5lTkX8pRO77dAvR0?purpose=inline)
+
+[astrotourism.com](https://www.astrotourism.com/news/moon-landing-50-years-after-apollo-11/?utm_source=chatgpt.com)
+
+Objectif : réaliser la mission lunaire.
+
+Je ne chercherais pas à simuler les astronautes en détail dans la première version.
+
+Je créerais simplement un état de mission :
+
+```
+LM_LANDED
+    |
+    +-- CrewReady
+    +-- SurfaceOperations
+    +-- CrewReturnToLM
+    +-- PrepareAscent
+```
+
+Tu peux ajouter ultérieurement des astronautes comme agents, avec leurs propres actions et équipements.
+
+## Task 7 – Lunar Ascent and Rendezvous
+
+[Michael Collins — Carrying The Fire | by Robert Barron | Medium](https://images.openai.com/static-rsc-4/nkAtKaM3oNT7XoU62iQk_so9gYUFd_j_UAkHcpvJONC75KgdAEea0kLVw9n4OEcq5_8qTIfE1LFSMevId6jA0cgEZR35LJ2vxed11qgMBlZGQQXjlsKLE2xVvywOyljM5gB_cGTLihLIDfFF3ZHMnw_STS-sdph2qs86bHewUVI?purpose=inline)
+
+[flyingbarron.medium.com](https://flyingbarron.medium.com/michael-collins-carrying-the-fire-6ac19cdf0983?utm_source=chatgpt.com)
+
+C'est une phase très intéressante pour RobotIK.
+
+Le LM comporte deux étages :
+
+- L'étage de descente reste sur la Lune.
+- L'étage de remontée décolle et rejoint le CSM.
+
+| Skill               | Résultat attendu      |
+| ------------------- | --------------------- |
+| PrepareAscent       | Vérification          |
+| SeparateAscentStage | Séparation des étages |
+| IgniteAscentEngine  | Allumage              |
+| LunarOrbitInsertion | Mise en orbite        |
+| Rendezvous          | Rejoindre le CSM      |
+| DockCSM             | Amarrage              |
+
+Le rendez-vous est plus compliqué qu'une simple poursuite : les deux véhicules sont en orbite, et leurs vitesses relatives doivent être maîtrisées.
+
+## Task 8 – Trans Earth Injection
+
+[Why Apollo Flew in a Figure 8 | Astronomy.com](https://images.openai.com/static-rsc-4/onwrYBs3yQ41fCLoNsj7SbDKJ-VVutM-JNtWTfFURIOKl3Bxi57i4u9eWJE-ZI5iSMRyKvNyD5MZObtM1wupeEaP_eLdYfhlpAf4xSe27tSD8nH0CWDfokkhPFN0cV6HClXcRCSJiG0dT0Je8xJBn3mzeJxcdcA0Qs-zBMvY1qU?purpose=inline)
+
+[astronomy.com](https://www.astronomy.com/space-exploration/why-apollo-flew-in-a-figure-8/?utm_source=chatgpt.com)
+
+Objectif : quitter l'orbite lunaire et rentrer sur Terre.
+
+| Skill               | Résultat attendu          |
+| ------------------- | ------------------------- |
+| TransferCrew        | Transfert de l'équipage   |
+| JettisonLM          | Abandon du LM             |
+| PrepareTEI          | Préparation               |
+| ExecuteTEI          | Injection vers la Terre   |
+| MidcourseCorrection | Correction de trajectoire |
+
+## Task 9 – Earth Reentry and Recovery
+
+[Apollo 11 splashdown live stream: Watch "live" coverage of the Apollo 11 splashdown on this date 50 years ago - CBS News](https://images.openai.com/static-rsc-4/1npmmnSXdia-Ofov9MROQizQk9HtHRB6V_u52pKvIIi1_lyP1Xgfp4XNk-gY7LSc_tTrDH0PKNxDvyAidAJQFeUVnbRYP8qN6nWDx5iyekaNlon9vmf260x50Z0OoDtK7sduvlmLcCnzUy_NVrvJfEHFPYeLIOpWXvLQfRCWmzA?purpose=inline)
+
+[cbsnews.com](https://www.cbsnews.com/news/apollo-11-splashdown-watch-live-stream-50-years-ago-today-2019-07-24/?utm_source=chatgpt.com)
+
+Objectif : récupérer l'équipage.
+
+| Skill                 | Résultat attendu                |
+| --------------------- | ------------------------------- |
+| SeparateServiceModule | Séparation du module de service |
+| OrientCommandModule   | Orientation bouclier thermique  |
+| AtmosphericEntry      | Rentrée atmosphérique           |
+| DeployParachutes      | Déploiement                     |
+| Splashdown            | Amerrissage                     |
+
+Pour la première version, je simulerais la rentrée avec un modèle simplifié de décélération atmosphérique, plutôt que d'essayer de reproduire l'aérodynamique complète.
+
+# 7. Structure des fichiers et du plugin
+
+Je proposerais cette organisation, à adapter à tes conventions actuelles :
+
+```
+RobotIK/
+│
+├── src/
+│   ├── Robot/
+│   ├── Task/
+│   └── Cell/
+│
+├── plugins/
+│   │
+│   └── Apollo11/
+│       │
+│       ├── manifest.yaml
+│       │
+│       ├── assets/
+│       │   ├── models/
+│       │   │   ├── saturn_v/
+│       │   │   ├── csm/
+│       │   │   └── lunar_module/
+│       │   │
+│       │   ├── terrain/
+│       │   └── textures/
+│       │
+│       ├── config/
+│       │   ├── earth.yaml
+│       │   ├── moon.yaml
+│       │   ├── spacecraft.yaml
+│       │   └── mission.yaml
+│       │
+│       ├── physics/
+│       │   ├── OrbitalEnvironment.cpp
+│       │   ├── PropulsionSystem.cpp
+│       │   └── PhysicsDomainManager.cpp
+│       │
+│       ├── spacecraft/
+│       │   ├── SaturnV.cpp
+│       │   ├── CSM.cpp
+│       │   ├── LunarModule.cpp
+│       │   └── DockingSystem.cpp
+│       │
+│       ├── controllers/
+│       │   ├── AttitudeController.cpp
+│       │   ├── OrbitController.cpp
+│       │   ├── RendezvousController.cpp
+│       │   └── LandingController.cpp
+│       │
+│       ├── skills/
+│       │   ├── Launch.cpp
+│       │   ├── Separation.cpp
+│       │   ├── Dock.cpp
+│       │   ├── LunarDescent.cpp
+│       │   └── LunarAscent.cpp
+│       │
+│       ├── planning/
+│       │   ├── apollo.pddl
+│       │   └── predicates.cpp
+│       │
+│       ├── scenarios/
+│       │   ├── mission.yaml
+│       │   └── failures.yaml
+│       │
+│       └── tests/
+│           ├── test_orbit.cpp
+│           ├── test_docking.cpp
+│           ├── test_landing.cpp
+│           └── test_mission.cpp
+```
+
+Je ne mettrais pas les classes génériques de propulsion, de rendez-vous ou de corps rigides dans ce plugin si elles sont destinées à être utilisées par d'autres projets. Elles devraient progressivement rejoindre les bibliothèques RobotIK appropriées.
+
+## 7.1 Configuration YAML
+
+L'intérêt de ton approche est de pouvoir décrire les véhicules sans coder chaque configuration en C++.
+
+Par exemple :
+
+```
+spacecraft:
+  csm:
+    name: Columbia
+    mass: 28800
+    propulsion:
+      main_engine:
+        thrust: 91000
+      rcs:
+        enabled: true
+
+  lunar_module:
+    name: Eagle
+
+    stages:
+      - name: descent
+        mass: 10300
+        engine:
+          thrust: 45000
+
+      - name: ascent
+        mass: 4700
+        engine:
+          thrust: 16000
+```
+
+Valeurs illustratives et arrondies pour la structure du démonstrateur, pas une configuration de vol historiquement certifiée. Les masses et poussées devront être affinées avec les documents NASA.
+
+Je ferais également une configuration pour les caractéristiques de la Terre, de la Lune, les conditions initiales et les paramètres de simulation.
+
+# 8. Roadmap détaillée de développement
+
+Je ferais le développement en 7 milestones. Chaque milestone doit produire quelque chose de fonctionnel et testable, sans attendre la mission complète.
+
+## M0 — Fondations physiques
+
+Priorité absolue
+
+Objectif : créer un système de simulation de véhicules spatiaux génériques.
+
+À développer :
+
+- `Spacecraft` et `RigidBody`.
+- Masse, inertie, position, orientation.
+- Propulsion et consommation de carburant.
+- Gravité et intégration numérique RK4.
+- Temps de simulation accéléré.
+- Backend orbital indépendant de MuJoCo.
+
+Démonstrateur : un véhicule quitte une orbite terrestre, effectue une poussée et rejoint une autre trajectoire.
+
+Critère de validation : conservation raisonnable de l'énergie sur une orbite sans propulsion et résultat reproductible.
+
+## M1 — Véhicules et séparation
+
+Objectif : construire les objets Apollo.
+
+- Saturn V avec ses trois étages.
+- CSM avec modules de commande et de service.
+- LM avec étages de descente et de remontée.
+- Système de séparation générique.
+- Gestion de masse après séparation.
+- Gestion des connexions entre véhicules.
+
+Démonstrateur : une fusée décolle, largue ses étages et conserve un état physique cohérent.
+
+## M2 — Rendez-vous et amarrage
+
+Milestone architectural majeur
+
+Objectif : deux véhicules autonomes savent se rejoindre.
+
+- Port d'amarrage générique.
+- Calcul de position relative.
+- Contrôleur d'approche.
+- Contrôleur de vitesse relative.
+- Alignement des ports.
+- Verrouillage mécanique.
+- Désamarrage.
+
+Démonstrateur : un CSM récupère un LM dans l'espace.
+
+C'est le milestone que je considérerais comme le premier grand succès de RobotIK sur ce projet.
+
+## M3 — Environnement lunaire
+
+Objectif : réussir un atterrissage physique.
+
+- Gravité lunaire.
+- Terrain simple.
+- Modèle local MuJoCo.
+- Pieds d'atterrissage.
+- Radar d'altitude simulé.
+- Contrôleur de descente.
+- Détection du contact.
+- Stabilisation.
+
+Démonstrateur : le LM se pose sur la Lune sans basculer.
+
+## M4 — Mission autonome
+
+Objectif : faire exécuter les opérations par RobotIK.
+
+- Skills de propulsion.
+- Skills de séparation.
+- Skills de navigation.
+- Skills de rendez-vous.
+- Skills d'atterrissage.
+- Domaine PDDL.
+- GRAFCET de mission.
+- Gestion des ressources.
+- Gestion des erreurs et annulations.
+
+Démonstrateur : un planificateur génère et exécute une mission lunaire simplifiée.
+
+## M5 — Mission Apollo complète
+
+Objectif : assembler les différentes phases.
+
+- Décollage.
+- Orbite terrestre.
+- Injection translunaire.
+- Transposition et amarrage.
+- Mise en orbite lunaire.
+- Séparation du LM.
+- Alunissage.
+- Décollage lunaire.
+- Rendez-vous et amarrage.
+- Retour terrestre.
+- Rentrée et récupération.
+
+Démonstrateur : mission complète Terre-Lune-Terre sans intervention humaine nominale.
+
+## M6 — Supervision et expérimentation
+
+Objectif : transformer le démonstrateur en laboratoire.
+
+- Interface Compages.
+- Timeline de mission.
+- Visualisation des trajectoires.
+- Tableau de bord télémétrique.
+- Mode pause et reprise.
+- Accélération temporelle.
+- Injection de pannes.
+- Rejeu déterministe.
+- Comparaison des plans.
+- Assertions automatiques.
+
+## 8.1 Ordre de priorité réel
+
+Je ne développerais pas tous les contrôleurs avant d'avoir validé les fondamentaux.
+
+Voici l'ordre de dépendance que je suivrais :
+
+\#chatgpt-mermaid-\_r_273\_{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;fill:rgb(237, 237, 237);}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#chatgpt-mermaid-\_r_273\_ .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_273\_ .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#chatgpt-mermaid-\_r_273\_ .error-icon{fill:rgb(48, 48, 48);}#chatgpt-mermaid-\_r_273\_ .error-text{fill:rgb(237, 237, 237);stroke:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .edge-thickness-normal{stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .edge-thickness-thick{stroke-width:3.5px;}#chatgpt-mermaid-\_r_273\_ .edge-pattern-solid{stroke-dasharray:0;}#chatgpt-mermaid-\_r_273\_ .edge-thickness-invisible{stroke-width:0;fill:none;}#chatgpt-mermaid-\_r_273\_ .edge-pattern-dashed{stroke-dasharray:3;}#chatgpt-mermaid-\_r_273\_ .edge-pattern-dotted{stroke-dasharray:2;}#chatgpt-mermaid-\_r_273\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_273\_ .marker.cross{stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_273\_ svg{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:16px;}#chatgpt-mermaid-\_r_273\_ p{margin:0;}#chatgpt-mermaid-\_r_273\_ .label{font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .cluster-label text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .cluster-label span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .cluster-label span p{background-color:transparent;}#chatgpt-mermaid-\_r_273\_ .label text,#chatgpt-mermaid-\_r_273\_ span{fill:rgb(237, 237, 237);color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .node rect,#chatgpt-mermaid-\_r_273\_ .node circle,#chatgpt-mermaid-\_r_273\_ .node ellipse,#chatgpt-mermaid-\_r_273\_ .node polygon,#chatgpt-mermaid-\_r_273\_ .node path{fill:rgb(9, 23, 44);stroke:rgb(31, 78, 148);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .rough-node .label text,#chatgpt-mermaid-\_r_273\_ .node .label text,#chatgpt-mermaid-\_r_273\_ .image-shape .label,#chatgpt-mermaid-\_r_273\_ .icon-shape .label{text-anchor:middle;}#chatgpt-mermaid-\_r_273\_ .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .rough-node .label,#chatgpt-mermaid-\_r_273\_ .node .label,#chatgpt-mermaid-\_r_273\_ .image-shape .label,#chatgpt-mermaid-\_r_273\_ .icon-shape .label{text-align:center;}#chatgpt-mermaid-\_r_273\_ .node.clickable{cursor:pointer;}#chatgpt-mermaid-\_r_273\_ .root .anchor path{fill:rgb(175, 175, 175)!important;stroke-width:0;stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_273\_ .arrowheadPath{fill:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_273\_ .edgePath .path{stroke:rgb(175, 175, 175);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .flowchart-link{stroke:rgb(175, 175, 175);fill:none;}#chatgpt-mermaid-\_r_273\_ .edgeLabel{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_273\_ .edgeLabel p{background-color:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_273\_ .edgeLabel rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_273\_ .labelBkg{background-color:rgba(0, 0, 0, 0.5);}#chatgpt-mermaid-\_r_273\_ .cluster rect{fill:rgb(48, 48, 48);stroke:rgba(255, 255, 255, 0.15);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .cluster text{fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ .cluster span{color:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;font-size:12px;background:rgb(48, 48, 48);border:1px solid rgba(255, 255, 255, 0.15);border-radius:2px;pointer-events:none;z-index:100;}#chatgpt-mermaid-\_r_273\_ .flowchartTitleText{text-anchor:middle;font-size:18px;fill:rgb(237, 237, 237);}#chatgpt-mermaid-\_r_273\_ rect.text{fill:none;stroke-width:0;}#chatgpt-mermaid-\_r_273\_ .icon-shape,#chatgpt-mermaid-\_r_273\_ .image-shape{background-color:rgb(0, 0, 0);text-align:center;}#chatgpt-mermaid-\_r_273\_ .icon-shape p,#chatgpt-mermaid-\_r_273\_ .image-shape p{background-color:rgb(0, 0, 0);padding:2px;}#chatgpt-mermaid-\_r_273\_ .icon-shape .label rect,#chatgpt-mermaid-\_r_273\_ .image-shape .label rect{opacity:0.5;background-color:rgb(0, 0, 0);fill:rgb(0, 0, 0);}#chatgpt-mermaid-\_r_273\_ .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#chatgpt-mermaid-\_r_273\_ .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#chatgpt-mermaid-\_r_273\_ .node .neo-node{stroke:rgb(31, 78, 148);}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node rect,#chatgpt-mermaid-\_r_273\_ [data-look="neo"].cluster rect,#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node polygon{stroke:url(#chatgpt-mermaid-\_r_273\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].swimlane.cluster rect{filter:none;}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node path{stroke:url(#chatgpt-mermaid-\_r_273\_-gradient);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node .neo-line path{stroke:rgb(31, 78, 148);filter:none;}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node circle{stroke:url(#chatgpt-mermaid-\_r_273\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].node circle .state-start{fill:#000000;}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].icon-shape .icon{fill:url(#chatgpt-mermaid-\_r_273\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_273\_ [data-look="neo"].icon-shape .icon-neo path{stroke:url(#chatgpt-mermaid-\_r_273\_-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#chatgpt-mermaid-\_r_273\_ .node text{font-size:14px;font-weight:600;letter-spacing:normal;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_273\_ .edgeLabels text{font-size:13px;font-weight:600;letter-spacing:-0.08px;fill:rgb(153, 206, 255);}#chatgpt-mermaid-\_r_273\_ .node tspan[font-weight="normal"],#chatgpt-mermaid-\_r_273\_ .edgeLabels tspan[font-weight="normal"]{font-weight:600;}#chatgpt-mermaid-\_r_273\_ .edgeLabel .label rect{opacity:1;rx:13px;ry:13px;fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .node rect,#chatgpt-mermaid-\_r_273\_ .node circle,#chatgpt-mermaid-\_r_273\_ .node ellipse,#chatgpt-mermaid-\_r_273\_ .node polygon,#chatgpt-mermaid-\_r_273\_ .node path{fill:rgb(0, 40, 77);stroke:rgba(255, 255, 255, 0.1);stroke-width:1px;}#chatgpt-mermaid-\_r_273\_ .node rect{rx:16px;ry:16px;}#chatgpt-mermaid-\_r_273\_ .mermaid-decision .label-container{fill:rgb(0, 14, 26);stroke:rgb(26, 62, 95);stroke-dasharray:2px,2px;}#chatgpt-mermaid-\_r_273\_ .edgePaths .flowchart-link{stroke:rgb(175, 175, 175);stroke-width:1px;stroke-linecap:round;stroke-linejoin:round;}#chatgpt-mermaid-\_r_273\_ .marker{fill:rgb(175, 175, 175);stroke:rgb(175, 175, 175);}#chatgpt-mermaid-\_r_273\_ :root{--mermaid-font-family:-apple-system-body,ui-sans-serif,-apple-system,system-ui,Segoe UI,Helvetica,Apple Color Emoji,Arial,sans-serif,Segoe UI Emoji,Segoe UI Symbol;}Spacecraft / RigidBodyOrbital PhysicsPropulsionSeparationRendezvous / DockingLunar EnvironmentMuJoCo LandingSkillsMission RuntimePDDL / PrologApollo CompleteCompages Dashboard
+
+Il y a néanmoins une exception : je développerais très tôt un petit scénario PDDL et un GRAFCET de test, pour vérifier que l'architecture de contrôle fonctionne avant de développer toute la physique.
+
+# 9. Tests et validation : ne pas se contenter d'une belle animation
+
+Je ferais de ce démonstrateur un banc de tests automatisés.
+
+Voici les tests que je trouve importants :
+
+| Test              | Assertion                                           |
+| ----------------- | --------------------------------------------------- |
+| Orbite circulaire | Le véhicule conserve approximativement son orbite   |
+| Propulsion        | La vitesse augmente dans la direction attendue      |
+| Carburant         | La masse diminue correctement                       |
+| Séparation        | Les deux véhicules deviennent indépendants          |
+| Amarrage          | La distance et la vitesse relative sont compatibles |
+| Désamarrage       | Les véhicules peuvent s'éloigner                    |
+| Atterrissage      | La vitesse verticale est faible au contact          |
+| Stabilité         | Le LM ne bascule pas                                |
+| Décollage lunaire | L'étage de remontée quitte la surface               |
+| Rendez-vous       | Le LM rejoint le CSM                                |
+| Mission           | Tous les objectifs finaux sont atteints             |
+
+Je créerais également des scénarios d'échec :
+
+- Panne du moteur principal.
+- Quantité de carburant insuffisante.
+- Échec de séparation.
+- Erreur de navigation.
+- Approche trop rapide lors de l'amarrage.
+- Mauvaise orientation du LM.
+- Atterrissage instable.
+- Amarrage impossible après le décollage lunaire.
+
+Cela permettra de vérifier que RobotIK sait planifier une récupération, et pas uniquement suivre un scénario heureux.
+
+Un point important : le moteur orbital doit être déterministe autant que possible. Pour un même état initial, un même plan et une même séquence de commandes, les résultats doivent être reproductibles.
+
+# 10. Les références techniques à utiliser
+
+Je te conseille de ne pas inventer les séquences de vol. La NASA a publié énormément de documentation historique.
+
+[Apollo 11 Mission Report](https://images.openai.com/static-rsc-4/6vGmA87sPCnNmdhja16GFNPkWqXYdkyTLXZvBlVNRgVtbug2fwE9hcoNHjeNH_OllGR9C9FPnGeJcPRXqIzvX7QSDHZIEzZXPZ6QLCqzs7lkm8SGtdLngYg_LBHbxRTovZJcs3ty4WVSKsDc_coAuR6F136TnDImCvW-TVlJ77A?purpose=inline)
+
+[Apollo 11 Mission Report – November 1969](https://www.nasa.gov/wp-content/uploads/static/apollo50th/pdf/A11_MissionReport.pdf?utm_source=chatgpt.com)
+
+Le document le plus intéressant pour ton projet. Il détaille les événements, les trajectoires, les manœuvres, la descente et le rendez-vous.
+
+[FLIGHT PLAN – Final Apollo 11 Flight Plan, AS-506/CSM-107/LM-5. Houston: NASA/MSC Flight Planning Branch, 1 July 1969.  | Christie's](https://images.openai.com/static-rsc-4/XpQ5McpXg3fqkA3G-YjA3s5nsIGOQRznPrrI07SRyxfRktHIIl7P2ivIG0IaQcXHn6g30szs9uP507UcKqLHfwFeJpk6jyeOTU8Maj23yFWYQ2mhnwDQv_laj7hJpWo7oz7fw273d7xJhFfX5qkFB5OTe_1pIhntH61wbou3OCY?purpose=inline)
+
+[Apollo 11 Flight Plan](https://nasa.gov/wp-content/uploads/static/history/alsj/a11/a11-fltplan.html?utm_source=chatgpt.com)
+
+Très intéressant pour construire les Tasks, les Skills et les chronologies opérationnelles.
+
+[Apollo 11 Mission Diagram Art Print by Nick Wiinikka | Society6 | Ciencias de la tierra, Posters de ciencias, Programa apolo](https://images.openai.com/static-rsc-4/UYgUt5SIoTwyCKxgSTFuZnDY7QZWZlL0Q6hMMKXC304BF_arCaWCF99SaD0bc3sGZaGptisZ_Uclp1afSE1IFv_EB76whmfGKsTaU8Zmt7_o1PDfiitgml-QsneJcfEyT6Wib65E5R_6ZMKuDAKY3zidUWP0MLnURudLsqvV9Z8?purpose=inline)
+
+[NASA Apollo 11 Mission Overview](https://www.nasa.gov/history/apollo-11-mission-overview/?utm_source=chatgpt.com)
+
+Une bonne synthèse des événements, de la séparation des véhicules jusqu'à l'amerrissage.
+
+[\[Apollo 11\] | Space Exploration | 2023 | Sotheby's](https://images.openai.com/static-rsc-4/IJIOt5GWxM7U3Yw6BXpKBTa_5QoK4ynMvBqmoUjufS0dq1R-arl0o1-sXVn3A455_4rR905YKZlCqpue72Rc8QpljMnndkMjJMkw8Ehsv6Q1kO_oZMBMSvlQicheLyVshV8CKlniU-InxtO1ZlNgluIghHkO3JkXdyIgimy5qd8?purpose=inline)
+
+[Apollo 11 Saturn V Mission Plan](https://klabs.org/history/history_docs/jsc_t/apollo_11_saturn_v.pdf?utm_source=chatgpt.com)
+
+Pour comprendre la composition de Saturn V, les étages, l'injection translunaire et les opérations d'extraction du LM.
+
+# 11. Mes recommandations architecturales finales
+
+Il y a cinq décisions que je prendrais dès maintenant.
+
+| Décision      | Recommandation                                          |
+| ------------- | ------------------------------------------------------- |
+| Physique      | Un moteur orbital générique indépendant de MuJoCo       |
+| Véhicules     | Des corps rigides indépendants et composables           |
+| Amarrage      | Une vraie Skill générique avec contrôleur de proximité  |
+| Planification | PDDL pour les objectifs, Petri/GRAFCET pour l'exécution |
+| Visualisation | Compages, sans dépendance du moteur physique            |
+
+J'ajouterais trois fonctionnalités transversales qui pourront servir à beaucoup d'autres projets :
+
+1\. Gestion des domaines physiques
+
+Un système capable de représenter plusieurs environnements physiques et de gérer les transitions entre eux.
+
+2\. Gestion des véhicules composés
+
+Un système où plusieurs robots ou corps rigides peuvent être assemblés, désassemblés et transférés d'un état à un autre.
+
+3\. Gestion des missions temporelles
+
+Une mission possède une horloge, des événements, des délais, des interruptions, des échéances et des possibilités de reprise.
+
+Ces trois fonctionnalités me semblent beaucoup plus intéressantes pour RobotIK que de développer des classes spécifiques à Apollo.
+
+# 12. Ce que je développerais concrètement en premier
+
+Je te propose un premier démonstrateur intermédiaire, avant même Saturn V.
+
+# Apollo 11 – Prototype 0
+
+[Apollo 11 50th Anniversary 2019 Model Kit Re-releases](https://images.openai.com/static-rsc-4/ViLO9B_QebVttnZuJZWlF0inW8yn4EFqZdIpuaUb8BdDv6XW2zepn87Q8KLREt_ojennZCbO-4sxCmpzYVCOPQkbVYqlfOz2Ts6LEAT1JHHplwrt3E7_rJc0bSi26xfo7fTU_EHKHRag_c4q1XBBIE-ZpjBMBdxPwzyN48ad-T4?purpose=inline)
+
+[themodelstash.blogspot.com](https://themodelstash.blogspot.com/2019/02/apollo-11-50th-anniversary-model-kit-re.html?utm_source=chatgpt.com)
+
+Scénario : deux véhicules dans l'espace
+
+1. Le CSM et le LM apparaissent séparément.
+2. Le CSM reçoit un objectif de rendez-vous.
+3. RobotIK calcule un plan d'approche.
+4. Le contrôleur corrige la vitesse et l'orientation.
+5. Le CSM rejoint le LM.
+6. La Skill `Dock` verrouille les deux véhicules.
+7. Le planner constate que l'objectif est atteint.
+8. Une autre Skill réalise le désamarrage.
+
+Critères de réussite :
+
+- Deux véhicules physiques indépendants.
+- Aucun déplacement prédéfini ou animation forcée.
+- Un contrôleur en boucle fermée.
+- Un runtime autonome.
+- Des assertions vérifiant le résultat.
+
+Je choisirais ce prototype pour une raison : il valide simultanément le modèle de véhicule, la physique, les contrôleurs, les Skills, les ressources et le runtime.
+
+Ensuite, j'ajouterais le LM et son atterrissage, puis le moteur orbital Terre-Lune et enfin Saturn V.
+
+Mon avis architectural : Apollo 11 pourrait devenir l'un des meilleurs démonstrateurs de RobotIK, parce qu'il oblige à faire cohabiter trois mondes que tu développes actuellement séparément : la robotique, la planification et les systèmes à événements discrets.
+
+Et surtout, tu obtiendras à terme quelque chose de réutilisable : une bibliothèque capable de simuler et de piloter des systèmes autonomes composés de plusieurs véhicules coopérants.

@@ -1,0 +1,151 @@
+# Apollo 11 (AS-506, CSM-107 Columbia, LM-5 Eagle), at scale. SI units.
+#
+# Rounded figures from the Apollo 11 Mission Report (MSC-00171, 1969), the
+# Saturn V Flight Evaluation Report AS-506 (MPR-SAT-FE-69-9) and "Apollo by
+# the Numbers" (NASA SP-2000-4029). Good enough for a demonstrator, not a
+# flight certified configuration.
+#
+# Every element is one robot of the world. Its frame has its origin on the
+# centre of its aft interface (its bottom), +z toward the nose. make_models.py
+# builds the meshes and the URDF of each element from this file; the plugin
+# reads the masses, engines, ports and contacts.
+#
+#   length      aft interface to forward interface (m)
+#   diameter    largest diameter (m), for the drag
+#   com         height of the centre of mass above the aft interface (m)
+#   dry_mass    without propellant (kg)
+#   propellant  usable propellant at launch (kg)
+#   engine      one kind of engine: count, vacuum thrust of one engine (N),
+#               vacuum specific impulse (s), nozzle exit area (m²), throttle
+#               range, position of the nozzle exits on z (m)
+#   rcs         reaction control: force per axis (N), attitude rate (deg/s)
+#               and acceleration (deg/s²) it gives to the vehicle it steers
+#   ports       docking ports: position and direction in the element frame
+#   contacts    points that touch the ground, in the element frame
+
+elements:
+  s_ic:
+    name: S-IC first stage
+    length: 42.0
+    diameter: 10.06
+    com: 14.0
+    dry_mass: 130000
+    propellant: 2145000
+    engine: { name: F-1, count: 5, thrust: 7740000, isp: 304, exit_area: 11.1, exit: -1.6 }
+    rcs: { force: 0, rate: 1.0, acceleration: 0.5 }
+    contacts: [[0, 0, -1.6]]
+
+  interstage:
+    name: S-IC/S-II interstage
+    length: 5.5
+    diameter: 10.06
+    com: 2.75
+    dry_mass: 5200
+    propellant: 0
+
+  s_ii:
+    name: S-II second stage and S-II/S-IVB interstage
+    length: 19.3            # 16.3 m of tanks, then the 3 m cone to 6.6 m
+    diameter: 10.06
+    com: 8.0
+    dry_mass: 39600
+    propellant: 443000
+    engine: { name: J-2, count: 5, thrust: 1033000, isp: 421, exit_area: 3.0, exit: -3.0 }
+    rcs: { force: 0, rate: 1.0, acceleration: 0.5 }
+
+  s_ivb:
+    name: S-IVB third stage and Instrument Unit
+    length: 18.7            # 17.8 m stage, 0.9 m Instrument Unit
+    diameter: 6.6
+    com: 7.5
+    dry_mass: 11950
+    propellant: 108000
+    engine: { name: J-2, count: 1, thrust: 1000000, isp: 421, exit_area: 3.0, exit: -3.0 }
+    rcs: { force: 1300, rate: 1.0, acceleration: 0.3 }   # the APS modules
+
+  sla:
+    name: Spacecraft LM Adapter
+    length: 8.5
+    diameter: 6.6
+    com: 3.5
+    dry_mass: 1840
+    propellant: 0
+    panels: { hinge: 2.1, open: 0.785 }   # four panels hinged at 2.1 m
+
+  lm_descent:
+    name: LM Eagle, descent stage
+    length: 1.65
+    diameter: 4.2
+    com: 0.8
+    dry_mass: 2030
+    propellant: 8250
+    engine: { name: DPS, count: 1, thrust: 45040, isp: 311, exit_area: 1.8, exit: -0.35, throttle: [0.1, 1.0] }
+    legs: { hinge: [2.0, 0.4], foot: [4.3, -1.5], stowed: -2.2 }  # radius, height
+    contacts: [[3.04, 3.04, -1.55], [-3.04, 3.04, -1.55], [-3.04, -3.04, -1.55], [3.04, -3.04, -1.55]]
+
+  lm_ascent:
+    name: LM Eagle, ascent stage
+    length: 2.83
+    diameter: 4.2
+    com: 1.2
+    dry_mass: 2470            # with the crew and the RCS propellant
+    propellant: 2350
+    engine: { name: APS, count: 1, thrust: 15570, isp: 311, exit_area: 0.6, exit: -0.3 }
+    rcs: { force: 890, rate: 5.0, acceleration: 2.0 }
+    ports: { drogue: { position: [0, 0, 2.83], direction: [0, 0, 1] } }
+
+  sm:
+    name: Service Module
+    length: 5.0               # the SPS nozzle hangs 2.8 m below
+    diameter: 3.91
+    com: 2.2
+    dry_mass: 6110
+    propellant: 18410
+    engine: { name: SPS, count: 1, thrust: 91190, isp: 314, exit_area: 4.9, exit: -2.8 }
+    rcs: { force: 890, rate: 3.0, acceleration: 1.0 }
+
+  cm:
+    name: Command Module Columbia
+    length: 3.2
+    diameter: 3.91
+    com: 1.1
+    dry_mass: 5600
+    propellant: 0
+    rcs: { force: 890, rate: 3.0, acceleration: 1.0 }
+    ports: { probe: { position: [0, 0, 3.55], direction: [0, 0, 1] } }
+    contacts: [[0, 0, -0.35]]
+    aero: { cd: 1.3, drogue: 23.6, mains: 1226 }   # drag areas (m²) of the chutes
+
+  les:
+    name: Launch Escape System
+    length: 10.2              # from the base of the CM, over the protective cover
+    diameter: 4.0
+    com: 6.5
+    dry_mass: 4170
+    propellant: 0
+
+# Where each element stands on the pad: height of its aft interface above
+# the aft interface of the S-IC (m). The LM rides upright inside the SLA,
+# its legs folded; the protective cover of the LES fits over the CM.
+stack:
+  - { element: s_ic, z: 0.0 }
+  - { element: interstage, z: 42.0 }
+  - { element: s_ii, z: 47.5 }
+  - { element: s_ivb, z: 66.8 }
+  - { element: sla, z: 85.5 }
+  - { element: lm_descent, z: 86.0 }
+  - { element: lm_ascent, z: 87.65 }
+  - { element: sm, z: 94.0 }
+  - { element: cm, z: 99.0 }
+  - { element: les, z: 99.0 }
+
+bodies:
+  earth: { mu: 3.986004418e14, radius: 6371000, rotation: 7.2921159e-5, atmosphere: { density: 1.225, pressure: 101325, scale_height: 7400 } }
+  moon: { mu: 4.9048695e12, radius: 1737400, distance: 384400000 }
+
+# Kennedy Space Center LC-39A gives the eastward speed of the pad (28.6° N);
+# the model flies in the plane of the lunar orbit. Tranquility Base, east
+# longitude on the Moon (deg).
+sites:
+  pad: { latitude: 28.6 }
+  tranquility: { longitude: 23.47 }

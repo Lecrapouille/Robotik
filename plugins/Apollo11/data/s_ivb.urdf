@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- S-IVB third stage, one J-2 engine, and the Instrument Unit, at scale -->
+<robot name="s_ivb">
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/s_ivb_white.stl"/></geometry>
+      <material name="base_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/s_ivb_black.stl"/></geometry>
+      <material name="base_1"><color rgba="0.080 0.080 0.090 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/s_ivb_iu.stl"/></geometry>
+      <material name="base_2"><color rgba="0.750 0.750 0.740 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/s_ivb_engine.stl"/></geometry>
+      <material name="base_3"><color rgba="0.300 0.290 0.280 1"/></material>
+    </visual>
+    <inertial><mass value="11950"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+</robot>

@@ -1,0 +1,25 @@
+id: robotik.apollo11
+version: 1.0.0
+license: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+source: https://github.com/Lecrapouille/RobotIK
+description: >
+  Apollo 11 at scale: the Saturn V stages, the SLA, the LM Eagle (descent
+  and ascent stages), the CSM Columbia, the launch escape tower and the
+  main parachutes, built by make_models.py from vehicles.yaml. The Earth
+  and the Moon are unit spheres the plugin scales.
+models:
+  s_ic: s_ic.urdf
+  interstage: interstage.urdf
+  s_ii: s_ii.urdf
+  s_ivb: s_ivb.urdf
+  sla: sla.urdf
+  lm_descent: lm_descent.urdf
+  lm_ascent: lm_ascent.urdf
+  sm: sm.urdf
+  cm: cm.urdf
+  les: les.urdf
+  chutes: chutes.urdf
+  earth: earth.urdf
+  moon: moon.urdf
+  earth_ground: earth_ground.urdf
+  moon_ground: moon_ground.urdf

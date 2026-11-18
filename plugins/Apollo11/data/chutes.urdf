@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- Three main parachutes of the CM, 25.4 m wide, at scale -->
+<robot name="chutes">
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/chutes_orange.stl"/></geometry>
+      <material name="base_0"><color rgba="0.950 0.450 0.120 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/chutes_white.stl"/></geometry>
+      <material name="base_1"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+</robot>

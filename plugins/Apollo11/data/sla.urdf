@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!-- Spacecraft LM Adapter, four panels hinged at their base, at scale -->
+<robot name="sla">
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sla_ring.stl"/></geometry>
+      <material name="base_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1840"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <link name="panel_1">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sla_panel_1.stl"/></geometry>
+      <material name="panel_1_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="panel_1" type="revolute">
+    <parent link="base"/>
+    <child link="panel_1"/>
+    <origin xyz="2.09848 2.09848 2.1" rpy="0 0 0.785398"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.05" upper="1.6" effort="1000" velocity="1"/>
+  </joint>
+  <link name="panel_2">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sla_panel_2.stl"/></geometry>
+      <material name="panel_2_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="panel_2" type="revolute">
+    <parent link="base"/>
+    <child link="panel_2"/>
+    <origin xyz="-2.09848 2.09848 2.1" rpy="0 0 2.35619"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.05" upper="1.6" effort="1000" velocity="1"/>
+  </joint>
+  <link name="panel_3">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sla_panel_3.stl"/></geometry>
+      <material name="panel_3_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="panel_3" type="revolute">
+    <parent link="base"/>
+    <child link="panel_3"/>
+    <origin xyz="-2.09848 -2.09848 2.1" rpy="0 0 3.92699"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.05" upper="1.6" effort="1000" velocity="1"/>
+  </joint>
+  <link name="panel_4">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sla_panel_4.stl"/></geometry>
+      <material name="panel_4_0"><color rgba="0.920 0.920 0.900 1"/></material>
+    </visual>
+    <inertial><mass value="1"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+  <joint name="panel_4" type="revolute">
+    <parent link="base"/>
+    <child link="panel_4"/>
+    <origin xyz="2.09848 -2.09848 2.1" rpy="0 0 5.49779"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.05" upper="1.6" effort="1000" velocity="1"/>
+  </joint>
+</robot>

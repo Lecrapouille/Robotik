@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!-- Service Module, SPS engine and RCS quads, at scale -->
+<robot name="sm">
+  <link name="base">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sm_silver.stl"/></geometry>
+      <material name="base_0"><color rgba="0.800 0.810 0.830 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sm_dark.stl"/></geometry>
+      <material name="base_1"><color rgba="0.080 0.080 0.090 1"/></material>
+    </visual>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><mesh filename="meshes/sm_engine.stl"/></geometry>
+      <material name="base_2"><color rgba="0.300 0.290 0.280 1"/></material>
+    </visual>
+    <inertial><mass value="6110"/><origin xyz="0 0 0"/><inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/></inertial>
+  </link>
+</robot>
