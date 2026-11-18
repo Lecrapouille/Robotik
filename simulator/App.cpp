@@ -229,12 +229,14 @@ void App::load(bool p_keep_tool)
             return;
         }
         robotik::Scenario scenario = loaded.take();
-        world_path = robotik::loadScenarioSource(scenario_path).value().world_file;
+        world_path =
+            robotik::loadScenarioSource(scenario_path).value().world_file;
         world_text = readText(world_path);
         tree_text = readText(scenario.controller.behavior_tree);
         if (tool_override)
         {
-            if (robotik::Result<void> mounted = robotik::mountTool(scenario.world, tool_override_name);
+            if (robotik::Result<void> mounted =
+                    robotik::mountTool(scenario.world, tool_override_name);
                 !mounted)
             {
                 error = mounted.error();
@@ -271,9 +273,14 @@ void App::load(bool p_keep_tool)
         plugins.release();
         return;
     }
+    if (ui.workspace == Workspace::Robot &&
+        !simulation->cell().robots().empty())
+        ui.selection = { SelectionKind::Robot,
+                         simulation->cell().robots().front()->id() };
     seed = simulation->seed().value;
-    ui.plotted.assign(simulation->cell().robot().joints().size(),
-                      simulation->cell().robot().joints().size() <= 8U);
+    ui.plotted.assign(simulation->cell().robot().joints().size(), false);
+    if (!ui.plotted.empty())
+        ui.plotted.front() = true;
     ui.place_plugin_panels = true;
     ui.focus_plugin_panel = true;
     history.record(*simulation);
@@ -301,7 +308,8 @@ void App::load(bool p_keep_tool)
         view_camera.position(package->eye[0], package->eye[1], package->eye[2])
             .add<compages::world::Rig>(compages::Vector3f(
                 package->target[0], package->target[1], package->target[2]));
-        tuneViewRig(*world, view_camera,
+        tuneViewRig(*world,
+                    view_camera,
                     { package->distance[0], package->distance[1] });
         auto& lens = view_camera.get<compages::world::Camera>();
         lens.near_plane = package->clip[0];
@@ -309,15 +317,15 @@ void App::load(bool p_keep_tool)
         if (package->has_background)
         {
             // The Scene clears its view with its background.
-            scene->background(package->background[0], package->background[1],
+            scene->background(package->background[0],
+                              package->background[1],
                               package->background[2]);
         }
     }
     else
     {
         view_camera.position(1.6F, 1.2F, 1.6F)
-            .add<compages::world::Rig>(
-                compages::Vector3f(0.35F, 0.15F, 0.0F));
+            .add<compages::world::Rig>(compages::Vector3f(0.35F, 0.15F, 0.0F));
         tuneViewRig(*world, view_camera, { 0.15F, 20.0F });
     }
     if (auto prepared = scene->prepare(); !prepared)
@@ -406,7 +414,8 @@ void App::step(double p_elapsed)
         step_once = false;
         if (teach.manual)
         {
-            teach.pendant.update(simulation->cell().robot(), robotik::Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->cell().robot(),
+                                 robotik::Seconds(SIMULATOR_DT_S));
         }
         simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);
@@ -427,7 +436,8 @@ void App::step(double p_elapsed)
     {
         if (teach.manual)
         {
-            teach.pendant.update(simulation->cell().robot(), robotik::Seconds(SIMULATOR_DT_S));
+            teach.pendant.update(simulation->cell().robot(),
+                                 robotik::Seconds(SIMULATOR_DT_S));
         }
         simulation->step(robotik::Seconds(SIMULATOR_DT_S));
         plugins.afterStep(SIMULATOR_DT_S);

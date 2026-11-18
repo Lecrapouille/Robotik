@@ -421,6 +421,10 @@ struct UiState
     std::size_t inset_index = 0;
     /// Joints drawn in the plots.
     std::vector<bool> plotted;
+    /// Joint controls start with position only; other columns stay optional.
+    bool joint_details = false;
+    /// One measurement at a time; 4 shows the four plots together.
+    int plot_quantity = 0;
     float plot_window_s = 10.0F;
     /// Simulated seconds per real second, smoothed.
     float realtime_factor = 0.0F;

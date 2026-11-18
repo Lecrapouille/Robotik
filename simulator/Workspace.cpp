@@ -68,6 +68,13 @@ static void select(App& p_app, Workspace p_workspace)
     if (p_app.ui.workspace != p_workspace)
     {
         p_app.ui.workspace = p_workspace;
+        if (p_workspace == Workspace::Robot && p_app.simulation &&
+            p_app.ui.selection.kind == SelectionKind::None &&
+            !p_app.simulation->cell().robots().empty())
+            p_app.ui.selection = {
+                SelectionKind::Robot,
+                p_app.simulation->cell().robots().front()->id()
+            };
         p_app.ui.place_plugin_panels = true;
     }
 }

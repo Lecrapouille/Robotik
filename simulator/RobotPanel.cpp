@@ -236,7 +236,9 @@ static void jointsTable(App& p_app)
     robotik::JointSet& joints = robot.joints();
     if (p_app.ui.plotted.size() != joints.size())
     {
-        p_app.ui.plotted.assign(joints.size(), joints.size() <= 8U);
+        p_app.ui.plotted.assign(joints.size(), false);
+        if (!p_app.ui.plotted.empty())
+            p_app.ui.plotted.front() = true;
     }
     std::size_t const latest = p_app.history.latest();
     ImGuiTableFlags const flags =
@@ -246,7 +248,11 @@ static void jointsTable(App& p_app)
     // A new robot has other joint names: give the table a new id so the
     // name column is sized again.
     ImGui::PushID(robot.name().c_str());
-    if (!beginTable("joints", 9, flags))
+    bool const details_changed =
+        ImGui::Checkbox("Show details", &p_app.ui.joint_details);
+    ImGui::SetItemTooltip(
+        "Show joint limits, velocity, acceleration, effort and jog controls.");
+    if (!beginTable("joints/compact", 9, flags))
     {
         ImGui::PopID();
         return;
@@ -263,14 +269,29 @@ static void jointsTable(App& p_app)
         "Joint", ImGuiTableColumnFlags_WidthFixed, name_width);
     ImGui::TableSetupColumn(
         "Position", ImGuiTableColumnFlags_WidthStretch, 2.2F);
-    ImGui::TableSetupColumn("Min", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn("Max", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn(
-        "Velocity / limit", ImGuiTableColumnFlags_WidthStretch, 1.4F);
-    ImGui::TableSetupColumn("Accel.", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn(
-        "Effort / limit", ImGuiTableColumnFlags_WidthStretch, 1.4F);
-    ImGui::TableSetupColumn("Jog", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Min",
+                            ImGuiTableColumnFlags_WidthFixed |
+                                ImGuiTableColumnFlags_DefaultHide);
+    ImGui::TableSetupColumn("Max",
+                            ImGuiTableColumnFlags_WidthFixed |
+                                ImGuiTableColumnFlags_DefaultHide);
+    ImGui::TableSetupColumn("Velocity / limit",
+                            ImGuiTableColumnFlags_WidthStretch |
+                                ImGuiTableColumnFlags_DefaultHide,
+                            1.4F);
+    ImGui::TableSetupColumn("Accel.",
+                            ImGuiTableColumnFlags_WidthFixed |
+                                ImGuiTableColumnFlags_DefaultHide);
+    ImGui::TableSetupColumn("Effort / limit",
+                            ImGuiTableColumnFlags_WidthStretch |
+                                ImGuiTableColumnFlags_DefaultHide,
+                            1.4F);
+    ImGui::TableSetupColumn("Jog",
+                            ImGuiTableColumnFlags_WidthFixed |
+                                ImGuiTableColumnFlags_DefaultHide);
+    if (details_changed)
+        for (int column = 3; column < 9; ++column)
+            ImGui::TableSetColumnEnabled(column, p_app.ui.joint_details);
     ImGui::TableHeadersRow();
     for (robotik::JointId id = 0; id < joints.size(); ++id)
     {
@@ -476,6 +497,28 @@ void plotsView(App& p_app)
     }
     robotik::JointSet const& joints = p_app.simulation->cell().robot().joints();
     JointHistory const& history = p_app.history;
+    if (p_app.ui.plotted.size() != joints.size())
+    {
+        p_app.ui.plotted.assign(joints.size(), false);
+        if (!p_app.ui.plotted.empty())
+            p_app.ui.plotted.front() = true;
+    }
+    ImGui::SetNextItemWidth(150.0F);
+    ImGui::Combo(
+        "Measurement",
+        &p_app.ui.plot_quantity,
+        "Position\0Velocity\0Acceleration\0Effort\0All measurements\0");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(150.0F);
+    if (ImGui::BeginCombo("Joints", "Choose joints"))
+    {
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
+            if (ImGui::Selectable(joints.name(id).c_str(),
+                                  p_app.ui.plotted[id],
+                                  ImGuiSelectableFlags_NoAutoClosePopups))
+                p_app.ui.plotted[id] = !p_app.ui.plotted[id];
+        ImGui::EndCombo();
+    }
     std::size_t selected = 0;
     robotik::JointId only = 0;
     for (robotik::JointId id = 0;
@@ -494,7 +537,7 @@ void plotsView(App& p_app)
     ImGui::SameLine();
     ImGui::TextDisabled(selected == 1U
                             ? "red lines: limits of %s"
-                            : "tick the Plot column of the Robot panel%s",
+                            : "choose joints in the selector above%s",
                         selected == 1U ? joints.name(only).c_str() : "");
     if (selected == 0U)
     {
@@ -502,7 +545,8 @@ void plotsView(App& p_app)
     }
 
     double const now = static_cast<double>(history.time[history.latest()]);
-    double const from = now - static_cast<double>(p_app.ui.plot_window_s);
+    double const from =
+        std::max(0.0, now - static_cast<double>(p_app.ui.plot_window_s));
     static constexpr char const* TITLES[] = {
         "Position", "Velocity", "Acceleration", "Effort"
     };
@@ -517,10 +561,15 @@ void plotsView(App& p_app)
     ImVec2 const area = ImGui::GetContentRegionAvail();
     // Two by two when there is room for it, one column otherwise.
     int const columns = area.x > 1.6F * area.y ? 2 : 1;
-    if (ImPlot::BeginSubplots("##joints", 4 / columns, columns, area, flags))
+    bool const all = p_app.ui.plot_quantity == 4;
+    int const count = all ? 4 : 1;
+    int const plot_columns = all ? columns : 1;
+    if (ImPlot::BeginSubplots(
+            "##joints", count / plot_columns, plot_columns, area, flags))
     {
-        for (int row = 0; row < 4; ++row)
+        for (int plot = 0; plot < count; ++plot)
         {
+            int const row = all ? plot : p_app.ui.plot_quantity;
             if (!ImPlot::BeginPlot(
                     TITLES[row], ImVec2(-1.0F, 0.0F), ImPlotFlags_NoMenus))
             {
@@ -529,7 +578,7 @@ void plotsView(App& p_app)
             ImPlot::SetupAxes(nullptr, nullptr, 0, ImPlotAxisFlags_AutoFit);
             ImPlot::SetupAxisLimits(ImAxis_X1,
                                     from,
-                                    now,
+                                    std::max(now, 0.1),
                                     p_app.playing ? ImPlotCond_Always
                                                   : ImPlotCond_Once);
             for (robotik::JointId id = 0;

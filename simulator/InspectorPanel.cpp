@@ -460,23 +460,15 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
              "workspace, Teach Pendant).");
     }
 
-    ImGui::SeparatorText("Skills");
-    bool any = false;
-    for (robotik::SkillId id = 0; id < skills.size(); ++id)
-    {
-        if (robotOf(cell, id) != p_robot.id())
-        {
-            continue;
-        }
-        any = true;
-        skillLink(p_app, id);
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s", robotik::toString(skills.state(id)));
-    }
-    if (!any)
-    {
-        ImGui::TextDisabled("No skill drives this robot.");
-    }
+    if (ImGui::Button("Joint controls"))
+        showPanel(p_app, PanelKind::Joints);
+    ImGui::SameLine();
+    if (ImGui::Button("Teach Pendant"))
+        showPanel(p_app, PanelKind::Teach);
+    ImGui::SameLine();
+    if (ImGui::Button("Plots"))
+        showPanel(p_app, PanelKind::Plots);
+    ImGui::SetItemTooltip("Open the plots without enabling manual control.");
 
     ImGui::SeparatorText("Joints");
     robotik::JointSet const& joints = p_robot.joints();
@@ -520,7 +512,27 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
                  joints.mode(id) == robotik::JointMode::Disabled ? RED : BLUE);
         ImGui::PopID();
     }
-    ImGui::TextDisabled("Move the joints: Robot workspace.");
+    ImGui::SeparatorText("Skills");
+    bool const all = ImGui::CollapsingHeader("Include inactive skills");
+    bool any = false;
+    for (robotik::SkillId id = 0; id < skills.size(); ++id)
+    {
+        if (robotOf(cell, id) != p_robot.id())
+        {
+            continue;
+        }
+        if (!all && skills.state(id) != robotik::SkillState::Running &&
+            skills.state(id) != robotik::SkillState::Waiting)
+            continue;
+        any = true;
+        skillLink(p_app, id);
+        ImGui::SameLine();
+        ImGui::TextDisabled("%s", robotik::toString(skills.state(id)));
+    }
+    if (!any)
+    {
+        ImGui::TextDisabled("No active skill drives this robot.");
+    }
 }
 
 // --- Object -----------------------------------------------------------------

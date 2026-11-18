@@ -101,6 +101,14 @@ Scheduling details, recent phases and resource history start folded.
 Failed preconditions and current faults stay visible. Each selected item
 keeps its own expanded sections during the session.
 
+**Robot details.** The robot Inspector shows joint positions and active
+skills. Expand **Include inactive skills** to see the others. Its buttons
+open Joint controls, Teach Pendant or Plots without changing who drives
+the robot. Joint controls show positions first; **Show details** adds
+limits, velocity, acceleration, effort and jog controls. Plots start with
+one joint and one measurement. Choose joints in the plot itself and choose
+**All measurements** only when you need the four plots together.
+
 **Camera in the scene.** When the robot has a camera, its picture (with
 the detections of the perception) sits in the bottom-right corner of the 3D
 scene, in every workspace: no need for a Cameras panel to see what the
