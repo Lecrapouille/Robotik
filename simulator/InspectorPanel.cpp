@@ -252,9 +252,12 @@ static void skillView(App& p_app, robotik::SkillId p_id)
         ImGui::PopID();
     }
 
-    if (!description.preconditions.empty())
+    if (!description.preconditions.empty() &&
+        (skills.precondition(p_id) != nullptr ||
+         ImGui::CollapsingHeader("Preconditions")))
     {
-        ImGui::SeparatorText("Preconditions");
+        if (skills.precondition(p_id) != nullptr)
+            ImGui::SeparatorText("Failed precondition");
         robotik::Precondition const* failed = skills.precondition(p_id);
         for (robotik::Precondition const& condition : description.preconditions)
         {
@@ -266,12 +269,18 @@ static void skillView(App& p_app, robotik::SkillId p_id)
         }
     }
 
-    ImGui::SeparatorText("Settings");
-    fact("Priority", "%d", static_cast<int>(description.priority));
-    fact("When busy", "%s", description.wait ? "waits" : "fails at once");
-    fact("Preemption", "%s", description.cancellable ? "allowed" : "refused");
+    if (ImGui::CollapsingHeader("Scheduling details"))
+    {
+        fact("Priority", "%d", static_cast<int>(description.priority));
+        fact("When busy", "%s", description.wait ? "waits" : "fails at once");
+        fact("Preemption",
+             "%s",
+             description.cancellable ? "allowed" : "refused");
+    }
 
-    ImGui::SeparatorText("Last phases");
+    if (!ImGui::CollapsingHeader("Recent phases"))
+        return;
+
     std::vector<std::size_t> phases;
     for (std::size_t i = trace.size(); i > 0U && phases.size() < PHASES_SHOWN;
          --i)
@@ -386,17 +395,22 @@ static void resourceView(App& p_app, robotik::ResourceId p_id)
             skillLink(p_app, id);
         }
     }
-    ImGui::SeparatorText("Needed by");
-    if (needed.empty())
+    if (ImGui::CollapsingHeader("All skills needing this resource"))
     {
-        ImGui::TextDisabled("No skill.");
-    }
-    for (robotik::SkillId const id : needed)
-    {
-        skillLink(p_app, id);
+        if (needed.empty())
+        {
+            ImGui::TextDisabled("No skill.");
+        }
+        for (robotik::SkillId const id : needed)
+        {
+            skillLink(p_app, id);
+        }
     }
 
-    ImGui::SeparatorText("Faults");
+    if (resources.available(p_id) && !ImGui::CollapsingHeader("Fault history"))
+        return;
+    if (!resources.available(p_id))
+        ImGui::SeparatorText("Current fault");
     bool any = false;
     for (FaultSpan const& span : p_app.ui.timeline_memory.faults)
     {
@@ -791,6 +805,8 @@ void inspectorPanel(App& p_app, char const* p_key)
     }
 
     robotik::Cell const& cell = p_app.simulation->cell();
+    ImGui::PushID(static_cast<int>(shown.kind));
+    ImGui::PushID(shown.name.c_str());
     switch (shown.kind)
     {
         case SelectionKind::None:
@@ -835,5 +851,7 @@ void inspectorPanel(App& p_app, char const* p_key)
             objectView(p_app, shown.name);
             break;
     }
+    ImGui::PopID();
+    ImGui::PopID();
     ImGui::End();
 }

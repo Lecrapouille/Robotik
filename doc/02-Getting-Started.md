@@ -97,6 +97,9 @@ robot believes against the truth, the error, the confidence, where the
 belief comes from), and the Timeline highlights its row. Selecting never commands the robot. **Pin**
 keeps an item in the Inspector while you select others; **Overview** shows
 what runs, waits and is in fault.
+Scheduling details, recent phases and resource history start folded.
+Failed preconditions and current faults stay visible. Each selected item
+keeps its own expanded sections during the session.
 
 **Camera in the scene.** When the robot has a camera, its picture (with
 the detections of the perception) sits in the bottom-right corner of the 3D
