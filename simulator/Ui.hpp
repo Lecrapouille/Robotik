@@ -70,12 +70,15 @@ void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
 
-/// The 3D view with the run controls on top (ScenePanel.cpp).
+/// The 3D view, framed in the color of the run (ScenePanel.cpp). The run
+/// controls are in the run bar, under the menu.
 void scenePanel(App& p_app, char const* p_key);
 /// Color of the frame around the 3D view: orange while the run goes
 /// on, green when it succeeded, red when it failed. False without a run, or
 /// before it starts.
 bool runColor(App const& p_app, ImVec4& p_color);
+/// True when the scenario has a Stop skill (emergency stop).
+bool emergencyAvailable(App const& p_app);
 /// True while the Stop skill holds the robot.
 bool emergencyEngaged(App const& p_app);
 /// Engages the Stop skill, or releases it.

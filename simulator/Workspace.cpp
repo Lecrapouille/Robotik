@@ -457,7 +457,25 @@ static Outcome outcomeOf(App const& p_app)
     return { "", GREY };
 }
 
-/// Bottom bar: outcome, time and the loaded scenario.
+/// Shows @p_window of the Mission workspace in front.
+static void showInMission(App& p_app, std::string p_window)
+{
+    select(p_app, Workspace::Mission);
+    p_app.ui.focus_window = std::move(p_window);
+}
+
+/// Clickable text in @p_color in a menu bar; true when clicked.
+static bool barLink(char const* p_text, ImVec4 const& p_color)
+{
+    ImGui::PushStyleColor(ImGuiCol_Text, p_color);
+    bool const clicked = ImGui::Selectable(
+        p_text, false, 0, ImVec2(ImGui::CalcTextSize(p_text).x, 0.0F));
+    ImGui::PopStyleColor();
+    return clicked;
+}
+
+/// Bottom bar: scenario, seed, verdict, faults; time and speed
+/// on the right. Every count is a link to where it is explained.
 static void statusBar(App& p_app)
 {
     float const height = ImGui::GetFrameHeight() + 4.0F;
@@ -472,10 +490,14 @@ static void statusBar(App& p_app)
     }
     if (ImGui::BeginMenuBar())
     {
-        Outcome const outcome = outcomeOf(p_app);
-        badge(outcome.text, outcome.color);
+        if (!p_app.simulation)
+        {
+            Outcome const outcome = outcomeOf(p_app);
+            badge(outcome.text, outcome.color);
+        }
         if (p_app.simulation)
         {
+            robotik::Simulation const& simulation = *p_app.simulation;
             if (!p_app.scenario_title.empty())
             {
                 ImGui::TextUnformatted(p_app.scenario_title.c_str());
@@ -484,7 +506,7 @@ static void statusBar(App& p_app)
                                 static_cast<unsigned long long>(p_app.seed));
             std::size_t passed = 0;
             std::size_t failed = 0;
-            auto const& checks = p_app.simulation->checks();
+            auto const& checks = simulation.checks();
             for (robotik::Check const& check : checks)
             {
                 passed +=
@@ -499,18 +521,38 @@ static void statusBar(App& p_app)
                           passed,
                           checks.size(),
                           failed > 0U ? "  failed" : "");
-            ImGui::PushStyleColor(ImGuiCol_Text,
-                                  failed > 0U               ? RED
-                                  : passed == checks.size() ? GREEN
-                                                            : GREY);
-            if (ImGui::Selectable(
-                    text, false, 0, ImVec2(ImGui::CalcTextSize(text).x, 0.0F)))
+            if (barLink(text,
+                        failed > 0U               ? RED
+                        : passed == checks.size() ? GREEN
+                                                  : GREY))
             {
-                select(p_app, Workspace::Plugin);
+                showInMission(p_app, panelTitle("Assertions", "mission"));
             }
-            ImGui::PopStyleColor();
-            ImGui::SetItemTooltip(
-                "Open the Plugin workspace to see every assertion.");
+            ImGui::SetItemTooltip("Show the assertions (Mission workspace).");
+
+            robotik::ResourceManager const& resources =
+                simulation.cell().robot().resources();
+            std::size_t faults = 0;
+            std::string first;
+            for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+            {
+                if (!resources.available(id))
+                {
+                    faults += 1U;
+                    first = first.empty() ? resources.name(id) : first;
+                }
+            }
+            if (faults > 0U)
+            {
+                std::snprintf(text, sizeof text, "%zu in fault", faults);
+                if (barLink(text, RED))
+                {
+                    showInMission(p_app, "Resources");
+                }
+                ImGui::SetItemTooltip("%s is in fault. Show the resources "
+                                      "(Mission workspace).",
+                                      first.c_str());
+            }
             if (emergencyEngaged(p_app))
             {
                 badge("EMERGENCY STOP", RED);
@@ -527,8 +569,7 @@ static void statusBar(App& p_app)
             char right[96];
             std::snprintf(right,
                           sizeof right,
-                          "t %.2f s   x%.2f real time   %.0f fps",
-                          p_app.simulation->time().value(),
+                          "x%.2f real time   %.0f fps",
                           static_cast<double>(p_app.ui.realtime_factor),
                           static_cast<double>(ImGui::GetIO().Framerate));
             float const width = ImGui::CalcTextSize(right).x +
@@ -538,6 +579,124 @@ static void statusBar(App& p_app)
             ImGui::TextDisabled("%s", right);
         }
         ImGui::EndMenuBar();
+    }
+    ImGui::End();
+}
+
+/// Run bar under the menu, in every workspace: play, step, the clock, the
+/// outcome, replay and the seed, the speed; the emergency stop on the right.
+static void runBar(App& p_app)
+{
+    float const height = ImGui::GetFrameHeight() + 14.0F;
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.125F, 0.137F, 0.157F, 1.0F));
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0F, 7.0F));
+    bool const open = ImGui::BeginViewportSideBar(
+        "##run", ImGui::GetMainViewport(), ImGuiDir_Up, height,
+        ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor();
+    if (!open)
+    {
+        ImGui::End();
+        return;
+    }
+    if (!p_app.simulation)
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("No scenario loaded: choose one in the Demos "
+                            "menu, or File > Open scenario (Ctrl+O).");
+        ImGui::End();
+        return;
+    }
+    robotik::Simulation const& simulation = *p_app.simulation;
+
+    ImGui::PushStyleColor(ImGuiCol_Button,
+                          p_app.playing ? ImVec4(0.42F, 0.31F, 0.14F, 1.0F)
+                                        : ImVec4(0.20F, 0.36F, 0.27F, 1.0F));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                          p_app.playing ? ImVec4(0.52F, 0.39F, 0.18F, 1.0F)
+                                        : ImVec4(0.25F, 0.45F, 0.33F, 1.0F));
+    if (ImGui::Button(p_app.playing ? "Pause" : "Play", ImVec2(72.0F, 0.0F)))
+    {
+        p_app.playing = !p_app.playing;
+    }
+    ImGui::PopStyleColor(2);
+    ImGui::SetItemTooltip("Space");
+    ImGui::SameLine();
+    ImGui::BeginDisabled(p_app.playing);
+    if (ImGui::Button("Step"))
+    {
+        p_app.step_once = true;
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("One step of 10 ms  (.)");
+
+    // The clock, large, then what the run is doing.
+    ImGui::SameLine(0.0F, 18.0F);
+    ImGui::AlignTextToFramePadding();
+    ImGui::PushFont(monoFont(), ImGui::GetStyle().FontSizeBase * 1.15F);
+    ImGui::TextColored(ImVec4(0.93F, 0.71F, 0.39F, 1.0F),
+                       "%8.2f s",
+                       simulation.time().value());
+    ImGui::PopFont();
+    ImGui::SameLine(0.0F, 12.0F);
+    Outcome const outcome = outcomeOf(p_app);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() +
+                         (ImGui::GetFrameHeight() -
+                          ImGui::GetTextLineHeight() - 2.0F) *
+                             0.5F);
+    badge(outcome.text, outcome.color);
+
+    ImGui::SameLine(0.0F, 28.0F);
+    if (ImGui::Button("Replay"))
+    {
+        p_app.reset(p_app.seed);
+    }
+    ImGui::SetItemTooltip("Start again with this seed and play  (Ctrl+R)");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(90.0F);
+    ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
+    ImGui::SetItemTooltip(
+        "Seed: object layout, sensor noise and random faults derive from it.\n"
+        "Press Replay to use it.");
+    ImGui::SameLine();
+    if (ImGui::Button("Next seed"))
+    {
+        p_app.reset(p_app.seed + 1U);
+    }
+    ImGui::SetItemTooltip("Ctrl+N");
+    ImGui::SameLine(0.0F, 18.0F);
+    ImGui::SetNextItemWidth(130.0F);
+    ImGui::SliderFloat("##speed", &p_app.speed, 0.1F, 4.0F, "speed x%.1f");
+    if (p_app.owns_clock)
+    {
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextDisabled("(the plugin drives the clock)");
+    }
+
+    if (emergencyAvailable(p_app))
+    {
+        bool const engaged = emergencyEngaged(p_app);
+        char const* label = engaged ? "Release stop" : "EMERGENCY STOP";
+        float const width = ImGui::CalcTextSize(label).x + 28.0F;
+        ImGui::SameLine();
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                      ImGui::GetWindowWidth() - width -
+                                          ImGui::GetStyle().WindowPadding.x));
+        ImGui::PushStyleColor(ImGuiCol_Button,
+                              engaged ? ImVec4(0.30F, 0.30F, 0.32F, 1.0F)
+                                      : ImVec4(0.70F, 0.16F, 0.16F, 1.0F));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                              engaged ? ImVec4(0.40F, 0.40F, 0.42F, 1.0F)
+                                      : ImVec4(0.85F, 0.22F, 0.22F, 1.0F));
+        if (ImGui::Button(label, ImVec2(width, 0.0F)))
+        {
+            toggleEmergency(p_app);
+        }
+        ImGui::PopStyleColor(2);
+        ImGui::SetItemTooltip("The Stop skill takes every actuator  (Ctrl+E)");
     }
     ImGui::End();
 }
@@ -646,6 +805,7 @@ void drawPanels(App& p_app)
     openClickedAsset(p_app);
     shortcuts(p_app);
     mainMenu(p_app);
+    runBar(p_app);
     statusBar(p_app);
 
     Workspace const workspace = p_app.ui.workspace;
@@ -703,6 +863,11 @@ void drawPanels(App& p_app)
     }
 
     syncTeachAxes(p_app, workspace == Workspace::Robot);
+    if (!p_app.ui.focus_window.empty())
+    {
+        ImGui::SetWindowFocus(p_app.ui.focus_window.c_str());
+        p_app.ui.focus_window.clear();
+    }
 
     // Plugin panels follow the workspace: they join its side column. The
     // Plugin workspace reads the package and shows none: they wait there

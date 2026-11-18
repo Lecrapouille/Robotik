@@ -273,6 +273,9 @@ struct UiState
     std::vector<bool> fault_pick;
     float fault_duration = 0.0F;
     std::vector<ManualFault> manual_faults;
+    /// Window to bring to the front once the panels are drawn (a click
+    /// in the status bar); empty: none.
+    std::string focus_window;
     /// Timeline: the view chosen and what it recorded of the run.
     TimelineView timeline;
     TimelineMemory timeline_memory;

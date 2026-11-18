@@ -14,99 +14,6 @@
 
 static constexpr char const* STOP = "Stop";
 
-/// Run controls drawn over the top-left corner of the 3D view.
-static void runControls(App& p_app, ImVec2 p_at)
-{
-    ImGui::SetCursorScreenPos(ImVec2(p_at.x + 10.0F, p_at.y + 8.0F));
-    ImDrawList* draw = ImGui::GetWindowDrawList();
-    ImDrawListSplitter layers;
-    layers.Split(draw, 2);
-    layers.SetCurrentChannel(draw, 1);
-    ImGui::BeginGroup();
-
-    bool const owns_clock = p_app.owns_clock;
-    ImGui::PushStyleColor(ImGuiCol_Button,
-                          p_app.playing ? ImVec4(0.55F, 0.38F, 0.10F, 1.0F)
-                                        : ImVec4(0.16F, 0.45F, 0.22F, 1.0F));
-    if (ImGui::Button(p_app.playing ? "Pause" : "Play", ImVec2(64.0F, 0.0F)))
-    {
-        p_app.playing = !p_app.playing;
-    }
-    ImGui::PopStyleColor();
-    ImGui::SetItemTooltip("Space");
-    ImGui::SameLine();
-    ImGui::BeginDisabled(p_app.playing);
-    if (ImGui::Button("Step"))
-    {
-        p_app.step_once = true;
-    }
-    ImGui::EndDisabled();
-    ImGui::SetItemTooltip("One step of 10 ms  (.)");
-    ImGui::SameLine(0.0F, 16.0F);
-    if (ImGui::Button("Replay"))
-    {
-        p_app.reset(p_app.seed);
-    }
-    ImGui::SetItemTooltip("Start again with this seed and play  (Ctrl+R)");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(96.0F);
-    ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
-    ImGui::SetItemTooltip(
-        "Seed: object layout, sensor noise and random faults derive from it.\n"
-        "Press Replay to use it.");
-    ImGui::SameLine();
-    if (ImGui::Button("Next seed"))
-    {
-        p_app.reset(p_app.seed + 1U);
-    }
-    ImGui::SetItemTooltip("Ctrl+N");
-    ImGui::SameLine(0.0F, 16.0F);
-    ImGui::SetNextItemWidth(120.0F);
-    ImGui::SliderFloat("##speed", &p_app.speed, 0.1F, 4.0F, "speed x%.1f");
-    if (owns_clock)
-    {
-        ImGui::SameLine();
-        ImGui::TextDisabled("(the plugin drives the clock)");
-    }
-    ImGui::EndGroup();
-
-    ImVec2 const min = ImGui::GetItemRectMin();
-    ImVec2 const max = ImGui::GetItemRectMax();
-    layers.SetCurrentChannel(draw, 0);
-    draw->AddRectFilled(ImVec2(min.x - 6.0F, min.y - 5.0F),
-                        ImVec2(max.x + 6.0F, max.y + 5.0F),
-                        IM_COL32(20, 22, 27, 200),
-                        6.0F);
-    layers.Merge(draw);
-}
-
-/// Emergency-stop button, drawn over the view when a Stop skill exists.
-static void stopButton(App& p_app, ImVec2 p_at, float p_width)
-{
-    if (p_app.simulation->cell().skills().find(STOP) == robotik::NO_SKILL)
-    {
-        return;
-    }
-    bool const engaged = emergencyEngaged(p_app);
-    char const* label = engaged ? "Release stop" : "EMERGENCY STOP";
-    ImVec2 const size(ImGui::CalcTextSize(label).x + 28.0F,
-                      ImGui::GetFrameHeight() + 8.0F);
-    ImGui::SetCursorScreenPos(
-        ImVec2(p_at.x + p_width - size.x - 10.0F, p_at.y + 6.0F));
-    ImGui::PushStyleColor(ImGuiCol_Button,
-                          engaged ? ImVec4(0.30F, 0.30F, 0.32F, 1.0F)
-                                  : ImVec4(0.75F, 0.12F, 0.12F, 1.0F));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                          engaged ? ImVec4(0.40F, 0.40F, 0.42F, 1.0F)
-                                  : ImVec4(0.90F, 0.18F, 0.18F, 1.0F));
-    if (ImGui::Button(label, size))
-    {
-        toggleEmergency(p_app);
-    }
-    ImGui::PopStyleColor(2);
-    ImGui::SetItemTooltip("The Stop skill takes every actuator  (Ctrl+E)");
-}
-
 /// Colored frame around the view: the state of the run at a glance.
 static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
 {
@@ -155,6 +62,12 @@ bool runColor(App const& p_app, ImVec4& p_color)
             return false;
     }
     return false;
+}
+
+bool emergencyAvailable(App const& p_app)
+{
+    return p_app.simulation &&
+           p_app.simulation->cell().skills().find(STOP) != robotik::NO_SKILL;
 }
 
 bool emergencyEngaged(App const& p_app)
@@ -253,8 +166,6 @@ void scenePanel(App& p_app, char const* p_key)
             ImVec2(1.0F, 0.0F));
     }
     runFrame(p_app, at, size);
-    runControls(p_app, at);
-    stopButton(p_app, at, size.x);
     char const* hint =
         "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);

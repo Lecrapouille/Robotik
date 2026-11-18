@@ -57,24 +57,27 @@ Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
 scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and
 right for six seconds.
 
-The window has four parts:
+The window has five parts:
 
 ```text
 ┌ File  Demos  View  <plugin menus>  Help      [Plugin] [Robot] [Mission] [Autonomy] ┐  menu + workspaces
+│ [Play] [Step]  4.20 s RUNNING  [Replay] seed [Next seed] speed     [EMERGENCY STOP] │  run bar
 ├──────────────┬───────────────────────────────────────────────┬─────────────────────┤
-│              │ [Play] [Step] [Replay] seed [Next seed] speed │                     │
-│  panels of   │               3D scene        [EMERGENCY STOP]│  panels of the      │
+│  panels of   │               3D scene                        │  panels of the      │
 │  the         │                                               │  workspace, and the │
-│  workspace   ├───────────────────────────────────────────────┤  plugin panel       │
-│              │  panels of the workspace                      │                     │
+│  workspace   │                                               │  plugin panel       │
 ├──────────────┴───────────────────────────────────────────────┴─────────────────────┤
-│ RUNNING  Pick and place  seed 42  Assertions 3/5            t 4.2 s  x1.0 real time │  status bar
+│  Timeline (Mission)                                                                 │
+├─────────────────────────────────────────────────────────────────────────────────────┤
+│ Pick and place  seed 42  Assertions 3/5  1 in fault         x1.0 real time  60 fps │  status bar
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-The run controls are on the 3D scene. The **status bar** always says what is
-happening: the state of the run, the scenario, the seed, how many assertions
-pass (click it to see them), the simulated time and the real-time factor.
+The **run bar** is the same in every workspace: play, step, the simulated
+time, the state of the run, replay and the seed, the speed, and the
+emergency stop when the scenario has a `Stop` skill. The **status bar** says
+what to look at: how many assertions pass and how many resources are in
+fault. Each of them is a link: a click shows it in the Mission workspace.
 
 A **workspace** is a set of panels for one task. Switch with the buttons at
 the top, or with **Ctrl+1** to **Ctrl+4**:
