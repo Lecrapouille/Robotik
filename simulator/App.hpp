@@ -204,6 +204,22 @@ struct TimelineView
 };
 
 // ****************************************************************************
+/// A step of the plan that ended (done, skipped or failed), seen at its
+/// time: the executor keeps the state of the steps, not when they ended.
+// ****************************************************************************
+struct StepMark
+{
+    double time = 0.0;
+    /// Plan it belongs to (1 for the first), step number in it (from 1).
+    std::size_t plan = 0;
+    std::size_t step = 0;
+    /// The action, e.g. "pick(left, a)".
+    std::string action;
+    bool skipped = false;
+    bool failed = false;
+};
+
+// ****************************************************************************
 /// What the Timeline remembers of the run. Cleared on load and replay.
 // ****************************************************************************
 struct TimelineMemory
@@ -214,6 +230,11 @@ struct TimelineMemory
     std::vector<TreeFailure> tree_failures;
     /// Tree the failures belong to.
     void const* tree = nullptr;
+    /// Steps of the plans that ended, the plans seen, and the last status
+    /// seen of each step of the current plan.
+    std::vector<StepMark> steps;
+    std::size_t plans = 0;
+    std::vector<int> step_seen;
     /// Simulated time of the last sample; a smaller time is a replay.
     double sampled = -1.0;
 };
@@ -256,6 +277,24 @@ enum class ViewKind : std::uint8_t
     Tree,     ///< The behavior tree and the status of its nodes.
     Planner,  ///< The PDDL goal, plan and beliefs.
     Graph,    ///< Plan steps (or tree nodes) and their skills, as a graph.
+    Events,   ///< What happened, one dated line each.
+};
+
+// ****************************************************************************
+/// Filters of the Events panel. Kept across scenario loads.
+// ****************************************************************************
+struct EventsView
+{
+    bool skills = true;
+    bool resources = true;
+    bool plan = true;
+    bool verdicts = true;
+    /// Failures, faults, refused skills, failed assertions only.
+    bool problems_only = false;
+    /// Lines that hold this text, whatever the case.
+    std::array<char, 64> filter{};
+    /// The list shows the last lines as they come.
+    bool follow = true;
 };
 
 // ****************************************************************************
@@ -319,9 +358,9 @@ struct UiState
     /// (kind None: the Inspector follows the selection).
     Selection selection;
     Selection pinned;
-    /// Window to bring to the front once the panels are drawn (a click
-    /// in the status bar); empty: none.
-    std::string focus_window;
+    /// Windows to bring to the front once the panels are drawn (a click
+    /// in the status bar, a new layout), in this order.
+    std::vector<std::string> focus_windows;
     /// Timeline: the view chosen and what it recorded of the run.
     TimelineView timeline;
     TimelineMemory timeline_memory;
@@ -331,6 +370,8 @@ struct UiState
     ViewKind hovered_view = ViewKind::None;
     /// The view maximized in the last frame: focus it only when it opens.
     ViewKind maximized_last = ViewKind::None;
+    /// Events: the filters.
+    EventsView events;
     /// Execution graph: the tree instead of the plan.
     bool graph_tree = false;
     /// Execution graph: the selection it last brought into sight.

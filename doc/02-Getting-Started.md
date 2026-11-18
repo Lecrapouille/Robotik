@@ -99,8 +99,8 @@ it again; `+` (or a double click on the picture) shows it large.
 
 **Main area.** The large area in the middle of Robot, Mission and Autonomy
 shows the 3D scene by default. Its selector (top left) puts another view in
-its place: Camera, Timeline, Joint plots, Behavior tree, Planner or
-Execution graph, at the size of the scene. The **execution graph** reads
+its place: Camera, Timeline, Joint plots, Behavior tree, Planner, Execution
+graph or Events, at the size of the scene. The **execution graph** reads
 from left to right: with a PDDL planner, one box per step of the plan
 (done, running, *waits for step 3*, failed) with the skills it runs, an
 arrow from a step to the steps that wait for it, so the steps that run
@@ -108,6 +108,17 @@ together are in the same column; without a planner, the behavior tree, the
 root on the left. Click a skill to inspect it; the graph scrolls to the
 skill selected elsewhere; drag the background to move it. The panel of that view then says where it is shown, with
 a button to bring it back. Each workspace keeps its own choice.
+
+**Events.** The tab next to the Timeline tells the run as dated lines: the
+skills that wait (and for what), start and end (succeeded after 0.5 s,
+failed and why, cancelled), the resources that fall in fault and come
+back, the plans and their steps, the failures of the tree, the verdicts of
+the assertions. The same line repeated (a skill refused at each step) is
+one line, *x50, until 0.99 s*. Tick the kinds to show, *Problems only* for
+the failures and faults, or type a word to filter. A click on a time shows
+it in the Timeline; a click on a line selects its skill or resource. The
+list follows the new lines; scroll up to read, come back to the bottom to
+follow again.
 
 **Full view.** When a view needs room, **Ctrl+Space** over it (or its *Full
 view* button) shows it over the whole work area: the 3D scene, the
@@ -123,7 +134,7 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
 | **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints; a link with fewer than six joints above it moves its position or its orientation alone, and the axes its joints cannot follow are greyed), Cameras, Inspector | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
-| **Mission** | Behavior tree, Assertions, Inspector, Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
+| **Mission** | Behavior tree, Assertions, Inspector, Events (what happened, one dated line each), Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
 | **Autonomy** | World model (belief against truth; click an object to inspect it), Cameras, Inspector, Perception (detections) | Check what the robot believes and sees |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the

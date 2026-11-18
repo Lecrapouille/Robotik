@@ -195,6 +195,11 @@ void timelineView(App& p_app);
 /// wait for and the skills they run; the behavior tree without a planner.
 /// A view of the main area, without a panel of its own.
 void graphView(App& p_app);
+/// What happened in the run, one dated line each, with filters
+/// (EventsPanel.cpp). A click on a time shows it in the Timeline.
+void eventsPanel(App& p_app);
+/// Contents of the Events panel, without its window.
+void eventsView(App& p_app);
 /// Records what the Timeline cannot read back later (resource faults, tree
 /// failures). Called every frame, whatever the workspace shown.
 void sampleTimeline(App& p_app);

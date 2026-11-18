@@ -746,7 +746,7 @@ void showInspector(App& p_app)
         p_app.ui.workspace = Workspace::Mission;
         p_app.ui.place_plugin_panels = true;
     }
-    p_app.ui.focus_window = panelTitle("Inspector", key);
+    p_app.ui.focus_windows.push_back(panelTitle("Inspector", key));
 }
 
 void inspectorPanel(App& p_app, char const* p_key)

@@ -138,6 +138,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             dock(panelTitle("Behavior tree", key), left);
             dock(panelTitle("Assertions", key), verdict);
             dock(mainWindowId(key), center);
+            dock("Events", bottom);
             dock("Timeline", bottom);
             dock(panelTitle("Inspector", key), inspector);
             // The last one docked is in front: Skills.
@@ -213,6 +214,9 @@ void drawView(App& p_app, ViewKind p_view)
         case ViewKind::Graph:
             graphView(p_app);
             break;
+        case ViewKind::Events:
+            eventsView(p_app);
+            break;
         case ViewKind::None:
             break;
     }
@@ -236,6 +240,8 @@ char const* viewName(ViewKind p_view)
             return "Planner";
         case ViewKind::Graph:
             return "Execution graph";
+        case ViewKind::Events:
+            return "Events";
         case ViewKind::None:
             break;
     }
@@ -643,7 +649,7 @@ static Outcome outcomeOf(App const& p_app)
 static void showInMission(App& p_app, std::string p_window)
 {
     select(p_app, Workspace::Mission);
-    p_app.ui.focus_window = std::move(p_window);
+    p_app.ui.focus_windows.push_back(std::move(p_window));
 }
 
 /// Clickable text in @p_color in a menu bar; true when clicked.
@@ -1009,7 +1015,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/11";
+    constexpr char const* LAYOUT_VERSION = "/12";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
@@ -1027,13 +1033,15 @@ void drawPanels(App& p_app)
         switch (workspace)
         {
             case Workspace::Robot:
-                p_app.ui.focus_window = "Teach Pendant";
+                p_app.ui.focus_windows.emplace_back("Teach Pendant");
                 break;
             case Workspace::Mission:
-                p_app.ui.focus_window = "Skills";
+                p_app.ui.focus_windows.emplace_back("Skills");
+                p_app.ui.focus_windows.emplace_back("Timeline");
                 break;
             case Workspace::Autonomy:
-                p_app.ui.focus_window = panelTitle("Inspector", info.key);
+                p_app.ui.focus_windows.push_back(
+                    panelTitle("Inspector", info.key));
                 break;
             case Workspace::Plugin:
                 break;
@@ -1070,6 +1078,7 @@ void drawPanels(App& p_app)
         case Workspace::Mission:
             treePanel(p_app, info.key);
             timelinePanel(p_app);
+            eventsPanel(p_app);
             inspectorPanel(p_app, info.key);
             resourcesPanel(p_app);
             assertionsPanel(p_app, info.key);
@@ -1086,11 +1095,11 @@ void drawPanels(App& p_app)
 
     maximizedWindow(p_app);
     syncTeachAxes(p_app, workspace == Workspace::Robot);
-    if (!p_app.ui.focus_window.empty())
+    for (std::string const& window : p_app.ui.focus_windows)
     {
-        ImGui::SetWindowFocus(p_app.ui.focus_window.c_str());
-        p_app.ui.focus_window.clear();
+        ImGui::SetWindowFocus(window.c_str());
     }
+    p_app.ui.focus_windows.clear();
 
     // Plugin panels follow the workspace: they join its side column. The
     // Plugin workspace reads the package and shows none: they wait there

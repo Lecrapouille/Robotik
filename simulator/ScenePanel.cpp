@@ -285,7 +285,7 @@ std::string mainWindowId(char const* p_key)
 static constexpr ViewKind MAIN_VIEWS[] = {
     ViewKind::Scene,  ViewKind::Camera, ViewKind::Timeline,
     ViewKind::Plots,  ViewKind::Tree,   ViewKind::Planner,
-    ViewKind::Graph,
+    ViewKind::Graph,  ViewKind::Events,
 };
 
 /// Header of the main area: the selector of its view, and Full view.

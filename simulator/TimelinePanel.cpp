@@ -24,6 +24,8 @@
 #include "SkillView.hpp"
 #include "Ui.hpp"
 
+#include "Robotik/Task/Planning/PlanExecutor.hpp"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -662,6 +664,40 @@ void sampleTimeline(App& p_app)
         {
             open->end = now;
             open->open = false;
+        }
+    }
+
+    // Steps of the plan: the executor keeps their state, not their time.
+    if (robotik::PlanExecutor const* executor = simulation.cell().planner())
+    {
+        std::vector<robotik::StepStatus> const& status = executor->steps();
+        std::vector<robotik::GroundAction> const& plan = executor->plan();
+        if (executor->history().size() != memory.plans ||
+            memory.step_seen.size() != status.size())
+        {
+            memory.plans = executor->history().size();
+            memory.step_seen.assign(
+                status.size(), static_cast<int>(robotik::StepStatus::Pending));
+        }
+        for (std::size_t i = 0; i < status.size() && i < plan.size(); ++i)
+        {
+            int const now_status = static_cast<int>(status[i]);
+            if (now_status == memory.step_seen[i])
+            {
+                continue;
+            }
+            memory.step_seen[i] = now_status;
+            if (status[i] == robotik::StepStatus::Pending)
+            {
+                continue;
+            }
+            memory.steps.push_back(
+                { now,
+                  memory.plans,
+                  i + 1U,
+                  robotik::toString(robotik::Atom{ plan[i].name, plan[i].args }),
+                  status[i] == robotik::StepStatus::Skipped,
+                  status[i] == robotik::StepStatus::Failed });
         }
     }
 
