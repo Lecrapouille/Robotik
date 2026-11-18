@@ -11,8 +11,8 @@
 
 // Status colors shared by every panel: idle, waiting, running, success,
 // failure.
-inline ImVec4 const GREY(0.55F, 0.55F, 0.58F, 1.0F);
-inline ImVec4 const ORANGE(1.00F, 0.70F, 0.20F, 1.0F);
-inline ImVec4 const GREEN(0.35F, 0.85F, 0.40F, 1.0F);
-inline ImVec4 const RED(0.95F, 0.35F, 0.35F, 1.0F);
-inline ImVec4 const BLUE(0.45F, 0.65F, 1.00F, 1.0F);
+inline ImVec4 const GREY(0.59F, 0.62F, 0.66F, 1.0F);
+inline ImVec4 const ORANGE(0.93F, 0.71F, 0.39F, 1.0F);
+inline ImVec4 const GREEN(0.51F, 0.78F, 0.63F, 1.0F);
+inline ImVec4 const RED(0.93F, 0.57F, 0.57F, 1.0F);
+inline ImVec4 const BLUE(0.53F, 0.73F, 0.91F, 1.0F);
