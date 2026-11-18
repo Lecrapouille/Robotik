@@ -76,7 +76,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpnfs3ul3b.js
+// include: /tmp/tmpy2asgtr0.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -251,21 +251,21 @@ Module['FS_createPath']("/plugins/PickAndPlace", "worlds", true, true);
 
   })();
 
-// end include: /tmp/tmpnfs3ul3b.js
-// include: /tmp/tmppeeoev1k.js
+// end include: /tmp/tmpy2asgtr0.js
+// include: /tmp/tmpmmu_bbtf.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER !== 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD !== 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET !== 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmppeeoev1k.js
-// include: /tmp/tmp8vwend32.js
+  // end include: /tmp/tmpmmu_bbtf.js
+// include: /tmp/tmpubqfnmo2.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (!Module['preRun'].includes(task)) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmp8vwend32.js
+  // end include: /tmp/tmpubqfnmo2.js
 
 
 var programArgs = [];
@@ -9592,9 +9592,9 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('wasmBinary');
 }
 var ASM_CONSTS = {
-  395680: ($0) => { var path = UTF8ToString($0); var blob = new Blob([FS.readFile(path)], { type: 'application/octet-stream' }); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = path.split('/').pop(); document.body.appendChild(link); link.click(); link.remove(); setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000); },  
- 396039: () => { return window.innerWidth; },  
- 396069: () => { return window.innerHeight; }
+  399312: ($0) => { var path = UTF8ToString($0); var blob = new Blob([FS.readFile(path)], { type: 'application/octet-stream' }); var link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = path.split('/').pop(); document.body.appendChild(link); link.click(); link.remove(); setTimeout(function() { URL.revokeObjectURL(link.href); }, 1000); },  
+ 399671: () => { return window.innerWidth; },  
+ 399701: () => { return window.innerHeight; }
 };
 function ImGui_ImplGlfw_EmscriptenOpenURL(url) { url = url ? UTF8ToString(url) : null; if (url) window.open(url, '_blank'); }
 
