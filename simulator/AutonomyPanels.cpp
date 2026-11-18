@@ -100,7 +100,13 @@ void worldModelPanel(App& p_app)
                                    ImGuiColorEditFlags_NoTooltip,
                                    ImVec2(10.0F, 10.0F));
                 ImGui::SameLine();
-                ImGui::TextUnformatted(p_object.name.c_str());
+                if (isSelected(p_app, SelectionKind::Object, p_object.name))
+                {
+                    ImGui::TableSetBgColor(
+                        ImGuiTableBgTarget_RowBg1,
+                        ImGui::GetColorU32(ImGuiCol_Header));
+                }
+                itemLink(p_app, SelectionKind::Object, p_object.name);
                 ImGui::TableNextColumn();
                 ImGui::Text("%.3f %.3f %.3f", at.x, at.y, at.z);
                 ImGui::TableNextColumn();
@@ -146,7 +152,7 @@ void worldModelPanel(App& p_app)
             }
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(belief.name.c_str());
+            itemLink(p_app, SelectionKind::Object, belief.name);
             ImGui::TableNextColumn();
             ImGui::TextDisabled("not in the world");
             ImGui::TableNextColumn();

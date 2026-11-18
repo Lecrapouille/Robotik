@@ -120,6 +120,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             dock("Joints", left);
             dock(panelTitle("Scene", key), center);
             dock("Joint plots", bottom);
+            dock(panelTitle("Inspector", key), right);
             dock("Teach Pendant", right);
             dock(panelTitle("Cameras", key), cameras);
             break;
@@ -138,7 +139,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             dock(panelTitle("Assertions", key), verdict);
             dock(panelTitle("Scene", key), center);
             dock("Timeline", bottom);
-            dock("Inspector", inspector);
+            dock(panelTitle("Inspector", key), inspector);
             // The last one docked is in front: Skills.
             dock("Planner", right);
             dock("Resources", right);
@@ -153,6 +154,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             dock("World model", left);
             dock(panelTitle("Scene", key), center);
             dock(panelTitle("Cameras", key), right);
+            dock(panelTitle("Inspector", key), right);
             dock("Perception", perception);
             break;
         }
@@ -551,7 +553,7 @@ static void statusBar(App& p_app)
                 if (barLink(text, RED))
                 {
                     selectItem(p_app, SelectionKind::Resource, first);
-                    showInMission(p_app, "Inspector");
+                    showInspector(p_app);
                 }
                 ImGui::SetItemTooltip("Show the resource in the Inspector.");
             }
@@ -566,10 +568,10 @@ static void statusBar(App& p_app)
                 std::snprintf(text, sizeof text, "%s", chosen.name.c_str());
                 if (barLink(text, ImGui::GetStyleColorVec4(ImGuiCol_Text)))
                 {
-                    showInMission(p_app, "Inspector");
+                    showInspector(p_app);
                 }
                 ImGui::SetItemTooltip("The selection. Show it in the "
-                                      "Inspector (Mission workspace).");
+                                      "Inspector.");
             }
         }
         if (!p_app.error.empty())
@@ -826,7 +828,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/9";
+    constexpr char const* LAYOUT_VERSION = "/10";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
@@ -840,10 +842,20 @@ void drawPanels(App& p_app)
     {
         layout(workspace, dock);
         p_app.ui.reset_layout = false;
-        // Docking does not choose the tab in front: Skills, in Mission.
-        if (workspace == Workspace::Mission)
+        // Docking does not choose the tab in front.
+        switch (workspace)
         {
-            p_app.ui.focus_window = "Skills";
+            case Workspace::Robot:
+                p_app.ui.focus_window = "Teach Pendant";
+                break;
+            case Workspace::Mission:
+                p_app.ui.focus_window = "Skills";
+                break;
+            case Workspace::Autonomy:
+                p_app.ui.focus_window = panelTitle("Inspector", info.key);
+                break;
+            case Workspace::Plugin:
+                break;
         }
     }
     ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());
@@ -872,11 +884,12 @@ void drawPanels(App& p_app)
             plotsPanel(p_app);
             teachPanel(p_app);
             camerasPanel(p_app, info.key);
+            inspectorPanel(p_app, info.key);
             break;
         case Workspace::Mission:
             treePanel(p_app, info.key);
             timelinePanel(p_app);
-            inspectorPanel(p_app);
+            inspectorPanel(p_app, info.key);
             resourcesPanel(p_app);
             assertionsPanel(p_app, info.key);
             skillsPanel(p_app);
@@ -885,6 +898,7 @@ void drawPanels(App& p_app)
         case Workspace::Autonomy:
             worldModelPanel(p_app);
             camerasPanel(p_app, info.key);
+            inspectorPanel(p_app, info.key);
             perceptionPanel(p_app);
             break;
     }

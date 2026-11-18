@@ -80,12 +80,14 @@ what to look at: how many assertions pass, how many resources are in fault,
 and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
 
-**Selection.** A click on a skill, a resource or a robot (in the Timeline,
-the Skills or Resources panel, or a link of the Inspector) selects it in
-every panel: the **Inspector** shows it (state and why, resources and who
-holds them, preconditions, last phases; for a resource who holds it, who
-waits for it and its faults; for a robot its skills and joints), and the
-Timeline highlights its row. Selecting never commands the robot. **Pin**
+**Selection.** A click on a skill, a resource, a robot or an object (in the
+Timeline, the Skills, Resources or World model panel, or a link of the
+Inspector) selects it in every panel: the **Inspector** of each workspace
+shows it (for a skill: state and why, resources and who holds them,
+preconditions, last phases; for a resource: who holds it, who waits for it
+and its faults; for a robot: its skills and joints; for an object: what the
+robot believes against the truth, the error, the confidence, where the
+belief comes from), and the Timeline highlights its row. Selecting never commands the robot. **Pin**
 keeps an item in the Inspector while you select others; **Overview** shows
 what runs, waits and is in fault.
 
@@ -101,9 +103,9 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 | Workspace | Panels | Use it to |
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
-| **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints; a link with fewer than six joints above it moves its position or its orientation alone, and the axes its joints cannot follow are greyed), Cameras | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
+| **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints; a link with fewer than six joints above it moves its position or its orientation alone, and the axes its joints cannot follow are greyed), Cameras, Inspector | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
 | **Mission** | Behavior tree, Assertions, Inspector, Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
-| **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |
+| **Autonomy** | World model (belief against truth; click an object to inspect it), Cameras, Inspector, Perception (detections) | Check what the robot believes and sees |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the
 panels of the workspace, except in **Plugin**, which only reads the package. You can move and dock every panel; the layout of

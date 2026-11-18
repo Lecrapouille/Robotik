@@ -150,9 +150,13 @@ void selectItem(App& p_app, SelectionKind p_kind, std::string const& p_name);
 bool isSelected(App const& p_app, SelectionKind p_kind, std::string const& p_name);
 /// A clickable name: it selects the item. Returns true when clicked.
 bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name);
-/// What is selected: a robot, a skill or a resource, its state and links
-/// to what it is related to. It can keep one item (Pin).
-void inspectorPanel(App& p_app);
+/// What is selected: a robot, a skill, a resource or an object, its state
+/// and links to what it is related to. It can keep one item (Pin). One
+/// window per workspace ("Inspector##key").
+void inspectorPanel(App& p_app, char const* p_key);
+/// Brings the Inspector of the current workspace to the front (of Mission
+/// when the workspace has none).
+void showInspector(App& p_app);
 
 // --- Mission workspace (MissionPanels.cpp, TimelinePanel.cpp, SkillsPanel.cpp)
 

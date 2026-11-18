@@ -219,7 +219,8 @@ struct TimelineMemory
 };
 
 // ****************************************************************************
-/// What the operator looks at: a robot, a skill or a resource, by name (the
+/// What the operator looks at: a robot, a skill, a resource or an object of
+/// the world model, by name (the
 /// names stay valid across a replay). Every panel may set it; the Inspector
 /// shows it and the Timeline highlights it. Choosing never commands the
 /// robot.
@@ -230,12 +231,13 @@ enum class SelectionKind : std::uint8_t
     Robot,
     Skill,
     Resource,
+    Object,
 };
 
 struct Selection
 {
     SelectionKind kind = SelectionKind::None;
-    /// Robot id, skill name or resource name.
+    /// Robot id, skill, resource or object name.
     std::string name;
 };
 

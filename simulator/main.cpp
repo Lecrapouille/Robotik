@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     app.plugins.scan();
     // Robotik-Simulator [scenario] [--screenshot file.png] [--screenshot-ui
     // file.png] [--at seconds] [--workspace plugin|robot|mission|autonomy]
-    // [--select skill:<name>|resource:<name>|robot:<id>]
+    // [--select skill:<name>|resource:<name>|robot:<id>|object:<name>]
     std::string select;
     for (int i = 1; i < argc; ++i)
     {
@@ -89,6 +89,7 @@ int main(int argc, char** argv)
             app.ui.selection = {
                 kind == "skill"      ? SelectionKind::Skill
                 : kind == "resource" ? SelectionKind::Resource
+                : kind == "object"   ? SelectionKind::Object
                                      : SelectionKind::Robot,
                 select.substr(colon + 1) };
         }

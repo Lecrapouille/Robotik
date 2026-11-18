@@ -11,7 +11,9 @@
 /// A skill shows its state and why, the resources it needs and who holds
 /// them, its preconditions and its last phases. A resource shows who holds
 /// it, who waits for it, who needs it and its faults. A robot shows its
-/// skills and its joints. Every related item is a link that selects it.
+/// skills and its joints. An object shows what the robot believes of it
+/// against the truth of the simulator. Every related item is a link that
+/// selects it.
 /// With nothing selected, it sums up the run: what runs, what waits, what
 /// is in fault.
 ///
@@ -23,6 +25,8 @@
 #include "SkillView.hpp"
 #include "Ui.hpp"
 
+#include "Robotik/Robot/Components/Objects.hpp"
+
 #include <imgui.h>
 
 #include <algorithm>
@@ -31,6 +35,7 @@
 #include <cstdio>
 #include <numbers>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -505,6 +510,129 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
     ImGui::TextDisabled("Move the joints: Robot workspace.");
 }
 
+// --- Object -----------------------------------------------------------------
+
+/// Word and color of where a belief comes from.
+static char const* sourceOf(robotik::BeliefSource p_source, ImVec4& p_color)
+{
+    switch (p_source)
+    {
+        case robotik::BeliefSource::Prior:
+            p_color = GREY;
+            return "prior";
+        case robotik::BeliefSource::Sensed:
+            p_color = GREEN;
+            return "sensed";
+        case robotik::BeliefSource::NoisyTruth:
+            p_color = ORANGE;
+            return "noisy truth (mock)";
+        case robotik::BeliefSource::Truth:
+            p_color = ORANGE;
+            return "truth (mock)";
+    }
+    p_color = GREY;
+    return "";
+}
+
+/// True when @p_name is an object (a shape, not a decoration) of the world.
+static bool inWorld(App& p_app, std::string const& p_name)
+{
+    bool found = false;
+    p_app.world->each<robotik::ecs::Shape>(
+        [&](compages::world::Entity p_entity,
+            robotik::ecs::Shape const& p_shape)
+        {
+            if (p_shape.name == p_name &&
+                p_entity.find<robotik::ecs::Decoration>() == nullptr)
+            {
+                found = true;
+            }
+        });
+    return found;
+}
+
+/// What the robot believes of an object, against the truth.
+static void objectView(App& p_app, std::string const& p_name)
+{
+    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::WorldObject const* belief = cell.worldModel().find(p_name);
+    bool const real = inWorld(p_app, p_name);
+
+    caption("OBJECT");
+    title(p_name);
+    if (belief == nullptr)
+    {
+        badge("unknown to the robot", GREY);
+    }
+    else
+    {
+        ImVec4 color;
+        char const* word = sourceOf(belief->source, color);
+        badge(word, color);
+        if (robotik::observed(*belief))
+        {
+            ImGui::SameLine();
+            ImGui::TextDisabled("seen at %.2f s", belief->seen.value());
+        }
+    }
+
+    // Both positions in the world frame, and the distance between them.
+    robotik::Vector3 truth{};
+    bool has_truth = false;
+    if (real)
+    {
+        try
+        {
+            truth = cell.pose(p_name).position;
+            has_truth = true;
+        }
+        catch (std::invalid_argument const&)
+        {
+            has_truth = false;
+        }
+    }
+    ImGui::SeparatorText("Belief against truth");
+    if (belief != nullptr)
+    {
+        robotik::Vector3 const believed =
+            cell.beliefFrame() * belief->position;
+        fact("Belief", "%.3f %.3f %.3f m", believed.x, believed.y, believed.z);
+        if (has_truth)
+        {
+            fact("Truth", "%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
+            double const error = 1000.0 * robotik::norm(believed - truth);
+            ImGui::TextDisabled("Error");
+            ImGui::SameLine(ImGui::GetFontSize() * 8.0F);
+            ImGui::TextColored(error < 10.0   ? GREEN
+                               : error < 30.0 ? ORANGE
+                                              : RED,
+                               "%.1f mm",
+                               error);
+        }
+        else
+        {
+            fact("Truth", "%s", "not in the world");
+        }
+        fact("Confidence", "%.0f %%",
+             static_cast<double>(belief->confidence) * 100.0);
+        fact("Observations", "%u", belief->observations);
+        if (belief->size.x > 0.0 || belief->size.y > 0.0 ||
+            belief->size.z > 0.0)
+        {
+            fact("Size", "%.3f %.3f %.3f m",
+                 belief->size.x, belief->size.y, belief->size.z);
+        }
+    }
+    else if (has_truth)
+    {
+        fact("Truth", "%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
+        ImGui::TextDisabled("The robot has no belief about it.");
+    }
+    ImGui::Spacing();
+    ImGui::TextDisabled("Skills see the belief only; the truth is here to "
+                        "compare.");
+}
+
 // --- Nothing selected ---------------------------------------------------------
 
 /// The run in a few lines: what runs, what waits, what is in fault.
@@ -516,8 +644,8 @@ static void overview(App& p_app)
     caption("RUN");
     title(p_app.scenario_title.empty() ? std::string("Run")
                                        : p_app.scenario_title);
-    ImGui::TextDisabled("Click a skill, a resource or a robot in any "
-                        "panel to see it here.");
+    ImGui::TextDisabled("Click a skill, a resource, a robot or an object "
+                        "in any panel to see it here.");
 
     ImGui::SeparatorText("Robots");
     for (auto const& robot : cell.robots())
@@ -574,6 +702,22 @@ static void overview(App& p_app)
             skillLink(p_app, id);
         }
     }
+    std::span<robotik::WorldObject const> const objects =
+        cell.worldModel().objects();
+    if (!objects.empty())
+    {
+        ImGui::SeparatorText("Objects believed");
+        for (robotik::WorldObject const& object : objects)
+        {
+            ImGui::PushStyleColor(
+                ImGuiCol_TextLink,
+                robotik::observed(object)
+                    ? ImGui::GetStyleColorVec4(ImGuiCol_TextLink)
+                    : GREY);
+            itemLink(p_app, SelectionKind::Object, object.name);
+            ImGui::PopStyleColor();
+        }
+    }
     bool fault = false;
     for (robotik::ResourceId id = 0; id < resources.size(); ++id)
     {
@@ -592,9 +736,23 @@ static void overview(App& p_app)
     }
 }
 
-void inspectorPanel(App& p_app)
+void showInspector(App& p_app)
 {
-    if (!ImGui::Begin("Inspector"))
+    char const* key = p_app.ui.workspace == Workspace::Robot      ? "robot"
+                      : p_app.ui.workspace == Workspace::Autonomy ? "autonomy"
+                                                                  : "mission";
+    if (p_app.ui.workspace == Workspace::Plugin)
+    {
+        p_app.ui.workspace = Workspace::Mission;
+        p_app.ui.place_plugin_panels = true;
+    }
+    p_app.ui.focus_window = panelTitle("Inspector", key);
+}
+
+void inspectorPanel(App& p_app, char const* p_key)
+{
+    std::string const window = panelTitle("Inspector", p_key);
+    if (!ImGui::Begin(window.c_str()))
     {
         ImGui::End();
         return;
@@ -675,6 +833,9 @@ void inspectorPanel(App& p_app)
             robotView(p_app, *robot);
             break;
         }
+        case SelectionKind::Object:
+            objectView(p_app, shown.name);
+            break;
     }
     ImGui::End();
 }
