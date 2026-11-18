@@ -247,6 +247,8 @@ struct UiState
     Workspace workspace = Workspace::Mission;
     /// Rebuild the dock layout of the current workspace.
     bool reset_layout = false;
+    /// The saved layout of each workspace was checked once (Workspace.cpp).
+    std::array<bool, WORKSPACE_COUNT> layout_checked{};
     /// Dock the plugin panels in the current workspace, then focus them.
     bool place_plugin_panels = false;
     bool focus_plugin_panel = false;

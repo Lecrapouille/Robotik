@@ -829,7 +829,14 @@ void drawPanels(App& p_app)
     constexpr char const* LAYOUT_VERSION = "/9";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
-    if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
+    // Every default layout is split: a whole node when the workspace is
+    // first shown is a layout saved half built (the program stopped while
+    // building it). It is built again; later, the operator may merge nodes.
+    ImGuiDockNode const* node = ImGui::DockBuilderGetNode(dock);
+    bool& checked = p_app.ui.layout_checked[static_cast<std::size_t>(workspace)];
+    bool const broken = !checked && node != nullptr && !node->IsSplitNode();
+    checked = true;
+    if (p_app.ui.reset_layout || node == nullptr || broken)
     {
         layout(workspace, dock);
         p_app.ui.reset_layout = false;
