@@ -81,8 +81,8 @@ and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
 
 **Selection.** A click on a skill, a resource, a robot or an object (in the
-Timeline, the Skills, Resources or World model panel, or a link of the
-Inspector) selects it in every panel: the **Inspector** of each workspace
+Timeline, the Behavior tree, the Skills, Resources or World model panel, a
+click in the 3D view, or a link of the Inspector) selects it in every panel: the **Inspector** of each workspace
 shows it (for a skill: state and why, resources and who holds them,
 preconditions, last phases; for a resource: who holds it, who waits for it
 and its faults; for a robot: its skills and joints; for an object: what the

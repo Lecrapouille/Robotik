@@ -45,9 +45,9 @@ bt::Node const* subtreeRoot(bt::Node const& p_node)
     return &subtree->subtree().getRoot();
 }
 
-/// Draw a tree node.
+/// Draw a tree node. A click on an action that is a skill selects it.
 /// @param p_node The node.
-static void treeNode(bt::Node const& p_node)
+static void treeNode(App& p_app, bt::Node const& p_node)
 {
     ImGui::PushID(&p_node);
     auto const* composite = dynamic_cast<bt::Composite const*>(&p_node);
@@ -66,6 +66,13 @@ static void treeNode(bt::Node const& p_node)
     // BlackThorn calls its action leaves "Callback": they are skills here.
     std::string_view const type = p_node.typeName();
     bool const action = type == "Callback";
+    bool const skill =
+        action && p_app.simulation->cell().skills().find(p_node.name) !=
+                      robotik::NO_SKILL;
+    if (skill && isSelected(p_app, SelectionKind::Skill, p_node.name))
+    {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
     bool const open =
         action ? ImGui::TreeNodeEx("##node", flags, "%s", p_node.name.c_str())
                : ImGui::TreeNodeEx("##node",
@@ -74,22 +81,26 @@ static void treeNode(bt::Node const& p_node)
                                    p_node.typeName(),
                                    p_node.name.c_str());
     ImGui::PopStyleColor();
+    if (skill && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        selectItem(p_app, SelectionKind::Skill, p_node.name);
+    }
     if (!leaf && open)
     {
         if (composite != nullptr)
         {
             for (std::size_t i = 0; i < composite->childIndices().size(); ++i)
             {
-                treeNode(composite->childAt(i));
+                treeNode(p_app, composite->childAt(i));
             }
         }
         else if (nested != nullptr)
         {
-            treeNode(*nested);
+            treeNode(p_app, *nested);
         }
         else
         {
-            treeNode(decorator->childNode());
+            treeNode(p_app, decorator->childNode());
         }
         ImGui::TreePop();
     }
@@ -464,7 +475,7 @@ void treeView(App& p_app)
     ImGui::Separator();
     if (ImGui::BeginChild("tree"))
     {
-        treeNode(tree->getRoot());
+        treeNode(p_app, tree->getRoot());
     }
     ImGui::EndChild();
 }
