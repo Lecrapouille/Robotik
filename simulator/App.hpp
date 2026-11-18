@@ -242,15 +242,19 @@ struct Selection
 };
 
 // ****************************************************************************
-/// A view shown over the whole work area (Ctrl+Space), the panels hidden
-/// behind it until it is restored.
+/// A view that can fill the main area of a workspace (its selector) or the
+/// whole work area (Ctrl+Space). Each view is drawn in one place at a time;
+/// its own panel then shows a note.
 // ****************************************************************************
-enum class Maximized : std::uint8_t
+enum class ViewKind : std::uint8_t
 {
     None,
-    Scene,
-    Timeline,
-    Camera,
+    Scene,    ///< The 3D view.
+    Camera,   ///< A robot camera, large.
+    Timeline, ///< Skills, resources and faults over time.
+    Plots,    ///< Joint positions, velocities, accelerations, efforts.
+    Tree,     ///< The behavior tree and the status of its nodes.
+    Planner,  ///< The PDDL goal, plan and beliefs.
 };
 
 // ****************************************************************************
@@ -322,10 +326,14 @@ struct UiState
     TimelineMemory timeline_memory;
     /// The view shown over the work area, and the one under the mouse in
     /// the last frame (what Ctrl+Space would maximize).
-    Maximized maximized = Maximized::None;
-    Maximized hovered_view = Maximized::None;
+    ViewKind maximized = ViewKind::None;
+    ViewKind hovered_view = ViewKind::None;
     /// The view maximized in the last frame: focus it only when it opens.
-    Maximized maximized_last = Maximized::None;
+    ViewKind maximized_last = ViewKind::None;
+    /// The view in the main area of each workspace (Plugin has none).
+    std::array<ViewKind, WORKSPACE_COUNT> main_view{
+        ViewKind::Scene, ViewKind::Scene, ViewKind::Scene, ViewKind::Scene
+    };
     /// Scene: a robot camera over its corner, and which one.
     bool inset_camera = true;
     std::size_t inset_index = 0;

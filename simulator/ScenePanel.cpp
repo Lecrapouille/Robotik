@@ -260,22 +260,6 @@ void sceneView(App& p_app)
     runFrame(p_app, at, size);
     cameraInset(p_app, at, size);
 
-    // Top right: the whole work area for the scene (maximized, the line
-    // above the view has the button to come back).
-    if (p_app.ui.maximized != Maximized::Scene)
-    {
-        char const* label = "Full view";
-        float const width = ImGui::CalcTextSize(label).x +
-                            2.0F * ImGui::GetStyle().FramePadding.x;
-        ImGui::SetCursorScreenPos(
-            ImVec2(at.x + size.x - width - 10.0F, at.y + 10.0F));
-        if (ImGui::Button(label))
-        {
-            toggleMaximized(p_app, Maximized::Scene);
-        }
-        ImGui::SetItemTooltip("Ctrl+Space over a view; Esc to come back.");
-    }
-
     char const* hint =
         "Click: select   Left drag: move   Right drag: turn   Wheel: zoom   "
         "WASD QE RF";
@@ -292,10 +276,61 @@ void sceneView(App& p_app)
                   hint);
 }
 
-void scenePanel(App& p_app, char const* p_key)
+std::string mainWindowId(char const* p_key)
 {
+    return std::string("###main_") + p_key;
+}
+
+/// Views offered by the selector of the main area, in its order.
+static constexpr ViewKind MAIN_VIEWS[] = {
+    ViewKind::Scene,  ViewKind::Camera, ViewKind::Timeline,
+    ViewKind::Plots,  ViewKind::Tree,   ViewKind::Planner,
+};
+
+/// Header of the main area: the selector of its view, and Full view.
+static void mainHeader(App& p_app, ViewKind& p_view)
+{
+    // From the start of the contents, under the tab of the window.
+    ImVec2 const start = ImGui::GetCursorStartPos();
+    ImGui::SetCursorPos(ImVec2(start.x + 8.0F, start.y + 5.0F));
+    ImGui::SetNextItemWidth(160.0F);
+    if (ImGui::BeginCombo("##view", viewName(p_view)))
+    {
+        for (ViewKind const view : MAIN_VIEWS)
+        {
+            if (ImGui::Selectable(viewName(view), view == p_view))
+            {
+                p_view = view;
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SetItemTooltip("What this area shows. The panel of the view "
+                          "chosen shows a note meanwhile.");
+    char const* label = "Full view";
+    float const width =
+        ImGui::CalcTextSize(label).x + 2.0F * ImGui::GetStyle().FramePadding.x;
+    ImGui::SameLine();
+    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                  ImGui::GetWindowWidth() - width - 8.0F));
+    if (ImGui::Button(label))
+    {
+        toggleMaximized(p_app, p_view);
+    }
+    ImGui::SetItemTooltip("Over the whole work area (Ctrl+Space over a "
+                          "view; Esc to come back).");
+    ImGui::SetCursorPos(
+        ImVec2(start.x, start.y + ImGui::GetFrameHeight() + 10.0F));
+}
+
+void mainPanel(App& p_app, char const* p_key)
+{
+    ViewKind& view =
+        p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)];
+    view = view == ViewKind::None ? ViewKind::Scene : view;
+    // The tab says what the area shows; its id stays the same.
+    std::string const title = std::string(viewName(view)) + mainWindowId(p_key);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
-    std::string const title = panelTitle("Scene", p_key);
     bool const visible = ImGui::Begin(title.c_str(),
                                       nullptr,
                                       ImGuiWindowFlags_NoScrollbar |
@@ -307,18 +342,34 @@ void scenePanel(App& p_app, char const* p_key)
         ImGui::End();
         return;
     }
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+    mainHeader(p_app, view);
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) &&
+        p_app.ui.maximized != view)
     {
-        p_app.ui.hovered_view = Maximized::Scene;
+        p_app.ui.hovered_view = view;
     }
-    // One 3D view: maximized, it is drawn over the work area instead.
-    if (p_app.ui.maximized == Maximized::Scene)
+    // The 3D view fills the area to its borders; the others get a margin.
+    bool const scene = view == ViewKind::Scene;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        scene ? ImVec2(0.0F, 0.0F) : ImVec2(12.0F, 8.0F));
+    if (ImGui::BeginChild("view",
+                          ImVec2(0.0F, 0.0F),
+                          scene ? ImGuiChildFlags_None
+                                : ImGuiChildFlags_AlwaysUseWindowPadding,
+                          scene ? ImGuiWindowFlags_NoScrollbar |
+                                      ImGuiWindowFlags_NoScrollWithMouse
+                                : ImGuiWindowFlags_None))
     {
-        maximizedNote(p_app);
+        if (p_app.ui.maximized == view)
+        {
+            viewNote(p_app, view);
+        }
+        else
+        {
+            drawView(p_app, view);
+        }
     }
-    else
-    {
-        sceneView(p_app);
-    }
+    ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::End();
 }

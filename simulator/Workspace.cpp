@@ -118,7 +118,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42F);
             ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40F);
             dock("Joints", left);
-            dock(panelTitle("Scene", key), center);
+            dock(mainWindowId(key), center);
             dock("Joint plots", bottom);
             dock(panelTitle("Inspector", key), right);
             dock("Teach Pendant", right);
@@ -137,7 +137,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID const right = split(inspector, ImGuiDir_Down, 0.45F);
             dock(panelTitle("Behavior tree", key), left);
             dock(panelTitle("Assertions", key), verdict);
-            dock(panelTitle("Scene", key), center);
+            dock(mainWindowId(key), center);
             dock("Timeline", bottom);
             dock(panelTitle("Inspector", key), inspector);
             // The last one docked is in front: Skills.
@@ -152,7 +152,7 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID right = split(center, ImGuiDir_Right, 0.32F);
             ImGuiID const perception = split(right, ImGuiDir_Down, 0.45F);
             dock("World model", left);
-            dock(panelTitle("Scene", key), center);
+            dock(mainWindowId(key), center);
             dock(panelTitle("Cameras", key), right);
             dock(panelTitle("Inspector", key), right);
             dock("Perception", perception);
@@ -182,34 +182,95 @@ static void quit()
     }
 }
 
-void toggleMaximized(App& p_app, Maximized p_view)
+void toggleMaximized(App& p_app, ViewKind p_view)
 {
     p_app.ui.maximized =
-        p_app.ui.maximized == p_view ? Maximized::None : p_view;
+        p_app.ui.maximized == p_view ? ViewKind::None : p_view;
 }
 
-void maximizedNote(App& p_app)
-{
-    (void)p_app;
-    emptyState("Shown over the whole work area.\n"
-               "Ctrl+Space or Esc: back to the panels.");
-}
-
-/// Name of a view that can be maximized.
-static char const* nameOf(Maximized p_view)
+void drawView(App& p_app, ViewKind p_view)
 {
     switch (p_view)
     {
-        case Maximized::Scene:
-            return "Scene";
-        case Maximized::Timeline:
-            return "Timeline";
-        case Maximized::Camera:
+        case ViewKind::Scene:
+            sceneView(p_app);
+            break;
+        case ViewKind::Camera:
+            cameraView(p_app);
+            break;
+        case ViewKind::Timeline:
+            timelineView(p_app);
+            break;
+        case ViewKind::Plots:
+            plotsView(p_app);
+            break;
+        case ViewKind::Tree:
+            treeView(p_app);
+            break;
+        case ViewKind::Planner:
+            plannerView(p_app);
+            break;
+        case ViewKind::None:
+            break;
+    }
+}
+
+char const* viewName(ViewKind p_view)
+{
+    switch (p_view)
+    {
+        case ViewKind::Scene:
+            return "3D scene";
+        case ViewKind::Camera:
             return "Camera";
-        case Maximized::None:
+        case ViewKind::Timeline:
+            return "Timeline";
+        case ViewKind::Plots:
+            return "Joint plots";
+        case ViewKind::Tree:
+            return "Behavior tree";
+        case ViewKind::Planner:
+            return "Planner";
+        case ViewKind::None:
             break;
     }
     return "";
+}
+
+/// The view in the main area of the workspace shown; None in Plugin.
+static ViewKind mainViewOf(App const& p_app)
+{
+    if (p_app.ui.workspace == Workspace::Plugin)
+    {
+        return ViewKind::None;
+    }
+    return p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)];
+}
+
+bool viewElsewhere(App const& p_app, ViewKind p_view)
+{
+    return p_app.ui.maximized == p_view || mainViewOf(p_app) == p_view;
+}
+
+void viewNote(App& p_app, ViewKind p_view)
+{
+    bool const full = p_app.ui.maximized == p_view;
+    ImGui::TextDisabled("%s", full ? "Shown over the whole work area."
+                                   : "Shown in the main area.");
+    if (ImGui::SmallButton("Show it here"))
+    {
+        if (full)
+        {
+            p_app.ui.maximized = ViewKind::None;
+        }
+        else
+        {
+            p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)] =
+                ViewKind::Scene;
+        }
+    }
+    ImGui::SetItemTooltip(full ? "Back to the panels (Ctrl+Space or Esc)."
+                               : "The main area shows the 3D scene again.");
 }
 
 /// The maximized view over the whole work area, between the run bar and the
@@ -219,11 +280,11 @@ static void maximizedWindow(App& p_app)
     UiState& ui = p_app.ui;
     if (!p_app.simulation || ui.workspace == Workspace::Plugin)
     {
-        ui.maximized = Maximized::None;
+        ui.maximized = ViewKind::None;
     }
-    if (ui.maximized == Maximized::None)
+    if (ui.maximized == ViewKind::None)
     {
-        ui.maximized_last = Maximized::None;
+        ui.maximized_last = ViewKind::None;
         return;
     }
     ImGuiViewport const* viewport = ImGui::GetMainViewport();
@@ -242,7 +303,7 @@ static void maximizedWindow(App& p_app)
     if (ImGui::Begin("##maximized", nullptr, flags))
     {
         ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(nameOf(ui.maximized));
+        ImGui::TextUnformatted(viewName(ui.maximized));
         ImGui::SameLine();
         ImGui::TextDisabled("Ctrl+Space or Esc: back to the panels");
         ImGui::SameLine();
@@ -253,9 +314,9 @@ static void maximizedWindow(App& p_app)
                                           ImGui::GetStyle().WindowPadding.x));
         if (ImGui::Button("Restore"))
         {
-            ui.maximized = Maximized::None;
+            ui.maximized = ViewKind::None;
         }
-        bool const scene = ui.maximized == Maximized::Scene;
+        bool const scene = ui.maximized == ViewKind::Scene;
         if (scene)
         {
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
@@ -263,23 +324,11 @@ static void maximizedWindow(App& p_app)
         if (ImGui::BeginChild("view",
                               ImVec2(0.0F, 0.0F),
                               ImGuiChildFlags_None,
-                              ImGuiWindowFlags_NoScrollbar |
-                                  ImGuiWindowFlags_NoScrollWithMouse))
+                              scene ? ImGuiWindowFlags_NoScrollbar |
+                                          ImGuiWindowFlags_NoScrollWithMouse
+                                    : ImGuiWindowFlags_None))
         {
-            switch (ui.maximized)
-            {
-                case Maximized::Scene:
-                    sceneView(p_app);
-                    break;
-                case Maximized::Timeline:
-                    timelineView(p_app);
-                    break;
-                case Maximized::Camera:
-                    cameraView(p_app);
-                    break;
-                case Maximized::None:
-                    break;
-            }
+            drawView(p_app, ui.maximized);
         }
         ImGui::EndChild();
         if (scene)
@@ -327,17 +376,17 @@ static void shortcuts(App& p_app)
     // The view under the mouse over the whole work area, or back.
     if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Space, false))
     {
-        Maximized const under = p_app.ui.maximized != Maximized::None
+        ViewKind const under = p_app.ui.maximized != ViewKind::None
                                     ? p_app.ui.maximized
-                                : p_app.ui.hovered_view != Maximized::None
+                                : p_app.ui.hovered_view != ViewKind::None
                                     ? p_app.ui.hovered_view
-                                    : Maximized::Scene;
+                                    : ViewKind::Scene;
         toggleMaximized(p_app, under);
     }
-    if (p_app.ui.maximized != Maximized::None &&
+    if (p_app.ui.maximized != ViewKind::None &&
         ImGui::IsKeyPressed(ImGuiKey_Escape, false))
     {
-        p_app.ui.maximized = Maximized::None;
+        p_app.ui.maximized = ViewKind::None;
     }
     if (!p_app.simulation)
     {
@@ -946,7 +995,7 @@ void drawPanels(App& p_app)
     openClickedAsset(p_app);
     shortcuts(p_app);
     // Set again by the views under the mouse in this frame.
-    p_app.ui.hovered_view = Maximized::None;
+    p_app.ui.hovered_view = ViewKind::None;
     mainMenu(p_app);
     runBar(p_app);
     statusBar(p_app);
@@ -955,7 +1004,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/10";
+    constexpr char const* LAYOUT_VERSION = "/11";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
@@ -989,7 +1038,7 @@ void drawPanels(App& p_app)
 
     if (workspace != Workspace::Plugin)
     {
-        scenePanel(p_app, info.key);
+        mainPanel(p_app, info.key);
     }
     // Set again by the Asset tab of Files when it is drawn.
     p_app.ui.asset_preview.visible = false;

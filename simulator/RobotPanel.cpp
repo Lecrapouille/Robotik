@@ -452,10 +452,26 @@ void plotsPanel(App& p_app)
         ImGui::End();
         return;
     }
+    if (viewElsewhere(p_app, ViewKind::Plots))
+    {
+        viewNote(p_app, ViewKind::Plots);
+    }
+    else
+    {
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+        {
+            p_app.ui.hovered_view = ViewKind::Plots;
+        }
+        plotsView(p_app);
+    }
+    ImGui::End();
+}
+
+void plotsView(App& p_app)
+{
     if (!p_app.simulation || p_app.history.count == 0U)
     {
         emptyState("No data yet: press Play.");
-        ImGui::End();
         return;
     }
     robotik::JointSet const& joints = p_app.simulation->cell().robot().joints();
@@ -482,7 +498,6 @@ void plotsPanel(App& p_app)
                         selected == 1U ? joints.name(only).c_str() : "");
     if (selected == 0U)
     {
-        ImGui::End();
         return;
     }
 
@@ -571,5 +586,4 @@ void plotsPanel(App& p_app)
         }
         ImPlot::EndSubplots();
     }
-    ImGui::End();
 }

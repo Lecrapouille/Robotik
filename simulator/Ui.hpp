@@ -68,17 +68,27 @@ void rangeBar(double p_value,
 
 /// Shows @p_view over the whole work area, or the panels again when it is
 /// already shown (Ctrl+Space; Esc restores).
-void toggleMaximized(App& p_app, Maximized p_view);
-/// Text drawn in a panel whose view is maximized.
-void maximizedNote(App& p_app);
+void toggleMaximized(App& p_app, ViewKind p_view);
+/// Draws @p_view without a window, in the space left.
+void drawView(App& p_app, ViewKind p_view);
+/// Name of a view, for the selector and the titles.
+char const* viewName(ViewKind p_view);
+/// True when @p_view is drawn somewhere else than its own panel: in the
+/// main area of the workspace shown, or over the whole work area.
+bool viewElsewhere(App const& p_app, ViewKind p_view);
+/// Drawn in a panel whose view is shown elsewhere: where, and a button to
+/// bring it back.
+void viewNote(App& p_app, ViewKind p_view);
 
 void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
 
-/// The 3D view, framed in the color of the run (ScenePanel.cpp). The run
-/// controls are in the run bar, under the menu.
-void scenePanel(App& p_app, char const* p_key);
+/// The main area of a workspace (ScenePanel.cpp): a selector of the view
+/// it shows (the 3D scene by default) and the Full view button.
+void mainPanel(App& p_app, char const* p_key);
+/// Window id of the main area of a workspace, for the dock layouts.
+std::string mainWindowId(char const* p_key);
 /// Contents of the Scene panel, without its window: in the panel, or over
 /// the whole work area when maximized.
 void sceneView(App& p_app);
@@ -146,6 +156,8 @@ void filesPanel(App& p_app);
 
 void robotPanel(App& p_app);
 void plotsPanel(App& p_app);
+/// Contents of the Joint plots panel, without its window.
+void plotsView(App& p_app);
 void teachPanel(App& p_app);
 /// Draws X, Y, Z axes on the frame the Teach Pendant moves, or hides
 /// them. Called every frame.

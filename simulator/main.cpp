@@ -13,6 +13,17 @@
 #include <iostream>
 #include <string>
 
+/// The view named on the command line; the 3D scene for an unknown name.
+static ViewKind viewNamed(std::string const& p_name)
+{
+    return p_name == "camera"     ? ViewKind::Camera
+           : p_name == "timeline" ? ViewKind::Timeline
+           : p_name == "plots"    ? ViewKind::Plots
+           : p_name == "tree"     ? ViewKind::Tree
+           : p_name == "planner"  ? ViewKind::Planner
+                                  : ViewKind::Scene;
+}
+
 int main(int argc, char** argv)
 {
     Window window;
@@ -27,8 +38,10 @@ int main(int argc, char** argv)
     // Robotik-Simulator [scenario] [--screenshot file.png] [--screenshot-ui
     // file.png] [--at seconds] [--workspace plugin|robot|mission|autonomy]
     // [--select skill:<name>|resource:<name>|robot:<id>|object:<name>]
-    // [--maximize scene|timeline|camera]
+    // [--maximize <view>] [--view <view>], view: scene|camera|timeline|
+    // plots|tree|planner (--view: the main area of the workspace opened)
     std::string select;
+    ViewKind view = ViewKind::Scene;
     for (int i = 1; i < argc; ++i)
     {
         std::string const argument = argv[i];
@@ -43,9 +56,11 @@ int main(int argc, char** argv)
         else if (argument == "--maximize" && i + 1 < argc)
         {
             std::string const name = argv[++i];
-            app.ui.maximized = name == "timeline" ? Maximized::Timeline
-                               : name == "camera" ? Maximized::Camera
-                                                  : Maximized::Scene;
+            app.ui.maximized = viewNamed(name);
+        }
+        else if (argument == "--view" && i + 1 < argc)
+        {
+            view = viewNamed(argv[++i]);
         }
         else if (argument == "--select" && i + 1 < argc)
         {
@@ -105,6 +120,10 @@ int main(int argc, char** argv)
         app.playing = app.playing ||
                       ((!app.screenshot.empty() || !app.screenshot_ui.empty()) &&
                        app.screenshot_at > 0.0);
+    }
+    if (app.ui.workspace != Workspace::Plugin)
+    {
+        app.ui.main_view[static_cast<std::size_t>(app.ui.workspace)] = view;
     }
     runMainLoop(window, app);
     return app.error.empty() ? 0 : 1;

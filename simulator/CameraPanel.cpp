@@ -298,7 +298,7 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     }
     if (ImGui::SmallButton("+"))
     {
-        toggleMaximized(p_app, Maximized::Camera);
+        toggleMaximized(p_app, ViewKind::Camera);
     }
     ImGui::SetItemTooltip("Show the camera over the whole work area");
     ImGui::SameLine(0.0F, 4.0F);
@@ -317,7 +317,7 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     if (ImGui::IsItemHovered() &&
         ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
-        toggleMaximized(p_app, Maximized::Camera);
+        toggleMaximized(p_app, ViewKind::Camera);
     }
     if (picture.texture == nullptr || picture.width == 0U)
     {

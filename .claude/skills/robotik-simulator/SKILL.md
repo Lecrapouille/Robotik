@@ -18,7 +18,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | Workspace.cpp | the 4 workspaces, their dock layouts, menu bar, tab alerts (red), run bar (play, clock, seed, emergency stop), status bar (links), shortcuts |
 | Ui.hpp | declaration of every panel and shared widget; read it first |
 | Widgets.cpp | `badge`, `helpMarker`, `emptyState`, `beginTable`, `textView`, `rangeBar` |
-| ScenePanel.cpp | 3D view, click to select (`Scene::pick`), boxes of the selected object (truth, belief), run frame color (`runColor`), emergency stop (`toggleEmergency`) |
+| ScenePanel.cpp | main area of a workspace (`mainPanel`: view selector, Full view), 3D view, click to select (`Scene::pick`), boxes of the selected object (truth, belief), run frame color (`runColor`), emergency stop (`toggleEmergency`) |
 | PackagePanels.cpp / OverviewPanels.cpp | Plugin workspace: Plugin, Files (tabs), View, Assets, Assertions |
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
 | MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
@@ -33,10 +33,11 @@ scenario YAML, and the simulator only shows or triggers it.
 - A panel is a free function `void xxxPanel(App&)` declared in `Ui.hpp`; its
   content without the window is `xxxView(App&)` when another panel reuses
   it (e.g. `plannerView` in Mission and in the Plugin View panel), or when
-  it can be maximized (`sceneView`, `timelineView`, `cameraView`: see
-  `Maximized`, `toggleMaximized`, `maximizedWindow` in Workspace.cpp). A
-  maximizable panel sets `UiState::hovered_view` when hovered and draws
-  `maximizedNote` instead of its view while maximized.
+  it can fill the main area or the work area (`ViewKind`: `drawView`,
+  `mainPanel` and its selector, `toggleMaximized`, `maximizedWindow`). Such
+  a panel draws `viewNote` instead of its view when `viewElsewhere` says it
+  is shown elsewhere, and sets `UiState::hovered_view` when hovered. A new
+  view: add it to `ViewKind`, `drawView`, `viewName` and `MAIN_VIEWS`.
 - Panel state lives in `UiState` (App.hpp), never in a `static` that outlives
   a scenario load. Reset it in `App::load` (and `App::reset` if it depends
   on the run).

@@ -485,7 +485,18 @@ void treePanel(App& p_app, char const* p_key)
     std::string const title = panelTitle("Behavior tree", p_key);
     if (ImGui::Begin(title.c_str()))
     {
-        treeView(p_app);
+        if (viewElsewhere(p_app, ViewKind::Tree))
+        {
+            viewNote(p_app, ViewKind::Tree);
+        }
+        else
+        {
+            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+            {
+                p_app.ui.hovered_view = ViewKind::Tree;
+            }
+            treeView(p_app);
+        }
     }
     ImGui::End();
 }

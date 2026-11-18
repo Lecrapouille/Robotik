@@ -97,9 +97,16 @@ scene, in every workspace: no need for a Cameras panel to see what the
 robot sees. `<` and `>` change the camera, `x` hides it, **Camera** shows
 it again; `+` (or a double click on the picture) shows it large.
 
+**Main area.** The large area in the middle of Robot, Mission and Autonomy
+shows the 3D scene by default. Its selector (top left) puts another view in
+its place: Camera, Timeline, Joint plots, Behavior tree or Planner, at the
+size of the scene. The panel of that view then says where it is shown, with
+a button to bring it back. Each workspace keeps its own choice.
+
 **Full view.** When a view needs room, **Ctrl+Space** over it (or its *Full
 view* button) shows it over the whole work area: the 3D scene, the
-Timeline (every row at once) or the camera. The run bar stays above it.
+Timeline (every row at once), the camera, the joint plots, the behavior
+tree or the planner. The run bar stays above it.
 **Ctrl+Space** again, **Esc** or *Restore* brings the panels back, where
 they were.
 

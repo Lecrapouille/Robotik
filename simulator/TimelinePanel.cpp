@@ -734,16 +734,16 @@ void timelinePanel(App& p_app)
         ImGui::End();
         return;
     }
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+    if (viewElsewhere(p_app, ViewKind::Timeline))
     {
-        p_app.ui.hovered_view = Maximized::Timeline;
-    }
-    if (p_app.ui.maximized == Maximized::Timeline)
-    {
-        maximizedNote(p_app);
+        viewNote(p_app, ViewKind::Timeline);
     }
     else
     {
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+        {
+            p_app.ui.hovered_view = ViewKind::Timeline;
+        }
         timelineView(p_app);
     }
     ImGui::End();
@@ -767,13 +767,13 @@ void timelineView(App& p_app)
     ImGuiIO const& io = ImGui::GetIO();
 
     toolbar(view, now);
-    // Maximized, the line above the view has the button to come back.
-    if (p_app.ui.maximized != Maximized::Timeline)
+    // ViewKind, the line above the view has the button to come back.
+    if (p_app.ui.maximized != ViewKind::Timeline)
     {
         ImGui::SameLine();
         if (ImGui::SmallButton("Full view"))
         {
-            toggleMaximized(p_app, Maximized::Timeline);
+            toggleMaximized(p_app, ViewKind::Timeline);
         }
         ImGui::SetItemTooltip("Ctrl+Space over a view; Esc to come back.");
     }

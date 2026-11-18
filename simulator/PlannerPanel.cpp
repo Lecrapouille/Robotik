@@ -560,6 +560,17 @@ void plannerPanel(App& p_app)
             ImGui::SetWindowFocus();
         }
     }
-    plannerView(p_app);
+    if (viewElsewhere(p_app, ViewKind::Planner))
+    {
+        viewNote(p_app, ViewKind::Planner);
+    }
+    else
+    {
+        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+        {
+            p_app.ui.hovered_view = ViewKind::Planner;
+        }
+        plannerView(p_app);
+    }
     ImGui::End();
 }
