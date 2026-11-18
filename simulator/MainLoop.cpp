@@ -59,7 +59,9 @@ void runMainLoop(Window& p_window, App& p_app)
         drawPanels(p_app);
 
         // --- World simulation and 3D views (when scenario loaded) ---
-        if (p_window.device_ready && p_app.simulation && p_app.view.valid())
+        // The run goes on whatever the panels show: the 3D view is only
+        // drawn when it has a picture to draw into.
+        if (p_window.device_ready && p_app.simulation)
         {
             // Two clocks: the routines see the time the simulation moved
             // (zero while paused), the camera rig the time of the wall.
@@ -76,7 +78,10 @@ void runMainLoop(Window& p_window, App& p_app)
             // The clips and the skins of the models, with the same time.
             compages::gpu::check(compages::renderer::AnimationSystem::tick(
                 *p_app.world, p_app.scene->assets(), simulated));
-            p_app.scene->render(p_app.view_camera, p_app.view);
+            if (p_app.view.valid())
+            {
+                p_app.scene->render(p_app.view_camera, p_app.view);
+            }
         }
         // --- Model of the Asset tab of Files, in its own world ---
         AssetPreview& preview = p_app.ui.asset_preview;
