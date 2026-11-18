@@ -158,16 +158,64 @@ struct ManualFault
 };
 
 // ****************************************************************************
-/// What a resource chip of the Timeline shows. Skills take and give
-/// back resources within a few steps: the last holders stay shown a short
-/// time so the chip does not flicker.
+/// A resource seen in fault, sampled once a frame for the Timeline.
 // ****************************************************************************
-struct ChipHold
+struct FaultSpan
 {
-    std::size_t holders = 0;
-    bool exclusive = false;
-    /// Wall-clock time (ImGui::GetTime) until which it is kept.
-    double until = 0.0;
+    robotik::ResourceId resource = robotik::NO_RESOURCE;
+    double start = 0.0;
+    double end = 0.0;
+    /// Still in fault at the last sample.
+    bool open = true;
+};
+
+// ****************************************************************************
+/// A composite or decorator of the behavior tree that failed, kept with the
+/// time it was first seen so its mark stays put on the Timeline.
+// ****************************************************************************
+struct TreeFailure
+{
+    std::string label;
+    double time = 0.0;
+};
+
+/// No phase selected on the Timeline.
+inline constexpr std::size_t NO_PHASE = static_cast<std::size_t>(-1);
+
+// ****************************************************************************
+/// How the operator looks at the Timeline. Kept across scenario loads.
+// ****************************************************************************
+struct TimelineView
+{
+    /// The window of time ends at the present and moves with it.
+    bool follow = true;
+    /// The window shows the whole run (from 0 to now).
+    bool whole_run = false;
+    /// Width of the window of time, in simulated seconds.
+    double window_s = 30.0;
+    /// Left edge of the window when it neither follows nor shows the run.
+    double start_s = 0.0;
+    /// Hide the skills never requested.
+    bool active_only = false;
+    /// Show one row per resource.
+    bool resources_open = false;
+    /// Robots whose rows are folded into their header.
+    std::vector<std::string> folded;
+};
+
+// ****************************************************************************
+/// What the Timeline remembers of the run. Cleared on load and replay.
+// ****************************************************************************
+struct TimelineMemory
+{
+    /// Phase of SkillScheduler::trace clicked, or NO_PHASE.
+    std::size_t selected = NO_PHASE;
+    std::vector<FaultSpan> faults;
+    std::vector<TreeFailure> tree_failures;
+    /// Tree the failures belong to.
+    void const* tree = nullptr;
+    /// Simulated time of the last sample; a smaller time is a replay.
+    double sampled = -1.0;
 };
 
 // ****************************************************************************
@@ -225,8 +273,9 @@ struct UiState
     std::vector<bool> fault_pick;
     float fault_duration = 0.0F;
     std::vector<ManualFault> manual_faults;
-    /// Timeline: what each resource chip shows.
-    std::vector<ChipHold> chip_hold;
+    /// Timeline: the view chosen and what it recorded of the run.
+    TimelineView timeline;
+    TimelineMemory timeline_memory;
     /// Joints drawn in the plots.
     std::vector<bool> plotted;
     float plot_window_s = 10.0F;

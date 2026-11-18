@@ -21,7 +21,8 @@ scenario YAML, and the simulator only shows or triggers it.
 | ScenePanel.cpp | 3D view, run controls, run frame color (`runColor`), emergency stop |
 | PackagePanels.cpp / OverviewPanels.cpp | Plugin workspace: Plugin, Files (tabs), View, Assets, Assertions |
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
-| MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Timeline, Resources, Skills, Planner |
+| MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
+| TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
 

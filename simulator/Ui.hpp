@@ -134,9 +134,17 @@ void syncTeachAxes(App& p_app, bool p_visible);
 /// Takes the arm from the mission for manual moves.
 void takeArm(App& p_app);
 
-// --- Mission workspace (MissionPanels.cpp, SkillsPanel.cpp) -----------------
+// --- Mission workspace (MissionPanels.cpp, TimelinePanel.cpp, SkillsPanel.cpp)
 
+/// Root of the nested tree of a SubTree node, else null.
+bt::Node const* subtreeRoot(bt::Node const& p_node);
+/// The skill phases, faults and tree failures on one time axis that can
+/// follow the present, be zoomed and moved; one row per skill, grouped by
+/// robot, and one per resource.
 void timelinePanel(App& p_app);
+/// Records what the Timeline cannot read back later (resource faults, tree
+/// failures). Called every frame, whatever the workspace shown.
+void sampleTimeline(App& p_app);
 /// Who holds each resource, and faults injected by hand.
 void resourcesPanel(App& p_app);
 void skillsPanel(App& p_app);

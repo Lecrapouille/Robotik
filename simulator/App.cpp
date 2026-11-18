@@ -169,7 +169,7 @@ void App::load(bool p_keep_tool)
     ui.realtime_factor = 0.0F;
     ui.manual_faults.clear();
     ui.fault_pick.clear();
-    ui.chip_hold.clear();
+    ui.timeline_memory = {};
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
@@ -334,6 +334,7 @@ void App::reset(std::uint64_t p_seed)
     }
     seed = p_seed;
     ui.manual_faults.clear();
+    ui.timeline_memory = {};
     simulation->reset(robotik::Seed{ p_seed });
     // Replay (or a new seed) means: run it again, even from a pause.
     playing = true;

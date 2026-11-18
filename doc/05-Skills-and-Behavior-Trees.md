@@ -161,11 +161,20 @@ Grasp                    LookAround
   or preempts the first (if its priority is higher).
 - Two skills can share a camera stream (`Shared`).
 
-In the simulator, the **Timeline** panel (Mission workspace) shows each
-resource as a chip: grey when free, orange when a skill holds it, blue when
-skills share it, red when it is in fault. The number on the chip counts the
-holders; hover it to read their names. The **Resources** panel lists who
-holds what, and injects faults by hand: tick one or more resources, give a
+In the simulator, the **Timeline** panel (Mission workspace, under the
+scene, full width) draws one row per skill, grouped by robot when there are
+several: blue when it waits (the text says for which resource), orange when
+it runs, green when it succeeded, red when it failed, grey when it was
+cancelled. Hover a phase to read why and how long; click it to keep its
+details on the line under the rows. By default the window of time follows
+the present and keeps its width (**Follow**); **Whole run** shows it from
+the start. The wheel zooms, a drag or Shift+wheel moves in time, a
+double-click follows the present again. The row **Resources** says who
+holds what now; click it to get one row per resource: orange when a skill
+holds it, blue when skills share it, red when it is in fault. The
+simulation cannot go back: the mouse on a past time only reads what ran
+then, on the line under the rows. The **Resources** panel lists who holds
+what, and injects faults by hand: tick one or more resources, give a
 duration (0: until you restore them), then press *Inject*.
 
 ---

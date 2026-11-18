@@ -126,16 +126,20 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Mission:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.22F);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.32F);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40F);
+            // The Timeline takes the whole width: a time axis needs it.
+            // Above it the scene, between the tree (with the verdict below)
+            // and the skills.
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.30F);
+            ImGuiID left = split(center, ImGuiDir_Left, 0.20F);
+            ImGuiID const verdict = split(left, ImGuiDir_Down, 0.40F);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.30F);
             dock(panelTitle("Behavior tree", key), left);
+            dock(panelTitle("Assertions", key), verdict);
             dock(panelTitle("Scene", key), center);
-            dock(panelTitle("Assertions", key), bottom);
             dock("Timeline", bottom);
-            dock("Resources", bottom);
             dock("Skills", right);
             dock("Planner", right);
+            dock("Resources", right);
             break;
         }
         case Workspace::Autonomy:
@@ -648,7 +652,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/7";
+    constexpr char const* LAYOUT_VERSION = "/8";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
@@ -668,6 +672,7 @@ void drawPanels(App& p_app)
     {
         p_app.ui.asset_preview.model->area.hovered = false;
     }
+    sampleTimeline(p_app);
     switch (workspace)
     {
         case Workspace::Plugin:
