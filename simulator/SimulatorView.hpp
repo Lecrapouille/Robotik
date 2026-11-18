@@ -12,7 +12,9 @@
 
 #include "Compages/GPU/Framebuffer.hpp"
 #include "Compages/GPU/Texture.hpp"
+#include "Compages/Renderer/Components/MeshRenderer.hpp"
 #include "Compages/Renderer/Procedural/CanvasTexture.hpp"
+#include "Compages/Renderer/Render/RenderTarget.hpp"
 #include "Compages/Renderer/Scene/Scene.hpp"
 
 #include <filesystem>
@@ -30,11 +32,15 @@ void noShadow(compages::world::Entity p_entity);
 /// written once into the temporary directory; its path.
 [[nodiscard]] std::filesystem::path floorGrid();
 
-struct RenderTarget
+/// A picture the Scene draws into (colour, depth): the 3D view, a preview,
+/// the eye of a robot camera.
+using RenderTarget = compages::renderer::RenderTarget;
+
+/// A picture written from the CPU (the last frame of a robot camera), shown
+/// in an ImGui panel.
+struct ShownPicture
 {
     compages::gpu::Texture color;
-    compages::gpu::Texture depth;
-    compages::gpu::Framebuffer framebuffer;
     std::uint32_t width = 0;
     std::uint32_t height = 0;
 
@@ -46,12 +52,11 @@ class RenderedCamera final: public robotik::FrameSource
 {
 public:
 
-    /// @p_overlays: entities only the operator sees (teach axes, waypoint
-    /// markers), hidden while this camera renders.
+    /// The camera does not see the helps of the operator (teach axes,
+    /// waypoint markers): they are marked RenderFlags::Helper.
     RenderedCamera(compages::renderer::Scene& p_scene,
                    robotik::Camera const& p_camera,
-                   compages::world::Entity p_link,
-                   std::vector<compages::world::EntityId> const& p_overlays);
+                   compages::world::Entity p_link);
 
     bool capture(robotik::Camera const& p_camera,
                  robotik::CameraFrame& p_frame) override;
@@ -65,7 +70,6 @@ public:
 private:
 
     compages::renderer::Scene& m_scene;
-    std::vector<compages::world::EntityId> const& m_overlays;
     compages::world::Entity m_entity;
     RenderTarget m_target;
 };
@@ -104,7 +108,8 @@ public:
     /// it, the robot cameras never see it (it would fool perception).
     void overlay(compages::world::Entity p_entity)
     {
-        m_overlays.push_back(p_entity.id());
+        p_entity.get<compages::renderer::MeshRenderer>().flags =
+            compages::renderer::RenderFlags::Helper;
     }
 
     /// Draws @p_root and everything under it (a robot and its tool) in
@@ -126,14 +131,13 @@ public:
     bool showFrame(std::size_t p_index, robotik::CameraFrame const& p_frame);
 
     // Picture of robot camera @p_index uploaded by showFrame.
-    [[nodiscard]] RenderTarget const& frameTarget(std::size_t p_index);
+    [[nodiscard]] ShownPicture const& frameTarget(std::size_t p_index);
 
 private:
 
     compages::renderer::Scene& m_scene;
     std::vector<std::unique_ptr<RenderedCamera>> m_cameras;
-    std::vector<std::unique_ptr<RenderTarget>> m_frames;
-    std::vector<compages::world::EntityId> m_overlays;
+    std::vector<std::unique_ptr<ShownPicture>> m_frames;
     /// Look of a tinted mesh, made at the first tint.
     compages::renderer::MaterialInstanceId m_tint{};
     /// Meshes tinted, with their own look.

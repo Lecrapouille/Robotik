@@ -39,19 +39,28 @@ static void cameraCell(App& p_app,
         badge("FAULT", RED);
     }
 
-    RenderTarget const* picture = nullptr;
+    // The frame the robot got, else what its camera last drew.
+    compages::gpu::Texture const* picture = nullptr;
+    std::uint32_t picture_width = 0;
+    std::uint32_t picture_height = 0;
     if (view.showFrame(p_index, p_camera.frame()))
     {
-        picture = &view.frameTarget(p_index);
+        ShownPicture const& shown = view.frameTarget(p_index);
+        picture = &shown.color;
+        picture_width = shown.width;
+        picture_height = shown.height;
     }
     else if (p_index < view.cameras().size() &&
-             view.cameras()[p_index]->target().width > 0)
+             view.cameras()[p_index]->target().valid())
     {
-        picture = &view.cameras()[p_index]->target();
+        RenderTarget const& drawn = view.cameras()[p_index]->target();
+        picture = &drawn.color();
+        picture_width = drawn.width();
+        picture_height = drawn.height();
     }
     float const room =
         std::max(p_cell.y - ImGui::GetFrameHeightWithSpacing(), 16.0F);
-    if (picture == nullptr || picture->width == 0)
+    if (picture == nullptr || picture_width == 0)
     {
         ImGui::Dummy(ImVec2(p_cell.x, room));
         ImVec2 const min = ImGui::GetItemRectMin();
@@ -67,15 +76,15 @@ static void cameraCell(App& p_app,
             text);
         return;
     }
-    float const aspect = static_cast<float>(picture->height) /
-                         static_cast<float>(picture->width);
+    float const aspect = static_cast<float>(picture_height) /
+                         static_cast<float>(picture_width);
     float const width = std::min(p_cell.x, room / aspect);
     ImVec2 const size(std::floor(width), std::floor(width * aspect));
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
                          std::max(0.0F, (p_cell.x - size.x) * 0.5F));
     ImVec2 const at = ImGui::GetCursorScreenPos();
     ImGui::Image(
-        ImTextureRef(static_cast<ImTextureID>(picture->color.nativeId())),
+        ImTextureRef(static_cast<ImTextureID>(picture->nativeId())),
         size,
         ImVec2(0.0F, 1.0F),
         ImVec2(1.0F, 0.0F));

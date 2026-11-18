@@ -8,7 +8,10 @@
 #pragma once
 
 struct App;
-struct RenderTarget;
+namespace compages::renderer
+{
+class RenderTarget;
+}
 struct Window;
 
 namespace compages::world
@@ -34,7 +37,7 @@ struct ViewArea
 
 /// Input and size of the 3D view drawn into @p_target at @p_area: what a
 /// camera rig of its world reads.
-compages::world::ViewFrame viewFrame(RenderTarget const& p_target,
+compages::world::ViewFrame viewFrame(compages::renderer::RenderTarget const& p_target,
                                      ViewArea const& p_area,
                                      Window const& p_window,
                                      float p_elapsed,

@@ -15,6 +15,7 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <iostream>
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
@@ -894,9 +895,12 @@ void openClickedAsset(App& p_app)
         // ImGui draws the first row of the file at the top: no flip.
         compages::gpu::LoadOptions options;
         options.flip_vertically = false;
-        compages::Status const loaded =
-            preview.image.loadFile(path, options);
-        if (!loaded)
+        auto loaded = compages::gpu::Texture::fromFile(path, options);
+        if (loaded)
+        {
+            preview.image = loaded.take();
+        }
+        else
         {
             preview.error = loaded.error();
         }
@@ -931,11 +935,14 @@ static void modelView(ModelView& p_model)
     ImVec2 const scale = ImGui::GetIO().DisplayFramebufferScale;
     auto const width = static_cast<std::uint32_t>(size.x * scale.x);
     auto const height = static_cast<std::uint32_t>(size.y * scale.y);
-    if (width != p_model.target.width || height != p_model.target.height)
+    if (width != p_model.target.width() || height != p_model.target.height())
     {
         // A new texture holds nothing until the main loop renders into it.
         p_model.rendered = false;
-        p_model.target.resize(width, height);
+        if (auto sized = p_model.target.resize(width, height); !sized)
+        {
+            std::cerr << "Model view: " << sized.error() << '\n';
+        }
     }
     ImVec2 const at = ImGui::GetCursorScreenPos();
     ImGui::InvisibleButton("##model",
@@ -949,14 +956,14 @@ static void modelView(ModelView& p_model)
                              .h = size.y,
                              .hovered = ImGui::IsItemHovered() ||
                                         ImGui::IsItemActive() };
-    if (p_model.target.width == 0 || !p_model.rendered)
+    if (!p_model.target.valid() || !p_model.rendered)
     {
         return;
     }
     // The device puts the first row at the bottom.
     ImDrawList* draw = ImGui::GetWindowDrawList();
     draw->AddImage(
-        ImTextureRef(static_cast<ImTextureID>(p_model.target.color.nativeId())),
+        ImTextureRef(static_cast<ImTextureID>(p_model.target.color().nativeId())),
         at,
         ImVec2(at.x + size.x, at.y + size.y),
         ImVec2(0.0F, 1.0F),

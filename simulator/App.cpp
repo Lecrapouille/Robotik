@@ -293,7 +293,6 @@ void App::load(bool p_keep_tool)
             .scale(3.0F);
         noShadow(floor);
     }
-    clear_color = viewClearColor();
     if (has_view)
     {
         view_camera.position(package->eye[0], package->eye[1], package->eye[2])
@@ -306,8 +305,9 @@ void App::load(bool p_keep_tool)
         lens.far_plane = package->clip[1];
         if (package->has_background)
         {
-            clear_color = { package->background[0], package->background[1],
-                            package->background[2], 1.0F };
+            // The Scene clears its view with its background.
+            scene->background(package->background[0], package->background[1],
+                              package->background[2]);
         }
     }
     else

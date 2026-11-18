@@ -7,7 +7,6 @@
 
 #include "MainLoop.hpp"
 
-#include "Screenshot.hpp"
 
 #include "App.hpp"
 #include "SimFrame.hpp"
@@ -57,37 +56,31 @@ void runMainLoop(Window& p_window, App& p_app)
         drawPanels(p_app);
 
         // --- World simulation and 3D views (when scenario loaded) ---
-        if (p_window.device_ready && p_app.simulation && p_app.view.width > 0)
+        if (p_window.device_ready && p_app.simulation && p_app.view.valid())
         {
             p_app.advance(elapsed);
             p_app.world->update(viewFrame(p_app, p_window, elapsed, total));
-            compages::gpu::RenderPass pass(
-                p_app.view.framebuffer,
-                compages::gpu::PassDesc{ .color = p_app.clear_color });
-            p_app.scene->render(p_app.view_camera);
+            p_app.scene->render(p_app.view_camera, p_app.view);
         }
         // --- Model of the Asset tab of Files, in its own world ---
         AssetPreview& preview = p_app.ui.asset_preview;
         if (ModelView* model = preview.model.get();
             model != nullptr && preview.visible && !preview.show_text &&
-            model->target.width > 0)
+            model->target.valid())
         {
             model->world->update(viewFrame(
                 model->target, model->area, p_window, elapsed, total));
-            compages::gpu::RenderPass pass(
-                model->target.framebuffer,
-                compages::gpu::PassDesc{ .color = viewClearColor() });
-            model->scene->render(model->camera);
+            model->scene->render(model->camera, model->target);
             model->rendered = true;
         }
         // --screenshot: the 3D view at the asked time, then quit.
         if (!p_app.screenshot.empty() && p_app.simulation &&
-            p_app.view.width > 0 &&
+            p_app.view.valid() &&
             (p_app.simulation->time().value() >= p_app.screenshot_at ||
              p_app.simulation->finished()))
         {
-            std::string const failed =
-                saveScreenshot(p_app.view, p_app.screenshot);
+            compages::Status const saved = p_app.view.saveColor(p_app.screenshot);
+            std::string const failed = saved ? std::string() : saved.error();
             std::cerr << (failed.empty() ? "wrote " + p_app.screenshot.string()
                                          : failed)
                       << '\n';
