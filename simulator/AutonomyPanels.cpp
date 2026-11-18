@@ -33,7 +33,7 @@ static void oracleLine(robotik::Simulation const& p_simulation)
 
 void worldModelPanel(App& p_app)
 {
-    if (!ImGui::Begin("World model"))
+    if (!beginPanel(p_app, PanelKind::WorldModel, "World model"))
     {
         ImGui::End();
         return;
@@ -192,7 +192,7 @@ void worldModelPanel(App& p_app)
 
 void perceptionPanel(App& p_app)
 {
-    if (!ImGui::Begin("Perception"))
+    if (!beginPanel(p_app, PanelKind::Perception, "Perception"))
     {
         ImGui::End();
         return;

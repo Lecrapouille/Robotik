@@ -7,15 +7,15 @@
 
 #pragma once
 
-#include "SimulatorDisplay.hpp"
 #include "SimFrame.hpp"
+#include "SimulatorDisplay.hpp"
 #include "SimulatorView.hpp"
 
 #include "Robotik/Package/Plugin/PluginSession.hpp"
+#include "Robotik/Package/Scenario/Experiment.hpp"
+#include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Robot/TeachPendant.hpp"
 #include "Robotik/Task/Mission.hpp"
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Experiment.hpp"
 
 #include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/World.hpp"
@@ -42,6 +42,34 @@ enum class Workspace : std::uint8_t
 };
 
 inline constexpr std::size_t WORKSPACE_COUNT = 4U;
+
+// ****************************************************************************
+/// Optional windows, available in every simulation workspace.
+// ****************************************************************************
+enum class PanelKind : std::uint8_t
+{
+    Inspector,
+    Joints,
+    Plots,
+    Teach,
+    Cameras,
+    Tree,
+    Assertions,
+    Timeline,
+    Events,
+    Resources,
+    Skills,
+    Planner,
+    WorldModel,
+    Perception,
+    Count
+};
+
+inline constexpr std::size_t PANEL_COUNT =
+    static_cast<std::size_t>(PanelKind::Count);
+using PanelVisibility = std::array<bool, PANEL_COUNT>;
+/// Initial windows of a workspace; the operator may close and reopen each one.
+PanelVisibility defaultPanels(Workspace p_workspace);
 
 // ****************************************************************************
 /// Recent joint states, for the plots. A ring buffer per series.
@@ -305,6 +333,13 @@ struct UiState
     Workspace workspace = Workspace::Mission;
     /// Rebuild the dock layout of the current workspace.
     bool reset_layout = false;
+    /// Window visibility is saved alongside the dock layout in simulator.ini.
+    std::array<PanelVisibility, WORKSPACE_COUNT> panels{
+        defaultPanels(Workspace::Plugin),
+        defaultPanels(Workspace::Robot),
+        defaultPanels(Workspace::Mission),
+        defaultPanels(Workspace::Autonomy)
+    };
     /// The saved layout of each workspace was checked once (Workspace.cpp).
     std::array<bool, WORKSPACE_COUNT> layout_checked{};
     /// Dock the plugin panels in the current workspace, then focus them.
@@ -377,9 +412,10 @@ struct UiState
     /// Execution graph: the selection it last brought into sight.
     std::string graph_seen;
     /// The view in the main area of each workspace (Plugin has none).
-    std::array<ViewKind, WORKSPACE_COUNT> main_view{
-        ViewKind::Scene, ViewKind::Scene, ViewKind::Scene, ViewKind::Scene
-    };
+    std::array<ViewKind, WORKSPACE_COUNT> main_view{ ViewKind::Scene,
+                                                     ViewKind::Scene,
+                                                     ViewKind::Scene,
+                                                     ViewKind::Scene };
     /// Scene: a robot camera over its corner, and which one.
     bool inset_camera = true;
     std::size_t inset_index = 0;

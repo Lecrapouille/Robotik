@@ -80,6 +80,17 @@ bool viewElsewhere(App const& p_app, ViewKind p_view);
 /// bring it back.
 void viewNote(App& p_app, ViewKind p_view);
 
+/// Registers window visibility settings before ImGui reads simulator.ini.
+void initializePanelSettings(App& p_app);
+/// Saves visibility while App is alive and removes its settings callback.
+void shutdownPanelSettings();
+/// Starts a closable optional window. Always pair with ImGui::End().
+bool beginPanel(App& p_app,
+                PanelKind p_panel,
+                char const* p_title,
+                ImGuiWindowFlags p_flags = 0);
+/// Opens and focuses a window in the current simulation workspace.
+void showPanel(App& p_app, PanelKind p_panel);
 void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
@@ -170,7 +181,9 @@ void takeArm(App& p_app);
 /// Makes @p_name the selection of every panel.
 void selectItem(App& p_app, SelectionKind p_kind, std::string const& p_name);
 /// True when @p_name of @p_kind is the selection.
-bool isSelected(App const& p_app, SelectionKind p_kind, std::string const& p_name);
+bool isSelected(App const& p_app,
+                SelectionKind p_kind,
+                std::string const& p_name);
 /// A clickable name: it selects the item. Returns true when clicked.
 bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name);
 /// What is selected: a robot, a skill, a resource or an object, its state

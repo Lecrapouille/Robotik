@@ -483,7 +483,7 @@ void treeView(App& p_app)
 void treePanel(App& p_app, char const* p_key)
 {
     std::string const title = panelTitle("Behavior tree", p_key);
-    if (ImGui::Begin(title.c_str()))
+    if (beginPanel(p_app, PanelKind::Tree, title.c_str()))
     {
         if (viewElsewhere(p_app, ViewKind::Tree))
         {
@@ -503,7 +503,7 @@ void treePanel(App& p_app, char const* p_key)
 
 void resourcesPanel(App& p_app)
 {
-    if (!ImGui::Begin("Resources"))
+    if (!beginPanel(p_app, PanelKind::Resources, "Resources"))
     {
         ImGui::End();
         return;

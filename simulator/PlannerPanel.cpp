@@ -543,7 +543,7 @@ void plannerTexts(App& p_app)
 void plannerPanel(App& p_app)
 {
     static robotik::Simulation const* seen = nullptr;
-    if (!ImGui::Begin("Planner"))
+    if (!beginPanel(p_app, PanelKind::Planner, "Planner"))
     {
         ImGui::End();
         return;

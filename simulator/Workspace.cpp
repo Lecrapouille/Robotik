@@ -72,6 +72,173 @@ static void select(App& p_app, Workspace p_workspace)
     }
 }
 
+// --- Optional windows --------------------------------------------------------
+
+/// A window's name, reusable view and drawing function.
+struct PanelInfo
+{
+    char const* name;
+    ViewKind view;
+    bool workspace_title;
+    void (*draw)(App&);
+};
+
+static std::array<PanelInfo, PANEL_COUNT> const PANELS{ {
+    { "Inspector",
+      ViewKind::None,
+      true,
+      [](App& app) { inspectorPanel(app, infoOf(app.ui.workspace).key); } },
+    { "Joints", ViewKind::None, false, robotPanel },
+    { "Joint plots", ViewKind::Plots, false, plotsPanel },
+    { "Teach Pendant", ViewKind::None, false, teachPanel },
+    { "Cameras",
+      ViewKind::Camera,
+      true,
+      [](App& app) { camerasPanel(app, infoOf(app.ui.workspace).key); } },
+    { "Behavior tree",
+      ViewKind::Tree,
+      true,
+      [](App& app) { treePanel(app, infoOf(app.ui.workspace).key); } },
+    { "Assertions",
+      ViewKind::None,
+      true,
+      [](App& app) { assertionsPanel(app, infoOf(app.ui.workspace).key); } },
+    { "Timeline", ViewKind::Timeline, false, timelinePanel },
+    { "Events", ViewKind::Events, false, eventsPanel },
+    { "Resources", ViewKind::None, false, resourcesPanel },
+    { "Skills", ViewKind::None, false, skillsPanel },
+    { "Planner", ViewKind::Planner, false, plannerPanel },
+    { "World model", ViewKind::None, false, worldModelPanel },
+    { "Perception", ViewKind::None, false, perceptionPanel },
+} };
+
+PanelVisibility defaultPanels(Workspace p_workspace)
+{
+    PanelVisibility result{};
+    auto open = [&](PanelKind p_panel)
+    { result[static_cast<std::size_t>(p_panel)] = true; };
+    if (p_workspace != Workspace::Plugin)
+        open(PanelKind::Inspector);
+    if (p_workspace == Workspace::Robot)
+    {
+        for (auto panel : { PanelKind::Joints,
+                            PanelKind::Plots,
+                            PanelKind::Teach,
+                            PanelKind::Cameras })
+            open(panel);
+    }
+    if (p_workspace == Workspace::Mission)
+    {
+        for (auto panel : { PanelKind::Tree,
+                            PanelKind::Assertions,
+                            PanelKind::Timeline,
+                            PanelKind::Events,
+                            PanelKind::Resources,
+                            PanelKind::Skills,
+                            PanelKind::Planner })
+            open(panel);
+    }
+    if (p_workspace == Workspace::Autonomy)
+    {
+        for (auto panel : { PanelKind::WorldModel,
+                            PanelKind::Perception,
+                            PanelKind::Cameras })
+            open(panel);
+    }
+    return result;
+}
+
+/// Stable title used for docking and focusing a window.
+static std::string panelWindow(App const& p_app, std::size_t p_index)
+{
+    PanelInfo const& panel = PANELS[p_index];
+    return panel.workspace_title
+               ? panelTitle(panel.name, infoOf(p_app.ui.workspace).key)
+               : panel.name;
+}
+
+bool beginPanel(App& p_app,
+                PanelKind p_panel,
+                char const* p_title,
+                ImGuiWindowFlags p_flags)
+{
+    bool& open = p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)]
+                                [static_cast<std::size_t>(p_panel)];
+    bool const visible = ImGui::Begin(p_title, &open, p_flags);
+    if (!open)
+        ImGui::MarkIniSettingsDirty();
+    return visible;
+}
+
+void showPanel(App& p_app, PanelKind p_panel)
+{
+    if (p_app.ui.workspace == Workspace::Plugin)
+        select(p_app, Workspace::Mission);
+    std::size_t const index = static_cast<std::size_t>(p_panel);
+    p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)][index] = true;
+    ViewKind const view = PANELS[index].view;
+    if (view != ViewKind::None && viewElsewhere(p_app, view))
+    {
+        p_app.ui.maximized = ViewKind::None;
+        p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)] =
+            ViewKind::Scene;
+    }
+    p_app.ui.focus_windows.push_back(panelWindow(p_app, index));
+    ImGui::MarkIniSettingsDirty();
+}
+
+void initializePanelSettings(App& p_app)
+{
+    ImGuiSettingsHandler handler;
+    handler.TypeName = "RobotikPanels";
+    handler.TypeHash = ImHashStr(handler.TypeName);
+    handler.UserData = &p_app.ui;
+    handler.ReadOpenFn =
+        [](ImGuiContext*, ImGuiSettingsHandler* p_handler, char const*) -> void*
+    { return p_handler->UserData; };
+    handler.ReadLineFn = [](ImGuiContext*,
+                            ImGuiSettingsHandler*,
+                            void* p_entry,
+                            char const* p_line)
+    {
+        unsigned workspace = 0, mask = 0;
+        if (std::sscanf(p_line, "Open%u=%u", &workspace, &mask) != 2 ||
+            workspace >= WORKSPACE_COUNT)
+            return;
+        auto& panels = static_cast<UiState*>(p_entry)->panels[workspace];
+        for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+            panels[i] = (mask & (1U << i)) != 0;
+    };
+    handler.WriteAllFn = [](ImGuiContext*,
+                            ImGuiSettingsHandler* p_handler,
+                            ImGuiTextBuffer* p_buffer)
+    {
+        auto const& ui = *static_cast<UiState*>(p_handler->UserData);
+        p_buffer->append("[RobotikPanels][Visibility]\n");
+        for (std::size_t workspace = 0; workspace < WORKSPACE_COUNT;
+             ++workspace)
+        {
+            unsigned mask = 0;
+            for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+                if (ui.panels[workspace][i])
+                    mask |= 1U << i;
+            p_buffer->appendf(
+                "Open%u=%u\n", static_cast<unsigned>(workspace), mask);
+        }
+        p_buffer->append("\n");
+    };
+    ImGui::AddSettingsHandler(&handler);
+}
+
+void shutdownPanelSettings()
+{
+    if (ImGui::GetIO().IniFilename != nullptr)
+        ImGui::SaveIniSettingsToDisk(ImGui::GetIO().IniFilename);
+    ImGui::RemoveSettingsHandler("RobotikPanels");
+    // App is destroyed before Window: avoid a second save without this handler.
+    ImGui::GetIO().IniFilename = nullptr;
+}
+
 // --- Layouts ----------------------------------------------------------------
 
 /// Splits @p_node; the first returned id is the new side.
@@ -189,8 +356,7 @@ static void quit()
 
 void toggleMaximized(App& p_app, ViewKind p_view)
 {
-    p_app.ui.maximized =
-        p_app.ui.maximized == p_view ? ViewKind::None : p_view;
+    p_app.ui.maximized = p_app.ui.maximized == p_view ? ViewKind::None : p_view;
 }
 
 void drawView(App& p_app, ViewKind p_view)
@@ -270,8 +436,9 @@ bool viewElsewhere(App const& p_app, ViewKind p_view)
 void viewNote(App& p_app, ViewKind p_view)
 {
     bool const full = p_app.ui.maximized == p_view;
-    ImGui::TextDisabled("%s", full ? "Shown over the whole work area."
-                                   : "Shown in the main area.");
+    ImGui::TextDisabled("%s",
+                        full ? "Shown over the whole work area."
+                             : "Shown in the main area.");
     if (ImGui::SmallButton("Show it here"))
     {
         if (full)
@@ -334,7 +501,8 @@ static void maximizedWindow(App& p_app)
         bool const scene = ui.maximized == ViewKind::Scene;
         if (scene)
         {
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                                ImVec2(0.0F, 0.0F));
         }
         if (ImGui::BeginChild("view",
                               ImVec2(0.0F, 0.0F),
@@ -391,11 +559,10 @@ static void shortcuts(App& p_app)
     // The view under the mouse over the whole work area, or back.
     if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Space, false))
     {
-        ViewKind const under = p_app.ui.maximized != ViewKind::None
-                                    ? p_app.ui.maximized
-                                : p_app.ui.hovered_view != ViewKind::None
-                                    ? p_app.ui.hovered_view
-                                    : ViewKind::Scene;
+        ViewKind const under =
+            p_app.ui.maximized != ViewKind::None      ? p_app.ui.maximized
+            : p_app.ui.hovered_view != ViewKind::None ? p_app.ui.hovered_view
+                                                      : ViewKind::Scene;
         toggleMaximized(p_app, under);
     }
     if (p_app.ui.maximized != ViewKind::None &&
@@ -582,6 +749,26 @@ static void mainMenu(App& p_app)
                 select(p_app, static_cast<Workspace>(i));
             }
         }
+        if (p_app.ui.workspace != Workspace::Plugin)
+        {
+            ImGui::SeparatorText("Windows");
+            auto& visibility =
+                p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)];
+            for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+            {
+                bool const moved = PANELS[i].view != ViewKind::None &&
+                                   viewElsewhere(p_app, PANELS[i].view);
+                bool const shown = visibility[i] && !moved;
+                if (ImGui::MenuItem(PANELS[i].name, nullptr, shown))
+                {
+                    if (shown)
+                        visibility[i] = false;
+                    else
+                        showPanel(p_app, static_cast<PanelKind>(i));
+                    ImGui::MarkIniSettingsDirty();
+                }
+            }
+        }
         ImGui::Separator();
         if (ImGui::MenuItem("Reset layout"))
         {
@@ -653,6 +840,14 @@ static Outcome outcomeOf(App const& p_app)
 static void showInMission(App& p_app, std::string p_window)
 {
     select(p_app, Workspace::Mission);
+    for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+    {
+        if (panelWindow(p_app, i) == p_window)
+        {
+            showPanel(p_app, static_cast<PanelKind>(i));
+            return;
+        }
+    }
     p_app.ui.focus_windows.push_back(std::move(p_window));
 }
 
@@ -791,10 +986,14 @@ static void statusBar(App& p_app)
 static void runBar(App& p_app)
 {
     float const height = ImGui::GetFrameHeight() + 14.0F;
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.125F, 0.137F, 0.157F, 1.0F));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg,
+                          ImVec4(0.125F, 0.137F, 0.157F, 1.0F));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(12.0F, 7.0F));
     bool const open = ImGui::BeginViewportSideBar(
-        "##run", ImGui::GetMainViewport(), ImGuiDir_Up, height,
+        "##run",
+        ImGui::GetMainViewport(),
+        ImGuiDir_Up,
+        height,
         ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings |
             ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
@@ -845,10 +1044,9 @@ static void runBar(App& p_app)
     ImGui::PopFont();
     ImGui::SameLine(0.0F, 12.0F);
     Outcome const outcome = outcomeOf(p_app);
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() +
-                         (ImGui::GetFrameHeight() -
-                          ImGui::GetTextLineHeight() - 2.0F) *
-                             0.5F);
+    ImGui::SetCursorPosY(
+        ImGui::GetCursorPosY() +
+        (ImGui::GetFrameHeight() - ImGui::GetTextLineHeight() - 2.0F) * 0.5F);
     badge(outcome.text, outcome.color);
 
     ImGui::SameLine(0.0F, 28.0F);
@@ -967,8 +1165,9 @@ static void shortcutsWindow(App& p_app)
             { "Ctrl+R", "Replay with the same seed" },
             { "Ctrl+N", "Replay with the next seed" },
             { "Ctrl+E", "Emergency stop / release" },
-            { "Ctrl+Space", "The view under the mouse over the whole work "
-                            "area, or back (Esc)" },
+            { "Ctrl+Space",
+              "The view under the mouse over the whole work "
+              "area, or back (Esc)" },
             { "F5", "Reload the scenario file" },
             { "Ctrl+O", "Open a scenario file" },
             { "Ctrl+1 ... Ctrl+4", "Plugin, Robot, Mission, Autonomy" },
@@ -1019,14 +1218,15 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/13";
+    constexpr char const* LAYOUT_VERSION = "/14";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
     // first shown is a layout saved half built (the program stopped while
     // building it). It is built again; later, the operator may merge nodes.
     ImGuiDockNode const* node = ImGui::DockBuilderGetNode(dock);
-    bool& checked = p_app.ui.layout_checked[static_cast<std::size_t>(workspace)];
+    bool& checked =
+        p_app.ui.layout_checked[static_cast<std::size_t>(workspace)];
     bool const broken = !checked && node != nullptr && !node->IsSplitNode();
     checked = true;
     if (p_app.ui.reset_layout || node == nullptr || broken)
@@ -1064,37 +1264,24 @@ void drawPanels(App& p_app)
         p_app.ui.asset_preview.model->area.hovered = false;
     }
     sampleTimeline(p_app);
-    switch (workspace)
+    if (workspace == Workspace::Plugin)
     {
-        case Workspace::Plugin:
-            pluginPanel(p_app);
-            filesPanel(p_app);
-            viewPanel(p_app);
-            assetsPanel(p_app);
-            break;
-        case Workspace::Robot:
-            robotPanel(p_app);
-            plotsPanel(p_app);
-            teachPanel(p_app);
-            camerasPanel(p_app, info.key);
-            inspectorPanel(p_app, info.key);
-            break;
-        case Workspace::Mission:
-            treePanel(p_app, info.key);
-            timelinePanel(p_app);
-            eventsPanel(p_app);
-            inspectorPanel(p_app, info.key);
-            resourcesPanel(p_app);
-            assertionsPanel(p_app, info.key);
-            skillsPanel(p_app);
-            plannerPanel(p_app);
-            break;
-        case Workspace::Autonomy:
-            worldModelPanel(p_app);
-            camerasPanel(p_app, info.key);
-            inspectorPanel(p_app, info.key);
-            perceptionPanel(p_app);
-            break;
+        pluginPanel(p_app);
+        filesPanel(p_app);
+        viewPanel(p_app);
+        assetsPanel(p_app);
+    }
+    else
+    {
+        auto const& visibility =
+            p_app.ui.panels[static_cast<std::size_t>(workspace)];
+        for (std::size_t i = 0; i < PANEL_COUNT; ++i)
+        {
+            // A moved view releases its former dock instead of leaving a note.
+            if (visibility[i] && (PANELS[i].view == ViewKind::None ||
+                                  !viewElsewhere(p_app, PANELS[i].view)))
+                PANELS[i].draw(p_app);
+        }
     }
 
     maximizedWindow(p_app);

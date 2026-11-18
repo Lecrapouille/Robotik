@@ -583,7 +583,7 @@ static void waypoints(App& p_app)
 
 void teachPanel(App& p_app)
 {
-    if (!ImGui::Begin("Teach Pendant"))
+    if (!beginPanel(p_app, PanelKind::Teach, "Teach Pendant"))
     {
         ImGui::End();
         return;

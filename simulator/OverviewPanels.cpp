@@ -839,7 +839,7 @@ void assertionsView(App& p_app)
 void assertionsPanel(App& p_app, char const* p_key)
 {
     std::string const title = panelTitle("Assertions", p_key);
-    if (ImGui::Begin(title.c_str()))
+    if (beginPanel(p_app, PanelKind::Assertions, title.c_str()))
     {
         assertionsView(p_app);
     }

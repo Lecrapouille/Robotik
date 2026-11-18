@@ -814,7 +814,7 @@ void sampleTimeline(App& p_app)
 
 void timelinePanel(App& p_app)
 {
-    if (!ImGui::Begin("Timeline"))
+    if (!beginPanel(p_app, PanelKind::Timeline, "Timeline"))
     {
         ImGui::End();
         return;

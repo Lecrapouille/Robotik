@@ -7,10 +7,10 @@
 
 #include "MainLoop.hpp"
 
-
 #include "App.hpp"
 #include "SimFrame.hpp"
 #include "SimulatorDisplay.hpp"
+#include "Ui.hpp"
 #include "Window.hpp"
 
 #include "Compages/GPU/Errors.hpp"
@@ -34,6 +34,7 @@
 
 void runMainLoop(Window& p_window, App& p_app)
 {
+    initializePanelSettings(p_app);
     double last = glfwGetTime();
     float total = 0.0F;
 
@@ -72,9 +73,14 @@ void runMainLoop(Window& p_window, App& p_app)
             if (p_app.simulation)
             {
                 now = compages::si::Seconds(p_app.simulation->time().value());
-                simulated = compages::si::Seconds(std::max(0.0, now.value() - before));
+                simulated =
+                    compages::si::Seconds(std::max(0.0, now.value() - before));
             }
-            p_app.world->update(viewFrame(p_app, p_window, simulated, compages::si::Seconds(elapsed), now));
+            p_app.world->update(viewFrame(p_app,
+                                          p_window,
+                                          simulated,
+                                          compages::si::Seconds(elapsed),
+                                          now));
             // The clips and the skins of the models, with the same time.
             compages::gpu::check(compages::renderer::AnimationSystem::tick(
                 *p_app.world, p_app.scene->assets(), simulated));
@@ -90,8 +96,11 @@ void runMainLoop(Window& p_window, App& p_app)
             model->target.valid())
         {
             // Nothing pauses a preview: its two clocks are the wall.
-            model->world->update(viewFrame(model->target, model->area, p_window,
-                                           compages::si::Seconds(elapsed), compages::si::Seconds(elapsed),
+            model->world->update(viewFrame(model->target,
+                                           model->area,
+                                           p_window,
+                                           compages::si::Seconds(elapsed),
+                                           compages::si::Seconds(elapsed),
                                            compages::si::Seconds(total)));
             model->scene->render(model->camera, model->target);
             model->rendered = true;
@@ -102,7 +111,8 @@ void runMainLoop(Window& p_window, App& p_app)
             (p_app.simulation->time().value() >= p_app.screenshot_at ||
              p_app.simulation->finished()))
         {
-            compages::Status const saved = p_app.view.saveColor(p_app.screenshot);
+            compages::Status const saved =
+                p_app.view.saveColor(p_app.screenshot);
             std::string const failed = saved ? std::string() : saved.error();
             std::cerr << (failed.empty() ? "wrote " + p_app.screenshot.string()
                                          : failed)
@@ -136,7 +146,8 @@ void runMainLoop(Window& p_window, App& p_app)
              p_app.simulation->time().value() >= p_app.screenshot_at ||
              p_app.simulation->finished()))
         {
-            bool const saved = saveWindowPng(p_app.screenshot_ui, width, height);
+            bool const saved =
+                saveWindowPng(p_app.screenshot_ui, width, height);
             std::cerr << (saved ? "wrote " : "could not write ")
                       << p_app.screenshot_ui.string() << '\n';
             p_app.screenshot_ui.clear();
@@ -148,4 +159,5 @@ void runMainLoop(Window& p_window, App& p_app)
         emscripten_sleep(0);
 #endif
     }
+    shutdownPanelSettings();
 }

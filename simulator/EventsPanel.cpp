@@ -415,7 +415,7 @@ void eventsView(App& p_app)
 
 void eventsPanel(App& p_app)
 {
-    if (!ImGui::Begin("Events"))
+    if (!beginPanel(p_app, PanelKind::Events, "Events"))
     {
         ImGui::End();
         return;

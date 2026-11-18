@@ -428,7 +428,7 @@ static ImPlotPoint sample(int p_index, void* p_data)
 
 void robotPanel(App& p_app)
 {
-    if (!ImGui::Begin("Joints"))
+    if (!beginPanel(p_app, PanelKind::Joints, "Joints"))
     {
         ImGui::End();
         return;
@@ -447,7 +447,7 @@ void robotPanel(App& p_app)
 
 void plotsPanel(App& p_app)
 {
-    if (!ImGui::Begin("Joint plots"))
+    if (!beginPanel(p_app, PanelKind::Plots, "Joint plots"))
     {
         ImGui::End();
         return;

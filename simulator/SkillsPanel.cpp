@@ -752,7 +752,7 @@ static void skillTable(App& p_app)
 
 void skillsPanel(App& p_app)
 {
-    if (!ImGui::Begin("Skills"))
+    if (!beginPanel(p_app, PanelKind::Skills, "Skills"))
     {
         ImGui::End();
         return;

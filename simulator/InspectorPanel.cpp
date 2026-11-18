@@ -161,8 +161,8 @@ holders(robotik::SkillScheduler const& p_skills,
         for (robotik::ResourceRequirement const& need :
              p_skills.description(id).resources)
         {
-            if (need.id == p_id && (owner == id ||
-                                    need.access == robotik::Access::Shared))
+            if (need.id == p_id &&
+                (owner == id || need.access == robotik::Access::Shared))
             {
                 found.push_back(id);
                 break;
@@ -224,9 +224,8 @@ static void skillView(App& p_app, robotik::SkillId p_id)
         ImGui::PushID(static_cast<int>(need.id));
         itemLink(p_app, SelectionKind::Resource, resources.name(need.id));
         ImGui::SameLine();
-        ImGui::TextDisabled(need.access == robotik::Access::Shared
-                                ? "shared"
-                                : "exclusive");
+        ImGui::TextDisabled(
+            need.access == robotik::Access::Shared ? "shared" : "exclusive");
         ImGui::SameLine();
         ImVec4 color;
         char const* word = resourceState(resources, need.id, color);
@@ -257,8 +256,7 @@ static void skillView(App& p_app, robotik::SkillId p_id)
     {
         ImGui::SeparatorText("Preconditions");
         robotik::Precondition const* failed = skills.precondition(p_id);
-        for (robotik::Precondition const& condition :
-             description.preconditions)
+        for (robotik::Precondition const& condition : description.preconditions)
         {
             bool const is_failed = failed == &condition;
             ImGui::TextColored(is_failed ? RED : GREY,
@@ -305,8 +303,8 @@ static void skillView(App& p_app, robotik::SkillId p_id)
                                        ImGui::GetColorU32(ImGuiCol_Header));
             }
             ImGui::TableNextColumn();
-            ImGui::TextColored(::colorOf(run.state), "%s",
-                               robotik::toString(run.state));
+            ImGui::TextColored(
+                ::colorOf(run.state), "%s", robotik::toString(run.state));
             ImGui::TableNextColumn();
             ImGui::Text("%.2f s", run.start.value());
             ImGui::TableNextColumn();
@@ -443,8 +441,9 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
     }
     if (p_app.teach.manual)
     {
-        note(ORANGE, "Manual mode: the mission is suspended (Robot "
-                     "workspace, Teach Pendant).");
+        note(ORANGE,
+             "Manual mode: the mission is suspended (Robot "
+             "workspace, Teach Pendant).");
     }
 
     ImGui::SeparatorText("Skills");
@@ -594,8 +593,7 @@ static void objectView(App& p_app, std::string const& p_name)
     ImGui::SeparatorText("Belief against truth");
     if (belief != nullptr)
     {
-        robotik::Vector3 const believed =
-            cell.beliefFrame() * belief->position;
+        robotik::Vector3 const believed = cell.beliefFrame() * belief->position;
         fact("Belief", "%.3f %.3f %.3f m", believed.x, believed.y, believed.z);
         if (has_truth)
         {
@@ -613,14 +611,18 @@ static void objectView(App& p_app, std::string const& p_name)
         {
             fact("Truth", "%s", "not in the world");
         }
-        fact("Confidence", "%.0f %%",
+        fact("Confidence",
+             "%.0f %%",
              static_cast<double>(belief->confidence) * 100.0);
         fact("Observations", "%u", belief->observations);
         if (belief->size.x > 0.0 || belief->size.y > 0.0 ||
             belief->size.z > 0.0)
         {
-            fact("Size", "%.3f %.3f %.3f m",
-                 belief->size.x, belief->size.y, belief->size.z);
+            fact("Size",
+                 "%.3f %.3f %.3f m",
+                 belief->size.x,
+                 belief->size.y,
+                 belief->size.z);
         }
     }
     else if (has_truth)
@@ -738,21 +740,18 @@ static void overview(App& p_app)
 
 void showInspector(App& p_app)
 {
-    char const* key = p_app.ui.workspace == Workspace::Robot      ? "robot"
-                      : p_app.ui.workspace == Workspace::Autonomy ? "autonomy"
-                                                                  : "mission";
     if (p_app.ui.workspace == Workspace::Plugin)
     {
         p_app.ui.workspace = Workspace::Mission;
         p_app.ui.place_plugin_panels = true;
     }
-    p_app.ui.focus_windows.push_back(panelTitle("Inspector", key));
+    showPanel(p_app, PanelKind::Inspector);
 }
 
 void inspectorPanel(App& p_app, char const* p_key)
 {
     std::string const window = panelTitle("Inspector", p_key);
-    if (!ImGui::Begin(window.c_str()))
+    if (!beginPanel(p_app, PanelKind::Inspector, window.c_str()))
     {
         ImGui::End();
         return;
@@ -774,10 +773,9 @@ void inspectorPanel(App& p_app, char const* p_key)
         {
             ui.pinned = pinned ? Selection{} : ui.selection;
         }
-        ImGui::SetItemTooltip(pinned
-                                  ? "Follow the selection again."
-                                  : "Keep this item here while the other "
-                                    "panels follow the selection.");
+        ImGui::SetItemTooltip(pinned ? "Follow the selection again."
+                                     : "Keep this item here while the other "
+                                       "panels follow the selection.");
         ImGui::SameLine();
         if (ImGui::SmallButton("Overview"))
         {

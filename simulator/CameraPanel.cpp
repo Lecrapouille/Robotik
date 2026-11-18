@@ -42,9 +42,8 @@ struct Picture
 };
 
 /// The picture to show for camera @p_index.
-static Picture pictureOf(App& p_app,
-                         robotik::Camera const& p_camera,
-                         std::size_t p_index)
+static Picture
+pictureOf(App& p_app, robotik::Camera const& p_camera, std::size_t p_index)
 {
     Picture picture;
     if (!p_app.scene_view)
@@ -68,10 +67,8 @@ static Picture pictureOf(App& p_app,
 
 /// The detections of the perception, over the picture of the first camera
 /// drawn at @p_at with the width @p_width; a dark veil on a camera in fault.
-static void overlay(App& p_app,
-                    robotik::Camera const& p_camera,
-                    ImVec2 p_at,
-                    ImVec2 p_size)
+static void
+overlay(App& p_app, robotik::Camera const& p_camera, ImVec2 p_at, ImVec2 p_size)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     ImDrawList* draw = ImGui::GetWindowDrawList();
@@ -150,28 +147,28 @@ static void cameraCell(App& p_app,
             text);
         return;
     }
-    float const aspect = static_cast<float>(picture_height) /
-                         static_cast<float>(picture_width);
+    float const aspect =
+        static_cast<float>(picture_height) / static_cast<float>(picture_width);
     float const width = std::min(p_cell.x, room / aspect);
     ImVec2 const size(std::floor(width), std::floor(width * aspect));
     ImGui::SetCursorPosX(ImGui::GetCursorPosX() +
                          std::max(0.0F, (p_cell.x - size.x) * 0.5F));
     ImVec2 const at = ImGui::GetCursorScreenPos();
-    ImGui::Image(
-        ImTextureRef(static_cast<ImTextureID>(picture->nativeId())),
-        size,
-        ImVec2(0.0F, 1.0F),
-        ImVec2(1.0F, 0.0F));
+    ImGui::Image(ImTextureRef(static_cast<ImTextureID>(picture->nativeId())),
+                 size,
+                 ImVec2(0.0F, 1.0F),
+                 ImVec2(1.0F, 0.0F));
     overlay(p_app, p_camera, at, size);
 }
 
 void camerasPanel(App& p_app, char const* p_key)
 {
     std::string const title = panelTitle("Cameras", p_key);
-    if (!ImGui::Begin(title.c_str(),
-                      nullptr,
-                      ImGuiWindowFlags_NoScrollbar |
-                          ImGuiWindowFlags_NoScrollWithMouse))
+    if (!beginPanel(p_app,
+                    PanelKind::Cameras,
+                    title.c_str(),
+                    ImGuiWindowFlags_NoScrollbar |
+                        ImGuiWindowFlags_NoScrollWithMouse))
     {
         ImGui::End();
         return;
@@ -246,12 +243,11 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     ui.inset_index = std::min(ui.inset_index, cameras.size() - 1U);
     robotik::Camera const& camera = *cameras[ui.inset_index];
     Picture const picture = pictureOf(p_app, camera, ui.inset_index);
-    float const aspect =
-        picture.width > 0U ? static_cast<float>(picture.height) /
-                                 static_cast<float>(picture.width)
-                           : 0.75F;
-    float const width =
-        std::clamp(p_view_size.x * 0.28F, 180.0F, 380.0F);
+    float const aspect = picture.width > 0U
+                             ? static_cast<float>(picture.height) /
+                                   static_cast<float>(picture.width)
+                             : 0.75F;
+    float const width = std::clamp(p_view_size.x * 0.28F, 180.0F, 380.0F);
     float const head = ImGui::GetFrameHeight();
     ImVec2 const image(std::floor(width), std::floor(width * aspect));
     if (image.y + head + 2.0F * margin > p_view_size.y)
@@ -277,9 +273,9 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     ImGui::TextUnformatted(camera.name().c_str());
     float const buttons = cameras.size() > 1U ? 4.0F : 2.0F;
     ImGui::SameLine();
-    ImGui::SetCursorScreenPos(ImVec2(
-        corner.x - buttons * (ImGui::GetFrameHeight() + 4.0F) - 2.0F,
-        min.y + 3.0F));
+    ImGui::SetCursorScreenPos(
+        ImVec2(corner.x - buttons * (ImGui::GetFrameHeight() + 4.0F) - 2.0F,
+               min.y + 3.0F));
     if (cameras.size() > 1U)
     {
         if (ImGui::SmallButton("<"))

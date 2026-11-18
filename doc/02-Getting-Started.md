@@ -80,6 +80,13 @@ what to look at: how many assertions pass, how many resources are in fault,
 and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
 
+**Optional windows.** In Robot, Mission and Autonomy, **View** lists every
+simulation window. Tick a name to open it; untick it or use its close button
+to hide it. The choice is saved with the layout, separately for each
+workspace. Windows are available across these workspaces. When a view moves
+to the main area, its former window disappears and releases its space.
+Choose it in **View** to return it to a separate window.
+
 **Selection.** A click on a skill, a resource, a robot or an object (in the
 Timeline, the Behavior tree, the Skills, Resources or World model panel, a
 click in the 3D view, or a link of the Inspector) selects it in every panel: the **Inspector** of each workspace
@@ -106,8 +113,8 @@ from left to right: with a PDDL planner, one box per step of the plan
 arrow from a step to the steps that wait for it, so the steps that run
 together are in the same column; without a planner, the behavior tree, the
 root on the left. Click a skill to inspect it; the graph scrolls to the
-skill selected elsewhere; drag the background to move it. The panel of that view then says where it is shown, with
-a button to bring it back. Each workspace keeps its own choice.
+skill selected elsewhere; drag the background to move it. Its separate window hides while the main area shows it. Use **View** to
+open it separately again. Each workspace keeps its own choice.
 
 **Events.** The tab next to the Timeline tells the run as dated lines: the
 skills that wait (and for what), start and end (succeeded after 0.5 s,
