@@ -10,7 +10,7 @@ TARGETS += Robotik-Simulator
 Robotik-Simulator.DESCRIPTION := Operator interface: world, robot camera, behavior tree and skills
 Robotik-Simulator.SOURCES := *.cpp
 Robotik-Simulator.INCLUDES := .
-Robotik-Simulator.DEPENDS := robotik-core imgui implot stb
+Robotik-Simulator.DEPENDS := robotik-core Compages imgui implot stb
 Robotik-Simulator.DEFINES = ROBOTIK_FONTS_DIR="$(imgui.DIR)misc/fonts"
 Robotik-Simulator.CXXFLAGS := -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion \
     -Wno-float-equal -Wno-undef -Wno-shadow -Wno-double-promotion -Wno-cast-qual \

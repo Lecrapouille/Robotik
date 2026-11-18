@@ -19,7 +19,7 @@ Robotik-tests.SOURCES := **/*.cpp \
     ../plugins/FlyBrain/src/FlyBrain.cpp ../plugins/FlyBrain/src/FlyEnvironment.cpp \
     ../plugins/FlyBrain/src/FlyTrace.cpp ../plugins/FlyBrain/src/FlyMission.cpp
 Robotik-tests.INCLUDES := . ../plugins/PickAndPlace/src ../plugins/FlyBrain/src ../plugins/Painter/src
-Robotik-tests.DEPENDS := robotik-core
+Robotik-tests.DEPENDS := robotik-core Compages
 Robotik-tests.PKG_CONFIG := gtest gmock glfw3 glew gl
 Robotik-tests.CXXFLAGS := -Wno-old-style-cast -Wno-sign-conversion -Wno-duplicated-branches \
     -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal -Wno-switch-enum -Wno-null-dereference

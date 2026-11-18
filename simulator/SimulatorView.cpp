@@ -27,7 +27,7 @@
 #include <numbers>
 #include <stdexcept>
 
-bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
+bool ShownPicture::resize(std::uint32_t p_width, std::uint32_t p_height)
 {
     if (p_width == width && p_height == height)
     {
@@ -35,27 +35,14 @@ bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
     }
     width = 0;
     height = 0;
-    compages::Status made =
-        color.allocate({ .format = compages::gpu::PixelFormat::RGB8,
-                         .width = p_width,
-                         .height = p_height });
-    if (made)
-    {
-        made = depth.allocate({ .format = compages::gpu::PixelFormat::Depth32F,
-                                .width = p_width,
-                                .height = p_height,
-                                .magnify = compages::gpu::Filter::Nearest,
-                                .minify = compages::gpu::Filter::Nearest });
-    }
-    if (made)
-    {
-        made = framebuffer.attach(color, depth);
-    }
+    auto made = compages::gpu::Texture::create(
+        { .format = compages::gpu::PixelFormat::RGB8, .width = p_width, .height = p_height });
     if (!made)
     {
-        std::cerr << "Render target: " << made.error() << '\n';
+        std::cerr << "Camera picture: " << made.error() << '\n';
         return false;
     }
+    color = std::move(made.value());
     width = p_width;
     height = p_height;
     return true;
@@ -64,9 +51,8 @@ bool RenderTarget::resize(std::uint32_t p_width, std::uint32_t p_height)
 RenderedCamera::RenderedCamera(
     compages::renderer::Scene& p_scene,
     robotik::Camera const& p_camera,
-    compages::world::Entity p_link,
-    std::vector<compages::world::EntityId> const& p_overlays)
-    : m_scene(p_scene), m_overlays(p_overlays)
+    compages::world::Entity p_link)
+    : m_scene(p_scene)
 {
     compages::world::Entity const active = p_scene.activeCamera();
 
@@ -76,6 +62,8 @@ RenderedCamera::RenderedCamera(
     lens.fov = units::angle::radian_t(p_camera.intrinsics().fov().value());
     lens.near_plane = 0.03F;
     lens.far_plane = 20.0F;
+    // The robot does not see the helps drawn for the operator.
+    lens.sees_helpers = false;
     if (active)
     {
         p_scene.activeCamera(active);
@@ -86,53 +74,57 @@ bool RenderedCamera::capture(robotik::Camera const& p_camera,
                              robotik::CameraFrame& p_frame)
 {
     robotik::CameraIntrinsics const& intrinsics = p_camera.intrinsics();
-    if (!m_target.resize(intrinsics.width, intrinsics.height))
+    if (auto sized = m_target.resize(intrinsics.width, intrinsics.height); !sized)
     {
+        std::cerr << "Robot camera: " << sized.error() << '\n';
         return false;
     }
     sync(p_camera);
-    // The robot does not see the helps drawn for the operator.
-    compages::world::World& world = m_scene.world();
-    std::vector<compages::world::EntityId> hidden;
-    for (compages::world::EntityId const id : m_overlays)
-    {
-        if (world.alive(id) && compages::world::Entity(world, id).enabled())
-        {
-            compages::world::Entity(world, id).enable(false);
-            hidden.push_back(id);
-        }
-    }
-    {
-        compages::gpu::RenderPass pass(
-            m_target.framebuffer,
-            compages::gpu::PassDesc{ .color = viewClearColor() });
-        m_scene.render(m_entity);
-    }
-    for (compages::world::EntityId const id : hidden)
-    {
-        compages::world::Entity(world, id).enable(true);
-    }
-    auto pixels = m_target.color.read();
+    m_scene.render(m_entity, m_target);
+    // RGBA, the top row first, as Robotik images: only the alpha goes.
+    auto pixels = m_target.readColor();
     if (!pixels)
     {
         return false;
     }
-
-    // The device puts the first row at the bottom; Robotik images start at
-    // the top.
     std::vector<std::byte> const& bytes = pixels.value();
     p_frame.rgb.resize(
         intrinsics.width, intrinsics.height, robotik::PixelFormat::RGB8);
-    std::size_t const stride = p_frame.rgb.stride();
-    if (bytes.size() < stride * intrinsics.height)
+    if (bytes.size() < std::size_t(intrinsics.width) * intrinsics.height * 4U)
     {
         return false;
     }
     for (std::uint32_t y = 0; y < intrinsics.height; ++y)
     {
-        std::memcpy(p_frame.rgb.row<std::uint8_t>(y),
-                    bytes.data() + (intrinsics.height - 1U - y) * stride,
-                    stride);
+        auto* row = p_frame.rgb.row<std::uint8_t>(y);
+        std::byte const* from = bytes.data() + std::size_t(y) * intrinsics.width * 4U;
+        for (std::uint32_t x = 0; x < intrinsics.width; ++x)
+        {
+            row[3U * x] = std::to_integer<std::uint8_t>(from[4U * x]);
+            row[3U * x + 1U] = std::to_integer<std::uint8_t>(from[4U * x + 1U]);
+            row[3U * x + 2U] = std::to_integer<std::uint8_t>(from[4U * x + 2U]);
+        }
+    }
+    // An RGB-D camera: the distance along the optical axis, in metres
+    // (+infinity where nothing was drawn).
+    if (p_camera.config().depth)
+    {
+        auto metres = m_target.readDepth(m_entity.get<compages::world::Camera>());
+        if (!metres)
+        {
+            return false;
+        }
+        p_frame.depth.resize(intrinsics.width, intrinsics.height, robotik::PixelFormat::Depth32F);
+        for (std::uint32_t y = 0; y < intrinsics.height; ++y)
+        {
+            std::memcpy(p_frame.depth.row<float>(y),
+                        metres.value().data() + std::size_t(y) * intrinsics.width,
+                        std::size_t(intrinsics.width) * sizeof(float));
+        }
+    }
+    else
+    {
+        p_frame.depth = robotik::Image{};
     }
     return true;
 }
@@ -262,7 +254,7 @@ robotik::FrameSource* SimulatorView::camera(robotik::Camera& p_camera,
                                             compages::world::Entity p_link)
 {
     m_cameras.push_back(std::make_unique<RenderedCamera>(
-        m_scene, p_camera, p_link, m_overlays));
+        m_scene, p_camera, p_link));
     return m_cameras.back().get();
 }
 
@@ -350,11 +342,11 @@ void SimulatorView::ink(double p_y,
     (void)m_paint.sync();
 }
 
-RenderTarget const& SimulatorView::frameTarget(std::size_t p_index)
+ShownPicture const& SimulatorView::frameTarget(std::size_t p_index)
 {
     while (m_frames.size() <= p_index)
     {
-        m_frames.push_back(std::make_unique<RenderTarget>());
+        m_frames.push_back(std::make_unique<ShownPicture>());
     }
     return *m_frames[p_index];
 }
@@ -368,7 +360,7 @@ bool SimulatorView::showFrame(std::size_t p_index,
         return false;
     }
     (void)frameTarget(p_index);
-    RenderTarget& target = *m_frames[p_index];
+    ShownPicture& target = *m_frames[p_index];
     if (!target.resize(image.width(), image.height()))
     {
         return false;

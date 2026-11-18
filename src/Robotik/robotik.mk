@@ -18,7 +18,7 @@ else
 endif
 robotik-core.SOURCES := $(patsubst $(HERE)%,%,$(filter-out $(ROBOTIK_EXCLUDED),$(call rwildcard,$(patsubst %/,%,$(HERE)),*.cpp)))
 robotik-core.PUBLIC_INCLUDES := .. ../../include
-robotik-core.DEPENDS := Compages blackthorn pugixml $(if $(filter forge,$(TARGETS)),forge)
+robotik-core.DEPENDS := Compages-World blackthorn pugixml $(if $(filter forge,$(TARGETS)),forge)
 robotik-core.CXXFLAGS := -Wno-switch-enum -Wno-old-style-cast -Wno-sign-conversion \
     -Wno-duplicated-branches -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ifneq ($(TARGET_OS),Emscripten)

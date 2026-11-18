@@ -7,8 +7,13 @@
 
 #pragma once
 
+#include "Compages/Core/Units.hpp"
+
 struct App;
-struct RenderTarget;
+namespace compages::renderer
+{
+class RenderTarget;
+}
 struct Window;
 
 namespace compages::world
@@ -34,14 +39,19 @@ struct ViewArea
 
 /// Input and size of the 3D view drawn into @p_target at @p_area: what a
 /// camera rig of its world reads.
-compages::world::ViewFrame viewFrame(RenderTarget const& p_target,
+/// @p_simulated: time of the simulation since the previous picture (zero
+/// while paused), seen by the routines; @p_wall: time of the wall clock, seen
+/// by the camera rig; @p_total: time of the simulation.
+compages::world::ViewFrame viewFrame(compages::renderer::RenderTarget const& p_target,
                                      ViewArea const& p_area,
                                      Window const& p_window,
-                                     float p_elapsed,
-                                     float p_total);
+                                     compages::si::Seconds p_simulated,
+                                     compages::si::Seconds p_wall,
+                                     compages::si::Seconds p_total);
 
 /// The same for the 3D view of the scenario.
 compages::world::ViewFrame viewFrame(App const& p_app,
                                      Window const& p_window,
-                                     float p_elapsed,
-                                     float p_total);
+                                     compages::si::Seconds p_simulated,
+                                     compages::si::Seconds p_wall,
+                                     compages::si::Seconds p_total);

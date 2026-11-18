@@ -9,6 +9,7 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <iostream>
 #include <cstdint>
 
 static constexpr char const* STOP = "Stop";
@@ -222,8 +223,12 @@ void scenePanel(App& p_app, char const* p_key)
     ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0F),
                       std::max(ImGui::GetContentRegionAvail().y, 1.0F));
     ImVec2 const scale = ImGui::GetIO().DisplayFramebufferScale;
-    p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
-                      static_cast<std::uint32_t>(size.y * scale.y));
+    if (auto sized = p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
+                                       static_cast<std::uint32_t>(size.y * scale.y));
+        !sized)
+    {
+        std::cerr << "3D view: " << sized.error() << '\n';
+    }
     ImVec2 const at = ImGui::GetCursorScreenPos();
     p_app.view_x = at.x;
     p_app.view_y = at.y;
@@ -237,11 +242,11 @@ void scenePanel(App& p_app, char const* p_key)
                                ImGuiButtonFlags_MouseButtonRight |
                                ImGuiButtonFlags_MouseButtonMiddle);
     p_app.view_hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
-    if (p_app.view.width > 0)
+    if (p_app.view.valid())
     {
         // The device puts the first row at the bottom.
         ImGui::GetWindowDrawList()->AddImage(
-            ImTextureRef(static_cast<ImTextureID>(p_app.view.color.nativeId())),
+            ImTextureRef(static_cast<ImTextureID>(p_app.view.color().nativeId())),
             at,
             ImVec2(at.x + size.x, at.y + size.y),
             ImVec2(0.0F, 1.0F),
