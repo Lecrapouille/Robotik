@@ -171,7 +171,11 @@ the present and keeps its width (**Follow**); **Whole run** shows it from
 the start. The wheel zooms, a drag or Shift+wheel moves in time, a
 double-click follows the present again. The row **Resources** says who
 holds what now; click it to get one row per resource: orange when a skill
-holds it, blue when skills share it, red when it is in fault. The
+holds it, blue when skills share it, red when it is in fault. Small marks
+under the times of the ruler show the plans, the steps of the plan that
+end, the faults, the failures of the tree and the verdicts of the
+assertions (the lines of the **Events** tab without the skills); hover one
+to read it. The
 simulation cannot go back: the mouse on a past time only reads what ran
 then, on the line under the rows. The **Resources** panel lists who holds
 what, and injects faults by hand: tick one or more resources, give a

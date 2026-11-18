@@ -195,6 +195,43 @@ void timelineView(App& p_app);
 /// wait for and the skills they run; the behavior tree without a planner.
 /// A view of the main area, without a panel of its own.
 void graphView(App& p_app);
+// ****************************************************************************
+/// What an event is about, for the filters.
+// ****************************************************************************
+enum class RunEventKind : std::uint8_t
+{
+    Skill,
+    Resource,
+    Plan,
+    Verdict,
+};
+
+// ****************************************************************************
+/// One thing that happened in the run (a line of the Events panel, a mark
+/// of the Timeline).
+// ****************************************************************************
+struct RunEvent
+{
+    double time = 0.0;
+    RunEventKind kind = RunEventKind::Skill;
+    /// A failure, a fault, a wait on a resource: kept by "Problems only".
+    bool problem = false;
+    ImVec4 color;
+    std::string text;
+    /// The item the line is about, selected by a click; None: no item.
+    SelectionKind item = SelectionKind::None;
+    std::string name;
+    /// The same line repeated in a row (a skill refused at each step):
+    /// how many times, and the time of the last one.
+    std::size_t count = 1;
+    double until = 0.0;
+};
+
+/// What happened in the run, sorted by time (EventsPanel.cpp).
+/// @param p_skills With the phases of the skills (many); without them, the
+///   faults, plans, steps, tree failures and verdicts only.
+std::vector<RunEvent> runEvents(App const& p_app, bool p_skills);
+
 /// What happened in the run, one dated line each, with filters
 /// (EventsPanel.cpp). A click on a time shows it in the Timeline.
 void eventsPanel(App& p_app);

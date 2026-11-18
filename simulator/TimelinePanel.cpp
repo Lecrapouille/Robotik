@@ -616,6 +616,55 @@ static void ruler(TimeAxis const& p_axis,
     ImGui::Dummy(ImVec2(full, height));
 }
 
+/// Marks at the bottom of the ruler: plans, steps of the plan, faults, tree
+/// failures, verdicts, in their colors. The mouse on a mark tells what
+/// happened; a click selects the resource it is about. Call it just after
+/// the ruler (its rectangle is the last item).
+static void marks(App& p_app,
+                  TimeAxis const& p_axis,
+                  std::vector<RunEvent> const& p_events)
+{
+    ImVec2 const min = ImGui::GetItemRectMin();
+    ImVec2 const max = ImGui::GetItemRectMax();
+    ImVec2 const mouse = ImGui::GetIO().MousePos;
+    bool const over = ImGui::IsWindowHovered() && mouse.y >= min.y &&
+                      mouse.y <= max.y && mouse.x >= p_axis.x;
+    ImDrawList* draw = ImGui::GetWindowDrawList();
+    draw->PushClipRect(ImVec2(p_axis.x, min.y),
+                       ImVec2(p_axis.x + p_axis.width, max.y),
+                       true);
+    std::string tip;
+    RunEvent const* target = nullptr;
+    for (RunEvent const& event : p_events)
+    {
+        if (event.time < p_axis.t0 || event.time > p_axis.t1)
+        {
+            continue;
+        }
+        float const x = xOf(p_axis, event.time);
+        draw->AddRectFilled(ImVec2(x - 1.5F, max.y - 8.0F),
+                            ImVec2(x + 1.5F, max.y - 1.0F),
+                            ImGui::GetColorU32(event.color),
+                            1.0F);
+        if (over && std::abs(mouse.x - x) <= 4.0F)
+        {
+            char time[32];
+            std::snprintf(time, sizeof time, "%.2f s  ", event.time);
+            tip += (tip.empty() ? "" : "\n") + std::string(time) + event.text;
+            target = event.item != SelectionKind::None ? &event : target;
+        }
+    }
+    draw->PopClipRect();
+    if (!tip.empty())
+    {
+        ImGui::SetTooltip("%s", tip.c_str());
+        if (target != nullptr && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            selectItem(p_app, target->item, target->name);
+        }
+    }
+}
+
 void sampleTimeline(App& p_app)
 {
     if (!p_app.simulation)
@@ -847,6 +896,7 @@ void timelineView(App& p_app)
     }
     double step = 1.0;
     ruler(axis, now, hover_t, step);
+    marks(p_app, axis, runEvents(p_app, false));
 
     // Rows, scrolled vertically; the line of details stays below them.
     float const footer = ImGui::GetTextLineHeightWithSpacing() + 4.0F;

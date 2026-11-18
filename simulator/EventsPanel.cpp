@@ -34,37 +34,6 @@
 #include <string>
 #include <vector>
 
-// ****************************************************************************
-/// What an event is about, for the filters.
-// ****************************************************************************
-enum class EventKind : std::uint8_t
-{
-    Skill,
-    Resource,
-    Plan,
-    Verdict,
-};
-
-// ****************************************************************************
-/// One line of the journal.
-// ****************************************************************************
-struct Event
-{
-    double time = 0.0;
-    EventKind kind = EventKind::Skill;
-    /// A failure, a fault, a wait on a resource: kept by "Problems only".
-    bool problem = false;
-    ImVec4 color;
-    std::string text;
-    /// The item the line is about, selected by a click; None: no item.
-    SelectionKind item = SelectionKind::None;
-    std::string name;
-    /// The same line repeated in a row (a skill refused at each step):
-    /// how many times, and the time of the last one.
-    std::size_t count = 1;
-    double until = 0.0;
-};
-
 /// "busy: gripper", "precondition", or the reason alone.
 static std::string reasonText(robotik::ResourceManager const& p_resources,
                               robotik::SkillRun const& p_run)
@@ -79,7 +48,7 @@ static std::string reasonText(robotik::ResourceManager const& p_resources,
 
 /// The phases of the skills: a wait, a start, an end.
 static void skillEvents(robotik::Simulation const& p_simulation,
-                        std::vector<Event>& p_events)
+                        std::vector<RunEvent>& p_events)
 {
     robotik::SkillScheduler const& skills = p_simulation.cell().skills();
     robotik::ResourceManager const& resources =
@@ -107,7 +76,7 @@ static void skillEvents(robotik::Simulation const& p_simulation,
                 return;
             }
             before = p_events.size();
-            p_events.push_back({ p_time, EventKind::Skill, p_problem, p_color,
+            p_events.push_back({ p_time, RunEventKind::Skill, p_problem, p_color,
                                  std::move(p_text), SelectionKind::Skill,
                                  name, 1U, p_time });
         };
@@ -181,7 +150,7 @@ static void skillEvents(robotik::Simulation const& p_simulation,
 }
 
 /// Faults of the resources, failures of the tree, plans, steps, verdicts.
-static void otherEvents(App const& p_app, std::vector<Event>& p_events)
+static void otherEvents(App const& p_app, std::vector<RunEvent>& p_events)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
     robotik::ResourceManager const& resources =
@@ -190,19 +159,19 @@ static void otherEvents(App const& p_app, std::vector<Event>& p_events)
     for (FaultSpan const& span : memory.faults)
     {
         std::string const& name = resources.name(span.resource);
-        p_events.push_back({ span.start, EventKind::Resource, true, RED,
+        p_events.push_back({ span.start, RunEventKind::Resource, true, RED,
                              name + " in fault", SelectionKind::Resource,
                              name });
         if (!span.open)
         {
-            p_events.push_back({ span.end, EventKind::Resource, false, GREEN,
+            p_events.push_back({ span.end, RunEventKind::Resource, false, GREEN,
                                  name + " restored", SelectionKind::Resource,
                                  name });
         }
     }
     for (TreeFailure const& failure : memory.tree_failures)
     {
-        p_events.push_back({ failure.time, EventKind::Plan, true, RED,
+        p_events.push_back({ failure.time, RunEventKind::Plan, true, RED,
                              failure.label + " of the tree failed",
                              SelectionKind::None, {} });
     }
@@ -221,7 +190,7 @@ static void otherEvents(App const& p_app, std::vector<Event>& p_events)
                           i + 1U,
                           robotik::toString(record.result.status),
                           record.result.steps.size());
-            p_events.push_back({ record.time.value(), EventKind::Plan,
+            p_events.push_back({ record.time.value(), RunEventKind::Plan,
                                  !solved, solved ? BLUE : RED,
                                  text + record.cause + ")",
                                  SelectionKind::None, {} });
@@ -234,7 +203,7 @@ static void otherEvents(App const& p_app, std::vector<Event>& p_events)
                       mark.plan);
         std::string const word =
             mark.failed ? "failed" : mark.skipped ? "skipped" : "done";
-        p_events.push_back({ mark.time, EventKind::Plan, mark.failed,
+        p_events.push_back({ mark.time, RunEventKind::Plan, mark.failed,
                              mark.failed    ? RED
                              : mark.skipped ? GREY
                                             : GREEN,
@@ -254,7 +223,7 @@ static void otherEvents(App const& p_app, std::vector<Event>& p_events)
         {
             text += " (" + check.detail + ")";
         }
-        p_events.push_back({ check.time.value(), EventKind::Verdict, failed,
+        p_events.push_back({ check.time.value(), RunEventKind::Verdict, failed,
                              failed ? RED : GREEN, std::move(text),
                              SelectionKind::None, {} });
     }
@@ -277,13 +246,13 @@ static bool contains(std::string const& p_text, char const* p_part)
 }
 
 /// Kept by the filters.
-static bool kept(EventsView const& p_view, Event const& p_event)
+static bool kept(EventsView const& p_view, RunEvent const& p_event)
 {
-    bool const kind = (p_event.kind == EventKind::Skill && p_view.skills) ||
-                      (p_event.kind == EventKind::Resource &&
+    bool const kind = (p_event.kind == RunEventKind::Skill && p_view.skills) ||
+                      (p_event.kind == RunEventKind::Resource &&
                        p_view.resources) ||
-                      (p_event.kind == EventKind::Plan && p_view.plan) ||
-                      (p_event.kind == EventKind::Verdict && p_view.verdicts);
+                      (p_event.kind == RunEventKind::Plan && p_view.plan) ||
+                      (p_event.kind == RunEventKind::Verdict && p_view.verdicts);
     return kind && (!p_view.problems_only || p_event.problem) &&
            contains(p_event.text, p_view.filter.data());
 }
@@ -319,6 +288,24 @@ static void filters(EventsView& p_view, std::size_t p_shown, std::size_t p_all)
     ImGui::TextDisabled("%zu / %zu", p_shown, p_all);
 }
 
+std::vector<RunEvent> runEvents(App const& p_app, bool p_skills)
+{
+    std::vector<RunEvent> events;
+    if (!p_app.simulation)
+    {
+        return events;
+    }
+    if (p_skills)
+    {
+        skillEvents(*p_app.simulation, events);
+    }
+    otherEvents(p_app, events);
+    std::ranges::stable_sort(events,
+                             [](RunEvent const& p_a, RunEvent const& p_b)
+                             { return p_a.time < p_b.time; });
+    return events;
+}
+
 void eventsView(App& p_app)
 {
     if (!p_app.simulation)
@@ -326,15 +313,10 @@ void eventsView(App& p_app)
         emptyState("No scenario loaded.");
         return;
     }
-    std::vector<Event> events;
-    skillEvents(*p_app.simulation, events);
-    otherEvents(p_app, events);
-    std::ranges::stable_sort(events,
-                             [](Event const& p_a, Event const& p_b)
-                             { return p_a.time < p_b.time; });
+    std::vector<RunEvent> const events = runEvents(p_app, true);
     EventsView& view = p_app.ui.events;
-    std::vector<Event const*> shown;
-    for (Event const& event : events)
+    std::vector<RunEvent const*> shown;
+    for (RunEvent const& event : events)
     {
         if (kept(view, event))
         {
@@ -376,7 +358,7 @@ void eventsView(App& p_app)
     {
         for (int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row)
         {
-            Event const& event = *shown[static_cast<std::size_t>(row)];
+            RunEvent const& event = *shown[static_cast<std::size_t>(row)];
             ImGui::PushID(row);
             ImGui::TableNextRow();
             if (event.item != SelectionKind::None &&
