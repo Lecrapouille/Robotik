@@ -89,6 +89,12 @@ Timeline highlights its row. Selecting never commands the robot. **Pin**
 keeps an item in the Inspector while you select others; **Overview** shows
 what runs, waits and is in fault.
 
+**Camera in the scene.** When the robot has a camera, its picture (with
+the detections of the perception) sits in the bottom-right corner of the 3D
+scene, in every workspace: no need for a Cameras panel to see what the
+robot sees. `<` and `>` change the camera, `x` hides it, **Camera** shows
+it again.
+
 A **workspace** is a set of panels for one task. Switch with the buttons at
 the top, or with **Ctrl+1** to **Ctrl+4**:
 

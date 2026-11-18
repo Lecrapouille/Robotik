@@ -25,7 +25,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | InspectorPanel.cpp | Inspector (skill, resource, robot, overview), `selectItem` / `isSelected` / `itemLink` |
 | UiScreenshot.cpp | `--screenshot-ui`: PNG of the whole window (check a change without a person: `--at`, `--workspace`, `--select`) |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
-| AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras |
+| AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras, the camera inset of the scene (`cameraInset`) |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
 
 ## Rules

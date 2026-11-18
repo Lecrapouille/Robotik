@@ -166,6 +166,7 @@ void scenePanel(App& p_app, char const* p_key)
             ImVec2(1.0F, 0.0F));
     }
     runFrame(p_app, at, size);
+    cameraInset(p_app, at, size);
     char const* hint =
         "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);

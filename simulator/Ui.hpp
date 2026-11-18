@@ -85,6 +85,11 @@ bool emergencyEngaged(App const& p_app);
 void toggleEmergency(App& p_app);
 /// Every robot camera, with the detections drawn on (CameraPanel.cpp).
 void camerasPanel(App& p_app, char const* p_key);
+/// The cameras of the first robot (none without a scenario).
+std::vector<robotik::Camera*> robotCameras(App& p_app);
+/// One robot camera over the bottom-right corner of the 3D view drawn at
+/// @p_view_at, with the detections; a button shows it again once hidden.
+void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size);
 /// Assertions of the scenario, as a table (OverviewPanels.cpp).
 void assertionsPanel(App& p_app, char const* p_key);
 /// The behavior tree with the last status of each node

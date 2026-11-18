@@ -306,6 +306,9 @@ struct UiState
     /// Timeline: the view chosen and what it recorded of the run.
     TimelineView timeline;
     TimelineMemory timeline_memory;
+    /// Scene: a robot camera over its corner, and which one.
+    bool inset_camera = true;
+    std::size_t inset_index = 0;
     /// Joints drawn in the plots.
     std::vector<bool> plotted;
     float plot_window_s = 10.0F;
