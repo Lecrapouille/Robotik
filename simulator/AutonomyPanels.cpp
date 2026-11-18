@@ -112,9 +112,10 @@ void worldModelPanel(App& p_app)
                     ImGui::TableNextColumn();
                     return;
                 }
-                // Beliefs are in the robot base frame.
+                // Beliefs are in the base of a robot alone, in the world
+                // when several robots share them.
                 robotik::Vector3 const believed =
-                    simulation.cell().robot().base().pose * belief->position;
+                    simulation.cell().beliefFrame() * belief->position;
                 ImGui::Text(
                     "%.3f %.3f %.3f", believed.x, believed.y, believed.z);
                 ImGui::TableNextColumn();
@@ -149,10 +150,9 @@ void worldModelPanel(App& p_app)
             ImGui::TableNextColumn();
             ImGui::TextDisabled("not in the world");
             ImGui::TableNextColumn();
-            ImGui::Text("%.3f %.3f %.3f",
-                        belief.position.x,
-                        belief.position.y,
-                        belief.position.z);
+            robotik::Vector3 const believed =
+                simulation.cell().beliefFrame() * belief.position;
+            ImGui::Text("%.3f %.3f %.3f", believed.x, believed.y, believed.z);
             ImGui::TableNextColumn();
             ImGui::TableNextColumn();
             ImGui::Text("%.0f%%",
