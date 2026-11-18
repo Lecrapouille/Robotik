@@ -22,6 +22,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | PackagePanels.cpp / OverviewPanels.cpp | Plugin workspace: Plugin, Files (tabs), View, Assets, Assertions |
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
 | MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
+| InspectorPanel.cpp | Inspector (skill, resource, robot, overview), `selectItem` / `isSelected` / `itemLink` |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
@@ -37,6 +38,9 @@ scenario YAML, and the simulator only shows or triggers it.
 - A new or renamed panel: dock it in `layout()` (Workspace.cpp), call it in
   `drawPanels`, and **bump `LAYOUT_VERSION`** so saved layouts are rebuilt.
   A workspace `anchor` must name an existing window.
+- One selection for every panel (`UiState::selection`: robot, skill or
+  resource, by name). A panel that names one of them draws it with
+  `itemLink` so a click shows it in the Inspector. Selecting never acts.
 - Status colors only from `Colors.hpp`: GREY idle, ORANGE running/held,
   GREEN success, RED failure/fault, BLUE info/paused/shared.
 - Never write the truth into what skills see; panels may read the truth

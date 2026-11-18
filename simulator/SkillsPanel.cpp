@@ -45,6 +45,8 @@ struct BoardMemory
     std::vector<std::size_t> acknowledged;
     const robotik::Simulation* simulation = nullptr;
     std::size_t trace_size = 0;
+    /// Skill whose name was clicked this frame, for the Inspector.
+    std::string picked;
 };
 
 /// Disabled text color, used for idle skill chrome.
@@ -501,6 +503,10 @@ static void card(BoardMemory& p_memory,
     float const row_x = ImGui::GetCursorPosX();
     float const available = ImGui::GetContentRegionAvail().x;
     bool const open = ImGui::TreeNodeEx(description.name.c_str());
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
+    {
+        p_memory.picked = description.name;
+    }
 
     bool const waiting = state == robotik::SkillState::Waiting;
     std::vector<std::string> labels;
@@ -707,7 +713,7 @@ static void skillTable(App& p_app)
             ImGui::PushID(static_cast<int>(id));
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
-            ImGui::TextUnformatted(description.name.c_str());
+            itemLink(p_app, SelectionKind::Skill, description.name);
             ImGui::TableNextColumn();
             ImGui::Text("%d%s",
                         description.priority,
@@ -840,5 +846,10 @@ void skillsPanel(App& p_app)
             false);
 
     memory.force_open.reset();
+    if (!memory.picked.empty())
+    {
+        selectItem(p_app, SelectionKind::Skill, memory.picked);
+        memory.picked.clear();
+    }
     ImGui::End();
 }

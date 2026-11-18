@@ -132,14 +132,17 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
             ImGuiID const bottom = split(center, ImGuiDir_Down, 0.30F);
             ImGuiID left = split(center, ImGuiDir_Left, 0.20F);
             ImGuiID const verdict = split(left, ImGuiDir_Down, 0.40F);
-            ImGuiID const right = split(center, ImGuiDir_Right, 0.30F);
+            ImGuiID inspector = split(center, ImGuiDir_Right, 0.30F);
+            ImGuiID const right = split(inspector, ImGuiDir_Down, 0.45F);
             dock(panelTitle("Behavior tree", key), left);
             dock(panelTitle("Assertions", key), verdict);
             dock(panelTitle("Scene", key), center);
             dock("Timeline", bottom);
-            dock("Skills", right);
+            dock("Inspector", inspector);
+            // The last one docked is in front: Skills.
             dock("Planner", right);
             dock("Resources", right);
+            dock("Skills", right);
             break;
         }
         case Workspace::Autonomy:
@@ -474,7 +477,7 @@ static bool barLink(char const* p_text, ImVec4 const& p_color)
     return clicked;
 }
 
-/// Bottom bar: scenario, seed, verdict, faults; time and speed
+/// Bottom bar: scenario, seed, verdict, faults, selection; time and speed
 /// on the right. Every count is a link to where it is explained.
 static void statusBar(App& p_app)
 {
@@ -547,15 +550,26 @@ static void statusBar(App& p_app)
                 std::snprintf(text, sizeof text, "%zu in fault", faults);
                 if (barLink(text, RED))
                 {
-                    showInMission(p_app, "Resources");
+                    selectItem(p_app, SelectionKind::Resource, first);
+                    showInMission(p_app, "Inspector");
                 }
-                ImGui::SetItemTooltip("%s is in fault. Show the resources "
-                                      "(Mission workspace).",
-                                      first.c_str());
+                ImGui::SetItemTooltip("Show the resource in the Inspector.");
             }
             if (emergencyEngaged(p_app))
             {
                 badge("EMERGENCY STOP", RED);
+            }
+            Selection const& chosen = p_app.ui.selection;
+            if (chosen.kind != SelectionKind::None)
+            {
+                ImGui::TextDisabled("|");
+                std::snprintf(text, sizeof text, "%s", chosen.name.c_str());
+                if (barLink(text, ImGui::GetStyleColorVec4(ImGuiCol_Text)))
+                {
+                    showInMission(p_app, "Inspector");
+                }
+                ImGui::SetItemTooltip("The selection. Show it in the "
+                                      "Inspector (Mission workspace).");
             }
         }
         if (!p_app.error.empty())
@@ -812,13 +826,18 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/8";
+    constexpr char const* LAYOUT_VERSION = "/9";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     if (p_app.ui.reset_layout || ImGui::DockBuilderGetNode(dock) == nullptr)
     {
         layout(workspace, dock);
         p_app.ui.reset_layout = false;
+        // Docking does not choose the tab in front: Skills, in Mission.
+        if (workspace == Workspace::Mission)
+        {
+            p_app.ui.focus_window = "Skills";
+        }
     }
     ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());
 
@@ -850,6 +869,7 @@ void drawPanels(App& p_app)
         case Workspace::Mission:
             treePanel(p_app, info.key);
             timelinePanel(p_app);
+            inspectorPanel(p_app);
             resourcesPanel(p_app);
             assertionsPanel(p_app, info.key);
             skillsPanel(p_app);

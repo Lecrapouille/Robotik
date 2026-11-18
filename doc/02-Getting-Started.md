@@ -63,21 +63,31 @@ The window has five parts:
 ┌ File  Demos  View  <plugin menus>  Help      [Plugin] [Robot] [Mission] [Autonomy] ┐  menu + workspaces
 │ [Play] [Step]  4.20 s RUNNING  [Replay] seed [Next seed] speed     [EMERGENCY STOP] │  run bar
 ├──────────────┬───────────────────────────────────────────────┬─────────────────────┤
-│  panels of   │               3D scene                        │  panels of the      │
-│  the         │                                               │  workspace, and the │
-│  workspace   │                                               │  plugin panel       │
+│  panels of   │               3D scene                        │  Inspector          │
+│  the         │                                               ├─────────────────────┤
+│  workspace   │                                               │  panels, plugin     │
 ├──────────────┴───────────────────────────────────────────────┴─────────────────────┤
 │  Timeline (Mission)                                                                 │
 ├─────────────────────────────────────────────────────────────────────────────────────┤
-│ Pick and place  seed 42  Assertions 3/5  1 in fault         x1.0 real time  60 fps │  status bar
+│ Pick and place  seed 42  Assertions 3/5  1 in fault | Grasp     x1.0 real time  60 fps │  status bar
 └─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 The **run bar** is the same in every workspace: play, step, the simulated
 time, the state of the run, replay and the seed, the speed, and the
 emergency stop when the scenario has a `Stop` skill. The **status bar** says
-what to look at: how many assertions pass and how many resources are in
-fault. Each of them is a link: a click shows it in the Mission workspace.
+what to look at: how many assertions pass, how many resources are in fault,
+and the item selected. Each of them is a link: a click shows it in the
+Mission workspace.
+
+**Selection.** A click on a skill, a resource or a robot (in the Timeline,
+the Skills or Resources panel, or a link of the Inspector) selects it in
+every panel: the **Inspector** shows it (state and why, resources and who
+holds them, preconditions, last phases; for a resource who holds it, who
+waits for it and its faults; for a robot its skills and joints), and the
+Timeline highlights its row. Selecting never commands the robot. **Pin**
+keeps an item in the Inspector while you select others; **Overview** shows
+what runs, waits and is in fault.
 
 A **workspace** is a set of panels for one task. Switch with the buttons at
 the top, or with **Ctrl+1** to **Ctrl+4**:
@@ -86,7 +96,7 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
 | **Robot** | Joints (limits, velocity, effort; drag a position, or Ctrl+click to type it, to move a joint), Joint plots, Teach Pendant (tool, Cartesian moves of the tool or of any link, waypoints; a link with fewer than six joints above it moves its position or its orientation alone, and the axes its joints cannot follow are greyed), Cameras | Look at the body, move it by hand. In Manual mode the mission is suspended and the robot moves even when the run is paused |
-| **Mission** | Behavior tree, Assertions, Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
+| **Mission** | Behavior tree, Assertions, Inspector, Timeline (under the scene, full width: skills by robot, resources, faults; it follows the present, the wheel zooms, a drag moves in time), Resources (who holds what, faults by hand), Skills (cards or table), Planner (the plans of the PDDL planner, see [chapter 11](11-PDDL-Planner.md#debugging)) | Debug the execution |
 | **Autonomy** | World model (belief against truth), Cameras, Perception (detections) | Check what the robot believes and sees |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the

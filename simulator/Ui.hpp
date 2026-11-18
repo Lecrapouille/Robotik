@@ -137,6 +137,18 @@ void syncTeachAxes(App& p_app, bool p_visible);
 /// Takes the arm from the mission for manual moves.
 void takeArm(App& p_app);
 
+// --- Selection and Inspector (InspectorPanel.cpp) ----------------------------
+
+/// Makes @p_name the selection of every panel.
+void selectItem(App& p_app, SelectionKind p_kind, std::string const& p_name);
+/// True when @p_name of @p_kind is the selection.
+bool isSelected(App const& p_app, SelectionKind p_kind, std::string const& p_name);
+/// A clickable name: it selects the item. Returns true when clicked.
+bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name);
+/// What is selected: a robot, a skill or a resource, its state and links
+/// to what it is related to. It can keep one item (Pin).
+void inspectorPanel(App& p_app);
+
 // --- Mission workspace (MissionPanels.cpp, TimelinePanel.cpp, SkillsPanel.cpp)
 
 /// Root of the nested tree of a SubTree node, else null.

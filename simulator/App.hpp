@@ -219,6 +219,27 @@ struct TimelineMemory
 };
 
 // ****************************************************************************
+/// What the operator looks at: a robot, a skill or a resource, by name (the
+/// names stay valid across a replay). Every panel may set it; the Inspector
+/// shows it and the Timeline highlights it. Choosing never commands the
+/// robot.
+// ****************************************************************************
+enum class SelectionKind : std::uint8_t
+{
+    None,
+    Robot,
+    Skill,
+    Resource,
+};
+
+struct Selection
+{
+    SelectionKind kind = SelectionKind::None;
+    /// Robot id, skill name or resource name.
+    std::string name;
+};
+
+// ****************************************************************************
 /// Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
@@ -273,6 +294,10 @@ struct UiState
     std::vector<bool> fault_pick;
     float fault_duration = 0.0F;
     std::vector<ManualFault> manual_faults;
+    /// The item chosen in any panel, and the one the Inspector keeps
+    /// (kind None: the Inspector follows the selection).
+    Selection selection;
+    Selection pinned;
     /// Window to bring to the front once the panels are drawn (a click
     /// in the status bar); empty: none.
     std::string focus_window;

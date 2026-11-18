@@ -804,9 +804,10 @@ void timelinePanel(App& p_app)
         ImU32 const stripe = ImGui::GetColorU32(ImGuiCol_TableRowBgAlt);
         ImU32 const header = ImGui::GetColorU32(ImGuiCol_TableHeaderBg);
         ImU32 const red = ImGui::GetColorU32(RED);
+        Selection const& chosen = p_app.ui.selection;
         robotik::SkillId const selected_skill =
-            memory.selected != NO_PHASE ? trace[memory.selected].skill
-                                        : robotik::NO_SKILL;
+            chosen.kind == SelectionKind::Skill ? skills.find(chosen.name)
+                                                : robotik::NO_SKILL;
 
         // Backgrounds, labels, and the clickable names.
         std::vector<std::size_t> const last = lastPhases(trace, skills.size());
@@ -830,7 +831,13 @@ void timelinePanel(App& p_app)
             {
                 draw->AddRectFilled(a, b, stripe);
             }
-            if (row.kind == RowKind::Skill && row.index == selected_skill)
+            bool const chosen_row =
+                (row.kind == RowKind::Skill && row.index == selected_skill) ||
+                (row.kind == RowKind::Resource &&
+                 isSelected(p_app, SelectionKind::Resource, row.label)) ||
+                (row.kind == RowKind::Robot &&
+                 isSelected(p_app, SelectionKind::Robot, row.robot));
+            if (chosen_row)
             {
                 draw->AddRectFilled(a, b, ImGui::GetColorU32(ImGuiCol_Header));
             }
@@ -872,16 +879,27 @@ void timelinePanel(App& p_app)
             ImGui::PushID(static_cast<int>(r));
             if (ImGui::InvisibleButton("name", ImVec2(label_w - 4.0F, row_h)))
             {
-                if (row.kind == RowKind::Robot)
+                // The arrow folds a robot; its name selects it.
+                bool const on_arrow = io.MousePos.x < a.x + indent;
+                if (row.kind == RowKind::Robot && on_arrow)
                 {
                     toggleFolded(view, row.robot);
+                }
+                else if (row.kind == RowKind::Robot)
+                {
+                    selectItem(p_app, SelectionKind::Robot, row.robot);
                 }
                 else if (row.kind == RowKind::Resources)
                 {
                     view.resources_open = !view.resources_open;
                 }
+                else if (row.kind == RowKind::Resource)
+                {
+                    selectItem(p_app, SelectionKind::Resource, row.label);
+                }
                 else if (row.kind == RowKind::Skill)
                 {
+                    selectItem(p_app, SelectionKind::Skill, row.label);
                     memory.selected = lastPhase(
                         trace, static_cast<robotik::SkillId>(row.index));
                 }
@@ -1155,6 +1173,11 @@ void timelinePanel(App& p_app)
         if (released && io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F)
         {
             memory.selected = hovered;
+            if (hovered != NO_PHASE)
+            {
+                selectItem(p_app, SelectionKind::Skill,
+                           skills.name(trace[hovered].skill));
+            }
         }
         if (double_clicked)
         {

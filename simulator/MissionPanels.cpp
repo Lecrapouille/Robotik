@@ -215,7 +215,7 @@ static void resourceTable(App& p_app)
     {
         ImGui::TableNextRow();
         ImGui::TableNextColumn();
-        ImGui::TextUnformatted(resources.name(id).c_str());
+        itemLink(p_app, SelectionKind::Resource, resources.name(id));
         ImGui::TableNextColumn();
         ImGui::TextColored(
             colorOf(resources, id), "%s", accessOf(resources, id));

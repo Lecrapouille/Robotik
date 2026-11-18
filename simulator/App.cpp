@@ -170,6 +170,9 @@ void App::load(bool p_keep_tool)
     ui.manual_faults.clear();
     ui.fault_pick.clear();
     ui.timeline_memory = {};
+    // Names of another scenario mean nothing here.
+    ui.selection = {};
+    ui.pinned = {};
     owns_clock = false;
     teach.manual = false;
     teach.pendant.clear();
