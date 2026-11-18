@@ -95,7 +95,13 @@ what runs, waits and is in fault.
 the detections of the perception) sits in the bottom-right corner of the 3D
 scene, in every workspace: no need for a Cameras panel to see what the
 robot sees. `<` and `>` change the camera, `x` hides it, **Camera** shows
-it again.
+it again; `+` (or a double click on the picture) shows it large.
+
+**Full view.** When a view needs room, **Ctrl+Space** over it (or its *Full
+view* button) shows it over the whole work area: the 3D scene, the
+Timeline (every row at once) or the camera. The run bar stays above it.
+**Ctrl+Space** again, **Esc** or *Restore* brings the panels back, where
+they were.
 
 A **workspace** is a set of panels for one task. Switch with the buttons at
 the top, or with **Ctrl+1** to **Ctrl+4**:
@@ -120,6 +126,7 @@ Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 | `.` | One step, when paused |
 | Ctrl+R / Ctrl+N | Replay with the same seed / the next seed |
 | Ctrl+E | Emergency stop, or release it |
+| Ctrl+Space | The view under the mouse (scene, timeline, camera) over the whole work area, or back; Esc comes back too |
 | F5 | Reload the scenario file (after you edit it) |
 
 The 3D view moves like the camera of a strategy game: it looks at a point

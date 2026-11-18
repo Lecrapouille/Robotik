@@ -66,6 +66,12 @@ void rangeBar(double p_value,
 
 // --- Shell (Workspace.cpp) --------------------------------------------------
 
+/// Shows @p_view over the whole work area, or the panels again when it is
+/// already shown (Ctrl+Space; Esc restores).
+void toggleMaximized(App& p_app, Maximized p_view);
+/// Text drawn in a panel whose view is maximized.
+void maximizedNote(App& p_app);
+
 void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
@@ -73,6 +79,9 @@ void drawPanels(App& p_app);
 /// The 3D view, framed in the color of the run (ScenePanel.cpp). The run
 /// controls are in the run bar, under the menu.
 void scenePanel(App& p_app, char const* p_key);
+/// Contents of the Scene panel, without its window: in the panel, or over
+/// the whole work area when maximized.
+void sceneView(App& p_app);
 /// Color of the frame around the 3D view: orange while the run goes
 /// on, green when it succeeded, red when it failed. False without a run, or
 /// before it starts.
@@ -85,6 +94,8 @@ bool emergencyEngaged(App const& p_app);
 void toggleEmergency(App& p_app);
 /// Every robot camera, with the detections drawn on (CameraPanel.cpp).
 void camerasPanel(App& p_app, char const* p_key);
+/// The camera of the inset, large, without a window (maximized).
+void cameraView(App& p_app);
 /// The cameras of the first robot (none without a scenario).
 std::vector<robotik::Camera*> robotCameras(App& p_app);
 /// One robot camera over the bottom-right corner of the 3D view drawn at
@@ -166,6 +177,8 @@ bt::Node const* subtreeRoot(bt::Node const& p_node);
 /// follow the present, be zoomed and moved; one row per skill, grouped by
 /// robot, and one per resource.
 void timelinePanel(App& p_app);
+/// Contents of the Timeline panel, without its window.
+void timelineView(App& p_app);
 /// Records what the Timeline cannot read back later (resource faults, tree
 /// failures). Called every frame, whatever the workspace shown.
 void sampleTimeline(App& p_app);

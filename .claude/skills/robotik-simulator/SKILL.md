@@ -32,7 +32,11 @@ scenario YAML, and the simulator only shows or triggers it.
 
 - A panel is a free function `void xxxPanel(App&)` declared in `Ui.hpp`; its
   content without the window is `xxxView(App&)` when another panel reuses
-  it (e.g. `plannerView` in Mission and in the Plugin View panel).
+  it (e.g. `plannerView` in Mission and in the Plugin View panel), or when
+  it can be maximized (`sceneView`, `timelineView`, `cameraView`: see
+  `Maximized`, `toggleMaximized`, `maximizedWindow` in Workspace.cpp). A
+  maximizable panel sets `UiState::hovered_view` when hovered and draws
+  `maximizedNote` instead of its view while maximized.
 - Panel state lives in `UiState` (App.hpp), never in a `static` that outlives
   a scenario load. Reset it in `App::load` (and `App::reset` if it depends
   on the run).

@@ -213,28 +213,14 @@ void toggleEmergency(App& p_app)
     }
 }
 
-void scenePanel(App& p_app, char const* p_key)
+void sceneView(App& p_app)
 {
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
-    std::string const title = panelTitle("Scene", p_key);
-    bool const visible = ImGui::Begin(title.c_str(),
-                                      nullptr,
-                                      ImGuiWindowFlags_NoScrollbar |
-                                          ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::PopStyleVar();
-    p_app.view_hovered = false;
-    if (!visible)
-    {
-        ImGui::End();
-        return;
-    }
     if (!p_app.simulation)
     {
         emptyState(p_app.error.empty()
                        ? "No scenario loaded.\nChoose one in the Demos menu, "
                          "or File > Open scenario."
                        : p_app.error.c_str());
-        ImGui::End();
         return;
     }
     ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0F),
@@ -273,6 +259,23 @@ void scenePanel(App& p_app, char const* p_key)
     }
     runFrame(p_app, at, size);
     cameraInset(p_app, at, size);
+
+    // Top right: the whole work area for the scene (maximized, the line
+    // above the view has the button to come back).
+    if (p_app.ui.maximized != Maximized::Scene)
+    {
+        char const* label = "Full view";
+        float const width = ImGui::CalcTextSize(label).x +
+                            2.0F * ImGui::GetStyle().FramePadding.x;
+        ImGui::SetCursorScreenPos(
+            ImVec2(at.x + size.x - width - 10.0F, at.y + 10.0F));
+        if (ImGui::Button(label))
+        {
+            toggleMaximized(p_app, Maximized::Scene);
+        }
+        ImGui::SetItemTooltip("Ctrl+Space over a view; Esc to come back.");
+    }
+
     char const* hint =
         "Click: select   Left drag: move   Right drag: turn   Wheel: zoom   "
         "WASD QE RF";
@@ -287,5 +290,35 @@ void scenePanel(App& p_app, char const* p_key)
     draw->AddText(ImVec2(corner.x + 6.0F, corner.y + 3.0F),
                   ImGui::GetColorU32(ImGuiCol_TextDisabled),
                   hint);
+}
+
+void scenePanel(App& p_app, char const* p_key)
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+    std::string const title = panelTitle("Scene", p_key);
+    bool const visible = ImGui::Begin(title.c_str(),
+                                      nullptr,
+                                      ImGuiWindowFlags_NoScrollbar |
+                                          ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PopStyleVar();
+    p_app.view_hovered = false;
+    if (!visible)
+    {
+        ImGui::End();
+        return;
+    }
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+    {
+        p_app.ui.hovered_view = Maximized::Scene;
+    }
+    // One 3D view: maximized, it is drawn over the work area instead.
+    if (p_app.ui.maximized == Maximized::Scene)
+    {
+        maximizedNote(p_app);
+    }
+    else
+    {
+        sceneView(p_app);
+    }
     ImGui::End();
 }

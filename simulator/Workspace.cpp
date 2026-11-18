@@ -182,6 +182,114 @@ static void quit()
     }
 }
 
+void toggleMaximized(App& p_app, Maximized p_view)
+{
+    p_app.ui.maximized =
+        p_app.ui.maximized == p_view ? Maximized::None : p_view;
+}
+
+void maximizedNote(App& p_app)
+{
+    (void)p_app;
+    emptyState("Shown over the whole work area.\n"
+               "Ctrl+Space or Esc: back to the panels.");
+}
+
+/// Name of a view that can be maximized.
+static char const* nameOf(Maximized p_view)
+{
+    switch (p_view)
+    {
+        case Maximized::Scene:
+            return "Scene";
+        case Maximized::Timeline:
+            return "Timeline";
+        case Maximized::Camera:
+            return "Camera";
+        case Maximized::None:
+            break;
+    }
+    return "";
+}
+
+/// The maximized view over the whole work area, between the run bar and the
+/// status bar, with a line to come back.
+static void maximizedWindow(App& p_app)
+{
+    UiState& ui = p_app.ui;
+    if (!p_app.simulation || ui.workspace == Workspace::Plugin)
+    {
+        ui.maximized = Maximized::None;
+    }
+    if (ui.maximized == Maximized::None)
+    {
+        ui.maximized_last = Maximized::None;
+        return;
+    }
+    ImGuiViewport const* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    if (ui.maximized != ui.maximized_last)
+    {
+        ImGui::SetNextWindowFocus();
+    }
+    ui.maximized_last = ui.maximized;
+    ImGuiWindowFlags const flags =
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
+        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoScrollWithMouse;
+    if (ImGui::Begin("##maximized", nullptr, flags))
+    {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(nameOf(ui.maximized));
+        ImGui::SameLine();
+        ImGui::TextDisabled("Ctrl+Space or Esc: back to the panels");
+        ImGui::SameLine();
+        float const width = ImGui::CalcTextSize("Restore").x +
+                            2.0F * ImGui::GetStyle().FramePadding.x;
+        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
+                                      ImGui::GetWindowWidth() - width -
+                                          ImGui::GetStyle().WindowPadding.x));
+        if (ImGui::Button("Restore"))
+        {
+            ui.maximized = Maximized::None;
+        }
+        bool const scene = ui.maximized == Maximized::Scene;
+        if (scene)
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+        }
+        if (ImGui::BeginChild("view",
+                              ImVec2(0.0F, 0.0F),
+                              ImGuiChildFlags_None,
+                              ImGuiWindowFlags_NoScrollbar |
+                                  ImGuiWindowFlags_NoScrollWithMouse))
+        {
+            switch (ui.maximized)
+            {
+                case Maximized::Scene:
+                    sceneView(p_app);
+                    break;
+                case Maximized::Timeline:
+                    timelineView(p_app);
+                    break;
+                case Maximized::Camera:
+                    cameraView(p_app);
+                    break;
+                case Maximized::None:
+                    break;
+            }
+        }
+        ImGui::EndChild();
+        if (scene)
+        {
+            ImGui::PopStyleVar();
+        }
+    }
+    ImGui::End();
+}
+
 /// Keyboard shortcuts that are not ImGui menu chords.
 static void shortcuts(App& p_app)
 {
@@ -215,6 +323,21 @@ static void shortcuts(App& p_app)
     if (ImGui::IsKeyPressed(ImGuiKey_F1, false))
     {
         p_app.ui.show_shortcuts = true;
+    }
+    // The view under the mouse over the whole work area, or back.
+    if (ctrl && ImGui::IsKeyPressed(ImGuiKey_Space, false))
+    {
+        Maximized const under = p_app.ui.maximized != Maximized::None
+                                    ? p_app.ui.maximized
+                                : p_app.ui.hovered_view != Maximized::None
+                                    ? p_app.ui.hovered_view
+                                    : Maximized::Scene;
+        toggleMaximized(p_app, under);
+    }
+    if (p_app.ui.maximized != Maximized::None &&
+        ImGui::IsKeyPressed(ImGuiKey_Escape, false))
+    {
+        p_app.ui.maximized = Maximized::None;
     }
     if (!p_app.simulation)
     {
@@ -780,6 +903,8 @@ static void shortcutsWindow(App& p_app)
             { "Ctrl+R", "Replay with the same seed" },
             { "Ctrl+N", "Replay with the next seed" },
             { "Ctrl+E", "Emergency stop / release" },
+            { "Ctrl+Space", "The view under the mouse over the whole work "
+                            "area, or back (Esc)" },
             { "F5", "Reload the scenario file" },
             { "Ctrl+O", "Open a scenario file" },
             { "Ctrl+1 ... Ctrl+4", "Plugin, Robot, Mission, Autonomy" },
@@ -820,6 +945,8 @@ void drawPanels(App& p_app)
     }
     openClickedAsset(p_app);
     shortcuts(p_app);
+    // Set again by the views under the mouse in this frame.
+    p_app.ui.hovered_view = Maximized::None;
     mainMenu(p_app);
     runBar(p_app);
     statusBar(p_app);
@@ -903,6 +1030,7 @@ void drawPanels(App& p_app)
             break;
     }
 
+    maximizedWindow(p_app);
     syncTeachAxes(p_app, workspace == Workspace::Robot);
     if (!p_app.ui.focus_window.empty())
     {

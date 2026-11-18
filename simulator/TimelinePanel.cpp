@@ -734,10 +734,26 @@ void timelinePanel(App& p_app)
         ImGui::End();
         return;
     }
+    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
+    {
+        p_app.ui.hovered_view = Maximized::Timeline;
+    }
+    if (p_app.ui.maximized == Maximized::Timeline)
+    {
+        maximizedNote(p_app);
+    }
+    else
+    {
+        timelineView(p_app);
+    }
+    ImGui::End();
+}
+
+void timelineView(App& p_app)
+{
     if (!p_app.simulation)
     {
         emptyState("No scenario loaded.");
-        ImGui::End();
         return;
     }
     robotik::Simulation const& simulation = *p_app.simulation;
@@ -751,6 +767,16 @@ void timelinePanel(App& p_app)
     ImGuiIO const& io = ImGui::GetIO();
 
     toolbar(view, now);
+    // Maximized, the line above the view has the button to come back.
+    if (p_app.ui.maximized != Maximized::Timeline)
+    {
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Full view"))
+        {
+            toggleMaximized(p_app, Maximized::Timeline);
+        }
+        ImGui::SetItemTooltip("Ctrl+Space over a view; Esc to come back.");
+    }
     std::vector<Row> const rows = rowsOf(p_app);
 
     // Geometry shared by the ruler and the rows.
@@ -1209,5 +1235,4 @@ void timelinePanel(App& p_app)
         line = momentSentence(simulation, hover_t >= 0.0 ? hover_t : now);
     }
     ImGui::TextUnformatted(line.c_str());
-    ImGui::End();
 }

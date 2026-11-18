@@ -275,7 +275,7 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     ImGui::SetCursorScreenPos(ImVec2(min.x + 6.0F, min.y + 3.0F));
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted(camera.name().c_str());
-    float const buttons = cameras.size() > 1U ? 3.0F : 1.0F;
+    float const buttons = cameras.size() > 1U ? 4.0F : 2.0F;
     ImGui::SameLine();
     ImGui::SetCursorScreenPos(ImVec2(
         corner.x - buttons * (ImGui::GetFrameHeight() + 4.0F) - 2.0F,
@@ -296,6 +296,12 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
         ImGui::SetItemTooltip("Next camera");
         ImGui::SameLine(0.0F, 4.0F);
     }
+    if (ImGui::SmallButton("+"))
+    {
+        toggleMaximized(p_app, Maximized::Camera);
+    }
+    ImGui::SetItemTooltip("Show the camera over the whole work area");
+    ImGui::SameLine(0.0F, 4.0F);
     if (ImGui::SmallButton("x"))
     {
         ui.inset_camera = false;
@@ -303,10 +309,16 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     ImGui::SetItemTooltip("Hide the camera");
     ImGui::PopStyleVar();
 
-    // The picture; the mouse on it does not move the 3D view.
+    // The picture; the mouse on it does not move the 3D view. A double
+    // click shows it large.
     ImVec2 const at(min.x, min.y + head);
     ImGui::SetCursorScreenPos(at);
     ImGui::InvisibleButton("picture", image);
+    if (ImGui::IsItemHovered() &&
+        ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+    {
+        toggleMaximized(p_app, Maximized::Camera);
+    }
     if (picture.texture == nullptr || picture.width == 0U)
     {
         char const* text = "No frame yet";
@@ -327,4 +339,35 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
         overlay(p_app, camera, at, image);
     }
     ImGui::PopID();
+}
+
+void cameraView(App& p_app)
+{
+    std::vector<robotik::Camera*> const cameras = robotCameras(p_app);
+    if (cameras.empty() || !p_app.scene_view)
+    {
+        emptyState("The robot has no camera.");
+        return;
+    }
+    UiState& ui = p_app.ui;
+    ui.inset_index = std::min(ui.inset_index, cameras.size() - 1U);
+    if (cameras.size() > 1U)
+    {
+        for (std::size_t i = 0; i < cameras.size(); ++i)
+        {
+            ImGui::PushID(static_cast<int>(i));
+            if (ImGui::RadioButton(cameras[i]->name().c_str(),
+                                   ui.inset_index == i))
+            {
+                ui.inset_index = i;
+            }
+            ImGui::PopID();
+            ImGui::SameLine();
+        }
+        ImGui::NewLine();
+    }
+    cameraCell(p_app,
+               *cameras[ui.inset_index],
+               ui.inset_index,
+               ImGui::GetContentRegionAvail());
 }

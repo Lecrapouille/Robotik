@@ -242,6 +242,18 @@ struct Selection
 };
 
 // ****************************************************************************
+/// A view shown over the whole work area (Ctrl+Space), the panels hidden
+/// behind it until it is restored.
+// ****************************************************************************
+enum class Maximized : std::uint8_t
+{
+    None,
+    Scene,
+    Timeline,
+    Camera,
+};
+
+// ****************************************************************************
 /// Operator interface state, kept across scenario loads.
 // ****************************************************************************
 struct UiState
@@ -308,6 +320,12 @@ struct UiState
     /// Timeline: the view chosen and what it recorded of the run.
     TimelineView timeline;
     TimelineMemory timeline_memory;
+    /// The view shown over the work area, and the one under the mouse in
+    /// the last frame (what Ctrl+Space would maximize).
+    Maximized maximized = Maximized::None;
+    Maximized hovered_view = Maximized::None;
+    /// The view maximized in the last frame: focus it only when it opens.
+    Maximized maximized_last = Maximized::None;
     /// Scene: a robot camera over its corner, and which one.
     bool inset_camera = true;
     std::size_t inset_index = 0;
