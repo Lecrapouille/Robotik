@@ -6,13 +6,117 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
+#include "Robotik/Robot/Components/Objects.hpp"
+
+#include "Compages/Core/AABB.hpp"
+
 #include <imgui.h>
 
 #include <algorithm>
 #include <iostream>
 #include <cstdint>
+#include <stdexcept>
 
 static constexpr char const* STOP = "Stop";
+
+/// The robot or the object that entity @p_id belongs to: the first of its
+/// ancestors that is an object (a shape, not a decoration) or the root of
+/// a robot. Nothing for the floor or a decoration.
+static Selection ownerOf(App& p_app, compages::world::EntityId p_id)
+{
+    compages::world::Entity entity = p_app.world->entity(p_id);
+    while (entity)
+    {
+        robotik::ecs::Shape const* shape = entity.find<robotik::ecs::Shape>();
+        if (shape != nullptr &&
+            entity.find<robotik::ecs::Decoration>() == nullptr)
+        {
+            return { SelectionKind::Object, shape->name };
+        }
+        for (auto const& robot : p_app.simulation->cell().robots())
+        {
+            if (robot->root().id() == entity.id())
+            {
+                return { SelectionKind::Robot, robot->id() };
+            }
+        }
+        entity = entity.parent();
+    }
+    return {};
+}
+
+/// A click without drag in the view selects what is under the mouse, or
+/// nothing. @p_at and @p_size: the view on the screen.
+static void pickInView(App& p_app, ImVec2 p_at, ImVec2 p_size)
+{
+    ImGuiIO const& io = ImGui::GetIO();
+    bool const click =
+        ImGui::IsItemDeactivated() &&
+        ImGui::IsMouseReleased(ImGuiMouseButton_Left) &&
+        io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F;
+    if (!click || !p_app.scene)
+    {
+        return;
+    }
+    // The picture counts its pixels from the bottom left.
+    ImVec2 const scale = io.DisplayFramebufferScale;
+    compages::Vector2f const pixel(
+        (io.MousePos.x - p_at.x) * scale.x,
+        (p_size.y - (io.MousePos.y - p_at.y)) * scale.y);
+    std::optional<compages::renderer::RayHit> const hit =
+        p_app.scene->pick(pixel);
+    p_app.ui.selection = hit ? ownerOf(p_app, hit->entity) : Selection{};
+}
+
+/// The selected object in the 3D view: a light box where it is, an amber
+/// one where the robot believes it is. Drawn at the next render only.
+static void markSelection(App& p_app)
+{
+    Selection const& chosen = p_app.ui.selection;
+    if (chosen.kind != SelectionKind::Object || !p_app.scene)
+    {
+        return;
+    }
+    robotik::Cell const& cell = p_app.simulation->cell();
+    compages::renderer::DebugDraw& debug = p_app.scene->debug();
+    compages::Vector3f half(0.02F, 0.02F, 0.02F);
+    p_app.world->each<robotik::ecs::Shape>(
+        [&](compages::world::Entity p_entity,
+            robotik::ecs::Shape const& p_shape)
+        {
+            if (p_shape.name != chosen.name)
+            {
+                return;
+            }
+            half = compages::Vector3f(
+                0.5F * static_cast<float>(p_shape.size[0].value()),
+                0.5F * static_cast<float>(p_shape.size[1].value()),
+                0.5F * static_cast<float>(p_shape.size[2].value()));
+            // A bit larger than the object, so the lines are not hidden.
+            compages::Vector3f const pad = half * 1.08F;
+            debug.box(compages::AABB::fromCorners(-pad, pad),
+                      p_entity.worldMatrix(),
+                      compages::Vector3f(0.92F, 0.93F, 0.95F));
+        });
+    robotik::WorldObject const* belief = cell.worldModel().find(chosen.name);
+    if (belief == nullptr)
+    {
+        return;
+    }
+    robotik::Vector3 const at = cell.beliefFrame() * belief->position;
+    compages::Vector3f const center(static_cast<float>(at.x),
+                                          static_cast<float>(at.y),
+                                          static_cast<float>(at.z));
+    compages::Vector3f const size =
+        belief->size.x > 0.0 ? compages::Vector3f(
+                                   0.5F * static_cast<float>(belief->size.x),
+                                   0.5F * static_cast<float>(belief->size.y),
+                                   0.5F * static_cast<float>(belief->size.z))
+                             : half;
+    debug.box(compages::AABB::fromCorners(center - size, center + size),
+              compages::Matrix44f(compages::matrix::Identity),
+              compages::Vector3f(0.93F, 0.71F, 0.39F));
+}
 
 /// Colored frame around the view: the state of the run at a glance.
 static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
@@ -155,6 +259,8 @@ void scenePanel(App& p_app, char const* p_key)
                                ImGuiButtonFlags_MouseButtonRight |
                                ImGuiButtonFlags_MouseButtonMiddle);
     p_app.view_hovered = ImGui::IsItemHovered() || ImGui::IsItemActive();
+    pickInView(p_app, at, size);
+    markSelection(p_app);
     if (p_app.view.valid())
     {
         // The device puts the first row at the bottom.
@@ -168,7 +274,8 @@ void scenePanel(App& p_app, char const* p_key)
     runFrame(p_app, at, size);
     cameraInset(p_app, at, size);
     char const* hint =
-        "Left drag: move   Right drag: turn   Wheel: zoom   WASD QE RF";
+        "Click: select   Left drag: move   Right drag: turn   Wheel: zoom   "
+        "WASD QE RF";
     ImVec2 const text = ImGui::CalcTextSize(hint);
     ImVec2 const corner(at.x + 10.0F, at.y + size.y - text.y - 12.0F);
     ImDrawList* draw = ImGui::GetWindowDrawList();

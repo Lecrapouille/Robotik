@@ -18,7 +18,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | Workspace.cpp | the 4 workspaces, their dock layouts, menu bar, tab alerts (red), run bar (play, clock, seed, emergency stop), status bar (links), shortcuts |
 | Ui.hpp | declaration of every panel and shared widget; read it first |
 | Widgets.cpp | `badge`, `helpMarker`, `emptyState`, `beginTable`, `textView`, `rangeBar` |
-| ScenePanel.cpp | 3D view, run frame color (`runColor`), emergency stop (`toggleEmergency`) |
+| ScenePanel.cpp | 3D view, click to select (`Scene::pick`), boxes of the selected object (truth, belief), run frame color (`runColor`), emergency stop (`toggleEmergency`) |
 | PackagePanels.cpp / OverviewPanels.cpp | Plugin workspace: Plugin, Files (tabs), View, Assets, Assertions |
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
 | MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |

@@ -128,6 +128,7 @@ while you type in a text field.
 
 | Mouse or key | Does |
 |--------------|------|
+| Click | Select the robot or the object under the mouse (nothing: clear the selection). A selected object gets a light box where it is and an amber box where the robot believes it is |
 | Left drag | Drag the floor: the point under the mouse stays under it |
 | Right or middle drag | Turn around the point looked at, and up or down |
 | Wheel, R / F | Zoom in / out |
