@@ -99,8 +99,14 @@ it again; `+` (or a double click on the picture) shows it large.
 
 **Main area.** The large area in the middle of Robot, Mission and Autonomy
 shows the 3D scene by default. Its selector (top left) puts another view in
-its place: Camera, Timeline, Joint plots, Behavior tree or Planner, at the
-size of the scene. The panel of that view then says where it is shown, with
+its place: Camera, Timeline, Joint plots, Behavior tree, Planner or
+Execution graph, at the size of the scene. The **execution graph** reads
+from left to right: with a PDDL planner, one box per step of the plan
+(done, running, *waits for step 3*, failed) with the skills it runs, an
+arrow from a step to the steps that wait for it, so the steps that run
+together are in the same column; without a planner, the behavior tree, the
+root on the left. Click a skill to inspect it; the graph scrolls to the
+skill selected elsewhere; drag the background to move it. The panel of that view then says where it is shown, with
 a button to bring it back. Each workspace keeps its own choice.
 
 **Full view.** When a view needs room, **Ctrl+Space** over it (or its *Full

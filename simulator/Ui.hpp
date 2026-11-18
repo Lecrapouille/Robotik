@@ -191,6 +191,10 @@ bt::Node const* subtreeRoot(bt::Node const& p_node);
 void timelinePanel(App& p_app);
 /// Contents of the Timeline panel, without its window.
 void timelineView(App& p_app);
+/// The execution graph (GraphView.cpp): the steps of the plan, what they
+/// wait for and the skills they run; the behavior tree without a planner.
+/// A view of the main area, without a panel of its own.
+void graphView(App& p_app);
 /// Records what the Timeline cannot read back later (resource faults, tree
 /// failures). Called every frame, whatever the workspace shown.
 void sampleTimeline(App& p_app);

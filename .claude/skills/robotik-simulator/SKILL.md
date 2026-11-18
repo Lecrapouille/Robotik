@@ -24,6 +24,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
 | InspectorPanel.cpp | Inspector, one per workspace (skill, resource, robot, object, overview), `selectItem` / `isSelected` / `itemLink` / `showInspector` |
 | UiScreenshot.cpp | `--screenshot-ui`: PNG of the whole window (check a change without a person: `--at`, `--workspace`, `--select`) |
+| GraphView.cpp | Execution graph (a view of the main area only): plan steps with their skills and what they wait for, or the behavior tree laid out left to right |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras, the camera inset of the scene (`cameraInset`) |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |

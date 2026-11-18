@@ -210,6 +210,9 @@ void drawView(App& p_app, ViewKind p_view)
         case ViewKind::Planner:
             plannerView(p_app);
             break;
+        case ViewKind::Graph:
+            graphView(p_app);
+            break;
         case ViewKind::None:
             break;
     }
@@ -231,6 +234,8 @@ char const* viewName(ViewKind p_view)
             return "Behavior tree";
         case ViewKind::Planner:
             return "Planner";
+        case ViewKind::Graph:
+            return "Execution graph";
         case ViewKind::None:
             break;
     }

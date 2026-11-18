@@ -255,6 +255,7 @@ enum class ViewKind : std::uint8_t
     Plots,    ///< Joint positions, velocities, accelerations, efforts.
     Tree,     ///< The behavior tree and the status of its nodes.
     Planner,  ///< The PDDL goal, plan and beliefs.
+    Graph,    ///< Plan steps (or tree nodes) and their skills, as a graph.
 };
 
 // ****************************************************************************
@@ -330,6 +331,10 @@ struct UiState
     ViewKind hovered_view = ViewKind::None;
     /// The view maximized in the last frame: focus it only when it opens.
     ViewKind maximized_last = ViewKind::None;
+    /// Execution graph: the tree instead of the plan.
+    bool graph_tree = false;
+    /// Execution graph: the selection it last brought into sight.
+    std::string graph_seen;
     /// The view in the main area of each workspace (Plugin has none).
     std::array<ViewKind, WORKSPACE_COUNT> main_view{
         ViewKind::Scene, ViewKind::Scene, ViewKind::Scene, ViewKind::Scene

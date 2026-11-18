@@ -21,6 +21,7 @@ static ViewKind viewNamed(std::string const& p_name)
            : p_name == "plots"    ? ViewKind::Plots
            : p_name == "tree"     ? ViewKind::Tree
            : p_name == "planner"  ? ViewKind::Planner
+           : p_name == "graph"    ? ViewKind::Graph
                                   : ViewKind::Scene;
 }
 
