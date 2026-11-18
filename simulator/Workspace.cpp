@@ -113,16 +113,18 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Robot:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.36F);
-            ImGuiID right = split(center, ImGuiDir_Right, 0.28F);
-            ImGuiID const cameras = split(right, ImGuiDir_Down, 0.42F);
-            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.40F);
+            // Three areas around the main one: the joints, the plots under
+            // it, and one column of tabs (the camera is already over the
+            // scene, its panel waits behind the pendant).
+            ImGuiID const left = split(center, ImGuiDir_Left, 0.30F);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.26F);
+            ImGuiID const bottom = split(center, ImGuiDir_Down, 0.32F);
             dock("Joints", left);
             dock(mainWindowId(key), center);
             dock("Joint plots", bottom);
             dock(panelTitle("Inspector", key), right);
+            dock(panelTitle("Cameras", key), right);
             dock("Teach Pendant", right);
-            dock(panelTitle("Cameras", key), cameras);
             break;
         }
         case Workspace::Mission:
@@ -149,14 +151,16 @@ static void layout(Workspace p_workspace, ImGuiID p_dock)
         }
         case Workspace::Autonomy:
         {
-            ImGuiID const left = split(center, ImGuiDir_Left, 0.30F);
-            ImGuiID right = split(center, ImGuiDir_Right, 0.32F);
-            ImGuiID const perception = split(right, ImGuiDir_Down, 0.45F);
+            // What the robot believes and perceives on the left, the item
+            // inspected on the right (the camera is over the scene).
+            ImGuiID left = split(center, ImGuiDir_Left, 0.28F);
+            ImGuiID const perception = split(left, ImGuiDir_Down, 0.40F);
+            ImGuiID const right = split(center, ImGuiDir_Right, 0.26F);
             dock("World model", left);
+            dock("Perception", perception);
             dock(mainWindowId(key), center);
             dock(panelTitle("Cameras", key), right);
             dock(panelTitle("Inspector", key), right);
-            dock("Perception", perception);
             break;
         }
     }
@@ -1015,7 +1019,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/12";
+    constexpr char const* LAYOUT_VERSION = "/13";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is

@@ -73,7 +73,9 @@ void worldModelPanel(App& p_app)
             "Truth (m)", ImGuiTableColumnFlags_WidthStretch, 1.4F);
         ImGui::TableSetupColumn(
             "Belief (m)", ImGuiTableColumnFlags_WidthStretch, 1.4F);
-        ImGui::TableSetupColumn("Error", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("Error",
+                                ImGuiTableColumnFlags_WidthFixed,
+                                ImGui::CalcTextSize("000.0 mm").x);
         ImGui::TableSetupColumn("Conf.", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Seen", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
