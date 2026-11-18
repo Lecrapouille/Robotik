@@ -124,6 +124,19 @@ void runMainLoop(Window& p_window, App& p_app)
                 .color = { 0.05F, 0.05F, 0.06F, 1.0F } });
         }
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        // --screenshot-ui: the whole window at the asked time, then quit.
+        // A few frames first, so the docks have their sizes.
+        if (!p_app.screenshot_ui.empty() && ImGui::GetFrameCount() > 30 &&
+            (!p_app.simulation ||
+             p_app.simulation->time().value() >= p_app.screenshot_at ||
+             p_app.simulation->finished()))
+        {
+            bool const saved = saveWindowPng(p_app.screenshot_ui, width, height);
+            std::cerr << (saved ? "wrote " : "could not write ")
+                      << p_app.screenshot_ui.string() << '\n';
+            p_app.screenshot_ui.clear();
+            glfwSetWindowShouldClose(p_window.handle, GLFW_TRUE);
+        }
         glfwSwapBuffers(p_window.handle);
 
 #if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)

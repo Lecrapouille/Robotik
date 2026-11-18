@@ -144,6 +144,12 @@ default, or at the end of the run if it ends before):
 ./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
 ```
 
+`--screenshot-ui ui.png` does the same with the whole window, panels
+included (`--at 0`: without playing). `--workspace robot` opens a workspace
+other than Mission, and `--select skill:Grasp` (or `resource:gripper`,
+`robot:left`) chooses what the Inspector shows: handy to check the
+interface without a person in front of it.
+
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
 a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 

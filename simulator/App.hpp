@@ -367,6 +367,8 @@ struct App
     bool playing = false;
     /// --screenshot: the PNG to save of the 3D view, then quit; empty: none.
     std::filesystem::path screenshot;
+    /// --screenshot-ui: the PNG to save of the whole window, then quit.
+    std::filesystem::path screenshot_ui;
     /// --screenshot: simulated seconds to play before the picture.
     double screenshot_at = 3.0;
     bool step_once = false;

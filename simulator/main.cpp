@@ -24,13 +24,32 @@ int main(int argc, char** argv)
 
     App app;
     app.plugins.scan();
-    // Robotik-Simulator [scenario] [--screenshot file.png [--at seconds]]
+    // Robotik-Simulator [scenario] [--screenshot file.png] [--screenshot-ui
+    // file.png] [--at seconds] [--workspace plugin|robot|mission|autonomy]
+    // [--select skill:<name>|resource:<name>|robot:<id>]
+    std::string select;
     for (int i = 1; i < argc; ++i)
     {
         std::string const argument = argv[i];
         if (argument == "--screenshot" && i + 1 < argc)
         {
             app.screenshot = argv[++i];
+        }
+        else if (argument == "--screenshot-ui" && i + 1 < argc)
+        {
+            app.screenshot_ui = argv[++i];
+        }
+        else if (argument == "--select" && i + 1 < argc)
+        {
+            select = argv[++i];
+        }
+        else if (argument == "--workspace" && i + 1 < argc)
+        {
+            std::string const name = argv[++i];
+            app.ui.workspace = name == "plugin"     ? Workspace::Plugin
+                               : name == "robot"    ? Workspace::Robot
+                               : name == "autonomy" ? Workspace::Autonomy
+                                                    : Workspace::Mission;
         }
         else if (argument == "--at" && i + 1 < argc)
         {
@@ -62,8 +81,21 @@ int main(int argc, char** argv)
     if (!app.scenario_path.empty())
     {
         app.load();
+        // --select: what the Inspector shows first (load clears it).
+        if (std::size_t const colon = select.find(':');
+            colon != std::string::npos)
+        {
+            std::string const kind = select.substr(0, colon);
+            app.ui.selection = {
+                kind == "skill"      ? SelectionKind::Skill
+                : kind == "resource" ? SelectionKind::Resource
+                                     : SelectionKind::Robot,
+                select.substr(colon + 1) };
+        }
         // A picture of the run: play it until the time of the picture.
-        app.playing = app.playing || !app.screenshot.empty();
+        app.playing = app.playing ||
+                      ((!app.screenshot.empty() || !app.screenshot_ui.empty()) &&
+                       app.screenshot_at > 0.0);
     }
     runMainLoop(window, app);
     return app.error.empty() ? 0 : 1;

@@ -23,6 +23,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
 | MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
 | InspectorPanel.cpp | Inspector (skill, resource, robot, overview), `selectItem` / `isSelected` / `itemLink` |
+| UiScreenshot.cpp | `--screenshot-ui`: PNG of the whole window (check a change without a person: `--at`, `--workspace`, `--select`) |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
@@ -41,6 +42,8 @@ scenario YAML, and the simulator only shows or triggers it.
 - One selection for every panel (`UiState::selection`: robot, skill or
   resource, by name). A panel that names one of them draws it with
   `itemLink` so a click shows it in the Inspector. Selecting never acts.
+- Check a visual change with `--screenshot-ui x.png --at <s>` (and
+  `--select`), then read the PNG; do not capture the desktop.
 - Status colors only from `Colors.hpp`: GREY idle, ORANGE running/held,
   GREEN success, RED failure/fault, BLUE info/paused/shared.
 - Never write the truth into what skills see; panels may read the truth

@@ -7,8 +7,15 @@
 
 #pragma once
 
+#include <filesystem>
+
 struct App;
 struct Window;
 
 // Event poll, simulation step, 3D views, ImGui composite, swap buffers.
 void runMainLoop(Window& p_window, App& p_app);
+
+/// Saves the window, panels included, as a PNG (--screenshot-ui). Call it
+/// after the panels are drawn and before the buffers are swapped.
+/// @return False when it could not read or write.
+bool saveWindowPng(std::filesystem::path const& p_path, int p_width, int p_height);
