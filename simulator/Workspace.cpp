@@ -95,9 +95,9 @@ static std::array<PanelInfo, PANEL_COUNT> const PANELS{ {
       ViewKind::None,
       true,
       [](App& app) { inspectorPanel(app, infoOf(app.ui.workspace).key); } },
-    { "Joints", ViewKind::None, false, robotPanel },
-    { "Joint plots", ViewKind::Plots, false, plotsPanel },
-    { "Teach Pendant", ViewKind::None, false, teachPanel },
+    { "Joints", ViewKind::None, true, robotPanel },
+    { "Joint plots", ViewKind::Plots, true, plotsPanel },
+    { "Teach Pendant", ViewKind::None, true, teachPanel },
     { "Cameras",
       ViewKind::Camera,
       true,
@@ -110,13 +110,13 @@ static std::array<PanelInfo, PANEL_COUNT> const PANELS{ {
       ViewKind::None,
       true,
       [](App& app) { assertionsPanel(app, infoOf(app.ui.workspace).key); } },
-    { "Timeline", ViewKind::Timeline, false, timelinePanel },
-    { "Events", ViewKind::Events, false, eventsPanel },
-    { "Resources", ViewKind::None, false, resourcesPanel },
-    { "Skills", ViewKind::None, false, skillsPanel },
-    { "Planner", ViewKind::Planner, false, plannerPanel },
-    { "World model", ViewKind::None, false, worldModelPanel },
-    { "Perception", ViewKind::None, false, perceptionPanel },
+    { "Timeline", ViewKind::Timeline, true, timelinePanel },
+    { "Events", ViewKind::Events, true, eventsPanel },
+    { "Resources", ViewKind::None, true, resourcesPanel },
+    { "Skills", ViewKind::None, true, skillsPanel },
+    { "Planner", ViewKind::Planner, true, plannerPanel },
+    { "World model", ViewKind::None, true, worldModelPanel },
+    { "Perception", ViewKind::None, true, perceptionPanel },
 } };
 
 PanelVisibility defaultPanels(Workspace p_workspace)
@@ -147,7 +147,12 @@ bool beginPanel(App& p_app,
 {
     bool& open = p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)]
                                 [static_cast<std::size_t>(p_panel)];
-    bool const visible = ImGui::Begin(p_title, &open, p_flags);
+    // Even windows first opened in another workspace keep a separate dock id.
+    std::string const title =
+        std::string(p_title).find("##") == std::string::npos
+            ? panelTitle(p_title, infoOf(p_app.ui.workspace).key)
+            : p_title;
+    bool const visible = ImGui::Begin(title.c_str(), &open, p_flags);
     if (!open)
         ImGui::MarkIniSettingsDirty();
     return visible;
@@ -1178,7 +1183,7 @@ void drawPanels(App& p_app)
     WorkspaceInfo const& info = infoOf(workspace);
     // Bump LAYOUT_VERSION when a default layout changes: the layouts saved in
     // the ini file are then rebuilt once.
-    constexpr char const* LAYOUT_VERSION = "/15";
+    constexpr char const* LAYOUT_VERSION = "/16";
     ImGuiID const dock = ImGui::GetID(
         (std::string("RobotikWorkspace/") + info.key + LAYOUT_VERSION).c_str());
     // Every default layout is split: a whole node when the workspace is
@@ -1204,7 +1209,8 @@ void drawPanels(App& p_app)
         {
             p_app.ui.focus_windows.push_back(panelTitle("Inspector", info.key));
             if (workspace == Workspace::Mission)
-                p_app.ui.focus_windows.emplace_back("Timeline");
+                p_app.ui.focus_windows.push_back(
+                    panelTitle("Timeline", info.key));
         }
     }
     ImGui::DockSpaceOverViewport(dock, ImGui::GetMainViewport());

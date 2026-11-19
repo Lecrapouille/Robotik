@@ -83,7 +83,8 @@ Mission workspace.
 **Optional windows.** In Robot, Mission and Autonomy, **View** lists every
 simulation window. Tick a name to open it; untick it or use its close button
 to hide it. The choice is saved with the layout, separately for each
-workspace. Windows are available across these workspaces. When a view moves
+workspace. Windows are available across these workspaces, with a separate dock position
+in each one. When a view moves
 to the main area, its former window disappears and releases its space.
 Choose it in **View** to return it to a separate window.
 
