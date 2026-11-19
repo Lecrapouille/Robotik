@@ -271,7 +271,8 @@ static void workspaceBar(App& p_app)
             ImGuiWindow const* tool = ImGui::FindWindowByName(
                 panelTitle(label, infoOf(p_app.ui.workspace).key).c_str());
             bool const in_front =
-                shown && tool != nullptr && !tool->Hidden &&
+                shown && p_app.ui.maximized == ViewKind::None &&
+                tool != nullptr && !tool->Hidden &&
                 (!tool->DockIsActive || tool->DockTabIsVisible);
             if (ImGui::Button(label))
             {
@@ -1182,26 +1183,56 @@ static void runBar(App& p_app)
         p_app.reset(p_app.seed);
     }
     ImGui::SetItemTooltip("Start again with this seed and play  (Ctrl+R)");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(90.0F);
-    ImGui::InputScalar("##seed", ImGuiDataType_U64, &p_app.seed);
-    ImGui::SetItemTooltip(
-        "Seed: object layout, sensor noise and random faults derive from it.\n"
-        "Press Replay to use it.");
-    ImGui::SameLine();
-    if (ImGui::Button("Next seed"))
+    ImGui::SameLine(0.0F, 12.0F);
+    char speed_label[24];
+    std::snprintf(speed_label,
+                  sizeof speed_label,
+                  "x%.2g",
+                  static_cast<double>(p_app.speed));
+    ImGui::SetNextItemWidth(84.0F);
+    if (ImGui::BeginCombo("##run_speed", speed_label))
     {
-        p_app.reset(p_app.seed + 1U);
+        static constexpr float SPEEDS[] = { 0.25F, 0.5F, 1.0F, 2.0F, 4.0F };
+        for (float const speed : SPEEDS)
+        {
+            char label[24];
+            std::snprintf(
+                label, sizeof label, "x%.2g", static_cast<double>(speed));
+            if (ImGui::Selectable(label, p_app.speed == speed))
+                p_app.speed = speed;
+        }
+        ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Ctrl+N");
-    ImGui::SameLine(0.0F, 18.0F);
-    ImGui::SetNextItemWidth(130.0F);
-    ImGui::SliderFloat("##speed", &p_app.speed, 0.1F, 4.0F, "speed x%.1f");
+    ImGui::SetItemTooltip(
+        "Simulation speed. Run options offers a continuous setting.");
+    ImGui::SameLine();
+    if (ImGui::Button("Run options..."))
+        ImGui::OpenPopup("run_options");
+    if (ImGui::BeginPopup("run_options"))
+    {
+        ImGui::SeparatorText("Replay");
+        ImGui::SetNextItemWidth(150.0F);
+        ImGui::InputScalar("Seed", ImGuiDataType_U64, &p_app.seed);
+        ImGui::SetItemTooltip("Seed for the next replay: object layout, noise "
+                              "and random faults.");
+        if (ImGui::Button("Next seed and replay"))
+        {
+            p_app.reset(p_app.seed + 1U);
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemTooltip("Ctrl+N");
+        ImGui::SeparatorText("Speed");
+        ImGui::SetNextItemWidth(210.0F);
+        ImGui::SliderFloat(
+            "##continuous_speed", &p_app.speed, 0.1F, 4.0F, "x%.2f");
+        ImGui::EndPopup();
+    }
     if (p_app.owns_clock)
     {
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::TextDisabled("(the plugin drives the clock)");
+        badge("Plugin clock", BLUE);
+        ImGui::SetItemTooltip("The plugin advances simulated time.");
     }
 
     if (emergencyAvailable(p_app))

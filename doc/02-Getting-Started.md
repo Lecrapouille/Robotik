@@ -61,7 +61,7 @@ The default Mission layout keeps the scene, an Inspector and a short Timeline:
 
 ```text
 ┌ File  Demos  View  Help                    [Plugin] [Robot] [Mission] [Autonomy] ┐
-│ Play / Step    time and state    Replay / seed / speed           Emergency stop │
+│ Play / Step    time and state    Replay / speed / Run options           Emergency stop │
 ├──────────────────────────────────────────────────────────┬────────────────────┤
 │                                                          │ Inspector          │
 │                    3D scene                              │                    │
@@ -74,8 +74,10 @@ The default Mission layout keeps the scene, an Inspector and a short Timeline:
 ```
 
 The **run bar** is the same in every workspace: play, step, the simulated
-time, the state of the run, replay and the seed, the speed, and the
-emergency stop when the scenario has a `Stop` skill. The **status bar** says
+time, the state of the run, replay, a compact speed selector, and the
+emergency stop when the scenario has a `Stop` skill. **Run options...**
+contains the seed, **Next seed and replay**, and continuous speed control.
+The **status bar** says
 what to look at: how many assertions pass, how many resources are in fault,
 and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
