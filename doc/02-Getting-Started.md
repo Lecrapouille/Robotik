@@ -80,11 +80,16 @@ what to look at: how many assertions pass, how many resources are in fault,
 and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
 
+The interface uses the HTML prototype's charcoal surfaces and amber accent.
+Toolbars group related commands, while larger text and spacing keep panels
+readable. Status colours still distinguish running, success and failure.
+
 **Task tools.** A bar below the run controls keeps the workspace's tools
 visible, even after you close their windows. **Robot** offers Joints, Teach
 Pendant, Joint plots and Inspector. **Mission** offers Timeline, Skills,
 Resources and Inspector. **Autonomy** offers World model, Perception,
-Cameras and Inspector. Click a tool to show or hide it. **Panels...** lists
+Cameras and Inspector. Click a tool to open it or bring its tab to the front. Click the front tool
+again to hide it. **Panels...** lists
 these tools first; **Other panels** gives access to every other window.
 The **View** menu offers the same choices.
 

@@ -672,8 +672,7 @@ static void overview(App& p_app)
     caption("RUN");
     title(p_app.scenario_title.empty() ? std::string("Run")
                                        : p_app.scenario_title);
-    ImGui::TextDisabled("Click a skill, a resource, a robot or an object "
-                        "in any panel to see it here.");
+    note(GREY, "Select a skill, resource, robot or object to inspect it.");
 
     ImGui::SeparatorText("Robots");
     for (auto const& robot : cell.robots())

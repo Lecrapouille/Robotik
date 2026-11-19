@@ -59,17 +59,19 @@ static void loadFonts()
     std::filesystem::path const text = fonts / "Roboto-Medium.ttf";
     std::filesystem::path const mono = fonts / "Cousine-Regular.ttf";
     if (std::filesystem::exists(text) &&
-        io.Fonts->AddFontFromFileTTF(text.string().c_str(), 15.0F) != nullptr)
+        io.Fonts->AddFontFromFileTTF(text.string().c_str(), 16.0F) != nullptr)
     {
         // Second font, for the file viewer (see monoFont).
         if (std::filesystem::exists(mono))
         {
-            io.Fonts->AddFontFromFileTTF(mono.string().c_str(), 14.0F);
+            io.Fonts->AddFontFromFileTTF(mono.string().c_str(), 15.0F);
         }
         return;
     }
 #endif
-    io.Fonts->AddFontDefault();
+    ImFontConfig fallback;
+    fallback.SizePixels = 16.0F;
+    io.Fonts->AddFontDefault(&fallback);
 }
 
 /// Color from 0xRRGGBB and an opacity.
@@ -87,6 +89,7 @@ static void applyStyle()
 {
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
+    style.FontSizeBase = 16.0F;
     style.WindowRounding = 0.0F;
     style.ChildRounding = 4.0F;
     style.FrameRounding = 5.0F;
@@ -96,18 +99,18 @@ static void applyStyle()
     style.TabRounding = 4.0F;
     style.ScrollbarRounding = 6.0F;
     style.ScrollbarSize = 12.0F;
-    style.WindowPadding = ImVec2(12.0F, 10.0F);
-    style.FramePadding = ImVec2(9.0F, 5.0F);
-    style.ItemSpacing = ImVec2(8.0F, 7.0F);
+    style.WindowPadding = ImVec2(16.0F, 14.0F);
+    style.FramePadding = ImVec2(11.0F, 6.0F);
+    style.ItemSpacing = ImVec2(10.0F, 9.0F);
     style.ItemInnerSpacing = ImVec2(6.0F, 4.0F);
-    style.CellPadding = ImVec2(7.0F, 4.0F);
-    style.WindowBorderSize = 0.0F;
+    style.CellPadding = ImVec2(8.0F, 6.0F);
+    style.WindowBorderSize = 1.0F;
     style.ChildBorderSize = 1.0F;
     style.PopupBorderSize = 1.0F;
     style.FrameBorderSize = 1.0F;
     style.TabBarBorderSize = 1.0F;
     style.SeparatorTextBorderSize = 1.0F;
-    style.DockingSeparatorSize = 4.0F;
+    style.DockingSeparatorSize = 6.0F;
 
     ImVec4 const background = rgb(0x141619);
     ImVec4 const panel = rgb(0x1C1F23);
@@ -133,9 +136,9 @@ static void applyStyle()
     colors[ImGuiCol_Button] = raised;
     colors[ImGuiCol_ButtonHovered] = hover;
     colors[ImGuiCol_ButtonActive] = rgb(0xEEB563, 0.30F);
-    colors[ImGuiCol_Header] = rgb(0xEEB563, 0.14F);
+    colors[ImGuiCol_Header] = raised;
     colors[ImGuiCol_HeaderHovered] = hover;
-    colors[ImGuiCol_HeaderActive] = rgb(0xEEB563, 0.24F);
+    colors[ImGuiCol_HeaderActive] = rgb(0xEEB563, 0.16F);
     colors[ImGuiCol_Separator] = border;
     colors[ImGuiCol_SeparatorHovered] = accent;
     colors[ImGuiCol_SeparatorActive] = accent;
@@ -229,16 +232,19 @@ bool Window::open()
 #if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
     // Dear ImGui fixes the mouse wheel; the window follows the page.
     ImGui_ImplGlfw_InstallEmscriptenCallbacks(handle, "#canvas");
-    emscripten_set_resize_callback(
-        EMSCRIPTEN_EVENT_TARGET_WINDOW,
-        handle,
-        false,
-        [](int /*event_type*/, EmscriptenUiEvent const* event, void* window) -> EM_BOOL {
-            glfwSetWindowSize(static_cast<GLFWwindow*>(window),
-                              event->windowInnerWidth,
-                              event->windowInnerHeight);
-            return EM_TRUE;
-        });
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW,
+                                   handle,
+                                   false,
+                                   [](int /*event_type*/,
+                                      EmscriptenUiEvent const* event,
+                                      void* window) -> EM_BOOL
+                                   {
+                                       glfwSetWindowSize(
+                                           static_cast<GLFWwindow*>(window),
+                                           event->windowInnerWidth,
+                                           event->windowInnerHeight);
+                                       return EM_TRUE;
+                                   });
     int const page_width = EM_ASM_INT({ return window.innerWidth; });
     int const page_height = EM_ASM_INT({ return window.innerHeight; });
     glfwSetWindowSize(handle, page_width, page_height);

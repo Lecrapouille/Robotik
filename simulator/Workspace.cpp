@@ -263,17 +263,30 @@ static void workspaceBar(App& p_app)
             bool const shown = panelShown(p_app, panel);
             ImGui::PushStyleColor(
                 ImGuiCol_Button,
-                shown ? ImGui::GetStyleColorVec4(ImGuiCol_HeaderActive)
-                      : ImGui::GetStyleColorVec4(ImGuiCol_FrameBg));
+                shown ? ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)
+                      : ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
             ImGui::PushStyleColor(
                 ImGuiCol_Text,
                 shown ? ORANGE : ImGui::GetStyleColorVec4(ImGuiCol_Text));
+            ImGuiWindow const* tool = ImGui::FindWindowByName(
+                panelTitle(label, infoOf(p_app.ui.workspace).key).c_str());
+            bool const in_front =
+                shown && tool != nullptr && !tool->Hidden &&
+                (!tool->DockIsActive || tool->DockTabIsVisible);
             if (ImGui::Button(label))
-                togglePanel(p_app, panel);
+            {
+                if (in_front)
+                    togglePanel(p_app, panel);
+                else
+                {
+                    p_app.ui.maximized = ViewKind::None;
+                    showPanel(p_app, panel);
+                }
+            }
             ImGui::PopStyleColor(2);
             ImGui::SetItemTooltip(
-                shown ? "Hide this panel. Its button stays here."
-                      : "Reopen this panel in this workspace.");
+                in_front ? "Hide this panel. Its button stays here."
+                         : "Open this panel or bring its tab to the front.");
             ImGui::SameLine();
         }
         ImGui::SetCursorPosX(
@@ -815,14 +828,14 @@ static void workspaceTabs(App& p_app)
         WorkspaceInfo const& info = WORKSPACES[i];
         bool const current = p_app.ui.workspace == static_cast<Workspace>(i);
         std::string const alert = alertOf(p_app, static_cast<Workspace>(i));
-        ImGui::PushStyleColor(
-            ImGuiCol_Button,
-            current ? ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive)
-                    : ImVec4(0.0F, 0.0F, 0.0F, 0.0F));
+        ImGui::PushStyleColor(ImGuiCol_Button,
+                              current
+                                  ? ImGui::GetStyleColorVec4(ImGuiCol_FrameBg)
+                                  : ImVec4(0.0F, 0.0F, 0.0F, 0.0F));
         ImGui::PushStyleColor(
             ImGuiCol_Text,
             !alert.empty() ? RED
-            : current      ? ImGui::GetStyleColorVec4(ImGuiCol_Text)
+            : current      ? ORANGE
                            : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
         if (ImGui::Button(info.name))
         {
@@ -848,6 +861,8 @@ static void mainMenu(App& p_app)
     {
         return;
     }
+    ImGui::TextColored(ORANGE, "ROBOTIK");
+    ImGui::SameLine(0.0F, 20.0F);
     if (ImGui::BeginMenu("File"))
     {
         if (ImGui::MenuItem("Open scenario...", "Ctrl+O"))

@@ -125,7 +125,10 @@ static void runFrame(App const& p_app, ImVec2 p_at, ImVec2 p_size)
     {
         return;
     }
-    constexpr float THICKNESS = 3.0F;
+    // The run bar carries the status; keep the running outline unobtrusive.
+    if (p_app.simulation && !p_app.simulation->finished())
+        color.w = 0.25F;
+    constexpr float THICKNESS = 2.0F;
     float const half = THICKNESS * 0.5F;
     ImGui::GetWindowDrawList()->AddRect(
         ImVec2(p_at.x + half, p_at.y + half),

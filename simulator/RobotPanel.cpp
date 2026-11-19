@@ -80,9 +80,9 @@ static void header(App& p_app)
     robotik::Scenario const& scenario = p_app.simulation->scenario();
     ImGui::TextUnformatted(robot.name().c_str());
     ImGui::SameLine();
-    ImGui::TextDisabled("%s  ·  %zu joints",
-                        robotik::firstRobot(scenario.world).model_ref.c_str(),
-                        robot.joints().size());
+    ImGui::TextDisabled("%zu joints", robot.joints().size());
+    ImGui::SetItemTooltip(
+        "%s", robotik::firstRobot(scenario.world).model_ref.c_str());
 
     // Who moves the robot: the mission, or the operator.
     bool const rl = p_app.owns_clock;
@@ -109,7 +109,7 @@ static void header(App& p_app)
     }
     ImGui::PopStyleColor();
     ImGui::EndDisabled();
-    ImGui::SameLine();
+    ImGui::PushTextWrapPos(0.0F);
     if (rl)
     {
         ImGui::TextDisabled("the RL plugin drives the robot");
@@ -122,6 +122,7 @@ static void header(App& p_app)
                 : "drag a position (Ctrl+click to type it) to take the robot");
     }
 
+    ImGui::PopTextWrapPos();
     std::string const tool = robot.tool();
     if (!tool.empty())
     {
@@ -134,7 +135,6 @@ static void header(App& p_app)
     }
     if (auto const* gripper = robot.actuators().first<robotik::VacuumGripper>())
     {
-        ImGui::SameLine();
         if (gripper->holding())
         {
             ImGui::TextColored(
