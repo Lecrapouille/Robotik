@@ -80,13 +80,20 @@ what to look at: how many assertions pass, how many resources are in fault,
 and the item selected. Each of them is a link: a click shows it in the
 Mission workspace.
 
-**Optional windows.** In Robot, Mission and Autonomy, **View** lists every
-simulation window. Tick a name to open it; untick it or use its close button
-to hide it. The choice is saved with the layout, separately for each
-workspace. Windows are available across these workspaces, with a separate dock position
-in each one. When a view moves
-to the main area, its former window disappears and releases its space.
-Choose it in **View** to return it to a separate window.
+**Task tools.** A bar below the run controls keeps the workspace's tools
+visible, even after you close their windows. **Robot** offers Joints, Teach
+Pendant, Joint plots and Inspector. **Mission** offers Timeline, Skills,
+Resources and Inspector. **Autonomy** offers World model, Perception,
+Cameras and Inspector. Click a tool to show or hide it. **Panels...** lists
+these tools first; **Other panels** gives access to every other window.
+The **View** menu offers the same choices.
+
+**Arrange** has two actions. **Place open panels** keeps your open tools
+and main view, and returns the windows to their task positions.
+**Restore recommended layout** restores the scene and the default tools.
+Robot starts with Joints in front of Inspector; Autonomy starts with World
+model in front of Inspector. Mission keeps Inspector and Timeline visible.
+The three workspaces save their own positions and visibility.
 
 **Selection.** A click on a skill, a resource, a robot or an object (in the
 Timeline, the Behavior tree, the Skills, Resources or World model panel, a
@@ -158,14 +165,13 @@ the top, or with **Ctrl+1** to **Ctrl+4**:
 | Workspace | Panels | Use it to |
 |-----------|--------|-----------|
 | **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
-| **Robot** | Scene with camera inset, Inspector showing the robot. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
+| **Robot** | Scene with camera inset, Joints and Inspector as tabs. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
 | **Mission** | Scene with camera inset, Inspector and compact Timeline. Open Behavior tree, Skills, Resources, Planner, Events or Assertions from **View** | Watch execution and inspect a problem |
-| **Autonomy** | Scene with camera inset and Inspector. Open World model, Perception or Cameras from **View** | Compare beliefs and perception with the scene |
+| **Autonomy** | Scene with camera inset, World model and Inspector as tabs. Open Perception or Cameras from the task bar | Compare beliefs and perception with the scene |
 
 The panel of the plugin (here **Hello world**) opens by itself next to the
 panels of the workspace, except in **Plugin**, which only reads the package. You can move and dock every panel; the layout of
-each workspace is saved in `~/.config/robotik/simulator.ini`. **View → Reset
-layout** restores its default windows and scene view.
+each workspace is saved in `~/.config/robotik/simulator.ini`. **Arrange → Restore recommended layout** restores its default windows and scene view.
 
 Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 
@@ -354,7 +360,7 @@ the [glossary](Glossary.md).
 
 | Layer | You have… | You write… |
 |-------|-----------|------------|
-| **Robot** | Scene with camera inset, Inspector showing the robot. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
+| **Robot** | Scene with camera inset, Joints and Inspector as tabs. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
 | **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
 | **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
 
