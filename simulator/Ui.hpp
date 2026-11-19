@@ -95,8 +95,9 @@ void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
 
-/// The main area of a workspace (ScenePanel.cpp): a selector of the view
-/// it shows (the 3D scene by default) and the Full view button.
+/// Main-view selector and Expand/Restore, in the persistent task bar.
+void mainViewControls(App& p_app);
+/// The main area of a workspace; its controls live in the task bar.
 void mainPanel(App& p_app, char const* p_key);
 /// Window id of the main area of a workspace, for the dock layouts.
 std::string mainWindowId(char const* p_key);

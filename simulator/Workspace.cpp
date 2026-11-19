@@ -178,7 +178,12 @@ static bool panelShown(App const& p_app, PanelKind p_panel)
 /// Closing a tool never removes its entry from the task bar.
 static void togglePanel(App& p_app, PanelKind p_panel)
 {
-    if (panelShown(p_app, p_panel))
+    if (p_app.ui.maximized != ViewKind::None)
+    {
+        p_app.ui.maximized = ViewKind::None;
+        showPanel(p_app, p_panel);
+    }
+    else if (panelShown(p_app, p_panel))
         p_app.ui.panels[static_cast<std::size_t>(p_app.ui.workspace)]
                        [static_cast<std::size_t>(p_panel)] = false;
     else
@@ -244,6 +249,8 @@ static void workspaceBar(App& p_app)
     {
         ImGui::AlignTextToFramePadding();
         ImGui::TextColored(ORANGE, "%s", infoOf(p_app.ui.workspace).name);
+        ImGui::SameLine(0.0F, 16.0F);
+        mainViewControls(p_app);
         ImGui::SameLine(0.0F, 20.0F);
         for (PanelKind const panel : recommendedPanels(p_app.ui.workspace))
         {
@@ -616,22 +623,11 @@ static void maximizedWindow(App& p_app)
         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
         ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove |
         ImGuiWindowFlags_NoScrollWithMouse;
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
+                        ui.maximized == ViewKind::Scene ? ImVec2(0.0F, 0.0F)
+                                                        : ImVec2(16.0F, 12.0F));
     if (ImGui::Begin("##maximized", nullptr, flags))
     {
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(viewName(ui.maximized));
-        ImGui::SameLine();
-        ImGui::TextDisabled("Ctrl+Space or Esc: back to the panels");
-        ImGui::SameLine();
-        float const width = ImGui::CalcTextSize("Restore").x +
-                            2.0F * ImGui::GetStyle().FramePadding.x;
-        ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-                                      ImGui::GetWindowWidth() - width -
-                                          ImGui::GetStyle().WindowPadding.x));
-        if (ImGui::Button("Restore"))
-        {
-            ui.maximized = ViewKind::None;
-        }
         bool const scene = ui.maximized == ViewKind::Scene;
         if (scene)
         {
@@ -654,6 +650,7 @@ static void maximizedWindow(App& p_app)
         }
     }
     ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 /// Keyboard shortcuts that are not ImGui menu chords.

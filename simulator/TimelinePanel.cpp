@@ -858,7 +858,7 @@ void timelineView(App& p_app)
     if (!viewElsewhere(p_app, ViewKind::Timeline))
     {
         ImGui::SameLine();
-        if (ImGui::SmallButton("Full view"))
+        if (ImGui::SmallButton("Expand"))
         {
             toggleMaximized(p_app, ViewKind::Timeline);
         }

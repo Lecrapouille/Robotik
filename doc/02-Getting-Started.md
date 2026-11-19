@@ -124,7 +124,7 @@ robot sees. `<` and `>` change the camera, `x` hides it, **Camera** shows
 it again; `+` (or a double click on the picture) shows it large.
 
 **Main area.** The large area in the middle of Robot, Mission and Autonomy
-shows the 3D scene by default. Its selector (top left) puts another view in
+shows the 3D scene by default. The selector in the task bar puts another view in
 its place: Camera, Timeline, Joint plots, Behavior tree, Planner, Execution
 graph or Events, at the size of the scene. The **execution graph** reads
 from left to right: with a PDDL planner, one box per step of the plan
@@ -152,10 +152,11 @@ it in the Timeline; a click on a line selects its skill or resource. The
 list follows the new lines; scroll up to read, come back to the bottom to
 follow again.
 
-**Full view.** When a view needs room, **Ctrl+Space** over it (or its *Full
-view* button) shows it over the whole work area: the 3D scene, the
+**Expand.** When a view needs room, **Ctrl+Space** over it (or **Expand**,
+next to the main-view selector) shows it over the whole work area: the 3D scene, the
 Timeline (every row at once), the camera, the joint plots, the behavior
-tree or the planner. The run bar stays above it.
+tree or the planner. The run controls and task tools stay above it. A task-tool button restores
+the layout and opens that panel.
 **Ctrl+Space** again, **Esc** or *Restore* brings the panels back, where
 they were.
 

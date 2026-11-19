@@ -13,8 +13,8 @@
 #include <imgui.h>
 
 #include <algorithm>
-#include <iostream>
 #include <cstdint>
+#include <iostream>
 #include <stdexcept>
 
 static constexpr char const* STOP = "Stop";
@@ -50,19 +50,18 @@ static Selection ownerOf(App& p_app, compages::world::EntityId p_id)
 static void pickInView(App& p_app, ImVec2 p_at, ImVec2 p_size)
 {
     ImGuiIO const& io = ImGui::GetIO();
-    bool const click =
-        ImGui::IsItemDeactivated() &&
-        ImGui::IsMouseReleased(ImGuiMouseButton_Left) &&
-        io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F;
+    bool const click = ImGui::IsItemDeactivated() &&
+                       ImGui::IsMouseReleased(ImGuiMouseButton_Left) &&
+                       io.MouseDragMaxDistanceSqr[ImGuiMouseButton_Left] < 9.0F;
     if (!click || !p_app.scene)
     {
         return;
     }
     // The picture counts its pixels from the bottom left.
     ImVec2 const scale = io.DisplayFramebufferScale;
-    compages::Vector2f const pixel(
-        (io.MousePos.x - p_at.x) * scale.x,
-        (p_size.y - (io.MousePos.y - p_at.y)) * scale.y);
+    compages::Vector2f const pixel((io.MousePos.x - p_at.x) * scale.x,
+                                   (p_size.y - (io.MousePos.y - p_at.y)) *
+                                       scale.y);
     std::optional<compages::renderer::RayHit> const hit =
         p_app.scene->pick(pixel);
     p_app.ui.selection = hit ? ownerOf(p_app, hit->entity) : Selection{};
@@ -105,14 +104,14 @@ static void markSelection(App& p_app)
     }
     robotik::Vector3 const at = cell.beliefFrame() * belief->position;
     compages::Vector3f const center(static_cast<float>(at.x),
-                                          static_cast<float>(at.y),
-                                          static_cast<float>(at.z));
+                                    static_cast<float>(at.y),
+                                    static_cast<float>(at.z));
     compages::Vector3f const size =
-        belief->size.x > 0.0 ? compages::Vector3f(
-                                   0.5F * static_cast<float>(belief->size.x),
-                                   0.5F * static_cast<float>(belief->size.y),
-                                   0.5F * static_cast<float>(belief->size.z))
-                             : half;
+        belief->size.x > 0.0
+            ? compages::Vector3f(0.5F * static_cast<float>(belief->size.x),
+                                 0.5F * static_cast<float>(belief->size.y),
+                                 0.5F * static_cast<float>(belief->size.z))
+            : half;
     debug.box(compages::AABB::fromCorners(center - size, center + size),
               compages::Matrix44f(compages::matrix::Identity),
               compages::Vector3f(0.93F, 0.71F, 0.39F));
@@ -226,8 +225,9 @@ void sceneView(App& p_app)
     ImVec2 const size(std::max(ImGui::GetContentRegionAvail().x, 1.0F),
                       std::max(ImGui::GetContentRegionAvail().y, 1.0F));
     ImVec2 const scale = ImGui::GetIO().DisplayFramebufferScale;
-    if (auto sized = p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
-                                       static_cast<std::uint32_t>(size.y * scale.y));
+    if (auto sized =
+            p_app.view.resize(static_cast<std::uint32_t>(size.x * scale.x),
+                              static_cast<std::uint32_t>(size.y * scale.y));
         !sized)
     {
         std::cerr << "3D view: " << sized.error() << '\n';
@@ -251,7 +251,8 @@ void sceneView(App& p_app)
     {
         // The device puts the first row at the bottom.
         ImGui::GetWindowDrawList()->AddImage(
-            ImTextureRef(static_cast<ImTextureID>(p_app.view.color().nativeId())),
+            ImTextureRef(
+                static_cast<ImTextureID>(p_app.view.color().nativeId())),
             at,
             ImVec2(at.x + size.x, at.y + size.y),
             ImVec2(0.0F, 1.0F),
@@ -283,45 +284,38 @@ std::string mainWindowId(char const* p_key)
 
 /// Views offered by the selector of the main area, in its order.
 static constexpr ViewKind MAIN_VIEWS[] = {
-    ViewKind::Scene,  ViewKind::Camera, ViewKind::Timeline,
-    ViewKind::Plots,  ViewKind::Tree,   ViewKind::Planner,
-    ViewKind::Graph,  ViewKind::Events,
+    ViewKind::Scene, ViewKind::Camera,  ViewKind::Timeline, ViewKind::Plots,
+    ViewKind::Tree,  ViewKind::Planner, ViewKind::Graph,    ViewKind::Events,
 };
 
-/// Header of the main area: the selector of its view, and Full view.
-static void mainHeader(App& p_app, ViewKind& p_view)
+void mainViewControls(App& p_app)
 {
-    // From the start of the contents, under the tab of the window.
-    ImVec2 const start = ImGui::GetCursorStartPos();
-    ImGui::SetCursorPos(ImVec2(start.x + 8.0F, start.y + 5.0F));
-    ImGui::SetNextItemWidth(160.0F);
-    if (ImGui::BeginCombo("##view", viewName(p_view)))
+    UiState& ui = p_app.ui;
+    ViewKind& view = ui.main_view[static_cast<std::size_t>(ui.workspace)];
+    bool const expanded = ui.maximized != ViewKind::None;
+    ViewKind const shown = expanded ? ui.maximized : view;
+    ImGui::SetNextItemWidth(170.0F);
+    if (ImGui::BeginCombo("##main_view", viewName(shown)))
     {
-        for (ViewKind const view : MAIN_VIEWS)
+        for (ViewKind const candidate : MAIN_VIEWS)
         {
-            if (ImGui::Selectable(viewName(view), view == p_view))
+            if (ImGui::Selectable(viewName(candidate), candidate == shown))
             {
-                p_view = view;
+                view = candidate;
+                if (expanded)
+                    ui.maximized = candidate;
             }
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("What this area shows. The panel of the view "
-                          "chosen shows a note meanwhile.");
-    char const* label = "Full view";
-    float const width =
-        ImGui::CalcTextSize(label).x + 2.0F * ImGui::GetStyle().FramePadding.x;
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(std::max(ImGui::GetCursorPosX(),
-                                  ImGui::GetWindowWidth() - width - 8.0F));
-    if (ImGui::Button(label))
-    {
-        toggleMaximized(p_app, p_view);
-    }
-    ImGui::SetItemTooltip("Over the whole work area (Ctrl+Space over a "
-                          "view; Esc to come back).");
-    ImGui::SetCursorPos(
-        ImVec2(start.x, start.y + ImGui::GetFrameHeight() + 10.0F));
+    ImGui::SetItemTooltip(
+        "Choose the main view. The other tools keep their positions.");
+    ImGui::SameLine(0.0F, 6.0F);
+    if (ImGui::Button(expanded ? "Restore" : "Expand"))
+        toggleMaximized(p_app, shown);
+    ImGui::SetItemTooltip(expanded ? "Return to the panel layout (Esc)."
+                                   : "Temporarily expand this view "
+                                     "(Ctrl+Space). Esc restores the layout.");
 }
 
 void mainPanel(App& p_app, char const* p_key)
@@ -343,7 +337,6 @@ void mainPanel(App& p_app, char const* p_key)
         ImGui::End();
         return;
     }
-    mainHeader(p_app, view);
     if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) &&
         p_app.ui.maximized != view)
     {
