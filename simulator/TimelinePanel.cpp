@@ -329,8 +329,10 @@ static void timeWindow(TimelineView const& p_view,
     }
     else if (p_view.follow)
     {
-        p_t1 = std::max(p_view.window_s, p_now + LEAD * p_view.window_s);
-        p_t0 = p_t1 - p_view.window_s;
+        // Keep early actions readable instead of reserving empty future time.
+        double const width = std::min(p_view.window_s, std::max(1.0, p_now + 1.0));
+        p_t1 = std::max(width, p_now + LEAD * width);
+        p_t0 = p_t1 - width;
     }
     else
     {
@@ -540,7 +542,7 @@ static void toolbar(TimelineView& p_view, double p_now)
                                                p_view.window_s < 10.0 ? 0.5 : 1.0)
                                         .c_str());
     ImGui::SameLine(0.0F, 16.0F);
-    ImGui::Checkbox("Active only", &p_view.active_only);
+    ImGui::Checkbox("Hide unused", &p_view.active_only);
     ImGui::SetItemTooltip("Hide the skills never requested since the start.");
     ImGui::SameLine();
     helpMarker("Wheel: zoom.\nDrag or Shift+wheel: move in time.\n"
@@ -853,7 +855,7 @@ void timelineView(App& p_app)
 
     toolbar(view, now);
     // ViewKind, the line above the view has the button to come back.
-    if (p_app.ui.maximized != ViewKind::Timeline)
+    if (!viewElsewhere(p_app, ViewKind::Timeline))
     {
         ImGui::SameLine();
         if (ImGui::SmallButton("Full view"))

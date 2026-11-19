@@ -127,6 +127,12 @@ root on the left. Click a skill to inspect it; the graph scrolls to the
 skill selected elsewhere; drag the background to move it. Its separate window hides while the main area shows it. Use **View** to
 open it separately again. Each workspace keeps its own choice.
 
+**Compact timeline.** The initial view follows the latest five simulated
+seconds. At startup it uses a shorter axis to keep early actions readable.
+**Hide unused** starts enabled: skills never requested do not take a row.
+Untick it to see all skills. **Whole run**, wheel zoom and panning remain
+available. Hide **Timeline** from **View** when the scene needs more room.
+
 **Events.** The tab next to the Timeline tells the run as dated lines: the
 skills that wait (and for what), start and end (succeeded after 0.5 s,
 failed and why, cancelled), the resources that fall in fault and come

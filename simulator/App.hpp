@@ -220,11 +220,11 @@ struct TimelineView
     /// The window shows the whole run (from 0 to now).
     bool whole_run = false;
     /// Width of the window of time, in simulated seconds.
-    double window_s = 30.0;
+    double window_s = 5.0;
     /// Left edge of the window when it neither follows nor shows the run.
     double start_s = 0.0;
     /// Hide the skills never requested.
-    bool active_only = false;
+    bool active_only = true;
     /// Show one row per resource.
     bool resources_open = false;
     /// Robots whose rows are folded into their header.
