@@ -61,14 +61,14 @@ TEST(Backchaining, ReadsThePlainPreconditions)
                                              .take();
     robotik::ActionSchema const& mark = schema.actions.at("mark");
     ASSERT_EQ(mark.preconditions.size(), 2U);
-    EXPECT_EQ(robotik::toString(mark.preconditions[0]), "loaded(?c)");
-    EXPECT_EQ(robotik::toString(mark.preconditions[1]), "not painted(?c)");
+    EXPECT_EQ(robotik::toString(mark.preconditions[0]), "(loaded ?c)");
+    EXPECT_EQ(robotik::toString(mark.preconditions[1]), "(not (painted ?c))");
     EXPECT_TRUE(mark.partial_preconditions); // the forall
 
     robotik::ActionSchema const& wash = schema.actions.at("wash");
     ASSERT_EQ(wash.preconditions.size(), 2U);
-    EXPECT_EQ(robotik::toString(wash.preconditions[0]), "not clean");
-    EXPECT_EQ(robotik::toString(wash.preconditions[1]), "loaded(?c)");
+    EXPECT_EQ(robotik::toString(wash.preconditions[0]), "(not clean)");
+    EXPECT_EQ(robotik::toString(wash.preconditions[1]), "(loaded ?c)");
     EXPECT_TRUE(wash.partial_preconditions); // the at end
 }
 
@@ -83,9 +83,9 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
     // (at ?p ?b) is the predicate at, not a timed effect.
     robotik::ActionSchema const& place = schema.actions.at("place");
     ASSERT_EQ(place.effects.size(), 3U);
-    EXPECT_EQ(robotik::toString(place.effects[0]), "at(?p, ?b)");
+    EXPECT_EQ(robotik::toString(place.effects[0]), "(at ?p ?b)");
     EXPECT_EQ(robotik::toString(schema.actions.at("convey").preconditions[0]),
-              "at(?p, ?f)");
+              "(at ?p ?f)");
 
     // convey makes at(p1, z) for a zone only. place(?r ?p ?b ?z) puts the part in the bin: the arm and the zone
     // take every object of their type.
@@ -113,7 +113,7 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
                     { "left", "p1", "bin_left", "zone_left" },
                     0.0,
                     0.0 })[2]),
-              "reaches(left, zone_left)");
+              "(reaches left zone_left)");
 }
 
 TEST(Backchaining, GrowsTheTreeAndKnowsTheAncestors)
@@ -140,7 +140,7 @@ TEST(Backchaining, GrowsTheTreeAndKnowsTheAncestors)
         robotik::ancestors(tree, tree.actions[pick].preconditions[0]);
     ASSERT_EQ(above.size(), 3U);
     EXPECT_EQ(robotik::toString(above[0]), "hand_empty");
-    EXPECT_EQ(robotik::toString(above[1]), "holding(cube)");
-    EXPECT_EQ(robotik::toString(above[2]), "in(cube, box)");
+    EXPECT_EQ(robotik::toString(above[1]), "(holding cube)");
+    EXPECT_EQ(robotik::toString(above[2]), "(in cube box)");
     EXPECT_EQ(robotik::ancestors(tree, 1U).size(), 1U); // a goal
 }

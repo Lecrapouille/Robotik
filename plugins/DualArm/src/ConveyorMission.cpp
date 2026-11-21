@@ -180,7 +180,7 @@ static bool heldByAnyone(robotik::RobotContext const& p_context,
     return false;
 }
 
-/// at(part, place) on the beliefs: on its footprint, not held. A
+/// (at part place) on the beliefs: on its footprint, not held. A
 /// part not seen yet is where the world file says (the prior).
 static robotik::Truth resting(robotik::RobotContext const& p_context,
                               std::string const& p_part,

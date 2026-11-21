@@ -94,7 +94,7 @@ scenario:
   # controller:
   #   planner:
   #     domain: scenarios/x.domain.pddl
-  #     facts: [...]                  # block list! [a(x, y)] splits at the comma
+  #     facts: [ (before red black) ]   # one literal per item
   #     goal:
   #       - (in red_cube box)
   #     replan: { max: 3, delay: 0.5 }   # verify: true, search: lama, timeout: 10

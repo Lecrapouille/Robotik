@@ -18,10 +18,10 @@
 ///   first one ends before the second one starts.
 ///
 /// @code
-/// sequential plan: 1. pick(left, a)  2. pick(right, b)  3. place(left, a, bin)
-///   end 1 -> start 3 (3 needs holding(left, a)); 2 runs with 1 and 3.
-/// temporal plan: carry(left, tray) [0, 10]   visit(right, glass) [1, 4]
-///   start carry -> start visit (visit needs held(tray) over all)
+/// sequential plan: 1. (pick left a)  2. (pick right b)  3. (place left a bin)
+///   end 1 -> start 3 (3 needs (holding left a)); 2 runs with 1 and 3.
+/// temporal plan: (carry left tray) [0, 10]   (visit right glass) [1, 4]
+///   start carry -> start visit (visit needs (held tray) over all)
 ///   end visit -> end carry (carry ends the holding): the tray is held all
 ///   along.
 /// @endcode

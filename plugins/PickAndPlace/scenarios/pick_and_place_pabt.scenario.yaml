@@ -1,8 +1,8 @@
 # The task of pick_and_place_pddl.scenario.yaml, with the same domain and
 # the same mission, but no search: the behavior tree grows backwards from
-# the goal (PA-BT). It starts with in(red_cube, box)?; when it is false,
-# place(red_cube, box) goes under it, which needs holding(red_cube)?, which
-# gets pick(red_cube), which needs seen(red_cube)? and hand_empty?, and so
+# the goal (PA-BT). It starts with (in red_cube box)?; when it is false,
+# (place red_cube box) goes under it, which needs (holding red_cube)?, which
+# gets (pick red_cube), which needs (seen red_cube)? and hand_empty?, and so
 # on. Each tick reads the conditions on the beliefs again.
 scenario:
   id: pick_and_place_pabt

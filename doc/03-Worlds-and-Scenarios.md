@@ -430,7 +430,7 @@ scenario:
     - { resource: gripper, rate: 0.01 }        # random: 1 % chance per second
 
   timeout: 60
-  stop_when: inside(red_cube, box)
+  stop_when: (inside red_cube box)
 
   assertions:
     - controller.success

@@ -103,7 +103,7 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
     // The generated tree runs the bound skills, then checks each step.
     std::string const& tree = simulation.cell().planner()->history().front().tree;
     EXPECT_NE(tree.find("\"Grasp(red_cube)\""), std::string::npos) << tree;
-    EXPECT_NE(tree.find("\"Check 2. pick(red_cube)\""), std::string::npos)
+    EXPECT_NE(tree.find("\"Check 2. (pick red_cube)\""), std::string::npos)
         << tree;
 
     PlannedRun const again = run(simulation, robotik::Seed{ 42 }, 60.0);
@@ -141,7 +141,7 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
     EXPECT_EQ(record.planner.replans, simulation.cell().planner()->replans());
     EXPECT_EQ(record.planner.plans[1].cause, result.causes[1]);
     ASSERT_FALSE(record.planner.plans.front().steps.empty());
-    EXPECT_EQ(record.planner.plans.front().steps.front(), "detect(red_cube)");
+    EXPECT_EQ(record.planner.plans.front().steps.front(), "(detect red_cube)");
     std::ostringstream json;
     robotik::writeJson(robotik::RunReport{ "x", { record } }, json);
     EXPECT_NE(json.str().find("\"replans\": "), std::string::npos)
@@ -194,9 +194,9 @@ TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
     ASSERT_EQ(first.causes.size(), 3U);
     EXPECT_EQ(first.causes[0], "start");
     EXPECT_EQ(first.causes[1],
-              "in(red_cube, box) is false: put 1 action(s) under it");
+              "(in red_cube box) is false: put 1 action(s) under it");
     EXPECT_EQ(first.causes[2],
-              "holding(red_cube) is false: put 1 action(s) under it");
+              "(holding red_cube) is false: put 1 action(s) under it");
     EXPECT_EQ(first.plans[2], "(place red_cube box)(pick red_cube)");
 
     robotik::PlanExecutor const& executor = *simulation.cell().planner();
@@ -206,7 +206,7 @@ TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
               (std::vector<std::size_t>{ 0U }));
     std::string const& tree = executor.history().back().tree;
     EXPECT_NE(tree.find("ReactiveSelector"), std::string::npos) << tree;
-    EXPECT_NE(tree.find("\"holding(red_cube)? #2\""), std::string::npos)
+    EXPECT_NE(tree.find("\"(holding red_cube)? #2\""), std::string::npos)
         << tree;
     EXPECT_NE(tree.find("\"Grasp(red_cube)\""), std::string::npos) << tree;
 

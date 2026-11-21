@@ -245,7 +245,7 @@ struct StepMark
     /// Plan it belongs to (1 for the first), step number in it (from 1).
     std::size_t plan = 0;
     std::size_t step = 0;
-    /// The action, e.g. "pick(left, a)".
+    /// The action, e.g. "(pick left a)".
     std::string action;
     bool skipped = false;
     bool failed = false;

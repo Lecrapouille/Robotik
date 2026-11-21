@@ -16,11 +16,11 @@
 /// conditions. Run as a behavior tree, a condition is
 ///
 /// @code
-/// ReactiveSelector                  in(red_cube, box)?   yes: done
-///   in(red_cube, box)?              else run place(red_cube, box), which
-///   ReactiveSequence                needs holding(red_cube)?   else run
-///     holding(red_cube)?  <- expanded the same way when it fails
-///     place(red_cube, box)
+/// ReactiveSelector                  (in red_cube box)?   yes: done
+///   (in red_cube box)?              else run (place red_cube box), which
+///   ReactiveSequence                needs (holding red_cube)?   else run
+///     (holding red_cube)?  <- expanded the same way when it fails
+///     (place red_cube box)
 /// @endcode
 ///
 /// and every tick reads the conditions on the beliefs again: an object that
@@ -124,8 +124,8 @@ struct BackchainTree
 /// effect does not fix takes every object of its type.
 ///
 /// @code
-/// // pick(?o ?from) makes holding(?o) true: holding(red_cube) gives
-/// // pick(red_cube, table) and pick(red_cube, shelf).
+/// // (pick ?o ?from) makes (holding ?o) true: (holding red_cube) gives
+/// // (pick red_cube table) and (pick red_cube shelf).
 /// @endcode
 ///
 /// @param p_schema The domain.

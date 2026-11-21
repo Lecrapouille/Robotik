@@ -107,7 +107,7 @@ TEST(Planning, ReadsLiterals)
     ASSERT_EQ(in.atom.args.size(), 2U);
     EXPECT_EQ(in.atom.args[0], "red_cube");
     EXPECT_EQ(robotik::toPddl(in), "(in red_cube box)");
-    EXPECT_EQ(robotik::toString(in), "in(red_cube, box)");
+    EXPECT_EQ(robotik::toString(in), "(in red_cube box)");
 
     robotik::Literal const empty = robotik::parseLiteral("(not hand_empty)").take();
     EXPECT_FALSE(empty.positive);
@@ -147,7 +147,7 @@ TEST(Planning, ReadsTheDomainSchema)
     EXPECT_EQ(pick.parameters[0].name, "b");
     EXPECT_EQ(pick.parameters[1].type, "place");
     ASSERT_EQ(pick.effects.size(), 3U);
-    EXPECT_EQ(robotik::toString(pick.effects[0]), "holding(?b)");
+    EXPECT_EQ(robotik::toString(pick.effects[0]), "(holding ?b)");
     EXPECT_FALSE(pick.effects[1].positive);
     EXPECT_FALSE(pick.partial);
     EXPECT_TRUE(schema.actions.at("drop_all").partial);
@@ -168,7 +168,7 @@ TEST(Planning, KeepsTheEndEffectsOfDurativeActions)
     robotik::ActionSchema const& go = schema.actions.at("go");
     EXPECT_TRUE(go.durative);
     ASSERT_EQ(go.effects.size(), 2U);
-    EXPECT_EQ(robotik::toString(go.effects[0]), "not moving");
+    EXPECT_EQ(robotik::toString(go.effects[0]), "(not moving)");
     EXPECT_EQ(robotik::toString(go.effects[1]), "arrived");
 }
 
@@ -282,7 +282,7 @@ TEST(Planning, ExecutorListsEveryProblemOfTheSetup)
     EXPECT_NE(text.find("kind 'shelf'"), std::string::npos) << text;
     EXPECT_NE(text.find("observer 'hold'"), std::string::npos) << text;
     EXPECT_NE(text.find("uses {2}"), std::string::npos) << text;
-    EXPECT_NE(text.find("in(red_cube, bin): unknown predicate"),
+    EXPECT_NE(text.find("(in red_cube bin): unknown predicate"),
               std::string::npos)
         << text;
     EXPECT_NE(text.find("expects 2 argument(s)"), std::string::npos) << text;

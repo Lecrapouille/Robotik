@@ -73,7 +73,7 @@ enum class Truth : std::uint8_t
 /// @code
 /// robotik::Atom const a{ "in", { "red_cube", "box" } };
 /// robotik::toPddl(a);   // "(in red_cube box)"
-/// robotik::toString(a); // "in(red_cube, box)"
+/// robotik::toString(a); // "(in red_cube box)"
 /// @endcode
 // ****************************************************************************
 struct Atom
@@ -89,7 +89,9 @@ struct Atom
 
 /// @return @c "(in red_cube box)".
 [[nodiscard]] std::string toPddl(Atom const& p_atom);
-/// @return @c "in(red_cube, box)", or @c "hand_empty" without argument.
+/// @return @c "(in red_cube box)", or @c "hand_empty" without argument: the
+///   way a scenario writes it, for the messages, the interface and the
+///   reports.
 [[nodiscard]] std::string toString(Atom const& p_atom);
 
 // ****************************************************************************
@@ -124,7 +126,7 @@ struct Literal
 [[nodiscard]] Result<Literal> parseLiteral(std::string_view p_text);
 /// @return @c "(not (in red_cube box))".
 [[nodiscard]] std::string toPddl(Literal const& p_literal);
-/// @return @c "not in(red_cube, box)".
+/// @return @c "(not (in red_cube box))", or @c "(not hand_empty)".
 [[nodiscard]] std::string toString(Literal const& p_literal);
 
 // ****************************************************************************

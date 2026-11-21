@@ -490,16 +490,7 @@ std::string toPddl(Atom const& p_atom)
 // ----------------------------------------------------------------------------
 std::string toString(Atom const& p_atom)
 {
-    if (p_atom.args.empty())
-    {
-        return p_atom.predicate;
-    }
-    std::string text = p_atom.predicate + "(";
-    for (std::size_t i = 0U; i < p_atom.args.size(); ++i)
-    {
-        text += (i == 0U ? "" : ", ") + p_atom.args[i];
-    }
-    return text + ")";
+    return p_atom.args.empty() ? p_atom.predicate : toPddl(p_atom);
 }
 
 // ----------------------------------------------------------------------------
@@ -598,7 +589,8 @@ std::string toPddl(Literal const& p_literal)
 // ----------------------------------------------------------------------------
 std::string toString(Literal const& p_literal)
 {
-    return p_literal.positive ? toString(p_literal.atom) : "not " + toString(p_literal.atom);
+    return p_literal.positive ? toString(p_literal.atom)
+                              : "(not " + toString(p_literal.atom) + ")";
 }
 
 // ----------------------------------------------------------------------------

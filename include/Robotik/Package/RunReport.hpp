@@ -46,7 +46,7 @@ struct PlanSummary
     std::string cause;
     /// Solved, Unsolvable, NoPlanFound or Invalid.
     std::string result;
-    /// Ground actions, e.g. "pick(red_cube, table)".
+    /// Ground actions, e.g. "(pick red_cube table)".
     std::vector<std::string> steps;
     /// Number of states the search expanded.
     std::size_t expanded = 0;

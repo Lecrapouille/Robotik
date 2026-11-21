@@ -72,10 +72,10 @@ static std::string readFile(std::filesystem::path const& p_file)
     return text.str();
 }
 
-/// "pick(red_cube)" for a step.
+/// "(pick red_cube)" for a step.
 static std::string label(GroundAction const& p_step)
 {
-    return toString(Atom{ p_step.name, p_step.args });
+    return toPddl(p_step);
 }
 
 char const* toString(PlanState p_state)

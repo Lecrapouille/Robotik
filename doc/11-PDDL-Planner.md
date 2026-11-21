@@ -51,8 +51,8 @@ The camera is down at the start, back at 1 s, then down for good at 3 s. The tra
   ...
   6.01 s  Release  SUCCEEDED  (0.01 s)
   plan 0 at 0 s (start): solved (detect red_cube) (pick red_cube) (place red_cube box)
-  plan 1 at 0.51 s (1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (detect red_cube) (pick red_cube) (place red_cube box)
-  plan 2 at 1.02 s (1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (pick red_cube) (place red_cube box)
+  plan 1 at 0.51 s (1. (detect red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (detect red_cube) (pick red_cube) (place red_cube box)
+  plan 2 at 1.02 s (1. (detect red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (pick red_cube) (place red_cube box)
 [PASS] controller.success  (controller.success = 1)
 [PASS] (inside red_cube box)  ((inside red_cube box) = 1)
 ...
@@ -153,7 +153,7 @@ Only entities with a `kind` are objects of the problem. Their PDDL name is their
         - (in red_cube box)
 ```
 
-Write one literal per line. A flow list `[ in(red_cube, box) ]` is cut at the comma by YAML.
+Write one literal per line, or a flow list: `[ (in red_cube box), hand_empty ]`.
 
 ### The mission: observers and bindings
 
@@ -236,7 +236,7 @@ hold). Two events of different steps keep the order of the plan when:
 
 Every other pair may happen in any order. The executor then builds one
 `Parallel` node with every step; each step waits for the end of the steps
-it needs (`After 2, 4: 7. convey(p2, feeder, zone_right)`), runs once, and
+it needs (`After 2, 4: 7. (convey p2 feeder zone_right)`), runs once, and
 the first failure fails
 the plan (cancel, plan again, as before). A plan where each step waits for
 the previous one keeps its `Sequence`: the PickAndPlace and Painter plans do
@@ -267,9 +267,9 @@ effects; the end event reads the `at end` and `over all` conditions and
 changes the `at end` effects. This gives **required concurrency**: in the
 DualArm tray scenario, `drill` needs `(over all (in_motion ?t))`, which
 `carry` adds at its start and removes at its end. So the drilling starts once
-the carry has started (`After start of 2: 3. drill(right, tray)`), and
+the carry has started (`After start of 2: 3. (drill right tray)`), and
 the carry ends only once the drilling has ended (`Until 3: 2.
-carry(left, tray, pad_a, pad_b)`, a node before its Check). The carry motion
+(carry left tray pad_a pad_b)`, a node before its Check). The carry motion
 is done at 25.52 s, but the tray stays held until 30.09 s:
 
 ```text
@@ -318,24 +318,24 @@ the goal down to what already holds (`(seen red_cube)` and `hand_empty`):
 
 ```text
   plan 0 at 0 s (start): solved
-  plan 1 at 0 s (in(red_cube, box) is false: put 1 action(s) under it): solved (place red_cube box)
-  plan 2 at 0.01 s (holding(red_cube) is false: put 1 action(s) under it): solved (place red_cube box) (pick red_cube)
+  plan 1 at 0 s ((in red_cube box) is false: put 1 action(s) under it): solved (place red_cube box)
+  plan 2 at 0.01 s ((holding red_cube) is false: put 1 action(s) under it): solved (place red_cube box) (pick red_cube)
 ```
 
 and runs this tree (shortened):
 
 ```text
 ReactiveSequence "Goal"
-  ReactiveSelector "in(red_cube, box)"
-    in(red_cube, box)? #1
-    ReactiveSequence "1. place(red_cube, box)"
-      ReactiveSelector "holding(red_cube)"
-        holding(red_cube)? #2
-        ReactiveSequence "2. pick(red_cube)"
-          seen(red_cube)? #3
+  ReactiveSelector "(in red_cube box)"
+    (in red_cube box)? #1
+    ReactiveSequence "1. (place red_cube box)"
+      ReactiveSelector "(holding red_cube)"
+        (holding red_cube)? #2
+        ReactiveSequence "2. (pick red_cube)"
+          (seen red_cube)? #3
           hand_empty? #4
-          Sequence "Do 2. pick(red_cube)": Approach, Reach, Grasp, Approach, Done
-      Sequence "Do 1. place(red_cube, box)": Transit(box), Approach(box), Release, Done
+          Sequence "Do 2. (pick red_cube)": Approach, Reach, Grasp, Approach, Done
+      Sequence "Do 1. (place red_cube box)": Transit(box), Approach(box), Release, Done
 ```
 
 What changes from the search:
@@ -439,10 +439,10 @@ right one".
   ```json
   "planner": {
     "state": "succeeded", "replans": 2,
-    "failure": "1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)",
+    "failure": "1. (detect red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)",
     "plans": [
       { "time": 0, "cause": "start", "result": "solved", "expanded": 3,
-        "milliseconds": 0.77, "steps": ["detect(red_cube)", "pick(red_cube)", "place(red_cube, box)"] }
+        "milliseconds": 0.77, "steps": ["(detect red_cube)", "(pick red_cube)", "(place red_cube box)"] }
     ]
   }
   ```
