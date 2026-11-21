@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Package/Plugin/PluginManager.hpp"
+#include "Robotik/Package/Plugin/PluginBuildId.hpp"
 
 #include <cstdint>
 #include <cstring>
@@ -75,6 +76,7 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
     }
 
     using AbiFn = std::uint32_t (*)();
+    using BuildIdFn = char const* (*)();
     using QueryFn = bool (*)(RobotikPluginInfo*, RobotikPluginVTable*);
     using CreateFn = RobotikPlugin* (*)(RobotikHostAPI const*);
     using DestroyFn = void (*)(RobotikPlugin*);
@@ -95,6 +97,25 @@ RobotikPluginStatus PluginManager::load(std::string const& p_path)
         unload();
         return fail(ROBOTIK_PLUGIN_ERR_ABI,
                     "plugin ABI version is not compatible");
+    }
+    // The C table carries C++ objects: only a plugin of this build reads them
+    // as this host does.
+    BuildIdFn const build =
+        symbol<BuildIdFn>(m_library, "robotik_plugin_build_id", m_error);
+    if (build == nullptr)
+    {
+        unload();
+        return fail(ROBOTIK_PLUGIN_ERR_ABI,
+                    "plugin built with an older RobotIK SDK (no "
+                    "robotik_plugin_build_id): build it again");
+    }
+    if (std::strcmp(build(), ROBOTIK_PLUGIN_BUILD_ID) != 0)
+    {
+        std::string const plugin = build();
+        unload();
+        return fail(ROBOTIK_PLUGIN_ERR_ABI,
+                    "plugin built with another RobotIK build: '" + plugin +
+                        "', this host is '" ROBOTIK_PLUGIN_BUILD_ID "'");
     }
     QueryFn const query =
         symbol<QueryFn>(m_library, "robotik_plugin_query", m_error);

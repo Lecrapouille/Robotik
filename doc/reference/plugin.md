@@ -53,11 +53,21 @@ HelloWorld adds a key binding, a menu item and a panel. It calls
 
 ### 🔄 Lifecycle
 
+A plugin binary works only with the RobotIK build that made it. The C table
+of `PluginABI.h` carries two C++ objects (the `Simulation` and the
+`ScenarioLogic`), so both sides must agree on their layout: same RobotIK
+version, compiler and standard library. The host compares the build id of
+the plugin with its own (`PluginBuildId.hpp`) and refuses another one,
+with both texts in the message. Build the plugins with the SDK of the host.
+
 ```text
 plugin.yaml read          the host checks api_version, packs, dependencies
       │
       ▼
 dlopen(.so)               only when a scenario of this plugin is chosen
+      │
+      ▼
+build id                  robotik_plugin_build_id must be the text of the host
       │
       ▼
 setup(scenario id)        create the ScenarioLogic (ScenarioPlugin), menus, panels

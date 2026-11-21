@@ -10,8 +10,15 @@
 ///
 /// One shared library implements a family of demonstrations. Each execution
 /// is a scenario file shipped beside that library. The host selects a
-/// scenario id and passes it to @c setup. No C++ type, STL container or
-/// exception crosses this boundary.
+/// scenario id and passes it to @c setup. The functions and structures are
+/// plain C, and no exception crosses them. Two of them carry C++ objects as
+/// @c void*: @c simulation gives the @c robotik::Simulation of the run and
+/// @c bind_logic takes the @c robotik::ScenarioLogic of the plugin. Both
+/// sides read these as C++ classes, so a plugin must be built with the same
+/// RobotIK build as the host (version, compiler, standard library): the
+/// host compares @c robotik_plugin_build_id with its own text
+/// (PluginBuildId.hpp) and refuses another one. A plugin binary is not
+/// independent of the SDK that built it.
 ///
 /// Every structure starts with its @c size: a newer host or plugin appends
 /// fields at the end, and the other side checks the size before reading
@@ -28,8 +35,11 @@
 /// @endcode
 ///
 /// @par Contract
-/// - Promises: plain C; every structure starts with its size.
-/// - Expects: a plugin checks @c ROBOTIK_PLUGIN_ABI_VERSION before anything.
+/// - Promises: plain C functions and structures; every structure starts with
+///   its size.
+/// - Expects: a plugin checks @c ROBOTIK_PLUGIN_ABI_VERSION before anything;
+///   the host loads only a plugin of its own build
+///   (@c robotik_plugin_build_id).
 
 #ifndef ROBOTIK_PLUGIN_ABI_H
 #define ROBOTIK_PLUGIN_ABI_H
@@ -228,6 +238,12 @@ extern "C"
     /// ABI version implemented by the library. Compared before @c query.
     /// @return @ref ROBOTIK_PLUGIN_ABI_VERSION of the library build.
     uint32_t robotik_plugin_abi_version(void);
+
+    /// Build of RobotIK the library was compiled with: the text of
+    /// @c ROBOTIK_PLUGIN_BUILD_ID (PluginBuildId.hpp). Compared before
+    /// @c query, because @c simulation and @c bind_logic carry C++ objects.
+    /// @return A text owned by the library.
+    char const* robotik_plugin_build_id(void);
 
     /// Describes the plugin. Both structures arrive with their size and
     /// abi_version set by the host.

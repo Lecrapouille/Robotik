@@ -136,7 +136,9 @@ built.
   `library.entrypoint`; `plugin.id` = `describe().id`; scenario `id` in
   `plugin.yaml` = string tested in `Plugin::setup`. A scenario not listed in
   `plugin.yaml` is refused ("scenario is not in a plugin package").
-- Nothing C++ crosses the plugin border except through `PluginAPI.hpp`.
+- Nothing C++ crosses the plugin border except through `PluginAPI.hpp`; the
+  C table carries the Simulation and the ScenarioLogic as `void*`, so a
+  plugin loads only in the RobotIK build that made it (build id checked).
 - The plugin does not own world entities; find them by id each time.
 - SI units, z up; typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`).
 - Code must work headless (`SceneView*` null, no camera image; see

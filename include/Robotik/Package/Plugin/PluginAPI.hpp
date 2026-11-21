@@ -32,6 +32,7 @@
 #pragma once
 
 #include "Robotik/Package/Plugin/PluginABI.h"
+#include "Robotik/Package/Plugin/PluginBuildId.hpp"
 #include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <cstddef>
@@ -938,6 +939,10 @@ void destroyPlugin(RobotikPlugin* p_plugin)
         uint32_t robotik_plugin_abi_version(void)                        \
         {                                                                \
             return ROBOTIK_PLUGIN_ABI_VERSION;                           \
+        }                                                                \
+        char const* robotik_plugin_build_id(void)                        \
+        {                                                                \
+            return ROBOTIK_PLUGIN_BUILD_ID;                              \
         }                                                                \
         bool robotik_plugin_query(RobotikPluginInfo* info,               \
                                   RobotikPluginVTable* api)              \
