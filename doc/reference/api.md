@@ -131,9 +131,11 @@ simulation. All methods are optional.
 |--------|--------|-------------|
 | `setup(Cell&, SceneView* view)` | Once, after the world is built, before the first reset. `view` is null in headless | Add skills, detectors, decorations; maybe your own backend |
 | `reset(Cell&, Seed)` | Each episode start, after the robot and objects are reset | Clear state; derive random streams from the seed |
-| `step(Cell&, Seconds dt)` | After each robot step | Command, measure, count |
+| `act(RobotContext&, Seconds dt)` | After each robot step | Command the robot from what it measures and believes; no ground truth |
+| `simulate(Cell&, Seconds dt)` | After `act`, in simulation only | What the world does by itself: a conveyor, ink on a canvas |
+| `observe(Cell const&, Seconds dt)` | After `simulate` | Read the truth and count for the metrics; a const cell commands nothing |
 | `measure(Cell const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
-| `Status status(Cell const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
+| `Status status(RobotContext const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
 
 ## `Cell` and `Simulation`
 

@@ -29,6 +29,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #define SKILL_PRIORITY 100
 #define STOP_PRIORITY 1000
@@ -187,6 +188,10 @@ Cell::Cell(compages::world::World& p_world,
       m_factory(std::make_unique<bt::NodeFactory>())
 {
     m_queries = builtinQueries();
+    for (std::unique_ptr<RobotSession> const& robot : m_robots)
+    {
+        m_robot_views.push_back(robot.get());
+    }
     if (m_robots.size() > 1U)
     {
         for (std::unique_ptr<RobotSession> const& robot : m_robots)
@@ -444,7 +449,7 @@ void Cell::buildRecord(Record& p_record, SceneView* p_view)
         case EntitySpec::Type::Tool:
         {
             // Names of the physics backend: the robot prefix in a shared world.
-            RobotSession& owner = ownerOf(spec);
+            RobotSession const& owner = ownerOf(spec);
             std::string const prefix = prefixOf(owner.id());
             for (std::string const& link : readLinks(spec.model).names)
             {
@@ -821,7 +826,12 @@ Pose Cell::beliefFrame() const
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
-RobotSession* Cell::robot(std::string_view p_id) const
+RobotSession const* Cell::robot(std::string_view p_id) const
+{
+    return const_cast<Cell*>(this)->robot(p_id);
+}
+
+RobotSession* Cell::robot(std::string_view p_id)
 {
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -846,14 +856,14 @@ RobotContext& Cell::context(std::string_view p_id)
                                 "'");
 }
 
-RobotSession& Cell::ownerOf(EntitySpec const& p_spec) const
+RobotSession const& Cell::ownerOf(EntitySpec const& p_spec) const
 {
     std::string_view const id =
         p_spec.type == EntitySpec::Type::Robot ? std::string_view(p_spec.id)
         : p_spec.type == EntitySpec::Type::Tool && p_spec.attach
             ? std::string_view(p_spec.attach->parent)
             : std::string_view();
-    RobotSession* const found = id.empty() ? nullptr : robot(id);
+    RobotSession const* const found = id.empty() ? nullptr : robot(id);
     return found != nullptr ? *found : *m_robot;
 }
 
@@ -1007,7 +1017,12 @@ void Cell::reset(Seed p_seed)
     }
 }
 
-Camera* Cell::camera() const
+Camera const* Cell::camera() const
+{
+    return const_cast<Cell*>(this)->camera();
+}
+
+Camera* Cell::camera()
 {
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -1249,10 +1264,18 @@ void Cell::step(Seconds p_dt)
     }
     if (m_mission != nullptr)
     {
-        m_mission->step(*this, p_dt);
+        // The robot side sees the time after the physics step, like status.
+        for (RobotContext& context : m_contexts)
+        {
+            context.time = context.robot.time();
+            context.dt = p_dt;
+        }
+        m_mission->act(m_contexts.front(), p_dt);
+        m_mission->simulate(*this, p_dt);
+        m_mission->observe(std::as_const(*this), p_dt);
         if (m_tree == nullptr && m_executor == nullptr)
         {
-            switch (m_mission->status(*this))
+            switch (m_mission->status(m_contexts.front()))
             {
                 case Status::SUCCESS:
                     m_status = Status::SUCCESS;

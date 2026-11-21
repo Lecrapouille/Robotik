@@ -260,10 +260,13 @@ void ConveyorMission::reset(robotik::Cell& /*p_cell*/,
     m_overlap = 0.0;
 }
 
-void ConveyorMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
+void ConveyorMission::simulate(robotik::Cell& p_cell, robotik::Seconds p_dt)
 {
     m_conveyor.step(p_cell, p_dt);
+}
 
+void ConveyorMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt)
+{
     // Both arms busy: a skill of each robot is running.
     robotik::SkillScheduler const& skills = p_cell.skills();
     std::vector<std::string> busy;

@@ -15,7 +15,8 @@ void HelloMission::reset(robotik::Cell& /*p_cell*/,
     m_ticks = 0.0;
 }
 
-void HelloMission::step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
+void HelloMission::act(robotik::RobotContext& /*p_context*/,
+                       robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;
 }
@@ -27,9 +28,9 @@ void HelloMission::measure(robotik::Cell const& /*p_cell*/,
 }
 
 robotik::Status
-HelloMission::status(robotik::Cell const& p_cell) const
+HelloMission::status(robotik::RobotContext const& p_context) const
 {
-    if (p_cell.time() >= robotik::Seconds(2.0))
+    if (p_context.time >= robotik::Seconds(2.0))
     {
         return robotik::Status::SUCCESS;
     }

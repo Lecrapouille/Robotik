@@ -173,15 +173,25 @@ void LineFollowerMission::reset(robotik::Cell& p_cell,
     m_estimate_path.clear();
 }
 
-void LineFollowerMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
+void LineFollowerMission::act(robotik::RobotContext& /*p_context*/,
+                              robotik::Seconds p_dt)
+{
+    // Odometry: what the robot measures of its own wheels.
+    if (m_left != nullptr && m_navigation != nullptr)
+    {
+        m_navigation->odometry(m_left->velocity().value(),
+                               m_right->velocity().value(),
+                               p_dt.value());
+    }
+}
+
+void LineFollowerMission::observe(robotik::Cell const& p_cell,
+                                  robotik::Seconds p_dt)
 {
     if (m_left == nullptr || m_navigation == nullptr)
     {
         return;
     }
-    m_navigation->odometry(
-        m_left->velocity().value(), m_right->velocity().value(), p_dt.value());
-
     robotik::SkillScheduler const& skills = p_cell.skills();
     bool const following =
         m_follow != robotik::NO_SKILL &&

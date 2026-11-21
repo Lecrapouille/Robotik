@@ -38,9 +38,10 @@ void ReachMission::reset(robotik::Cell& p_cell,
     m_error = distance(start, m_target);
 }
 
-void ReachMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
+void ReachMission::act(robotik::RobotContext& p_context,
+                       robotik::Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_cell.robot();
+    robotik::Robot& robot = p_context.robot;
     robotik::JointSet& joints = robot.joints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size();
          ++id)
@@ -57,7 +58,7 @@ void ReachMission::measure(robotik::Cell const& /*p_cell*/,
 }
 
 robotik::Status
-ReachMission::status(robotik::Cell const& /*p_cell*/) const
+ReachMission::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (m_solution.empty())
     {

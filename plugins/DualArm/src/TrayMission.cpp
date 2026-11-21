@@ -290,14 +290,13 @@ void TrayMission::reset(robotik::Cell& /*p_cell*/,
     m_contact = 0.0;
 }
 
-void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
+void TrayMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt)
 {
     // A tray is drilled once the drill followed its whole path on it.
     robotik::SkillScheduler const& skills = p_cell.skills();
     for (std::string const& tray : m_trays)
     {
-        for (std::unique_ptr<robotik::RobotSession> const& robot :
-             p_cell.robots())
+        for (robotik::RobotSession const* robot : p_cell.robots())
         {
             robotik::SkillId const trace =
                 skills.find(robot->id() + ".Trace(" + tray + ")");

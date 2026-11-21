@@ -105,7 +105,7 @@ public:
         m_ticks = 0;
     }
 
-    void step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/) override
+    void act(robotik::RobotContext& /*p_context*/, robotik::Seconds /*p_dt*/) override
     {
         ++m_ticks;
     }
@@ -115,9 +115,10 @@ public:
         p_metrics.set("hello.ticks", static_cast<double>(m_ticks));
     }
 
-    [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override
+    [[nodiscard]] robotik::Status
+    status(robotik::RobotContext const& p_context) const override
     {
-        return p_cell.time() >= robotik::Seconds(2.0) ? robotik::Status::SUCCESS
+        return p_context.time >= robotik::Seconds(2.0) ? robotik::Status::SUCCESS
                                                       : robotik::Status::RUNNING;
     }
 

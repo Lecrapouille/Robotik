@@ -129,8 +129,8 @@ void PainterMission::registerPlanning(robotik::Cell& p_cell)
     domain.bind("rinse", { "Rinse", "Home" }, { { "color", "{0}" } });
 }
 
-void PainterMission::step(robotik::Cell& p_cell,
-                          robotik::Seconds /*p_dt*/)
+void PainterMission::simulate(robotik::Cell& p_cell,
+                              robotik::Seconds /*p_dt*/)
 {
     if (!m_stroke.painting)
     {

@@ -59,7 +59,7 @@ public:
         robotik::Simulation* simulation = p_host.simulation();
         if (rl != nullptr && simulation != nullptr)
         {
-            rl->act(simulation->cell(), p_dt.value());
+            rl->playPolicy(simulation->cell(), p_dt.value());
         }
     }
 

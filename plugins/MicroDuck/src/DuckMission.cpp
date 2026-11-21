@@ -112,7 +112,8 @@ void DuckMission::reset(robotik::Cell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::step(robotik::Cell& p_cell, robotik::Seconds /*p_dt*/)
+void DuckMission::observe(robotik::Cell const& p_cell,
+                          robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_cell.pose(m_base);
     m_height = base.position.z;

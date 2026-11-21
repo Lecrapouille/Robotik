@@ -104,11 +104,13 @@ public:
                robotik::SceneView* p_view) override;
     void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
+    void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
+    void simulate(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
+    void observe(robotik::Cell const& p_cell, robotik::Seconds p_dt) override;
     void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
     [[nodiscard]] robotik::Status
-    status(robotik::Cell const& p_cell) const override;
+    status(robotik::RobotContext const& p_context) const override;
 
     // -------------------------------------------------------------------------
     /// Swaps the 13-neuron circuit for the FlyWire connectome (or

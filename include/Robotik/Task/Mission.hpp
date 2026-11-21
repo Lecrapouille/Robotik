@@ -14,14 +14,18 @@
 /// "Assertion").
 ///
 /// @par Contract
-/// - Promises: @c setup once, @c reset at each episode, @c step after each
-///   physics step; @c measure publishes numbers, never a verdict.
-/// - Expects: the mission reads beliefs to decide and the truth only to
-///   measure; it does not keep entities between calls.
+/// - Promises: @c setup once, @c reset at each episode; after each physics
+///   step @c act, @c simulate, then @c observe; @c measure publishes
+///   numbers, never a verdict.
+/// - Expects: @c act decides from the robot and its beliefs only (it gets no
+///   @ref robotik::Cell); @c observe reads the truth and commands nothing (it
+///   gets a const cell); @c simulate changes the world only, never the
+///   robot. The mission does not keep entities between calls.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"
 #include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Status.hpp"
 
 #include "Robotik/Common/Math.hpp"
@@ -43,9 +47,19 @@ class Cell;
 /// @c MissionPlugin), or give one to @ref openCell from a C++ program. A
 /// program that runs only the built-in skills needs no mission.
 ///
-/// The cell calls @ref setup once, then for each episode @ref reset and one
-/// @ref step after each physics step. The run calls @ref measure when it
-/// needs the numbers: assertions, reports, RL rewards. Every method has an
+/// The cell calls @ref setup once, then for each episode @ref reset, and
+/// after each physics step @ref act, @ref simulate and @ref observe. The run
+/// calls @ref measure when it needs the numbers: assertions, reports, RL
+/// rewards.
+///
+/// The three per-step methods split what a step used to mix, and the types
+/// enforce the split. @ref act is the robot side: it gets a
+/// @ref RobotContext, the same view as a skill, so it cannot read the true
+/// pose of an object and the code runs unchanged on a real robot.
+/// @ref observe is the judge side: it gets a const @ref Cell, so it reads
+/// the truth (for metrics) but cannot command anything. @ref simulate is the
+/// world side, for a demo whose world changes by itself (a conveyor moves a
+/// part, a brush leaves ink): it exists only in simulation. Every method has an
 /// empty default, so a small demo stays small (HelloMission overrides
 /// three). The cell owns the world and the robots; the mission owns only its
 /// counters, and the cell keeps a pointer to it, never a copy.
@@ -56,16 +70,20 @@ class Cell;
 /// each call, never kept.
 ///
 /// @code
-/// class Patrol final: public robotik::Mission
+/// class Walk final: public robotik::Mission
 /// {
-///     void setup(robotik::Cell& p_cell, robotik::SceneView*) override
+///     void act(robotik::RobotContext& p_context, robotik::Seconds) override
 ///     {
-///         p_cell.skills().add<GoToSkill>(...);
+///         m_policy.drive(p_context.robot);      // what the robot measures
 ///     }
-///     void measure(robotik::Cell const& p_cell,
+///     void observe(robotik::Cell const& p_cell, robotik::Seconds) override
+///     {
+///         m_lowest = std::min(m_lowest, p_cell.pose("base").position.z);
+///     }
+///     void measure(robotik::Cell const&,
 ///                  robotik::Metrics& p_metrics) const override
 ///     {
-///         p_metrics.set("laps", m_laps);
+///         p_metrics.set("walk.height_min", m_lowest);
 ///     }
 /// };
 /// @endcode
@@ -99,11 +117,39 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Called after each robot step. Update the counters here.
+    /// Robot side of a step: command the robot, update what the robot
+    /// itself knows (odometry, a control law). Called after each physics
+    /// step, with the context of the first robot (the others are in
+    /// @c p_context.team).
+    /// @param p_context Robot API, beliefs and time; no ground truth.
+    /// @param p_dt Duration of the step.
+    // -------------------------------------------------------------------------
+    virtual void act(RobotContext& /*p_context*/, Seconds /*p_dt*/)
+    {
+        // Nothing to do by default.
+    }
+
+    // -------------------------------------------------------------------------
+    /// World side of a step, in simulation only: what the world does by
+    /// itself (a conveyor carries a part, ink lands on a canvas). Called after
+    /// @ref act. It may read and change the entities; it must not command the
+    /// robots nor request skills.
     /// @param p_cell The cell running the mission.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
-    virtual void step(Cell& /*p_cell*/, Seconds /*p_dt*/)
+    virtual void simulate(Cell& /*p_cell*/, Seconds /*p_dt*/)
+    {
+        // Nothing to do by default.
+    }
+
+    // -------------------------------------------------------------------------
+    /// Judge side of a step: read the truth and accumulate the counters that
+    /// @ref measure publishes (a minimum height, a time in contact). Called
+    /// after @ref simulate.
+    /// @param p_cell The cell, read only: no command is possible.
+    /// @param p_dt Duration of the step.
+    // -------------------------------------------------------------------------
+    virtual void observe(Cell const& /*p_cell*/, Seconds /*p_dt*/)
     {
         // Nothing to do by default.
     }
@@ -122,13 +168,14 @@ public:
 
     // -------------------------------------------------------------------------
     /// Outcome for missions without behavior tree nor planner. Ignored
-    /// otherwise.
-    /// @param p_cell The cell running the mission.
+    /// otherwise. It is a decision of the robot, so it sees what @ref act
+    /// sees.
+    /// @param p_context Robot API, beliefs and time of the first robot.
     /// @return @ref Status::SUCCESS or @ref Status::FAILURE end the episode;
     ///   any other value lets it go on.
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual Status
-    status(Cell const& /*p_cell*/) const
+    status(RobotContext const& /*p_context*/) const
     {
         return Status::IDLE;
     }

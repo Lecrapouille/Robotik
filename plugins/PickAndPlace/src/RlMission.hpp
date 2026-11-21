@@ -32,15 +32,13 @@ public:
 
     void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/) override
-    {
-        // Empty on purpose: act() steps the cell itself (see the class).
-    }
     robotik::Status
-    status(robotik::Cell const& /*p_cell*/) const override;
+    status(robotik::RobotContext const& /*p_context*/) const override;
 
-    /// One policy action, or the pause before the next episode.
-    void act(robotik::Cell& p_cell, double p_dt);
+    /// One policy action, or the pause before the next episode. The plugin
+    /// calls it instead of a step of the host (it steps the cell itself), so
+    /// the mission has no per-step method.
+    void playPolicy(robotik::Cell& p_cell, double p_dt);
 
     bool converged = true;
     float mix = 1.0F;

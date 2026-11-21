@@ -109,6 +109,11 @@ built.
   `(inside red_cube box)`. They are compiled at load (Task/Condition.hpp):
   a typo is a load error. From C++, ask `cell.query("inside", {a, b})`,
   never build a condition string; add a query with `Cell::addQuery`.
+- A mission step has three sides, kept apart by the types: `act(RobotContext&)`
+  commands from the robot and its beliefs (no truth), `simulate(Cell&)` is
+  what the world does by itself (sim only, never commands a robot),
+  `observe(Cell const&)` reads the truth for metrics (a const cell commands
+  nothing: `skills()`, `robot()`, `robots()` are read only).
 - `Mission::status` ends a run only when the scenario has no behavior tree
   and no planner.
 - Several robots in a world share one physics, one `ResourceManager`, one

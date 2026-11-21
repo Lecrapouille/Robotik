@@ -42,9 +42,11 @@ class MyMission final: public robotik::Mission
 public:
     void setup(robotik::Cell& p_cell, robotik::SceneView* p_view) override; // skills, detectors; p_view null headless
     void reset(robotik::Cell& p_cell, robotik::Seed p_seed) override;      // clear episode state
-    void step(robotik::Cell& p_cell, Seconds p_dt) override;               // after each robot step
+    void act(robotik::RobotContext& p_ctx, Seconds p_dt) override;         // command: robot + beliefs, no truth
+    void simulate(robotik::Cell& p_cell, Seconds p_dt) override;           // the world itself (conveyor, ink); sim only
+    void observe(robotik::Cell const& p_cell, Seconds p_dt) override;      // truth, read only: count for metrics
     void measure(robotik::Cell const& p_cell, robotik::Metrics& p_m) const override; // p_m.set("my.x", v)
-    [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override; // only used without BT
+    [[nodiscard]] robotik::Status status(robotik::RobotContext const& p_ctx) const override; // only without BT
 };
 
 class MyPlugin final: public robotik::MissionPlugin   // one mission per scenario
@@ -68,7 +70,7 @@ Plugin methods return `void` and throw on error (caught at the C border:
 
 Lifecycle: manifest read → dlopen on scenario choice → `setup` (no
 simulation yet) → Simulation built (`Mission::setup`, `reset`) → `start` →
-[`Simulation::step` (→ `Cell::step` → `Mission::step`) → `Plugin::update`]* → `stop` →
+[`Simulation::step` (→ `Cell::step` → `Mission::act|simulate|observe`) → `Plugin::update`]* → `stop` →
 `shutdown` (simulation already destroyed).
 
 Host services: `bindMission`, `simulation()` (null before attach), `log`,

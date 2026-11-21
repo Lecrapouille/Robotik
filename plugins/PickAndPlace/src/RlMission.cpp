@@ -45,7 +45,7 @@ void RlMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
 }
 
 robotik::Status
-RlMission::status(robotik::Cell const& /*p_cell*/) const
+RlMission::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (!ready)
     {
@@ -58,7 +58,7 @@ RlMission::status(robotik::Cell const& /*p_cell*/) const
     return robotik::Status::RUNNING;
 }
 
-void RlMission::act(robotik::Cell& p_cell, double p_dt)
+void RlMission::playPolicy(robotik::Cell& p_cell, double p_dt)
 {
     if (!ready)
     {

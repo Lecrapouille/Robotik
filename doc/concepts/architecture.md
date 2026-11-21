@@ -114,7 +114,8 @@ Simulation::step(dt)
    │     ├── observe()                    perception → WorldModel, or the truth when
    │     │                                the perception fidelity asks for it
    │     ├── track / syncBodies           ground truth of the bodies, contacts
-   │     └── Mission::step                the plugin; Mission::status if no controller
+   │     └── Mission act / simulate / observe   robot side, world side, truth read
+   │                                      only; Mission::status if no controller
    ├── end of run?                        controller, stop_when, timeout, stop: true
    └── AssertionEngine::update            verdicts, on the ground truth
 ```

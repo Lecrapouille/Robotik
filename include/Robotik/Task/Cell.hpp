@@ -239,7 +239,13 @@ public:
     }
 
     /// @return The first robot of the world file.
-    [[nodiscard]] RobotSession& robot() const
+    [[nodiscard]] RobotSession& robot()
+    {
+        return *m_robot;
+    }
+
+    /// @return The first robot, read only (a const cell commands nothing).
+    [[nodiscard]] RobotSession const& robot() const
     {
         return *m_robot;
     }
@@ -250,13 +256,21 @@ public:
     /// @param p_id Entity id in the world file.
     /// @return The robot, or null.
     // -------------------------------------------------------------------------
-    [[nodiscard]] RobotSession* robot(std::string_view p_id) const;
+    [[nodiscard]] RobotSession* robot(std::string_view p_id);
+
+    /// @copydoc robot(std::string_view)
+    [[nodiscard]] RobotSession const* robot(std::string_view p_id) const;
 
     /// @return Every robot, in world file order (the first is @ref robot()).
-    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const&
-    robots() const
+    [[nodiscard]] std::vector<std::unique_ptr<RobotSession>> const& robots()
     {
         return m_robots;
+    }
+
+    /// @return Every robot, read only, in world file order.
+    [[nodiscard]] std::vector<RobotSession const*> const& robots() const
+    {
+        return m_robot_views;
     }
 
     // -------------------------------------------------------------------------
@@ -323,7 +337,13 @@ public:
     }
 
     /// @return The scheduler of every skill of the world.
-    [[nodiscard]] SkillScheduler& skills() const
+    [[nodiscard]] SkillScheduler& skills()
+    {
+        return *m_scheduler;
+    }
+
+    /// @return The scheduler, read only: states and trace, no request.
+    [[nodiscard]] SkillScheduler const& skills() const
     {
         return *m_scheduler;
     }
@@ -353,7 +373,10 @@ public:
     [[nodiscard]] RobotContext& context(std::string_view p_id);
 
     /// @return First camera of the robots, or null.
-    [[nodiscard]] Camera* camera() const;
+    [[nodiscard]] Camera* camera();
+
+    /// @copydoc camera()
+    [[nodiscard]] Camera const* camera() const;
 
     /// @return True when the simulator feeds the beliefs of a prop or more
     ///   (see @ref PerceptionFidelity).
@@ -444,7 +467,7 @@ public:
 
     /// @return ECS entity of @p_id (props, primitive bodies, rendered
     ///   models), or an empty handle.
-    [[nodiscard]] compages::world::Entity entity(std::string_view p_id) const;
+    [[nodiscard]] compages::world::Entity entity(std::string_view p_id);
 
     // -------------------------------------------------------------------------
     /// Adds a primitive drawn for the eye only (beam, trail), in the Z-up
@@ -622,7 +645,7 @@ private:
     void addSkills();
     /// Robot that carries @p_spec: a robot itself, the robot a tool is
     /// mounted on, else the first robot.
-    [[nodiscard]] RobotSession& ownerOf(EntitySpec const& p_spec) const;
+    [[nodiscard]] RobotSession const& ownerOf(EntitySpec const& p_spec) const;
     /// MuJoCo prefix of the names of robot @p_id (empty for the first).
     [[nodiscard]] std::string prefixOf(std::string_view p_id) const;
     /// Builds the behavior tree of the scenario, if it has one.
@@ -663,6 +686,8 @@ private:
     std::shared_ptr<ResourceManager> m_resources;
     /// Every robot, in world file order.
     std::vector<std::unique_ptr<RobotSession>> m_robots;
+    /// The same robots, read only, for @ref robots() const.
+    std::vector<RobotSession const*> m_robot_views;
     /// The first robot.
     RobotSession* m_robot = nullptr;
     /// @ref RobotContext::team — every robot when there are several.

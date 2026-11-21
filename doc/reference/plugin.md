@@ -69,7 +69,7 @@ Simulation built          from the world + scenario; Mission::setup, Mission::re
 start
       │
       ▼
-loop: Cell::step → Mission::step → Plugin::update(dt)
+loop: Cell::step → Mission::act, simulate, observe → Plugin::update(dt)
       │
       ▼
 stop                      the simulation still exists

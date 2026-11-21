@@ -234,14 +234,25 @@ void FlyMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
     drawBeamsAndTrail();
 }
 
-void FlyMission::step(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
+void FlyMission::act(robotik::RobotContext& /*p_context*/,
+                     robotik::Seconds /*p_dt*/)
 {
-    m_collided = m_collided || m_environment->snapshot().collided;
+    // The brain reads the senses of the fly model and chooses the next move.
     if (!m_backend->done())
     {
         decide();
     }
+}
+
+void FlyMission::simulate(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
+{
     drawBeamsAndTrail();
+}
+
+void FlyMission::observe(robotik::Cell const& /*p_cell*/,
+                         robotik::Seconds /*p_dt*/)
+{
+    m_collided = m_collided || m_environment->snapshot().collided;
 }
 
 void FlyMission::decide()
@@ -311,7 +322,7 @@ void FlyMission::measure(robotik::Cell const& /*p_cell*/,
 }
 
 robotik::Status
-FlyMission::status(robotik::Cell const& /*p_cell*/) const
+FlyMission::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (m_environment->snapshot().reached)
     {

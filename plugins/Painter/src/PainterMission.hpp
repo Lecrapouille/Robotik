@@ -28,8 +28,9 @@ public:
                robotik::SceneView* p_view) override;
     void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Cell& p_cell,
-              robotik::Seconds p_dt) override;
+    /// The brush leaves ink where it touches the canvas: what the world does,
+    /// in simulation only.
+    void simulate(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
     /// painter.stroke_deviation: largest distance (m), in the plane of
     /// the canvas, between the brush while it inks and the straight line of
     /// its stroke. painter.inked: number of steps that laid ink.

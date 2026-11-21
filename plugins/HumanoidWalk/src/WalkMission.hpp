@@ -42,7 +42,7 @@ public:
                robotik::SceneView* p_view) override;
     void reset(robotik::Cell& p_cell,
                robotik::Seed p_seed) override;
-    void step(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
+    void observe(robotik::Cell const& p_cell, robotik::Seconds p_dt) override;
     void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 

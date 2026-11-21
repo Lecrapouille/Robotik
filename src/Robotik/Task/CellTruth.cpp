@@ -105,7 +105,7 @@ compages::world::Entity Cell::decorate(ecs::Shape const& p_object)
     return entity;
 }
 
-compages::world::Entity Cell::entity(std::string_view p_id) const
+compages::world::Entity Cell::entity(std::string_view p_id)
 {
     Record const* found = record(p_id);
     return found != nullptr ? found->entity : compages::world::Entity{};

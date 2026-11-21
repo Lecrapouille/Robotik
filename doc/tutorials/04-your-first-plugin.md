@@ -60,7 +60,7 @@ Who calls what:
  Simulation (built from worlds/arm.world.yaml + scenarios/wave.scenario.yaml)
         │ at each step:
         ▼
- WaveMission::step()               ← your Mission class
+ WaveMission::act()                ← your Mission class
 ```
 
 So there are **two classes** to know:
@@ -95,10 +95,11 @@ class HelloMission final: public robotik::Mission
 public:
 
     void reset(robotik::Cell& p_cell, robotik::Seed p_seed) override;
-    void step(robotik::Cell& p_cell, Seconds p_dt) override;
+    void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
     void measure(robotik::Cell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
-    [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override;
+    [[nodiscard]] robotik::Status
+    status(robotik::RobotContext const& p_context) const override;
 
 private:
 
@@ -114,7 +115,8 @@ void HelloMission::reset(robotik::Cell& /*p_cell*/, robotik::Seed /*p_seed*/)
     m_ticks = 0.0;                         // a new episode starts
 }
 
-void HelloMission::step(robotik::Cell& /*p_cell*/, Seconds /*p_dt*/)
+void HelloMission::act(robotik::RobotContext& /*p_context*/,
+                       robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;                        // called after each simulation step
 }
@@ -125,9 +127,10 @@ void HelloMission::measure(robotik::Cell const& /*p_cell*/,
     p_metrics.set("hello.ticks", m_ticks); // the scenario can now use "hello.ticks"
 }
 
-robotik::Status HelloMission::status(robotik::Cell const& p_cell) const
+robotik::Status
+HelloMission::status(robotik::RobotContext const& p_context) const
 {
-    if (p_cell.time() >= Seconds(2.0))
+    if (p_context.time >= robotik::Seconds(2.0))
     {
         return robotik::Status::SUCCESS;   // ends the run: controller.success = 1
     }
@@ -135,15 +138,22 @@ robotik::Status HelloMission::status(robotik::Cell const& p_cell) const
 }
 ```
 
-The five methods of a `Mission`, all optional:
+The methods of a `Mission`, all optional:
 
 | Method | When | Use it to |
 |--------|------|-----------|
-| `setup(simulation, view)` | Once, after the world is built | Add skills, detectors, decorations. `view` is null in headless |
-| `reset(simulation, seed)` | At each episode start | Clear your state. Derive random numbers from `seed` |
-| `step(simulation, dt)` | After each simulation step | Command the robot, update your state |
-| `measure(simulation, metrics)` | When the assertions need values | Publish named numbers |
-| `status(simulation)` | After each step, **only if the scenario has no behavior tree** | Return `SUCCESS` or `FAILURE` to end the run |
+| `setup(cell, view)` | Once, after the world is built | Add skills, detectors, decorations. `view` is null in headless |
+| `reset(cell, seed)` | At each episode start | Clear your state. Derive random numbers from `seed` |
+| `act(context, dt)` | After each simulation step | Command the robot. You see the robot and its beliefs, as a skill does |
+| `simulate(cell, dt)` | Then, in simulation only | Make the world do something by itself (a conveyor, ink on a canvas) |
+| `observe(cell, dt)` | Then | Read the truth for your metrics. The cell is `const`: no command |
+| `measure(cell, metrics)` | When the assertions need values | Publish named numbers |
+| `status(context)` | After each step, **only if the scenario has no behavior tree** | Return `SUCCESS` or `FAILURE` to end the run |
+
+The split keeps the robot honest. `act` gets the same view as a skill, so
+it cannot read where the cube really is, and the same code runs on a real
+robot. `observe` can read the truth, because a metric must be exact, but
+it cannot move anything.
 
 > **Rule:** the plugin does not judge itself. It publishes metrics; the
 > scenario file decides what is a success. Do not write `assert` or
@@ -154,9 +164,10 @@ The five methods of a `Mission`, all optional:
 The arm turns its base joint left and right. `src/WaveMission.cpp`:
 
 ```cpp
-void WaveMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
+void WaveMission::act(robotik::RobotContext& p_context,
+                      robotik::Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_cell.robot();
+    robotik::Robot& robot = p_context.robot;
     robotik::JointSet& joints = robot.joints();
 
     // A typed handle: the angle is in radians, the compiler checks it.
@@ -168,7 +179,7 @@ void WaveMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
 
     // Command: a target angle. The joint controller moves toward it.
     Radians const home = joints.home(base);
-    Radians const offset(0.6 * std::sin(p_cell.time().value()));
+    Radians const offset(0.6 * std::sin(p_context.time.value()));
     joints.moveTo(base, home + offset);
 
     // Measure: the angle reached, and where the tool is (forward kinematics,
@@ -180,7 +191,7 @@ void WaveMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
 
 What you see here:
 
-- `p_cell.robot()` gives the robot. `robot.joints()` gives all joints.
+- `p_context.robot` gives the robot. `robot.joints()` gives all joints.
 - `joints.revolute("joint1")` gives a **typed handle**: its positions are
   `Radians`. A prismatic joint gives a `Prismatic` handle in metres. Mixing
   them does not compile.
@@ -226,9 +237,10 @@ void ReachMission::reset(robotik::Cell& p_cell, robotik::Seed /*p_seed*/)
     m_error = distance(start, m_target);
 }
 
-void ReachMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
+void ReachMission::act(robotik::RobotContext& p_context,
+                       robotik::Seconds /*p_dt*/)
 {
-    robotik::Robot& robot = p_cell.robot();
+    robotik::Robot& robot = p_context.robot;
     robotik::JointSet& joints = robot.joints();
     for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size(); ++id)
     {
@@ -262,7 +274,7 @@ turns green when the tool arrives. A red assertion does not stop the run.
 
 ## Lesson 4 — a skill and a behavior tree
 
-Lessons 1–3 drive the robot directly from `Mission::step`. This is simple,
+Lessons 1–3 drive the robot directly from `Mission::act`. This is simple,
 but it does not scale: who decides the order? what if the arm is busy? what
 if a sensor fails? Robotik answers with **skills** and **behavior trees**.
 
