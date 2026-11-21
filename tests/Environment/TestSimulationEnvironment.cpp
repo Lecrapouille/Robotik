@@ -45,7 +45,7 @@ public:
     }
 
     void apply(std::span<float const> /*p_action*/,
-               robotik::Cell& /*p_cell*/) override
+               robotik::RoboticCell& /*p_cell*/) override
     {
         if (++m_calls == 3)
         {

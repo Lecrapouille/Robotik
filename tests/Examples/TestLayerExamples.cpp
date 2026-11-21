@@ -14,7 +14,7 @@
 #include "PickPlaceMission.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/OpenCell.hpp"
+#include "Robotik/Task/OpenRoboticCell.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
 #include "Compages/World/World.hpp"
@@ -31,12 +31,12 @@ TEST(LayerExamples, TaskRunsOneSkill)
     cube.id = "cube";
     cube.shape = robotik::ShapeSpec{};             // a 4 cm box
     cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
-    robotik::CellDescription description;
+    robotik::RoboticCellDescription description;
     description.world.entities = { arm, cube };
 
-    auto opened = robotik::openCell(std::move(description));
+    auto opened = robotik::openRoboticCell(std::move(description));
     ASSERT_TRUE(opened) << opened.error();
-    robotik::Cell& cell = *opened.value();
+    robotik::RoboticCell& cell = *opened.value();
     auto const raise = cell.skills().add<robotik::MoveJointSkill>(
         { .name = "Raise" }, "joint2", 0.5);
     EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)), robotik::SkillState::Succeeded);
@@ -48,7 +48,8 @@ TEST(LayerExamples, TaskRunsOneSkill)
 
 /// The pick-and-place world without its controller, and its mission: the
 /// skills and the observers of the planner (PickPlacePlanning.cpp).
-static robotik::Result<robotik::OpenedCell> pickAndPlace(PickPlaceMission& p_mission)
+static robotik::Result<robotik::OpenedRoboticCell>
+pickAndPlace(PickPlaceMission& p_mission)
 {
     auto scenario = robotik::loadScenario(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
@@ -57,9 +58,9 @@ static robotik::Result<robotik::OpenedCell> pickAndPlace(PickPlaceMission& p_mis
     {
         return robotik::failure(scenario.error());
     }
-    robotik::CellDescription description = scenario.take();
+    robotik::RoboticCellDescription description = scenario.take();
     description.controller = {};
-    return robotik::openCell(std::move(description), &p_mission);
+    return robotik::openRoboticCell(std::move(description), &p_mission);
 }
 
 /// The goal of the pick and place, in the domain of the package.
@@ -78,7 +79,7 @@ TEST(LayerExamples, TaskAchievesAGoal)
     PickPlaceMission mission(true, true);
     auto opened = pickAndPlace(mission);
     ASSERT_TRUE(opened) << opened.error();
-    robotik::Cell& cell = *opened.value();
+    robotik::RoboticCell& cell = *opened.value();
 
     cell.achieve(cubeInBox("(in red_cube box)"));
     EXPECT_EQ(cell.run(robotik::Seconds(60.0)), robotik::Status::SUCCESS);
@@ -100,7 +101,8 @@ class HelloMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Cell& /*p_cell*/, robotik::Seed /*p_seed*/) override
+    void reset(robotik::RoboticCell& /*p_cell*/,
+               robotik::Seed /*p_seed*/) override
     {
         m_ticks = 0;
     }
@@ -110,7 +112,8 @@ public:
         ++m_ticks;
     }
 
-    void measure(robotik::Cell const& /*p_cell*/, robotik::Metrics& p_metrics) const override
+    void measure(robotik::RoboticCell const& /*p_cell*/,
+                 robotik::Metrics& p_metrics) const override
     {
         p_metrics.set("hello.ticks", static_cast<double>(m_ticks));
     }

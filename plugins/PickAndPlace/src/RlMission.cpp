@@ -10,14 +10,14 @@
 #include "PickPlaceControl.hpp"
 
 #include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
 #define RL_PAUSE_AFTER_S 1.2
 
-void RlMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
+void RlMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
 {
     steps = 0;
     episode_return = 0.0F;
@@ -58,7 +58,7 @@ RlMission::status(robotik::RobotContext const& /*p_context*/) const
     return robotik::Status::RUNNING;
 }
 
-void RlMission::playPolicy(robotik::Cell& p_cell, double p_dt)
+void RlMission::playPolicy(robotik::RoboticCell& p_cell, double p_dt)
 {
     if (!ready)
     {

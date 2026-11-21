@@ -30,7 +30,7 @@ keeps each one in its own domain:
 | [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | Forward kinematics, Jacobians, inverse kinematics | `PinocchioBackend` |
 | [MuJoCo](https://github.com/google-deepmind/mujoco) | Dynamics, contacts, integration | `MujocoBackend` |
 | [Compages](https://github.com/Lecrapouille/Compages) | ECS world (entities, transforms), 3D rendering | `compages::world::World`, `SceneView` |
-| [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | Behavior trees | `Cell::factory()`, `SkillNodes.hpp` |
+| [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | Behavior trees | `RoboticCell::factory()`, `SkillNodes.hpp` |
 | OpenCV, AprilTag | Image processing (only in some plugins) | detectors of the plugins |
 
 Robotik provides the layer that combines them. It does not want to become a
@@ -45,7 +45,7 @@ needs (examples in [Three programs, one per layer](../tutorials/02-three-program
 ```text
 Package   files and plugins: Simulation (scenario = cell + verdict), RunReport,
   │       World / Scenario / Experiment YAML, Assertions, Plugin ABI and hosts
-Task      a job in C++: CellDescription (data), Cell (step loop, controllers,
+Task      a job in C++: RoboticCellDescription (data), RoboticCell (step loop, controllers,
   │       truth, perception fidelity), Mission, SkillScheduler, Skills,
   │       WorldModel, Planning (PDDL), Grasp, Learning (RL), Agents
 Robot     one robot: Robot, RobotSession, openRobot, joints, sensors,
@@ -58,8 +58,8 @@ check the layers. It compiles every header and source alone, with an
 include path where only the allowed layers exist: an include towards a
 higher layer is "file not found", however the line is written. A header
 that forgets one of its own includes fails the same way. `Task/Skills` and
-`Task/Planning` are compiled without `Task/Cell.hpp`: they cannot call the
-truth API (`Cell::pose`, `Cell::query`...), because the class is not
+`Task/Planning` are compiled without `Task/RoboticCell.hpp`: they cannot call the
+truth API (`RoboticCell::pose`, `RoboticCell::query`...), because the class is not
 defined there. A future split stays
 possible: `Package` could become `Scenario` (files) and `App` (plugins,
 hosts) without touching the layers below.
@@ -99,13 +99,13 @@ WorldModel               the beliefs, read by the skills at the next tick
 ## One simulation step
 
 `Simulation::step(dt)` (Package, `src/Robotik/Package/Simulation.cpp`)
-steps the cell (`Cell::step`, Task, `src/Robotik/Task/Cell.cpp`), then
+steps the cell (`RoboticCell::step`, Task, `src/Robotik/Task/RoboticCell.cpp`), then
 judges. In this order:
 
 ```text
 Simulation::step(dt)
    │
-   ├── Cell::step(dt)
+   ├── RoboticCell::step(dt)
    │     ├── FaultInjector::update        faults on/off → resources (un)available
    │     ├── controller tick              behavior tree or plan: requests / cancels skills
    │     ├── SkillScheduler::update       admit, preempt, tick the skills
@@ -271,8 +271,8 @@ time.
 
 | | Access | Used by |
 |--|--------|---------|
-| **Ground truth** | `Cell::pose`, `Cell::query` | assertions, reports, RL reward |
-| **Description** | `Cell::described`, `Cell::waypoints` | the mission, to plan |
+| **Ground truth** | `RoboticCell::pose`, `RoboticCell::query` | assertions, reports, RL reward |
+| **Description** | `RoboticCell::described`, `RoboticCell::waypoints` | the mission, to plan |
 | **Belief** | `WorldModel`, through `RobotContext` | skills |
 
 The simulator knows `red_cube = (0.40, 0.20, 0.02)`. The robot may believe
@@ -294,7 +294,7 @@ Three contracts keep it honest:
 
 1. **One entry.** Skills, PDDL observers and the mission read the
    `WorldModel` only; `make check-layers` compiles `Task/Skills` and
-   `Task/Planning` without `Task/Cell.hpp`, so a truth call cannot build.
+   `Task/Planning` without `Task/RoboticCell.hpp`, so a truth call cannot build.
 2. **Source and age.** Each belief says where it comes from
    (`BeliefSource`: prior, sensed, noisy truth, truth) and when it was seen.
    With `perception.max_age`, an older belief is unknown to the planner.
@@ -311,10 +311,10 @@ others read it, or read a copy that the writer refreshes.
 
 | State | Lives in | Written by | Read by |
 |-------|----------|------------|---------|
-| Physics: free bodies, contacts, the joints of a simulated robot | the MuJoCo backend (`RobotBackend`) | the physics step, from the actuator commands | `Cell::syncBodies`, which copies the body poses; the robot, which reads its joints |
+| Physics: free bodies, contacts, the joints of a simulated robot | the MuJoCo backend (`RobotBackend`) | the physics step, from the actuator commands | `RoboticCell::syncBodies`, which copies the body poses; the robot, which reads its joints |
 | Joint positions | the `JointSet` of each robot | the backend after each step (by hand when the robot has no physics) | skills through `RobotContext`; Pinocchio, for the frame poses (`worldPose`) |
-| Ground truth of props and bodies | the Compages entities of the `Cell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `Cell::pose`, `Cell::query`, the conditions, the rendering |
-| Description | `CellDescription` | the YAML files or the C++ program, before the run; read-only after | the mission (`described`, `waypoints`), the planner (the entities with a `kind` are its objects) |
+| Ground truth of props and bodies | the Compages entities of the `RoboticCell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `RoboticCell::pose`, `RoboticCell::query`, the conditions, the rendering |
+| Description | `RoboticCellDescription` | the YAML files or the C++ program, before the run; read-only after | the mission (`described`, `waypoints`), the planner (the entities with a `kind` are its objects) |
 | Beliefs | `WorldModel` | the perception (detectors); the cell itself at the `truth` and `noisy_truth` fidelity; the priors of the description at each reset | skills, PDDL observers, the mission when it decides |
 | Symbolic facts (`(in red_cube box)`) | nowhere: the observers compute them from the beliefs when the planner asks | — | the planner and the plan executor |
 
@@ -380,7 +380,7 @@ external/                 third-party sources (downloaded)
 | `Robot/Backends/` | `RobotBackend` (with `contactList`, `bodyPose` for the truth), `MujocoBackend`, `PinocchioBackend`, `SceneView` |
 | `Robot/Assets/` | `AssetPack` (a `pack.yaml`), `AssetResolver` (`robotik.tools.vacuum` → file) |
 | `Robot/Components/` | Compages components for robots and objects, queries |
-| `Task/` | `CellDescription`, `Cell`, `Mission`, `SkillScheduler`, `RobotContext`, `FaultInjector`, `Metrics`, `Status` |
+| `Task/` | `RoboticCellDescription`, `RoboticCell`, `Mission`, `SkillScheduler`, `RobotContext`, `FaultInjector`, `Metrics`, `Status` |
 | `Task/Skills/` | `Skill`, `MotionSkills` (`Home`, `MoveJoint(s)`, `MoveTCP`, `Stop`), `SkillNodes` (BT bridge) |
 | `Task/Perception/` | `Detector`, `PerceptionPipeline`, `Detection`, `WorldModel`, `Localization` |
 | `Task/Planning/` | `Pddl` (symbols, domain schema), `PlanningDomain` (observers, bindings), `PlanningEngine` (Kairos behind it), `PlanExecutor` (plan → behavior tree, checks, replans), `PlanGraph` |

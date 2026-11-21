@@ -69,7 +69,7 @@ struct RandomFault
 /// act on the @ref ResourceManager only, so the skills see a fault the same
 /// way they would see a real failure. Random faults draw from the
 /// @c "faults" stream of the seed: the same seed gives the same faults. The
-/// @ref Cell builds it from the @c faults section of the scenario and calls
+/// @ref RoboticCell builds it from the @c faults section of the scenario and calls
 /// @ref update every step.
 ///
 /// @code

@@ -69,7 +69,7 @@ Simulation built          from the world + scenario; Mission::setup, Mission::re
 start
       │
       ▼
-loop: Cell::step → Mission::act, simulate, observe → Plugin::update(dt)
+loop: RoboticCell::step → Mission::act, simulate, observe → Plugin::update(dt)
       │
       ▼
 stop                      the simulation still exists
@@ -280,7 +280,7 @@ executable.
 - **A reset rebuilds the state** without unloading the plugin: put all
   episode state back in `Mission::reset`.
 - **Skills see beliefs, not truth.** In a skill, use `RobotContext`
-  (`robot`, `world_model`). Ground truth (`Cell::pose`) is for metrics
+  (`robot`, `world_model`). Ground truth (`RoboticCell::pose`) is for metrics
   and assertions.
 - **Publish metrics, do not judge.** The scenario file holds the verdict.
 - **Units are SI**: metres, radians, seconds. Use the typed handles

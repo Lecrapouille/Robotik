@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Mission.hpp
-/// The C++ part of a demo: what it adds to a generic @ref robotik::Cell (its
+/// The C++ part of a demo: what it adds to a generic @ref robotik::RoboticCell (its
 /// skills, its detectors, its metrics, what it does at each step).
 ///
 /// A mission does not judge the run: it publishes numbers, and the assertions
@@ -18,7 +18,7 @@
 ///   step @c act, @c simulate, then @c observe; @c measure publishes
 ///   numbers, never a verdict.
 /// - Expects: @c act decides from the robot and its beliefs only (it gets no
-///   @ref robotik::Cell); @c observe reads the truth and commands nothing (it
+///   @ref robotik::RoboticCell); @c observe reads the truth and commands nothing (it
 ///   gets a const cell); @c simulate changes the world only, never the
 ///   robot. The mission does not keep entities between calls.
 #pragma once
@@ -34,7 +34,7 @@ namespace robotik
 {
 
 class SceneView;
-class Cell;
+class RoboticCell;
 
 // ****************************************************************************
 /// The part of a demo that only C++ can say: its skills, its detectors and
@@ -42,9 +42,9 @@ class Cell;
 ///
 /// A scenario file describes the world, the controller and the verdict, but
 /// it cannot say how a robot paints a stroke or what "a lap" is. The mission
-/// brings this code to a generic @ref Cell, so that the core keeps no demo
+/// brings this code to a generic @ref RoboticCell, so that the core keeps no demo
 /// object. Write one per scenario of a plugin (the table of
-/// @c MissionPlugin), or give one to @ref openCell from a C++ program. A
+/// @c MissionPlugin), or give one to @ref openRoboticCell from a C++ program. A
 /// program that runs only the built-in skills needs no mission.
 ///
 /// The cell calls @ref setup once, then for each episode @ref reset, and
@@ -56,7 +56,7 @@ class Cell;
 /// enforce the split. @ref act is the robot side: it gets a
 /// @ref RobotContext, the same view as a skill, so it cannot read the true
 /// pose of an object and the code runs unchanged on a real robot.
-/// @ref observe is the judge side: it gets a const @ref Cell, so it reads
+/// @ref observe is the judge side: it gets a const @ref RoboticCell, so it reads
 /// the truth (for metrics) but cannot command anything. @ref simulate is the
 /// world side, for a demo whose world changes by itself (a conveyor moves a
 /// part, a brush leaves ink): it exists only in simulation. Every method has an
@@ -76,11 +76,11 @@ class Cell;
 ///     {
 ///         m_policy.drive(p_context.robot);      // what the robot measures
 ///     }
-///     void observe(robotik::Cell const& p_cell, robotik::Seconds) override
+///     void observe(robotik::RoboticCell const& p_cell, robotik::Seconds) override
 ///     {
 ///         m_lowest = std::min(m_lowest, p_cell.pose("base").position.z);
 ///     }
-///     void measure(robotik::Cell const&,
+///     void measure(robotik::RoboticCell const&,
 ///                  robotik::Metrics& p_metrics) const override
 ///     {
 ///         p_metrics.set("walk.height_min", m_lowest);
@@ -100,7 +100,7 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_view Rendering hooks; null for a headless run.
     // -------------------------------------------------------------------------
-    virtual void setup(Cell& /*p_cell*/, SceneView* /*p_view*/)
+    virtual void setup(RoboticCell& /*p_cell*/, SceneView* /*p_view*/)
     {
         // Nothing to do by default.
     }
@@ -111,7 +111,7 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_seed Seed of the episode; derive random streams from it.
     // -------------------------------------------------------------------------
-    virtual void reset(Cell& /*p_cell*/, Seed /*p_seed*/)
+    virtual void reset(RoboticCell& /*p_cell*/, Seed /*p_seed*/)
     {
         // Nothing to do by default.
     }
@@ -137,7 +137,7 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
-    virtual void simulate(Cell& /*p_cell*/, Seconds /*p_dt*/)
+    virtual void simulate(RoboticCell& /*p_cell*/, Seconds /*p_dt*/)
     {
         // Nothing to do by default.
     }
@@ -149,7 +149,7 @@ public:
     /// @param p_cell The cell, read only: no command is possible.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
-    virtual void observe(Cell const& /*p_cell*/, Seconds /*p_dt*/)
+    virtual void observe(RoboticCell const& /*p_cell*/, Seconds /*p_dt*/)
     {
         // Nothing to do by default.
     }
@@ -160,7 +160,7 @@ public:
     /// @param p_cell The cell running the mission.
     /// @param p_metrics Table receiving the values.
     // -------------------------------------------------------------------------
-    virtual void measure(Cell const& /*p_cell*/,
+    virtual void measure(RoboticCell const& /*p_cell*/,
                          Metrics& /*p_metrics*/) const
     {
         // Nothing to do by default.

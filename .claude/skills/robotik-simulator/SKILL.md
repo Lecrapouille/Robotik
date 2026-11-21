@@ -69,7 +69,7 @@ scenario YAML, and the simulator only shows or triggers it.
 - Status colors only from `Colors.hpp`: GREY idle, ORANGE running/held,
   GREEN success, RED failure/fault, BLUE info/paused/shared.
 - Never write the truth into what skills see; panels may read the truth
-  (`Cell::pose`) to compare with beliefs.
+  (`RoboticCell::pose`) to compare with beliefs.
 - Manual mode (`App::teach.manual`): the mission is suspended and the robot
   steps even when paused. Any manual command calls `takeArm(App&)` first.
 - The simulator knows no demo: no object id, tool kind or joint name of a

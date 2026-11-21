@@ -14,8 +14,8 @@
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/RunReport.hpp"
 #include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Task/Planning/PlanExecutor.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 /// True when the type is complete (its definition was included).
 template <typename T>
@@ -28,11 +28,12 @@ static_assert(!Complete<bt::NodeFactory>,
               "a public header includes BlackThorn: name the tree types with "
               "Robotik/Task/TreeTypes.hpp instead");
 
-TEST(HiddenBlackThorn, CellAnswersWithTheRobotikStatus)
+TEST(HiddenBlackThorn, RoboticCellAnswersWithTheRobotikStatus)
 {
     static_assert(
-        std::is_same_v<decltype(std::declval<robotik::Cell const&>().status()),
-                       robotik::Status>);
+        std::is_same_v<
+            decltype(std::declval<robotik::RoboticCell const&>().status()),
+            robotik::Status>);
     static_assert(std::is_same_v<decltype(std::declval<robotik::PlanExecutor&>()
                                               .tick(std::declval<robotik::RobotContext const&>())),
                                  robotik::Status>);

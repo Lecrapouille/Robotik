@@ -58,7 +58,7 @@ differently:
 ## An environment from a scenario
 
 `robotik::SimulationEnvironment` turns a robot cell into an environment (a
-scenario file, or a `CellDescription` written in C++), from three swappable
+scenario file, or a `RoboticCellDescription` written in C++), from three swappable
 parts:
 
 ```text
@@ -69,7 +69,7 @@ parts:
    (vector → commands)             (sensors, beliefs → vector)
               │                                 ▲
               ▼                                 │
-           Cell ── held for control_period ──┘
+           RoboticCell ── held for control_period ──┘
               │
               ▼
        RewardEvaluator ── reward, Success / Failure
@@ -155,7 +155,7 @@ world are still to do.
 
 | Question | Answer in Robotik |
 |----------|-------------------|
-| Does a reset put every state back? | Yes: `Cell::reset` (robot, sensors, resources, faults, objects), then `reset` of each part. Checked by a replay test |
+| Does a reset put every state back? | Yes: `RoboticCell::reset` (robot, sensors, resources, faults, objects), then `reset` of each part. Checked by a replay test |
 | Explicit observation and action spaces? | `Space`: name, bounds, unit per dimension |
 | Observations consistent with the available sensors? | Pick-and-place reads the robot beliefs; the only ground-truth dimension is flagged privileged |
 | How long is an action applied? | `EnvironmentTiming::control_period`, a whole multiple of the physics step |

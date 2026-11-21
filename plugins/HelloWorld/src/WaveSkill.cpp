@@ -9,7 +9,7 @@
 
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 void WaveSkill::reset()
 {
@@ -41,7 +41,7 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
     p_context.robot.joints().hold();
 }
 
-void SkillsMission::setup(robotik::Cell& p_cell,
+void SkillsMission::setup(robotik::RoboticCell& p_cell,
                           robotik::SceneView* /*p_view*/)
 {
     // The skill reserves the actuator "arm" while it runs: no other skill

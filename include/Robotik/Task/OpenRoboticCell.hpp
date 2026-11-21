@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file OpenCell.hpp
+/// @file OpenRoboticCell.hpp
 /// The shortest way to get a robot cell: one call, no world to create.
 ///
-/// A @ref robotik::Cell lives in an ECS world (Compages) that the
+/// A @ref robotik::RoboticCell lives in an ECS world (Compages) that the
 /// simulator shares with its rendering. A program that only wants robots,
-/// objects and skills should not have to know it: @ref robotik::openCell
+/// objects and skills should not have to know it: @ref robotik::openRoboticCell
 /// creates the world and keeps it with the cell.
 ///
 /// @code
@@ -18,9 +18,9 @@
 /// arm.id = "arm";
 /// arm.type = robotik::EntitySpec::Type::Robot;
 /// arm.model = "robot_6axis.urdf";
-/// robotik::CellDescription description;
+/// robotik::RoboticCellDescription description;
 /// description.world.entities = { arm };
-/// auto cell = robotik::openCell(std::move(description));
+/// auto cell = robotik::openRoboticCell(std::move(description));
 /// if (!cell)
 ///     return fail(cell.error());
 /// auto const raise = cell.value()->skills().add<robotik::MoveJointSkill>(
@@ -32,13 +32,13 @@
 /// (Package) reads the same description from YAML files.
 ///
 /// @par Contract
-/// - Promises: @c openCell returns a @c Result: a world that cannot be built
+/// - Promises: @c openRoboticCell returns a @c Result: a world that cannot be built
 ///   (unknown model, bad goal) is a message, not an exception.
 /// - Expects: a description whose files (URDF, PDDL) exist.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -53,21 +53,21 @@ namespace robotik
 /// The world must live longer than the cell: the members are declared in
 /// this order, so the cell is destroyed first. Move it, do not copy it.
 // ****************************************************************************
-struct OpenedCell
+struct OpenedRoboticCell
 {
     /// ECS world holding the entities.
     std::unique_ptr<compages::world::World> world;
     /// The cell.
-    std::unique_ptr<Cell> cell;
+    std::unique_ptr<RoboticCell> cell;
 
     /// @return The cell.
-    Cell* operator->() const
+    RoboticCell* operator->() const
     {
         return cell.get();
     }
 
     /// @return The cell.
-    Cell& operator*() const
+    RoboticCell& operator*() const
     {
         return *cell;
     }
@@ -80,7 +80,8 @@ struct OpenedCell
 ///   owned.
 /// @return The cell, or why it could not be built.
 // ----------------------------------------------------------------------------
-[[nodiscard]] Result<OpenedCell> openCell(CellDescription p_description,
-                                          Mission* p_mission = nullptr);
+[[nodiscard]] Result<OpenedRoboticCell>
+openRoboticCell(RoboticCellDescription p_description,
+                Mission* p_mission = nullptr);
 
 } // namespace robotik

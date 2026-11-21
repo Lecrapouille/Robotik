@@ -10,11 +10,11 @@
 #include "Vision.hpp"
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/Perception/Localization.hpp"
 #include "Robotik/Robot/Actuators.hpp"
 #include "Robotik/Robot/Resources.hpp"
-#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Robot/Sensors/Camera.hpp"
+#include "Robotik/Task/Perception/Localization.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <numbers>
@@ -47,7 +47,7 @@ void LineFollowerMission::placeTags()
     }
 }
 
-void LineFollowerMission::bindCamera(robotik::Cell& p_cell)
+void LineFollowerMission::bindCamera(robotik::RoboticCell& p_cell)
 {
     robotik::Camera* camera = p_cell.camera();
     if (camera == nullptr)
@@ -80,7 +80,7 @@ void LineFollowerMission::bindCamera(robotik::Cell& p_cell)
         });
 }
 
-void LineFollowerMission::setup(robotik::Cell& p_cell,
+void LineFollowerMission::setup(robotik::RoboticCell& p_cell,
                                 robotik::SceneView* p_view)
 {
     auto backend = std::make_unique<DiffDriveBackend>("left_wheel_joint",
@@ -137,7 +137,7 @@ void LineFollowerMission::setup(robotik::Cell& p_cell,
     }
 }
 
-void LineFollowerMission::reset(robotik::Cell& p_cell,
+void LineFollowerMission::reset(robotik::RoboticCell& p_cell,
                                 robotik::Seed p_seed)
 {
     robotik::Random start(p_seed.derive("start"));
@@ -185,7 +185,7 @@ void LineFollowerMission::act(robotik::RobotContext& /*p_context*/,
     }
 }
 
-void LineFollowerMission::observe(robotik::Cell const& p_cell,
+void LineFollowerMission::observe(robotik::RoboticCell const& p_cell,
                                   robotik::Seconds p_dt)
 {
     if (m_left == nullptr || m_navigation == nullptr)
@@ -231,7 +231,7 @@ void LineFollowerMission::observe(robotik::Cell const& p_cell,
     }
 }
 
-void LineFollowerMission::measure(robotik::Cell const& /*p_cell*/,
+void LineFollowerMission::measure(robotik::RoboticCell const& /*p_cell*/,
                                   robotik::Metrics& p_metrics) const
 {
     p_metrics.set("laps", followProgress() / m_track.perimeter());

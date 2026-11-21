@@ -8,10 +8,10 @@
 #include "DuckMission.hpp"
 #include "DuckSkills.hpp"
 
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Cell.hpp"
-#include "Robotik/Common/Config.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -24,10 +24,10 @@
 /// Skill priority, as the other plugins.
 #define SKILL_PRIORITY 100
 // ----------------------------------------------------------------------------
-void DuckMission::setup(robotik::Cell& p_cell,
+void DuckMission::setup(robotik::RoboticCell& p_cell,
                         robotik::SceneView* /*p_view*/)
 {
-    robotik::CellDescription const& scenario = p_cell.description();
+    robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + TRUNK;
     std::filesystem::path const& urdf = robotik::firstRobot(scenario.world).model;
     DuckContract contract =
@@ -97,8 +97,7 @@ void DuckMission::setup(robotik::Cell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::reset(robotik::Cell& p_cell,
-                        robotik::Seed /*p_seed*/)
+void DuckMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
     robotik::Pose const base = p_cell.pose(m_base);
@@ -112,7 +111,7 @@ void DuckMission::reset(robotik::Cell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::observe(robotik::Cell const& p_cell,
+void DuckMission::observe(robotik::RoboticCell const& p_cell,
                           robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_cell.pose(m_base);
@@ -126,7 +125,7 @@ void DuckMission::observe(robotik::Cell const& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::measure(robotik::Cell const& /*p_cell*/,
+void DuckMission::measure(robotik::RoboticCell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("duck.height_min", m_height_min);

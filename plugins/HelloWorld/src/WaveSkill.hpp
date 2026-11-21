@@ -39,6 +39,6 @@ class SkillsMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
 };

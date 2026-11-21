@@ -77,7 +77,7 @@ void FlyAction::write(std::span<float> p_values) const
     p_values[2] = lift;
 }
 
-FlyScenario FlyScenario::from(robotik::CellDescription const& p_scenario)
+FlyScenario FlyScenario::from(robotik::RoboticCellDescription const& p_scenario)
 {
     FlyScenario scenario;
     scenario.name = p_scenario.id;

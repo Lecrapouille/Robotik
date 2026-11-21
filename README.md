@@ -303,7 +303,7 @@ RobotIK itself is cut in three layers, like Compages. Each one works without the
 | Layer | You have… | You get |
 |-------|-----------|---------|
 | 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::openRobot`) |
-| 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::Cell`) |
+| 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::RoboticCell`) |
 | 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
 
 Examples of each: [Three programs, one per layer](doc/tutorials/02-three-programs.md). The words: [glossary](doc/reference/glossary.md).

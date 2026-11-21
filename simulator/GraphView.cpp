@@ -82,7 +82,7 @@ struct Arrow
 /// for a name that is not a skill.
 static std::string detailOf(App const& p_app, std::string const& p_name)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillId const id = cell.skills().find(p_name);
     if (id == robotik::NO_SKILL)
     {
@@ -578,7 +578,7 @@ static void planHeader(robotik::PlanExecutor const& p_executor)
 /// resources, why it waits, and Request or Cancel.
 static void skillCells(App& p_app, robotik::SkillId p_id)
 {
-    robotik::Cell& cell = p_app.simulation->cell();
+    robotik::RoboticCell& cell = p_app.simulation->cell();
     robotik::SkillScheduler& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
     robotik::SkillDescription const& description = skills.description(p_id);
@@ -805,7 +805,7 @@ void graphView(App& p_app, bool p_preview)
         emptyState("No scenario loaded.");
         return;
     }
-    robotik::Cell& cell = p_app.simulation->cell();
+    robotik::RoboticCell& cell = p_app.simulation->cell();
     robotik::PlanExecutor const* executor = cell.planner();
     bt::Tree const* tree = cell.tree();
     bool preview_tree = false;

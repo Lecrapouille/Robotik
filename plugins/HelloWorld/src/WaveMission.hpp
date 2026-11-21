@@ -20,10 +20,9 @@ class WaveMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
-    void measure(robotik::Cell const& p_cell,
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override;

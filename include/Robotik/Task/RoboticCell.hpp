@@ -5,14 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file Cell.hpp
+/// @file RoboticCell.hpp
 /// A robot cell running in simulation: robots and objects sharing one
 /// physics, a controller deciding what to do, and the true state of the world
 /// for measures.
 ///
 /// A *cell* is the place where robots work, as in a factory (see
 /// doc/reference/glossary.md). It is the Task layer: a C++ program builds one
-/// from a @ref robotik::CellDescription, without any file. Headless unless a
+/// from a @ref robotik::RoboticCellDescription, without any file. Headless unless a
 /// @ref robotik::SceneView is given.
 ///
 /// @par Contract
@@ -27,18 +27,18 @@
 #pragma once
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
+#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Task/Condition.hpp"
+#include "Robotik/Task/Faults.hpp"
+#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/Perception/Detector.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanExecutor.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/Faults.hpp"
-#include "Robotik/Task/Condition.hpp"
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/RobotContext.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 #include "Robotik/Task/Scheduler.hpp"
-#include "Robotik/Task/CellDescription.hpp"
 
 #include "Robotik/Task/Status.hpp"
 #include "Robotik/Task/TreeTypes.hpp"
@@ -76,8 +76,8 @@ struct Shape;
 /// scheduler that shares the devices, faults, and the true state of the
 /// world to measure the result. The cell puts these pieces together around
 /// one physics. Use it when a program runs a job, with or without files: a
-/// test or an application builds it from a @ref CellDescription (or calls
-/// @ref openCell), and the Package layer builds it from a scenario file.
+/// test or an application builds it from a @ref RoboticCellDescription (or calls
+/// @ref openRoboticCell), and the Package layer builds it from a scenario file.
 /// To move one robot without a job, @ref openRobot is enough.
 ///
 /// Each @ref step runs, in this order: the faults, the controller tick (the
@@ -106,21 +106,21 @@ struct Shape;
 /// arm.id = "arm";
 /// arm.type = robotik::EntitySpec::Type::Robot;
 /// arm.model = "robot_6axis.urdf";
-/// robotik::CellDescription description;
+/// robotik::RoboticCellDescription description;
 /// description.world.entities = { arm };
-/// auto opened = robotik::openCell(std::move(description));
-/// robotik::Cell& cell = *opened.value();
+/// auto opened = robotik::openRoboticCell(std::move(description));
+/// robotik::RoboticCell& cell = *opened.value();
 /// auto const raise = cell.skills().add<robotik::MoveJointSkill>(
 ///     { .name = "Raise" }, "joint2", 0.5);
 /// cell.run(raise, robotik::Seconds(10.0));   // SkillState::Succeeded
 /// @endcode
 // ****************************************************************************
-class Cell
+class RoboticCell
 {
 public:
 
-    Cell(Cell const&) = delete;
-    Cell& operator=(Cell const&) = delete;
+    RoboticCell(RoboticCell const&) = delete;
+    RoboticCell& operator=(RoboticCell const&) = delete;
 
     // -------------------------------------------------------------------------
     /// Builds the robots, sensors, objects and physics of the description,
@@ -131,11 +131,11 @@ public:
     /// @param p_mission Task plugin (skills, detectors, metrics); not owned.
     /// @throws std::runtime_error when the cell cannot be built.
     // -------------------------------------------------------------------------
-    Cell(compages::world::World& p_world,
-         CellDescription p_description,
-         SceneView* p_view = nullptr,
-         Mission* p_mission = nullptr);
-    ~Cell();
+    RoboticCell(compages::world::World& p_world,
+                RoboticCellDescription p_description,
+                SceneView* p_view = nullptr,
+                Mission* p_mission = nullptr);
+    ~RoboticCell();
 
     // -------------------------------------------------------------------------
     /// Starts a new episode: same seed, same episode.
@@ -174,7 +174,7 @@ public:
     }
 
     /// @return What the cell was built from.
-    [[nodiscard]] CellDescription const& description() const
+    [[nodiscard]] RoboticCellDescription const& description() const
     {
         return m_description;
     }
@@ -304,7 +304,7 @@ public:
     /// world are loaded as usual.
     ///
     /// @code
-    /// void Walk::setup(robotik::Cell& p_cell, robotik::SceneView*)
+    /// void Walk::setup(robotik::RoboticCell& p_cell, robotik::SceneView*)
     /// {
     ///     p_cell.physicsOptions().floating_base = true;
     ///     p_cell.physicsOptions().gravity_compensation = false;
@@ -675,7 +675,7 @@ private:
     /// ECS world of the entities.
     compages::world::World& m_world;
     /// What the cell was built from.
-    CellDescription m_description;
+    RoboticCellDescription m_description;
     /// Task plugin, not owned, or null.
     Mission* m_mission = nullptr;
     /// Options of the physics built by connectBackend (see physicsOptions).

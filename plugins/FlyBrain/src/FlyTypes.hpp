@@ -13,7 +13,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -198,7 +198,8 @@ struct FlyScenario
     /// horizon (episode length, s).
     /// @throws std::runtime_error when the world has no food.
     // ------------------------------------------------------------------------
-    [[nodiscard]] static FlyScenario from(robotik::CellDescription const& p_scenario);
+    [[nodiscard]] static FlyScenario
+    from(robotik::RoboticCellDescription const& p_scenario);
 };
 
 /// URDF prefixes of the six legs, fore to hind, left then right.

@@ -5,21 +5,22 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Task/OpenCell.hpp"
+#include "Robotik/Task/OpenRoboticCell.hpp"
 
 #include <stdexcept>
 
 namespace robotik
 {
 
-Result<OpenedCell> openCell(CellDescription p_description, Mission* p_mission)
+Result<OpenedRoboticCell> openRoboticCell(RoboticCellDescription p_description,
+                                          Mission* p_mission)
 {
     // The border of this builder: whatever stops the cell becomes a message.
     try
     {
-        OpenedCell opened;
+        OpenedRoboticCell opened;
         opened.world = std::make_unique<compages::world::World>();
-        opened.cell = std::make_unique<Cell>(
+        opened.cell = std::make_unique<RoboticCell>(
             *opened.world, std::move(p_description), nullptr, p_mission);
         return opened;
     }

@@ -7,12 +7,12 @@
 
 #include "WaveMission.hpp"
 
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-void WaveMission::reset(robotik::Cell& /*p_cell*/,
+void WaveMission::reset(robotik::RoboticCell& /*p_cell*/,
                         robotik::Seed /*p_seed*/)
 {
     m_swing = 0.0;
@@ -44,7 +44,7 @@ void WaveMission::act(robotik::RobotContext& p_context,
     m_tool_y = robot.framePose(robot.tool()).position.y;
 }
 
-void WaveMission::measure(robotik::Cell const& /*p_cell*/,
+void WaveMission::measure(robotik::RoboticCell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("wave.swing", m_swing);

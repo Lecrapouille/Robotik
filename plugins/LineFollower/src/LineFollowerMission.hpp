@@ -25,13 +25,13 @@ public:
 
     explicit LineFollowerMission(double p_laps = 1.0);
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
-    void observe(robotik::Cell const& p_cell, robotik::Seconds p_dt) override;
-    void measure(robotik::Cell const& p_cell,
+    void observe(robotik::RoboticCell const& p_cell,
+                 robotik::Seconds p_dt) override;
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 
     [[nodiscard]] Track const& track() const
@@ -80,7 +80,7 @@ public:
 private:
 
     void placeTags();
-    void bindCamera(robotik::Cell& p_cell);
+    void bindCamera(robotik::RoboticCell& p_cell);
 
 private:
 

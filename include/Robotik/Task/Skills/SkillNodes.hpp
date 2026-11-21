@@ -9,8 +9,8 @@
 /// Behavior tree nodes that run a skill through the scheduler.
 ///
 /// This is the only RobotIK header that includes BlackThorn. Include it to
-/// write your own tree nodes (@ref robotik::Cell::factory) or to walk a tree
-/// (@ref robotik::Cell::tree); the rest of the API names the tree types only
+/// write your own tree nodes (@ref robotik::RoboticCell::factory) or to walk a tree
+/// (@ref robotik::RoboticCell::tree); the rest of the API names the tree types only
 /// (TreeTypes.hpp) and answers with @ref robotik::Status.
 ///
 /// The tree decides what to do; the node only asks the scheduler, so resources

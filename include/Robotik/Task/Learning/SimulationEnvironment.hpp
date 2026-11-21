@@ -26,7 +26,7 @@
 /// parts.action = std::make_unique<MyAction>();
 /// parts.reward = std::make_unique<MyReward>();
 /// robotik::SimulationEnvironment env(
-///     robotik::loadScenario(path, assets).take(), // a CellDescription
+///     robotik::loadScenario(path, assets).take(), // a RoboticCellDescription
 ///     std::move(parts),
 ///     robotik::EnvironmentTiming{ .control_period = Seconds(0.1),
 ///                                 .max_steps = 100 });
@@ -42,7 +42,7 @@
 
 #include "Robotik/Task/Learning/Environment.hpp"
 #include "Robotik/Task/Mission.hpp"
-#include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -54,7 +54,7 @@
 namespace robotik
 {
 
-class Cell;
+class RoboticCell;
 
 // ****************************************************************************
 /// Progress of the running episode, as the parts see it.
@@ -85,7 +85,7 @@ struct EpisodeClock
 ///         return robotik::Space().add("q0", -3.2f, 3.2f, "rad").add("q1",
 ///         -3.2f, 3.2f, "rad");
 ///     }
-///     void observe(robotik::Cell const& p_cell, robotik::EpisodeClock
+///     void observe(robotik::RoboticCell const& p_cell, robotik::EpisodeClock
 ///     const&,
 ///                  std::span<float> p_obs) override
 ///     {
@@ -106,13 +106,13 @@ public:
     [[nodiscard]] virtual Space space() const = 0;
 
     /// Called once, after the simulation is built.
-    virtual void setup(Cell& /*p_cell*/)
+    virtual void setup(RoboticCell& /*p_cell*/)
     {
         // Nothing to do by default.
     }
 
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell& /*p_cell*/)
+    virtual void reset(RoboticCell& /*p_cell*/)
     {
         // Nothing to do by default.
     }
@@ -123,7 +123,7 @@ public:
     /// @param p_clock Progress of the episode.
     /// @param p_observation Buffer of @c space().size() floats to fill.
     // -------------------------------------------------------------------------
-    virtual void observe(Cell const& p_cell,
+    virtual void observe(RoboticCell const& p_cell,
                          EpisodeClock const& p_clock,
                          std::span<float> p_observation) = 0;
 };
@@ -141,7 +141,7 @@ public:
 ///         return robotik::Space::unnamed("q", 2);
 ///     }
 ///     void apply(std::span<float const> p_action,
-///                robotik::Cell& p_cell) override
+///                robotik::RoboticCell& p_cell) override
 ///     {
 ///         auto& joints = p_cell.robot().joints();
 ///         joints.moveTo(0, p_action[0]);
@@ -160,13 +160,13 @@ public:
     [[nodiscard]] virtual Space space() const = 0;
 
     /// Called once, after the simulation is built (e.g. a ready posture).
-    virtual void setup(Cell& /*p_cell*/)
+    virtual void setup(RoboticCell& /*p_cell*/)
     {
         // Nothing to do by default.
     }
 
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell& /*p_cell*/)
+    virtual void reset(RoboticCell& /*p_cell*/)
     {
         // Nothing to do by default.
     }
@@ -177,7 +177,7 @@ public:
     /// @param p_cell The running simulation.
     // -------------------------------------------------------------------------
     virtual void apply(std::span<float const> p_action,
-                       Cell& p_cell) = 0;
+                       RoboticCell& p_cell) = 0;
 };
 
 // ****************************************************************************
@@ -185,11 +185,11 @@ public:
 /// @ref evaluate returns the reward and, when the task is over,
 /// @ref EpisodeEnd::Success or @ref EpisodeEnd::Failure.
 ///
-/// The reward may read the ground truth (@c Cell::pose): it is not
+/// The reward may read the ground truth (@c RoboticCell::pose): it is not
 /// part of what the agent sees.
 ///
 /// @code
-/// robotik::StepResult Reach::evaluate(robotik::Cell const& p_cell)
+/// robotik::StepResult Reach::evaluate(robotik::RoboticCell const& p_cell)
 /// {
 ///     double const d = distanceToTarget(p_cell);
 ///     if (d < 0.01)
@@ -205,12 +205,12 @@ public:
     virtual ~RewardEvaluator() = default;
 
     /// Called once, after the simulation is built.
-    virtual void setup(Cell const& /*p_cell*/)
+    virtual void setup(RoboticCell const& /*p_cell*/)
     {
         // Nothing to do by default.
     }
     /// Called at each episode start, after the world is reset.
-    virtual void reset(Cell const& /*p_cell*/)
+    virtual void reset(RoboticCell const& /*p_cell*/)
     {
         // Nothing to do by default.
     }
@@ -220,8 +220,7 @@ public:
     /// @param p_cell The running simulation.
     /// @return The reward, and the end of the task if it is over.
     // -------------------------------------------------------------------------
-    [[nodiscard]] virtual StepResult
-    evaluate(Cell const& p_cell) = 0;
+    [[nodiscard]] virtual StepResult evaluate(RoboticCell const& p_cell) = 0;
 };
 
 // ****************************************************************************
@@ -243,7 +242,7 @@ struct EnvironmentTiming
 };
 
 // ****************************************************************************
-/// @ref Environment running a @ref Cell (example in the file
+/// @ref Environment running a @ref RoboticCell (example in the file
 /// comment).
 ///
 /// The cell keeps its world, faults and perception policy. Its behavior tree
@@ -271,13 +270,13 @@ public:
     // -------------------------------------------------------------------------
     /// Builds the cell and calls the @c setup of the
     /// parts.
-    /// @param p_description Cell to build.
+    /// @param p_description RoboticCell to build.
     /// @param p_parts Observation, action, reward and optional mission.
     /// @param p_timing Physics step, control period and step budget.
     /// @throws std::invalid_argument when a part is missing or the control
     ///   period is not a positive multiple of the physics step.
     // -------------------------------------------------------------------------
-    SimulationEnvironment(CellDescription p_description,
+    SimulationEnvironment(RoboticCellDescription p_description,
                           Parts p_parts,
                           EnvironmentTiming p_timing);
     ~SimulationEnvironment() override;
@@ -322,7 +321,7 @@ public:
                     std::span<float> p_observation) override;
 
     /// @return The simulation, e.g. to render one environment of a pool.
-    [[nodiscard]] Cell& simulation()
+    [[nodiscard]] RoboticCell& simulation()
     {
         return *m_simulation;
     }
@@ -352,7 +351,7 @@ private:
     /// Why the last episode was aborted.
     std::string m_abort;
     /// Declared last: destroyed before the mission and the world it uses.
-    std::unique_ptr<Cell> m_simulation;
+    std::unique_ptr<RoboticCell> m_simulation;
 };
 
 } // namespace robotik

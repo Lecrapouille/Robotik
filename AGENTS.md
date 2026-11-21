@@ -25,7 +25,7 @@ Read only what the task needs. Load a skill instead of reading the docs:
 Three layers, each usable without the ones above (`make check-layers`
 compiles every file alone where only the layers below exist, so an include
 upwards is "file not found"; `Task/Skills` and `Task/Planning` are compiled
-without `Task/Cell.hpp`, so they cannot call the truth). Words:
+without `Task/RoboticCell.hpp`, so they cannot call the truth). Words:
 doc/reference/glossary.md.
 
 ```text
@@ -36,7 +36,7 @@ include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementat
             Devices, Resources, Actuators, TeachPendant, Sensors/, Backends/
             (MuJoCo, Pinocchio, SceneView), Assets/ (packs, resolver),
             Components/ (ECS data on entities)
-  Task/     a job in C++: CellDescription (data), Cell (step loop, truth,
+  Task/     a job in C++: RoboticCellDescription (data), RoboticCell (step loop, truth,
             controllers, perception fidelity), Mission, SkillScheduler,
             RobotContext, Faults, Metrics, Skills/, Perception/ (WorldModel),
             Planning/ (Pddl, PlanningDomain, PlanExecutor, PlanGraph,
@@ -63,7 +63,7 @@ walking robot pushing a box in a room, ONNX policy).
 make                                      # core, hosts, the plugins of PLUGINS
 make <target>       # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
 make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
-make check-layers                         # compiler: no include upwards, no Cell.hpp in skills/planning
+make check-layers                         # compiler: no include upwards, no RoboticCell.hpp in skills/planning
 ./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```
@@ -84,10 +84,10 @@ built.
   `robotik-plugin` skill, "Core stays agnostic". Report a new leak.
 
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
-  give them ground truth (`Cell::pose/query`); that is for metrics,
+  give them ground truth (`RoboticCell::pose/query`); that is for metrics,
   assertions, RL reward. A scenario may choose to feed beliefs from the
   truth (`perception.fidelity: truth | noisy_truth`, per object): it is a
-  mock of the detectors, done by the `Cell` and written in the run report,
+  mock of the detectors, done by the `RoboticCell` and written in the run report,
   never by a skill.
 - File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
   `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
@@ -108,19 +108,19 @@ built.
 - Conditions and planner literals use the PDDL notation: `(< time 30)`,
   `(inside red_cube box)`. They are compiled at load (Task/Condition.hpp):
   a typo is a load error. From C++, ask `cell.query("inside", {a, b})`,
-  never build a condition string; add a query with `Cell::addQuery`.
+  never build a condition string; add a query with `RoboticCell::addQuery`.
 - A mission step has three sides, kept apart by the types: `act(RobotContext&)`
-  commands from the robot and its beliefs (no truth), `simulate(Cell&)` is
+  commands from the robot and its beliefs (no truth), `simulate(RoboticCell&)` is
   what the world does by itself (sim only, never commands a robot),
-  `observe(Cell const&)` reads the truth for metrics (a const cell commands
+  `observe(RoboticCell const&)` reads the truth for metrics (a const cell commands
   nothing: `skills()`, `robot()`, `robots()` are read only).
 - `Mission::status` ends a run only when the scenario has no behavior tree
   and no planner.
 - Several robots in a world share one physics, one `ResourceManager`, one
   `SkillScheduler` and the beliefs: device names are unique in the world;
   `SkillDescription::robot` says which robot a skill drives; with several
-  robots the beliefs are in the world frame (`Cell::beliefFrame`), a
-  robot alone keeps its base frame. `Cell::robot()` is the first one.
+  robots the beliefs are in the world frame (`RoboticCell::beliefFrame`), a
+  robot alone keeps its base frame. `RoboticCell::robot()` is the first one.
 - Plans run their independent steps together (`planner.parallel`, default
   true): the order comes from what each end of an action reads and changes,
   and from the resources of its skills. Do not add ordering in C++.
@@ -151,7 +151,7 @@ built.
   headers name tree types with `TreeTypes.hpp` and answer `robotik::Status`
   (checked by the compiler in `tests/Common/TestHiddenBlackThorn.cpp`).
 - BlackThorn `Timeout`/`Delay`/`Wait`/`Cooldown` read the simulated time
-  (`bt::Tree::clock`, set by `Cell` and `PlanExecutor`). A tree built
+  (`bt::Tree::clock`, set by `RoboticCell` and `PlanExecutor`). A tree built
   elsewhere keeps the wall clock unless you give it one.
 
 ## Style

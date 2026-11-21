@@ -190,7 +190,7 @@ A value is a number, a metric, or a query on the world:
 | `(holding g)`, `(holding g object)` | The gripper `g` holds something, or this object |
 | `(skill_started s)`, `(skill_succeeded s)`, `(skill_failed s)` | History of the skill scheduler |
 
-A plugin can add its own queries with `Cell::addQuery` in `Mission::setup`.
+A plugin can add its own queries with `RoboticCell::addQuery` in `Mission::setup`.
 A `;` starts a comment up to the end of the line. Put a name with spaces
 between double quotes.
 
@@ -232,7 +232,7 @@ trajectory:
 | `cartesian` | Poses of the tool working point, in `frame` (an entity, or `entity.link`; the world if empty) |
 | `joint` | Joint configurations, for the joints listed in `joints` |
 
-In C++, `Cell::waypoints("red")` returns a cartesian trajectory in the
+In C++, `RoboticCell::waypoints("red")` returns a cartesian trajectory in the
 robot base frame. Its frame is placed where the **world file** describes it:
 if the easel slides during the run, the robot does not know.
 

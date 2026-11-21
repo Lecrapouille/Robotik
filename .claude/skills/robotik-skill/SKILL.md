@@ -49,7 +49,7 @@ actuators, top priority, never ends). Every skill becomes a BT `Action` of
 the same name automatically (`registerSkills`). Custom nodes:
 `p_cell.factory().registerNode("Dip", []{...})` (see Painter `registerNodes`);
 include `Robotik/Task/Skills/SkillNodes.hpp`, the only header that brings
-BlackThorn (others name `bt::` types via `TreeTypes.hpp`; `Cell::status()`
+BlackThorn (others name `bt::` types via `TreeTypes.hpp`; `RoboticCell::status()`
 is a `robotik::Status`, `toStatus(bt::Status)` converts).
 
 States: Idle, Waiting, Running, Succeeded, Failed, Cancelled. Reasons: Busy,
@@ -82,7 +82,7 @@ Nodes: `Sequence`, `Selector` (not "Fallback"), `Parallel`
 (one-element list). Action maps Waiting/Running→RUNNING,
 Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels it.
 
-`Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `Cell`
+`Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `RoboticCell`
 and `PlanExecutor` give the tree their clock (`bt::Tree::clock`), so they
 are reproducible. A tree you build yourself keeps the wall clock unless you
 call `clock()`.

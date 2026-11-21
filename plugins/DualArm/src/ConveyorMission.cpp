@@ -9,11 +9,11 @@
 
 #include "ArmSkills.hpp"
 
+#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -47,7 +47,7 @@ describe(std::string p_name,
     return description;
 }
 
-void ConveyorMission::setup(robotik::Cell& p_cell,
+void ConveyorMission::setup(robotik::RoboticCell& p_cell,
                             robotik::SceneView* /*p_view*/)
 {
     for (robotik::EntitySpec const& entity :
@@ -102,7 +102,7 @@ void ConveyorMission::setup(robotik::Cell& p_cell,
     addPlanning(p_cell);
 }
 
-void ConveyorMission::addArmSkills(robotik::Cell& p_cell,
+void ConveyorMission::addArmSkills(robotik::RoboticCell& p_cell,
                                    robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
@@ -199,7 +199,7 @@ static robotik::Truth resting(robotik::RobotContext const& p_context,
     return robotik::truth(onFootprint(*part, *place));
 }
 
-void ConveyorMission::addPlanning(robotik::Cell& p_cell)
+void ConveyorMission::addPlanning(robotik::RoboticCell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
@@ -253,19 +253,21 @@ void ConveyorMission::addPlanning(robotik::Cell& p_cell)
     domain.bind("place", { "{0}.Over({2})", "{0}.Release", "{0}.Ready({3})" });
 }
 
-void ConveyorMission::reset(robotik::Cell& /*p_cell*/,
+void ConveyorMission::reset(robotik::RoboticCell& /*p_cell*/,
                             robotik::Seed /*p_seed*/)
 {
     m_conveyor.reset();
     m_overlap = 0.0;
 }
 
-void ConveyorMission::simulate(robotik::Cell& p_cell, robotik::Seconds p_dt)
+void ConveyorMission::simulate(robotik::RoboticCell& p_cell,
+                               robotik::Seconds p_dt)
 {
-    m_conveyor.step(p_cell, p_dt);
+    m_conveyor.simulate(p_cell, p_dt);
 }
 
-void ConveyorMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt)
+void ConveyorMission::observe(robotik::RoboticCell const& p_cell,
+                              robotik::Seconds p_dt)
 {
     // Both arms busy: a skill of each robot is running.
     robotik::SkillScheduler const& skills = p_cell.skills();
@@ -286,7 +288,7 @@ void ConveyorMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt
     }
 }
 
-void ConveyorMission::measure(robotik::Cell const& /*p_cell*/,
+void ConveyorMission::measure(robotik::RoboticCell const& /*p_cell*/,
                               robotik::Metrics& p_metrics) const
 {
     p_metrics.set("dual_arm.overlap", m_overlap);

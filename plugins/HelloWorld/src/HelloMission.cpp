@@ -7,9 +7,9 @@
 
 #include "HelloMission.hpp"
 
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
-void HelloMission::reset(robotik::Cell& /*p_cell*/,
+void HelloMission::reset(robotik::RoboticCell& /*p_cell*/,
                          robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;
@@ -21,7 +21,7 @@ void HelloMission::act(robotik::RobotContext& /*p_context*/,
     m_ticks += 1.0;
 }
 
-void HelloMission::measure(robotik::Cell const& /*p_cell*/,
+void HelloMission::measure(robotik::RoboticCell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks);

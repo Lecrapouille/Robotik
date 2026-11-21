@@ -22,8 +22,8 @@ the way the line is written. A header that does not compile alone (it
 forgets an include) is found the same way.
 
 The second rule keeps the ground truth away from the robot's decisions:
-Task/Skills and Task/Planning are compiled without Task/Cell.hpp, so they
-cannot call the truth (Cell::pose, Cell::query): without the definition of
+Task/Skills and Task/Planning are compiled without Task/RoboticCell.hpp, so they
+cannot call the truth (RoboticCell::pose, RoboticCell::query): without the definition of
 the class there is nothing to call.
 
 Usage: check_layers.py [repository root]. Exit code 1 when a rule is broken.
@@ -38,8 +38,8 @@ from concurrent.futures import ThreadPoolExecutor
 LAYERS = ["Common", "Robot", "Task", "Package"]
 # Parts of a layer that must not see some files of their own layer.
 HIDDEN = {
-    "Task/Skills": ["Task/Cell.hpp"],
-    "Task/Planning": ["Task/Cell.hpp"],
+    "Task/Skills": ["Task/RoboticCell.hpp"],
+    "Task/Planning": ["Task/RoboticCell.hpp"],
 }
 
 

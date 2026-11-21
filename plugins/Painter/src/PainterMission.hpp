@@ -24,22 +24,21 @@ public:
     /// @p_planner links the PDDL domain (painter.domain.pddl) to the gestures.
     explicit PainterMission(bool p_planner = false) : m_planner(p_planner) {}
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     /// The brush leaves ink where it touches the canvas: what the world does,
     /// in simulation only.
-    void simulate(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
+    void simulate(robotik::RoboticCell& p_cell, robotik::Seconds p_dt) override;
     /// painter.stroke_deviation: largest distance (m), in the plane of
     /// the canvas, between the brush while it inks and the straight line of
     /// its stroke. painter.inked: number of steps that laid ink.
-    void measure(robotik::Cell const& p_cell,
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 
 private:
 
-    void registerPlanning(robotik::Cell& p_cell);
+    void registerPlanning(robotik::RoboticCell& p_cell);
 
 private:
 

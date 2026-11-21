@@ -30,15 +30,14 @@ class RlMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     robotik::Status
     status(robotik::RobotContext const& /*p_context*/) const override;
 
     /// One policy action, or the pause before the next episode. The plugin
     /// calls it instead of a step of the host (it steps the cell itself), so
     /// the mission has no per-step method.
-    void playPolicy(robotik::Cell& p_cell, double p_dt);
+    void playPolicy(robotik::RoboticCell& p_cell, double p_dt);
 
     bool converged = true;
     float mix = 1.0F;

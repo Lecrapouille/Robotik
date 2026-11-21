@@ -111,7 +111,8 @@ static std::string formatTime(double p_t, double p_step)
 }
 
 /// Robot a skill drives: its description, else the first robot.
-static std::string const& robotOf(robotik::Cell const& p_cell, robotik::SkillId p_id)
+static std::string const& robotOf(robotik::RoboticCell const& p_cell,
+                                  robotik::SkillId p_id)
 {
     static std::string const none;
     std::string const& robot = p_cell.skills().description(p_id).robot;
@@ -344,7 +345,7 @@ static void timeWindow(TimelineView const& p_view,
 /// Rows to draw, from the skills, the robots and the resources.
 static std::vector<Row> rowsOf(App const& p_app)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
     TimelineView const& view = p_app.ui.timeline;
@@ -833,7 +834,7 @@ void timelineView(App& p_app)
         return;
     }
     robotik::Simulation const& simulation = *p_app.simulation;
-    robotik::Cell const& cell = simulation.cell();
+    robotik::RoboticCell const& cell = simulation.cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
     std::span<robotik::SkillRun const> const trace = skills.trace();

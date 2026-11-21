@@ -81,8 +81,8 @@ A layer only uses the layers under it; `make check-layers` checks it.
   again, that decides what the robot does next. RobotIK uses BlackThorn.
 - **Belief**: what the robot thinks is true about an object (its pose, if it
   is held). Beliefs live in the `WorldModel`. They can be wrong or old.
-- **Cell (robot cell)**: the place where robots work, as in a factory:
-  robots, objects, one physics, a controller. The `Cell` class runs it.
+- **Robotic cell (cell)**: the place where robots work, as in a factory:
+  robots, objects, one physics, a controller. The `RoboticCell` class runs it.
 - **Controller**: what decides in a cell: a behavior tree, a PDDL planner, or
   the mission code.
 - **Detector**: an algorithm that finds objects in an image (color blobs,

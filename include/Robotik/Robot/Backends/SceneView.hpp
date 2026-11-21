@@ -64,7 +64,7 @@ struct Shape;
 ///     }
 /// };
 ///
-/// void MyMission::setup(robotik::Cell& p_cell, robotik::SceneView*
+/// void MyMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView*
 /// p_view)
 /// {
 ///     if (p_view != nullptr)

@@ -27,7 +27,7 @@ namespace robotik
 {
 class JointGroup;
 class VacuumGripper;
-class Cell;
+class RoboticCell;
 } // namespace robotik
 
 inline constexpr std::size_t PICK_PLACE_OBSERVATIONS = 16;
@@ -48,7 +48,7 @@ void readyPosture(robotik::RobotSession& p_robot,
                   robotik::Vector3 const& p_tip = PICK_PLACE_READY);
 
 /// The cube rests in the box and the cup let it go (ground truth).
-[[nodiscard]] bool cubeInBox(robotik::Cell const& p_cell,
+[[nodiscard]] bool cubeInBox(robotik::RoboticCell const& p_cell,
                              robotik::VacuumGripper const& p_gripper);
 
 // ****************************************************************************
@@ -61,10 +61,10 @@ class PickPlaceObservation final: public robotik::ObservationBuilder
 public:
 
     [[nodiscard]] robotik::Space space() const override;
-    void setup(robotik::Cell& p_cell) override;
+    void setup(robotik::RoboticCell& p_cell) override;
     /// The episode starts with one look at the scene (oracle runs).
-    void reset(robotik::Cell& p_cell) override;
-    void observe(robotik::Cell const& p_cell,
+    void reset(robotik::RoboticCell& p_cell) override;
+    void observe(robotik::RoboticCell const& p_cell,
                  robotik::EpisodeClock const& p_clock,
                  std::span<float> p_observation) override;
 
@@ -83,9 +83,9 @@ public:
 
     [[nodiscard]] robotik::Space space() const override;
     /// Finds the arm and the cup, and makes the ready posture the home.
-    void setup(robotik::Cell& p_cell) override;
+    void setup(robotik::RoboticCell& p_cell) override;
     void apply(std::span<float const> p_action,
-               robotik::Cell& p_cell) override;
+               robotik::RoboticCell& p_cell) override;
 
 private:
 
@@ -101,10 +101,10 @@ class PickPlaceReward final: public robotik::RewardEvaluator
 {
 public:
 
-    void setup(robotik::Cell const& p_cell) override;
-    void reset(robotik::Cell const& p_cell) override;
+    void setup(robotik::RoboticCell const& p_cell) override;
+    void reset(robotik::RoboticCell const& p_cell) override;
     [[nodiscard]] robotik::StepResult
-    evaluate(robotik::Cell const& p_cell) override;
+    evaluate(robotik::RoboticCell const& p_cell) override;
 
 private:
 

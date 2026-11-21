@@ -58,11 +58,11 @@
 /// - Expects: paths start at the package root.
 #pragma once
 
-#include "Robotik/Common/Result.hpp"
 #include "Robotik/Common/Config.hpp"
 #include "Robotik/Common/Math.hpp"
+#include "Robotik/Common/Result.hpp"
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
-#include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 
 #include <filesystem>
 

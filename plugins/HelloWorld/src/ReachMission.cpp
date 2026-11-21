@@ -7,7 +7,7 @@
 
 #include "ReachMission.hpp"
 
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <optional>
@@ -21,8 +21,7 @@ static double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void ReachMission::reset(robotik::Cell& p_cell,
-                         robotik::Seed /*p_seed*/)
+void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     robotik::Robot& robot = p_cell.robot();
 
@@ -51,7 +50,7 @@ void ReachMission::act(robotik::RobotContext& p_context,
     m_error = distance(robot.framePose(robot.tool()), m_target);
 }
 
-void ReachMission::measure(robotik::Cell const& /*p_cell*/,
+void ReachMission::measure(robotik::RoboticCell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("reach.error", m_error);

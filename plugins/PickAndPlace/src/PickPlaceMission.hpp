@@ -24,7 +24,7 @@ public:
     {
     }
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
 
     [[nodiscard]] ColorDetector* detector() const

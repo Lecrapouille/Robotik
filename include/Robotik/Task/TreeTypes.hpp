@@ -8,7 +8,7 @@
 /// @file TreeTypes.hpp
 /// Names of the behavior tree types, without the behavior tree library.
 ///
-/// A @ref robotik::Cell and a @ref robotik::PlanExecutor run behavior
+/// A @ref robotik::RoboticCell and a @ref robotik::PlanExecutor run behavior
 /// trees (BlackThorn), but most users only read a status or a plan. These
 /// declarations let the public headers name the tree types without
 /// including BlackThorn, so an application that does not write tree nodes
@@ -38,7 +38,7 @@ namespace robotik
 {
 
 /// Clock of the timed tree nodes (@c Timeout, @c Delay...): the simulated
-/// time in a @ref Cell. Same type as @c bt::Tree::ClockFunction.
+/// time in a @ref RoboticCell. Same type as @c bt::Tree::ClockFunction.
 using TreeClock = std::function<std::chrono::steady_clock::time_point()>;
 
 } // namespace robotik

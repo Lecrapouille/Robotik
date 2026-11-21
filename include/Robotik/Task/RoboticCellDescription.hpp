@@ -5,14 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file CellDescription.hpp
+/// @file RoboticCellDescription.hpp
 /// Everything needed to build a robot cell, written in C++: the robots and
 /// objects, the physics level, the controller, the faults.
 ///
 /// A *cell* is the place where robots work (the word industry uses for a
 /// robotised work station). This description is plain data: a program fills it
 /// in a few lines, or the Package layer reads it from YAML files (a world file
-/// and a scenario file). A @ref robotik::Cell is then built from it.
+/// and a scenario file). A @ref robotik::RoboticCell is then built from it.
 ///
 /// Frames are Z-up, in metres and radians. A tool that is not attached is in
 /// storage: it is not built, but a host may mount it instead of another.
@@ -21,8 +21,8 @@
 /// - Promises: plain data and free functions; nothing here reads a file.
 /// - Expects: entity ids are unique in the world; a robot named by a device or
 ///   a skill exists.
-/// - Errors: @c mountTool returns a @c Result; building a @ref robotik::Cell
-///   from a wrong description throws (see @ref robotik::Cell).
+/// - Errors: @c mountTool returns a @c Result; building a @ref robotik::RoboticCell
+///   from a wrong description throws (see @ref robotik::RoboticCell).
 #pragma once
 
 #include "Robotik/Common/Config.hpp"
@@ -602,10 +602,10 @@ struct PhysicsSpec
 }
 
 // ****************************************************************************
-/// Everything a @ref Cell is built from.
+/// Everything a @ref RoboticCell is built from.
 ///
 /// @code
-/// robotik::CellDescription cell;
+/// robotik::RoboticCellDescription cell;
 /// cell.id = "demo";
 /// cell.world.entities.push_back({ .id = "arm", .type = robotik::EntitySpec::Type::Robot,
 ///                                 .model = "arm.urdf" });
@@ -613,7 +613,7 @@ struct PhysicsSpec
 /// cell.faults.push_back({ Seconds(3.0), "camera", true });
 /// @endcode
 // ****************************************************************************
-struct CellDescription
+struct RoboticCellDescription
 {
     /// Name of the cell (a scenario id), used in reports and PDDL problems.
     std::string id;

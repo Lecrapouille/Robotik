@@ -82,7 +82,7 @@ struct Evaluation
 /// it takes, and the function that answers.
 ///
 /// The world queries (@c inside, @c distance...) belong to the
-/// @ref Cell, which knows the entities; a plugin may add its own. The
+/// @ref RoboticCell, which knows the entities; a plugin may add its own. The
 /// compiler only needs this card to check a condition.
 ///
 /// @code
@@ -111,9 +111,9 @@ struct ConditionQuery
 /// What a condition may name: the metrics and the queries.
 ///
 /// The compiler checks every name against this list, so a typo is found at
-/// load and not at the end of a run. The @ref Cell builds it from what it
+/// load and not at the end of a run. The @ref RoboticCell builds it from what it
 /// measures (@c time, the mission metrics, the planner counters) and from
-/// its queries (@ref Cell::vocabulary).
+/// its queries (@ref RoboticCell::vocabulary).
 // ****************************************************************************
 struct ConditionVocabulary
 {

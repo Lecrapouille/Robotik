@@ -5,12 +5,12 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file CellTruth.cpp
-/// Ground-truth queries of @ref Cell: what the assertions
+/// @file RoboticCellTruth.cpp
+/// Ground-truth queries of @ref RoboticCell: what the assertions
 /// measure. World frame, metres and radians.
 
-#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Common/SExpression.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 #include "ShapeOf.hpp"
 
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
@@ -59,7 +59,7 @@ static Vector3 halfSize(EntitySpec const& p_spec)
                         : Vector3::ZERO;
 }
 
-Cell::Record const* Cell::record(std::string_view p_id) const
+RoboticCell::Record const* RoboticCell::record(std::string_view p_id) const
 {
     for (Record const& record : m_records)
     {
@@ -71,7 +71,7 @@ Cell::Record const* Cell::record(std::string_view p_id) const
     return nullptr;
 }
 
-Cell::Record const& Cell::require(std::string_view p_id) const
+RoboticCell::Record const& RoboticCell::require(std::string_view p_id) const
 {
     if (Record const* found = record(p_id))
     {
@@ -94,7 +94,7 @@ Cell::Record const& Cell::require(std::string_view p_id) const
         (closest.empty() ? std::string{} : " (did you mean '" + closest + "'?)"));
 }
 
-compages::world::Entity Cell::decorate(ecs::Shape const& p_object)
+compages::world::Entity RoboticCell::decorate(ecs::Shape const& p_object)
 {
     compages::world::Entity entity = m_world.entity(p_object.name);
     entity.parent(m_frame).set(p_object).set(ecs::Decoration{});
@@ -105,14 +105,14 @@ compages::world::Entity Cell::decorate(ecs::Shape const& p_object)
     return entity;
 }
 
-compages::world::Entity Cell::entity(std::string_view p_id)
+compages::world::Entity RoboticCell::entity(std::string_view p_id)
 {
     Record const* found = record(p_id);
     return found != nullptr ? found->entity : compages::world::Entity{};
 }
 
-Pose Cell::framePose(Record const& p_record,
-                           std::string_view p_frame) const
+Pose RoboticCell::framePose(Record const& p_record,
+                            std::string_view p_frame) const
 {
     EntitySpec const& spec = *p_record.spec;
     std::string const frame(p_frame);
@@ -157,18 +157,18 @@ Pose Cell::framePose(Record const& p_record,
     return base * p_record.frames->framePose(frame);
 }
 
-Pose Cell::pose(std::string_view p_reference) const
+Pose RoboticCell::pose(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     return framePose(require(id), frame);
 }
 
-Pose Cell::initialPose(std::string_view p_id) const
+Pose RoboticCell::initialPose(std::string_view p_id) const
 {
     return require(p_id).initial;
 }
 
-Pose Cell::described(std::string_view p_reference) const
+Pose RoboticCell::described(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     Record const& record = require(id);
@@ -202,7 +202,7 @@ Pose Cell::described(std::string_view p_reference) const
     return record.nominal * record.frames->framePose(link);
 }
 
-std::vector<Pose> Cell::waypoints(std::string_view p_name) const
+std::vector<Pose> RoboticCell::waypoints(std::string_view p_name) const
 {
     auto const found = m_description.trajectories.find(p_name);
     if (found == m_description.trajectories.end())
@@ -243,8 +243,8 @@ static std::string_view assemblyOf(EntitySpec const& p_spec)
     return {};
 }
 
-int Cell::contactsOf(Record const& p_record,
-                           std::vector<Contact> const& p_contacts) const
+int RoboticCell::contactsOf(Record const& p_record,
+                            std::vector<Contact> const& p_contacts) const
 {
     // A robot and its mounted tool are one assembly: a tool hitting the world
     // is a robot collision too, the robot touching its own tool is not.
@@ -313,7 +313,7 @@ int Cell::contactsOf(Record const& p_record,
     return count;
 }
 
-Metrics Cell::metrics() const
+Metrics RoboticCell::metrics() const
 {
     Metrics metrics;
     metrics.set("time", time().value());
@@ -336,7 +336,7 @@ Metrics Cell::metrics() const
     return metrics;
 }
 
-ConditionVocabulary Cell::vocabulary() const
+ConditionVocabulary RoboticCell::vocabulary() const
 {
     ConditionVocabulary vocabulary;
     Metrics const table = metrics();
@@ -345,12 +345,12 @@ ConditionVocabulary Cell::vocabulary() const
     return vocabulary;
 }
 
-Result<Condition> Cell::compile(std::string_view p_text) const
+Result<Condition> RoboticCell::compile(std::string_view p_text) const
 {
     return compileCondition(p_text, vocabulary());
 }
 
-Evaluation Cell::evaluate(std::string_view p_condition) const
+Evaluation RoboticCell::evaluate(std::string_view p_condition) const
 {
     Result<Condition> condition = compile(p_condition);
     if (!condition)
@@ -362,7 +362,7 @@ Evaluation Cell::evaluate(std::string_view p_condition) const
     return robotik::evaluate(condition.value(), metrics());
 }
 
-std::optional<double> Cell::query(std::string_view p_term) const
+std::optional<double> RoboticCell::query(std::string_view p_term) const
 {
     Result<Condition> condition = compile(p_term);
     if (!condition)
@@ -377,8 +377,9 @@ std::optional<double> Cell::query(std::string_view p_term) const
     return result.value;
 }
 
-std::optional<double> Cell::query(std::string_view p_name,
-                                  std::vector<std::string> const& p_args) const
+std::optional<double>
+RoboticCell::query(std::string_view p_name,
+                   std::vector<std::string> const& p_args) const
 {
     for (ConditionQuery const& query : m_queries)
     {
@@ -401,7 +402,7 @@ std::optional<double> Cell::query(std::string_view p_name,
     throw std::invalid_argument("unknown query '" + std::string(p_name) + "'");
 }
 
-void Cell::addQuery(ConditionQuery p_query)
+void RoboticCell::addQuery(ConditionQuery p_query)
 {
     for (ConditionQuery const& query : m_queries)
     {
@@ -414,7 +415,7 @@ void Cell::addQuery(ConditionQuery p_query)
     m_queries.push_back(std::move(p_query));
 }
 
-std::vector<ConditionQuery> Cell::builtinQueries() const
+std::vector<ConditionQuery> RoboticCell::builtinQueries() const
 {
     using Arguments = std::vector<std::string>;
     auto boolean = [](bool p_value) { return p_value ? 1.0 : 0.0; };

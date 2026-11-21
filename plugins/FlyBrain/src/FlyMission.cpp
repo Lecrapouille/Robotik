@@ -11,8 +11,8 @@
 #include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/Cell.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -142,8 +142,7 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
 
 // --- Mission ----------------------------------------------------------------
 
-void FlyMission::setup(robotik::Cell& p_cell,
-                       robotik::SceneView* p_view)
+void FlyMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 {
     m_simulation = &p_cell;
     // The FlyWire tables sit in the pack of the fly body (the plugin's own).
@@ -201,7 +200,7 @@ void FlyMission::setup(robotik::Cell& p_cell,
     }
 }
 
-void FlyMission::reset(robotik::Cell& p_cell, robotik::Seed p_seed)
+void FlyMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
 {
     m_seed = p_seed;
     m_collided = false;
@@ -244,12 +243,13 @@ void FlyMission::act(robotik::RobotContext& /*p_context*/,
     }
 }
 
-void FlyMission::simulate(robotik::Cell& /*p_cell*/, robotik::Seconds /*p_dt*/)
+void FlyMission::simulate(robotik::RoboticCell& /*p_cell*/,
+                          robotik::Seconds /*p_dt*/)
 {
     drawBeamsAndTrail();
 }
 
-void FlyMission::observe(robotik::Cell const& /*p_cell*/,
+void FlyMission::observe(robotik::RoboticCell const& /*p_cell*/,
                          robotik::Seconds /*p_dt*/)
 {
     m_collided = m_collided || m_environment->snapshot().collided;
@@ -308,7 +308,7 @@ void FlyMission::drawBeamsAndTrail()
     }
 }
 
-void FlyMission::measure(robotik::Cell const& /*p_cell*/,
+void FlyMission::measure(robotik::RoboticCell const& /*p_cell*/,
                          robotik::Metrics& p_metrics) const
 {
     FlySnapshot const& snapshot = m_environment->snapshot();

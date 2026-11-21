@@ -76,7 +76,7 @@ static void markSelection(App& p_app)
     {
         return;
     }
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     compages::renderer::DebugDraw& debug = p_app.scene->debug();
     compages::Vector3f half(0.02F, 0.02F, 0.02F);
     p_app.world->each<robotik::ecs::Shape>(

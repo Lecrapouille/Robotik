@@ -100,14 +100,14 @@ class FlyMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
-    void simulate(robotik::Cell& p_cell, robotik::Seconds p_dt) override;
-    void observe(robotik::Cell const& p_cell, robotik::Seconds p_dt) override;
-    void measure(robotik::Cell const& p_cell,
+    void simulate(robotik::RoboticCell& p_cell, robotik::Seconds p_dt) override;
+    void observe(robotik::RoboticCell const& p_cell,
+                 robotik::Seconds p_dt) override;
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override;
@@ -166,7 +166,7 @@ private:
     std::unique_ptr<FlyEnvironment> m_environment;
     std::unique_ptr<FlyBrain> m_brain;
     FlyBackend* m_backend = nullptr;
-    robotik::Cell* m_simulation = nullptr;
+    robotik::RoboticCell* m_simulation = nullptr;
     std::filesystem::path m_tables;
     FlyBrain::Kind m_kind = FlyBrain::Kind::Shiu;
     robotik::Seed m_seed;

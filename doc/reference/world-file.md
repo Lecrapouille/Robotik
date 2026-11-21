@@ -149,8 +149,8 @@ Rules:
 - A `joint_group` without `joints` takes every joint of the robot, the
   joints of its tool too (the spindle of a drill). List the arm joints when
   the tool has joints of its own.
-- The first robot of the file is `Cell::robot()`. The others are
-  `Cell::robot("right")`; all of them are `Cell::robots()`.
+- The first robot of the file is `RoboticCell::robot()`. The others are
+  `RoboticCell::robot("right")`; all of them are `RoboticCell::robots()`.
 - The skills of the core are named after the robot: `left.Home`,
   `right.Stop`. With one robot they stay `Home` and `Stop`.
 - The queries take the robot id: `pose(right.tcp)`, `(collision_count left)`,

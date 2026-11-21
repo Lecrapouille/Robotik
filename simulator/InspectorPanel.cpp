@@ -74,7 +74,8 @@ bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name)
 }
 
 /// Robot a skill drives: its description, else the first robot.
-static std::string robotOf(robotik::Cell const& p_cell, robotik::SkillId p_id)
+static std::string robotOf(robotik::RoboticCell const& p_cell,
+                           robotik::SkillId p_id)
 {
     std::string const& robot = p_cell.skills().description(p_id).robot;
     if (!robot.empty() || p_cell.robots().empty())
@@ -225,7 +226,7 @@ holders(robotik::SkillScheduler const& p_skills,
 static void skillView(App& p_app, robotik::SkillId p_id)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
-    robotik::Cell const& cell = simulation.cell();
+    robotik::RoboticCell const& cell = simulation.cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
     robotik::SkillDescription const& description = skills.description(p_id);
@@ -439,7 +440,7 @@ static void skillLinks(App& p_app, std::vector<robotik::SkillId> const& p_ids)
 /// needs it, its faults.
 static void resourceView(App& p_app, robotik::ResourceId p_id)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
 
@@ -536,7 +537,7 @@ static void resourceView(App& p_app, robotik::ResourceId p_id)
 /// Everything about one robot: who drives it, its joints, its skills.
 static void robotView(App& p_app, robotik::RobotSession const& p_robot)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
 
     bool const manual = p_app.teach.manual;
@@ -683,7 +684,7 @@ static bool inWorld(App& p_app, std::string const& p_name)
 /// What the robot believes of an object, against the truth.
 static void objectView(App& p_app, std::string const& p_name)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::WorldObject const* belief = cell.worldModel().find(p_name);
     bool const real = inWorld(p_app, p_name);
 
@@ -785,7 +786,7 @@ static void objectView(App& p_app, std::string const& p_name)
 /// The run in a few lines: what runs, what waits, what is in fault.
 static void overview(App& p_app)
 {
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
     header(p_app,
@@ -909,7 +910,7 @@ void inspectorPanel(App& p_app, char const* p_key)
     bool const pinned = ui.pinned.kind != SelectionKind::None;
     Selection const shown = pinned ? ui.pinned : ui.selection;
 
-    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::RoboticCell const& cell = p_app.simulation->cell();
     ImGui::PushID(static_cast<int>(shown.kind));
     ImGui::PushID(shown.name.c_str());
     switch (shown.kind)

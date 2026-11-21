@@ -14,7 +14,7 @@
 /// mission only links names:
 ///
 /// @code
-/// void setup(robotik::Cell& p_cell, robotik::SceneView*) override
+/// void setup(robotik::RoboticCell& p_cell, robotik::SceneView*) override
 /// {
 ///     robotik::PlanningDomain& domain = p_cell.planning();
 ///     // State: computed on the beliefs, never on the ground truth.

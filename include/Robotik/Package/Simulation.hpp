@@ -9,8 +9,8 @@
 /// Runs a scenario file and tells whether it went well.
 ///
 /// A scenario is a robot cell (what to build, see @ref
-/// robotik::CellDescription) plus how its run is judged: a time limit, a stop
-/// condition and assertions. The simulation builds the @ref robotik::Cell,
+/// robotik::RoboticCellDescription) plus how its run is judged: a time limit, a stop
+/// condition and assertions. The simulation builds the @ref robotik::RoboticCell,
 /// steps it, checks the assertions after each step and decides when the run is
 /// over. Headless unless a
 /// @ref robotik::SceneView is given.
@@ -23,10 +23,10 @@
 ///   @c std::runtime_error in the constructor.
 #pragma once
 
+#include "Robotik/Common/Signal.hpp"
 #include "Robotik/Package/Scenario/Assertions.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
-#include "Robotik/Common/Signal.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <cstdint>
 #include <string_view>
@@ -38,7 +38,7 @@ namespace robotik
 // ****************************************************************************
 /// One run of a scenario, replayable from a seed.
 ///
-/// A @ref Cell runs robots, but it does not know when a run is over nor if
+/// A @ref RoboticCell runs robots, but it does not know when a run is over nor if
 /// it passed: that belongs to the scenario file. The simulation adds this
 /// judgement around a cell. It compiles the assertions and the @c stop_when
 /// condition once, measures the metrics once per step, and gives each
@@ -101,7 +101,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Starts a new episode: same seed, same episode.
-    /// @param p_seed Seed of the episode (see @ref Cell::reset).
+    /// @param p_seed Seed of the episode (see @ref RoboticCell::reset).
     // -------------------------------------------------------------------------
     void reset(Seed p_seed);
 
@@ -118,13 +118,13 @@ public:
     void step(Seconds p_dt);
 
     /// @return The cell being run: robots, skills, beliefs, truth.
-    [[nodiscard]] Cell& cell()
+    [[nodiscard]] RoboticCell& cell()
     {
         return m_cell;
     }
 
     /// @copydoc cell()
-    [[nodiscard]] Cell const& cell() const
+    [[nodiscard]] RoboticCell const& cell() const
     {
         return m_cell;
     }
@@ -212,7 +212,7 @@ private:
     /// The scenario being run.
     Scenario m_scenario;
     /// The cell built from it.
-    Cell m_cell;
+    RoboticCell m_cell;
     /// Judges the assertions.
     AssertionEngine m_assertions;
     /// The conditions of @ref m_assertions, compiled once.

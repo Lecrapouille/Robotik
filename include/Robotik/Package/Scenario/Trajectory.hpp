@@ -39,7 +39,7 @@
 #pragma once
 
 #include "Robotik/Common/Result.hpp"
-#include "Robotik/Task/CellDescription.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 
 #include <filesystem>
 

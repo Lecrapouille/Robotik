@@ -8,12 +8,12 @@
 #include "WalkMission.hpp"
 #include "WalkSkills.hpp"
 
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Cell.hpp"
-#include "Robotik/Common/Config.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
+#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <limits>
@@ -39,10 +39,10 @@ robotik::Seconds WalkMission::physicsStep()
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::setup(robotik::Cell& p_cell,
+void WalkMission::setup(robotik::RoboticCell& p_cell,
                         robotik::SceneView* p_view)
 {
-    robotik::CellDescription const& scenario = p_cell.description();
+    robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + BASE_LINK;
     std::filesystem::path const& urdf = robotik::firstRobot(scenario.world).model;
     WalkContract contract =
@@ -133,8 +133,7 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::reset(robotik::Cell& p_cell,
-                        robotik::Seed /*p_seed*/)
+void WalkMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
     robotik::Pose const base = p_cell.pose(m_base);
@@ -149,7 +148,7 @@ void WalkMission::reset(robotik::Cell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::observe(robotik::Cell const& p_cell,
+void WalkMission::observe(robotik::RoboticCell const& p_cell,
                           robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_cell.pose(m_base);
@@ -216,7 +215,7 @@ double WalkMission::commandedRadius() const
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::measure(robotik::Cell const& /*p_cell*/,
+void WalkMission::measure(robotik::RoboticCell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("humanoid.height_min", m_height_min);

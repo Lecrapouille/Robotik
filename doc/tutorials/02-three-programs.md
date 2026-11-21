@@ -31,7 +31,7 @@ for (int i = 0; i < 200; ++i)
 
 **2. Run a skill, without a mission** (Task layer,
 `tests/Examples/TestLayerExamples.cpp`). A robot and a cube described in
-C++; `openCell` creates the world that holds them.
+C++; `openRoboticCell` creates the world that holds them.
 
 ```cpp
 robotik::EntitySpec arm;
@@ -42,11 +42,11 @@ robotik::EntitySpec cube;
 cube.id = "cube";
 cube.shape = robotik::ShapeSpec{};             // a 4 cm box
 cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
-robotik::CellDescription description;
+robotik::RoboticCellDescription description;
 description.world.entities = { arm, cube };
 
-auto opened = robotik::openCell(std::move(description));
-robotik::Cell& cell = *opened.value();
+auto opened = robotik::openRoboticCell(std::move(description));
+robotik::RoboticCell& cell = *opened.value();
 auto const raise = cell.skills().add<robotik::MoveJointSkill>(
     { .name = "Raise" }, "joint2", 0.5);
 cell.run(raise, robotik::Seconds(10.0));       // SkillState::Succeeded
@@ -59,8 +59,8 @@ observers that read the beliefs ([The PDDL planner](../concepts/pddl-planner.md)
 
 ```cpp
 PickPlaceMission mission(true, true);          // skills + observers
-auto opened = robotik::openCell(description, &mission);
-robotik::Cell& cell = *opened.value();
+auto opened = robotik::openRoboticCell(description, &mission);
+robotik::RoboticCell& cell = *opened.value();
 
 robotik::PlannerSpec goal;
 goal.domain = "pick_and_place.domain.pddl";

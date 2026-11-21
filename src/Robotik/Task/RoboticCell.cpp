@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 #include "ShapeOf.hpp"
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
@@ -112,7 +112,7 @@ static Vector3 boxInertia(double p_mass, Vector3 const& p_size)
 }
 
 /// While the vacuum holds a prop, flag wall penetration (counts as a robot
-/// collision). Sticky until @ref Cell::reset.
+/// collision). Sticky until @ref RoboticCell::reset.
 static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
 {
     if (p_flag)
@@ -155,10 +155,10 @@ static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
         });
 }
 
-Cell::Cell(compages::world::World& p_world,
-           CellDescription p_description,
-                       SceneView* p_view,
-                       Mission* p_mission)
+RoboticCell::RoboticCell(compages::world::World& p_world,
+                         RoboticCellDescription p_description,
+                         SceneView* p_view,
+                         Mission* p_mission)
     : m_world(p_world),
       m_description(std::move(p_description)),
       m_mission(p_mission),
@@ -242,7 +242,7 @@ Cell::Cell(compages::world::World& p_world,
     reset();
 }
 
-void Cell::achieve(PlannerSpec p_spec)
+void RoboticCell::achieve(PlannerSpec p_spec)
 {
     if (!m_description.controller.behavior_tree.empty())
     {
@@ -265,7 +265,7 @@ void Cell::achieve(PlannerSpec p_spec)
     m_controller_stopped = false;
 }
 
-SkillState Cell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
+SkillState RoboticCell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
 {
     m_scheduler->request(p_skill);
     Seconds const end = time() + p_limit;
@@ -283,7 +283,7 @@ SkillState Cell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
     }
 }
 
-Status Cell::run(Seconds p_limit, Seconds p_dt)
+Status RoboticCell::run(Seconds p_limit, Seconds p_dt)
 {
     Seconds const end = time() + p_limit;
     while (m_status != Status::SUCCESS && m_status != Status::FAILURE &&
@@ -294,9 +294,9 @@ Status Cell::run(Seconds p_limit, Seconds p_dt)
     return m_status;
 }
 
-Cell::~Cell() = default;
+RoboticCell::~RoboticCell() = default;
 
-void Cell::build(SceneView* p_view)
+void RoboticCell::build(SceneView* p_view)
 {
     // Objects without physics; the rigid ones get their model with the backend.
     m_grasps.clear();
@@ -342,11 +342,11 @@ void Cell::build(SceneView* p_view)
     }
 }
 
-void Cell::buildDevices(RobotSession& p_robot,
-                              EntitySpec const& p_spec,
-                              EntitySpec const* p_tool,
-                              SceneView* p_view,
-                              bool& p_blind)
+void RoboticCell::buildDevices(RobotSession& p_robot,
+                               EntitySpec const& p_spec,
+                               EntitySpec const* p_tool,
+                               SceneView* p_view,
+                               bool& p_blind)
 {
     p_robot.startPose(p_spec.pose);
     // Robot frames of the attachments are taken at home.
@@ -440,7 +440,7 @@ void Cell::buildDevices(RobotSession& p_robot,
     }
 }
 
-void Cell::buildRecord(Record& p_record, SceneView* p_view)
+void RoboticCell::buildRecord(Record& p_record, SceneView* p_view)
 {
     EntitySpec const& spec = *p_record.spec;
     switch (spec.type)
@@ -528,7 +528,7 @@ void Cell::buildRecord(Record& p_record, SceneView* p_view)
     }
 }
 
-Pose Cell::resolveNominal(EntitySpec const& p_spec) const
+Pose RoboticCell::resolveNominal(EntitySpec const& p_spec) const
 {
     if (!p_spec.attach)
     {
@@ -565,7 +565,7 @@ Pose Cell::resolveNominal(EntitySpec const& p_spec) const
     return base * attach.transform;
 }
 
-void Cell::connectBackend()
+void RoboticCell::connectBackend()
 {
     WorldDescription const& world = m_description.world;
     MujocoOptions options = m_physics_options;
@@ -630,7 +630,7 @@ void Cell::connectBackend()
     }
 }
 
-bool Cell::rigidProp(EntitySpec const& p_prop) const
+bool RoboticCell::rigidProp(EntitySpec const& p_prop) const
 {
     PhysicsSpec const& physics = m_description.physics;
     if (p_prop.type != EntitySpec::Type::Prop || !p_prop.shape)
@@ -661,7 +661,7 @@ bool Cell::rigidProp(EntitySpec const& p_prop) const
     return box ? rigid_gripper : (rigid_gripper || rigid_box);
 }
 
-void Cell::addRigidProps(MujocoBackend& p_physics)
+void RoboticCell::addRigidProps(MujocoBackend& p_physics)
 {
     std::vector<RigidGrasp::Graspable> graspable;
     for (Record const& record : m_records)
@@ -773,7 +773,7 @@ void Cell::addRigidProps(MujocoBackend& p_physics)
     m_grasps.push_back(std::make_unique<RigidGrasp>(std::move(graspable)));
 }
 
-void Cell::addSkills()
+void RoboticCell::addSkills()
 {
     auto describe =
         [](std::string p_name, std::vector<ResourceRequirement> p_resources)
@@ -820,18 +820,18 @@ void Cell::addSkills()
     }
 }
 
-Pose Cell::beliefFrame() const
+Pose RoboticCell::beliefFrame() const
 {
     return m_robots.size() == 1U ? m_robot->base().pose
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
-RobotSession const* Cell::robot(std::string_view p_id) const
+RobotSession const* RoboticCell::robot(std::string_view p_id) const
 {
-    return const_cast<Cell*>(this)->robot(p_id);
+    return const_cast<RoboticCell*>(this)->robot(p_id);
 }
 
-RobotSession* Cell::robot(std::string_view p_id)
+RobotSession* RoboticCell::robot(std::string_view p_id)
 {
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -843,7 +843,7 @@ RobotSession* Cell::robot(std::string_view p_id)
     return nullptr;
 }
 
-RobotContext& Cell::context(std::string_view p_id)
+RobotContext& RoboticCell::context(std::string_view p_id)
 {
     for (RobotContext& context : m_contexts)
     {
@@ -856,7 +856,7 @@ RobotContext& Cell::context(std::string_view p_id)
                                 "'");
 }
 
-RobotSession const& Cell::ownerOf(EntitySpec const& p_spec) const
+RobotSession const& RoboticCell::ownerOf(EntitySpec const& p_spec) const
 {
     std::string_view const id =
         p_spec.type == EntitySpec::Type::Robot ? std::string_view(p_spec.id)
@@ -867,12 +867,12 @@ RobotSession const& Cell::ownerOf(EntitySpec const& p_spec) const
     return found != nullptr ? *found : *m_robot;
 }
 
-std::string Cell::prefixOf(std::string_view p_id) const
+std::string RoboticCell::prefixOf(std::string_view p_id) const
 {
     return p_id == m_robot->id() ? std::string() : std::string(p_id) + "/";
 }
 
-void Cell::loadTree()
+void RoboticCell::loadTree()
 {
     m_tree.reset();
     m_status = Status::IDLE;
@@ -892,17 +892,17 @@ void Cell::loadTree()
     m_tree->clock(simulatedClock());
 }
 
-bt::NodeFactory& Cell::factory()
+bt::NodeFactory& RoboticCell::factory()
 {
     return *m_factory;
 }
 
-bt::Tree const* Cell::tree() const
+bt::Tree const* RoboticCell::tree() const
 {
     return m_executor ? m_executor->tree() : m_tree.get();
 }
 
-TreeClock Cell::simulatedClock() const
+TreeClock RoboticCell::simulatedClock() const
 {
     // Timeout, Delay, Wait and Cooldown read the simulated time: they follow
     // pause, speed and the step, and a run is reproducible.
@@ -915,7 +915,7 @@ TreeClock Cell::simulatedClock() const
     };
 }
 
-void Cell::reset(Seed p_seed)
+void RoboticCell::reset(Seed p_seed)
 {
     m_seed = p_seed;
     m_max_contacts = 0;
@@ -1017,12 +1017,12 @@ void Cell::reset(Seed p_seed)
     }
 }
 
-Camera const* Cell::camera() const
+Camera const* RoboticCell::camera() const
 {
-    return const_cast<Cell*>(this)->camera();
+    return const_cast<RoboticCell*>(this)->camera();
 }
 
-Camera* Cell::camera()
+Camera* RoboticCell::camera()
 {
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
@@ -1034,7 +1034,7 @@ Camera* Cell::camera()
     return nullptr;
 }
 
-void Cell::observe()
+void RoboticCell::observe()
 {
     // No sensor at all, or one of some robot still works.
     bool any = false;
@@ -1065,7 +1065,7 @@ void Cell::observe()
     }
 }
 
-void Cell::perceiveTruth()
+void RoboticCell::perceiveTruth()
 {
     // Same rule as the cameras: something must still be able to see.
     bool any = false;
@@ -1117,13 +1117,13 @@ void Cell::perceiveTruth()
     }
 }
 
-PerceptionFidelity Cell::perceptionOf(std::string_view p_id) const
+PerceptionFidelity RoboticCell::perceptionOf(std::string_view p_id) const
 {
     Record const* found = record(p_id);
     return found != nullptr ? found->perception : PerceptionFidelity::Sensed;
 }
 
-std::string Cell::perceptionSummary() const
+std::string RoboticCell::perceptionSummary() const
 {
     // The level of most props, then the exceptions: "truth, red_cube: sensed".
     std::map<PerceptionFidelity, int> count;
@@ -1155,7 +1155,7 @@ std::string Cell::perceptionSummary() const
     return text;
 }
 
-void Cell::syncBodies()
+void RoboticCell::syncBodies()
 {
     RobotBackend const* backend = m_robot->backend();
     compages::Quatf const& up = m_robot->urdfFrame();
@@ -1184,7 +1184,7 @@ void Cell::syncBodies()
     }
 }
 
-void Cell::track()
+void RoboticCell::track()
 {
     RobotBackend const* backend = m_robot->backend();
     if (backend == nullptr)
@@ -1203,7 +1203,7 @@ void Cell::track()
     }
 }
 
-void Cell::step(Seconds p_dt)
+void RoboticCell::step(Seconds p_dt)
 {
     if (!m_suspended)
     {

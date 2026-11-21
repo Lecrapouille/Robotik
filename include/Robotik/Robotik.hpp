@@ -14,7 +14,7 @@
 ///     (@ref robotik::openRobot, @ref robotik::Robot);
 /// @li Task: robots and objects doing a job, with a controller (behavior
 ///     tree, PDDL planner or mission code) and beliefs
-///     (@ref robotik::Cell, @ref robotik::SkillScheduler);
+///     (@ref robotik::RoboticCell, @ref robotik::SkillScheduler);
 /// @li Package: the YAML files that describe a job, the plugins, and the
 ///     verdict of a run (@ref robotik::Simulation, @ref robotik::RunRecord).
 ///

@@ -12,13 +12,13 @@
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 static constexpr double APPROACH_CLEARANCE = 0.10;
 static constexpr double TRANSIT_CLEARANCE = 0.22;
 static constexpr int SKILL_PRIORITY = 100;
 
-void PickPlaceMission::setup(robotik::Cell& p_cell,
+void PickPlaceMission::setup(robotik::RoboticCell& p_cell,
                              robotik::SceneView* /*p_view*/)
 {
     if (!m_skills)

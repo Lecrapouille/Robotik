@@ -99,8 +99,8 @@ Three things must not be mixed:
 
 | | What it is | Who can read it |
 |--|------------|-----------------|
-| **Ground truth** | The real state of the simulated world: `Cell::pose`, `Cell::query` | Assertions, reports, the RL reward |
-| **Description** | The world as the file describes it at the start: `Cell::described`, `Cell::waypoints` | The mission, to plan (like a map given to a real robot) |
+| **Ground truth** | The real state of the simulated world: `RoboticCell::pose`, `RoboticCell::query` | Assertions, reports, the RL reward |
+| **Description** | The world as the file describes it at the start: `RoboticCell::described`, `RoboticCell::waypoints` | The mission, to plan (like a map given to a real robot) |
 | **Belief** | What the robot thinks: the `WorldModel`, filled by perception | The skills, through `RobotContext` |
 
 Skills see only the `RobotContext`: **they cannot cheat**. The ground truth
@@ -137,5 +137,5 @@ The old key `oracle` is still read: `always` is `fidelity: truth`,
 With several robots, they share the beliefs in the **world frame**: each
 camera turns its detections into the world with the base pose of its robot,
 and a skill brings a belief into its own base with
-`context.robot.base().pose.inverse() * belief` (`Cell::beliefFrame()`
+`context.robot.base().pose.inverse() * belief` (`RoboticCell::beliefFrame()`
 says which frame is used).

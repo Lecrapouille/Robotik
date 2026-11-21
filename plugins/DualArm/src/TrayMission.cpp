@@ -10,11 +10,11 @@
 #include "ArmSkills.hpp"
 #include "TraySkills.hpp"
 
+#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -64,7 +64,7 @@ describe(std::string p_name,
     return description;
 }
 
-void TrayMission::setup(robotik::Cell& p_cell,
+void TrayMission::setup(robotik::RoboticCell& p_cell,
                         robotik::SceneView* /*p_view*/)
 {
     for (robotik::EntitySpec const& entity :
@@ -105,7 +105,7 @@ void TrayMission::setup(robotik::Cell& p_cell,
     addPlanning(p_cell);
 }
 
-void TrayMission::addCarrierSkills(robotik::Cell& p_cell,
+void TrayMission::addCarrierSkills(robotik::RoboticCell& p_cell,
                                    robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
@@ -155,7 +155,7 @@ void TrayMission::addCarrierSkills(robotik::Cell& p_cell,
                           robotik::Seconds(RETREAT_TIME));
 }
 
-void TrayMission::addDrillSkills(robotik::Cell& p_cell,
+void TrayMission::addDrillSkills(robotik::RoboticCell& p_cell,
                                  robotik::Robot const& p_robot)
 {
     std::vector<robotik::ResourceRequirement> arm;
@@ -205,7 +205,7 @@ static bool heldByAnyone(robotik::RobotContext const& p_context,
                                { return heldObject(*p_robot) == p_object; });
 }
 
-void TrayMission::addPlanning(robotik::Cell& p_cell)
+void TrayMission::addPlanning(robotik::RoboticCell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
@@ -282,7 +282,7 @@ void TrayMission::addPlanning(robotik::Cell& p_cell)
     domain.bind("set_down", { "{0}.Lower", "{0}.Release", "{0}.Retreat" });
 }
 
-void TrayMission::reset(robotik::Cell& /*p_cell*/,
+void TrayMission::reset(robotik::RoboticCell& /*p_cell*/,
                         robotik::Seed /*p_seed*/)
 {
     m_drilled.clear();
@@ -290,7 +290,8 @@ void TrayMission::reset(robotik::Cell& /*p_cell*/,
     m_contact = 0.0;
 }
 
-void TrayMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt)
+void TrayMission::observe(robotik::RoboticCell const& p_cell,
+                          robotik::Seconds p_dt)
 {
     // A tray is drilled once the drill followed its whole path on it.
     robotik::SkillScheduler const& skills = p_cell.skills();
@@ -334,7 +335,7 @@ void TrayMission::observe(robotik::Cell const& p_cell, robotik::Seconds p_dt)
     }
 }
 
-void TrayMission::measure(robotik::Cell const& /*p_cell*/,
+void TrayMission::measure(robotik::RoboticCell const& /*p_cell*/,
                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("dual_arm.overlap", m_overlap);

@@ -43,11 +43,11 @@
 #pragma once
 
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Task/CellDescription.hpp"
 #include "Robotik/Task/Planning/Backchaining.hpp"
 #include "Robotik/Task/Planning/PlanGraph.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Planning/PlanningEngine.hpp"
+#include "Robotik/Task/RoboticCellDescription.hpp"
 
 #include "Robotik/Task/Status.hpp"
 #include "Robotik/Task/TreeTypes.hpp"
@@ -161,8 +161,8 @@ enum class StepStatus : std::uint8_t
 /// a skill fails or an effect is not seen. An effect counts only when the
 /// beliefs show it after the start of its step.
 ///
-/// The @ref Cell builds it for a @c planner block of a scenario, or from
-/// @ref Cell::achieve, and ticks it every step instead of a behavior tree.
+/// The @ref RoboticCell builds it for a @c planner block of a scenario, or from
+/// @ref RoboticCell::achieve, and ticks it every step instead of a behavior tree.
 /// The planner reads the beliefs, never the truth. The order between steps
 /// comes from the atoms that each end of an action reads and changes, so a
 /// @c forall makes a step wait for more steps than needed, and the tree

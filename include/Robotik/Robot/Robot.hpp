@@ -348,7 +348,7 @@ protected:
 // ****************************************************************************
 /// A robot being run: owns the backend and advances time.
 ///
-/// The program that runs the robot (a @ref Cell, a test, @ref openRobot)
+/// The program that runs the robot (a @ref RoboticCell, a test, @ref openRobot)
 /// holds this class; the skills only see its @ref Robot base. A session
 /// without a backend still works: the joints then move only when the code
 /// writes them, which is enough for kinematics tests.

@@ -24,7 +24,7 @@ Conventions in the code:
 |------------|-----|---------|
 | Write the entry point of my plugin | `Plugin`, `Host`, `Canvas` | [Plugin API](#plugin-api) |
 | Add behaviour to a simulation | `Mission` | [`Mission`](#mission) |
-| Read the world, the time, the truth | `Cell` (and `Simulation` for the verdict) | [`Cell` and `Simulation`](#cell-and-simulation) |
+| Read the world, the time, the truth | `RoboticCell` (and `Simulation` for the verdict) | [`RoboticCell` and `Simulation`](#roboticcell-and-simulation) |
 | Move joints, read poses, compute IK | `Robot`, `JointSet` | [Robot and joints](#robot-and-joints) |
 | Use the gripper, a motor | actuators | [Actuators](#actuators) |
 | Write a skill | `Skill`, `SkillDescription`, `RobotContext` | [Skills](#skills) |
@@ -129,22 +129,22 @@ simulation. All methods are optional.
 
 | Method | Called | Typical use |
 |--------|--------|-------------|
-| `setup(Cell&, SceneView* view)` | Once, after the world is built, before the first reset. `view` is null in headless | Add skills, detectors, decorations; maybe your own backend |
-| `reset(Cell&, Seed)` | Each episode start, after the robot and objects are reset | Clear state; derive random streams from the seed |
+| `setup(RoboticCell&, SceneView* view)` | Once, after the world is built, before the first reset. `view` is null in headless | Add skills, detectors, decorations; maybe your own backend |
+| `reset(RoboticCell&, Seed)` | Each episode start, after the robot and objects are reset | Clear state; derive random streams from the seed |
 | `act(RobotContext&, Seconds dt)` | After each robot step | Command the robot from what it measures and believes; no ground truth |
-| `simulate(Cell&, Seconds dt)` | After `act`, in simulation only | What the world does by itself: a conveyor, ink on a canvas |
-| `observe(Cell const&, Seconds dt)` | After `simulate` | Read the truth and count for the metrics; a const cell commands nothing |
-| `measure(Cell const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
+| `simulate(RoboticCell&, Seconds dt)` | After `act`, in simulation only | What the world does by itself: a conveyor, ink on a canvas |
+| `observe(RoboticCell const&, Seconds dt)` | After `simulate` | Read the truth and count for the metrics; a const cell commands nothing |
+| `measure(RoboticCell const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
 | `Status status(RobotContext const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
 
-## `Cell` and `Simulation`
+## `RoboticCell` and `Simulation`
 
-Header: `Robotik/Task/Cell.hpp`. The robot cell: robots, objects, one
+Header: `Robotik/Task/RoboticCell.hpp`. The robot cell: robots, objects, one
 physics, the controller and the beliefs. The mission receives it. A C++
-program can build one from a `CellDescription`, without any file
+program can build one from a `RoboticCellDescription`, without any file
 ([Three programs, one per layer](../tutorials/02-three-programs.md)).
-`Robotik/Task/OpenCell.hpp` builds the cell and its world in one call:
-`robotik::openCell(description, &mission)` returns a `Result<OpenedCell>`.
+`Robotik/Task/OpenRoboticCell.hpp` builds the cell and its world in one call:
+`robotik::openRoboticCell(description, &mission)` returns a `Result<OpenedRoboticCell>`.
 `Robotik/Package/Simulation.hpp` builds the cell from a scenario file and
 judges the run (marked *Simulation* below).
 
@@ -164,7 +164,7 @@ judges the run (marked *Simulation* below).
 | `worldFrame()` | Entity of the Z-up frame of the world: hang on it what stays in the world, not on a robot root that a floating base moves |
 | `factory()` | `bt::NodeFactory&`: register custom tree nodes (include `Robotik/Task/Skills/SkillNodes.hpp`) |
 | `camera()` | `Camera*`: the first camera, or null |
-| `description()` | `CellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
+| `description()` | `RoboticCellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
 | `mission()` | `Mission*` |
 | `planning()` | `PlanningDomain&`: observers and bindings of the PDDL planner ([The PDDL planner: reference](pddl-planner.md)) |
 | `planner()` | `PlanExecutor*`: the planner controller, or null |
@@ -229,7 +229,7 @@ Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 | `base()` | State of a mobile base |
 
 `RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
-(used by `Cell`).
+(used by `RoboticCell`).
 
 ### `JointSet`
 
@@ -383,7 +383,7 @@ Other sensors (`Robotik/Robot/Sensors/`): `Imu`, `RangeScanner`,
 Header: `Robotik/Task/Metrics.hpp`.
 
 ```cpp
-void measure(robotik::Cell const&, robotik::Metrics& p_metrics) const override
+void measure(robotik::RoboticCell const&, robotik::Metrics& p_metrics) const override
 {
     p_metrics.set("laps", m_laps);
     p_metrics.set("cross_track.max", m_max_error);

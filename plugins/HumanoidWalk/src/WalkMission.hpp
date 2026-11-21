@@ -38,12 +38,12 @@ class WalkMission final: public robotik::Mission
 {
 public:
 
-    void setup(robotik::Cell& p_cell,
+    void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;
-    void reset(robotik::Cell& p_cell,
-               robotik::Seed p_seed) override;
-    void observe(robotik::Cell const& p_cell, robotik::Seconds p_dt) override;
-    void measure(robotik::Cell const& p_cell,
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
+    void observe(robotik::RoboticCell const& p_cell,
+                 robotik::Seconds p_dt) override;
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
 
     /// Command of the Walk skill: forward (m/s), lateral (m/s), yaw

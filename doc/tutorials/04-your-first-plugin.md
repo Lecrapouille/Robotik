@@ -94,9 +94,9 @@ class HelloMission final: public robotik::Mission
 {
 public:
 
-    void reset(robotik::Cell& p_cell, robotik::Seed p_seed) override;
+    void reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed) override;
     void act(robotik::RobotContext& p_context, robotik::Seconds p_dt) override;
-    void measure(robotik::Cell const& p_cell,
+    void measure(robotik::RoboticCell const& p_cell,
                  robotik::Metrics& p_metrics) const override;
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override;
@@ -110,7 +110,7 @@ private:
 `src/HelloMission.cpp`:
 
 ```cpp
-void HelloMission::reset(robotik::Cell& /*p_cell*/, robotik::Seed /*p_seed*/)
+void HelloMission::reset(robotik::RoboticCell& /*p_cell*/, robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;                         // a new episode starts
 }
@@ -121,7 +121,7 @@ void HelloMission::act(robotik::RobotContext& /*p_context*/,
     m_ticks += 1.0;                        // called after each simulation step
 }
 
-void HelloMission::measure(robotik::Cell const& /*p_cell*/,
+void HelloMission::measure(robotik::RoboticCell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks); // the scenario can now use "hello.ticks"
@@ -221,7 +221,7 @@ Now we give a **position** and ask which joint angles reach it.
 `src/ReachMission.cpp`:
 
 ```cpp
-void ReachMission::reset(robotik::Cell& p_cell, robotik::Seed /*p_seed*/)
+void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     robotik::Robot& robot = p_cell.robot();
 
@@ -308,7 +308,7 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
 The mission registers it, with a **name** and the **resources** it needs:
 
 ```cpp
-void SkillsMission::setup(robotik::Cell& p_cell, robotik::SceneView* /*p_view*/)
+void SkillsMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView* /*p_view*/)
 {
     robotik::SkillDescription wave;
     wave.name = "Wave";
