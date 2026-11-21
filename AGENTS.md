@@ -152,6 +152,10 @@ built.
 - `.clang-format` (Google based, braces on their own line, 4 spaces).
 - Parameters `p_name`, members `m_name`, constants `UPPER_CASE`.
 - Doxygen `///` comments (`///<` on the same line); class banners `// ****...`, method banners `// ----...`. File-local functions are `static`, with a `///` comment.
+- A public class answers why / when / how / guarantees / limits / why this
+  choice, with an `@code` example from a test or a demo; docs follow the
+  writing rules of the `robotik-docs` skill (Diátaxis kinds, ASD-STE100
+  rules, no signs of machine writing).
 - A header starts with `@file`: what it is for, in everyday words, then
   `@par Contract` (promises, expects, errors). Define a technical word or
   link doc/Glossary.md.

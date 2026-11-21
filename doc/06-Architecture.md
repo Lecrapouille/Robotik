@@ -314,6 +314,29 @@ Three contracts keep it honest:
    belief seen after the start of the step counts, so a failed grasp is not
    taken for a held object.
 
+### Who owns which state
+
+A robot program goes wrong when two parts keep their own copy of the world
+and each one changes it. In RobotIK each kind of state has one writer. The
+others read it, or read a copy that the writer refreshes.
+
+| State | Lives in | Written by | Read by |
+|-------|----------|------------|---------|
+| Physics: free bodies, contacts, the joints of a simulated robot | the MuJoCo backend (`RobotBackend`) | the physics step, from the actuator commands | `Cell::syncBodies`, which copies the body poses; the robot, which reads its joints |
+| Joint positions | the `JointSet` of each robot | the backend after each step (by hand when the robot has no physics) | skills through `RobotContext`; Pinocchio, for the frame poses (`worldPose`) |
+| Ground truth of props and bodies | the Compages entities of the `Cell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `Cell::pose`, `Cell::query`, the conditions, the rendering |
+| Description | `CellDescription` | the YAML files or the C++ program, before the run; read-only after | the mission (`described`, `waypoints`), the planner (the entities with a `kind` are its objects) |
+| Beliefs | `WorldModel` | the perception (detectors); the cell itself at the `truth` and `noisy_truth` fidelity; the priors of the description at each reset | skills, PDDL observers, the mission when it decides |
+| Symbolic facts (`(in red_cube box)`) | nowhere: the observers compute them from the beliefs when the planner asks | — | the planner and the plan executor |
+
+The last row is a choice. A list of symbolic facts kept next to the beliefs
+would drift from them: a plan would then go on with a fact that the camera
+no longer sees. Computed again at each question, a fact is never older than
+the belief it comes from. The cost is one call of the observer per question.
+
+The Compages world is a copy for two readers: the rendering, and the truth
+of the conditions. It never decides anything.
+
 ---
 
 ## 8. Rendering is separate
