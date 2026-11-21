@@ -53,15 +53,25 @@ TEST(ConfigNode, ReadsTypedValuesAndReportsBadOnes)
     robotik::ConfigNode const node = robotik::ConfigNode::parse(
         "a: 1.5\nb: [1, 2, 3]\nc: yes\nd: text\nr: [0.1, -0.1]\n"
         "p: { position: [1, 0, 0], rpy: [0, 0, 0] }\n").take();
-    EXPECT_DOUBLE_EQ(node.number("a", 0.0), 1.5);
-    EXPECT_DOUBLE_EQ(node.number("missing", 7.0), 7.0);
-    EXPECT_DOUBLE_EQ(node.vector3("b", robotik::Vector3::ZERO).z, 3.0);
-    EXPECT_TRUE(node.flag("c", false));
+    EXPECT_DOUBLE_EQ(node.number("a", 0.0).value(), 1.5);
+    EXPECT_DOUBLE_EQ(node.number("missing", 7.0).value(), 7.0);
+    EXPECT_DOUBLE_EQ(node.vector3("b", robotik::Vector3::ZERO).value().z, 3.0);
+    EXPECT_TRUE(node.flag("c", false).value());
     EXPECT_EQ(node.text("d"), "text");
-    EXPECT_DOUBLE_EQ(node.pose("p").position.x, 1.0);
-    EXPECT_THROW((void)node.number("d", 0.0), std::runtime_error);
-    EXPECT_THROW((void)node.vector3("a", robotik::Vector3::ZERO), std::runtime_error);
-    EXPECT_THROW((void)node.range("r"), std::runtime_error);
+    EXPECT_DOUBLE_EQ(node.pose("p").value().position.x, 1.0);
+
+    // A file is user input: a bad value is a failed Result, not an exception.
+    robotik::Result<double> const word = node.number("d", 0.0);
+    ASSERT_FALSE(word);
+    EXPECT_EQ(word.error(), "'d' is not a number: 'text'");
+    EXPECT_FALSE(node.vector3("a", robotik::Vector3::ZERO));
+    EXPECT_FALSE(node.range("r"));
+    EXPECT_FALSE(node.flag("d", false));
+
+    // Code that may throw (a plugin, a test) takes the value with require.
+    EXPECT_DOUBLE_EQ(robotik::require(node.number("a", 0.0)), 1.5);
+    EXPECT_THROW((void)robotik::require(node.number("d", 0.0)),
+                 std::runtime_error);
 }
 
 TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
@@ -73,9 +83,10 @@ TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
     EXPECT_TRUE(node.set("world.entities.0.color", robotik::ConfigNode::parse("[1, 0, 0]").take()));
     EXPECT_TRUE(node.set("world.floor.friction", robotik::ConfigNode("0.3")));
     robotik::ConfigNode const& entities = node.at("world").at("entities");
-    EXPECT_DOUBLE_EQ(entities.item("b").number("mass", 0.0), 5.0);
+    EXPECT_DOUBLE_EQ(entities.item("b").number("mass", 0.0).value(), 5.0);
     EXPECT_TRUE(entities.item("a").at("color").isSequence());
-    EXPECT_DOUBLE_EQ(node.at("world").at("floor").number("friction", 0.0), 0.3);
+    EXPECT_DOUBLE_EQ(
+        node.at("world").at("floor").number("friction", 0.0).value(), 0.3);
     EXPECT_FALSE(node.set("world.entities.c.mass", robotik::ConfigNode("1")));
 }
 
@@ -83,30 +94,22 @@ TEST(ConfigNode, UnknownKeyIsRefusedWithTheClosestKey)
 {
     robotik::ConfigNode const node =
         robotik::ConfigNode::parse("condition: time\nphse: always\n").take();
-    try
-    {
-        node.allowKeys({ "condition", "phase" }, "assertion");
-        FAIL() << "a typo must be refused";
-    }
-    catch (std::runtime_error const& error)
-    {
-        EXPECT_STREQ(error.what(),
-                     "assertion: unknown key 'phse' (did you mean 'phase'?)");
-    }
+    robotik::Result<void> const typo =
+        node.checkKeys({ "condition", "phase" }, "assertion");
+    ASSERT_FALSE(typo) << "a typo must be refused";
+    EXPECT_EQ(typo.error(),
+              "assertion: unknown key 'phse' (did you mean 'phase'?)");
+
     robotik::ConfigNode const far =
         robotik::ConfigNode::parse("colour: red\n").take();
-    try
-    {
-        far.allowKeys({ "condition", "phase" }, "assertion");
-        FAIL() << "an unknown key must be refused";
-    }
-    catch (std::runtime_error const& error)
-    {
-        EXPECT_STREQ(error.what(), "assertion: unknown key 'colour' (known "
-                                   "keys: condition phase)");
-    }
-    EXPECT_NO_THROW(node.allowKeys({ "condition", "phse" }, "assertion"));
-    EXPECT_NO_THROW(robotik::ConfigNode().allowKeys({}, "nothing"));
+    robotik::Result<void> const unknown =
+        far.checkKeys({ "condition", "phase" }, "assertion");
+    ASSERT_FALSE(unknown) << "an unknown key must be refused";
+    EXPECT_EQ(unknown.error(),
+              "assertion: unknown key 'colour' (known keys: condition phase)");
+
+    EXPECT_TRUE(node.checkKeys({ "condition", "phse" }, "assertion"));
+    EXPECT_TRUE(robotik::ConfigNode().checkKeys({}, "nothing"));
 }
 
 TEST(Assertions, TypoInAKeyIsRefused)

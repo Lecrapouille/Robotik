@@ -16,8 +16,10 @@
 /// same job, so both libraries report errors the same way.
 ///
 /// A mistake in the program itself (a joint name that does not exist, written
-/// in the code) is not a @c Result: it stops the program, because it must be
-/// fixed, not handled.
+/// in the code) is not a @c Result: it throws, because it must be fixed, not
+/// handled. Such a function has a name that starts with @c require
+/// (@c joints.requireRevolute("shoulder")), so the call shows that it may
+/// throw.
 ///
 /// @code
 /// robotik::Result<int> half(int p_value)
@@ -42,6 +44,9 @@
 
 #include "Compages/Core/Result.hpp"
 
+#include <stdexcept>
+#include <utility>
+
 namespace robotik
 {
 
@@ -49,6 +54,41 @@ using compages::Failure; ///< An error message on its way to the caller.
 using compages::failure; ///< Builds the error returned as any Result.
 using compages::Result;  ///< Either a value or the reason it is missing.
 using compages::success; ///< A Result<void> that worked.
+
+// ----------------------------------------------------------------------------
+/// Takes the value of a @c Result, or throws its message.
+///
+/// For code whose errors are exceptions by design: a plugin method (the
+/// plugin border turns the exception into an error code) or a test. A reader
+/// of files passes the @c Result on with @c ROBOTIK_TRY instead. As every
+/// function of RobotIK whose name starts with @c require, it may throw.
+///
+/// @code
+/// double const vx =
+///     robotik::require(p_cell.description().parameters.number("vx", 0.3));
+/// @endcode
+/// @param p_result A Result met in code that may throw.
+/// @return Its value.
+/// @throws std::runtime_error with the message of a failed @p_result.
+// ----------------------------------------------------------------------------
+template <typename T>
+[[nodiscard]] T require(Result<T> p_result)
+{
+    if (!p_result)
+    {
+        throw std::runtime_error(p_result.error());
+    }
+    return p_result.take();
+}
+
+/// @c require for a @c Result<void>: throws its message when it failed.
+inline void require(Result<void> const& p_result)
+{
+    if (!p_result)
+    {
+        throw std::runtime_error(p_result.error());
+    }
+}
 
 } // namespace robotik
 

@@ -6,81 +6,96 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Package/Scenario/Scenario.hpp"
-#include "Robotik/Common/Must.hpp"
 
 #include "Robotik/Package/Scenario/PackagePath.hpp"
-
-#include <stdexcept>
 
 namespace robotik
 {
 
+/// @p_result, its error prefixed with @p_where.
+template <typename T>
+static Result<T> prefixed(std::string const& p_where, Result<T> p_result)
+{
+    if (!p_result)
+    {
+        return failure(p_where + ": " + p_result.error());
+    }
+    return p_result;
+}
+
 /// Reads the faults a scenario injects on resources.
-static void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
+static Result<void> readFaults(Scenario& p_scenario, ConfigNode const& p_node)
 {
     for (ConfigNode const& fault : p_node.items())
     {
-        fault.allowKeys({ "resource", "rate", "action", "at" }, "fault");
+        ROBOTIK_TRY(
+            fault.checkKeys({ "resource", "rate", "action", "at" }, "fault"));
         std::string resource = fault.text("resource");
         if (resource.empty())
         {
-            throw std::runtime_error("a fault has no resource");
+            return failure("a fault has no resource");
         }
         if (fault.has("rate"))
         {
-            p_scenario.random_faults.push_back(
-                { std::move(resource), fault.number("rate", 0.0) });
+            double rate = 0.0;
+            ROBOTIK_TRY_ASSIGN(rate, fault.number("rate", 0.0));
+            p_scenario.random_faults.push_back({ std::move(resource), rate });
             continue;
         }
         std::string const action = fault.text("action");
         if (action != "disable" && action != "restore")
         {
-            throw std::runtime_error("fault on '" + resource +
-                                     "': action must be disable or restore");
+            return failure("fault on '" + resource +
+                           "': action must be disable or restore");
         }
-        p_scenario.faults.push_back({ Seconds(fault.number("at", 0.0)),
-                                      std::move(resource),
-                                      action == "disable" });
+        double at = 0.0;
+        ROBOTIK_TRY_ASSIGN(at, fault.number("at", 0.0));
+        p_scenario.faults.push_back(
+            { Seconds(at), std::move(resource), action == "disable" });
     }
+    return success();
 }
 
 /// Reads planner literals such as (in a b).
-static std::vector<Literal> readLiterals(ConfigNode const& p_node,
-                                         std::string const& p_key)
+static Result<std::vector<Literal>> readLiterals(ConfigNode const& p_node,
+                                                 std::string const& p_key)
 {
     std::vector<Literal> literals;
+    std::string const where = "planner." + p_key;
     for (ConfigNode const& item : p_node.at(p_key).items())
     {
         if (!item.isScalar())
         {
-            throw std::runtime_error(
-                "planner." + p_key +
-                ": each item is a literal such as (in a b)");
+            return failure(where + ": each item is a literal such as (in a b)");
         }
-        try
-        {
-            literals.push_back(must(parseLiteral(item.scalar())));
-        }
-        catch (std::runtime_error const& error)
-        {
-            throw std::runtime_error("planner." + p_key + ": " + error.what());
-        }
+        Literal literal;
+        ROBOTIK_TRY_ASSIGN(literal,
+                           prefixed(where, parseLiteral(item.scalar())));
+        literals.push_back(std::move(literal));
     }
     return literals;
 }
 
 /// Reads the planner block: domain file, goal and replan limits.
-static PlannerSpec readPlanner(std::filesystem::path const& p_root,
-                               ConfigNode const& p_node)
+static Result<PlannerSpec> readPlanner(std::filesystem::path const& p_root,
+                                       ConfigNode const& p_node)
 {
-    p_node.allowKeys({ "domain", "method", "facts", "goal", "goal_pddl",
-                       "replan", "verify", "parallel", "search", "timeout" },
-                     "planner");
+    ROBOTIK_TRY(p_node.checkKeys({ "domain",
+                                   "method",
+                                   "facts",
+                                   "goal",
+                                   "goal_pddl",
+                                   "replan",
+                                   "verify",
+                                   "parallel",
+                                   "search",
+                                   "timeout" },
+                                 "planner"));
     PlannerSpec spec;
-    spec.domain = must(packageFile(p_root, p_node.text("domain")));
+    ROBOTIK_TRY_ASSIGN(spec.domain, packageFile(p_root, p_node.text("domain")));
     if (spec.domain.empty())
     {
-        throw std::runtime_error(
+        return failure(
             "planner.domain is required (a PDDL file of the package)");
     }
     if (std::string const method = p_node.text("method", "search");
@@ -90,27 +105,30 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     }
     else if (method != "search")
     {
-        throw std::runtime_error("planner.method: '" + method +
-                                 "' is not search or pabt");
+        return failure("planner.method: '" + method +
+                       "' is not search or pabt");
     }
-    spec.facts = readLiterals(p_node, "facts");
-    spec.goal = readLiterals(p_node, "goal");
+    ROBOTIK_TRY_ASSIGN(spec.facts, readLiterals(p_node, "facts"));
+    ROBOTIK_TRY_ASSIGN(spec.goal, readLiterals(p_node, "goal"));
     spec.goal_pddl = p_node.text("goal_pddl");
     if (spec.goal.empty() == spec.goal_pddl.empty())
     {
-        throw std::runtime_error(
+        return failure(
             "planner: give a goal (list of literals) or a goal_pddl");
     }
     ConfigNode const& replan = p_node.at("replan");
-    replan.allowKeys({ "max", "delay" }, "planner.replan");
-    double const max = replan.number("max", spec.max_replans);
+    ROBOTIK_TRY(replan.checkKeys({ "max", "delay" }, "planner.replan"));
+    double max = 0.0;
+    ROBOTIK_TRY_ASSIGN(max, replan.number("max", spec.max_replans));
     if (max < 0.0)
     {
-        throw std::runtime_error("planner.replan.max must be positive");
+        return failure("planner.replan.max must be positive");
     }
     spec.max_replans = static_cast<std::uint32_t>(max);
-    spec.replan_delay =
-        Seconds(replan.number("delay", spec.replan_delay.value()));
+    double delay = 0.0;
+    ROBOTIK_TRY_ASSIGN(delay,
+                       replan.number("delay", spec.replan_delay.value()));
+    spec.replan_delay = Seconds(delay);
     if (p_node.text("verify") == "observed")
     {
         spec.verify = true;
@@ -118,54 +136,47 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
     }
     else
     {
-        spec.verify = p_node.flag("verify", spec.verify);
+        ROBOTIK_TRY_ASSIGN(spec.verify, p_node.flag("verify", spec.verify));
     }
-    spec.parallel = p_node.flag("parallel", spec.parallel);
+    ROBOTIK_TRY_ASSIGN(spec.parallel, p_node.flag("parallel", spec.parallel));
     spec.search = p_node.text("search", spec.search);
-    spec.timeout = Seconds(p_node.number("timeout", spec.timeout.value()));
+    double timeout = 0.0;
+    ROBOTIK_TRY_ASSIGN(timeout, p_node.number("timeout", spec.timeout.value()));
+    spec.timeout = Seconds(timeout);
     return spec;
 }
 
 Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenario)
 {
-    // The border of this reader: whatever stops it inside becomes a message.
-    try
+    ScenarioSource source;
+    source.scenario_file =
+        std::filesystem::absolute(p_scenario).lexically_normal();
+    ROBOTIK_TRY_ASSIGN(source.package, packageRoot(source.scenario_file));
+    ROBOTIK_TRY_ASSIGN(source.scenario, ConfigNode::load(source.scenario_file));
+    ROBOTIK_TRY(source.scenario.checkKeys({ "scenario" }, p_scenario.string()));
+    ConfigNode const& scenario = source.scenario.at("scenario");
+    if (!scenario.isMap())
     {
-        ScenarioSource source;
-        source.scenario_file =
-            std::filesystem::absolute(p_scenario).lexically_normal();
-        source.package = must(packageRoot(source.scenario_file));
-        source.scenario = must(ConfigNode::load(source.scenario_file));
-        source.scenario.allowKeys({ "scenario" }, p_scenario.string());
-        ConfigNode const& scenario = source.scenario.at("scenario");
-        if (!scenario.isMap())
-        {
-            throw std::runtime_error(p_scenario.string() +
-                                     ": no 'scenario:' section");
-        }
-        std::string const world = scenario.text("world");
-        if (world.empty())
-        {
-            throw std::runtime_error(p_scenario.string() +
-                                     ": scenario.world is required");
-        }
-        try
-        {
-            source.world_file = must(packageFile(source.package, world));
-        }
-        catch (std::runtime_error const& error)
-        {
-            throw std::runtime_error(p_scenario.string() + ": scenario.world " +
-                                     error.what());
-        }
-        source.world = must(ConfigNode::load(source.world_file));
-        source.world.allowKeys({ "world" }, source.world_file.string());
-        return source;
+        return failure(p_scenario.string() + ": no 'scenario:' section");
     }
-    catch (std::exception const& error)
+    std::string const world = scenario.text("world");
+    if (world.empty())
     {
-        return failure(error.what());
+        return failure(p_scenario.string() + ": scenario.world is required");
     }
+    if (auto file = packageFile(source.package, world); file)
+    {
+        source.world_file = file.take();
+    }
+    else
+    {
+        return failure(p_scenario.string() + ": scenario.world " +
+                       file.error());
+    }
+    ROBOTIK_TRY_ASSIGN(source.world, ConfigNode::load(source.world_file));
+    ROBOTIK_TRY(
+        source.world.checkKeys({ "world" }, source.world_file.string()));
+    return source;
 }
 
 Result<void> overrideValue(ScenarioSource& p_source, std::string_view p_path, ConfigNode p_value)
@@ -182,8 +193,8 @@ Result<void> overrideValue(ScenarioSource& p_source, std::string_view p_path, Co
 }
 
 /// Maps the words abstract and rigid onto the fidelity enum.
-static Fidelity readFidelity(std::string const& p_text,
-                             std::string const& p_where)
+static Result<Fidelity> readFidelity(std::string const& p_text,
+                                     std::string const& p_where)
 {
     if (p_text == "abstract")
     {
@@ -195,36 +206,39 @@ static Fidelity readFidelity(std::string const& p_text,
     }
     if (p_text == "contact")
     {
-        throw std::runtime_error(
-            p_where + ": contact is not available yet (abstract or rigid)");
+        return failure(p_where +
+                       ": contact is not available yet (abstract or rigid)");
     }
-    throw std::runtime_error(p_where + " must be abstract, rigid or contact");
+    return failure(p_where + " must be abstract, rigid or contact");
 }
 
 /// Reads the fidelity and the per-entity overrides under physics.
-static void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
+static Result<void> readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
 {
     if (!p_node.isMap())
     {
-        return;
+        return success();
     }
-    p_node.allowKeys({ "fidelity", "overrides" }, "physics");
-    p_scenario.physics.fidelity =
-        readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity");
+    ROBOTIK_TRY(p_node.checkKeys({ "fidelity", "overrides" }, "physics"));
+    ROBOTIK_TRY_ASSIGN(
+        p_scenario.physics.fidelity,
+        readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity"));
     for (auto const& [id, level] : p_node.at("overrides").entries())
     {
         if (!level.isScalar())
         {
-            throw std::runtime_error("physics.overrides." + id +
-                                     " must be a level");
+            return failure("physics.overrides." + id + " must be a level");
         }
-        p_scenario.physics.overrides.emplace(
-            id, readFidelity(level.scalar(), "physics.overrides." + id));
+        Fidelity fidelity = Fidelity::Abstract;
+        ROBOTIK_TRY_ASSIGN(
+            fidelity, readFidelity(level.scalar(), "physics.overrides." + id));
+        p_scenario.physics.overrides.emplace(id, fidelity);
     }
+    return success();
 }
 
 /// Every override names an entity or an actuator of the world.
-static void checkPhysics(Scenario const& p_scenario)
+static Result<void> checkPhysics(Scenario const& p_scenario)
 {
     for (auto const& [id, level] : p_scenario.physics.overrides)
     {
@@ -238,22 +252,21 @@ static void checkPhysics(Scenario const& p_scenario)
         }
         if (!known)
         {
-            throw std::runtime_error(
-                "physics.overrides: '" + id +
-                "' is no entity nor actuator of the world");
+            return failure("physics.overrides: '" + id +
+                           "' is no entity nor actuator of the world");
         }
     }
+    return success();
 }
-
 
 // ----------------------------------------------------------------------------
 /// Reads a perception level name.
 /// @param p_text "sensed", "noisy_truth" or "truth".
 /// @param p_where Field, for the error message.
-/// @return The level.
+/// @return The level, or why the word is not one.
 // ----------------------------------------------------------------------------
-static PerceptionFidelity readPerceptionLevel(std::string const& p_text,
-                                              std::string const& p_where)
+static Result<PerceptionFidelity>
+readPerceptionLevel(std::string const& p_text, std::string const& p_where)
 {
     if (p_text == "sensed")
     {
@@ -267,8 +280,8 @@ static PerceptionFidelity readPerceptionLevel(std::string const& p_text,
     {
         return PerceptionFidelity::Truth;
     }
-    throw std::runtime_error(p_where + " must be sensed, noisy_truth or truth, not '" +
-                             p_text + "'");
+    return failure(p_where + " must be sensed, noisy_truth or truth, not '" +
+                   p_text + "'");
 }
 
 // ----------------------------------------------------------------------------
@@ -277,11 +290,12 @@ static PerceptionFidelity readPerceptionLevel(std::string const& p_text,
 /// @param p_scenario Scenario to fill.
 /// @param p_node The @c perception: node (may be null).
 // ----------------------------------------------------------------------------
-static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
+static Result<void> readPerception(Scenario& p_scenario,
+                                   ConfigNode const& p_node)
 {
-    p_node.allowKeys({ "oracle", "fidelity", "blind", "overrides", "noise",
-                       "max_age" },
-                     "perception");
+    ROBOTIK_TRY(p_node.checkKeys(
+        { "oracle", "fidelity", "blind", "overrides", "noise", "max_age" },
+        "perception"));
     PerceptionSpec& perception = p_scenario.perception;
     if (p_node.has("oracle"))
     {
@@ -296,125 +310,143 @@ static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
         }
         else if (oracle != "never")
         {
-            throw std::runtime_error("perception.oracle must be never, when_blind or always");
+            return failure(
+                "perception.oracle must be never, when_blind or always");
         }
     }
     if (p_node.has("fidelity"))
     {
-        perception.fidelity = readPerceptionLevel(p_node.text("fidelity"), "perception.fidelity");
+        ROBOTIK_TRY_ASSIGN(perception.fidelity,
+                           readPerceptionLevel(p_node.text("fidelity"),
+                                               "perception.fidelity"));
     }
     if (p_node.has("blind"))
     {
-        perception.blind = readPerceptionLevel(p_node.text("blind"), "perception.blind");
+        ROBOTIK_TRY_ASSIGN(
+            perception.blind,
+            readPerceptionLevel(p_node.text("blind"), "perception.blind"));
     }
     for (auto const& [id, level] : p_node.at("overrides").entries())
     {
-        perception.overrides.emplace(
-            id, readPerceptionLevel(level.scalar(), "perception.overrides." + id));
+        PerceptionFidelity fidelity = PerceptionFidelity::Sensed;
+        ROBOTIK_TRY_ASSIGN(
+            fidelity,
+            readPerceptionLevel(level.scalar(), "perception.overrides." + id));
+        perception.overrides.emplace(id, fidelity);
     }
     ConfigNode const& noise = p_node.at("noise");
-    noise.allowKeys({ "sigma", "dropout", "range" }, "perception.noise");
-    perception.noise.sigma = noise.number("sigma", perception.noise.sigma);
-    perception.noise.dropout = noise.number("dropout", perception.noise.dropout);
-    perception.noise.range = noise.number("range", perception.noise.range);
-    perception.max_age = Seconds(p_node.number("max_age", perception.max_age.value()));
+    ROBOTIK_TRY(
+        noise.checkKeys({ "sigma", "dropout", "range" }, "perception.noise"));
+    ROBOTIK_TRY_ASSIGN(perception.noise.sigma,
+                       noise.number("sigma", perception.noise.sigma));
+    ROBOTIK_TRY_ASSIGN(perception.noise.dropout,
+                       noise.number("dropout", perception.noise.dropout));
+    ROBOTIK_TRY_ASSIGN(perception.noise.range,
+                       noise.number("range", perception.noise.range));
+    double max_age = 0.0;
+    ROBOTIK_TRY_ASSIGN(max_age,
+                       p_node.number("max_age", perception.max_age.value()));
+    perception.max_age = Seconds(max_age);
+    return success();
 }
 
-Result<Scenario> readScenario(ScenarioSource const& p_source, AssetResolver const& p_assets)
+/// Reads the scenario section itself (not its world).
+static Result<void> readScenarioSection(Scenario& p_scenario,
+                                        ConfigNode const& p_node,
+                                        std::filesystem::path const& p_root)
 {
-    // The border of this reader: whatever stops it inside becomes a message.
-    try
+    Scenario& scenario = p_scenario;
+    ConfigNode const& node = p_node;
+    ROBOTIK_TRY(node.checkKeys({ "id",
+                                 "description",
+                                 "seed",
+                                 "world",
+                                 "controller",
+                                 "trajectories",
+                                 "faults",
+                                 "perception",
+                                 "physics",
+                                 "timeout",
+                                 "stop_when",
+                                 "parameters",
+                                 "assertions" },
+                               "scenario"));
+    scenario.id = node.text("id");
+    if (scenario.id.empty())
     {
-        ConfigNode const& node = p_source.scenario.at("scenario");
-        std::filesystem::path const& root = p_source.package;
-        std::string const where = p_source.scenario_file.string();
-
-        Scenario scenario;
-        scenario.assets = p_assets;
-        scenario.file = p_source.scenario_file;
-        try
-        {
-            node.allowKeys({ "id", "description", "seed", "world", "controller",
-                             "trajectories", "faults", "perception", "physics",
-                             "timeout", "stop_when", "parameters",
-                             "assertions" },
-                           "scenario");
-            scenario.id = node.text("id");
-            if (scenario.id.empty())
-            {
-                throw std::runtime_error("scenario.id is required");
-            }
-            scenario.description = node.text("description");
-            scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
-            ConfigNode const& controller = node.at("controller");
-            controller.allowKeys({ "behavior_tree", "planner" }, "controller");
-            scenario.controller.behavior_tree =
-                must(packageFile(root, controller.text("behavior_tree")));
-            if (controller.has("planner"))
-            {
-                if (!scenario.controller.behavior_tree.empty())
-                {
-                    throw std::runtime_error(
-                        "controller: give a behavior_tree or a planner, not both");
-                }
-                scenario.controller.planner =
-                    readPlanner(root, controller.at("planner"));
-            }
-            for (auto const& [name, file] : node.at("trajectories").entries())
-            {
-                if (!file.isScalar())
-                {
-                    throw std::runtime_error("trajectories." + name +
-                                             " must be a file name");
-                }
-                scenario.trajectories.emplace(
-                    name, must(loadTrajectory(must(packageFile(root, file.scalar())))));
-            }
-            readFaults(scenario, node.at("faults"));
-            readPerception(scenario, node.at("perception"));
-            readPhysics(scenario, node.at("physics"));
-            scenario.timeout = Seconds(node.number("timeout", 0.0));
-            scenario.stop_when = node.text("stop_when");
-            scenario.parameters = node.at("parameters");
-            for (ConfigNode const& item : node.at("assertions").items())
-            {
-                scenario.assertions.push_back(must(readAssertion(item)));
-            }
-        }
-        catch (std::runtime_error const& error)
-        {
-            throw std::runtime_error(where + ": " + error.what());
-        }
-
-        ConfigNode const& world = p_source.world.at("world");
-        if (!world.isMap())
-        {
-            throw std::runtime_error(p_source.world_file.string() +
-                                     ": no 'world:' section");
-        }
-        try
-        {
-            scenario.world = must(readWorld(world, root, p_assets));
-        }
-        catch (std::runtime_error const& error)
-        {
-            throw std::runtime_error(p_source.world_file.string() + ": " +
-                                     error.what());
-        }
-        try
-        {
-            checkPhysics(scenario);
-        }
-        catch (std::runtime_error const& error)
-        {
-            throw std::runtime_error(where + ": " + error.what());
-        }
-        return scenario;
+        return failure("scenario.id is required");
     }
-    catch (std::exception const& error)
+    scenario.description = node.text("description");
+    double seed = 0.0;
+    ROBOTIK_TRY_ASSIGN(seed, node.number("seed", 0.0));
+    scenario.seed = static_cast<std::uint64_t>(seed);
+    ConfigNode const& controller = node.at("controller");
+    ROBOTIK_TRY(
+        controller.checkKeys({ "behavior_tree", "planner" }, "controller"));
+    ROBOTIK_TRY_ASSIGN(scenario.controller.behavior_tree,
+                       packageFile(p_root, controller.text("behavior_tree")));
+    if (controller.has("planner"))
     {
-        return failure(error.what());
+        if (!scenario.controller.behavior_tree.empty())
+        {
+            return failure(
+                "controller: give a behavior_tree or a planner, not both");
+        }
+        ROBOTIK_TRY_ASSIGN(scenario.controller.planner,
+                           readPlanner(p_root, controller.at("planner")));
     }
+    for (auto const& [name, file] : node.at("trajectories").entries())
+    {
+        if (!file.isScalar())
+        {
+            return failure("trajectories." + name + " must be a file name");
+        }
+        std::filesystem::path path;
+        ROBOTIK_TRY_ASSIGN(path, packageFile(p_root, file.scalar()));
+        Trajectory trajectory;
+        ROBOTIK_TRY_ASSIGN(trajectory, loadTrajectory(path));
+        scenario.trajectories.emplace(name, std::move(trajectory));
+    }
+    ROBOTIK_TRY(readFaults(scenario, node.at("faults")));
+    ROBOTIK_TRY(readPerception(scenario, node.at("perception")));
+    ROBOTIK_TRY(readPhysics(scenario, node.at("physics")));
+    double timeout = 0.0;
+    ROBOTIK_TRY_ASSIGN(timeout, node.number("timeout", 0.0));
+    scenario.timeout = Seconds(timeout);
+    scenario.stop_when = node.text("stop_when");
+    scenario.parameters = node.at("parameters");
+    for (ConfigNode const& item : node.at("assertions").items())
+    {
+        AssertionSpec assertion;
+        ROBOTIK_TRY_ASSIGN(assertion, readAssertion(item));
+        scenario.assertions.push_back(std::move(assertion));
+    }
+    return success();
+}
+
+Result<Scenario> readScenario(ScenarioSource const& p_source,
+                              AssetResolver const& p_assets)
+{
+    std::filesystem::path const& root = p_source.package;
+    std::string const where = p_source.scenario_file.string();
+
+    Scenario scenario;
+    scenario.assets = p_assets;
+    scenario.file = p_source.scenario_file;
+    ROBOTIK_TRY(prefixed(
+        where,
+        readScenarioSection(scenario, p_source.scenario.at("scenario"), root)));
+
+    ConfigNode const& world = p_source.world.at("world");
+    if (!world.isMap())
+    {
+        return failure(p_source.world_file.string() + ": no 'world:' section");
+    }
+    ROBOTIK_TRY_ASSIGN(scenario.world,
+                       prefixed(p_source.world_file.string(),
+                                readWorld(world, root, p_assets)));
+    ROBOTIK_TRY(prefixed(where, checkPhysics(scenario)));
+    return scenario;
 }
 
 } // namespace robotik

@@ -10,7 +10,6 @@
 #include "Robotik/Common/Config.hpp"
 
 #include <algorithm>
-#include <stdexcept>
 
 namespace robotik
 {
@@ -51,79 +50,82 @@ char const* toString(Check::Verdict p_verdict)
 
 Result<AssertionSpec> readAssertion(ConfigNode const& p_node)
 {
-    // The border of this reader: whatever stops it inside becomes a message.
-    try
+    AssertionSpec spec;
+    if (p_node.isScalar())
     {
-        AssertionSpec spec;
-        if (p_node.isScalar())
-        {
-            spec.condition = p_node.scalar();
-            spec.name = spec.condition;
-            return spec;
-        }
-        if (!p_node.isMap())
-        {
-            throw std::runtime_error("an assertion is a condition or a map");
-        }
-        p_node.allowKeys({ "name", "condition", "phase", "at", "within",
-                           "eventually", "sequence", "stop" },
-                         "assertion");
-        spec.condition = p_node.text("condition");
-        spec.stop = p_node.flag("stop", false);
-        std::string const phase = p_node.text("phase");
-        if (p_node.has("sequence"))
-        {
-            spec.phase = AssertionPhase::Sequence;
-            spec.sequence = p_node.strings("sequence");
-            if (spec.sequence.size() < 2U || !spec.condition.empty())
-            {
-                throw std::runtime_error(
-                    "a sequence lists two conditions or more, and no condition");
-            }
-        }
-        else if (p_node.has("at"))
-        {
-            spec.phase = AssertionPhase::At;
-            spec.time = Seconds(p_node.number("at", 0.0));
-        }
-        else if (p_node.has("within"))
-        {
-            spec.phase = AssertionPhase::Within;
-            spec.time = Seconds(p_node.number("within", 0.0));
-        }
-        else if (p_node.flag("eventually", false) || phase == "eventually")
-        {
-            spec.phase = AssertionPhase::Eventually;
-        }
-        else if (phase == "always")
-        {
-            spec.phase = AssertionPhase::Always;
-        }
-        else if (phase.empty() || phase == "end")
-        {
-            spec.phase = AssertionPhase::End;
-        }
-        else
-        {
-            throw std::runtime_error("phase must be always, end or eventually (or "
-                                     "use at:, within:, sequence:)");
-        }
-        if (spec.phase != AssertionPhase::Sequence && spec.condition.empty())
-        {
-            throw std::runtime_error("an assertion needs a condition");
-        }
-        spec.name = p_node.text("name");
-        if (spec.name.empty())
-        {
-            spec.name = spec.phase == AssertionPhase::Sequence ? "sequence"
-                                                               : spec.condition;
-        }
+        spec.condition = p_node.scalar();
+        spec.name = spec.condition;
         return spec;
     }
-    catch (std::exception const& error)
+    if (!p_node.isMap())
     {
-        return failure(error.what());
+        return failure("an assertion is a condition or a map");
     }
+    ROBOTIK_TRY(p_node.checkKeys({ "name",
+                                   "condition",
+                                   "phase",
+                                   "at",
+                                   "within",
+                                   "eventually",
+                                   "sequence",
+                                   "stop" },
+                                 "assertion"));
+    spec.condition = p_node.text("condition");
+    ROBOTIK_TRY_ASSIGN(spec.stop, p_node.flag("stop", false));
+    std::string const phase = p_node.text("phase");
+    bool eventually = false;
+    ROBOTIK_TRY_ASSIGN(eventually, p_node.flag("eventually", false));
+    double time = 0.0;
+    if (p_node.has("sequence"))
+    {
+        spec.phase = AssertionPhase::Sequence;
+        spec.sequence = p_node.strings("sequence");
+        if (spec.sequence.size() < 2U || !spec.condition.empty())
+        {
+            return failure(
+                "a sequence lists two conditions or more, and no condition");
+        }
+    }
+    else if (p_node.has("at"))
+    {
+        spec.phase = AssertionPhase::At;
+        ROBOTIK_TRY_ASSIGN(time, p_node.number("at", 0.0));
+        spec.time = Seconds(time);
+    }
+    else if (p_node.has("within"))
+    {
+        spec.phase = AssertionPhase::Within;
+        ROBOTIK_TRY_ASSIGN(time, p_node.number("within", 0.0));
+        spec.time = Seconds(time);
+    }
+    else if (eventually || phase == "eventually")
+    {
+        spec.phase = AssertionPhase::Eventually;
+    }
+    else if (phase == "always")
+    {
+        spec.phase = AssertionPhase::Always;
+    }
+    else if (phase.empty() || phase == "end")
+    {
+        spec.phase = AssertionPhase::End;
+    }
+    else
+    {
+        return failure("phase must be always, end or eventually (or use at:, "
+                       "within:, sequence:)");
+    }
+    if (spec.phase != AssertionPhase::Sequence && spec.condition.empty())
+    {
+        return failure("an assertion needs a condition");
+    }
+    spec.name = p_node.text("name");
+    if (spec.name.empty())
+    {
+        spec.name = spec.phase == AssertionPhase::Sequence ? "sequence"
+                                                           : spec.condition;
+    }
+    return spec;
 }
 
 AssertionEngine::AssertionEngine(std::vector<AssertionSpec> p_specs)

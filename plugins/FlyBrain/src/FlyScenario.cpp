@@ -83,18 +83,20 @@ FlyScenario FlyScenario::from(robotik::RoboticCellDescription const& p_scenario)
     scenario.name = p_scenario.id;
     scenario.seed = p_scenario.seed;
     robotik::ConfigNode const& parameters = p_scenario.parameters;
-    scenario.horizon = parameters.number("horizon", scenario.horizon);
+    scenario.horizon =
+        robotik::require(parameters.number("horizon", scenario.horizon));
     scenario.agent = parameters.text("brain", scenario.agent);
     if (scenario.agent != "shiu" && scenario.agent != "reflex")
     {
         throw std::runtime_error("parameters.brain must be shiu or reflex");
     }
-    scenario.dt = parameters.number("dt", scenario.dt);
-    scenario.sensor_noise =
-        parameters.number("sensor_noise", scenario.sensor_noise);
-    scenario.layout_jitter =
-        parameters.number("layout_jitter", scenario.layout_jitter);
-    scenario.arena = parameters.vector3("arena", scenario.arena);
+    scenario.dt = robotik::require(parameters.number("dt", scenario.dt));
+    scenario.sensor_noise = robotik::require(
+        parameters.number("sensor_noise", scenario.sensor_noise));
+    scenario.layout_jitter = robotik::require(
+        parameters.number("layout_jitter", scenario.layout_jitter));
+    scenario.arena =
+        robotik::require(parameters.vector3("arena", scenario.arena));
 
     robotik::EntitySpec const& fly = robotik::firstRobot(p_scenario.world);
     scenario.robot_model = fly.model;

@@ -52,9 +52,10 @@ void PainterMission::setup(robotik::RoboticCell& p_cell,
     // scenario (or an experiment) tunes them in parameters.
     robotik::ConfigNode const& parameters = p_cell.description().parameters;
     painter::MarkSkill::Settings settings;
-    settings.step = parameters.number("stroke_step", settings.step);
-    settings.tolerance =
-        parameters.number("stroke_tolerance", settings.tolerance);
+    settings.step =
+        robotik::require(parameters.number("stroke_step", settings.step));
+    settings.tolerance = robotik::require(
+        parameters.number("stroke_tolerance", settings.tolerance));
     skills.add<painter::MarkSkill>(
         describe("mark"), m_stroke, std::move(strokes), settings);
     robotik::ConfigNode const& gains = parameters.at("arm_gains");
@@ -64,9 +65,10 @@ void PainterMission::setup(robotik::RoboticCell& p_cell,
         for (robotik::JointId id = 0; id < joints.size(); ++id)
         {
             robotik::JointGains& gain = joints.gains(id);
-            gain.kp = gains.number("kp", gain.kp);
-            gain.kd = gains.number("kd", gain.kd);
-            gain.speed_ratio = gains.number("speed_ratio", gain.speed_ratio);
+            gain.kp = robotik::require(gains.number("kp", gain.kp));
+            gain.kd = robotik::require(gains.number("kd", gain.kd));
+            gain.speed_ratio =
+                robotik::require(gains.number("speed_ratio", gain.speed_ratio));
         }
     }
     skills.add<painter::RinseSkill>(describe("rinse"), m_stroke);

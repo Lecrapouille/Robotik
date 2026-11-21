@@ -17,7 +17,7 @@
 ///     robotik::ConfigNode::load("painting_lab.world.yaml").take();
 /// (void)world.set("world.entities.easel.friction", robotik::ConfigNode("0.3"));
 /// double const friction = world.at("world").at("entities")
-///                              .item("easel").number("friction", 1.0);
+///                              .item("easel").number("friction", 1.0).take();
 /// @endcode
 ///
 /// @par Contract
@@ -25,9 +25,9 @@
 ///   file and the line when the YAML is wrong.
 /// - Expects: an override path (@c set) names a field that exists, or a new key
 ///   of a map.
-/// - Errors: reading a field of the wrong type (@c number on a word) throws
-///   @c std::runtime_error; the YAML readers turn it into a @c Result at
-///   their border.
+/// - Errors: nothing throws. A field of the wrong type (@c number on a
+///   word) and an unknown key (@ref robotik::ConfigNode::checkKeys) give a
+///   failed @c Result; the readers pass it on with @c ROBOTIK_TRY.
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
@@ -50,20 +50,26 @@ namespace robotik
 ///
 /// Every YAML file of RobotIK (world, scenario, experiment, trajectory) is
 /// read through this class, so they share one set of rules and one kind of
-/// message. Reading a missing key never throws: it gives a null node, and
-/// the typed reads return their default. Only a value of the wrong shape
-/// throws. Because a default hides a typo, each reader also lists the keys
-/// it knows with @ref allowKeys: any other key stops the load, with the
+/// message. A missing key gives a null node, and the typed reads return
+/// their default. A value of the wrong shape gives a failed @c Result: a
+/// file is user input, so its errors are values, not exceptions (see
+/// Result.hpp). Because a default hides a typo, each reader also lists the
+/// keys it knows with @ref checkKeys: any other key stops the load, with the
 /// closest known key in the message. The tree can be changed before it is
 /// read (@ref set), which is how the overrides of an experiment work.
 ///
 /// @code
 /// robotik::ConfigNode const node = robotik::ConfigNode::parse(
 ///     "{ mass: 0.2, size: [0.04, 0.04, 0.04], tags: [red, small] }").take();
-/// double m = node.number("mass", 1.0);                          // 0.2
-/// robotik::Vector3 s = node.vector3("size", robotik::Vector3::ZERO);
-/// std::vector<std::string> tags = node.strings("tags");         // red, small
-/// bool fixed = node.flag("fixed", false);   // missing: false
+/// robotik::Result<double> m = node.number("mass", 1.0);       // 0.2
+/// robotik::Result<robotik::Vector3> s =
+///     node.vector3("size", robotik::Vector3::ZERO);
+/// std::vector<std::string> tags = node.strings("tags");      // red, small
+/// robotik::Result<bool> fixed = node.flag("fixed", false);   // missing: false
+///
+/// // In a reader that returns a Result:
+/// ROBOTIK_TRY(node.checkKeys({ "mass", "size", "tags", "fixed" }, "box"));
+/// ROBOTIK_TRY_ASSIGN(spec.mass, node.number("mass", spec.mass));
 /// @endcode
 // ****************************************************************************
 class ConfigNode
@@ -167,8 +173,8 @@ public:
     /// reader names the keys of its map; any other key stops the load.
     ///
     /// @code
-    /// p_node.allowKeys({ "condition", "phase", "at", "within", "stop" },
-    ///                  "assertion");
+    /// ROBOTIK_TRY(p_node.checkKeys(
+    ///     { "condition", "phase", "at", "within", "stop" }, "assertion"));
     /// // phse: always  ->  "assertion: unknown key 'phse' (did you mean
     /// //                    'phase'?)"
     /// @endcode
@@ -176,11 +182,12 @@ public:
     /// A null node and a scalar pass: the reader checks the shape itself.
     /// @param p_keys Keys the reader knows.
     /// @param p_where Name of the map, for the message (e.g. @c "planner").
-    /// @throws std::runtime_error naming the key, the closest known key, and
-    ///   the known keys when none is close.
+    /// @return Fails naming the key, the closest known key, and the known
+    ///   keys when none is close.
     // -------------------------------------------------------------------------
-    void allowKeys(std::initializer_list<std::string_view> p_keys,
-                   std::string_view p_where) const;
+    [[nodiscard]] Result<void>
+    checkKeys(std::initializer_list<std::string_view> p_keys,
+              std::string_view p_where) const;
 
     // --- Sequences ----------------------------------------------------------
 
@@ -211,18 +218,19 @@ public:
     // -------------------------------------------------------------------------
     /// @param p_key Map key.
     /// @param p_default Value when the key is missing.
-    /// @return The number.
-    /// @throws std::runtime_error when the value is present but not a number.
+    /// @return The number; fails when the value is present but not a number.
     // -------------------------------------------------------------------------
-    [[nodiscard]] double number(std::string_view p_key, double p_default) const;
+    [[nodiscard]] Result<double> number(std::string_view p_key,
+                                        double p_default) const;
 
     // -------------------------------------------------------------------------
     /// @param p_key Map key.
     /// @param p_default Value when the key is missing.
-    /// @return The boolean.
-    /// @throws std::runtime_error when the value is present but not a boolean.
+    /// @return The boolean; fails when the value is present but not a
+    ///   boolean (true, false, yes, no, on, off, 1, 0).
     // -------------------------------------------------------------------------
-    [[nodiscard]] bool flag(std::string_view p_key, bool p_default) const;
+    [[nodiscard]] Result<bool> flag(std::string_view p_key,
+                                    bool p_default) const;
 
     /// @return This scalar as a number, or nothing.
     [[nodiscard]] std::optional<double> asNumber() const;
@@ -230,18 +238,18 @@ public:
     // -------------------------------------------------------------------------
     /// @param p_key Map key of a @c [x, y, z] list.
     /// @param p_default Value when the key is missing.
-    /// @return The three numbers.
-    /// @throws std::runtime_error on another shape.
+    /// @return The three numbers; fails on another shape.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Vector3 vector3(std::string_view p_key,
-                                  Vector3 p_default) const;
+    [[nodiscard]] Result<Vector3> vector3(std::string_view p_key,
+                                          Vector3 p_default) const;
 
     // -------------------------------------------------------------------------
     /// @param p_key Map key of a @c [min, max] list.
-    /// @return The two numbers.
-    /// @throws std::runtime_error on another shape.
+    /// @return The two numbers, [0, 0] when missing; fails on another shape
+    ///   or when max < min.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::array<double, 2> range(std::string_view p_key) const;
+    [[nodiscard]] Result<std::array<double, 2>>
+    range(std::string_view p_key) const;
 
     // -------------------------------------------------------------------------
     /// @param p_key Map key.
@@ -254,12 +262,14 @@ public:
     /// Reads a pose: @c { position: [x, y, z], rpy: [r, p, y] } (radians), or
     /// @c quaternion: [w, x, y, z] instead of @c rpy.
     /// @param p_key Map key.
-    /// @return The pose; identity when missing.
+    /// @return The pose, identity when missing; fails on another shape or an
+    ///   unknown key.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose pose(std::string_view p_key) const;
+    [[nodiscard]] Result<Pose> pose(std::string_view p_key) const;
 
-    /// @return This map read as a pose (see @ref pose).
-    [[nodiscard]] Pose asPose() const;
+    /// @return This map read as a pose (see @ref pose), without checking its
+    ///   keys: a sensor mount shares its map with other keys.
+    [[nodiscard]] Result<Pose> asPose() const;
 
     // --- Edition ------------------------------------------------------------
 

@@ -9,7 +9,7 @@ World = what exists. Scenario = what happens, when it stops, what is
 checked. Experiment = variants × seeds. Paths are relative to the package root (folder of plugin.yaml); `..` and symlinks are allowed but the canonical path must stay in the package; absolute paths are refused.
 Scenario/experiment files must be listed in the plugin `plugin.yaml`.
 Unknown keys are refused at load (exit 1, "did you mean"): a new key needs
-its name in the `allowKeys` list of the reader (`ConfigNode::allowKeys`).
+its name in the `checkKeys` list of the reader (`ConfigNode::checkKeys`).
 Free mission values go under `scenario.parameters` (not checked). Quote a
 text with a comma inside a flow map `{ name: "a, b" }`.
 Edit `plugins/...`, then `make <target>` (it overwrites `build/`).

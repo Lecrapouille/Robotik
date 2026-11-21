@@ -66,15 +66,23 @@ void DuckMission::setup(robotik::RoboticCell& p_cell,
     }
 
     robotik::ConfigNode const& parameters = scenario.parameters;
-    m_command = { parameters.number("vx", 0.25),
-                  parameters.number("vy", 0.0),
-                  parameters.number("yaw_rate", 0.0) };
-    m_forward = { parameters.number("forward_speed", 0.25), 0.0, 0.0 };
-    m_turn = { 0.0, 0.0, parameters.number("turn_rate", 0.8) };
-    robotik::Seconds const stand(parameters.number("stand_duration", 0.02));
-    robotik::Seconds const walk(parameters.number("walk_duration", 0.0));
-    robotik::Seconds const forward(parameters.number("forward_duration", 3.0));
-    robotik::Seconds const turn(parameters.number("turn_duration", 2.0));
+    m_command = { robotik::require(parameters.number("vx", 0.25)),
+                  robotik::require(parameters.number("vy", 0.0)),
+                  robotik::require(parameters.number("yaw_rate", 0.0)) };
+    m_forward = { robotik::require(parameters.number("forward_speed", 0.25)),
+                  0.0,
+                  0.0 };
+    m_turn = { 0.0,
+               0.0,
+               robotik::require(parameters.number("turn_rate", 0.8)) };
+    robotik::Seconds const stand(
+        robotik::require(parameters.number("stand_duration", 0.02)));
+    robotik::Seconds const walk(
+        robotik::require(parameters.number("walk_duration", 0.0)));
+    robotik::Seconds const forward(
+        robotik::require(parameters.number("forward_duration", 3.0)));
+    robotik::Seconds const turn(
+        robotik::require(parameters.number("turn_duration", 2.0)));
     robotik::Seconds const period(contract.physics_step * contract.decimation);
     std::vector<double> const posture = contract.default_angle;
 

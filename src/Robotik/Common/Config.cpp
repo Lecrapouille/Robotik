@@ -12,7 +12,6 @@
 
 #include <algorithm>
 #include <charconv>
-#include <stdexcept>
 
 namespace robotik
 {
@@ -106,8 +105,9 @@ ConfigNode const& ConfigNode::at(std::string_view p_key) const
     return nullNode();
 }
 
-void ConfigNode::allowKeys(std::initializer_list<std::string_view> p_keys,
-                           std::string_view p_where) const
+Result<void>
+ConfigNode::checkKeys(std::initializer_list<std::string_view> p_keys,
+                      std::string_view p_where) const
 {
     for (auto const& [key, value] : m_entries)
     {
@@ -132,8 +132,9 @@ void ConfigNode::allowKeys(std::initializer_list<std::string_view> p_keys,
             }
             message += ")";
         }
-        throw std::runtime_error(message);
+        return failure(message);
     }
+    return success();
 }
 
 ConfigNode const& ConfigNode::item(std::string_view p_id) const
@@ -179,7 +180,8 @@ std::optional<double> ConfigNode::asNumber() const
     return value;
 }
 
-double ConfigNode::number(std::string_view p_key, double p_default) const
+Result<double> ConfigNode::number(std::string_view p_key,
+                                  double p_default) const
 {
     ConfigNode const& value = at(p_key);
     if (value.isNull())
@@ -189,13 +191,13 @@ double ConfigNode::number(std::string_view p_key, double p_default) const
     std::optional<double> const parsed = value.asNumber();
     if (!parsed)
     {
-        throw std::runtime_error("'" + std::string(p_key) +
-                                 "' is not a number: '" + value.scalar() + "'");
+        return failure("'" + std::string(p_key) + "' is not a number: '" +
+                       value.scalar() + "'");
     }
     return *parsed;
 }
 
-bool ConfigNode::flag(std::string_view p_key, bool p_default) const
+Result<bool> ConfigNode::flag(std::string_view p_key, bool p_default) const
 {
     ConfigNode const& value = at(p_key);
     if (value.isNull())
@@ -211,11 +213,12 @@ bool ConfigNode::flag(std::string_view p_key, bool p_default) const
     {
         return false;
     }
-    throw std::runtime_error("'" + std::string(p_key) +
-                             "' is not a boolean: '" + text + "'");
+    return failure("'" + std::string(p_key) + "' is not a boolean: '" + text +
+                   "'");
 }
 
-Vector3 ConfigNode::vector3(std::string_view p_key, Vector3 p_default) const
+Result<Vector3> ConfigNode::vector3(std::string_view p_key,
+                                    Vector3 p_default) const
 {
     ConfigNode const& value = at(p_key);
     if (value.isNull())
@@ -233,18 +236,17 @@ Vector3 ConfigNode::vector3(std::string_view p_key, Vector3 p_default) const
     }
     if (!x || !y || !z)
     {
-        throw std::runtime_error("'" + std::string(p_key) +
-                                 "' must be [x, y, z]");
+        return failure("'" + std::string(p_key) + "' must be [x, y, z]");
     }
-    return { *x, *y, *z };
+    return Vector3{ *x, *y, *z };
 }
 
-std::array<double, 2> ConfigNode::range(std::string_view p_key) const
+Result<std::array<double, 2>> ConfigNode::range(std::string_view p_key) const
 {
     ConfigNode const& value = at(p_key);
     if (value.isNull())
     {
-        return { 0.0, 0.0 };
+        return std::array<double, 2>{ 0.0, 0.0 };
     }
     std::optional<double> low;
     std::optional<double> high;
@@ -255,10 +257,9 @@ std::array<double, 2> ConfigNode::range(std::string_view p_key) const
     }
     if (!low || !high || *high < *low)
     {
-        throw std::runtime_error("'" + std::string(p_key) +
-                                 "' must be [min, max]");
+        return failure("'" + std::string(p_key) + "' must be [min, max]");
     }
-    return { *low, *high };
+    return std::array<double, 2>{ *low, *high };
 }
 
 std::vector<std::string> ConfigNode::strings(std::string_view p_key) const
@@ -279,26 +280,26 @@ std::vector<std::string> ConfigNode::strings(std::string_view p_key) const
     return result;
 }
 
-Pose ConfigNode::pose(std::string_view p_key) const
+Result<Pose> ConfigNode::pose(std::string_view p_key) const
 {
     ConfigNode const& value = at(p_key);
     if (!value.isNull() && !value.isMap())
     {
-        throw std::runtime_error("'" + std::string(p_key) +
-                                 "' must be { position, rpy | quaternion }");
+        return failure("'" + std::string(p_key) +
+                       "' must be { position, rpy | quaternion }");
     }
-    value.allowKeys({ "position", "rpy", "quaternion" }, p_key);
+    ROBOTIK_TRY(value.checkKeys({ "position", "rpy", "quaternion" }, p_key));
     return value.asPose();
 }
 
-Pose ConfigNode::asPose() const
+Result<Pose> ConfigNode::asPose() const
 {
     Pose pose{ Vector3::ZERO, Quaternion{} };
     if (!isMap())
     {
         return pose;
     }
-    pose.position = vector3("position", Vector3::ZERO);
+    ROBOTIK_TRY_ASSIGN(pose.position, vector3("position", Vector3::ZERO));
     ConfigNode const& quaternion = at("quaternion");
     if (!quaternion.isNull())
     {
@@ -312,12 +313,13 @@ Pose ConfigNode::asPose() const
         }
         if (std::ranges::any_of(q, [](auto const& p_v) { return !p_v; }))
         {
-            throw std::runtime_error("'quaternion' must be [w, x, y, z]");
+            return failure("'quaternion' must be [w, x, y, z]");
         }
         pose.rotation = Quaternion(*q[0], *q[1], *q[2], *q[3]).normalized();
         return pose;
     }
-    Vector3 const angles = vector3("rpy", Vector3::ZERO);
+    Vector3 angles = Vector3::ZERO;
+    ROBOTIK_TRY_ASSIGN(angles, vector3("rpy", Vector3::ZERO));
     pose.rotation =
         Quaternion::fromRpy(Radians(angles.x), Radians(angles.y), Radians(angles.z));
     return pose;

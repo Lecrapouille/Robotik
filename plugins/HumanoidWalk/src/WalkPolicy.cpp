@@ -66,21 +66,22 @@ WalkContract WalkContract::load(std::filesystem::path const& p_path)
     contract.action_scale = numbers(walk, "action_scale", count);
     contract.torque_limit = numbers(walk, "torque_limit", count);
     contract.armature = numbers(walk, "armature", count);
-    contract.decimation =
-        static_cast<int>(walk.number("decimation", contract.decimation));
-    contract.history =
-        static_cast<int>(walk.number("history", contract.history));
-    contract.observations =
-        static_cast<int>(walk.number("observations", contract.observations));
-    contract.clip_observations =
-        walk.number("clip_observations", contract.clip_observations);
-    contract.clip_actions = walk.number("clip_actions", contract.clip_actions);
+    contract.decimation = static_cast<int>(
+        robotik::require(walk.number("decimation", contract.decimation)));
+    contract.history = static_cast<int>(
+        robotik::require(walk.number("history", contract.history)));
+    contract.observations = static_cast<int>(
+        robotik::require(walk.number("observations", contract.observations)));
+    contract.clip_observations = robotik::require(
+        walk.number("clip_observations", contract.clip_observations));
+    contract.clip_actions =
+        robotik::require(walk.number("clip_actions", contract.clip_actions));
     contract.scale_ang_vel =
-        walk.number("scale_ang_vel", contract.scale_ang_vel);
+        robotik::require(walk.number("scale_ang_vel", contract.scale_ang_vel));
     contract.scale_dof_pos =
-        walk.number("scale_dof_pos", contract.scale_dof_pos);
+        robotik::require(walk.number("scale_dof_pos", contract.scale_dof_pos));
     contract.scale_dof_vel =
-        walk.number("scale_dof_vel", contract.scale_dof_vel);
+        robotik::require(walk.number("scale_dof_vel", contract.scale_dof_vel));
     std::vector<double> const command = numbers(walk, "max_command", 3U);
     std::ranges::copy(command, contract.max_command.begin());
 

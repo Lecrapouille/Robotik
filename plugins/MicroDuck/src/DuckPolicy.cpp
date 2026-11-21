@@ -71,11 +71,12 @@ DuckContract DuckContract::load(std::filesystem::path const& p_path)
     contract.action_scale = numbers(walk, "action_scale", count);
     contract.torque_limit = numbers(walk, "torque_limit", count);
     contract.armature = numbers(walk, "armature", count);
-    contract.decimation =
-        static_cast<int>(walk.number("decimation", contract.decimation));
-    contract.physics_step = walk.number("physics_step", contract.physics_step);
-    int const observations =
-        static_cast<int>(walk.number("observations", OBS_LEN));
+    contract.decimation = static_cast<int>(
+        robotik::require(walk.number("decimation", contract.decimation)));
+    contract.physics_step =
+        robotik::require(walk.number("physics_step", contract.physics_step));
+    int const observations = static_cast<int>(
+        robotik::require(walk.number("observations", OBS_LEN)));
     if (observations != OBS_LEN)
     {
         throw std::runtime_error("walk.observations must be 61");

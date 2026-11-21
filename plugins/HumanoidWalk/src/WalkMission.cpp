@@ -80,11 +80,13 @@ void WalkMission::setup(robotik::RoboticCell& p_cell,
     }
 
     robotik::ConfigNode const& parameters = scenario.parameters;
-    m_command = { parameters.number("vx", 0.3),
-                  parameters.number("vy", 0.0),
-                  parameters.number("yaw_rate", 0.3) };
-    robotik::Seconds const stand(parameters.number("stand_duration", 1.0));
-    robotik::Seconds const walk(parameters.number("walk_duration", 25.0));
+    m_command = { robotik::require(parameters.number("vx", 0.3)),
+                  robotik::require(parameters.number("vy", 0.0)),
+                  robotik::require(parameters.number("yaw_rate", 0.3)) };
+    robotik::Seconds const stand(
+        robotik::require(parameters.number("stand_duration", 1.0)));
+    robotik::Seconds const walk(
+        robotik::require(parameters.number("walk_duration", 25.0)));
     robotik::Seconds const period(PHYSICS_STEP_S * contract.decimation);
     std::vector<double> const posture = contract.default_angle;
 

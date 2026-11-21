@@ -139,8 +139,13 @@ built.
 - SI units, z up; typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`).
 - Code must work headless (`SceneView*` null, no camera image; see
   `perception.blind`).
-- Errors from files and user input are a `Result` (`ROBOTIK_TRY`); a
-  mistake in the code (unknown joint name written in C++) throws.
+- Errors from files and user input are a `Result` (`ROBOTIK_TRY`,
+  `ROBOTIK_TRY_ASSIGN`), never an exception: the YAML readers have no
+  try/catch, `ConfigNode::checkKeys` and the typed reads return a `Result`.
+  A mistake in the code (unknown joint name written in C++) throws. A
+  function that may throw has a name that starts with `require`;
+  `robotik::require(result)` takes a value where throwing is the way
+  (a plugin method, a test).
 - Plain structs are data: what acts on them is a free function
   (`satisfies(version, need)`, not `version.satisfies(need)`). Classes keep
   their methods. Events are `Signal`s (`SkillScheduler::changed`,
