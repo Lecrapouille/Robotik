@@ -34,7 +34,6 @@
 
 void runMainLoop(Window& p_window, App& p_app)
 {
-    initializePanelSettings(p_app);
     double last = glfwGetTime();
     float total = 0.0F;
 
@@ -54,6 +53,7 @@ void runMainLoop(Window& p_window, App& p_app)
         total += elapsed;
 
         // --- Operator UI (dock, panels, play/pause) ---
+        updatePanelLayout(p_app);
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -159,5 +159,5 @@ void runMainLoop(Window& p_window, App& p_app)
         emscripten_sleep(0);
 #endif
     }
-    shutdownPanelSettings();
+    shutdownPanelSettings(p_app);
 }

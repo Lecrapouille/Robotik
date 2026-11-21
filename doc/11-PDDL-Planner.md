@@ -213,9 +213,9 @@ tick the tree
 
 Before its skills, each subtree asks "Done already?": when every effect of the action already holds in the beliefs (all `True`, none `Unknown`), the step is **skipped**. The beliefs may change between the plan and the step: an object seen on the way does not need a `detect` any more.
 
-The generated tree is the tree of the run: the **Behavior tree** panel shows it, with its colours, as for a written tree.
+The generated tree is the tree of the run: the **Execution graph** panel shows it with **Tree of the plan**, as for a written tree.
 
-**Why a step failed.** The reason comes from the scheduler (a resource `unavailable: wrist_camera`, `preempted`…) or from the skill itself: a skill may explain its failure with `Skill::why()` (`red_cube not seen by the camera within 2 s`). The Planner panel, the Skills panel and the headless trace show it.
+**Why a step failed.** The reason comes from the scheduler (a resource `unavailable: wrist_camera`, `preempted`…) or from the skill itself: a skill may explain its failure with `Skill::why()` (`red_cube not seen by the camera within 2 s`). The Planner panel, the Execution graph and the headless trace show it.
 
 **Unknown is not false.** For the planner, an atom that is not true is false (PDDL works like that). But when the executor checks an effect or the goal, `Unknown` is accepted: "not seen" does not mean "false". In the fault scenario the camera is down at the end, so the robot cannot see that the cube is in the box: `in` says `Unknown`, the plan ends, and the **assertions** (ground truth) say whether it really worked.
 
@@ -358,7 +358,7 @@ What changes from the search:
   `parallel` does not apply, two arms do not work together.
   `conveyor_pabt` takes 34.99 s, like the step-by-step plan (34.87 s); the
   parallel plan takes 17.44 s.
-- The **History** has one record per growth of the tree; **Plan** lists
+- The **History** has one record per growth of the tree; **Execution graph** lists
   the actions of the tree, in the order they were added.
 
 | Demo | Search | PA-BT |
@@ -420,13 +420,13 @@ right one".
 
 ### Debugging
 
-- **Simulator**: the **Planner** panel (Mission workspace, beside Skills;
-  it comes to the front when a planned scenario is loaded) shows the
-  **goal** on top, the state with a progress bar, then the **Plan** (each
-  step done, skipped, running or failed with its reason in the tooltip), the
-  **Beliefs** (every observed atom, live; tick *Only true* to hide the
-  others) and the **History** of the plans and why each was made.
-  **Replan** drops the plan. The same symbolic beliefs are in the
+- **Simulator**: the **Planner** panel shares the middle of Mission with
+  Execution graph. It opens by default for a planned scenario. The goal,
+  state, progress and **Replan** stay on top. **Beliefs** and **History**
+  are separate tabs; click the Value column header to show true atoms only.
+  An execution preview stays below both tabs, with a link to the full
+  Execution graph. **Open PDDL files** in History opens the selected plan's
+  texts. **Replan** drops the plan. The same symbolic beliefs are in the
   **World model** panel of the Autonomy workspace.
 - **Texts**: **Plugin → Files → Planner** shows the **Domain**, the
   generated **Problem**, the planner **Output** and the **Generated tree** of

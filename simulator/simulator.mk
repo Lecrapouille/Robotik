@@ -34,3 +34,17 @@ else
     Robotik-Simulator.PKG_CONFIG := glfw3
     Robotik-Simulator.LIBS := -ldl
 endif
+
+# Editor lifecycle regression checks use ImGui without a window or GPU.
+ifneq ($(TARGET_OS),Emscripten)
+TARGETS += Robotik-Simulator-tests
+Robotik-Simulator-tests.TYPE := test
+Robotik-Simulator-tests.DESCRIPTION := Simulator editor identity and layout restoration
+Robotik-Simulator-tests.SOURCES := tests/*.cpp $(filter-out main.cpp,$(notdir $(wildcard simulator/*.cpp)))
+Robotik-Simulator-tests.INCLUDES := .
+Robotik-Simulator-tests.DEPENDS := $(Robotik-Simulator.DEPENDS)
+Robotik-Simulator-tests.DEFINES = $(Robotik-Simulator.DEFINES)
+Robotik-Simulator-tests.CXXFLAGS := $(Robotik-Simulator.CXXFLAGS)
+Robotik-Simulator-tests.PKG_CONFIG := glfw3 gtest_main
+Robotik-Simulator-tests.LIBS := -ldl
+endif

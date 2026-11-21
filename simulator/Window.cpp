@@ -59,18 +59,18 @@ static void loadFonts()
     std::filesystem::path const text = fonts / "Roboto-Medium.ttf";
     std::filesystem::path const mono = fonts / "Cousine-Regular.ttf";
     if (std::filesystem::exists(text) &&
-        io.Fonts->AddFontFromFileTTF(text.string().c_str(), 16.0F) != nullptr)
+        io.Fonts->AddFontFromFileTTF(text.string().c_str(), 14.0F) != nullptr)
     {
         // Second font, for the file viewer (see monoFont).
         if (std::filesystem::exists(mono))
         {
-            io.Fonts->AddFontFromFileTTF(mono.string().c_str(), 15.0F);
+            io.Fonts->AddFontFromFileTTF(mono.string().c_str(), 13.0F);
         }
         return;
     }
 #endif
     ImFontConfig fallback;
-    fallback.SizePixels = 16.0F;
+    fallback.SizePixels = 14.0F;
     io.Fonts->AddFontDefault(&fallback);
 }
 
@@ -89,7 +89,7 @@ static void applyStyle()
 {
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
-    style.FontSizeBase = 16.0F;
+    style.FontSizeBase = 14.0F;
     style.WindowRounding = 0.0F;
     style.ChildRounding = 4.0F;
     style.FrameRounding = 5.0F;
@@ -99,18 +99,18 @@ static void applyStyle()
     style.TabRounding = 4.0F;
     style.ScrollbarRounding = 6.0F;
     style.ScrollbarSize = 12.0F;
-    style.WindowPadding = ImVec2(16.0F, 14.0F);
-    style.FramePadding = ImVec2(11.0F, 6.0F);
-    style.ItemSpacing = ImVec2(10.0F, 9.0F);
-    style.ItemInnerSpacing = ImVec2(6.0F, 4.0F);
-    style.CellPadding = ImVec2(8.0F, 6.0F);
+    style.WindowPadding = ImVec2(10.0F, 8.0F);
+    style.FramePadding = ImVec2(8.0F, 3.0F);
+    style.ItemSpacing = ImVec2(8.0F, 5.0F);
+    style.ItemInnerSpacing = ImVec2(5.0F, 4.0F);
+    style.CellPadding = ImVec2(6.0F, 3.0F);
     style.WindowBorderSize = 1.0F;
     style.ChildBorderSize = 1.0F;
     style.PopupBorderSize = 1.0F;
     style.FrameBorderSize = 1.0F;
     style.TabBarBorderSize = 1.0F;
     style.SeparatorTextBorderSize = 1.0F;
-    style.DockingSeparatorSize = 6.0F;
+    style.DockingSeparatorSize = 4.0F;
 
     ImVec4 const background = rgb(0x141619);
     ImVec4 const panel = rgb(0x1C1F23);

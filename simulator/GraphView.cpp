@@ -55,6 +55,10 @@ struct Box
     /// one skill itself (@ref skill).
     std::vector<std::string> skills;
     std::string skill;
+    /// Priority and resources of each skill of @ref skills, or of
+    /// @ref skill: "p100  arm gripper".
+    std::vector<std::string> details;
+    std::string detail;
     /// Shown when the mouse is over the box.
     std::string tip;
     /// Column; for the tree, the row too (a parent in the row of its first
@@ -74,6 +78,27 @@ struct Arrow
     std::size_t to = 0;
 };
 
+/// Priority and resources of the skill @p_name, in a few characters; empty
+/// for a name that is not a skill.
+static std::string detailOf(App const& p_app, std::string const& p_name)
+{
+    robotik::Cell const& cell = p_app.simulation->cell();
+    robotik::SkillId const id = cell.skills().find(p_name);
+    if (id == robotik::NO_SKILL)
+    {
+        return {};
+    }
+    robotik::SkillDescription const& description =
+        cell.skills().description(id);
+    std::string text = "p" + std::to_string(description.priority);
+    for (robotik::ResourceRequirement const& need : description.resources)
+    {
+        text += (&need == &description.resources.front() ? "  " : " ") +
+                cell.robot().resources().name(need.id);
+    }
+    return text;
+}
+
 /// Height of one line of text in a box.
 static float lineHeight()
 {
@@ -85,12 +110,20 @@ static ImVec2 measure(Box const& p_box)
 {
     float width = std::max(ImGui::CalcTextSize(p_box.title.c_str()).x,
                            ImGui::CalcTextSize(p_box.status.c_str()).x);
-    for (std::string const& skill : p_box.skills)
+    for (std::size_t k = 0; k < p_box.skills.size(); ++k)
     {
-        width = std::max(width, ImGui::CalcTextSize(skill.c_str()).x + 14.0F);
+        float const detail =
+            k < p_box.details.size()
+                ? ImGui::CalcTextSize(p_box.details[k].c_str()).x + 10.0F
+                : 0.0F;
+        width = std::max(width,
+                         ImGui::CalcTextSize(p_box.skills[k].c_str()).x +
+                             14.0F + detail);
     }
+    width = std::max(width, ImGui::CalcTextSize(p_box.detail.c_str()).x);
     width = std::clamp(width + 20.0F, MIN_WIDTH, MAX_WIDTH);
-    float const lines = 2.0F + static_cast<float>(p_box.skills.size());
+    float const lines = 2.0F + static_cast<float>(p_box.skills.size()) +
+                        (p_box.detail.empty() ? 0.0F : 1.0F);
     return ImVec2(width, lines * lineHeight() + 12.0F);
 }
 
@@ -126,8 +159,8 @@ static ImVec2 layout(std::vector<Box>& p_boxes)
     {
         if (box.row >= 0.0F)
         {
-            box.pos = ImVec2(x[box.column],
-                             MARGIN + box.row * (tallest + ROW_GAP));
+            box.pos =
+                ImVec2(x[box.column], MARGIN + box.row * (tallest + ROW_GAP));
         }
         else
         {
@@ -193,8 +226,8 @@ static void fromPlan(App& p_app,
         Box box;
         char number[32];
         std::snprintf(number, sizeof number, "%zu. ", i + 1U);
-        box.title = number + robotik::toString(robotik::Atom{ plan[i].name,
-                                                              plan[i].args });
+        box.title = number + robotik::toString(
+                                 robotik::Atom{ plan[i].name, plan[i].args });
         // A step is after the steps it waits for.
         std::vector<std::size_t> waits_for;
         if (i < after.size())
@@ -270,6 +303,10 @@ static void fromPlan(App& p_app,
             box.status += times;
         }
         box.skills = p_executor.nodes(plan[i]);
+        for (std::string const& name : box.skills)
+        {
+            box.details.push_back(detailOf(p_app, name));
+        }
         // A skill that waits says why, in the tip.
         for (std::string const& name : box.skills)
         {
@@ -277,10 +314,11 @@ static void fromPlan(App& p_app,
             if (id != robotik::NO_SKILL &&
                 skills.state(id) == robotik::SkillState::Waiting)
             {
-                box.tip += (box.tip.empty() ? "" : "\n") + name + ": " +
-                           skillWhy(skills,
-                                    p_app.simulation->cell().robot().resources(),
-                                    id);
+                box.tip +=
+                    (box.tip.empty() ? "" : "\n") + name + ": " +
+                    skillWhy(skills,
+                             p_app.simulation->cell().robot().resources(),
+                             id);
             }
         }
         p_boxes.push_back(std::move(box));
@@ -311,14 +349,14 @@ static std::size_t fromNode(App& p_app,
                       robotik::NO_SKILL)
     {
         box.skill = p_node.name;
+        box.detail = detailOf(p_app, p_node.name);
         robotik::SkillScheduler const& skills =
             p_app.simulation->cell().skills();
         robotik::SkillId const id = skills.find(p_node.name);
         if (skills.state(id) == robotik::SkillState::Waiting)
         {
-            box.tip = skillWhy(skills,
-                               p_app.simulation->cell().robot().resources(),
-                               id);
+            box.tip = skillWhy(
+                skills, p_app.simulation->cell().robot().resources(), id);
         }
     }
     p_boxes.push_back(std::move(box));
@@ -432,24 +470,30 @@ static std::size_t draw(App& p_app,
         ImVec2 const b(a.x + box.size.x, a.y + box.size.y);
         bool const picked = chosen(p_app, box);
         draw->AddRectFilled(a, b, fill, 6.0F);
-        draw->AddRectFilled(a, ImVec2(a.x + 4.0F, b.y),
-                            ImGui::GetColorU32(box.color), 6.0F,
+        draw->AddRectFilled(a,
+                            ImVec2(a.x + 4.0F, b.y),
+                            ImGui::GetColorU32(box.color),
+                            6.0F,
                             ImDrawFlags_RoundCornersLeft);
         draw->AddRect(a,
                       b,
-                      picked ? text
-                             : ImGui::GetColorU32(ImVec4(box.color.x,
-                                                         box.color.y,
-                                                         box.color.z,
-                                                         0.55F)),
+                      picked
+                          ? text
+                          : ImGui::GetColorU32(ImVec4(
+                                box.color.x, box.color.y, box.color.z, 0.55F)),
                       6.0F,
                       0,
-                      picked ? 2.5F : i == hovered ? 2.0F : 1.0F);
+                      picked         ? 2.5F
+                      : i == hovered ? 2.0F
+                                     : 1.0F);
         draw->PushClipRect(a, b, true);
         draw->AddText(ImVec2(a.x + 12.0F, a.y + 6.0F), text, box.title.c_str());
         draw->AddText(ImVec2(a.x + 12.0F, a.y + 6.0F + line),
                       ImGui::GetColorU32(box.color),
                       box.status.c_str());
+        draw->AddText(ImVec2(a.x + 12.0F, a.y + 6.0F + 2.0F * line),
+                      ImGui::GetColorU32(ImGuiCol_TextDisabled),
+                      box.detail.c_str());
         draw->PopClipRect();
 
         // A skill node of the tree: the whole box selects it.
@@ -487,6 +531,11 @@ static std::size_t draw(App& p_app,
                 ImGui::TextDisabled("%s", name.c_str());
             }
             ImGui::PopStyleColor();
+            if (k < box.details.size() && !box.details[k].empty())
+            {
+                ImGui::SameLine(0.0F, 10.0F);
+                ImGui::TextDisabled("%s", box.details[k].c_str());
+            }
             ImGui::PopID();
         }
         ImGui::PopID();
@@ -523,7 +572,233 @@ static void planHeader(robotik::PlanExecutor const& p_executor)
     }
 }
 
-void graphView(App& p_app)
+// --- List -------------------------------------------------------------------
+
+/// Column cells after the name of the skill @p_id: state, priority,
+/// resources, why it waits, and Request or Cancel.
+static void skillCells(App& p_app, robotik::SkillId p_id)
+{
+    robotik::Cell& cell = p_app.simulation->cell();
+    robotik::SkillScheduler& skills = cell.skills();
+    robotik::ResourceManager const& resources = cell.robot().resources();
+    robotik::SkillDescription const& description = skills.description(p_id);
+    robotik::SkillState const state = skills.state(p_id);
+    ImGui::TableNextColumn();
+    ImGui::TextColored(colorOf(state), "%s", robotik::toString(state));
+    ImGui::TableNextColumn();
+    ImGui::Text(
+        "%d%s", description.priority, description.cancellable ? "" : " locked");
+    ImGui::TableNextColumn();
+    std::string needs;
+    for (robotik::ResourceRequirement const& need : description.resources)
+    {
+        needs += (needs.empty() ? "" : " ") + resources.name(need.id);
+    }
+    ImGui::TextDisabled("%s", needs.c_str());
+    ImGui::TableNextColumn();
+    if (state == robotik::SkillState::Waiting)
+    {
+        ImGui::TextWrapped("%s", skillWhy(skills, resources, p_id).c_str());
+    }
+    ImGui::TableNextColumn();
+    if (state == robotik::SkillState::Running ||
+        state == robotik::SkillState::Waiting)
+    {
+        if (ImGui::SmallButton("Cancel"))
+        {
+            skills.cancel(p_id);
+        }
+        ImGui::SetItemTooltip("Stop this skill.");
+    }
+    else if (ImGui::SmallButton("Request"))
+    {
+        skills.request(p_id);
+    }
+    else
+    {
+        ImGui::SetItemTooltip("Run this skill by hand.");
+    }
+}
+
+/// One skill as a leaf of the list, its name in the color of its state; a
+/// click selects it.
+static void skillRow(App& p_app, std::string const& p_name)
+{
+    robotik::SkillScheduler const& skills = p_app.simulation->cell().skills();
+    robotik::SkillId const id = skills.find(p_name);
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
+        ImGuiTreeNodeFlags_Bullet | ImGuiTreeNodeFlags_SpanAvailWidth;
+    if (isSelected(p_app, SelectionKind::Skill, p_name))
+    {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text,
+                          id == robotik::NO_SKILL ? GREY
+                                                  : colorOf(skills.state(id)));
+    ImGui::TreeNodeEx(p_name.c_str(), flags, "%s", p_name.c_str());
+    ImGui::PopStyleColor();
+    if (id == robotik::NO_SKILL)
+    {
+        return;
+    }
+    if (ImGui::IsItemClicked())
+    {
+        selectItem(p_app, SelectionKind::Skill, p_name);
+    }
+    skillCells(p_app, id);
+}
+
+/// Box @p_index and what is under it (the boxes after it that are deeper,
+/// for a tree; its skills, for a step), as a branch that folds. Returns the
+/// index of the next box at the same depth or above.
+static std::size_t listBranch(App& p_app,
+                              std::vector<Box> const& p_boxes,
+                              std::size_t p_index,
+                              bool p_tree)
+{
+    Box const& box = p_boxes[p_index];
+    std::size_t end = p_index + 1U;
+    if (p_tree)
+    {
+        while (end < p_boxes.size() && p_boxes[end].column > box.column)
+        {
+            ++end;
+        }
+    }
+    ImGui::PushID(static_cast<int>(p_index));
+    // A skill node of the tree is its skill.
+    if (!box.skill.empty() && end == p_index + 1U)
+    {
+        skillRow(p_app, box.skill);
+        ImGui::PopID();
+        return end;
+    }
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::PushStyleColor(ImGuiCol_Text, box.color);
+    bool const open = ImGui::TreeNodeEx("##branch",
+                                        ImGuiTreeNodeFlags_DefaultOpen |
+                                            ImGuiTreeNodeFlags_SpanAvailWidth,
+                                        "%s",
+                                        box.title.c_str());
+    ImGui::PopStyleColor();
+    ImGui::TableNextColumn();
+    ImGui::TextColored(box.color, "%s", box.status.c_str());
+    if (!box.tip.empty())
+    {
+        ImGui::SetItemTooltip("%s", box.tip.c_str());
+    }
+    if (open)
+    {
+        for (std::string const& name : box.skills)
+        {
+            ImGui::PushID(name.c_str());
+            skillRow(p_app, name);
+            ImGui::PopID();
+        }
+        for (std::size_t i = p_index + 1U; i < end;)
+        {
+            i = listBranch(p_app, p_boxes, i, p_tree);
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+    return end;
+}
+
+/// The steps of the plan (or the nodes of the tree) as a tree that folds,
+/// each name in the color of where it is, the skills under their step with
+/// their state, priority, resources and why they wait; then the skills that
+/// are in no step, folded.
+static void listView(App& p_app, std::vector<Box> const& p_boxes, bool p_tree)
+{
+    ImGuiTableFlags const flags =
+        ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable | ImGuiTableFlags_ScrollY |
+        ImGuiTableFlags_NoSavedSettings;
+    if (!beginTable("execution_list", 6, flags))
+    {
+        return;
+    }
+    ImGui::TableSetupScrollFreeze(0, 1);
+    ImGui::TableSetupColumn(p_tree ? "Node / skill" : "Step / skill",
+                            ImGuiTableColumnFlags_WidthStretch |
+                                ImGuiTableColumnFlags_NoHide,
+                            2.0F);
+    // Wide enough for the longest word from the first frame on.
+    ImGui::TableSetupColumn("State",
+                            ImGuiTableColumnFlags_WidthFixed,
+                            ImGui::CalcTextSize("waits for step 00").x);
+    ImGui::TableSetupColumn("Priority", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Resources",
+                            ImGuiTableColumnFlags_WidthFixed,
+                            ImGui::CalcTextSize("wrist_camera gripper").x);
+    ImGui::TableSetupColumn("Why", ImGuiTableColumnFlags_WidthStretch, 1.5F);
+    ImGui::TableSetupColumn("##action",
+                            ImGuiTableColumnFlags_WidthFixed,
+                            ImGui::CalcTextSize("Request").x +
+                                2.0F * ImGui::GetStyle().FramePadding.x);
+    ImGui::TableHeadersRow();
+    std::size_t i = 0;
+    while (i < p_boxes.size())
+    {
+        i = listBranch(p_app, p_boxes, i, p_tree);
+    }
+
+    // Every skill is reachable here, even one no step runs (Home, Stop).
+    robotik::SkillScheduler const& skills = p_app.simulation->cell().skills();
+    std::vector<std::string> others;
+    for (robotik::SkillId id = 0; id < skills.size(); ++id)
+    {
+        std::string const& name = skills.description(id).name;
+        bool const listed = std::ranges::any_of(
+            p_boxes,
+            [&](Box const& p_box)
+            {
+                return p_box.skill == name ||
+                       std::ranges::find(p_box.skills, name) !=
+                           p_box.skills.end();
+            });
+        if (!listed)
+        {
+            others.push_back(name);
+        }
+    }
+    if (!others.empty())
+    {
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        // Alone (no plan, no tree), they are the whole list: open.
+        bool const alone = p_boxes.empty();
+        std::string const title = (alone ? "Skills (" : "Other skills (") +
+                                  std::to_string(others.size()) + ")";
+        ImGui::PushStyleColor(ImGuiCol_Text,
+                              ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        bool const open =
+            ImGui::TreeNodeEx("##others",
+                              ImGuiTreeNodeFlags_SpanAvailWidth |
+                                  (alone ? ImGuiTreeNodeFlags_DefaultOpen : 0),
+                              "%s",
+                              title.c_str());
+        ImGui::PopStyleColor();
+        if (open)
+        {
+            for (std::string const& name : others)
+            {
+                ImGui::PushID(name.c_str());
+                skillRow(p_app, name);
+                ImGui::PopID();
+            }
+            ImGui::TreePop();
+        }
+    }
+    endTable();
+}
+
+void graphView(App& p_app, bool p_preview)
 {
     if (!p_app.simulation)
     {
@@ -533,12 +808,21 @@ void graphView(App& p_app)
     robotik::Cell& cell = p_app.simulation->cell();
     robotik::PlanExecutor const* executor = cell.planner();
     bt::Tree const* tree = cell.tree();
-    bool& show_tree = p_app.ui.graph_tree;
+    bool preview_tree = false;
+    bool& show_tree = p_preview ? preview_tree : p_app.ui.graph_tree;
+    if (executor == nullptr && (tree == nullptr || !tree->hasRoot()))
+    {
+        // Nothing to draw, but the skills can still be run by hand.
+        ImGui::TextDisabled("No behavior tree and no planner: the plugin "
+                            "drives the robot itself.");
+        listView(p_app, {}, false);
+        return;
+    }
     if (executor == nullptr)
     {
         show_tree = true;
     }
-    else if (tree != nullptr && tree->hasRoot())
+    else if (tree != nullptr && tree->hasRoot() && !p_preview)
     {
         // A plan also runs as a tree: either can be drawn.
         if (ImGui::RadioButton("Plan", !show_tree))
@@ -556,19 +840,39 @@ void graphView(App& p_app)
     {
         show_tree = false;
     }
-    helpMarker("From the intention to the movement, left to right. Each box "
-               "is a step of the plan (or a node of the behavior tree) in the "
-               "color of where it is; a step lists the skills it runs. Click "
-               "a skill to inspect it. Drag the background to move.");
+    // The same steps as a list (their skills with priority and resources)
+    // or as a graph (what waits for what).
+    bool& as_list = p_app.ui.graph_list;
+    if (!p_preview)
+    {
+        if (ImGui::RadioButton("List", as_list))
+        {
+            as_list = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::RadioButton("Graph", !as_list))
+        {
+            as_list = false;
+        }
+        ImGui::SameLine();
+        helpMarker(
+            "From the intention to the movement. Each step of the plan (or "
+            "node of the behavior tree) in the color of where it is, and "
+            "the skills it runs: state, priority, resources, why it "
+            "waits. The graph draws what waits for what, left to right; "
+            "drag its background to move. Click a skill to inspect it.");
+    }
 
     std::vector<Box> boxes;
     std::vector<Arrow> arrows;
     if (!show_tree && executor != nullptr)
     {
-        planHeader(*executor);
+        if (!p_preview)
+            planHeader(*executor);
         if (executor->plan().empty())
         {
-            emptyState("No plan yet: press Play.");
+            ImGui::TextDisabled("No plan yet: press Play.");
+            listView(p_app, {}, false);
             return;
         }
         fromPlan(p_app, *executor, boxes, arrows);
@@ -578,10 +882,9 @@ void graphView(App& p_app)
         float rows = 0.0F;
         (void)fromNode(p_app, tree->getRoot(), 0U, rows, boxes, arrows);
     }
-    else
+    if (as_list)
     {
-        emptyState("This scenario has no behavior tree and no planner:\n"
-                   "the plugin drives the robot itself.");
+        listView(p_app, boxes, show_tree);
         return;
     }
     ImVec2 const extent = layout(boxes);

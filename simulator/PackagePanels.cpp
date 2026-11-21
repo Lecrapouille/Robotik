@@ -15,10 +15,10 @@
 #include <imgui.h>
 
 #include <algorithm>
-#include <iostream>
 #include <cctype>
 #include <cstdarg>
 #include <cstdio>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -477,27 +477,28 @@ static void packageFiles(App& p_app, robotik::PluginPackage const& p_package)
         p_app.ui.package_tree =
             readFolder(p_package.root, p_package.root.filename().string(), 0);
     }
-    if (ImGui::SmallButton("Copy folder"))
+    // The folder in one line; copy and read again on a right click.
+    ImGui::TextDisabled("%s", p_package.root.filename().string().c_str());
+    ImGui::SetItemTooltip(
+        "%s\n\nThe package as the simulator reads it, read only. In the "
+        "build tree this is a copy made by make: change the files in "
+        "plugins/<Name>/, not here.\nGreen: the files of the loaded scenario "
+        "and of the chosen experiment.\nRight click: copy the path, read "
+        "the folder again.",
+        p_package.root.string().c_str());
+    if (ImGui::BeginPopupContextItem("package_folder"))
     {
-        ImGui::SetClipboardText(p_package.root.string().c_str());
+        if (ImGui::MenuItem("Copy the folder path"))
+        {
+            ImGui::SetClipboardText(p_package.root.string().c_str());
+        }
+        if (ImGui::MenuItem("Read the folder again"))
+        {
+            p_app.ui.package_tree = readFolder(
+                p_package.root, p_package.root.filename().string(), 0);
+        }
+        ImGui::EndPopup();
     }
-    ImGui::SetItemTooltip("%s", p_package.root.string().c_str());
-    ImGui::SameLine();
-    if (ImGui::SmallButton("Read again"))
-    {
-        p_app.ui.package_tree =
-            readFolder(p_package.root, p_package.root.filename().string(), 0);
-    }
-    ImGui::SameLine();
-    ImGui::TextDisabled("read only");
-    ImGui::SameLine();
-    helpMarker(
-        "The package as the simulator reads it. In the build tree this is a "
-        "copy "
-        "made by make: change the files in plugins/<Name>/, not here.\n\n"
-        "Green: the files of the loaded scenario and of the chosen "
-        "experiment.");
-    ImGui::TextDisabled("%s", p_package.root.string().c_str());
     ImGuiTableFlags const flags =
         ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV;
     if (beginTable("files", 2, flags))
@@ -643,28 +644,6 @@ static void followPackage(App& p_app, robotik::PluginPackage const* p_package)
     }
 }
 
-/// Title of a file tab.
-static char const* viewName(FileTab p_view)
-{
-    switch (p_view)
-    {
-        case FileTab::Scenario:
-            return "Scenario";
-        case FileTab::World:
-            return "World";
-        case FileTab::Tree:
-            return "Behavior tree";
-        case FileTab::Planner:
-            return "Planner";
-        case FileTab::Experiment:
-            return "Experiment";
-        case FileTab::Asset:
-        case FileTab::Other:
-            break;
-    }
-    return "";
-}
-
 void showView(App& p_app, FileTab p_view, bool p_editor)
 {
     // Asset and Other have no view: only the tab of Files changes.
@@ -676,10 +655,21 @@ void showView(App& p_app, FileTab p_view, bool p_editor)
         }
         return;
     }
-    p_app.ui.view = p_view;
+    if (p_view == FileTab::Tree)
+        p_app.ui.graph_tree = true;
+    if (p_view == FileTab::Tree || p_view == FileTab::Planner)
+        showPanel(p_app,
+                  p_view == FileTab::Tree ? PanelKind::Graph
+                                          : PanelKind::Planner);
+    else if (p_view != FileTab::Asset && p_view != FileTab::Other)
+    {
+        p_app.ui.view = p_view;
+        showPanel(p_app, PanelKind::PackageView);
+    }
     if (p_editor)
     {
         p_app.ui.select_tab = p_view;
+        showPanel(p_app, PanelKind::Files);
     }
 }
 
@@ -698,40 +688,14 @@ void scenarioView(App& p_app)
 void viewPanel(App& p_app)
 {
     FileTab const view = p_app.ui.view;
-    // The title follows the view; "###View" keeps the window and its place.
-    std::string const title = std::string(viewName(view)) + "###View";
-    if (!ImGui::Begin(title.c_str()))
+    // Package data stays separate from the execution editors.
+    std::string const title = "Package details";
+    if (!beginPanel(p_app, PanelKind::PackageView, title.c_str()))
     {
         ImGui::End();
         return;
     }
-    for (FileTab const tab : { FileTab::Scenario,
-                               FileTab::World,
-                               FileTab::Tree,
-                               FileTab::Planner,
-                               FileTab::Experiment })
-    {
-        if (tab != FileTab::Scenario)
-        {
-            ImGui::SameLine();
-        }
-        bool const active = tab == view;
-        if (active)
-        {
-            ImGui::PushStyleColor(
-                ImGuiCol_Button,
-                ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-        }
-        if (ImGui::SmallButton(viewName(tab)) && !active)
-        {
-            showView(p_app, tab, true);
-        }
-        if (active)
-        {
-            ImGui::PopStyleColor();
-        }
-    }
-    ImGui::Separator();
+    // No tabs of its own: it follows the tab read in Files.
     switch (view)
     {
         case FileTab::Scenario:
@@ -741,10 +705,10 @@ void viewPanel(App& p_app)
             worldView(p_app);
             break;
         case FileTab::Tree:
-            treeView(p_app);
+            emptyState("Open Execution graph from the Windows menu.");
             break;
         case FileTab::Planner:
-            plannerView(p_app);
+            emptyState("Open Planner from the Windows menu.");
             break;
         case FileTab::Experiment:
             experimentView(p_app);
@@ -758,7 +722,7 @@ void viewPanel(App& p_app)
 
 void pluginPanel(App& p_app)
 {
-    if (!ImGui::Begin("Plugin"))
+    if (!beginPanel(p_app, PanelKind::Plugin, "Plugin"))
     {
         ImGui::End();
         return;
@@ -790,7 +754,6 @@ void pluginPanel(App& p_app)
         return;
     }
 
-    ImGui::SeparatorText("Description");
     ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.35F);
     ImGui::TextUnformatted(package->name.c_str());
     ImGui::PopFont();
@@ -905,8 +868,7 @@ void openClickedAsset(App& p_app)
             preview.error = loaded.error();
         }
     }
-    else if (ext == ".urdf" || ext == ".stl" || ext == ".gltf" ||
-             ext == ".glb")
+    else if (ext == ".urdf" || ext == ".stl" || ext == ".gltf" || ext == ".glb")
     {
         preview.model = openModel(path, preview.error);
         if (ext == ".urdf")
@@ -950,24 +912,24 @@ static void modelView(ModelView& p_model)
                            ImGuiButtonFlags_MouseButtonLeft |
                                ImGuiButtonFlags_MouseButtonRight |
                                ImGuiButtonFlags_MouseButtonMiddle);
-    p_model.area = ViewArea{ .x = at.x,
-                             .y = at.y,
-                             .w = size.x,
-                             .h = size.y,
-                             .hovered = ImGui::IsItemHovered() ||
-                                        ImGui::IsItemActive() };
+    p_model.area =
+        ViewArea{ .x = at.x,
+                  .y = at.y,
+                  .w = size.x,
+                  .h = size.y,
+                  .hovered = ImGui::IsItemHovered() || ImGui::IsItemActive() };
     if (!p_model.target.valid() || !p_model.rendered)
     {
         return;
     }
     // The device puts the first row at the bottom.
     ImDrawList* draw = ImGui::GetWindowDrawList();
-    draw->AddImage(
-        ImTextureRef(static_cast<ImTextureID>(p_model.target.color().nativeId())),
-        at,
-        ImVec2(at.x + size.x, at.y + size.y),
-        ImVec2(0.0F, 1.0F),
-        ImVec2(1.0F, 0.0F));
+    draw->AddImage(ImTextureRef(static_cast<ImTextureID>(
+                       p_model.target.color().nativeId())),
+                   at,
+                   ImVec2(at.x + size.x, at.y + size.y),
+                   ImVec2(0.0F, 1.0F),
+                   ImVec2(1.0F, 0.0F));
     char const* hint = "Left drag: move   Right drag: turn   Wheel: zoom";
     ImVec2 const text = ImGui::CalcTextSize(hint);
     ImVec2 const corner(at.x + 8.0F, at.y + size.y - text.y - 10.0F);
@@ -1034,7 +996,8 @@ packFiles(App& p_app, robotik::AssetPack const& p_pack)
         std::error_code error;
         std::filesystem::recursive_directory_iterator cursor(p_pack.root,
                                                              error);
-        for (; !error && cursor != std::filesystem::recursive_directory_iterator();
+        for (; !error &&
+               cursor != std::filesystem::recursive_directory_iterator();
              cursor.increment(error))
         {
             if (cursor->is_regular_file(error))
@@ -1050,9 +1013,8 @@ packFiles(App& p_app, robotik::AssetPack const& p_pack)
 
 /// Rows of the files of an open pack, under a node closed by default: a
 /// click shows one in the Asset tab of Files.
-static void assetFiles(App& p_app,
-                       robotik::AssetPack const& p_pack,
-                       char const* p_filter)
+static void
+assetFiles(App& p_app, robotik::AssetPack const& p_pack, char const* p_filter)
 {
     std::vector<std::filesystem::path> const& files = packFiles(p_app, p_pack);
     ImGui::TableNextRow();
@@ -1096,7 +1058,7 @@ static void assetFiles(App& p_app,
 
 void assetsPanel(App& p_app)
 {
-    if (!ImGui::Begin("Assets"))
+    if (!beginPanel(p_app, PanelKind::Assets, "Assets"))
     {
         ImGui::End();
         return;

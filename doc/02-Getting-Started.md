@@ -57,17 +57,21 @@ Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
 scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and
 right for six seconds.
 
-The default Mission layout keeps the scene, an Inspector and a short Timeline:
+The Mission layout puts the execution (the steps of the plan or the nodes
+of the behavior tree, with their skills) in the middle, a small scene and
+the resources on the right and a short Timeline below. A scenario with no tree
+and no plan gets the scene in the middle instead:
 
 ```text
-┌ File  Demos  View  Help                    [Plugin] [Robot] [Mission] [Autonomy] ┐
+┌ File  Demos  Windows  Layout  Help         [Plugin] [Robot] [Mission] [Autonomy] ┐
 │ Play / Step    time and state    Replay / speed / Run options           Emergency stop │
 ├──────────────────────────────────────────────────────────┬────────────────────┤
-│                                                          │ Inspector          │
-│                    3D scene                              │                    │
-│                                      camera inset        │ selected item      │
-├──────────────────────────────────────────────────────────┤                    │
-│ Timeline                                                 │                    │
+│                                                     [⤢]  │ 3D scene      [⤢]  │
+│      Execution graph / Planner (steps, skills,               │                    │
+│      state, priority, resources, why)                    ├────────────────────┤
+│                                                          │ Resources          │
+├──────────────────────────────────────────────────────────┤ Assertions Planner │
+│ Timeline  Events                                         │                    │
 ├──────────────────────────────────────────────────────────┴────────────────────┤
 │ Scenario / assertions / faults / selection                                    │
 └───────────────────────────────────────────────────────────────────────────────┘
@@ -79,74 +83,96 @@ emergency stop when the scenario has a `Stop` skill. **Run options...**
 contains the seed, **Next seed and replay**, and continuous speed control.
 The **status bar** says
 what to look at: how many assertions pass, how many resources are in fault,
-and the item selected. Each of them is a link: a click shows it in the
-Mission workspace.
+and the item selected. Each is a link that opens the relevant editor
+in the current layout.
 
-The interface uses the HTML prototype's charcoal surfaces and amber accent.
-Toolbars group related commands, while larger text and spacing keep panels
-readable. Status colours still distinguish running, success and failure.
+The interface uses charcoal surfaces and one amber accent, with a 14 px
+font and tight spacing so that tables show many rows. Status colours
+distinguish running, success and failure.
 
-**Task tools.** A bar below the run controls keeps the workspace's tools
-visible, even after you close their windows. **Robot** offers Joints, Teach
-Pendant, Joint plots and Inspector. **Mission** offers Timeline, Skills,
-Resources and Inspector. **Autonomy** offers World model, Perception,
-Cameras and Inspector. Click a tool to open it or bring its tab to the front. Click the front tool
-again to hide it. **Panels...** lists
-these tools first; **Other panels** gives access to every other window.
-The **View** menu offers the same choices.
+**Windows.** Every editor is available from the **Windows** menu, including
+Plugin, Files, Package details, Assets and the loaded plugin's own panels.
+Choose an editor to open it or bring its existing tab to the front. Close
+it with the tab's `x` (the only close button). Each editor has one window across all layout presets.
+Each preset remembers its own editors: what you open or move in Robot is
+still there when you come back from Mission.
 
-**Arrange** has two actions. **Place open panels** keeps your open tools
-and main view, and returns the windows to their task positions.
-**Restore recommended layout** restores the scene and the default tools.
-Robot starts with Joints in front of Inspector; Autonomy starts with World
-model in front of Inspector. Mission keeps Inspector and Timeline visible.
-The three workspaces save their own positions and visibility.
+**Layout** has two recovery actions. **Place open panels** keeps the open
+editors and returns them to the current preset's positions.
+**Restore recommended layout** restores that preset's default editors.
+The current positions, visibility and preset are saved in
+`~/.config/robotik/simulator.ini`. The first launch after this interface
+update starts with the new default layout.
 
 **Selection.** A click on a skill, a resource, a robot or an object (in the
-Timeline, the Behavior tree, the Skills, Resources or World model panel, a
-click in the 3D view, or a link of the Inspector) selects it in every panel: the **Inspector** of each workspace
-shows it (for a skill: state and why, resources and who holds them,
-preconditions, last phases; for a resource: who holds it, who waits for it
-and its faults; for a robot: its skills and joints; for an object: what the
-robot believes against the truth, the error, the confidence, where the
-belief comes from), and the Timeline highlights its row. Selecting never commands the robot. **Pin**
-keeps an item in the Inspector while you select others; **Overview** shows
-what runs, waits and is in fault.
-Scheduling details, recent phases and resource history start folded.
-Failed preconditions and current faults stay visible. Each selected item
-keeps its own expanded sections during the session.
+Timeline, the Execution graph, the Resources or World
+model panel, a click in the 3D view, or a link of the Inspector) selects it
+in every panel, and the Timeline highlights its row. Selecting never
+commands the robot. The shared **Inspector** shows the selection the same
+way for every kind of item: its kind (SKILL, RESOURCE, ROBOT, OBJECT) with
+**Pin** and **Overview** beside it, its name and state, one sentence that
+says what it does now ("Waiting. busy: arm held by Approach(box)", "Free:
+no skill holds it", "Believed 33.9 mm from where it really is"), then a
+table of facts, all visible:
+
+| Item | Facts |
+|------|-------|
+| Skill | robot, priority and whether it can be preempted, what it does when busy, its resources (shared or exclusive, free or held by whom), its preconditions (a false one in red), its last runs |
+| Resource | held by, waited for by, needed by, its faults in this run |
+| Robot | who drives it (MISSION or MANUAL), model, tool, skills now, a joint table (value and where it is between its limits) |
+| Object | belief, truth, error, confidence, how often and when it was seen, size |
+
+**Pin** keeps an item while you select others; **Overview** shows the run:
+robots, what runs, waits, failed, is in fault, the objects believed.
+
+No workspace opens the Inspector at first: the first click on a name opens
+it, later clicks leave the focus where it is.
 
 **Robot details.** The robot Inspector shows joint positions and active
 skills. Expand **Include inactive skills** to see the others. Its buttons
 open Joint controls, Teach Pendant or Plots without changing who drives
-the robot. Joint controls show positions first; **Show details** adds
+the robot. Joints say who drives (**Mission drives** or **Manual**; the
+tooltip of **Manual** explains it), then the tool position and the gripper
+on one line. Joint controls show positions first; **Show details** adds
 limits, velocity, acceleration, effort and jog controls. Plots start with
 one joint and one measurement. Choose joints in the plot itself and choose
 **All measurements** only when you need the four plots together.
 
 **Camera in the scene.** When the robot has a camera, its picture (with
-the detections of the perception) sits in the bottom-right corner of the 3D
-scene, in every workspace: no need for a Cameras panel to see what the
-robot sees. `<` and `>` change the camera, `x` hides it, **Camera** shows
-it again; `+` (or a double click on the picture) shows it large.
+the detections of the perception) sits in the bottom-right corner of a
+large 3D scene: no need for a Cameras panel to see what the robot sees.
+The inset is left out when the Cameras panel is shown (Autonomy) and when
+the scene is small (Mission). `<` and `>` change the camera, the cross
+hides it, **Camera** shows it again; the expand icon (or a double click on
+the picture) shows it large.
 
-**Main area.** The large area in the middle of Robot, Mission and Autonomy
-shows the 3D scene by default. The selector in the task bar puts another view in
-its place: Camera, Timeline, Joint plots, Behavior tree, Planner, Execution
-graph or Events, at the size of the scene. The **execution graph** reads
-from left to right: with a PDDL planner, one box per step of the plan
-(done, running, *waits for step 3*, failed) with the skills it runs, an
-arrow from a step to the steps that wait for it, so the steps that run
-together are in the same column; without a planner, the behavior tree, the
-root on the left. Click a skill to inspect it; the graph scrolls to the
-skill selected elsewhere; drag the background to move it. Its separate window hides while the main area shows it. Use **View** to
-open it separately again. Each workspace keeps its own choice.
+**Scene and execution graph.** The 3D scene is an editor that you can close,
+move, dock and expand like any other window. The **Execution graph** is the
+middle of Mission; open it from **Windows** in another layout. **List**
+(the default) shows each step of the plan, or each node of the behavior
+tree indented by depth, followed by its skills: their state, priority,
+resources and why they wait. **Graph** draws the same steps as boxes, with
+arrows to the steps that wait for them; independent steps share a column,
+and a tree reads from left to right. Click a skill to inspect it; drag the
+background to move the graph. The graph writes the priority and the
+resources after each skill (`p100  arm`). The list is also where you run a
+skill by hand: **Request** on an idle skill, **Cancel** on a running or
+waiting one. The skills that no step runs (`Home`, `Stop`…) are under
+**Other skills** at the end; without a plan or a tree, the list is all the
+skills.
+
+**Resources.** One table: a box to tick, the resource, its state (free,
+shared, exclusive, or in fault with who made it and the time left), the
+skills that hold it and those that need it, and **Restore** on a resource
+in fault. Under it: tick resources, give a duration (ever: until you
+restore them) and press **Inject**; **Restore all** ends every fault. Then
+the faults that the scenario plans.
 
 **Compact timeline.** The initial view follows the latest five simulated
 seconds. At startup it uses a shorter axis to keep early actions readable.
 **Hide unused** starts enabled: skills never requested do not take a row.
 Untick it to see all skills. **Whole run**, wheel zoom and panning remain
-available. Hide **Timeline** from **View** when the scene needs more room.
+available. Close **Timeline** with its tab's `x` when the scene needs more room.
 
 **Events.** The tab next to the Timeline tells the run as dated lines: the
 skills that wait (and for what), start and end (succeeded after 0.5 s,
@@ -159,27 +185,44 @@ it in the Timeline; a click on a line selects its skill or resource. The
 list follows the new lines; scroll up to read, come back to the bottom to
 follow again.
 
-**Expand.** When a view needs room, **Ctrl+Space** over it (or **Expand**,
-next to the main-view selector) shows it over the whole work area: the 3D scene, the
-Timeline (every row at once), the camera, the joint plots, the behavior
-tree or the planner. The run controls and task tools stay above it. A task-tool button restores
-the layout and opens that panel.
-**Ctrl+Space** again, **Esc** or *Restore* brings the panels back, where
-they were.
+**Expand.** Every editor has a small icon in its top-right corner (four
+corners pointing out). Click it, or click the editor and press
+**Ctrl+Space**: the same window fills the work area while the run controls
+stay visible. This works for every editor, including Inspector, Files and
+plugin panels. The icon then points in: click it, or press **Ctrl+Space**
+again or **Esc**, to go back to the original positions and tab order. You can also right-click a window title for
+**Expand**, **Restore** or **Close**. Opening another editor from **Windows**
+restores the layout and focuses that editor. Exiting while expanded saves
+the original layout. A small live 3D view stays in the bottom-right corner
+while another editor is expanded. Its cross hides it; **3D scene** shows
+it again. Its restore icon returns to the layout.
 
-A **workspace** is a set of panels for one task. Switch with the buttons at
-the top, or with **Ctrl+1** to **Ctrl+4**:
+The top buttons select a **layout preset**. **Ctrl+1** to **Ctrl+4** select
+the same presets. The first visit opens the default editors listed below,
+with the tab in **bold** in front. Then you can close or add editors from
+**Windows** and move them: leaving the preset keeps them, coming back shows
+them again where they were. The open editors of each preset are saved in
+`simulator.ini`; their positions are kept for the session. Editor identities
+and content state remain shared, so switching does not create copies.
+Clicking the active preset, or **Layout → Restore recommended layout**,
+reapplies its defaults.
 
-| Workspace | Panels | Use it to |
-|-----------|--------|-----------|
-| **Plugin** | Plugin (description, files of the package, dependencies with their licenses), Files (read-only, with syntax colours for YAML and PDDL, one tab per kind: Scenario (titled RL for an `x.rl.yaml`), World, Behavior tree, Planner (domain, problem, output, generated tree; or a domain clicked alone), Experiment, Asset (the file clicked in Assets), and one for any other file; Behavior tree, Planner and Asset are always there, empty when there is nothing to show), one view beside it that follows the tab read: Scenario (its settings and assertions), World (entity tree, with the physics of each entity: its level abstract, rigid or contact, and what MuJoCo makes of it), Behavior tree, Planner (goal, plan, beliefs) or Experiment (cases, seeds, evaluation, command to run it); Assets (asset packs: models, files, version, license, source; a click on a model or a file shows it in the Asset tab of Files: a URDF, STL or glTF model in 3D that the mouse turns around, the picture for an image, the text for any other file). No 3D view. A click in the files of the package loads a scenario, or shows the file in its tab | Read what is loaded, where it comes from, and whether it passes |
-| **Robot** | Scene with camera inset, Joints and Inspector as tabs. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
-| **Mission** | Scene with camera inset, Inspector and compact Timeline. Open Behavior tree, Skills, Resources, Planner, Events or Assertions from **View** | Watch execution and inspect a problem |
-| **Autonomy** | Scene with camera inset, World model and Inspector as tabs. Open Perception or Cameras from the task bar | Compare beliefs and perception with the scene |
+| Preset | Default editors | Use it to |
+|--------|-----------------|-----------|
+| **Plugin** | Plugin, Files, Package details, Assets | Read the package, scenario, world, experiments and asset packs. Files shows YAML, PDDL and other files as text. Package details has no tabs of its own: it follows the tab read in Files (Scenario, World, Experiment); Behavior tree opens Execution graph; Planner opens its own editor. Right-click the folder name in Plugin to copy its path or read it again. |
+| **Robot** | left: small 3D scene above Joint plots (one line of controls: measurement, joints, time window); right: **Joints**, Teach Pendant | The body: inspect joints and limits, move the robot by hand. |
+| **Mission** | Execution graph as a list and Planner when used (tabs in the middle); right: small 3D scene, then **Resources**, Assertions and plugin panels; below: **Timeline**, Events | The execution, and running skills by hand. Without a tree or a plan, the scene takes the middle and the list of skills sits on the right. |
+| **Autonomy** | above: 3D scene and Cameras, the same size; below: World model and Perception side by side | Compare beliefs with the truth and with what the cameras see. |
 
-The panel of the plugin (here **Hello world**) opens by itself next to the
-panels of the workspace, except in **Plugin**, which only reads the package. You can move and dock every panel; the layout of
-each workspace is saved in `~/.config/robotik/simulator.ini`. **Arrange → Restore recommended layout** restores its default windows and scene view.
+The loaded plugin's panels open on first use and follow the same close,
+reopen, dock and expand rules as the other editors. They remain accessible
+in every preset, including Plugin. Their default position in Mission is
+beside Resources; Robot places them beside Joints, Autonomy beside World
+model, and Plugin beside Files. Autonomy stays focused on sensing and
+beliefs; planning and execution belong to Mission.
+
+The **Cameras** editor shows every
+camera of the robot at once, in the grid that gives the largest pictures.
 
 Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 
@@ -189,7 +232,7 @@ Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 | `.` | One step, when paused |
 | Ctrl+R / Ctrl+N | Replay with the same seed / the next seed |
 | Ctrl+E | Emergency stop, or release it |
-| Ctrl+Space | The view under the mouse (scene, timeline, camera) over the whole work area, or back; Esc comes back too |
+| Ctrl+Space | Expand the focused editor or restore the layout; Esc restores it too |
 | F5 | Reload the scenario file (after you edit it) |
 
 The 3D view moves like the camera of a strategy game: it looks at a point
@@ -224,10 +267,11 @@ default, or at the end of the run if it ends before):
 ```
 
 `--screenshot-ui ui.png` does the same with the whole window, panels
-included (`--at 0`: without playing). `--workspace robot` opens a workspace
-other than Mission, and `--select skill:Grasp` (or `resource:gripper`,
+included (`--at 0`: without playing). `--workspace robot` restores the Robot preset
+and its default editors, and `--select skill:Grasp` (or `resource:gripper`,
 `robot:left`) chooses what the Inspector shows: handy to check the
-interface without a person in front of it.
+interface without a person in front of it. `--view timeline` opens and
+focuses the Timeline editor; `--maximize timeline` expands that editor.
 
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
 a red cube with its camera, takes it with a vacuum cup and drops it in a box.
@@ -368,7 +412,7 @@ the [glossary](Glossary.md).
 
 | Layer | You have… | You write… |
 |-------|-----------|------------|
-| **Robot** | Scene with camera inset, Joints and Inspector as tabs. Open Joints, Teach Pendant or Joint plots from **View** when needed. Manual mode suspends the mission | Inspect the body, then choose a manual control |
+| **Robot** | a URDF file | one robot, its joints and its physics |
 | **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
 | **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
 

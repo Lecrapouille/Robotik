@@ -7,6 +7,7 @@
 
 #include "App.hpp"
 #include "MainLoop.hpp"
+#include "Ui.hpp"
 #include "Window.hpp"
 
 #include <filesystem>
@@ -14,16 +15,17 @@
 #include <string>
 
 /// The view named on the command line; the 3D scene for an unknown name.
-static ViewKind viewNamed(std::string const& p_name)
+static PanelKind viewNamed(std::string const& p_name)
 {
-    return p_name == "camera"     ? ViewKind::Camera
-           : p_name == "timeline" ? ViewKind::Timeline
-           : p_name == "plots"    ? ViewKind::Plots
-           : p_name == "tree"     ? ViewKind::Tree
-           : p_name == "planner"  ? ViewKind::Planner
-           : p_name == "graph"    ? ViewKind::Graph
-           : p_name == "events"   ? ViewKind::Events
-                                  : ViewKind::Scene;
+    return p_name == "camera"      ? PanelKind::Cameras
+           : p_name == "timeline"  ? PanelKind::Timeline
+           : p_name == "plots"     ? PanelKind::Plots
+           : p_name == "tree"      ? PanelKind::Graph
+           : p_name == "planner"   ? PanelKind::Planner
+           : p_name == "graph"     ? PanelKind::Graph
+           : p_name == "events"    ? PanelKind::Events
+           : p_name == "inspector" ? PanelKind::Inspector
+                                   : PanelKind::Scene;
 }
 
 int main(int argc, char** argv)
@@ -41,9 +43,12 @@ int main(int argc, char** argv)
     // file.png] [--at seconds] [--workspace plugin|robot|mission|autonomy]
     // [--select skill:<name>|resource:<name>|robot:<id>|object:<name>]
     // [--maximize <view>] [--view <view>], view: scene|camera|timeline|
-    // plots|tree|planner (--view: the main area of the workspace opened)
+    // plots|tree|planner|graph|events (--view opens and focuses the editor)
     std::string select;
-    ViewKind view = ViewKind::Scene;
+    std::optional<Workspace> preset;
+    std::optional<PanelKind> view;
+    std::optional<PanelKind> maximized;
+    bool tree_requested = false;
     for (int i = 1; i < argc; ++i)
     {
         std::string const argument = argv[i];
@@ -58,11 +63,14 @@ int main(int argc, char** argv)
         else if (argument == "--maximize" && i + 1 < argc)
         {
             std::string const name = argv[++i];
-            app.ui.maximized = viewNamed(name);
+            maximized = viewNamed(name);
+            tree_requested = name == "tree";
         }
         else if (argument == "--view" && i + 1 < argc)
         {
-            view = viewNamed(argv[++i]);
+            std::string const name = argv[++i];
+            view = viewNamed(name);
+            tree_requested = name == "tree";
         }
         else if (argument == "--select" && i + 1 < argc)
         {
@@ -75,6 +83,7 @@ int main(int argc, char** argv)
                                : name == "robot"    ? Workspace::Robot
                                : name == "autonomy" ? Workspace::Autonomy
                                                     : Workspace::Mission;
+            preset = app.ui.workspace;
         }
         else if (argument == "--at" && i + 1 < argc)
         {
@@ -111,21 +120,38 @@ int main(int argc, char** argv)
             colon != std::string::npos)
         {
             std::string const kind = select.substr(0, colon);
-            app.ui.selection = {
-                kind == "skill"      ? SelectionKind::Skill
-                : kind == "resource" ? SelectionKind::Resource
-                : kind == "object"   ? SelectionKind::Object
-                                     : SelectionKind::Robot,
-                select.substr(colon + 1) };
+            app.ui.selection = { kind == "skill"      ? SelectionKind::Skill
+                                 : kind == "resource" ? SelectionKind::Resource
+                                 : kind == "object"   ? SelectionKind::Object
+                                                      : SelectionKind::Robot,
+                                 select.substr(colon + 1) };
         }
         // A picture of the run: play it until the time of the picture.
-        app.playing = app.playing ||
-                      ((!app.screenshot.empty() || !app.screenshot_ui.empty()) &&
-                       app.screenshot_at > 0.0);
+        app.playing =
+            app.playing ||
+            ((!app.screenshot.empty() || !app.screenshot_ui.empty()) &&
+             app.screenshot_at > 0.0);
     }
-    if (app.ui.workspace != Workspace::Plugin)
+    // Command-line choices take precedence over saved visibility and preset.
+    initializePanelSettings(app);
+    if (ImGui::GetIO().IniFilename != nullptr)
+        ImGui::LoadIniSettingsFromDisk(ImGui::GetIO().IniFilename);
+    // A workspace argument is an explicit request for its default editors.
+    if (preset)
     {
-        app.ui.main_view[static_cast<std::size_t>(app.ui.workspace)] = view;
+        app.ui.workspace = *preset;
+        app.ui.panels = defaultPanels(*preset);
+        app.ui.reset_layout = true;
+    }
+    if (!app.screenshot.empty())
+        showPanel(app, PanelKind::Scene);
+    app.ui.graph_tree = tree_requested;
+    if (view)
+        showPanel(app, *view);
+    if (maximized)
+    {
+        showPanel(app, *maximized);
+        toggleMaximized(app, panelName(*maximized));
     }
     runMainLoop(window, app);
     return app.error.empty() ? 0 : 1;

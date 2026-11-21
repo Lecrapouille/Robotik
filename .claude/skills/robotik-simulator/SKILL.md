@@ -15,17 +15,17 @@ scenario YAML, and the simulator only shows or triggers it.
 | File | Holds |
 |------|-------|
 | App.hpp / App.cpp | `App` (load, reset, step loop, Manual mode), `UiState` (all panel state), `FileTab` |
-| Workspace.cpp | the 4 workspaces, their dock layouts, menu bar, tab alerts (red), run bar (play, clock, seed, emergency stop), status bar (links), shortcuts |
+| Workspace.cpp | `PANELS` (every editor), the 4 workspaces (`defaultPanels`, `layout`, `dockRest`), `beginPanel`/`beginEditor` (expand icon in the corner), expand/restore, menu bar, tab alerts (red), run bar, status bar (links), shortcuts |
 | Ui.hpp | declaration of every panel and shared widget; read it first |
-| Widgets.cpp | `badge`, `helpMarker`, `emptyState`, `beginTable`, `textView`, `rangeBar` |
-| ScenePanel.cpp | main area of a workspace (`mainPanel`: view selector, Full view), 3D view, click to select (`Scene::pick`), boxes of the selected object (truth, belief), run frame color (`runColor`), emergency stop (`toggleEmergency`) |
+| Widgets.cpp | `badge`, `helpMarker`, `emptyState`, `beginTable`, `textView`, `rangeBar`, `iconButton` / `drawIconBox` (Expand, Restore, Close drawn with lines: no icon font) |
+| ScenePanel.cpp | 3D scene and Execution graph editors, live 3D inset while another editor is expanded, 3D view, click to select (`Scene::pick`), boxes of the selected object (truth, belief), run frame color (`runColor`), emergency stop (`toggleEmergency`) |
 | PackagePanels.cpp / OverviewPanels.cpp | Plugin workspace: Plugin, Files (tabs), View, Assets, Assertions |
 | RobotPanel.cpp / TeachPanel.cpp | Joints (+ plots), Teach Pendant |
-| MissionPanels.cpp / SkillsPanel.cpp / PlannerPanel.cpp | Behavior tree, Resources, Skills, Planner |
-| InspectorPanel.cpp | Inspector, one per workspace (skill, resource, robot, object, overview), `selectItem` / `isSelected` / `itemLink` / `showInspector` |
+| MissionPanels.cpp / PlannerPanel.cpp | Resources (one table: holders, needs, faults, inject), Planner (goal, Beliefs/History tabs, execution preview) |
+| InspectorPanel.cpp | Inspector (skill, resource, robot, object, overview), each view: `header` (kind, Pin, Overview, name, state), one `sentence` of what it does now, a `beginFacts` table; `selectItem` / `isSelected` / `itemLink` / `showInspector` |
 | UiScreenshot.cpp | `--screenshot-ui`: PNG of the whole window (check a change without a person: `--at`, `--workspace`, `--select`) |
 | EventsPanel.cpp | Events: the run as dated lines (skill phases, faults, plans and steps, tree failures, verdicts), filters, repeated lines merged; built each frame from the trace, the checks and `TimelineMemory` (steps of the plan recorded by `sampleTimeline`) |
-| GraphView.cpp | Execution graph (a view of the main area only): plan steps with their skills and what they wait for, or the behavior tree laid out left to right |
+| GraphView.cpp | Execution graph: plan steps (or tree nodes) with their skills, as a folding list colored by state (priority, resources, why, Request/Cancel; default; replaces the old Skills panel) or as boxes and arrows (priority and resources after each skill) |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras, the camera inset of the scene (`cameraInset`) |
 | PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
@@ -43,9 +43,24 @@ scenario YAML, and the simulator only shows or triggers it.
 - Panel state lives in `UiState` (App.hpp), never in a `static` that outlives
   a scenario load. Reset it in `App::load` (and `App::reset` if it depends
   on the run).
-- A new or renamed panel: dock it in `layout()` (Workspace.cpp), call it in
-  `drawPanels`, and **bump `LAYOUT_VERSION`** so saved layouts are rebuilt.
-  A workspace `anchor` must name an existing window.
+- A new or renamed panel: add it to `PanelKind` and `PANELS`, dock it in
+  `layout()` (or let `dockRest` place it), and **bump `LAYOUT_VERSION`** so
+  saved layouts are rebuilt. A workspace `anchor` must name an existing
+  window.
+- Each workspace has its own shape (Robot: small scene above Joint plots,
+  Joints on the right; Mission: Execution graph and optional Planner tabs in the middle; Autonomy:
+  scene and Cameras the same size, World model and Perception below). No
+  workspace opens the Inspector by default (`itemLink` opens it). Do not give
+  two workspaces the same layout; open a panel from Windows instead. Its
+  default editors are in `defaultPanels`, the tab shown in front of each
+  group is named with `front()` in `layout()`.
+- Switching workspace never resets: `switchWorkspace` keeps the editors
+  and dock layout of the one left (`workspace_panels`, `workspace_layouts`)
+  and is applied between frames (`pending_workspace`). Only clicking the
+  current workspace or Layout > Restore brings the defaults back.
+- Window actions are not rows of buttons: expand/restore is the icon that
+  `beginEditor` puts in the top-right corner (keep that corner free), close
+  is the tab cross. Use `iconButton` for small actions over a view.
 - One selection for every panel (`UiState::selection`: robot, skill,
   resource or object, by name). A panel that names one of them draws it with
   `itemLink` so a click shows it in the Inspector. Selecting never acts.

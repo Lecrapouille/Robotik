@@ -215,7 +215,7 @@ void toggleEmergency(App& p_app)
     }
 }
 
-void sceneView(App& p_app)
+void sceneView(App& p_app, bool p_compact)
 {
     if (!p_app.simulation)
     {
@@ -262,6 +262,8 @@ void sceneView(App& p_app)
             ImVec2(1.0F, 0.0F));
     }
     runFrame(p_app, at, size);
+    if (p_compact)
+        return;
     cameraInset(p_app, at, size);
 
     char const* hint =
@@ -280,93 +282,72 @@ void sceneView(App& p_app)
                   hint);
 }
 
-std::string mainWindowId(char const* p_key)
-{
-    return std::string("###main_") + p_key;
-}
-
-/// Views offered by the selector of the main area, in its order.
-static constexpr ViewKind MAIN_VIEWS[] = {
-    ViewKind::Scene, ViewKind::Camera,  ViewKind::Timeline, ViewKind::Plots,
-    ViewKind::Tree,  ViewKind::Planner, ViewKind::Graph,    ViewKind::Events,
-};
-
-void mainViewControls(App& p_app)
+void sceneInset(App& p_app)
 {
     UiState& ui = p_app.ui;
-    ViewKind& view = ui.main_view[static_cast<std::size_t>(ui.workspace)];
-    bool const expanded = ui.maximized != ViewKind::None;
-    ViewKind const shown = expanded ? ui.maximized : view;
-    ImGui::SetNextItemWidth(170.0F);
-    if (ImGui::BeginCombo("##main_view", viewName(shown)))
-    {
-        for (ViewKind const candidate : MAIN_VIEWS)
-        {
-            if (ImGui::Selectable(viewName(candidate), candidate == shown))
-            {
-                view = candidate;
-                if (expanded)
-                    ui.maximized = candidate;
-            }
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::SetItemTooltip(
-        "Choose the main view. The other tools keep their positions.");
-    ImGui::SameLine(0.0F, 6.0F);
-    if (ImGui::Button(expanded ? "Restore" : "Expand"))
-        toggleMaximized(p_app, shown);
-    ImGui::SetItemTooltip(expanded ? "Return to the panel layout (Esc)."
-                                   : "Temporarily expand this view "
-                                     "(Ctrl+Space). Esc restores the layout.");
-}
-
-void mainPanel(App& p_app, char const* p_key)
-{
-    ViewKind& view =
-        p_app.ui.main_view[static_cast<std::size_t>(p_app.ui.workspace)];
-    view = view == ViewKind::None ? ViewKind::Scene : view;
-    // The tab says what the area shows; its id stays the same.
-    std::string const title = std::string(viewName(view)) + mainWindowId(p_key);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
-    bool const visible = ImGui::Begin(title.c_str(),
-                                      nullptr,
-                                      ImGuiWindowFlags_NoScrollbar |
-                                          ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::PopStyleVar();
-    p_app.view_hovered = false;
-    if (!visible)
-    {
-        ImGui::End();
+    if (!p_app.simulation || ui.maximized_window.empty() ||
+        ui.maximized_window == "3D scene")
         return;
-    }
-    if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows) &&
-        p_app.ui.maximized != view)
+    ImGuiViewport const* viewport = ImGui::GetMainViewport();
+    float const width = std::min(320.0F, viewport->WorkSize.x * 0.30F);
+    float const height = std::min(220.0F, viewport->WorkSize.y * 0.30F);
+    ImVec2 const corner(viewport->WorkPos.x + viewport->WorkSize.x - 12.0F,
+                        viewport->WorkPos.y + viewport->WorkSize.y - 12.0F);
+    ImGui::SetNextWindowPos(corner, ImGuiCond_Always, ImVec2(1.0F, 1.0F));
+    ImGui::SetNextWindowSize(ui.inset_scene ? ImVec2(width, height)
+                                            : ImVec2(110.0F, 38.0F));
+    ImGui::SetNextWindowBgAlpha(0.95F);
+    ImGuiWindowFlags const flags =
+        ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar |
+        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse |
+        ImGuiWindowFlags_NoFocusOnAppearing;
+    if (ImGui::Begin("##scene inset", nullptr, flags))
     {
-        p_app.ui.hovered_view = view;
-    }
-    // The 3D view fills the area to its borders; the others get a margin.
-    bool const scene = view == ViewKind::Scene;
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
-                        scene ? ImVec2(0.0F, 0.0F) : ImVec2(12.0F, 8.0F));
-    if (ImGui::BeginChild("view",
-                          ImVec2(0.0F, 0.0F),
-                          scene ? ImGuiChildFlags_None
-                                : ImGuiChildFlags_AlwaysUseWindowPadding,
-                          scene ? ImGuiWindowFlags_NoScrollbar |
-                                      ImGuiWindowFlags_NoScrollWithMouse
-                                : ImGuiWindowFlags_None))
-    {
-        if (p_app.ui.maximized == view)
+        if (!ui.inset_scene)
         {
-            viewNote(p_app, view);
+            if (ImGui::SmallButton("3D scene"))
+                ui.inset_scene = true;
         }
         else
         {
-            drawView(p_app, view);
+            ImGui::TextUnformatted("3D scene");
+            ImGui::SameLine();
+            if (iconButton("restore", Icon::Restore, "Back to the layout"))
+                ui.pending_maximized = std::string();
+            ImGui::SameLine();
+            if (iconButton("hide", Icon::Close, "Hide the 3D preview"))
+                ui.inset_scene = false;
+            if (ImGui::BeginChild("scene",
+                                  ImVec2(0.0F, 0.0F),
+                                  ImGuiChildFlags_None,
+                                  ImGuiWindowFlags_NoScrollbar |
+                                      ImGuiWindowFlags_NoScrollWithMouse))
+                sceneView(p_app, true);
+            ImGui::EndChild();
         }
     }
-    ImGui::EndChild();
+    ImGui::End();
+}
+
+void scenePanel(App& p_app)
+{
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0F, 0.0F));
+    bool const visible = beginPanel(p_app,
+                                    PanelKind::Scene,
+                                    "3D scene",
+                                    ImGuiWindowFlags_NoScrollbar |
+                                        ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::PopStyleVar();
+    if (visible)
+        sceneView(p_app);
+    ImGui::End();
+}
+
+void graphPanel(App& p_app)
+{
+    if (beginPanel(p_app, PanelKind::Graph, "Execution graph"))
+        graphView(p_app);
     ImGui::End();
 }

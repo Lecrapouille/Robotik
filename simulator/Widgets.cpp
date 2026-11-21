@@ -13,9 +13,9 @@
 #include <string_view>
 #include <vector>
 
-std::string panelTitle(char const* p_name, char const* p_key)
+std::string panelTitle(char const* p_name, char const* /*p_key*/)
 {
-    return std::string(p_name) + "##" + p_key;
+    return p_name;
 }
 
 void badge(char const* p_text, ImVec4 const& p_color)
@@ -62,6 +62,85 @@ void emptyState(char const* p_text)
                           ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
     ImGui::TextWrapped("%s", p_text);
     ImGui::PopStyleColor();
+}
+
+/// Draws @p_icon inside the box from @p_min to @p_max.
+static void drawIcon(ImDrawList* p_draw,
+                     ImVec2 p_min,
+                     ImVec2 p_max,
+                     Icon p_icon,
+                     ImU32 p_color)
+{
+    float const thick = 1.5F;
+    float const side = std::min(p_max.x - p_min.x, p_max.y - p_min.y);
+    float const arm = side * 0.32F;
+    if (p_icon == Icon::Close)
+    {
+        p_draw->AddLine(p_min, p_max, p_color, thick);
+        p_draw->AddLine(
+            ImVec2(p_min.x, p_max.y), ImVec2(p_max.x, p_min.y), p_color, thick);
+        return;
+    }
+    // Four corners: open outwards to expand, folded inwards to restore.
+    ImVec2 const center((p_min.x + p_max.x) * 0.5F, (p_min.y + p_max.y) * 0.5F);
+    float const in = p_icon == Icon::Expand ? 1.0F : -1.0F;
+    for (float const sx : { -1.0F, 1.0F })
+    {
+        for (float const sy : { -1.0F, 1.0F })
+        {
+            ImVec2 const tip(sx < 0.0F ? p_min.x : p_max.x,
+                             sy < 0.0F ? p_min.y : p_max.y);
+            // Restore: the corner sits halfway to the centre, arms outwards.
+            ImVec2 const at = p_icon == Icon::Expand
+                                  ? tip
+                                  : ImVec2((tip.x + center.x) * 0.5F,
+                                           (tip.y + center.y) * 0.5F);
+            ImVec2 const points[3] = {
+                ImVec2(at.x - sx * arm * in, at.y),
+                at,
+                ImVec2(at.x, at.y - sy * arm * in),
+            };
+            p_draw->AddPolyline(points, 3, p_color, 0, thick);
+        }
+    }
+}
+
+void drawIconBox(ImDrawList* p_draw,
+                 ImVec2 p_min,
+                 float p_size,
+                 Icon p_icon,
+                 bool p_hovered)
+{
+    ImVec2 const max(p_min.x + p_size, p_min.y + p_size);
+    p_draw->AddRectFilled(p_min,
+                          max,
+                          p_hovered ? ImGui::GetColorU32(ImGuiCol_ButtonHovered)
+                                    : IM_COL32(20, 22, 27, 170),
+                          4.0F);
+    float const pad = p_size * 0.28F;
+    drawIcon(
+        p_draw,
+        ImVec2(p_min.x + pad, p_min.y + pad),
+        ImVec2(max.x - pad, max.y - pad),
+        p_icon,
+        ImGui::GetColorU32(p_hovered ? ImGuiCol_Text : ImGuiCol_TextDisabled));
+}
+
+bool iconButton(char const* p_id, Icon p_icon, char const* p_tooltip)
+{
+    float const size = ImGui::GetFrameHeight();
+    ImVec2 const at = ImGui::GetCursorScreenPos();
+    bool const pressed = ImGui::InvisibleButton(p_id, ImVec2(size, size));
+    drawIconBox(ImGui::GetWindowDrawList(),
+                at,
+                size,
+                p_icon,
+                ImGui::IsItemHovered() || ImGui::IsItemActive());
+    if (p_tooltip != nullptr)
+    {
+        ImGui::SetItemTooltip("%s", p_tooltip);
+    }
+    return pressed;
 }
 
 // Tables use this fraction of the base font size.

@@ -6,6 +6,8 @@
 // See LICENSING.md for details.
 #include "Ui.hpp"
 
+#include <imgui_internal.h>
+
 #include <imgui.h>
 
 #include <algorithm>
@@ -173,46 +175,7 @@ void camerasPanel(App& p_app, char const* p_key)
         ImGui::End();
         return;
     }
-    if (!p_app.simulation || !p_app.scene_view)
-    {
-        emptyState("No scenario loaded.");
-        ImGui::End();
-        return;
-    }
-    std::vector<robotik::Camera*> const cameras = robotCameras(p_app);
-    if (cameras.empty())
-    {
-        emptyState("The robot has no camera.");
-        ImGui::End();
-        return;
-    }
-    // Side by side when the panel is wider than tall, stacked otherwise.
-    ImVec2 const avail = ImGui::GetContentRegionAvail();
-    std::size_t const count = cameras.size();
-    std::size_t const columns =
-        avail.x > avail.y ? std::min<std::size_t>(count, 3U) : 1U;
-    std::size_t const rows = (count + columns - 1U) / columns;
-    float const spacing = ImGui::GetStyle().ItemSpacing.x;
-    ImVec2 const cell((avail.x - spacing * static_cast<float>(columns - 1U)) /
-                          static_cast<float>(columns),
-                      avail.y / static_cast<float>(rows) -
-                          ImGui::GetStyle().ItemSpacing.y);
-    for (std::size_t i = 0; i < count; ++i)
-    {
-        if (i % columns != 0U)
-        {
-            ImGui::SameLine();
-        }
-        ImGui::PushID(static_cast<int>(i));
-        ImGui::BeginGroup();
-        // Keeps every column as wide as the cell, whatever the picture.
-        ImGui::Dummy(ImVec2(cell.x, 0.0F));
-        ImGui::PushItemWidth(cell.x);
-        cameraCell(p_app, *cameras[i], i, cell);
-        ImGui::PopItemWidth();
-        ImGui::EndGroup();
-        ImGui::PopID();
-    }
+    cameraView(p_app);
     ImGui::End();
 }
 
@@ -220,6 +183,18 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
 {
     std::vector<robotik::Camera*> const cameras = robotCameras(p_app);
     if (cameras.empty() || !p_app.scene_view)
+    {
+        return;
+    }
+    // A small scene (beside the graph in Mission) keeps all its room, and
+    // the Cameras panel, when shown, already has the pictures.
+    if (p_view_size.x < 560.0F)
+    {
+        return;
+    }
+    if (ImGuiWindow const* panel = ImGui::FindWindowByName("Cameras");
+        p_app.ui.panels[static_cast<std::size_t>(PanelKind::Cameras)] &&
+        panel != nullptr && panel->WasActive && !panel->Hidden)
     {
         return;
     }
@@ -292,17 +267,19 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
         ImGui::SetItemTooltip("Next camera");
         ImGui::SameLine(0.0F, 4.0F);
     }
-    if (ImGui::SmallButton("+"))
+    if (iconButton("large",
+                   Icon::Expand,
+                   "Show the camera over the whole "
+                   "work area (double click)"))
     {
-        toggleMaximized(p_app, ViewKind::Camera);
+        showPanel(p_app, PanelKind::Cameras);
+        toggleMaximized(p_app, "Cameras");
     }
-    ImGui::SetItemTooltip("Show the camera over the whole work area");
     ImGui::SameLine(0.0F, 4.0F);
-    if (ImGui::SmallButton("x"))
+    if (iconButton("hide", Icon::Close, "Hide the camera"))
     {
         ui.inset_camera = false;
     }
-    ImGui::SetItemTooltip("Hide the camera");
     ImGui::PopStyleVar();
 
     // The picture; the mouse on it does not move the 3D view. A double
@@ -313,7 +290,8 @@ void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size)
     if (ImGui::IsItemHovered() &&
         ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
     {
-        toggleMaximized(p_app, ViewKind::Camera);
+        showPanel(p_app, PanelKind::Cameras);
+        toggleMaximized(p_app, "Cameras");
     }
     if (picture.texture == nullptr || picture.width == 0U)
     {
@@ -345,25 +323,51 @@ void cameraView(App& p_app)
         emptyState("The robot has no camera.");
         return;
     }
-    UiState& ui = p_app.ui;
-    ui.inset_index = std::min(ui.inset_index, cameras.size() - 1U);
-    if (cameras.size() > 1U)
+    // Every camera at once, in the grid that gives the largest pictures
+    // (4:3 assumed, plus the title line of each).
+    ImVec2 const room = ImGui::GetContentRegionAvail();
+    float const gap = ImGui::GetStyle().ItemSpacing.x;
+    float const title = ImGui::GetFrameHeightWithSpacing();
+    std::size_t const count = cameras.size();
+    std::size_t columns = 1U;
+    float best = 0.0F;
+    for (std::size_t c = 1U; c <= count; ++c)
     {
-        for (std::size_t i = 0; i < cameras.size(); ++i)
+        std::size_t const rows = (count + c - 1U) / c;
+        float const w =
+            (room.x - gap * static_cast<float>(c - 1U)) / static_cast<float>(c);
+        float const h = (room.y - gap * static_cast<float>(rows - 1U)) /
+                            static_cast<float>(rows) -
+                        title;
+        float const width = std::min(w, h * 4.0F / 3.0F);
+        if (width > best)
         {
-            ImGui::PushID(static_cast<int>(i));
-            if (ImGui::RadioButton(cameras[i]->name().c_str(),
-                                   ui.inset_index == i))
-            {
-                ui.inset_index = i;
-            }
-            ImGui::PopID();
-            ImGui::SameLine();
+            best = width;
+            columns = c;
         }
-        ImGui::NewLine();
     }
-    cameraCell(p_app,
-               *cameras[ui.inset_index],
-               ui.inset_index,
-               ImGui::GetContentRegionAvail());
+    std::size_t const rows = (count + columns - 1U) / columns;
+    ImVec2 const cell(
+        std::floor((room.x - gap * static_cast<float>(columns - 1U)) /
+                   static_cast<float>(columns)),
+        std::floor((room.y - gap * static_cast<float>(rows - 1U)) /
+                   static_cast<float>(rows)));
+    for (std::size_t i = 0; i < count; ++i)
+    {
+        if (i % columns != 0U)
+        {
+            ImGui::SameLine(0.0F, gap);
+        }
+        ImGui::PushID(static_cast<int>(i));
+        if (ImGui::BeginChild("camera",
+                              cell,
+                              ImGuiChildFlags_None,
+                              ImGuiWindowFlags_NoScrollbar |
+                                  ImGuiWindowFlags_NoScrollWithMouse))
+        {
+            cameraCell(p_app, *cameras[i], i, ImGui::GetContentRegionAvail());
+        }
+        ImGui::EndChild();
+        ImGui::PopID();
+    }
 }

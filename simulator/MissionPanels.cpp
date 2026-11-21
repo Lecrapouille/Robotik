@@ -17,23 +17,6 @@
 #include <string_view>
 #include <vector>
 
-/// Color of a behavior-tree status.
-static ImVec4 colorOf(bt::Status p_status)
-{
-    switch (p_status)
-    {
-        case bt::Status::INVALID:
-            return GREY;
-        case bt::Status::RUNNING:
-            return ORANGE;
-        case bt::Status::SUCCESS:
-            return GREEN;
-        case bt::Status::FAILURE:
-            return RED;
-    }
-    return GREY;
-}
-
 /// Root of the nested tree of a SubTree node, else null.
 bt::Node const* subtreeRoot(bt::Node const& p_node)
 {
@@ -43,68 +26,6 @@ bt::Node const* subtreeRoot(bt::Node const& p_node)
         return nullptr;
     }
     return &subtree->subtree().getRoot();
-}
-
-/// Draw a tree node. A click on an action that is a skill selects it.
-/// @param p_node The node.
-static void treeNode(App& p_app, bt::Node const& p_node)
-{
-    ImGui::PushID(&p_node);
-    auto const* composite = dynamic_cast<bt::Composite const*>(&p_node);
-    auto const* decorator = dynamic_cast<bt::Decorator const*>(&p_node);
-    bt::Node const* nested = subtreeRoot(p_node);
-    bool const leaf = composite == nullptr && nested == nullptr &&
-                      (decorator == nullptr || !decorator->hasChild());
-    ImGuiTreeNodeFlags flags =
-        ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth;
-    if (leaf)
-    {
-        flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen |
-                 ImGuiTreeNodeFlags_Bullet;
-    }
-    ImGui::PushStyleColor(ImGuiCol_Text, colorOf(p_node.status()));
-    // BlackThorn calls its action leaves "Callback": they are skills here.
-    std::string_view const type = p_node.typeName();
-    bool const action = type == "Callback";
-    bool const skill =
-        action && p_app.simulation->cell().skills().find(p_node.name) !=
-                      robotik::NO_SKILL;
-    if (skill && isSelected(p_app, SelectionKind::Skill, p_node.name))
-    {
-        flags |= ImGuiTreeNodeFlags_Selected;
-    }
-    bool const open =
-        action ? ImGui::TreeNodeEx("##node", flags, "%s", p_node.name.c_str())
-               : ImGui::TreeNodeEx("##node",
-                                   flags,
-                                   "%s  %s",
-                                   p_node.typeName(),
-                                   p_node.name.c_str());
-    ImGui::PopStyleColor();
-    if (skill && ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-    {
-        selectItem(p_app, SelectionKind::Skill, p_node.name);
-    }
-    if (!leaf && open)
-    {
-        if (composite != nullptr)
-        {
-            for (std::size_t i = 0; i < composite->childIndices().size(); ++i)
-            {
-                treeNode(p_app, composite->childAt(i));
-            }
-        }
-        else if (nested != nullptr)
-        {
-            treeNode(p_app, *nested);
-        }
-        else
-        {
-            treeNode(p_app, decorator->childNode());
-        }
-        ImGui::TreePop();
-    }
-    ImGui::PopID();
 }
 
 /// Names of the skills currently holding @p_id, exclusive or shared.
@@ -204,49 +125,12 @@ static ImVec4 colorOf(robotik::ResourceManager const& p_resources,
                                                           : GREY;
 }
 
-/// Who holds what: one row per resource.
-static void resourceTable(App& p_app)
-{
-    robotik::Simulation& simulation = *p_app.simulation;
-    robotik::ResourceManager const& resources = simulation.cell().robot().resources();
-    robotik::SkillScheduler const& skills = simulation.cell().skills();
-    if (!beginTable("resources",
-                    4,
-                    ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                        ImGuiTableFlags_SizingFixedFit))
-    {
-        return;
-    }
-    ImGui::TableSetupColumn("Resource");
-    ImGui::TableSetupColumn("State");
-    ImGui::TableSetupColumn("Held by", ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableSetupColumn("Needed by", ImGuiTableColumnFlags_WidthStretch);
-    ImGui::TableHeadersRow();
-    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
-    {
-        ImGui::TableNextRow();
-        ImGui::TableNextColumn();
-        itemLink(p_app, SelectionKind::Resource, resources.name(id));
-        ImGui::TableNextColumn();
-        ImGui::TextColored(
-            colorOf(resources, id), "%s", accessOf(resources, id));
-        ImGui::TableNextColumn();
-        ImGui::TextWrapped(
-            "%s", joined(holdersOf(skills, resources, id), "-").c_str());
-        ImGui::TableNextColumn();
-        ImGui::PushStyleColor(ImGuiCol_Text,
-                              ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-        ImGui::TextWrapped("%s", joined(neededBy(skills, id), "-").c_str());
-        ImGui::PopStyleColor();
-    }
-    endTable();
-}
-
 /// Restores the resources whose timed fault is over.
 static void expireFaults(App& p_app)
 {
     double const now = p_app.simulation->time().value();
-    robotik::ResourceManager& resources = p_app.simulation->cell().robot().resources();
+    robotik::ResourceManager& resources =
+        p_app.simulation->cell().robot().resources();
     std::vector<ManualFault>& faults = p_app.ui.manual_faults;
     // A replay rewinds the clock: the faults of the old run are forgotten.
     std::erase_if(faults,
@@ -264,26 +148,33 @@ static void expireFaults(App& p_app)
                   });
 }
 
-/// Inject faults on purpose: tick one or more resources, then apply.
-/// Nothing happens on a single click on a resource.
-static void faultForm(App& p_app)
+/// One table of the resources: who holds each one, who needs it, its
+/// fault; tick some, then inject a fault on them below. Nothing happens on
+/// a single click on a resource (it only selects it).
+static void resourceTable(App& p_app)
 {
     robotik::Simulation& simulation = *p_app.simulation;
     robotik::ResourceManager& resources = simulation.cell().robot().resources();
+    robotik::SkillScheduler const& skills = simulation.cell().skills();
     std::vector<ManualFault>& manual = p_app.ui.manual_faults;
     std::vector<bool>& picked = p_app.ui.fault_pick;
     picked.resize(resources.size(), false);
     double const now = simulation.time().value();
 
-    // One row per resource: tick, name, fault state, restore.
-    if (beginTable("faults",
-                   4,
+    if (beginTable("resource_table",
+                   6,
                    ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersInnerV |
-                       ImGuiTableFlags_SizingFixedFit))
+                       ImGuiTableFlags_SizingFixedFit |
+                       ImGuiTableFlags_NoSavedSettings))
     {
         ImGui::TableSetupColumn("##pick", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableSetupColumn("Resource");
-        ImGui::TableSetupColumn("Fault", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("State",
+                                ImGuiTableColumnFlags_WidthFixed,
+                                ImGui::CalcTextSize("fault, 00.0 s left").x);
+        ImGui::TableSetupColumn("Held by", ImGuiTableColumnFlags_WidthStretch);
+        ImGui::TableSetupColumn("Needed by",
+                                ImGuiTableColumnFlags_WidthStretch);
         ImGui::TableSetupColumn("##restore", ImGuiTableColumnFlags_WidthFixed);
         ImGui::TableHeadersRow();
         for (robotik::ResourceId id = 0; id < resources.size(); ++id)
@@ -306,30 +197,38 @@ static void faultForm(App& p_app)
                 picked[id] = value;
             }
             ImGui::EndDisabled();
+            ImGui::SetItemTooltip("Tick, then inject a fault below.");
             ImGui::TableNextColumn();
             ImGui::AlignTextToFramePadding();
-            ImGui::TextColored(
-                available ? ImGui::GetStyleColorVec4(ImGuiCol_Text) : RED,
-                "%s",
-                name.c_str());
+            itemLink(p_app, SelectionKind::Resource, name);
             ImGui::TableNextColumn();
+            // The state says the fault and who made it.
             if (available)
             {
-                ImGui::TextDisabled("-");
+                ImGui::TextColored(
+                    colorOf(resources, id), "%s", accessOf(resources, id));
             }
             else if (by_hand == manual.end())
             {
-                ImGui::TextColored(RED, "by the scenario");
+                ImGui::TextColored(RED, "fault (scenario)");
             }
             else if (by_hand->until > 0.0)
             {
                 ImGui::TextColored(
-                    RED, "by hand, %.1f s left", by_hand->until - now);
+                    RED, "fault, %.1f s left", by_hand->until - now);
             }
             else
             {
-                ImGui::TextColored(RED, "by hand");
+                ImGui::TextColored(RED, "fault (by hand)");
             }
+            ImGui::TableNextColumn();
+            ImGui::TextWrapped(
+                "%s", joined(holdersOf(skills, resources, id), "-").c_str());
+            ImGui::TableNextColumn();
+            ImGui::PushStyleColor(
+                ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+            ImGui::TextWrapped("%s", joined(neededBy(skills, id), "-").c_str());
+            ImGui::PopStyleColor();
             ImGui::TableNextColumn();
             if (!available && ImGui::SmallButton("Restore"))
             {
@@ -343,6 +242,17 @@ static void faultForm(App& p_app)
         }
         endTable();
     }
+}
+
+/// Inject a fault on the ticked resources, for a time or until restored.
+static void faultForm(App& p_app)
+{
+    robotik::Simulation& simulation = *p_app.simulation;
+    robotik::ResourceManager& resources = simulation.cell().robot().resources();
+    std::vector<ManualFault>& manual = p_app.ui.manual_faults;
+    std::vector<bool>& picked = p_app.ui.fault_pick;
+    picked.resize(resources.size(), false);
+    double const now = simulation.time().value();
 
     // Actions on the ticked resources.
     std::size_t const count =
@@ -434,73 +344,6 @@ static void scenarioFaults(App& p_app)
     }
 }
 
-void treeView(App& p_app)
-{
-    bt::Tree const* tree =
-        p_app.simulation ? p_app.simulation->cell().tree() : nullptr;
-    if (tree == nullptr)
-    {
-        if (!p_app.simulation)
-        {
-            emptyState("No scenario loaded.");
-        }
-        else if (p_app.simulation->cell().planner() != nullptr)
-        {
-            emptyState("The PDDL planner builds the tree of its plan\nwhen the "
-                       "run starts "
-                       "(see the Planner panel).");
-        }
-        else
-        {
-            emptyState("This scenario has no behavior tree:\nthe plugin "
-                       "mission drives the robot.");
-        }
-        return;
-    }
-    ImGui::TextDisabled("%s",
-                        p_app.simulation->scenario()
-                            .controller.behavior_tree.filename()
-                            .string()
-                            .c_str());
-    ImGui::SameLine();
-    helpMarker("Each node shows its last status. Actions are skills, run by "
-               "the scheduler.");
-    ImGui::TextColored(GREY, "idle");
-    ImGui::SameLine();
-    ImGui::TextColored(ORANGE, "running");
-    ImGui::SameLine();
-    ImGui::TextColored(GREEN, "success");
-    ImGui::SameLine();
-    ImGui::TextColored(RED, "failure");
-    ImGui::Separator();
-    if (ImGui::BeginChild("tree"))
-    {
-        treeNode(p_app, tree->getRoot());
-    }
-    ImGui::EndChild();
-}
-
-void treePanel(App& p_app, char const* p_key)
-{
-    std::string const title = panelTitle("Behavior tree", p_key);
-    if (beginPanel(p_app, PanelKind::Tree, title.c_str()))
-    {
-        if (viewElsewhere(p_app, ViewKind::Tree))
-        {
-            viewNote(p_app, ViewKind::Tree);
-        }
-        else
-        {
-            if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-            {
-                p_app.ui.hovered_view = ViewKind::Tree;
-            }
-            treeView(p_app);
-        }
-    }
-    ImGui::End();
-}
-
 void resourcesPanel(App& p_app)
 {
     if (!beginPanel(p_app, PanelKind::Resources, "Resources"))
@@ -515,9 +358,7 @@ void resourcesPanel(App& p_app)
         return;
     }
     expireFaults(p_app);
-    ImGui::SeparatorText("Who holds what");
     resourceTable(p_app);
-    ImGui::SeparatorText("Inject faults");
     faultForm(p_app);
     ImGui::SeparatorText("Faults of the scenario");
     scenarioFaults(p_app);

@@ -63,6 +63,12 @@ bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name)
     if (clicked)
     {
         selectItem(p_app, p_kind, p_name);
+        // Only workspace Mission opens the Inspector at first: elsewhere
+        // the first click opens it, later ones leave the focus alone.
+        if (!p_app.ui.panels[static_cast<std::size_t>(PanelKind::Inspector)])
+        {
+            showInspector(p_app);
+        }
     }
     return clicked;
 }
@@ -78,37 +84,77 @@ static std::string robotOf(robotik::Cell const& p_cell, robotik::SkillId p_id)
     return p_cell.robots().front()->id();
 }
 
-/// Small grey caption above a title, e.g. "SKILL · left".
-static void caption(std::string const& p_text)
+/// Top of every view: the kind in small grey capitals with Pin and
+/// Overview beside it, then the name, larger, with its state as a badge.
+static void header(App& p_app,
+                   char const* p_kind,
+                   std::string const& p_name,
+                   char const* p_state,
+                   ImVec4 const& p_color)
 {
-    ImGui::TextDisabled("%s", p_text.c_str());
-}
-
-/// Name of the item, larger than the text.
-static void title(std::string const& p_text)
-{
-    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.35F);
-    ImGui::TextUnformatted(p_text.c_str());
+    UiState& ui = p_app.ui;
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextDisabled("%s", p_kind);
+    if (ui.selection.kind != SelectionKind::None ||
+        ui.pinned.kind != SelectionKind::None)
+    {
+        bool const pinned = ui.pinned.kind != SelectionKind::None;
+        ImGui::SameLine(0.0F, 16.0F);
+        if (ImGui::SmallButton(pinned ? "Unpin" : "Pin"))
+        {
+            ui.pinned = pinned ? Selection{} : ui.selection;
+        }
+        ImGui::SetItemTooltip(pinned ? "Follow the selection again."
+                                     : "Keep this item here while you select "
+                                       "others.");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("Overview"))
+        {
+            ui.pinned = {};
+            ui.selection = {};
+        }
+        ImGui::SetItemTooltip("What runs, waits and is in fault now.");
+    }
+    ImGui::PushFont(nullptr, ImGui::GetStyle().FontSizeBase * 1.3F);
+    ImGui::TextUnformatted(p_name.c_str());
     ImGui::PopFont();
+    if (p_state != nullptr)
+    {
+        ImGui::SameLine(0.0F, 12.0F);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 3.0F);
+        badge(p_state, p_color);
+    }
 }
 
-/// One fact: grey name on the left, value after it.
-static void fact(char const* p_name, char const* p_format, ...)
-{
-    ImGui::TextDisabled("%s", p_name);
-    ImGui::SameLine(ImGui::GetFontSize() * 8.0F);
-    va_list args;
-    va_start(args, p_format);
-    ImGui::TextV(p_format, args);
-    va_end(args);
-}
-
-/// Text in @p_color, wrapped to the panel.
-static void note(ImVec4 const& p_color, std::string const& p_text)
+/// What the item is doing now, in one plain sentence.
+static void sentence(ImVec4 const& p_color, std::string const& p_text)
 {
     ImGui::PushStyleColor(ImGuiCol_Text, p_color);
     ImGui::TextWrapped("%s", p_text.c_str());
     ImGui::PopStyleColor();
+    ImGui::Spacing();
+}
+
+/// Starts a table of facts: a grey name on the left, its value on the
+/// right. Call endTable() only when it returns true.
+static bool beginFacts(char const* p_id)
+{
+    if (!beginTable(p_id, 2, ImGuiTableFlags_SizingFixedFit))
+    {
+        return false;
+    }
+    ImGui::TableSetupColumn("##name", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("##value", ImGuiTableColumnFlags_WidthStretch);
+    return true;
+}
+
+/// Starts one fact: writes its name, the caller writes the value.
+static void factName(char const* p_name)
+{
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
+    ImGui::TextDisabled("%s", p_name);
+    ImGui::TableNextColumn();
 }
 
 /// A skill link in the color of its state.
@@ -174,7 +220,8 @@ holders(robotik::SkillScheduler const& p_skills,
 
 // --- Skill ------------------------------------------------------------------
 
-/// Everything about one skill.
+/// Everything about one skill: what it does now, then its settings, its
+/// resources, its preconditions and its last runs.
 static void skillView(App& p_app, robotik::SkillId p_id)
 {
     robotik::Simulation const& simulation = *p_app.simulation;
@@ -186,101 +233,131 @@ static void skillView(App& p_app, robotik::SkillId p_id)
     double const now = simulation.time().value();
     std::span<robotik::SkillRun const> const trace = skills.trace();
 
-    std::string const robot = robotOf(cell, p_id);
-    caption("SKILL");
-    title(description.name);
-    badge(robotik::toString(state), ::colorOf(state));
+    header(p_app,
+           "SKILL",
+           description.name,
+           robotik::toString(state),
+           ::colorOf(state));
+
+    // Its last phase, for the sentence.
+    robotik::SkillRun const* last = nullptr;
     for (std::size_t i = trace.size(); i > 0U; --i)
     {
-        robotik::SkillRun const& run = trace[i - 1U];
-        if (run.skill == p_id && run.state == state &&
-            (state == robotik::SkillState::Running ||
-             state == robotik::SkillState::Waiting))
+        if (trace[i - 1U].skill == p_id)
         {
-            ImGui::SameLine();
-            ImGui::TextDisabled("for %.2f s", now - run.start.value());
+            last = &trace[i - 1U];
             break;
         }
     }
     std::string const why = skillWhy(skills, resources, p_id);
-    if (!why.empty())
+    char text[96];
+    switch (state)
     {
-        note(state == robotik::SkillState::Failed ? RED : ORANGE, why);
-    }
-    if (!robot.empty())
-    {
-        ImGui::TextDisabled("Robot");
-        ImGui::SameLine(ImGui::GetFontSize() * 8.0F);
-        itemLink(p_app, SelectionKind::Robot, robot);
+        case robotik::SkillState::Running:
+            std::snprintf(text,
+                          sizeof text,
+                          "Running for %.2f s.",
+                          last != nullptr ? now - last->start.value() : 0.0);
+            sentence(ORANGE, text);
+            break;
+        case robotik::SkillState::Waiting:
+            sentence(ORANGE, "Waiting. " + why);
+            break;
+        case robotik::SkillState::Failed:
+            sentence(RED, "Failed. " + why);
+            break;
+        case robotik::SkillState::Succeeded:
+        case robotik::SkillState::Cancelled:
+            std::snprintf(text,
+                          sizeof text,
+                          "%s at %.2f s.",
+                          state == robotik::SkillState::Succeeded ? "Succeeded"
+                                                                  : "Cancelled",
+                          last != nullptr ? last->end.value() : now);
+            sentence(state == robotik::SkillState::Succeeded ? GREEN : GREY,
+                     text);
+            break;
+        case robotik::SkillState::Idle:
+            sentence(GREY,
+                     last == nullptr ? "Idle: never requested in this run."
+                                     : "Idle.");
+            break;
     }
 
-    ImGui::SeparatorText("Resources");
-    if (description.resources.empty())
+    if (beginFacts("skill"))
     {
-        ImGui::TextDisabled("None.");
-    }
-    for (robotik::ResourceRequirement const& need : description.resources)
-    {
-        ImGui::PushID(static_cast<int>(need.id));
-        itemLink(p_app, SelectionKind::Resource, resources.name(need.id));
-        ImGui::SameLine();
-        ImGui::TextDisabled(
-            need.access == robotik::Access::Shared ? "shared" : "exclusive");
-        ImGui::SameLine();
-        ImVec4 color;
-        char const* word = resourceState(resources, need.id, color);
-        std::vector<robotik::SkillId> const held =
-            holders(skills, resources, need.id);
-        bool const other = std::ranges::any_of(
-            held, [p_id](robotik::SkillId p_h) { return p_h != p_id; });
-        if (!resources.available(need.id) || !other)
+        std::string const robot = robotOf(cell, p_id);
+        if (!robot.empty())
         {
-            ImGui::TextColored(color, "%s", word);
+            factName("Robot");
+            itemLink(p_app, SelectionKind::Robot, robot);
         }
-        else
+        factName("Priority");
+        ImGui::Text("%d, %s",
+                    static_cast<int>(description.priority),
+                    description.cancellable
+                        ? "a higher priority can take its resources"
+                        : "never preempted");
+        factName("When busy");
+        ImGui::TextUnformatted(description.wait ? "waits for its resources"
+                                                : "fails at once");
+        for (robotik::ResourceRequirement const& need : description.resources)
         {
-            ImGui::TextColored(color, "held by");
-            for (robotik::SkillId const holder : held)
+            ImGui::PushID(static_cast<int>(need.id));
+            factName(&need == &description.resources.front() ? "Resources"
+                                                             : "");
+            itemLink(p_app, SelectionKind::Resource, resources.name(need.id));
+            ImGui::SameLine();
+            ImGui::TextDisabled(need.access == robotik::Access::Shared
+                                    ? "shared,"
+                                    : "exclusive,");
+            ImGui::SameLine();
+            ImVec4 color;
+            char const* word = resourceState(resources, need.id, color);
+            std::vector<robotik::SkillId> const held =
+                holders(skills, resources, need.id);
+            bool const other = std::ranges::any_of(
+                held, [p_id](robotik::SkillId p_h) { return p_h != p_id; });
+            if (!resources.available(need.id) || !other)
             {
-                if (holder != p_id)
+                ImGui::TextColored(color, "%s", word);
+            }
+            else
+            {
+                ImGui::TextColored(color, "held by");
+                for (robotik::SkillId const holder : held)
                 {
-                    ImGui::SameLine();
-                    skillLink(p_app, holder);
+                    if (holder != p_id)
+                    {
+                        ImGui::SameLine();
+                        skillLink(p_app, holder);
+                    }
                 }
             }
+            ImGui::PopID();
         }
-        ImGui::PopID();
-    }
-
-    if (!description.preconditions.empty() &&
-        (skills.precondition(p_id) != nullptr ||
-         ImGui::CollapsingHeader("Preconditions")))
-    {
-        if (skills.precondition(p_id) != nullptr)
-            ImGui::SeparatorText("Failed precondition");
+        if (description.resources.empty())
+        {
+            factName("Resources");
+            ImGui::TextDisabled("none");
+        }
         robotik::Precondition const* failed = skills.precondition(p_id);
         for (robotik::Precondition const& condition : description.preconditions)
         {
+            factName(&condition == &description.preconditions.front() ? "Needs"
+                                                                      : "");
             bool const is_failed = failed == &condition;
-            ImGui::TextColored(is_failed ? RED : GREY,
-                               is_failed ? "false" : "-");
-            ImGui::SameLine();
-            ImGui::TextWrapped("%s", condition.text.c_str());
+            ImGui::PushStyleColor(
+                ImGuiCol_Text,
+                is_failed ? RED : ImGui::GetStyleColorVec4(ImGuiCol_Text));
+            ImGui::TextWrapped(
+                "%s%s", condition.text.c_str(), is_failed ? "  (false)" : "");
+            ImGui::PopStyleColor();
         }
+        endTable();
     }
 
-    if (ImGui::CollapsingHeader("Scheduling details"))
-    {
-        fact("Priority", "%d", static_cast<int>(description.priority));
-        fact("When busy", "%s", description.wait ? "waits" : "fails at once");
-        fact("Preemption",
-             "%s",
-             description.cancellable ? "allowed" : "refused");
-    }
-
-    if (!ImGui::CollapsingHeader("Recent phases"))
-        return;
-
+    ImGui::SeparatorText("Last runs");
     std::vector<std::size_t> phases;
     for (std::size_t i = trace.size(); i > 0U && phases.size() < PHASES_SHOWN;
          --i)
@@ -340,34 +417,37 @@ static void skillView(App& p_app, robotik::SkillId p_id)
 
 // --- Resource ---------------------------------------------------------------
 
-/// Everything about one resource.
+/// Links to @p_ids on one line, or "none" in grey.
+static void skillLinks(App& p_app, std::vector<robotik::SkillId> const& p_ids)
+{
+    if (p_ids.empty())
+    {
+        ImGui::TextDisabled("none");
+        return;
+    }
+    for (robotik::SkillId const id : p_ids)
+    {
+        if (id != p_ids.front())
+        {
+            ImGui::SameLine();
+        }
+        skillLink(p_app, id);
+    }
+}
+
+/// Everything about one resource: who holds it, who waits for it, who
+/// needs it, its faults.
 static void resourceView(App& p_app, robotik::ResourceId p_id)
 {
     robotik::Cell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
 
-    caption("RESOURCE");
-    title(resources.name(p_id));
     ImVec4 color;
     char const* word = resourceState(resources, p_id, color);
-    badge(word, color);
+    header(p_app, "RESOURCE", resources.name(p_id), word, color);
 
-    ImGui::SeparatorText("Held by");
     std::vector<robotik::SkillId> const held = holders(skills, resources, p_id);
-    if (held.empty())
-    {
-        ImGui::TextDisabled(resources.owner(p_id) != robotik::NO_OWNER ||
-                                    resources.users(p_id) > 0U
-                                ? "Someone outside the skills (plugin, "
-                                  "teach pendant)."
-                                : "Nobody.");
-    }
-    for (robotik::SkillId const id : held)
-    {
-        skillLink(p_app, id);
-    }
-
     std::vector<robotik::SkillId> waiting;
     std::vector<robotik::SkillId> needed;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
@@ -387,151 +467,175 @@ static void resourceView(App& p_app, robotik::ResourceId p_id)
             waiting.push_back(id);
         }
     }
-    if (!waiting.empty())
+    bool const outside =
+        held.empty() && (resources.owner(p_id) != robotik::NO_OWNER ||
+                         resources.users(p_id) > 0U);
+    if (!resources.available(p_id))
     {
-        ImGui::SeparatorText("Waited for by");
-        for (robotik::SkillId const id : waiting)
-        {
-            skillLink(p_app, id);
-        }
+        sentence(RED,
+                 "In fault: the skills that need it wait or fail until it "
+                 "comes back.");
     }
-    if (ImGui::CollapsingHeader("All skills needing this resource"))
+    else if (outside)
     {
-        if (needed.empty())
-        {
-            ImGui::TextDisabled("No skill.");
-        }
-        for (robotik::SkillId const id : needed)
-        {
-            skillLink(p_app, id);
-        }
+        sentence(ORANGE,
+                 "Held outside the skills (the plugin or the Teach Pendant).");
+    }
+    else if (held.empty())
+    {
+        sentence(GREY, "Free: no skill holds it.");
+    }
+    else
+    {
+        sentence(color,
+                 held.size() > 1U ? "Shared by the skills below."
+                                  : "Held by the skill below.");
     }
 
-    if (resources.available(p_id) && !ImGui::CollapsingHeader("Fault history"))
-        return;
-    if (!resources.available(p_id))
-        ImGui::SeparatorText("Current fault");
-    bool any = false;
-    for (FaultSpan const& span : p_app.ui.timeline_memory.faults)
+    if (beginFacts("resource"))
     {
-        if (span.resource != p_id)
+        factName("Held by");
+        skillLinks(p_app, held);
+        factName("Waited for by");
+        skillLinks(p_app, waiting);
+        factName("Needed by");
+        skillLinks(p_app, needed);
+        factName("Faults");
+        bool any = false;
+        for (FaultSpan const& span : p_app.ui.timeline_memory.faults)
         {
-            continue;
+            if (span.resource != p_id)
+            {
+                continue;
+            }
+            if (any)
+            {
+                ImGui::SameLine();
+            }
+            any = true;
+            if (span.open)
+            {
+                ImGui::TextColored(RED, "since %.2f s", span.start);
+            }
+            else
+            {
+                ImGui::Text("%.2f-%.2f s", span.start, span.end);
+            }
         }
-        any = true;
-        if (span.open)
+        if (!any)
         {
-            ImGui::TextColored(RED, "since %.2f s", span.start);
+            ImGui::TextDisabled("none in this run");
         }
-        else
-        {
-            ImGui::Text("%.2f s to %.2f s", span.start, span.end);
-        }
+        endTable();
     }
-    if (!any)
-    {
-        ImGui::TextDisabled("None in this run.");
-    }
-    ImGui::TextDisabled("Inject a fault: Resources panel.");
+    ImGui::TextDisabled("Inject or restore a fault in the Resources panel.");
 }
 
 // --- Robot ------------------------------------------------------------------
 
-/// Everything about one robot: its skills, its joints.
+/// Everything about one robot: who drives it, its joints, its skills.
 static void robotView(App& p_app, robotik::RobotSession const& p_robot)
 {
     robotik::Cell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
 
-    caption("ROBOT");
-    title(p_robot.id());
-    if (p_robot.name() != p_robot.id())
-    {
-        ImGui::TextDisabled("%s", p_robot.name().c_str());
-    }
-    if (!p_robot.tool().empty())
-    {
-        fact("Tool", "%s", p_robot.tool().c_str());
-    }
-    if (p_app.teach.manual)
-    {
-        note(ORANGE,
-             "Manual mode: the mission is suspended (Robot "
-             "workspace, Teach Pendant).");
-    }
+    bool const manual = p_app.teach.manual;
+    header(p_app,
+           "ROBOT",
+           p_robot.id(),
+           manual ? "MANUAL" : "MISSION",
+           manual ? ORANGE : BLUE);
 
-    if (ImGui::Button("Joint controls"))
-        showPanel(p_app, PanelKind::Joints);
-    ImGui::SameLine();
-    if (ImGui::Button("Teach Pendant"))
-        showPanel(p_app, PanelKind::Teach);
-    ImGui::SameLine();
-    if (ImGui::Button("Plots"))
-        showPanel(p_app, PanelKind::Plots);
-    ImGui::SetItemTooltip("Open the plots without enabling manual control.");
-
-    ImGui::SeparatorText("Joints");
-    robotik::JointSet const& joints = p_robot.joints();
-    for (robotik::JointId id = 0; id < joints.size(); ++id)
-    {
-        bool const linear = joints.isPrismatic(id);
-        double lower = 0.0;
-        double upper = 0.0;
-        if (linear)
-        {
-            auto const limits = joints.limits(joints.prismatic(id));
-            lower = limits.lower.value();
-            upper = limits.upper.value();
-        }
-        else
-        {
-            auto const limits = joints.limits(joints.revolute(id));
-            lower = limits.lower.value();
-            upper = limits.upper.value();
-        }
-        double const position = joints.position(id);
-        if (!std::isfinite(lower) || !std::isfinite(upper))
-        {
-            lower = position - std::numbers::pi;
-            upper = position + std::numbers::pi;
-        }
-        bool const commanded = joints.mode(id) == robotik::JointMode::Position;
-        char label[64];
-        std::snprintf(label,
-                      sizeof label,
-                      linear ? "%s  %.3f m" : "%s  %.1f°",
-                      joints.name(id).c_str(),
-                      linear ? position : position * 180.0 / std::numbers::pi);
-        ImGui::PushID(static_cast<int>(id));
-        rangeBar(position,
-                 lower,
-                 upper,
-                 commanded ? joints.target(id) : position,
-                 commanded,
-                 label,
-                 joints.mode(id) == robotik::JointMode::Disabled ? RED : BLUE);
-        ImGui::PopID();
-    }
-    ImGui::SeparatorText("Skills");
-    bool const all = ImGui::CollapsingHeader("Include inactive skills");
-    bool any = false;
+    std::vector<robotik::SkillId> active;
     for (robotik::SkillId id = 0; id < skills.size(); ++id)
     {
-        if (robotOf(cell, id) != p_robot.id())
+        if (robotOf(cell, id) == p_robot.id() &&
+            (skills.state(id) == robotik::SkillState::Running ||
+             skills.state(id) == robotik::SkillState::Waiting))
         {
-            continue;
+            active.push_back(id);
         }
-        if (!all && skills.state(id) != robotik::SkillState::Running &&
-            skills.state(id) != robotik::SkillState::Waiting)
-            continue;
-        any = true;
-        skillLink(p_app, id);
-        ImGui::SameLine();
-        ImGui::TextDisabled("%s", robotik::toString(skills.state(id)));
     }
-    if (!any)
+    if (manual)
     {
-        ImGui::TextDisabled("No active skill drives this robot.");
+        sentence(ORANGE,
+                 "Moved by hand: the mission is suspended (Robot workspace).");
+    }
+    else
+    {
+        sentence(active.empty() ? GREY : ORANGE,
+                 active.empty() ? "No skill drives it now."
+                                : "Driven by the skills below.");
+    }
+
+    if (beginFacts("robot"))
+    {
+        factName("Model");
+        ImGui::TextUnformatted(p_robot.name().c_str());
+        if (!p_robot.tool().empty())
+        {
+            factName("Tool");
+            ImGui::TextUnformatted(p_robot.tool().c_str());
+        }
+        factName("Skills now");
+        skillLinks(p_app, active);
+        endTable();
+    }
+
+    // One row per joint: name, value, where it is between its limits.
+    ImGui::SeparatorText("Joints");
+    robotik::JointSet const& joints = p_robot.joints();
+    if (beginTable("joints", 3, ImGuiTableFlags_SizingFixedFit))
+    {
+        ImGui::TableSetupColumn("##joint", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("##value", ImGuiTableColumnFlags_WidthFixed);
+        ImGui::TableSetupColumn("##range", ImGuiTableColumnFlags_WidthStretch);
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
+        {
+            bool const linear = joints.isPrismatic(id);
+            double lower = 0.0;
+            double upper = 0.0;
+            if (linear)
+            {
+                auto const limits = joints.limits(joints.prismatic(id));
+                lower = limits.lower.value();
+                upper = limits.upper.value();
+            }
+            else
+            {
+                auto const limits = joints.limits(joints.revolute(id));
+                lower = limits.lower.value();
+                upper = limits.upper.value();
+            }
+            double const position = joints.position(id);
+            if (!std::isfinite(lower) || !std::isfinite(upper))
+            {
+                lower = position - std::numbers::pi;
+                upper = position + std::numbers::pi;
+            }
+            bool const commanded =
+                joints.mode(id) == robotik::JointMode::Position;
+            ImGui::PushID(static_cast<int>(id));
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(joints.name(id).c_str());
+            ImGui::TableNextColumn();
+            ImGui::Text(linear ? "%.3f m" : "%.1f°",
+                        linear ? position
+                               : position * 180.0 / std::numbers::pi);
+            ImGui::TableNextColumn();
+            rangeBar(position,
+                     lower,
+                     upper,
+                     commanded ? joints.target(id) : position,
+                     commanded,
+                     "",
+                     joints.mode(id) == robotik::JointMode::Disabled ? RED
+                                                                     : BLUE);
+            ImGui::PopID();
+        }
+        endTable();
     }
 }
 
@@ -583,23 +687,10 @@ static void objectView(App& p_app, std::string const& p_name)
     robotik::WorldObject const* belief = cell.worldModel().find(p_name);
     bool const real = inWorld(p_app, p_name);
 
-    caption("OBJECT");
-    title(p_name);
-    if (belief == nullptr)
-    {
-        badge("unknown to the robot", GREY);
-    }
-    else
-    {
-        ImVec4 color;
-        char const* word = sourceOf(belief->source, color);
-        badge(word, color);
-        if (robotik::observed(*belief))
-        {
-            ImGui::SameLine();
-            ImGui::TextDisabled("seen at %.2f s", belief->seen.value());
-        }
-    }
+    ImVec4 source_color = GREY;
+    char const* source =
+        belief == nullptr ? "unknown" : sourceOf(belief->source, source_color);
+    header(p_app, "OBJECT", p_name, source, source_color);
 
     // Both positions in the world frame, and the distance between them.
     robotik::Vector3 truth{};
@@ -616,47 +707,75 @@ static void objectView(App& p_app, std::string const& p_name)
             has_truth = false;
         }
     }
-    ImGui::SeparatorText("Belief against truth");
-    if (belief != nullptr)
+    if (belief == nullptr)
     {
-        robotik::Vector3 const believed = cell.beliefFrame() * belief->position;
-        fact("Belief", "%.3f %.3f %.3f m", believed.x, believed.y, believed.z);
+        sentence(GREY, "The robot has no belief about it.");
+        if (has_truth && beginFacts("object"))
+        {
+            factName("Truth");
+            ImGui::Text("%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
+            endTable();
+        }
+        return;
+    }
+    robotik::Vector3 const believed = cell.beliefFrame() * belief->position;
+    double const error =
+        has_truth ? 1000.0 * robotik::norm(believed - truth) : 0.0;
+    ImVec4 const error_color = error < 10.0   ? GREEN
+                               : error < 30.0 ? ORANGE
+                                              : RED;
+    char text[128];
+    if (has_truth)
+    {
+        std::snprintf(text,
+                      sizeof text,
+                      "Believed %.1f mm from where it really is.",
+                      error);
+        sentence(error_color, text);
+    }
+    else
+    {
+        sentence(ORANGE, "Believed, but not in the world.");
+    }
+    if (beginFacts("object"))
+    {
+        factName("Belief");
+        ImGui::Text("%.3f %.3f %.3f m", believed.x, believed.y, believed.z);
+        factName("Truth");
         if (has_truth)
         {
-            fact("Truth", "%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
-            double const error = 1000.0 * robotik::norm(believed - truth);
-            ImGui::TextDisabled("Error");
-            ImGui::SameLine(ImGui::GetFontSize() * 8.0F);
-            ImGui::TextColored(error < 10.0   ? GREEN
-                               : error < 30.0 ? ORANGE
-                                              : RED,
-                               "%.1f mm",
-                               error);
+            ImGui::Text("%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
+            factName("Error");
+            ImGui::TextColored(error_color, "%.1f mm", error);
         }
         else
         {
-            fact("Truth", "%s", "not in the world");
+            ImGui::TextDisabled("not in the world");
         }
-        fact("Confidence",
-             "%.0f %%",
-             static_cast<double>(belief->confidence) * 100.0);
-        fact("Observations", "%u", belief->observations);
+        factName("Confidence");
+        ImGui::Text("%.0f %%", static_cast<double>(belief->confidence) * 100.0);
+        factName("Seen");
+        if (robotik::observed(*belief))
+        {
+            ImGui::Text("%u times, last at %.2f s",
+                        belief->observations,
+                        belief->seen.value());
+        }
+        else
+        {
+            ImGui::TextDisabled("never");
+        }
         if (belief->size.x > 0.0 || belief->size.y > 0.0 ||
             belief->size.z > 0.0)
         {
-            fact("Size",
-                 "%.3f %.3f %.3f m",
-                 belief->size.x,
-                 belief->size.y,
-                 belief->size.z);
+            factName("Size");
+            ImGui::Text("%.3f %.3f %.3f m",
+                        belief->size.x,
+                        belief->size.y,
+                        belief->size.z);
         }
+        endTable();
     }
-    else if (has_truth)
-    {
-        fact("Truth", "%.3f %.3f %.3f m", truth.x, truth.y, truth.z);
-        ImGui::TextDisabled("The robot has no belief about it.");
-    }
-    ImGui::Spacing();
     ImGui::TextDisabled("Skills see the belief only; the truth is here to "
                         "compare.");
 }
@@ -669,16 +788,15 @@ static void overview(App& p_app)
     robotik::Cell const& cell = p_app.simulation->cell();
     robotik::SkillScheduler const& skills = cell.skills();
     robotik::ResourceManager const& resources = cell.robot().resources();
-    caption("RUN");
-    title(p_app.scenario_title.empty() ? std::string("Run")
-                                       : p_app.scenario_title);
-    note(GREY, "Select a skill, resource, robot or object to inspect it.");
-
-    ImGui::SeparatorText("Robots");
-    for (auto const& robot : cell.robots())
-    {
-        itemLink(p_app, SelectionKind::Robot, robot->id());
-    }
+    header(p_app,
+           "RUN",
+           p_app.scenario_title.empty() ? std::string("Run")
+                                        : p_app.scenario_title,
+           nullptr,
+           GREY);
+    sentence(GREY,
+             "Click a skill, a resource, a robot or an object anywhere "
+             "to see it here.");
 
     std::vector<robotik::SkillId> running;
     std::vector<robotik::SkillId> waiting;
@@ -702,40 +820,60 @@ static void overview(App& p_app)
                 break;
         }
     }
-    ImGui::SeparatorText("Running");
-    if (running.empty())
+    if (!beginFacts("overview"))
     {
-        ImGui::TextDisabled("Nothing.");
+        return;
     }
-    for (robotik::SkillId const id : running)
+    factName("Robots");
+    for (auto const& robot : cell.robots())
     {
-        skillLink(p_app, id);
-    }
-    if (!waiting.empty())
-    {
-        ImGui::SeparatorText("Waiting");
-        for (robotik::SkillId const id : waiting)
+        if (robot != cell.robots().front())
         {
-            skillLink(p_app, id);
             ImGui::SameLine();
-            ImGui::TextDisabled("%s", skillWhy(skills, resources, id).c_str());
         }
+        itemLink(p_app, SelectionKind::Robot, robot->id());
     }
+    factName("Running");
+    skillLinks(p_app, running);
+    factName("Waiting");
+    skillLinks(p_app, waiting);
     if (!failed.empty())
     {
-        ImGui::SeparatorText("Failed (last run)");
-        for (robotik::SkillId const id : failed)
+        factName("Failed");
+        skillLinks(p_app, failed);
+    }
+    factName("In fault");
+    bool fault = false;
+    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
+    {
+        if (resources.available(id))
         {
-            skillLink(p_app, id);
+            continue;
         }
+        if (fault)
+        {
+            ImGui::SameLine();
+        }
+        fault = true;
+        ImGui::PushStyleColor(ImGuiCol_TextLink, RED);
+        itemLink(p_app, SelectionKind::Resource, resources.name(id));
+        ImGui::PopStyleColor();
+    }
+    if (!fault)
+    {
+        ImGui::TextDisabled("none");
     }
     std::span<robotik::WorldObject const> const objects =
         cell.worldModel().objects();
     if (!objects.empty())
     {
-        ImGui::SeparatorText("Objects believed");
+        factName("Objects");
         for (robotik::WorldObject const& object : objects)
         {
+            if (&object != &objects.front())
+            {
+                ImGui::SameLine();
+            }
             ImGui::PushStyleColor(
                 ImGuiCol_TextLink,
                 robotik::observed(object)
@@ -745,31 +883,11 @@ static void overview(App& p_app)
             ImGui::PopStyleColor();
         }
     }
-    bool fault = false;
-    for (robotik::ResourceId id = 0; id < resources.size(); ++id)
-    {
-        if (resources.available(id))
-        {
-            continue;
-        }
-        if (!fault)
-        {
-            ImGui::SeparatorText("Resources in fault");
-            fault = true;
-        }
-        ImGui::PushStyleColor(ImGuiCol_TextLink, RED);
-        itemLink(p_app, SelectionKind::Resource, resources.name(id));
-        ImGui::PopStyleColor();
-    }
+    endTable();
 }
 
 void showInspector(App& p_app)
 {
-    if (p_app.ui.workspace == Workspace::Plugin)
-    {
-        p_app.ui.workspace = Workspace::Mission;
-        p_app.ui.place_plugin_panels = true;
-    }
     showPanel(p_app, PanelKind::Inspector);
 }
 
@@ -790,30 +908,6 @@ void inspectorPanel(App& p_app, char const* p_key)
     UiState& ui = p_app.ui;
     bool const pinned = ui.pinned.kind != SelectionKind::None;
     Selection const shown = pinned ? ui.pinned : ui.selection;
-
-    // Pin, back to the overview.
-    if (shown.kind != SelectionKind::None)
-    {
-        if (ImGui::SmallButton(pinned ? "Unpin" : "Pin"))
-        {
-            ui.pinned = pinned ? Selection{} : ui.selection;
-        }
-        ImGui::SetItemTooltip(pinned ? "Follow the selection again."
-                                     : "Keep this item here while the other "
-                                       "panels follow the selection.");
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Overview"))
-        {
-            ui.pinned = {};
-            ui.selection = {};
-        }
-        ImGui::SetItemTooltip("What runs, waits and is in fault.");
-        if (pinned)
-        {
-            ImGui::SameLine();
-            ImGui::TextColored(ORANGE, "Pinned");
-        }
-    }
 
     robotik::Cell const& cell = p_app.simulation->cell();
     ImGui::PushID(static_cast<int>(shown.kind));

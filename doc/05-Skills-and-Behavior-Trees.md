@@ -177,9 +177,10 @@ end, the faults, the failures of the tree and the verdicts of the
 assertions (the lines of the **Events** tab without the skills); hover one
 to read it. The
 simulation cannot go back: the mouse on a past time only reads what ran
-then, on the line under the rows. The **Resources** panel lists who holds
-what, and injects faults by hand: tick one or more resources, give a
-duration (0: until you restore them), then press *Inject*.
+then, on the line under the rows. The **Resources** panel is one table:
+who holds each resource, who needs it, its fault; tick one or more
+resources, give a duration (ever: until you restore them), then press
+*Inject*.
 
 ---
 

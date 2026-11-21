@@ -6,11 +6,9 @@
 // See LICENSING.md for details.
 
 /// @file Ui.hpp
-/// Panels of the operator interface, grouped by workspace.
+/// Editors of the operator interface and their layout presets.
 ///
-/// A panel shown in several workspaces is drawn under one window per
-/// workspace: its title is "Name##workspace", so each layout keeps its own
-/// place for it. All copies read the same App state.
+/// Each editor has one stable window identity across layout presets.
 #pragma once
 
 #include "App.hpp"
@@ -20,11 +18,12 @@
 
 #include <imgui.h>
 
+#include <cstdint>
 #include <string>
 
 // --- Shared helpers (Widgets.cpp) -------------------------------------------
 
-/// Window title of a panel in one workspace: "Name##key".
+/// Stable editor title; the legacy layout key does not change its identity.
 std::string panelTitle(char const* p_name, char const* p_key);
 
 /// Rounded label with a colored background (a status badge).
@@ -35,6 +34,24 @@ void helpMarker(char const* p_text);
 
 /// Text shown when a panel has nothing to display.
 void emptyState(char const* p_text);
+
+/// Small pictures drawn with lines (the simulator has no icon font).
+enum class Icon : std::uint8_t
+{
+    Expand,  ///< Four corners pointing out: show over the whole work area.
+    Restore, ///< Four corners pointing in: back to the layout.
+    Close,   ///< A cross: hide.
+};
+/// A square of side @p_size at @p_min with @p_icon in it, readable over a
+/// 3D view; lighter when @p_hovered.
+void drawIconBox(ImDrawList* p_draw,
+                 ImVec2 p_min,
+                 float p_size,
+                 Icon p_icon,
+                 bool p_hovered);
+/// A square button showing @p_icon, readable over a 3D view; true when
+/// clicked. @p_tooltip may be null.
+bool iconButton(char const* p_id, Icon p_icon, char const* p_tooltip);
 
 /// ImGui::BeginTable with a smaller font and tighter cells, so that
 /// columns are not cut. Call endTable() only when it returns true.
@@ -66,44 +83,44 @@ void rangeBar(double p_value,
 
 // --- Shell (Workspace.cpp) --------------------------------------------------
 
-/// Shows @p_view over the whole work area, or the panels again when it is
-/// already shown (Ctrl+Space; Esc restores).
-void toggleMaximized(App& p_app, ViewKind p_view);
-/// Draws @p_view without a window, in the space left.
-void drawView(App& p_app, ViewKind p_view);
-/// Name of a view, for the selector and the titles.
-char const* viewName(ViewKind p_view);
-/// True when @p_view is drawn somewhere else than its own panel: in the
-/// main area of the workspace shown, or over the whole work area.
-bool viewElsewhere(App const& p_app, ViewKind p_view);
-/// Drawn in a panel whose view is shown elsewhere: where, and a button to
-/// bring it back.
-void viewNote(App& p_app, ViewKind p_view);
+/// Switches to another preset and applies its default editors and positions.
+void selectWorkspace(App& p_app, Workspace p_workspace);
+/// Requests expansion of one editor; an empty name restores the layout.
+void toggleMaximized(App& p_app, std::string const& p_window);
+/// Applies pending expansion/restoration before ImGui::NewFrame().
+void updatePanelLayout(App& p_app);
+/// Name of a registered editor, independent of the selected layout preset.
+char const* panelName(PanelKind p_panel);
+/// Starts an editor with common close, expand and context-menu controls.
+/// Always pair with ImGui::End().
+bool beginEditor(App& p_app,
+                 char const* p_title,
+                 bool& p_open,
+                 ImGuiWindowFlags p_flags = 0);
 
 /// Registers window visibility settings before ImGui reads simulator.ini.
 void initializePanelSettings(App& p_app);
 /// Saves visibility while App is alive and removes its settings callback.
-void shutdownPanelSettings();
+void shutdownPanelSettings(App& p_app);
 /// Starts a closable optional window. Always pair with ImGui::End().
 bool beginPanel(App& p_app,
                 PanelKind p_panel,
                 char const* p_title,
                 ImGuiWindowFlags p_flags = 0);
-/// Opens and focuses a window in the current simulation workspace.
+/// Opens and focuses the existing editor without changing the layout preset.
 void showPanel(App& p_app, PanelKind p_panel);
 void drawPanels(App& p_app);
 
 // --- Panels shared by several workspaces ------------------------------------
 
-/// Main-view selector and Expand/Restore, in the persistent task bar.
-void mainViewControls(App& p_app);
-/// The main area of a workspace; its controls live in the task bar.
-void mainPanel(App& p_app, char const* p_key);
-/// Window id of the main area of a workspace, for the dock layouts.
-std::string mainWindowId(char const* p_key);
+/// Independent editors for the scene and execution graph.
+void scenePanel(App& p_app);
+void graphPanel(App& p_app);
 /// Contents of the Scene panel, without its window: in the panel, or over
 /// the whole work area when maximized.
-void sceneView(App& p_app);
+void sceneView(App& p_app, bool p_compact = false);
+/// Small live 3D view while another editor fills the work area.
+void sceneInset(App& p_app);
 /// Color of the frame around the 3D view: orange while the run goes
 /// on, green when it succeeded, red when it failed. False without a run, or
 /// before it starts.
@@ -125,11 +142,7 @@ std::vector<robotik::Camera*> robotCameras(App& p_app);
 void cameraInset(App& p_app, ImVec2 p_view_at, ImVec2 p_view_size);
 /// Assertions of the scenario, as a table (OverviewPanels.cpp).
 void assertionsPanel(App& p_app, char const* p_key);
-/// The behavior tree with the last status of each node
-/// (MissionPanels.cpp).
-void treePanel(App& p_app, char const* p_key);
-/// Contents of these two panels, without their window.
-void treeView(App& p_app);
+/// Assertions without their window.
 void assertionsView(App& p_app);
 
 // --- Plugin workspace (PackagePanels.cpp, OverviewPanels.cpp) ---------------
@@ -185,17 +198,17 @@ void selectItem(App& p_app, SelectionKind p_kind, std::string const& p_name);
 bool isSelected(App const& p_app,
                 SelectionKind p_kind,
                 std::string const& p_name);
-/// A clickable name: it selects the item. Returns true when clicked.
+/// A clickable name: it selects the item, and opens the Inspector when it
+/// is closed. Returns true when clicked.
 bool itemLink(App& p_app, SelectionKind p_kind, std::string const& p_name);
 /// What is selected: a robot, a skill, a resource or an object, its state
 /// and links to what it is related to. It can keep one item (Pin). One
-/// window per workspace ("Inspector##key").
+/// shared window across layout presets.
 void inspectorPanel(App& p_app, char const* p_key);
-/// Brings the Inspector of the current workspace to the front (of Mission
-/// when the workspace has none).
+/// Opens and focuses the shared Inspector.
 void showInspector(App& p_app);
 
-// --- Mission workspace (MissionPanels.cpp, TimelinePanel.cpp, SkillsPanel.cpp)
+// --- Mission workspace (MissionPanels.cpp, TimelinePanel.cpp, GraphView.cpp)
 
 /// Root of the nested tree of a SubTree node, else null.
 bt::Node const* subtreeRoot(bt::Node const& p_node);
@@ -207,8 +220,8 @@ void timelinePanel(App& p_app);
 void timelineView(App& p_app);
 /// The execution graph (GraphView.cpp): the steps of the plan, what they
 /// wait for and the skills they run; the behavior tree without a planner.
-/// A view of the main area, without a panel of its own.
-void graphView(App& p_app);
+/// Contents of the Execution graph editor.
+void graphView(App& p_app, bool p_preview = false);
 // ****************************************************************************
 /// What an event is about, for the filters.
 // ****************************************************************************
@@ -256,7 +269,6 @@ void eventsView(App& p_app);
 void sampleTimeline(App& p_app);
 /// Who holds each resource, and faults injected by hand.
 void resourcesPanel(App& p_app);
-void skillsPanel(App& p_app);
 /// The PDDL planner: goal, plan, beliefs, history (PlannerPanel.cpp).
 void plannerPanel(App& p_app);
 /// Contents of the Planner panel, without its window.
@@ -282,6 +294,11 @@ void requestScenario(App& p_app, std::filesystem::path const& p_file);
 void drawDemosMenu(App& p_app);
 /// Menus added by the loaded plugin.
 void drawPluginMenus(App& p_app);
+/// Stable, namespaced title of a plugin editor, independent of its handle.
+std::string pluginEditorKey(App const& p_app,
+                            robotik::PluginPanel const& p_panel);
+std::string pluginWindowTitle(App const& p_app,
+                              robotik::PluginPanel const& p_panel);
 /// Panels added by the loaded plugin. @p_dock, when not zero, docks
 /// them there first; @p_focus brings the first one to the front.
 void drawPluginPanels(App& p_app, ImGuiID p_dock, bool p_focus);

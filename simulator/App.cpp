@@ -170,6 +170,10 @@ void App::load(bool p_keep_tool)
     ui.manual_faults.clear();
     ui.fault_pick.clear();
     ui.timeline_memory = {};
+    ui.planner_record = -1;
+    ui.planner_saved.clear();
+    ui.graph_seen.clear();
+    ui.graph_tree = false;
     // Names of another scenario mean nothing here.
     ui.selection = {};
     ui.pinned = {};

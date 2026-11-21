@@ -108,21 +108,20 @@ static void header(App& p_app)
         takeArm(p_app);
     }
     ImGui::PopStyleColor();
+    ImGui::SetItemTooltip("Take the robot: the mission is suspended and the "
+                          "robot moves even when paused. Dragging a joint "
+                          "position (Ctrl+click to type it) also takes it.");
     ImGui::EndDisabled();
-    ImGui::PushTextWrapPos(0.0F);
-    if (rl)
+    // Said only when it is not the usual case: the mission drives.
+    if (rl || manual)
     {
-        ImGui::TextDisabled("the RL plugin drives the robot");
-    }
-    else
-    {
-        ImGui::TextDisabled(
-            manual
-                ? "mission suspended: the robot moves even when paused"
-                : "drag a position (Ctrl+click to type it) to take the robot");
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextColored(ORANGE,
+                           rl ? "the RL plugin drives" : "mission suspended");
     }
 
-    ImGui::PopTextWrapPos();
+    // Tool and gripper on one line.
     std::string const tool = robot.tool();
     if (!tool.empty())
     {
@@ -135,19 +134,23 @@ static void header(App& p_app)
     }
     if (auto const* gripper = robot.actuators().first<robotik::VacuumGripper>())
     {
+        if (!tool.empty())
+        {
+            ImGui::SameLine(0.0F, 12.0F);
+        }
         if (gripper->holding())
         {
             ImGui::TextColored(
                 ORANGE,
-                "  vacuum holds %s",
+                "vacuum holds %s",
                 compages::world::Entity(robot.world(), gripper->held())
                     .name()
                     .c_str());
         }
         else
         {
-            ImGui::TextDisabled(gripper->suction() ? "  vacuum on, empty"
-                                                   : "  vacuum off");
+            ImGui::TextDisabled(gripper->suction() ? "vacuum on, empty"
+                                                   : "vacuum off");
         }
     }
 }
@@ -473,18 +476,7 @@ void plotsPanel(App& p_app)
         ImGui::End();
         return;
     }
-    if (viewElsewhere(p_app, ViewKind::Plots))
-    {
-        viewNote(p_app, ViewKind::Plots);
-    }
-    else
-    {
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-        {
-            p_app.ui.hovered_view = ViewKind::Plots;
-        }
-        plotsView(p_app);
-    }
+    plotsView(p_app);
     ImGui::End();
 }
 
@@ -503,22 +495,12 @@ void plotsView(App& p_app)
         if (!p_app.ui.plotted.empty())
             p_app.ui.plotted.front() = true;
     }
-    ImGui::SetNextItemWidth(150.0F);
-    ImGui::Combo(
-        "Measurement",
-        &p_app.ui.plot_quantity,
-        "Position\0Velocity\0Acceleration\0Effort\0All measurements\0");
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(150.0F);
-    if (ImGui::BeginCombo("Joints", "Choose joints"))
-    {
-        for (robotik::JointId id = 0; id < joints.size(); ++id)
-            if (ImGui::Selectable(joints.name(id).c_str(),
-                                  p_app.ui.plotted[id],
-                                  ImGuiSelectableFlags_NoAutoClosePopups))
-                p_app.ui.plotted[id] = !p_app.ui.plotted[id];
-        ImGui::EndCombo();
-    }
+    // One short line: what to plot, which joints, how long.
+    ImGui::SetNextItemWidth(120.0F);
+    ImGui::Combo("##measurement",
+                 &p_app.ui.plot_quantity,
+                 "Position\0Velocity\0Acceleration\0Effort\0All four\0");
+    ImGui::SetItemTooltip("Measurement");
     std::size_t selected = 0;
     robotik::JointId only = 0;
     for (robotik::JointId id = 0;
@@ -531,16 +513,32 @@ void plotsView(App& p_app)
             only = id;
         }
     }
-    ImGui::SetNextItemWidth(160.0F);
+    std::string const preview = selected == 1U
+                                    ? joints.name(only)
+                                    : std::to_string(selected) + " joints";
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(120.0F);
+    if (ImGui::BeginCombo("##joints", preview.c_str()))
+    {
+        // A check box per joint: the ones plotted are seen at a glance, and
+        // the list stays open to pick several.
+        for (robotik::JointId id = 0; id < joints.size(); ++id)
+        {
+            bool plotted = p_app.ui.plotted[id];
+            if (ImGui::Checkbox(joints.name(id).c_str(), &plotted))
+                p_app.ui.plotted[id] = plotted;
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SetItemTooltip("Joints plotted. With one joint, red lines show "
+                          "its limits.");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(90.0F);
     ImGui::SliderFloat(
         "##window", &p_app.ui.plot_window_s, 2.0F, 30.0F, "last %.0f s");
-    ImGui::SameLine();
-    ImGui::TextDisabled(selected == 1U
-                            ? "red lines: limits of %s"
-                            : "choose joints in the selector above%s",
-                        selected == 1U ? joints.name(only).c_str() : "");
     if (selected == 0U)
     {
+        emptyState("Choose joints to plot.");
         return;
     }
 
@@ -570,8 +568,11 @@ void plotsView(App& p_app)
         for (int plot = 0; plot < count; ++plot)
         {
             int const row = all ? plot : p_app.ui.plot_quantity;
-            if (!ImPlot::BeginPlot(
-                    TITLES[row], ImVec2(-1.0F, 0.0F), ImPlotFlags_NoMenus))
+            // One plot is named by the selector above: no title.
+            if (!ImPlot::BeginPlot(TITLES[row],
+                                   ImVec2(-1.0F, 0.0F),
+                                   ImPlotFlags_NoMenus |
+                                       (all ? 0 : ImPlotFlags_NoTitle)))
             {
                 continue;
             }

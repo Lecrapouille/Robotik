@@ -30,14 +30,14 @@
 #include <vector>
 
 // ****************************************************************************
-/// A workspace groups the panels of one task. Each one has its own
-/// dock layout, saved in imgui.ini.
+/// A preset arranges the same editors for one task. The current layout
+/// and each editor's visibility are saved in simulator.ini.
 // ****************************************************************************
 enum class Workspace : std::uint8_t
 {
     Plugin,   ///< What is loaded: package, scenarios, world, assertions, files.
     Robot,    ///< Joints, limits, plots, teach pendant, cameras.
-    Mission,  ///< Behavior tree, skills, timeline, resources.
+    Mission,  ///< Execution, planning, timeline, resources.
     Autonomy, ///< Beliefs against truth, perception.
 };
 
@@ -48,17 +48,21 @@ inline constexpr std::size_t WORKSPACE_COUNT = 4U;
 // ****************************************************************************
 enum class PanelKind : std::uint8_t
 {
+    Scene,
+    Graph,
+    Plugin,
+    Files,
+    PackageView,
+    Assets,
     Inspector,
     Joints,
     Plots,
     Teach,
     Cameras,
-    Tree,
     Assertions,
     Timeline,
     Events,
     Resources,
-    Skills,
     Planner,
     WorldModel,
     Perception,
@@ -291,24 +295,6 @@ struct Selection
 };
 
 // ****************************************************************************
-/// A view that can fill the main area of a workspace (its selector) or the
-/// whole work area (Ctrl+Space). Each view is drawn in one place at a time;
-/// its own panel then shows a note.
-// ****************************************************************************
-enum class ViewKind : std::uint8_t
-{
-    None,
-    Scene,    ///< The 3D view.
-    Camera,   ///< A robot camera, large.
-    Timeline, ///< Skills, resources and faults over time.
-    Plots,    ///< Joint positions, velocities, accelerations, efforts.
-    Tree,     ///< The behavior tree and the status of its nodes.
-    Planner,  ///< The PDDL goal, plan and beliefs.
-    Graph,    ///< Plan steps (or tree nodes) and their skills, as a graph.
-    Events,   ///< What happened, one dated line each.
-};
-
-// ****************************************************************************
 /// Filters of the Events panel. Kept across scenario loads.
 // ****************************************************************************
 struct EventsView
@@ -333,15 +319,24 @@ struct UiState
     Workspace workspace = Workspace::Mission;
     /// Rebuild the dock layout of the current workspace.
     bool reset_layout = false;
-    /// Window visibility is saved alongside the dock layout in simulator.ini.
-    std::array<PanelVisibility, WORKSPACE_COUNT> panels{
-        defaultPanels(Workspace::Plugin),
-        defaultPanels(Workspace::Robot),
-        defaultPanels(Workspace::Mission),
-        defaultPanels(Workspace::Autonomy)
-    };
-    /// The saved layout of each workspace was checked once (Workspace.cpp).
-    std::array<bool, WORKSPACE_COUNT> layout_checked{};
+    /// One visibility and identity per editor, shared by all layout presets.
+    PanelVisibility panels = defaultPanels(Workspace::Mission);
+    bool layout_checked = false;
+    /// Workspace to show from the next frame (a click mid-frame).
+    std::optional<Workspace> pending_workspace;
+    /// What each workspace had when it was left: its open editors (saved in
+    /// simulator.ini) and its dock layout (ini text, this session only).
+    /// Empty: the workspace was never left, its defaults apply.
+    std::array<std::optional<PanelVisibility>, WORKSPACE_COUNT>
+        workspace_panels;
+    std::array<std::string, WORKSPACE_COUNT> workspace_layouts;
+    /// Layout version read from simulator.ini (see LAYOUT_VERSION).
+    unsigned settings_version = 0;
+    /// Tabs a new layout shows in front, and for how many frames already.
+    std::vector<std::string> front_tabs;
+    int front_frames = 0;
+    /// Extra plugin editors use the same opening and closing rules.
+    std::map<std::string, bool> plugin_panels;
     /// Dock the plugin panels in the current workspace, then focus them.
     bool place_plugin_panels = false;
     bool focus_plugin_panel = false;
@@ -382,8 +377,6 @@ struct UiState
     int planner_record = -1;
     std::string planner_saved;
     bool beliefs_only_true = false;
-    /// Skills panel: cards (false) or a table (true).
-    bool skills_table = false;
     /// Resources panel: resources ticked for the next fault, its duration
     /// and the faults injected by hand.
     std::vector<bool> fault_pick;
@@ -399,24 +392,35 @@ struct UiState
     /// Timeline: the view chosen and what it recorded of the run.
     TimelineView timeline;
     TimelineMemory timeline_memory;
-    /// The view shown over the work area, and the one under the mouse in
-    /// the last frame (what Ctrl+Space would maximize).
-    ViewKind maximized = ViewKind::None;
-    ViewKind hovered_view = ViewKind::None;
-    /// The view maximized in the last frame: focus it only when it opens.
-    ViewKind maximized_last = ViewKind::None;
+    /// Expansion is applied between frames; the original layout is restored
+    /// before normal saving, including when the application exits expanded.
+    std::string maximized_window;
+    std::optional<std::string> pending_maximized;
+    std::string saved_layout;
+    char const* settings_filename = nullptr;
+    std::string focused_window;
+    /// Expand/restore buttons of the editors drawn this frame (window,
+    /// box, state); drawn over their content, then emptied.
+    struct Corner
+    {
+        std::string window;
+        float x = 0.0F;
+        float y = 0.0F;
+        float size = 0.0F;
+        bool expanded = false;
+        bool hovered = false;
+    };
+    std::vector<Corner> corners;
     /// Events: the filters.
     EventsView events;
-    /// Execution graph: the tree instead of the plan.
+    /// Execution graph: the tree instead of the plan, a list (default)
+    /// instead of boxes and arrows.
     bool graph_tree = false;
+    bool graph_list = true;
     /// Execution graph: the selection it last brought into sight.
     std::string graph_seen;
-    /// The view in the main area of each workspace (Plugin has none).
-    std::array<ViewKind, WORKSPACE_COUNT> main_view{ ViewKind::Scene,
-                                                     ViewKind::Scene,
-                                                     ViewKind::Scene,
-                                                     ViewKind::Scene };
     /// Scene: a robot camera over its corner, and which one.
+    bool inset_scene = true;
     bool inset_camera = true;
     std::size_t inset_index = 0;
     /// Joints drawn in the plots.

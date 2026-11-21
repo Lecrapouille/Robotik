@@ -101,12 +101,10 @@ static void children(App& p_app,
 /// Physics cell of an entity or an actuator: its level, then what the
 /// physics backend makes of it. A level set in physics.overrides is bright,
 /// the level of the scenario is grey.
-static void physicsCell(App const& p_app,
-                        std::string const& p_id,
-                        char const* p_engine)
+static void
+physicsCell(App const& p_app, std::string const& p_id, char const* p_engine)
 {
-    robotik::PhysicsSpec const& physics =
-        p_app.simulation->scenario().physics;
+    robotik::PhysicsSpec const& physics = p_app.simulation->scenario().physics;
     bool const own = physics.overrides.contains(p_id);
     char const* const level = robotik::toString(fidelityOf(physics, p_id));
     if (own)
@@ -226,7 +224,8 @@ static void entityRow(App& p_app,
     {
         try
         {
-            robotik::Vector3 const at = simulation.cell().pose(p_entity.id).position;
+            robotik::Vector3 const at =
+                simulation.cell().pose(p_entity.id).position;
             ImGui::Text("%.2f %.2f %.2f", at.x, at.y, at.z);
         }
         catch (std::exception const&)
@@ -463,7 +462,7 @@ static void plannerTab(App& p_app)
         if (p_app.ui.active_tab != FileTab::Planner)
         {
             p_app.ui.active_tab = FileTab::Planner;
-            p_app.ui.view = FileTab::Planner;
+            showView(p_app, FileTab::Planner, false);
         }
         if (chosen.path.empty() && !plans)
         {
@@ -533,7 +532,7 @@ static void fileTab(App& p_app, FileTab p_tab, char const* p_label)
             p_app.ui.active_tab = p_tab;
             if (p_tab != FileTab::Other)
             {
-                p_app.ui.view = p_tab;
+                showView(p_app, p_tab, false);
             }
         }
         if (!loaded && p_tab != FileTab::Experiment && p_tab != FileTab::Other)
@@ -597,7 +596,8 @@ void selectExperiment(App& p_app,
     ui.experiment_path = p_path;
     ui.experiment.reset();
     ui.experiment_error.clear();
-    robotik::Result<robotik::Experiment> loaded = robotik::loadExperiment(p_path);
+    robotik::Result<robotik::Experiment> loaded =
+        robotik::loadExperiment(p_path);
     if (loaded)
     {
         ui.experiment = loaded.take();
@@ -716,7 +716,7 @@ void showFile(App& p_app, std::filesystem::path const& p_path)
 
 void filesPanel(App& p_app)
 {
-    if (!ImGui::Begin("Files"))
+    if (!beginPanel(p_app, PanelKind::Files, "Files"))
     {
         ImGui::End();
         return;

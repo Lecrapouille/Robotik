@@ -190,21 +190,39 @@ void drawPluginMenus(App& p_app)
     }
 }
 
+std::string pluginEditorKey(App const& p_app,
+                            robotik::PluginPanel const& p_panel)
+{
+    auto const* package =
+        p_app.plugins.catalog().matchScenario(p_app.scenario_path).package;
+    return (package == nullptr ? std::string() : package->id + "/") +
+           p_panel.key;
+}
+
+std::string pluginWindowTitle(App const& p_app,
+                              robotik::PluginPanel const& p_panel)
+{
+    return p_panel.title + "###plugin_" + pluginEditorKey(p_app, p_panel);
+}
+
 void drawPluginPanels(App& p_app, ImGuiID p_dock, bool p_focus)
 {
     bool first = true;
     for (robotik::PluginPanel const& panel : p_app.plugins.host().panels())
     {
+        std::string const title = pluginWindowTitle(p_app, panel);
+        bool& open = p_app.ui.plugin_panels
+                         .try_emplace(pluginEditorKey(p_app, panel), true)
+                         .first->second;
         if (p_dock != 0)
-        {
-            ImGui::DockBuilderDockWindow(panel.title.c_str(), p_dock);
-        }
+            ImGui::DockBuilderDockWindow(title.c_str(), p_dock);
+        if (!open || (!p_app.ui.maximized_window.empty() &&
+                      p_app.ui.maximized_window != title))
+            continue;
         if (p_focus && first)
-        {
             ImGui::SetNextWindowFocus();
-        }
         first = false;
-        if (!ImGui::Begin(panel.title.c_str()))
+        if (!beginEditor(p_app, title.c_str(), open))
         {
             ImGui::End();
             continue;

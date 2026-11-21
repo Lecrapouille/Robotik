@@ -7,15 +7,15 @@
 
 // The PDDL planner at work. Three views:
 // - plannerView: the goal, how far the plan went, what the robot believes,
-//   every plan of the run (Planner panel, and the View panel of Plugin);
+//   every plan of the run, and an execution preview (Planner panel);
 // - plannerTexts: the texts behind a plan: domain, generated problem,
 //   planner output, generated behavior tree (Files > Planner);
 // - beliefsView: the symbolic beliefs (also in the Autonomy workspace).
 
 #include "Ui.hpp"
 
-#include "Robotik/Task/Planning/PlanExecutor.hpp"
 #include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/Planning/PlanExecutor.hpp"
 
 #include <imgui.h>
 
@@ -151,11 +151,13 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
     std::snprintf(
         overlay, sizeof overlay, "step %zu / %zu", p_executor.done(), steps);
     ImGui::PushStyleColor(ImGuiCol_PlotHistogram, colorOf(p_executor.state()));
-    ImGui::ProgressBar(progress, ImVec2(160.0F, 0.0F), overlay);
+    ImGui::ProgressBar(
+        progress,
+        ImVec2(std::max(80.0F, ImGui::GetContentRegionAvail().x - 38.0F), 0.0F),
+        overlay);
     ImGui::PopStyleColor();
-    ImGui::SameLine();
     ImGui::TextDisabled(
-        "replans %u / %u", p_executor.replans(), p_executor.spec().max_replans);
+        "Replans %u / %u", p_executor.replans(), p_executor.spec().max_replans);
     ImGui::SameLine();
     ImGui::BeginDisabled(p_app.simulation->finished());
     if (ImGui::SmallButton("Replan"))
@@ -174,102 +176,6 @@ static void goalHeader(App& p_app, robotik::PlanExecutor& p_executor)
                            p_executor.failure().c_str());
         ImGui::PopStyleColor();
     }
-}
-
-/// The plan as a list of steps, the running ones highlighted (several
-/// at once when steps run together).
-static void planSteps(robotik::PlanExecutor const& p_executor)
-{
-    std::vector<robotik::GroundAction> const& plan = p_executor.plan();
-    if (plan.empty())
-    {
-        ImGui::TextDisabled(p_executor.state() == robotik::PlanState::Succeeded
-                                ? "Nothing to do: the goal already holds."
-                                : "No plan yet.");
-        return;
-    }
-    if (!beginTable(
-            "plan", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingFixedFit))
-    {
-        return;
-    }
-    ImGui::TableSetupColumn("##state", ImGuiTableColumnFlags_WidthFixed);
-    ImGui::TableSetupColumn("Action", ImGuiTableColumnFlags_WidthStretch, 1.0F);
-    ImGui::TableSetupColumn("Skills", ImGuiTableColumnFlags_WidthStretch, 1.4F);
-    for (std::size_t i = 0U; i < plan.size(); ++i)
-    {
-        robotik::StepStatus const status = i < p_executor.steps().size()
-                                               ? p_executor.steps()[i]
-                                               : robotik::StepStatus::Pending;
-        bool const current = p_executor.running(i);
-        ImGui::TableNextRow();
-        if (current)
-        {
-            ImVec4 highlight = BLUE;
-            highlight.w = 0.25F;
-            ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg1,
-                                   ImGui::GetColorU32(highlight));
-        }
-        ImGui::TableNextColumn();
-        switch (status)
-        {
-            case robotik::StepStatus::Done:
-                ImGui::TextColored(GREEN, "%2zu  done", i + 1U);
-                break;
-            case robotik::StepStatus::Skipped:
-                ImGui::TextColored(GREEN, "%2zu  skip", i + 1U);
-                ImGui::SetItemTooltip(
-                    "Its effects already held in the beliefs: nothing to do");
-                break;
-            case robotik::StepStatus::Failed:
-                ImGui::TextColored(RED, "%2zu  FAIL", i + 1U);
-                ImGui::SetItemTooltip("%s", p_executor.failure().c_str());
-                break;
-            case robotik::StepStatus::Pending:
-                if (current)
-                {
-                    ImGui::TextColored(BLUE, "%2zu  now", i + 1U);
-                }
-                else
-                {
-                    ImGui::TextDisabled("%2zu", i + 1U);
-                }
-                if (i < p_executor.after().size() &&
-                    !p_executor.after()[i].empty())
-                {
-                    std::string after = "Waits for step";
-                    for (std::size_t const step : p_executor.after()[i])
-                    {
-                        after += " " + std::to_string(step + 1U);
-                    }
-                    ImGui::SetItemTooltip("%s", after.c_str());
-                }
-                break;
-        }
-        ImGui::TableNextColumn();
-        std::string const action =
-            robotik::toString(robotik::Atom{ plan[i].name, plan[i].args });
-        if (current)
-        {
-            ImGui::TextUnformatted(action.c_str());
-        }
-        else
-        {
-            ImGui::TextColored(status == robotik::StepStatus::Pending
-                                   ? GREY
-                                   : ImGui::GetStyleColorVec4(ImGuiCol_Text),
-                               "%s",
-                               action.c_str());
-        }
-        ImGui::TableNextColumn();
-        std::string skills;
-        for (std::string const& node : p_executor.nodes(plan[i]))
-        {
-            skills += (skills.empty() ? "" : ", ") + node;
-        }
-        ImGui::TextDisabled("%s", skills.c_str());
-    }
-    endTable();
 }
 
 /// Every plan of the run. A click picks the plan whose texts
@@ -398,27 +304,41 @@ void plannerView(App& p_app)
         return;
     }
     goalHeader(p_app, *executor);
-    if (ImGui::CollapsingHeader("Plan", ImGuiTreeNodeFlags_DefaultOpen))
+    ImGui::Separator();
+    float const room = ImGui::GetContentRegionAvail().y;
+    // Keep the execution visible while reading beliefs or past searches.
+    if (ImGui::BeginChild("planner details", ImVec2(0.0F, room * 0.48F)))
     {
-        planSteps(*executor);
-    }
-    if (ImGui::CollapsingHeader("Beliefs", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        beliefsView(p_app);
-    }
-    if (ImGui::CollapsingHeader("History"))
-    {
-        historyTable(p_app, *executor);
-        if (ImGui::SmallButton("Show the texts"))
+        if (ImGui::BeginTabBar("planner details tabs"))
         {
-            p_app.ui.workspace = Workspace::Plugin;
-            p_app.ui.place_plugin_panels = true;
-            p_app.ui.select_tab = FileTab::Planner;
+            if (ImGui::BeginTabItem("Beliefs"))
+            {
+                beliefsView(p_app);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("History"))
+            {
+                if (ImGui::SmallButton("Open PDDL files"))
+                {
+                    selectWorkspace(p_app, Workspace::Plugin);
+                    showPanel(p_app, PanelKind::Files);
+                    p_app.ui.select_tab = FileTab::Planner;
+                }
+                historyTable(p_app, *executor);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        ImGui::SetItemTooltip(
-            "Plugin > Files > Planner: domain, problem, output and tree of "
-            "the picked plan");
     }
+    ImGui::EndChild();
+    ImGui::Separator();
+    ImGui::TextDisabled("EXECUTION");
+    ImGui::SameLine();
+    if (ImGui::SmallButton("Open execution graph"))
+        showPanel(p_app, PanelKind::Graph);
+    if (ImGui::BeginChild("execution preview"))
+        graphView(p_app, true);
+    ImGui::EndChild();
 }
 
 void plannerTexts(App& p_app)
@@ -542,35 +462,7 @@ void plannerTexts(App& p_app)
 
 void plannerPanel(App& p_app)
 {
-    static robotik::Simulation const* seen = nullptr;
-    if (!beginPanel(p_app, PanelKind::Planner, "Planner"))
-    {
-        ImGui::End();
-        return;
-    }
-    robotik::Simulation const* current = p_app.simulation.get();
-    if (current != seen)
-    {
-        seen = current;
-        p_app.ui.planner_record = -1;
-        p_app.ui.planner_saved.clear();
-        // A planned scenario: bring this panel in front of the Skills tab.
-        if (plannerOf(p_app) != nullptr)
-        {
-            ImGui::SetWindowFocus();
-        }
-    }
-    if (viewElsewhere(p_app, ViewKind::Planner))
-    {
-        viewNote(p_app, ViewKind::Planner);
-    }
-    else
-    {
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-        {
-            p_app.ui.hovered_view = ViewKind::Planner;
-        }
+    if (beginPanel(p_app, PanelKind::Planner, "Planner"))
         plannerView(p_app);
-    }
     ImGui::End();
 }

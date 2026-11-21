@@ -420,17 +420,6 @@ void eventsPanel(App& p_app)
         ImGui::End();
         return;
     }
-    if (viewElsewhere(p_app, ViewKind::Events))
-    {
-        viewNote(p_app, ViewKind::Events);
-    }
-    else
-    {
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-        {
-            p_app.ui.hovered_view = ViewKind::Events;
-        }
-        eventsView(p_app);
-    }
+    eventsView(p_app);
     ImGui::End();
 }
