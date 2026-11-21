@@ -12,7 +12,8 @@
 /// joints and the sensors and send commands, nothing more. The program that
 /// runs the robot owns a @ref robotik::RobotSession — it steps the physics and
 /// the sensors. So a skill cannot step the world by mistake, and the same skill
-/// drives a simulated arm or a real one (see doc/Glossary.md: "Backend").
+/// drives a simulated arm or a real one (see doc/reference/glossary.md:
+/// "Backend").
 ///
 /// @par Contract
 /// - Promises: a skill sees the same @ref robotik::Robot API in simulation and

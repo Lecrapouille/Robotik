@@ -1,5 +1,7 @@
 # Glossary
 
+[⏫ Reference](README.md)
+
 The words of RobotIK, in simple English. The comments of the headers use
 them; each one is defined here once. Words are in alphabetical order inside
 each group.
@@ -128,7 +130,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **PA-BT** (Planning and Acting with Behavior Trees): `planner.method:
   pabt`. No search: a reactive behavior tree grows backwards from the goal,
   each false condition getting the actions that make it true
-  ([11 §4](11-PDDL-Planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
+  ([Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
 - **PDDL**: a language to describe a planning problem: what can be done and
   what is wanted.
 - **Plan**: the list of actions the planner found. Steps that do not depend
@@ -144,7 +146,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Condition**: a question about the run, in the notation of PDDL:
   `(< time 30)`, `(inside red_cube box)`, `(and ... )`. The operator comes
   first, inside parentheses. RobotIK reads it once when the scenario loads
-  and refuses an unknown name (doc/03 §6).
+  and refuses an unknown name ([conditions](scenario-file.md#conditions)).
 - **Experiment**: several cases, each run with several seeds, compared.
 - **Metric**: a named number a run publishes (`time`, `laps`).
 - **Outcome**: why a run ended: success, failure, timeout, stop condition.

@@ -13,7 +13,8 @@
 /// read when the scenario loads, so a typo stops the load (exit code 1)
 /// instead of failing the run, and a step does not read text again.
 ///
-/// The notation is the one of PDDL (see doc/Glossary.md: "Condition"):
+/// The notation is the one of PDDL (see doc/reference/glossary.md:
+/// "Condition"):
 /// @code
 /// controller.success                        ; a metric: true when not 0
 /// (< time 30)                               ; a comparison

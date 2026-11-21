@@ -1,6 +1,6 @@
 ---
 name: robotik-docs
-description: Edit or extend the RobotIK documentation in doc/ (numbered chapters 01–11, README index) and the Doxygen comments of the headers. Use when documenting a new feature, plugin, assertion, API change, or when asked to fix, rewrite or review docs.
+description: Edit or extend the RobotIK documentation in doc/ (tutorials, guides, concepts, reference, case-studies; README map) and the Doxygen comments of the headers. Use when documenting a new feature, plugin, assertion, API change, or when asked to fix, rewrite or review docs.
 ---
 
 # RobotIK documentation
@@ -9,41 +9,36 @@ Audience: people with no robotics background, often French. The goal: pages
 that read as if an experienced developer explained what they understood,
 not as if a tool described a repository. Few good pages beat many thin ones.
 
-## Map (general → specific)
+## Map
 
-| File | Holds | Kind (Diátaxis) |
-|------|-------|-----------------|
-| doc/README.md | index, reading order, quick paths | map |
-| 01-Introduction.md | what RobotIK is, robotics words | concept |
-| 02-Getting-Started.md | build, simulator, headless, the three programs (§7) | tutorial |
-| 03-Worlds-and-Scenarios.md | YAML tutorials (§2, §3) + reference (entities, conditions, experiments) | tutorial + reference |
-| 04-Your-First-Plugin.md | HelloWorld lessons, `MissionPlugin`, lifecycle, plugin.yaml | tutorial + guide |
-| 05-Skills-and-Behavior-Trees.md | skills, scheduler, resources, BT nodes, faults | concept + guide |
-| 06-Architecture.md | layers, step order, backends, who owns which state | concept |
-| 07-API-Reference.md | classes by task | reference |
-| 08-Reinforcement-Learning.md | environments, pool, log | guide |
-| 09-Demos.md | one section per plugin | case study |
-| 10-Tools-and-Frames.md | flange/tool0/tool_mount/tcp | concept |
-| 11-PDDL-Planner.md | planner controller, domain/observers/bindings | concept + guide |
-| Glossary.md | one entry per word; the dictionary of the project | reference |
+The pages are sorted by kind (Diátaxis), as in Compages. Each folder has a
+`README.md` that lists its pages in reading order; a page starts with its
+`# Title`, then a back link `[⏫ Folder](README.md)`.
 
-Diátaxis: a page does one job. A **tutorial** teaches by doing, in order; a
-**guide** does one task now (goal → steps → code → result); a **concept**
-explains why (the problem, the idea, the choice and what it costs); a
-**reference** is tables of facts, no story. A chapter that mixes kinds keeps
-them in separate sections, and a new page has one kind only. The move of
-the chapters into `tutorials/ guides/ concepts/ reference/` is planned
-(ROADMAP.md, task 7): until then, keep the numbered files.
+| Folder | Kind | A page… |
+|--------|------|---------|
+| doc/README.md | map | the five folders, reading order, quick paths |
+| doc/tutorials/ | tutorial | teaches by doing, in order (`NN-name.md`), ends with `Next:` |
+| doc/guides/ | guide | one task now: goal → steps → code → result |
+| doc/concepts/ | concept | why: the problem, the idea, the choice and what it costs |
+| doc/reference/ | reference | tables of facts, no story: files, plugin, planner, API, glossary |
+| doc/case-studies/ | case study | one demo plugin from end to end |
+
+A page does one job. When a new text mixes kinds, split it: the steps go in
+a tutorial or a guide, the why in a concept, the keys in the reference, and
+the pages link to each other. Names are lower case with dashes
+(`write-a-skill.md`); a tutorial keeps its number.
 
 Put a fact in one place and link to it
-(`[text](03-Worlds-and-Scenarios.md#6-assertions)`). Root README.md has a
-doc table: keep it in sync when a chapter is added or renamed. Code comments
-point to pages (`doc/03 §6`): update them when a section moves
+(`[assertions](../reference/scenario-file.md#assertions)`). Root README.md
+has a documentation table: keep it in sync when a page is added or renamed.
+Code comments point to pages by path (`doc/reference/scenario-file.md`):
+update them when a page moves
 (`grep -rn "doc/" include src plugins .claude AGENTS.md README.md`).
 
 ## Writing rules (from ASD-STE100, kept for French readers)
 
-- **One word, one meaning; one meaning, one word.** Glossary.md is the
+- **One word, one meaning; one meaning, one word.** doc/reference/glossary.md is the
   dictionary: a skill is never a "task", an assertion never a "check".
   Define a word once and link to it.
 - **Short sentences**: 20 words at most in a procedure, 25 in an

@@ -1,12 +1,12 @@
-# 6. Architecture
+# Architecture
+
+[⏫ Concepts](README.md)
 
 This page explains **how Robotik is built and why**. It is for people who
 want to change Robotik itself, or to understand what happens behind the API.
 You do not need it to write a plugin.
 
----
-
-## 1. The principle: Robotik orchestrates
+## The principle: Robotik orchestrates
 
 Robotik is not a monolithic simulator. It assembles specialised libraries and
 keeps each one in its own domain:
@@ -40,7 +40,7 @@ second Pinocchio or a second MuJoCo.
 
 Like Compages (GPU, world, renderer), Robotik is cut in layers. Each layer
 works without the ones above it, so a project takes the smallest one it
-needs (examples in [02-Getting-Started.md](02-Getting-Started.md#7-the-three-layers-in-code)):
+needs (examples in [Three programs, one per layer](../tutorials/02-three-programs.md)):
 
 ```text
 Package   files and plugins: Simulation (scenario = cell + verdict), RunReport,
@@ -71,9 +71,7 @@ throws. Events are `Signal`s: `SkillScheduler::changed`, `Camera::frames`,
 `Simulation::assertionChanged` and `Simulation::ended`; the plugin session
 listens to them instead of polling.
 
----
-
-## 2. The full path of a decision
+## The full path of a decision
 
 ```text
 Scenario (YAML)
@@ -98,9 +96,7 @@ WorldModel               the beliefs, read by the skills at the next tick
 > **Decisions produce commands; the robot moves; sensors observe;
 > perception updates beliefs; assertions judge on the ground truth.**
 
----
-
-## 3. One simulation step
+## One simulation step
 
 `Simulation::step(dt)` (Package, `src/Robotik/Package/Simulation.cpp`)
 steps the cell (`Cell::step`, Task, `src/Robotik/Task/Cell.cpp`), then
@@ -125,9 +121,7 @@ Simulation::step(dt)
 
 The plugin is called after: `Plugin::update(dt)`, from the host.
 
----
-
-## 4. The robot: model, state, backend
+## The robot: model, state, backend
 
 Three separate notions:
 
@@ -240,13 +234,11 @@ copy of each reading into its component (15 %). The next candidates are, in
 this order: the scene graph update, then the actuators and the skills, then
 the grasp systems. Each one starts with a benchmark and a profile.
 
----
-
-## 5. Actuators, resources, faults
+## Actuators, resources, faults
 
 An actuator is not only a function that sends a command: it is also a
 **resource** of the same name. Skills reserve resources; the scheduler
-arbitrates (see [05-Skills-and-Behavior-Trees.md](05-Skills-and-Behavior-Trees.md)).
+arbitrates (see [Skills, the scheduler and behavior trees](skills-and-behavior-trees.md)).
 
 A fault (`FaultInjector`) makes a resource unavailable. Running skills that
 hold it fail with `ResourceLost`; new requests fail with `Unavailable`. Sensor
@@ -254,9 +246,7 @@ readings carry a `valid` flag that is false during the fault. No skill has
 special fault code: the fault is a fact, the reaction is a decision of the
 behavior tree.
 
----
-
-## 6. Sensors, perception, WorldModel
+## Sensors, perception, WorldModel
 
 A sensor is not its processing:
 
@@ -276,9 +266,7 @@ sequence number, validity. `NoiseModel` applies bias, white noise, resolution
 and saturation. `LatencyBuffer` delays the delivery but keeps the capture
 time.
 
----
-
-## 7. Truth, description, belief
+## Truth, description, belief
 
 | | Access | Used by |
 |--|--------|---------|
@@ -299,7 +287,7 @@ enters the belief only when the scenario chooses a **perception fidelity**
 that asks for it, per object (`perception: { fidelity: truth }`, or
 `blind: truth` when no camera has an image), and the reports say so. It is a
 mock, as a simpler physics is: a test of the plan does not need a detector
-(see [03-Worlds-and-Scenarios.md §7](03-Worlds-and-Scenarios.md#7-truth-description-and-belief)).
+(see [Truth, description and belief](worlds-scenarios-experiments.md#truth-description-and-belief)).
 
 Three contracts keep it honest:
 
@@ -337,9 +325,7 @@ the belief it comes from. The cost is one call of the observer per question.
 The Compages world is a copy for two readers: the rendering, and the truth
 of the conditions. It never decides anything.
 
----
-
-## 8. Rendering is separate
+## Rendering is separate
 
 Compages draws the 3D world. Robotik does not render anything itself:
 
@@ -351,9 +337,7 @@ The core runs without a window. This is required for CI, tests, RL,
 benchmarks, servers, and thousands of episodes. The graphical simulator is a
 **client** of Robotik, not its centre.
 
----
-
-## 9. Hosts and plugins
+## Hosts and plugins
 
 ```text
              ┌──────────────────┐     ┌──────────────────┐
@@ -372,11 +356,9 @@ The border between host and plugin is a **C ABI**
 (`include/Robotik/Package/Plugin/PluginABI.h`): no C++ class, container or exception
 crosses it. `PluginAPI.hpp` wraps it in C++ for plugin authors. The manifest
 `plugin.yaml` is read without loading the library; the library is loaded only
-for the chosen scenario. Details in [04-Your-First-Plugin.md](04-Your-First-Plugin.md).
+for the chosen scenario. Details in [Your first plugin](../tutorials/04-your-first-plugin.md).
 
----
-
-## 10. Source layout
+## Source layout
 
 ```text
 include/Robotik/          public headers (one umbrella: Robotik.hpp)
@@ -408,9 +390,7 @@ external/                 third-party sources (downloaded)
 | `Package/Scenario/` | `World`, `Scenario`, `Experiment`, `Assertions`, `Trajectory`, `PackagePath`, `FileRole` |
 | `Package/Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |
 
----
-
-## 11. Why this separation matters
+## Why this separation matters
 
 You can replace **MuJoCo** by a **hardware backend** without rewriting the
 scenario, the tree, the skills, the scheduler, the WorldModel or the

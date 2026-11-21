@@ -12,7 +12,7 @@
 /// Skills read this belief, never the ground truth of the simulator: a real
 /// robot has no ground truth. A belief comes from the mission (where objects
 /// should be), from detectors, or from the simulator when the scenario asks
-/// for a truth fidelity (see doc/Glossary.md: "Perception fidelity").
+/// for a truth fidelity (see doc/reference/glossary.md: "Perception fidelity").
 ///
 /// @par Contract
 /// - Promises: each belief says where it comes from (@ref

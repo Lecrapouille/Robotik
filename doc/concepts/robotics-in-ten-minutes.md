@@ -1,15 +1,15 @@
-# 1. Introduction: robotics in ten minutes
+# Robotics in ten minutes
+
+[⏫ Concepts](README.md)
 
 This page is for people who never wrote a robot program. It explains the
 words you will meet in the rest of the documentation, then what Robotik does
 with them. No code here: only ideas and pictures.
 
-If you already know robotics, read only [§3 What is Robotik?](#3-what-is-robotik)
-and go to [02-Getting-Started.md](02-Getting-Started.md).
+If you already know robotics, read only [What is Robotik?](#what-is-robotik)
+and go to [Getting started](../tutorials/01-getting-started.md).
 
----
-
-## 1. What is a robot, for a program?
+## What is a robot, for a program?
 
 For a program, a robot is three things:
 
@@ -37,9 +37,7 @@ read the sensors → decide → send commands to the actuators → wait a little
 That is all. Everything else in robotics is a better way to do one of those
 three steps.
 
----
-
-## 2. The words you will meet
+## The words you will meet
 
 ### The body: links and joints
 
@@ -173,11 +171,9 @@ reacts.
 In **reinforcement learning**, a program learns by trial and error. At each
 step it receives an **observation**, chooses an **action**, and gets a
 **reward** (a score). An **episode** is one try, from start to end. You will
-need these words only in [08-Reinforcement-Learning.md](08-Reinforcement-Learning.md).
+need these words only in [Build reinforcement learning environments](../guides/reinforcement-learning.md).
 
----
-
-## 3. What is Robotik?
+## What is Robotik?
 
 Robotik is a C++20 library to **write a robot program once, then run it in a
 simulator, in automatic tests, in a learning environment, and (later) on a
@@ -229,12 +225,10 @@ tests or learning.
 | A **scenario** file (YAML): what happens, what is checked | Runs it, checks it, writes a report |
 | A **plugin** (C++): your skills, your perception, your metrics | Loads it in the simulator and in headless mode |
 
----
-
-## 4. Where to go next
+## Where to go next
 
 | You want to… | Read |
 |--------------|------|
-| Build Robotik and see a robot move | [02-Getting-Started.md](02-Getting-Started.md) |
-| Change a scenario without writing C++ | [03-Worlds-and-Scenarios.md](03-Worlds-and-Scenarios.md) |
-| Write your own C++ program | [04-Your-First-Plugin.md](04-Your-First-Plugin.md) |
+| Build Robotik and see a robot move | [Getting started](../tutorials/01-getting-started.md) |
+| Change a scenario without writing C++ | [Worlds, scenarios and experiments](worlds-scenarios-experiments.md) |
+| Write your own C++ program | [Your first plugin](../tutorials/04-your-first-plugin.md) |

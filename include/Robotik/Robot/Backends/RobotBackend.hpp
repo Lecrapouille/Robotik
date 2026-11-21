@@ -11,7 +11,7 @@
 ///
 /// The robot writes commands (targets, efforts) and reads measurements. The
 /// backend sits between them and the world. Swapping it is how the same
-/// skills run in simulation and on a real robot (see doc/Glossary.md:
+/// skills run in simulation and on a real robot (see doc/reference/glossary.md:
 /// "Backend").
 ///
 /// @par Contract

@@ -917,7 +917,7 @@ static void mainMenu(App& p_app)
         }
         ImGui::Separator();
         ImGui::TextDisabled("Documentation: doc/README.md");
-        ImGui::TextDisabled("Tutorial: doc/04-Your-First-Plugin.md");
+        ImGui::TextDisabled("Tutorial: doc/tutorials/04-your-first-plugin.md");
         ImGui::EndMenu();
     }
     workspaceTabs(p_app);

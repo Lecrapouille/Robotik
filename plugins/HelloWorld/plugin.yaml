@@ -1,4 +1,4 @@
-# Tutorial package. Each scenario is one lesson, see doc/04-Your-First-Plugin.md.
+# Tutorial package. Each scenario is one lesson, see doc/tutorials/04-your-first-plugin.md.
 plugin:
   id: robotik.hello_world
   name: Hello world

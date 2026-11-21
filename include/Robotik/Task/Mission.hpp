@@ -10,7 +10,8 @@
 /// skills, its detectors, its metrics, what it does at each step).
 ///
 /// A mission does not judge the run: it publishes numbers, and the assertions
-/// of the scenario decide (see doc/Glossary.md: "Metric", "Assertion").
+/// of the scenario decide (see doc/reference/glossary.md: "Metric",
+/// "Assertion").
 ///
 /// @par Contract
 /// - Promises: @c setup once, @c reset at each episode, @c step after each

@@ -1,12 +1,12 @@
-# 2. Getting started
+# Getting started
+
+[⏫ Tutorials](README.md)
 
 In this page you build Robotik, watch a robot in the simulator, run the same
 scenario without a window, and break a test on purpose to see what a failure
 looks like. It takes about 20 minutes (most of it is compilation).
 
----
-
-## 1. Build
+## Build
 
 Robotik builds on **Linux** with `make` (no CMake). It does not build on
 macOS: the display needs OpenGL 4.3 or more.
@@ -45,9 +45,7 @@ Unit tests, for developers:
 make tests -j"$(nproc --all)"
 ```
 
----
-
-## 2. Watch a robot: the simulator
+## Watch a robot: the simulator
 
 ```bash
 ./build/linux-gcc-debug/bin/Robotik-Simulator
@@ -276,9 +274,7 @@ focuses the Timeline editor; `--maximize timeline` expands that editor.
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
 a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 
----
-
-## 3. Run without a window: headless
+## Run without a window: headless
 
 The same scenario, in a terminal:
 
@@ -324,9 +320,7 @@ Options:
 ...
 ```
 
----
-
-## 4. Tutorial: break a test on purpose
+## Break a test on purpose
 
 The goal: see that a scenario *is* a test.
 
@@ -359,9 +353,7 @@ The goal: see that a scenario *is* a test.
    assertion is a verdict, not an emergency stop.
 5. Put back `0.4` (or run `make` again: it copies the sources over `build/`).
 
----
-
-## 5. Tutorial: run an experiment
+## Run an experiment
 
 An **experiment** runs several variants of a scenario, with several seeds,
 and compares them.
@@ -384,11 +376,9 @@ pick_and_place_experiment: 12/12 runs passed
 assertion, every metric. (`perception truth` means that, without a window,
 no image is rendered, so the true cube position replaced the camera, as the
 scenario asks with `perception: { blind: truth }`. See
-[03-Worlds-and-Scenarios.md §7](03-Worlds-and-Scenarios.md#7-truth-description-and-belief).)
+[Truth, description and belief](../concepts/worlds-scenarios-experiments.md#truth-description-and-belief).)
 
----
-
-## 6. The other programs
+## The other programs
 
 Some demos also have their own program, for uses the two hosts do not cover:
 
@@ -400,104 +390,6 @@ Some demos also have their own program, for uses the two hosts do not cover:
 ./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
-All demos are described in [09-Demos.md](09-Demos.md).
+All demos are described in [Case studies: the demos](../case-studies/README.md).
 
----
-
-## 7. The three layers in code
-
-RobotIK has three layers. Each one works without the ones above it, so you
-pick the smallest one that fits your project. The words are explained in
-the [glossary](Glossary.md).
-
-| Layer | You have… | You write… |
-|-------|-----------|------------|
-| **Robot** | a URDF file | one robot, its joints and its physics |
-| **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
-| **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
-
-Three small programs show them. Each one is a test, so it always builds and
-runs. They share one engine: a skill runs through the same scheduler whether
-you request it, a behavior tree asks for it, or a plan needs it.
-
-**1. Move a robot, without a planner** (Robot layer,
-`tests/Robot/TestOpenRobot.cpp`).
-
-```cpp
-auto arm = robotik::openRobot("robotik.robots.robot_6axis");
-if (!arm)
-    return fail(arm.error());                  // a message telling what to fix
-robotik::JointSet& joints = arm.value()->joints();
-joints.moveTo(joints.revolute("joint2"), robotik::Radians(0.3));
-for (int i = 0; i < 200; ++i)
-    arm.value()->step(robotik::Seconds(0.01)); // MuJoCo moves the joint
-```
-
-**2. Run a skill, without a mission** (Task layer,
-`tests/Examples/TestLayerExamples.cpp`). A robot and a cube described in
-C++; `openCell` creates the world that holds them.
-
-```cpp
-robotik::EntitySpec arm;
-arm.id = "arm";
-arm.type = robotik::EntitySpec::Type::Robot;
-arm.model = "robot_6axis.urdf";
-robotik::EntitySpec cube;
-cube.id = "cube";
-cube.shape = robotik::ShapeSpec{};             // a 4 cm box
-cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
-robotik::CellDescription description;
-description.world.entities = { arm, cube };
-
-auto opened = robotik::openCell(std::move(description));
-robotik::Cell& cell = *opened.value();
-auto const raise = cell.skills().add<robotik::MoveJointSkill>(
-    { .name = "Raise" }, "joint2", 0.5);
-cell.run(raise, robotik::Seconds(10.0));       // SkillState::Succeeded
-```
-
-**3. Reach a goal, without writing a sequence of skills** (Task layer, same
-test file). You give the goal; the planner finds the actions in the PDDL
-domain, and the cell runs their skills. The mission gives the skills and the
-observers that read the beliefs ([chapter 11](11-PDDL-Planner.md)).
-
-```cpp
-PickPlaceMission mission(true, true);          // skills + observers
-auto opened = robotik::openCell(description, &mission);
-robotik::Cell& cell = *opened.value();
-
-robotik::PlannerSpec goal;
-goal.domain = "pick_and_place.domain.pddl";
-goal.goal = { robotik::parseLiteral("(in red_cube box)").take() };
-cell.achieve(goal);
-cell.run(robotik::Seconds(60.0));              // Status::SUCCESS: detect, pick, place
-```
-
-The `planner:` block of a scenario file calls the same `achieve`. The YAML
-of the Package layer only reads files and calls the Task layer; it adds no
-behaviour of its own.
-
-**Package**: the scenario file builds the cell; the simulation judges the
-run with the assertions of the file (same test file).
-
-```cpp
-auto scenario = robotik::loadScenario("hello.scenario.yaml", assets);
-if (!scenario)
-    return fail(scenario.error());
-compages::world::World world;
-robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
-while (!simulation.finished())
-    simulation.step(robotik::Seconds(0.01));
-bool const ok = simulation.passed();
-```
-
-A plugin is the same Package layer, loaded by the simulator or by
-Robotik-Headless: [04-Your-First-Plugin.md](04-Your-First-Plugin.md).
-
----
-
-## 8. Where to go next
-
-- Change the world and the scenario, without C++:
-  [03-Worlds-and-Scenarios.md](03-Worlds-and-Scenarios.md).
-- Write your own C++ code: [04-Your-First-Plugin.md](04-Your-First-Plugin.md).
+Next: [Three programs, one per layer](02-three-programs.md).

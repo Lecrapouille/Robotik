@@ -13,8 +13,8 @@
 /// (@ref robotik::Cell::tree); the rest of the API names the tree types only
 /// (TreeTypes.hpp) and answers with @ref robotik::Status.
 ///
-/// The tree decides what to do; the node only asks the scheduler, so
-/// resources and priorities stay checked (see doc/Glossary.md: "Behavior
+/// The tree decides what to do; the node only asks the scheduler, so resources
+/// and priorities stay checked (see doc/reference/glossary.md: "Behavior
 /// tree").
 ///
 /// @par Contract

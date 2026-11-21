@@ -10,7 +10,7 @@
 ///
 /// A sensor measures something on the robot or around it. This base class
 /// decides when to measure; each kind of sensor says how (see
-/// doc/Glossary.md: "Sensor", "Latency", "Noise model").
+/// doc/reference/glossary.md: "Sensor", "Latency", "Noise model").
 ///
 /// @par Contract
 /// - Promises: a sensor samples at its own frequency and publishes its reading

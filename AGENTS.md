@@ -9,16 +9,16 @@ Read only what the task needs. Load a skill instead of reading the docs:
 
 | Task | Skill (`.claude/skills/`) | Long doc |
 |------|---------------------------|----------|
-| Create / change a plugin (C++ + manifest) | `robotik-plugin` | doc/04-Your-First-Plugin.md |
-| Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/03-Worlds-and-Scenarios.md |
-| Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/05-Skills-and-Behavior-Trees.md |
-| Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/11-PDDL-Planner.md |
-| Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/02-Getting-Started.md |
+| Create / change a plugin (C++ + manifest) | `robotik-plugin` | doc/tutorials/04-your-first-plugin.md |
+| Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/reference/scenario-file.md, world-file.md |
+| Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/concepts/skills-and-behavior-trees.md |
+| Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/concepts/pddl-planner.md |
+| Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/tutorials/01-getting-started.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
-| Write an app in C++ without YAML (Robot or Task layer) | — | doc/02-Getting-Started.md §7 |
-| Find a class or method | — | doc/07-API-Reference.md |
-| A word you do not know | — | doc/Glossary.md |
-| Change the core | — | doc/06-Architecture.md |
+| Write an app in C++ without YAML (Robot or Task layer) | — | doc/tutorials/02-three-programs.md |
+| Find a class or method | — | doc/reference/api.md |
+| A word you do not know | — | doc/reference/glossary.md |
+| Change the core | — | doc/concepts/architecture.md |
 
 ## Layout
 
@@ -26,7 +26,7 @@ Three layers, each usable without the ones above (`make check-layers`
 compiles every file alone where only the layers below exist, so an include
 upwards is "file not found"; `Task/Skills` and `Task/Planning` are compiled
 without `Task/Cell.hpp`, so they cannot call the truth). Words:
-doc/Glossary.md.
+doc/reference/glossary.md.
 
 ```text
 include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementation
@@ -91,8 +91,9 @@ built.
   never by a skill.
 - File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
   `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
-  `x.experiment.yaml` (doc/03 §1). id = name without `.yaml` and
-  `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`).
+  `x.experiment.yaml` (doc/concepts/worlds-scenarios-experiments.md).
+  id = name without `.yaml` and `.scenario`, other dots → `_`
+  (`pick.rl.yaml` → `pick_rl`).
 - Paths in world/scenario/experiment YAML start at the package root (folder
   of `plugin.yaml`): `world: worlds/arm.world.yaml`. `..` and symlinks are allowed
   but the canonical path must stay in the package; absolute paths are
@@ -139,7 +140,8 @@ built.
   their methods. Events are `Signal`s (`SkillScheduler::changed`,
   `Simulation::ended`), not polling.
 - Hot loops use handles found once (`JointId`, `LinkRef`, `ResourceId`),
-  never a name. Measure before changing a storage (doc/06, "Fast data").
+  never a name. Measure before changing a storage
+  (doc/concepts/architecture.md, "Fast data").
 - Only `Task/Skills/SkillNodes.hpp` includes BlackThorn; other public
   headers name tree types with `TreeTypes.hpp` and answer `robotik::Status`
   (checked by the compiler in `tests/Common/TestHiddenBlackThorn.cpp`).
@@ -158,7 +160,7 @@ built.
   rules, no signs of machine writing).
 - A header starts with `@file`: what it is for, in everyday words, then
   `@par Contract` (promises, expects, errors). Define a technical word or
-  link doc/Glossary.md.
+  link doc/reference/glossary.md.
 - Every source file starts with the SPDX header
   `GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial` (copy it from a neighbour).
 - Commit subject: imperative sentence, no prefix (e.g. "Give sensors a

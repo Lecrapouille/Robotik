@@ -11,7 +11,7 @@
 ///
 /// An *asset* is such a reusable file; a *pack* is the folder that groups them
 /// with a version and a license; @c pack.yaml is its *manifest* (see
-/// doc/Glossary.md). A model is named by the pack id and its key:
+/// doc/reference/glossary.md). A model is named by the pack id and its key:
 /// @c robotik.tools.vacuum. Nobody outside the pack builds a path to its
 /// files, so the pack can be moved or updated alone. Example:
 /// data/packs/robotik.tools/pack.yaml.

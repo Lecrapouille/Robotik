@@ -1,41 +1,40 @@
-# Robotik documentation
+# RobotIK documentation
 
-Read the chapters in order: each one uses the words of the previous ones.
-Chapters 1 to 5 are for everybody, even without any robotics background.
-Chapters 6 to 11 are references: open them when you need them.
+The pages are in five folders. Each folder holds one kind of page, so you
+know what a page gives you before you open it.
 
-## Learn
+| Folder | A page… | Open it when |
+|--------|---------|--------------|
+| [Tutorials](tutorials/README.md) | teaches by doing, step by step | you start with RobotIK |
+| [Guides](guides/README.md) | gives the steps of one task | you know what you want to do |
+| [Concepts](concepts/README.md) | explains why RobotIK works this way | you want to understand a choice |
+| [Reference](reference/README.md) | lists keys, classes and words | you need one fact |
+| [Case studies](case-studies/README.md) | shows one demo plugin from end to end | you want a complete example |
 
-| # | Chapter | You will learn | Time |
-|---|---------|----------------|------|
-| 1 | [Introduction](01-Introduction.md) | Robotics words (joint, frame, TCP, kinematics, skill, behavior tree…) and what Robotik does | 10 min |
-| 2 | [Getting started](02-Getting-Started.md) | Build, run the simulator and Headless, read a report, break a test on purpose | 20 min |
-| 3 | [Worlds and scenarios](03-Worlds-and-Scenarios.md) | Describe a world, a task, its checks and its variants in YAML — no C++ | 30 min |
-| 4 | [Your first plugin](04-Your-First-Plugin.md) | Write C++: the HelloWorld plugin lesson by lesson, then your own plugin | 45 min |
-| 5 | [Skills and behavior trees](05-Skills-and-Behavior-Trees.md) | Skills, resources, the scheduler, trees, recovering from faults | 30 min |
+## Reading order
 
-## Reference
-
-| # | Chapter | Contents |
-|---|---------|----------|
-| 6 | [Architecture](06-Architecture.md) | Layers, one simulation step, backends, truth vs belief, source layout |
-| 7 | [API reference](07-API-Reference.md) | The classes a plugin uses, grouped by task |
-| 8 | [Reinforcement learning](08-Reinforcement-Learning.md) | Environments, spaces, episode ends, parallel pool, episode log |
-| 9 | [Demos](09-Demos.md) | Every plugin of the repository, and how to write a good demo |
-| 10 | [Tools and frames](10-Tools-and-Frames.md) | Flange, `tool0`, `tool_mount`, TCP; mounting a tool |
-| 11 | [The PDDL planner](11-PDDL-Planner.md) | A goal instead of a tree: domain, observers, bindings, replanning |
-| — | [Glossary](Glossary.md) | The words of RobotIK (asset, pack, skill, belief, fidelity...) in simple English |
+If robotics is new to you, read
+[Robotics in ten minutes](concepts/robotics-in-ten-minutes.md) first. Then
+follow the [tutorials](tutorials/README.md) in order. After them, open the
+other pages when you need them.
 
 ## Quick paths
 
-- *"I just want to see something move."* → [2. Getting started](02-Getting-Started.md)
-- *"I want to change a test without compiling."* → [3. Worlds and scenarios](03-Worlds-and-Scenarios.md)
-- *"I want to write my own robot program."* → [4. Your first plugin](04-Your-First-Plugin.md)
-- *"Which method do I call?"* → [7. API reference](07-API-Reference.md)
-- *"I want to change Robotik itself."* → [6. Architecture](06-Architecture.md), and [AGENTS.md](../AGENTS.md) for the conventions
+- *"I just want to see something move."* →
+  [Getting started](tutorials/01-getting-started.md)
+- *"I want to change a test without compiling."* →
+  [A cube in a box](tutorials/03-a-cube-in-a-box.md), then
+  [the scenario file](reference/scenario-file.md)
+- *"I want to write my own robot program."* →
+  [Your first plugin](tutorials/04-your-first-plugin.md)
+- *"Which method do I call?"* → [API reference](reference/api.md)
+- *"I want to change RobotIK itself."* →
+  [Architecture](concepts/architecture.md), and [AGENTS.md](../AGENTS.md)
+  for the conventions
 
 ## A note on the language
 
-This documentation is written in simple English, with short sentences and
-common words, so that readers whose first language is not English (French
-readers in particular) can follow it easily.
+The pages are written in simple English, with short sentences and common
+words, so that readers whose first language is not English (French readers
+in particular) can follow them. The rules are in the `robotik-docs` skill
+(`.claude/skills/robotik-docs/SKILL.md`).

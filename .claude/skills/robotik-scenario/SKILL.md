@@ -13,7 +13,7 @@ its name in the `allowKeys` list of the reader (`ConfigNode::allowKeys`).
 Free mission values go under `scenario.parameters` (not checked). Quote a
 text with a comma inside a flow map `{ name: "a, b" }`.
 Edit `plugins/...`, then `make <target>` (it overwrites `build/`).
-File names carry their role (doc/03 §1): `x.world.yaml`, `x.scenario.yaml`,
+File names carry their role (doc/concepts/worlds-scenarios-experiments.md): `x.world.yaml`, `x.scenario.yaml`,
 `x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
 `x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`. id = name without `.yaml`
 and `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`,
@@ -90,7 +90,7 @@ scenario:
   world: worlds/cell.world.yaml
   seed: 42
   controller: { behavior_tree: scenarios/main.bt.yaml }   # omit → Mission::status ends the run
-  # or instead of a tree (doc/11-PDDL-Planner.md); entities need `kind: <pddl type>`:
+  # or instead of a tree (doc/concepts/pddl-planner.md); entities need `kind: <pddl type>`:
   # controller:
   #   planner:
   #     domain: scenarios/x.domain.pddl

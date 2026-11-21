@@ -11,10 +11,9 @@
 /// for measures.
 ///
 /// A *cell* is the place where robots work, as in a factory (see
-/// doc/Glossary.md). It is the Task layer: a C++ program builds one from a
-/// @ref robotik::CellDescription, without any file. Headless unless a @ref
-///     robotik::SceneView is
-/// given.
+/// doc/reference/glossary.md). It is the Task layer: a C++ program builds one
+/// from a @ref robotik::CellDescription, without any file. Headless unless a
+/// @ref robotik::SceneView is given.
 ///
 /// @par Contract
 /// - Promises: same description and same seed, same run. Skills, observers and

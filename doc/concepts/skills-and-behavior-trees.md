@@ -1,6 +1,8 @@
-# 5. Skills, the scheduler and behavior trees
+# Skills, the scheduler and behavior trees
 
-Lesson 4 of [04-Your-First-Plugin.md](04-Your-First-Plugin.md) showed a skill
+[⏫ Concepts](README.md)
+
+Lesson 4 of [Your first plugin](../tutorials/04-your-first-plugin.md) showed a skill
 called by a behavior tree. This page explains the three pieces, how they talk,
 and how to write your own.
 
@@ -24,9 +26,7 @@ Skill                "I move the arm a little toward the cube."
 Robot API            joints, actuators, sensors
 ```
 
----
-
-## 1. What is a skill?
+## What is a skill?
 
 A skill is **one capability** of the robot: `Home`, `MoveJoint`, `Detect`,
 `Grasp`, `FollowLine`. It can be very small (move one joint) or bigger
@@ -82,9 +82,7 @@ must work on a real robot.
 Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`,
 `ReleaseSkill`) are in `plugins/PickAndPlace/src`.
 
----
-
-## 2. Register a skill: `SkillDescription`
+## Register a skill: `SkillDescription`
 
 A skill is added to the scheduler with a description:
 
@@ -121,7 +119,7 @@ tree action with the same name.
 
 ### Several robots
 
-In a world of several robots ([03 §4](03-Worlds-and-Scenarios.md#several-robots)),
+In a world of several robots ([Several robots](../reference/world-file.md#several-robots)),
 each skill drives the robot of its `robot` field: `p_context.robot` is that
 robot. Name the skills after the robot (`left.Hover(p3)`), so that a
 behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one.
@@ -141,9 +139,7 @@ skills.add<HoverSkill>(describe(id + ".Hover(" + part + ")", id, arm), part, Len
 - The beliefs are in the world frame: bring them into the base of your
   robot with `p_context.robot.base().pose.inverse() * belief`.
 
----
-
-## 3. Resources
+## Resources
 
 A resource is a part of the robot that skills must share: an actuator or a
 sensor. Each actuator and each sensor of the world file is a resource **with
@@ -182,9 +178,7 @@ who holds each resource, who needs it, its fault; tick one or more
 resources, give a duration (ever: until you restore them), then press
 *Inject*.
 
----
-
-## 4. The scheduler
+## The scheduler
 
 `SkillScheduler` is the referee. It does not know how to move an arm. It knows
 **if and when** a skill may run.
@@ -245,9 +239,7 @@ while (skills.state(home) != robotik::SkillState::Succeeded)
 
 This is what the **Home** menu of HelloWorld does.
 
----
-
-## 5. Behavior trees
+## Behavior trees
 
 A behavior tree is the **mission logic**. Robotik uses
 [BlackThorn](https://github.com/Lecrapouille/BlackThorn). Trees are YAML
@@ -330,136 +322,7 @@ BehaviorTree:
 >           name: Grasp(red_cube)
 > ```
 
----
-
-## 6. Tutorial: recover from a fault
-
-Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`,
-add a fault that takes the arm away between 1 s and 2 s:
-
-```yaml
-  faults:
-    - { at: 1.0, resource: arm, action: disable }
-    - { at: 2.0, resource: arm, action: restore }
-```
-
-**Step 1: no recovery.** Run it:
-
-```bash
-make robotik_hello_world
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
-```
-
-```text
-  0 s  Home  SUCCEEDED  (0 s)
-  0.01 s  Wave  FAILED (resource lost: arm)  (0.99 s)
-[FAIL] controller.success  (controller.success = 0)
-```
-
-**Step 2: retry.** Change the tree to retry `Wave` until it works. This is
-exactly `scenarios/skills_retry.bt.yaml`:
-
-```yaml
-      - UntilSuccess:
-          attempts: 1000
-          child:
-            - Action:
-                name: Wave
-```
-
-```text
-  0 s  Home  SUCCEEDED  (0 s)
-  0.01 s  Wave  FAILED (resource lost: arm)  (0.99 s)
-  1.02 s  Wave  FAILED (unavailable: arm)  (0 s)
-  ...
-  1.98 s  Wave  FAILED (unavailable: arm)  (0 s)
-  2 s  Wave  SUCCEEDED  (3.77 s)
-  5.78 s  Home  SUCCEEDED  (0.63 s)
-[PASS] controller.success  (controller.success = 1)
-```
-
-Look at what you did **not** write: no `if (arm_broken)` in the skill, no
-special code in the mission. The **fault** is a fact (the scheduler sees
-it); the **reaction** is a decision (the tree makes it). Two separate jobs.
-
-The HelloWorld experiment compares both trees on the same faulty scenario:
-see [03-Worlds-and-Scenarios.md §9](03-Worlds-and-Scenarios.md#9-the-experiment-file).
-
----
-
-## 7. Tutorial: write a skill that moves to a pose
-
-Inside your own skill you can reuse the built-in ones. `MoveTCPSkill`
-computes IK once per goal and drives the joints:
-
-```cpp
-class TouchSkill final: public robotik::Skill
-{
-public:
-
-    explicit TouchSkill(robotik::Pose p_target) : m_target(p_target) {}
-
-    void reset() override
-    {
-        m_move.reset();
-        m_move.goal(m_target);           // in the robot base frame
-    }
-
-    robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override
-    {
-        return m_move.tick(p_context, p_dt);   // RUNNING until reached, or FAILURE
-    }
-
-    void cancel(robotik::RobotContext& p_context) override
-    {
-        m_move.cancel(p_context);
-    }
-
-private:
-
-    robotik::Pose m_target{};
-    robotik::MoveTCPSkill m_move;
-};
-```
-
-To target an object, read it from the **belief**, not from the simulation:
-
-```cpp
-robotik::WorldObject const* cube = p_context.world_model.find("red_cube");
-if (cube == nullptr || !cube->observed())
-{
-    return robotik::Status::FAILURE;     // the robot has not seen it
-}
-// cube->position, cube->size, cube->confidence ...
-```
-
-See `plugins/Painter/src/PainterSkills.cpp` (`DipSkill`, `MarkSkill`,
-`RinseSkill`) for complete skills built on `MoveTCPSkill` and trajectories.
-
----
-
-## 8. Custom tree nodes
-
-By default, actions are named after the skills. A plugin can also register
-its own BlackThorn nodes, for example to give arguments to a skill before
-requesting it. The Painter does this (`painter::registerNodes`):
-
-```cpp
-p_factory.registerNode("Dip", [&p_scheduler]() {
-    return std::make_unique<GestureNode>(p_scheduler, p_scheduler.find("dip"), Gesture::Dip);
-});
-```
-
-Call it from `Mission::setup` with `p_cell.factory()`. Include
-`Robotik/Task/Skills/SkillNodes.hpp` first: it is the only RobotIK header
-that brings BlackThorn. The rest of the API names the tree types without
-their definition, and `Cell::status()` answers a `robotik::Status`
-(`IDLE`, `RUNNING`, `SUCCESS`, `FAILURE`). An application that does not
-write nodes never sees BlackThorn.
-
----
-
-## 9. Going further: planners, logic and LLMs
+## Going further: planners, logic and LLMs
 
 The split *tree / scheduler / skill* leaves room for higher layers. None of
 them is implemented yet; the architecture is ready for them.

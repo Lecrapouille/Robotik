@@ -45,12 +45,12 @@
 ///     - (inside red_cube box)
 /// @endcode
 ///
-/// The perception fidelity says where the beliefs of the robot come from
-/// (see doc/Glossary.md): @c sensed runs the detectors on the camera images;
-/// @c truth copies the true pose of the objects, as a mock of the detectors;
-/// @c noisy_truth adds noise, delay and misses to it. @c blind is used when
-/// no camera has an image source (a headless run). The run report tells
-/// which level each run used. The older key @c oracle is still read
+/// The perception fidelity says where the beliefs of the robot come from (see
+/// doc/reference/glossary.md): @c sensed runs the detectors on the camera
+/// images; @c truth copies the true pose of the objects, as a mock of the
+/// detectors; @c noisy_truth adds noise, delay and misses to it. @c blind is
+/// used when no camera has an image source (a headless run). The run report
+/// tells which level each run used. The older key @c oracle is still read
 /// (@c always is @c fidelity: @c truth, @c when_blind is @c blind: @c truth).
 ///
 /// Files are relative to the package root and stay inside it

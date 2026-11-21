@@ -9,7 +9,7 @@
 /// One include for the whole public API of RobotIK.
 ///
 /// RobotIK has three layers; each one works without the ones above it
-/// (see doc/Glossary.md):
+/// (see doc/reference/glossary.md):
 /// @li Robot: one robot, its joints, sensors, actuators and physics
 ///     (@ref robotik::openRobot, @ref robotik::Robot);
 /// @li Task: robots and objects doing a job, with a controller (behavior

@@ -30,7 +30,7 @@
 /// @par Contract
 /// - Promises: every quantity has its unit in its type; @c Pose is a position
 ///   in metres plus a unit quaternion (w, x, y, z).
-/// - Expects: Z up, metres, radians (see doc/Glossary.md, "Frame").
+/// - Expects: Z up, metres, radians (see doc/reference/glossary.md, "Frame").
 #pragma once
 
 #include "Compages/Core/Pose.hpp"

@@ -75,7 +75,7 @@ scenario YAML, and the simulator only shows or triggers it.
 - The simulator knows no demo: no object id, tool kind or joint name of a
   plugin in a panel (see "Core stays agnostic" in robotik-plugin). A panel
   for one demo is a plugin panel (`addPanel`).
-- Update doc/02-Getting-Started.md (workspace table) when a panel changes.
+- Update doc/tutorials/01-getting-started.md (workspace table) when a panel changes.
 
 ## Toward a scenario editor (planned, not built)
 

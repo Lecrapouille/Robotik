@@ -1,15 +1,15 @@
-# 8. Reinforcement learning
+# Build reinforcement learning environments
+
+[⏫ Guides](README.md)
 
 Robotik does **not** train policies. It gives stable, reproducible,
 window-free **environments** that a learning algorithm (in C++, or in another
 process) can drive. The same worlds and scenarios as the demos are used.
 
 If the words *observation*, *action*, *reward*, *episode* are new, read
-[01-Introduction.md §2](01-Introduction.md#reinforcement-learning-rl) first.
+[Reinforcement learning (RL)](../concepts/robotics-in-ten-minutes.md#reinforcement-learning-rl) first.
 
----
-
-## 1. The loop
+## The loop
 
 ```text
           ┌──────────── observation ◄──────────┐
@@ -55,9 +55,7 @@ differently:
 
 `terminated()` groups the first two, `truncated()` the last two.
 
----
-
-## 2. An environment from a scenario
+## An environment from a scenario
 
 `robotik::SimulationEnvironment` turns a robot cell into an environment (a
 scenario file, or a `CellDescription` written in C++), from three swappable
@@ -113,9 +111,7 @@ streams included), resources, faults, object layout.
 The three pick-and-place parts live in `plugins/PickAndPlace/src/RlMission.*`
 and are shared by the command-line pool and the simulator plugin.
 
----
-
-## 3. Many environments
+## Many environments
 
 `robotik::EnvironmentPool` runs N environments on threads, behind contiguous
 buffers ready for a learner. Episode `k` of environment `i` uses the seed
@@ -138,9 +134,7 @@ Robotik version and commit, scenario, policy, master seed, control period,
 step budget, both spaces (privileged dimensions included), then each episode:
 environment, index, seed, return, number of steps, end.
 
----
-
-## 4. Environments and agents
+## Environments and agents
 
 Two different ideas:
 
@@ -157,9 +151,7 @@ observation and returns an action.
 Today `SimulationEnvironment` drives one robot. Several agents in one shared
 world are still to do.
 
----
-
-## 5. Checklist
+## Checklist
 
 | Question | Answer in Robotik |
 |----------|-------------------|

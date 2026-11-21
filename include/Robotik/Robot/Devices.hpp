@@ -9,8 +9,8 @@
 /// The list of the sensors, or of the actuators, of one robot.
 ///
 /// It owns the devices and declares each one as a resource (see
-/// doc/Glossary.md: "Resource"), so a skill reserves the camera by its name and
-/// a fault on that name stops the camera.
+/// doc/reference/glossary.md: "Resource"), so a skill reserves the camera by
+/// its name and a fault on that name stops the camera.
 ///
 /// @par Contract
 /// - Promises: each device is a resource of the same name; a failed resource

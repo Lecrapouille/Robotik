@@ -12,8 +12,8 @@
 ///
 /// @par Contract
 /// - Promises: a lookup returns an empty entity when nothing has the name.
-/// - Expects: called once, not in a loop at every step (see doc/06, "Fast
-///   data").
+/// - Expects: called once, not in a loop at every step (see
+///   doc/concepts/architecture.md, "Fast data").
 #pragma once
 
 #include "Robotik/Robot/Components/Objects.hpp"

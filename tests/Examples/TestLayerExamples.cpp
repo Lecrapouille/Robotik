@@ -7,7 +7,7 @@
 
 // The smallest program of each layer, kept here so that it always builds and
 // runs. The Robot layer one is OpenRobot.MovesAJointInAFewLines
-// (tests/Robot/TestOpenRobot.cpp). doc/02-Getting-Started.md shows them.
+// (tests/Robot/TestOpenRobot.cpp). doc/tutorials/02-three-programs.md shows them.
 
 #include "main.hpp"
 

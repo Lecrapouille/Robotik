@@ -35,7 +35,7 @@ robot, cube, box     goal, faults, assertions     Detect, Grasp, Release…
     (see and debug)      (PASS / FAIL in CI)      (N in parallel)     (planned)
 ```
 
-New to robotics? [The introduction](doc/01-Introduction.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
+New to robotics? [The introduction](doc/concepts/robotics-in-ten-minutes.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
 
 ---
 
@@ -158,7 +158,7 @@ The tree only uses the names of the skills. It says the order, and what to do wh
 - Action: { name: Grasp(red_cube) }
 ```
 
-Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([doc/11](doc/11-PDDL-Planner.md)).
+Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([The PDDL planner](doc/concepts/pddl-planner.md)).
 
 ### 🎬 4. The scenario: what happens, and what is checked
 
@@ -242,7 +242,7 @@ pick_and_place_experiment: 12/12 runs passed
 
 `--report results.json` writes every run and every metric, to compare strategies or follow a regression.
 
-The other demos: a painter that draws strokes on a canvas, a mobile robot following a line, a fly brain avoiding obstacles, a humanoid walking with a learned policy ([doc/09-Demos.md](doc/09-Demos.md)).
+The other demos: a painter that draws strokes on a canvas, a mobile robot following a line, a fly brain avoiding obstacles, a humanoid walking with a learned policy ([Case studies: the demos](doc/case-studies/README.md)).
 
 ---
 
@@ -264,7 +264,7 @@ scenario:
       red_cube: rigid         # except this one
 ```
 
-The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [doc/03 §Physics fidelity](doc/03-Worlds-and-Scenarios.md#physics-fidelity).
+The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [Physics fidelity](doc/reference/scenario-file.md#physics-fidelity).
 
 Perception works the same way. A car simulator may give the car the lane marks and the pedestrians instead of a photo-realistic image to process; a test of a plan may give the robot the true pose of the cube instead of running a detector. The scenario chooses, per object, and **the report says it**:
 
@@ -281,7 +281,7 @@ scenario:
     overrides: { red_cube: truth }   # a mock of the detector, for this cube only
 ```
 
-Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [doc/03 §7](doc/03-Worlds-and-Scenarios.md#7-truth-description-and-belief).
+Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [Truth, description and belief](doc/concepts/worlds-scenarios-experiments.md#truth-description-and-belief).
 
 ---
 
@@ -293,7 +293,7 @@ RobotIK does not rewrite robotics. It makes proven libraries work together behin
 |---------|-----------------|
 | 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
 | 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
-| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([doc/11](doc/11-PDDL-Planner.md)) |
+| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([The PDDL planner](doc/concepts/pddl-planner.md)) |
 | 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](external/BlackThorn/doc/README.md)) |
 | 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](external/Compages/doc/README.md)) |
 | OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
@@ -306,7 +306,7 @@ RobotIK itself is cut in three layers, like Compages. Each one works without the
 | 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::Cell`) |
 | 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
 
-Examples of each: [doc/02 §7](doc/02-Getting-Started.md#7-the-three-layers-in-code). The words: [glossary](doc/Glossary.md).
+Examples of each: [Three programs, one per layer](doc/tutorials/02-three-programs.md). The words: [glossary](doc/reference/glossary.md).
 
 A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
 
@@ -353,29 +353,21 @@ make
 
 A web version, built with Emscripten by the CI: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).
 
-Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [doc/04-Your-First-Plugin.md](doc/04-Your-First-Plugin.md).
+Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [Your first plugin](doc/tutorials/04-your-first-plugin.md).
 
 ---
 
 ## 📚 Documentation
 
-Chapters 1 to 5 are for everybody; 6 to 11 are references.
+Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, read [Robotics in ten minutes](doc/concepts/robotics-in-ten-minutes.md) first. The map of every page, with quick paths, is in [doc/README.md](doc/README.md).
 
-| # | Chapter | Contents |
-|---|---------|----------|
-| | [doc/README.md](doc/README.md) | 🧭 Reading order and quick paths |
-| 1 | [Introduction](doc/01-Introduction.md) | 🌱 Robotics in ten minutes, and what RobotIK does |
-| 2 | [Getting started](doc/02-Getting-Started.md) | 🚀 Build, simulator, headless, reports |
-| 3 | [Worlds and scenarios](doc/03-Worlds-and-Scenarios.md) | 🧩 World, scenario and experiment files, assertions, trajectories, ground truth |
-| 4 | [Your first plugin](doc/04-Your-First-Plugin.md) | 🎓 The HelloWorld tutorial, writing a plugin, manifest, asset packs |
-| 5 | [Skills and behavior trees](doc/05-Skills-and-Behavior-Trees.md) | 🌳 Skills, resources, `SkillScheduler`, BlackThorn trees, faults |
-| 6 | [Architecture](doc/06-Architecture.md) | 🏗 Layers, data flow, `include/Robotik/` layout |
-| 7 | [API reference](doc/07-API-Reference.md) | 📖 The classes a plugin uses |
-| 8 | [Reinforcement learning](doc/08-Reinforcement-Learning.md) | 🏆 Environments, spaces, episode ends, pool, episode log |
-| 9 | [Demos](doc/09-Demos.md) | 🎬 HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk |
-| 10 | [Tools and frames](doc/10-Tools-and-Frames.md) | 🔧 Flange, tool, TCP |
-| 11 | [The PDDL planner](doc/11-PDDL-Planner.md) | 🧠 A goal instead of a behavior tree (Kairos) |
-| | [Glossary](doc/Glossary.md) | 📕 The words of RobotIK in simple English |
+| Folder | Kind | Pages |
+|--------|------|-------|
+| 🎓 [Tutorials](doc/tutorials/README.md) | learn by doing, in order | getting started, three programs, a cube in a box, your first plugin, your own plugin, a planned pick and place |
+| 🧭 [Guides](doc/guides/README.md) | the steps of one task | mount a tool, share 3D models, write a skill, write tree nodes, recover from a fault, reinforcement learning, write a good demo |
+| 💡 [Concepts](doc/concepts/README.md) | why it works this way | robotics in ten minutes, worlds and scenarios, skills and behavior trees, the PDDL planner, tools and frames, architecture |
+| 📖 [Reference](doc/reference/README.md) | one fact at a time | world, scenario and experiment files, plugins, the planner, the API, the glossary |
+| 🎬 [Case studies](doc/case-studies/README.md) | one demo from end to end | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk, dual arm, micro duck |
 
 The libraries RobotIK is built on have their own documentation, written the same way: [Compages](external/Compages/doc/README.md) and [BlackThorn](external/BlackThorn/doc/README.md).
 
