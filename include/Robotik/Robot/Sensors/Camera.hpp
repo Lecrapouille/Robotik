@@ -93,8 +93,10 @@ struct CameraIntrinsics
 /// @code
 /// robotik::CameraFrame const& f = camera.frame();
 /// if (f.valid && !f.depth.empty())
-///     float const z = f.depth.row<float>(f.intrinsics.height /
-///     2)[f.intrinsics.width / 2];
+/// {
+///     std::uint32_t const middle = f.intrinsics.height / 2;
+///     float const z = f.depth.row<float>(middle)[f.intrinsics.width / 2];
+/// }
 /// @endcode
 // ****************************************************************************
 struct CameraFrame: Measurement

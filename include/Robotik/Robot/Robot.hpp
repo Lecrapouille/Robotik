@@ -64,10 +64,22 @@ using ActuatorSet = DeviceSet<Actuator>;
 using JointPosture = std::unordered_map<std::string, double>;
 
 // ****************************************************************************
-/// Robot API used by skills.
+/// Robot API used by skills: read the joints and the sensors, send
+/// commands, compute the kinematics.
 ///
-/// It cannot be built directly: an application builds a @ref RobotSession,
-/// a skill receives it through @ref RobotContext.
+/// A skill must not advance time or swap the physics: if it could, the same
+/// skill would behave differently in a test and on hardware. So this class
+/// has no @c step and no backend. It cannot be built directly: an
+/// application builds a @ref RobotSession (or calls @ref openRobot), and a
+/// skill receives this view through @ref RobotContext.
+///
+/// The kinematics (@ref framePose, @ref inverseKinematics) use Pinocchio on
+/// the measured joints, not the true pose of the simulator, so they are
+/// right on a real robot too. Poses are in the base frame of the robot,
+/// except @ref worldPose. A joint or frame name that the URDF does not have
+/// throws @c std::invalid_argument: it is a mistake in the code. In a hot
+/// loop, find a handle once (@ref JointSet::revolute, @ref resolve) instead
+/// of a name at each step.
 ///
 /// @code
 /// robotik::Robot& robot = p_context.robot;
@@ -336,6 +348,17 @@ protected:
 // ****************************************************************************
 /// A robot being run: owns the backend and advances time.
 ///
+/// The program that runs the robot (a @ref Cell, a test, @ref openRobot)
+/// holds this class; the skills only see its @ref Robot base. A session
+/// without a backend still works: the joints then move only when the code
+/// writes them, which is enough for kinematics tests.
+///
+/// @ref step puts the failed actuators in their safe state, advances the
+/// backend by one control period, then updates the kinematics and reads the
+/// sensors; call it once per period.
+/// The backend is the only part that changes between MuJoCo and a real
+/// robot (see @ref RobotBackend).
+///
 /// @code
 /// compages::world::World world;
 /// robotik::RobotSession robot(world, "arm.urdf");
@@ -408,8 +431,8 @@ public:
     ///
     /// @code
     /// for (auto* r : robots) r->prepare(dt);
-    /// for (auto* r : robots) r->advance(dt); // the first one steps the
-    /// physics for (auto* r : robots) r->sense();
+    /// for (auto* r : robots) r->advance(dt); // the first steps the physics
+    /// for (auto* r : robots) r->sense();
     /// @endcode
     ///
     /// @param p_dt Duration of the step.

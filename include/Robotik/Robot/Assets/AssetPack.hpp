@@ -53,11 +53,11 @@ namespace robotik
 ///
 /// @code
 /// auto const pack =
-/// robotik::loadAssetPack("data/packs/robotik.tools/pack.yaml");
-/// std::filesystem::path urdf = robotik::model(pack, "vacuum"); //
-/// tool_vacuum.urdf if (!robotik::licenseVerified(pack)) {
+///     robotik::loadAssetPack("data/packs/robotik.tools/pack.yaml");
+/// // tool_vacuum.urdf:
+/// std::filesystem::path urdf = robotik::model(pack, "vacuum");
+/// if (!robotik::licenseVerified(pack))
 ///     std::cerr << pack.id << ": license not checked\n";
-/// }
 /// @endcode
 // ****************************************************************************
 struct AssetPack

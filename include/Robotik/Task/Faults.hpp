@@ -63,8 +63,14 @@ struct RandomFault
 // ****************************************************************************
 /// Applies a fault plan to a @ref ResourceManager over time.
 ///
-/// The @ref Simulation builds it from the @c faults section of the scenario
-/// and calls @ref update every step.
+/// A robot that works only when nothing breaks is not tested. A fault plan
+/// breaks a resource at a time given by the scenario (the camera at 3 s) or
+/// at random with a rate per second, and may restore it later. The faults
+/// act on the @ref ResourceManager only, so the skills see a fault the same
+/// way they would see a real failure. Random faults draw from the
+/// @c "faults" stream of the seed: the same seed gives the same faults. The
+/// @ref Cell builds it from the @c faults section of the scenario and calls
+/// @ref update every step.
 ///
 /// @code
 /// robotik::FaultInjector faults({ { Seconds(3.0), "camera", true } }, {});

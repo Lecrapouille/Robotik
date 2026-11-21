@@ -93,17 +93,26 @@ struct WorldObject
 // ****************************************************************************
 /// Dense list of beliefs, matched to detections by label.
 ///
+/// What the robot believes about the objects around it: where they are, how
+/// sure it is, when it saw them last. Skills, observers of the planner and
+/// trees decide from these beliefs, never from the true poses of the
+/// simulator, so they behave the same on a real robot where the truth is
+/// unknown. The cell fills them from the detectors (or, when the scenario
+/// asks for it, from the truth as a mock of the detectors).
+///
 /// Objects of known size are assumed to rest on a support: an observation
 /// refines their horizontal position and keeps their height. Without a 3D
 /// point, a detection center is lifted by intersecting its pixel ray with the
-/// top plane of the object.
+/// top plane of the object. A detection farther than the @ref gate from the
+/// belief is ignored, so one wrong detection does not teleport an object.
+/// An object never seen keeps its prior; @ref observed tells it apart.
 ///
 /// @code
 /// robotik::WorldModel beliefs;
 /// beliefs.add("red_cube", robotik::Vector3(0.4, 0.0, 0.02),
 ///             robotik::Vector3(0.04, 0.04, 0.04));      // prior
-/// beliefs.gate(0.10);                                   // ignore jumps > 10
-/// cm beliefs.update(pipeline.process(camera.frame()));     // perception
+/// beliefs.gate(0.10);                         // ignore jumps > 10 cm
+/// beliefs.update(pipeline.process(frame));     // perception
 /// @endcode
 // ****************************************************************************
 class WorldModel

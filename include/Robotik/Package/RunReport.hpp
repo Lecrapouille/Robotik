@@ -133,6 +133,12 @@ struct RunRecord
 // ****************************************************************************
 /// Every run of an experiment (or the single run of a scenario).
 ///
+/// The report is what CI keeps: the seed of each run, its outcome, the
+/// verdict of each assertion, the metrics, the planner summary and the
+/// perception and physics levels used. A failed run can be run again alone
+/// from its seed. Headless prints it as text and writes it as JSON
+/// (@c --report); the exit code comes from @ref passed.
+///
 /// @code
 /// robotik::RunReport report;
 /// report.experiment = experiment.id;

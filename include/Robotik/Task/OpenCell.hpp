@@ -8,7 +8,7 @@
 /// @file OpenCell.hpp
 /// The shortest way to get a robot cell: one call, no world to create.
 ///
-/// Why: a @ref robotik::Cell lives in an ECS world (Compages) that the
+/// A @ref robotik::Cell lives in an ECS world (Compages) that the
 /// simulator shares with its rendering. A program that only wants robots,
 /// objects and skills should not have to know it: @ref robotik::openCell
 /// creates the world and keeps it with the cell.
@@ -47,7 +47,12 @@
 namespace robotik
 {
 
+// ****************************************************************************
 /// A cell with the world it lives in. Use it like a pointer to the cell.
+///
+/// The world must live longer than the cell: the members are declared in
+/// this order, so the cell is destroyed first. Move it, do not copy it.
+// ****************************************************************************
 struct OpenedCell
 {
     /// ECS world holding the entities.

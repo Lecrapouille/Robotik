@@ -48,8 +48,14 @@ namespace robotik
 // ****************************************************************************
 /// One node: nothing, a scalar, a sequence or an ordered map.
 ///
-/// Reading a missing key never throws: it gives a null node, and the typed
-/// reads return their default. Only a value of the wrong shape throws.
+/// Every YAML file of RobotIK (world, scenario, experiment, trajectory) is
+/// read through this class, so they share one set of rules and one kind of
+/// message. Reading a missing key never throws: it gives a null node, and
+/// the typed reads return their default. Only a value of the wrong shape
+/// throws. Because a default hides a typo, each reader also lists the keys
+/// it knows with @ref allowKeys: any other key stops the load, with the
+/// closest known key in the message. The tree can be changed before it is
+/// read (@ref set), which is how the overrides of an experiment work.
 ///
 /// @code
 /// robotik::ConfigNode const node = robotik::ConfigNode::parse(
@@ -57,8 +63,7 @@ namespace robotik
 /// double m = node.number("mass", 1.0);                          // 0.2
 /// robotik::Vector3 s = node.vector3("size", robotik::Vector3::ZERO);
 /// std::vector<std::string> tags = node.strings("tags");         // red, small
-/// bool fixed = node.flag("fixed", false);                       // missing:
-/// false
+/// bool fixed = node.flag("fixed", false);   // missing: false
 /// @endcode
 // ****************************************************************************
 class ConfigNode
@@ -157,7 +162,7 @@ public:
     // -------------------------------------------------------------------------
     /// Refuses a key that the reader does not know.
     ///
-    /// Why: a missing key gives a default value, so a typo (@c phse for
+    /// A missing key gives a default value, so a typo (@c phse for
     /// @c phase) would change the meaning of a file without a word. Each
     /// reader names the keys of its map; any other key stops the load.
     ///

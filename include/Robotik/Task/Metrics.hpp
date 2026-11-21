@@ -35,6 +35,12 @@ namespace robotik
 // ****************************************************************************
 /// Flat table of named values (insertion order kept).
 ///
+/// A mission publishes numbers here (@c laps, @c reach.error); conditions,
+/// reports and RL rewards read them by name. Numbers only, no verdict: the
+/// assertions of the scenario decide what is good. The table is filled again
+/// at each measure, so a value not set this time is "not published", which
+/// a condition reports as unknown rather than 0.
+///
 /// @code
 /// robotik::Metrics metrics;
 /// metrics.set("laps", 3.0);

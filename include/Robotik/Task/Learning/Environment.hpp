@@ -98,7 +98,13 @@ struct StepResult
 // ****************************************************************************
 /// One simulated world an agent acts in.
 ///
-/// Same seed, same actions: same observations and rewards.
+/// A learning algorithm needs the same three calls from every world:
+/// start an episode, apply an action, read the observation and the reward.
+/// This interface gives them, so the algorithm (in C++ or in another
+/// process) does not know RobotIK. RobotIK does not train: it gives
+/// environments that are reproducible and need no window. Same seed, same
+/// actions: same observations and rewards. Observations and actions are flat
+/// arrays of @c float, written in place, so a step allocates nothing.
 ///
 /// @code
 /// class Bandit final : public robotik::Environment
@@ -106,13 +112,16 @@ struct StepResult
 /// public:
 ///     std::size_t observationSize() const override { return 1; }
 ///     std::size_t actionSize() const override { return 1; }
-///     void reset(robotik::Seed, std::span<float> p_obs) override { p_obs[0] =
-///     0.0f; } robotik::StepResult step(std::span<float const> p_action,
+///     void reset(robotik::Seed, std::span<float> p_obs) override
+///     {
+///         p_obs[0] = 0.0f;
+///     }
+///     robotik::StepResult step(std::span<float const> p_action,
 ///                              std::span<float> p_obs) override
 ///     {
 ///         p_obs[0] = p_action[0];
 ///         return { p_action[0] > 0.5f ? 1.0f : 0.0f,
-///         robotik::EpisodeEnd::Success };
+///                  robotik::EpisodeEnd::Success };
 ///     }
 /// };
 /// @endcode

@@ -68,10 +68,13 @@ struct TeachWaypoint
 ///
 /// @code
 /// robotik::TeachPendant pendant;
-/// pendant.jogTool(robot, robotik::Vector3(0.0, 0.0, 0.01), robotik::Vector3::ZERO);
-/// // up 1 cm pendant.record(robot, "above", 2.0); pendant.jogJoint(robot,
-/// wrist, 0.2); pendant.record(robot, "turned", 1.0); pendant.play(robot,
-/// true); while (pendant.playing()) {
+/// pendant.jogTool(robot, robotik::Vector3(0.0, 0.0, 0.01),
+///                 robotik::Vector3::ZERO);          // up 1 cm
+/// pendant.record(robot, "above", 2.0);
+/// pendant.jogJoint(robot, wrist, 0.2);
+/// pendant.record(robot, "turned", 1.0);
+/// pendant.play(robot, true);
+/// while (pendant.playing()) {
 ///     pendant.update(robot, dt);
 ///     session.step(dt);
 /// }

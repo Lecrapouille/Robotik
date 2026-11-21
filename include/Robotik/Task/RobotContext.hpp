@@ -30,9 +30,15 @@ class WorldModel;
 // ****************************************************************************
 /// Per-tick view handed to skills: the robot API and the beliefs.
 ///
-/// There is no simulator in here: a skill cannot tell MuJoCo from hardware.
-/// It reads what the robot measures and what it believes, never the ground
-/// truth.
+/// A skill that could read the simulator would work in simulation and fail
+/// on the real robot, where nobody knows the true pose of the cube. So the
+/// scheduler gives a skill this view and nothing else: what the robot
+/// measures and what it believes. A skill cannot tell MuJoCo from hardware.
+///
+/// It is a plain struct of references, built again at each tick: it is
+/// valid during the tick only, and a skill keeps none of it. With several
+/// robots, @ref robot is the one the skill drives (@c SkillDescription::robot)
+/// and @ref team lets it read the others, never command them.
 ///
 /// @code
 /// Status Reach::tick(RobotContext& p_context, Seconds)

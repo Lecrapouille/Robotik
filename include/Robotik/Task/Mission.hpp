@@ -33,16 +33,27 @@ class SceneView;
 class Cell;
 
 // ****************************************************************************
-/// Plugin of a @ref Cell, provided by the application.
+/// The part of a demo that only C++ can say: its skills, its detectors and
+/// the numbers that measure it.
 ///
-/// The simulation builds what the scenario declares (robot, sensors,
-/// actuators, objects, faults) and the generic skills (@c Home, @c Stop).
-/// The mission adds the rest: task skills and behavior tree nodes, perception
-/// detectors, extra world dressing, and the metrics the scenario asserts on.
+/// A scenario file describes the world, the controller and the verdict, but
+/// it cannot say how a robot paints a stroke or what "a lap" is. The mission
+/// brings this code to a generic @ref Cell, so that the core keeps no demo
+/// object. Write one per scenario of a plugin (the table of
+/// @c MissionPlugin), or give one to @ref openCell from a C++ program. A
+/// program that runs only the built-in skills needs no mission.
 ///
-/// Every method has an empty default: override only what you need. The order
-/// of calls is @ref setup once, then for each episode @ref reset and many
-/// @ref step.
+/// The cell calls @ref setup once, then for each episode @ref reset and one
+/// @ref step after each physics step. The run calls @ref measure when it
+/// needs the numbers: assertions, reports, RL rewards. Every method has an
+/// empty default, so a small demo stays small (HelloMission overrides
+/// three). The cell owns the world and the robots; the mission owns only its
+/// counters, and the cell keeps a pointer to it, never a copy.
+///
+/// A mission does not judge the run: it publishes numbers, and the
+/// assertions of the scenario decide. @ref status ends a run only when the
+/// scenario has no behavior tree and no planner. Entities are found by id at
+/// each call, never kept.
 ///
 /// @code
 /// class Patrol final: public robotik::Mission

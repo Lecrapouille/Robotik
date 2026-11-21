@@ -61,6 +61,12 @@ struct Precondition
 // ****************************************************************************
 /// What a skill needs and how the scheduler should treat it.
 ///
+/// The scheduler reads this card, never the code of the skill: the
+/// resources it holds for the whole run, its priority, whether it waits or
+/// fails when it cannot start, whether a higher priority may cancel it, and
+/// the robot it drives. It is plain data, so a mission can fill it from a
+/// scenario parameter.
+///
 /// @code
 /// robotik::SkillDescription pick{
 ///     .name = "Pick(red_cube)",
@@ -93,12 +99,21 @@ struct SkillDescription
 // ****************************************************************************
 /// One-shot or continuous robot action.
 ///
+/// A skill is the smallest action that a tree, a plan or a test can ask for
+/// by name: "move to this pose", "grasp", "follow the line". It knows how to
+/// do one thing and nothing about the job around it.
+///
 /// Skills read and command the robot through @ref RobotContext only, so the
 /// same code drives MuJoCo, hardware or an RL environment. They are executed
-/// by the @ref SkillScheduler, which reserves their resources first.
+/// by the @ref SkillScheduler, which reserves their resources first: a skill
+/// never checks if the arm is free.
 ///
 /// The life of a run: @ref reset, then @ref tick at every step until it
-/// returns @c SUCCESS or @c FAILURE, or @ref cancel if the scheduler stops it.
+/// returns @c SUCCESS or @c FAILURE, or @ref cancel if the scheduler stops it
+/// (preemption, lost resource, a tree that moves on). @ref cancel must leave
+/// the hardware safe: hold the joints, open the gripper. A tick commands a
+/// little and returns; it never loops until the goal, because the other
+/// skills and the physics run between two ticks.
 ///
 /// @code
 /// class WaveSkill final : public robotik::Skill {

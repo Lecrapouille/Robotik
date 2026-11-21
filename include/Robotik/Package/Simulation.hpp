@@ -38,18 +38,30 @@ namespace robotik
 // ****************************************************************************
 /// One run of a scenario, replayable from a seed.
 ///
+/// A @ref Cell runs robots, but it does not know when a run is over nor if
+/// it passed: that belongs to the scenario file. The simulation adds this
+/// judgement around a cell. It compiles the assertions and the @c stop_when
+/// condition once, measures the metrics once per step, and gives each
+/// assertion its verdict. Use it when a run must answer "pass or fail": the
+/// hosts, an experiment, a test of a scenario file. A program that only
+/// drives robots uses the cell alone.
+///
 /// The run ends when the controller finishes, the @c stop_when condition
 /// holds, the @c timeout elapses or an assertion marked @c stop fails. The
-/// physics keeps running afterwards; the verdicts are frozen.
+/// physics keeps running afterwards; the verdicts are frozen. @ref ended,
+/// @ref assertionChanged and the signals of the cell tell an interface what
+/// changed. Pass or fail is never decided in C++: a mission publishes
+/// metrics, the assertions of the file judge them.
 ///
+/// From tests/Examples/TestLayerExamples.cpp (PackageScenarioFile):
 /// @code
+/// auto scenario = robotik::loadScenario("hello.scenario.yaml", assets);
+/// HelloMission mission;
 /// compages::world::World world;
-/// robotik::Simulation sim(world, robotik::loadScenario(path, assets));
-/// sim.reset(robotik::Seed{ 7 });
-/// while (!sim.finished())
-///     sim.step(robotik::Seconds(0.01));
-/// for (robotik::Check const& check : sim.checks())
-///     if (check.verdict != robotik::Check::Verdict::Passed) { ... }
+/// robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
+/// while (!simulation.finished())
+///     simulation.step(robotik::Seconds(0.01));
+/// bool const ok = simulation.passed();
 /// @endcode
 // ****************************************************************************
 class Simulation

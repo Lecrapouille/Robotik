@@ -116,6 +116,21 @@ struct SkillRun
 // ****************************************************************************
 /// Owns the skills of a robot and arbitrates their execution.
 ///
+/// A behavior tree, a plan or a test asks for a skill; it does not know if
+/// the arm is free or if a more urgent skill must run first. The scheduler
+/// answers that, the same way for every caller: a request waits while a
+/// resource it needs is busy or a precondition is false, a higher priority
+/// skill cancels a lower one that is @c cancellable, and a skill whose
+/// resource fails stops with @c ResourceLost. So two callers never drive the
+/// same joints at once, and a fault never leaves a skill running blind.
+///
+/// Call @ref update once per step: it stops the lost runs, admits the
+/// requests by priority, then ticks the running skills. A state change
+/// emits @ref changed; @ref trace keeps the phases for timelines and
+/// reports. The scheduler does not choose what to do next (the tree or the
+/// plan does), and it does not retry a failed skill. Its state is stored in
+/// arrays indexed by @ref SkillId, found once by name with @ref find.
+///
 /// @code
 /// robotik::SkillScheduler skills(robot.resources());
 /// auto const home = skills.add<robotik::HomeSkill>(

@@ -8,7 +8,7 @@
 /// @file Condition.hpp
 /// A condition of a scenario, read once and then evaluated at each step.
 ///
-/// Why: assertions and @c stop_when ask a question about the run at every
+/// Assertions and @c stop_when ask a question about the run at every
 /// step, such as "is the cube in the box, and before 30 s?". The text is
 /// read when the scenario loads, so a typo stops the load (exit code 1)
 /// instead of failing the run, and a step does not read text again.
@@ -81,7 +81,7 @@ struct Evaluation
 /// A question a condition may ask the world: its name, how many arguments
 /// it takes, and the function that answers.
 ///
-/// Why: the world queries (@c inside, @c distance...) belong to the
+/// The world queries (@c inside, @c distance...) belong to the
 /// @ref Cell, which knows the entities; a plugin may add its own. The
 /// compiler only needs this card to check a condition.
 ///
@@ -109,6 +109,11 @@ struct ConditionQuery
 
 // ****************************************************************************
 /// What a condition may name: the metrics and the queries.
+///
+/// The compiler checks every name against this list, so a typo is found at
+/// load and not at the end of a run. The @ref Cell builds it from what it
+/// measures (@c time, the mission metrics, the planner counters) and from
+/// its queries (@ref Cell::vocabulary).
 // ****************************************************************************
 struct ConditionVocabulary
 {
@@ -120,6 +125,12 @@ struct ConditionVocabulary
 
 // ****************************************************************************
 /// One node of a compiled condition (flat tree, root first).
+///
+/// The nodes are stored in one array and point to their children by index,
+/// so a condition is one allocation and an evaluation walks it without
+/// reading text. A query node keeps its arguments, so a step does not parse
+/// them again; the query itself still finds its entities by name at each
+/// call.
 // ****************************************************************************
 struct ConditionNode
 {

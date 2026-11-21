@@ -8,7 +8,7 @@
 /// @file TreeTypes.hpp
 /// Names of the behavior tree types, without the behavior tree library.
 ///
-/// Why: a @ref robotik::Cell and a @ref robotik::PlanExecutor run behavior
+/// A @ref robotik::Cell and a @ref robotik::PlanExecutor run behavior
 /// trees (BlackThorn), but most users only read a status or a plan. These
 /// declarations let the public headers name the tree types without
 /// including BlackThorn, so an application that does not write tree nodes

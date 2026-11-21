@@ -9,6 +9,7 @@
 /// The shortest way to get a moving robot: one call, no world to create, no
 /// physics engine to plug.
 ///
+/// From tests/Robot/TestOpenRobot.cpp:
 /// @code
 /// auto arm = robotik::openRobot("robotik.robots.robot_6axis");
 /// if (!arm)
@@ -69,6 +70,9 @@ struct RobotOptions
 
 // ****************************************************************************
 /// A robot with the world it lives in. Use it like a pointer to the robot.
+///
+/// The world must live longer than the robot: the members are declared in
+/// this order, so the robot is destroyed first. Move it, do not copy it.
 // ****************************************************************************
 struct OpenedRobot
 {

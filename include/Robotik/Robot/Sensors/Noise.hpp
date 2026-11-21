@@ -36,9 +36,10 @@ namespace robotik
 ///
 /// @code
 /// robotik::NoiseModel range = robotik::gaussianNoise(0.01); // 1 cm
-/// range.resolution = 0.001;                                       // 1 mm
-/// steps range.min = 0.0; range.max = 10.0; double const measured =
-/// range.apply(true_distance, rng);
+/// range.resolution = 0.001;                                 // 1 mm steps
+/// range.min = 0.0;
+/// range.max = 10.0;
+/// double const measured = robotik::applyNoise(range, true_distance, rng);
 /// @endcode
 // ****************************************************************************
 struct NoiseModel

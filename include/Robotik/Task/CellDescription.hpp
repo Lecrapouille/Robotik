@@ -487,6 +487,12 @@ enum class PerceptionFidelity : std::uint8_t
 
 // ****************************************************************************
 /// How the true position is degraded at the @c noisy_truth level.
+///
+/// The @c truth level gives perfect beliefs, which no camera gives. This
+/// adds what a detector does wrong: noise on the position, objects missed
+/// at some steps, objects too far to be seen. The draws come from the seed,
+/// so a run stays the same for the same seed. All zero (the default) is the
+/// @c truth level.
 // ****************************************************************************
 struct TruthNoise
 {
@@ -500,6 +506,13 @@ struct TruthNoise
 
 // ****************************************************************************
 /// Section @c perception: of a scenario (see @ref PerceptionFidelity).
+///
+/// It says, object by object, where the beliefs of the robots come from:
+/// the detectors on the camera images (@c sensed), or the truth copied by
+/// the cell as a mock of the detectors (@c truth, @c noisy_truth). A test
+/// of a skill uses the mock to leave the vision out; a test of the vision
+/// does not. The run report writes the level of each run, so a result
+/// obtained with the mock is never taken for one obtained with the camera.
 // ****************************************************************************
 struct PerceptionSpec
 {
@@ -528,7 +541,8 @@ struct PerceptionSpec
                                             bool p_blind);
 
 // ****************************************************************************
-/// How finely the physics simulates an interaction (FIDELITY.md).
+/// How finely the physics simulates an interaction (see
+/// doc/reference/scenario-file.md, "Physics fidelity").
 // ****************************************************************************
 enum class Fidelity : std::uint8_t
 {

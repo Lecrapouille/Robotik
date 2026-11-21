@@ -115,6 +115,13 @@ struct ScenarioSource
 /// Interpreted scenario: a @ref CellDescription (what to build) plus how the
 /// run is judged (time limit, stop condition, assertions).
 ///
+/// It derives from the description on purpose: what a C++ program builds by
+/// hand and what a file builds are the same data, so a test can load a
+/// scenario, change one field (the controller, a pose) and give it to a
+/// @ref Cell. It is read once and not changed by the run. Free values of a
+/// mission go in @c parameters, which no reader checks; every other key of
+/// the file is checked when it loads.
+///
 /// @code
 /// auto const assets = robotik::AssetResolver::standard();
 /// robotik::Scenario const scenario = robotik::loadScenario(file, assets).take();

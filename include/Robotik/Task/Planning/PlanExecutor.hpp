@@ -153,8 +153,21 @@ enum class StepStatus : std::uint8_t
 // ****************************************************************************
 /// Drives a @ref PlannerSpec goal through the skills of a robot.
 ///
-/// The @ref Simulation builds it when the scenario has a planner, and ticks
-/// it every step instead of a behavior tree.
+/// A behavior tree fixes the order of the skills when it is written; a goal
+/// lets the planner find them, and find them again when the world does not
+/// follow the plan. The executor asks the planner for a plan on the
+/// beliefs, turns it into a tree whose independent steps run together,
+/// ticks it, and plans again (after a delay, a bounded number of times) when
+/// a skill fails or an effect is not seen. An effect counts only when the
+/// beliefs show it after the start of its step.
+///
+/// The @ref Cell builds it for a @c planner block of a scenario, or from
+/// @ref Cell::achieve, and ticks it every step instead of a behavior tree.
+/// The planner reads the beliefs, never the truth. The order between steps
+/// comes from the atoms that each end of an action reads and changes, so a
+/// @c forall makes a step wait for more steps than needed, and the tree
+/// grown from the goal (@c pabt) reads only the plain preconditions; see
+/// doc/concepts/pddl-planner.md, "Limits".
 ///
 /// @code
 /// robotik::PlanExecutor executor(*scenario.controller.planner, scenario.world,

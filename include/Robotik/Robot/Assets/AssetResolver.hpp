@@ -46,6 +46,15 @@ namespace robotik
 // ****************************************************************************
 /// Catalog of the asset packs visible to a run.
 ///
+/// A world names its models by id (@c robotik.robots.robot_6axis), not by
+/// path, so the same world file works on every machine and a plugin does
+/// not copy the URDF of another one. The resolver finds the pack of an id in
+/// its roots (the standard ones, plus the folders a host adds), and checks
+/// the version that a package asks for (same major version, not older). A
+/// missing pack or an unknown id is a message, not an exception. A reference with a
+/// @c / or ending in @c .urdf is a path instead, relative to the folder of
+/// the file that names it.
+///
 /// @code
 /// robotik::AssetResolver assets = robotik::AssetResolver::standard();
 /// assets.addRoot("plugins/PickAndPlace/data");

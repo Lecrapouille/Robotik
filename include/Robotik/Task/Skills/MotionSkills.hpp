@@ -161,7 +161,10 @@ private:
 /// Moves a frame to a pose in the robot base frame (IK once per goal).
 ///
 /// The motion is in joint space: the frame reaches the pose, but does not
-/// follow a straight line.
+/// follow a straight line, and nothing on the way is avoided. Use it inside
+/// your own skills to reach a pose computed from the beliefs (above an
+/// object, at a drop point); the inverse kinematics run once per goal, not
+/// at each tick. The skill fails when the pose has no solution.
 ///
 /// @code
 /// robotik::Pose target;

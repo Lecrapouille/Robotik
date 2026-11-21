@@ -32,6 +32,13 @@ namespace robotik
 // ****************************************************************************
 /// One perception stage: reads a frame, adds or refines detections.
 ///
+/// RobotIK runs the stages in order on each camera frame and gives the
+/// result to the @ref WorldModel. A stage may find objects (colour, AprilTag,
+/// a neural network) or refine what an earlier stage found (a depth, a 3D
+/// point). Write one to plug your own vision; OpenCV or any library stays in
+/// your plugin. A stage keeps no frame after @ref detect returns, and must
+/// work on any image size: a headless run may give smaller frames, or none.
+///
 /// @code
 /// class BrightSpot final : public robotik::Detector
 /// {

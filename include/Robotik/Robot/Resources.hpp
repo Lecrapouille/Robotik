@@ -180,6 +180,16 @@ private:
 /// Sensors and actuators register themselves under their own name (see
 /// @ref DeviceSet); a mission may add more (a table, a shared zone).
 ///
+/// A resource is a part that two skills must not use at once in conflicting
+/// ways: one arm, one gripper, a zone of the table. Exclusive access has
+/// one holder; shared access (a camera stream) has many. A resource also has
+/// a health: a fault makes it unavailable, and the scheduler stops the
+/// skills that hold it. The manager only answers and records; it never
+/// stops a skill itself (the @ref SkillScheduler does). With several robots,
+/// one manager holds the resources of the whole world, so names are unique
+/// in the world. A @c lease gives the resources back when it is released or
+/// destroyed.
+///
 /// @code
 /// robotik::ResourceManager resources;
 /// resources.add("arm");

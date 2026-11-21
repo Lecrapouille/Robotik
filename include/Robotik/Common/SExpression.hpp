@@ -8,7 +8,7 @@
 /// @file SExpression.hpp
 /// Reads the Lisp notation of RobotIK conditions, the one of PDDL.
 ///
-/// Why: a scenario writes conditions such as
+/// A scenario writes conditions such as
 /// @c (< (distance robot.tcp red_cube) 0.05). PDDL domains use the same
 /// notation, so a reader learns one way to write a fact. The notation has
 /// three kinds of word only (a name or number, a quoted text, a list in
@@ -45,6 +45,10 @@ namespace robotik
 
 // ****************************************************************************
 /// One node of an S-expression: a word, a quoted text or a list.
+///
+/// It keeps the place of the node in the text (@ref begin, @ref end), so a
+/// later step (the condition compiler) can name the column of its own
+/// errors. It knows nothing of conditions or PDDL: it is only the tree.
 ///
 /// @code
 /// // (distance robot.tcp "red cube")

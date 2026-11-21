@@ -49,7 +49,22 @@ namespace robotik
 /// emitted: a slot disconnected during an emission is not called afterwards,
 /// a slot connected during an emission is first called at the next one.
 ///
-/// A signal cannot be copied nor moved: connections refer to it.
+/// RobotIK tells its events with signals (a skill ended, an assertion
+/// changed colour, a run ended), never with a flag to read at each frame: a
+/// listener runs once per event, and the emitter does not know who listens.
+/// A slot runs at once, on the thread that emits, so a slow slot slows the
+/// step. Use a plain call instead when there is exactly one listener that
+/// the emitter knows.
+///
+/// A signal cannot be copied nor moved: connections refer to it. It is not
+/// thread safe. It is written here, in a few lines, rather than taken from a
+/// library, so that the Common layer depends on nothing.
+///
+/// From tests/Runtime/TestSimulationEvents.cpp:
+/// @code
+/// simulation.ended.connect([&](robotik::Simulation::Outcome p_outcome)
+///                          { outcome = p_outcome; });
+/// @endcode
 ///
 /// @tparam Args What the event tells its listeners.
 // ****************************************************************************

@@ -80,7 +80,12 @@ struct ExperimentCase
 // ****************************************************************************
 /// Parsed experiment file.
 ///
-/// Each case is run once per seed; @ref scenarioOf builds what one run needs.
+/// One scenario run once tells little: it may pass by luck. An experiment
+/// runs several cases (a controller, an override of the world, a fault
+/// injected) with several seeds, and the report compares them. Each case is
+/// run once per seed; @ref scenarioOf builds what one run needs. The cases
+/// change the files before they are read (overrides), so a case is a
+/// scenario like any other and is judged by the same assertions.
 ///
 /// @code
 /// auto const experiment = robotik::loadExperiment(file).take();

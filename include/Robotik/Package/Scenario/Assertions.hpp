@@ -164,8 +164,18 @@ using ConditionProbe = std::function<Evaluation(std::size_t)>;
 // ****************************************************************************
 /// Judges a scenario's assertions over a run.
 ///
-/// The @ref Simulation owns one and calls it every step. The verdicts live
-/// here, never in plugin C++ code.
+/// A test of a robot is rarely "true at the end": a collision must never
+/// happen, the tool must arrive within 5 s, the skills must run in an
+/// order. The engine turns each assertion into one of these moments
+/// (@c always, @c at, @c within, @c eventually, @c sequence) and keeps its
+/// verdict up to date at each step, so the interface shows it turning green
+/// or red during the run. The @ref Simulation owns one and calls it every
+/// step. The verdicts live here, never in plugin C++ code.
+///
+/// The engine reads no text: it asks the caller for the value of condition
+/// @c i through a probe, so the conditions are compiled once by the cell.
+/// A condition that cannot be measured at a step (a metric not published)
+/// counts as unknown, never as false.
 ///
 /// @code
 /// robotik::AssertionEngine engine(scenario.assertions);

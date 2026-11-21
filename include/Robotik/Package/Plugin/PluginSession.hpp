@@ -56,6 +56,14 @@ enum class PluginPrepare : std::uint8_t
 // ****************************************************************************
 /// One loaded plugin and the scenario currently prepared on it.
 ///
+/// The simulator and Headless load plugins the same way: find the package of
+/// a scenario, open its library, check its ids and its API version, create
+/// the mission, then call the plugin around each step. This class holds that
+/// sequence once, so both hosts behave alike and a test can drive a plugin
+/// without a host. The order matters: the simulation is destroyed before
+/// @ref release, because the mission it points to is freed there. An error
+/// of the plugin is a message (@ref error), never a crash of the host.
+///
 /// @code
 /// robotik::PluginSession session;
 /// session.scan();
@@ -63,8 +71,10 @@ enum class PluginPrepare : std::uint8_t
 ///     return fail(session.error());
 /// {
 ///     robotik::Simulation simulation(world, scenario, nullptr,
-///     session.mission()); session.attach(&simulation); session.start(); while
-///     (running) {
+///                                    session.mission());
+///     session.attach(&simulation);
+///     session.start();
+///     while (running) {
 ///         simulation.step(Seconds(dt));
 ///         session.afterStep(dt);
 ///     }

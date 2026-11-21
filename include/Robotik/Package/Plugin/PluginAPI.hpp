@@ -82,19 +82,22 @@ struct PluginInfo
 // ****************************************************************************
 /// Drawing surface implemented by the host. Valid only during a draw.
 ///
-/// Every method does nothing (or returns false) when the host does not
-/// provide the widget, so a panel also works with an older host.
+/// A plugin cannot call Dear ImGui: the host and the plugin may be built
+/// by two compilers, and a headless host has no window. So a panel draws
+/// through this small set of widgets, which the simulator turns into ImGui
+/// calls. Every method does nothing (or returns false) when the host does
+/// not provide the widget, so a panel also works with an older host. The
+/// canvas is an immediate-mode surface: draw everything at each call, keep
+/// no pointer to it.
 ///
 /// @code
-/// static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
+/// p_host.addPanel("laps", "Laps", [this](robotik::Canvas const& p_canvas)
 /// {
-///     auto* self = static_cast<MyPlugin*>(p_user);
-///     robotik::Canvas canvas(p_canvas);
-///     canvas.text("Laps: " + std::to_string(self->laps));
-///     if (canvas.button("Reset"))
-///         self->laps = 0;
-///     canvas.checkbox("Show path", self->show_path);
-/// }
+///     p_canvas.text("Laps: " + std::to_string(m_laps));
+///     if (p_canvas.button("Reset"))
+///         m_laps = 0;
+///     (void)p_canvas.checkbox("Show path", m_show_path);
+/// });
 /// @endcode
 // ****************************************************************************
 class Canvas
@@ -237,7 +240,7 @@ private:
 // ****************************************************************************
 /// The C++ functions behind the menus and panels of one plugin instance.
 ///
-/// Why: the C border only takes a function pointer and a @c void*. This
+/// The C border only takes a function pointer and a @c void*. This
 /// keeps the lambdas alive until the instance is destroyed, so a plugin
 /// writes @c [this] { home(); } instead of a static trampoline.
 // ****************************************************************************
@@ -260,9 +263,14 @@ struct HostCallbacks
 // ****************************************************************************
 /// Services of the host, seen from the plugin.
 ///
-/// A cheap copyable view of the C API; every method does nothing when the
-/// host lacks the service. Keep a copy to reach the simulation later (from a
-/// menu action, for example).
+/// The plugin and the host talk through a C table of functions
+/// (PluginABI.h), so that they can be built apart. This class wraps the
+/// table in C++: strings instead of @c char*, lambdas instead of a function
+/// pointer and a @c void*. It is a cheap copyable view; every method does
+/// nothing when the host lacks the service, so a plugin runs in the
+/// simulator and in Headless alike. Keep a copy to reach the simulation
+/// later (from a menu action, for example): @ref simulation is null before
+/// the run exists and after it ends.
 ///
 /// @code
 /// p_host.log(ROBOTIK_LOG_INFO, "ready");
@@ -483,6 +491,11 @@ private:
 // ****************************************************************************
 /// Base of a plugin instance. Override the steps the demo needs.
 ///
+/// A plugin is a shared library that the hosts load when the user picks one
+/// of its scenarios. This class is its C++ side: the macro
+/// @c ROBOTIK_EXPORT_PLUGIN turns it into the C functions that the host
+/// looks for, so nothing C++ crosses the border of the library.
+///
 /// @c describe is static because the host reads it before @c create. A step
 /// that cannot go on throws: the message is reported to the user and the
 /// host gets an error status (@c ROBOTIK_PLUGIN_ERR_SETUP from @ref setup,
@@ -493,7 +506,11 @@ private:
 /// @ref stop and @ref shutdown.
 ///
 /// Most plugins only give a mission per scenario: derive from
-/// @ref MissionPlugin instead.
+/// @ref MissionPlugin instead. A plugin keeps no world entity between calls
+/// (find them by id), and does not decide if a run passes: the assertions of
+/// the scenario do. Errors are exceptions rather than status codes, so the
+/// code of a plugin has no error plumbing; the C border turns them into
+/// codes.
 ///
 /// @code
 /// void MyPlugin::onEvent(robotik::Host&, RobotikEvent const& p_event)
@@ -557,9 +574,10 @@ template <class T, class... Args>
 // ****************************************************************************
 /// A plugin that gives one mission per scenario: the common case.
 ///
-/// Why: a demo plugin mostly says "this scenario runs this mission". The
+/// A demo plugin mostly says "this scenario runs this mission". The
 /// table says it once; the base creates the mission, binds it, refuses an
-/// unknown scenario (with the closest id) and frees the mission at the end.
+/// unknown scenario (the message lists the known ids) and frees the mission
+/// at the end.
 ///
 /// @code
 /// class PainterPlugin final: public robotik::MissionPlugin
@@ -577,6 +595,15 @@ template <class T, class... Args>
 ///
 /// To add a menu or a panel, override @ref setup, call
 /// @c MissionPlugin::setup first, then use the host.
+///
+/// The mission lives from @ref setup to @ref shutdown: the host destroys the
+/// simulation before @ref shutdown, so the mission never outlives the cell
+/// that points to it. @ref mission returns null when the current scenario
+/// runs a mission of another type. A plugin that chooses its mission in
+/// another way (from a parameter of the scenario, say) derives from
+/// @ref Plugin instead. The table is a constructor argument, not a virtual
+/// method, so that the ids of @c plugin.yaml appear once in the C++ code,
+/// next to the class that runs them.
 // ****************************************************************************
 class MissionPlugin: public Plugin
 {

@@ -136,9 +136,12 @@ public:
 /// class JointTargets final : public robotik::ActionAdapter
 /// {
 /// public:
-///     robotik::Space space() const override { return
-///     robotik::Space::unnamed("q", 2); } void apply(std::span<float const>
-///     p_action, robotik::Cell& p_cell) override
+///     robotik::Space space() const override
+///     {
+///         return robotik::Space::unnamed("q", 2);
+///     }
+///     void apply(std::span<float const> p_action,
+///                robotik::Cell& p_cell) override
 ///     {
 ///         auto& joints = p_cell.robot().joints();
 ///         joints.moveTo(0, p_action[0]);
@@ -223,6 +226,11 @@ public:
 
 // ****************************************************************************
 /// How time flows in an episode.
+///
+/// An agent does not act at each physics step: it holds an action for a
+/// control period, as a real controller does. The control period is a whole
+/// number of physics steps, and an episode is cut after @ref max_steps
+/// actions.
 // ****************************************************************************
 struct EnvironmentTiming
 {

@@ -82,8 +82,13 @@ struct ActionBinding
 // ****************************************************************************
 /// Observers and bindings of a mission, keyed by PDDL name.
 ///
-/// Filled by the mission in @ref Mission::setup (see the file comment), then
-/// read by the @ref PlanExecutor.
+/// The PDDL domain says what an action needs and what it changes; it cannot
+/// say how to read a fact on this robot, nor which skills move it. This
+/// class holds the two answers that only the mission knows. Filled by the
+/// mission in @ref Mission::setup (see the file comment), then read by the
+/// @ref PlanExecutor. It holds no effect and no ordering: the domain file is
+/// the only place for them, so a plan never depends on C++ written apart
+/// from the domain.
 // ****************************************************************************
 class PlanningDomain
 {

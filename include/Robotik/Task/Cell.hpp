@@ -71,31 +71,48 @@ struct Shape;
 // ****************************************************************************
 /// Robots doing a job together, replayable from a seed.
 ///
-/// Built from a @ref CellDescription, written in C++ or read from YAML by the
-/// Package layer. Each @ref step — faults, controller tick (the behavior tree
-/// or the plan requests skills), scheduler update (admits and ticks skills),
-/// robot step (physics, sensors, perception into the @ref WorldModel),
-/// simulated suction, mission. When the perception fidelity of an object is
-/// @c truth or @c noisy_truth (@ref PerceptionSpec), the cell writes its
-/// belief from the ground truth, as a mock of the detectors.
+/// A robot alone (@ref Robot) knows its joints and its sensors, but a job
+/// needs more: objects to move, a controller that chooses the next skill, a
+/// scheduler that shares the devices, faults, and the true state of the
+/// world to measure the result. The cell puts these pieces together around
+/// one physics. Use it when a program runs a job, with or without files: a
+/// test or an application builds it from a @ref CellDescription (or calls
+/// @ref openCell), and the Package layer builds it from a scenario file.
+/// To move one robot without a job, @ref openRobot is enough.
 ///
-/// The controller stops being ticked once it succeeds or fails (see
+/// Each @ref step runs, in this order: the faults, the controller tick (the
+/// behavior tree or the plan requests skills), the scheduler (it admits and
+/// ticks the skills), the robot step (physics, sensors, perception into the
+/// @ref WorldModel), the simulated suction, and the mission. When the
+/// perception fidelity of an object is @c truth or @c noisy_truth
+/// (@ref PerceptionSpec), the cell writes its belief from the ground truth,
+/// as a mock of the detectors, and the run report says so.
+///
+/// The same description and the same seed give the same run. The
+/// controller stops being ticked once it succeeds or fails (see
 /// @ref status), or when @ref stopController is called; the physics keeps
-/// running. How a run is judged (time limit, assertions) is not the job of
-/// the cell: see the @c Simulation of the Package layer.
+/// running. The cell does not judge a run (time limit, assertions): that is
+/// the job of the @c Simulation of the Package layer.
 ///
-/// The ground truth (@ref pose, @ref query) is for measures and rewards:
-/// skills only see the @ref RobotContext.
+/// The cell is the only class that holds both the decisions and the ground
+/// truth. The truth (@ref pose, @ref query) is for measures, assertions and
+/// rewards; skills see only the @ref RobotContext, and @c make
+/// @c check-layers compiles the skills and the planner without this header,
+/// so that they cannot call it.
 ///
+/// From tests/Examples/TestLayerExamples.cpp (TaskRunsOneSkill):
 /// @code
+/// robotik::EntitySpec arm;
+/// arm.id = "arm";
+/// arm.type = robotik::EntitySpec::Type::Robot;
+/// arm.model = "robot_6axis.urdf";
 /// robotik::CellDescription description;
-/// description.world.entities.push_back(
-///     { .id = "arm", .type = robotik::EntitySpec::Type::Robot, .model = "arm.urdf" });
-/// description.controller.behavior_tree = "wave.bt.yaml";
-/// compages::world::World world;
-/// robotik::Cell cell(world, description);
-/// while (cell.status() == robotik::Status::RUNNING || cell.status() == robotik::Status::IDLE)
-///     cell.step(robotik::Seconds(0.01));
+/// description.world.entities = { arm };
+/// auto opened = robotik::openCell(std::move(description));
+/// robotik::Cell& cell = *opened.value();
+/// auto const raise = cell.skills().add<robotik::MoveJointSkill>(
+///     { .name = "Raise" }, "joint2", 0.5);
+/// cell.run(raise, robotik::Seconds(10.0));   // SkillState::Succeeded
 /// @endcode
 // ****************************************************************************
 class Cell
@@ -536,7 +553,8 @@ public:
     // -------------------------------------------------------------------------
     /// Whether a prop is a body of the physics backend: its level is rigid,
     /// or it is a box a rigid gripper may take, or a container a rigid
-    /// object may fall into (FIDELITY.md). Read from the description only.
+    /// object may fall into (doc/reference/scenario-file.md, "Physics
+    /// fidelity"). Read from the description only.
     /// @param p_prop An entity of the world.
     /// @return False for anything else than a prop with a shape.
     // -------------------------------------------------------------------------
