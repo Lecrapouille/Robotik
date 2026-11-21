@@ -60,9 +60,9 @@ struct WorldObject
     /// Object name, matched to the detection labels.
     std::string name;
     /// Estimated center (m).
-    Vector3 position;
+    Vector3 position = Vector3::ZERO;
     /// Known extents (m); zero when unknown.
-    Vector3 size;
+    Vector3 size = Vector3::ZERO;
     /// Confidence of the last observation; 0 for a prior never observed.
     float confidence = 0.0F;
     /// Time of the last observation.

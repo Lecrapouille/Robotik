@@ -14,7 +14,7 @@ std::optional<Localization> localize(Detections const& p_detections,
                                      std::span<Landmark const> p_landmarks)
 {
     Pose const camera_in_base_inverse = p_detections.camera.inverse();
-    Vector3 position;
+    Vector3 position = Vector3::ZERO;
     Quaternion sum{ 0.0, 0.0, 0.0, 0.0 };
     Quaternion reference;
     std::size_t count = 0;

@@ -22,8 +22,8 @@ namespace robotik
 /// Axis-aligned box in the scanner frame, used by the ray test.
 struct Box
 {
-    Vector3 low;
-    Vector3 high;
+    Vector3 low = Vector3::ZERO;
+    Vector3 high = Vector3::ZERO;
 };
 
 /// Slab test: distance to an axis-aligned box, or infinity.

@@ -131,9 +131,9 @@ struct FlyPosture
 struct FlyBox
 {
     /// Centre of the box (SI: m).
-    robotik::Vector3 position;
+    robotik::Vector3 position = robotik::Vector3::ZERO;
     /// Full width, depth and height (SI: m).
-    robotik::Vector3 size;
+    robotik::Vector3 size = robotik::Vector3::ZERO;
 };
 
 // ****************************************************************************

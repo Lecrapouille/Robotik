@@ -297,7 +297,7 @@ void convergedPolicy(std::span<float const> p_observation,
     bool const holding = p_observation[12] > 0.5F;
     bool suction = holding;
 
-    robotik::Vector3 goal;
+    robotik::Vector3 goal = robotik::Vector3::ZERO;
     if (!holding)
     {
         // Pick: align XY, then descend; latch suction near the cube top.

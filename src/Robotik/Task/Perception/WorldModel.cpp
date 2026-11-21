@@ -100,7 +100,7 @@ void WorldModel::update(Detections const& p_detections)
             continue;
         }
 
-        Vector3 point;
+        Vector3 point = Vector3::ZERO;
         if (detection.pose)
         {
             point = camera * detection.pose->position;
