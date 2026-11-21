@@ -22,9 +22,9 @@ the way the line is written. A header that does not compile alone (it
 forgets an include) is found the same way.
 
 The second rule keeps the ground truth away from the robot's decisions:
-Task/Skills and Task/Planning are compiled without Task/RoboticCell.hpp, so they
-cannot call the truth (RoboticCell::pose, RoboticCell::query): without the definition of
-the class there is nothing to call.
+Task/Skills and Task/Planning are compiled without Task/RoboticCell.hpp, so
+they cannot call the truth (RoboticCell::pose, RoboticCell::query): without
+the definition of the class there is nothing to call.
 
 Usage: check_layers.py [repository root]. Exit code 1 when a rule is broken.
 """

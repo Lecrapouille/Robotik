@@ -63,7 +63,7 @@ owned by the RobotIK copyright holder.
 Because RobotIK is offered under two licenses, contributions can only be
 accepted if the contributor agrees to license them under both. By submitting
 a pull request you agree to the terms of the Contributor License Agreement
-(see [`CLA.md`](CLA.md) when available).
+(in `CLA.md`, when it is published).
 
 ## Source file headers
 

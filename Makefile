@@ -43,3 +43,8 @@ forge:
 .PHONY: check-layers
 check-layers:
 	@python3 tests/scripts/check_layers.py .
+
+#? Check that the relative links of the Markdown files resolve.
+.PHONY: check-links
+check-links:
+	@python3 tests/scripts/check_links.py .

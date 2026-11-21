@@ -104,7 +104,7 @@ words) then `@par Contract`.
 - Code excerpts come from real files (prefer HelloWorld and
   tests/Examples/TestLayerExamples.cpp); keep them in sync when the code
   changes. Never invent a call: check the header.
-- Every relative link resolves (a loop over `](…)` targets with `test -e`).
+- Every relative link resolves: `make check-links`.
 - Fresh reader pass: reread each new page as a C++ developer who opened the
   repository an hour ago. Is the first paragraph a problem they have? Is
   every robotics word defined or linked? Can they run what the page shows?

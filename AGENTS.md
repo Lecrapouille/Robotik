@@ -60,10 +60,11 @@ walking robot pushing a box in a room, ONNX policy).
 ## Commands
 
 ```bash
-make                                      # core, hosts, the plugins of PLUGINS
-make <target>       # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
+make                         # core, hosts, the plugins of PLUGINS
+make <target>                # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
 make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
-make check-layers                         # compiler: no include upwards, no RoboticCell.hpp in skills/planning
+make check-layers            # compiler: no include upwards, no RoboticCell.hpp in skills/planning
+make check-links             # every relative link of the Markdown files resolves
 ./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```

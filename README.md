@@ -294,8 +294,8 @@ RobotIK does not rewrite robotics. It makes proven libraries work together behin
 | 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
 | 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
 | 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([The PDDL planner](doc/concepts/pddl-planner.md)) |
-| 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](external/BlackThorn/doc/README.md)) |
-| 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](external/Compages/doc/README.md)) |
+| 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md)) |
+| 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](https://github.com/Lecrapouille/Compages#-documentation)) |
 | OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
 
 RobotIK itself is cut in three layers, like Compages. Each one works without the ones above, so a project takes the smallest that fits:
@@ -369,7 +369,7 @@ Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, 
 | 📖 [Reference](doc/reference/README.md) | one fact at a time | world, scenario and experiment files, plugins, the planner, the API, the glossary |
 | 🎬 [Case studies](doc/case-studies/README.md) | one demo from end to end | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk, dual arm, micro duck |
 
-The libraries RobotIK is built on have their own documentation, written the same way: [Compages](external/Compages/doc/README.md) and [BlackThorn](external/BlackThorn/doc/README.md).
+The libraries RobotIK is built on have their own documentation, written the same way: [Compages](https://github.com/Lecrapouille/Compages#-documentation) and [BlackThorn](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md).
 
 🤖 Coding agents: [AGENTS.md](AGENTS.md) maps each task to a skill of `.claude/skills/`. Compages and BlackThorn have their own `AGENTS.md` and skills.
 
