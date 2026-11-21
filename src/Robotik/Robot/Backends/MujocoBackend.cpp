@@ -1075,12 +1075,25 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
     mjModel* model = m_impl->model;
     mjData* data = m_impl->data;
 
-    // The joint loops run at the physics rate, not at the caller rate.
-    double const timestep = m_options.timestep.value();
-    int const steps =
-        std::clamp(static_cast<int>(std::lround(p_dt.value() / timestep)),
-                   1,
-                   MAX_SUBSTEPS);
+    if (!(p_dt.value() > 0.0) || !std::isfinite(p_dt.value()))
+    {
+        throw std::invalid_argument(
+            "MuJoCo step: dt must be positive and finite");
+    }
+    // The joint loops run at the physics rate, not at the caller rate. The
+    // physics covers p_dt exactly, so its time stays the robot clock: whole
+    // steps of the timestep when p_dt is a multiple of it, otherwise p_dt
+    // split in equal steps no longer than the timestep.
+    double const wanted = m_options.timestep.value();
+    double const ratio = p_dt.value() / wanted;
+    int steps = static_cast<int>(std::lround(ratio));
+    double timestep = wanted;
+    if (steps < 1 || std::abs(ratio - steps) > 1e-9 || steps > MAX_SUBSTEPS)
+    {
+        steps = std::clamp(
+            static_cast<int>(std::ceil(ratio - 1e-9)), 1, MAX_SUBSTEPS);
+        timestep = p_dt.value() / steps;
+    }
     model->opt.timestep = timestep;
 
     for (int i = 0; i < steps; ++i)
@@ -1096,7 +1109,7 @@ void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
         for (Member const& member : members)
         {
             JointSet& joints = member.robot->joints();
-            joints.control(m_options.timestep);
+            joints.control(Seconds(timestep));
             for (JointId id = 0; id < member.bindings.size(); ++id)
             {
                 Member::Binding const& binding = member.bindings[id];

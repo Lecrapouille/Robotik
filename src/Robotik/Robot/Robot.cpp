@@ -15,6 +15,7 @@
 
 #include <pugixml.hpp>
 
+#include <cmath>
 #include <stdexcept>
 
 namespace robotik
@@ -403,6 +404,13 @@ void RobotSession::reset()
 
 void RobotSession::step(Seconds p_dt)
 {
+    // A step moves the clock forward; zero would loop a run forever.
+    if (!(p_dt.value() > 0.0) || !std::isfinite(p_dt.value()))
+    {
+        throw std::invalid_argument("RobotSession::step: dt must be positive "
+                                    "and finite, not " +
+                                    std::to_string(p_dt.value()));
+    }
     prepare(p_dt);
     advance(p_dt);
     sense();

@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -267,8 +268,21 @@ void RoboticCell::achieve(PlannerSpec p_spec)
     m_controller_stopped = false;
 }
 
+/// A run has a limit >= 0 and steps of dt > 0, both finite: otherwise the
+/// clock never reaches the end and the loop never stops.
+static void checkRun(Seconds p_limit, Seconds p_dt)
+{
+    if (!(p_limit.value() >= 0.0) || !std::isfinite(p_limit.value()) ||
+        !(p_dt.value() > 0.0) || !std::isfinite(p_dt.value()))
+    {
+        throw std::invalid_argument(
+            "RoboticCell::run: the limit must be >= 0 and dt > 0, both finite");
+    }
+}
+
 SkillState RoboticCell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
 {
+    checkRun(p_limit, p_dt);
     m_scheduler->request(p_skill);
     Seconds const end = time() + p_limit;
     for (;;)
@@ -287,6 +301,7 @@ SkillState RoboticCell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
 
 Status RoboticCell::run(Seconds p_limit, Seconds p_dt)
 {
+    checkRun(p_limit, p_dt);
     Seconds const end = time() + p_limit;
     while (m_status != Status::SUCCESS && m_status != Status::FAILURE &&
            time() < end)
@@ -1207,6 +1222,11 @@ void RoboticCell::track()
 
 void RoboticCell::step(Seconds p_dt)
 {
+    if (!(p_dt.value() > 0.0) || !std::isfinite(p_dt.value()))
+    {
+        throw std::invalid_argument("RoboticCell::step: dt must be positive "
+                                    "and finite");
+    }
     if (!m_suspended)
     {
         m_faults.update(*m_resources, m_robot->time(), p_dt);
