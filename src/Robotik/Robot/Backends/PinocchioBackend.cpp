@@ -269,7 +269,9 @@ PinocchioBackend::solveIK(std::string const& p_frame,
 
     auto const frame = m_impl->model.getFrameId(p_frame);
     pinocchio::Data data(m_impl->model);
-    Eigen::MatrixXd jacobian(6, m_impl->model.nv);
+    // Pinocchio fills only the columns of the joints that carry the frame:
+    // the others must be zero (a frame on link3 does not move with joint4).
+    Eigen::MatrixXd jacobian = Eigen::MatrixXd::Zero(6, m_impl->model.nv);
 
     Eigen::VectorXd error;
     Eigen::MatrixXd rows;
