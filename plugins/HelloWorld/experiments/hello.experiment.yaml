@@ -22,6 +22,6 @@ experiment:
   evaluation:
     # Added to the assertions of every scenario.
     assertions:
-      - { condition: "joint_limits_respected(robot)", phase: always }
+      - { condition: (joint_limits_respected robot), phase: always }
     # Read at the end of each run, written in the report.
     metrics: [ time ]

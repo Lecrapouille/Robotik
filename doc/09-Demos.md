@@ -66,10 +66,10 @@ The assertions judge the result, not the trajectory:
 ```yaml
 assertions:
   - controller.success
-  - inside(red_cube, box)
-  - holding(gripper) == 0
-  - { condition: "collision_count(robot) == 0", phase: always }
-  - time < 30
+  - (inside red_cube box)
+  - (== (holding gripper) 0)
+  - { condition: (== (collision_count robot) 0), phase: always }
+  - (< time 30)
 ```
 
 In headless, no image is rendered: the scenario says
@@ -91,7 +91,7 @@ start.
 
 **With the PDDL planner** (`scenarios/pick_and_place_pddl.scenario.yaml` and
 `pick_and_place_pddl_faults.scenario.yaml`, menu **PDDL planner**): no tree, only the
-goal `in(red_cube, box)`. The domain is
+goal `(in red_cube box)`. The domain is
 `scenarios/pick_and_place.domain.pddl`; `src/PickPlacePlanning.cpp` reads
 the state on the beliefs and binds each action to the same skills. With the
 camera down, the executor plans again until it can go on. See
@@ -132,18 +132,18 @@ Zero collision does not prove the easel stayed in place, so the scenario
 measures it:
 
 ```yaml
-  - { condition: "pose_error(easel) < 0.002", phase: always }
-  - { condition: "pose_error(canvas) < 0.005", phase: always }
-  - { condition: "on(canvas, easel)", phase: end }
+  - { condition: (< (pose_error easel) 0.002), phase: always }
+  - { condition: (< (pose_error canvas) 0.005), phase: always }
+  - { condition: (on canvas easel), phase: end }
   - name: brush loaded before the first stroke
-    sequence: [ "skill_succeeded(dip)", "skill_started(mark)" ]
+    sequence: [ (skill_succeeded dip), (skill_started mark) ]
 ```
 
 The experiment `painter_experiment` paints again on a slippery floor and with
 a canvas four times heavier.
 
 **With the PDDL planner** (`scenarios/painter_pddl.scenario.yaml`): the goal is the
-four layers painted and a clean brush. The facts `before(red, black)`… give
+four layers painted and a clean brush. The facts `(before red black)`… give
 the order of the layers; the planner finds the twelve gestures (dip, mark,
 rinse per colour). The robot cannot see the paint: the observers read what
 the gestures did (`Stroke::brush`, `Stroke::painted` in
@@ -173,7 +173,7 @@ estimate, and you can draw the truth against the estimate:
 ```
 
 Tree: `Localize`, then `UntilSuccess` (3 attempts) of `ReachLine` +
-`FollowLine`. Assertions: `laps >= 1`, `cross_track.max < 0.08`, `time < 150`.
+`FollowLine`. Assertions: `(>= laps 1)`, `(< cross_track.max 0.08)`, `(< time 150)`.
 
 Needs OpenCV and AprilTag at build time.
 
@@ -247,10 +247,10 @@ make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runti
   0 s  Stand  SUCCEEDED  (0.999 s)
   1 s  Walk  SUCCEEDED  (24.999 s)
 [PASS] controller.success  (controller.success = 1)
-[PASS] humanoid.height_min > 0.7  (humanoid.height_min = 0.882378)
-[PASS] humanoid.turns > 1  (humanoid.turns = 1.30405)
-[PASS] humanoid.radius > 0.6  (humanoid.radius = 0.918705)
-[PASS] humanoid.radius < 1.4  (humanoid.radius = 0.918705)
+[PASS] (> humanoid.height_min 0.7)  (humanoid.height_min = 0.882378)
+[PASS] (> humanoid.turns 1)  (humanoid.turns = 1.30405)
+[PASS] (> humanoid.radius 0.6)  (humanoid.radius = 0.918705)
+[PASS] (< humanoid.radius 1.4)  (humanoid.radius = 0.918705)
 ```
 
 | Scenario | What happens |
@@ -313,8 +313,8 @@ make robotik_dual_arm
   ...
   8.59 s  right.Hover(p2)  SUCCEEDED  (0.28 s)
   ...
-[PASS] dual_arm.overlap > 2  (dual_arm.overlap = 8.22)
-[PASS] time < 20  (time = 16.85)
+[PASS] (> dual_arm.overlap 2)  (dual_arm.overlap = 8.22)
+[PASS] (< time 20)  (time = 16.85)
 ```
 
 Run step by step, the same plan ends at 33.27 s instead of 16.85 s.
@@ -330,7 +330,7 @@ Run step by step, the same plan ends at 33.27 s instead of 16.85 s.
   The part arrives under the cup (`right.Ready(zone_right)` runs during
   `Convey(p2, …)`), so the next `Hover` takes 0.28 s instead of 0.95 s. The
   zone is a parameter of `place` in the domain, bound by the static fact
-  `reaches(arm, zone)`.
+  `(reaches arm zone)`.
 
 **Tray.** The plan holds the tray during the drilling: `drill` needs the
 tray `in_motion` over all its duration, a token `carry` adds at its start
@@ -348,13 +348,13 @@ the tray held until the drill is done (30.09 s), then lowers it.
   32.11 s  left.Release  SUCCEEDED  (0.01 s)
   32.13 s  left.Retreat  SUCCEEDED  (0.99 s)
   plan 0 at 0 s (start): solved (lift left tray pad_a) (carry left tray pad_a pad_b) (drill right tray) (set_down left tray pad_b)
-[PASS] on(tray, stand_b)  (on(tray, stand_b) = 1)
-[PASS] on(g1, tray)  (on(g1, tray) = 1)
+[PASS] (on tray stand_b)  ((on tray stand_b) = 1)
+[PASS] (on g1 tray)  ((on g1 tray) = 1)
 ...
-[PASS] collision_count(left) == 0  (collision_count(left) = 0)
-[PASS] collision_count(right) == 0  (collision_count(right) = 0)
-[PASS] dual_arm.contact > 15  (dual_arm.contact = 18.44)
-[PASS] dual_arm.overlap > 4  (dual_arm.overlap = 19.99)
+[PASS] (== (collision_count left) 0)  ((collision_count left) = 0)
+[PASS] (== (collision_count right) 0)  ((collision_count right) = 0)
+[PASS] (> dual_arm.contact 15)  (dual_arm.contact = 18.44)
+[PASS] (> dual_arm.overlap 4)  (dual_arm.overlap = 19.99)
 ```
 
 How it works:
@@ -389,9 +389,9 @@ How it works:
   tray, and its glasses, by friction. The arm joint group lists the six arm
   joints, so the spindle is not one of them.
 - **Real glasses.** The cup is at the `rigid` physics level, so the tray and
-  the glasses are free bodies of MuJoCo; `on(g1, tray)` with `phase: always`
+  the glasses are free bodies of MuJoCo; `(on g1 tray)` with `phase: always`
   is a real contact at every step. `dual_arm.contact` counts the seconds the
-  drill really touched the tray (`touching(right_drill, tray)`).
+  drill really touched the tray (`(touching right_drill tray)`).
 - **Touching is the work.** `touches: [tray]` on the drill
   ([03 §4](03-Worlds-and-Scenarios.md#tools)): its contacts with the tray
   are not collisions; a contact with a glass, a stand or the other arm is.
@@ -449,9 +449,9 @@ make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime,
   12.035 s  TurnLeft  SUCCEEDED  (2 s)
   14.04 s  Forward  SUCCEEDED  (5 s)
 [PASS] controller.success  (controller.success = 1)
-[PASS] duck.height_min > 0.09  (duck.height_min = 0.112537)
-[PASS] pose_error(toy) > 0.15  (pose_error(toy) = 0.330871)
-[PASS] duck.distance > 2.0  (duck.distance = 3.10567)
+[PASS] (> duck.height_min 0.09)  (duck.height_min = 0.112537)
+[PASS] (> (pose_error toy) 0.15)  ((pose_error toy) = 0.330871)
+[PASS] (> duck.distance 2.0)  (duck.distance = 3.10567)
 [PASS] default                  seed=1      controller succeeded at 19.05 s (physics abstract, toy: rigid)  time=19.05
 tour: 1/1 runs passed
 ```
@@ -464,7 +464,7 @@ How it works:
   inertia of the small servos) and the core builds the physics with the
   room and the box of the world.
 - **Real contacts.** The box is a prop made rigid by the scenario
-  (`physics.overrides: { toy: rigid }`): `pose_error(toy)` measures how far
+  (`physics.overrides: { toy: rigid }`): `(pose_error toy)` measures how far
   the duck pushed it.
 - **Slower than asked.** With PD actuators instead of the motor model of
   the training, 0.4 m/s gives about 0.14 m/s. `duck.displacement` measures

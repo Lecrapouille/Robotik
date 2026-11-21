@@ -23,8 +23,8 @@ experiment:
   evaluation:
     metrics:
       - time
-      - pose_error(easel)
-      - pose_error(canvas)
-      - collision_count(robot)
+      - (pose_error easel)
+      - (pose_error canvas)
+      - (collision_count robot)
       - painter.stroke_deviation
       - painter.inked

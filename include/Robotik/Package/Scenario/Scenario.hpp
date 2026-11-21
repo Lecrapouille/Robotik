@@ -26,7 +26,7 @@
 ///     # planner:
 ///     #   domain: scenarios/pick_and_place.domain.pddl
 ///     #   goal:
-///     #     - in(red_cube, box)
+///     #     - (in red_cube box)
 ///   trajectories:                          # see Trajectory.hpp
 ///     drop: scenarios/trajectories/drop.trajectory.yaml
 ///   faults:
@@ -37,12 +37,12 @@
 ///     blind: truth                         # when no camera has an image
 ///     overrides: { red_cube: truth }       # per object
 ///   timeout: 30
-///   stop_when: inside(red_cube, box)       # optional
+///   stop_when: (inside red_cube box)       # optional
 ///   parameters:                            # free, read by the mission
 ///     approach_height: 0.10
 ///   assertions:
 ///     - controller.success
-///     - inside(red_cube, box)
+///     - (inside red_cube box)
 /// @endcode
 ///
 /// The perception fidelity says where the beliefs of the robot come from

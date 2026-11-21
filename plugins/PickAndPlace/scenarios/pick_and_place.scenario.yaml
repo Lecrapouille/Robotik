@@ -16,7 +16,7 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(red_cube, box)
-    - holding(gripper) == 0
-    - { condition: "collision_count(robot) == 0", phase: always }
-    - time < 30
+    - (inside red_cube box)
+    - (== (holding gripper) 0)
+    - { condition: (== (collision_count robot) 0), phase: always }
+    - (< time 30)

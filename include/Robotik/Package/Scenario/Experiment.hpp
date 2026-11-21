@@ -26,8 +26,8 @@
 ///         - inject_fault: { resource: wrist_camera, at: 2.0, action: disable }
 ///   evaluation:
 ///     assertions:                      # added to the scenario's own
-///       - { condition: "pose_error(easel) < 0.002", phase: always }
-///     metrics: [ time, pose_error(easel), collision_count(robot) ]
+///       - { condition: (< (pose_error easel) 0.002), phase: always }
+///     metrics: [ time, (pose_error easel), (collision_count robot) ]
 /// @endcode
 ///
 /// A case is a variant of the experiment, not a mutation of the previous

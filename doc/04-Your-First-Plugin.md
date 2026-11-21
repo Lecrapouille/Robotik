@@ -83,8 +83,8 @@ scenario:
   timeout: 30
   assertions:
     - controller.success      # the mission said SUCCESS
-    - hello.ticks > 100       # a metric published by the mission
-    - time < 3
+    - (> hello.ticks 100)       # a metric published by the mission
+    - (< time 3)
 ```
 
 `src/HelloMission.hpp`:
@@ -198,12 +198,12 @@ The scenario checks the result and the safety:
 ```yaml
   assertions:
     - controller.success
-    - wave.swing > 0.4
-    - { condition: "joint_limits_respected(robot)", phase: always }
+    - (> wave.swing 0.4)
+    - { condition: (joint_limits_respected robot), phase: always }
 ```
 
 **Try it:** change `0.6` into `0.2` in the code, rebuild
-(`make robotik_hello_world`), run again. `wave.swing > 0.4` now fails, and
+(`make robotik_hello_world`), run again. `(> wave.swing 0.4)` now fails, and
 the report tells you the joint swung only 0.2 rad.
 
 ---
@@ -250,7 +250,7 @@ void ReachMission::step(robotik::Cell& p_cell, Seconds /*p_dt*/)
 The scenario uses a **deadline** assertion:
 
 ```yaml
-    - { condition: "reach.error < 0.02", within: 5.0 }
+    - { condition: (< reach.error 0.02), within: 5.0 }
 ```
 
 In the simulator, this assertion is red at the start (the error is 3 cm), then
@@ -260,7 +260,7 @@ turns green when the tool arrives. A red assertion does not stop the run.
 `status()` returns `FAILURE`, and the run ends at once:
 
 ```text
-[FAIL] reach.error < 0.02  (reach.error = 3, not true within 5.000000 s)
+[FAIL] (< reach.error 0.02)  (reach.error = 3, not true within 5.000000 s)
 [FAIL] default                  seed=1      controller failed at 0.01 s  time=0.01
 ```
 
@@ -335,9 +335,9 @@ And the scenario uses it as its controller:
     behavior_tree: skills.bt.yaml
   assertions:
     - controller.success
-    - skill_succeeded(Wave)
+    - (skill_succeeded Wave)
     - name: home before waving
-      sequence: [ "skill_succeeded(Home)", "skill_started(Wave)" ]
+      sequence: [ (skill_succeeded Home), (skill_started Wave) ]
 ```
 
 ```bash

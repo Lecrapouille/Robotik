@@ -129,6 +129,20 @@ Result<AssertionSpec> readAssertion(ConfigNode const& p_node)
 AssertionEngine::AssertionEngine(std::vector<AssertionSpec> p_specs)
     : m_specs(std::move(p_specs))
 {
+    for (AssertionSpec const& spec : m_specs)
+    {
+        m_first.push_back(m_conditions.size());
+        if (spec.phase == AssertionPhase::Sequence)
+        {
+            m_conditions.insert(m_conditions.end(),
+                                spec.sequence.begin(),
+                                spec.sequence.end());
+        }
+        else
+        {
+            m_conditions.push_back(spec.condition);
+        }
+    }
     reset();
 }
 
@@ -200,7 +214,7 @@ void AssertionEngine::judge(std::size_t p_index,
         // become true first.
         while (next < spec.sequence.size())
         {
-            Evaluation const step = p_probe(spec.sequence[next]);
+            Evaluation const step = p_probe(m_first[p_index] + next);
             if (!step.known)
             {
                 fail(check, p_now, step.detail);
@@ -215,7 +229,7 @@ void AssertionEngine::judge(std::size_t p_index,
         for (std::size_t later = next + 1U; later < spec.sequence.size();
              ++later)
         {
-            if (p_probe(spec.sequence[later]).holds)
+            if (p_probe(m_first[p_index] + later).holds)
             {
                 fail(check,
                      p_now,
@@ -244,7 +258,7 @@ void AssertionEngine::judge(std::size_t p_index,
     {
         return;
     }
-    Evaluation const measured = p_probe(spec.condition);
+    Evaluation const measured = p_probe(m_first[p_index]);
     check.holds = measured.holds;
     check.value = measured.value;
     check.expected = measured.expected;

@@ -186,6 +186,7 @@ Cell::Cell(compages::world::World& p_world,
       m_faults(m_description.faults, m_description.random_faults),
       m_factory(std::make_unique<bt::NodeFactory>())
 {
+    m_queries = builtinQueries();
     if (m_robots.size() > 1U)
     {
         for (std::unique_ptr<RobotSession> const& robot : m_robots)

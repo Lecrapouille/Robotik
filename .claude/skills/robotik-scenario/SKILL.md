@@ -75,7 +75,7 @@ Several robots (`plugins/DualArm/worlds/*.world.yaml`): one entity
 `type: robot` each, each with its tool (`attach: { parent: <robot>.flange,
 frame: tool_mount }`); sensor/actuator names unique in the world
 (`left_arm`, `right_arm`), refused otherwise. Queries take the robot id:
-`collision_count(left)`, `pose(right.tcp)`; a contact with another robot is
+`(collision_count left)`, `pose(right.tcp)`; a contact with another robot is
 a collision. Core skills become `left.Home`, `left.Stop`. Two `body`
 entities may share a model. A tool that works by contact lists its
 workpieces: `touches: [tray]` (those contacts are not collisions). A
@@ -96,7 +96,7 @@ scenario:
   #     domain: scenarios/x.domain.pddl
   #     facts: [...]                  # block list! [a(x, y)] splits at the comma
   #     goal:
-  #       - in(red_cube, box)
+  #       - (in red_cube box)
   #     replan: { max: 3, delay: 0.5 }   # verify: true, search: lama, timeout: 10
   trajectories: { red: scenarios/trajectories/red.trajectory.yaml }
   perception: { blind: truth }         # fidelity: sensed (default) | noisy_truth | truth; blind: level without image; overrides: { id: level }
@@ -106,7 +106,7 @@ scenario:
     - { resource: gripper, rate: 0.01 }          # random, per second
   physics: { fidelity: abstract, overrides: { red_cube: rigid } }   # abstract (default) | rigid; rigid props need a real mass:
   timeout: 60
-  stop_when: inside(cube, box)
+  stop_when: (inside cube box)
   assertions: [...]
 ```
 
@@ -117,22 +117,29 @@ assertion with `stop: true`.
 
 ```yaml
   - controller.success                                   # phase end (default)
-  - { condition: "collision_count(robot) == 0", phase: always }
-  - { condition: "reach.error < 0.02", within: 5.0 }
-  - { condition: "holding(gripper)", eventually: true }
-  - { condition: "time > 1", at: 2.0 }
-  - { name: order, sequence: [ "skill_succeeded(Home)", "skill_started(Wave)" ] }
-  - { condition: "joint_limits_respected(robot)", phase: always, stop: true }
+  - { condition: (== (collision_count robot) 0), phase: always }
+  - { condition: (< reach.error 0.02), within: 5.0 }
+  - { condition: (holding gripper), eventually: true }
+  - { condition: (> time 1), at: 2.0 }
+  - { name: order, sequence: [ (skill_succeeded Home), (skill_started Wave) ] }
+  - { condition: (joint_limits_respected robot), phase: always, stop: true }
 ```
 
-Grammar: `<value> <op> <number>` (`== != < <= > >=`) or a value alone (≠ 0).
-Values: `time`, `controller.success`, mission metrics, `pose_error(e)` (m),
-`orientation_error(e)` (rad), `distance(a, b)` (entities or `robot.tool0`,
-`robot.tcp` only with a tool, `entity.link`), `inside(a, b)` (rests on
-container floor ±1 mm), `on(a, b)`, `touching(a, b)`, `collision_count(e)`,
-`tool_is_attached(t, robot.flange)`, `joint_limits_respected(robot)`,
-`holding(g[, obj])`, `skill_started|succeeded|failed(name)`.
-Unknown value/entity → the assertion fails with the reason.
+Grammar (PDDL notation, operator first): `(op a b)` with `< <= > >= = == !=`,
+`(and ...)`, `(or ...)`, `(not c)`, or a value alone (≠ 0); `;` comments.
+Planner `facts:`/`goal:` use the same notation: `(in red_cube box)`,
+`(not (holding a))`; the old `in(a, b)` is refused with a hint.
+Values: `time`, `controller.success`, mission metrics, `(pose_error e)` (m),
+`(orientation_error e)` (rad), `(distance a b)` (entities or `robot.tool0`,
+`robot.tcp` only with a tool, `entity.link`), `(inside a b)` (rests on
+container floor ±1 mm), `(on a b)`, `(touching a b)`, `(collision_count e)`,
+`(tool_is_attached t robot.flange)`, `(joint_limits_respected robot)`,
+`(holding g [obj])`, `(skill_started|succeeded|failed name)`.
+Every condition is compiled at load (Task/Condition.hpp): unknown metric,
+query or entity, wrong arity → exit 1 with "did you mean". A metric must be
+published from the first step (`Mission::measure`). A value missing during
+the run → the assertion fails with the reason. Plugins add queries with
+`Cell::addQuery` in `Mission::setup`; C++ asks `cell.query("inside", {a, b})`.
 
 ## Trajectory file
 
@@ -162,8 +169,8 @@ experiment:
       setup:
         - inject_fault: { resource: cam, at: 0.0, action: disable }
   evaluation:
-    assertions: [ { condition: "joint_limits_respected(robot)", phase: always } ]
-    metrics: [ time, collision_count(robot) ]
+    assertions: [ { condition: (joint_limits_respected robot), phase: always } ]
+    metrics: [ time, (collision_count robot) ]
 ```
 
 ## Verify

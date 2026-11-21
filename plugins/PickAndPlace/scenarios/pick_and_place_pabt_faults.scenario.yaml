@@ -14,7 +14,7 @@ scenario:
       domain: scenarios/pick_and_place.domain.pddl
       method: pabt
       goal:
-        - in(red_cube, box)
+        - (in red_cube box)
       replan: { max: 5, delay: 0.5 }
 
   perception: { blind: truth }   # true poses when no camera has an image
@@ -28,8 +28,8 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(red_cube, box)
-    - holding(gripper) == 0
-    - { condition: "collision_count(robot) == 0", phase: always }
-    - planner.replans >= 1
-    - time < 30
+    - (inside red_cube box)
+    - (== (holding gripper) 0)
+    - { condition: (== (collision_count robot) 0), phase: always }
+    - (>= planner.replans 1)
+    - (< time 30)

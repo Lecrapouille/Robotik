@@ -122,10 +122,10 @@ assertions:
 ```yaml
   assertions:
     - controller.success
-    - hello.ticks > 100
-    - time < 3
-    - distance(red_cube, box) < 0.05
-    - inside(red_cube, box)
+    - (> hello.ticks 100)
+    - (< time 3)
+    - (< (distance red_cube box) 0.05)
+    - (inside red_cube box)
 ```
 
 **Step 3.** Build and run:
@@ -136,8 +136,8 @@ make robotik_hello_world
 ```
 
 ```text
-[FAIL] distance(red_cube, box) < 0.05  (distance(red_cube, box) = 0.4005)
-[FAIL] inside(red_cube, box)  (inside(red_cube, box) = 0)
+[FAIL] (< (distance red_cube box) 0.05)  ((distance red_cube box) = 0.4005)
+[FAIL] (inside red_cube box)  ((inside red_cube box) = 0)
 ```
 
 Of course: the cube is 40 cm away from the box.
@@ -150,8 +150,8 @@ thick, so the cube centre is at 0.005 + 0.02 = 0.025:
 ```
 
 ```text
-[PASS] distance(red_cube, box) < 0.05  (distance(red_cube, box) = 0.015)
-[PASS] inside(red_cube, box)  (inside(red_cube, box) = 1)
+[PASS] (< (distance red_cube box) 0.05)  ((distance red_cube box) = 0.015)
+[PASS] (inside red_cube box)  ((inside red_cube box) = 1)
 hello: 1/1 runs passed
 ```
 
@@ -163,7 +163,7 @@ hello: 1/1 runs passed
 
 Of course, a real mission would ask the robot to *move* the cube. This is
 what `plugins/PickAndPlace` does, with the same world entities and the same
-`inside(red_cube, box)` assertion. When you are done, put the files back with
+`(inside red_cube box)` assertion. When you are done, put the files back with
 `git checkout plugins/HelloWorld`.
 
 ---
@@ -350,8 +350,8 @@ Rules:
   `Cell::robot("right")`; all of them are `Cell::robots()`.
 - The skills of the core are named after the robot: `left.Home`,
   `right.Stop`. With one robot they stay `Home` and `Stop`.
-- The queries take the robot id: `pose(right.tcp)`, `collision_count(left)`,
-  `joint_limits_respected(right)`. A contact with the other robot is a
+- The queries take the robot id: `pose(right.tcp)`, `(collision_count left)`,
+  `(joint_limits_respected right)`. A contact with the other robot is a
   collision.
 - The shared beliefs are in the **world frame** (with one robot, they stay
   in its base frame: see [§7](#7-truth-description-and-belief)).
@@ -434,8 +434,8 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(red_cube, box)
-    - { condition: "collision_count(robot) == 0", phase: always }
+    - (inside red_cube box)
+    - { condition: (== (collision_count robot) 0), phase: always }
 ```
 
 | Key | Role |
@@ -562,16 +562,16 @@ An assertion is a **condition**, judged at a **moment**.
 
 ```yaml
 assertions:
-  - controller.success                                         # short form: judged at the end
-  - { condition: "collision_count(robot) == 0", phase: always }
-  - { condition: "pose_error(easel) < 0.002", phase: always }
-  - { condition: "on(canvas, easel)", phase: end }
-  - { condition: "distance(robot.tcp, red_cube) < 0.05", within: 5.0 }
-  - { condition: "holding(gripper)", eventually: true }
-  - { condition: "time > 1", at: 2.0 }
+  - controller.success                                    # short form: judged at the end
+  - { condition: (== (collision_count robot) 0), phase: always }
+  - { condition: (< (pose_error easel) 0.002), phase: always }
+  - { condition: (on canvas easel), phase: end }
+  - { condition: (< (distance robot.tcp red_cube) 0.05), within: 5.0 }
+  - { condition: (holding gripper), eventually: true }
+  - { condition: (> time 1), at: 2.0 }
   - name: brush loaded before the first stroke
-    sequence: [ "skill_succeeded(dip)", "skill_started(mark)" ]
-  - { condition: "joint_limits_respected(robot)", phase: always, stop: true }
+    sequence: [ (skill_succeeded dip), (skill_started mark) ]
+  - { condition: (joint_limits_respected robot), phase: always, stop: true }
 ```
 
 ### Moments
@@ -590,33 +590,59 @@ the **simulated time**. It does **not** stop the run, unless `stop: true`.
 
 ### Conditions
 
-`<value> <op> <number>`, with `op` in `== != < <= > >=`. Or a value alone:
-true when it is not zero.
+A condition uses the notation of PDDL: the operator comes first, inside
+parentheses. You read `(< time 30)` as "time is less than 30". The planner
+goals use the same notation (`(in red_cube box)`, chapter 11), so you learn
+one way to write a fact.
+
+| You write | It is true when |
+|-----------|-----------------|
+| `controller.success` | the value is not zero |
+| `(< time 30)` | the comparison holds; the operators are `< <= > >= = == !=` |
+| `(>= laps (collision_count robot))` | a comparison of two values |
+| `(and c1 c2 ...)` | every condition holds |
+| `(or c1 c2 ...)` | one condition holds |
+| `(not c)` | `c` does not hold |
+
+A value is a number, a metric, or a query on the world:
 
 | Value | Measures |
 |-------|----------|
 | `time` | Simulated time (s) |
 | `controller.success` | 1 if the controller succeeded |
 | mission metrics | Any name published by the plugin: `hello.ticks`, `laps`, `cross_track.max`… |
-| `pose_error(e)` | How far `e` moved since the start of the episode (m) |
-| `orientation_error(e)` | How much `e` turned since the start (rad) |
-| `distance(a, b)` | Distance between two entities or frames, like `robot.tcp` or `robot.tool0` (m) |
-| `inside(a, b)` | `a` rests in the container `b`, or is inside the box `b` |
-| `on(a, b)` | `a` is placed on `b`: a contact under `a`, or touching faces for two props |
-| `touching(a, b)` | `a` and `b` are in contact |
-| `collision_count(e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included. The contacts of a tool with the entities of its `touches` are not counted (§4, Tools) |
-| `tool_is_attached(t, robot.flange)` | 1 if the tool `t` is mounted there |
-| `joint_limits_respected(robot)` | 1 if every joint is inside its limits (± 1e-3) |
-| `holding(g)`, `holding(g, object)` | The gripper `g` holds something, or this object |
-| `skill_started(s)`, `skill_succeeded(s)`, `skill_failed(s)` | History of the skill scheduler |
+| `(pose_error e)` | How far `e` moved since the start of the episode (m) |
+| `(orientation_error e)` | How much `e` turned since the start (rad) |
+| `(distance a b)` | Distance between two entities or frames, like `robot.tcp` or `robot.tool0` (m) |
+| `(inside a b)` | `a` rests in the container `b`, or is inside the box `b` |
+| `(on a b)` | `a` is placed on `b`: a contact under `a`, or touching faces for two props |
+| `(touching a b)` | `a` and `b` are in contact |
+| `(collision_count e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included. The contacts of a tool with the entities of its `touches` are not counted (§4, Tools) |
+| `(tool_is_attached t robot.flange)` | 1 if the tool `t` is mounted there |
+| `(joint_limits_respected robot)` | 1 if every joint is inside its limits (± 1e-3) |
+| `(holding g)`, `(holding g object)` | The gripper `g` holds something, or this object |
+| `(skill_started s)`, `(skill_succeeded s)`, `(skill_failed s)` | History of the skill scheduler |
 
-An unknown value, or an unknown entity, makes the assertion fail with the
-reason. Example: `distance(robot.tcp, cube)` without a tool gives
+A plugin can add its own queries with `Cell::addQuery` in `Mission::setup`.
+A `;` starts a comment up to the end of the line. Put a name with spaces
+between double quotes.
+
+RobotIK reads every condition when the scenario loads. A wrong condition
+stops the load with exit code 1, and the message names the column:
+
+```text
+pick_and_place.scenario.yaml: assertion condition '(< tme 30)': column 4: unknown value 'tme' (did you mean 'time'?)
+pick_and_place.scenario.yaml: assertion condition '(inside red_cub box)': column 1: unknown entity 'red_cub' (did you mean 'red_cube'?)
+```
+
+The same check refuses a wrong number of arguments and an unknown query.
+A value that has no answer during the run makes the assertion fail with
+the reason. Example: `(distance robot.tcp cube)` without a tool gives
 `Unknown Pinocchio frame: tcp`; use `robot.tool0`.
 
 > **Zero collision does not prove that nothing moved.** The easel can slide
 > under a badly modelled contact. This is why the Painter also checks
-> `pose_error(easel)`. Measure what you care about.
+> `(pose_error easel)`. Measure what you care about.
 
 ---
 
@@ -723,7 +749,7 @@ experiment:
 
   evaluation:
     assertions:
-      - { condition: "joint_limits_respected(robot)", phase: always }
+      - { condition: (joint_limits_respected robot), phase: always }
     metrics: [ time ]
 ```
 

@@ -18,7 +18,7 @@ scenario:
 
   assertions:
     - controller.success
-    - { condition: "humanoid.height_min > 0.7", phase: always }
-    - humanoid.turns > 1
-    - humanoid.radius > 0.6
-    - humanoid.radius < 1.4
+    - { condition: (> humanoid.height_min 0.7), phase: always }
+    - (> humanoid.turns 1)
+    - (> humanoid.radius 0.6)
+    - (< humanoid.radius 1.4)

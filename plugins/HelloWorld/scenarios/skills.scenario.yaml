@@ -9,7 +9,7 @@ scenario:
   timeout: 30
   assertions:
     - controller.success
-    - skill_succeeded(Wave)
-    - { condition: "joint_limits_respected(robot)", phase: always }
+    - (skill_succeeded Wave)
+    - { condition: (joint_limits_respected robot), phase: always }
     - name: home before waving
-      sequence: [ "skill_succeeded(Home)", "skill_started(Wave)" ]
+      sequence: [ (skill_succeeded Home), (skill_started Wave) ]

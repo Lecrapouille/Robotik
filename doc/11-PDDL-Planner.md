@@ -26,7 +26,7 @@ The words of this chapter:
 | **Domain** | The types of objects, the predicates and the actions of a task. Written once per plugin, in a `.pddl` file. |
 | **Problem** | The objects, what is true now, and the goal. Also written in a `.pddl` file but RobotIK writes it for you. |
 | **Kairos** | The PDDL solver RobotIK uses: it takes a problem and returns a plan. |
-| **Predicate** | A symbolic fact (true or false). You declare names in the domain. Kairos reads their value from **observers** (belief) and from `planner.facts` (§3). Examples: `holding(red_cube)`, `in(red_cube, box)`, `hand_empty`. |
+| **Predicate** | A symbolic fact (true or false). You declare names in the domain. Kairos reads their value from **observers** (belief) and from `planner.facts` (§3). Examples: `(holding red_cube)`, `(in red_cube box)`, `hand_empty`. |
 | **Action** | A symbolic step in the domain (not a skill): preconditions and effects in PDDL. Example: `pick` means "the robot should end up holding the object", not how to move the arm. |
 | **Plan** | The ordered list of actions Kairos returns, e.g. `(detect red_cube) (pick red_cube) (place red_cube box)`. It is a recipe on paper: it does not run the robot. |
 | **Skill** | C++ code that moves the robot or reads sensors for one step, through `RobotContext` ([05](05-Skills-and-Behavior-Trees.md)). Examples: `Detect`, `Approach`, `Grasp`. |
@@ -54,9 +54,9 @@ The camera is down at the start, back at 1 s, then down for good at 3 s. The tra
   plan 1 at 0.51 s (1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (detect red_cube) (pick red_cube) (place red_cube box)
   plan 2 at 1.02 s (1. detect(red_cube): skill Detect(red_cube) FAILED (unavailable: wrist_camera)): solved (pick red_cube) (place red_cube box)
 [PASS] controller.success  (controller.success = 1)
-[PASS] inside(red_cube, box)  (inside(red_cube, box) = 1)
+[PASS] (inside red_cube box)  ((inside red_cube box) = 1)
 ...
-[PASS] planner.replans >= 1  (planner.replans = 2)
+[PASS] (>= planner.replans 1)  (planner.replans = 2)
 ```
 
 Read the plans:
@@ -77,8 +77,8 @@ In RobotIK, planning is split across **four places**: the domain file, the world
 |-----|-------------------|---------|
 | Vocabulary: types, predicate names, symbolic actions | `scenarios/<name>.domain.pddl` | `(:predicates (holding ?o - graspable))`, `(:action pick ...)` |
 | Problem objects (which things planner can name) | World YAML: `kind` on an entity | `kind: cube` on `red_cube` |
-| Facts that never change: true for the whole run | Scenario: `planner.facts` | `before(red, black)` for the painter robot. |
-| Goal (what must become true) | Scenario: `planner.goal` | `in(red_cube, box)` for the pick-and-place robot |
+| Facts that never change: true for the whole run | Scenario: `planner.facts` | `(before red black)` for the painter robot. |
+| Goal (what must become true) | Scenario: `planner.goal` | `(in red_cube box)` for the pick-and-place robot |
 | Current value of each predicate (from belief) | Mission: one **observer** per predicate | `holding` reads the vacuum sensor |
 | Real execution of each PDDL action | Mission: one **binding** per action | `pick` → `Approach`, `Reach`, `Grasp`, `Approach` |
 
@@ -150,7 +150,7 @@ Only entities with a `kind` are objects of the problem. Their PDDL name is their
     planner:
       domain: scenarios/pick_and_place.domain.pddl
       goal:
-        - in(red_cube, box)
+        - (in red_cube box)
 ```
 
 Write one literal per line. A flow list `[ in(red_cube, box) ]` is cut at the comma by YAML.
@@ -297,7 +297,7 @@ controller:
     domain: scenarios/pick_and_place.domain.pddl
     method: pabt
     goal:
-      - in(red_cube, box)
+      - (in red_cube box)
 ```
 
 The tree starts with the conditions of the goal. When it fails on a
@@ -314,7 +314,7 @@ ReactiveSelector            condition true?   yes: SUCCESS, nothing to do
 ```
 
 The run of `pick_and_place_pabt.scenario.yaml` grows the tree twice, from
-the goal down to what already holds (`seen(red_cube)` and `hand_empty`):
+the goal down to what already holds (`(seen red_cube)` and `hand_empty`):
 
 ```text
   plan 0 at 0 s (start): solved
@@ -379,7 +379,7 @@ What changes from the search:
 | `domain` | required | The PDDL domain, relative to the package root |
 | `method` | `search` | `search`: a planner finds the plan; `pabt`: a reactive tree grows from the goal ([§4](#without-search-a-tree-grown-from-the-goal-pa-bt)) |
 | `facts` | none | True atoms that never change and are not observed |
-| `goal` | required (or `goal_pddl`) | Literals to reach: `in(a, b)`, `not holding(a)`, `hand_empty` |
+| `goal` | required (or `goal_pddl`) | Literals to reach: `(in a b)`, `(not (holding a))`, `hand_empty` |
 | `goal_pddl` | none | The goal in PDDL, for what a list cannot say (`(forall ...)`). Not checked on the beliefs. Not with `pabt` |
 | `replan.max` | 3 | New plans allowed after the first one (`pabt`: new tries after a failed action) |
 | `replan.delay` | 0.5 | Simulated seconds waited before a new plan |
@@ -401,7 +401,7 @@ Beliefs older than `perception.max_age` (seconds, infinite by default) are unkno
 | `planner.steps` | Actions of the current plan |
 | `planner.done` | Actions done and checked |
 
-Use them in assertions: `planner.replans == 0` says "the first plan was the
+Use them in assertions: `(== planner.replans 0)` says "the first plan was the
 right one".
 
 ### C++

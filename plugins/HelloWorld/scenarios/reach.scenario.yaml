@@ -8,4 +8,4 @@ scenario:
   timeout: 30
   assertions:
     - controller.success
-    - { condition: "reach.error < 0.02", within: 5.0 }
+    - { condition: (< reach.error 0.02), within: 5.0 }

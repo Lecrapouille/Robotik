@@ -8,5 +8,5 @@ scenario:
   timeout: 30
   assertions:
     - controller.success
-    - hello.ticks > 100
-    - time < 3
+    - (> hello.ticks 100)
+    - (< time 3)

@@ -44,7 +44,7 @@ static void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
     }
 }
 
-/// Reads planner literals such as in(a, b).
+/// Reads planner literals such as (in a b).
 static std::vector<Literal> readLiterals(ConfigNode const& p_node,
                                          std::string const& p_key)
 {
@@ -55,7 +55,7 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node,
         {
             throw std::runtime_error(
                 "planner." + p_key +
-                ": each item is a literal such as in(a, b)");
+                ": each item is a literal such as (in a b)");
         }
         try
         {
@@ -63,10 +63,7 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node,
         }
         catch (std::runtime_error const& error)
         {
-            throw std::runtime_error(
-                "planner." + p_key + ": " + error.what() +
-                " (write one literal per line: a flow list [a(x, y)] "
-                "splits at the comma)");
+            throw std::runtime_error("planner." + p_key + ": " + error.what());
         }
     }
     return literals;

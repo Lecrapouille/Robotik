@@ -80,8 +80,7 @@ void TrayMission::setup(robotik::Cell& p_cell,
         }
         for (std::string const& workpiece : entity.touches)
         {
-            m_touches.push_back("touching(" + entity.id + ", " + workpiece +
-                                ")");
+            m_touches.push_back({ entity.id, workpiece });
         }
     }
     // An arm with a cup carries; an arm without one drills.
@@ -314,8 +313,8 @@ void TrayMission::step(robotik::Cell& p_cell, robotik::Seconds p_dt)
     if (!p_cell.controllerStopped() &&
         std::ranges::any_of(
             m_touches,
-            [&](std::string const& p_query)
-            { return p_cell.query(p_query).value_or(0.0) > 0.5; }))
+            [&](std::vector<std::string> const& p_pair)
+            { return p_cell.query("touching", p_pair).value_or(0.0) > 0.5; }))
     {
         m_contact += p_dt.value();
     }

@@ -88,8 +88,8 @@ bool cubeInBox(robotik::Cell const& p_cell,
     {
         return false;
     }
-    std::optional<double> const inside = p_cell.query(
-        std::string("inside(") + PICK_PLACE_CUBE + ", " + PICK_PLACE_BOX + ")");
+    std::optional<double> const inside =
+        p_cell.query("inside", { PICK_PLACE_CUBE, PICK_PLACE_BOX });
     return inside.value_or(0.0) > 0.5;
 }
 

@@ -8,6 +8,8 @@
 
 #include "Robotik/Package/Simulation.hpp"
 
+#include <stdexcept>
+
 namespace robotik
 {
 
@@ -43,6 +45,26 @@ Simulation::Simulation(compages::world::World& p_world,
       m_cell(p_world, m_scenario, p_view, p_mission),
       m_assertions(m_scenario.assertions)
 {
+    // Read every condition now: a typo stops the load, not the run.
+    std::string const where = m_scenario.file.string() + ": ";
+    for (std::string const& text : m_assertions.conditions())
+    {
+        Result<Condition> condition = m_cell.compile(text);
+        if (!condition)
+        {
+            throw std::runtime_error(where + "assertion " + condition.error());
+        }
+        m_conditions.push_back(condition.take());
+    }
+    if (!m_scenario.stop_when.empty())
+    {
+        Result<Condition> condition = m_cell.compile(m_scenario.stop_when);
+        if (!condition)
+        {
+            throw std::runtime_error(where + "stop_when " + condition.error());
+        }
+        m_stop_when = condition.take();
+    }
 }
 
 // ----------------------------------------------------------------------------
@@ -71,9 +93,11 @@ void Simulation::settle()
     {
         return;
     }
+    // One measure per step, shared by every condition.
+    Metrics const metrics = m_cell.metrics();
     m_assertions.update(time(),
-                        [this](std::string_view p_condition)
-                        { return evaluate(p_condition); });
+                        [this, &metrics](std::size_t p_condition)
+                        { return robotik::evaluate(m_conditions[p_condition], metrics); });
     announceChecks();
 
     Status const status = m_cell.status();
@@ -89,8 +113,8 @@ void Simulation::settle()
     {
         finish(Outcome::AssertionFailed);
     }
-    else if (!m_scenario.stop_when.empty() &&
-             evaluate(m_scenario.stop_when).holds)
+    else if (!m_stop_when.nodes.empty() &&
+             robotik::evaluate(m_stop_when, metrics).holds)
     {
         finish(Outcome::StopCondition);
     }
@@ -105,9 +129,10 @@ void Simulation::finish(Outcome p_outcome)
 {
     m_outcome = p_outcome;
     m_cell.stopController();
+    Metrics const metrics = m_cell.metrics();
     m_assertions.conclude(time(),
-                          [this](std::string_view p_condition)
-                          { return evaluate(p_condition); });
+                          [this, &metrics](std::size_t p_condition)
+                          { return robotik::evaluate(m_conditions[p_condition], metrics); });
     announceChecks();
     ended(p_outcome);
 }

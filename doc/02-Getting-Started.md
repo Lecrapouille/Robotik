@@ -290,8 +290,8 @@ Output:
 
 ```text
 [PASS] controller.success  (controller.success = 1)
-[PASS] wave.swing > 0.4  (wave.swing = 0.598172)
-[PASS] joint_limits_respected(robot)  (joint_limits_respected(robot) = 1)
+[PASS] (> wave.swing 0.4)  (wave.swing = 0.598172)
+[PASS] (joint_limits_respected robot)  ((joint_limits_respected robot) = 1)
 [PASS] default                  seed=1      controller succeeded at 6.01 s  time=6.01
 wave: 1/1 runs passed
 ```
@@ -334,7 +334,7 @@ The goal: see that a scenario *is* a test.
    copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`).
    Do not create a new file there yet: a scenario must be listed in
    `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
-2. Change the assertion `wave.swing > 0.4` into `wave.swing > 0.9`.
+2. Change the assertion `(> wave.swing 0.4)` into `(> wave.swing 0.9)`.
 3. Run it again:
 
    ```bash
@@ -343,8 +343,8 @@ The goal: see that a scenario *is* a test.
 
    ```text
    [PASS] controller.success  (controller.success = 1)
-   [FAIL] wave.swing > 0.9  (wave.swing = 0.598172)
-   [PASS] joint_limits_respected(robot)  (joint_limits_respected(robot) = 1)
+   [FAIL] (> wave.swing 0.9)  (wave.swing = 0.598172)
+   [PASS] (joint_limits_respected robot)  ((joint_limits_respected robot) = 1)
    [FAIL] default                  seed=1      controller succeeded at 6.01 s  time=6.01
             FAIL wave.swing > 0.9  (wave.swing = 0.598172, expected > 0.9, at 6.01 s)
    wave: 0/1 runs passed

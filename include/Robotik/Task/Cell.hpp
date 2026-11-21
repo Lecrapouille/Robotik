@@ -34,6 +34,7 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/Faults.hpp"
+#include "Robotik/Task/Condition.hpp"
 #include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/RobotContext.hpp"
@@ -393,32 +394,77 @@ public:
     compages::world::Entity decorate(ecs::Shape const& p_object);
 
     // -------------------------------------------------------------------------
-    /// Value of a metric or of a world query, as used in conditions:
-    /// @c time, @c controller.success, mission metrics, @c pose_error(e),
-    /// @c orientation_error(e), @c distance(a, b), @c inside(a, b),
-    /// @c on(a, b), @c touching(a, b), @c collision_count(e),
-    /// @c tool_is_attached(tool, robot.flange), @c joint_limits_respected(r),
-    /// @c holding(gripper[, object]), @c skill_started(name),
-    /// @c skill_succeeded(name), @c skill_failed(name).
+    /// Value of a metric or of a world query, written as in a condition:
+    /// @c time, @c controller.success, mission metrics, or a query among
+    /// @c (pose_error e), @c (orientation_error e), @c (distance a b),
+    /// @c (inside a b), @c (on a b), @c (touching a b),
+    /// @c (collision_count e), @c (tool_is_attached tool robot.flange),
+    /// @c (joint_limits_respected r), @c (holding gripper [object]),
+    /// @c (skill_started name), @c (skill_succeeded name),
+    /// @c (skill_failed name), and the queries added by @ref addQuery.
     ///
     /// @code
-    /// double const d = sim.query("distance(robot.tcp,
-    /// red_cube)").value_or(-1.0);
+    /// double const d = cell.query("(distance robot.tcp red_cube)").value();
     /// @endcode
     ///
     /// @param p_term Metric name or query.
-    /// @return The value; nothing for an unknown name.
-    /// @throws std::invalid_argument for a known query on an unknown entity.
+    /// @return The value; nothing when it has no value now.
+    /// @throws std::invalid_argument for an unknown name, a wrong number of
+    ///   arguments or an unknown entity.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<double> query(std::string_view p_term) const;
 
     // -------------------------------------------------------------------------
-    /// Evaluates a condition (see @ref evaluate in Metrics.hpp) on the
-    /// metrics and the queries.
-    /// @param p_condition E.g. @c "inside(red_cube, box)".
-    /// @return What was measured and whether it holds.
+    /// Asks a world query from C++, without writing text.
+    ///
+    /// @code
+    /// bool const done = cell.query("inside", { "red_cube", "box" }) == 1.0;
+    /// @endcode
+    ///
+    /// @param p_name Query name, e.g. @c "inside".
+    /// @param p_args Its arguments.
+    /// @return The answer.
+    /// @throws std::invalid_argument for an unknown query, a wrong number of
+    ///   arguments or an unknown entity.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::optional<double>
+    query(std::string_view p_name, std::vector<std::string> const& p_args) const;
+
+    // -------------------------------------------------------------------------
+    /// Adds a world query that conditions may use, e.g. a measure only a
+    /// plugin knows. Call it in @ref Mission::setup, before the scenario
+    /// conditions are read.
+    /// @param p_query Name, number of arguments and answer; it reads the
+    ///   truth and must not change the world.
+    /// @throws std::invalid_argument when the name is already a query.
+    // -------------------------------------------------------------------------
+    void addQuery(ConditionQuery p_query);
+
+    // -------------------------------------------------------------------------
+    /// @return The metrics published now and the queries, for
+    ///   @ref compileCondition.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] ConditionVocabulary vocabulary() const;
+
+    // -------------------------------------------------------------------------
+    /// Reads a condition once, to evaluate it at each step.
+    /// @param p_text E.g. @c "(inside red_cube box)".
+    /// @return The condition; fails on an unknown name (see Condition.hpp).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Result<Condition> compile(std::string_view p_text) const;
+
+    // -------------------------------------------------------------------------
+    /// Reads and evaluates a condition now (a one-off question; at each step,
+    /// @ref compile once and call @ref robotik::evaluate).
+    /// @param p_condition E.g. @c "(inside red_cube box)".
+    /// @return What was measured and whether it holds; @c known false and
+    ///   the reason when the condition does not compile.
     // -------------------------------------------------------------------------
     [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const;
+
+    /// @return @c time, @c controller.success, the planner counters and the
+    ///   mission metrics, measured now.
+    [[nodiscard]] Metrics metrics() const;
 
     // --- Described world (what the robot was told) ---------------------------
 
@@ -534,12 +580,8 @@ private:
     /// Contacts of the entity with other entities, floor excluded.
     [[nodiscard]] int contactsOf(Record const& p_record,
                                  std::vector<Contact> const& p_contacts) const;
-    /// @c time, @c controller.success and the mission metrics.
-    [[nodiscard]] Metrics metrics() const;
-    /// Answers a world query with arguments (see @ref query).
-    [[nodiscard]] std::optional<double>
-    call(std::string const& p_name,
-         std::vector<std::string> const& p_args) const;
+    /// The queries every cell answers (see @ref query).
+    [[nodiscard]] std::vector<ConditionQuery> builtinQueries() const;
 
 private:
 
@@ -595,6 +637,9 @@ private:
     Status m_status = Status::IDLE;
     /// The controller is no longer ticked.
     bool m_controller_stopped = false;
+
+    /// World queries of the conditions: built-in, then added ones.
+    std::vector<ConditionQuery> m_queries;
 
     /// Seed of the episode.
     Seed m_seed;

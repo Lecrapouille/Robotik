@@ -11,6 +11,6 @@ scenario:
 
   assertions:
     - controller.success
-    - time < 150
-    - cross_track.max < 0.08
-    - laps >= 1
+    - (< time 150)
+    - (< cross_track.max 0.08)
+    - (>= laps 1)

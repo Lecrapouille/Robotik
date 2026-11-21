@@ -124,13 +124,16 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
         testAssets()).take();
     ASSERT_TRUE(robotik::mountTool(scenario.world, "fingers"));
+    // The assertions name the vacuum gripper, which is gone with its tool:
+    // they no longer compile, and this test is about the actuators.
+    scenario.assertions.clear();
     PickPlaceMission mission;
     compages::world::World world;
     robotik::Simulation simulation(
         world, std::move(scenario), nullptr, &mission);
     EXPECT_EQ(simulation.cell().robot().actuators().find("gripper"), nullptr);
-    EXPECT_EQ(simulation.cell().query("tool_is_attached(fingers, robot.flange)"), 1.0);
-    EXPECT_EQ(simulation.cell().query("tool_is_attached(vacuum, robot.flange)"), 0.0);
+    EXPECT_EQ(simulation.cell().query("(tool_is_attached fingers robot.flange)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("(tool_is_attached vacuum robot.flange)"), 0.0);
     EXPECT_THROW((void)simulation.cell().pose("vacuum"), std::invalid_argument);
 }
 

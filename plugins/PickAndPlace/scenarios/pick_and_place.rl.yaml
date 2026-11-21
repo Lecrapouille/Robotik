@@ -9,4 +9,4 @@ scenario:
   timeout: 150
 
   assertions:
-    - time < 200
+    - (< time 200)

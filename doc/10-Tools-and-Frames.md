@@ -54,7 +54,7 @@ world:
     - { id: welder, type: tool, model: robotik.tools.welding }
 ```
 
-Models are asset ids: the tools live in the pack `data/packs/robotik.tools`. The fixed joint between `flange` and `tool_mount` is the identity. Mounting the drill removes the vacuum and its `gripper` actuator: nothing sticks to the flange any more. A scenario checks the assembly with `tool_is_attached(vacuum, robot.flange)`.
+Models are asset ids: the tools live in the pack `data/packs/robotik.tools`. The fixed joint between `flange` and `tool_mount` is the identity. Mounting the drill removes the vacuum and its `gripper` actuator: nothing sticks to the flange any more. A scenario checks the assembly with `(tool_is_attached vacuum robot.flange)`.
 
 Every tool uses the same interface:
 

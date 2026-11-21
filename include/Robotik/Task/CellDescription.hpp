@@ -428,7 +428,7 @@ struct PlannerSpec
 ///     facts:                              # block lists: a flow list [a(x, y)]
 ///       - compatible(vacuum, cube)        # would split at the comma
 ///     goal:
-///       - in(red_cube, box)               # or goal_pddl: "(forall ...)"
+///       - (in red_cube box)               # or goal_pddl: "(forall ...)"
 ///     replan: { max: 3, delay: 0.5 }      # new plans (pabt: retries after a
 ///                                         # failed action); simulated s before
 ///     verify: true                        # check the effects on the beliefs

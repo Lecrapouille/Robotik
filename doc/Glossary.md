@@ -115,7 +115,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 
 - **Action (PDDL)**: a step the planner may choose, with its parameters,
   preconditions and effects.
-- **Atom / literal**: a fact such as `holding(gripper, red_cube)`; a literal
+- **Atom / literal**: a fact such as `(holding gripper red_cube)`; a literal
   is an atom or its negation.
 - **Binding**: links a PDDL action to the skills that do it.
 - **Domain**: the PDDL file that lists types, predicates and actions.
@@ -139,8 +139,12 @@ A layer only uses the layers under it; `make check-layers` checks it.
 ## Scenarios and runs
 
 - **Assertion**: a condition checked during or at the end of a run
-  (`inside(red_cube, box)`), with a verdict: passed, failed or pending.
+  (`(inside red_cube box)`), with a verdict: passed, failed or pending.
 - **Case**: one variant of an experiment (a scenario plus overrides).
+- **Condition**: a question about the run, in the notation of PDDL:
+  `(< time 30)`, `(inside red_cube box)`, `(and ... )`. The operator comes
+  first, inside parentheses. RobotIK reads it once when the scenario loads
+  and refuses an unknown name (doc/03 §6).
 - **Experiment**: several cases, each run with several seeds, compared.
 - **Metric**: a named number a run publishes (`time`, `laps`).
 - **Outcome**: why a run ended: success, failure, timeout, stop condition.

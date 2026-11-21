@@ -21,6 +21,6 @@ scenario:
 
   assertions:
     - controller.success
-    - { condition: "duck.height_min > 0.09", phase: always }
+    - { condition: (> duck.height_min 0.09), phase: always }
     # From the start to the end, not the path length (the trunk sways).
-    - duck.displacement > 0.8
+    - (> duck.displacement 0.8)

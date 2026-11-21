@@ -52,8 +52,9 @@ private:
     std::vector<std::string> m_pads;
     /// Trays the drill followed its path on (its skill succeeded).
     std::set<std::string, std::less<>> m_drilled;
-    /// "touching(tool, workpiece)" of each tool and what it works on.
-    std::vector<std::string> m_touches;
+    /// Arguments of (touching tool workpiece), for each tool and what it
+    /// works on.
+    std::vector<std::vector<std::string>> m_touches;
     double m_overlap = 0.0;
     double m_contact = 0.0;
 };

@@ -212,8 +212,8 @@ simulator, a regression test in CI, and a benchmark.
 
 ```yaml
 assertions:
-  - inside(red_cube, box)
-  - { condition: "collision_count(robot) == 0", phase: always }
+  - (inside red_cube box)
+  - { condition: (== (collision_count robot) 0), phase: always }
 ```
 
 **3. A window is optional.**

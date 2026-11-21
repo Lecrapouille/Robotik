@@ -90,7 +90,7 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
     // convey makes at(p1, z) for a zone only. place(?r ?p ?b ?z) puts the part in the bin: the arm and the zone
     // take every object of their type.
     robotik::Literal const in_bin =
-        robotik::parseLiteral("at(p1, bin_left)").take();
+        robotik::parseLiteral("(at p1 bin_left)").take();
     EXPECT_EQ(
         pddl(robotik::achievers(schema, objects, in_bin)),
         (std::vector<std::string>{ "(place left p1 bin_left zone_left)",
@@ -100,7 +100,7 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
 
     // A negative literal: what the delete effects make true.
     robotik::Literal const not_free =
-        robotik::parseLiteral("not free(left)").take();
+        robotik::parseLiteral("(not (free left))").take();
     EXPECT_EQ(pddl(robotik::achievers(schema, objects, not_free, 2U)),
               (std::vector<std::string>{ "(pick left p1 zone_left)",
                                          "(pick left p1 zone_right)" }));
@@ -119,14 +119,14 @@ TEST(Backchaining, FindsTheActionsThatMakeALiteralTrue)
 TEST(Backchaining, GrowsTheTreeAndKnowsTheAncestors)
 {
     robotik::BackchainTree tree =
-        robotik::backchainTree({ robotik::parseLiteral("in(cube, box)").take(),
+        robotik::backchainTree({ robotik::parseLiteral("(in cube box)").take(),
                                  robotik::parseLiteral("hand_empty").take() });
     ASSERT_EQ(tree.goal, (std::vector<std::size_t>{ 0U, 1U }));
     std::size_t const place =
         robotik::attach(tree,
                         0U,
                         { "place", { "cube", "box" }, 0.0, 0.0 },
-                        { robotik::parseLiteral("holding(cube)").take() });
+                        { robotik::parseLiteral("(holding cube)").take() });
     ASSERT_EQ(tree.conditions.size(), 3U);
     EXPECT_EQ(tree.conditions[0].achievers,
               (std::vector<std::size_t>{ place }));

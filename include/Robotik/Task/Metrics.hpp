@@ -6,25 +6,23 @@
 // See LICENSING.md for details.
 
 /// @file Metrics.hpp
-/// Named numbers published by a run, and the conditions evaluated on them.
+/// Named numbers published by a run.
 ///
 /// A mission publishes what it measures (@c laps, @c cross_track.max...),
-/// the simulation adds @c time and @c controller.success, and answers queries
-/// on the world such as @c inside(red_cube, box). A condition compares one of
-/// them to a number, without the library knowing what they mean:
+/// the cell adds @c time and @c controller.success. The conditions of a
+/// scenario read them by name (Condition.hpp), without the library knowing
+/// what they mean:
 /// @code
 /// controller.success
-/// time < 60
-/// cross_track.max < 0.08
-/// pose_error(easel) < 0.002
+/// (< time 60)
+/// (< cross_track.max 0.08)
 /// @endcode
 ///
 /// @par Contract
 /// - Promises: an unknown metric is reported as such, never read as 0.
-/// - Expects: metric names are free text without spaces.
+/// - Expects: metric names are free text without spaces or parentheses.
 #pragma once
 
-#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -94,52 +92,5 @@ private:
     /// Values, aligned with @ref m_names.
     std::vector<double> m_values;
 };
-
-/// Values that are not stored in a @ref Metrics table (e.g. queries with
-/// arguments such as @c inside(red_cube, box)). Throws std::invalid_argument
-/// for a query it knows but cannot answer (unknown entity), returns nothing
-/// for a name it does not know.
-using MetricResolver = std::function<std::optional<double>(std::string_view)>;
-
-// ****************************************************************************
-/// One evaluation of a condition.
-///
-/// @code
-/// robotik::Evaluation const e = robotik::evaluate("time < 60", metrics);
-/// if (!e.known)
-///     std::cerr << e.detail << '\n';   // why it could not be measured
-/// else if (!e.holds)
-///     std::cerr << e.detail << ", expected " << e.expected << '\n';
-/// @endcode
-// ****************************************************************************
-struct Evaluation
-{
-    /// False when the value could not be obtained (see @ref detail).
-    bool known = false;
-    /// The condition is true.
-    bool holds = false;
-    /// Measured value of the left-hand side.
-    double value = 0.0;
-    /// Right-hand side, e.g. "< 0.002", or "!= 0" for a bare value.
-    std::string expected;
-    /// "name = value", or why nothing was measured.
-    std::string detail;
-};
-
-// ----------------------------------------------------------------------------
-/// Evaluates a condition written in a scenario.
-///
-/// The condition is @c "<value> <op> <number>" with @c op one of @c ==
-/// @c != @c < @c <= @c > @c >=, or a bare @c "<value>" which holds when the
-/// value is not zero. A value is a metric or a resolver query.
-///
-/// @param p_condition Text of the condition, e.g. @c "time < 60".
-/// @param p_metrics Published metrics.
-/// @param p_resolver Answers the values that are not in @p_metrics.
-/// @return What was measured and whether the condition holds.
-// ----------------------------------------------------------------------------
-[[nodiscard]] Evaluation evaluate(std::string_view p_condition,
-                                  Metrics const& p_metrics,
-                                  MetricResolver const& p_resolver = {});
 
 } // namespace robotik

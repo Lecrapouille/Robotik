@@ -27,7 +27,7 @@ scenario:
   assertions:
     - controller.success
     # Never fallen: the trunk stays above 9 cm.
-    - { condition: "duck.height_min > 0.09", phase: always }
+    - { condition: (> duck.height_min 0.09), phase: always }
     # The box moved: pushed by the duck.
-    - pose_error(toy) > 0.15
-    - duck.distance > 2.0
+    - (> (pose_error toy) 0.15)
+    - (> duck.distance 2.0)

@@ -111,7 +111,7 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
     simulation.step(robotik::Seconds(0.01));
     EXPECT_NEAR(simulation.cell().pose("stand_a").position.y, -0.2, 1e-6);
     EXPECT_NEAR(simulation.cell().pose("stand_b").position.y, 0.2, 1e-6);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("touching(stand_a, stand_b)").value(),
+    EXPECT_DOUBLE_EQ(simulation.cell().query("(touching stand_a stand_b)").value(),
                      0.0);
 }
 
@@ -150,8 +150,8 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     EXPECT_NEAR(right->joints().position(joint), 0.5, 0.02);
     EXPECT_NEAR(left->joints().position(joint), left_before, 1e-3);
     EXPECT_NEAR(left->time().value(), right->time().value(), 1e-12);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("collision_count(left)").value(), 0.0);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("joint_limits_respected(right)").value(),
+    EXPECT_DOUBLE_EQ(simulation.cell().query("(collision_count left)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(simulation.cell().query("(joint_limits_respected right)").value(),
                      1.0);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("holding(right_gripper)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(simulation.cell().query("(holding right_gripper)").value(), 0.0);
 }

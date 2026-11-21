@@ -15,11 +15,11 @@ scenario:
     planner:
       domain: scenarios/tray.domain.pddl
       facts:
-        - can_carry(left)
-        - can_drill(right)
+        - (can_carry left)
+        - (can_drill right)
       goal:
-        - drilled(tray)
-        - rests(tray, pad_b)
+        - (drilled tray)
+        - (rests tray pad_b)
 
   # The path of the drill, in the frame of the tray.
   trajectories:
@@ -38,18 +38,18 @@ scenario:
 
   assertions:
     - controller.success
-    - planner.replans == 0
-    - on(tray, stand_b)            # resting on the rails (a real contact)
+    - (== planner.replans 0)
+    - (on tray stand_b)            # resting on the rails (a real contact)
     # No glass falls nor leaves the tray, at any time.
-    - { condition: "on(g1, tray)", phase: always }
-    - { condition: "on(g2, tray)", phase: always }
-    - { condition: "on(g3, tray)", phase: always }
-    - { condition: "on(g4, tray)", phase: always }
+    - { condition: (on g1 tray), phase: always }
+    - { condition: (on g2 tray), phase: always }
+    - { condition: (on g3 tray), phase: always }
+    - { condition: (on g4 tray), phase: always }
     # The drill touching the tray is its work (touches: [tray] in the
     # world); touching a glass, the stand or the other arm is a collision.
-    - { condition: "collision_count(left) == 0", phase: always }
-    - { condition: "collision_count(right) == 0", phase: always }
+    - { condition: (== (collision_count left) 0), phase: always }
+    - { condition: (== (collision_count right) 0), phase: always }
     # The drill pressed on the tray for most of its path (about 19 s long).
-    - dual_arm.contact > 15
+    - (> dual_arm.contact 15)
     # The drilling happens while the tray moves.
-    - dual_arm.overlap > 4
+    - (> dual_arm.overlap 4)

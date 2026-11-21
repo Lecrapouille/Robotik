@@ -16,4 +16,4 @@ scenario:
     yaw_rate: 0.3          # rad/s, counter-clockwise
 
   assertions:
-    - { condition: "humanoid.height_min > 0.7", phase: always }
+    - { condition: (> humanoid.height_min 0.7), phase: always }

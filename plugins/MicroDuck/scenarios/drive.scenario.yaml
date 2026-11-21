@@ -22,4 +22,4 @@ scenario:
     yaw_rate: 0.0
 
   assertions:
-    - { condition: "duck.height_min > 0.09", phase: always }
+    - { condition: (> duck.height_min 0.09), phase: always }

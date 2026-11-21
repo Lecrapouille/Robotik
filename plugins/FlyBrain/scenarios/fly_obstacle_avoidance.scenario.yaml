@@ -16,4 +16,4 @@ scenario:
 
   assertions:
     - fly.reached
-    - time < 40
+    - (< time 40)

@@ -41,7 +41,7 @@ TEST(Painter, StrokesAreDrawnInTheFrameOfTheEasel)
               1e-3);
     EXPECT_LT(gap(simulation.cell().described("canvas"), simulation.cell().pose("canvas")),
               1e-6);
-    EXPECT_EQ(simulation.cell().query("tool_is_attached(brush, robot.flange)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("(tool_is_attached brush robot.flange)"), 1.0);
 
     // The red stroke paints 4 cm in front of the canvas face, in its upper
     // half.
@@ -72,11 +72,11 @@ TEST(Painter, CanvasRestsOnTheEasel)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_LT(*simulation.cell().query("pose_error(easel)"), 2e-3);
-    EXPECT_LT(*simulation.cell().query("pose_error(canvas)"), 5e-3);
-    EXPECT_EQ(simulation.cell().query("on(canvas, easel)"), 1.0);
-    EXPECT_EQ(simulation.cell().query("touching(easel, canvas)"), 1.0);
-    EXPECT_EQ(simulation.cell().query("collision_count(robot)"), 0.0);
+    EXPECT_LT(*simulation.cell().query("(pose_error easel)"), 2e-3);
+    EXPECT_LT(*simulation.cell().query("(pose_error canvas)"), 5e-3);
+    EXPECT_EQ(simulation.cell().query("(on canvas easel)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("(touching easel canvas)"), 1.0);
+    EXPECT_EQ(simulation.cell().query("(collision_count robot)"), 0.0);
 }
 
 TEST(Painter, PortraitDipsAndMarks)

@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Task/Planning/Pddl.hpp"
+#include "Robotik/Common/SExpression.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -502,65 +503,84 @@ std::string toString(Atom const& p_atom)
 }
 
 // ----------------------------------------------------------------------------
+/// Reads the atom of a literal: @c (in red_cube box) or a bare @c hand_empty.
+static Atom atomOf(SExpression const& p_node, std::string_view p_text)
+{
+    auto bad = [&](std::string const& p_why) -> std::runtime_error
+    {
+        return std::runtime_error("'" + std::string(p_text) + "': " + p_why +
+                                  " (write a PDDL literal such as "
+                                  "(in red_cube box))");
+    };
+    Atom atom;
+    if (p_node.kind == SExpression::Kind::Atom)
+    {
+        if (!validName(p_node.text))
+        {
+            throw bad("bad name '" + p_node.text + "'");
+        }
+        atom.predicate = lowerCase(p_node.text);
+        return atom;
+    }
+    if (p_node.kind != SExpression::Kind::List)
+    {
+        throw bad("a literal is not a quoted text");
+    }
+    for (SExpression const& word : p_node.items)
+    {
+        if (word.kind != SExpression::Kind::Atom || !validName(word.text))
+        {
+            throw bad(word.kind == SExpression::Kind::List
+                          ? "nested list"
+                          : "bad name '" + word.text + "'");
+        }
+        if (atom.predicate.empty())
+        {
+            atom.predicate = lowerCase(word.text);
+        }
+        else
+        {
+            atom.args.push_back(lowerCase(word.text));
+        }
+    }
+    return atom;
+}
+
 Result<Literal> parseLiteral(std::string_view p_text)
 {
     // The border of this reader: whatever stops it inside becomes a message.
     try
     {
-        std::string text = trim(p_text);
+        // The older form in(a, b) reads as two words: say how to write it.
+        if (std::string const text = trim(p_text);
+            !text.empty() && text.front() != '(' && text.find('(') != std::string::npos)
+        {
+            throw std::runtime_error("'" + std::string(p_text) +
+                                     "': write a PDDL literal such as "
+                                     "(in red_cube box), not in(red_cube, box)");
+        }
+        Result<SExpression> parsed = parseSExpression(p_text);
+        if (!parsed)
+        {
+            throw std::runtime_error("'" + std::string(p_text) + "': " +
+                                     parsed.error());
+        }
+        SExpression const& node = parsed.value();
         Literal literal;
-        if (text.starts_with("not ") || text.starts_with("not\t"))
+        if (node.kind == SExpression::Kind::List && !node.items.empty() &&
+            node.items.front().kind == SExpression::Kind::Atom &&
+            lowerCase(node.items.front().text) == "not")
         {
+            if (node.items.size() != 2U)
+            {
+                throw std::runtime_error("'" + std::string(p_text) +
+                                         "': (not ...) takes one atom");
+            }
             literal.positive = false;
-            text = trim(std::string_view(text).substr(4U));
-        }
-        else if (text.starts_with("!"))
-        {
-            literal.positive = false;
-            text = trim(std::string_view(text).substr(1U));
-        }
-        std::size_t const open = text.find('(');
-        std::string const name = trim(std::string_view(text).substr(0U, open));
-        if (!validName(name))
-        {
-            throw std::runtime_error(
-                "'" + std::string(p_text) +
-                "' is not a literal such as in(red_cube, box)");
-        }
-        literal.atom.predicate = lowerCase(name);
-        if (open == std::string::npos)
-        {
+            literal.atom = atomOf(node.items[1], p_text);
             return literal;
         }
-        if (text.back() != ')' ||
-            text.find('(', open + 1U) != std::string::npos)
-        {
-            throw std::runtime_error(
-                "'" + std::string(p_text) +
-                "' is not a literal such as in(red_cube, box)");
-        }
-        std::string_view const inside =
-            std::string_view(text).substr(open + 1U, text.size() - open - 2U);
-        if (!trim(inside).empty())
-        {
-            std::size_t start = 0U;
-            for (;;)
-            {
-                std::size_t const comma = inside.find(',', start);
-                std::string const arg = trim(inside.substr(start, comma - start));
-                if (!validName(arg))
-                {
-                    throw std::runtime_error("'" + std::string(p_text) +
-                                             "': bad argument '" + arg + "'");
-                }
-                literal.atom.args.push_back(lowerCase(arg));
-                if (comma == std::string_view::npos)
-                {
-                    break;
-                }
-                start = comma + 1U;
-            }
-        }
+        literal.atom = atomOf(node, p_text);
         return literal;
     }
     catch (std::exception const& error)

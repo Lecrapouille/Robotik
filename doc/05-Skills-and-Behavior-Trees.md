@@ -468,7 +468,7 @@ them is implemented yet; the architecture is ready for them.
 "Put the red cube in the box"            ← an intent (LLM, user)
             │
             ▼
-goal: inside(red_cube, box)              ← a structured goal
+goal: (inside red_cube box)              ← a structured goal
             │
             ▼
 GOAP / PDDL planner                      ← "which actions are needed?"

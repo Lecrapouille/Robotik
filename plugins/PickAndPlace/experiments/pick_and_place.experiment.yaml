@@ -31,8 +31,8 @@ experiment:
 
   evaluation:
     assertions:
-      - { condition: "joint_limits_respected(robot)", phase: always }
+      - { condition: (joint_limits_respected robot), phase: always }
     metrics:
       - time
-      - collision_count(robot)
-      - distance(red_cube, box)
+      - (collision_count robot)
+      - (distance red_cube box)

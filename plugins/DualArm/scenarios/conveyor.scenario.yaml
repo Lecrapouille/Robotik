@@ -13,15 +13,15 @@ scenario:
     planner:
       domain: scenarios/conveyor.domain.pddl
       facts:
-        - reaches(left, zone_left)
-        - reaches(right, zone_right)
-        - near(left, bin_left)
-        - near(right, bin_right)
+        - (reaches left zone_left)
+        - (reaches right zone_right)
+        - (near left bin_left)
+        - (near right bin_right)
       goal:
-        - at(p1, bin_left)
-        - at(p2, bin_right)
-        - at(p3, bin_left)
-        - at(p4, bin_right)
+        - (at p1 bin_left)
+        - (at p2 bin_right)
+        - (at p3 bin_left)
+        - (at p4 bin_right)
       parallel: true
 
   # The parts are found by their true pose (no color detector in this
@@ -32,14 +32,14 @@ scenario:
 
   assertions:
     - controller.success
-    - inside(p1, bin_left)
-    - inside(p2, bin_right)
-    - inside(p3, bin_left)
-    - inside(p4, bin_right)
-    - { condition: "collision_count(left) == 0", phase: always }
-    - { condition: "collision_count(right) == 0", phase: always }
-    - planner.replans == 0
+    - (inside p1 bin_left)
+    - (inside p2 bin_right)
+    - (inside p3 bin_left)
+    - (inside p4 bin_right)
+    - { condition: (== (collision_count left) 0), phase: always }
+    - { condition: (== (collision_count right) 0), phase: always }
+    - (== planner.replans 0)
     # Both arms moved at the same time for a while.
-    - dual_arm.overlap > 2
+    - (> dual_arm.overlap 2)
     # The plan run step by step takes about 33 s (conveyor_sequential).
-    - time < 20
+    - (< time 20)

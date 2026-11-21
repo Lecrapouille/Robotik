@@ -13,14 +13,14 @@ scenario:
       domain: scenarios/painter.domain.pddl
       method: pabt
       facts:
-        - before(red, black)
-        - before(black, blue)
-        - before(blue, gold)
+        - (before red black)
+        - (before black blue)
+        - (before blue gold)
       goal:
-        - painted(red)
-        - painted(black)
-        - painted(blue)
-        - painted(gold)
+        - (painted red)
+        - (painted black)
+        - (painted blue)
+        - (painted gold)
         - clean
 
   # One stroke per colour, read by the Mark gesture.
@@ -42,16 +42,16 @@ scenario:
   timeout: 160
 
   assertions:
-    - { condition: "painter.stroke_deviation < 0.003", phase: end }   # straight strokes (m)
+    - { condition: (< painter.stroke_deviation 0.003), phase: end }   # straight strokes (m)
     - controller.success
-    - planner.replans == 0
-    - { condition: "tool_is_attached(brush, robot.flange)", phase: always }
-    - { condition: "joint_limits_respected(robot)", phase: always }
-    - { condition: "collision_count(robot) == 0", phase: always }
-    - { condition: "pose_error(easel) < 0.002", phase: always }
-    - { condition: "pose_error(canvas) < 0.005", phase: always }
-    - { condition: "on(canvas, easel)", phase: end }
+    - (== planner.replans 0)
+    - { condition: (tool_is_attached brush robot.flange), phase: always }
+    - { condition: (joint_limits_respected robot), phase: always }
+    - { condition: (== (collision_count robot) 0), phase: always }
+    - { condition: (< (pose_error easel) 0.002), phase: always }
+    - { condition: (< (pose_error canvas) 0.005), phase: always }
+    - { condition: (on canvas easel), phase: end }
     - name: brush loaded before the first stroke
       sequence:
-        - skill_succeeded(dip)
-        - skill_started(mark)
+        - (skill_succeeded dip)
+        - (skill_started mark)

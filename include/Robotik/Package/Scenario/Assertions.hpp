@@ -11,17 +11,17 @@
 /// @code
 /// assertions:
 ///   - controller.success                       # shorthand: phase end
-///   - { condition: "collision_count(robot) == 0", phase: always }
-///   - { condition: "pose_error(easel) < 0.002", phase: always }
-///   - { condition: "inside(red_cube, box)", phase: end }
-///   - { condition: "distance(robot.tcp, red_cube) < 0.05", within: 5.0 }
-///   - { condition: "holding(gripper)", eventually: true }
+///   - { condition: (== (collision_count robot) 0), phase: always }
+///   - { condition: (< (pose_error easel) 0.002), phase: always }
+///   - { condition: (inside red_cube box), phase: end }
+///   - { condition: (< (distance robot.tcp red_cube) 0.05), within: 5.0 }
+///   - { condition: (holding gripper), eventually: true }
 ///   - { condition: "time > 1", at: 2.0 }
 ///   - name: attached before painting
 ///     sequence:
-///       - tool_is_attached(brush, robot.flange)
-///       - skill_started(mark)
-///   - { condition: "joint_limits_respected(robot)", phase: always,
+///       - (tool_is_attached brush robot.flange)
+///       - (skill_started mark)
+///   - { condition: (joint_limits_respected robot), phase: always,
 ///       stop: true }
 /// @endcode
 ///
@@ -36,7 +36,7 @@
 
 #include "Robotik/Common/Result.hpp"
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/Condition.hpp"
 
 #include <cstdint>
 #include <functional>
@@ -73,7 +73,7 @@ enum class AssertionPhase : std::uint8_t
 ///
 /// @code
 /// robotik::AssertionSpec spec;
-/// spec.condition = "collision_count(robot) == 0";
+/// spec.condition = "(== (collision_count robot) 0)";
 /// spec.phase = robotik::AssertionPhase::Always;
 /// spec.stop = true;
 /// @endcode
@@ -157,8 +157,9 @@ struct Check
 // ----------------------------------------------------------------------------
 [[nodiscard]] char const* toString(Check::Verdict p_verdict);
 
-/// Evaluates one condition on the current state (see @ref evaluate).
-using ConditionProbe = std::function<Evaluation(std::string_view)>;
+/// Evaluates condition number @c i of @ref AssertionEngine::conditions on the
+/// current state; the caller compiles them once (see Condition.hpp).
+using ConditionProbe = std::function<Evaluation(std::size_t)>;
 
 // ****************************************************************************
 /// Judges a scenario's assertions over a run.
@@ -168,9 +169,11 @@ using ConditionProbe = std::function<Evaluation(std::string_view)>;
 ///
 /// @code
 /// robotik::AssertionEngine engine(scenario.assertions);
-/// engine.reset();
-/// auto probe = [&](std::string_view p_condition) {
-///     return robotik::evaluate(p_condition, metrics, resolver);
+/// std::vector<robotik::Condition> compiled;
+/// for (std::string const& text : engine.conditions())
+///     compiled.push_back(cell.compile(text).take());
+/// auto probe = [&](std::size_t p_condition) {
+///     return robotik::evaluate(compiled[p_condition], cell.metrics());
 /// };
 /// while (running && !engine.stopRequested())
 ///     engine.update(now, probe);
@@ -223,6 +226,16 @@ public:
         return m_specs;
     }
 
+    // -------------------------------------------------------------------------
+    /// @return Every condition of the assertions, in order: the condition of
+    ///   each assertion, or the items of a sequence. A @ref ConditionProbe
+    ///   receives an index in this list.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] std::vector<std::string> const& conditions() const
+    {
+        return m_conditions;
+    }
+
     /// @return True when an assertion declared @c stop: true has failed.
     [[nodiscard]] bool stopRequested() const;
 
@@ -245,6 +258,10 @@ private:
     std::vector<Check> m_checks;
     /// Next condition expected by each sequence.
     std::vector<std::size_t> m_progress;
+    /// Every condition, see @ref conditions.
+    std::vector<std::string> m_conditions;
+    /// Index in @ref m_conditions of the first condition of each assertion.
+    std::vector<std::size_t> m_first;
     /// @ref conclude was called.
     bool m_concluded = false;
 };

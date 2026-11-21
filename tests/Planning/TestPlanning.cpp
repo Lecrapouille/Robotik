@@ -87,7 +87,7 @@ static robotik::PlannerSpec spec(std::filesystem::path const& p_domain)
 {
     robotik::PlannerSpec spec;
     spec.domain = p_domain;
-    spec.goal = { robotik::parseLiteral("at(red_cube, bin)").take() };
+    spec.goal = { robotik::parseLiteral("(at red_cube bin)").take() };
     return spec;
 }
 
@@ -101,7 +101,7 @@ static std::string problemOf(char const* p_init)
 
 TEST(Planning, ReadsLiterals)
 {
-    robotik::Literal const in = robotik::parseLiteral(" In(Red_Cube,  box) ").take();
+    robotik::Literal const in = robotik::parseLiteral(" (In Red_Cube  box) ").take();
     EXPECT_TRUE(in.positive);
     EXPECT_EQ(in.atom.predicate, "in");
     ASSERT_EQ(in.atom.args.size(), 2U);
@@ -109,17 +109,21 @@ TEST(Planning, ReadsLiterals)
     EXPECT_EQ(robotik::toPddl(in), "(in red_cube box)");
     EXPECT_EQ(robotik::toString(in), "in(red_cube, box)");
 
-    robotik::Literal const empty = robotik::parseLiteral("not hand_empty").take();
+    robotik::Literal const empty = robotik::parseLiteral("(not hand_empty)").take();
     EXPECT_FALSE(empty.positive);
     EXPECT_TRUE(empty.atom.args.empty());
     EXPECT_EQ(robotik::toPddl(empty), "(not (hand_empty))");
-    EXPECT_FALSE(robotik::parseLiteral("!busy()").take().positive);
+    EXPECT_FALSE(robotik::parseLiteral("(not (busy))").take().positive);
+    EXPECT_TRUE(robotik::parseLiteral("hand_empty").take().positive);
 
-    // A flow list [in(a, b)] splits at the comma.
-    EXPECT_FALSE(robotik::parseLiteral("in(red_cube"));
+    EXPECT_FALSE(robotik::parseLiteral("(in red_cube"));
     EXPECT_FALSE(robotik::parseLiteral("box)"));
-    EXPECT_FALSE(robotik::parseLiteral("in(a b)"));
-    EXPECT_FALSE(robotik::parseLiteral("(in a b)"));
+    EXPECT_FALSE(robotik::parseLiteral("(in (a) b)"));
+    EXPECT_FALSE(robotik::parseLiteral("(not a b)"));
+    // The older form says how to write it.
+    robotik::Result<robotik::Literal> const old = robotik::parseLiteral("in(a, b)");
+    ASSERT_FALSE(old);
+    EXPECT_NE(old.error().find("(in red_cube box)"), std::string::npos);
 }
 
 TEST(Planning, ReadsTheDomainSchema)
@@ -255,9 +259,9 @@ TEST(Planning, ExecutorListsEveryProblemOfTheSetup)
 
     robotik::PlannerSpec bad_spec =
         spec(writeDomain("robotik_blocks.pddl", BLOCKS));
-    bad_spec.facts = { robotik::parseLiteral("at(bin, red_cube)").take() };
-    bad_spec.goal = { robotik::parseLiteral("in(red_cube, bin)").take(),
-                      robotik::parseLiteral("at(red_cube)").take() };
+    bad_spec.facts = { robotik::parseLiteral("(at bin red_cube)").take() };
+    bad_spec.goal = { robotik::parseLiteral("(in red_cube bin)").take(),
+                      robotik::parseLiteral("(at red_cube)").take() };
 
     auto message = [&](robotik::PlannerSpec const& p_spec,
                        robotik::WorldDescription const& p_world,

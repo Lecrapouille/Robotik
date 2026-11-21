@@ -178,9 +178,9 @@ scenario:
     - { at: 3.0, resource: wrist_camera, action: disable }
   assertions:
     - controller.success
-    - inside(red_cube, box)
-    - { condition: "collision_count(robot) == 0", phase: always }
-    - time < 30
+    - (inside red_cube box)
+    - { condition: (== (collision_count robot) 0), phase: always }
+    - (< time 30)
 ```
 
 Run it without a window, the way CI does:
@@ -198,10 +198,10 @@ $ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik
   6.04 s  Home  SUCCEEDED  (2.37 s)
 
 [PASS] controller.success  (controller.success = 1)
-[PASS] inside(red_cube, box)  (inside(red_cube, box) = 1)
-[PASS] holding(gripper) == 0  (holding(gripper) = 0)
-[PASS] collision_count(robot) == 0  (collision_count(robot) = 0)
-[PASS] time < 30  (time = 8.43)
+[PASS] (inside red_cube box)  ((inside red_cube box) = 1)
+[PASS] (== (holding gripper) 0)  ((holding gripper) = 0)
+[PASS] (== (collision_count robot) 0)  ((collision_count robot) = 0)
+[PASS] (< time 30)  (time = 8.43)
 pick_and_place_faults: 1/1 runs passed
 ```
 
@@ -228,14 +228,14 @@ experiment:
       overrides:
         scenario.physics.fidelity: rigid
   evaluation:
-    metrics: [ time, collision_count(robot), distance(red_cube, box) ]
+    metrics: [ time, (collision_count robot), (distance red_cube box) ]
 ```
 
 ```text
 $ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
-[PASS] nominal                  seed=11     controller succeeded at 7.4 s ...  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0149
-[PASS] wide_layout              seed=12     controller succeeded at 7.54 s ...  time=7.54  collision_count(robot)=0  distance(red_cube, box)=0.0149
-[PASS] rigid                    seed=13     controller succeeded at 7.4 s ... (physics rigid)  time=7.4  collision_count(robot)=0  distance(red_cube, box)=0.0337539
+[PASS] nominal                  seed=11     controller succeeded at 7.4 s ...  time=7.4  (collision_count robot)=0  (distance red_cube box)=0.0149
+[PASS] wide_layout              seed=12     controller succeeded at 7.54 s ...  time=7.54  (collision_count robot)=0  (distance red_cube box)=0.0149
+[PASS] rigid                    seed=13     controller succeeded at 7.4 s ... (physics rigid)  time=7.4  (collision_count robot)=0  (distance red_cube box)=0.0337539
 ...
 pick_and_place_experiment: 12/12 runs passed
 ```

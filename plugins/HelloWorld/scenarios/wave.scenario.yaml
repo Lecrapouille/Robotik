@@ -7,5 +7,5 @@ scenario:
   timeout: 30
   assertions:
     - controller.success
-    - wave.swing > 0.4
-    - { condition: "joint_limits_respected(robot)", phase: always }
+    - (> wave.swing 0.4)
+    - { condition: (joint_limits_respected robot), phase: always }

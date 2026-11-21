@@ -67,7 +67,7 @@ enum class Truth : std::uint8_t
 [[nodiscard]] char const* toString(Truth p_truth);
 
 // ****************************************************************************
-/// A predicate applied to objects: @c in(red_cube, box). In an action schema
+/// A predicate applied to objects: @c (in red_cube box). In an action schema
 /// an argument may be a parameter (@c ?o).
 ///
 /// @code
@@ -96,7 +96,8 @@ struct Atom
 /// An atom or its negation.
 ///
 /// @code
-/// robotik::Literal const goal = robotik::parseLiteral("not in(red_cube, box)").take();
+/// robotik::Literal const goal =
+///     robotik::parseLiteral("(not (in red_cube box))").take();
 /// goal.positive;           // false
 /// robotik::toPddl(goal);   // "(not (in red_cube box))"
 /// @endcode
@@ -113,10 +114,12 @@ struct Literal
 };
 
 // ----------------------------------------------------------------------------
-/// Reads the scenario syntax. Names are lower-cased.
-/// @param p_text @c "in(red_cube, box)", @c "not in(red_cube, box)" or
-///   @c "hand_empty".
-/// @return The literal; fails on a malformed literal.
+/// Reads a literal of a scenario, in the PDDL notation. Names are
+/// lower-cased.
+/// @param p_text @c "(in red_cube box)", @c "(not (in red_cube box))",
+///   @c "(hand_empty)" or @c "hand_empty".
+/// @return The literal; fails on a malformed literal, and on the older
+///   form @c in(red_cube, box) with the way to write it.
 // ----------------------------------------------------------------------------
 [[nodiscard]] Result<Literal> parseLiteral(std::string_view p_text);
 /// @return @c "(not (in red_cube box))".

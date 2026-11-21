@@ -104,6 +104,10 @@ built.
   `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
 - Plugins publish metrics (`Mission::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
+- Conditions and planner literals use the PDDL notation: `(< time 30)`,
+  `(inside red_cube box)`. They are compiled at load (Task/Condition.hpp):
+  a typo is a load error. From C++, ask `cell.query("inside", {a, b})`,
+  never build a condition string; add a query with `Cell::addQuery`.
 - `Mission::status` ends a run only when the scenario has no behavior tree
   and no planner.
 - Several robots in a world share one physics, one `ResourceManager`, one

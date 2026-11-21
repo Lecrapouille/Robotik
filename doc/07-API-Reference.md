@@ -164,8 +164,11 @@ judges the run (marked *Simulation* below).
 |--------|---------|
 | `pose("id")`, `pose("id.link")` | Current true pose of an entity or a frame |
 | `initialPose("id")` | Pose at the start of the episode |
-| `query("distance(a, b)")` | Any value of the assertion grammar, or nothing if unknown |
-| `evaluate("inside(a, b)")` | A full condition, with value and verdict |
+| `query("(distance a b)")` | Any value of a condition; throws on an unknown name or entity |
+| `query("inside", { "a", "b" })` | A world query from C++, without text |
+| `addQuery({ name, min_args, max_args, answer })` | A query of the plugin, usable in conditions |
+| `compile("(inside a b)")` | A condition read once (`Result<Condition>`), then `robotik::evaluate(c, cell.metrics())` |
+| `evaluate("(inside a b)")` | A full condition now, with value and verdict |
 | `entity("id")` | The Compages ECS entity, or an empty handle |
 | `decorate(Shape)` | Adds a visual-only object (no collision, unknown to assertions) |
 
@@ -372,7 +375,7 @@ void measure(robotik::Cell const&, robotik::Metrics& p_metrics) const override
 }
 ```
 
-Any published name can be used in an assertion (`laps >= 1`) or in
+Any published name can be used in an assertion (`(>= laps 1)`) or in
 `evaluation.metrics` of an experiment. Use a prefix per plugin
 (`hello.ticks`, `reach.error`) to avoid clashes.
 

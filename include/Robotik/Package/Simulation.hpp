@@ -78,7 +78,9 @@ public:
     /// @param p_scenario Scenario to run.
     /// @param p_view Rendering hooks, or null for a headless run.
     /// @param p_mission Task plugin (skills, detectors, metrics); not owned.
-    /// @throws std::runtime_error when the cell cannot be built.
+    /// @throws std::runtime_error when the cell cannot be built, or when a
+    ///   condition of the assertions or of @c stop_when does not compile
+    ///   (an unknown metric, query or entity: see Condition.hpp).
     // -------------------------------------------------------------------------
     Simulation(compages::world::World& p_world,
                Scenario p_scenario,
@@ -176,8 +178,9 @@ public:
     Signal<Outcome> ended;
 
     // -------------------------------------------------------------------------
-    /// Evaluates a condition on the metrics and the truth of the cell.
-    /// @param p_condition E.g. @c "inside(red_cube, box)".
+    /// Evaluates a condition on the metrics and the truth of the cell (a
+    /// one-off question: the assertions are compiled once).
+    /// @param p_condition E.g. @c "(inside red_cube box)".
     /// @return What was measured and whether it holds.
     // -------------------------------------------------------------------------
     [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const
@@ -200,6 +203,10 @@ private:
     Cell m_cell;
     /// Judges the assertions.
     AssertionEngine m_assertions;
+    /// The conditions of @ref m_assertions, compiled once.
+    std::vector<Condition> m_conditions;
+    /// The @c stop_when condition, compiled once; empty when none.
+    Condition m_stop_when;
     /// Why the run ended.
     Outcome m_outcome = Outcome::Running;
     /// Last color announced of each assertion: 0 red, 1 green, 2 unknown.
