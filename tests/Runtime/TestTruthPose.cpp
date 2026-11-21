@@ -38,3 +38,35 @@ TEST(TruthPose, APropTurnedInTheWorldReportsItsRotation)
                 1.5707963,
                 1e-5);
 }
+
+TEST(TruthPose, ATruthBeliefIsTheBodyOfThisStep)
+{
+    robotik::EntitySpec arm;
+    arm.id = "arm";
+    arm.type = robotik::EntitySpec::Type::Robot;
+    arm.model = repoFile("data/packs/robotik.robots/robot_6axis.urdf");
+    robotik::EntitySpec cube;
+    cube.id = "cube";
+    cube.type = robotik::EntitySpec::Type::Prop;
+    cube.shape = robotik::ShapeSpec{};
+    cube.pose.position = { 0.6, 0.0, 1.0 };
+    robotik::RoboticCellDescription description;
+    description.world.floor = true;
+    description.world.entities = { arm, cube };
+    description.physics.fidelity = robotik::Fidelity::Rigid;
+    description.perception.fidelity = robotik::PerceptionFidelity::Truth;
+
+    auto opened = robotik::openRoboticCell(std::move(description));
+    ASSERT_TRUE(opened) << opened.error();
+    robotik::RoboticCell& cell = *opened.value().cell;
+    for (int i = 0; i < 20; ++i)
+    {
+        cell.step(robotik::Seconds(0.01));
+    }
+    double const truth = cell.requirePose("cube").position.z;
+    ASSERT_LT(truth, 1.0 - 0.01) << "the cube falls in rigid physics";
+    robotik::WorldObject const* belief = cell.worldModel().find("cube");
+    ASSERT_NE(belief, nullptr);
+    EXPECT_NEAR(belief->position.z, truth, 1e-6)
+        << "the belief stamped now must hold the pose of now";
+}

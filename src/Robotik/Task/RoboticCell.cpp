@@ -1256,6 +1256,9 @@ void RoboticCell::step(Seconds p_dt)
     {
         robot->advance(p_dt);
     }
+    // One time for all: the entities take the bodies of this physics step
+    // before the sensors, the grippers and the truth beliefs read them.
+    syncBodies();
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
         robot->sense();
@@ -1278,7 +1281,6 @@ void RoboticCell::step(Seconds p_dt)
         perceiveTruth();
     }
     track();
-    syncBodies();
 
     if (m_suspended)
     {
