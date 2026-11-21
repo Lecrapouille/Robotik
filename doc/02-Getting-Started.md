@@ -416,8 +416,12 @@ the [glossary](Glossary.md).
 | **Task** | robots, objects and a job | a robot cell in C++, with skills and a controller |
 | **Package** | YAML files and a plugin | a scenario file that builds the cell and judges the run |
 
-**Robot**: open a robot and move a joint
-(`tests/Robot/TestOpenRobot.cpp`).
+Three small programs show them. Each one is a test, so it always builds and
+runs. They share one engine: a skill runs through the same scheduler whether
+you request it, a behavior tree asks for it, or a plan needs it.
+
+**1. Move a robot, without a planner** (Robot layer,
+`tests/Robot/TestOpenRobot.cpp`).
 
 ```cpp
 auto arm = robotik::openRobot("robotik.robots.robot_6axis");
@@ -429,11 +433,11 @@ for (int i = 0; i < 200; ++i)
     arm.value()->step(robotik::Seconds(0.01)); // MuJoCo moves the joint
 ```
 
-**Task**: a robot and a cube described in C++, and a skill run by the
-scheduler (`tests/Examples/TestLayerExamples.cpp`).
+**2. Run a skill, without a mission** (Task layer,
+`tests/Examples/TestLayerExamples.cpp`). A robot and a cube described in
+C++; `openCell` creates the world that holds them.
 
 ```cpp
-robotik::CellDescription description;
 robotik::EntitySpec arm;
 arm.id = "arm";
 arm.type = robotik::EntitySpec::Type::Robot;
@@ -442,16 +446,36 @@ robotik::EntitySpec cube;
 cube.id = "cube";
 cube.shape = robotik::ShapeSpec{};             // a 4 cm box
 cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
+robotik::CellDescription description;
 description.world.entities = { arm, cube };
 
-compages::world::World world;
-robotik::Cell cell(world, description);
+auto opened = robotik::openCell(std::move(description));
+robotik::Cell& cell = *opened.value();
 auto const raise = cell.skills().add<robotik::MoveJointSkill>(
     { .name = "Raise" }, "joint2", 0.5);
-cell.skills().request(raise);
-while (cell.skills().state(raise) != robotik::SkillState::Succeeded)
-    cell.step(robotik::Seconds(0.01));
+cell.run(raise, robotik::Seconds(10.0));       // SkillState::Succeeded
 ```
+
+**3. Reach a goal, without writing a sequence of skills** (Task layer, same
+test file). You give the goal; the planner finds the actions in the PDDL
+domain, and the cell runs their skills. The mission gives the skills and the
+observers that read the beliefs ([chapter 11](11-PDDL-Planner.md)).
+
+```cpp
+PickPlaceMission mission(true, true);          // skills + observers
+auto opened = robotik::openCell(description, &mission);
+robotik::Cell& cell = *opened.value();
+
+robotik::PlannerSpec goal;
+goal.domain = "pick_and_place.domain.pddl";
+goal.goal = { robotik::parseLiteral("(in red_cube box)").take() };
+cell.achieve(goal);
+cell.run(robotik::Seconds(60.0));              // Status::SUCCESS: detect, pick, place
+```
+
+The `planner:` block of a scenario file calls the same `achieve`. The YAML
+of the Package layer only reads files and calls the Task layer; it adds no
+behaviour of its own.
 
 **Package**: the scenario file builds the cell; the simulation judges the
 run with the assertions of the file (same test file).

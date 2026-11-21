@@ -11,46 +11,90 @@
 
 #include "main.hpp"
 
+#include "PickPlaceMission.hpp"
+
 #include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/Cell.hpp"
+#include "Robotik/Task/OpenCell.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
 #include "Compages/World/World.hpp"
 
-// ----------------------------------------------------------------------------
-/// Task layer: a robot and a cube described in C++, no file but the URDF, and
-/// a skill run by the scheduler.
-TEST(LayerExamples, TaskCellInCpp)
+/// Task layer, without a mission: a robot and a cube described in C++, no
+/// file but the URDF, and one skill run until it ends.
+TEST(LayerExamples, TaskRunsOneSkill)
 {
-    robotik::CellDescription cell_description;
     robotik::EntitySpec arm;
     arm.id = "arm";
     arm.type = robotik::EntitySpec::Type::Robot;
     arm.model = repoFile("data/packs/robotik.robots/robot_6axis.urdf");
     robotik::EntitySpec cube;
     cube.id = "cube";
-    cube.shape = robotik::ShapeSpec{};
+    cube.shape = robotik::ShapeSpec{};             // a 4 cm box
     cube.pose.position = robotik::Vector3(0.4, 0.2, 0.02);
-    cell_description.world.entities = { arm, cube };
+    robotik::CellDescription description;
+    description.world.entities = { arm, cube };
 
-    compages::world::World world;
-    robotik::Cell cell(world, cell_description);
-    robotik::SkillId const raise =
-        cell.skills().add<robotik::MoveJointSkill>({ .name = "Raise" }, "joint2", 0.5);
-    cell.skills().request(raise);
-    while (cell.skills().state(raise) != robotik::SkillState::Succeeded &&
-           cell.time() < robotik::Seconds(10.0))
-    {
-        cell.step(robotik::Seconds(0.01));
-    }
+    auto opened = robotik::openCell(std::move(description));
+    ASSERT_TRUE(opened) << opened.error();
+    robotik::Cell& cell = *opened.value();
+    auto const raise = cell.skills().add<robotik::MoveJointSkill>(
+        { .name = "Raise" }, "joint2", 0.5);
+    EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)), robotik::SkillState::Succeeded);
 
-    EXPECT_EQ(cell.skills().state(raise), robotik::SkillState::Succeeded);
     robotik::JointSet const& joints = cell.robot().joints();
     EXPECT_NEAR(joints.position(joints.revolute("joint2")).value(), 0.5, 0.02);
     EXPECT_NEAR(cell.pose("cube").position.x, 0.4, 1e-6); // truth, for a measure
 }
 
-// ----------------------------------------------------------------------------
+/// The pick-and-place world without its controller, and its mission: the
+/// skills and the observers of the planner (PickPlacePlanning.cpp).
+static robotik::Result<robotik::OpenedCell> pickAndPlace(PickPlaceMission& p_mission)
+{
+    auto scenario = robotik::loadScenario(
+        repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+        testAssets());
+    if (!scenario)
+    {
+        return robotik::failure(scenario.error());
+    }
+    robotik::CellDescription description = scenario.take();
+    description.controller = {};
+    return robotik::openCell(std::move(description), &p_mission);
+}
+
+/// The goal of the pick and place, in the domain of the package.
+static robotik::PlannerSpec cubeInBox(std::string const& p_goal)
+{
+    robotik::PlannerSpec spec;
+    spec.domain = repoFile("plugins/PickAndPlace/scenarios/pick_and_place.domain.pddl");
+    spec.goal = { robotik::parseLiteral(p_goal).take() };
+    return spec;
+}
+
+/// Task layer, a goal without a sequence of skills: the planner finds detect,
+/// pick and place in the PDDL domain, the cell runs them.
+TEST(LayerExamples, TaskAchievesAGoal)
+{
+    PickPlaceMission mission(true, true);
+    auto opened = pickAndPlace(mission);
+    ASSERT_TRUE(opened) << opened.error();
+    robotik::Cell& cell = *opened.value();
+
+    cell.achieve(cubeInBox("(in red_cube box)"));
+    EXPECT_EQ(cell.run(robotik::Seconds(60.0)), robotik::Status::SUCCESS);
+    EXPECT_EQ(cell.query("inside", { "red_cube", "box" }), 1.0);
+}
+
+/// A goal that names nothing in the domain is refused before any step.
+TEST(LayerExamples, AchieveRefusesAGoalTheDomainDoesNotKnow)
+{
+    PickPlaceMission mission(true, true);
+    auto opened = pickAndPlace(mission);
+    ASSERT_TRUE(opened) << opened.error();
+    EXPECT_THROW(opened.value()->achieve(cubeInBox("(flying red_cube)")),
+                 std::runtime_error);
+}
+
 /// What the hello scenario needs from C++: count the steps, stop after 2 s.
 class HelloMission final: public robotik::Mission
 {

@@ -232,17 +232,61 @@ Cell::Cell(compages::world::World& p_world,
     registerSkills(*m_factory, *m_scheduler);
     if (m_description.controller.planner)
     {
-        m_executor =
-            std::make_unique<PlanExecutor>(*m_description.controller.planner,
-                                           m_description.world,
-                                           m_planning,
-                                           m_description.id,
-                                           *m_factory,
-                                           *m_scheduler);
-        m_executor->clock(simulatedClock());
-        m_executor->maxAge(m_description.perception.max_age);
+        achieve(*m_description.controller.planner);
     }
     reset();
+}
+
+void Cell::achieve(PlannerSpec p_spec)
+{
+    if (!m_description.controller.behavior_tree.empty())
+    {
+        throw std::runtime_error(
+            "achieve: the controller is a behavior tree; give a tree or a goal, "
+            "not both");
+    }
+    auto executor = std::make_unique<PlanExecutor>(p_spec,
+                                                   m_description.world,
+                                                   m_planning,
+                                                   m_description.id,
+                                                   *m_factory,
+                                                   *m_scheduler);
+    executor->clock(simulatedClock());
+    executor->maxAge(m_description.perception.max_age);
+    executor->reset(m_seed);
+    m_executor = std::move(executor);
+    m_description.controller.planner = std::move(p_spec);
+    m_status = Status::IDLE;
+    m_controller_stopped = false;
+}
+
+SkillState Cell::run(SkillId p_skill, Seconds p_limit, Seconds p_dt)
+{
+    m_scheduler->request(p_skill);
+    Seconds const end = time() + p_limit;
+    for (;;)
+    {
+        SkillState const state = m_scheduler->state(p_skill);
+        bool const over = state == SkillState::Succeeded ||
+                          state == SkillState::Failed ||
+                          state == SkillState::Cancelled;
+        if (over || time() >= end)
+        {
+            return state;
+        }
+        step(p_dt);
+    }
+}
+
+Status Cell::run(Seconds p_limit, Seconds p_dt)
+{
+    Seconds const end = time() + p_limit;
+    while (m_status != Status::SUCCESS && m_status != Status::FAILURE &&
+           time() < end)
+    {
+        step(p_dt);
+    }
+    return m_status;
 }
 
 Cell::~Cell() = default;

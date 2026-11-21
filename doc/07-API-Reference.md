@@ -145,6 +145,8 @@ Header: `Robotik/Task/Cell.hpp`. The robot cell: robots, objects, one
 physics, the controller and the beliefs. The mission receives it. A C++
 program can build one from a `CellDescription`, without any file
 ([02-Getting-Started.md](02-Getting-Started.md#7-the-three-layers-in-code)).
+`Robotik/Task/OpenCell.hpp` builds the cell and its world in one call:
+`robotik::openCell(description, &mission)` returns a `Result<OpenedCell>`.
 `Robotik/Package/Simulation.hpp` builds the cell from a scenario file and
 judges the run (marked *Simulation* below).
 
@@ -162,7 +164,7 @@ judges the run (marked *Simulation* below).
 | `beliefFrame()` | Frame of the beliefs: the robot base when alone, the world with several robots |
 | `physicsOptions()` | Options of the physics the core builds after `Mission::setup`: tune them there (floating base, gravity compensation, step, `armature`, `damping`, `exact_inertia`); the world still adds its bodies and floor (MicroDuck) |
 | `worldFrame()` | Entity of the Z-up frame of the world: hang on it what stays in the world, not on a robot root that a floating base moves |
-| `factory()` | `bt::NodeFactory&`: register custom tree nodes |
+| `factory()` | `bt::NodeFactory&`: register custom tree nodes (include `Robotik/Task/Skills/SkillNodes.hpp`) |
 | `camera()` | `Camera*`: the first camera, or null |
 | `description()` | `CellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
 | `mission()` | `Mission*` |
@@ -173,6 +175,10 @@ judges the run (marked *Simulation* below).
 
 | Method | Does |
 |--------|------|
+| `run(skill, limit)` | Requests the skill and steps until it ends; returns its `SkillState` |
+| `run(limit)` | Steps until the controller ends (tree, plan or mission status); returns `Status` |
+| `achieve(PlannerSpec)` | Plans toward the goal and runs the plan (a `planner:` block does the same); throws when domain, goal and bindings disagree |
+| `status()` | `robotik::Status` of the controller (`IDLE` before the first tick) |
 | `time()` | Simulated time (`Seconds`) |
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |

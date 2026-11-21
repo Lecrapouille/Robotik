@@ -170,6 +170,53 @@ public:
     }
 
     /// @return Simulated time since the reset.
+    // -------------------------------------------------------------------------
+    /// Requests a skill and steps until it ends: run one skill without a
+    /// mission, a tree or a planner.
+    ///
+    /// @code
+    /// auto const raise = cell.skills().add<robotik::MoveJointSkill>(
+    ///     { .name = "Raise" }, "joint2", 0.5);
+    /// cell.run(raise, robotik::Seconds(10.0));   // SkillState::Succeeded
+    /// @endcode
+    ///
+    /// @param p_skill Skill registered on @ref skills.
+    /// @param p_limit Simulated time allowed, from now.
+    /// @param p_dt Step.
+    /// @return The final state, or @c Waiting / @c Running at the limit.
+    // -------------------------------------------------------------------------
+    SkillState run(SkillId p_skill, Seconds p_limit, Seconds p_dt = Seconds(0.01));
+
+    // -------------------------------------------------------------------------
+    /// Steps until the controller ends (behavior tree, plan, or the status of
+    /// the mission), or until the limit.
+    /// @param p_limit Simulated time allowed, from now.
+    /// @param p_dt Step.
+    /// @return @ref status at the end: @c RUNNING at the limit.
+    // -------------------------------------------------------------------------
+    Status run(Seconds p_limit, Seconds p_dt = Seconds(0.01));
+
+    // -------------------------------------------------------------------------
+    /// Reaches a goal without writing a sequence of skills: the planner finds
+    /// the actions in the PDDL domain, the cell runs them with the skills of
+    /// the bindings (@ref planning) and plans again when the beliefs
+    /// disagree. The @c planner block of a scenario calls it.
+    ///
+    /// @code
+    /// robotik::PlannerSpec goal;
+    /// goal.domain = "pick_and_place.domain.pddl";
+    /// goal.goal = { robotik::parseLiteral("(in red_cube box)").take() };
+    /// cell.achieve(goal);
+    /// robotik::Status const done = cell.run(robotik::Seconds(60.0));
+    /// @endcode
+    ///
+    /// @param p_spec Domain file, goal and settings of the planner.
+    /// @throws std::runtime_error when the domain, the goal, the objects and
+    ///   the bindings do not agree (every problem is listed), or when the
+    ///   controller is a behavior tree.
+    // -------------------------------------------------------------------------
+    void achieve(PlannerSpec p_spec);
+
     [[nodiscard]] Seconds time() const
     {
         return m_robot->time();
