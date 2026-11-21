@@ -23,8 +23,10 @@ Read only what the task needs. Load a skill instead of reading the docs:
 ## Layout
 
 Three layers, each usable without the ones above (`make check-layers`
-refuses an include upwards, and a truth call in `Task/Skills` or
-`Task/Planning`). Words: doc/Glossary.md.
+compiles every file alone where only the layers below exist, so an include
+upwards is "file not found"; `Task/Skills` and `Task/Planning` are compiled
+without `Task/Cell.hpp`, so they cannot call the truth). Words:
+doc/Glossary.md.
 
 ```text
 include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementation
@@ -61,7 +63,7 @@ walking robot pushing a box in a room, ONNX policy).
 make                                      # core, hosts, the plugins of PLUGINS
 make <target>       # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
 make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
-make check-layers                         # no include upwards, no truth call in skills/planning
+make check-layers                         # compiler: no include upwards, no Cell.hpp in skills/planning
 ./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```

@@ -53,9 +53,14 @@ Robot     one robot: Robot, RobotSession, openRobot, joints, sensors,
 Common    units and poses (from Compages), Result, Signal, Config, Random
 ```
 
-`make check-layers` (`tests/scripts/check_layers.py`) refuses an include
-towards a higher layer, and a call of the truth API (`Cell::pose`,
-`Cell::query`...) in `Task/Skills` or `Task/Planning`. A future split stays
+`make check-layers` (`tests/scripts/check_layers.py`) lets the compiler
+check the layers. It compiles every header and source alone, with an
+include path where only the allowed layers exist: an include towards a
+higher layer is "file not found", however the line is written. A header
+that forgets one of its own includes fails the same way. `Task/Skills` and
+`Task/Planning` are compiled without `Task/Cell.hpp`: they cannot call the
+truth API (`Cell::pose`, `Cell::query`...), because the class is not
+defined there. A future split stays
 possible: `Package` could become `Scenario` (files) and `App` (plugins,
 hosts) without touching the layers below.
 
@@ -299,8 +304,8 @@ mock, as a simpler physics is: a test of the plan does not need a detector
 Three contracts keep it honest:
 
 1. **One entry.** Skills, PDDL observers and the mission read the
-   `WorldModel` only; `make check-layers` refuses a truth call in
-   `Task/Skills` and `Task/Planning`.
+   `WorldModel` only; `make check-layers` compiles `Task/Skills` and
+   `Task/Planning` without `Task/Cell.hpp`, so a truth call cannot build.
 2. **Source and age.** Each belief says where it comes from
    (`BeliefSource`: prior, sensed, noisy truth, truth) and when it was seen.
    With `perception.max_age`, an older belief is unknown to the planner.
