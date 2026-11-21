@@ -200,7 +200,7 @@ void PlanExecutor::load(WorldDescription const& p_world,
             "no world entity has a kind: the problem has no object");
     }
 
-    // --- Mission: observers and bindings ------------------------------------
+    // --- ScenarioLogic: observers and bindings ------------------------------------
     std::set<std::string, std::less<>> fact_predicates;
     for (Literal const& fact : m_spec.facts)
     {
@@ -211,10 +211,10 @@ void PlanExecutor::load(WorldDescription const& p_world,
         if (!predicate.derived && p_domain.observer(name) == nullptr &&
             !fact_predicates.contains(name))
         {
-            errors.push_back(
-                "predicate '" + name +
-                "' has no observer (PlanningDomain::observe in the mission) "
-                "and no fact (planner.facts)");
+            errors.push_back("predicate '" + name +
+                             "' has no observer (PlanningDomain::observe in "
+                             "the scenario logic) "
+                             "and no fact (planner.facts)");
         }
     }
     for (auto const& [name, observer] : p_domain.observers())
@@ -238,9 +238,9 @@ void PlanExecutor::load(WorldDescription const& p_world,
         ActionBinding const* binding = p_domain.binding(name);
         if (binding == nullptr)
         {
-            errors.push_back(
-                "action '" + name +
-                "' has no binding (PlanningDomain::bind in the mission)");
+            errors.push_back("action '" + name +
+                             "' has no binding (PlanningDomain::bind in the "
+                             "scenario logic)");
             continue;
         }
         std::vector<std::string> const args(action.parameters.size(), "x");

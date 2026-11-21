@@ -82,7 +82,7 @@ exactly `scenarios/skills_retry.bt.yaml`:
 ```
 
 Look at what you did **not** write: no `if (arm_broken)` in the skill, no
-special code in the mission. The **fault** is a fact (the scheduler sees
+special code in the scenario logic. The **fault** is a fact (the scheduler sees
 it); the **reaction** is a decision (the tree makes it). Two separate jobs.
 
 The HelloWorld experiment compares both trees on the same faulty scenario:

@@ -214,10 +214,10 @@ reapplies its defaults.
 
 The loaded plugin's panels open on first use and follow the same close,
 reopen, dock and expand rules as the other editors. They remain accessible
-in every preset, including Plugin. Their default position in Mission is
+in every preset, including Plugin. Their default position in ScenarioLogic is
 beside Resources; Robot places them beside Joints, Autonomy beside World
 model, and Plugin beside Files. Autonomy stays focused on sensing and
-beliefs; planning and execution belong to Mission.
+beliefs; planning and execution belong to ScenarioLogic.
 
 The **Cameras** editor shows every
 camera of the robot at once, in the grid that gives the largest pictures.

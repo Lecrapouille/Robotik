@@ -55,7 +55,7 @@ plugins/HelloWorld/
 > (world, scenario, experiment, trajectory, `plugin.yaml`). A typo stops the
 > load with exit code 1 and names the closest key:
 > `scenario: unknown key 'timout' (did you mean 'timeout'?)`. Free values
-> for your mission go under `scenario.parameters`, which is not checked.
+> for your scenario logic go under `scenario.parameters`, which is not checked.
 > In a flow map (`{ ... }`), put a text with a comma between quotes:
 > `name: "Pick and place (PA-BT, faults)"`.
 
@@ -100,7 +100,7 @@ Three things must not be mixed:
 | | What it is | Who can read it |
 |--|------------|-----------------|
 | **Ground truth** | The real state of the simulated world: `RoboticCell::requirePose`, `RoboticCell::requireQuery` | Assertions, reports, the RL reward |
-| **Description** | The world as the file describes it at the start: `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | The mission, to plan (like a map given to a real robot) |
+| **Description** | The world as the file describes it at the start: `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | The scenario logic, to plan (like a map given to a real robot) |
 | **Belief** | What the robot thinks: the `WorldModel`, filled by perception | The skills, through `RobotContext` |
 
 Skills see only the `RobotContext`: **they cannot cheat**. The ground truth

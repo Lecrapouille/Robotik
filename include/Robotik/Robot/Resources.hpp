@@ -178,7 +178,7 @@ private:
 /// Registry of the robot resources, their holders and their health.
 ///
 /// Sensors and actuators register themselves under their own name (see
-/// @ref DeviceSet); a mission may add more (a table, a shared zone).
+/// @ref DeviceSet); a scenario logic may add more (a table, a shared zone).
 ///
 /// A resource is a part that two skills must not use at once in conflicting
 /// ways: one arm, one gripper, a zone of the table. Exclusive access has

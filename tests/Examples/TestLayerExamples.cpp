@@ -11,7 +11,7 @@
 
 #include "main.hpp"
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Task/OpenRoboticCell.hpp"
@@ -19,7 +19,7 @@
 
 #include "Compages/World/World.hpp"
 
-/// Task layer, without a mission: a robot and a cube described in C++, no
+/// Task layer, without a scenario logic: a robot and a cube described in C++, no
 /// file but the URDF, and one skill run until it ends.
 TEST(LayerExamples, TaskRunsOneSkill)
 {
@@ -48,10 +48,10 @@ TEST(LayerExamples, TaskRunsOneSkill)
         cell.requirePose("cube").position.x, 0.4, 1e-6); // truth, for a measure
 }
 
-/// The pick-and-place world without its controller, and its mission: the
+/// The pick-and-place world without its controller, and its scenario logic: the
 /// skills and the observers of the planner (PickPlacePlanning.cpp).
 static robotik::Result<robotik::OpenedRoboticCell>
-pickAndPlace(PickPlaceMission& p_mission)
+pickAndPlace(PickPlaceLogic& p_logic)
 {
     auto scenario = robotik::loadScenario(
         repoFile("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
@@ -62,7 +62,7 @@ pickAndPlace(PickPlaceMission& p_mission)
     }
     robotik::RoboticCellDescription description = scenario.take();
     description.controller = {};
-    return robotik::openRoboticCell(std::move(description), &p_mission);
+    return robotik::openRoboticCell(std::move(description), &p_logic);
 }
 
 /// The goal of the pick and place, in the domain of the package.
@@ -78,8 +78,8 @@ static robotik::PlannerSpec cubeInBox(std::string const& p_goal)
 /// pick and place in the PDDL domain, the cell runs them.
 TEST(LayerExamples, TaskAchievesAGoal)
 {
-    PickPlaceMission mission(true, true);
-    auto opened = pickAndPlace(mission);
+    PickPlaceLogic logic(true, true);
+    auto opened = pickAndPlace(logic);
     ASSERT_TRUE(opened) << opened.error();
     robotik::RoboticCell& cell = *opened.value();
 
@@ -91,15 +91,15 @@ TEST(LayerExamples, TaskAchievesAGoal)
 /// A goal that names nothing in the domain is refused before any step.
 TEST(LayerExamples, AchieveRefusesAGoalTheDomainDoesNotKnow)
 {
-    PickPlaceMission mission(true, true);
-    auto opened = pickAndPlace(mission);
+    PickPlaceLogic logic(true, true);
+    auto opened = pickAndPlace(logic);
     ASSERT_TRUE(opened) << opened.error();
     EXPECT_THROW(opened.value()->achieve(cubeInBox("(flying red_cube)")),
                  std::runtime_error);
 }
 
 /// What the hello scenario needs from C++: count the steps, stop after 2 s.
-class HelloMission final: public robotik::Mission
+class HelloLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -140,9 +140,9 @@ TEST(LayerExamples, PackageScenarioFile)
         repoFile("plugins/HelloWorld/scenarios/hello.scenario.yaml"), testAssets());
     ASSERT_TRUE(scenario) << scenario.error();
 
-    HelloMission mission;
+    HelloLogic logic;
     compages::world::World world;
-    robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
+    robotik::Simulation simulation(world, scenario.take(), nullptr, &logic);
     while (!simulation.finished())
     {
         simulation.step(robotik::Seconds(0.01));

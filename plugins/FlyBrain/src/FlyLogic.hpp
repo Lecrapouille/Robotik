@@ -5,15 +5,15 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file FlyMission.hpp
+/// @file FlyLogic.hpp
 /// The fly as a regular plugin: its flight model is the backend of
-/// the robot, its brain is the agent the mission runs.
+/// the robot, its brain is the agent the scenario logic runs.
 ///
 /// @code
 /// Simulation::step
 ///   ├── robot step ── FlyBackend: one FlyEnvironment step with the last
 ///   │                 command, then the thorax pose and the posture
-///   └── mission step ── FlyMission: the brain reads the new observation
+///   └── step of the scenario logic ── FlyLogic: the brain reads the new observation
 ///                       and gives the next command
 /// @endcode
 #pragma once
@@ -22,7 +22,7 @@
 #include "FlyEnvironment.hpp"
 
 #include "Robotik/Robot/Backends/RobotBackend.hpp"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include "Compages/World/Entity.hpp"
 
@@ -70,7 +70,7 @@ public:
         return m_return;
     }
 
-    /// Starts over (the environment was reset by the mission).
+    /// Starts over (the environment was reset by the scenario logic).
     void restart();
 
     void attach(robotik::Robot& /*p_robot*/) override
@@ -96,7 +96,7 @@ private:
 /// Builds the fly world from the scenario, plugs @ref FlyBackend and
 /// runs the brain. Draws the three eye beams and the trail when rendered.
 // ****************************************************************************
-class FlyMission final: public robotik::Mission
+class FlyLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -120,7 +120,7 @@ public:
     void useConnectome(bool p_connectome);
 
     // -------------------------------------------------------------------------
-    /// Builds a brain without touching the mission: safe on another
+    /// Builds a brain without touching the scenario logic: safe on another
     /// thread. Loading the connectome reads large files (seconds) from
     /// @p_tables (see @ref tables).
     /// @throws std::runtime_error when the tables cannot be read.

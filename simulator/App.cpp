@@ -153,7 +153,7 @@ App::~App()
     plugins.stop();
     plugins.detach();
     simulation.reset();
-    mission.reset();
+    logic.reset();
     plugins.release();
 }
 
@@ -191,7 +191,7 @@ void App::load(bool p_keep_tool)
     plugins.stop();
     plugins.detach();
     simulation.reset();
-    mission.reset();
+    logic.reset();
     plugins.release();
     scene_view.reset();
     scene.reset();
@@ -257,7 +257,7 @@ void App::load(bool p_keep_tool)
         owns_clock = plugins.ownsClock();
         scenario_title = plugins.scenarioName();
         simulation = std::make_unique<robotik::Simulation>(
-            *world, std::move(scenario), scene_view.get(), plugins.mission());
+            *world, std::move(scenario), scene_view.get(), plugins.logic());
         plugins.attach(simulation.get());
         if (plugins.start() != ROBOTIK_PLUGIN_OK)
         {

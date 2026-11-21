@@ -35,14 +35,14 @@ plugin.yaml  plugin.id: robotik.my_robot
 Plugin.cpp   describe() { .id = "robotik.my_robot" }          (same id)
 plugin.yaml  scenarios.entries[].id: patrol
                                     │
-Plugin.cpp   { "patrol", robotik::mission<PatrolMission>() }  (same scenario id)
+Plugin.cpp   { "patrol", robotik::logic<PatrolLogic>() }  (same scenario id)
 ```
 
-**Step 3. Keep one scenario and one mission.** For example, delete the
+**Step 3. Keep one scenario and one scenario logic.** For example, delete the
 lessons you do not need from `src/`. `MyRobot.mk` compiles every `src/*.cpp`; to list them instead:
 
 ```make
-robotik_my_robot.SOURCES := src/Plugin.cpp src/PatrolMission.cpp
+robotik_my_robot.SOURCES := src/Plugin.cpp src/PatrolLogic.cpp
 ```
 
 **Step 4. Build and run.**
@@ -70,7 +70,7 @@ cat data/packs/*/pack.yaml
 | Message | Cause |
 |---------|-------|
 | `scenario is not in a plugin package` | The file is not listed in `plugin.yaml`, or you ran a file outside `build/linux-gcc-debug/lib/robotik/plugins/` and `plugins/` |
-| `unknown scenario 'X' (this plugin runs: ...)` | The mission table of `Plugin.cpp` has no entry `X` |
+| `unknown scenario 'X' (this plugin runs: ...)` | The logic table of `Plugin.cpp` has no entry `X` |
 | `plugin id does not match plugin.yaml` | `describe().id` differs from `plugin.id` |
 | `built for plugin API 99 ...` | `api_version` in `plugin.yaml` differs from the host ABI (`1`) |
 | `plugin library not found: ...` | `library.entrypoint` differs from the `.so` built by the target (`lib` + its name + `.so`), or the plugin was not built |

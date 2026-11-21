@@ -138,7 +138,7 @@ Files: `plugins/DualArm/`
 - `data/`: the pack `robotik.dual_arm` (conveyor, stand, pedestal);
 - `scenarios/trajectories/drill_target.trajectory.yaml` (the path of the drill);
 - `scenarios/conveyor.domain.pddl` (classical), `scenarios/tray.domain.pddl` (temporal);
-- `src/ConveyorMission.cpp`, `src/TrayMission.cpp`: skills of each robot,
+- `src/ConveyorLogic.cpp`, `src/TrayLogic.cpp`: skills of each robot,
   observers, bindings; `src/Conveyor.cpp`: the belt; `src/ArmSkills.cpp`,
   `src/TraySkills.cpp`: the skills.
 

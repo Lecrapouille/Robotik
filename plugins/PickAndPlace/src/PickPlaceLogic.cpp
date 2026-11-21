@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "ColorDetector.hpp"
 
@@ -18,8 +18,8 @@ static constexpr double APPROACH_CLEARANCE = 0.10;
 static constexpr double TRANSIT_CLEARANCE = 0.22;
 static constexpr int SKILL_PRIORITY = 100;
 
-void PickPlaceMission::setup(robotik::RoboticCell& p_cell,
-                             robotik::SceneView* /*p_view*/)
+void PickPlaceLogic::setup(robotik::RoboticCell& p_cell,
+                           robotik::SceneView* /*p_view*/)
 {
     if (!m_skills)
     {

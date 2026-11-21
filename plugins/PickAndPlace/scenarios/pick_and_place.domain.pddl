@@ -1,6 +1,6 @@
 ; Pick and place with one arm and a vacuum cup. The objects are the world
 ; entities with a kind (cube, bin); the state is read on the beliefs of the
-; robot by the observers of the mission (PickPlacePlanning.cpp).
+; robot by the observers of the scenario logic (PickPlacePlanning.cpp).
 (define (domain pick_and_place)
   (:requirements :strips :typing :negative-preconditions)
 

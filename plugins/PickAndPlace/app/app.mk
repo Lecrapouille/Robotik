@@ -7,7 +7,7 @@
 
 TARGETS += Robotik-PickAndPlaceRL
 Robotik-PickAndPlaceRL.DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
-Robotik-PickAndPlaceRL.SOURCES := *.cpp ../src/ColorDetector.cpp ../src/PickPlaceMission.cpp \
+Robotik-PickAndPlaceRL.SOURCES := *.cpp ../src/ColorDetector.cpp ../src/PickPlaceLogic.cpp \
     ../src/PickPlaceSkills.cpp ../src/PickPlaceControl.cpp ../src/PickPlacePlanning.cpp
 Robotik-PickAndPlaceRL.INCLUDES := . ../src
 Robotik-PickAndPlaceRL.DEPENDS := robotik-core

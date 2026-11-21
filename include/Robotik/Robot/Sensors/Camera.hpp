@@ -208,7 +208,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Moves the camera on its link (mission / calibration).
+    /// Moves the camera on its link (scenario logic / calibration).
     /// @param p_mount Optical frame in the parent link.
     // -------------------------------------------------------------------------
     void mount(Pose const& p_mount)

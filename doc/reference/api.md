@@ -23,7 +23,7 @@ Conventions in the code:
 | I want to… | Use | Section |
 |------------|-----|---------|
 | Write the entry point of my plugin | `Plugin`, `Host`, `Canvas` | [Plugin API](#-plugin-api) |
-| Add behaviour to a simulation | `Mission` | [`Mission`](#-mission) |
+| Add behaviour to a simulation | `ScenarioLogic` | [`ScenarioLogic`](#-scenariologic) |
 | Read the world, the time, the truth | `RoboticCell` (and `Simulation` for the verdict) | [`RoboticCell` and `Simulation`](#-roboticcell-and-simulation) |
 | Move joints, read poses, compute IK | `Robot`, `JointSet` | [Robot and joints](#-robot-and-joints) |
 | Use the gripper, a motor | actuators | [Actuators](#-actuators) |
@@ -42,46 +42,46 @@ One umbrella header includes everything: `#include "Robotik/Robotik.hpp"`.
 Header: `Robotik/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border
 `Robotik/Package/Plugin/PluginABI.h`).
 
-### 🔌 `robotik::MissionPlugin`
+### 🔌 `robotik::ScenarioPlugin`
 
-The common base: one mission per scenario.
+The common base: one scenario logic per scenario.
 
 ```cpp
-class PainterPlugin final: public robotik::MissionPlugin
+class PainterPlugin final: public robotik::ScenarioPlugin
 {
 public:
     static robotik::PluginInfo describe() { return { .id = "robotik.painter" }; }
     PainterPlugin()
-        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
-                          { "painter_pddl", robotik::mission<PainterMission>(true) } }) {}
+        : ScenarioPlugin({ { "painter", robotik::logic<PainterLogic>(false) },
+                          { "painter_pddl", robotik::logic<PainterLogic>(true) } }) {}
 };
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)
 ```
 
 | Member | Does |
 |--------|------|
-| `MissionPlugin({ { id, factory }, ... })` | The mission of each scenario id of `plugin.yaml` |
-| `robotik::mission<T>(args...)` | A factory building `T(args...)` |
-| `setup(host, scenario)` | Creates and binds the mission; an unknown id throws (with the known ids). Override it and call `MissionPlugin::setup` first to add menus and panels |
-| `shutdown(host)` | Frees the mission |
+| `ScenarioPlugin({ { id, factory }, ... })` | The scenario logic of each scenario id of `plugin.yaml` |
+| `robotik::logic<T>(args...)` | A factory building `T(args...)` |
+| `setup(host, scenario)` | Creates and binds the scenario logic; an unknown id throws (with the known ids). Override it and call `ScenarioPlugin::setup` first to add menus and panels |
+| `shutdown(host)` | Frees the scenario logic |
 | `scenario()` | Id of the current scenario |
-| `mission<T>()` | The current mission as a `T`, or null |
+| `logic<T>()` | The current scenario logic as a `T`, or null |
 
 ### 🔌 `robotik::Plugin`
 
-Base class of `MissionPlugin`, for a plugin that chooses its mission another
+Base class of `ScenarioPlugin`, for a plugin that chooses its scenario logic another
 way. Override only what you need; every method does nothing by default.
 
 | Method | Called |
 |--------|--------|
 | `static PluginInfo describe()` | Before the instance exists. Return `{ .id = "..." }`, the same id as `plugin.yaml` |
-| `setup(Host&, std::string_view scenario)` | Before the simulation exists. Create the mission, `bindMission`, menus, panels |
+| `setup(Host&, std::string_view scenario)` | Before the simulation exists. Create the scenario logic, `bindLogic`, menus, panels |
 | `start(Host&)` | The run starts |
 | `update(Host&, Seconds dt)` | After each step (or instead of it with `host.clock: plugin`) |
 | `onEvent(Host&, RobotikEvent const&)` | A subscribed event |
 | `pause(Host&, bool paused)` | Pause / Play |
 | `stop(Host&)` | End of the run; the simulation still exists |
-| `shutdown(Host&)` | Free the mission; the simulation is destroyed |
+| `shutdown(Host&)` | Free the scenario logic; the simulation is destroyed |
 
 Then, once, in one `.cpp` file: `ROBOTIK_EXPORT_PLUGIN(MyPlugin)`.
 
@@ -93,7 +93,7 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 
 | Method | Does |
 |--------|------|
-| `bindMission(Mission&)` | The mission the simulation will use. Call it in `setup` |
+| `bindLogic(ScenarioLogic&)` | The scenario logic the simulation will use. Call it in `setup` |
 | `Simulation* simulation()` | The running simulation, or null |
 | `log(level, text)`, `error(text)` | Messages. Levels `ROBOTIK_LOG_INFO / _WARNING / _ERROR` |
 | `subscribe(RobotikEventKind)` | Receive this kind of event |
@@ -122,9 +122,9 @@ Valid only during the draw callback.
 `bool sliderInt(label, int&, min, max)`,
 `separator()`. The `bool` results are true when the user acted.
 
-## 🎯 `Mission`
+## 🎯 `ScenarioLogic`
 
-Header: `Robotik/Task/Mission.hpp`. What your plugin adds to a generic
+Header: `Robotik/Task/ScenarioLogic.hpp`. What your plugin adds to a generic
 simulation. All methods are optional.
 
 | Method | Called | Typical use |
@@ -140,11 +140,11 @@ simulation. All methods are optional.
 ## 🏭 `RoboticCell` and `Simulation`
 
 Header: `Robotik/Task/RoboticCell.hpp`. The robot cell: robots, objects, one
-physics, the controller and the beliefs. The mission receives it. A C++
+physics, the controller and the beliefs. The scenario logic receives it. A C++
 program can build one from a `RoboticCellDescription`, without any file
 ([Three programs, one per layer](../tutorials/02-three-programs.md)).
 `Robotik/Task/OpenRoboticCell.hpp` builds the cell and its world in one call:
-`robotik::openRoboticCell(description, &mission)` returns a `Result<OpenedRoboticCell>`.
+`robotik::openRoboticCell(description, &logic)` returns a `Result<OpenedRoboticCell>`.
 `Robotik/Package/Simulation.hpp` builds the cell from a scenario file and
 judges the run (marked *Simulation* below).
 
@@ -160,12 +160,12 @@ judges the run (marked *Simulation* below).
 | `faults()` | `FaultInjector&` |
 | `context()`, `context(id)` | `RobotContext&`: what skills receive (first robot, or robot `id`) |
 | `beliefFrame()` | Frame of the beliefs: the robot base when alone, the world with several robots |
-| `physicsOptions()` | Options of the physics the core builds after `Mission::setup`: tune them there (floating base, gravity compensation, step, `armature`, `damping`, `exact_inertia`); the world still adds its bodies and floor (MicroDuck) |
+| `physicsOptions()` | Options of the physics the core builds after `ScenarioLogic::setup`: tune them there (floating base, gravity compensation, step, `armature`, `damping`, `exact_inertia`); the world still adds its bodies and floor (MicroDuck) |
 | `worldFrame()` | Entity of the Z-up frame of the world: hang on it what stays in the world, not on a robot root that a floating base moves |
 | `factory()` | `bt::NodeFactory&`: register custom tree nodes (include `Robotik/Task/Skills/SkillNodes.hpp`) |
 | `camera()` | `Camera*`: the first camera, or null |
 | `description()` | `RoboticCellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
-| `mission()` | `Mission*` |
+| `logic()` | `ScenarioLogic*` |
 | `planning()` | `PlanningDomain&`: observers and bindings of the PDDL planner ([The PDDL planner: reference](pddl-planner.md)) |
 | `planner()` | `PlanExecutor*`: the planner controller, or null |
 
@@ -174,14 +174,14 @@ judges the run (marked *Simulation* below).
 | Method | Does |
 |--------|------|
 | `run(skill, limit)` | Requests the skill and steps until it ends; returns its `SkillState` |
-| `run(limit)` | Steps until the controller ends (tree, plan or mission status); returns `Status` |
+| `run(limit)` | Steps until the controller ends (tree, plan or scenario logic status); returns `Status` |
 | `achieve(PlannerSpec)` | Plans toward the goal and runs the plan (a `planner:` block does the same); throws when domain, goal and bindings disagree |
 | `status()` | `robotik::Status` of the controller (`IDLE` before the first tick) |
 | `time()` | Simulated time (`Seconds`) |
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |
 | `step(Seconds dt)` | One step (see [One simulation step](../concepts/architecture.md#-one-simulation-step)) |
-| `status()`, `stopController()` | State of the controller (tree, plan or mission); stop ticking it |
+| `status()`, `stopController()` | State of the controller (tree, plan or scenario logic); stop ticking it |
 | `perceptionOf("id")`, `perceptionSummary()` | Perception fidelity of an object (`truth`, `noisy_truth`, `sensed`) and of the run |
 | *Simulation* `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
 | *Simulation* `checks()`, `passed()` | The assertion verdicts |
@@ -354,7 +354,7 @@ public:
     }
 };
 
-// in Mission::setup:
+// in ScenarioLogic::setup:
 p_simulation.perception().add<RedBlobDetector>();
 ```
 

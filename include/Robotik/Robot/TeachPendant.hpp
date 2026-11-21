@@ -60,7 +60,7 @@ struct TeachWaypoint
 /// Virtual teach pendant for one robot.
 ///
 /// Stateless with respect to the simulator: it does not tick the behavior
-/// tree. Suspend the @ref Simulation before jogging, otherwise the mission
+/// tree. Suspend the @ref Simulation before jogging, otherwise the scenario logic
 /// overwrites the targets.
 ///
 /// Every command returns false on failure and leaves the reason in

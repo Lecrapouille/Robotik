@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "WalkMission.hpp"
+#include "WalkLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
@@ -39,7 +39,7 @@
 /// training, whatever the host rate, so the policy runs at its own rate.
 /// Its panel changes the walk command while the robot walks.
 // ****************************************************************************
-class HumanoidWalkPlugin final: public robotik::MissionPlugin
+class HumanoidWalkPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -49,14 +49,14 @@ public:
     }
 
     HumanoidWalkPlugin()
-        : MissionPlugin({ { "walk", robotik::mission<WalkMission>() },
-                          { "walk_circle", robotik::mission<WalkMission>() } })
+        : ScenarioPlugin({ { "walk", robotik::logic<WalkLogic>() },
+                           { "walk_circle", robotik::logic<WalkLogic>() } })
     {
     }
 
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_lag = 0.0;
         p_host.addPanel("humanoid", "Humanoid",
                         [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
@@ -65,11 +65,11 @@ public:
     void update(robotik::Host& p_host, robotik::Seconds p_dt) override
     {
         robotik::Simulation* simulation = p_host.simulation();
-        if (mission() == nullptr || simulation == nullptr)
+        if (logic() == nullptr || simulation == nullptr)
         {
             return;
         }
-        robotik::Seconds const step = WalkMission::physicsStep();
+        robotik::Seconds const step = WalkLogic::physicsStep();
         m_lag = std::min(m_lag + p_dt.value(), MAX_LAG_S);
         // The physics goes on after the end of the run, so the simulator
         // shows what follows a failure (a robot without IMU falls). The
@@ -87,7 +87,7 @@ private:
     /// The walk command, and how the robot follows it.
     void draw(robotik::Canvas const& p_canvas)
     {
-        WalkMission* walk = mission<WalkMission>();
+        WalkLogic* walk = logic<WalkLogic>();
         if (walk == nullptr)
         {
             return;

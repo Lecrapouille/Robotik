@@ -7,16 +7,20 @@
 
 #pragma once
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Common/Math.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
+
+#include <vector>
 
 // ****************************************************************************
-/// Lesson 1: the smallest mission.
+/// Lesson 3: ask for a tool position, let inverse kinematics find the
+/// joint angles.
 ///
-/// It counts the simulation steps, publishes the count as the metric
-/// "hello.ticks", and succeeds after two seconds. The scenario file asserts
-/// on that metric.
+/// At reset, the target is the current tool pose moved three centimetres
+/// along x. Inverse kinematics gives one angle per joint; each step commands
+/// them and publishes the remaining distance as "reach.error".
 // ****************************************************************************
-class HelloMission final: public robotik::Mission
+class ReachLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -27,7 +31,14 @@ public:
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override;
 
+    [[nodiscard]] double error() const
+    {
+        return m_error;
+    }
+
 private:
 
-    double m_ticks = 0.0;
+    robotik::Pose m_target{};
+    std::vector<double> m_solution;
+    double m_error = 1.0;
 };

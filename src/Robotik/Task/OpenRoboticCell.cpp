@@ -13,7 +13,7 @@ namespace robotik
 {
 
 Result<OpenedRoboticCell> openRoboticCell(RoboticCellDescription p_description,
-                                          Mission* p_mission)
+                                          ScenarioLogic* p_logic)
 {
     // The border of this builder: whatever stops the cell becomes a message.
     try
@@ -21,7 +21,7 @@ Result<OpenedRoboticCell> openRoboticCell(RoboticCellDescription p_description,
         OpenedRoboticCell opened;
         opened.world = std::make_unique<compages::world::World>();
         opened.cell = std::make_unique<RoboticCell>(
-            *opened.world, std::move(p_description), nullptr, p_mission);
+            *opened.world, std::move(p_description), nullptr, p_logic);
         return opened;
     }
     catch (std::exception const& error)

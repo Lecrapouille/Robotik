@@ -5,14 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file TrayMission.hpp
+/// @file TrayLogic.hpp
 /// One arm carries a tray of glasses from below, the other one drills
 /// a path on it: the skills of each robot, the observers and bindings of
 /// the temporal domain.
 #pragma once
 
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <set>
 #include <string>
@@ -22,11 +22,11 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// Mission of the tray scenario. Publishes @c dual_arm.overlap
+/// ScenarioLogic of the tray scenario. Publishes @c dual_arm.overlap
 /// (seconds during which both arms ran a skill) and @c dual_arm.contact
 /// (seconds during which a tool touched one of the entities it works on).
 // ****************************************************************************
-class TrayMission final: public robotik::Mission
+class TrayLogic final: public robotik::ScenarioLogic
 {
 public:
 

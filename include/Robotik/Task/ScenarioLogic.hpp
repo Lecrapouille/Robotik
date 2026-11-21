@@ -5,11 +5,11 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file Mission.hpp
+/// @file ScenarioLogic.hpp
 /// The C++ part of a demo: what it adds to a generic @ref robotik::RoboticCell (its
 /// skills, its detectors, its metrics, what it does at each step).
 ///
-/// A mission does not judge the run: it publishes numbers, and the assertions
+/// A scenario logic does not judge the run: it publishes numbers, and the assertions
 /// of the scenario decide (see doc/reference/glossary.md: "Metric",
 /// "Assertion").
 ///
@@ -20,7 +20,7 @@
 /// - Expects: @c act decides from the robot and its beliefs only (it gets no
 ///   @ref robotik::RoboticCell); @c observe reads the truth and commands nothing (it
 ///   gets a const cell); @c simulate changes the world only, never the
-///   robot. The mission does not keep entities between calls.
+///   robot. The scenario logic does not keep entities between calls.
 #pragma once
 
 #include "Robotik/Common/Random.hpp"
@@ -41,11 +41,11 @@ class RoboticCell;
 /// the numbers that measure it.
 ///
 /// A scenario file describes the world, the controller and the verdict, but
-/// it cannot say how a robot paints a stroke or what "a lap" is. The mission
+/// it cannot say how a robot paints a stroke or what "a lap" is. The scenario logic
 /// brings this code to a generic @ref RoboticCell, so that the core keeps no demo
 /// object. Write one per scenario of a plugin (the table of
-/// @c MissionPlugin), or give one to @ref openRoboticCell from a C++ program. A
-/// program that runs only the built-in skills needs no mission.
+/// @c ScenarioPlugin), or give one to @ref openRoboticCell from a C++ program. A
+/// program that runs only the built-in skills needs no scenario logic.
 ///
 /// The cell calls @ref setup once, then for each episode @ref reset, and
 /// after each physics step @ref act, @ref simulate and @ref observe. The run
@@ -60,17 +60,17 @@ class RoboticCell;
 /// the truth (for metrics) but cannot command anything. @ref simulate is the
 /// world side, for a demo whose world changes by itself (a conveyor moves a
 /// part, a brush leaves ink): it exists only in simulation. Every method has an
-/// empty default, so a small demo stays small (HelloMission overrides
-/// three). The cell owns the world and the robots; the mission owns only its
+/// empty default, so a small demo stays small (HelloLogic overrides
+/// three). The cell owns the world and the robots; the scenario logic owns only its
 /// counters, and the cell keeps a pointer to it, never a copy.
 ///
-/// A mission does not judge the run: it publishes numbers, and the
+/// A scenario logic does not judge the run: it publishes numbers, and the
 /// assertions of the scenario decide. @ref status ends a run only when the
 /// scenario has no behavior tree and no planner. Entities are found by id at
 /// each call, never kept.
 ///
 /// @code
-/// class Walk final: public robotik::Mission
+/// class Walk final: public robotik::ScenarioLogic
 /// {
 ///     void act(robotik::RobotContext& p_context, robotik::Seconds) override
 ///     {
@@ -88,16 +88,16 @@ class RoboticCell;
 /// };
 /// @endcode
 // ****************************************************************************
-class Mission
+class ScenarioLogic
 {
 public:
 
-    virtual ~Mission() = default;
+    virtual ~ScenarioLogic() = default;
 
     // -------------------------------------------------------------------------
     /// Called once, after the scenario is built and before the first reset.
     /// Add the skills, the detectors and the extra world entities here.
-    /// @param p_cell The cell running the mission.
+    /// @param p_cell The cell running the scenario logic.
     /// @param p_view Rendering hooks; null for a headless run.
     // -------------------------------------------------------------------------
     virtual void setup(RoboticCell& /*p_cell*/, SceneView* /*p_view*/)
@@ -107,8 +107,8 @@ public:
 
     // -------------------------------------------------------------------------
     /// Called at each episode start, after the robot and the objects are
-    /// reset. Clear the counters of the mission here.
-    /// @param p_cell The cell running the mission.
+    /// reset. Clear the counters of the scenario logic here.
+    /// @param p_cell The cell running the scenario logic.
     /// @param p_seed Seed of the episode; derive random streams from it.
     // -------------------------------------------------------------------------
     virtual void reset(RoboticCell& /*p_cell*/, Seed /*p_seed*/)
@@ -134,7 +134,7 @@ public:
     /// itself (a conveyor carries a part, ink lands on a canvas). Called after
     /// @ref act. It may read and change the entities; it must not command the
     /// robots nor request skills.
-    /// @param p_cell The cell running the mission.
+    /// @param p_cell The cell running the scenario logic.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
     virtual void simulate(RoboticCell& /*p_cell*/, Seconds /*p_dt*/)
@@ -155,9 +155,9 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Publishes the mission metrics (called on demand). The scenario
+    /// Publishes the plugin metrics (called on demand). The scenario
     /// assertions read them; do not decide pass or fail here.
-    /// @param p_cell The cell running the mission.
+    /// @param p_cell The cell running the scenario logic.
     /// @param p_metrics Table receiving the values.
     // -------------------------------------------------------------------------
     virtual void measure(RoboticCell const& /*p_cell*/,
@@ -167,7 +167,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Outcome for missions without behavior tree nor planner. Ignored
+    /// Outcome for scenario logics without behavior tree nor planner. Ignored
     /// otherwise. It is a decision of the robot, so it sees what @ref act
     /// sees.
     /// @param p_context Robot API, beliefs and time of the first robot.

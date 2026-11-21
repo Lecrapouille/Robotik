@@ -1,6 +1,6 @@
 ; Two arms sort the parts a conveyor brings. The objects are the world
 ; entities with a kind (arm, part, feeder, zone, bin); the state is read on
-; the shared beliefs by the observers of the mission (ConveyorMission.cpp).
+; the shared beliefs by the observers of the scenario logic (ConveyorLogic.cpp).
 ;
 ; Nothing here says what runs in parallel: the executor finds it from what
 ; each step reads and changes, and from the resources of its skills (each

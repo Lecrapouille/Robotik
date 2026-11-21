@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-/// @file ConveyorMission.hpp
+/// @file ConveyorLogic.hpp
 /// Two arms and a conveyor: the skills of each robot, the observers
 /// and bindings of the PDDL domain, and the belt.
 #pragma once
@@ -13,7 +13,7 @@
 #include "Conveyor.hpp"
 
 #include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <string>
 #include <vector>
@@ -22,10 +22,10 @@ namespace dual_arm
 {
 
 // ****************************************************************************
-/// Mission of the conveyor scenarios. Publishes @c dual_arm.overlap:
+/// ScenarioLogic of the conveyor scenarios. Publishes @c dual_arm.overlap:
 /// simulated seconds during which both arms ran a skill.
 // ****************************************************************************
-class ConveyorMission final: public robotik::Mission
+class ConveyorLogic final: public robotik::ScenarioLogic
 {
 public:
 

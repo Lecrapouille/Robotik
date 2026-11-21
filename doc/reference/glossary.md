@@ -65,7 +65,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
   library, and its `worlds/`, `scenarios/`, `experiments/`, `data/`. Paths in
   its files start at this folder.
 - **Plugin**: a shared library (`.so`) that adds a demo to RobotIK: its
-  skills, its mission, its panels. It talks to the host through a C border
+  skills, its scenario logic, its panels. It talks to the host through a C border
   (ABI) only.
 - **ABI**: the C functions and structures between a plugin and its host. No
   C++ type crosses it, so a plugin built apart still works.
@@ -84,7 +84,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Robotic cell (cell)**: the place where robots work, as in a factory:
   robots, objects, one physics, a controller. The `RoboticCell` class runs it.
 - **Controller**: what decides in a cell: a behavior tree, a PDDL planner, or
-  the mission code.
+  the scenario logic.
 - **Detector**: an algorithm that finds objects in an image (color blobs,
   AprilTags, a neural network).
 - **ECS (entity, component, system)**: a way to store data. An *entity* is an
@@ -97,11 +97,11 @@ A layer only uses the layers under it; `make check-layers` checks it.
   (an object follows the tool), `rigid`, `contact`. *Perception*: `truth`,
   `noisy_truth`, `sensed` (see *perception fidelity*).
 - **Ground truth**: the real state of the simulated world. Metrics,
-  assertions and RL rewards may read it. Skills, observers and missions read
+  assertions and RL rewards may read it. Skills, observers and scenario logics read
   beliefs instead, unless the scenario asks for a truth fidelity.
 - **Grasp model**: how the simulation makes a gripper hold an object, for a
   given physics fidelity.
-- **Mission**: the C++ part of a demo: its skills, its metrics, what it does
+- **Scenario logic** (`ScenarioLogic`): the C++ part of a scenario: its skills, its metrics, what it does
   at each step.
 - **Perception fidelity**: where beliefs come from. `truth`: the simulator
   writes the true pose (a mock, as when a car simulator gives the lane marks

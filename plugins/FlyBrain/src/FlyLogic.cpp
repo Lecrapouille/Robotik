@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "FlyMission.hpp"
+#include "FlyLogic.hpp"
 
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
@@ -140,9 +140,9 @@ void FlyBackend::pose(robotik::Robot& p_robot) const
     p_robot.measureBase(robotik::BaseState{ pose, {} });
 }
 
-// --- Mission ----------------------------------------------------------------
+// --- ScenarioLogic ----------------------------------------------------------------
 
-void FlyMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
+void FlyLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 {
     m_simulation = &p_cell;
     // The FlyWire tables sit in the pack of the fly body (the plugin's own).
@@ -200,7 +200,7 @@ void FlyMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
     }
 }
 
-void FlyMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
+void FlyLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
 {
     m_seed = p_seed;
     m_collided = false;
@@ -233,8 +233,8 @@ void FlyMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
     drawBeamsAndTrail();
 }
 
-void FlyMission::act(robotik::RobotContext& /*p_context*/,
-                     robotik::Seconds /*p_dt*/)
+void FlyLogic::act(robotik::RobotContext& /*p_context*/,
+                   robotik::Seconds /*p_dt*/)
 {
     // The brain reads the senses of the fly model and chooses the next move.
     if (!m_backend->done())
@@ -243,26 +243,26 @@ void FlyMission::act(robotik::RobotContext& /*p_context*/,
     }
 }
 
-void FlyMission::simulate(robotik::RoboticCell& /*p_cell*/,
-                          robotik::Seconds /*p_dt*/)
+void FlyLogic::simulate(robotik::RoboticCell& /*p_cell*/,
+                        robotik::Seconds /*p_dt*/)
 {
     drawBeamsAndTrail();
 }
 
-void FlyMission::observe(robotik::RoboticCell const& /*p_cell*/,
-                         robotik::Seconds /*p_dt*/)
+void FlyLogic::observe(robotik::RoboticCell const& /*p_cell*/,
+                       robotik::Seconds /*p_dt*/)
 {
     m_collided = m_collided || m_environment->snapshot().collided;
 }
 
-void FlyMission::decide()
+void FlyLogic::decide()
 {
     m_action = m_brain->update(FlyObservation::from(m_backend->observation()),
                                robotik::Seconds(m_dt));
     m_backend->command(m_action);
 }
 
-void FlyMission::drawBeamsAndTrail()
+void FlyLogic::drawBeamsAndTrail()
 {
     if (!m_beams[0])
     {
@@ -308,8 +308,8 @@ void FlyMission::drawBeamsAndTrail()
     }
 }
 
-void FlyMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                         robotik::Metrics& p_metrics) const
+void FlyLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                       robotik::Metrics& p_metrics) const
 {
     FlySnapshot const& snapshot = m_environment->snapshot();
     std::span<float const> const observation = m_backend->observation();
@@ -322,7 +322,7 @@ void FlyMission::measure(robotik::RoboticCell const& /*p_cell*/,
 }
 
 robotik::Status
-FlyMission::status(robotik::RobotContext const& /*p_context*/) const
+FlyLogic::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (m_environment->snapshot().reached)
     {
@@ -333,9 +333,9 @@ FlyMission::status(robotik::RobotContext const& /*p_context*/) const
 }
 
 std::unique_ptr<FlyBrain>
-FlyMission::buildBrain(bool p_connectome,
-                       float p_cruise,
-                       std::filesystem::path const& p_tables)
+FlyLogic::buildBrain(bool p_connectome,
+                     float p_cruise,
+                     std::filesystem::path const& p_tables)
 {
     auto brain = std::make_unique<FlyBrain>(FlyBrain::Kind::Shiu, p_cruise);
     if (p_connectome)
@@ -345,12 +345,12 @@ FlyMission::buildBrain(bool p_connectome,
     return brain;
 }
 
-float FlyMission::cruise() const
+float FlyLogic::cruise() const
 {
     return static_cast<float>(m_environment->scenario().target.z);
 }
 
-void FlyMission::installBrain(std::unique_ptr<FlyBrain> p_brain)
+void FlyLogic::installBrain(std::unique_ptr<FlyBrain> p_brain)
 {
     m_brain = std::move(p_brain);
     m_kind = FlyBrain::Kind::Shiu;
@@ -360,7 +360,7 @@ void FlyMission::installBrain(std::unique_ptr<FlyBrain> p_brain)
     }
 }
 
-void FlyMission::useConnectome(bool p_connectome)
+void FlyLogic::useConnectome(bool p_connectome)
 {
     installBrain(buildBrain(p_connectome, cruise(), m_tables));
 }

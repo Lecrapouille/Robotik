@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 
@@ -19,15 +19,17 @@
 // ----------------------------------------------------------------------------
 TEST(SimulationEvents, ToldWhenSkillsEndAndAssertionsChange)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-                              testAssets())
+        robotik::loadScenario(
+            repoFile(
+                "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
+            testAssets())
             .take(),
         nullptr,
-        &mission);
+        &logic);
 
     std::map<std::string, robotik::SkillState, std::less<>> skills;
     simulation.cell().skills().changed.connect(

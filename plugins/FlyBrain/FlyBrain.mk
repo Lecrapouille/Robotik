@@ -13,7 +13,7 @@ FLYBRAIN_CONNECTOME ?= 0
 TARGETS += robotik_fly
 
 robotik_fly.DESCRIPTION := Fly demonstration package
-robotik_fly.SOURCES := src/Plugin.cpp src/FlyMission.cpp src/FlyScenario.cpp src/FlyVision.cpp \
+robotik_fly.SOURCES := src/Plugin.cpp src/FlyLogic.cpp src/FlyScenario.cpp src/FlyVision.cpp \
     src/FlyController.cpp src/FlyEnvironment.cpp src/FlyBrain.cpp src/ShiuNetwork.cpp
 $(eval $(call ROBOTIK_PLUGIN,robotik_fly,FlyBrain))
 

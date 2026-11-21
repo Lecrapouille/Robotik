@@ -17,6 +17,6 @@ class PlanningDomain;
 
 // ----------------------------------------------------------------------------
 /// Observers of seen, holding, hand_empty and in; bindings of detect,
-/// pick and place to the skills of @ref PickPlaceMission.
+/// pick and place to the skills of @ref PickPlaceLogic.
 // ----------------------------------------------------------------------------
 void registerPlanning(robotik::PlanningDomain& p_domain);

@@ -5,30 +5,29 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "HelloMission.hpp"
+#include "HelloLogic.hpp"
 
 #include "Robotik/Task/RoboticCell.hpp"
 
-void HelloMission::reset(robotik::RoboticCell& /*p_cell*/,
-                         robotik::Seed /*p_seed*/)
+void HelloLogic::reset(robotik::RoboticCell& /*p_cell*/,
+                       robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;
 }
 
-void HelloMission::act(robotik::RobotContext& /*p_context*/,
-                       robotik::Seconds /*p_dt*/)
+void HelloLogic::act(robotik::RobotContext& /*p_context*/,
+                     robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;
 }
 
-void HelloMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                           robotik::Metrics& p_metrics) const
+void HelloLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                         robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks);
 }
 
-robotik::Status
-HelloMission::status(robotik::RobotContext const& p_context) const
+robotik::Status HelloLogic::status(robotik::RobotContext const& p_context) const
 {
     if (p_context.time >= robotik::Seconds(2.0))
     {

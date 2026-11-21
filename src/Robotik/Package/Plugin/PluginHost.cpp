@@ -7,7 +7,7 @@
 
 #include "Robotik/Package/Plugin/PluginHost.hpp"
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <algorithm>
 #include <iostream>
@@ -127,11 +127,11 @@ void* hostSimulation(RobotikHost* p_host)
     return host != nullptr ? host->m_simulation : nullptr;
 }
 
-void hostBindMission(RobotikHost* p_host, void* p_mission)
+void hostBindLogic(RobotikHost* p_host, void* p_logic)
 {
     if (PluginHost* host = self(p_host))
     {
-        host->m_mission = static_cast<Mission*>(p_mission);
+        host->m_logic = static_cast<ScenarioLogic*>(p_logic);
     }
 }
 
@@ -148,7 +148,7 @@ PluginHost::PluginHost()
     m_api.remove_ui = &hostRemoveUi;
     m_api.scenario_path = &hostScenarioPath;
     m_api.simulation = &hostSimulation;
-    m_api.bind_mission = &hostBindMission;
+    m_api.bind_logic = &hostBindLogic;
 }
 
 void PluginHost::setScenarioPath(std::string p_path)
@@ -177,9 +177,9 @@ void PluginHost::clearSubscriptions()
     m_subscriptions.clear();
 }
 
-void PluginHost::clearMission()
+void PluginHost::clearLogic()
 {
-    m_mission = nullptr;
+    m_logic = nullptr;
 }
 
 void PluginHost::clearError()

@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "PainterMission.hpp"
+#include "PainterLogic.hpp"
 
 #include "PainterScene.hpp"
 #include "PainterSkills.hpp"
@@ -17,11 +17,11 @@
 #include <algorithm>
 #include <cmath>
 
-void PainterMission::setup(robotik::RoboticCell& p_cell,
-                           robotik::SceneView* p_view)
+void PainterLogic::setup(robotik::RoboticCell& p_cell,
+                         robotik::SceneView* p_view)
 {
     // The easel and the canvas are entities of painting_lab.world.yaml: the
-    // simulation builds them. The mission brings the gestures.
+    // simulation builds them. The scenario logic brings the gestures.
     robotik::ResourceManager const& resources =
         p_cell.robot().resources();
     robotik::ActuatorSet const& actuators = p_cell.robot().actuators();
@@ -91,8 +91,8 @@ void PainterMission::setup(robotik::RoboticCell& p_cell,
     }
 }
 
-void PainterMission::reset(robotik::RoboticCell& /*p_cell*/,
-                           robotik::Seed /*p_seed*/)
+void PainterLogic::reset(robotik::RoboticCell& /*p_cell*/,
+                         robotik::Seed /*p_seed*/)
 {
     m_stroke.brush.clear();
     m_stroke.painted.clear();
@@ -100,8 +100,8 @@ void PainterMission::reset(robotik::RoboticCell& /*p_cell*/,
     m_inked = 0;
 }
 
-void PainterMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                             robotik::Metrics& p_metrics) const
+void PainterLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                           robotik::Metrics& p_metrics) const
 {
     p_metrics.set("painter.stroke_deviation", m_deviation);
     p_metrics.set("painter.inked", static_cast<double>(m_inked));
@@ -109,7 +109,7 @@ void PainterMission::measure(robotik::RoboticCell const& /*p_cell*/,
 
 // The robot cannot see the paint: what the planner knows of the brush and
 // the canvas is what the gestures did (Stroke::brush, Stroke::painted).
-void PainterMission::registerPlanning(robotik::RoboticCell& p_cell)
+void PainterLogic::registerPlanning(robotik::RoboticCell& p_cell)
 {
     using robotik::Args;
     using robotik::RobotContext;
@@ -131,8 +131,8 @@ void PainterMission::registerPlanning(robotik::RoboticCell& p_cell)
     domain.bind("rinse", { "Rinse", "Home" }, { { "color", "{0}" } });
 }
 
-void PainterMission::simulate(robotik::RoboticCell& p_cell,
-                              robotik::Seconds /*p_dt*/)
+void PainterLogic::simulate(robotik::RoboticCell& p_cell,
+                            robotik::Seconds /*p_dt*/)
 {
     if (!m_stroke.painting)
     {

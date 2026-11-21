@@ -1,11 +1,11 @@
 ---
 name: robotik-plugin
-description: Create, rename or extend a RobotIK plugin (plugins/<Name>/ with plugin.yaml, Makefile, src/Plugin.cpp, missions). Use when adding a demo, a scenario to a plugin, a menu/panel/key binding, or debugging "scenario is not in a plugin package", id mismatch, library not found.
+description: Create, rename or extend a RobotIK plugin (plugins/<Name>/ with plugin.yaml, Makefile, src/Plugin.cpp, scenario logics). Use when adding a demo, a scenario to a plugin, a menu/panel/key binding, or debugging "scenario is not in a plugin package", id mismatch, library not found.
 ---
 
 # RobotIK plugin
 
-Template to copy: `plugins/HelloWorld/` (4 lessons: Mission only, joints/FK,
+Template to copy: `plugins/HelloWorld/` (4 lessons: ScenarioLogic only, joints/FK,
 IK, skill + behavior tree; panel, menu, key 'H'). Reference demo with
 perception + BT: `plugins/PickAndPlace/`.
 
@@ -37,7 +37,7 @@ perception + BT: `plugins/PickAndPlace/`.
 ## Skeleton
 
 ```cpp
-class MyMission final: public robotik::Mission
+class MyLogic final: public robotik::ScenarioLogic
 {
 public:
     void setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view) override; // skills, detectors; p_view null headless
@@ -49,15 +49,15 @@ public:
     [[nodiscard]] robotik::Status status(robotik::RobotContext const& p_ctx) const override; // only without BT
 };
 
-class MyPlugin final: public robotik::MissionPlugin   // one mission per scenario
+class MyPlugin final: public robotik::ScenarioPlugin   // one scenario logic per scenario
 {
 public:
     static robotik::PluginInfo describe() { return { .id = "robotik.my" }; }
-    MyPlugin() : MissionPlugin({ { "main", robotik::mission<MyMission>() } }) {}
+    MyPlugin() : ScenarioPlugin({ { "main", robotik::logic<MyLogic>() } }) {}
     // Optional: menus, panels. Call the base first.
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);   // creates + binds; unknown id throws
+        ScenarioPlugin::setup(p_host, p_scenario);   // creates + binds; unknown id throws
         p_host.addPanel("my", "My", [this](robotik::Canvas const& c) { c.text(scenario()); });
     }
 };
@@ -66,14 +66,14 @@ ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 
 Plugin methods return `void` and throw on error (caught at the C border:
 `ERR_SETUP` from setup, `ERR_RUNTIME` otherwise); `update` gets `Seconds`;
-`mission<T>()` gives the typed mission, `scenario()` its id.
+`logic<T>()` gives the typed scenario logic, `scenario()` its id.
 
 Lifecycle: manifest read → dlopen on scenario choice → `setup` (no
-simulation yet) → Simulation built (`Mission::setup`, `reset`) → `start` →
-[`Simulation::step` (→ `RoboticCell::step` → `Mission::act|simulate|observe`) → `Plugin::update`]* → `stop` →
+simulation yet) → Simulation built (`ScenarioLogic::setup`, `reset`) → `start` →
+[`Simulation::step` (→ `RoboticCell::step` → `ScenarioLogic::act|simulate|observe`) → `Plugin::update`]* → `stop` →
 `shutdown` (simulation already destroyed).
 
-Host services: `bindMission`, `simulation()` (null before attach), `log`,
+Host services: `bindLogic`, `simulation()` (null before attach), `log`,
 `error`, `subscribe(ROBOTIK_EVENT_KEY_PRESSED | _SCENARIO_STARTED |
 _SCENARIO_STOPPED | _SKILL_COMPLETED | _SKILL_FAILED | _ASSERTION_CHANGED)`,
 `addMenuItem(menu, item, [this] { ... })`,

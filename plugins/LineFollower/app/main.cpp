@@ -14,7 +14,7 @@
 // Here, --save writes the map of the run in a PNG file.
 
 #include "Floor.hpp"
-#include "LineFollowerMission.hpp"
+#include "LineFollowerLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Task/Skills/SkillNodes.hpp"
@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
     try
     {
-        LineFollowerMission mission(options.laps);
+        LineFollowerLogic logic(options.laps);
         robotik::Result<robotik::Scenario> loaded =
             robotik::loadScenario(options.scenario, robotik::AssetResolver::standard());
         if (!loaded)
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
             throw std::runtime_error(loaded.error());
         }
         compages::world::World world;
-        robotik::Simulation simulation(world, loaded.take(), nullptr, &mission);
+        robotik::Simulation simulation(world, loaded.take(), nullptr, &logic);
         simulation.reset(robotik::Seed{ options.seed });
 
         robotik::Seconds const dt(DEMO_DT_S);
@@ -169,7 +169,9 @@ int main(int argc, char** argv)
         if (!options.save.empty())
         {
             savePng(options.save,
-                    drawMap(mission.floor(), mission.truthPath(), mission.estimatePath()));
+                    drawMap(logic.floor(),
+                            logic.truthPath(),
+                            logic.estimatePath()));
         }
 
         simulation.conclude();
@@ -184,17 +186,16 @@ int main(int argc, char** argv)
             std::cout << '\n';
         }
         bool const passed = simulation.passed();
-        Pose2 const& truth = mission.drive()->truth();
+        Pose2 const& truth = logic.drive()->truth();
         double const final_error =
-            std::hypot(mission.navigation().estimate.x - truth.x,
-                       mission.navigation().estimate.y - truth.y);
-        std::cout << "tag fixes      " << mission.navigation().fixes << " ("
-                  << mission.navigation().rejected << " rejected)  error mean "
-                  << 1000.0 * mission.fixErrorMean() << " mm  max "
-                  << 1000.0 * mission.fixErrorMax() << " mm\n"
+            std::hypot(logic.navigation().estimate.x - truth.x,
+                       logic.navigation().estimate.y - truth.y);
+        std::cout << "tag fixes      " << logic.navigation().fixes << " ("
+                  << logic.navigation().rejected << " rejected)  error mean "
+                  << 1000.0 * logic.fixErrorMean() << " mm  max "
+                  << 1000.0 * logic.fixErrorMax() << " mm\n"
                   << "laps           "
-                  << mission.followProgress() / mission.track().perimeter()
-                  << '\n'
+                  << logic.followProgress() / logic.track().perimeter() << '\n'
                   << "final estimate error " << 1000.0 * final_error << " mm\n"
                   << (passed ? "[PASS]" : "[FAIL]") << " seed=" << options.seed
                   << " time=" << simulation.time().value() << " s (wall "

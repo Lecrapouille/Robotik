@@ -13,7 +13,7 @@
 /// @li Robot: one robot, its joints, sensors, actuators and physics
 ///     (@ref robotik::openRobot, @ref robotik::Robot);
 /// @li Task: robots and objects doing a job, with a controller (behavior
-///     tree, PDDL planner or mission code) and beliefs
+///     tree, PDDL planner or scenario logic) and beliefs
 ///     (@ref robotik::RoboticCell, @ref robotik::SkillScheduler);
 /// @li Package: the YAML files that describe a job, the plugins, and the
 ///     verdict of a run (@ref robotik::Simulation, @ref robotik::RunRecord).
@@ -40,26 +40,26 @@
 
 #pragma once
 
-#include "Robotik/Task/Agents/Agent.hpp"
-#include "Robotik/Robot/Assets/AssetResolver.hpp"
-#include "Robotik/Robot/Backends/MujocoBackend.hpp"
-#include "Robotik/Task/Learning/Environment.hpp"
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Task/Perception/Detector.hpp"
-#include "Robotik/Task/Perception/Localization.hpp"
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/Faults.hpp"
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Mission.hpp"
-#include "Robotik/Robot/Resources.hpp"
-#include "Robotik/Task/Scheduler.hpp"
-#include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
+#include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Robot/Assets/AssetResolver.hpp"
+#include "Robotik/Robot/Backends/MujocoBackend.hpp"
+#include "Robotik/Robot/Resources.hpp"
+#include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Robot/Sensors/Camera.hpp"
 #include "Robotik/Robot/Sensors/ForceTorqueSensor.hpp"
 #include "Robotik/Robot/Sensors/Imu.hpp"
 #include "Robotik/Robot/Sensors/RangeScanner.hpp"
+#include "Robotik/Task/Agents/Agent.hpp"
+#include "Robotik/Task/Faults.hpp"
+#include "Robotik/Task/Learning/Environment.hpp"
+#include "Robotik/Task/Metrics.hpp"
+#include "Robotik/Task/Perception/Detector.hpp"
+#include "Robotik/Task/Perception/Localization.hpp"
+#include "Robotik/Task/Perception/WorldModel.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
+#include "Robotik/Task/Scheduler.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 #include "Robotik/Task/Skills/SkillNodes.hpp"

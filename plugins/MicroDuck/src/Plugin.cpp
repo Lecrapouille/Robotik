@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "DuckMission.hpp"
+#include "DuckLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
@@ -41,7 +41,7 @@
 /// training, whatever the host rate, so the policy runs at 50 Hz.
 /// Its panel changes the walk command while the duck walks.
 // ****************************************************************************
-class MicroDuckPlugin final: public robotik::MissionPlugin
+class MicroDuckPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -51,15 +51,15 @@ public:
     }
 
     MicroDuckPlugin()
-        : MissionPlugin({ { "drive", robotik::mission<DuckMission>() },
-                          { "tour", robotik::mission<DuckMission>() },
-                          { "walk_forward", robotik::mission<DuckMission>() } })
+        : ScenarioPlugin({ { "drive", robotik::logic<DuckLogic>() },
+                           { "tour", robotik::logic<DuckLogic>() },
+                           { "walk_forward", robotik::logic<DuckLogic>() } })
     {
     }
 
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_lag = 0.0;
         p_host.addPanel("microduck", "Micro Duck",
                         [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
@@ -67,7 +67,7 @@ public:
 
     void update(robotik::Host& p_host, robotik::Seconds p_dt) override
     {
-        DuckMission* duck = mission<DuckMission>();
+        DuckLogic* duck = logic<DuckLogic>();
         robotik::Simulation* simulation = p_host.simulation();
         if (duck == nullptr || simulation == nullptr)
         {
@@ -90,7 +90,7 @@ private:
     /// The walk command, and how far the duck went.
     void draw(robotik::Canvas const& p_canvas)
     {
-        DuckMission* duck = mission<DuckMission>();
+        DuckLogic* duck = logic<DuckLogic>();
         if (duck == nullptr)
         {
             return;

@@ -14,7 +14,7 @@ is new, look in the [glossary](../reference/glossary.md).
 3. [A cube in a box](03-a-cube-in-a-box.md): add objects to a world, write
    an assertion, and see what a seed changes. YAML only.
 4. [Your first plugin](04-your-first-plugin.md): the HelloWorld plugin in
-   four lessons (a mission, a joint, inverse kinematics, a skill and a
+   four lessons (a scenario logic, a joint, inverse kinematics, a skill and a
    behavior tree).
 5. [Your own plugin](05-your-own-plugin.md): copy HelloWorld, rename it,
    build it and run it.

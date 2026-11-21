@@ -205,8 +205,8 @@ extern "C"
     typedef char const* (*RobotikScenarioPathFn)(RobotikHost* host);
     /// The @c robotik::Simulation of the run, as an opaque pointer (or null).
     typedef void* (*RobotikSimulationFn)(RobotikHost* host);
-    /// Gives the host the @c robotik::Mission of the plugin.
-    typedef void (*RobotikBindMissionFn)(RobotikHost* host, void* mission);
+    /// Gives the host the @c robotik::ScenarioLogic of the plugin.
+    typedef void (*RobotikBindLogicFn)(RobotikHost* host, void* logic);
 
     /// Services of the host, given to @ref robotik_plugin_create.
     typedef struct RobotikHostAPI
@@ -222,7 +222,7 @@ extern "C"
         RobotikRemoveUiFn remove_ui;    ///< Removes an entry or a panel.
         RobotikScenarioPathFn scenario_path; ///< Gives the scenario file.
         RobotikSimulationFn simulation;      ///< Gives the simulation.
-        RobotikBindMissionFn bind_mission;   ///< Binds the mission.
+        RobotikBindLogicFn bind_logic;       ///< Binds the scenario logic.
     } RobotikHostAPI;
 
     /// ABI version implemented by the library. Compared before @c query.

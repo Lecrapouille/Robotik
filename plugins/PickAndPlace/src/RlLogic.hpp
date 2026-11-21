@@ -10,7 +10,7 @@
 #include "PickPlaceControl.hpp"
 
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <array>
 #include <cstdint>
@@ -26,7 +26,7 @@ inline constexpr std::size_t RL_ACTIONS = PICK_PLACE_ACTIONS;
 /// the control period itself, and a policy step from inside a simulation
 /// step would recurse.
 // ****************************************************************************
-class RlMission final: public robotik::Mission
+class RlLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -36,7 +36,7 @@ public:
 
     /// One policy action, or the pause before the next episode. The plugin
     /// calls it instead of a step of the host (it steps the cell itself), so
-    /// the mission has no per-step method.
+    /// the scenario logic has no per-step method.
     void playPolicy(robotik::RoboticCell& p_cell, double p_dt);
 
     bool converged = true;

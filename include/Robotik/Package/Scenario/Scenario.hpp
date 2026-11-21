@@ -38,7 +38,7 @@
 ///     overrides: { red_cube: truth }       # per object
 ///   timeout: 30
 ///   stop_when: (inside red_cube box)       # optional
-///   parameters:                            # free, read by the mission
+///   parameters:                            # free, read by the scenario logic
 ///     approach_height: 0.10
 ///   assertions:
 ///     - controller.success
@@ -119,7 +119,7 @@ struct ScenarioSource
 /// hand and what a file builds are the same data, so a test can load a
 /// scenario, change one field (the controller, a pose) and give it to a
 /// @ref RoboticCell. It is read once and not changed by the run. Free values of a
-/// mission go in @c parameters, which no reader checks; every other key of
+/// scenario logic go in @c parameters, which no reader checks; every other key of
 /// the file is checked when it loads.
 ///
 /// @code

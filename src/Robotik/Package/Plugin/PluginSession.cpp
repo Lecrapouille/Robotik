@@ -364,7 +364,7 @@ void PluginSession::release()
         m_manager.stop();
     }
     m_manager.shutdown();
-    m_host.clearMission();
+    m_host.clearLogic();
     m_manager.destroy();
     m_checks.clear();
 }

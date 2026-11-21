@@ -33,7 +33,7 @@ data/microduck/     the duck: URDF, meshes, walk.onnx, walk.yaml, pack.yaml
 data/playground/    the room: one URDF (walls, sofa, pouf, shelf, rug), pack.yaml
 worlds/             flat.world.yaml, playground.world.yaml (written by hand)
 scenarios/          walk_forward, tour, drive and their behavior trees
-src/                DuckPolicy (ONNX), DuckSkills (Stand, Walk), DuckMission, Plugin
+src/                DuckPolicy (ONNX), DuckSkills (Stand, Walk), DuckLogic, Plugin
 ```
 
 The room is one fixed body of MuJoCo: the duck bumps into its walls and
@@ -43,7 +43,7 @@ pushes. The rug is drawn only.
 
 ## ⚙ How it works
 
-- **Physics.** `DuckMission::setup` tunes `Simulation::physicsOptions()`: a
+- **Physics.** `DuckLogic::setup` tunes `Simulation::physicsOptions()`: a
   floating base, no gravity compensation, the 5 ms step of the training,
   and `exact_inertia` to keep the rotor armature (0.0018) and the damping
   (0.053) of the small servos; the default floors (0.1 and 0.5) would make

@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "WalkMission.hpp"
+#include "WalkLogic.hpp"
 #include "WalkSkills.hpp"
 
 #include "Robotik/Common/Config.hpp"
@@ -33,14 +33,13 @@
 #define GROUND_SIZE_M 12U
 #define GROUND_TILE_M 1U
 
-robotik::Seconds WalkMission::physicsStep()
+robotik::Seconds WalkLogic::physicsStep()
 {
     return robotik::Seconds(PHYSICS_STEP_S);
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::setup(robotik::RoboticCell& p_cell,
-                        robotik::SceneView* p_view)
+void WalkLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* p_view)
 {
     robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + BASE_LINK;
@@ -109,7 +108,7 @@ void WalkMission::setup(robotik::RoboticCell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::paintGround(robotik::SceneView& p_view)
+void WalkLogic::paintGround(robotik::SceneView& p_view)
 {
     // Grey tiles of one metre: the circle of one metre is easy to read.
     constexpr std::uint32_t TILES = GROUND_SIZE_M / GROUND_TILE_M;
@@ -135,7 +134,7 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
+void WalkLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
     robotik::Pose const base = p_cell.requirePose(m_base);
@@ -150,8 +149,8 @@ void WalkMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::observe(robotik::RoboticCell const& p_cell,
-                          robotik::Seconds /*p_dt*/)
+void WalkLogic::observe(robotik::RoboticCell const& p_cell,
+                        robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
@@ -180,7 +179,7 @@ void WalkMission::observe(robotik::RoboticCell const& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-double WalkMission::radius() const
+double WalkLogic::radius() const
 {
     // Mean distance to the centre of the path: the radius once a full turn
     // is walked.
@@ -205,20 +204,20 @@ double WalkMission::radius() const
     return sum / static_cast<double>(m_path.size());
 }
 
-double WalkMission::turns() const
+double WalkLogic::turns() const
 {
     return std::abs(m_yaw_turned) / (2.0 * std::numbers::pi);
 }
 
-double WalkMission::commandedRadius() const
+double WalkLogic::commandedRadius() const
 {
     return std::abs(m_command[2]) > 1e-6 ? std::abs(m_command[0] / m_command[2])
                                          : 0.0;
 }
 
 // ----------------------------------------------------------------------------
-void WalkMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                          robotik::Metrics& p_metrics) const
+void WalkLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                        robotik::Metrics& p_metrics) const
 {
     p_metrics.set("humanoid.height_min", m_height_min);
     p_metrics.set("humanoid.distance", m_distance);

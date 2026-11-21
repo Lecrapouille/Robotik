@@ -7,10 +7,10 @@
 
 // One task, several controllers: a behavior tree, the PDDL planner (both
 // with and without faults) and a reinforcement learning policy. The scenario
-// id picks the mission.
+// id picks the scenario logic.
 
-#include "PickPlaceMission.hpp"
-#include "RlMission.hpp"
+#include "PickPlaceLogic.hpp"
+#include "RlLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
@@ -18,8 +18,8 @@
 #include <sstream>
 #include <string>
 
-/// Loads the pick-and-place mission chosen by the scenario.
-class PickPlacePlugin final: public robotik::MissionPlugin
+/// Loads the pick-and-place scenario logic chosen by the scenario.
+class PickPlacePlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -29,22 +29,27 @@ public:
     }
 
     PickPlacePlugin()
-        : MissionPlugin(
-              { { "pick_and_place", robotik::mission<PickPlaceMission>(true) },
-                { "pick_and_place_faults", robotik::mission<PickPlaceMission>(true) },
-                { "pick_and_place_pddl", robotik::mission<PickPlaceMission>(true, true) },
-                { "pick_and_place_pddl_faults", robotik::mission<PickPlaceMission>(true, true) },
-                { "pick_and_place_pabt", robotik::mission<PickPlaceMission>(true, true) },
-                { "pick_and_place_pabt_faults", robotik::mission<PickPlaceMission>(true, true) },
-                { "pick_and_place_rl", robotik::mission<RlMission>() } })
+        : ScenarioPlugin(
+              { { "pick_and_place", robotik::logic<PickPlaceLogic>(true) },
+                { "pick_and_place_faults",
+                  robotik::logic<PickPlaceLogic>(true) },
+                { "pick_and_place_pddl",
+                  robotik::logic<PickPlaceLogic>(true, true) },
+                { "pick_and_place_pddl_faults",
+                  robotik::logic<PickPlaceLogic>(true, true) },
+                { "pick_and_place_pabt",
+                  robotik::logic<PickPlaceLogic>(true, true) },
+                { "pick_and_place_pabt_faults",
+                  robotik::logic<PickPlaceLogic>(true, true) },
+                { "pick_and_place_rl", robotik::logic<RlLogic>() } })
     {
     }
 
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_host = p_host;
-        if (mission<RlMission>() != nullptr)
+        if (logic<RlLogic>() != nullptr)
         {
             p_host.addPanel("rl", "RL",
                             [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
@@ -55,7 +60,7 @@ public:
     /// update. The behavior tree scenarios are stepped by the simulation.
     void update(robotik::Host& p_host, robotik::Seconds p_dt) override
     {
-        RlMission* rl = mission<RlMission>();
+        RlLogic* rl = logic<RlLogic>();
         robotik::Simulation* simulation = p_host.simulation();
         if (rl != nullptr && simulation != nullptr)
         {
@@ -68,7 +73,7 @@ private:
     /// The policy, its switches and the score of the episode.
     void draw(robotik::Canvas const& p_canvas)
     {
-        RlMission* rl = mission<RlMission>();
+        RlLogic* rl = logic<RlLogic>();
         if (rl == nullptr)
         {
             p_canvas.text("Pick and place RL");

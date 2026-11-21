@@ -30,7 +30,7 @@ Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed
 Radians); `moveTo`, `spin`, `push`, `reached(j, tol)`, `hold()`.
 Example: `plugins/HelloWorld/src/WaveSkill.cpp`; bigger: `plugins/Painter/src/PainterSkills.cpp`.
 
-## Register (in Mission::setup)
+## Register (in ScenarioLogic::setup)
 
 ```cpp
 robotik::SkillDescription d;
@@ -94,7 +94,7 @@ Verified pattern: `plugins/HelloWorld/scenarios/skills_retry.bt.yaml`.
 ## PDDL planner instead of a tree
 
 Scenario `controller.planner` (goal) + `scenarios/<x>.domain.pddl` + world
-`kind:`. In `Mission::setup`: `p_simulation.planning().observe("holding",
+`kind:`. In `ScenarioLogic::setup`: `p_simulation.planning().observe("holding",
 [](RobotContext const&, Args a){ return truth(...); })` per predicate
 (beliefs only; `Truth::Unknown` when not observable), and
 `bind("pick", {"Approach({0})", "Grasp({0})"}, {{"color", "{0}"}})` per
@@ -113,4 +113,4 @@ Several robots: `SkillDescription::robot = "left"`, name skills `left.X(...)`,
 bind `"{0}.X({1})"` with the arm as first PDDL argument; observers see the
 other robots in `context.team`; beliefs are in the world frame (bring them
 into the base: `context.robot.base().pose.inverse() * p`). Example:
-`plugins/DualArm/src/ConveyorMission.cpp`, `TrayMission.cpp`.
+`plugins/DualArm/src/ConveyorLogic.cpp`, `TrayLogic.cpp`.

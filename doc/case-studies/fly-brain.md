@@ -17,7 +17,7 @@ without those files it runs a small circuit with the same equations.
 The body is the ×100 model (`drosophila_x100.urdf`, about 28 cm). Flight is
 plain kinematics: wings, legs and neck are a posture, not a wind tunnel. The
 flight model is the robot backend (`FlyBackend`), the brain is the agent the
-mission runs. The eye beams and the trail are decorations: ignored by
+scenario logic runs. The eye beams and the trail are decorations: ignored by
 grasping, range sensors and ground truth.
 
 ```bash

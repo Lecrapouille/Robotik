@@ -9,8 +9,8 @@
 /// Catalog, library and scenario instance used by Simulator and Headless.
 ///
 /// Tear-down order: stop the plugin, destroy the @ref robotik::Simulation (it
-/// still uses the mission), then @ref robotik::PluginSession::release which
-/// shuts the plugin down and deletes the mission. @ref
+/// still uses the scenario logic), then @ref robotik::PluginSession::release which
+/// shuts the plugin down and deletes the scenario logic. @ref
 /// robotik::PluginSession::unload closes the library after that.
 ///
 /// @par Contract
@@ -36,7 +36,7 @@
 namespace robotik
 {
 
-class Mission;
+class ScenarioLogic;
 class Simulation;
 
 // ****************************************************************************
@@ -46,7 +46,7 @@ enum class PluginPrepare : std::uint8_t
 {
     /// The path is not a scenario of a discovered package.
     NotPlugin,
-    /// The plugin is set up and its mission can be passed to Simulation.
+    /// The plugin is set up and its scenario logic can be passed to Simulation.
     Ready,
     /// A dependency is missing or the plugin refused: see
     /// @ref PluginSession::error.
@@ -58,10 +58,10 @@ enum class PluginPrepare : std::uint8_t
 ///
 /// The simulator and Headless load plugins the same way: find the package of
 /// a scenario, open its library, check its ids and its API version, create
-/// the mission, then call the plugin around each step. This class holds that
+/// the scenario logic, then call the plugin around each step. This class holds that
 /// sequence once, so both hosts behave alike and a test can drive a plugin
 /// without a host. The order matters: the simulation is destroyed before
-/// @ref release, because the mission it points to is freed there. An error
+/// @ref release, because the scenario logic it points to is freed there. An error
 /// of the plugin is a message (@ref error), never a crash of the host.
 ///
 /// @code
@@ -71,7 +71,7 @@ enum class PluginPrepare : std::uint8_t
 ///     return fail(session.error());
 /// {
 ///     robotik::Simulation simulation(world, scenario, nullptr,
-///                                    session.mission());
+///                                    session.logic());
 ///     session.attach(&simulation);
 ///     session.start();
 ///     while (running) {
@@ -124,7 +124,7 @@ public:
         return m_assets;
     }
 
-    /// @return Menus, panels and the mission of the plugin.
+    /// @return Menus, panels and the scenario logic of the plugin.
     [[nodiscard]] PluginHost& host()
     {
         return m_host;
@@ -166,20 +166,20 @@ public:
     // -------------------------------------------------------------------------
     /// Checks the asset packs and plugins the package depends on, loads the
     /// owning plugin and runs @c setup. The simulation does not exist yet:
-    /// the returned mission is what the host passes to it.
+    /// the returned scenario logic is what the host passes to it.
     /// @param p_scenario Scenario file.
     /// @return Whether the scenario is a plugin one, and ready.
     // -------------------------------------------------------------------------
     PluginPrepare prepare(std::filesystem::path const& p_scenario);
 
-    /// @return The mission bound by the plugin in @c setup, or null.
-    [[nodiscard]] Mission* mission() const
+    /// @return The scenario logic bound by the plugin in @c setup, or null.
+    [[nodiscard]] ScenarioLogic* logic() const
     {
-        return m_host.mission();
+        return m_host.logic();
     }
 
     // -------------------------------------------------------------------------
-    /// Gives the plugin the simulation built with its mission.
+    /// Gives the plugin the simulation built with its scenario logic.
     /// @param p_simulation Simulation; not owned.
     // -------------------------------------------------------------------------
     void attach(Simulation* p_simulation);

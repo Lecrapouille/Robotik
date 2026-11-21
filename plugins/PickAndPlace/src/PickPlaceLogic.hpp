@@ -7,19 +7,19 @@
 
 #pragma once
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 class ColorDetector;
 
 // Pick-and-place task skills (Detect / Approach / Reach / Grasp / Release)
 // and, when a camera is rendered, the color detector of the application.
-class PickPlaceMission final: public robotik::Mission
+class PickPlaceLogic final: public robotik::ScenarioLogic
 {
 public:
 
     // @p_skills false keeps only the detector (RL overlay). @p_planner links
     // the PDDL domain to the skills (scenarios with a planner controller).
-    explicit PickPlaceMission(bool p_skills = true, bool p_planner = false)
+    explicit PickPlaceLogic(bool p_skills = true, bool p_planner = false)
         : m_skills(p_skills), m_planner(p_planner)
     {
     }

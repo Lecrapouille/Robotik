@@ -6,7 +6,7 @@
 // See LICENSING.md for details.
 
 /// @file Conveyor.hpp
-/// The conveyor of the cell: the skill commands it, the mission moves
+/// The conveyor of the cell: the skill commands it, the scenario logic moves
 /// the part it carries (abstract physics: the part rides at the belt speed).
 #pragma once
 

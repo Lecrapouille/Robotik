@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "ReachMission.hpp"
+#include "ReachLogic.hpp"
 
 #include "Robotik/Task/RoboticCell.hpp"
 
@@ -21,7 +21,7 @@ static double distance(robotik::Pose const& p_from, robotik::Pose const& p_to)
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
+void ReachLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     robotik::Robot& robot = p_cell.robot();
 
@@ -37,8 +37,8 @@ void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
     m_error = distance(start, m_target);
 }
 
-void ReachMission::act(robotik::RobotContext& p_context,
-                       robotik::Seconds /*p_dt*/)
+void ReachLogic::act(robotik::RobotContext& p_context,
+                     robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
     robotik::JointSet& joints = robot.joints();
@@ -50,14 +50,14 @@ void ReachMission::act(robotik::RobotContext& p_context,
     m_error = distance(robot.requireFramePose(robot.tool()), m_target);
 }
 
-void ReachMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                           robotik::Metrics& p_metrics) const
+void ReachLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                         robotik::Metrics& p_metrics) const
 {
     p_metrics.set("reach.error", m_error);
 }
 
 robotik::Status
-ReachMission::status(robotik::RobotContext const& /*p_context*/) const
+ReachLogic::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (m_solution.empty())
     {

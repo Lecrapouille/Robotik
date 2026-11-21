@@ -1,7 +1,7 @@
 ; The painter: dip the brush in a pot, lay the stroke of that colour, rinse.
 ; The objects are the pots and the water bucket of the world (entities with
 ; a kind); the brush and the canvas are read from the memory of the robot
-; (PainterMission.cpp). The order of the layers is a fact of the scenario.
+; (PainterLogic.cpp). The order of the layers is a fact of the scenario.
 (define (domain painter)
   (:requirements :adl)
 

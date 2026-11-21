@@ -17,7 +17,7 @@
 ///
 /// @par Contract
 /// - Promises: same description and same seed, same run. Skills, observers and
-///   missions read beliefs; the truth API (@c pose, @c query) is for metrics,
+///   scenario logics read beliefs; the truth API (@c pose, @c query) is for metrics,
 ///   assertions and RL rewards (@c make @c check-layers checks it).
 /// - Expects: one @c step per control period; entities are found by id each
 ///   time, never kept by a plugin.
@@ -31,13 +31,13 @@
 #include "Robotik/Task/Condition.hpp"
 #include "Robotik/Task/Faults.hpp"
 #include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/Perception/Detector.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/Planning/PlanExecutor.hpp"
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/RoboticCellDescription.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 
 #include "Robotik/Task/Status.hpp"
@@ -83,7 +83,7 @@ struct Shape;
 /// Each @ref step runs, in this order: the faults, the controller tick (the
 /// behavior tree or the plan requests skills), the scheduler (it admits and
 /// ticks the skills), the robot step (physics, sensors, perception into the
-/// @ref WorldModel), the simulated suction, and the mission. When the
+/// @ref WorldModel), the simulated suction, and the scenario logic. When the
 /// perception fidelity of an object is @c truth or @c noisy_truth
 /// (@ref PerceptionSpec), the cell writes its belief from the ground truth,
 /// as a mock of the detectors, and the run report says so.
@@ -124,17 +124,17 @@ public:
 
     // -------------------------------------------------------------------------
     /// Builds the robots, sensors, objects and physics of the description,
-    /// calls @ref Mission::setup, then resets with the description seed.
+    /// calls @ref ScenarioLogic::setup, then resets with the description seed.
     /// @param p_world ECS world receiving the entities.
     /// @param p_description What to build.
     /// @param p_view Rendering hooks, or null for a headless run.
-    /// @param p_mission Task plugin (skills, detectors, metrics); not owned.
+    /// @param p_logic Task plugin (skills, detectors, metrics); not owned.
     /// @throws std::runtime_error when the cell cannot be built.
     // -------------------------------------------------------------------------
     RoboticCell(compages::world::World& p_world,
                 RoboticCellDescription p_description,
                 SceneView* p_view = nullptr,
-                Mission* p_mission = nullptr);
+                ScenarioLogic* p_logic = nullptr);
     ~RoboticCell();
 
     // -------------------------------------------------------------------------
@@ -158,7 +158,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Operator mode: physics and sensors keep running, the behavior tree,
-    /// the scheduler, the mission and the assertions do not. Joint commands
+    /// the scheduler, the scenario logic and the assertions do not. Joint commands
     /// then come from the teach pendant.
     /// @param p_on True to suspend, false to resume.
     // -------------------------------------------------------------------------
@@ -188,7 +188,7 @@ public:
     /// @return Simulated time since the reset.
     // -------------------------------------------------------------------------
     /// Requests a skill and steps until it ends: run one skill without a
-    /// mission, a tree or a planner.
+    /// scenario logic, a tree or a planner.
     ///
     /// @code
     /// auto const raise = cell.skills().add<robotik::MoveJointSkill>(
@@ -205,7 +205,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Steps until the controller ends (behavior tree, plan, or the status of
-    /// the mission), or until the limit.
+    /// the scenario logic), or until the limit.
     /// @param p_limit Simulated time allowed, from now.
     /// @param p_dt Step.
     /// @return @ref status at the end: @c RUNNING at the limit.
@@ -297,8 +297,8 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Options of the physics the core builds after @ref Mission::setup — a
-    /// mission may tune them there (a floating base, no gravity
+    /// Options of the physics the core builds after @ref ScenarioLogic::setup — a
+    /// scenario logic may tune them there (a floating base, no gravity
     /// compensation, the step and the rotors of a legged robot). The world
     /// still adds its floor. The robots, tools, bodies and rigid props of the
     /// world are loaded as usual.
@@ -403,8 +403,8 @@ public:
     [[nodiscard]] bt::Tree const* tree() const;
 
     // -------------------------------------------------------------------------
-    /// @return Observers and bindings of the PDDL planner. The mission fills
-    ///   them in @ref Mission::setup; they are used when the scenario
+    /// @return Observers and bindings of the PDDL planner. The scenario logic fills
+    ///   them in @ref ScenarioLogic::setup; they are used when the scenario
     ///   controller is a @c planner (see @ref PlanningDomain).
     // -------------------------------------------------------------------------
     [[nodiscard]] PlanningDomain& planning()
@@ -418,7 +418,7 @@ public:
         return m_executor.get();
     }
 
-    /// @return Controller status (behavior tree, planner, or mission without
+    /// @return Controller status (behavior tree, planner, or scenario logic without
     ///   one); @c IDLE before the first tick.
     [[nodiscard]] Status status() const
     {
@@ -430,7 +430,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Stops ticking the controller (behavior tree, plan); physics, sensors
-    /// and mission go on. Called when a run is judged over. Undone by
+    /// and scenario logic go on. Called when a run is judged over. Undone by
     /// @ref reset.
     // -------------------------------------------------------------------------
     void stopController()
@@ -473,7 +473,7 @@ public:
     /// Adds a primitive drawn for the eye only (beam, trail), in the Z-up
     /// world frame: its position and rotation are world coordinates. It is
     /// not an entity of the world: nothing collides with it, and assertions
-    /// cannot name it. The mission moves it.
+    /// cannot name it. The scenario logic moves it.
     /// @param p_object Shape, size and color.
     /// @return The new entity.
     // -------------------------------------------------------------------------
@@ -481,7 +481,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Value of a metric or of a world query, written as in a condition:
-    /// @c time, @c controller.success, mission metrics, or a query among
+    /// @c time, @c controller.success, plugin metrics, or a query among
     /// @c (pose_error e), @c (orientation_error e), @c (distance a b),
     /// @c (inside a b), @c (on a b), @c (touching a b),
     /// @c (collision_count e), @c (tool_is_attached tool robot.flange),
@@ -520,7 +520,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Adds a world query that conditions may use, e.g. a measure only a
-    /// plugin knows. Call it in @ref Mission::setup, before the scenario
+    /// plugin knows. Call it in @ref ScenarioLogic::setup, before the scenario
     /// conditions are read.
     /// @param p_query Name, number of arguments and answer; it reads the
     ///   truth and must not change the world.
@@ -551,7 +551,7 @@ public:
     [[nodiscard]] Evaluation evaluate(std::string_view p_condition) const;
 
     /// @return @c time, @c controller.success, the planner counters and the
-    ///   mission metrics, measured now.
+    ///   plugin metrics, measured now.
     [[nodiscard]] Metrics metrics() const;
 
     // --- Described world (what the robot was told) ---------------------------
@@ -600,9 +600,9 @@ private:
 public:
 
     /// @return Task plugin, or null.
-    [[nodiscard]] Mission* mission() const
+    [[nodiscard]] ScenarioLogic* logic() const
     {
-        return m_mission;
+        return m_logic;
     }
 
 private:
@@ -680,7 +680,7 @@ private:
     /// What the cell was built from.
     RoboticCellDescription m_description;
     /// Task plugin, not owned, or null.
-    Mission* m_mission = nullptr;
+    ScenarioLogic* m_logic = nullptr;
     /// Options of the physics built by connectBackend (see physicsOptions).
     MujocoOptions m_physics_options;
     /// Rendering hooks, or null.
@@ -742,9 +742,9 @@ private:
     std::unordered_set<std::string> m_prop_penetration;
     /// How the grippers hold objects, one model per level in use.
     std::vector<std::unique_ptr<GraspModel>> m_grasps;
-    /// Teach pendant owns the joints; the mission is frozen.
+    /// Teach pendant owns the joints; the scenario logic is frozen.
     bool m_suspended = false;
-    /// Observers and bindings given by the mission.
+    /// Observers and bindings given by the scenario logic.
     PlanningDomain m_planning;
     /// After the factory and the scheduler it uses.
     std::unique_ptr<PlanExecutor> m_executor;

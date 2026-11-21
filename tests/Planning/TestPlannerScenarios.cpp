@@ -9,8 +9,8 @@
 
 #include "main.hpp"
 
-#include "PainterMission.hpp"
-#include "PickPlaceMission.hpp"
+#include "PainterLogic.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/RunReport.hpp"
 #include "Robotik/Package/Simulation.hpp"
@@ -77,14 +77,14 @@ static robotik::Scenario scenario(char const* p_file)
 
 TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
 {
-    PickPlaceMission mission(true, true);
+    PickPlaceLogic logic(true, true);
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         scenario(
             "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
         nullptr,
-        &mission);
+        &logic);
     ASSERT_NE(simulation.cell().planner(), nullptr);
     EXPECT_EQ(simulation.cell().planner()->objects().size(), 2U);
 
@@ -113,14 +113,14 @@ TEST(PlannerScenario, PickAndPlacePlansFromTheGoalAndReplays)
 
 TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
 {
-    PickPlaceMission mission(true, true);
+    PickPlaceLogic logic(true, true);
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         scenario("plugins/PickAndPlace/scenarios/"
                  "pick_and_place_pddl_faults.scenario.yaml"),
         nullptr,
-        &mission);
+        &logic);
 
     PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 60.0);
     EXPECT_EQ(result.outcome,
@@ -150,13 +150,13 @@ TEST(PlannerScenario, PickAndPlaceReplansAroundACameraFailure)
 
 TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 {
-    PainterMission mission(true);
+    PainterLogic logic(true);
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         scenario("plugins/Painter/scenarios/painter_pddl.scenario.yaml"),
         nullptr,
-        &mission);
+        &logic);
 
     PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 200.0);
     EXPECT_EQ(result.outcome,
@@ -178,14 +178,14 @@ TEST(PlannerScenario, PainterLaysTheLayersInOrder)
 
 TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
 {
-    PickPlaceMission mission(true, true);
+    PickPlaceLogic logic(true, true);
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         scenario(
             "plugins/PickAndPlace/scenarios/pick_and_place_pabt.scenario.yaml"),
         nullptr,
-        &mission);
+        &logic);
 
     PlannedRun const first = run(simulation, robotik::Seed{ 42 }, 60.0);
     EXPECT_EQ(first.outcome, robotik::Simulation::Outcome::ControllerSucceeded);
@@ -217,14 +217,14 @@ TEST(PlannerScenario, PickAndPlaceGrowsATreeFromTheGoal)
 
 TEST(PlannerScenario, PickAndPlaceTreeRetriesAFailedAction)
 {
-    PickPlaceMission mission(true, true);
+    PickPlaceLogic logic(true, true);
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         scenario("plugins/PickAndPlace/scenarios/"
                  "pick_and_place_pabt_faults.scenario.yaml"),
         nullptr,
-        &mission);
+        &logic);
 
     PlannedRun const result = run(simulation, robotik::Seed{ 7 }, 60.0);
     EXPECT_EQ(result.outcome,

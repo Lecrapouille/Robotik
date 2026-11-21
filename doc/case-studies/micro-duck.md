@@ -36,7 +36,7 @@ tour: 1/1 runs passed
 
 How it works:
 
-- **The physics of the core.** The mission does not build its own
+- **The physics of the core.** The scenario logic does not build its own
   physics. In `setup` it tunes `RoboticCell::physicsOptions()` (a floating
   base, no gravity compensation, the step of the policy, the exact rotor
   inertia of the small servos) and the core builds the physics with the

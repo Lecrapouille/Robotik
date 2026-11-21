@@ -1,4 +1,4 @@
-# Lesson 1: the smallest mission. It counts simulation steps and stops
+# Lesson 1: the smallest scenario logic. It counts simulation steps and stops
 # after two seconds.
 scenario:
   id: hello

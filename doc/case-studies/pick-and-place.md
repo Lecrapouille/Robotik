@@ -19,7 +19,7 @@ Files: `plugins/PickAndPlace/`
 - `scenarios/pick_and_place_faults.scenario.yaml`: the camera fails during the run;
 - `scenarios/pick_and_place.bt.yaml`: the tree (`UntilSuccess` around `Detect`
   waits for the camera to come back);
-- `src/`: `ColorDetector` (perception), the skills, `PickPlaceMission`.
+- `src/`: `ColorDetector` (perception), the skills, `PickPlaceLogic`.
 
 The assertions judge the result, not the trajectory:
 

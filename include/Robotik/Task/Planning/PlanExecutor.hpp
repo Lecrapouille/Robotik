@@ -186,10 +186,10 @@ public:
 
     // -------------------------------------------------------------------------
     /// Loads the domain and checks that the domain, the world, the scenario
-    /// and the mission agree (see @ref PlanningDomain).
+    /// and the scenario logic agree (see @ref PlanningDomain).
     /// @param p_spec Goal and settings of the planner.
     /// @param p_world World: the entities with a @c kind are the objects.
-    /// @param p_domain Observers and bindings of the mission.
+    /// @param p_domain Observers and bindings of the scenario logic.
     /// @param p_name Name of the PDDL problem (the scenario id).
     /// @param p_factory Holds the skill nodes; the executor adds its own.
     ///   It and @p_skills must outlive the executor.
@@ -367,7 +367,7 @@ public:
 
 private:
 
-    /// Reads the domain and checks it against the world and the mission.
+    /// Reads the domain and checks it against the world and the scenario logic.
     void load(WorldDescription const& p_world, PlanningDomain const& p_domain);
     /// Builds the problem, calls the planner and compiles the plan.
     void plan(RobotContext const& p_context, std::string p_cause);
@@ -436,7 +436,7 @@ private:
     PlannerSpec m_spec;
     /// Name of the PDDL problem.
     std::string m_name;
-    /// Observers and bindings of the mission.
+    /// Observers and bindings of the scenario logic.
     PlanningDomain const& m_domain;
     /// Factory of the tree nodes.
     bt::NodeFactory& m_factory;

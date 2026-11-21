@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 #include "Robotik/Task/Skills/Skill.hpp"
 
 // ****************************************************************************
@@ -35,7 +35,7 @@ private:
 /// Lesson 4: registers the skill "Wave". The behavior tree of the
 /// scenario calls it by that name.
 // ****************************************************************************
-class SkillsMission final: public robotik::Mission
+class SkillsLogic final: public robotik::ScenarioLogic
 {
 public:
 

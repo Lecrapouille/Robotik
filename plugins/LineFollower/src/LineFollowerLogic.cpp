@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "LineFollowerMission.hpp"
+#include "LineFollowerLogic.hpp"
 
 #include "Vision.hpp"
 
@@ -27,13 +27,13 @@
 #define CAMERA_PITCH_DEG 40.0
 #define SKILL_PRIORITY 100
 
-LineFollowerMission::LineFollowerMission(double p_laps) : m_laps(p_laps)
+LineFollowerLogic::LineFollowerLogic(double p_laps) : m_laps(p_laps)
 {
     placeTags();
     m_floor = std::make_unique<FloorMap>(m_track, m_tags, TAG_SIZE_M);
 }
 
-void LineFollowerMission::placeTags()
+void LineFollowerLogic::placeTags()
 {
     int const count = 12;
     for (int id = 0; id < count; ++id)
@@ -47,7 +47,7 @@ void LineFollowerMission::placeTags()
     }
 }
 
-void LineFollowerMission::bindCamera(robotik::RoboticCell& p_cell)
+void LineFollowerLogic::bindCamera(robotik::RoboticCell& p_cell)
 {
     robotik::Camera* camera = p_cell.camera();
     if (camera == nullptr)
@@ -80,8 +80,8 @@ void LineFollowerMission::bindCamera(robotik::RoboticCell& p_cell)
         });
 }
 
-void LineFollowerMission::setup(robotik::RoboticCell& p_cell,
-                                robotik::SceneView* p_view)
+void LineFollowerLogic::setup(robotik::RoboticCell& p_cell,
+                              robotik::SceneView* p_view)
 {
     auto backend = std::make_unique<DiffDriveBackend>("left_wheel_joint",
                                                       "right_wheel_joint");
@@ -137,8 +137,8 @@ void LineFollowerMission::setup(robotik::RoboticCell& p_cell,
     }
 }
 
-void LineFollowerMission::reset(robotik::RoboticCell& p_cell,
-                                robotik::Seed p_seed)
+void LineFollowerLogic::reset(robotik::RoboticCell& p_cell,
+                              robotik::Seed p_seed)
 {
     robotik::Random start(p_seed.derive("start"));
     Track::Point const near =
@@ -173,8 +173,8 @@ void LineFollowerMission::reset(robotik::RoboticCell& p_cell,
     m_estimate_path.clear();
 }
 
-void LineFollowerMission::act(robotik::RobotContext& /*p_context*/,
-                              robotik::Seconds p_dt)
+void LineFollowerLogic::act(robotik::RobotContext& /*p_context*/,
+                            robotik::Seconds p_dt)
 {
     // Odometry: what the robot measures of its own wheels.
     if (m_left != nullptr && m_navigation != nullptr)
@@ -185,8 +185,8 @@ void LineFollowerMission::act(robotik::RobotContext& /*p_context*/,
     }
 }
 
-void LineFollowerMission::observe(robotik::RoboticCell const& p_cell,
-                                  robotik::Seconds p_dt)
+void LineFollowerLogic::observe(robotik::RoboticCell const& p_cell,
+                                robotik::Seconds p_dt)
 {
     if (m_left == nullptr || m_navigation == nullptr)
     {
@@ -231,8 +231,8 @@ void LineFollowerMission::observe(robotik::RoboticCell const& p_cell,
     }
 }
 
-void LineFollowerMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                                  robotik::Metrics& p_metrics) const
+void LineFollowerLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                                robotik::Metrics& p_metrics) const
 {
     p_metrics.set("laps", followProgress() / m_track.perimeter());
     p_metrics.set("cross_track.max", m_cross_max);
@@ -250,12 +250,12 @@ void LineFollowerMission::measure(robotik::RoboticCell const& /*p_cell*/,
     }
 }
 
-double LineFollowerMission::followProgress() const
+double LineFollowerLogic::followProgress() const
 {
     return m_follow_skill != nullptr ? m_follow_skill->progress() : 0.0;
 }
 
-double LineFollowerMission::fixErrorMean() const
+double LineFollowerLogic::fixErrorMean() const
 {
     return m_fix_count > 0U ? m_fix_error_sum / static_cast<double>(m_fix_count)
                             : 0.0;

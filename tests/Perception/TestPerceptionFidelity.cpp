@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/RunReport.hpp"
 #include "Robotik/Package/Simulation.hpp"
@@ -57,16 +57,17 @@ TEST(PerceptionFidelity, LegacyOracleKeyStillWorks)
 // ----------------------------------------------------------------------------
 TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        pickAndPlace("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
-                     { { "scenario.perception.blind", "sensed" },
-                       { "scenario.perception.fidelity", "truth" },
-                       { "scenario.perception.overrides.box", "sensed" } }),
+        pickAndPlace(
+            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
+            { { "scenario.perception.blind", "sensed" },
+              { "scenario.perception.fidelity", "truth" },
+              { "scenario.perception.overrides.box", "sensed" } }),
         nullptr,
-        &mission);
+        &logic);
     EXPECT_EQ(simulation.cell().perceptionOf("red_cube"), robotik::PerceptionFidelity::Truth);
     EXPECT_EQ(simulation.cell().perceptionOf("box"), robotik::PerceptionFidelity::Sensed);
     simulation.step(robotik::Seconds(0.01));
@@ -86,16 +87,17 @@ TEST(PerceptionFidelity, EachObjectSaysWhereItsBeliefComesFrom)
 // ----------------------------------------------------------------------------
 TEST(PerceptionFidelity, NoisyTruthCanMissAnObject)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
-        pickAndPlace("plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
-                     { { "scenario.perception.blind", "sensed" },
-                       { "scenario.perception.fidelity", "noisy_truth" },
-                       { "scenario.perception.noise.dropout", "1.0" } }),
+        pickAndPlace(
+            "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml",
+            { { "scenario.perception.blind", "sensed" },
+              { "scenario.perception.fidelity", "noisy_truth" },
+              { "scenario.perception.noise.dropout", "1.0" } }),
         nullptr,
-        &mission);
+        &logic);
     for (int i = 0; i < 50; ++i)
     {
         simulation.step(robotik::Seconds(0.01));
@@ -108,14 +110,16 @@ TEST(PerceptionFidelity, ObservedEffectsNeedAFreshObservation)
 {
     // With the true poses, every effect is seen again: the plan succeeds.
     {
-        PickPlaceMission mission(true, true);
+        PickPlaceLogic logic(true, true);
         compages::world::World world;
         robotik::Simulation simulation(
             world,
-            pickAndPlace("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml",
-                         { { "scenario.controller.planner.verify", "observed" } }),
+            pickAndPlace(
+                "plugins/PickAndPlace/scenarios/"
+                "pick_and_place_pddl.scenario.yaml",
+                { { "scenario.controller.planner.verify", "observed" } }),
             nullptr,
-            &mission);
+            &logic);
         ASSERT_TRUE(simulation.cell().planner()->spec().observed);
         runFor(simulation, 60.0);
         EXPECT_EQ(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded);
@@ -123,15 +127,16 @@ TEST(PerceptionFidelity, ObservedEffectsNeedAFreshObservation)
     // Headless without the true poses, nothing is observed: no step may claim
     // its effects, so the plan cannot succeed.
     {
-        PickPlaceMission mission(true, true);
+        PickPlaceLogic logic(true, true);
         compages::world::World world;
         robotik::Simulation simulation(
             world,
-            pickAndPlace("plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml",
+            pickAndPlace("plugins/PickAndPlace/scenarios/"
+                         "pick_and_place_pddl.scenario.yaml",
                          { { "scenario.controller.planner.verify", "observed" },
                            { "scenario.perception.blind", "sensed" } }),
             nullptr,
-            &mission);
+            &logic);
         runFor(simulation, 60.0);
         EXPECT_NE(simulation.outcome(), robotik::Simulation::Outcome::ControllerSucceeded);
     }

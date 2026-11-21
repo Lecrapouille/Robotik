@@ -31,7 +31,7 @@ Without ONNX Runtime or this folder, `make` skips the plugin.
 - The robot uses the **serial** URDF: the ankles and the waist are plain
   joints, as in the training. The MuJoCo file of LimX has the real closed
   linkages and needs their closed-source projection tool.
-- `WalkMission` plugs a floating-base MuJoCo backend **without gravity
+- `WalkLogic` plugs a floating-base MuJoCo backend **without gravity
   compensation**, with the rotor armature, and gives each joint the PD gains
   of the policy with no slew (`JointGains::speed_ratio` = infinity).
 - The plugin owns the clock: it steps the simulation every 1 ms, and the

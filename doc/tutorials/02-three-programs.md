@@ -29,7 +29,7 @@ for (int i = 0; i < 200; ++i)
     arm.value()->step(robotik::Seconds(0.01)); // MuJoCo moves the joint
 ```
 
-**2. Run a skill, without a mission** (Task layer,
+**2. Run a skill, without a scenario logic** (Task layer,
 `tests/Examples/TestLayerExamples.cpp`). A robot and a cube described in
 C++; `openRoboticCell` creates the world that holds them.
 
@@ -54,12 +54,12 @@ cell.run(raise, robotik::Seconds(10.0));       // SkillState::Succeeded
 
 **3. Reach a goal, without writing a sequence of skills** (Task layer, same
 test file). You give the goal; the planner finds the actions in the PDDL
-domain, and the cell runs their skills. The mission gives the skills and the
+domain, and the cell runs their skills. The scenario logic gives the skills and the
 observers that read the beliefs ([The PDDL planner](../concepts/pddl-planner.md)).
 
 ```cpp
-PickPlaceMission mission(true, true);          // skills + observers
-auto opened = robotik::openRoboticCell(description, &mission);
+PickPlaceLogic logic(true, true);          // skills + observers
+auto opened = robotik::openRoboticCell(description, &logic);
 robotik::RoboticCell& cell = *opened.value();
 
 robotik::PlannerSpec goal;
@@ -81,7 +81,7 @@ auto scenario = robotik::loadScenario("hello.scenario.yaml", assets);
 if (!scenario)
     return fail(scenario.error());
 compages::world::World world;
-robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
+robotik::Simulation simulation(world, scenario.take(), nullptr, &logic);
 while (!simulation.finished())
     simulation.step(robotik::Seconds(0.01));
 bool const ok = simulation.passed();

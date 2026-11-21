@@ -5,14 +5,14 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "LineFollowerMission.hpp"
+#include "LineFollowerLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
 #include <sstream>
 
-/// Loads the line-follower mission and shows its navigation.
-class LineFollowerPlugin final: public robotik::MissionPlugin
+/// Loads the line-follower scenario logic and shows its navigation.
+class LineFollowerPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -22,13 +22,14 @@ public:
     }
 
     LineFollowerPlugin()
-        : MissionPlugin({ { "line_follower", robotik::mission<LineFollowerMission>(1.0) } })
+        : ScenarioPlugin(
+              { { "line_follower", robotik::logic<LineFollowerLogic>(1.0) } })
     {
     }
 
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         p_host.addPanel("line", "Line follower",
                         [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
     }
@@ -38,7 +39,7 @@ private:
     /// Fixes, laps and the estimate against the truth.
     void draw(robotik::Canvas const& p_canvas) const
     {
-        LineFollowerMission const* line = mission<LineFollowerMission>();
+        LineFollowerLogic const* line = logic<LineFollowerLogic>();
         if (line == nullptr)
         {
             p_canvas.text("Line follower");

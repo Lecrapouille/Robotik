@@ -82,7 +82,7 @@ seed 42
    ├── world      layout of the props (randomize)
    ├── faults     random faults
    ├── <sensor>   one stream per sensor, by its name
-   └── <mission>  what the mission derives from it (RL policy...)
+   └── <scenario logic>  what the scenario logic derives from it (RL policy...)
 ```
 
 Same scenario, same seed: same run, up to rounding. A noise-free channel draws

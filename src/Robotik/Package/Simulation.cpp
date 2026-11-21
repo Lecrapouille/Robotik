@@ -40,9 +40,9 @@ char const* toString(Simulation::Outcome p_outcome)
 Simulation::Simulation(compages::world::World& p_world,
                        Scenario p_scenario,
                        SceneView* p_view,
-                       Mission* p_mission)
+                       ScenarioLogic* p_logic)
     : m_scenario(std::move(p_scenario)),
-      m_cell(p_world, m_scenario, p_view, p_mission),
+      m_cell(p_world, m_scenario, p_view, p_logic),
       m_assertions(m_scenario.assertions)
 {
     // Read every condition now: a typo stops the load, not the run.

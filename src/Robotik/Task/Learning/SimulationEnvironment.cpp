@@ -53,7 +53,7 @@ SimulationEnvironment::SimulationEnvironment(
         std::make_unique<RoboticCell>(m_world,
                                       forLearning(std::move(p_description)),
                                       nullptr,
-                                      m_parts.mission.get());
+                                      m_parts.logic.get());
     m_parts.observation->setup(*m_simulation);
     m_parts.action->setup(*m_simulation);
     m_parts.reward->setup(*m_simulation);

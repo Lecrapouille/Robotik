@@ -15,7 +15,7 @@
 #include "Robotik/Package/Scenario/Experiment.hpp"
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Robot/TeachPendant.hpp"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/World.hpp"
@@ -469,7 +469,7 @@ struct App
     std::unique_ptr<compages::world::World> world;
     std::unique_ptr<compages::renderer::Scene> scene;
     std::unique_ptr<SimulatorView> scene_view;
-    std::unique_ptr<robotik::Mission> mission;
+    std::unique_ptr<robotik::ScenarioLogic> logic;
     std::unique_ptr<robotik::Simulation> simulation;
     TeachWatch teach;
     UiState ui;

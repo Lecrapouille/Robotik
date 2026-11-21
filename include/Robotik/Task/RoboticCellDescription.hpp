@@ -418,7 +418,7 @@ struct PlannerSpec
 
 // ****************************************************************************
 /// The strategy driving the robot: a behavior tree, a planner goal, or
-/// neither (the mission drives it).
+/// neither (the scenario logic drives it).
 ///
 /// @code
 /// controller:
@@ -623,7 +623,7 @@ struct RoboticCellDescription
     WorldDescription world;
     /// Behavior tree, planner goal, or neither.
     ControllerSpec controller;
-    /// Paths the mission can follow, by name.
+    /// Paths the scenario logic can follow, by name.
     std::map<std::string, Trajectory, std::less<>> trajectories;
     /// Faults at fixed times.
     std::vector<Fault> faults;
@@ -633,9 +633,9 @@ struct RoboticCellDescription
     PerceptionSpec perception;
     /// Fidelity of the physics, per entity.
     PhysicsSpec physics;
-    /// Values the mission reads (gains, model choices...).
+    /// Values the scenario logic reads (gains, model choices...).
     ConfigNode parameters;
-    /// Packs the models were resolved with; missions resolve their own
+    /// Packs the models were resolved with; scenario logics resolve their own
     /// models with it.
     AssetResolver assets;
 };

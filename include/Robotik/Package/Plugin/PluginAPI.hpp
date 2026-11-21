@@ -8,18 +8,18 @@
 /// @file PluginAPI.hpp
 /// C++ helpers for a demo plugin. The exported symbols stay C.
 ///
-/// A plugin says which mission runs each scenario (@ref robotik::MissionPlugin),
+/// A plugin says which scenario logic runs each scenario (@ref robotik::ScenarioPlugin),
 /// gives a static @c describe(), and exports itself with
 /// @ref ROBOTIK_EXPORT_PLUGIN. The helpers turn the C calls of
 /// @c PluginABI.h into virtual calls, and C++ exceptions into error
 /// statuses: nothing C++ crosses the border.
 ///
 /// @code
-/// class MyPlugin final: public robotik::MissionPlugin
+/// class MyPlugin final: public robotik::ScenarioPlugin
 /// {
 /// public:
 ///     static robotik::PluginInfo describe() { return { .id = "robotik.my_plugin" }; }
-///     MyPlugin() : MissionPlugin({ { "demo", robotik::mission<MyMission>() } }) {}
+///     MyPlugin() : ScenarioPlugin({ { "demo", robotik::logic<MyLogic>() } }) {}
 /// };
 /// ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 /// @endcode
@@ -28,11 +28,11 @@
 /// - Promises: a C++ exception in a plugin becomes an error status at the
 ///   border; nothing C++ crosses it.
 /// - Expects: @c describe().id equals @c plugin.id of @c plugin.yaml; the
-///   scenario ids of the mission table are listed in it.
+///   scenario ids of the logic table are listed in it.
 #pragma once
 
 #include "Robotik/Package/Plugin/PluginABI.h"
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -425,12 +425,12 @@ public:
     [[nodiscard]] Simulation* simulation() const;
 
     // -------------------------------------------------------------------------
-    /// Gives the host the mission of the plugin; the host passes it to the
+    /// Gives the host the scenario logic of the plugin; the host passes it to the
     /// simulation it builds. Call it in @ref Plugin::setup (a
-    /// @ref MissionPlugin does it for you).
-    /// @param p_mission Mission owned by the plugin; must outlive the run.
+    /// @ref ScenarioPlugin does it for you).
+    /// @param p_logic ScenarioLogic owned by the plugin; must outlive the run.
     // -------------------------------------------------------------------------
-    void bindMission(Mission& p_mission) const;
+    void bindLogic(ScenarioLogic& p_logic) const;
 
 private:
 
@@ -505,8 +505,8 @@ private:
 /// simulation step (and @ref onEvent, @ref pause when they happen), then
 /// @ref stop and @ref shutdown.
 ///
-/// Most plugins only give a mission per scenario: derive from
-/// @ref MissionPlugin instead. A plugin keeps no world entity between calls
+/// Most plugins only give a scenario logic per scenario: derive from
+/// @ref ScenarioPlugin instead. A plugin keeps no world entity between calls
 /// (find them by id), and does not decide if a run passes: the assertions of
 /// the scenario do. Errors are exceptions rather than status codes, so the
 /// code of a plugin has no error plumbing; the C border turns them into
@@ -527,8 +527,8 @@ public:
     virtual ~Plugin() = default;
 
     // -------------------------------------------------------------------------
-    /// Prepares a scenario, before the simulation exists: create the mission
-    /// and bind it (@ref Host::bindMission), add menus and panels.
+    /// Prepares a scenario, before the simulation exists: create the scenario logic
+    /// and bind it (@ref Host::bindLogic), add menus and panels.
     /// @param p_host Services of the host.
     /// @param p_scenario Scenario id, as listed in @c plugin.yaml.
     /// @throws std::exception for an unknown scenario.
@@ -550,43 +550,43 @@ public:
     /// The run ended.
     virtual void stop(Host& /*p_host*/) {}
 
-    /// The host destroyed the simulation: free the mission and the rest.
+    /// The host destroyed the simulation: free the scenario logic and the rest.
     virtual void shutdown(Host& /*p_host*/) {}
 };
 
-/// Builds the mission of one scenario.
-using MissionFactory = std::function<std::unique_ptr<Mission>()>;
+/// Builds the scenario logic of one scenario.
+using LogicFactory = std::function<std::unique_ptr<ScenarioLogic>()>;
 
 // ----------------------------------------------------------------------------
-/// @return A @ref MissionFactory building @c T from @p p_args (copied).
+/// @return A @ref LogicFactory building @c T from @p p_args (copied).
 ///
 /// @code
-/// { "painter_pddl", robotik::mission<PainterMission>(true) }
+/// { "painter_pddl", robotik::logic<PainterLogic>(true) }
 /// @endcode
 // ----------------------------------------------------------------------------
 template <class T, class... Args>
-[[nodiscard]] MissionFactory mission(Args... p_args)
+[[nodiscard]] LogicFactory logic(Args... p_args)
 {
-    return [=]() -> std::unique_ptr<Mission>
+    return [=]() -> std::unique_ptr<ScenarioLogic>
     { return std::make_unique<T>(p_args...); };
 }
 
 // ****************************************************************************
-/// A plugin that gives one mission per scenario: the common case.
+/// A plugin that gives one scenario logic per scenario: the common case.
 ///
-/// A demo plugin mostly says "this scenario runs this mission". The
-/// table says it once; the base creates the mission, binds it, refuses an
-/// unknown scenario (the message lists the known ids) and frees the mission
+/// A demo plugin mostly says "this scenario runs this scenario logic". The
+/// table says it once; the base creates the scenario logic, binds it, refuses an
+/// unknown scenario (the message lists the known ids) and frees the scenario logic
 /// at the end.
 ///
 /// @code
-/// class PainterPlugin final: public robotik::MissionPlugin
+/// class PainterPlugin final: public robotik::ScenarioPlugin
 /// {
 /// public:
 ///     static robotik::PluginInfo describe() { return { .id = "robotik.painter" }; }
 ///     PainterPlugin()
-///         : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
-///                           { "painter_pddl", robotik::mission<PainterMission>(true) } })
+///         : ScenarioPlugin({ { "painter", robotik::logic<PainterLogic>(false) },
+///                           { "painter_pddl", robotik::logic<PainterLogic>(true) } })
 ///     {
 ///     }
 /// };
@@ -594,44 +594,46 @@ template <class T, class... Args>
 /// @endcode
 ///
 /// To add a menu or a panel, override @ref setup, call
-/// @c MissionPlugin::setup first, then use the host.
+/// @c ScenarioPlugin::setup first, then use the host.
 ///
-/// The mission lives from @ref setup to @ref shutdown: the host destroys the
-/// simulation before @ref shutdown, so the mission never outlives the cell
-/// that points to it. @ref mission returns null when the current scenario
-/// runs a mission of another type. A plugin that chooses its mission in
+/// The scenario logic lives from @ref setup to @ref shutdown: the host destroys the
+/// simulation before @ref shutdown, so the scenario logic never outlives the cell
+/// that points to it. @ref logic returns null when the current scenario
+/// runs a scenario logic of another type. A plugin that chooses its scenario logic in
 /// another way (from a parameter of the scenario, say) derives from
 /// @ref Plugin instead. The table is a constructor argument, not a virtual
 /// method, so that the ids of @c plugin.yaml appear once in the C++ code,
 /// next to the class that runs them.
 // ****************************************************************************
-class MissionPlugin: public Plugin
+class ScenarioPlugin: public Plugin
 {
 public:
 
-    /// @param p_missions Scenario id (as in @c plugin.yaml) and its mission.
-    MissionPlugin(std::initializer_list<std::pair<std::string_view, MissionFactory>> p_missions)
+    /// @param p_logics Scenario id (as in @c plugin.yaml) and its scenario logic.
+    ScenarioPlugin(
+        std::initializer_list<std::pair<std::string_view, LogicFactory>>
+            p_logics)
     {
-        for (auto const& [id, factory] : p_missions)
+        for (auto const& [id, factory] : p_logics)
         {
             m_factories.emplace_back(std::string(id), factory);
         }
     }
 
     // -------------------------------------------------------------------------
-    /// Creates and binds the mission of @p p_scenario.
+    /// Creates and binds the scenario logic of @p p_scenario.
     /// @throws std::invalid_argument for a scenario not in the table.
     // -------------------------------------------------------------------------
     void setup(Host& p_host, std::string_view p_scenario) override
     {
-        m_mission.reset();
+        m_logic.reset();
         m_scenario = std::string(p_scenario);
         for (auto const& [id, factory] : m_factories)
         {
             if (id == p_scenario)
             {
-                m_mission = factory();
-                p_host.bindMission(*m_mission);
+                m_logic = factory();
+                p_host.bindLogic(*m_logic);
                 return;
             }
         }
@@ -644,10 +646,10 @@ public:
                                     "' (this plugin runs: " + known + ")");
     }
 
-    /// Frees the mission.
+    /// Frees the scenario logic.
     void shutdown(Host& /*p_host*/) override
     {
-        m_mission.reset();
+        m_logic.reset();
     }
 
 protected:
@@ -658,21 +660,21 @@ protected:
         return m_scenario;
     }
 
-    /// @return The mission of the scenario, as a @c T, or null.
-    template <class T = Mission>
-    [[nodiscard]] T* mission() const
+    /// @return The scenario logic of the scenario, as a @c T, or null.
+    template <class T = ScenarioLogic>
+    [[nodiscard]] T* logic() const
     {
-        return dynamic_cast<T*>(m_mission.get());
+        return dynamic_cast<T*>(m_logic.get());
     }
 
 private:
 
-    /// Scenario ids and their missions.
-    std::vector<std::pair<std::string, MissionFactory>> m_factories;
+    /// Scenario ids and their scenario logics.
+    std::vector<std::pair<std::string, LogicFactory>> m_factories;
     /// Id of the current scenario.
     std::string m_scenario;
-    /// Mission of the current scenario, or null.
-    std::unique_ptr<Mission> m_mission;
+    /// ScenarioLogic of the current scenario, or null.
+    std::unique_ptr<ScenarioLogic> m_logic;
 };
 
 /// Glue behind @ref ROBOTIK_EXPORT_PLUGIN. Not for plugin code.

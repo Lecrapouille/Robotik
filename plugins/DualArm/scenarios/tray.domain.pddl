@@ -2,7 +2,7 @@
 ; drills a path on the tray while it moves. A temporal domain: drill needs
 ; the tray in motion over all its duration, so the plan holds the tray
 ; during the drilling (required concurrency). The state is read on the
-; shared beliefs by the observers of the mission (TrayMission.cpp).
+; shared beliefs by the observers of the scenario logic (TrayLogic.cpp).
 ; Durations are estimates in seconds: the executor waits for the skills,
 ; not for the clock.
 (define (domain tray)

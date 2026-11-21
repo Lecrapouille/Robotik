@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 
@@ -127,10 +127,9 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
     // The assertions name the vacuum gripper, which is gone with its tool:
     // they no longer compile, and this test is about the actuators.
     scenario.assertions.clear();
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
-    robotik::Simulation simulation(
-        world, std::move(scenario), nullptr, &mission);
+    robotik::Simulation simulation(world, std::move(scenario), nullptr, &logic);
     EXPECT_EQ(simulation.cell().robot().actuators().find("gripper"), nullptr);
     EXPECT_EQ(simulation.cell().requireQuery(
                   "(tool_is_attached fingers robot.flange)"),
@@ -144,16 +143,17 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
 
 TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()).take(),
+            testAssets())
+            .take(),
         nullptr,
-        &mission);
+        &logic);
 
     Outcome const first = run(simulation, robotik::Seed{ 11 });
     EXPECT_TRUE(first.passed);
@@ -166,15 +166,16 @@ TEST(Simulation, PickAndPlaceSucceedsAndReplays)
 
 TEST(Simulation, DetectWaitsUntilCameraIsRestored)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
-                                         "pick_and_place_faults.scenario.yaml"),
-                                testAssets()).take(),
+                                       "pick_and_place_faults.scenario.yaml"),
+                              testAssets())
+            .take(),
         nullptr,
-        &mission);
+        &logic);
     simulation.reset(robotik::Seed{ 7 });
     robotik::SkillId const detect =
         simulation.cell().skills().find("Detect(red_cube)");
@@ -195,15 +196,16 @@ TEST(Simulation, DetectWaitsUntilCameraIsRestored)
 
 TEST(Simulation, SurvivesACameraFailure)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::loadScenario(repoFile("plugins/PickAndPlace/scenarios/"
-                                         "pick_and_place_faults.scenario.yaml"),
-                                testAssets()).take(),
+                                       "pick_and_place_faults.scenario.yaml"),
+                              testAssets())
+            .take(),
         nullptr,
-        &mission);
+        &logic);
     Outcome const outcome = run(simulation, robotik::Seed{ 7 });
     EXPECT_TRUE(outcome.passed);
     EXPECT_FALSE(simulation.cell().robot().resources().available("wrist_camera"));
@@ -211,16 +213,17 @@ TEST(Simulation, SurvivesACameraFailure)
 
 TEST(Simulation, FailedAssertionDoesNotStopTheRun)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()).take(),
+            testAssets())
+            .take(),
         nullptr,
-        &mission);
+        &logic);
     simulation.reset(robotik::Seed{ 11 });
     simulation.step(robotik::Seconds(0.01));
     bool failed = false;
@@ -236,16 +239,17 @@ TEST(Simulation, FailedAssertionDoesNotStopTheRun)
 
 TEST(Simulation, EmergencyStopPreemptsTheArm)
 {
-    PickPlaceMission mission;
+    PickPlaceLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::loadScenario(
             repoFile(
                 "plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml"),
-            testAssets()).take(),
+            testAssets())
+            .take(),
         nullptr,
-        &mission);
+        &logic);
     robotik::SkillScheduler& skills = simulation.cell().skills();
     robotik::SkillId const stop = skills.find("Stop");
     ASSERT_NE(stop, robotik::NO_SKILL);

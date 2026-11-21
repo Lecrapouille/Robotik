@@ -5,13 +5,13 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "PainterMission.hpp"
+#include "PainterLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
-/// The painter mission; the planned scenarios let the planner choose the
+/// The painter scenario logic; the planned scenarios let the planner choose the
 /// order of the layers.
-class PainterPlugin final: public robotik::MissionPlugin
+class PainterPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -21,9 +21,10 @@ public:
     }
 
     PainterPlugin()
-        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
-                          { "painter_pddl", robotik::mission<PainterMission>(true) },
-                          { "painter_pabt", robotik::mission<PainterMission>(true) } })
+        : ScenarioPlugin(
+              { { "painter", robotik::logic<PainterLogic>(false) },
+                { "painter_pddl", robotik::logic<PainterLogic>(true) },
+                { "painter_pabt", robotik::logic<PainterLogic>(true) } })
     {
     }
 };

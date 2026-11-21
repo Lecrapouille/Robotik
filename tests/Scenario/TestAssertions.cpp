@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "PainterMission.hpp"
+#include "PainterLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Assertions.hpp"
@@ -239,13 +239,13 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
                     robotik::ConfigNode("easel")));
     EXPECT_TRUE(robotik::overrideValue(source, "world.entities.canvas.attach.transform.position",
                     robotik::ConfigNode::parse("[-1.0, 0.0, 0.6]").take()));
-    PainterMission mission;
+    PainterLogic logic;
     compages::world::World world;
     robotik::Simulation simulation(
         world,
         robotik::readScenario(source, testAssets()).take(),
         nullptr,
-        &mission);
+        &logic);
     simulation.cell().suspend(true);
     for (int i = 0; i < 200; ++i)
     {

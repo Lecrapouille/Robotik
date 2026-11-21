@@ -5,9 +5,9 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "HelloMission.hpp"
-#include "ReachMission.hpp"
-#include "WaveMission.hpp"
+#include "HelloLogic.hpp"
+#include "ReachLogic.hpp"
+#include "WaveLogic.hpp"
 #include "WaveSkill.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
@@ -16,10 +16,10 @@
 #include <string>
 
 // ****************************************************************************
-/// The plugin: one mission per scenario of plugin.yaml. The menu item, the
+/// The plugin: one scenario logic per scenario of plugin.yaml. The menu item, the
 /// panel and the key binding below are optional.
 // ****************************************************************************
-class HelloWorldPlugin final: public robotik::MissionPlugin
+class HelloWorldPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -29,20 +29,20 @@ public:
         return { .id = "robotik.hello_world" };
     }
 
-    /// Scenario id (as in plugin.yaml) -> the mission it runs.
+    /// Scenario id (as in plugin.yaml) -> the scenario logic it runs.
     HelloWorldPlugin()
-        : MissionPlugin({ { "hello", robotik::mission<HelloMission>() },
-                          { "wave", robotik::mission<WaveMission>() },
-                          { "reach", robotik::mission<ReachMission>() },
-                          { "skills", robotik::mission<SkillsMission>() } })
+        : ScenarioPlugin({ { "hello", robotik::logic<HelloLogic>() },
+                           { "wave", robotik::logic<WaveLogic>() },
+                           { "reach", robotik::logic<ReachLogic>() },
+                           { "skills", robotik::logic<SkillsLogic>() } })
     {
     }
 
-    /// Before the simulation exists. The base creates and binds the mission;
+    /// Before the simulation exists. The base creates and binds the scenario logic;
     /// then a key binding, a menu item and a panel.
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_host = p_host;
         m_updates = m_keys = m_homes = 0;
         p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
@@ -93,7 +93,7 @@ private:
         p_canvas.text("updates=" + std::to_string(m_updates) +
                       " keys=" + std::to_string(m_keys) +
                       " homes=" + std::to_string(m_homes));
-        if (ReachMission const* reach = mission<ReachMission>())
+        if (ReachLogic const* reach = logic<ReachLogic>())
         {
             p_canvas.text("reach error " + std::to_string(reach->error()) + " m");
         }

@@ -50,15 +50,15 @@ namespace robotik
 /// holds, the @c timeout elapses or an assertion marked @c stop fails. The
 /// physics keeps running afterwards; the verdicts are frozen. @ref ended,
 /// @ref assertionChanged and the signals of the cell tell an interface what
-/// changed. Pass or fail is never decided in C++: a mission publishes
+/// changed. Pass or fail is never decided in C++: a scenario logic publishes
 /// metrics, the assertions of the file judge them.
 ///
 /// From tests/Examples/TestLayerExamples.cpp (PackageScenarioFile):
 /// @code
 /// auto scenario = robotik::loadScenario("hello.scenario.yaml", assets);
-/// HelloMission mission;
+/// HelloLogic logic;
 /// compages::world::World world;
-/// robotik::Simulation simulation(world, scenario.take(), nullptr, &mission);
+/// robotik::Simulation simulation(world, scenario.take(), nullptr, &logic);
 /// while (!simulation.finished())
 ///     simulation.step(robotik::Seconds(0.01));
 /// bool const ok = simulation.passed();
@@ -72,11 +72,11 @@ public:
     enum class Outcome : std::uint8_t
     {
         Running,             ///< Not ended.
-        ControllerSucceeded, ///< The tree, the planner or the mission succeeded.
-        ControllerFailed,    ///< The tree, the planner or the mission failed.
-        StopCondition,       ///< The @c stop_when condition holds.
-        Timeout,             ///< The @c timeout elapsed.
-        AssertionFailed,     ///< An assertion marked @c stop failed.
+        ControllerSucceeded, ///< The tree, the planner or the scenario logic succeeded.
+        ControllerFailed, ///< The tree, the planner or the scenario logic failed.
+        StopCondition,    ///< The @c stop_when condition holds.
+        Timeout,          ///< The @c timeout elapsed.
+        AssertionFailed, ///< An assertion marked @c stop failed.
         /// The host ended the run (@ref conclude).
         Interrupted,
     };
@@ -89,7 +89,7 @@ public:
     /// @param p_world ECS world receiving the entities.
     /// @param p_scenario Scenario to run.
     /// @param p_view Rendering hooks, or null for a headless run.
-    /// @param p_mission Task plugin (skills, detectors, metrics); not owned.
+    /// @param p_logic Task plugin (skills, detectors, metrics); not owned.
     /// @throws std::runtime_error when the cell cannot be built, or when a
     ///   condition of the assertions or of @c stop_when does not compile
     ///   (an unknown metric, query or entity: see Condition.hpp).
@@ -97,7 +97,7 @@ public:
     Simulation(compages::world::World& p_world,
                Scenario p_scenario,
                SceneView* p_view = nullptr,
-               Mission* p_mission = nullptr);
+               ScenarioLogic* p_logic = nullptr);
 
     // -------------------------------------------------------------------------
     /// Starts a new episode: same seed, same episode.

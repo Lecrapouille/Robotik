@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// A mission has three sides per step: act (robot and beliefs), simulate (the
+// A scenario logic has three sides per step: act (robot and beliefs), simulate (the
 // world) and observe (the truth, read only). The types keep them apart.
 
 #include "main.hpp"
@@ -31,7 +31,7 @@ static_assert(std::is_same_v<
               std::vector<robotik::RobotSession const*> const&>);
 
 /// Writes the order of its calls.
-class SidesMission final: public robotik::Mission
+class SidesLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -64,7 +64,7 @@ public:
     robotik::Seconds last_observe{ -1.0 };
 };
 
-TEST(MissionSides, ActThenSimulateThenObserveAtTheSameTime)
+TEST(LogicSides, ActThenSimulateThenObserveAtTheSameTime)
 {
     robotik::EntitySpec arm;
     arm.id = "arm";
@@ -73,13 +73,14 @@ TEST(MissionSides, ActThenSimulateThenObserveAtTheSameTime)
     robotik::RoboticCellDescription description;
     description.world.entities = { arm };
 
-    SidesMission mission;
-    auto opened = robotik::openRoboticCell(std::move(description), &mission);
+    SidesLogic logic;
+    auto opened = robotik::openRoboticCell(std::move(description), &logic);
     ASSERT_TRUE(opened) << opened.error();
     robotik::RoboticCell& cell = *opened.value();
 
     EXPECT_EQ(cell.run(robotik::Seconds(1.0)), robotik::Status::SUCCESS);
-    EXPECT_EQ(mission.calls, "asoasoaso") << "one act, simulate, observe per step";
-    EXPECT_EQ(mission.last_act, mission.last_observe)
+    EXPECT_EQ(logic.calls, "asoasoaso")
+        << "one act, simulate, observe per step";
+    EXPECT_EQ(logic.last_act, logic.last_observe)
         << "the robot side sees the time after the physics step";
 }

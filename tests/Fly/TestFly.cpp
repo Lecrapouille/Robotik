@@ -12,7 +12,7 @@
 #include "FlyTrace.hpp"
 #include "ShiuNetwork.hpp"
 
-#include "FlyMission.hpp"
+#include "FlyLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Package/Scenario/Scenario.hpp"
@@ -146,15 +146,15 @@ TEST(FlyTrace, RoundTrip)
     EXPECT_NEAR(loaded.observations[0].visual_center, 0.2F, 1.0e-5F);
 }
 
-TEST(FlyMission, ReachesTheFoodAsARegularPlugin)
+TEST(FlyLogic, ReachesTheFoodAsARegularPlugin)
 {
     robotik::Scenario const scenario = robotik::loadScenario(
         repoFile(
             "plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml"),
         testAssets()).take();
     compages::world::World world;
-    FlyMission mission;
-    robotik::Simulation simulation(world, scenario, nullptr, &mission);
+    FlyLogic logic;
+    robotik::Simulation simulation(world, scenario, nullptr, &logic);
 
     // The fly starts where the world file puts it.
     EXPECT_NEAR(simulation.cell().requirePose("fly").position.x, 0.5, 1e-6);

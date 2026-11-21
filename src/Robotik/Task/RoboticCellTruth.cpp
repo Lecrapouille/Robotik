@@ -330,9 +330,9 @@ Metrics RoboticCell::metrics() const
                     static_cast<double>(m_executor->plan().size()));
         metrics.set("planner.done", static_cast<double>(m_executor->done()));
     }
-    if (m_mission != nullptr)
+    if (m_logic != nullptr)
     {
-        m_mission->measure(*this, metrics);
+        m_logic->measure(*this, metrics);
     }
     return metrics;
 }

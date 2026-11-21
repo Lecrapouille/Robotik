@@ -46,7 +46,7 @@ needs (examples in [Three programs, one per layer](../tutorials/02-three-program
 Package   files and plugins: Simulation (scenario = cell + verdict), RunReport,
   │       World / Scenario / Experiment YAML, Assertions, Plugin ABI and hosts
 Task      a job in C++: RoboticCellDescription (data), RoboticCell (step loop, controllers,
-  │       truth, perception fidelity), Mission, SkillScheduler, Skills,
+  │       truth, perception fidelity), ScenarioLogic, SkillScheduler, Skills,
   │       WorldModel, Planning (PDDL), Grasp, Learning (RL), Agents
 Robot     one robot: Robot, RobotSession, openRobot, joints, sensors,
   │       actuators, resources, backends (MuJoCo, Pinocchio), asset packs
@@ -114,8 +114,8 @@ Simulation::step(dt)
    │     ├── observe()                    perception → WorldModel, or the truth when
    │     │                                the perception fidelity asks for it
    │     ├── track / syncBodies           ground truth of the bodies, contacts
-   │     └── Mission act / simulate / observe   robot side, world side, truth read
-   │                                      only; Mission::status if no controller
+   │     └── ScenarioLogic act / simulate / observe   robot side, world side, truth read
+   │                                      only; ScenarioLogic::status if no controller
    ├── end of run?                        controller, stop_when, timeout, stop: true
    └── AssertionEngine::update            verdicts, on the ground truth
 ```
@@ -214,7 +214,7 @@ Rules:
 3. **Results of the step: components.** A sensor puts its last reading on the
    entity of its link (`ImuReading`, `RangeScan`...). The 3D view and the
    inspectors read the components; they do not ask the sensor.
-4. **Rare events and choices of the user: classes.** `Mission`, `Plugin`,
+4. **Rare events and choices of the user: classes.** `ScenarioLogic`, `Plugin`,
    `PlanningEngine`, `Skill`, `SceneView`, `RobotBackend` keep virtual
    methods. They run a few times per step at most, and a plugin must be able
    to add its own kind.
@@ -272,7 +272,7 @@ time.
 | | Access | Used by |
 |--|--------|---------|
 | **Ground truth** | `RoboticCell::requirePose`, `RoboticCell::requireQuery` | assertions, reports, RL reward |
-| **Description** | `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | the mission, to plan |
+| **Description** | `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | the scenario logic, to plan |
 | **Belief** | `WorldModel`, through `RobotContext` | skills |
 
 The simulator knows `red_cube = (0.40, 0.20, 0.02)`. The robot may believe
@@ -292,7 +292,7 @@ mock, as a simpler physics is: a test of the plan does not need a detector
 
 Three contracts keep it honest:
 
-1. **One entry.** Skills, PDDL observers and the mission read the
+1. **One entry.** Skills, PDDL observers and the scenario logic read the
    `WorldModel` only; `make check-layers` compiles `Task/Skills` and
    `Task/Planning` without `Task/RoboticCell.hpp`, so a truth call cannot build.
 2. **Source and age.** Each belief says where it comes from
@@ -314,8 +314,8 @@ others read it, or read a copy that the writer refreshes.
 | Physics: free bodies, contacts, the joints of a simulated robot | the MuJoCo backend (`RobotBackend`) | the physics step, from the actuator commands | `RoboticCell::syncBodies`, which copies the body poses; the robot, which reads its joints |
 | Joint positions | the `JointSet` of each robot | the backend after each step (by hand when the robot has no physics) | skills through `RobotContext`; Pinocchio, for the frame poses (`worldPose`) |
 | Ground truth of props and bodies | the Compages entities of the `RoboticCell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `RoboticCell::requirePose`, `RoboticCell::requireQuery`, the conditions, the rendering |
-| Description | `RoboticCellDescription` | the YAML files or the C++ program, before the run; read-only after | the mission (`described`, `waypoints`), the planner (the entities with a `kind` are its objects) |
-| Beliefs | `WorldModel` | the perception (detectors); the cell itself at the `truth` and `noisy_truth` fidelity; the priors of the description at each reset | skills, PDDL observers, the mission when it decides |
+| Description | `RoboticCellDescription` | the YAML files or the C++ program, before the run; read-only after | the scenario logic (`requireDescribedPose`, `requireWaypoints`), the planner (the entities with a `kind` are its objects) |
+| Beliefs | `WorldModel` | the perception (detectors); the cell itself at the `truth` and `noisy_truth` fidelity; the priors of the description at each reset | skills, PDDL observers, the scenario logic when it decides |
 | Symbolic facts (`(in red_cube box)`) | nowhere: the observers compute them from the beliefs when the planner asks | — | the planner and the plan executor |
 
 The last row is a choice. A list of symbolic facts kept next to the beliefs
@@ -348,9 +348,9 @@ benchmarks, servers, and thousands of episodes. The graphical simulator is a
                                  │ PluginSession: catalog, packs, dlopen, lifecycle
                                  ▼
                      librobotik_<name>.so          a plugin (C ABI border)
-                                 │ bindMission
+                                 │ bindLogic
                                  ▼
-                       Simulation + Mission        librobotik-core
+                       Simulation + ScenarioLogic        librobotik-core
 ```
 
 The border between host and plugin is a **C ABI**
@@ -380,7 +380,7 @@ external/                 third-party sources (downloaded)
 | `Robot/Backends/` | `RobotBackend` (with `contactList`, `bodyPose` for the truth), `MujocoBackend`, `PinocchioBackend`, `SceneView` |
 | `Robot/Assets/` | `AssetPack` (a `pack.yaml`), `AssetResolver` (`robotik.tools.vacuum` → file) |
 | `Robot/Components/` | Compages components for robots and objects, queries |
-| `Task/` | `RoboticCellDescription`, `RoboticCell`, `Mission`, `SkillScheduler`, `RobotContext`, `FaultInjector`, `Metrics`, `Status` |
+| `Task/` | `RoboticCellDescription`, `RoboticCell`, `ScenarioLogic`, `SkillScheduler`, `RobotContext`, `FaultInjector`, `Metrics`, `Status` |
 | `Task/Skills/` | `Skill`, `MotionSkills` (`Home`, `MoveJoint(s)`, `MoveTCP`, `Stop`), `SkillNodes` (BT bridge) |
 | `Task/Perception/` | `Detector`, `PerceptionPipeline`, `Detection`, `WorldModel`, `Localization` |
 | `Task/Planning/` | `Pddl` (symbols, domain schema), `PlanningDomain` (observers, bindings), `PlanningEngine` (Kairos behind it), `PlanExecutor` (plan → behavior tree, checks, replans), `PlanGraph` |

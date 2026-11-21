@@ -37,7 +37,7 @@ scenario:
 |-----|------|
 | `world` | The world file, relative to the package root (see below) |
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
-| `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([The PDDL planner: reference](pddl-planner.md)). Without it, the plugin mission drives the robot |
+| `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([The PDDL planner: reference](pddl-planner.md)). Without it, the plugin scenario logic drives the robot |
 | `trajectories` | Named paths, one file each ([Trajectories](#-trajectories)) |
 | `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
@@ -115,7 +115,7 @@ Rules:
 
 A run ends when:
 
-1. the controller (behavior tree or mission) **succeeds** or **fails**;
+1. the controller (behavior tree or scenario logic) **succeeds** or **fails**;
 2. `stop_when` becomes true;
 3. `timeout` is reached;
 4. an assertion declared with `stop: true` fails.
@@ -177,7 +177,7 @@ A value is a number, a metric, or a query on the world:
 |-------|----------|
 | `time` | Simulated time (s) |
 | `controller.success` | 1 if the controller succeeded |
-| mission metrics | Any name published by the plugin: `hello.ticks`, `laps`, `cross_track.max`… |
+| plugin metrics | Any name published by the plugin: `hello.ticks`, `laps`, `cross_track.max`… |
 | `(pose_error e)` | How far `e` moved since the start of the episode (m) |
 | `(orientation_error e)` | How much `e` turned since the start (rad) |
 | `(distance a b)` | Distance between two entities or frames, like `robot.tcp` or `robot.tool0` (m) |
@@ -190,7 +190,7 @@ A value is a number, a metric, or a query on the world:
 | `(holding g)`, `(holding g object)` | The gripper `g` holds something, or this object |
 | `(skill_started s)`, `(skill_succeeded s)`, `(skill_failed s)` | History of the skill scheduler |
 
-A plugin can add its own queries with `RoboticCell::addQuery` in `Mission::setup`.
+A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`.
 A `;` starts a comment up to the end of the line. Put a name with spaces
 between double quotes.
 

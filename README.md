@@ -134,7 +134,7 @@ Status GraspSkill::tick(RobotContext& p_context, Seconds p_dt)
 
 A skill only sees the robot and what the robot **believes** (`RobotContext`): never the simulator, never the true position of the cube. This is what lets the same skill run on a real robot later.
 
-When the run starts, the plugin registers its skills with a name, the **resources** they need (the arm, the gripper, the camera) and their conditions (`src/PickPlaceMission.cpp`):
+When the run starts, the plugin registers its skills with a name, the **resources** they need (the arm, the gripper, the camera) and their conditions (`src/PickPlaceLogic.cpp`):
 
 ```cpp
 grasp.preconditions.push_back({ "gripper is empty", ... });

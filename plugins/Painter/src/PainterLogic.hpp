@@ -9,20 +9,20 @@
 
 #include "PainterScene.hpp"
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
 
 // The dip, mark and rinse gestures, and the ink left on the rendered canvas.
-// The easel and the canvas belong to the world, not to the mission.
-class PainterMission final: public robotik::Mission
+// The easel and the canvas belong to the world, not to the scenario logic.
+class PainterLogic final: public robotik::ScenarioLogic
 {
 public:
 
     /// @p_planner links the PDDL domain (painter.domain.pddl) to the gestures.
-    explicit PainterMission(bool p_planner = false) : m_planner(p_planner) {}
+    explicit PainterLogic(bool p_planner = false) : m_planner(p_planner) {}
 
     void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;

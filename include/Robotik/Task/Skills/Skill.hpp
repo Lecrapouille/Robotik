@@ -64,7 +64,7 @@ struct Precondition
 /// The scheduler reads this card, never the code of the skill: the
 /// resources it holds for the whole run, its priority, whether it waits or
 /// fails when it cannot start, whether a higher priority may cancel it, and
-/// the robot it drives. It is plain data, so a mission can fill it from a
+/// the robot it drives. It is plain data, so a scenario logic can fill it from a
 /// scenario parameter.
 ///
 /// @code

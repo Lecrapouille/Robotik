@@ -41,8 +41,8 @@
 #pragma once
 
 #include "Robotik/Task/Learning/Environment.hpp"
-#include "Robotik/Task/Mission.hpp"
 #include "Robotik/Task/RoboticCellDescription.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -264,14 +264,14 @@ public:
         /// How a step is scored (required).
         std::unique_ptr<RewardEvaluator> reward;
         /// Optional: perception, metrics, dressing of the cell.
-        std::unique_ptr<Mission> mission;
+        std::unique_ptr<ScenarioLogic> logic;
     };
 
     // -------------------------------------------------------------------------
     /// Builds the cell and calls the @c setup of the
     /// parts.
     /// @param p_description RoboticCell to build.
-    /// @param p_parts Observation, action, reward and optional mission.
+    /// @param p_parts Observation, action, reward and optional scenario logic.
     /// @param p_timing Physics step, control period and step budget.
     /// @throws std::invalid_argument when a part is missing or the control
     ///   period is not a positive multiple of the physics step.
@@ -336,7 +336,7 @@ private:
 
     /// ECS world of the simulation.
     compages::world::World m_world;
-    /// Observation, action, reward and mission.
+    /// Observation, action, reward and scenario logic.
     Parts m_parts;
     /// Physics step, control period and step budget.
     EnvironmentTiming m_timing;
@@ -350,7 +350,7 @@ private:
     EpisodeClock m_clock;
     /// Why the last episode was aborted.
     std::string m_abort;
-    /// Declared last: destroyed before the mission and the world it uses.
+    /// Declared last: destroyed before the scenario logic and the world it uses.
     std::unique_ptr<RoboticCell> m_simulation;
 };
 

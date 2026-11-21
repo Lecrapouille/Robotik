@@ -14,7 +14,7 @@ The planner works from **what**: the scenario gives a **goal** instead of a tree
 
 That matters when the order depends on the situation. If the robot already holds the cube, there is nothing to pick. If the camera already saw the box, there is nothing to detect. If the brush is dirty, it must be rinsed first. A tree needs a branch for each case. A planner skips steps that are already satisfied and **replans** when a step fails or the world changes.
 
-The planner reads the robot's **belief** (what perception says), not the **ground truth** (where things really are in the simulation). Skills work the same way. Assertions at the end still use ground truth to say whether the mission really succeeded. [Truth, description and belief](worlds-scenarios-experiments.md#-truth-description-and-belief) defines belief, ground truth, description, and oracle.
+The planner reads the robot's **belief** (what perception says), not the **ground truth** (where things really are in the simulation). Skills work the same way. Assertions at the end still use ground truth to say whether the scenario logic really succeeded. [Truth, description and belief](worlds-scenarios-experiments.md#-truth-description-and-belief) defines belief, ground truth, description, and oracle.
 
 The planner returns a **plan**: symbolic steps like `(pick red_cube)`, not joint trajectories. **Skills** run on the robot (`Approach`, `Grasp`, …). The plugin connects each PDDL action to skills with a **binding** ([what goes where](#-what-goes-where)). The executor turns the plan into a behavior tree for the run. If a skill fails, the rest of the plan is dropped and Kairos plans again ([how a plan runs](#-how-a-plan-runs)).
 
@@ -30,13 +30,13 @@ The words of this page:
 | **Action** | A symbolic step in the domain (not a skill): preconditions and effects in PDDL. Example: `pick` means "the robot should end up holding the object", not how to move the arm. |
 | **Plan** | The ordered list of actions Kairos returns, e.g. `(detect red_cube) (pick red_cube) (place red_cube box)`. It is a recipe on paper: it does not run the robot. |
 | **Skill** | C++ code that moves the robot or reads sensors for one step, through `RobotContext` ([05](skills-and-behavior-trees.md)). Examples: `Detect`, `Approach`, `Grasp`. |
-| **Mission** | The plugin C++ class for a scenario (`PickPlaceMission`, `PainterMission`, …): it registers skills, publishes metrics, and ends the run. With a planner, it also registers **observers** and **bindings** on `PlanningDomain` ([04](../tutorials/04-your-first-plugin.md)). |
+| **ScenarioLogic** | The plugin C++ class for a scenario (`PickPlaceLogic`, `PainterLogic`, …): it registers skills, publishes metrics, and ends the run. With a planner, it also registers **observers** and **bindings** on `PlanningDomain` ([04](../tutorials/04-your-first-plugin.md)). |
 | **Ground truth** | The real state of the simulated world (poses, contacts, what is inside what): what `RoboticCell::requirePose` and `RoboticCell::requireQuery` report. Assertions, metrics, and RL read it; the planner and skills do not. |
 | **Belief** | What the robot thinks is true: the `WorldModel`, updated by perception. Observers turn belief into PDDL predicates for the planner. |
 
 ## 🗂 What goes where
 
-In RobotIK, planning is split across **four places**: the domain file, the world, the scenario YAML, and the mission (C++). Each row below is one job; keep them separate so PDDL stays symbolic and skills stay in C++.
+In RobotIK, planning is split across **four places**: the domain file, the world, the scenario YAML, and the scenario logic (C++). Each row below is one job; keep them separate so PDDL stays symbolic and skills stay in C++.
 
 | Job | Where you write it | Example |
 |-----|-------------------|---------|
@@ -44,8 +44,8 @@ In RobotIK, planning is split across **four places**: the domain file, the world
 | Problem objects (which things planner can name) | World YAML: `kind` on an entity | `kind: cube` on `red_cube` |
 | Facts that never change: true for the whole run | Scenario: `planner.facts` | `(before red black)` for the painter robot. |
 | Goal (what must become true) | Scenario: `planner.goal` | `(in red_cube box)` for the pick-and-place robot |
-| Current value of each predicate (from belief) | Mission: one **observer** per predicate | `holding` reads the vacuum sensor |
-| Real execution of each PDDL action | Mission: one **binding** per action | `pick` → `Approach`, `Reach`, `Grasp`, `Approach` |
+| Current value of each predicate (from belief) | ScenarioLogic: one **observer** per predicate | `holding` reads the vacuum sensor |
+| Real execution of each PDDL action | ScenarioLogic: one **binding** per action | `pick` → `Approach`, `Reach`, `Grasp`, `Approach` |
 
 RobotIK builds `problem.pddl` from the world, scenario, and observers before
 each search. Bindings are used only at execution time ([how a plan runs](#-how-a-plan-runs)).
@@ -120,7 +120,7 @@ Only entities with a `kind` are objects of the problem. Their PDDL name is their
 
 Write one literal per line, or a flow list: `[ (in red_cube box), hand_empty ]`.
 
-### 🔭 The mission: observers and bindings
+### 🔭 The scenario logic: observers and bindings
 
 `plugins/PickAndPlace/src/PickPlacePlanning.cpp` (shortened):
 
@@ -137,13 +137,13 @@ p_domain.observe("holding", [](RobotContext const& p_context, Args p_args) {
 
 ...
 
-// --- Actions, as skills of PickPlaceMission -----------------------------
+// --- Actions, as skills of PickPlaceLogic -----------------------------
 p_domain.bind("detect", { "Detect({0})" });
 p_domain.bind("pick", { "Approach({0})", "Reach({0})", "Grasp({0})", "Approach({0})" });
 p_domain.bind("place", { "Transit({1})", "Approach({1})", "Release" });
 ```
 
-The mission calls this in `Mission::setup`, on `p_simulation.planning()`. An observer gets the entity ids (`p_args`) and returns `Truth::True`, `Truth::False` or `Truth::Unknown`. A binding lists the behavior tree nodes of the action; `{0}` is its first argument.
+The scenario logic calls this in `ScenarioLogic::setup`, on `p_simulation.planning()`. An observer gets the entity ids (`p_args`) and returns `Truth::True`, `Truth::False` or `Truth::Unknown`. A binding lists the behavior tree nodes of the action; `{0}` is its first argument.
 
 A behavior tree node may read a value on its blackboard instead of its name. The Painter gestures read the color:
 
@@ -154,8 +154,8 @@ domain.bind("dip", { "Dip", "Home" }, { { "color", "{0}" } });
 **Everything is checked at load time.** A predicate without observer, fact or `:derived` rule, an action without binding, an unknown `kind`, a goal with a wrong predicate, arity or type: the scenario is refused with the full list, one problem per line, such as:
 
 ```text
-- predicate 'holding' has no observer (PlanningDomain::observe in the mission) and no fact (planner.facts)
-- action 'place' has no binding (PlanningDomain::bind in the mission)
+- predicate 'holding' has no observer (PlanningDomain::observe in the scenario logic) and no fact (planner.facts)
+- action 'place' has no binding (PlanningDomain::bind in the scenario logic)
 ```
 
 ## 🏃 How a plan runs
@@ -353,4 +353,4 @@ What changes from the search:
 ## 🔗 Next
 
 - [Case studies](../case-studies/README.md): the PDDL scenarios of PickAndPlace, Painter and DualArm.
-- [API reference](../reference/api.md): the other classes a mission uses.
+- [API reference](../reference/api.md): the other classes a scenario logic uses.

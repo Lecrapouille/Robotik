@@ -158,10 +158,10 @@ static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
 RoboticCell::RoboticCell(compages::world::World& p_world,
                          RoboticCellDescription p_description,
                          SceneView* p_view,
-                         Mission* p_mission)
+                         ScenarioLogic* p_logic)
     : m_world(p_world),
       m_description(std::move(p_description)),
-      m_mission(p_mission),
+      m_logic(p_logic),
       m_view(p_view),
       m_resources(std::make_shared<ResourceManager>()),
       m_robots(
@@ -208,11 +208,11 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
     // Robot devices, props and bodies of the world file.
     build(p_view);
 
-    // The mission adds its skills, detectors and dressing; it may also plug
+    // The scenario logic adds its skills, detectors and dressing; it may also plug
     // its own backend.
-    if (m_mission != nullptr)
+    if (m_logic != nullptr)
     {
-        m_mission->setup(*this, p_view);
+        m_logic->setup(*this, p_view);
     }
     bool const plugged =
         std::ranges::any_of(m_robots,
@@ -328,7 +328,7 @@ void RoboticCell::build(SceneView* p_view)
 
     // --- Where the beliefs about each prop come from. -----------------------
     m_oracle = false;
-    // Beliefs a mission adds itself follow the default level.
+    // Beliefs a scenario logic adds itself follow the default level.
     m_any_sensed = fidelityOf(m_description.perception, "", blind) == PerceptionFidelity::Sensed;
     for (Record& record : m_records)
     {
@@ -1011,9 +1011,9 @@ void RoboticCell::reset(Seed p_seed)
     {
         m_executor->reset(p_seed);
     }
-    if (m_mission != nullptr)
+    if (m_logic != nullptr)
     {
-        m_mission->reset(*this, p_seed);
+        m_logic->reset(*this, p_seed);
     }
 }
 
@@ -1262,7 +1262,7 @@ void RoboticCell::step(Seconds p_dt)
     {
         return;
     }
-    if (m_mission != nullptr)
+    if (m_logic != nullptr)
     {
         // The robot side sees the time after the physics step, like status.
         for (RobotContext& context : m_contexts)
@@ -1270,12 +1270,12 @@ void RoboticCell::step(Seconds p_dt)
             context.time = context.robot.time();
             context.dt = p_dt;
         }
-        m_mission->act(m_contexts.front(), p_dt);
-        m_mission->simulate(*this, p_dt);
-        m_mission->observe(std::as_const(*this), p_dt);
+        m_logic->act(m_contexts.front(), p_dt);
+        m_logic->simulate(*this, p_dt);
+        m_logic->observe(std::as_const(*this), p_dt);
         if (m_tree == nullptr && m_executor == nullptr)
         {
-            switch (m_mission->status(m_contexts.front()))
+            switch (m_logic->status(m_contexts.front()))
             {
                 case Status::SUCCESS:
                     m_status = Status::SUCCESS;

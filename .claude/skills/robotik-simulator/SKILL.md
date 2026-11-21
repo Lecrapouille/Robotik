@@ -34,7 +34,7 @@ scenario YAML, and the simulator only shows or triggers it.
 
 - A panel is a free function `void xxxPanel(App&)` declared in `Ui.hpp`; its
   content without the window is `xxxView(App&)` when another panel reuses
-  it (e.g. `plannerView` in Mission and in the Plugin View panel), or when
+  it (e.g. `plannerView` in ScenarioLogic and in the Plugin View panel), or when
   it can fill the main area or the work area (`ViewKind`: `drawView`,
   `mainPanel` and its selector, `toggleMaximized`, `maximizedWindow`). Such
   a panel draws `viewNote` instead of its view when `viewElsewhere` says it
@@ -70,7 +70,7 @@ scenario YAML, and the simulator only shows or triggers it.
   GREEN success, RED failure/fault, BLUE info/paused/shared.
 - Never write the truth into what skills see; panels may read the truth
   (`RoboticCell::requirePose`) to compare with beliefs.
-- Manual mode (`App::teach.manual`): the mission is suspended and the robot
+- Manual mode (`App::teach.manual`): the scenario logic is suspended and the robot
   steps even when paused. Any manual command calls `takeArm(App&)` first.
 - The simulator knows no demo: no object id, tool kind or joint name of a
   plugin in a panel (see "Core stays agnostic" in robotik-plugin). A panel

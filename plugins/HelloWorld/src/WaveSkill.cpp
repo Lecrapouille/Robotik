@@ -41,8 +41,8 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
     p_context.robot.joints().hold();
 }
 
-void SkillsMission::setup(robotik::RoboticCell& p_cell,
-                          robotik::SceneView* /*p_view*/)
+void SkillsLogic::setup(robotik::RoboticCell& p_cell,
+                        robotik::SceneView* /*p_view*/)
 {
     // The skill reserves the actuator "arm" while it runs: no other skill
     // can move the arm at the same time.

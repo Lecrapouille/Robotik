@@ -8,7 +8,7 @@
 /// @file Metrics.hpp
 /// Named numbers published by a run.
 ///
-/// A mission publishes what it measures (@c laps, @c cross_track.max...),
+/// A scenario logic publishes what it measures (@c laps, @c cross_track.max...),
 /// the cell adds @c time and @c controller.success. The conditions of a
 /// scenario read them by name (Condition.hpp), without the library knowing
 /// what they mean:
@@ -35,7 +35,7 @@ namespace robotik
 // ****************************************************************************
 /// Flat table of named values (insertion order kept).
 ///
-/// A mission publishes numbers here (@c laps, @c reach.error); conditions,
+/// A scenario logic publishes numbers here (@c laps, @c reach.error); conditions,
 /// reports and RL rewards read them by name. Numbers only, no verdict: the
 /// assertions of the scenario decide what is good. The table is filled again
 /// at each measure, so a value not set this time is "not published", which

@@ -1,5 +1,5 @@
 # A differential-drive robot with a front camera. The track, the floor tags
-# and the floor texture are drawn by the mission.
+# and the floor texture are drawn by the scenario logic.
 world:
   id: line_track
   entities:

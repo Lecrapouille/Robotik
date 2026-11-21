@@ -7,7 +7,7 @@
 
 /// @file PluginHost.hpp
 /// What the host gives to a plugin: logs, menus, panels, the scenario path,
-/// the mission to bind.
+/// the scenario logic to bind.
 ///
 /// It is the host side of the C border (@ref RobotikHostAPI). It knows no
 /// window toolkit: the simulator draws the menus and panels it holds.
@@ -28,7 +28,7 @@
 namespace robotik
 {
 
-class Mission;
+class ScenarioLogic;
 class Simulation;
 
 // ****************************************************************************
@@ -79,7 +79,7 @@ struct PluginPanel
 };
 
 // ****************************************************************************
-/// Menus, panels, event subscriptions and the bound mission.
+/// Menus, panels, event subscriptions and the bound scenario logic.
 ///
 /// The object address is the @ref RobotikHost pointer. It must not move for
 /// the lifetime of a plugin instance.
@@ -90,7 +90,7 @@ struct PluginPanel
 /// host.setScenarioPath(file.string());
 /// host.attach(&simulation);
 /// plugin.setup("wave");
-/// robotik::Mission* mission = host.mission(); // bound by the plugin
+/// robotik::ScenarioLogic* logic = host.logic(); // bound by the plugin
 /// @endcode
 // ****************************************************************************
 class PluginHost
@@ -120,11 +120,11 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @return The mission bound by the plugin, or null.
+    /// @return The scenario logic bound by the plugin, or null.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Mission* mission() const
+    [[nodiscard]] ScenarioLogic* logic() const
     {
-        return m_mission;
+        return m_logic;
     }
 
     // -------------------------------------------------------------------------
@@ -172,8 +172,8 @@ public:
     void clearUi();
     /// Removes every event subscription.
     void clearSubscriptions();
-    /// Forgets the bound mission.
-    void clearMission();
+    /// Forgets the bound scenario logic.
+    void clearLogic();
     /// Forgets the last error.
     void clearError();
 
@@ -197,7 +197,7 @@ private:
     friend void hostRemoveUi(RobotikHost* p_host, std::uint32_t p_handle);
     friend char const* hostScenarioPath(RobotikHost* p_host);
     friend void* hostSimulation(RobotikHost* p_host);
-    friend void hostBindMission(RobotikHost* p_host, void* p_mission);
+    friend void hostBindLogic(RobotikHost* p_host, void* p_logic);
 
     /// C functions given to the plugin.
     RobotikHostAPI m_api{};
@@ -207,8 +207,8 @@ private:
     std::string m_scenario_path;
     /// Simulation exposed to the plugin, or null.
     Simulation* m_simulation = nullptr;
-    /// Mission bound by the plugin, or null.
-    Mission* m_mission = nullptr;
+    /// ScenarioLogic bound by the plugin, or null.
+    ScenarioLogic* m_logic = nullptr;
     /// Menu entries added by the plugin.
     std::vector<PluginMenuItem> m_menus;
     /// Panels added by the plugin.

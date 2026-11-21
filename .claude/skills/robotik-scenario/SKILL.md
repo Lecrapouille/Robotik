@@ -10,7 +10,7 @@ checked. Experiment = variants × seeds. Paths are relative to the package root 
 Scenario/experiment files must be listed in the plugin `plugin.yaml`.
 Unknown keys are refused at load (exit 1, "did you mean"): a new key needs
 its name in the `checkKeys` list of the reader (`ConfigNode::checkKeys`).
-Free mission values go under `scenario.parameters` (not checked). Quote a
+Free values of the scenario logic go under `scenario.parameters` (not checked). Quote a
 text with a comma inside a flow map `{ name: "a, b" }`.
 Edit `plugins/...`, then `make <target>` (it overwrites `build/`).
 File names carry their role (doc/concepts/worlds-scenarios-experiments.md): `x.world.yaml`, `x.scenario.yaml`,
@@ -89,7 +89,7 @@ scenario:
   description: ...
   world: worlds/cell.world.yaml
   seed: 42
-  controller: { behavior_tree: scenarios/main.bt.yaml }   # omit → Mission::status ends the run
+  controller: { behavior_tree: scenarios/main.bt.yaml }   # omit → ScenarioLogic::status ends the run
   # or instead of a tree (doc/concepts/pddl-planner.md); entities need `kind: <pddl type>`:
   # controller:
   #   planner:
@@ -129,7 +129,7 @@ Grammar (PDDL notation, operator first): `(op a b)` with `< <= > >= = == !=`,
 `(and ...)`, `(or ...)`, `(not c)`, or a value alone (≠ 0); `;` comments.
 Planner `facts:`/`goal:` use the same notation: `(in red_cube box)`,
 `(not (holding a))`; the old `in(a, b)` is refused with a hint.
-Values: `time`, `controller.success`, mission metrics, `(pose_error e)` (m),
+Values: `time`, `controller.success`, plugin metrics, `(pose_error e)` (m),
 `(orientation_error e)` (rad), `(distance a b)` (entities or `robot.tool0`,
 `robot.tcp` only with a tool, `entity.link`), `(inside a b)` (rests on
 container floor ±1 mm), `(on a b)`, `(touching a b)`, `(collision_count e)`,
@@ -137,9 +137,9 @@ container floor ±1 mm), `(on a b)`, `(touching a b)`, `(collision_count e)`,
 `(holding g [obj])`, `(skill_started|succeeded|failed name)`.
 Every condition is compiled at load (Task/Condition.hpp): unknown metric,
 query or entity, wrong arity → exit 1 with "did you mean". A metric must be
-published from the first step (`Mission::measure`). A value missing during
+published from the first step (`ScenarioLogic::measure`). A value missing during
 the run → the assertion fails with the reason. Plugins add queries with
-`RoboticCell::addQuery` in `Mission::setup`; C++ asks `cell.requireQuery("inside", {a, b})`.
+`RoboticCell::addQuery` in `ScenarioLogic::setup`; C++ asks `cell.requireQuery("inside", {a, b})`.
 
 ## Trajectory file
 

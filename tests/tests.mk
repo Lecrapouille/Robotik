@@ -10,14 +10,14 @@ TARGETS += Robotik-tests
 Robotik-tests.TYPE := test
 Robotik-tests.DESCRIPTION := Unit tests for Robotik
 Robotik-tests.SOURCES := **/*.cpp \
-    ../plugins/PickAndPlace/src/ColorDetector.cpp ../plugins/PickAndPlace/src/PickPlaceMission.cpp \
+    ../plugins/PickAndPlace/src/ColorDetector.cpp ../plugins/PickAndPlace/src/PickPlaceLogic.cpp \
     ../plugins/PickAndPlace/src/PickPlaceSkills.cpp ../plugins/PickAndPlace/src/PickPlaceControl.cpp \
     ../plugins/PickAndPlace/src/PickPlacePlanning.cpp \
-    ../plugins/Painter/src/PainterMission.cpp ../plugins/Painter/src/PainterSkills.cpp \
+    ../plugins/Painter/src/PainterLogic.cpp ../plugins/Painter/src/PainterSkills.cpp \
     ../plugins/FlyBrain/src/FlyScenario.cpp ../plugins/FlyBrain/src/FlyVision.cpp \
     ../plugins/FlyBrain/src/FlyController.cpp ../plugins/FlyBrain/src/ShiuNetwork.cpp \
     ../plugins/FlyBrain/src/FlyBrain.cpp ../plugins/FlyBrain/src/FlyEnvironment.cpp \
-    ../plugins/FlyBrain/src/FlyTrace.cpp ../plugins/FlyBrain/src/FlyMission.cpp
+    ../plugins/FlyBrain/src/FlyTrace.cpp ../plugins/FlyBrain/src/FlyLogic.cpp
 Robotik-tests.INCLUDES := . ../plugins/PickAndPlace/src ../plugins/FlyBrain/src ../plugins/Painter/src
 Robotik-tests.DEPENDS := robotik-core Compages
 Robotik-tests.PKG_CONFIG := gtest gmock glfw3 glew gl

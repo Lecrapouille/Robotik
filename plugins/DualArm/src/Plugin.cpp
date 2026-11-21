@@ -5,17 +5,17 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// Two arms in one cell, planned by PDDL. The same mission runs the three
+// Two arms in one cell, planned by PDDL. The same scenario logic runs the three
 // conveyor scenarios: only the planner settings differ. The tray scenario
 // plans with durative actions.
 
-#include "ConveyorMission.hpp"
-#include "TrayMission.hpp"
+#include "ConveyorLogic.hpp"
+#include "TrayLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
-/// Loads the mission chosen by the scenario.
-class DualArmPlugin final: public robotik::MissionPlugin
+/// Loads the scenario logic chosen by the scenario.
+class DualArmPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -25,11 +25,12 @@ public:
     }
 
     DualArmPlugin()
-        : MissionPlugin(
-              { { "conveyor", robotik::mission<dual_arm::ConveyorMission>() },
-                { "conveyor_sequential", robotik::mission<dual_arm::ConveyorMission>() },
-                { "conveyor_pabt", robotik::mission<dual_arm::ConveyorMission>() },
-                { "tray", robotik::mission<dual_arm::TrayMission>() } })
+        : ScenarioPlugin(
+              { { "conveyor", robotik::logic<dual_arm::ConveyorLogic>() },
+                { "conveyor_sequential",
+                  robotik::logic<dual_arm::ConveyorLogic>() },
+                { "conveyor_pabt", robotik::logic<dual_arm::ConveyorLogic>() },
+                { "tray", robotik::logic<dual_arm::TrayLogic>() } })
     {
     }
 };

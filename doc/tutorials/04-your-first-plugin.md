@@ -14,7 +14,7 @@ zero. The plugin class, its lifecycle and `plugin.yaml` are listed in the
 
 | Lesson | Scenario | You learn |
 |--------|----------|-----------|
-| 1 | `hello.scenario.yaml` | The smallest mission: count steps, publish a metric, end the run |
+| 1 | `hello.scenario.yaml` | The smallest scenario logic: count steps, publish a metric, end the run |
 | 2 | `wave.scenario.yaml` | Command a joint, read the tool pose (forward kinematics) |
 | 3 | `reach.scenario.yaml` | Reach a point with inverse kinematics |
 | 4 | `skills.scenario.yaml` | Write a skill, call it from a behavior tree |
@@ -34,10 +34,10 @@ plugins/HelloWorld/
 ├── plugin.yaml          the manifest: name, library, scenarios
 ├── Makefile             builds librobotik_hello_world.so
 ├── src/                 the C++ code
-│   ├── Plugin.cpp           the plugin class: chooses a mission per scenario
-│   ├── HelloMission.*       lesson 1
-│   ├── WaveMission.*        lesson 2
-│   ├── ReachMission.*       lesson 3
+│   ├── Plugin.cpp           the plugin class: chooses a scenario logic per scenario
+│   ├── HelloLogic.*       lesson 1
+│   ├── WaveLogic.*        lesson 2
+│   ├── ReachLogic.*       lesson 3
 │   └── WaveSkill.*          lesson 4
 ├── worlds/arm.world.yaml      what exists: one 6-axis arm
 ├── scenarios/           what happens and what is checked
@@ -55,22 +55,22 @@ Who calls what:
         │ 2. loads librobotik_hello_world.so when you pick a scenario
         ▼
  HelloWorldPlugin::setup("wave")   ← your Plugin class
-        │ creates a WaveMission, gives it to the host
+        │ creates a WaveLogic, gives it to the host
         ▼
  Simulation (built from worlds/arm.world.yaml + scenarios/wave.scenario.yaml)
         │ at each step:
         ▼
- WaveMission::act()                ← your Mission class
+ WaveLogic::act()                ← your ScenarioLogic class
 ```
 
 So there are **two classes** to know:
 
 | Class | Role | Talks to |
 |-------|------|----------|
-| `robotik::Plugin` | The entry point. Chooses the mission, adds menus and panels | The host (window, keyboard) |
-| `robotik::Mission` | The behaviour during the simulation: skills, metrics, end | The simulation (robot, world) |
+| `robotik::Plugin` | The entry point. Chooses the scenario logic, adds menus and panels | The host (window, keyboard) |
+| `robotik::ScenarioLogic` | The behaviour during the simulation: skills, metrics, end | The simulation (robot, world) |
 
-## 🐣 Lesson 1 — the smallest mission
+## 🐣 Lesson 1 — the smallest scenario logic
 
 `scenarios/hello.scenario.yaml`:
 
@@ -82,15 +82,15 @@ scenario:
   seed: 1
   timeout: 30
   assertions:
-    - controller.success      # the mission said SUCCESS
-    - (> hello.ticks 100)       # a metric published by the mission
+    - controller.success      # the scenario logic said SUCCESS
+    - (> hello.ticks 100)       # a metric published by the scenario logic
     - (< time 3)
 ```
 
-`src/HelloMission.hpp`:
+`src/HelloLogic.hpp`:
 
 ```cpp
-class HelloMission final: public robotik::Mission
+class HelloLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -107,28 +107,28 @@ private:
 };
 ```
 
-`src/HelloMission.cpp`:
+`src/HelloLogic.cpp`:
 
 ```cpp
-void HelloMission::reset(robotik::RoboticCell& /*p_cell*/, robotik::Seed /*p_seed*/)
+void HelloLogic::reset(robotik::RoboticCell& /*p_cell*/, robotik::Seed /*p_seed*/)
 {
     m_ticks = 0.0;                         // a new episode starts
 }
 
-void HelloMission::act(robotik::RobotContext& /*p_context*/,
+void HelloLogic::act(robotik::RobotContext& /*p_context*/,
                        robotik::Seconds /*p_dt*/)
 {
     m_ticks += 1.0;                        // called after each simulation step
 }
 
-void HelloMission::measure(robotik::RoboticCell const& /*p_cell*/,
+void HelloLogic::measure(robotik::RoboticCell const& /*p_cell*/,
                            robotik::Metrics& p_metrics) const
 {
     p_metrics.set("hello.ticks", m_ticks); // the scenario can now use "hello.ticks"
 }
 
 robotik::Status
-HelloMission::status(robotik::RobotContext const& p_context) const
+HelloLogic::status(robotik::RobotContext const& p_context) const
 {
     if (p_context.time >= robotik::Seconds(2.0))
     {
@@ -138,7 +138,7 @@ HelloMission::status(robotik::RobotContext const& p_context) const
 }
 ```
 
-The methods of a `Mission`, all optional:
+The methods of a `ScenarioLogic`, all optional:
 
 | Method | When | Use it to |
 |--------|------|-----------|
@@ -161,10 +161,10 @@ it cannot move anything.
 
 ## 🦿 Lesson 2 — move a joint (forward kinematics)
 
-The arm turns its base joint left and right. `src/WaveMission.cpp`:
+The arm turns its base joint left and right. `src/WaveLogic.cpp`:
 
 ```cpp
-void WaveMission::act(robotik::RobotContext& p_context,
+void WaveLogic::act(robotik::RobotContext& p_context,
                       robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
@@ -218,10 +218,10 @@ the report tells you the joint swung only 0.2 rad.
 ## 🎯 Lesson 3 — reach a point (inverse kinematics)
 
 Now we give a **position** and ask which joint angles reach it.
-`src/ReachMission.cpp`:
+`src/ReachLogic.cpp`:
 
 ```cpp
-void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
+void ReachLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     robotik::Robot& robot = p_cell.robot();
 
@@ -237,7 +237,7 @@ void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
     m_error = distance(start, m_target);
 }
 
-void ReachMission::act(robotik::RobotContext& p_context,
+void ReachLogic::act(robotik::RobotContext& p_context,
                        robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
@@ -274,7 +274,7 @@ turns green when the tool arrives. A red assertion does not stop the run.
 
 ## 🌳 Lesson 4 — a skill and a behavior tree
 
-Lessons 1–3 drive the robot directly from `Mission::act`. This is simple,
+Lessons 1–3 drive the robot directly from `ScenarioLogic::act`. This is simple,
 but it does not scale: who decides the order? what if the arm is busy? what
 if a sensor fails? Robotik answers with **skills** and **behavior trees**.
 
@@ -305,10 +305,10 @@ void WaveSkill::cancel(robotik::RobotContext& p_context)
 }
 ```
 
-The mission registers it, with a **name** and the **resources** it needs:
+The scenario logic registers it, with a **name** and the **resources** it needs:
 
 ```cpp
-void SkillsMission::setup(robotik::RoboticCell& p_cell, robotik::SceneView* /*p_view*/)
+void SkillsLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* /*p_view*/)
 {
     robotik::SkillDescription wave;
     wave.name = "Wave";

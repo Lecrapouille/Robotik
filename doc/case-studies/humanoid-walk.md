@@ -30,7 +30,7 @@ make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runti
 How it works:
 
 - The tree is two skills, `Stand` then `Walk` (`walk_circle.bt.yaml`).
-- `WalkMission` plugs a **floating-base** MuJoCo backend, without gravity
+- `WalkLogic` plugs a **floating-base** MuJoCo backend, without gravity
   compensation, with the PD gains of the policy on each joint.
 - The plugin owns the clock (`clock: plugin` in `plugin.yaml`): it steps the
   physics every 1 ms, and `Walk` runs the policy every 10 steps (100 Hz) on

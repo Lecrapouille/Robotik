@@ -6,12 +6,12 @@
 // See LICENSING.md for details.
 
 /// @file PlanningDomain.hpp
-/// What a mission tells the planner: how to observe each predicate of its
+/// What a scenario logic tells the planner: how to observe each predicate of its
 /// PDDL domain and which skills carry out each action.
 ///
 /// The domain file holds the types, predicates and actions; the world gives
 /// the objects (entities with a @c kind); the scenario gives the goal. The
-/// mission only links names:
+/// scenario logic only links names:
 ///
 /// @code
 /// void setup(robotik::RoboticCell& p_cell, robotik::SceneView*) override
@@ -80,12 +80,12 @@ struct ActionBinding
 };
 
 // ****************************************************************************
-/// Observers and bindings of a mission, keyed by PDDL name.
+/// Observers and bindings of a scenario logic, keyed by PDDL name.
 ///
 /// The PDDL domain says what an action needs and what it changes; it cannot
 /// say how to read a fact on this robot, nor which skills move it. This
-/// class holds the two answers that only the mission knows. Filled by the
-/// mission in @ref Mission::setup (see the file comment), then read by the
+/// class holds the two answers that only the scenario logic knows. Filled by the
+/// scenario logic in @ref ScenarioLogic::setup (see the file comment), then read by the
 /// @ref PlanExecutor. It holds no effect and no ordering: the domain file is
 /// the only place for them, so a plan never depends on C++ written apart
 /// from the domain.

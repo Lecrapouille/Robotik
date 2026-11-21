@@ -7,8 +7,8 @@
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
-#include "Robotik/Task/Mission.hpp"
 #include "Robotik/Package/Simulation.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 namespace robotik
 {
@@ -23,12 +23,12 @@ Simulation* Host::simulation() const
     return static_cast<Simulation*>(m_api->simulation(m_api->host));
 }
 
-void Host::bindMission(Mission& p_mission) const
+void Host::bindLogic(ScenarioLogic& p_logic) const
 {
-    if (m_api != nullptr && m_api->bind_mission != nullptr &&
+    if (m_api != nullptr && m_api->bind_logic != nullptr &&
         m_api->host != nullptr)
     {
-        m_api->bind_mission(m_api->host, &p_mission);
+        m_api->bind_logic(m_api->host, &p_logic);
     }
 }
 

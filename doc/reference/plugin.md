@@ -4,11 +4,11 @@
 
 ## 🔌 The plugin class
 
-`src/Plugin.cpp` is the entry point. Most plugins only say which mission
+`src/Plugin.cpp` is the entry point. Most plugins only say which scenario logic
 runs each scenario. This is all the Painter needs:
 
 ```cpp
-class PainterPlugin final: public robotik::MissionPlugin
+class PainterPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -18,11 +18,11 @@ public:
         return { .id = "robotik.painter" };
     }
 
-    // Scenario id (as in plugin.yaml) -> the mission it runs.
+    // Scenario id (as in plugin.yaml) -> the scenario logic it runs.
     PainterPlugin()
-        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
-                          { "painter_pddl", robotik::mission<PainterMission>(true) },
-                          { "painter_pabt", robotik::mission<PainterMission>(true) } })
+        : ScenarioPlugin({ { "painter", robotik::logic<PainterLogic>(false) },
+                          { "painter_pddl", robotik::logic<PainterLogic>(true) },
+                          { "painter_pabt", robotik::logic<PainterLogic>(true) } })
     {
     }
 };
@@ -30,19 +30,19 @@ public:
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)     // exports the C functions the host looks for
 ```
 
-`robotik::mission<T>(args...)` builds a `T` with these arguments when the
-scenario starts. `MissionPlugin` creates the mission, gives it to the
+`robotik::logic<T>(args...)` builds a `T` with these arguments when the
+scenario starts. `ScenarioPlugin` creates the scenario logic, gives it to the
 simulation, and frees it at the end. An id that is not in the table stops the
 setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl,
 painter_pabt)`. One plugin, one library, many scenarios.
 
 HelloWorld adds a key binding, a menu item and a panel. It calls
-`MissionPlugin::setup` first, then uses the host:
+`ScenarioPlugin::setup` first, then uses the host:
 
 ```cpp
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_host = p_host;
         p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
         p_host.addMenuItem("Hello world", "Home", [this] { home(); });
@@ -60,34 +60,34 @@ plugin.yaml read          the host checks api_version, packs, dependencies
 dlopen(.so)               only when a scenario of this plugin is chosen
       │
       ▼
-setup(scenario id)        create the Mission (MissionPlugin), menus, panels
+setup(scenario id)        create the ScenarioLogic (ScenarioPlugin), menus, panels
       │
       ▼
-Simulation built          from the world + scenario; Mission::setup, Mission::reset
+Simulation built          from the world + scenario; ScenarioLogic::setup, ScenarioLogic::reset
       │
       ▼
 start
       │
       ▼
-loop: RoboticCell::step → Mission::act, simulate, observe → Plugin::update(dt)
+loop: RoboticCell::step → ScenarioLogic::act, simulate, observe → Plugin::update(dt)
       │
       ▼
 stop                      the simulation still exists
       │
       ▼
-shutdown                  the simulation is destroyed: free the mission
+shutdown                  the simulation is destroyed: free the scenario logic
                           (the .so can stay loaded for the next scenario)
 ```
 
 | `Plugin` method | When |
 |-----------------|------|
-| `setup(host, scenario)` | Prepare the mission, subscriptions, menu and panel |
+| `setup(host, scenario)` | Prepare the scenario logic, subscriptions, menu and panel |
 | `start(host)` | The run starts |
 | `update(host, dt)` | After each step (or *instead of* the step with `host.clock: plugin`); `dt` is a `robotik::Seconds` |
 | `onEvent(host, event)` | A subscribed event arrives |
 | `pause(host, paused)` | The user pressed Pause / Play |
 | `stop(host)` | End of the run; the simulation still exists |
-| `shutdown(host)` | Free the mission; the simulation is already destroyed (`MissionPlugin` does it) |
+| `shutdown(host)` | Free the scenario logic; the simulation is already destroyed (`ScenarioPlugin` does it) |
 
 Override only what you need; each method does nothing by default. When a
 method cannot go on, it throws. The exception stops at the plugin border:
@@ -98,7 +98,7 @@ the user sees its message, and the host gets an error status
 
 | `robotik::Host` method | Does |
 |------------------------|------|
-| `bindMission(mission)` | Gives the mission to the simulation that will be built |
+| `bindLogic(logic)` | Gives the scenario logic to the simulation that will be built |
 | `simulation()` | The running `Simulation*`, or null before it exists |
 | `log(level, text)` / `error(text)` | Messages (`ROBOTIK_LOG_INFO`, `_WARNING`, `_ERROR`) |
 | `subscribe(kind)` | Receive one kind of event in `onEvent` |
@@ -125,16 +125,16 @@ lambda is reported to the user, like an exception in a plugin method.
         p_canvas.text("updates=" + std::to_string(m_updates) +
                       " keys=" + std::to_string(m_keys) +
                       " homes=" + std::to_string(m_homes));
-        if (ReachMission const* reach = mission<ReachMission>())
+        if (ReachLogic const* reach = logic<ReachLogic>())
         {
             p_canvas.text("reach error " + std::to_string(reach->error()) + " m");
         }
     }
 ```
 
-`scenario()` and `mission<T>()` come from `MissionPlugin`: the id of the
-scenario, and the mission as a `T` (null when the scenario runs another
-mission).
+`scenario()` and `logic<T>()` come from `ScenarioPlugin`: the id of the
+scenario, and the scenario logic as a `T` (null when the scenario runs another
+scenario logic).
 
 `Canvas` offers `text`, `textColored`, `button`, `checkbox`, `radio`,
 `sliderInt` and `separator`. It is valid **only during the draw call**: never keep it.
@@ -278,7 +278,7 @@ executable.
   (`cell.entity("canvas")`, `cell.requirePose("canvas")`); never keep a
   pointer to a world object after `shutdown`.
 - **A reset rebuilds the state** without unloading the plugin: put all
-  episode state back in `Mission::reset`.
+  episode state back in `ScenarioLogic::reset`.
 - **Skills see beliefs, not truth.** In a skill, use `RobotContext`
   (`robot`, `world_model`). Ground truth (`RoboticCell::requirePose`) is for metrics
   and assertions.
@@ -286,6 +286,6 @@ executable.
 - **Units are SI**: metres, radians, seconds. Use the typed handles
   (`Revolute`, `Prismatic`, `Seconds`, `Radians`) when you can.
 - **Headless first.** `view` is null and there is no camera image in
-  headless: your mission must still work (see `perception.blind`).
+  headless: your scenario logic must still work (see `perception.blind`).
 
 Next: [Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).

@@ -10,7 +10,7 @@
 /// they are held, and how sure it is.
 ///
 /// Skills read this belief, never the ground truth of the simulator: a real
-/// robot has no ground truth. A belief comes from the mission (where objects
+/// robot has no ground truth. A belief comes from the scenario logic (where objects
 /// should be), from detectors, or from the simulator when the scenario asks
 /// for a truth fidelity (see doc/reference/glossary.md: "Perception fidelity").
 ///
@@ -18,7 +18,7 @@
 /// - Promises: each belief says where it comes from (@ref
 ///   robotik::BeliefSource) and when it was last seen; an old belief is not
 ///   taken as fresh.
-/// - Expects: skills and observers read it; only perception, the mission
+/// - Expects: skills and observers read it; only perception, the scenario logic
 ///   (priors) and the cell (truth fidelity) write it.
 #pragma once
 
@@ -39,7 +39,7 @@ namespace robotik
 // ****************************************************************************
 enum class BeliefSource : std::uint8_t
 {
-    Prior,      ///< Told by the mission (the layout); never observed.
+    Prior,      ///< Told by the scenario logic (the layout); never observed.
     Sensed,     ///< Observed by the perception pipeline.
     NoisyTruth, ///< Written by the simulator from the truth, degraded.
     Truth,      ///< Written by the simulator from the truth (a mock).

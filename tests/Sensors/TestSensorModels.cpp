@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "PickPlaceMission.hpp"
+#include "PickPlaceLogic.hpp"
 
 #include "Robotik/Package/Simulation.hpp"
 #include "Robotik/Common/Config.hpp"
@@ -154,9 +154,9 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         return robotik::readScenario(source, testAssets()).take();
     };
     {
-        PickPlaceMission mission;
+        PickPlaceLogic logic;
         compages::world::World world;
-        robotik::Simulation blind(world, build("sensed"), nullptr, &mission);
+        robotik::Simulation blind(world, build("sensed"), nullptr, &logic);
         EXPECT_FALSE(blind.cell().oracle());
         // Headless, no image: the robot never sees the cube.
         for (int i = 0; i < 300 && !blind.finished(); ++i)
@@ -168,10 +168,9 @@ TEST(Simulation, GroundTruthIsNotGivenUnlessTheScenarioAsks)
         EXPECT_FALSE(observed(*blind.cell().worldModel().find("red_cube")));
     }
     {
-        PickPlaceMission mission;
+        PickPlaceLogic logic;
         compages::world::World world;
-        robotik::Simulation oracle(
-            world, build("truth"), nullptr, &mission);
+        robotik::Simulation oracle(world, build("truth"), nullptr, &logic);
         EXPECT_TRUE(oracle.cell().oracle());
     }
 }

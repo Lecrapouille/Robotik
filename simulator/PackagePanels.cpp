@@ -152,7 +152,7 @@ static void scenarioDetails(App& p_app, robotik::PluginPackage const* p_package)
             ? "PDDL planner, " +
                   scenario.controller.planner->domain.filename().string()
         : scenario.controller.behavior_tree.empty()
-            ? std::string("plugin mission (C++)")
+            ? std::string("scenario logic (C++)")
             : scenario.controller.behavior_tree.filename().string();
     field("controller", "%s", controller.c_str());
     field("seed", "%llu", static_cast<unsigned long long>(scenario.seed));

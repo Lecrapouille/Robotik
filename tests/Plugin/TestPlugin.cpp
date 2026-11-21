@@ -311,7 +311,7 @@ TEST(PluginSession, InverseKinematicsAssertionTurnsGreenWithoutStoppingEarly)
         world,
         robotik::loadScenario(scenario, session.assets()).take(),
         nullptr,
-        session.mission());
+        session.logic());
     session.attach(&simulation);
     ASSERT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
 
@@ -366,7 +366,7 @@ runDualArm(std::string const& p_scenario, double& p_time, double& p_overlap)
         world,
         robotik::loadScenario(scenario, session.assets()).take(),
         nullptr,
-        session.mission());
+        session.logic());
     session.attach(&simulation);
     EXPECT_EQ(session.start(), ROBOTIK_PLUGIN_OK);
     for (int step = 0; step < 6000 && !simulation.finished(); ++step)

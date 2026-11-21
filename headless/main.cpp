@@ -126,7 +126,7 @@ static void printTrace(robotik::Simulation const& p_simulation)
 }
 
 // ----------------------------------------------------------------------------
-/// One run: the plugin owning @p_file brings the mission, the world is built
+/// One run: the plugin owning @p_file brings the scenario logic, the world is built
 /// from @p_scenario, the run goes until the scenario says it ends.
 // ----------------------------------------------------------------------------
 static robotik::RunRecord run(robotik::PluginSession& p_session,
@@ -150,7 +150,7 @@ static robotik::RunRecord run(robotik::PluginSession& p_session,
     }
     compages::world::World world;
     robotik::Simulation simulation(
-        world, std::move(p_scenario), nullptr, p_session.mission());
+        world, std::move(p_scenario), nullptr, p_session.logic());
     p_session.attach(&simulation);
     if (p_session.start() != ROBOTIK_PLUGIN_OK)
     {

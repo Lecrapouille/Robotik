@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "FlyMission.hpp"
+#include "FlyLogic.hpp"
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
@@ -17,8 +17,8 @@
 #include <sstream>
 #include <string>
 
-/// Loads the fly mission and its view.
-class FlyPlugin final: public robotik::MissionPlugin
+/// Loads the fly scenario logic and its view.
+class FlyPlugin final: public robotik::ScenarioPlugin
 {
 public:
 
@@ -28,13 +28,14 @@ public:
     }
 
     FlyPlugin()
-        : MissionPlugin({ { "fly_obstacle_avoidance", robotik::mission<FlyMission>() } })
+        : ScenarioPlugin(
+              { { "fly_obstacle_avoidance", robotik::logic<FlyLogic>() } })
     {
     }
 
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        MissionPlugin::setup(p_host, p_scenario);
+        ScenarioPlugin::setup(p_host, p_scenario);
         m_error.clear();
         p_host.addPanel("fly", "Fly brain",
                         [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
@@ -53,12 +54,12 @@ public:
             m_loading.wait();
             m_loading = {};
         }
-        MissionPlugin::shutdown(p_host);
+        ScenarioPlugin::shutdown(p_host);
     }
 
     void draw(robotik::Canvas const& p_canvas)
     {
-        FlyMission* fly = mission<FlyMission>();
+        FlyLogic* fly = logic<FlyLogic>();
         FlyEnvironment const* environment = fly ? fly->environment() : nullptr;
         FlyBrain const* brain = fly ? fly->brain() : nullptr;
         if (environment == nullptr || brain == nullptr)
@@ -107,7 +108,7 @@ private:
         }
         try
         {
-            mission<FlyMission>()->installBrain(m_loading.get());
+            logic<FlyLogic>()->installBrain(m_loading.get());
             m_error.clear();
         }
         catch (std::exception const& error)
@@ -126,10 +127,10 @@ private:
         m_started = std::chrono::steady_clock::now();
         // Reading the FlyWire tables takes seconds: not on the UI thread.
         m_loading = std::async(std::launch::async,
-                               &FlyMission::buildBrain,
+                               &FlyLogic::buildBrain,
                                p_connectome,
-                               mission<FlyMission>()->cruise(),
-                               mission<FlyMission>()->tables());
+                               logic<FlyLogic>()->cruise(),
+                               logic<FlyLogic>()->tables());
     }
 
     void brainChoice(robotik::Canvas const& p_canvas, FlyBrain const& p_brain)

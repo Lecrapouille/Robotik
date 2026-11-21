@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "DuckMission.hpp"
+#include "DuckLogic.hpp"
 #include "DuckSkills.hpp"
 
 #include "Robotik/Common/Config.hpp"
@@ -24,8 +24,8 @@
 /// Skill priority, as the other plugins.
 #define SKILL_PRIORITY 100
 // ----------------------------------------------------------------------------
-void DuckMission::setup(robotik::RoboticCell& p_cell,
-                        robotik::SceneView* /*p_view*/)
+void DuckLogic::setup(robotik::RoboticCell& p_cell,
+                      robotik::SceneView* /*p_view*/)
 {
     robotik::RoboticCellDescription const& scenario = p_cell.description();
     m_base = robotik::firstRobot(scenario.world).id + "." + TRUNK;
@@ -105,7 +105,7 @@ void DuckMission::setup(robotik::RoboticCell& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
+void DuckLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
     robotik::Pose const base = p_cell.requirePose(m_base);
@@ -119,8 +119,8 @@ void DuckMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::observe(robotik::RoboticCell const& p_cell,
-                          robotik::Seconds /*p_dt*/)
+void DuckLogic::observe(robotik::RoboticCell const& p_cell,
+                        robotik::Seconds /*p_dt*/)
 {
     robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
@@ -133,8 +133,8 @@ void DuckMission::observe(robotik::RoboticCell const& p_cell,
 }
 
 // ----------------------------------------------------------------------------
-void DuckMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                          robotik::Metrics& p_metrics) const
+void DuckLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                        robotik::Metrics& p_metrics) const
 {
     p_metrics.set("duck.height_min", m_height_min);
     p_metrics.set("duck.distance", m_distance);

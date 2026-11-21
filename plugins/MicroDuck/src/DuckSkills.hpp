@@ -80,7 +80,7 @@ private:
 
     DuckBody m_body;
     DuckPolicy& m_policy;
-    /// Forward (m/s), lateral (m/s), yaw rate (rad/s), owned by the mission.
+    /// Forward (m/s), lateral (m/s), yaw rate (rad/s), owned by the scenario logic.
     std::array<double, 3> const& m_command;
     robotik::Seconds m_duration;
     /// Time between two policy runs.

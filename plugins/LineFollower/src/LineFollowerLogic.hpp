@@ -12,18 +12,18 @@
 #include "Skills.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
-class LineFollowerMission final: public robotik::Mission
+class LineFollowerLogic final: public robotik::ScenarioLogic
 {
 public:
 
-    explicit LineFollowerMission(double p_laps = 1.0);
+    explicit LineFollowerLogic(double p_laps = 1.0);
 
     void setup(robotik::RoboticCell& p_cell,
                robotik::SceneView* p_view) override;

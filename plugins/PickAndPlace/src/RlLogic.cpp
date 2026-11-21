@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "RlMission.hpp"
+#include "RlLogic.hpp"
 
 #include "PickPlaceControl.hpp"
 
@@ -17,7 +17,7 @@
 
 #define RL_PAUSE_AFTER_S 1.2
 
-void RlMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
+void RlLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
 {
     steps = 0;
     episode_return = 0.0F;
@@ -45,7 +45,7 @@ void RlMission::reset(robotik::RoboticCell& p_cell, robotik::Seed p_seed)
 }
 
 robotik::Status
-RlMission::status(robotik::RobotContext const& /*p_context*/) const
+RlLogic::status(robotik::RobotContext const& /*p_context*/) const
 {
     if (!ready)
     {
@@ -58,7 +58,7 @@ RlMission::status(robotik::RobotContext const& /*p_context*/) const
     return robotik::Status::RUNNING;
 }
 
-void RlMission::playPolicy(robotik::RoboticCell& p_cell, double p_dt)
+void RlLogic::playPolicy(robotik::RoboticCell& p_cell, double p_dt)
 {
     if (!ready)
     {

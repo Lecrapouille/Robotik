@@ -81,7 +81,7 @@ void registerPlanning(robotik::PlanningDomain& p_domain)
             return robotik::truth(inside);
         });
 
-    // --- Actions, as skills of PickPlaceMission -----------------------------
+    // --- Actions, as skills of PickPlaceLogic -----------------------------
     p_domain.bind("detect", { "Detect({0})" });
     p_domain.bind(
         "pick",

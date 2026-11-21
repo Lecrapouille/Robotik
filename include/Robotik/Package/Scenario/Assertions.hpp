@@ -31,7 +31,7 @@
 /// @par Contract
 /// - Promises: assertions only read metrics and truth queries; @c readAssertion
 ///   returns a @c Result.
-/// - Expects: conditions name metrics the mission or the cell publish.
+/// - Expects: conditions name metrics the scenario logic or the cell publish.
 #pragma once
 
 #include "Robotik/Common/Result.hpp"

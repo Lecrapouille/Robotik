@@ -43,7 +43,7 @@ namespace robotik
 enum class FileRole
 {
     World,      ///< @c x.world.yaml: robots, objects, sensors.
-    Scenario,   ///< @c x.scenario.yaml: a world plus a mission.
+    Scenario,   ///< @c x.scenario.yaml: a world plus a scenario logic.
     Rl,         ///< @c x.rl.yaml: a scenario driven by a learned policy.
     Tree,       ///< @c x.bt.yaml: a behavior tree.
     Domain,     ///< @c x.domain.pddl: a PDDL domain.

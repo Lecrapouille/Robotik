@@ -104,7 +104,7 @@ grasp.preconditions = {
 p_simulation.skills().add<GraspSkill>(std::move(grasp), /* constructor args */ "red_cube");
 ```
 
-Do this in `Mission::setup`. The simulation then makes every skill a behavior
+Do this in `ScenarioLogic::setup`. The simulation then makes every skill a behavior
 tree action with the same name.
 
 | Field | Meaning |
@@ -123,7 +123,7 @@ In a world of several robots ([Several robots](../reference/world-file.md#-sever
 each skill drives the robot of its `robot` field: `p_context.robot` is that
 robot. Name the skills after the robot (`left.Hover(p3)`), so that a
 behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one.
-From `plugins/DualArm/src/ConveyorMission.cpp`:
+From `plugins/DualArm/src/ConveyorLogic.cpp`:
 
 ```cpp
 std::string const& id = p_robot.id();

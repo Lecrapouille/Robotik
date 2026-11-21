@@ -7,7 +7,7 @@ canvas standing on an easel, and rinses the brush between colours.
 
 - The easel is a **free body**: pushed, it slides or tips over. The canvas is
   a free box resting on it. Both are entities of
-  `plugins/Painter/worlds/painting_lab.world.yaml`; the mission finds them by id and
+  `plugins/Painter/worlds/painting_lab.world.yaml`; the scenario logic finds them by id and
   only brings the gestures.
 - The strokes are **trajectories** in `scenarios/trajectories/`, written in
   the easel frame.

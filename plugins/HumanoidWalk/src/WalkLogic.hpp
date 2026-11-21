@@ -9,7 +9,7 @@
 
 #include "WalkPolicy.hpp"
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 
 #include <array>
@@ -34,7 +34,7 @@
 /// humanoid.radius (m, mean distance to the centre of the walked path) and
 /// humanoid.commanded_radius (m, vx / yaw_rate).
 // ****************************************************************************
-class WalkMission final: public robotik::Mission
+class WalkLogic final: public robotik::ScenarioLogic
 {
 public:
 

@@ -74,7 +74,7 @@ WalkSkill::WalkSkill(DuckBody p_body,
 void WalkSkill::reset()
 {
     // The policy keeps its last action from one walk to the next (Forward
-    // then TurnLeft): the mission resets it with the episode.
+    // then TurnLeft): the scenario logic resets it with the episode.
     m_elapsed = robotik::Seconds{};
     m_wait = robotik::Seconds{};
 }

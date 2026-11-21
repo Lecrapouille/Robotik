@@ -9,7 +9,7 @@
 
 #include "DuckPolicy.hpp"
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 #include <array>
 #include <memory>
@@ -33,7 +33,7 @@
 /// duck.distance (m, path length in the plane, sway included) and
 /// duck.displacement (m, from the start to now, in the plane).
 // ****************************************************************************
-class DuckMission final: public robotik::Mission
+class DuckLogic final: public robotik::ScenarioLogic
 {
 public:
 

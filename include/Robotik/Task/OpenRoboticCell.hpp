@@ -76,12 +76,12 @@ struct OpenedRoboticCell
 // ----------------------------------------------------------------------------
 /// Builds a cell and its world, headless.
 /// @param p_description Robots, objects, controller.
-/// @param p_mission Task plugin (skills, detectors, metrics), or null; not
+/// @param p_logic Task plugin (skills, detectors, metrics), or null; not
 ///   owned.
 /// @return The cell, or why it could not be built.
 // ----------------------------------------------------------------------------
 [[nodiscard]] Result<OpenedRoboticCell>
 openRoboticCell(RoboticCellDescription p_description,
-                Mission* p_mission = nullptr);
+                ScenarioLogic* p_logic = nullptr);
 
 } // namespace robotik

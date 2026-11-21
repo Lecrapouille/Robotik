@@ -7,16 +7,16 @@
 
 #pragma once
 
-#include "Robotik/Task/Mission.hpp"
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 // ****************************************************************************
-/// Lesson 2: command a joint, read the tool pose.
+/// Lesson 1: the smallest scenario logic.
 ///
-/// The base joint follows a sine around its home angle. Each step reads the
-/// pose of the tool frame (forward kinematics) and publishes how far the
-/// joint swung. The mission succeeds after six seconds.
+/// It counts the simulation steps, publishes the count as the metric
+/// "hello.ticks", and succeeds after two seconds. The scenario file asserts
+/// on that metric.
 // ****************************************************************************
-class WaveMission final: public robotik::Mission
+class HelloLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -29,6 +29,5 @@ public:
 
 private:
 
-    double m_swing = 0.0;
-    double m_tool_y = 0.0;
+    double m_ticks = 0.0;
 };

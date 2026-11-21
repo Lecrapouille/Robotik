@@ -7,20 +7,16 @@
 
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/Mission.hpp"
-
-#include <vector>
+#include "Robotik/Task/ScenarioLogic.hpp"
 
 // ****************************************************************************
-/// Lesson 3: ask for a tool position, let inverse kinematics find the
-/// joint angles.
+/// Lesson 2: command a joint, read the tool pose.
 ///
-/// At reset, the target is the current tool pose moved three centimetres
-/// along x. Inverse kinematics gives one angle per joint; each step commands
-/// them and publishes the remaining distance as "reach.error".
+/// The base joint follows a sine around its home angle. Each step reads the
+/// pose of the tool frame (forward kinematics) and publishes how far the
+/// joint swung. The scenario logic succeeds after six seconds.
 // ****************************************************************************
-class ReachMission final: public robotik::Mission
+class WaveLogic final: public robotik::ScenarioLogic
 {
 public:
 
@@ -31,14 +27,8 @@ public:
     [[nodiscard]] robotik::Status
     status(robotik::RobotContext const& p_context) const override;
 
-    [[nodiscard]] double error() const
-    {
-        return m_error;
-    }
-
 private:
 
-    robotik::Pose m_target{};
-    std::vector<double> m_solution;
-    double m_error = 1.0;
+    double m_swing = 0.0;
+    double m_tool_y = 0.0;
 };

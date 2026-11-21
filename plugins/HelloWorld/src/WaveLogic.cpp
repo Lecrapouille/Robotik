@@ -5,22 +5,21 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "WaveMission.hpp"
+#include "WaveLogic.hpp"
 
 #include "Robotik/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>
 
-void WaveMission::reset(robotik::RoboticCell& /*p_cell*/,
-                        robotik::Seed /*p_seed*/)
+void WaveLogic::reset(robotik::RoboticCell& /*p_cell*/,
+                      robotik::Seed /*p_seed*/)
 {
     m_swing = 0.0;
     m_tool_y = 0.0;
 }
 
-void WaveMission::act(robotik::RobotContext& p_context,
-                      robotik::Seconds /*p_dt*/)
+void WaveLogic::act(robotik::RobotContext& p_context, robotik::Seconds /*p_dt*/)
 {
     robotik::Robot& robot = p_context.robot;
     robotik::JointSet& joints = robot.joints();
@@ -44,15 +43,14 @@ void WaveMission::act(robotik::RobotContext& p_context,
     m_tool_y = robot.requireFramePose(robot.tool()).position.y;
 }
 
-void WaveMission::measure(robotik::RoboticCell const& /*p_cell*/,
-                          robotik::Metrics& p_metrics) const
+void WaveLogic::measure(robotik::RoboticCell const& /*p_cell*/,
+                        robotik::Metrics& p_metrics) const
 {
     p_metrics.set("wave.swing", m_swing);
     p_metrics.set("wave.tool_y", m_tool_y);
 }
 
-robotik::Status
-WaveMission::status(robotik::RobotContext const& p_context) const
+robotik::Status WaveLogic::status(robotik::RobotContext const& p_context) const
 {
     if (p_context.time >= robotik::Seconds(6.0))
     {

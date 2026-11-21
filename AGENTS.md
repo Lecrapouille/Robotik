@@ -37,7 +37,7 @@ include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementat
             (MuJoCo, Pinocchio, SceneView), Assets/ (packs, resolver),
             Components/ (ECS data on entities)
   Task/     a job in C++: RoboticCellDescription (data), RoboticCell (step loop, truth,
-            controllers, perception fidelity), Mission, SkillScheduler,
+            controllers, perception fidelity), ScenarioLogic, SkillScheduler,
             RobotContext, Faults, Metrics, Skills/, Perception/ (WorldModel),
             Planning/ (Pddl, PlanningDomain, PlanExecutor, PlanGraph,
             Kairos/), Grasp/, Learning/ (RL environments), Agents/
@@ -104,18 +104,18 @@ built.
   the license is required for the credits) and is built by a rule of its
   Makefile (`PLUGIN_REQUIRES`, `PLUGIN_DEPENDS`, see
   `plugins/plugin.mk`), not in the core manifest nor in `plugin.yaml`.
-- Plugins publish metrics (`Mission::measure`); verdicts live in scenario
+- Plugins publish metrics (`ScenarioLogic::measure`); verdicts live in scenario
   YAML assertions. No pass/fail logic in C++.
 - Conditions and planner literals use the PDDL notation: `(< time 30)`,
   `(inside red_cube box)`. They are compiled at load (Task/Condition.hpp):
   a typo is a load error. From C++, ask `cell.requireQuery("inside", {a, b})`,
   never build a condition string; add a query with `RoboticCell::addQuery`.
-- A mission step has three sides, kept apart by the types: `act(RobotContext&)`
+- A step of the scenario logic has three sides, kept apart by the types: `act(RobotContext&)`
   commands from the robot and its beliefs (no truth), `simulate(RoboticCell&)` is
   what the world does by itself (sim only, never commands a robot),
   `observe(RoboticCell const&)` reads the truth for metrics (a const cell commands
   nothing: `skills()`, `robot()`, `robots()` are read only).
-- `Mission::status` ends a run only when the scenario has no behavior tree
+- `ScenarioLogic::status` ends a run only when the scenario has no behavior tree
   and no planner.
 - Several robots in a world share one physics, one `ResourceManager`, one
   `SkillScheduler` and the beliefs: device names are unique in the world;
