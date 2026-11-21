@@ -65,6 +65,8 @@ make <target>                # one plugin; stages build/linux-gcc-debug/lib/robo
 make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
 make check-layers            # compiler: no include upwards, no RoboticCell.hpp in skills/planning
 make check-links             # every relative link of the Markdown files resolves
+make check-asan              # tests with ASan (+UBSan if libubsan), then in a random order
+make check-valgrind          # tests under valgrind memcheck (values read before written)
 ./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```

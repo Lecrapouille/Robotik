@@ -44,6 +44,25 @@ forge:
 check-layers:
 	@python3 tests/scripts/check_layers.py .
 
+#? Run the tests with AddressSanitizer (and UndefinedBehaviorSanitizer when
+#? libubsan is installed) in build-asan/, then once more in a random order:
+#? a test that passes only after another one hides a shared state.
+ASAN_SANITIZER := $(if $(wildcard /usr/lib64/libubsan.so* /usr/lib/x86_64-linux-gnu/libubsan.so*),address$(COMMA)undefined,address)
+.PHONY: check-asan
+check-asan:
+	$(Q)$(MAKE) --no-print-directory BUILD_DIR=build-asan SANITIZER=$(ASAN_SANITIZER) all Robotik-tests
+	$(Q)ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/Robotik-tests
+	$(Q)ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
+	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/Robotik-tests --gtest_shuffle
+
+#? Run the tests of the debug build under valgrind memcheck: it sees the
+#? values read before they are written (ASan does not).
+.PHONY: check-valgrind
+check-valgrind: Robotik-tests
+	$(Q)valgrind --error-exitcode=1 --track-origins=yes --leak-check=no \
+	    $(BUILD)/bin/Robotik-tests
+
 #? Check that the relative links of the Markdown files resolve.
 .PHONY: check-links
 check-links:

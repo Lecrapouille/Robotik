@@ -64,6 +64,12 @@ else
         TARGETS += forge
         forge.PATH := forge
         forge.PUBLIC_INCLUDES := include include/eigen3
+        # Under AddressSanitizer Eigen aligns its heap blocks by hand, but
+        # the Pinocchio of conda was built without it: a matrix allocated in
+        # libpinocchio and freed in our code would free a wrong address.
+        ifneq ($(filter address,$(subst $(COMMA), ,$(SANITIZER))),)
+            forge.PUBLIC_DEFINES := EIGEN_MALLOC_ALREADY_ALIGNED=1
+        endif
         forge.LIBS := -L$(abspath $(HERE)forge/lib) -Wl,-rpath,$(abspath $(HERE)forge/lib) \
             -lpinocchio_parsers -lpinocchio_default -lmujoco
     endif
