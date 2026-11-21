@@ -37,7 +37,7 @@ void RigidGrasp::update(Robot& p_robot)
         return;
     }
     compages::world::World& world = p_robot.world();
-    ActuatorSet const& actuators = p_robot.actuators();
+    ActuatorSet& actuators = p_robot.actuators();
     for (std::size_t i = 0; i < actuators.size(); ++i)
     {
         auto* gripper = dynamic_cast<VacuumGripper*>(&actuators[i]);

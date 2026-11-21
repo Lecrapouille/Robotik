@@ -148,8 +148,12 @@ private:
 };
 
 /// Gripper named @p_name, or the first one when empty.
-[[nodiscard]] VacuumGripper* findGripper(Robot const& p_robot,
+[[nodiscard]] VacuumGripper* findGripper(Robot& p_robot,
                                          std::string const& p_name);
+
+/// @copydoc findGripper(Robot&, std::string const&), read only.
+[[nodiscard]] VacuumGripper const* findGripper(Robot const& p_robot,
+                                               std::string const& p_name);
 
 /// Id of the object the gripper @p_name holds, as the vacuum sensor
 /// reports it, or empty.

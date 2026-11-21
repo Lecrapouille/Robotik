@@ -946,7 +946,7 @@ void RoboticCell::reset(Seed p_seed)
 
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        ActuatorSet const& actuators = robot->actuators();
+        ActuatorSet& actuators = robot->actuators();
         for (std::size_t i = 0; i < actuators.size(); ++i)
         {
             if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
@@ -959,7 +959,7 @@ void RoboticCell::reset(Seed p_seed)
 
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        SensorSet const& sensors = robot->sensors();
+        SensorSet& sensors = robot->sensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             if (auto* camera = dynamic_cast<Camera*>(&sensors[i]))

@@ -26,6 +26,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace robotik
@@ -100,7 +101,13 @@ public:
     /// @param p_index Index in insertion order, below @ref size.
     /// @return The device.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Base& operator[](std::size_t p_index) const
+    [[nodiscard]] Base& operator[](std::size_t p_index)
+    {
+        return *m_devices[p_index];
+    }
+
+    /// @copydoc operator[](std::size_t)
+    [[nodiscard]] Base const& operator[](std::size_t p_index) const
     {
         return *m_devices[p_index];
     }
@@ -128,7 +135,13 @@ public:
     /// @param p_name Device name.
     /// @return The device, or null.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Base* find(std::string_view p_name) const
+    [[nodiscard]] Base* find(std::string_view p_name)
+    {
+        return const_cast<Base*>(std::as_const(*this).find(p_name));
+    }
+
+    /// @copydoc find(std::string_view)
+    [[nodiscard]] Base const* find(std::string_view p_name) const
     {
         for (auto const& device : m_devices)
         {
@@ -147,9 +160,16 @@ public:
     /// @return The device, or null when absent or of another type.
     // -------------------------------------------------------------------------
     template <std::derived_from<Base> T>
-    [[nodiscard]] T* find(std::string_view p_name) const
+    [[nodiscard]] T* find(std::string_view p_name)
     {
         return dynamic_cast<T*>(find(p_name));
+    }
+
+    /// @copydoc find(std::string_view)
+    template <std::derived_from<Base> T>
+    [[nodiscard]] T const* find(std::string_view p_name) const
+    {
+        return dynamic_cast<T const*>(find(p_name));
     }
 
     // -------------------------------------------------------------------------
@@ -158,11 +178,18 @@ public:
     /// @return The first device of type @p T, or null.
     // -------------------------------------------------------------------------
     template <std::derived_from<Base> T>
-    [[nodiscard]] T* first() const
+    [[nodiscard]] T* first()
+    {
+        return const_cast<T*>(std::as_const(*this).template first<T>());
+    }
+
+    /// @copydoc first()
+    template <std::derived_from<Base> T>
+    [[nodiscard]] T const* first() const
     {
         for (auto const& device : m_devices)
         {
-            if (auto* found = dynamic_cast<T*>(device.get()))
+            if (auto const* found = dynamic_cast<T const*>(device.get()))
             {
                 return found;
             }

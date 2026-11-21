@@ -44,7 +44,11 @@ namespace dual_arm
 teammate(robotik::RobotContext const& p_context, std::string_view p_id);
 
 /// First vacuum cup of @p_robot, or null.
-[[nodiscard]] robotik::VacuumGripper* cupOf(robotik::Robot const& p_robot);
+[[nodiscard]] robotik::VacuumGripper* cupOf(robotik::Robot& p_robot);
+
+/// @copydoc cupOf(robotik::Robot&), read only.
+[[nodiscard]] robotik::VacuumGripper const*
+cupOf(robotik::Robot const& p_robot);
 
 /// Id of the object the cup of @p_robot holds, as its vacuum sensor
 /// reports it, or empty.

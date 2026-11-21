@@ -57,7 +57,12 @@ robotik::Robot const* teammate(robotik::RobotContext const& p_context,
     return nullptr;
 }
 
-robotik::VacuumGripper* cupOf(robotik::Robot const& p_robot)
+robotik::VacuumGripper* cupOf(robotik::Robot& p_robot)
+{
+    return p_robot.actuators().first<robotik::VacuumGripper>();
+}
+
+robotik::VacuumGripper const* cupOf(robotik::Robot const& p_robot)
 {
     return p_robot.actuators().first<robotik::VacuumGripper>();
 }

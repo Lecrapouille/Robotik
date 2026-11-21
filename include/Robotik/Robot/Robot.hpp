@@ -282,7 +282,13 @@ public:
                       IkGoal p_goal = IkGoal::Whole) const;
 
     /// @return Analytical model (Pinocchio) for advanced queries.
-    [[nodiscard]] PinocchioBackend& kinematics() const
+    [[nodiscard]] PinocchioBackend& kinematics()
+    {
+        return *m_kinematics;
+    }
+
+    /// @return Analytical model (Pinocchio), read only.
+    [[nodiscard]] PinocchioBackend const& kinematics() const
     {
         return *m_kinematics;
     }
@@ -396,7 +402,13 @@ public:
     void connect(std::unique_ptr<RobotBackend> p_backend);
 
     /// @return Backend moving the robot, or null.
-    [[nodiscard]] RobotBackend* backend() const
+    [[nodiscard]] RobotBackend* backend()
+    {
+        return m_backend.get();
+    }
+
+    /// @return Backend moving the robot, read only, or null.
+    [[nodiscard]] RobotBackend const* backend() const
     {
         return m_backend.get();
     }

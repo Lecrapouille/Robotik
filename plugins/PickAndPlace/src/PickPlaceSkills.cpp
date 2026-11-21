@@ -93,7 +93,14 @@ tcpHeightOverOpenBox(compages::world::World& p_world,
            p_gripper.length();
 }
 
-VacuumGripper* findGripper(Robot const& p_robot, std::string const& p_name)
+VacuumGripper* findGripper(Robot& p_robot, std::string const& p_name)
+{
+    return p_name.empty() ? p_robot.actuators().first<VacuumGripper>()
+                          : p_robot.actuators().find<VacuumGripper>(p_name);
+}
+
+VacuumGripper const* findGripper(Robot const& p_robot,
+                                 std::string const& p_name)
 {
     return p_name.empty() ? p_robot.actuators().first<VacuumGripper>()
                           : p_robot.actuators().find<VacuumGripper>(p_name);

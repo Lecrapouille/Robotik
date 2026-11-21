@@ -22,8 +22,7 @@ std::vector<robotik::Camera*> robotCameras(App& p_app)
     {
         return cameras;
     }
-    robotik::SensorSet const& sensors =
-        p_app.simulation->cell().robot().sensors();
+    robotik::SensorSet& sensors = p_app.simulation->cell().robot().sensors();
     for (std::size_t i = 0; i < sensors.size(); ++i)
     {
         if (auto* camera = dynamic_cast<robotik::Camera*>(&sensors[i]))

@@ -414,7 +414,13 @@ public:
     }
 
     /// @return The planner controller, or null when the scenario has none.
-    [[nodiscard]] PlanExecutor* planner() const
+    [[nodiscard]] PlanExecutor* planner()
+    {
+        return m_executor.get();
+    }
+
+    /// @return The planner controller, read only (reports, panels).
+    [[nodiscard]] PlanExecutor const* planner() const
     {
         return m_executor.get();
     }
