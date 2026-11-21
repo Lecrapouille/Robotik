@@ -12,15 +12,10 @@
 #include "Robotik/Package/Scenario/PackagePath.hpp"
 
 #include <algorithm>
-#include <map>
 #include <numbers>
 
 namespace robotik
 {
-
-/// The robot flange and the tool link that lands on it (see Tools.md).
-static constexpr char const* FLANGE = "flange";
-static constexpr char const* TOOL_MOUNT = "tool_mount";
 
 /// A world error prefixed with the place it was found.
 static Failure fail(std::string const& p_where, std::string const& p_what)
@@ -472,43 +467,11 @@ static Result<EntitySpec> entity(std::string const& p_world,
     ROBOTIK_TRY(
         within(where, readEntity(spec, where, p_node, p_directory, p_assets)));
 
-    // --- Rules per type -----------------------------------------------------
-    switch (spec.type)
+    // A primitive body without a physics keyword falls freely.
+    if (spec.type == EntitySpec::Type::Body &&
+        spec.physics == EntitySpec::Physics::None)
     {
-        case EntitySpec::Type::Robot:
-        case EntitySpec::Type::Tool:
-            if (spec.model.empty())
-            {
-                return fail(where, "a robot or a tool needs a URDF model");
-            }
-            break;
-        case EntitySpec::Type::Body:
-            if (spec.physics == EntitySpec::Physics::None)
-            {
-                spec.physics = EntitySpec::Physics::Free;
-            }
-            if (spec.shape && spec.shape->type != ShapeSpec::Type::Box)
-            {
-                return fail(where, "a body shape must be a box");
-            }
-            if (spec.shape && spec.physics == EntitySpec::Physics::Fixed)
-            {
-                return fail(where, "a primitive body must be free");
-            }
-            break;
-        case EntitySpec::Type::Prop:
-            if (!spec.shape || spec.physics != EntitySpec::Physics::None)
-            {
-                return fail(where, "a prop is a shape without physics");
-            }
-            break;
-    }
-    if (spec.type != EntitySpec::Type::Robot &&
-        spec.type != EntitySpec::Type::Tool &&
-        (!spec.sensors.empty() || !spec.home.empty()))
-    {
-        return fail(where,
-                    "only robots and tools carry sensors or a home posture");
+        spec.physics = EntitySpec::Physics::Free;
     }
     return spec;
 }
@@ -545,121 +508,10 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
     {
         EntitySpec spec;
         ROBOTIK_TRY_ASSIGN(spec, entity(where, node, p_directory, p_assets));
-        if (findEntity(world, spec.id) != nullptr)
-        {
-            return fail(where, "entity '" + spec.id + "' is declared twice");
-        }
         world.entities.push_back(std::move(spec));
     }
-
-    // --- Relations
-    // ------------------------------------------------------------
-    std::vector<EntitySpec const*> const robots = robotsOf(world);
-    if (robots.empty())
-    {
-        return fail(where, "an entity of type robot is required");
-    }
-    std::map<std::string, int, std::less<>> mounted;
-    for (EntitySpec const& spec : world.entities)
-    {
-        if (!spec.attach)
-        {
-            continue;
-        }
-        std::string const entity = where + ", entity '" + spec.id + "'";
-        EntitySpec const* parent = findEntity(world, spec.attach->parent);
-        if (parent == nullptr || parent == &spec)
-        {
-            return fail(entity,
-                        "attach.parent '" + spec.attach->parent +
-                            "' is not another entity");
-        }
-        if (spec.type == EntitySpec::Type::Tool)
-        {
-            if (parent->type != EntitySpec::Type::Robot ||
-                spec.attach->parent_frame != FLANGE ||
-                spec.attach->frame != TOOL_MOUNT)
-            {
-                return fail(
-                    entity,
-                    "a tool attaches with { parent: <robot>.flange, frame: "
-                    "tool_mount }");
-            }
-            if (++mounted[parent->id] > 1)
-            {
-                return fail(where,
-                            "only one tool can be mounted on robot '" +
-                                parent->id + "'");
-            }
-        }
-        else if (spec.type == EntitySpec::Type::Robot)
-        {
-            return fail(entity, "a robot cannot be attached; give it a pose");
-        }
-        else if (!spec.attach->frame.empty())
-        {
-            return fail(entity,
-                        "only tools land a frame of their own on the parent");
-        }
-        else if (parent->type == EntitySpec::Type::Tool)
-        {
-            return fail(entity, "cannot attach to a tool");
-        }
-        else if (parent->attach && parent->type != EntitySpec::Type::Robot)
-        {
-            if (EntitySpec const* grand =
-                    findEntity(world, parent->attach->parent);
-                grand != nullptr && grand->attach)
-            {
-                return fail(entity, "attachments nest two levels at most");
-            }
-        }
-    }
-
-    // What a tool works on is another entity of the world.
-    for (EntitySpec const& spec : world.entities)
-    {
-        std::string const entity = where + ", entity '" + spec.id + "'";
-        if (!spec.touches.empty() && spec.type != EntitySpec::Type::Tool)
-        {
-            return fail(entity, "only a tool touches its workpieces");
-        }
-        for (std::string const& id : spec.touches)
-        {
-            if (findEntity(world, id) == nullptr || id == spec.id)
-            {
-                return fail(entity,
-                            "touches '" + id +
-                                "', which is not another entity");
-            }
-        }
-    }
-
-    // Robots share one resource manager: device names are unique in the world.
-    std::map<std::string, std::string, std::less<>> devices;
-    for (EntitySpec const& spec : world.entities)
-    {
-        std::vector<std::string> names;
-        for (ActuatorSpec const& actuator : spec.actuators)
-        {
-            names.push_back(actuator.name);
-        }
-        for (SensorSpec const& sensor : spec.sensors)
-        {
-            names.push_back(sensor.name);
-        }
-        for (std::string const& name : names)
-        {
-            auto const [found, inserted] = devices.emplace(name, spec.id);
-            if (!inserted && found->second != spec.id)
-            {
-                return fail(where,
-                            "device '" + name + "' is declared by '" +
-                                found->second + "' and by '" + spec.id +
-                                "': names are unique in the world");
-            }
-        }
-    }
+    // The rules shared with a description written in C++.
+    ROBOTIK_TRY(validate(world));
     return world;
 }
 

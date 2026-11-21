@@ -167,6 +167,8 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
       m_robots(
           [&]()
           {
+              // Before any robot: an empty world would leave no first one.
+              robotik::require(validate(m_description));
               WorldDescription const& world = m_description.world;
               std::vector<std::unique_ptr<RobotSession>> robots;
               for (EntitySpec const* spec : robotsOf(world))

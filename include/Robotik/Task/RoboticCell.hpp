@@ -129,7 +129,8 @@ public:
     /// @param p_description What to build.
     /// @param p_view Rendering hooks, or null for a headless run.
     /// @param p_logic Task plugin (skills, detectors, metrics); not owned.
-    /// @throws std::runtime_error when the cell cannot be built.
+    /// @throws std::runtime_error when the description breaks a rule of
+    ///   @ref validate (message of validate) or a model cannot be loaded.
     // -------------------------------------------------------------------------
     RoboticCell(compages::world::World& p_world,
                 RoboticCellDescription p_description,

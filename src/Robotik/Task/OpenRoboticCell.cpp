@@ -15,7 +15,9 @@ namespace robotik
 Result<OpenedRoboticCell> openRoboticCell(RoboticCellDescription p_description,
                                           ScenarioLogic* p_logic)
 {
-    // The border of this builder: whatever stops the cell becomes a message.
+    // A wrong description is a message, before anything is built.
+    ROBOTIK_TRY(validate(p_description));
+    // A model file that cannot be loaded still throws in the backends.
     try
     {
         OpenedRoboticCell opened;

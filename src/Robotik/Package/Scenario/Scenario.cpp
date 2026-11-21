@@ -237,28 +237,6 @@ static Result<void> readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
     return success();
 }
 
-/// Every override names an entity or an actuator of the world.
-static Result<void> checkPhysics(Scenario const& p_scenario)
-{
-    for (auto const& [id, level] : p_scenario.physics.overrides)
-    {
-        bool known = findEntity(p_scenario.world, id) != nullptr;
-        for (EntitySpec const& entity : p_scenario.world.entities)
-        {
-            for (ActuatorSpec const& actuator : entity.actuators)
-            {
-                known = known || actuator.name == id;
-            }
-        }
-        if (!known)
-        {
-            return failure("physics.overrides: '" + id +
-                           "' is no entity nor actuator of the world");
-        }
-    }
-    return success();
-}
-
 // ----------------------------------------------------------------------------
 /// Reads a perception level name.
 /// @param p_text "sensed", "noisy_truth" or "truth".
@@ -445,7 +423,7 @@ Result<Scenario> readScenario(ScenarioSource const& p_source,
     ROBOTIK_TRY_ASSIGN(scenario.world,
                        prefixed(p_source.world_file.string(),
                                 readWorld(world, root, p_assets)));
-    ROBOTIK_TRY(prefixed(where, checkPhysics(scenario)));
+    ROBOTIK_TRY(prefixed(where, validate(scenario)));
     return scenario;
 }
 

@@ -21,8 +21,10 @@
 /// - Promises: plain data and free functions; nothing here reads a file.
 /// - Expects: entity ids are unique in the world; a robot named by a device or
 ///   a skill exists.
-/// - Errors: @c mountTool returns a @c Result; building a @ref robotik::RoboticCell
-///   from a wrong description throws (see @ref robotik::RoboticCell).
+/// - Errors: @c validate and @c mountTool return a @c Result. The YAML
+///   readers and @c openRoboticCell call @c validate, so a wrong description
+///   is a message, not an abort; building a @ref robotik::RoboticCell from
+///   it directly throws that message.
 #pragma once
 
 #include "Robotik/Common/Config.hpp"
@@ -639,5 +641,40 @@ struct RoboticCellDescription
     /// models with it.
     AssetResolver assets;
 };
+
+// ----------------------------------------------------------------------------
+/// Checks the rules a world must follow before robots are built from it.
+///
+/// A world file and a description written in C++ follow the same rules, so
+/// both paths call this function: one robot at least; entity ids not empty,
+/// without '.', not repeated; a model for a robot or a tool; a box for a
+/// primitive body; a prop is a shape without physics; sensors and a home
+/// posture only on robots and tools; an attachment names another entity
+/// (a tool lands its tool_mount on the flange of a robot, one tool per
+/// robot, two levels of nesting at most); a tool touches other entities;
+/// device names are unique in the world (one resource manager).
+///
+/// @code
+/// robotik::WorldDescription world;   // no entity
+/// robotik::Result<void> const checked = robotik::validate(world);
+/// // checked.error() == "world: an entity of type robot is required"
+/// @endcode
+///
+/// It does not open the model files: a missing URDF is found when the robot
+/// is built. The id of the world is optional here (the file reader asks
+/// for it).
+/// @param p_world The world to check.
+/// @return Fails with the first broken rule, named by world and entity.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> validate(WorldDescription const& p_world);
+
+// ----------------------------------------------------------------------------
+/// Checks the world (see @ref validate(WorldDescription const&)) and that
+/// every physics override names an entity or an actuator of it.
+/// @param p_description The cell to check.
+/// @return Fails with the first broken rule.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void>
+validate(RoboticCellDescription const& p_description);
 
 } // namespace robotik
