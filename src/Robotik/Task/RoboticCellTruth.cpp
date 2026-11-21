@@ -132,11 +132,16 @@ Pose RoboticCell::framePose(Record const& p_record,
                 throw std::invalid_argument("prop '" + spec.id +
                                             "' has no frame '" + frame + "'");
             }
+            // Where the prop is now: a carried or pushed prop turns too.
             auto const at = p_record.entity.position();
+            auto const turn = p_record.entity.rotation();
             return { Vector3(static_cast<double>(at.x),
-                              static_cast<double>(at.y),
-                              static_cast<double>(at.z)),
-                     p_record.nominal.rotation };
+                             static_cast<double>(at.y),
+                             static_cast<double>(at.z)),
+                     Quaternion(static_cast<double>(turn.w),
+                                static_cast<double>(turn.x),
+                                static_cast<double>(turn.y),
+                                static_cast<double>(turn.z)) };
         }
         case EntitySpec::Type::Body:
             break;
