@@ -5,8 +5,8 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-// Two arms in one cell, planned by PDDL. The same mission runs both
-// conveyor scenarios: only planner.parallel differs. The tray scenario
+// Two arms in one cell, planned by PDDL. The same mission runs the three
+// conveyor scenarios: only the planner settings differ. The tray scenario
 // plans with durative actions.
 
 #include "ConveyorMission.hpp"
@@ -14,11 +14,8 @@
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
-#include <memory>
-#include <string_view>
-
 /// Loads the mission chosen by the scenario.
-class DualArmPlugin final: public robotik::Plugin
+class DualArmPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -27,35 +24,14 @@ public:
         return { .id = "robotik.dual_arm" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    DualArmPlugin()
+        : MissionPlugin(
+              { { "conveyor", robotik::mission<dual_arm::ConveyorMission>() },
+                { "conveyor_sequential", robotik::mission<dual_arm::ConveyorMission>() },
+                { "conveyor_pabt", robotik::mission<dual_arm::ConveyorMission>() },
+                { "tray", robotik::mission<dual_arm::TrayMission>() } })
     {
-        if (p_scenario == "conveyor" || p_scenario == "conveyor_sequential" ||
-            p_scenario == "conveyor_pabt")
-        {
-            m_mission = std::make_unique<dual_arm::ConveyorMission>();
-            p_host.bindMission(*m_mission);
-            return ROBOTIK_PLUGIN_OK;
-        }
-        if (p_scenario == "tray")
-        {
-            m_mission = std::make_unique<dual_arm::TrayMission>();
-            p_host.bindMission(*m_mission);
-            return ROBOTIK_PLUGIN_OK;
-        }
-        p_host.error("unknown dual arm scenario");
-        return ROBOTIK_PLUGIN_ERR_SETUP;
     }
-
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-private:
-
-    std::unique_ptr<robotik::Mission> m_mission;
 };
 
 ROBOTIK_EXPORT_PLUGIN(DualArmPlugin)

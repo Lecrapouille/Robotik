@@ -13,14 +13,13 @@
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
 
-#include <memory>
 #include <string>
 
 // ****************************************************************************
-/// The plugin: picks the mission of the chosen scenario, adds a menu
-/// item, a panel and a key binding. Everything else is optional.
+/// The plugin: one mission per scenario of plugin.yaml. The menu item, the
+/// panel and the key binding below are optional.
 // ****************************************************************************
-class HelloWorldPlugin final: public robotik::Plugin
+class HelloWorldPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -30,60 +29,36 @@ public:
         return { .id = "robotik.hello_world" };
     }
 
-    /// Called before the simulation exists: create the mission and hand it
-    /// to the host, which passes it to the simulation.
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    /// Scenario id (as in plugin.yaml) -> the mission it runs.
+    HelloWorldPlugin()
+        : MissionPlugin({ { "hello", robotik::mission<HelloMission>() },
+                          { "wave", robotik::mission<WaveMission>() },
+                          { "reach", robotik::mission<ReachMission>() },
+                          { "skills", robotik::mission<SkillsMission>() } })
     {
-        m_scenario = std::string(p_scenario);
-        m_updates = 0;
-        m_keys = 0;
-        m_homes = 0;
-        m_reach = nullptr;
-
-        if (p_scenario == "hello")
-        {
-            m_mission = std::make_unique<HelloMission>();
-        }
-        else if (p_scenario == "wave")
-        {
-            m_mission = std::make_unique<WaveMission>();
-        }
-        else if (p_scenario == "reach")
-        {
-            auto reach = std::make_unique<ReachMission>();
-            m_reach = reach.get();
-            m_mission = std::move(reach);
-        }
-        else if (p_scenario == "skills")
-        {
-            m_mission = std::make_unique<SkillsMission>();
-        }
-        else
-        {
-            p_host.error("unknown hello world scenario: " + m_scenario);
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-
-        p_host.bindMission(*m_mission);
-        p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
-        p_host.addMenuItem("Hello world", "Home", &onHome, this);
-        p_host.addPanel("hello_world", "Hello world", &onDraw, this);
-        m_host = p_host;
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    /// Called after each simulation step.
-    RobotikPluginStatus update(robotik::Host& /*p_host*/,
-                               double /*p_dt*/) override
+    /// Before the simulation exists. The base creates and binds the mission;
+    /// then a key binding, a menu item and a panel.
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
+    {
+        MissionPlugin::setup(p_host, p_scenario);
+        m_host = p_host;
+        m_updates = m_keys = m_homes = 0;
+        p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
+        p_host.addMenuItem("Hello world", "Home", [this] { home(); });
+        p_host.addPanel("hello_world", "Hello world",
+                        [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
+    }
+
+    /// After each simulation step.
+    void update(robotik::Host& /*p_host*/, robotik::Seconds /*p_dt*/) override
     {
         ++m_updates;
-        return ROBOTIK_PLUGIN_OK;
     }
 
     /// Only the events subscribed in setup arrive here.
-    RobotikPluginStatus onEvent(robotik::Host& /*p_host*/,
-                                RobotikEvent const& p_event) override
+    void onEvent(robotik::Host& /*p_host*/, RobotikEvent const& p_event) override
     {
         if (p_event.kind == ROBOTIK_EVENT_KEY_PRESSED)
         {
@@ -93,64 +68,39 @@ public:
                 home();
             }
         }
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-    /// The host already destroyed the simulation: free the mission.
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_reach = nullptr;
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-    /// Requests the built-in skill "Home". Missions that command the joints
-    /// at every step (wave, reach) overwrite it at the next step.
-    void home()
-    {
-        ++m_homes;
-        robotik::Simulation* simulation = m_host.simulation();
-        if (simulation == nullptr)
-        {
-            return;
-        }
-        robotik::SkillId const id = simulation->cell().skills().find("Home");
-        if (id != robotik::NO_SKILL)
-        {
-            simulation->cell().skills().request(id);
-        }
-    }
-
-    void draw(robotik::Canvas const& p_canvas) const
-    {
-        p_canvas.text("scenario " + m_scenario);
-        p_canvas.text("updates=" + std::to_string(m_updates) +
-                      " keys=" + std::to_string(m_keys) +
-                      " homes=" + std::to_string(m_homes));
-        if (m_reach != nullptr)
-        {
-            p_canvas.text("reach error " + std::to_string(m_reach->error()) +
-                          " m");
-        }
     }
 
 private:
 
-    // The host calls plain C functions: forward to the instance.
-    static void onHome(void* p_user)
+    /// Asks the scheduler to run the generic Home skill.
+    void home()
     {
-        static_cast<HelloWorldPlugin*>(p_user)->home();
+        ++m_homes;
+        if (robotik::Simulation* simulation = m_host.simulation())
+        {
+            robotik::SkillScheduler& skills = simulation->cell().skills();
+            if (robotik::SkillId const id = skills.find("Home"); id != robotik::NO_SKILL)
+            {
+                skills.request(id);
+            }
+        }
     }
 
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
+    /// Draws the counters of the plugin, and the reach error when it runs.
+    void draw(robotik::Canvas const& p_canvas) const
     {
-        static_cast<HelloWorldPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
+        p_canvas.text("scenario " + scenario());
+        p_canvas.text("updates=" + std::to_string(m_updates) +
+                      " keys=" + std::to_string(m_keys) +
+                      " homes=" + std::to_string(m_homes));
+        if (ReachMission const* reach = mission<ReachMission>())
+        {
+            p_canvas.text("reach error " + std::to_string(reach->error()) + " m");
+        }
     }
 
+    /// Kept to reach the simulation from the menu.
     robotik::Host m_host;
-    std::string m_scenario;
-    std::unique_ptr<robotik::Mission> m_mission;
-    ReachMission const* m_reach = nullptr;
     int m_updates = 0;
     int m_keys = 0;
     int m_homes = 0;

@@ -281,7 +281,8 @@ TEST(PluginSession, LifecycleKeepsTheLibraryAcrossScenarios)
     robotik::PluginHost host;
     ASSERT_EQ(manager.create(host.api()), ROBOTIK_PLUGIN_OK);
     EXPECT_EQ(manager.setup("broken"), ROBOTIK_PLUGIN_ERR_SETUP);
-    EXPECT_EQ(host.error(), "unknown hello world scenario: broken");
+    EXPECT_EQ(host.error(), "unknown scenario 'broken' (this plugin runs: "
+                            "hello, wave, reach, skills)");
     EXPECT_TRUE(host.menus().empty());
     manager.shutdown();
     manager.destroy();

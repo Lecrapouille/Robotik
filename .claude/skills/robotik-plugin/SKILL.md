@@ -47,23 +47,24 @@ public:
     [[nodiscard]] robotik::Status status(robotik::Cell const& p_cell) const override; // only used without BT
 };
 
-class MyPlugin final: public robotik::Plugin
+class MyPlugin final: public robotik::MissionPlugin   // one mission per scenario
 {
 public:
     static robotik::PluginInfo describe() { return { .id = "robotik.my" }; }
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    MyPlugin() : MissionPlugin({ { "main", robotik::mission<MyMission>() } }) {}
+    // Optional: menus, panels. Call the base first.
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
-        if (p_scenario != "main") { p_host.error("unknown scenario"); return ROBOTIK_PLUGIN_ERR_SETUP; }
-        m_mission = std::make_unique<MyMission>();
-        p_host.bindMission(*m_mission);              // mandatory to drive the simulation
-        return ROBOTIK_PLUGIN_OK;
+        MissionPlugin::setup(p_host, p_scenario);   // creates + binds; unknown id throws
+        p_host.addPanel("my", "My", [this](robotik::Canvas const& c) { c.text(scenario()); });
     }
-    RobotikPluginStatus shutdown(robotik::Host&) override { m_mission.reset(); return ROBOTIK_PLUGIN_OK; }
-private:
-    std::unique_ptr<MyMission> m_mission;
 };
 ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 ```
+
+Plugin methods return `void` and throw on error (caught at the C border:
+`ERR_SETUP` from setup, `ERR_RUNTIME` otherwise); `update` gets `Seconds`;
+`mission<T>()` gives the typed mission, `scenario()` its id.
 
 Lifecycle: manifest read → dlopen on scenario choice → `setup` (no
 simulation yet) → Simulation built (`Mission::setup`, `reset`) → `start` →
@@ -73,10 +74,10 @@ simulation yet) → Simulation built (`Mission::setup`, `reset`) → `start` →
 Host services: `bindMission`, `simulation()` (null before attach), `log`,
 `error`, `subscribe(ROBOTIK_EVENT_KEY_PRESSED | _SCENARIO_STARTED |
 _SCENARIO_STOPPED | _SKILL_COMPLETED | _SKILL_FAILED | _ASSERTION_CHANGED)`,
-`addMenuItem(menu, item, void(*)(void*), this)`,
-`addPanel(id, title, void(*)(void*, RobotikCanvas const*), this)`.
-Callbacks are static functions casting `user` back; wrap the canvas as
-`robotik::Canvas(p_canvas)` (`text`, `textColored`, `button`, `checkbox`,
+`addMenuItem(menu, item, [this] { ... })`,
+`addPanel(id, title, [this](robotik::Canvas const& c) { ... })`: lambdas,
+kept alive by `Host` on the plugin side; their exceptions are reported. The
+canvas (`text`, `textColored`, `button`, `checkbox`,
 `radio`, `sliderInt`, `separator`), valid only during the draw.
 
 ## Rules

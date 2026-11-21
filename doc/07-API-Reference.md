@@ -42,17 +42,42 @@ One umbrella header includes everything: `#include "Robotik/Robotik.hpp"`.
 Header: `Robotik/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border
 `Robotik/Package/Plugin/PluginABI.h`).
 
+### `robotik::MissionPlugin`
+
+The common base: one mission per scenario.
+
+```cpp
+class PainterPlugin final: public robotik::MissionPlugin
+{
+public:
+    static robotik::PluginInfo describe() { return { .id = "robotik.painter" }; }
+    PainterPlugin()
+        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
+                          { "painter_pddl", robotik::mission<PainterMission>(true) } }) {}
+};
+ROBOTIK_EXPORT_PLUGIN(PainterPlugin)
+```
+
+| Member | Does |
+|--------|------|
+| `MissionPlugin({ { id, factory }, ... })` | The mission of each scenario id of `plugin.yaml` |
+| `robotik::mission<T>(args...)` | A factory building `T(args...)` |
+| `setup(host, scenario)` | Creates and binds the mission; an unknown id throws (with the known ids). Override it and call `MissionPlugin::setup` first to add menus and panels |
+| `shutdown(host)` | Frees the mission |
+| `scenario()` | Id of the current scenario |
+| `mission<T>()` | The current mission as a `T`, or null |
+
 ### `robotik::Plugin`
 
-Base class of your plugin. Override only what you need; every method returns
-`ROBOTIK_PLUGIN_OK` by default.
+Base class of `MissionPlugin`, for a plugin that chooses its mission another
+way. Override only what you need; every method does nothing by default.
 
 | Method | Called |
 |--------|--------|
 | `static PluginInfo describe()` | Before the instance exists. Return `{ .id = "..." }`, the same id as `plugin.yaml` |
-| `RobotikPluginStatus setup(Host&, std::string_view scenario)` | Before the simulation exists. Create the mission, `bindMission`, menus, panels |
+| `setup(Host&, std::string_view scenario)` | Before the simulation exists. Create the mission, `bindMission`, menus, panels |
 | `start(Host&)` | The run starts |
-| `update(Host&, double dt)` | After each step (or instead of it with `host.clock: plugin`) |
+| `update(Host&, Seconds dt)` | After each step (or instead of it with `host.clock: plugin`) |
 | `onEvent(Host&, RobotikEvent const&)` | A subscribed event |
 | `pause(Host&, bool paused)` | Pause / Play |
 | `stop(Host&)` | End of the run; the simulation still exists |
@@ -60,9 +85,9 @@ Base class of your plugin. Override only what you need; every method returns
 
 Then, once, in one `.cpp` file: `ROBOTIK_EXPORT_PLUGIN(MyPlugin)`.
 
-Return codes: `ROBOTIK_PLUGIN_OK`, `ROBOTIK_PLUGIN_ERR_SETUP` (unknown
-scenario, bad configuration), `ROBOTIK_PLUGIN_ERR_RUNTIME` (also used when
-your method throws: the exception is caught and reported).
+A method that cannot go on throws. The exception is caught at the C border
+and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
+`setup`, `ROBOTIK_PLUGIN_ERR_RUNTIME` from the others.
 
 ### `robotik::Host`
 
@@ -72,8 +97,8 @@ your method throws: the exception is caught and reported).
 | `Simulation* simulation()` | The running simulation, or null |
 | `log(level, text)`, `error(text)` | Messages. Levels `ROBOTIK_LOG_INFO / _WARNING / _ERROR` |
 | `subscribe(RobotikEventKind)` | Receive this kind of event |
-| `addMenuItem(menu, item, void(*)(void*), void* user)` | Simulator menu entry; returns a handle |
-| `addPanel(id, title, void(*)(void*, RobotikCanvas const*), void* user)` | Simulator panel; returns a handle |
+| `addMenuItem(menu, item, std::function<void()>)` | Simulator menu entry; returns a handle |
+| `addPanel(id, title, std::function<void(Canvas const&)>)` | Simulator panel; returns a handle |
 | `removeUi(handle)` | Remove a menu entry or a panel |
 | `scenarioPath()` | Path of the scenario file |
 

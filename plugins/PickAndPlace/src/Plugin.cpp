@@ -15,13 +15,11 @@
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
 
-#include <memory>
 #include <sstream>
 #include <string>
-#include <string_view>
 
 /// Loads the pick-and-place mission chosen by the scenario.
-class PickPlacePlugin final: public robotik::Plugin
+class PickPlacePlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -30,89 +28,73 @@ public:
         return { .id = "robotik.pick_and_place" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    PickPlacePlugin()
+        : MissionPlugin(
+              { { "pick_and_place", robotik::mission<PickPlaceMission>(true) },
+                { "pick_and_place_faults", robotik::mission<PickPlaceMission>(true) },
+                { "pick_and_place_pddl", robotik::mission<PickPlaceMission>(true, true) },
+                { "pick_and_place_pddl_faults", robotik::mission<PickPlaceMission>(true, true) },
+                { "pick_and_place_pabt", robotik::mission<PickPlaceMission>(true, true) },
+                { "pick_and_place_pabt_faults", robotik::mission<PickPlaceMission>(true, true) },
+                { "pick_and_place_rl", robotik::mission<RlMission>() } })
     {
+    }
+
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
+    {
+        MissionPlugin::setup(p_host, p_scenario);
         m_host = p_host;
-        m_tree.reset();
-        m_rl.reset();
-        if (p_scenario == "pick_and_place" ||
-            p_scenario == "pick_and_place_faults")
+        if (mission<RlMission>() != nullptr)
         {
-            m_tree = std::make_unique<PickPlaceMission>(true);
-            p_host.bindMission(*m_tree);
-            return ROBOTIK_PLUGIN_OK;
+            p_host.addPanel("rl", "RL",
+                            [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
         }
-        if (p_scenario == "pick_and_place_pddl" ||
-            p_scenario == "pick_and_place_pddl_faults" ||
-            p_scenario == "pick_and_place_pabt" ||
-            p_scenario == "pick_and_place_pabt_faults")
-        {
-            m_tree = std::make_unique<PickPlaceMission>(true, true);
-            p_host.bindMission(*m_tree);
-            return ROBOTIK_PLUGIN_OK;
-        }
-        if (p_scenario == "pick_and_place_rl")
-        {
-            m_rl = std::make_unique<RlMission>();
-            p_host.bindMission(*m_rl);
-            p_host.addPanel("rl", "RL", &onDraw, this);
-            return ROBOTIK_PLUGIN_OK;
-        }
-        p_host.error("unknown pick-and-place scenario");
-        return ROBOTIK_PLUGIN_ERR_SETUP;
     }
 
     /// The RL scenario owns the clock (plugin.yaml): one policy action per
     /// update. The behavior tree scenarios are stepped by the simulation.
-    RobotikPluginStatus update(robotik::Host& p_host, double p_dt) override
+    void update(robotik::Host& p_host, robotik::Seconds p_dt) override
     {
-        if (m_rl == nullptr)
+        RlMission* rl = mission<RlMission>();
+        robotik::Simulation* simulation = p_host.simulation();
+        if (rl != nullptr && simulation != nullptr)
         {
-            return ROBOTIK_PLUGIN_OK;
+            rl->act(simulation->cell(), p_dt.value());
         }
-        if (robotik::Simulation* simulation = p_host.simulation())
-        {
-            m_rl->act(simulation->cell(), p_dt);
-        }
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_tree.reset();
-        m_rl.reset();
-        return ROBOTIK_PLUGIN_OK;
-    }
+private:
 
+    /// The policy, its switches and the score of the episode.
     void draw(robotik::Canvas const& p_canvas)
     {
-        if (m_rl == nullptr)
+        RlMission* rl = mission<RlMission>();
+        if (rl == nullptr)
         {
             p_canvas.text("Pick and place RL");
             return;
         }
         p_canvas.text("Converged completes the pick. Random converts toward "
                       "that recipe.");
-        if (p_canvas.checkbox("Converged", m_rl->converged) && m_rl->converged)
+        if (p_canvas.checkbox("Converged", rl->converged) && rl->converged)
         {
-            m_rl->mix = 1.0F;
+            rl->mix = 1.0F;
         }
-        bool random = !m_rl->converged;
+        bool random = !rl->converged;
         if (p_canvas.checkbox("Random", random))
         {
-            m_rl->converged = !random;
+            rl->converged = !random;
             if (random)
             {
-                m_rl->mix = 0.0F;
+                rl->mix = 0.0F;
             }
         }
         std::ostringstream mix;
-        mix << (m_rl->converged ? "converged" : "random to converged")
-            << "  mix " << m_rl->mix;
+        mix << (rl->converged ? "converged" : "random to converged")
+            << "  mix " << rl->mix;
         p_canvas.text(mix.str());
-        (void)p_canvas.checkbox("Repeat episodes", m_rl->repeat);
-        (void)p_canvas.sliderInt("Max steps", m_rl->max_steps, 40, 200);
+        (void)p_canvas.checkbox("Repeat episodes", rl->repeat);
+        (void)p_canvas.sliderInt("Max steps", rl->max_steps, 40, 200);
         if (p_canvas.button("New episode"))
         {
             if (robotik::Simulation* simulation = m_host.simulation())
@@ -122,16 +104,16 @@ public:
             }
         }
         p_canvas.separator();
-        p_canvas.text(std::string("Phase ") + policyPhase(m_rl->observation));
+        p_canvas.text(std::string("Phase ") + policyPhase(rl->observation));
         std::ostringstream score;
-        score << "Return " << m_rl->episode_return << "   steps " << m_rl->steps
-              << " / " << m_rl->max_steps;
+        score << "Return " << rl->episode_return << "   steps " << rl->steps
+              << " / " << rl->max_steps;
         p_canvas.text(score.str());
         std::ostringstream tally;
-        tally << m_rl->delivered << " delivered / " << m_rl->failed
+        tally << rl->delivered << " delivered / " << rl->failed
               << " failed";
         p_canvas.text(tally.str());
-        if (!m_rl->ready)
+        if (!rl->ready)
         {
             p_canvas.textColored(
                 0.90F,
@@ -139,12 +121,12 @@ public:
                 0.25F,
                 "Needs an arm joint group and a vacuum gripper");
         }
-        else if (m_rl->success)
+        else if (rl->success)
         {
             p_canvas.textColored(
                 0.35F, 0.85F, 0.40F, "Delivered — cube is in the box");
         }
-        else if (m_rl->done)
+        else if (rl->done)
         {
             p_canvas.textColored(
                 0.90F, 0.25F, 0.25F, "Truncated — out of steps");
@@ -155,16 +137,8 @@ public:
         }
     }
 
-private:
-
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
-    {
-        static_cast<PickPlacePlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
-    }
-
+    /// Kept to start a new episode from the panel.
     robotik::Host m_host;
-    std::unique_ptr<PickPlaceMission> m_tree;
-    std::unique_ptr<RlMission> m_rl;
 };
 
 ROBOTIK_EXPORT_PLUGIN(PickPlacePlugin)

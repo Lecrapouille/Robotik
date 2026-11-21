@@ -9,11 +9,9 @@
 
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 
-#include <memory>
-#include <string_view>
-
-/// Loads the painter mission.
-class PainterPlugin final: public robotik::Plugin
+/// The painter mission; the planned scenarios let the planner choose the
+/// order of the layers.
+class PainterPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -22,31 +20,12 @@ public:
         return { .id = "robotik.painter" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    PainterPlugin()
+        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
+                          { "painter_pddl", robotik::mission<PainterMission>(true) },
+                          { "painter_pabt", robotik::mission<PainterMission>(true) } })
     {
-        m_mission.reset();
-        bool const planned =
-            p_scenario == "painter_pddl" || p_scenario == "painter_pabt";
-        if (p_scenario != "painter" && !planned)
-        {
-            p_host.error("unknown painter scenario");
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-        m_mission = std::make_unique<PainterMission>(planned);
-        p_host.bindMission(*m_mission);
-        return ROBOTIK_PLUGIN_OK;
     }
-
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-private:
-
-    std::unique_ptr<PainterMission> m_mission;
 };
 
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)

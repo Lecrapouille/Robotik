@@ -18,7 +18,7 @@
 #include <string>
 
 /// Loads the fly mission and its view.
-class FlyPlugin final: public robotik::Plugin
+class FlyPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -27,29 +27,25 @@ public:
         return { .id = "robotik.fly" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    FlyPlugin()
+        : MissionPlugin({ { "fly_obstacle_avoidance", robotik::mission<FlyMission>() } })
     {
-        if (p_scenario != "fly_obstacle_avoidance")
-        {
-            p_host.error("unknown fly scenario");
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-        m_mission = std::make_unique<FlyMission>();
-        m_error.clear();
-        p_host.bindMission(*m_mission);
-        p_host.addPanel("fly", "Fly brain", &onDraw, this);
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    RobotikPluginStatus update(robotik::Host& /*p_host*/,
-                               double /*p_dt*/) override
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
+    {
+        MissionPlugin::setup(p_host, p_scenario);
+        m_error.clear();
+        p_host.addPanel("fly", "Fly brain",
+                        [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
+    }
+
+    void update(robotik::Host& /*p_host*/, robotik::Seconds /*p_dt*/) override
     {
         poll();
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
+    void shutdown(robotik::Host& p_host) override
     {
         // A load in progress finishes first; its brain is dropped.
         if (m_loading.valid())
@@ -57,15 +53,14 @@ public:
             m_loading.wait();
             m_loading = {};
         }
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
+        MissionPlugin::shutdown(p_host);
     }
 
     void draw(robotik::Canvas const& p_canvas)
     {
-        FlyEnvironment const* environment =
-            m_mission ? m_mission->environment() : nullptr;
-        FlyBrain const* brain = m_mission ? m_mission->brain() : nullptr;
+        FlyMission* fly = mission<FlyMission>();
+        FlyEnvironment const* environment = fly ? fly->environment() : nullptr;
+        FlyBrain const* brain = fly ? fly->brain() : nullptr;
         if (environment == nullptr || brain == nullptr)
         {
             p_canvas.text("Fly brain");
@@ -85,7 +80,7 @@ public:
         {
             p_canvas.text(state.str());
         }
-        FlyAction const& action = m_mission->action();
+        FlyAction const& action = fly->action();
         std::ostringstream decided;
         decided << std::fixed << std::setprecision(2) << "Decision  forward "
                 << action.forward << "   turn " << action.turn << "   lift "
@@ -112,7 +107,7 @@ private:
         }
         try
         {
-            m_mission->installBrain(m_loading.get());
+            mission<FlyMission>()->installBrain(m_loading.get());
             m_error.clear();
         }
         catch (std::exception const& error)
@@ -133,8 +128,8 @@ private:
         m_loading = std::async(std::launch::async,
                                &FlyMission::buildBrain,
                                p_connectome,
-                               m_mission->cruise(),
-                               m_mission->tables());
+                               mission<FlyMission>()->cruise(),
+                               mission<FlyMission>()->tables());
     }
 
     void brainChoice(robotik::Canvas const& p_canvas, FlyBrain const& p_brain)
@@ -182,12 +177,6 @@ private:
         }
     }
 
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
-    {
-        static_cast<FlyPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
-    }
-
-    std::unique_ptr<FlyMission> m_mission;
     std::string m_error;
     std::future<std::unique_ptr<FlyBrain>> m_loading;
     bool m_target = false;

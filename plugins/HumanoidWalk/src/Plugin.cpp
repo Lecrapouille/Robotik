@@ -10,12 +10,11 @@
 #include "Robotik/Package/Plugin/PluginAPI.hpp"
 #include "Robotik/Package/Simulation.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <memory>
 #include <numbers>
 #include <string>
-#include <string_view>
 
 /// Largest host time simulated in one update (s): a slow frame does not pile
 /// up a lag the simulation never catches up.
@@ -35,7 +34,7 @@ static std::string format(char const* p_format, double p_a, double p_b = 0.0)
 /// training, whatever the host rate, so the policy runs at its own rate.
 /// Its panel changes the walk command while the robot walks.
 // ****************************************************************************
-class HumanoidWalkPlugin final: public robotik::Plugin
+class HumanoidWalkPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -44,30 +43,29 @@ public:
         return { .id = "robotik.humanoid_walk" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    HumanoidWalkPlugin()
+        : MissionPlugin({ { "walk", robotik::mission<WalkMission>() },
+                          { "walk_circle", robotik::mission<WalkMission>() } })
     {
-        m_mission.reset();
-        if (p_scenario != "walk" && p_scenario != "walk_circle")
-        {
-            p_host.error("unknown humanoid scenario");
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-        m_mission = std::make_unique<WalkMission>();
-        p_host.bindMission(*m_mission);
-        p_host.addPanel("humanoid", "Humanoid", &onDraw, this);
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    RobotikPluginStatus update(robotik::Host& p_host, double p_dt) override
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
+    {
+        MissionPlugin::setup(p_host, p_scenario);
+        m_lag = 0.0;
+        p_host.addPanel("humanoid", "Humanoid",
+                        [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
+    }
+
+    void update(robotik::Host& p_host, robotik::Seconds p_dt) override
     {
         robotik::Simulation* simulation = p_host.simulation();
-        if (m_mission == nullptr || simulation == nullptr)
+        if (mission() == nullptr || simulation == nullptr)
         {
-            return ROBOTIK_PLUGIN_OK;
+            return;
         }
         robotik::Seconds const step = WalkMission::physicsStep();
-        m_lag = std::min(m_lag + p_dt, MAX_LAG_S);
+        m_lag = std::min(m_lag + p_dt.value(), MAX_LAG_S);
         // The physics goes on after the end of the run, so the simulator
         // shows what follows a failure (a robot without IMU falls). The
         // verdict is already frozen; the headless host stops at the end.
@@ -77,31 +75,20 @@ public:
             simulation->step(step);
             m_lag -= step.value();
         }
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
     }
 
 private:
 
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
-    {
-        static_cast<HumanoidWalkPlugin*>(p_user)->draw(
-            robotik::Canvas(p_canvas));
-    }
-
+    /// The walk command, and how the robot follows it.
     void draw(robotik::Canvas const& p_canvas)
     {
-        if (m_mission == nullptr)
+        WalkMission* walk = mission<WalkMission>();
+        if (walk == nullptr)
         {
             return;
         }
         // Sliders speak cm/s and deg/s; the command is SI.
-        std::array<double, 3>& command = m_mission->command();
+        std::array<double, 3>& command = walk->command();
         constexpr double DEG = 180.0 / std::numbers::pi;
         int vx = static_cast<int>(std::lround(command[0] * 100.0));
         int vy = static_cast<int>(std::lround(command[1] * 100.0));
@@ -126,22 +113,21 @@ private:
         p_canvas.separator();
         p_canvas.text(format(
             "Path radius %.2f m (commanded %.2f m, exact after one turn)",
-            m_mission->radius(),
-            m_mission->commandedRadius()));
+            walk->radius(),
+            walk->commandedRadius()));
         p_canvas.text(format("Turns %.2f   distance %.1f m",
-                             m_mission->turns(),
-                             m_mission->distance()));
-        if (m_mission->height() < 0.6)
+                             walk->turns(),
+                             walk->distance()));
+        if (walk->height() < 0.6)
         {
             p_canvas.textColored(0.90F, 0.25F, 0.25F, "The robot fell: Replay");
         }
         else
         {
-            p_canvas.text(format("Pelvis height %.2f m", m_mission->height()));
+            p_canvas.text(format("Pelvis height %.2f m", walk->height()));
         }
     }
 
-    std::unique_ptr<WalkMission> m_mission;
     /// Host time not yet simulated (s).
     double m_lag = 0.0;
 };

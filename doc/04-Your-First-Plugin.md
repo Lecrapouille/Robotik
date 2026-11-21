@@ -357,67 +357,52 @@ Skills, resources, priorities, faults and trees are explained in
 
 ## 6. The plugin class
 
-`src/Plugin.cpp` is the entry point. Here is the essential part:
+`src/Plugin.cpp` is the entry point. Most plugins only say which mission
+runs each scenario. This is all the Painter needs:
 
 ```cpp
-class HelloWorldPlugin final: public robotik::Plugin
+class PainterPlugin final: public robotik::MissionPlugin
 {
 public:
 
     // The id must match plugin.id in plugin.yaml.
     static robotik::PluginInfo describe()
     {
-        return { .id = "robotik.hello_world" };
+        return { .id = "robotik.painter" };
     }
 
-    // Called before the simulation exists: create the mission and give it
-    // to the host, which passes it to the simulation.
-    RobotikPluginStatus setup(robotik::Host& p_host, std::string_view p_scenario) override
+    // Scenario id (as in plugin.yaml) -> the mission it runs.
+    PainterPlugin()
+        : MissionPlugin({ { "painter", robotik::mission<PainterMission>(false) },
+                          { "painter_pddl", robotik::mission<PainterMission>(true) },
+                          { "painter_pabt", robotik::mission<PainterMission>(true) } })
     {
-        if (p_scenario == "hello")
-        {
-            m_mission = std::make_unique<HelloMission>();
-        }
-        else if (p_scenario == "wave")
-        {
-            m_mission = std::make_unique<WaveMission>();
-        }
-        // ... reach, skills ...
-        else
-        {
-            p_host.error("unknown hello world scenario: " + std::string(p_scenario));
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-
-        p_host.bindMission(*m_mission);
-        p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
-        p_host.addMenuItem("Hello world", "Home", &onHome, this);
-        p_host.addPanel("hello_world", "Hello world", &onDraw, this);
-        m_host = p_host;
-        return ROBOTIK_PLUGIN_OK;
     }
-
-    // The host already destroyed the simulation: free the mission.
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-    // ...
-
-private:
-
-    std::unique_ptr<robotik::Mission> m_mission;
 };
 
-} // namespace
-
-ROBOTIK_EXPORT_PLUGIN(HelloWorldPlugin)     // exports the C functions the host looks for
+ROBOTIK_EXPORT_PLUGIN(PainterPlugin)     // exports the C functions the host looks for
 ```
 
-`setup` receives the **id of the scenario** (the `id` in `plugin.yaml`). One
-plugin, one library, many scenarios: `setup` chooses the mission.
+`robotik::mission<T>(args...)` builds a `T` with these arguments when the
+scenario starts. `MissionPlugin` creates the mission, gives it to the
+simulation, and frees it at the end. An id that is not in the table stops the
+setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl,
+painter_pabt)`. One plugin, one library, many scenarios.
+
+HelloWorld adds a key binding, a menu item and a panel. It calls
+`MissionPlugin::setup` first, then uses the host:
+
+```cpp
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
+    {
+        MissionPlugin::setup(p_host, p_scenario);
+        m_host = p_host;
+        p_host.subscribe(ROBOTIK_EVENT_KEY_PRESSED);
+        p_host.addMenuItem("Hello world", "Home", [this] { home(); });
+        p_host.addPanel("hello_world", "Hello world",
+                        [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
+    }
+```
 
 ### Lifecycle
 
@@ -428,7 +413,7 @@ plugin.yaml read          the host checks api_version, packs, dependencies
 dlopen(.so)               only when a scenario of this plugin is chosen
       │
       ▼
-setup(scenario id)        create the Mission, bindMission, menus, panels
+setup(scenario id)        create the Mission (MissionPlugin), menus, panels
       │
       ▼
 Simulation built          from the world + scenario; Mission::setup, Mission::reset
@@ -447,18 +432,20 @@ shutdown                  the simulation is destroyed: free the mission
                           (the .so can stay loaded for the next scenario)
 ```
 
-| `Plugin` method | When | Default |
-|-----------------|------|---------|
-| `setup(host, scenario)` | Prepare the mission, subscriptions, menu and panel | OK |
-| `start(host)` | The run starts | OK |
-| `update(host, dt)` | After each step (or *instead of* the step with `host.clock: plugin`) | OK |
-| `onEvent(host, event)` | A subscribed event arrives | OK |
-| `pause(host, paused)` | The user pressed Pause / Play | OK |
-| `stop(host)` | End of the run; the simulation still exists | OK |
-| `shutdown(host)` | Free the mission; the simulation is already destroyed | OK |
+| `Plugin` method | When |
+|-----------------|------|
+| `setup(host, scenario)` | Prepare the mission, subscriptions, menu and panel |
+| `start(host)` | The run starts |
+| `update(host, dt)` | After each step (or *instead of* the step with `host.clock: plugin`); `dt` is a `robotik::Seconds` |
+| `onEvent(host, event)` | A subscribed event arrives |
+| `pause(host, paused)` | The user pressed Pause / Play |
+| `stop(host)` | End of the run; the simulation still exists |
+| `shutdown(host)` | Free the mission; the simulation is already destroyed (`MissionPlugin` does it) |
 
-Override only what you need. Exceptions thrown by these methods are caught at
-the plugin border and reported as errors: they do not crash the host.
+Override only what you need; each method does nothing by default. When a
+method cannot go on, it throws. The exception stops at the plugin border:
+the user sees its message, and the host gets an error status
+(`ROBOTIK_PLUGIN_ERR_SETUP` from `setup`). It does not crash the host.
 
 ### Host services
 
@@ -468,8 +455,8 @@ the plugin border and reported as errors: they do not crash the host.
 | `simulation()` | The running `Simulation*`, or null before it exists |
 | `log(level, text)` / `error(text)` | Messages (`ROBOTIK_LOG_INFO`, `_WARNING`, `_ERROR`) |
 | `subscribe(kind)` | Receive one kind of event in `onEvent` |
-| `addMenuItem(menu, item, callback, user)` | A menu entry in the simulator |
-| `addPanel(id, title, draw, user)` | A panel in the simulator |
+| `addMenuItem(menu, item, action)` | A menu entry in the simulator; `action` is a lambda |
+| `addPanel(id, title, draw)` | A panel in the simulator; `draw` receives a `robotik::Canvas` |
 | `removeUi(handle)` | Remove a menu entry or a panel |
 | `scenarioPath()` | The path of the scenario file |
 
@@ -479,29 +466,28 @@ Events (`RobotikEvent::kind`): `ROBOTIK_EVENT_KEY_PRESSED` (`code` = key),
 
 ### Menus and panels
 
-The host calls plain C functions (the border between the host and the
-plugin is C, so that compilers and versions can differ). The pattern is
-always: a `static` function that casts `user` back to your object.
+The border between the host and the plugin is C, so that compilers and
+versions can differ. `Host` keeps your lambdas alive on the plugin side and
+gives the host C functions: you write `[this] { home(); }`. An exception in a
+lambda is reported to the user, like an exception in a plugin method.
 
 ```cpp
-    static void onHome(void* p_user)
-    {
-        static_cast<HelloWorldPlugin*>(p_user)->home();
-    }
-
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
-    {
-        static_cast<HelloWorldPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
-    }
-
     void draw(robotik::Canvas const& p_canvas) const
     {
-        p_canvas.text("scenario " + m_scenario);
+        p_canvas.text("scenario " + scenario());
         p_canvas.text("updates=" + std::to_string(m_updates) +
                       " keys=" + std::to_string(m_keys) +
                       " homes=" + std::to_string(m_homes));
+        if (ReachMission const* reach = mission<ReachMission>())
+        {
+            p_canvas.text("reach error " + std::to_string(reach->error()) + " m");
+        }
     }
 ```
+
+`scenario()` and `mission<T>()` come from `MissionPlugin`: the id of the
+scenario, and the mission as a `T` (null when the scenario runs another
+mission).
 
 `Canvas` offers `text`, `textColored`, `button`, `checkbox`, `radio`,
 `sliderInt` and `separator`. It is valid **only during the draw call**: never keep it.
@@ -512,15 +498,14 @@ simulation to run the built-in skill `Home`:
 ```cpp
     void home()
     {
-        robotik::Simulation* simulation = m_host.simulation();
-        if (simulation == nullptr)
+        ++m_homes;
+        if (robotik::Simulation* simulation = m_host.simulation())
         {
-            return;
-        }
-        robotik::SkillId const id = simulation->skills().find("Home");
-        if (id != robotik::NO_SKILL)
-        {
-            simulation->skills().request(id);
+            robotik::SkillScheduler& skills = simulation->cell().skills();
+            if (robotik::SkillId const id = skills.find("Home"); id != robotik::NO_SKILL)
+            {
+                skills.request(id);
+            }
         }
     }
 ```
@@ -562,7 +547,7 @@ plugin.yaml  plugin.id: robotik.my_robot
 Plugin.cpp   describe() { .id = "robotik.my_robot" }          (same id)
 plugin.yaml  scenarios.entries[].id: patrol
                                     │
-Plugin.cpp   setup(host, "patrol")                            (same scenario id)
+Plugin.cpp   { "patrol", robotik::mission<PatrolMission>() }  (same scenario id)
 ```
 
 **Step 3. Keep one scenario and one mission.** For example, delete the
@@ -597,7 +582,7 @@ cat data/packs/*/pack.yaml
 | Message | Cause |
 |---------|-------|
 | `scenario is not in a plugin package` | The file is not listed in `plugin.yaml`, or you ran a file outside `build/linux-gcc-debug/lib/robotik/plugins/` and `plugins/` |
-| `unknown ... scenario: X` | `setup` does not know the scenario id `X` |
+| `unknown scenario 'X' (this plugin runs: ...)` | The mission table of `Plugin.cpp` has no entry `X` |
 | `plugin id does not match plugin.yaml` | `describe().id` differs from `plugin.id` |
 | `built for plugin API 99 ...` | `api_version` in `plugin.yaml` differs from the host ABI (`1`) |
 | `plugin library not found: ...` | `library.entrypoint` differs from the `.so` built by the target (`lib` + its name + `.so`), or the plugin was not built |

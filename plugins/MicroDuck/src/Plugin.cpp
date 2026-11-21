@@ -13,10 +13,8 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
-#include <memory>
 #include <numbers>
 #include <string>
-#include <string_view>
 
 /// Largest host time simulated in one update (s): a slow frame does not pile
 /// up a lag the simulation never catches up.
@@ -38,7 +36,7 @@ static std::string format(char const* p_format, double p_value)
 /// training, whatever the host rate, so the policy runs at 50 Hz.
 /// Its panel changes the walk command while the duck walks.
 // ****************************************************************************
-class MicroDuckPlugin final: public robotik::Plugin
+class MicroDuckPlugin final: public robotik::MissionPlugin
 {
 public:
 
@@ -47,31 +45,31 @@ public:
         return { .id = "robotik.microduck" };
     }
 
-    RobotikPluginStatus setup(robotik::Host& p_host,
-                              std::string_view p_scenario) override
+    MicroDuckPlugin()
+        : MissionPlugin({ { "drive", robotik::mission<DuckMission>() },
+                          { "tour", robotik::mission<DuckMission>() },
+                          { "walk_forward", robotik::mission<DuckMission>() } })
     {
-        m_mission.reset();
-        if (p_scenario != "drive" && p_scenario != "tour" &&
-            p_scenario != "walk_forward")
-        {
-            p_host.error("unknown microduck scenario");
-            return ROBOTIK_PLUGIN_ERR_SETUP;
-        }
-        m_mission = std::make_unique<DuckMission>();
-        p_host.bindMission(*m_mission);
-        p_host.addPanel("microduck", "Micro Duck", &onDraw, this);
-        return ROBOTIK_PLUGIN_OK;
     }
 
-    RobotikPluginStatus update(robotik::Host& p_host, double p_dt) override
+    void setup(robotik::Host& p_host, std::string_view p_scenario) override
     {
+        MissionPlugin::setup(p_host, p_scenario);
+        m_lag = 0.0;
+        p_host.addPanel("microduck", "Micro Duck",
+                        [this](robotik::Canvas const& p_canvas) { draw(p_canvas); });
+    }
+
+    void update(robotik::Host& p_host, robotik::Seconds p_dt) override
+    {
+        DuckMission* duck = mission<DuckMission>();
         robotik::Simulation* simulation = p_host.simulation();
-        if (m_mission == nullptr || simulation == nullptr)
+        if (duck == nullptr || simulation == nullptr)
         {
-            return ROBOTIK_PLUGIN_OK;
+            return;
         }
-        robotik::Seconds const step = m_mission->physicsStep();
-        m_lag = std::min(m_lag + p_dt, MAX_LAG_S);
+        robotik::Seconds const step = duck->physicsStep();
+        m_lag = std::min(m_lag + p_dt.value(), MAX_LAG_S);
         // The physics goes on after the end of the run, so the simulator
         // shows a fall. The verdict is already frozen; the headless host
         // stops at the end.
@@ -80,30 +78,20 @@ public:
             simulation->step(step);
             m_lag -= step.value();
         }
-        return ROBOTIK_PLUGIN_OK;
-    }
-
-    RobotikPluginStatus shutdown(robotik::Host& /*p_host*/) override
-    {
-        m_mission.reset();
-        return ROBOTIK_PLUGIN_OK;
     }
 
 private:
 
-    static void onDraw(void* p_user, RobotikCanvas const* p_canvas)
-    {
-        static_cast<MicroDuckPlugin*>(p_user)->draw(robotik::Canvas(p_canvas));
-    }
-
+    /// The walk command, and how far the duck went.
     void draw(robotik::Canvas const& p_canvas)
     {
-        if (m_mission == nullptr)
+        DuckMission* duck = mission<DuckMission>();
+        if (duck == nullptr)
         {
             return;
         }
         // Sliders speak cm/s and deg/s; the command is SI.
-        std::array<double, 3>& command = m_mission->command();
+        std::array<double, 3>& command = duck->command();
         constexpr double DEG = 180.0 / std::numbers::pi;
         int vx = static_cast<int>(std::lround(command[0] * 100.0));
         int vy = static_cast<int>(std::lround(command[1] * 100.0));
@@ -126,18 +114,17 @@ private:
             command = {};
         }
         p_canvas.separator();
-        p_canvas.text(format("Distance %.2f m", m_mission->distance()));
-        if (m_mission->height() < FALLEN_HEIGHT_M)
+        p_canvas.text(format("Distance %.2f m", duck->distance()));
+        if (duck->height() < FALLEN_HEIGHT_M)
         {
             p_canvas.textColored(0.90F, 0.25F, 0.25F, "The duck fell: Replay");
         }
         else
         {
-            p_canvas.text(format("Trunk height %.3f m", m_mission->height()));
+            p_canvas.text(format("Trunk height %.3f m", duck->height()));
         }
     }
 
-    std::unique_ptr<DuckMission> m_mission;
     /// Host time not yet simulated (s).
     double m_lag = 0.0;
 };
