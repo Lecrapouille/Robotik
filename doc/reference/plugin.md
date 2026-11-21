@@ -223,7 +223,7 @@ dependencies:
     - { name: opencv4, license: Apache-2.0 }
   thirdparties:                    # declared in <Name>.mk
     - { repo: AprilRobotics/apriltag, license: BSD-2-Clause, description: AprilTag fiducial detection }
-    - { name: onnxruntime, url: "https://github.com/microsoft/onnxruntime", license: MIT }
+    - { name: onnxruntime, url: "https://onnxruntime.ai", license: MIT }
 ```
 
 | Field | Notes |

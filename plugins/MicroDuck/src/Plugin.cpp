@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdarg>
 #include <cstdio>
 #include <numbers>
 #include <string>
@@ -22,11 +23,15 @@
 /// Trunk below this stands for a duck that is down (home is about 0.12 m).
 #define FALLEN_HEIGHT_M 0.07
 
-/// Prints one number with a printf format.
-static std::string format(char const* p_format, double p_value)
+/// Prints numbers with a printf format, checked by the compiler.
+[[gnu::format(printf, 1, 2)]] static std::string format(char const* p_format,
+                                                        ...)
 {
     char line[96];
-    std::snprintf(line, sizeof(line), p_format, p_value);
+    va_list args;
+    va_start(args, p_format);
+    std::vsnprintf(line, sizeof(line), p_format, args);
+    va_end(args);
     return line;
 }
 

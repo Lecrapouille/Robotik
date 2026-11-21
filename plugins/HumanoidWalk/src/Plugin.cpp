@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdarg>
 #include <cstdio>
 #include <numbers>
 #include <string>
@@ -20,11 +21,15 @@
 /// up a lag the simulation never catches up.
 #define MAX_LAG_S 0.05
 
-/// Prints one or two numbers with a printf format.
-static std::string format(char const* p_format, double p_a, double p_b = 0.0)
+/// Prints numbers with a printf format, checked by the compiler.
+[[gnu::format(printf, 1, 2)]] static std::string format(char const* p_format,
+                                                        ...)
 {
     char line[96];
-    std::snprintf(line, sizeof(line), p_format, p_a, p_b);
+    va_list args;
+    va_start(args, p_format);
+    std::vsnprintf(line, sizeof(line), p_format, args);
+    va_end(args);
     return line;
 }
 

@@ -19,7 +19,7 @@ resources:
 dependencies:
   thirdparties:
     - { repo: pollen-robotics/microduck_rl@develop, license: Apache-2.0, description: "Microduck body and scenes (meshes CC BY-NC-SA 4.0)" }
-    - { name: onnxruntime, url: "https://github.com/microsoft/onnxruntime", license: MIT, description: Inference of the walking policy }
+    - { name: onnxruntime, url: "https://onnxruntime.ai", license: MIT, description: Inference of the walking policy }
 
 # The plugin steps the simulation at the physics rate of the policy (5 ms).
 # The view (Y-up) looks across the room (2.4 m by 2.4 m).

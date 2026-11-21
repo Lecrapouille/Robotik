@@ -22,7 +22,7 @@ dependencies:
   thirdparties:
     - { repo: limxdynamics/humanoid-description, license: Apache-2.0, description: "LimX HU_D04 humanoid: URDF and meshes" }
     - { repo: limxdynamics/humanoid-rl-deploy-cpp, license: Apache-2.0, description: "LimX controllers: the trained walking policy" }
-    - { name: onnxruntime, url: "https://github.com/microsoft/onnxruntime", license: MIT, description: Inference of the walking policy }
+    - { name: onnxruntime, url: "https://onnxruntime.ai", license: MIT, description: Inference of the walking policy }
 
 # The plugin steps the simulation at the physics rate of the policy. The
 # view (Y-up) looks at the circle walked around the origin.

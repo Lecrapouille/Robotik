@@ -109,7 +109,7 @@ TEST(PluginCatalog, ReadsTheLibrariesAndTheirLicense)
               "LimX HU_D04 humanoid: URDF and meshes");
     EXPECT_EQ(walk->thirdparties[2].name, "onnxruntime");
     EXPECT_EQ(walk->thirdparties[2].url,
-              "https://github.com/microsoft/onnxruntime");
+              "https://onnxruntime.ai");
     EXPECT_EQ(walk->thirdparties[2].license, "MIT");
 }
 
