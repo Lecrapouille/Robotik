@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "Robotik/Common/Config.hpp"
+#include "Robotik/Common/SExpression.hpp"
 
 #include "BlackThorn/Builder/Yaml.hpp"
 
@@ -103,6 +104,36 @@ ConfigNode const& ConfigNode::at(std::string_view p_key) const
         }
     }
     return nullNode();
+}
+
+void ConfigNode::allowKeys(std::initializer_list<std::string_view> p_keys,
+                           std::string_view p_where) const
+{
+    for (auto const& [key, value] : m_entries)
+    {
+        if (std::find(p_keys.begin(), p_keys.end(), key) != p_keys.end())
+        {
+            continue;
+        }
+        std::string message =
+            std::string(p_where) + ": unknown key '" + key + "'";
+        std::string const closest =
+            closestWord(key, std::vector<std::string_view>(p_keys));
+        if (!closest.empty())
+        {
+            message += " (did you mean '" + closest + "'?)";
+        }
+        else
+        {
+            message += " (known keys:";
+            for (std::string_view known : p_keys)
+            {
+                message += " " + std::string(known);
+            }
+            message += ")";
+        }
+        throw std::runtime_error(message);
+    }
 }
 
 ConfigNode const& ConfigNode::item(std::string_view p_id) const
@@ -256,6 +287,7 @@ Pose ConfigNode::pose(std::string_view p_key) const
         throw std::runtime_error("'" + std::string(p_key) +
                                  "' must be { position, rpy | quaternion }");
     }
+    value.allowKeys({ "position", "rpy", "quaternion" }, p_key);
     return value.asPose();
 }
 

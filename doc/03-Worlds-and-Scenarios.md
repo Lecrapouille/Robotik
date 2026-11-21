@@ -47,6 +47,14 @@ plugins/HelloWorld/
 > **Important.** A scenario or an experiment must be listed in `plugin.yaml`.
 > Otherwise Headless answers `scenario is not in a plugin package`.
 
+> **Important.** RobotIK refuses a key it does not know, in every file
+> (world, scenario, experiment, trajectory, `plugin.yaml`). A typo stops the
+> load with exit code 1 and names the closest key:
+> `scenario: unknown key 'timout' (did you mean 'timeout'?)`. Free values
+> for your mission go under `scenario.parameters`, which is not checked.
+> In a flow map (`{ ... }`), put a text with a comma between quotes:
+> `name: "Pick and place (PA-BT, faults)"`.
+
 ### File names: the double extension
 
 The name of a file says its role: `<name>.<role>.yaml`. You see what a file

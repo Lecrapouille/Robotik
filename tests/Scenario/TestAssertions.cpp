@@ -79,6 +79,45 @@ TEST(ConfigNode, SetFollowsMapsAndSequenceIds)
     EXPECT_FALSE(node.set("world.entities.c.mass", robotik::ConfigNode("1")));
 }
 
+TEST(ConfigNode, UnknownKeyIsRefusedWithTheClosestKey)
+{
+    robotik::ConfigNode const node =
+        robotik::ConfigNode::parse("condition: time\nphse: always\n").take();
+    try
+    {
+        node.allowKeys({ "condition", "phase" }, "assertion");
+        FAIL() << "a typo must be refused";
+    }
+    catch (std::runtime_error const& error)
+    {
+        EXPECT_STREQ(error.what(),
+                     "assertion: unknown key 'phse' (did you mean 'phase'?)");
+    }
+    robotik::ConfigNode const far =
+        robotik::ConfigNode::parse("colour: red\n").take();
+    try
+    {
+        far.allowKeys({ "condition", "phase" }, "assertion");
+        FAIL() << "an unknown key must be refused";
+    }
+    catch (std::runtime_error const& error)
+    {
+        EXPECT_STREQ(error.what(), "assertion: unknown key 'colour' (known "
+                                   "keys: condition phase)");
+    }
+    EXPECT_NO_THROW(node.allowKeys({ "condition", "phse" }, "assertion"));
+    EXPECT_NO_THROW(robotik::ConfigNode().allowKeys({}, "nothing"));
+}
+
+TEST(Assertions, TypoInAKeyIsRefused)
+{
+    robotik::Result<robotik::AssertionSpec> const typo =
+        read("{ condition: \"time > 1\", phse: always }");
+    ASSERT_FALSE(typo);
+    EXPECT_NE(typo.error().find("did you mean 'phase'"), std::string::npos)
+        << typo.error();
+}
+
 TEST(Assertions, ShorthandIsJudgedAtTheEnd)
 {
     Board board{ { { "x", 0.0 } } };

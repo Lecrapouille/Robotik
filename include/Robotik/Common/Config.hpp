@@ -35,6 +35,7 @@
 
 #include <array>
 #include <filesystem>
+#include <initializer_list>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -152,6 +153,29 @@ public:
     {
         return m_entries;
     }
+
+    // -------------------------------------------------------------------------
+    /// Refuses a key that the reader does not know.
+    ///
+    /// Why: a missing key gives a default value, so a typo (@c phse for
+    /// @c phase) would change the meaning of a file without a word. Each
+    /// reader names the keys of its map; any other key stops the load.
+    ///
+    /// @code
+    /// p_node.allowKeys({ "condition", "phase", "at", "within", "stop" },
+    ///                  "assertion");
+    /// // phse: always  ->  "assertion: unknown key 'phse' (did you mean
+    /// //                    'phase'?)"
+    /// @endcode
+    ///
+    /// A null node and a scalar pass: the reader checks the shape itself.
+    /// @param p_keys Keys the reader knows.
+    /// @param p_where Name of the map, for the message (e.g. @c "planner").
+    /// @throws std::runtime_error naming the key, the closest known key, and
+    ///   the known keys when none is close.
+    // -------------------------------------------------------------------------
+    void allowKeys(std::initializer_list<std::string_view> p_keys,
+                   std::string_view p_where) const;
 
     // --- Sequences ----------------------------------------------------------
 

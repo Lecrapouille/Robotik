@@ -46,6 +46,7 @@ static NoiseModel noise(ConfigNode const& p_node, std::string_view p_key)
         model.sigma = p_node.number(p_key, 0.0);
         return model;
     }
+    node.allowKeys({ "sigma", "bias", "resolution", "saturation" }, p_key);
     model.sigma = node.number("sigma", 0.0);
     model.bias = node.number("bias", 0.0);
     model.resolution = node.number("resolution", 0.0);
@@ -119,11 +120,19 @@ static SensorSpec sensor(std::string const& p_where,
             {
                 fail(where, "cameras have no latency model");
             }
+            p_node.allowKeys({ "type", "parent", "position", "rpy",
+                               "quaternion", "resolution", "fov", "frequency",
+                               "noise", "latency" },
+                             where);
             spec.type = SensorSpec::Type::Camera;
             spec.camera = cameraConfig(where, p_node, type == "rgbd");
         }
         else if (type == "imu")
         {
+            p_node.allowKeys({ "type", "parent", "position", "rpy",
+                               "quaternion", "frequency", "latency",
+                               "accelerometer", "gyroscope" },
+                             where);
             spec.type = SensorSpec::Type::Imu;
             spec.imu.parent = p_node.text("parent");
             spec.imu.mount = p_node.asPose();
@@ -134,6 +143,10 @@ static SensorSpec sensor(std::string const& p_where,
         }
         else if (type == "range")
         {
+            p_node.allowKeys({ "type", "parent", "position", "rpy",
+                               "quaternion", "beams", "fov", "max_range",
+                               "frequency", "latency", "noise" },
+                             where);
             spec.type = SensorSpec::Type::Range;
             RangeScannerConfig& range = spec.range;
             range.parent = p_node.text("parent");
@@ -150,6 +163,9 @@ static SensorSpec sensor(std::string const& p_where,
         }
         else if (type == "force_torque")
         {
+            p_node.allowKeys({ "type", "link", "frequency", "latency", "force",
+                               "torque" },
+                             where);
             spec.type = SensorSpec::Type::ForceTorque;
             ForceTorqueConfig& force = spec.force_torque;
             force.link = p_node.text("link");
@@ -191,11 +207,13 @@ static ActuatorSpec actuator(std::string const& p_where,
     std::string const type = p_node.text("type");
     if (type == "joint_group")
     {
+        p_node.allowKeys({ "type", "joints" }, where);
         spec.type = ActuatorSpec::Type::JointGroup;
         spec.joints = p_node.strings("joints");
     }
     else if (type == "motor")
     {
+        p_node.allowKeys({ "type", "joint" }, where);
         spec.type = ActuatorSpec::Type::Motor;
         spec.joints = p_node.strings("joint");
         if (spec.joints.size() != 1U)
@@ -205,6 +223,7 @@ static ActuatorSpec actuator(std::string const& p_where,
     }
     else if (type == "vacuum")
     {
+        p_node.allowKeys({ "type", "parent", "length" }, where);
         spec.type = ActuatorSpec::Type::Vacuum;
         spec.link = p_node.text("parent");
         spec.length = Length(p_node.number("length", 0.0));
@@ -236,6 +255,7 @@ static EntitySpec::Type entityType(std::string const& p_where,
 static ShapeSpec shape(std::string const& p_where, ConfigNode const& p_entity)
 {
     ConfigNode const& node = p_entity.at("shape");
+    node.allowKeys({ "type", "size" }, p_where + ", shape");
     ShapeSpec spec;
     std::string const type = node.text("type");
     if (type == "box")
@@ -286,6 +306,11 @@ static EntitySpec entity(std::string const& p_world,
     std::string const where = p_world + ", entity '" + spec.id + "'";
     try
     {
+        p_node.allowKeys({ "id", "type", "kind", "model", "shape", "color",
+                           "pose", "attach", "physics", "mass", "friction",
+                           "randomize", "home", "sensors", "actuators",
+                           "touches" },
+                         where);
         spec.type = entityType(where, p_node.text("type"));
         spec.kind = lowerCase(p_node.text("kind"));
         spec.model_ref = p_node.text("model");
@@ -309,6 +334,7 @@ static EntitySpec entity(std::string const& p_world,
         if (p_node.has("attach"))
         {
             ConfigNode const& node = p_node.at("attach");
+            node.allowKeys({ "parent", "frame", "transform" }, "attach");
             Attachment attach;
             std::tie(attach.parent, attach.parent_frame) =
                 splitFrame(node.text("parent"));
@@ -336,6 +362,7 @@ static EntitySpec entity(std::string const& p_world,
         spec.mass = p_node.number("mass", spec.mass);
         spec.friction = p_node.number("friction", spec.friction);
         ConfigNode const& randomize = p_node.at("randomize");
+        randomize.allowKeys({ "x", "y", "z" }, "randomize");
         spec.randomize = { randomize.range("x"),
                            randomize.range("y"),
                            randomize.range("z") };
@@ -423,9 +450,11 @@ Result<WorldDescription> readWorld(ConfigNode const& p_world,
         {
             fail("world", "an id is required");
         }
+        p_world.allowKeys({ "id", "floor", "entities" }, where);
         ConfigNode const& floor = p_world.at("floor");
         if (floor.isMap())
         {
+            floor.allowKeys({ "friction" }, where + ", floor");
             world.floor = true;
             world.floor_friction = floor.number("friction", 1.0);
         }

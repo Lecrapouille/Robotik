@@ -8,7 +8,9 @@
 #include "Robotik/Package/Plugin/PluginCatalog.hpp"
 
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
+#include "Robotik/Common/Config.hpp"
 #include "Robotik/Common/File.hpp"
+#include "Robotik/Common/Must.hpp"
 #include "Robotik/Package/Plugin/PluginABI.h"
 #include "Robotik/Package/Scenario/FileRole.hpp"
 
@@ -27,6 +29,52 @@ static std::string field(bt::YamlNode const& p_node, std::string_view p_key)
 {
     bt::YamlNode const child = p_node.child(p_key);
     return child.valid() ? child.scalar() : std::string{};
+}
+
+/// Refuses the keys of a plugin.yaml that the catalog does not read (a typo
+/// would silently drop a scenario, a pack or a library).
+static void checkManifestKeys(ConfigNode const& p_root)
+{
+    p_root.allowKeys({ "plugin", "library", "resources", "dependencies", "host",
+                       "scenarios", "experiments" },
+                     "plugin.yaml");
+    p_root.at("plugin").allowKeys({ "id", "name", "category", "description",
+                                    "version", "api_version" },
+                                  "plugin");
+    p_root.at("library").allowKeys({ "entrypoint" }, "library");
+    ConfigNode const& resources = p_root.at("resources");
+    resources.allowKeys({ "directory", "packs" }, "resources");
+    for (ConfigNode const& pack : resources.at("packs").items())
+    {
+        pack.allowKeys({ "id", "version" }, "resources.packs");
+    }
+    ConfigNode const& dependencies = p_root.at("dependencies");
+    dependencies.allowKeys({ "plugins", "system", "thirdparties" },
+                           "dependencies");
+    for (char const* list : { "system", "thirdparties" })
+    {
+        for (ConfigNode const& item : dependencies.at(list).items())
+        {
+            item.allowKeys({ "name", "repo", "url", "license", "description" },
+                           std::string("dependencies.") + list);
+        }
+    }
+    ConfigNode const& host = p_root.at("host");
+    host.allowKeys({ "graphics", "clock", "view" }, "host");
+    host.at("view").allowKeys({ "eye", "target", "distance", "clip", "floor",
+                                "background" },
+                              "host.view");
+    for (char const* section : { "scenarios", "experiments" })
+    {
+        ConfigNode const& node = p_root.at(section);
+        node.allowKeys({ "directory", "entries" }, section);
+        for (ConfigNode const& entry : node.at("entries").items())
+        {
+            entry.allowKeys({ "id", "name", "file", "menu", "clock" },
+                            std::string(section) + " entry '" +
+                                entry.text("id") + "'");
+        }
+    }
 }
 
 /// True when the text is a plausible shared-library file name.
@@ -445,6 +493,15 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     auto reject = [&](std::string const& p_why)
     { m_errors.push_back(manifest.string() + ": " + p_why); };
     bt::YamlNode const node = parsed.getValue().root();
+    try
+    {
+        checkManifestKeys(must(ConfigNode::load(manifest)));
+    }
+    catch (std::runtime_error const& error)
+    {
+        reject(error.what());
+        return;
+    }
 
     // --- plugin: identity ---------------------------------------------------
     bt::YamlNode const plugin = node.child("plugin");

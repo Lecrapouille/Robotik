@@ -41,7 +41,10 @@ Result<Trajectory> loadTrajectory(std::filesystem::path const& p_path)
         try
         {
             ConfigNode const root = must(ConfigNode::load(trajectory.file));
+            root.allowKeys({ "trajectory" }, "file");
             ConfigNode const& node = root.at("trajectory");
+            node.allowKeys({ "type", "frame", "orientation", "joints", "points" },
+                           "trajectory");
             if (!node.isMap())
             {
                 throw std::runtime_error("no 'trajectory:' section");

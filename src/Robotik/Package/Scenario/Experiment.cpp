@@ -21,6 +21,7 @@ static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
 {
     for (ConfigNode const& step : p_setup.items())
     {
+        step.allowKeys({ "inject_fault" }, "setup");
         ConfigNode const& fault = step.at("inject_fault");
         if (!fault.isMap())
         {
@@ -28,6 +29,7 @@ static void readSetup(ExperimentCase& p_case, ConfigNode const& p_setup)
                 "setup steps are inject_fault: { resource, at, action } "
                 "or { resource, rate }");
         }
+        fault.allowKeys({ "resource", "rate", "action", "at" }, "inject_fault");
         std::string resource = fault.text("resource");
         if (resource.empty())
         {
@@ -73,6 +75,10 @@ Result<Experiment> loadExperiment(std::filesystem::path const& p_path)
             {
                 throw std::runtime_error("no 'experiment:' section");
             }
+            document.allowKeys({ "experiment" }, "file");
+            node.allowKeys({ "id", "description", "world", "seeds", "cases",
+                             "evaluation" },
+                           "experiment");
             experiment.id = node.text("id");
             if (experiment.id.empty())
             {
@@ -96,6 +102,10 @@ Result<Experiment> loadExperiment(std::filesystem::path const& p_path)
             for (ConfigNode const& item : node.at("cases").items())
             {
                 ExperimentCase run;
+                item.allowKeys({ "id", "scenario", "controller", "overrides",
+                                 "setup" },
+                               "case '" + item.text("id") + "'");
+                item.at("controller").allowKeys({ "behavior_tree" }, "controller");
                 run.id = item.text("id");
                 run.scenario = must(packageFile(root, item.text("scenario")));
                 if (run.id.empty() || run.scenario.empty())
@@ -133,6 +143,7 @@ Result<Experiment> loadExperiment(std::filesystem::path const& p_path)
                 throw std::runtime_error("an experiment needs at least one case");
             }
             ConfigNode const& evaluation = node.at("evaluation");
+            evaluation.allowKeys({ "assertions", "metrics" }, "evaluation");
             for (ConfigNode const& item : evaluation.at("assertions").items())
             {
                 experiment.assertions.push_back(must(readAssertion(item)));

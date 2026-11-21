@@ -65,6 +65,9 @@ Result<AssertionSpec> readAssertion(ConfigNode const& p_node)
         {
             throw std::runtime_error("an assertion is a condition or a map");
         }
+        p_node.allowKeys({ "name", "condition", "phase", "at", "within",
+                           "eventually", "sequence", "stop" },
+                         "assertion");
         spec.condition = p_node.text("condition");
         spec.stop = p_node.flag("stop", false);
         std::string const phase = p_node.text("phase");

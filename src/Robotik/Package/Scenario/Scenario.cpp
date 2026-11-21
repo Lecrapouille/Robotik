@@ -20,6 +20,7 @@ static void readFaults(Scenario& p_scenario, ConfigNode const& p_node)
 {
     for (ConfigNode const& fault : p_node.items())
     {
+        fault.allowKeys({ "resource", "rate", "action", "at" }, "fault");
         std::string resource = fault.text("resource");
         if (resource.empty())
         {
@@ -75,6 +76,9 @@ static std::vector<Literal> readLiterals(ConfigNode const& p_node,
 static PlannerSpec readPlanner(std::filesystem::path const& p_root,
                                ConfigNode const& p_node)
 {
+    p_node.allowKeys({ "domain", "method", "facts", "goal", "goal_pddl",
+                       "replan", "verify", "parallel", "search", "timeout" },
+                     "planner");
     PlannerSpec spec;
     spec.domain = must(packageFile(p_root, p_node.text("domain")));
     if (spec.domain.empty())
@@ -101,6 +105,7 @@ static PlannerSpec readPlanner(std::filesystem::path const& p_root,
             "planner: give a goal (list of literals) or a goal_pddl");
     }
     ConfigNode const& replan = p_node.at("replan");
+    replan.allowKeys({ "max", "delay" }, "planner.replan");
     double const max = replan.number("max", spec.max_replans);
     if (max < 0.0)
     {
@@ -134,6 +139,7 @@ Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenari
             std::filesystem::absolute(p_scenario).lexically_normal();
         source.package = must(packageRoot(source.scenario_file));
         source.scenario = must(ConfigNode::load(source.scenario_file));
+        source.scenario.allowKeys({ "scenario" }, p_scenario.string());
         ConfigNode const& scenario = source.scenario.at("scenario");
         if (!scenario.isMap())
         {
@@ -156,6 +162,7 @@ Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenari
                                      error.what());
         }
         source.world = must(ConfigNode::load(source.world_file));
+        source.world.allowKeys({ "world" }, source.world_file.string());
         return source;
     }
     catch (std::exception const& error)
@@ -204,6 +211,7 @@ static void readPhysics(Scenario& p_scenario, ConfigNode const& p_node)
     {
         return;
     }
+    p_node.allowKeys({ "fidelity", "overrides" }, "physics");
     p_scenario.physics.fidelity =
         readFidelity(p_node.text("fidelity", "abstract"), "physics.fidelity");
     for (auto const& [id, level] : p_node.at("overrides").entries())
@@ -274,6 +282,9 @@ static PerceptionFidelity readPerceptionLevel(std::string const& p_text,
 // ----------------------------------------------------------------------------
 static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
 {
+    p_node.allowKeys({ "oracle", "fidelity", "blind", "overrides", "noise",
+                       "max_age" },
+                     "perception");
     PerceptionSpec& perception = p_scenario.perception;
     if (p_node.has("oracle"))
     {
@@ -305,6 +316,7 @@ static void readPerception(Scenario& p_scenario, ConfigNode const& p_node)
             id, readPerceptionLevel(level.scalar(), "perception.overrides." + id));
     }
     ConfigNode const& noise = p_node.at("noise");
+    noise.allowKeys({ "sigma", "dropout", "range" }, "perception.noise");
     perception.noise.sigma = noise.number("sigma", perception.noise.sigma);
     perception.noise.dropout = noise.number("dropout", perception.noise.dropout);
     perception.noise.range = noise.number("range", perception.noise.range);
@@ -325,6 +337,11 @@ Result<Scenario> readScenario(ScenarioSource const& p_source, AssetResolver cons
         scenario.file = p_source.scenario_file;
         try
         {
+            node.allowKeys({ "id", "description", "seed", "world", "controller",
+                             "trajectories", "faults", "perception", "physics",
+                             "timeout", "stop_when", "parameters",
+                             "assertions" },
+                           "scenario");
             scenario.id = node.text("id");
             if (scenario.id.empty())
             {
@@ -333,6 +350,7 @@ Result<Scenario> readScenario(ScenarioSource const& p_source, AssetResolver cons
             scenario.description = node.text("description");
             scenario.seed = static_cast<std::uint64_t>(node.number("seed", 0.0));
             ConfigNode const& controller = node.at("controller");
+            controller.allowKeys({ "behavior_tree", "planner" }, "controller");
             scenario.controller.behavior_tree =
                 must(packageFile(root, controller.text("behavior_tree")));
             if (controller.has("planner"))
