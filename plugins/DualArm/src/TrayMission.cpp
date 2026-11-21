@@ -314,7 +314,10 @@ void TrayMission::observe(robotik::RoboticCell const& p_cell,
         std::ranges::any_of(
             m_touches,
             [&](std::vector<std::string> const& p_pair)
-            { return p_cell.query("touching", p_pair).value_or(0.0) > 0.5; }))
+            {
+                return p_cell.requireQuery("touching", p_pair).value_or(0.0) >
+                       0.5;
+            }))
     {
         m_contact += p_dt.value();
     }

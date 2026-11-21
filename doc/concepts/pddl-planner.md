@@ -31,7 +31,7 @@ The words of this page:
 | **Plan** | The ordered list of actions Kairos returns, e.g. `(detect red_cube) (pick red_cube) (place red_cube box)`. It is a recipe on paper: it does not run the robot. |
 | **Skill** | C++ code that moves the robot or reads sensors for one step, through `RobotContext` ([05](skills-and-behavior-trees.md)). Examples: `Detect`, `Approach`, `Grasp`. |
 | **Mission** | The plugin C++ class for a scenario (`PickPlaceMission`, `PainterMission`, …): it registers skills, publishes metrics, and ends the run. With a planner, it also registers **observers** and **bindings** on `PlanningDomain` ([04](../tutorials/04-your-first-plugin.md)). |
-| **Ground truth** | The real state of the simulated world (poses, contacts, what is inside what): what `Simulation::pose` and `Simulation::query` report. Assertions, metrics, and RL read it; the planner and skills do not. |
+| **Ground truth** | The real state of the simulated world (poses, contacts, what is inside what): what `RoboticCell::requirePose` and `RoboticCell::requireQuery` report. Assertions, metrics, and RL read it; the planner and skills do not. |
 | **Belief** | What the robot thinks is true: the `WorldModel`, updated by perception. Observers turn belief into PDDL predicates for the planner. |
 
 ## 🗂 What goes where

@@ -114,7 +114,7 @@ std::size_t PinocchioBackend::frameId(std::string const&) const
     missing("Pinocchio");
 }
 
-Pose PinocchioBackend::framePose(std::string const&) const
+Pose PinocchioBackend::requireFramePose(std::string const&) const
 {
     missing("Pinocchio");
 }
@@ -133,13 +133,13 @@ PinocchioBackend::solveIK(std::string const&,
     return std::nullopt;
 }
 
-std::size_t PinocchioBackend::chainDofs(std::string const&) const
+std::size_t PinocchioBackend::requireChainDofs(std::string const&) const
 {
     return 0U;
 }
 
-std::array<bool, 6> PinocchioBackend::movableAxes(std::string const&,
-                                                  IkGoal) const
+std::array<bool, 6> PinocchioBackend::requireMovableAxes(std::string const&,
+                                                         IkGoal) const
 {
     return {};
 }

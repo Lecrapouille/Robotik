@@ -104,7 +104,7 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     robotik::Robot& robot = p_context.robot;
     if (!m_started)
     {
-        m_from = robot.framePose(robot.tool());
+        m_from = robot.requireFramePose(robot.tool());
         m_to = m_from.position + m_offset;
         if (!m_object.empty())
         {
@@ -138,7 +138,8 @@ Status PathSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         m_why = "no joint solution on the way";
         return Status::FAILURE;
     }
-    double const left = (robot.framePose(robot.tool()).position - m_to).norm();
+    double const left =
+        (robot.requireFramePose(robot.tool()).position - m_to).norm();
     return s >= 1.0 && left < PATH_TOLERANCE ? Status::SUCCESS
                                              : Status::RUNNING;
 }
@@ -192,7 +193,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         m_why = "no arm holds " + m_tray;
         return Status::FAILURE;
     }
-    robotik::Pose const carrier = holder->worldPose(holder->tool());
+    robotik::Pose const carrier = holder->requireWorldPose(holder->tool());
     auto const* sensor =
         p_context.robot.sensors().first<robotik::ForceTorqueSensor>();
     if (sensor == nullptr || !sensor->reading().valid)
@@ -225,7 +226,7 @@ Status TraceSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
     // Where the tool goes now: over the path, or on it and pressing.
     double const dt = p_dt.value();
     robotik::Robot const& self = p_context.robot;
-    robotik::Vector3 const tool = self.worldPose(self.tool()).position;
+    robotik::Vector3 const tool = self.requireWorldPose(self.tool()).position;
     switch (m_phase)
     {
         case Phase::Approach:

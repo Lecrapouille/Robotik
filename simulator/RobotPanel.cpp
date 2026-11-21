@@ -45,7 +45,7 @@ static JointInfo infoOf(robotik::JointSet const& p_joints,
     info.linear = p_joints.isPrismatic(p_id);
     if (info.linear)
     {
-        auto const limits = p_joints.limits(p_joints.prismatic(p_id));
+        auto const limits = p_joints.limits(p_joints.requirePrismatic(p_id));
         info.lower = limits.lower.value();
         info.upper = limits.upper.value();
         info.velocity = limits.velocity.value();
@@ -53,7 +53,7 @@ static JointInfo infoOf(robotik::JointSet const& p_joints,
         info.bounded = robotik::bounded(limits);
         return info;
     }
-    auto const limits = p_joints.limits(p_joints.revolute(p_id));
+    auto const limits = p_joints.limits(p_joints.requireRevolute(p_id));
     info.lower = limits.lower.value();
     info.upper = limits.upper.value();
     info.velocity = limits.velocity.value();
@@ -125,7 +125,7 @@ static void header(App& p_app)
     std::string const tool = robot.tool();
     if (!tool.empty())
     {
-        robotik::Pose const pose = robot.framePose(tool);
+        robotik::Pose const pose = robot.requireFramePose(tool);
         ImGui::TextDisabled("%s  x %.3f  y %.3f  z %.3f m",
                             tool.c_str(),
                             pose.position.x,

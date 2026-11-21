@@ -139,7 +139,7 @@ Every condition is compiled at load (Task/Condition.hpp): unknown metric,
 query or entity, wrong arity → exit 1 with "did you mean". A metric must be
 published from the first step (`Mission::measure`). A value missing during
 the run → the assertion fails with the reason. Plugins add queries with
-`RoboticCell::addQuery` in `Mission::setup`; C++ asks `cell.query("inside", {a, b})`.
+`RoboticCell::addQuery` in `Mission::setup`; C++ asks `cell.requireQuery("inside", {a, b})`.
 
 ## Trajectory file
 

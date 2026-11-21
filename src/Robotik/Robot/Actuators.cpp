@@ -23,7 +23,7 @@ Motor::Motor(std::string p_name, std::string p_joint)
 void Motor::bind(Robot& p_robot)
 {
     m_joints = &p_robot.joints();
-    m_joint = m_joints->revolute(m_joint_name);
+    m_joint = m_joints->requireRevolute(m_joint_name);
 }
 
 void Motor::disable(Robot& /*p_robot*/)
@@ -160,7 +160,7 @@ void VacuumGripper::disable(Robot& /*p_robot*/)
 
 Pose VacuumGripper::flange(Robot const& p_robot) const
 {
-    return p_robot.framePose(m_link);
+    return p_robot.requireFramePose(m_link);
 }
 
 Vector3 VacuumGripper::tip(Robot const& p_robot, Length p_extra) const

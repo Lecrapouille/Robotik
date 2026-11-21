@@ -26,7 +26,7 @@ void WaveMission::act(robotik::RobotContext& p_context,
     robotik::JointSet& joints = robot.joints();
 
     // A typed handle: the angle is in radians, the compiler checks it.
-    robotik::Revolute const base = joints.revolute("joint1");
+    robotik::Revolute const base = joints.requireRevolute("joint1");
     if (!base)
     {
         return;
@@ -41,7 +41,7 @@ void WaveMission::act(robotik::RobotContext& p_context,
     // in the robot base frame).
     m_swing =
         std::max(m_swing, std::abs((joints.position(base) - home).value()));
-    m_tool_y = robot.framePose(robot.tool()).position.y;
+    m_tool_y = robot.requireFramePose(robot.tool()).position.y;
 }
 
 void WaveMission::measure(robotik::RoboticCell const& /*p_cell*/,

@@ -78,7 +78,7 @@ class RoboticCell;
 ///     }
 ///     void observe(robotik::RoboticCell const& p_cell, robotik::Seconds) override
 ///     {
-///         m_lowest = std::min(m_lowest, p_cell.pose("base").position.z);
+///         m_lowest = std::min(m_lowest, p_cell.requirePose("base").position.z);
 ///     }
 ///     void measure(robotik::RoboticCell const&,
 ///                  robotik::Metrics& p_metrics) const override

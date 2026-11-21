@@ -89,7 +89,7 @@ struct Evaluation
 /// robotik::ConditionQuery const near{
 ///     .name = "near", .min_args = 2U, .max_args = 2U,
 ///     .answer = [&cell](std::vector<std::string> const& p_args) {
-///         return cell.query("distance", p_args).value() < 0.1 ? 1.0 : 0.0;
+///         return cell.requireQuery("distance", p_args).value() < 0.1 ? 1.0 : 0.0;
 ///     } };
 /// @endcode
 // ****************************************************************************

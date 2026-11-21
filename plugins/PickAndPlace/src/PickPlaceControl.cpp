@@ -43,7 +43,7 @@ void readyPosture(robotik::RobotSession& p_robot,
                   robotik::VacuumGripper const& p_gripper,
                   robotik::Vector3 const& p_tip)
 {
-    robotik::Pose const start = p_robot.framePose(p_robot.tool());
+    robotik::Pose const start = p_robot.requireFramePose(p_robot.tool());
     robotik::Pose const goal{
         p_tip + robotik::Vector3{ 0.0, 0.0, p_gripper.length().value() },
         PICK_PLACE_DOWN
@@ -89,7 +89,7 @@ bool cubeInBox(robotik::RoboticCell const& p_cell,
         return false;
     }
     std::optional<double> const inside =
-        p_cell.query("inside", { PICK_PLACE_CUBE, PICK_PLACE_BOX });
+        p_cell.requireQuery("inside", { PICK_PLACE_CUBE, PICK_PLACE_BOX });
     return inside.value_or(0.0) > 0.5;
 }
 

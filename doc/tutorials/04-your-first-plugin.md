@@ -171,7 +171,7 @@ void WaveMission::act(robotik::RobotContext& p_context,
     robotik::JointSet& joints = robot.joints();
 
     // A typed handle: the angle is in radians, the compiler checks it.
-    robotik::Revolute const base = joints.revolute("joint1");
+    robotik::Revolute const base = joints.requireRevolute("joint1");
     if (!base)
     {
         return;
@@ -185,21 +185,21 @@ void WaveMission::act(robotik::RobotContext& p_context,
     // Measure: the angle reached, and where the tool is (forward kinematics,
     // in the robot base frame).
     m_swing = std::max(m_swing, std::abs((joints.position(base) - home).value()));
-    m_tool_y = robot.framePose(robot.tool()).position.y;
+    m_tool_y = robot.requireFramePose(robot.tool()).position.y;
 }
 ```
 
 What you see here:
 
 - `p_context.robot` gives the robot. `robot.joints()` gives all joints.
-- `joints.revolute("joint1")` gives a **typed handle**: its positions are
+- `joints.requireRevolute("joint1")` gives a **typed handle**: its positions are
   `Radians`. A prismatic joint gives a `Prismatic` handle in metres. Mixing
   them does not compile.
 - `moveTo` gives a **target**; the joint does not jump there. The physics
   (MuJoCo) moves it at a realistic speed. This is why we measure the
   *reached* angle with `joints.position(base)`, not the commanded one.
 - `robot.tool()` is the name of the working frame: `tcp` when a tool is
-  mounted, `tool0` otherwise. `robot.framePose(frame)` is **forward
+  mounted, `tool0` otherwise. `robot.requireFramePose(frame)` is **forward
   kinematics**: the pose of that frame in the robot base frame.
 
 The scenario checks the result and the safety:
@@ -226,7 +226,7 @@ void ReachMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
     robotik::Robot& robot = p_cell.robot();
 
     // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
-    robotik::Pose const start = robot.framePose(robot.tool());
+    robotik::Pose const start = robot.requireFramePose(robot.tool());
     m_target = start;
     m_target.position.x += 0.03;                      // 3 cm forward
 
@@ -246,7 +246,7 @@ void ReachMission::act(robotik::RobotContext& p_context,
     {
         joints.moveTo(id, m_solution[id]);            // one target per joint
     }
-    m_error = distance(robot.framePose(robot.tool()), m_target);
+    m_error = distance(robot.requireFramePose(robot.tool()), m_target);
 }
 ```
 

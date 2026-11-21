@@ -257,17 +257,18 @@ compages::world::Entity Robot::link(std::string_view p_name) const
     return findNamed(m_root, p_name);
 }
 
-Pose Robot::framePose(std::string const& p_frame) const
+Pose Robot::requireFramePose(std::string const& p_frame) const
 {
-    return m_kinematics->framePose(p_frame);
+    return m_kinematics->requireFramePose(p_frame);
 }
 
-Pose Robot::worldPose(std::string const& p_frame) const
+Pose Robot::requireWorldPose(std::string const& p_frame) const
 {
-    return p_frame.empty() ? m_base.pose : m_base.pose * framePose(p_frame);
+    return p_frame.empty() ? m_base.pose
+                           : m_base.pose * requireFramePose(p_frame);
 }
 
-LinkRef Robot::resolve(std::string const& p_name) const
+LinkRef Robot::requireLink(std::string const& p_name) const
 {
     if (p_name.empty())
     {

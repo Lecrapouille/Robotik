@@ -215,7 +215,7 @@ std::size_t PinocchioBackend::frameId(std::string const& p_name) const
     return static_cast<std::size_t>(m_impl->model.getFrameId(p_name));
 }
 
-Pose PinocchioBackend::framePose(std::string const& p_frame) const
+Pose PinocchioBackend::requireFramePose(std::string const& p_frame) const
 {
     if (!hasFrame(p_frame))
     {
@@ -374,7 +374,7 @@ static Eigen::MatrixXd alignedJacobian(pinocchio::Model const& p_model,
     return jacobian;
 }
 
-std::size_t PinocchioBackend::chainDofs(std::string const& p_frame) const
+std::size_t PinocchioBackend::requireChainDofs(std::string const& p_frame) const
 {
     if (!hasFrame(p_frame))
     {
@@ -410,8 +410,9 @@ static double producedShare(Eigen::MatrixXd const& p_rows, Eigen::Index p_axis)
     return std::sqrt(share);
 }
 
-std::array<bool, 6> PinocchioBackend::movableAxes(std::string const& p_frame,
-                                                  IkGoal p_goal) const
+std::array<bool, 6>
+PinocchioBackend::requireMovableAxes(std::string const& p_frame,
+                                     IkGoal p_goal) const
 {
     if (!hasFrame(p_frame))
     {

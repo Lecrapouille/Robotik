@@ -251,11 +251,11 @@ TEST(Simulation, AMisplacedCanvasBreaksThePainterAssertions)
     {
         simulation.step(robotik::Seconds(0.01));
     }
-    EXPECT_EQ(simulation.cell().query("(on canvas easel)"), 0.0);
-    EXPECT_EQ(simulation.cell().query("(touching canvas easel)"), 0.0);
-    EXPECT_GT(*simulation.cell().query("(pose_error canvas)"), 0.05);
-    EXPECT_EQ(simulation.cell().query("(collision_count robot)"), 0.0);
-    EXPECT_THROW((void)simulation.cell().query("(pose_error nobody)"),
+    EXPECT_EQ(simulation.cell().requireQuery("(on canvas easel)"), 0.0);
+    EXPECT_EQ(simulation.cell().requireQuery("(touching canvas easel)"), 0.0);
+    EXPECT_GT(*simulation.cell().requireQuery("(pose_error canvas)"), 0.05);
+    EXPECT_EQ(simulation.cell().requireQuery("(collision_count robot)"), 0.0);
+    EXPECT_THROW((void)simulation.cell().requireQuery("(pose_error nobody)"),
                  std::invalid_argument);
     EXPECT_FALSE(simulation.evaluate("(< (pose_error nobody) 1)").known);
 }

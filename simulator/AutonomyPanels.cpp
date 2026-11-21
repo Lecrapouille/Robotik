@@ -88,7 +88,7 @@ void worldModelPanel(App& p_app)
                 }
                 shown.insert(p_object.name);
                 robotik::Vector3 const at =
-                    simulation.cell().pose(p_object.name).position;
+                    simulation.cell().requirePose(p_object.name).position;
                 robotik::WorldObject const* belief =
                     beliefs.find(p_object.name);
                 ImGui::TableNextRow();

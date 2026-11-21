@@ -108,7 +108,7 @@ void DuckMission::setup(robotik::RoboticCell& p_cell,
 void DuckMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
-    robotik::Pose const base = p_cell.pose(m_base);
+    robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
     m_height_min = base.position.z;
     m_distance = 0.0;
@@ -122,7 +122,7 @@ void DuckMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 void DuckMission::observe(robotik::RoboticCell const& p_cell,
                           robotik::Seconds /*p_dt*/)
 {
-    robotik::Pose const base = p_cell.pose(m_base);
+    robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
     m_height_min = std::min(m_height_min, base.position.z);
     double const x = base.position.x;

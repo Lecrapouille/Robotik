@@ -45,8 +45,8 @@ void PainterMission::setup(robotik::RoboticCell& p_cell,
     painter::MarkSkill::Strokes strokes;
     for (auto const& entry : p_cell.description().trajectories)
     {
-        strokes.emplace(entry.first, p_cell.waypoints(entry.first));
-        m_paths[entry.first] = p_cell.waypoints(entry.first);
+        strokes.emplace(entry.first, p_cell.requireWaypoints(entry.first));
+        m_paths[entry.first] = p_cell.requireWaypoints(entry.first);
     }
     // How the brush follows a stroke, and the gains of the arm joints: a
     // scenario (or an experiment) tunes them in parameters.
@@ -145,9 +145,9 @@ void PainterMission::simulate(robotik::RoboticCell& p_cell,
     }
     // Box centre frame: the painted face is the +X side, half the thickness
     // out.
-    robotik::Pose const board = p_cell.pose(painter::CANVAS);
+    robotik::Pose const board = p_cell.requirePose(painter::CANVAS);
     robotik::Vector3 const local =
-        board.inverse() * robot.worldPose(robot.tool()).position;
+        board.inverse() * robot.requireWorldPose(robot.tool()).position;
     constexpr double FACE = 0.01;
     if (local.x < FACE || local.x > FACE + 0.05 || std::abs(local.y) > 0.19 ||
         std::abs(local.z) > 0.24)

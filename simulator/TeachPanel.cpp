@@ -83,7 +83,7 @@ void syncTeachAxes(App& p_app, bool p_visible)
     // are in the robot base frame, like the waypoint markers.
     constexpr double LENGTH = 0.10;
     constexpr float THICKNESS = 0.004F;
-    robotik::Pose const pose = robot.framePose(frame);
+    robotik::Pose const pose = robot.requireFramePose(frame);
     compages::Quatf const rotation(static_cast<float>(pose.rotation.w),
                                          static_cast<float>(pose.rotation.x),
                                          static_cast<float>(pose.rotation.y),
@@ -243,7 +243,7 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
                 continue;
             }
             any = true;
-            auto const limits = joints.limits(joints.prismatic(id));
+            auto const limits = joints.limits(joints.requirePrismatic(id));
             double const mid =
                 0.5 * (limits.lower.value() + limits.upper.value());
             double const commanded =
@@ -265,7 +265,7 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
                 {
                     continue;
                 }
-                auto const limits = joints.limits(joints.prismatic(id));
+                auto const limits = joints.limits(joints.requirePrismatic(id));
                 joints.moveTo(
                     id, closed ? limits.lower.value() : limits.upper.value());
             }
@@ -298,8 +298,8 @@ static void triggerTool(App& p_app, robotik::RobotSession& p_robot)
             }
             else
             {
-                double speed =
-                    joints.limits(joints.revolute(spindle)).velocity.value();
+                double speed = joints.limits(joints.requireRevolute(spindle))
+                                   .velocity.value();
                 if (!(speed > 0.0))
                 {
                     speed = 20.0;
@@ -383,7 +383,8 @@ static void frameChoice(App& p_app)
     for (std::string const& link : robot.kinematics().linkFrames())
     {
         // The base and the links fixed to it: no joint moves them.
-        if (link == robot.tool() || robot.kinematics().chainDofs(link) == 0U)
+        if (link == robot.tool() ||
+            robot.kinematics().requireChainDofs(link) == 0U)
         {
             continue;
         }
@@ -420,13 +421,13 @@ static void cartesianJog(App& p_app)
     std::string const& frame = p_app.teach.pendant.frame(robot);
     if (!frame.empty())
     {
-        robotik::Pose const pose = robot.framePose(frame);
+        robotik::Pose const pose = robot.requireFramePose(frame);
         ImGui::TextDisabled("%s at  x %.3f  y %.3f  z %.3f m",
                             frame.c_str(),
                             pose.position.x,
                             pose.position.y,
                             pose.position.z);
-        std::size_t const dofs = robot.kinematics().chainDofs(frame);
+        std::size_t const dofs = robot.kinematics().requireChainDofs(frame);
         if (dofs < 6U)
         {
             ImGui::TextDisabled("%zu joint%s above it: a move places its "

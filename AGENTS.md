@@ -85,7 +85,7 @@ built.
   `robotik-plugin` skill, "Core stays agnostic". Report a new leak.
 
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
-  give them ground truth (`RoboticCell::pose/query`); that is for metrics,
+  give them ground truth (`RoboticCell::requirePose/requireQuery`); that is for metrics,
   assertions, RL reward. A scenario may choose to feed beliefs from the
   truth (`perception.fidelity: truth | noisy_truth`, per object): it is a
   mock of the detectors, done by the `RoboticCell` and written in the run report,
@@ -108,7 +108,7 @@ built.
   YAML assertions. No pass/fail logic in C++.
 - Conditions and planner literals use the PDDL notation: `(< time 30)`,
   `(inside red_cube box)`. They are compiled at load (Task/Condition.hpp):
-  a typo is a load error. From C++, ask `cell.query("inside", {a, b})`,
+  a typo is a load error. From C++, ask `cell.requireQuery("inside", {a, b})`,
   never build a condition string; add a query with `RoboticCell::addQuery`.
 - A mission step has three sides, kept apart by the types: `act(RobotContext&)`
   commands from the robot and its beliefs (no truth), `simulate(RoboticCell&)` is
@@ -142,10 +142,13 @@ built.
 - Errors from files and user input are a `Result` (`ROBOTIK_TRY`,
   `ROBOTIK_TRY_ASSIGN`), never an exception: the YAML readers have no
   try/catch, `ConfigNode::checkKeys` and the typed reads return a `Result`.
-  A mistake in the code (unknown joint name written in C++) throws. A
-  function that may throw has a name that starts with `require`;
-  `robotik::require(result)` takes a value where throwing is the way
-  (a plugin method, a test).
+  A mistake in the code (unknown joint name written in C++) throws, and the
+  name says it: a lookup by a name written in C++ starts with `require`
+  (`joints.requireRevolute("j")`, `robot.requireFramePose("tool0")`,
+  `cell.requirePose("box")`, `cell.requireQuery(...)`); the handle version
+  found once does not throw (`robot.worldPose(link)`). `add` refuses a
+  duplicate name (`@throws`). `robotik::require(result)` takes a value
+  where throwing is the way (a plugin method, a test).
 - Plain structs are data: what acts on them is a free function
   (`satisfies(version, need)`, not `version.satisfies(need)`). Classes keep
   their methods. Events are `Signal`s (`SkillScheduler::changed`,

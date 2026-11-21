@@ -28,11 +28,11 @@ namespace robotik
 /// A link is a rigid part of the robot (the arm segment, the wrist...).
 /// Finding it by its name walks the tree of the robot and compares strings:
 /// fine once, too slow for a sensor that reads its link 1000 times a second.
-/// @ref Robot::resolve does the search once; @ref Robot::worldPose then
+/// @ref Robot::requireLink does the search once; @ref Robot::worldPose then
 /// reads the pose with no search.
 ///
 /// @code
-/// robotik::LinkRef const wrist = robot.resolve("link6"); // once
+/// robotik::LinkRef const wrist = robot.requireLink("link6"); // once
 /// robotik::Pose const pose = robot.worldPose(wrist);    // every step
 /// @endcode
 // ****************************************************************************

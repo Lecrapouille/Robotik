@@ -237,8 +237,8 @@ Two ways to name a joint:
 
 ```cpp
 robotik::JointId const id = joints.find("joint1");      // index, doubles; NO_JOINT if absent
-robotik::Revolute const j = joints.revolute("joint1");  // typed handle, Radians; false if absent
-robotik::Prismatic const k = joints.prismatic("rail");  // typed handle, metres
+robotik::Revolute const j = joints.requireRevolute("joint1");  // typed handle, Radians; throws if absent
+robotik::Prismatic const k = joints.requirePrismatic("rail");  // typed handle, metres
 ```
 
 | Method | Does |

@@ -138,7 +138,7 @@ void WalkMission::paintGround(robotik::SceneView& p_view)
 void WalkMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 {
     m_policy->reset();
-    robotik::Pose const base = p_cell.pose(m_base);
+    robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
     m_height_min = base.position.z;
     m_distance = 0.0;
@@ -153,7 +153,7 @@ void WalkMission::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
 void WalkMission::observe(robotik::RoboticCell const& p_cell,
                           robotik::Seconds /*p_dt*/)
 {
-    robotik::Pose const base = p_cell.pose(m_base);
+    robotik::Pose const base = p_cell.requirePose(m_base);
     m_height = base.position.z;
     m_height_min = std::min(m_height_min, base.position.z);
 

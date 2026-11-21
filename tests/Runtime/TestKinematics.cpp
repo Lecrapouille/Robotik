@@ -28,7 +28,7 @@ TEST(PinocchioBackend, NeutralPoseOfRevoluteArm)
         assetFile("robotik.robots.simple_revolute_robot"));
     EXPECT_EQ(kinematics.nq(), 1U);
     ASSERT_TRUE(kinematics.hasFrame("arm_link"));
-    robotik::Pose const pose = kinematics.framePose("arm_link");
+    robotik::Pose const pose = kinematics.requireFramePose("arm_link");
     EXPECT_NEAR(pose.position.z, 0.05, 1e-6);
     EXPECT_NEAR(pose.position.x, 0.0, 1e-6);
 }

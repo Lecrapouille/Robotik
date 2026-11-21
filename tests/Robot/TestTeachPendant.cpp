@@ -57,7 +57,7 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
                  { "joint5", 1.54 },
                  { "joint6", 0.0 } });
 
-    robotik::Pose const before = robot.framePose(robot.tool());
+    robotik::Pose const before = robot.requireFramePose(robot.tool());
     robotik::TeachPendant pendant;
     ASSERT_TRUE(pendant.jogTool(
         robot, robotik::Vector3(0.02, 0.0, 0.0), robotik::Vector3::ZERO));
@@ -68,7 +68,7 @@ TEST(TeachPendant, ToolJogSolvesInverseKinematics)
     {
         robot.step(step);
     }
-    robotik::Pose const after = robot.framePose(robot.tool());
+    robotik::Pose const after = robot.requireFramePose(robot.tool());
     EXPECT_NEAR(after.position.x, before.position.x + 0.02, 0.01);
     EXPECT_NEAR(after.position.y, before.position.y, 0.01);
     EXPECT_NEAR(after.position.z, before.position.z, 0.01);
@@ -92,7 +92,7 @@ TEST(TeachPendant, AnyLinkCanBeTheMovedFrame)
     pendant.frame("link3");
     EXPECT_EQ(pendant.frame(robot), "link3");
     pendant.record(robot, "elbow", 1.0);
-    robotik::Pose const elbow = robot.framePose("link3");
+    robotik::Pose const elbow = robot.requireFramePose("link3");
     EXPECT_NEAR(pendant.waypoints()[0].pose.position.x, elbow.position.x, 1e-9);
     EXPECT_NEAR(pendant.waypoints()[0].pose.position.z, elbow.position.z, 1e-9);
 
@@ -136,9 +136,9 @@ TEST(TeachPendant, AxesFollowTheJointsAboveTheFrame)
                  { "joint5", 1.54 },
                  { "joint6", 0.0 } });
     robotik::PinocchioBackend const& kinematics = robot.kinematics();
-    EXPECT_EQ(kinematics.chainDofs("link1"), 1U);
-    EXPECT_EQ(kinematics.chainDofs("link3"), 3U);
-    EXPECT_GE(kinematics.chainDofs(robot.tool()), 6U);
+    EXPECT_EQ(kinematics.requireChainDofs("link1"), 1U);
+    EXPECT_EQ(kinematics.requireChainDofs("link3"), 3U);
+    EXPECT_GE(kinematics.requireChainDofs(robot.tool()), 6U);
 
     robotik::TeachPendant pendant;
     std::array<bool, 6> const tool = pendant.jogAxes(robot);
@@ -171,7 +171,7 @@ TEST(TeachPendant, ALinkWithFewJointsMovesItsPositionAlone)
     EXPECT_FALSE(elbow[2]);
     EXPECT_EQ(pendant.jogGoal(robot, false), robotik::IkGoal::Position);
 
-    robotik::Pose const before = robot.framePose("link3");
+    robotik::Pose const before = robot.requireFramePose("link3");
     robotik::Pose target = before;
     target.position.x -= 0.02;
     std::optional<std::vector<double>> const solution =

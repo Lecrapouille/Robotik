@@ -59,7 +59,7 @@ include path where only the allowed layers exist: an include towards a
 higher layer is "file not found", however the line is written. A header
 that forgets one of its own includes fails the same way. `Task/Skills` and
 `Task/Planning` are compiled without `Task/RoboticCell.hpp`: they cannot call the
-truth API (`RoboticCell::pose`, `RoboticCell::query`...), because the class is not
+truth API (`RoboticCell::requirePose`, `RoboticCell::requireQuery`...), because the class is not
 defined there. A future split stays
 possible: `Package` could become `Scenario` (files) and `App` (plugins,
 hosts) without touching the layers below.
@@ -207,7 +207,7 @@ Rules:
 1. **Find by name once, then use a handle.** A name is for people and YAML
    files. Searching it walks a tree and compares strings. Code that runs at
    every step keeps a handle found once: `JointId` for a joint, `LinkRef`
-   (`Robot::resolve`) for a link, `ResourceId` for a resource. A handle found
+   (`Robot::requireLink`) for a link, `ResourceId` for a resource. A handle found
    during an episode is dropped at the reset and found again.
 2. **Many small values of one kind: arrays.** `JointSet` keeps one array per
    field, not one object per joint (see above).
@@ -271,8 +271,8 @@ time.
 
 | | Access | Used by |
 |--|--------|---------|
-| **Ground truth** | `RoboticCell::pose`, `RoboticCell::query` | assertions, reports, RL reward |
-| **Description** | `RoboticCell::described`, `RoboticCell::waypoints` | the mission, to plan |
+| **Ground truth** | `RoboticCell::requirePose`, `RoboticCell::requireQuery` | assertions, reports, RL reward |
+| **Description** | `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | the mission, to plan |
 | **Belief** | `WorldModel`, through `RobotContext` | skills |
 
 The simulator knows `red_cube = (0.40, 0.20, 0.02)`. The robot may believe
@@ -313,7 +313,7 @@ others read it, or read a copy that the writer refreshes.
 |-------|----------|------------|---------|
 | Physics: free bodies, contacts, the joints of a simulated robot | the MuJoCo backend (`RobotBackend`) | the physics step, from the actuator commands | `RoboticCell::syncBodies`, which copies the body poses; the robot, which reads its joints |
 | Joint positions | the `JointSet` of each robot | the backend after each step (by hand when the robot has no physics) | skills through `RobotContext`; Pinocchio, for the frame poses (`worldPose`) |
-| Ground truth of props and bodies | the Compages entities of the `RoboticCell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `RoboticCell::pose`, `RoboticCell::query`, the conditions, the rendering |
+| Ground truth of props and bodies | the Compages entities of the `RoboticCell` | `syncBodies` (a copy of MuJoCo), the grasp models (an object carried by a gripper), the reset (a prop without a body) | `RoboticCell::requirePose`, `RoboticCell::requireQuery`, the conditions, the rendering |
 | Description | `RoboticCellDescription` | the YAML files or the C++ program, before the run; read-only after | the mission (`described`, `waypoints`), the planner (the entities with a `kind` are its objects) |
 | Beliefs | `WorldModel` | the perception (detectors); the cell itself at the `truth` and `noisy_truth` fidelity; the priors of the description at each reset | skills, PDDL observers, the mission when it decides |
 | Symbolic facts (`(in red_cube box)`) | nowhere: the observers compute them from the beliefs when the planner asks | — | the planner and the plan executor |

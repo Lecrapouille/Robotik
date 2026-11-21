@@ -132,9 +132,14 @@ TEST(Simulation, AnotherToolBringsItsOwnActuators)
     robotik::Simulation simulation(
         world, std::move(scenario), nullptr, &mission);
     EXPECT_EQ(simulation.cell().robot().actuators().find("gripper"), nullptr);
-    EXPECT_EQ(simulation.cell().query("(tool_is_attached fingers robot.flange)"), 1.0);
-    EXPECT_EQ(simulation.cell().query("(tool_is_attached vacuum robot.flange)"), 0.0);
-    EXPECT_THROW((void)simulation.cell().pose("vacuum"), std::invalid_argument);
+    EXPECT_EQ(simulation.cell().requireQuery(
+                  "(tool_is_attached fingers robot.flange)"),
+              1.0);
+    EXPECT_EQ(simulation.cell().requireQuery(
+                  "(tool_is_attached vacuum robot.flange)"),
+              0.0);
+    EXPECT_THROW((void)simulation.cell().requirePose("vacuum"),
+                 std::invalid_argument);
 }
 
 TEST(Simulation, PickAndPlaceSucceedsAndReplays)

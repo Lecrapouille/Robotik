@@ -232,7 +232,7 @@ trajectory:
 | `cartesian` | Poses of the tool working point, in `frame` (an entity, or `entity.link`; the world if empty) |
 | `joint` | Joint configurations, for the joints listed in `joints` |
 
-In C++, `RoboticCell::waypoints("red")` returns a cartesian trajectory in the
+In C++, `RoboticCell::requireWaypoints("red")` returns a cartesian trajectory in the
 robot base frame. Its frame is placed where the **world file** describes it:
 if the easel slides during the run, the robot does not know.
 

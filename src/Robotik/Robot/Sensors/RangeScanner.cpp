@@ -93,7 +93,7 @@ bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
 {
     if (!m_resolved)
     {
-        m_link = p_robot.resolve(m_config.parent);
+        m_link = p_robot.requireLink(m_config.parent);
         m_resolved = true;
     }
     Pose const pose = p_robot.worldPose(m_link) * m_config.mount;

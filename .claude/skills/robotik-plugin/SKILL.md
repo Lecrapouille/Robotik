@@ -86,7 +86,7 @@ canvas (`text`, `textColored`, `button`, `checkbox`,
 
 - Do not judge in C++: publish metrics, assert in YAML. Prefix metric names.
 - Do not keep pointers to world entities across resets/shutdown; use
-  `simulation.entity("id")`, `simulation.pose("id")`.
+  `cell.entity("id")`, `cell.requirePose("id")`.
 - Must run headless (no view, no camera image → `perception: { blind: truth }`).
 - `host.clock: plugin` (or `clock: plugin` on one scenario entry) → `update(dt)` must advance the simulation itself.
 - Models are asset ids (`robotik.robots.robot_6axis`), never paths; a

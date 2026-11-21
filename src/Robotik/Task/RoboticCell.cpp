@@ -539,7 +539,7 @@ Pose RoboticCell::resolveNominal(EntitySpec const& p_spec) const
     Pose base{ Vector3::ZERO, Quaternion{} };
     if (parent->type == EntitySpec::Type::Robot)
     {
-        base = robot(parent->id)->worldPose(attach.parent_frame);
+        base = robot(parent->id)->requireWorldPose(attach.parent_frame);
     }
     else
     {
@@ -559,7 +559,7 @@ Pose RoboticCell::resolveNominal(EntitySpec const& p_spec) const
                                          parent->id + "' has no frame '" +
                                          attach.parent_frame + "'");
             }
-            base = base * record->frames->framePose(attach.parent_frame);
+            base = base * record->frames->requireFramePose(attach.parent_frame);
         }
     }
     return base * attach.transform;
@@ -843,7 +843,7 @@ RobotSession* RoboticCell::robot(std::string_view p_id)
     return nullptr;
 }
 
-RobotContext& RoboticCell::context(std::string_view p_id)
+RobotContext& RoboticCell::requireContext(std::string_view p_id)
 {
     for (RobotContext& context : m_contexts)
     {
@@ -1003,7 +1003,7 @@ void RoboticCell::reset(Seed p_seed)
     m_world.update();
     for (Record& record : m_records)
     {
-        record.initial = pose(record.spec->id);
+        record.initial = requirePose(record.spec->id);
     }
 
     loadTree();

@@ -598,13 +598,13 @@ static void robotView(App& p_app, robotik::RobotSession const& p_robot)
             double upper = 0.0;
             if (linear)
             {
-                auto const limits = joints.limits(joints.prismatic(id));
+                auto const limits = joints.limits(joints.requirePrismatic(id));
                 lower = limits.lower.value();
                 upper = limits.upper.value();
             }
             else
             {
-                auto const limits = joints.limits(joints.revolute(id));
+                auto const limits = joints.limits(joints.requireRevolute(id));
                 lower = limits.lower.value();
                 upper = limits.upper.value();
             }
@@ -700,7 +700,7 @@ static void objectView(App& p_app, std::string const& p_name)
     {
         try
         {
-            truth = cell.pose(p_name).position;
+            truth = cell.requirePose(p_name).position;
             has_truth = true;
         }
         catch (std::invalid_argument const&)

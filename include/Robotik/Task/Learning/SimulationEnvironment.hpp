@@ -185,7 +185,7 @@ public:
 /// @ref evaluate returns the reward and, when the task is over,
 /// @ref EpisodeEnd::Success or @ref EpisodeEnd::Failure.
 ///
-/// The reward may read the ground truth (@c RoboticCell::pose): it is not
+/// The reward may read the ground truth (@c RoboticCell::requirePose): it is not
 /// part of what the agent sees.
 ///
 /// @code

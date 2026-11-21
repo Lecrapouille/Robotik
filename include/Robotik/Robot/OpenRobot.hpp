@@ -15,7 +15,7 @@
 /// if (!arm)
 ///     return fail(arm.error());              // a message telling what to fix
 /// robotik::JointSet& joints = arm.value()->joints();
-/// joints.moveTo(joints.revolute("joint2"), robotik::Radians(0.3));
+/// joints.moveTo(joints.requireRevolute("joint2"), robotik::Radians(0.3));
 /// for (int i = 0; i < 200; ++i)
 ///     arm.value()->step(robotik::Seconds(0.01)); // MuJoCo moves the joint
 /// @endcode

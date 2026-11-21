@@ -113,7 +113,7 @@ JointId JointSet::require(std::string_view p_name) const
     return id;
 }
 
-Revolute JointSet::revolute(JointId p_id) const
+Revolute JointSet::requireRevolute(JointId p_id) const
 {
     if (p_id >= size() || m_types[p_id] == JointType::Prismatic)
     {
@@ -123,7 +123,7 @@ Revolute JointSet::revolute(JointId p_id) const
     return { p_id };
 }
 
-Prismatic JointSet::prismatic(JointId p_id) const
+Prismatic JointSet::requirePrismatic(JointId p_id) const
 {
     if (p_id >= size() || m_types[p_id] != JointType::Prismatic)
     {
@@ -133,14 +133,14 @@ Prismatic JointSet::prismatic(JointId p_id) const
     return { p_id };
 }
 
-Revolute JointSet::revolute(std::string_view p_name) const
+Revolute JointSet::requireRevolute(std::string_view p_name) const
 {
-    return revolute(require(p_name));
+    return requireRevolute(require(p_name));
 }
 
-Prismatic JointSet::prismatic(std::string_view p_name) const
+Prismatic JointSet::requirePrismatic(std::string_view p_name) const
 {
-    return prismatic(require(p_name));
+    return requirePrismatic(require(p_name));
 }
 
 void JointSet::place(JointId p_id, double p_position)

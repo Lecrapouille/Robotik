@@ -73,18 +73,18 @@ using JointPosture = std::unordered_map<std::string, double>;
 /// application builds a @ref RobotSession (or calls @ref openRobot), and a
 /// skill receives this view through @ref RobotContext.
 ///
-/// The kinematics (@ref framePose, @ref inverseKinematics) use Pinocchio on
+/// The kinematics (@ref requireFramePose, @ref inverseKinematics) use Pinocchio on
 /// the measured joints, not the true pose of the simulator, so they are
 /// right on a real robot too. Poses are in the base frame of the robot,
-/// except @ref worldPose. A joint or frame name that the URDF does not have
+/// except @ref requireWorldPose. A joint or frame name that the URDF does not have
 /// throws @c std::invalid_argument: it is a mistake in the code. In a hot
-/// loop, find a handle once (@ref JointSet::revolute, @ref resolve) instead
+/// loop, find a handle once (@ref JointSet::requireRevolute, @ref requireLink) instead
 /// of a name at each step.
 ///
 /// @code
 /// robotik::Robot& robot = p_context.robot;
-/// robotik::Pose const tool = robot.framePose(robot.tool());     // base frame
-/// robotik::Pose const in_world = robot.worldPose(robot.tool()); // world frame
+/// robotik::Pose const tool = robot.requireFramePose(robot.tool());     // base frame
+/// robotik::Pose const in_world = robot.requireWorldPose(robot.tool()); // world frame
 /// if (auto const q = robot.inverseKinematics(robot.tool(), goal))
 ///     for (robotik::JointId id = 0; id < q->size(); ++id)
 ///         robot.joints().moveTo(id, (*q)[id]);
@@ -241,15 +241,15 @@ public:
     /// @return The pose.
     /// @throws std::invalid_argument if the frame is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose framePose(std::string const& p_frame) const;
+    [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
-    /// Pose of a link in the world frame (base pose times @ref framePose).
+    /// Pose of a link in the world frame (base pose times @ref requireFramePose).
     /// @param p_frame Link name; empty for the base itself.
     /// @return The pose.
     /// @throws std::invalid_argument if the frame is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose worldPose(std::string const& p_frame) const;
+    [[nodiscard]] Pose requireWorldPose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
     /// Finds a link once, for code that reads its pose at every step (see
@@ -258,11 +258,11 @@ public:
     /// @return The handles of the link.
     /// @throws std::invalid_argument if the frame is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] LinkRef resolve(std::string const& p_name) const;
+    [[nodiscard]] LinkRef requireLink(std::string const& p_name) const;
 
     // -------------------------------------------------------------------------
     /// Pose of a link in the world frame, with no search by name.
-    /// @param p_link Link found by @ref resolve.
+    /// @param p_link Link found by @ref requireLink.
     /// @return The pose.
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose worldPose(LinkRef const& p_link) const;

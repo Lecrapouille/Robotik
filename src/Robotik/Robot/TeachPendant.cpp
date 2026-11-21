@@ -22,7 +22,7 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
     if (p_joints.isPrismatic(p_id))
     {
         PrismaticLimits const limits =
-            p_joints.limits(p_joints.prismatic(p_id));
+            p_joints.limits(p_joints.requirePrismatic(p_id));
         if (bounded(limits))
         {
             return std::clamp(
@@ -31,7 +31,8 @@ static double clampJoint(JointSet const& p_joints, JointId p_id, double p_value)
     }
     else
     {
-        RevoluteLimits const limits = p_joints.limits(p_joints.revolute(p_id));
+        RevoluteLimits const limits =
+            p_joints.limits(p_joints.requireRevolute(p_id));
         if (bounded(limits))
         {
             return std::clamp(
@@ -126,7 +127,7 @@ std::string const& TeachPendant::frame(Robot const& p_robot) const
 IkGoal TeachPendant::jogGoal(Robot const& p_robot, bool p_rotation) const
 {
     std::string const& moved = frame(p_robot);
-    if (moved.empty() || p_robot.kinematics().chainDofs(moved) >= 6U)
+    if (moved.empty() || p_robot.kinematics().requireChainDofs(moved) >= 6U)
     {
         return IkGoal::Whole;
     }
@@ -141,7 +142,7 @@ std::array<bool, 6> TeachPendant::jogAxes(Robot const& p_robot) const
         return {};
     }
     // Position and Orientation give the same flags: each block alone.
-    return p_robot.kinematics().movableAxes(
+    return p_robot.kinematics().requireMovableAxes(
         moved,
         jogGoal(p_robot, false) == IkGoal::Whole ? IkGoal::Whole
                                                  : IkGoal::Position);
@@ -159,7 +160,7 @@ bool TeachPendant::jogTool(Robot& p_robot,
         return false;
     }
 
-    Pose target = p_robot.framePose(moved);
+    Pose target = p_robot.requireFramePose(moved);
     target.position.x += p_translation.x;
     target.position.y += p_translation.y;
     target.position.z += p_translation.z;
@@ -222,8 +223,9 @@ std::size_t TeachPendant::record(Robot const& p_robot,
     }
     waypoint.joints.assign(p_robot.joints().positions().begin(),
                            p_robot.joints().positions().end());
-    waypoint.pose =
-        frame(p_robot).empty() ? Pose{} : p_robot.framePose(frame(p_robot));
+    waypoint.pose = frame(p_robot).empty()
+                        ? Pose{}
+                        : p_robot.requireFramePose(frame(p_robot));
     waypoint.duration = std::max(p_duration, 0.05);
     m_waypoints.push_back(std::move(waypoint));
     m_error.clear();

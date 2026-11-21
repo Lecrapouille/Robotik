@@ -73,7 +73,7 @@ enum class IkGoal : std::uint8_t
 /// @li @b nq / @b nv — sizes of @b q and @b v (@ref nq, @ref nv). They differ
 ///     when the model uses quaternions or other redundant position parameters.
 /// @li @b FK — forward kinematics: @ref updateKinematics propagates @b q to
-///     every frame placement; @ref framePose reads one link pose in the base
+///     every frame placement; @ref requireFramePose reads one link pose in the base
 ///     frame.
 /// @li @b IK — inverse kinematics: @ref solveIK iterates damped least squares
 ///     on the frame Jacobian toward a @ref Pose target.
@@ -83,7 +83,7 @@ enum class IkGoal : std::uint8_t
 /// robotik::PinocchioBackend kin("arm.urdf");
 /// std::ranges::copy(seed_q, kin.configuration().begin());
 /// kin.updateKinematics();
-/// robotik::Pose tcp = kin.framePose("link6");
+/// robotik::Pose tcp = kin.requireFramePose("link6");
 /// if (auto q = kin.solveIK("link6", target_pose, kin.configuration()))
 ///     applyJointTargets(*q);
 /// @endcode
@@ -139,7 +139,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Runs forward kinematics and updates frame placements. Call it after
-    /// changing @ref configuration and before @ref framePose.
+    /// changing @ref configuration and before @ref requireFramePose.
     // -------------------------------------------------------------------------
     void updateKinematics();
 
@@ -190,10 +190,10 @@ public:
     /// @return The pose in the robot base frame.
     /// @throws std::invalid_argument if the frame is unknown.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose framePose(std::string const& p_frame) const;
+    [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
-    /// Same as @ref framePose(std::string const&) const, with no search by
+    /// Same as @ref requireFramePose, with no search by
     /// name.
     /// @param p_frame Frame index from @ref frameId.
     /// @return The pose in the robot base frame.
@@ -225,7 +225,8 @@ public:
     /// @return The count; 0 for the base and the links fixed to it.
     /// @throws std::invalid_argument for an unknown frame.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::size_t chainDofs(std::string const& p_frame) const;
+    [[nodiscard]] std::size_t
+    requireChainDofs(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
     /// Directions in which a frame can move now, from the current @b q: a
@@ -240,7 +241,7 @@ public:
     /// @throws std::invalid_argument for an unknown frame.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::array<bool, 6>
-    movableAxes(std::string const& p_frame, IkGoal p_goal) const;
+    requireMovableAxes(std::string const& p_frame, IkGoal p_goal) const;
 
 private:
 

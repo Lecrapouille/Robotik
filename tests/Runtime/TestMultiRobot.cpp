@@ -109,10 +109,12 @@ TEST(Simulation, TwoCopiesOfAModelBodyShareThePhysics)
     compages::world::World world;
     robotik::Simulation simulation(world, scenario);
     simulation.step(robotik::Seconds(0.01));
-    EXPECT_NEAR(simulation.cell().pose("stand_a").position.y, -0.2, 1e-6);
-    EXPECT_NEAR(simulation.cell().pose("stand_b").position.y, 0.2, 1e-6);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("(touching stand_a stand_b)").value(),
-                     0.0);
+    EXPECT_NEAR(
+        simulation.cell().requirePose("stand_a").position.y, -0.2, 1e-6);
+    EXPECT_NEAR(simulation.cell().requirePose("stand_b").position.y, 0.2, 1e-6);
+    EXPECT_DOUBLE_EQ(
+        simulation.cell().requireQuery("(touching stand_a stand_b)").value(),
+        0.0);
 }
 
 TEST(Simulation, TwoRobotsShareOnePhysics)
@@ -125,8 +127,8 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     ASSERT_NE(left, nullptr);
     ASSERT_NE(right, nullptr);
     EXPECT_EQ(&simulation.cell().robot(), left);
-    EXPECT_EQ(&simulation.cell().context("right").robot, right);
-    EXPECT_EQ(simulation.cell().context("right").team.size(), 2U);
+    EXPECT_EQ(&simulation.cell().requireContext("right").robot, right);
+    EXPECT_EQ(simulation.cell().requireContext("right").team.size(), 2U);
 
     // Each robot keeps its own joint names and its own skills.
     EXPECT_NE(left->joints().find("joint1"), robotik::NO_JOINT);
@@ -136,8 +138,8 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     EXPECT_EQ(simulation.cell().skills().find("Home"), robotik::NO_SKILL);
 
     // Bases where the world file puts them.
-    EXPECT_NEAR(simulation.cell().pose("left").position.y, -0.6, 1e-9);
-    EXPECT_NEAR(simulation.cell().pose("right").position.y, 0.6, 1e-9);
+    EXPECT_NEAR(simulation.cell().requirePose("left").position.y, -0.6, 1e-9);
+    EXPECT_NEAR(simulation.cell().requirePose("right").position.y, 0.6, 1e-9);
 
     // Moving the right arm leaves the left one where it is.
     robotik::JointId const joint = right->joints().find("joint1");
@@ -150,8 +152,12 @@ TEST(Simulation, TwoRobotsShareOnePhysics)
     EXPECT_NEAR(right->joints().position(joint), 0.5, 0.02);
     EXPECT_NEAR(left->joints().position(joint), left_before, 1e-3);
     EXPECT_NEAR(left->time().value(), right->time().value(), 1e-12);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("(collision_count left)").value(), 0.0);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("(joint_limits_respected right)").value(),
+    EXPECT_DOUBLE_EQ(
+        simulation.cell().requireQuery("(collision_count left)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(simulation.cell()
+                         .requireQuery("(joint_limits_respected right)")
+                         .value(),
                      1.0);
-    EXPECT_DOUBLE_EQ(simulation.cell().query("(holding right_gripper)").value(), 0.0);
+    EXPECT_DOUBLE_EQ(
+        simulation.cell().requireQuery("(holding right_gripper)").value(), 0.0);
 }

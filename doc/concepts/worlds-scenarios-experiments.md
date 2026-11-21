@@ -99,8 +99,8 @@ Three things must not be mixed:
 
 | | What it is | Who can read it |
 |--|------------|-----------------|
-| **Ground truth** | The real state of the simulated world: `RoboticCell::pose`, `RoboticCell::query` | Assertions, reports, the RL reward |
-| **Description** | The world as the file describes it at the start: `RoboticCell::described`, `RoboticCell::waypoints` | The mission, to plan (like a map given to a real robot) |
+| **Ground truth** | The real state of the simulated world: `RoboticCell::requirePose`, `RoboticCell::requireQuery` | Assertions, reports, the RL reward |
+| **Description** | The world as the file describes it at the start: `RoboticCell::requireDescribedPose`, `RoboticCell::requireWaypoints` | The mission, to plan (like a map given to a real robot) |
 | **Belief** | What the robot thinks: the `WorldModel`, filled by perception | The skills, through `RobotContext` |
 
 Skills see only the `RobotContext`: **they cannot cheat**. The ground truth

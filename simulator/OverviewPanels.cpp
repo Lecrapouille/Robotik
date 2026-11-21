@@ -225,7 +225,7 @@ static void entityRow(App& p_app,
         try
         {
             robotik::Vector3 const at =
-                simulation.cell().pose(p_entity.id).position;
+                simulation.cell().requirePose(p_entity.id).position;
             ImGui::Text("%.2f %.2f %.2f", at.x, at.y, at.z);
         }
         catch (std::exception const&)

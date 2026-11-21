@@ -42,8 +42,10 @@ TEST(LayerExamples, TaskRunsOneSkill)
     EXPECT_EQ(cell.run(raise, robotik::Seconds(10.0)), robotik::SkillState::Succeeded);
 
     robotik::JointSet const& joints = cell.robot().joints();
-    EXPECT_NEAR(joints.position(joints.revolute("joint2")).value(), 0.5, 0.02);
-    EXPECT_NEAR(cell.pose("cube").position.x, 0.4, 1e-6); // truth, for a measure
+    EXPECT_NEAR(
+        joints.position(joints.requireRevolute("joint2")).value(), 0.5, 0.02);
+    EXPECT_NEAR(
+        cell.requirePose("cube").position.x, 0.4, 1e-6); // truth, for a measure
 }
 
 /// The pick-and-place world without its controller, and its mission: the
@@ -83,7 +85,7 @@ TEST(LayerExamples, TaskAchievesAGoal)
 
     cell.achieve(cubeInBox("(in red_cube box)"));
     EXPECT_EQ(cell.run(robotik::Seconds(60.0)), robotik::Status::SUCCESS);
-    EXPECT_EQ(cell.query("inside", { "red_cube", "box" }), 1.0);
+    EXPECT_EQ(cell.requireQuery("inside", { "red_cube", "box" }), 1.0);
 }
 
 /// A goal that names nothing in the domain is refused before any step.

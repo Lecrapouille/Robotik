@@ -26,7 +26,7 @@ public:
 `confidence`). Reuse inside skills: `MoveTCPSkill(frame = robot.tool(),
 target)` + `goal(pose)` (IK once per goal), `MoveJointSkill(joint, target)`,
 `MoveJointsSkill({{"joint1", 0.5}})`, `HomeSkill(group)`.
-Joints: `joints.find("j")` (id, doubles) or `joints.revolute("j")` (typed,
+Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed,
 Radians); `moveTo`, `spin`, `push`, `reached(j, tol)`, `hold()`.
 Example: `plugins/HelloWorld/src/WaveSkill.cpp`; bigger: `plugins/Painter/src/PainterSkills.cpp`.
 

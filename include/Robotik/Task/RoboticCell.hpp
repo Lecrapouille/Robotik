@@ -95,7 +95,7 @@ struct Shape;
 /// the job of the @c Simulation of the Package layer.
 ///
 /// The cell is the only class that holds both the decisions and the ground
-/// truth. The truth (@ref pose, @ref query) is for measures, assertions and
+/// truth. The truth (@ref requirePose, @ref requireQuery) is for measures, assertions and
 /// rewards; skills see only the @ref RobotContext, and @c make
 /// @c check-layers compiles the skills and the planner without this header,
 /// so that they cannot call it.
@@ -370,7 +370,7 @@ public:
     /// @return Context of the robot.
     /// @throws std::invalid_argument if there is no such robot.
     // -------------------------------------------------------------------------
-    [[nodiscard]] RobotContext& context(std::string_view p_id);
+    [[nodiscard]] RobotContext& requireContext(std::string_view p_id);
 
     /// @return First camera of the robots, or null.
     [[nodiscard]] Camera* camera();
@@ -460,7 +460,7 @@ public:
     /// @return The pose in the world frame.
     /// @throws std::invalid_argument for an unknown entity or frame.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose pose(std::string_view p_reference) const;
+    [[nodiscard]] Pose requirePose(std::string_view p_reference) const;
 
     /// @return Pose of entity @p_id when the episode started.
     [[nodiscard]] Pose initialPose(std::string_view p_id) const;
@@ -490,7 +490,7 @@ public:
     /// @c (skill_failed name), and the queries added by @ref addQuery.
     ///
     /// @code
-    /// double const d = cell.query("(distance robot.tcp red_cube)").value();
+    /// double const d = cell.requireQuery("(distance robot.tcp red_cube)").value();
     /// @endcode
     ///
     /// @param p_term Metric name or query.
@@ -498,13 +498,14 @@ public:
     /// @throws std::invalid_argument for an unknown name, a wrong number of
     ///   arguments or an unknown entity.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::optional<double> query(std::string_view p_term) const;
+    [[nodiscard]] std::optional<double>
+    requireQuery(std::string_view p_term) const;
 
     // -------------------------------------------------------------------------
     /// Asks a world query from C++, without writing text.
     ///
     /// @code
-    /// bool const done = cell.query("inside", { "red_cube", "box" }) == 1.0;
+    /// bool const done = cell.requireQuery("inside", { "red_cube", "box" }) == 1.0;
     /// @endcode
     ///
     /// @param p_name Query name, e.g. @c "inside".
@@ -514,7 +515,8 @@ public:
     ///   arguments or an unknown entity.
     // -------------------------------------------------------------------------
     [[nodiscard]] std::optional<double>
-    query(std::string_view p_name, std::vector<std::string> const& p_args) const;
+    requireQuery(std::string_view p_name,
+                 std::vector<std::string> const& p_args) const;
 
     // -------------------------------------------------------------------------
     /// Adds a world query that conditions may use, e.g. a measure only a
@@ -562,7 +564,7 @@ public:
     /// @return The pose in the world frame.
     /// @throws std::invalid_argument for an unknown entity or frame.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Pose described(std::string_view p_reference) const;
+    [[nodiscard]] Pose requireDescribedPose(std::string_view p_reference) const;
 
     // -------------------------------------------------------------------------
     /// Points of a cartesian trajectory of the scenario, in the robot base
@@ -571,7 +573,8 @@ public:
     /// @return The poses, in order.
     /// @throws std::invalid_argument for an unknown or non cartesian one.
     // -------------------------------------------------------------------------
-    [[nodiscard]] std::vector<Pose> waypoints(std::string_view p_name) const;
+    [[nodiscard]] std::vector<Pose>
+    requireWaypoints(std::string_view p_name) const;
 
     // -------------------------------------------------------------------------
     /// Whether a prop is a body of the physics backend: its level is rigid,
@@ -667,7 +670,7 @@ private:
     /// Contacts of the entity with other entities, floor excluded.
     [[nodiscard]] int contactsOf(Record const& p_record,
                                  std::vector<Contact> const& p_contacts) const;
-    /// The queries every cell answers (see @ref query).
+    /// The queries every cell answers (see @ref requireQuery).
     [[nodiscard]] std::vector<ConditionQuery> builtinQueries() const;
 
 private:

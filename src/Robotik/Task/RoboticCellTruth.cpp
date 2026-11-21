@@ -119,11 +119,11 @@ Pose RoboticCell::framePose(Record const& p_record,
     switch (spec.type)
     {
         case EntitySpec::Type::Robot:
-            return ownerOf(spec).worldPose(frame);
+            return ownerOf(spec).requireWorldPose(frame);
         case EntitySpec::Type::Tool:
             // A mounted tool is part of the robot chain; its tool_mount lands
             // on the flange (Pinocchio merges the two).
-            return ownerOf(spec).worldPose(
+            return ownerOf(spec).requireWorldPose(
                 frame.empty() ? p_record.spec->attach->parent_frame : frame);
         case EntitySpec::Type::Prop:
         {
@@ -154,10 +154,10 @@ Pose RoboticCell::framePose(Record const& p_record,
         throw std::invalid_argument("'" + spec.id + "' has no frame '" + frame +
                                     "'");
     }
-    return base * p_record.frames->framePose(frame);
+    return base * p_record.frames->requireFramePose(frame);
 }
 
-Pose RoboticCell::pose(std::string_view p_reference) const
+Pose RoboticCell::requirePose(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     return framePose(require(id), frame);
@@ -168,7 +168,7 @@ Pose RoboticCell::initialPose(std::string_view p_id) const
     return require(p_id).initial;
 }
 
-Pose RoboticCell::described(std::string_view p_reference) const
+Pose RoboticCell::requireDescribedPose(std::string_view p_reference) const
 {
     auto const [id, frame] = splitReference(p_reference);
     Record const& record = require(id);
@@ -199,10 +199,10 @@ Pose RoboticCell::described(std::string_view p_reference) const
         throw std::invalid_argument("'" + record.spec->id + "' has no frame '" +
                                     link + "'");
     }
-    return record.nominal * record.frames->framePose(link);
+    return record.nominal * record.frames->requireFramePose(link);
 }
 
-std::vector<Pose> RoboticCell::waypoints(std::string_view p_name) const
+std::vector<Pose> RoboticCell::requireWaypoints(std::string_view p_name) const
 {
     auto const found = m_description.trajectories.find(p_name);
     if (found == m_description.trajectories.end())
@@ -216,8 +216,9 @@ std::vector<Pose> RoboticCell::waypoints(std::string_view p_name) const
         throw std::invalid_argument("trajectory '" + std::string(p_name) +
                                     "' is not cartesian");
     }
-    Pose const frame = trajectory.frame.empty() ? Pose{ Vector3::ZERO, Quaternion{} }
-                                                : described(trajectory.frame);
+    Pose const frame = trajectory.frame.empty()
+                           ? Pose{ Vector3::ZERO, Quaternion{} }
+                           : requireDescribedPose(trajectory.frame);
     Pose const to_base = m_robot->base().pose.inverse() * frame;
     std::vector<Pose> result;
     result.reserve(trajectory.poses.size());
@@ -362,7 +363,7 @@ Evaluation RoboticCell::evaluate(std::string_view p_condition) const
     return robotik::evaluate(condition.value(), metrics());
 }
 
-std::optional<double> RoboticCell::query(std::string_view p_term) const
+std::optional<double> RoboticCell::requireQuery(std::string_view p_term) const
 {
     Result<Condition> condition = compile(p_term);
     if (!condition)
@@ -378,8 +379,8 @@ std::optional<double> RoboticCell::query(std::string_view p_term) const
 }
 
 std::optional<double>
-RoboticCell::query(std::string_view p_name,
-                   std::vector<std::string> const& p_args) const
+RoboticCell::requireQuery(std::string_view p_name,
+                          std::vector<std::string> const& p_args) const
 {
     for (ConditionQuery const& query : m_queries)
     {
@@ -439,10 +440,14 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
                         [error](Arguments const& p_args)
                         { return error(p_args, true); } });
 
-    queries.push_back(
-        { "distance", 2U, 2U,
-          [this](Arguments const& p_args) -> std::optional<double>
-          { return norm(pose(p_args[0]).position - pose(p_args[1]).position); } });
+    queries.push_back({ "distance",
+                        2U,
+                        2U,
+                        [this](Arguments const& p_args) -> std::optional<double>
+                        {
+                            return norm(requirePose(p_args[0]).position -
+                                        requirePose(p_args[1]).position);
+                        } });
 
     queries.push_back(
         { "inside", 2U, 2U,
@@ -577,13 +582,15 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
                   double upper = 0.0;
                   if (joints.isPrismatic(id))
                   {
-                      auto const limits = joints.limits(joints.prismatic(id));
+                      auto const limits =
+                          joints.limits(joints.requirePrismatic(id));
                       lower = limits.lower.value();
                       upper = limits.upper.value();
                   }
                   else
                   {
-                      auto const limits = joints.limits(joints.revolute(id));
+                      auto const limits =
+                          joints.limits(joints.requireRevolute(id));
                       lower = limits.lower.value();
                       upper = limits.upper.value();
                   }

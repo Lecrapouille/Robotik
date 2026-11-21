@@ -165,7 +165,7 @@ using PrismaticLimits = JointLimits<Length>;
 /// joint cannot be given meters by mistake.
 ///
 /// @code
-/// robotik::Revolute const elbow = joints.revolute("joint3");
+/// robotik::Revolute const elbow = joints.requireRevolute("joint3");
 /// if (elbow)
 ///     joints.moveTo(elbow, Radians(0.8)); // joints.moveTo(elbow, Length(1))
 ///     does not compile
@@ -226,10 +226,10 @@ struct JointGains
 ///
 /// @code
 /// robotik::JointSet& joints = robot.joints();
-/// robotik::Revolute const elbow = joints.revolute("joint3");
+/// robotik::Revolute const elbow = joints.requireRevolute("joint3");
 /// joints.moveTo(elbow, Radians(0.8));
 /// if (joints.reached(elbow, Radians(0.01))) { ... }
-/// robotik::Revolute const wheel = joints.revolute("left_wheel_joint");
+/// robotik::Revolute const wheel = joints.requireRevolute("left_wheel_joint");
 /// joints.spin(wheel, AngularVelocity(3.0));
 /// @endcode
 // ****************************************************************************
@@ -296,7 +296,7 @@ public:
     /// @return The handle.
     /// @throws std::invalid_argument if unknown or prismatic.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Revolute revolute(std::string_view p_name) const;
+    [[nodiscard]] Revolute requireRevolute(std::string_view p_name) const;
 
     // -------------------------------------------------------------------------
     /// Typed handle of a prismatic joint.
@@ -304,15 +304,15 @@ public:
     /// @return The handle.
     /// @throws std::invalid_argument if unknown or revolute.
     // -------------------------------------------------------------------------
-    [[nodiscard]] Prismatic prismatic(std::string_view p_name) const;
+    [[nodiscard]] Prismatic requirePrismatic(std::string_view p_name) const;
 
-    /// @copydoc revolute(std::string_view) const
+    /// @copydoc requireRevolute(std::string_view) const
     /// @param p_id Joint id.
-    [[nodiscard]] Revolute revolute(JointId p_id) const;
+    [[nodiscard]] Revolute requireRevolute(JointId p_id) const;
 
-    /// @copydoc prismatic(std::string_view) const
+    /// @copydoc requirePrismatic(std::string_view) const
     /// @param p_id Joint id.
-    [[nodiscard]] Prismatic prismatic(JointId p_id) const;
+    [[nodiscard]] Prismatic requirePrismatic(JointId p_id) const;
 
     // --- Description --------------------------------------------------------
 

@@ -275,12 +275,12 @@ executable.
 
 - **The plugin does not own the world.** The `Simulation` builds the entities
   from the world file and destroys them. Find them by id
-  (`simulation.entity("canvas")`, `simulation.pose("canvas")`); never keep a
+  (`cell.entity("canvas")`, `cell.requirePose("canvas")`); never keep a
   pointer to a world object after `shutdown`.
 - **A reset rebuilds the state** without unloading the plugin: put all
   episode state back in `Mission::reset`.
 - **Skills see beliefs, not truth.** In a skill, use `RobotContext`
-  (`robot`, `world_model`). Ground truth (`RoboticCell::pose`) is for metrics
+  (`robot`, `world_model`). Ground truth (`RoboticCell::requirePose`) is for metrics
   and assertions.
 - **Publish metrics, do not judge.** The scenario file holds the verdict.
 - **Units are SI**: metres, radians, seconds. Use the typed handles

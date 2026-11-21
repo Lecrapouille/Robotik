@@ -70,7 +70,8 @@ bool Camera::sample(Robot const& p_robot, Seconds p_now)
     m_frame.pose =
         m_config.parent.empty()
             ? m_config.mount
-            : p_robot.kinematics().framePose(m_config.parent) * m_config.mount;
+            : p_robot.kinematics().requireFramePose(m_config.parent) *
+                  m_config.mount;
     m_frame.stamp = p_now;
     m_frame.frame = name();
     if (!m_source->capture(*this, m_frame))
