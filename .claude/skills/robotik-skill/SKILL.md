@@ -47,7 +47,10 @@ p_sim.skills().add<WaveSkill>(std::move(d) /*, ctor args */);
 Built-in per simulation: `Home` (needs a `joint_group`), `Stop` (all
 actuators, top priority, never ends). Every skill becomes a BT `Action` of
 the same name automatically (`registerSkills`). Custom nodes:
-`p_sim.factory().registerNode("Dip", []{...})` (see Painter `registerNodes`).
+`p_cell.factory().registerNode("Dip", []{...})` (see Painter `registerNodes`);
+include `Robotik/Task/Skills/SkillNodes.hpp`, the only header that brings
+BlackThorn (others name `bt::` types via `TreeTypes.hpp`; `Cell::status()`
+is a `robotik::Status`, `toStatus(bt::Status)` converts).
 
 States: Idle, Waiting, Running, Succeeded, Failed, Cancelled. Reasons: Busy,
 Unavailable (fault before start), Precondition, ResourceLost (fault while

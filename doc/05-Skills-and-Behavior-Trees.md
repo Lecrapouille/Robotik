@@ -450,7 +450,12 @@ p_factory.registerNode("Dip", [&p_scheduler]() {
 });
 ```
 
-Call it from `Mission::setup` with `p_simulation.factory()`.
+Call it from `Mission::setup` with `p_cell.factory()`. Include
+`Robotik/Task/Skills/SkillNodes.hpp` first: it is the only RobotIK header
+that brings BlackThorn. The rest of the API names the tree types without
+their definition, and `Cell::status()` answers a `robotik::Status`
+(`IDLE`, `RUNNING`, `SUCCESS`, `FAILURE`). An application that does not
+write nodes never sees BlackThorn.
 
 ---
 

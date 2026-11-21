@@ -386,7 +386,7 @@ Metrics Cell::metrics() const
     Metrics metrics;
     metrics.set("time", time().value());
     metrics.set("controller.success",
-                m_status == bt::Status::SUCCESS ? 1.0 : 0.0);
+                m_status == Status::SUCCESS ? 1.0 : 0.0);
     if (m_executor)
     {
         metrics.set("planner.plans",

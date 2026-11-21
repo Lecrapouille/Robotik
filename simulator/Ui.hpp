@@ -15,6 +15,7 @@
 #include "Colors.hpp"
 
 #include "Robotik/Task/Scheduler.hpp"
+#include "Robotik/Task/Skills/SkillNodes.hpp"
 
 #include <imgui.h>
 

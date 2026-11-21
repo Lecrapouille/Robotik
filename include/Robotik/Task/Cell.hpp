@@ -40,7 +40,8 @@
 #include "Robotik/Task/Scheduler.hpp"
 #include "Robotik/Task/CellDescription.hpp"
 
-#include "BlackThorn/BlackThorn.hpp"
+#include "Robotik/Task/Status.hpp"
+#include "Robotik/Task/TreeTypes.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -93,7 +94,7 @@ struct Shape;
 /// description.controller.behavior_tree = "wave.bt.yaml";
 /// compages::world::World world;
 /// robotik::Cell cell(world, description);
-/// while (cell.status() == bt::Status::RUNNING || cell.status() == bt::Status::INVALID)
+/// while (cell.status() == robotik::Status::RUNNING || cell.status() == robotik::Status::IDLE)
 ///     cell.step(robotik::Seconds(0.01));
 /// @endcode
 // ****************************************************************************
@@ -264,11 +265,9 @@ public:
     }
 
     /// @return Factory the behavior tree is built from. Skills registered
-    ///   later under the same name replace a node added here.
-    [[nodiscard]] bt::NodeFactory& factory()
-    {
-        return m_factory;
-    }
+    ///   later under the same name replace a node added here. Include
+    ///   @c Robotik/Task/Skills/SkillNodes.hpp to add your own nodes.
+    [[nodiscard]] bt::NodeFactory& factory();
 
     /// @return The faults of the scenario.
     [[nodiscard]] FaultInjector& faults()
@@ -312,11 +311,9 @@ public:
     [[nodiscard]] std::string perceptionSummary() const;
 
     /// @return Behavior tree, or null if the controller has none. With a
-    ///   planner: the tree of the current plan.
-    [[nodiscard]] bt::Tree const* tree() const
-    {
-        return m_executor ? m_executor->tree() : m_tree.get();
-    }
+    ///   planner: the tree of the current plan. Include
+    ///   @c Robotik/Task/Skills/SkillNodes.hpp to walk it.
+    [[nodiscard]] bt::Tree const* tree() const;
 
     // -------------------------------------------------------------------------
     /// @return Observers and bindings of the PDDL planner. The mission fills
@@ -334,8 +331,9 @@ public:
         return m_executor.get();
     }
 
-    /// @return Controller status (behavior tree, or mission without one).
-    [[nodiscard]] bt::Status status() const
+    /// @return Controller status (behavior tree, planner, or mission without
+    ///   one); @c IDLE before the first tick.
+    [[nodiscard]] Status status() const
     {
         return m_status;
     }
@@ -585,16 +583,16 @@ private:
     Random m_perception_random;
 
     /// Factory of the behavior tree nodes.
-    bt::NodeFactory m_factory;
+    std::unique_ptr<bt::NodeFactory> m_factory;
     /// Clock of the behavior trees: the simulated time.
-    [[nodiscard]] bt::Tree::ClockFunction simulatedClock() const;
+    [[nodiscard]] TreeClock simulatedClock() const;
 
     /// Blackboard of the behavior tree.
-    bt::Blackboard::Ptr m_blackboard;
+    std::shared_ptr<bt::Blackboard> m_blackboard;
     /// Behavior tree of the scenario, or null.
-    bt::Tree::Ptr m_tree;
+    std::unique_ptr<bt::Tree> m_tree;
     /// Last controller status.
-    bt::Status m_status = bt::Status::INVALID;
+    Status m_status = Status::IDLE;
     /// The controller is no longer ticked.
     bool m_controller_stopped = false;
 

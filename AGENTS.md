@@ -134,6 +134,9 @@ built.
   `Simulation::ended`), not polling.
 - Hot loops use handles found once (`JointId`, `LinkRef`, `ResourceId`),
   never a name. Measure before changing a storage (doc/06, "Fast data").
+- Only `Task/Skills/SkillNodes.hpp` includes BlackThorn; other public
+  headers name tree types with `TreeTypes.hpp` and answer `robotik::Status`
+  (checked by the compiler in `tests/Common/TestHiddenBlackThorn.cpp`).
 - BlackThorn `Timeout`/`Delay`/`Wait`/`Cooldown` read the simulated time
   (`bt::Tree::clock`, set by `Cell` and `PlanExecutor`). A tree built
   elsewhere keeps the wall clock unless you give it one.

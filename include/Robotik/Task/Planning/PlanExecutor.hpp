@@ -49,7 +49,8 @@
 #include "Robotik/Task/Planning/PlanningDomain.hpp"
 #include "Robotik/Task/Planning/PlanningEngine.hpp"
 
-#include "BlackThorn/BlackThorn.hpp"
+#include "Robotik/Task/Status.hpp"
+#include "Robotik/Task/TreeTypes.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -160,7 +161,7 @@ enum class StepStatus : std::uint8_t
 ///                                mission_domain, scenario.id, factory,
 ///                                skills);
 /// executor.reset(robotik::Seed(42));
-/// while (executor.tick(context) == bt::Status::RUNNING)
+/// while (executor.tick(context) == robotik::Status::RUNNING)
 ///     step();
 /// if (executor.state() == robotik::PlanState::Failed)
 ///     std::cerr << executor.failure() << '\n';
@@ -208,7 +209,7 @@ public:
     /// time): their timed nodes then follow it.
     /// @param p_clock Clock function; empty: the wall clock.
     // -------------------------------------------------------------------------
-    void clock(bt::Tree::ClockFunction p_clock)
+    void clock(TreeClock p_clock)
     {
         m_clock = std::move(p_clock);
     }
@@ -224,7 +225,7 @@ public:
     /// @param p_context Robot API and beliefs of this tick.
     /// @return @c RUNNING, or @c SUCCESS / @c FAILURE once the run is over.
     // -------------------------------------------------------------------------
-    bt::Status tick(RobotContext const& p_context);
+    Status tick(RobotContext const& p_context);
 
     // -------------------------------------------------------------------------
     /// Drops the current plan and plans again at the next tick (user
@@ -342,11 +343,9 @@ public:
     {
         return m_backchain;
     }
-    /// @return Tree of the current plan, or null.
-    [[nodiscard]] bt::Tree const* tree() const
-    {
-        return m_tree.get();
-    }
+    /// @return Tree of the current plan, or null. Include
+    ///   @c Robotik/Task/Skills/SkillNodes.hpp to walk it.
+    [[nodiscard]] bt::Tree const* tree() const;
 
     /// @param p_step A step of a plan.
     /// @return Behavior tree nodes of the step, arguments replaced.
@@ -473,11 +472,11 @@ private:
     /// Context of the tick in progress, for the check nodes.
     RobotContext const* m_context = nullptr;
     /// Blackboard of the tree (step parameters).
-    bt::Blackboard::Ptr m_blackboard;
+    std::shared_ptr<bt::Blackboard> m_blackboard;
     /// Tree of the current plan.
-    bt::Tree::Ptr m_tree;
+    std::unique_ptr<bt::Tree> m_tree;
     /// Clock given to the trees.
-    bt::Tree::ClockFunction m_clock;
+    TreeClock m_clock;
     /// PA-BT: the tree grown from the goal.
     BackchainTree m_backchain;
     /// PA-BT: conditions that failed at the last tick, in the order ticked.

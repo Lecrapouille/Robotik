@@ -11,6 +11,7 @@
 #include "Robotik/Task/Planning/PlanningEngine.hpp"
 #include "Robotik/Robot/Resources.hpp"
 #include "Robotik/Task/Scheduler.hpp"
+#include "Robotik/Task/Skills/SkillNodes.hpp"
 
 #include <filesystem>
 #include <fstream>

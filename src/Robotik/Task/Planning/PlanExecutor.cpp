@@ -13,6 +13,7 @@
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Scheduler.hpp"
+#include "Robotik/Task/Skills/SkillNodes.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -393,7 +394,7 @@ void PlanExecutor::replan(std::string p_cause)
 }
 
 // ----------------------------------------------------------------------------
-bt::Status PlanExecutor::tick(RobotContext const& p_context)
+Status PlanExecutor::tick(RobotContext const& p_context)
 {
     m_context = &p_context;
     if (m_state == PlanState::Waiting && p_context.time >= m_resume)
@@ -471,12 +472,17 @@ bt::Status PlanExecutor::tick(RobotContext const& p_context)
     switch (m_state)
     {
         case PlanState::Succeeded:
-            return bt::Status::SUCCESS;
+            return Status::SUCCESS;
         case PlanState::Failed:
-            return bt::Status::FAILURE;
+            return Status::FAILURE;
         default:
-            return bt::Status::RUNNING;
+            return Status::RUNNING;
     }
+}
+
+bt::Tree const* PlanExecutor::tree() const
+{
+    return m_tree.get();
 }
 
 // ----------------------------------------------------------------------------

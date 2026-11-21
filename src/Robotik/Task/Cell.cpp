@@ -183,7 +183,8 @@ Cell::Cell(compages::world::World& p_world,
           }()),
       m_robot(m_robots.front().get()),
       m_scheduler(std::make_unique<SkillScheduler>(*m_resources)),
-      m_faults(m_description.faults, m_description.random_faults)
+      m_faults(m_description.faults, m_description.random_faults),
+      m_factory(std::make_unique<bt::NodeFactory>())
 {
     if (m_robots.size() > 1U)
     {
@@ -227,7 +228,7 @@ Cell::Cell(compages::world::World& p_world,
     }
 
     addSkills();
-    registerSkills(m_factory, *m_scheduler);
+    registerSkills(*m_factory, *m_scheduler);
     if (m_description.controller.planner)
     {
         m_executor =
@@ -235,7 +236,7 @@ Cell::Cell(compages::world::World& p_world,
                                            m_description.world,
                                            m_planning,
                                            m_description.id,
-                                           m_factory,
+                                           *m_factory,
                                            *m_scheduler);
         m_executor->clock(simulatedClock());
         m_executor->maxAge(m_description.perception.max_age);
@@ -819,14 +820,14 @@ std::string Cell::prefixOf(std::string_view p_id) const
 void Cell::loadTree()
 {
     m_tree.reset();
-    m_status = bt::Status::INVALID;
+    m_status = Status::IDLE;
     std::filesystem::path const& file = m_description.controller.behavior_tree;
     if (file.empty())
     {
         return;
     }
     m_blackboard = std::make_shared<bt::Blackboard>();
-    auto built = bt::Builder::fromFile(m_factory, file.string(), m_blackboard);
+    auto built = bt::Builder::fromFile(*m_factory, file.string(), m_blackboard);
     if (!built)
     {
         throw std::runtime_error("Behavior tree '" + file.string() +
@@ -836,7 +837,17 @@ void Cell::loadTree()
     m_tree->clock(simulatedClock());
 }
 
-bt::Tree::ClockFunction Cell::simulatedClock() const
+bt::NodeFactory& Cell::factory()
+{
+    return *m_factory;
+}
+
+bt::Tree const* Cell::tree() const
+{
+    return m_executor ? m_executor->tree() : m_tree.get();
+}
+
+TreeClock Cell::simulatedClock() const
 {
     // Timeout, Delay, Wait and Cooldown read the simulated time: they follow
     // pause, speed and the step, and a run is reproducible.
@@ -1148,7 +1159,7 @@ void Cell::step(Seconds p_dt)
         }
         else if (m_tree && !m_controller_stopped)
         {
-            m_status = m_tree->tick();
+            m_status = toStatus(m_tree->tick());
         }
         m_scheduler->update(m_contexts);
     }
@@ -1199,17 +1210,17 @@ void Cell::step(Seconds p_dt)
             switch (m_mission->status(*this))
             {
                 case Status::SUCCESS:
-                    m_status = bt::Status::SUCCESS;
+                    m_status = Status::SUCCESS;
                     break;
                 case Status::FAILURE:
-                    m_status = bt::Status::FAILURE;
+                    m_status = Status::FAILURE;
                     break;
                 default:
                     break;
             }
         }
     }
-    if (m_status == bt::Status::SUCCESS || m_status == bt::Status::FAILURE)
+    if (m_status == Status::SUCCESS || m_status == Status::FAILURE)
     {
         m_controller_stopped = true; // the controller is done
     }

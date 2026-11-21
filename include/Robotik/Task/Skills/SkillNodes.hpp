@@ -8,6 +8,11 @@
 /// @file SkillNodes.hpp
 /// Behavior tree nodes that run a skill through the scheduler.
 ///
+/// This is the only RobotIK header that includes BlackThorn. Include it to
+/// write your own tree nodes (@ref robotik::Cell::factory) or to walk a tree
+/// (@ref robotik::Cell::tree); the rest of the API names the tree types only
+/// (TreeTypes.hpp) and answers with @ref robotik::Status.
+///
 /// The tree decides what to do; the node only asks the scheduler, so
 /// resources and priorities stay checked (see doc/Glossary.md: "Behavior
 /// tree").
@@ -17,6 +22,8 @@
 ///   halted node cancels the skill.
 /// - Expects: the skill is registered in the scheduler.
 #pragma once
+
+#include "Robotik/Task/Status.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
 
@@ -48,5 +55,27 @@ class SkillScheduler;
 ///   factory and the trees it builds.
 // ----------------------------------------------------------------------------
 void registerSkills(bt::NodeFactory& p_factory, SkillScheduler& p_scheduler);
+
+// ----------------------------------------------------------------------------
+/// Converts a BlackThorn status into the RobotIK one.
+/// @param p_status Status of a tree or a node; @c INVALID (not ticked yet)
+///   becomes @c IDLE.
+/// @return The status of the same name.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline Status toStatus(bt::Status p_status)
+{
+    switch (p_status)
+    {
+        case bt::Status::RUNNING:
+            return Status::RUNNING;
+        case bt::Status::SUCCESS:
+            return Status::SUCCESS;
+        case bt::Status::FAILURE:
+            return Status::FAILURE;
+        case bt::Status::INVALID:
+            break;
+    }
+    return Status::IDLE;
+}
 
 } // namespace robotik

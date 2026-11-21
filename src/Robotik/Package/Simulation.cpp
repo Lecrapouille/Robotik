@@ -76,12 +76,12 @@ void Simulation::settle()
                         { return evaluate(p_condition); });
     announceChecks();
 
-    bt::Status const status = m_cell.status();
-    if (status == bt::Status::SUCCESS)
+    Status const status = m_cell.status();
+    if (status == Status::SUCCESS)
     {
         finish(Outcome::ControllerSucceeded);
     }
-    else if (status == bt::Status::FAILURE)
+    else if (status == Status::FAILURE)
     {
         finish(Outcome::ControllerFailed);
     }
