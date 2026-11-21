@@ -3,14 +3,16 @@
 #
 # This file is part of RobotIK. See LICENSING.md for details.
 #
-# Demo: AprilTag localization and line following (OpenCV).
+# Demo: AprilTag localization and line following, without a window. The
+# simulator shows the same run in 3D; this program writes the map in a PNG
+# (stb_image_write, as the simulator screenshots).
 
 ifneq ($(filter robotik_line_follower,$(TARGETS)),)
     TARGETS += Robotik-LineFollower
-    Robotik-LineFollower.DESCRIPTION := Demo: AprilTag localization and line following (OpenCV)
+    Robotik-LineFollower.DESCRIPTION := Demo: AprilTag localization and line following, headless
     Robotik-LineFollower.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
     Robotik-LineFollower.INCLUDES := . ../src
-    Robotik-LineFollower.DEPENDS := robotik-core apriltag
-    Robotik-LineFollower.PKG_CONFIG := opencv4
+    Robotik-LineFollower.DEPENDS := robotik-core apriltag stb
+    Robotik-LineFollower.LIBS := $(LINE_FOLLOWER_OPENCV_LIBS)
     Robotik-LineFollower.CXXFLAGS := $(robotik_line_follower.CXXFLAGS)
 endif

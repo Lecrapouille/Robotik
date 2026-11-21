@@ -7,6 +7,11 @@
 
 // Line follower: localize on AprilTags, reach the line, follow it.
 // OpenCV and AprilRobotics stay in this demo, never in the library.
+//
+// This program runs without a window. To watch the run, open the simulator
+// (Demos -> Line follower): its Cameras panel shows what the robot sees,
+// with the detections, and the plugin panel the estimate against the truth.
+// Here, --save writes the map of the run in a PNG file.
 
 #include "Floor.hpp"
 #include "LineFollowerMission.hpp"
@@ -16,17 +21,18 @@
 
 #include "Compages/World/World.hpp"
 
-#include <stdexcept>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+
+#define STB_IMAGE_WRITE_STATIC
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
-#include <thread>
+#include <stdexcept>
 #include <vector>
 
 #define DEMO_DT_S 0.01
@@ -37,7 +43,6 @@ struct Options
 {
     std::uint64_t seed = 1;
     double laps = 1.0;
-    bool view = false;
     std::filesystem::path save;
     std::filesystem::path scenario =
         "plugins/LineFollower/scenarios/line_follower.scenario.yaml";
@@ -48,11 +53,7 @@ static bool parse(int argc, char** argv, Options& p_options)
     for (int i = 1; i < argc; ++i)
     {
         std::string const arg = argv[i];
-        if (arg == "--view")
-        {
-            p_options.view = true;
-        }
-        else if (arg == "--seed" && i + 1 < argc)
+        if (arg == "--seed" && i + 1 < argc)
         {
             p_options.seed = std::strtoull(argv[++i], nullptr, 10);
         }
@@ -71,52 +72,12 @@ static bool parse(int argc, char** argv, Options& p_options)
         else
         {
             std::cerr << "Usage: " << argv[0]
-                      << " [--seed N] [--laps X] [--view] [--save map.png]"
+                      << " [--seed N] [--laps X] [--save map.png]"
                          " [--scenario path]\n";
             return false;
         }
     }
     return true;
-}
-
-static void showCamera(robotik::CameraFrame const& p_frame,
-                       robotik::Detections const& p_detections)
-{
-    cv::Mat picture;
-    cv::cvtColor(cv::Mat(static_cast<int>(p_frame.rgb.height()),
-                         static_cast<int>(p_frame.rgb.width()),
-                         CV_8UC3,
-                         const_cast<std::uint8_t*>(p_frame.rgb.bytes().data())),
-                 picture,
-                 cv::COLOR_RGB2BGR);
-    for (robotik::Detection const& item : p_detections.items)
-    {
-        cv::Scalar const color =
-            item.id >= 0 ? cv::Scalar(0, 200, 0) : cv::Scalar(0, 0, 255);
-        cv::rectangle(picture,
-                      { item.box[0], item.box[1] },
-                      { item.box[2], item.box[3] },
-                      color,
-                      1);
-        cv::circle(picture,
-                   { static_cast<int>(item.center[0]),
-                     static_cast<int>(item.center[1]) },
-                   3,
-                   color,
-                   -1);
-        if (item.id >= 0)
-        {
-            cv::putText(picture,
-                        std::to_string(item.id),
-                        { item.box[0], item.box[1] - 3 },
-                        cv::FONT_HERSHEY_SIMPLEX,
-                        0.4,
-                        color,
-                        1);
-        }
-    }
-    cv::resize(picture, picture, {}, 2.0, 2.0, cv::INTER_NEAREST);
-    cv::imshow("Robotik camera", picture);
 }
 
 static cv::Mat drawMap(FloorMap const& p_floor,
@@ -125,13 +86,11 @@ static cv::Mat drawMap(FloorMap const& p_floor,
 {
     robotik::Image const& image = p_floor.image();
     cv::Mat map;
-    cv::cvtColor(cv::Mat(static_cast<int>(image.height()),
-                         static_cast<int>(image.width()),
-                         CV_8UC3,
-                         const_cast<std::uint8_t*>(image.bytes().data())),
-                 map,
-                 cv::COLOR_RGB2BGR);
-    cv::resize(map, map, {}, MAP_VIEW_SCALE, MAP_VIEW_SCALE, cv::INTER_AREA);
+    cv::resize(cv::Mat(static_cast<int>(image.height()),
+                       static_cast<int>(image.width()),
+                       CV_8UC3,
+                       const_cast<std::uint8_t*>(image.bytes().data())),
+               map, {}, MAP_VIEW_SCALE, MAP_VIEW_SCALE, cv::INTER_AREA);
     auto draw = [&](std::vector<Pose2> const& p_path, cv::Scalar const& p_color)
     {
         std::vector<cv::Point> points;
@@ -152,9 +111,19 @@ static cv::Mat drawMap(FloorMap const& p_floor,
             points.back().y - static_cast<int>(20.0 * std::sin(last.yaw)));
         cv::arrowedLine(map, points.back(), tip, p_color, 2);
     };
-    draw(p_truth, cv::Scalar(0, 180, 0));
-    draw(p_estimate, cv::Scalar(0, 0, 230));
+    draw(p_truth, cv::Scalar(0, 180, 0));      // RGB: green
+    draw(p_estimate, cv::Scalar(230, 0, 0));   // RGB: red
     return map;
+}
+
+/// Writes an RGB picture in a PNG file, or throws.
+static void savePng(std::filesystem::path const& p_path, cv::Mat const& p_rgb)
+{
+    if (stbi_write_png(p_path.string().c_str(), p_rgb.cols, p_rgb.rows, 3,
+                       p_rgb.data, static_cast<int>(p_rgb.step)) == 0)
+    {
+        throw std::runtime_error("cannot write " + p_path.string());
+    }
 }
 
 int main(int argc, char** argv)
@@ -178,34 +147,12 @@ int main(int argc, char** argv)
         robotik::Simulation simulation(world, loaded.take(), nullptr, &mission);
         simulation.reset(robotik::Seed{ options.seed });
 
-        robotik::Camera* camera = simulation.cell().camera();
-        if (options.view && camera != nullptr)
-        {
-            camera->onFrame(
-                [&](robotik::CameraFrame const& p_frame)
-                {
-                    showCamera(p_frame, simulation.cell().perception().detections());
-                    cv::imshow("Robotik map",
-                               drawMap(mission.floor(),
-                                       mission.truthPath(),
-                                       mission.estimatePath()));
-                    cv::waitKey(1);
-                });
-        }
-
         robotik::Seconds const dt(DEMO_DT_S);
-        auto wall = std::chrono::steady_clock::now();
-        auto const begin = wall;
+        auto const begin = std::chrono::steady_clock::now();
         while (!simulation.finished() &&
                simulation.time().value() < DEMO_MAX_TIME_S)
         {
             simulation.step(dt);
-            if (options.view)
-            {
-                wall += std::chrono::microseconds(
-                    static_cast<long>(DEMO_DT_S * 1e6));
-                std::this_thread::sleep_until(wall);
-            }
         }
         double const elapsed = std::chrono::duration<double>(
                                    std::chrono::steady_clock::now() - begin)
@@ -221,10 +168,8 @@ int main(int argc, char** argv)
         }
         if (!options.save.empty())
         {
-            cv::imwrite(options.save.string(),
-                        drawMap(mission.floor(),
-                                mission.truthPath(),
-                                mission.estimatePath()));
+            savePng(options.save,
+                    drawMap(mission.floor(), mission.truthPath(), mission.estimatePath()));
         }
 
         simulation.conclude();

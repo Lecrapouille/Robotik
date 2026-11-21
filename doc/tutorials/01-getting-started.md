@@ -384,7 +384,6 @@ Some demos also have their own program, for uses the two hosts do not cover:
 
 ```bash
 ./build/linux-gcc-debug/bin/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # draws the path
-./build/linux-gcc-debug/bin/Robotik-LineFollower --view                              # shows the camera
 ./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
 ./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456

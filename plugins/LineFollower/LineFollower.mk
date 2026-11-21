@@ -6,6 +6,10 @@
 # The plugin LineFollower: AprilTag localization and line following, with
 # OpenCV (opencv4, not built without it). Paths are relative to this
 # directory.
+#
+# Only the two OpenCV modules the vision uses are linked (core, imgproc).
+# 'PKG_CONFIG := opencv4' would link every module, among them imgcodecs and
+# its GDAL, whose system expat clashes with the one of external/forge.
 
 ifeq ($(call robotik-missing,opencv4),)
     TARGETS += apriltag robotik_line_follower
@@ -21,8 +25,10 @@ ifeq ($(call robotik-missing,opencv4),)
     robotik_line_follower.DESCRIPTION := Line follower demonstration
     robotik_line_follower.SOURCES := src/*.cpp
     robotik_line_follower.DEPENDS := apriltag
-    robotik_line_follower.PKG_CONFIG := opencv4
-    robotik_line_follower.CXXFLAGS := -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion \
+    LINE_FOLLOWER_OPENCV_CFLAGS := $(patsubst -I%,-isystem %,$(shell pkg-config --cflags opencv4))
+    LINE_FOLLOWER_OPENCV_LIBS := -lopencv_imgproc -lopencv_core
+    robotik_line_follower.LIBS := $(LINE_FOLLOWER_OPENCV_LIBS)
+    robotik_line_follower.CXXFLAGS := $(LINE_FOLLOWER_OPENCV_CFLAGS) -Wno-old-style-cast -Wno-sign-conversion -Wno-conversion \
         -Wno-double-promotion -Wno-useless-cast
     $(eval $(call ROBOTIK_PLUGIN,robotik_line_follower,LineFollower))
 else
