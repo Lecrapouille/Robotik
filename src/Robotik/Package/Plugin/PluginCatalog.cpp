@@ -13,7 +13,6 @@
 #include "Robotik/Package/Plugin/PluginABI.h"
 #include "Robotik/Package/Scenario/FileRole.hpp"
 
-#include "BlackThorn/Builder/Yaml.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -23,11 +22,12 @@
 namespace robotik
 {
 
-/// Reads one scalar child of a YAML node, or empty.
-static std::string field(bt::YamlNode const& p_node, std::string_view p_key)
+/// True when the map @p_node writes the key @p_key, even with no value.
+static bool writes(ConfigNode const& p_node, std::string_view p_key)
 {
-    bt::YamlNode const child = p_node.child(p_key);
-    return child.valid() ? child.scalar() : std::string{};
+    return std::ranges::any_of(p_node.entries(),
+                               [p_key](auto const& p_entry)
+                               { return p_entry.first == p_key; });
 }
 
 /// Refuses the keys of a plugin.yaml that the catalog does not read (a typo
@@ -190,17 +190,17 @@ static std::string titleFromStem(std::string p_stem)
 /// runnable file of the folder (*.scenario.yaml, *.rl.yaml,
 /// *.experiment.yaml, or a YAML file without a role). Files must stay in
 /// the package. False, with @p_why set, on an invalid section or file.
-static bool readEntries(bt::YamlNode const& p_section,
+static bool readEntries(ConfigNode const& p_section,
                         std::filesystem::path const& p_root,
                         bool p_owns_clock,
                         std::vector<PluginScenario>& p_out,
                         std::string& p_why)
 {
-    if (!p_section.valid())
+    if (p_section.isNull())
     {
         return true;
     }
-    std::string const folder_name = field(p_section, "directory");
+    std::string const folder_name = p_section.text("directory");
     if (!folder_name.empty() && folder_name != "." &&
         (!relativeName(folder_name) ||
          !contained(p_root, p_root / folder_name)))
@@ -211,32 +211,24 @@ static bool readEntries(bt::YamlNode const& p_section,
     std::filesystem::path const folder =
         folder_name.empty() ? p_root
                             : (p_root / folder_name).lexically_normal();
-    if (p_section.hasKey("entries"))
+    if (writes(p_section, "entries"))
     {
-        bool entries_ok = true;
-        p_section.child("entries").forEachSeq(
-            [&](bt::YamlNode p_item)
-            {
-                PluginScenario entry;
-                entry.id = field(p_item, "id");
-                entry.name = field(p_item, "name");
-                std::string const file = field(p_item, "file");
-                if (entry.id.empty() || entry.name.empty() || file.empty())
-                {
-                    entries_ok = false;
-                    return;
-                }
-                entry.file = (folder / file).lexically_normal();
-                entry.menu = field(p_item, "menu");
-                std::string const clock = field(p_item, "clock");
-                entry.owns_clock =
-                    clock.empty() ? p_owns_clock : clock == "plugin";
-                p_out.push_back(std::move(entry));
-            });
-        if (!entries_ok)
+        for (ConfigNode const& item : p_section.at("entries").items())
         {
-            p_why = "invalid entry (id, name and file are required)";
-            return false;
+            PluginScenario entry;
+            entry.id = item.text("id");
+            entry.name = item.text("name");
+            std::string const file = item.text("file");
+            if (entry.id.empty() || entry.name.empty() || file.empty())
+            {
+                p_why = "invalid entry (id, name and file are required)";
+                return false;
+            }
+            entry.file = (folder / file).lexically_normal();
+            entry.menu = item.text("menu");
+            std::string const clock = item.text("clock");
+            entry.owns_clock = clock.empty() ? p_owns_clock : clock == "plugin";
+            p_out.push_back(std::move(entry));
         }
     }
     else
@@ -282,11 +274,11 @@ static bool readEntries(bt::YamlNode const& p_section,
 
 /// An entry of dependencies.system or dependencies.thirdparties: a map, or
 /// a scalar (the repo or the name).
-static ThirdParty libraryOf(bt::YamlNode const& p_item)
+static ThirdParty libraryOf(ConfigNode const& p_item)
 {
     ThirdParty entry;
-    std::string repo = p_item.isMap() ? field(p_item, "repo") : std::string{};
-    entry.name = p_item.isMap() ? field(p_item, "name") : p_item.scalar();
+    std::string repo = p_item.isMap() ? p_item.text("repo") : std::string{};
+    entry.name = p_item.isMap() ? p_item.text("name") : p_item.scalar();
     if (!repo.empty())
     {
         if (std::size_t const at = repo.find('@'); at != std::string::npos)
@@ -304,12 +296,12 @@ static ThirdParty libraryOf(bt::YamlNode const& p_item)
     }
     if (p_item.isMap())
     {
-        if (std::string const url = field(p_item, "url"); !url.empty())
+        if (std::string const url = p_item.text("url"); !url.empty())
         {
             entry.url = url;
         }
-        entry.license = field(p_item, "license");
-        entry.description = field(p_item, "description");
+        entry.license = p_item.text("license");
+        entry.description = p_item.text("description");
     }
     return entry;
 }
@@ -490,38 +482,34 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     }
 
     std::filesystem::path const manifest = p_root / "plugin.yaml";
-    auto parsed = bt::YamlDocument::parseFile(manifest.string());
-    if (!parsed)
-    {
-        m_errors.push_back(manifest.string() + ": " + parsed.getError());
-        return;
-    }
     auto reject = [&](std::string const& p_why)
     { m_errors.push_back(manifest.string() + ": " + p_why); };
-    bt::YamlNode const node = parsed.getValue().root();
-    Result<ConfigNode> const keys = ConfigNode::load(manifest);
-    if (Result<void> const checked =
-            keys ? checkManifestKeys(keys.value()) : failure(keys.error());
-        !checked)
+    Result<ConfigNode> const parsed = ConfigNode::load(manifest);
+    if (!parsed)
+    {
+        m_errors.push_back(parsed.error());
+        return;
+    }
+    ConfigNode const& node = parsed.value();
+    if (Result<void> const checked = checkManifestKeys(node); !checked)
     {
         reject(checked.error());
         return;
     }
 
     // --- plugin: identity ---------------------------------------------------
-    bt::YamlNode const plugin = node.child("plugin");
+    ConfigNode const& plugin = node.at("plugin");
     PluginPackage package;
     package.root = root;
-    package.id = field(plugin, "id");
-    package.name = field(plugin, "name");
-    package.category = field(plugin, "category");
-    package.description = field(plugin, "description");
+    package.id = plugin.text("id");
+    package.name = plugin.text("name");
+    package.category = plugin.text("category");
+    package.description = plugin.text("description");
     if (package.category.empty())
     {
         package.category = "Demo";
     }
-    std::optional<Version> const version =
-        parseVersion(field(plugin, "version"));
+    std::optional<Version> const version = parseVersion(plugin.text("version"));
     if (package.id.empty() || package.name.empty() || !version)
     {
         reject("plugin.id, plugin.name and plugin.version are required");
@@ -529,7 +517,7 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     }
     package.version = *version;
     package.api_version = static_cast<std::uint32_t>(
-        plugin.child("api_version").asDouble().value_or(0.0));
+        plugin.at("api_version").asNumber().value_or(0.0));
     if (package.api_version != ROBOTIK_PLUGIN_ABI_VERSION)
     {
         reject("built for plugin API " + std::to_string(package.api_version) +
@@ -539,7 +527,7 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     }
 
     // --- library ------------------------------------------------------------
-    std::string const library = field(node.child("library"), "entrypoint");
+    std::string const library = node.at("library").text("entrypoint");
     if (!libraryName(library))
     {
         reject("library.entrypoint must be a file name ending in .so");
@@ -548,8 +536,8 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
     package.library = resolveLibrary(p_root, library);
 
     // --- resources: own pack and required packs ------------------------------
-    bt::YamlNode const resources = node.child("resources");
-    if (std::string const directory = field(resources, "directory");
+    ConfigNode const& resources = node.at("resources");
+    if (std::string const directory = resources.text("directory");
         !directory.empty())
     {
         if (!relativeName(directory) || !contained(p_root, p_root / directory))
@@ -560,88 +548,94 @@ void PluginCatalog::loadPackage(std::filesystem::path const& p_root)
         // Canonical, like the root of the packs it holds.
         package.resources = canonicalOf(p_root / directory);
     }
-    bool packs_ok = true;
-    resources.child("packs").forEachSeq(
-        [&](bt::YamlNode p_item)
-        {
-            PackRequirement requirement;
-            requirement.id =
-                p_item.isMap() ? field(p_item, "id") : p_item.scalar();
-            std::string const wanted =
-                p_item.isMap() ? field(p_item, "version") : "0";
-            std::optional<Version> const minimum =
-                parseVersion(wanted.empty() ? "0" : wanted);
-            if (requirement.id.empty() || !minimum)
-            {
-                packs_ok = false;
-                return;
-            }
-            requirement.version = *minimum;
-            package.packs.push_back(std::move(requirement));
-        });
-    if (!packs_ok)
+    for (ConfigNode const& item : resources.at("packs").items())
     {
-        reject(
-            "resources.packs entries need an id and a version such as \"1.0\"");
-        return;
+        PackRequirement requirement;
+        requirement.id = item.isMap() ? item.text("id") : item.scalar();
+        std::string const wanted = item.isMap() ? item.text("version") : "0";
+        std::optional<Version> const minimum =
+            parseVersion(wanted.empty() ? "0" : wanted);
+        if (requirement.id.empty() || !minimum)
+        {
+            reject("resources.packs entries need an id and a version such as "
+                   "\"1.0\"");
+            return;
+        }
+        requirement.version = *minimum;
+        package.packs.push_back(std::move(requirement));
     }
 
     // --- dependencies -------------------------------------------------------
-    bt::YamlNode const dependencies = node.child("dependencies");
-    dependencies.child("plugins").forEachSeq(
-        [&](bt::YamlNode p_item)
-        { package.plugins.push_back(p_item.scalar()); });
-    dependencies.child("system").forEachSeq(
-        [&](bt::YamlNode p_item)
-        { package.system.push_back(libraryOf(p_item)); });
-    dependencies.child("thirdparties")
-        .forEachSeq([&](bt::YamlNode p_item)
-                    { package.thirdparties.push_back(libraryOf(p_item)); });
+    ConfigNode const& dependencies = node.at("dependencies");
+    for (ConfigNode const& item : dependencies.at("plugins").items())
+    {
+        package.plugins.push_back(item.scalar());
+    }
+    for (ConfigNode const& item : dependencies.at("system").items())
+    {
+        package.system.push_back(libraryOf(item));
+    }
+    for (ConfigNode const& item : dependencies.at("thirdparties").items())
+    {
+        package.thirdparties.push_back(libraryOf(item));
+    }
 
     // --- host hints ---------------------------------------------------------
-    bt::YamlNode const host = node.child("host");
-    package.graphics = host.child("graphics").asBool().value_or(false);
-    package.owns_clock = field(host, "clock") == "plugin";
-    if (host.hasKey("view"))
+    ConfigNode const& host = node.at("host");
+    Result<bool> const graphics = host.flag("graphics", false);
+    if (!graphics)
     {
-        bt::YamlNode const view = host.child("view");
-        auto read = [](bt::YamlNode const& p_node, float* p_out, int p_size)
+        reject("host." + graphics.error());
+        return;
+    }
+    package.graphics = graphics.value();
+    package.owns_clock = host.text("clock") == "plugin";
+    if (host.has("view"))
+    {
+        ConfigNode const& view = host.at("view");
+        auto read =
+            [](ConfigNode const& p_node, float* p_out, std::size_t p_size)
         {
-            if (!p_node.isSeq())
+            if (!p_node.isSequence())
             {
                 return false;
             }
-            int index = 0;
-            p_node.forEachSeq(
-                [&](bt::YamlNode p_item)
+            std::size_t index = 0;
+            for (ConfigNode const& item : p_node.items())
+            {
+                if (index < p_size)
                 {
-                    if (index < p_size)
-                    {
-                        p_out[index] = static_cast<float>(
-                            p_item.asDouble().value_or(p_out[index]));
-                        ++index;
-                    }
-                });
+                    p_out[index] = static_cast<float>(
+                        item.asNumber().value_or(p_out[index]));
+                    ++index;
+                }
+            }
             return true;
         };
-        read(view.child("eye"), package.eye, 3);
-        read(view.child("target"), package.target, 3);
-        read(view.child("distance"), package.distance, 2);
-        read(view.child("clip"), package.clip, 2);
-        package.floor = view.child("floor").asBool().value_or(true);
+        read(view.at("eye"), package.eye, 3U);
+        read(view.at("target"), package.target, 3U);
+        read(view.at("distance"), package.distance, 2U);
+        read(view.at("clip"), package.clip, 2U);
+        Result<bool> const floor = view.flag("floor", true);
+        if (!floor)
+        {
+            reject("host.view." + floor.error());
+            return;
+        }
+        package.floor = floor.value();
         package.has_background =
-            read(view.child("background"), package.background, 3);
+            read(view.at("background"), package.background, 3U);
         package.has_view = true;
     }
 
     // --- scenarios and experiments -----------------------------------------
     std::string why;
-    if (!readEntries(node.child("scenarios"),
+    if (!readEntries(node.at("scenarios"),
                      p_root,
                      package.owns_clock,
                      package.scenarios,
                      why) ||
-        !readEntries(node.child("experiments"),
+        !readEntries(node.at("experiments"),
                      p_root,
                      package.owns_clock,
                      package.experiments,

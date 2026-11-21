@@ -31,6 +31,10 @@ Search order: `$ROBOTIK_DATA`, `data/packs` next to the executable folder,
 The first one wins; another pack with the same id and another version is
 reported as a conflict.
 
+The keys of `pack.yaml` are `id`, `version`, `license`, `source`,
+`description` and `models`. Another key stops the load, with the closest
+known key in the message, as in the other files.
+
 `license` is an SPDX expression. `NOASSERTION` means nobody checked the
 license yet: this is the case of the ABB meshes. Check before you
 redistribute them. The Assets panel of the simulator shows every pack with
