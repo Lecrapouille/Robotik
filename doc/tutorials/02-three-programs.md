@@ -1,4 +1,4 @@
-# Three programs, one per layer
+# 🧅 Three programs, one per layer
 
 [⏫ Tutorials](README.md)
 
@@ -90,7 +90,7 @@ bool const ok = simulation.passed();
 A plugin is the same Package layer, loaded by the simulator or by
 Robotik-Headless: [Your first plugin](04-your-first-plugin.md).
 
-## Where to go next
+## 🔗 Where to go next
 
 - Change the world and the scenario, without C++:
   [A cube in a box](03-a-cube-in-a-box.md).

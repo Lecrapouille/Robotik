@@ -1,4 +1,4 @@
-# Fly brain
+# 🪰 Fly brain
 
 [⏫ Case studies](README.md)
 

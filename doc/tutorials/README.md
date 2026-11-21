@@ -1,4 +1,4 @@
-# Tutorials
+# 🎓 Tutorials
 
 [⏫ Documentation](../README.md)
 

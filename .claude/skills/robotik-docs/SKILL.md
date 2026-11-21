@@ -13,7 +13,15 @@ not as if a tool described a repository. Few good pages beat many thin ones.
 
 The pages are sorted by kind (Diátaxis), as in Compages. Each folder has a
 `README.md` that lists its pages in reading order; a page starts with its
-`# Title`, then a back link `[⏫ Folder](README.md)`.
+`# 🎓 Title`, then a back link `[⏫ Folder](README.md)`.
+
+One emoji starts every heading (`# 🎓 Tutorials`, `## 🚧 Limits`), as in
+Compages; none in the body text. Pick one that says what the section is
+about and reuse the usual ones: 🔗 next or see also, 🧪 try or experiment,
+▶ run, 🚧 limits, 📁 source, 🐞 errors, ✅ checks and assertions. GitHub
+drops the emoji from the anchor and keeps the space as a dash
+(`## 🚧 Limits` → `#-limits`). Never use an emoji with U+FE0F (⚠️ 🖥️ 🛠️
+▶️ and the keycap digits): the selector stays in the anchor and links break.
 
 | Folder | Kind | A page… |
 |--------|------|---------|
@@ -30,7 +38,7 @@ the pages link to each other. Names are lower case with dashes
 (`write-a-skill.md`); a tutorial keeps its number.
 
 Put a fact in one place and link to it
-(`[assertions](../reference/scenario-file.md#assertions)`). Root README.md
+(`[assertions](../reference/scenario-file.md#-assertions)`). Root README.md
 has a documentation table: keep it in sync when a page is added or renamed.
 Code comments point to pages by path (`doc/reference/scenario-file.md`):
 update them when a page moves
@@ -69,7 +77,7 @@ dry and repetitive.
   thing"); closers that repeat the point; a first sentence that repeats the
   heading; sentences about the page itself ("This section explores…");
   "-ing" tails ("…, ensuring that…"); stacked hedges; absolute claims.
-- Layout: no signpost headings ("Key takeaways"); bold only for the one word
+- Layout: no emoji in body text (one per heading is the style); no signpost headings ("Key takeaways"); bold only for the one word
   a reader must not miss; no "**Label:** text" lists; prose first, a list
   only for a real enumeration, a table only for a real comparison.
 - Fix by rewriting the paragraph around its point, not by swapping words.

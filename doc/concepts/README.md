@@ -1,4 +1,4 @@
-# Concepts
+# 💡 Concepts
 
 [⏫ Documentation](../README.md)
 

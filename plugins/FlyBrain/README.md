@@ -1,4 +1,4 @@
-# Fly Brain demo
+# 🪰 Fly Brain demo
 
 A fly (URDF scaled ×100) flies toward a food source while avoiding obstacles. The brain never sees MuJoCo, Compages, or the URDF: it reads an observation and returns an action (`forward`, `turn`, `lift`).
 
@@ -20,7 +20,7 @@ pack of the plugin) by the Makefile of the plugin. Those tables are not versione
 `--brain reflex` has no neurons. It is a formula, used to check the
 observation → action loop.
 
-## From sensor to action
+## 🛤 From sensor to action
 
 On every step (10 ms):
 
@@ -32,7 +32,7 @@ On every step (10 ms):
 
 A positive `turn` yaws left (+y). A zero `lift` holds altitude.
 
-## The neuron
+## 🧬 The neuron
 
 Each cell is a leaky integrate-and-fire neuron, with the constants from `model.py`:
 
@@ -57,7 +57,7 @@ A spike resets `v` to −52 mV and `g` to 0, then adds `connectivity × w_syn` t
 
 One presynaptic spike with a connectivity of about 400 is enough to push the target over threshold.
 
-## Inputs and outputs
+## 🔌 Inputs and outputs
 
 The brain talks to the body through thirteen roles. Eight are inputs, five are outputs. A role index is a neuron number: 0…12 in the embedded circuit, or a row of `Completeness_783.csv` when the connectome is loaded.
 
@@ -87,7 +87,7 @@ In the embedded circuit the synapses are written by hand:
 - `visual_center` also excites `turn_left` a little (220): head-on, with no winning side, the fly commits left.
 - `too_low` climbs (400), `too_high` descends (400).
 
-## Poisson
+## 🎲 Poisson
 
 An input is not a constant current. It is a Poisson process, as in the optogenetic activation of Shiu's model.
 
@@ -97,7 +97,7 @@ The scenario seed fixes those draws. Two runs with the same seed produce the sam
 
 Input neurons have no refractory period: they are stimulations, not cells that just fired. The others have one, of 2.2 ms.
 
-## Activation and silencing
+## 🔇 Activation and silencing
 
 `model.py` changes a neuron in only two ways. The demo uses those two operations and no others.
 
@@ -111,7 +111,7 @@ The mechanism is there (`silence INDEX` in the role file). The embedded circuit 
 
 Reading output rates is not a third manipulation. It is the measurement, as in the model: count the spikes of the neurons chosen as outputs.
 
-## FlyWire connectome
+## 🕸 FlyWire connectome
 
 The connectome is the FlyWire v783 synapse list: for each edge, the presynaptic index, the postsynaptic index, and "Excitatory x Connectivity". A neuron index is its row number in `Completeness_783.csv`, as in `model.py`.
 
@@ -139,7 +139,7 @@ A line `silence 50` removes neuron 50. Several such lines are allowed. A role ab
 
 `--edges` without `--binding` is refused. Named inputs become Poisson activations. Named outputs are read. Neurons listed with `silence` are held quiet. The rest of the graph evolves on its own, with the model's equations.
 
-## Running
+## ▶ Running
 
 With no option, the program is headless: one episode, the Shiu brain, the
 scenario seed (123456). The exit code is 0 if the food was reached. The seed
@@ -198,7 +198,7 @@ restarts the episode. Both eyes are in the "Robot camera" panel.
 ./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
-## Colored rays
+## 🌈 Colored rays
 
 Three horizontal rays start at the head, not at the center of the thorax.
 Each one is 4 m long. The value sent to the brain is 1 if an obstacle touches
@@ -215,7 +215,7 @@ contact point on the obstacle, or the end of the 4 m if nothing is hit.
 The closer the eye sees something, the thicker the cone and the larger the
 end sphere.
 
-## Eye cameras
+## 👁 Eye cameras
 
 `eye_L` and `eye_R` in the URDF have local +x as their optical axis (already
 yawed outward by the joint). A camera is parented to each of those links,

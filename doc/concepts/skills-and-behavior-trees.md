@@ -1,4 +1,4 @@
-# Skills, the scheduler and behavior trees
+# 🌳 Skills, the scheduler and behavior trees
 
 [⏫ Concepts](README.md)
 
@@ -26,7 +26,7 @@ Skill                "I move the arm a little toward the cube."
 Robot API            joints, actuators, sensors
 ```
 
-## What is a skill?
+## 🔧 What is a skill?
 
 A skill is **one capability** of the robot: `Home`, `MoveJoint`, `Detect`,
 `Grasp`, `FollowLine`. It can be very small (move one joint) or bigger
@@ -69,7 +69,7 @@ There is **no simulator in there**. A skill cannot tell MuJoCo from a real
 robot, and it cannot read the ground truth. This is on purpose: the same skill
 must work on a real robot.
 
-### Built-in skills
+### 🧰 Built-in skills
 
 | Skill | Class | Notes |
 |-------|-------|-------|
@@ -82,7 +82,7 @@ must work on a real robot.
 Pick-and-place skills (`DetectSkill`, `ApproachSkill`, `GraspSkill`,
 `ReleaseSkill`) are in `plugins/PickAndPlace/src`.
 
-## Register a skill: `SkillDescription`
+## 📝 Register a skill: `SkillDescription`
 
 A skill is added to the scheduler with a description:
 
@@ -117,9 +117,9 @@ tree action with the same name.
 | `preconditions` | Conditions checked before the start. The text is shown when the skill is blocked |
 | `robot` | Id of the robot the skill drives (`left`); empty: the first robot. The skill gets the `RobotContext` of that robot |
 
-### Several robots
+### 👥 Several robots
 
-In a world of several robots ([Several robots](../reference/world-file.md#several-robots)),
+In a world of several robots ([Several robots](../reference/world-file.md#-several-robots)),
 each skill drives the robot of its `robot` field: `p_context.robot` is that
 robot. Name the skills after the robot (`left.Hover(p3)`), so that a
 behavior tree or a planner binding (`"{0}.Hover({1})"`) picks the right one.
@@ -139,7 +139,7 @@ skills.add<HoverSkill>(describe(id + ".Hover(" + part + ")", id, arm), part, Len
 - The beliefs are in the world frame: bring them into the base of your
   robot with `p_context.robot.base().pose.inverse() * belief`.
 
-## Resources
+## 🔒 Resources
 
 A resource is a part of the robot that skills must share: an actuator or a
 sensor. Each actuator and each sensor of the world file is a resource **with
@@ -178,7 +178,7 @@ who holds each resource, who needs it, its fault; tick one or more
 resources, give a duration (ever: until you restore them), then press
 *Inject*.
 
-## The scheduler
+## 📅 The scheduler
 
 `SkillScheduler` is the referee. It does not know how to move an arm. It knows
 **if and when** a skill may run.
@@ -222,7 +222,7 @@ At each update it:
   1.02 s  Wave  FAILED (unavailable: arm)  (0 s)
 ```
 
-### Use the scheduler without a tree
+### 📅 Use the scheduler without a tree
 
 The tree is only one client of the scheduler. A test, a GUI button or an RL
 policy can use it directly:
@@ -239,7 +239,7 @@ while (skills.state(home) != robotik::SkillState::Succeeded)
 
 This is what the **Home** menu of HelloWorld does.
 
-## Behavior trees
+## 🌳 Behavior trees
 
 A behavior tree is the **mission logic**. Robotik uses
 [BlackThorn](https://github.com/Lecrapouille/BlackThorn). Trees are YAML
@@ -254,7 +254,7 @@ scenario:
 Each tick, the tree is evaluated from the root. Each node returns
 `RUNNING`, `SUCCESS` or `FAILURE`.
 
-### An `Action` is a skill
+### 🔧 An `Action` is a skill
 
 ```yaml
 - Action:
@@ -272,7 +272,7 @@ A tick of this node **requests** the skill `Wave` and returns:
 When the tree leaves the node while it is running (for example a parent
 gives up), the run is cancelled.
 
-### The main nodes
+### 🌿 The main nodes
 
 | Node | Kind | Behaviour |
 |------|------|-----------|
@@ -322,7 +322,7 @@ BehaviorTree:
 >           name: Grasp(red_cube)
 > ```
 
-## Going further: planners, logic and LLMs
+## 🚀 Going further: planners, logic and LLMs
 
 The split *tree / scheduler / skill* leaves room for higher layers. None of
 them is implemented yet; the architecture is ready for them.

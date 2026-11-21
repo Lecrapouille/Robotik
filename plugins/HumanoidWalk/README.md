@@ -1,4 +1,4 @@
-# HumanoidWalk
+# 🚶 HumanoidWalk
 
 A LimX HU_D04_01 humanoid (31 joints) walks in a circle with the walking
 policy trained by LimX. No training is needed: the policy (`policy.onnx`)
@@ -6,7 +6,7 @@ comes with [humanoid-rl-deploy-cpp](https://github.com/limxdynamics/humanoid-rl-
 the robot with [humanoid-description](https://github.com/limxdynamics/humanoid-description)
 (both Apache-2.0).
 
-## Build
+## 🔨 Build
 
 ```bash
 make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runtime, prepares its data once
@@ -26,7 +26,7 @@ without its floating joint, the meshes, `walk.onnx` and its contract
 `walk.yaml` (joint order, PD gains, default posture, scales, armature).
 Without ONNX Runtime or this folder, `make` skips the plugin.
 
-## How it works
+## ⚙ How it works
 
 - The robot uses the **serial** URDF: the ankles and the waist are plain
   joints, as in the training. The MuJoCo file of LimX has the real closed

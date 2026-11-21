@@ -1,4 +1,4 @@
-# HelloWorld
+# 👋 HelloWorld
 
 [⏫ Case studies](README.md)
 

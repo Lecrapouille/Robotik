@@ -1,13 +1,13 @@
-# Tools and frames
+# 📐 Tools and frames
 
 [⏫ Concepts](README.md)
 
 This page explains how a tool (vacuum cup, gripper, drill, brush) is mounted
 on a robot, and the names of the frames involved. Read
-[The tool and the TCP](robotics-in-ten-minutes.md#the-tool-and-the-tcp) first if
+[The tool and the TCP](robotics-in-ten-minutes.md#-the-tool-and-the-tcp) first if
 *flange* and *TCP* are new words.
 
-## Two files, never merged
+## 📄 Two files, never merged
 
 A robot URDF and a tool URDF stay **separate files**. Nothing is concatenated
 into a third URDF. Each file is one kinematic chain:
@@ -19,7 +19,7 @@ into a third URDF. Each file is one kinematic chain:
 
 A link name or a joint name both work: a joint names the link it moves.
 
-## Frames
+## 🧭 Frames
 
 | Name | What it is | Where it lives |
 |------|------------|----------------|

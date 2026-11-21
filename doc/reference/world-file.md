@@ -1,8 +1,8 @@
-# The world file
+# 🌍 The world file
 
 [⏫ Reference](README.md)
 
-## Entities
+## 🧊 Entities
 
 The world is a list of **entities**. Each has an `id`, a `type`, a 3D model
 or a primitive shape, and a pose.
@@ -44,7 +44,7 @@ world:
 
 | Type | What it is | Physics |
 |------|------------|---------|
-| `robot` | A robot you control (one or more, see [Several robots](#several-robots)). Keys: `home`, `sensors`, `actuators` | Its chain, fixed at its `pose` |
+| `robot` | A robot you control (one or more, see [Several robots](#-several-robots)). Keys: `home`, `sensors`, `actuators` | Its chain, fixed at its `pose` |
 | `tool` | A tool. It keeps its identity once mounted and brings its own actuators and sensors | Hangs on the flange |
 | `body` | A simulated rigid body: a URDF model (`physics: free` or `fixed`) or a box (`free`, with `mass`) | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
@@ -54,15 +54,15 @@ matters: "does the easel slide when the brush pushes it?".
 
 Any entity may also have a `kind`: its type for the PDDL planner
 (`kind: cube`). Only entities with a `kind` are objects of the planning
-problem ([The PDDL planner](../concepts/pddl-planner.md#what-goes-where)).
+problem ([The PDDL planner](../concepts/pddl-planner.md#-what-goes-where)).
 
-## Models are asset ids
+## 🏷 Models are asset ids
 
 `model: robotik.robots.robot_6axis` is not a path. It is `<pack>.<model>`: the
 file is found in an **asset pack** (`data/packs/robotik.robots/pack.yaml`).
 See [Share 3D models in an asset pack](../guides/share-3d-models.md).
 
-## Attach an entity to another
+## 📎 Attach an entity to another
 
 `attach.parent` names an entity, or one of its links: `easel.canvas_mount` is
 the link `canvas_mount` of the easel URDF. `transform` places the entity in
@@ -72,7 +72,7 @@ after that.
 The URDF describes a *model*. The world describes an *instance*: where it is,
 and on what it depends.
 
-## Tools
+## 🔧 Tools
 
 A tool is always mounted by its link `tool_mount` on the robot flange
 (`robot.flange`). Only one tool is mounted on a robot at a time. Tools declared without
@@ -106,7 +106,7 @@ counts. From the DualArm tray cell:
 Only a tool has `touches`, and each name must be another entity of the
 world; otherwise the world is refused.
 
-## Several robots
+## 👥 Several robots
 
 A world may have several entities of type `robot`: two arms of a cell, an
 arm and a mobile base. They share **one** physics (MuJoCo), **one** resource
@@ -157,12 +157,12 @@ Rules:
   `(joint_limits_respected right)`. A contact with the other robot is a
   collision.
 - The shared beliefs are in the **world frame** (with one robot, they stay
-  in its base frame: see [Truth, description and belief](../concepts/worlds-scenarios-experiments.md#truth-description-and-belief)).
+  in its base frame: see [Truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)).
 
 How a skill drives one robot of the cell:
-[Several robots](../concepts/skills-and-behavior-trees.md#several-robots).
+[Several robots](../concepts/skills-and-behavior-trees.md#-several-robots).
 
-## Sensors and actuators
+## 📡 Sensors and actuators
 
 Each sensor and each actuator is also a **resource** with the same name:
 skills reserve it, faults make it unavailable.

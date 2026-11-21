@@ -1,4 +1,4 @@
-# Humanoid walk
+# 🚶 Humanoid walk
 
 [⏫ Case studies](README.md)
 

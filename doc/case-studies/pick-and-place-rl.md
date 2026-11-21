@@ -1,4 +1,4 @@
-# Pick and place RL
+# 🎲 Pick and place RL
 
 [⏫ Case studies](README.md)
 

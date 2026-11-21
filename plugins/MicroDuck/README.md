@@ -1,4 +1,4 @@
-# MicroDuck
+# 🦆 MicroDuck
 
 A Pollen Robotics Microduck (14 servos, about 25 cm) walks in a small room
 with the official `velstand` policy: no training is needed. It pushes a toy
@@ -9,7 +9,7 @@ box, tours the room, and follows the panel. The body comes from
 (Apache-2.0). The STL meshes are **CC BY-NC-SA 4.0**: they are not
 committed, `plugin.yaml` credits them.
 
-## Build and run
+## 🔨 Build and run
 
 ```bash
 make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime, prepares its data once
@@ -25,7 +25,7 @@ Without ONNX Runtime or the clone, `make` skips the plugin.
 | `tour` | `playground` | Push the toy box, turn left, walk, turn left, walk back (behavior tree) |
 | `drive` | `playground` | The panel **Micro Duck** gives the command (forward, left, turn, Stop) until you stop the run |
 
-## The files
+## 📁 The files
 
 ```text
 data/microduck/     the duck: URDF, meshes, walk.onnx, walk.yaml, pack.yaml
@@ -41,7 +41,7 @@ furniture for real. The toy box is a prop that the scenario makes rigid
 (`physics.overrides: { toy: rigid }`): a free body of 80 g that the duck
 pushes. The rug is drawn only.
 
-## How it works
+## ⚙ How it works
 
 - **Physics.** `DuckMission::setup` tunes `Simulation::physicsOptions()`: a
   floating base, no gravity compensation, the 5 ms step of the training,
@@ -65,7 +65,7 @@ pushes. The rug is drawn only.
   back up. A walk fails only when the IMU is lost, and the joints then go
   to damping mode.
 
-## PD actuators
+## 🦿 PD actuators
 
 The policy was trained with the BAM motor model (XL330, voltage, friction).
 This plugin uses the PD gains of the MuJoCo file (`kp` 0.55, `kd` 0, joint

@@ -1,11 +1,11 @@
-# Dual arm
+# 🦾 Dual arm
 
 [⏫ Case studies](README.md)
 
 **Two robots in one world, planned together.** Two 6-axis arms share one
-physics, one scheduler and their beliefs ([Several robots](../reference/world-file.md#several-robots)).
+physics, one scheduler and their beliefs ([Several robots](../reference/world-file.md#-several-robots)).
 The PDDL planner plans for both, and the executor runs at the same time the
-steps that do not depend on each other ([Steps that run together](../concepts/pddl-planner.md#steps-that-run-together)).
+steps that do not depend on each other ([Steps that run together](../concepts/pddl-planner.md#-steps-that-run-together)).
 No behavior tree is written. `conveyor_pabt` grows a tree from the goal
 (PA-BT) instead of planning: one goal condition after the other, so one arm
 at a time, like `conveyor_sequential`.
@@ -119,7 +119,7 @@ How it works:
   is a real contact at every step. `dual_arm.contact` counts the seconds the
   drill really touched the tray (`(touching right_drill tray)`).
 - **Touching is the work.** `touches: [tray]` on the drill
-  ([Tools](../reference/world-file.md#tools)): its contacts with the tray
+  ([Tools](../reference/world-file.md#-tools)): its contacts with the tray
   are not collisions; a contact with a glass, a stand or the other arm is.
 - **Gentle moves.** The tray moves along straight lines with a smooth
   profile (`PathSkill`). The arms have stiffer joint gains than the

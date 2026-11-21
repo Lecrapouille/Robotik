@@ -1,4 +1,4 @@
-# Inject a fault and recover from it
+# 💥 Inject a fault and recover from it
 
 [⏫ Guides](README.md)
 
@@ -9,7 +9,7 @@ behavior tree react to it. Faults are listed in
 scheduler are explained in
 [Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
 
-## Inject a fault
+## 💥 Inject a fault
 
 In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just
 before `timeout`:
@@ -33,9 +33,9 @@ make robotik_hello_world
 The skill `Wave` was running; at 1 s it lost the arm and failed. No code was
 written to handle this fault: the scheduler did it. How the robot *reacts* is
 the job of the behavior tree: see
-[Recover from a fault](#recover-from-a-fault).
+[Recover from a fault](#-recover-from-a-fault).
 
-## Recover from a fault
+## 🩹 Recover from a fault
 
 Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`,
 add a fault that takes the arm away between 1 s and 2 s:

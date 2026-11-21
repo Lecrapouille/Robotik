@@ -1,4 +1,4 @@
-# Painter
+# 🎨 Painter
 
 [⏫ Case studies](README.md)
 

@@ -1,4 +1,4 @@
-# Your first plugin
+# 🔌 Your first plugin
 
 [⏫ Tutorials](README.md)
 
@@ -27,7 +27,7 @@ Run them first, to know what you are reading:
 ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
-## What is in a plugin?
+## 📦 What is in a plugin?
 
 ```text
 plugins/HelloWorld/
@@ -70,7 +70,7 @@ So there are **two classes** to know:
 | `robotik::Plugin` | The entry point. Chooses the mission, adds menus and panels | The host (window, keyboard) |
 | `robotik::Mission` | The behaviour during the simulation: skills, metrics, end | The simulation (robot, world) |
 
-## Lesson 1 — the smallest mission
+## 🐣 Lesson 1 — the smallest mission
 
 `scenarios/hello.scenario.yaml`:
 
@@ -159,7 +159,7 @@ it cannot move anything.
 > scenario file decides what is a success. Do not write `assert` or
 > `is_finished()` in C++: write an assertion in YAML.
 
-## Lesson 2 — move a joint (forward kinematics)
+## 🦿 Lesson 2 — move a joint (forward kinematics)
 
 The arm turns its base joint left and right. `src/WaveMission.cpp`:
 
@@ -215,7 +215,7 @@ The scenario checks the result and the safety:
 (`make robotik_hello_world`), run again. `(> wave.swing 0.4)` now fails, and
 the report tells you the joint swung only 0.2 rad.
 
-## Lesson 3 — reach a point (inverse kinematics)
+## 🎯 Lesson 3 — reach a point (inverse kinematics)
 
 Now we give a **position** and ask which joint angles reach it.
 `src/ReachMission.cpp`:
@@ -272,7 +272,7 @@ turns green when the tool arrives. A red assertion does not stop the run.
 [FAIL] default                  seed=1      controller failed at 0.01 s  time=0.01
 ```
 
-## Lesson 4 — a skill and a behavior tree
+## 🌳 Lesson 4 — a skill and a behavior tree
 
 Lessons 1–3 drive the robot directly from `Mission::act`. This is simple,
 but it does not scale: who decides the order? what if the arm is busy? what

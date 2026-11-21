@@ -1,4 +1,4 @@
-# The scenario file
+# 🎬 The scenario file
 
 [⏫ Reference](README.md)
 
@@ -38,13 +38,13 @@ scenario:
 | `world` | The world file, relative to the package root (see below) |
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
 | `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([The PDDL planner: reference](pddl-planner.md)). Without it, the plugin mission drives the robot |
-| `trajectories` | Named paths, one file each ([Trajectories](#trajectories)) |
-| `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/worlds-scenarios-experiments.md#truth-description-and-belief)) |
+| `trajectories` | Named paths, one file each ([Trajectories](#-trajectories)) |
+| `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
 | `physics` | Physics fidelity: `abstract` (default) or `rigid`, per entity (see below) |
 | `timeout` | Maximum simulated time, in seconds |
 | `stop_when` | A condition that ends the run as soon as it is true |
-| `assertions` | What is checked ([Assertions](#assertions)) |
+| `assertions` | What is checked ([Assertions](#-assertions)) |
 
 **File names.** Every file named in a world, scenario or experiment file
 (`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is
@@ -65,7 +65,7 @@ absolute path is refused. Otherwise the load fails with the reason. So a
 package is a closed folder: you can copy or install it as a whole. A model of an asset pack is named by its id
 (`robotik.tools.vacuum`), not by a path.
 
-## Physics fidelity
+## 🔬 Physics fidelity
 
 How finely the physics simulates the objects. The same skills, tree,
 planner and assertions work at every level.
@@ -111,7 +111,7 @@ Rules:
   The report gives the level of each run (`physics` in `--report`): do not
   compare metrics of two levels.
 
-## When does a run end?
+## 🏁 When does a run end?
 
 A run ends when:
 
@@ -123,7 +123,7 @@ A run ends when:
 `Simulation::outcome()` gives the reason. After the end, the physics may go
 on (the simulator keeps the image alive), but the verdicts are frozen.
 
-## Assertions
+## ✅ Assertions
 
 An assertion is a **condition**, judged at a **moment**.
 
@@ -141,7 +141,7 @@ assertions:
   - { condition: (joint_limits_respected robot), phase: always, stop: true }
 ```
 
-### Moments
+### ⏱ Moments
 
 | Moment | Verdict |
 |--------|---------|
@@ -155,7 +155,7 @@ assertions:
 A failed assertion keeps the **measured value**, the **expected bound** and
 the **simulated time**. It does **not** stop the run, unless `stop: true`.
 
-### Conditions
+### ❓ Conditions
 
 A condition uses the notation of PDDL: the operator comes first, inside
 parentheses. You read `(< time 30)` as "time is less than 30". The planner
@@ -184,7 +184,7 @@ A value is a number, a metric, or a query on the world:
 | `(inside a b)` | `a` rests in the container `b`, or is inside the box `b` |
 | `(on a b)` | `a` is placed on `b`: a contact under `a`, or touching faces for two props |
 | `(touching a b)` | `a` and `b` are in contact |
-| `(collision_count e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included. The contacts of a tool with the entities of its `touches` are not counted ([Tools](world-file.md#tools)) |
+| `(collision_count e)` | Peak number of simultaneous contacts of `e` with other entities, floor excluded. For the robot, the mounted tool and a carried object are included. The contacts of a tool with the entities of its `touches` are not counted ([Tools](world-file.md#-tools)) |
 | `(tool_is_attached t robot.flange)` | 1 if the tool `t` is mounted there |
 | `(joint_limits_respected robot)` | 1 if every joint is inside its limits (± 1e-3) |
 | `(holding g)`, `(holding g object)` | The gripper `g` holds something, or this object |
@@ -211,7 +211,7 @@ the reason. Example: `(distance robot.tcp cube)` without a tool gives
 > under a badly modelled contact. This is why the Painter also checks
 > `(pose_error easel)`. Measure what you care about.
 
-## Trajectories
+## 📈 Trajectories
 
 A trajectory is a path, in its own file. The scenario gives it a name.
 
@@ -236,7 +236,7 @@ In C++, `RoboticCell::waypoints("red")` returns a cartesian trajectory in the
 robot base frame. Its frame is placed where the **world file** describes it:
 if the easel slides during the run, the robot does not know.
 
-## From C++
+## 💻 From C++
 
 A scenario is also a C++ object. This is what Headless does:
 

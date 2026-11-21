@@ -264,7 +264,7 @@ scenario:
       red_cube: rigid         # except this one
 ```
 
-The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [Physics fidelity](doc/reference/scenario-file.md#physics-fidelity).
+The good habit: keep the scenario at `abstract`, and add a `rigid` case to the experiment, as above. The same task is then judged at both levels, and the report says which level each run used. The robot itself can also be simulated more or less finely: the arm of the pick-and-place follows its joint commands in MuJoCo, the humanoid is a full floating body with motor gains and contacts, and the fly flies by plain kinematics. Details: [Physics fidelity](doc/reference/scenario-file.md#-physics-fidelity).
 
 Perception works the same way. A car simulator may give the car the lane marks and the pedestrians instead of a photo-realistic image to process; a test of a plan may give the robot the true pose of the cube instead of running a detector. The scenario chooses, per object, and **the report says it**:
 
@@ -281,7 +281,7 @@ scenario:
     overrides: { red_cube: truth }   # a mock of the detector, for this cube only
 ```
 
-Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [Truth, description and belief](doc/concepts/worlds-scenarios-experiments.md#truth-description-and-belief).
+Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [Truth, description and belief](doc/concepts/worlds-scenarios-experiments.md#-truth-description-and-belief).
 
 ---
 

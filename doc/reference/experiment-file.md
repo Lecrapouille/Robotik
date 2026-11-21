@@ -1,4 +1,4 @@
-# The experiment file
+# 🧪 The experiment file
 
 [⏫ Reference](README.md)
 
@@ -75,7 +75,7 @@ The JSON report has, for each run: case, scenario, seed, outcome, time,
 perception mode, metrics, and every assertion with its verdict, value, bound
 and time.
 
-## Seeds and reproducibility
+## 🌱 Seeds and reproducibility
 
 ```text
 seed 42

@@ -1,4 +1,4 @@
-# Share 3D models in an asset pack
+# 📦 Share 3D models in an asset pack
 
 [⏫ Guides](README.md)
 

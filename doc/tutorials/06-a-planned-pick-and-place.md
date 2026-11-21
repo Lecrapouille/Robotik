@@ -1,4 +1,4 @@
-# A planned pick and place
+# 🧠 A planned pick and place
 
 [⏫ Tutorials](README.md)
 
@@ -37,7 +37,7 @@ Read the plans:
 2. `Detect` fails (camera down). The executor waits 0.5 s of simulated time and plans again: same plan, same failure.
 3. At 1.02 s the camera is back and has already seen the cube. The new plan has no `detect` at all.
 
-In the simulator, open **Demos → Pick and place → PDDL planner**, press Play, and look at the **Planner** panel of the **Mission** workspace ([debugging](../reference/pddl-planner.md#debugging)).
+In the simulator, open **Demos → Pick and place → PDDL planner**, press Play, and look at the **Planner** panel of the **Mission** workspace ([debugging](../reference/pddl-planner.md#-debugging)).
 
 The tutorials end here. The [guides](../guides/README.md) give the steps of
 other tasks, and the [concepts](../concepts/README.md) explain the choices

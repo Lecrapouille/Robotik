@@ -1,4 +1,4 @@
-# The PDDL planner
+# 🧠 The PDDL planner
 
 [⏫ Concepts](README.md)
 
@@ -6,7 +6,7 @@ This page explains how a scenario can give a **goal** instead of a behavior tree
 
 You should know [skills and behavior trees](skills-and-behavior-trees.md) and [worlds and scenarios](worlds-scenarios-experiments.md) first.
 
-## Why a planner
+## 🤔 Why a planner
 
 A behavior tree says **how**: "detect, approach, reach, grasp, carry, release". You write every step, in order. That fits when the sequence is almost always the same.
 
@@ -14,9 +14,9 @@ The planner works from **what**: the scenario gives a **goal** instead of a tree
 
 That matters when the order depends on the situation. If the robot already holds the cube, there is nothing to pick. If the camera already saw the box, there is nothing to detect. If the brush is dirty, it must be rinsed first. A tree needs a branch for each case. A planner skips steps that are already satisfied and **replans** when a step fails or the world changes.
 
-The planner reads the robot's **belief** (what perception says), not the **ground truth** (where things really are in the simulation). Skills work the same way. Assertions at the end still use ground truth to say whether the mission really succeeded. [Truth, description and belief](worlds-scenarios-experiments.md#truth-description-and-belief) defines belief, ground truth, description, and oracle.
+The planner reads the robot's **belief** (what perception says), not the **ground truth** (where things really are in the simulation). Skills work the same way. Assertions at the end still use ground truth to say whether the mission really succeeded. [Truth, description and belief](worlds-scenarios-experiments.md#-truth-description-and-belief) defines belief, ground truth, description, and oracle.
 
-The planner returns a **plan**: symbolic steps like `(pick red_cube)`, not joint trajectories. **Skills** run on the robot (`Approach`, `Grasp`, …). The plugin connects each PDDL action to skills with a **binding** ([what goes where](#what-goes-where)). The executor turns the plan into a behavior tree for the run. If a skill fails, the rest of the plan is dropped and Kairos plans again ([how a plan runs](#how-a-plan-runs)).
+The planner returns a **plan**: symbolic steps like `(pick red_cube)`, not joint trajectories. **Skills** run on the robot (`Approach`, `Grasp`, …). The plugin connects each PDDL action to skills with a **binding** ([what goes where](#-what-goes-where)). The executor turns the plan into a behavior tree for the run. If a skill fails, the rest of the plan is dropped and Kairos plans again ([how a plan runs](#-how-a-plan-runs)).
 
 The words of this page:
 
@@ -26,7 +26,7 @@ The words of this page:
 | **Domain** | The types of objects, the predicates and the actions of a task. Written once per plugin, in a `.pddl` file. |
 | **Problem** | The objects, what is true now, and the goal. Also written in a `.pddl` file but RobotIK writes it for you. |
 | **Kairos** | The PDDL solver RobotIK uses: it takes a problem and returns a plan. |
-| **Predicate** | A symbolic fact (true or false). You declare names in the domain. Kairos reads their value from **observers** (belief) and from `planner.facts` ([what goes where](#what-goes-where)). Examples: `(holding red_cube)`, `(in red_cube box)`, `hand_empty`. |
+| **Predicate** | A symbolic fact (true or false). You declare names in the domain. Kairos reads their value from **observers** (belief) and from `planner.facts` ([what goes where](#-what-goes-where)). Examples: `(holding red_cube)`, `(in red_cube box)`, `hand_empty`. |
 | **Action** | A symbolic step in the domain (not a skill): preconditions and effects in PDDL. Example: `pick` means "the robot should end up holding the object", not how to move the arm. |
 | **Plan** | The ordered list of actions Kairos returns, e.g. `(detect red_cube) (pick red_cube) (place red_cube box)`. It is a recipe on paper: it does not run the robot. |
 | **Skill** | C++ code that moves the robot or reads sensors for one step, through `RobotContext` ([05](skills-and-behavior-trees.md)). Examples: `Detect`, `Approach`, `Grasp`. |
@@ -34,7 +34,7 @@ The words of this page:
 | **Ground truth** | The real state of the simulated world (poses, contacts, what is inside what): what `Simulation::pose` and `Simulation::query` report. Assertions, metrics, and RL read it; the planner and skills do not. |
 | **Belief** | What the robot thinks is true: the `WorldModel`, updated by perception. Observers turn belief into PDDL predicates for the planner. |
 
-## What goes where
+## 🗂 What goes where
 
 In RobotIK, planning is split across **four places**: the domain file, the world, the scenario YAML, and the mission (C++). Each row below is one job; keep them separate so PDDL stays symbolic and skills stay in C++.
 
@@ -48,9 +48,9 @@ In RobotIK, planning is split across **four places**: the domain file, the world
 | Real execution of each PDDL action | Mission: one **binding** per action | `pick` → `Approach`, `Reach`, `Grasp`, `Approach` |
 
 RobotIK builds `problem.pddl` from the world, scenario, and observers before
-each search. Bindings are used only at execution time ([how a plan runs](#how-a-plan-runs)).
+each search. Bindings are used only at execution time ([how a plan runs](#-how-a-plan-runs)).
 
-### The domain
+### 📜 The domain
 
 `plugins/PickAndPlace/scenarios/pick_and_place.domain.pddl`:
 
@@ -92,7 +92,7 @@ each search. Bindings are used only at execution time ([how a plan runs](#how-a-
 
 `?o` is a parameter. `cube - graspable` means "a cube is a kind of graspable". The whole PDDL language is available (`forall`, `imply`, derived predicates…): the Painter domain uses `forall` to paint the layers in order.
 
-### The objects: `kind` in the world
+### 🧊 The objects: `kind` in the world
 
 ```yaml
 - id: red_cube
@@ -106,7 +106,7 @@ each search. Bindings are used only at execution time ([how a plan runs](#how-a-
 
 Only entities with a `kind` are objects of the problem. Their PDDL name is their id in lower case.
 
-### The goal: the scenario
+### 🎯 The goal: the scenario
 
 `plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml`:
 
@@ -120,7 +120,7 @@ Only entities with a `kind` are objects of the problem. Their PDDL name is their
 
 Write one literal per line, or a flow list: `[ (in red_cube box), hand_empty ]`.
 
-### The mission: observers and bindings
+### 🔭 The mission: observers and bindings
 
 `plugins/PickAndPlace/src/PickPlacePlanning.cpp` (shortened):
 
@@ -158,7 +158,7 @@ domain.bind("dip", { "Dip", "Home" }, { { "color", "{0}" } });
 - action 'place' has no binding (PlanningDomain::bind in the mission)
 ```
 
-## How a plan runs
+## 🏃 How a plan runs
 
 ```text
 first step, or after a problem
@@ -182,7 +182,7 @@ The generated tree is the tree of the run: the **Execution graph** panel shows i
 
 **Unknown is not false.** For the planner, an atom that is not true is false (PDDL works like that). But when the executor checks an effect or the goal, `Unknown` is accepted: "not seen" does not mean "false". In the fault scenario the camera is down at the end, so the robot cannot see that the cube is in the box: `in` says `Unknown`, the plan ends, and the **assertions** (ground truth) say whether it really worked.
 
-### Steps that run together
+### 👯 Steps that run together
 
 The planner gives a list of actions. Many of them do not depend on each
 other: the conveyor can bring the next part while an arm carries the last
@@ -247,7 +247,7 @@ planned duration.
 
 **Reproducible.** The planner runs inside a simulation step: simulated time does not move during the search. It uses one thread, a fixed search (`search: lama`) and no "anytime" improvement. The same seed gives the same plans. `timeout` is only a safety net on the wall clock.
 
-### Without search: a tree grown from the goal (PA-BT)
+### 🌱 Without search: a tree grown from the goal (PA-BT)
 
 `method: pabt` makes no search. The behavior tree grows backwards from the
 goal, as in PA-BT (*Planning and Acting with Behavior Trees*, Colledanchise,
@@ -331,7 +331,7 @@ What changes from the search:
 | Painter (`painter_pddl`, `painter_pabt`) | 64.01 s | 64.13 s |
 | DualArm conveyor (`conveyor_sequential`, `conveyor_pabt`) | 34.87 s | 34.99 s |
 
-## Limits
+## 🚧 Limits
 
 - The order between steps is read from the atoms each end of an action
   names. A quantified variable (`forall (?y - zone) ...`) matches any
@@ -350,7 +350,7 @@ What changes from the search:
 - The PickAndPlace, Painter and DualArm demos have PDDL scenarios.
   LineFollower and HumanoidWalk do not.
 
-## Next
+## 🔗 Next
 
 - [Case studies](../case-studies/README.md): the PDDL scenarios of PickAndPlace, Painter and DualArm.
 - [API reference](../reference/api.md): the other classes a mission uses.

@@ -1,4 +1,4 @@
-# Worlds, scenarios and experiments
+# 🌍 Worlds, scenarios and experiments
 
 [⏫ Concepts](README.md)
 
@@ -11,7 +11,7 @@ the reference: [the world file](../reference/world-file.md),
 [the experiment file](../reference/experiment-file.md). The tutorial
 [A cube in a box](../tutorials/03-a-cube-in-a-box.md) writes your first one.
 
-## Three files, three questions
+## ❓ Three files, three questions
 
 A Robotik experiment answers one question:
 
@@ -59,7 +59,7 @@ plugins/HelloWorld/
 > In a flow map (`{ ... }`), put a text with a comma between quotes:
 > `name: "Pick and place (PA-BT, faults)"`.
 
-### File names: the double extension
+### 🏷 File names: the double extension
 
 The name of a file says its role: `<name>.<role>.yaml`. You see what a file
 is without opening it, and tools (the simulator Files panel, the catalog)
@@ -72,7 +72,7 @@ use it.
 | `.rl.yaml` | scenario driven by a learned policy (reinforcement learning) | `scenarios/pick_and_place.rl.yaml` |
 | `.bt.yaml` | behavior tree | `scenarios/skills.bt.yaml` |
 | `.domain.pddl` | PDDL domain of the planner ([The PDDL planner](pddl-planner.md)) | `scenarios/pick_and_place.domain.pddl` |
-| `.trajectory.yaml` | trajectory ([Trajectories](../reference/scenario-file.md#trajectories)) | `scenarios/trajectories/red_stroke.trajectory.yaml` |
+| `.trajectory.yaml` | trajectory ([Trajectories](../reference/scenario-file.md#-trajectories)) | `scenarios/trajectories/red_stroke.trajectory.yaml` |
 | `.experiment.yaml` | experiment | `experiments/hello.experiment.yaml` |
 
 Rules:
@@ -93,7 +93,7 @@ Rules:
 - It is a convention: the loaders read the content and do not refuse a file
   for its name. An older `wave.yml` still loads.
 
-## Truth, description and belief
+## 🔍 Truth, description and belief
 
 Three things must not be mixed:
 

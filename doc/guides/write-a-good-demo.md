@@ -1,4 +1,4 @@
-# Write a good demo
+# 🎬 Write a good demo
 
 [⏫ Guides](README.md)
 
@@ -24,7 +24,7 @@ When a demo is stable, it runs both ways —
 `Robotik-Simulator x.scenario.yaml` and `Robotik-Headless x.scenario.yaml` — and it
 becomes a regression test.
 
-## Ideas for new demos
+## 💡 Ideas for new demos
 
 - **A real SO-101 arm**: the same scenario, only the backend changes.
 - **RGB-D perception**: camera → depth → Open3D / OpenCV → WorldModel → pick.

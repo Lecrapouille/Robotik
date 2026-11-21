@@ -1,4 +1,4 @@
-# Glossary
+# 📖 Glossary
 
 [⏫ Reference](README.md)
 
@@ -6,7 +6,7 @@ The words of RobotIK, in simple English. The comments of the headers use
 them; each one is defined here once. Words are in alphabetical order inside
 each group.
 
-## The three layers
+## 🧅 The three layers
 
 | Layer | In one sentence | Folder |
 |-------|-----------------|--------|
@@ -17,7 +17,7 @@ each group.
 
 A layer only uses the layers under it; `make check-layers` checks it.
 
-## Robot
+## 🤖 Robot
 
 - **Actuator**: a device that acts: a motor, a group of joints, a suction
   gripper. Each one is also a *resource* of the same name.
@@ -52,7 +52,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
   brush, the centre of the suction cup).
 - **URDF**: an XML file that describes a robot: its links, joints and shapes.
 
-## Assets and packages
+## 📦 Assets and packages
 
 - **Asset**: a file a robot project reuses: a robot model, a tool, an object.
 - **Asset pack**: a folder of assets with a `pack.yaml` file that lists them,
@@ -73,7 +73,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
   `Robotik-Headless` (command line, no window).
 - **Headless**: without a window or a GPU, as in continuous integration.
 
-## Task
+## 🎯 Task
 
 - **Agent**: something that maps an observation to an action: a learned
   policy, a fly brain, a scripted player.
@@ -113,7 +113,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Skill**: one behaviour of the robot (move to a pose, grasp, dip a brush).
   A skill reads only its `RobotContext`: the robot and the beliefs.
 
-## Planning
+## 🧠 Planning
 
 - **Action (PDDL)**: a step the planner may choose, with its parameters,
   preconditions and effects.
@@ -130,7 +130,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **PA-BT** (Planning and Acting with Behavior Trees): `planner.method:
   pabt`. No search: a reactive behavior tree grows backwards from the goal,
   each false condition getting the actions that make it true
-  ([Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
+  ([Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)).
 - **PDDL**: a language to describe a planning problem: what can be done and
   what is wanted.
 - **Plan**: the list of actions the planner found. Steps that do not depend
@@ -138,7 +138,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Predicate**: the name of a kind of fact (`holding`, `in`).
 - **Replan**: plan again when a step fails or an effect is not seen.
 
-## Scenarios and runs
+## 🎬 Scenarios and runs
 
 - **Assertion**: a condition checked during or at the end of a run
   (`(inside red_cube box)`), with a verdict: passed, failed or pending.
@@ -146,7 +146,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Condition**: a question about the run, in the notation of PDDL:
   `(< time 30)`, `(inside red_cube box)`, `(and ... )`. The operator comes
   first, inside parentheses. RobotIK reads it once when the scenario loads
-  and refuses an unknown name ([conditions](scenario-file.md#conditions)).
+  and refuses an unknown name ([conditions](scenario-file.md#-conditions)).
 - **Experiment**: several cases, each run with several seeds, compared.
 - **Metric**: a named number a run publishes (`time`, `laps`).
 - **Outcome**: why a run ended: success, failure, timeout, stop condition.
@@ -158,7 +158,7 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **World**: the file that lists what exists at the start: robots, tools,
   objects and their poses.
 
-## Learning
+## 🎲 Learning
 
 - **Environment**: a world an agent learns in: reset, step, reward.
 - **Episode**: one try, from a reset to the end.

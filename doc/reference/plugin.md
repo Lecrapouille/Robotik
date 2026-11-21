@@ -1,8 +1,8 @@
-# Plugins
+# 🔌 Plugins
 
 [⏫ Reference](README.md)
 
-## The plugin class
+## 🔌 The plugin class
 
 `src/Plugin.cpp` is the entry point. Most plugins only say which mission
 runs each scenario. This is all the Painter needs:
@@ -51,7 +51,7 @@ HelloWorld adds a key binding, a menu item and a panel. It calls
     }
 ```
 
-### Lifecycle
+### 🔄 Lifecycle
 
 ```text
 plugin.yaml read          the host checks api_version, packs, dependencies
@@ -94,7 +94,7 @@ method cannot go on, it throws. The exception stops at the plugin border:
 the user sees its message, and the host gets an error status
 (`ROBOTIK_PLUGIN_ERR_SETUP` from `setup`). It does not crash the host.
 
-### Host services
+### 🏠 Host services
 
 | `robotik::Host` method | Does |
 |------------------------|------|
@@ -111,7 +111,7 @@ Events (`RobotikEvent::kind`): `ROBOTIK_EVENT_KEY_PRESSED` (`code` = key),
 `_SCENARIO_STARTED`, `_SCENARIO_STOPPED`, `_SKILL_COMPLETED`, `_SKILL_FAILED`
 (`name` = skill), `_ASSERTION_CHANGED` (`name` = assertion, `flag` = passes).
 
-### Menus and panels
+### 🪟 Menus and panels
 
 The border between the host and the plugin is C, so that compilers and
 versions can differ. `Host` keeps your lambdas alive on the plugin side and
@@ -157,7 +157,7 @@ simulation to run the built-in skill `Home`:
     }
 ```
 
-## `plugin.yaml` reference
+## 📄 `plugin.yaml` reference
 
 ```yaml
 plugin:
@@ -208,7 +208,7 @@ experiments:
 | `entries[].menu` | Groups the scenario in a submenu of the **Demos** menu (PickAndPlace: Behavior tree, Reinforcement learning) |
 | `scenarios.entries` | Without `entries`, every runnable file of the folder is taken: `*.scenario.yaml`, `*.rl.yaml`, `*.experiment.yaml`, and an older YAML file without a role. Trees, domains and trajectories are skipped. The id is the name without the double extension |
 
-### Third-party libraries of a plugin
+### 📚 Third-party libraries of a plugin
 
 A library that only one plugin uses is declared in the `<Name>.mk` of the
 plugin, as a target of [MyMakefile](https://github.com/Lecrapouille/MyMakefile):
@@ -257,7 +257,7 @@ A release of binaries is a target with a `URL` (ONNX Runtime:
 `$(eval $(ROBOTIK_ONNXRUNTIME))` of `plugins/plugin.mk`); data made by a
 script is a Make rule the plugin target depends on (`MicroDuck.mk`).
 
-## Where the hosts look for plugins
+## 🔎 Where the hosts look for plugins
 
 Nothing depends on the current folder. Both hosts search, in this order:
 
@@ -271,7 +271,7 @@ A scenario given by its path brings its package with it:
 sources; the library is searched next to the manifest, then next to the
 executable.
 
-## Good rules for a plugin
+## ✅ Good rules for a plugin
 
 - **The plugin does not own the world.** The `Simulation` builds the entities
   from the world file and destroys them. Find them by id

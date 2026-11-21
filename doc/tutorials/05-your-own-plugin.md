@@ -1,4 +1,4 @@
-# Your own plugin
+# 🧩 Your own plugin
 
 [⏫ Tutorials](README.md)
 
@@ -65,7 +65,7 @@ file. Available models are listed in the `pack.yaml` files of `data/packs/`:
 cat data/packs/*/pack.yaml
 ```
 
-## Common errors
+## 🐞 Common errors
 
 | Message | Cause |
 |---------|-------|

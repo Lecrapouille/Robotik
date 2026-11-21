@@ -1,4 +1,4 @@
-# Robotics in ten minutes
+# ⏳ Robotics in ten minutes
 
 [⏫ Concepts](README.md)
 
@@ -6,10 +6,10 @@ This page is for people who never wrote a robot program. It explains the
 words you will meet in the rest of the documentation, then what Robotik does
 with them. No code here: only ideas and pictures.
 
-If you already know robotics, read only [What is Robotik?](#what-is-robotik)
+If you already know robotics, read only [What is Robotik?](#-what-is-robotik)
 and go to [Getting started](../tutorials/01-getting-started.md).
 
-## What is a robot, for a program?
+## 🤖 What is a robot, for a program?
 
 For a program, a robot is three things:
 
@@ -37,9 +37,9 @@ read the sensors → decide → send commands to the actuators → wait a little
 That is all. Everything else in robotics is a better way to do one of those
 three steps.
 
-## The words you will meet
+## 📖 The words you will meet
 
-### The body: links and joints
+### 🦴 The body: links and joints
 
 A robot arm is a chain of rigid pieces, the **links**, connected by **joints**.
 
@@ -71,7 +71,7 @@ Format). It is XML: one `<link>` per piece, one `<joint>` per connection. You
 do not need to write URDF to use Robotik: the robots are already in
 `data/packs/`.
 
-### Frames and poses
+### 📐 Frames and poses
 
 To say *where* something is, you need a reference: a **frame**. A frame is an
 origin point and three axes (x, y, z).
@@ -89,7 +89,7 @@ pose: { position: [0.40, 0.20, 0.02], rpy: [0.0, 0.0, 1.57] }
 #        40 cm forward, 20 cm left, 2 cm up, turned 90° around z
 ```
 
-### The tool and the TCP
+### 🔧 The tool and the TCP
 
 At the end of the arm there is a mounting face, the **flange**. A **tool** is
 fixed on it: a gripper, a vacuum cup, a drill, a brush.
@@ -102,7 +102,7 @@ robot to this point", we mean "move the TCP to this point".
  ...arm ─── flange ═══ tool ─── ● TCP
 ```
 
-### Forward and inverse kinematics
+### 🔄 Forward and inverse kinematics
 
 These two words come back often. They answer opposite questions.
 
@@ -115,7 +115,7 @@ FK is easy: there is always exactly one answer. IK is harder: there can be
 zero answers (the point is too far), one, or many. Robotik uses the
 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) library for both.
 
-### Simulation and physics
+### 🔬 Simulation and physics
 
 A **simulator** computes how the robot and the objects move: gravity,
 collisions, friction, motors. Robotik uses
@@ -126,7 +126,7 @@ The **ground truth** is the real state of the simulated world: the exact
 position of every object. A real robot never knows the ground truth: it only
 knows what its sensors say.
 
-### Perception and beliefs
+### 👁 Perception and beliefs
 
 **Perception** turns raw sensor data into useful facts. "This image has a red
 blob at pixel (120, 80)" becomes "there is a red cube at (0.40, 0.20, 0.02),
@@ -136,7 +136,7 @@ What the robot *thinks* about the world is its **belief**. In Robotik, beliefs
 live in the **WorldModel**. A belief can be wrong: that is normal, and it is
 what we want to test.
 
-### Skills and behavior trees
+### 🌳 Skills and behavior trees
 
 A **skill** is one thing the robot knows how to do: "go home", "grasp the
 cube", "follow the line". A skill runs over many steps until it succeeds or
@@ -157,7 +157,7 @@ Sequence                      ← do the children one after the other
 A behavior tree is easier to read and to change than a big `if / else`
 program, and it reacts well to failures.
 
-### Resources and faults
+### 🔒 Resources and faults
 
 A **resource** is a part of the robot that only one skill can use at a time:
 the arm, the gripper. A camera can be shared by several skills.
@@ -166,14 +166,14 @@ A **fault** is a resource that stops working: the camera is blind, the
 gripper is broken. Robotik can inject faults on purpose to test how the robot
 reacts.
 
-### Reinforcement learning (RL)
+### 🎲 Reinforcement learning (RL)
 
 In **reinforcement learning**, a program learns by trial and error. At each
 step it receives an **observation**, chooses an **action**, and gets a
 **reward** (a score). An **episode** is one try, from start to end. You will
 need these words only in [Build reinforcement learning environments](../guides/reinforcement-learning.md).
 
-## What is Robotik?
+## 🤖 What is Robotik?
 
 Robotik is a C++20 library to **write a robot program once, then run it in a
 simulator, in automatic tests, in a learning environment, and (later) on a
@@ -194,7 +194,7 @@ good existing libraries behind one simple API:
     (physics)    (kinematics)  (behavior trees)  (3D world, display)
 ```
 
-### The three ideas behind Robotik
+### 💡 The three ideas behind Robotik
 
 **1. The program does not know if the robot is real.**
 A skill writes `joints.moveTo(elbow, 0.5)`. A *backend* translates this
@@ -217,7 +217,7 @@ The same scenario runs with a 3D window (`Robotik-Simulator`) or without
 (`Robotik-Headless`). Without a window, you can run thousands of episodes for
 tests or learning.
 
-### What you write, and what Robotik gives you
+### 🤝 What you write, and what Robotik gives you
 
 | You write | Robotik gives you |
 |-----------|-------------------|
@@ -225,7 +225,7 @@ tests or learning.
 | A **scenario** file (YAML): what happens, what is checked | Runs it, checks it, writes a report |
 | A **plugin** (C++): your skills, your perception, your metrics | Loads it in the simulator and in headless mode |
 
-## Where to go next
+## 🔗 Where to go next
 
 | You want to… | Read |
 |--------------|------|

@@ -1,4 +1,4 @@
-# Case studies: the demos
+# 🎬 Case studies: the demos
 
 [⏫ Documentation](../README.md)
 

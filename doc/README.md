@@ -1,4 +1,4 @@
-# RobotIK documentation
+# 📚 RobotIK documentation
 
 The pages are in five folders. Each folder holds one kind of page, so you
 know what a page gives you before you open it.
@@ -11,14 +11,14 @@ know what a page gives you before you open it.
 | [Reference](reference/README.md) | lists keys, classes and words | you need one fact |
 | [Case studies](case-studies/README.md) | shows one demo plugin from end to end | you want a complete example |
 
-## Reading order
+## 🧭 Reading order
 
 If robotics is new to you, read
 [Robotics in ten minutes](concepts/robotics-in-ten-minutes.md) first. Then
 follow the [tutorials](tutorials/README.md) in order. After them, open the
 other pages when you need them.
 
-## Quick paths
+## 🚀 Quick paths
 
 - *"I just want to see something move."* →
   [Getting started](tutorials/01-getting-started.md)
@@ -32,7 +32,7 @@ other pages when you need them.
   [Architecture](concepts/architecture.md), and [AGENTS.md](../AGENTS.md)
   for the conventions
 
-## A note on the language
+## 🗣 A note on the language
 
 The pages are written in simple English, with short sentences and common
 words, so that readers whose first language is not English (French readers

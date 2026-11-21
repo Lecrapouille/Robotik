@@ -1,4 +1,4 @@
-# Mount a tool on a robot
+# 🔧 Mount a tool on a robot
 
 [⏫ Guides](README.md)
 
@@ -6,7 +6,7 @@ This guide mounts a tool (a vacuum cup, a gripper, a drill) on a robot of
 your world, then checks that its frames are where you expect. The names of
 the frames are explained in [Tools and frames](../concepts/tools-and-frames.md).
 
-## World file
+## 🌍 World file
 
 A tool is an entity of the world, with its own identity. The mounted one hangs from `robot.flange` by its `tool_mount` link; it brings its own actuators (and sensors). Tools declared without `attach` are in storage: they are not built, but the simulator can mount one instead.
 
@@ -43,7 +43,7 @@ Every tool uses the same interface:
 
 The simulator **Teach Pendant** panel lists the tool entities of the world and reloads the scenario with the chosen one. **None** leaves `tool0` as the work frame.
 
-## Check: heights at zero joints
+## 📏 Check: heights at zero joints
 
 With every axis at zero, the TCP height is 1.27 m for the flat pad (`tool_default`), 1.342 m for the gripper and 1.422 m for the drill. Those values match the stacked link lengths.
 

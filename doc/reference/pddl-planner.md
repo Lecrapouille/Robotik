@@ -1,20 +1,20 @@
-# The PDDL planner: reference
+# 🧠 The PDDL planner: reference
 
 [⏫ Reference](README.md)
 
-## `controller.planner`
+## 🎛 `controller.planner`
 
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `domain` | required | The PDDL domain, relative to the package root |
-| `method` | `search` | `search`: a planner finds the plan; `pabt`: a reactive tree grows from the goal ([Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)) |
+| `method` | `search` | `search`: a planner finds the plan; `pabt`: a reactive tree grows from the goal ([Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)) |
 | `facts` | none | True atoms that never change and are not observed |
 | `goal` | required (or `goal_pddl`) | Literals to reach: `(in a b)`, `(not (holding a))`, `hand_empty` |
 | `goal_pddl` | none | The goal in PDDL, for what a list cannot say (`(forall ...)`). Not checked on the beliefs. Not with `pabt` |
 | `replan.max` | 3 | New plans allowed after the first one (`pabt`: new tries after a failed action) |
 | `replan.delay` | 0.5 | Simulated seconds waited before a new plan |
 | `verify` | true | Check the effects of each action on the beliefs. `observed`: an effect counts only when a belief was seen again after the start of the step (a failed grasp is not taken for a held object); `false`: no check |
-| `parallel` | true | Run together the steps that do not depend on each other ([Steps that run together](../concepts/pddl-planner.md#steps-that-run-together)); `false` runs the plan step by step |
+| `parallel` | true | Run together the steps that do not depend on each other ([Steps that run together](../concepts/pddl-planner.md#-steps-that-run-together)); `false` runs the plan step by step |
 | `search` | `lama` | Kairos search: `ff`, `lama`, `eager-lama`, `novelty`, `lama-novelty`, `ehc`, `goals` |
 | `timeout` | 10 | Wall-clock limit of one search, in seconds |
 
@@ -22,7 +22,7 @@ A scenario has `behavior_tree` **or** `planner`, not both.
 
 Beliefs older than `perception.max_age` (seconds, infinite by default) are unknown to the planner: an observer does not plan on what the robot saw long ago.
 
-## Metrics
+## 📊 Metrics
 
 | Name | Value |
 |------|-------|
@@ -34,7 +34,7 @@ Beliefs older than `perception.max_age` (seconds, infinite by default) are unkno
 Use them in assertions: `(== planner.replans 0)` says "the first plan was the
 right one".
 
-## C++
+## 💻 C++
 
 | Class (header) | Role |
 |----------------|------|
@@ -48,7 +48,7 @@ right one".
 `Simulation::planning()` gives the `PlanningDomain` to fill;
 `Simulation::planner()` the executor, or null without a planner.
 
-## Debugging
+## 🐞 Debugging
 
 - **Simulator**: the **Planner** panel shares the middle of Mission with
   Execution graph. It opens by default for a planned scenario. The goal,

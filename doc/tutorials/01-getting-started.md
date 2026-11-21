@@ -1,4 +1,4 @@
-# Getting started
+# 🚀 Getting started
 
 [⏫ Tutorials](README.md)
 
@@ -6,7 +6,7 @@ In this page you build Robotik, watch a robot in the simulator, run the same
 scenario without a window, and break a test on purpose to see what a failure
 looks like. It takes about 20 minutes (most of it is compilation).
 
-## Build
+## 🔨 Build
 
 Robotik builds on **Linux** with `make` (no CMake). It does not build on
 macOS: the display needs OpenGL 4.3 or more.
@@ -45,7 +45,7 @@ Unit tests, for developers:
 make tests -j"$(nproc --all)"
 ```
 
-## Watch a robot: the simulator
+## 👀 Watch a robot: the simulator
 
 ```bash
 ./build/linux-gcc-debug/bin/Robotik-Simulator
@@ -274,7 +274,7 @@ focuses the Timeline editor; `--maximize timeline` expands that editor.
 Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
 a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 
-## Run without a window: headless
+## 🤫 Run without a window: headless
 
 The same scenario, in a terminal:
 
@@ -320,7 +320,7 @@ Options:
 ...
 ```
 
-## Break a test on purpose
+## 💔 Break a test on purpose
 
 The goal: see that a scenario *is* a test.
 
@@ -353,7 +353,7 @@ The goal: see that a scenario *is* a test.
    assertion is a verdict, not an emergency stop.
 5. Put back `0.4` (or run `make` again: it copies the sources over `build/`).
 
-## Run an experiment
+## 🧪 Run an experiment
 
 An **experiment** runs several variants of a scenario, with several seeds,
 and compares them.
@@ -376,9 +376,9 @@ pick_and_place_experiment: 12/12 runs passed
 assertion, every metric. (`perception truth` means that, without a window,
 no image is rendered, so the true cube position replaced the camera, as the
 scenario asks with `perception: { blind: truth }`. See
-[Truth, description and belief](../concepts/worlds-scenarios-experiments.md#truth-description-and-belief).)
+[Truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief).)
 
-## The other programs
+## 🧰 The other programs
 
 Some demos also have their own program, for uses the two hosts do not cover:
 

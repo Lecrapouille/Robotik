@@ -1,4 +1,4 @@
-# API reference
+# 📘 API reference
 
 [⏫ Reference](README.md)
 
@@ -22,27 +22,27 @@ Conventions in the code:
 
 | I want to… | Use | Section |
 |------------|-----|---------|
-| Write the entry point of my plugin | `Plugin`, `Host`, `Canvas` | [Plugin API](#plugin-api) |
-| Add behaviour to a simulation | `Mission` | [`Mission`](#mission) |
-| Read the world, the time, the truth | `RoboticCell` (and `Simulation` for the verdict) | [`RoboticCell` and `Simulation`](#roboticcell-and-simulation) |
-| Move joints, read poses, compute IK | `Robot`, `JointSet` | [Robot and joints](#robot-and-joints) |
-| Use the gripper, a motor | actuators | [Actuators](#actuators) |
-| Write a skill | `Skill`, `SkillDescription`, `RobotContext` | [Skills](#skills) |
-| Run, cancel, inspect skills | `SkillScheduler` | [`SkillScheduler`](#skillscheduler) |
-| Reserve parts of the robot, inject faults | `ResourceManager`, `FaultInjector` | [Resources and faults](#resources-and-faults) |
-| Process images, update beliefs | `Detector`, `PerceptionPipeline`, `WorldModel` | [Perception and beliefs](#perception-and-beliefs) |
-| Publish numbers for assertions | `Metrics` | [Metrics](#metrics) |
-| Find a 3D model | `AssetResolver` | [Assets](#assets) |
-| Make an RL environment | `Environment`, `SimulationEnvironment` | [Learning](#learning) |
+| Write the entry point of my plugin | `Plugin`, `Host`, `Canvas` | [Plugin API](#-plugin-api) |
+| Add behaviour to a simulation | `Mission` | [`Mission`](#-mission) |
+| Read the world, the time, the truth | `RoboticCell` (and `Simulation` for the verdict) | [`RoboticCell` and `Simulation`](#-roboticcell-and-simulation) |
+| Move joints, read poses, compute IK | `Robot`, `JointSet` | [Robot and joints](#-robot-and-joints) |
+| Use the gripper, a motor | actuators | [Actuators](#-actuators) |
+| Write a skill | `Skill`, `SkillDescription`, `RobotContext` | [Skills](#-skills) |
+| Run, cancel, inspect skills | `SkillScheduler` | [`SkillScheduler`](#-skillscheduler) |
+| Reserve parts of the robot, inject faults | `ResourceManager`, `FaultInjector` | [Resources and faults](#-resources-and-faults) |
+| Process images, update beliefs | `Detector`, `PerceptionPipeline`, `WorldModel` | [Perception and beliefs](#-perception-and-beliefs) |
+| Publish numbers for assertions | `Metrics` | [Metrics](#-metrics) |
+| Find a 3D model | `AssetResolver` | [Assets](#-assets) |
+| Make an RL environment | `Environment`, `SimulationEnvironment` | [Learning](#-learning) |
 
 One umbrella header includes everything: `#include "Robotik/Robotik.hpp"`.
 
-## Plugin API
+## 🔌 Plugin API
 
 Header: `Robotik/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border
 `Robotik/Package/Plugin/PluginABI.h`).
 
-### `robotik::MissionPlugin`
+### 🔌 `robotik::MissionPlugin`
 
 The common base: one mission per scenario.
 
@@ -67,7 +67,7 @@ ROBOTIK_EXPORT_PLUGIN(PainterPlugin)
 | `scenario()` | Id of the current scenario |
 | `mission<T>()` | The current mission as a `T`, or null |
 
-### `robotik::Plugin`
+### 🔌 `robotik::Plugin`
 
 Base class of `MissionPlugin`, for a plugin that chooses its mission another
 way. Override only what you need; every method does nothing by default.
@@ -89,7 +89,7 @@ A method that cannot go on throws. The exception is caught at the C border
 and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 `setup`, `ROBOTIK_PLUGIN_ERR_RUNTIME` from the others.
 
-### `robotik::Host`
+### 🏠 `robotik::Host`
 
 | Method | Does |
 |--------|------|
@@ -104,7 +104,7 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 
 `Host` is a small value (a pointer); you may keep a copy in your plugin.
 
-### `RobotikEvent`
+### 📨 `RobotikEvent`
 
 | `kind` | Fields |
 |--------|--------|
@@ -113,7 +113,7 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 | `ROBOTIK_EVENT_SKILL_COMPLETED`, `_SKILL_FAILED` | `name`: the skill |
 | `ROBOTIK_EVENT_ASSERTION_CHANGED` | `name`: the assertion, `flag`: 1 if it passes |
 
-### `robotik::Canvas`
+### 🖌 `robotik::Canvas`
 
 Valid only during the draw callback.
 
@@ -122,7 +122,7 @@ Valid only during the draw callback.
 `bool sliderInt(label, int&, min, max)`,
 `separator()`. The `bool` results are true when the user acted.
 
-## `Mission`
+## 🎯 `Mission`
 
 Header: `Robotik/Task/Mission.hpp`. What your plugin adds to a generic
 simulation. All methods are optional.
@@ -137,7 +137,7 @@ simulation. All methods are optional.
 | `measure(RoboticCell const&, Metrics&) const` | When assertions or reports need values | `metrics.set("name", value)` |
 | `Status status(RobotContext const&) const` | After each step, **only without behavior tree** | `SUCCESS` / `FAILURE` end the run; `RUNNING` / `IDLE` continue |
 
-## `RoboticCell` and `Simulation`
+## 🏭 `RoboticCell` and `Simulation`
 
 Header: `Robotik/Task/RoboticCell.hpp`. The robot cell: robots, objects, one
 physics, the controller and the beliefs. The mission receives it. A C++
@@ -180,7 +180,7 @@ judges the run (marked *Simulation* below).
 | `time()` | Simulated time (`Seconds`) |
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |
-| `step(Seconds dt)` | One step (see [One simulation step](../concepts/architecture.md#one-simulation-step)) |
+| `step(Seconds dt)` | One step (see [One simulation step](../concepts/architecture.md#-one-simulation-step)) |
 | `status()`, `stopController()` | State of the controller (tree, plan or mission); stop ticking it |
 | `perceptionOf("id")`, `perceptionSummary()` | Perception fidelity of an object (`truth`, `noisy_truth`, `sensed`) and of the run |
 | *Simulation* `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
@@ -208,11 +208,11 @@ judges the run (marked *Simulation* below).
 | `described("id")` | Pose of the entity as written in the world file |
 | `waypoints("name")` | A cartesian trajectory of the scenario, in the robot base frame |
 
-## Robot and joints
+## 🤖 Robot and joints
 
 Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 
-### `Robot` (and `RobotSession`)
+### 🤖 `Robot` (and `RobotSession`)
 
 | Method | Returns / does |
 |--------|----------------|
@@ -231,7 +231,7 @@ Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 `RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
 (used by `RoboticCell`).
 
-### `JointSet`
+### 🧮 `JointSet`
 
 Two ways to name a joint:
 
@@ -258,7 +258,7 @@ robotik::Prismatic const k = joints.prismatic("rail");  // typed handle, metres
 | `release(j)` | Stop commanding (no effort) |
 | `target(id)`, `mode(id)` | Current command |
 
-## Actuators
+## 🦾 Actuators
 
 Header: `Robotik/Robot/Actuators.hpp`. Declared in the world file; each one is
 also a resource.
@@ -273,7 +273,7 @@ auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
 | `Motor` | `motor` | `moveTo(Radians)`, `spin(AngularVelocity)`, `push(Torque)`, `stop()`, `position()` |
 | `VacuumGripper` | `vacuum` | grasp / release what touches the suction face (see `plugins/PickAndPlace`) |
 
-## Skills
+## 🔧 Skills
 
 Headers: `Robotik/Task/Skills/Skill.hpp`, `Robotik/Task/Skills/MotionSkills.hpp`,
 `Robotik/Task/RobotContext.hpp`.
@@ -301,7 +301,7 @@ Built-in: `HomeSkill(group)`, `MoveJointSkill(joint, target)`,
 `MoveJointsSkill(posture)`, `MoveTCPSkill(frame, target)` + `goal(pose)`,
 `StopSkill`. See [Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
 
-## `SkillScheduler`
+## 📅 `SkillScheduler`
 
 Header: `Robotik/Task/Scheduler.hpp`.
 
@@ -317,7 +317,7 @@ Header: `Robotik/Task/Scheduler.hpp`.
 | `name(id)`, `description(id)`, `skill(id)` | Introspection |
 | `trace()` | Every run since the last reset (`SkillRun`: state, reason, start, end) |
 
-## Resources and faults
+## 🔒 Resources and faults
 
 Headers: `Robotik/Robot/Resources.hpp`, `Robotik/Task/Faults.hpp`.
 
@@ -331,7 +331,7 @@ Headers: `Robotik/Robot/Resources.hpp`, `Robotik/Task/Faults.hpp`.
 `FaultInjector` applies the `faults:` of the scenario (`at`, `rate`) at each
 step. You rarely need it directly.
 
-## Perception and beliefs
+## 👁 Perception and beliefs
 
 Headers: `Robotik/Task/Perception/Detector.hpp`, `Detection.hpp`, `WorldModel.hpp`,
 `Robotik/Robot/Sensors/Camera.hpp`.
@@ -378,7 +378,7 @@ Other sensors (`Robotik/Robot/Sensors/`): `Imu`, `RangeScanner`,
 `samples()`, `stamp()`), and their readings derive from `Measurement`
 (time stamp, frame, sequence, validity).
 
-## Metrics
+## 📊 Metrics
 
 Header: `Robotik/Task/Metrics.hpp`.
 
@@ -394,7 +394,7 @@ Any published name can be used in an assertion (`(>= laps 1)`) or in
 `evaluation.metrics` of an experiment. Use a prefix per plugin
 (`hello.ticks`, `reach.error`) to avoid clashes.
 
-## Assets
+## 📦 Assets
 
 Header: `Robotik/Robot/Assets/AssetResolver.hpp`.
 
@@ -411,7 +411,7 @@ std::filesystem::path const urdf = assets.model("robotik.robots.robot_6axis");
 | `addRoot(path)`, `addPack(path)` | More places to search |
 | `packs()`, `errors()` | What was found, and problems (conflicts) |
 
-## Learning
+## 🎲 Learning
 
 Headers in `Robotik/Task/Learning/`. See [Build reinforcement learning environments](../guides/reinforcement-learning.md).
 
@@ -424,7 +424,7 @@ Headers in `Robotik/Task/Learning/`. See [Build reinforcement learning environme
 | `EpisodeLog` | JSON log of the episodes |
 | `Agent` (`Robotik/Task/Agents/Agent.hpp`) | `Action update(Observation const&, Seconds)`: any brain |
 
-## Scenario objects
+## 🎬 Scenario objects
 
 Headers in `Robotik/Package/Scenario/`. Usually built by the host; useful in tests.
 

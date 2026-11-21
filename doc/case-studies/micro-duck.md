@@ -1,4 +1,4 @@
-# Micro Duck
+# 🦆 Micro Duck
 
 [⏫ Case studies](README.md)
 

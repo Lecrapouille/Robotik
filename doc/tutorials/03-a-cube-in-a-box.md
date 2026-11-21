@@ -1,4 +1,4 @@
-# A cube in a box
+# 🧊 A cube in a box
 
 [⏫ Tutorials](README.md)
 
@@ -75,7 +75,7 @@ what `plugins/PickAndPlace` does, with the same world entities and the same
 `(inside red_cube box)` assertion. When you are done, put the files back with
 `git checkout plugins/HelloWorld`.
 
-## Randomness and seeds
+## 🎲 Randomness and seeds
 
 Real objects are never exactly where we expect. Ask Robotik to move the cube
 a little at each run:

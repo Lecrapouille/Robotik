@@ -1,4 +1,4 @@
-# Build reinforcement learning environments
+# 🎲 Build reinforcement learning environments
 
 [⏫ Guides](README.md)
 
@@ -7,9 +7,9 @@ window-free **environments** that a learning algorithm (in C++, or in another
 process) can drive. The same worlds and scenarios as the demos are used.
 
 If the words *observation*, *action*, *reward*, *episode* are new, read
-[Reinforcement learning (RL)](../concepts/robotics-in-ten-minutes.md#reinforcement-learning-rl) first.
+[Reinforcement learning (RL)](../concepts/robotics-in-ten-minutes.md#-reinforcement-learning-rl) first.
 
-## The loop
+## 🔁 The loop
 
 ```text
           ┌──────────── observation ◄──────────┐
@@ -28,7 +28,7 @@ If the words *observation*, *action*, *reward*, *episode* are new, read
 Observations and actions are flat `float` vectors, written in place: a step
 allocates nothing.
 
-### Spaces
+### 📐 Spaces
 
 ```cpp
 robotik::Space observation;
@@ -41,7 +41,7 @@ A **privileged** dimension comes from the simulator ground truth: a real robot
 could not observe it. A policy that uses it is not deployable as is.
 `Space::privileged()` says so, and the log records it.
 
-### How an episode ends
+### 🏁 How an episode ends
 
 `StepResult::end` has four values, because learning and evaluation treat them
 differently:
@@ -55,7 +55,7 @@ differently:
 
 `terminated()` groups the first two, `truncated()` the last two.
 
-## An environment from a scenario
+## 🎬 An environment from a scenario
 
 `robotik::SimulationEnvironment` turns a robot cell into an environment (a
 scenario file, or a `RoboticCellDescription` written in C++), from three swappable
@@ -111,7 +111,7 @@ streams included), resources, faults, object layout.
 The three pick-and-place parts live in `plugins/PickAndPlace/src/RlMission.*`
 and are shared by the command-line pool and the simulator plugin.
 
-## Many environments
+## 👯 Many environments
 
 `robotik::EnvironmentPool` runs N environments on threads, behind contiguous
 buffers ready for a learner. Episode `k` of environment `i` uses the seed
@@ -127,14 +127,14 @@ The command then replays the same batch on one thread and checks that the
 results are identical, bit for bit. The last column gives the end of each
 episode: `success`, `failure`, `time limit` or `aborted`.
 
-### The log
+### 📋 The log
 
 `robotik::EpisodeLog` writes, in JSON, what is needed to compare and replay:
 Robotik version and commit, scenario, policy, master seed, control period,
 step budget, both spaces (privileged dimensions included), then each episode:
 environment, index, seed, return, number of steps, end.
 
-## Environments and agents
+## 🤝 Environments and agents
 
 Two different ideas:
 
@@ -151,7 +151,7 @@ observation and returns an action.
 Today `SimulationEnvironment` drives one robot. Several agents in one shared
 world are still to do.
 
-## Checklist
+## ✅ Checklist
 
 | Question | Answer in Robotik |
 |----------|-------------------|
@@ -164,7 +164,7 @@ world are still to do.
 | Experiments without GUI? | Yes: pool, headless, tests |
 | Compare seeds and policies? | Seeds derived per environment and per episode; `EpisodeLog` in JSON |
 
-### Still to do
+### 🚧 Still to do
 
 - A stable bridge to a Python process (C API over the pool, or bindings).
 - Several agents in one environment.

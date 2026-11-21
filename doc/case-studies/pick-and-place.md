@@ -1,4 +1,4 @@
-# Pick and place
+# 📦 Pick and place
 
 [⏫ Case studies](README.md)
 
@@ -57,4 +57,4 @@ the state on the beliefs and binds each action to the same skills. With the
 camera down, the executor plans again until it can go on. See
 [A planned pick and place](../tutorials/06-a-planned-pick-and-place.md).
 `pick_and_place_pabt*.scenario.yaml` do the same with no search: the tree
-grows from the goal (PA-BT, [Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#without-search-a-tree-grown-from-the-goal-pa-bt)).
+grows from the goal (PA-BT, [Without search: a tree grown from the goal (PA-BT)](../concepts/pddl-planner.md#-without-search-a-tree-grown-from-the-goal-pa-bt)).

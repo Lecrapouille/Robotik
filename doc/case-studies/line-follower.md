@@ -1,4 +1,4 @@
-# Line follower
+# 🛣 Line follower
 
 [⏫ Case studies](README.md)
 

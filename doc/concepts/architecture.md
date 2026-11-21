@@ -1,4 +1,4 @@
-# Architecture
+# 🏗 Architecture
 
 [⏫ Concepts](README.md)
 
@@ -6,7 +6,7 @@ This page explains **how Robotik is built and why**. It is for people who
 want to change Robotik itself, or to understand what happens behind the API.
 You do not need it to write a plugin.
 
-## The principle: Robotik orchestrates
+## 🎼 The principle: Robotik orchestrates
 
 Robotik is not a monolithic simulator. It assembles specialised libraries and
 keeps each one in its own domain:
@@ -36,7 +36,7 @@ keeps each one in its own domain:
 Robotik provides the layer that combines them. It does not want to become a
 second Pinocchio or a second MuJoCo.
 
-### Three layers
+### 🧅 Three layers
 
 Like Compages (GPU, world, renderer), Robotik is cut in layers. Each layer
 works without the ones above it, so a project takes the smallest one it
@@ -71,7 +71,7 @@ throws. Events are `Signal`s: `SkillScheduler::changed`, `Camera::frames`,
 `Simulation::assertionChanged` and `Simulation::ended`; the plugin session
 listens to them instead of polling.
 
-## The full path of a decision
+## 🛤 The full path of a decision
 
 ```text
 Scenario (YAML)
@@ -96,7 +96,7 @@ WorldModel               the beliefs, read by the skills at the next tick
 > **Decisions produce commands; the robot moves; sensors observe;
 > perception updates beliefs; assertions judge on the ground truth.**
 
-## One simulation step
+## ⏱ One simulation step
 
 `Simulation::step(dt)` (Package, `src/Robotik/Package/Simulation.cpp`)
 steps the cell (`RoboticCell::step`, Task, `src/Robotik/Task/RoboticCell.cpp`), then
@@ -122,7 +122,7 @@ Simulation::step(dt)
 
 The plugin is called after: `Plugin::update(dt)`, from the host.
 
-## The robot: model, state, backend
+## 🤖 The robot: model, state, backend
 
 Three separate notions:
 
@@ -149,7 +149,7 @@ robot.step(Seconds(0.01));   // backend, joint states, kinematics, transforms, s
 
 In practice, `Simulation` builds all this from the world file.
 
-### Simulated or real: the same code
+### 🔁 Simulated or real: the same code
 
 A skill writes:
 
@@ -178,7 +178,7 @@ The backend does the translation:
 > No physical robot has been controlled with Robotik yet. The architecture is
 > ready for it; the hardware backend is not written.
 
-### `JointSet`: structure of arrays
+### 🧮 `JointSet`: structure of arrays
 
 Joint states are stored as parallel arrays (positions[], velocities[],
 efforts[], targets[]), not as one small object per joint. This keeps memory
@@ -194,7 +194,7 @@ Units are part of the API contract:
 Typed handles (`Revolute`, `Prismatic`) carry these units at compile time.
 Conversions to the simulator or the hardware stay in the backends.
 
-### Fast data: what is ECS, what stays a class
+### ⚡ Fast data: what is ECS, what stays a class
 
 ECS (entity, component, system) is a way to store data: an *entity* is only
 an id, a *component* is plain data put on it (a pose, a reading), a *system*
@@ -235,7 +235,7 @@ copy of each reading into its component (15 %). The next candidates are, in
 this order: the scene graph update, then the actuators and the skills, then
 the grasp systems. Each one starts with a benchmark and a profile.
 
-## Actuators, resources, faults
+## 🔩 Actuators, resources, faults
 
 An actuator is not only a function that sends a command: it is also a
 **resource** of the same name. Skills reserve resources; the scheduler
@@ -247,7 +247,7 @@ readings carry a `valid` flag that is false during the fault. No skill has
 special fault code: the fault is a fact, the reaction is a decision of the
 behavior tree.
 
-## Sensors, perception, WorldModel
+## 👁 Sensors, perception, WorldModel
 
 A sensor is not its processing:
 
@@ -267,7 +267,7 @@ sequence number, validity. `NoiseModel` applies bias, white noise, resolution
 and saturation. `LatencyBuffer` delays the delivery but keeps the capture
 time.
 
-## Truth, description, belief
+## 🔍 Truth, description, belief
 
 | | Access | Used by |
 |--|--------|---------|
@@ -288,7 +288,7 @@ enters the belief only when the scenario chooses a **perception fidelity**
 that asks for it, per object (`perception: { fidelity: truth }`, or
 `blind: truth` when no camera has an image), and the reports say so. It is a
 mock, as a simpler physics is: a test of the plan does not need a detector
-(see [Truth, description and belief](worlds-scenarios-experiments.md#truth-description-and-belief)).
+(see [Truth, description and belief](worlds-scenarios-experiments.md#-truth-description-and-belief)).
 
 Three contracts keep it honest:
 
@@ -303,7 +303,7 @@ Three contracts keep it honest:
    belief seen after the start of the step counts, so a failed grasp is not
    taken for a held object.
 
-### Who owns which state
+### 🔑 Who owns which state
 
 A robot program goes wrong when two parts keep their own copy of the world
 and each one changes it. In RobotIK each kind of state has one writer. The
@@ -326,7 +326,7 @@ the belief it comes from. The cost is one call of the observer per question.
 The Compages world is a copy for two readers: the rendering, and the truth
 of the conditions. It never decides anything.
 
-## Rendering is separate
+## 🖼 Rendering is separate
 
 Compages draws the 3D world. Robotik does not render anything itself:
 
@@ -338,7 +338,7 @@ The core runs without a window. This is required for CI, tests, RL,
 benchmarks, servers, and thousands of episodes. The graphical simulator is a
 **client** of Robotik, not its centre.
 
-## Hosts and plugins
+## 🔌 Hosts and plugins
 
 ```text
              ┌──────────────────┐     ┌──────────────────┐
@@ -359,7 +359,7 @@ crosses it. `PluginAPI.hpp` wraps it in C++ for plugin authors. The manifest
 `plugin.yaml` is read without loading the library; the library is loaded only
 for the chosen scenario. Details in [Your first plugin](../tutorials/04-your-first-plugin.md).
 
-## Source layout
+## 📁 Source layout
 
 ```text
 include/Robotik/          public headers (one umbrella: Robotik.hpp)
@@ -391,7 +391,7 @@ external/                 third-party sources (downloaded)
 | `Package/Scenario/` | `World`, `Scenario`, `Experiment`, `Assertions`, `Trajectory`, `PackagePath`, `FileRole` |
 | `Package/Plugin/` | `PluginABI.h` (C border), `PluginAPI.hpp` (C++ helper), `PluginCatalog`, `PluginSession`, `PluginManager`, `PluginHost` |
 
-## Why this separation matters
+## 🤔 Why this separation matters
 
 You can replace **MuJoCo** by a **hardware backend** without rewriting the
 scenario, the tree, the skills, the scheduler, the WorldModel or the
