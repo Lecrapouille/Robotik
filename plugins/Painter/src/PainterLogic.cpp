@@ -24,7 +24,7 @@ void PainterLogic::setup(robotik::RoboticCell& p_cell,
     // simulation builds them. The scenario logic brings the gestures.
     robotik::ResourceManager const& resources =
         p_cell.robot().resources();
-    robotik::ActuatorSet const& actuators = p_cell.robot().actuators();
+    robotik::ActuatorList const& actuators = p_cell.robot().actuators();
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
     {

@@ -810,7 +810,7 @@ void RoboticCell::addSkills()
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
         ResourceManager const& resources = robot->resources();
-        ActuatorSet const& actuators = robot->actuators();
+        ActuatorList const& actuators = robot->actuators();
         std::string const scope =
             m_robots.size() > 1U ? robot->id() + "." : std::string();
 
@@ -955,7 +955,7 @@ void RoboticCell::reset(Seed p_seed)
             if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
             {
                 vacuum->suction(false);
-                m_held.drop(*vacuum);
+                m_held.drop(*robot, *vacuum);
             }
         }
     }
@@ -1061,7 +1061,7 @@ void RoboticCell::observe()
     bool sees = false;
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        SensorSet const& sensors = robot->sensors();
+        SensorList const& sensors = robot->sensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             any = true;
@@ -1092,7 +1092,7 @@ void RoboticCell::perceiveTruth()
     bool sees = false;
     for (std::unique_ptr<RobotSession> const& robot : m_robots)
     {
-        SensorSet const& sensors = robot->sensors();
+        SensorList const& sensors = robot->sensors();
         for (std::size_t i = 0; i < sensors.size(); ++i)
         {
             any = true;

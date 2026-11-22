@@ -58,6 +58,33 @@ static_assert(
 static_assert(!CONST_RESULT<
               decltype(std::declval<robotik::RobotSession&>().kinematics())>);
 
+// What is measured or decided outside the program is written by the
+// session only: a skill cannot fake a joint reading, a vacuum, a fault, a new
+// device or another id.
+template <typename R>
+concept WritesMeasures =
+    requires(R& p_robot) { p_robot.joints().measure(0, 0.0, 0.0); } ||
+    requires(R& p_robot) { p_robot.joints().place(0, 0.0); } ||
+    requires(R& p_robot) { p_robot.joints().home(0, 0.0); } ||
+    requires(R& p_robot) { p_robot.resources().fail("arm"); } ||
+    requires(R& p_robot) { p_robot.resources().restoreAll(); } ||
+    requires(R& p_robot) {
+        p_robot.actuators().template add<robotik::VacuumGripper>("cup");
+    } || requires(R& p_robot) { p_robot.identify("arm"); };
+
+static_assert(!WritesMeasures<robotik::Robot>);
+static_assert(WritesMeasures<robotik::RobotSession>);
+static_assert(requires(robotik::RobotSession& p_robot,
+                       robotik::VacuumGripper& p_cup) {
+    p_robot.measureJoint(0, 0.0, 0.0);
+    p_robot.measureHolding(p_cup, true);
+});
+
+/// True when a cup lets anyone write its measured vacuum.
+template <typename C>
+concept CupWritesVacuum = requires(C& p_cup) { p_cup.measureHolding(true); };
+static_assert(!CupWritesVacuum<robotik::VacuumGripper>);
+
 TEST(ConstAccess, ConstObjectsGiveConstParts)
 {
     SUCCEED() << "checked by the static_asserts of this file";

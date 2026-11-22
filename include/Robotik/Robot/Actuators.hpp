@@ -31,6 +31,7 @@ namespace robotik
 {
 
 class Robot;
+class RobotSession;
 
 // ****************************************************************************
 /// Base class of the actuators.
@@ -262,20 +263,6 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Writes the measured vacuum (vacuum sensor, or the grasp model in
-    /// simulation). Losing the vacuum clears the @ref label.
-    /// @param p_holding True when an object is held.
-    // -------------------------------------------------------------------------
-    void measureHolding(bool p_holding)
-    {
-        if (m_holding && !p_holding)
-        {
-            m_label.clear();
-        }
-        m_holding = p_holding;
-    }
-
-    // -------------------------------------------------------------------------
     /// Names the object held, as the program knows it (see the class
     /// comment). Call it after @ref holding becomes true.
     /// @param p_object Name of the object, as in the beliefs.
@@ -319,6 +306,22 @@ public:
                               Length p_extra = Length(0.0)) const;
 
 private:
+
+    // The session writes the measured vacuum (RobotSession::measureHolding).
+    friend class RobotSession;
+
+    // -------------------------------------------------------------------------
+    /// Writes the measured vacuum. Losing the vacuum clears the @ref label.
+    /// @param p_holding True when an object is held.
+    // -------------------------------------------------------------------------
+    void measureHolding(bool p_holding)
+    {
+        if (m_holding && !p_holding)
+        {
+            m_label.clear();
+        }
+        m_holding = p_holding;
+    }
 
     /// Flange link; empty for the tool frame.
     std::string m_link;

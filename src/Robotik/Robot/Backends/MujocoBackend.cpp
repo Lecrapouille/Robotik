@@ -1134,13 +1134,12 @@ void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
 
         for (Member const& member : members)
         {
-            JointSet& joints = member.robot->joints();
             for (JointId id = 0; id < member.bindings.size(); ++id)
             {
                 Member::Binding const& binding = member.bindings[id];
                 if (binding.qpos >= 0)
                 {
-                    joints.measure(
+                    member.robot->measureJoint(
                         id, data->qpos[binding.qpos], data->qvel[binding.dof]);
                 }
             }

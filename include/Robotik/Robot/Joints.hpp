@@ -221,8 +221,10 @@ struct JointGains
 /// All joints of a robot.
 ///
 /// Skills write commands (@ref moveTo, @ref spin, @ref push); the backend
-/// runs @ref control, writes the measurements with @ref measure, and the
-/// robot calls @ref publish for the view.
+/// runs @ref control, writes the measurements with
+/// @ref RobotSession::measureJoint, and the robot calls @ref publish for the
+/// view. A skill cannot write a measurement, a home or a placed position:
+/// those are private, reached through the session only.
 ///
 /// @code
 /// robotik::JointSet& joints = robot.joints();
@@ -355,12 +357,6 @@ public:
         return m_gains[p_id];
     }
 
-    /// @return The link entity of joint @p_id (invalid without rendering).
-    [[nodiscard]] compages::world::Entity link(JointId p_id) const
-    {
-        return m_links[p_id];
-    }
-
     // --- Measured state (typed) ---------------------------------------------
 
     /// @return The measured position of @p_joint.
@@ -441,13 +437,6 @@ public:
         return Position(m_homes[p_joint.id]);
     }
 
-    /// Sets the home position of @p_joint to @p_position.
-    template <class Position>
-    void home(JointHandle<Position> p_joint, Position p_position)
-    {
-        m_homes[p_joint.id] = p_position.value();
-    }
-
     // --- Mixed joints: SI base unit of each joint (rad or m) ----------------
 
     /// @return Measured positions, indexed by @ref JointId.
@@ -492,12 +481,6 @@ public:
         return m_homes[p_id];
     }
 
-    /// Sets the home position of joint @p_id to @p_position.
-    void home(JointId p_id, double p_position)
-    {
-        m_homes[p_id] = p_position;
-    }
-
     /// @return How the command of joint @p_id is read.
     [[nodiscard]] JointMode mode(JointId p_id) const
     {
@@ -529,7 +512,27 @@ public:
     // --- Backend side -------------------------------------------------------
 
     // -------------------------------------------------------------------------
-    /// Writes a measurement. Called by the backend after each step.
+    /// Runs the low-level loop of every joint and stores the efforts (see
+    /// @ref efforts). Backends call it at their physics rate.
+    /// @param p_dt Duration of the physics step.
+    // -------------------------------------------------------------------------
+    void control(Seconds p_dt);
+
+    // -------------------------------------------------------------------------
+    /// Copies the measured state into the Compages joint components of the
+    /// links (rendering and inspection).
+    // -------------------------------------------------------------------------
+    void publish() const;
+
+private:
+
+    // The session writes what is measured (the backend through
+    // RobotSession::measureJoint, the reset); a skill only commands.
+    friend class Robot;
+    friend class RobotSession;
+
+    // -------------------------------------------------------------------------
+    /// Writes a measurement (see @ref RobotSession::measureJoint).
     /// @param p_id Joint id.
     /// @param p_position Measured position (rad or m).
     /// @param p_velocity Measured speed.
@@ -547,20 +550,17 @@ public:
     // -------------------------------------------------------------------------
     void place(JointId p_id, double p_position);
 
-    // -------------------------------------------------------------------------
-    /// Runs the low-level loop of every joint and stores the efforts (see
-    /// @ref efforts). Backends call it at their physics rate.
-    /// @param p_dt Duration of the physics step.
-    // -------------------------------------------------------------------------
-    void control(Seconds p_dt);
+    /// Sets the home position of joint @p_id to @p_position.
+    void home(JointId p_id, double p_position)
+    {
+        m_homes[p_id] = p_position;
+    }
 
-    // -------------------------------------------------------------------------
-    /// Copies the measured state into the Compages joint components of the
-    /// links (rendering and inspection).
-    // -------------------------------------------------------------------------
-    void publish() const;
-
-private:
+    /// @return The link entity of joint @p_id (invalid without rendering).
+    [[nodiscard]] compages::world::Entity link(JointId p_id) const
+    {
+        return m_links[p_id];
+    }
 
     // -------------------------------------------------------------------------
     /// Limits in SI base units.

@@ -77,8 +77,8 @@ void DiffDriveBackend::reset(robotik::RobotSession& p_robot)
     m_speeds[0] = 0.0;
     m_speeds[1] = 0.0;
     robotik::JointSet& joints = p_robot.joints();
-    joints.measure(m_left, joints.position(m_left), 0.0);
-    joints.measure(m_right, joints.position(m_right), 0.0);
+    p_robot.measureJoint(m_left, joints.position(m_left), 0.0);
+    p_robot.measureJoint(m_right, joints.position(m_right), 0.0);
     p_robot.measureBase({ pose(), {} });
 }
 
@@ -97,7 +97,7 @@ void DiffDriveBackend::step(robotik::RobotSession& p_robot,
                 ? joints.target(ids[i])
                 : 0.0;
         m_speeds[i] += (target - m_speeds[i]) * blend;
-        joints.measure(
+        p_robot.measureJoint(
             ids[i], joints.position(ids[i]) + m_speeds[i] * dt, m_speeds[i]);
     }
     double speed = 0.0;

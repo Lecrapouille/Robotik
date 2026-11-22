@@ -66,7 +66,7 @@ void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         {
             // Release: the weld goes, the object falls.
             (void)backend->weld(weldName(gripper->name(), held->id), false);
-            p_held.drop(*gripper);
+            p_held.drop(p_robot, *gripper);
         }
         else if (gripper->suction() && !held_id.valid())
         {
@@ -101,7 +101,7 @@ void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
             if (best != nullptr &&
                 backend->weld(weldName(gripper->name(), best->id), true))
             {
-                p_held.hold(*gripper, best_id);
+                p_held.hold(p_robot, *gripper, best_id);
             }
         }
     }

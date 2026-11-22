@@ -106,7 +106,7 @@ void ConveyorLogic::addArmSkills(robotik::RoboticCell& p_cell,
                                  robotik::Robot const& p_robot)
 {
     robotik::ResourceManager const& resources = p_robot.resources();
-    robotik::ActuatorSet const& actuators = p_robot.actuators();
+    robotik::ActuatorList const& actuators = p_robot.actuators();
     std::vector<robotik::ResourceRequirement> arm;
     if (auto const* group = actuators.first<robotik::JointGroup>())
     {

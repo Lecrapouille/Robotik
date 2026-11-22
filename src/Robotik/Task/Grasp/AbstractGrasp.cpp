@@ -140,22 +140,23 @@ static compages::world::EntityId touched(compages::world::World& p_world,
     return found;
 }
 
-void HeldObjects::hold(VacuumGripper& p_gripper,
+void HeldObjects::hold(RobotSession& p_robot,
+                       VacuumGripper& p_gripper,
                        compages::world::EntityId p_object)
 {
     if (!p_object.valid())
     {
-        drop(p_gripper);
+        drop(p_robot, p_gripper);
         return;
     }
     m_held[&p_gripper] = p_object;
-    p_gripper.measureHolding(true);
+    p_robot.measureHolding(p_gripper, true);
 }
 
-void HeldObjects::drop(VacuumGripper& p_gripper)
+void HeldObjects::drop(RobotSession& p_robot, VacuumGripper& p_gripper)
 {
     m_held.erase(&p_gripper);
-    p_gripper.measureHolding(false);
+    p_robot.measureHolding(p_gripper, false);
 }
 
 void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
@@ -173,7 +174,7 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         compages::world::EntityId held_id = p_held.of(*gripper);
         if (held_id.valid() && !world.alive(held_id))
         {
-            p_held.drop(*gripper);
+            p_held.drop(p_robot, *gripper);
             held_id = {};
         }
         // An object of the physics backend is the job of another model.
@@ -186,12 +187,12 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         {
             held_id =
                 touched(world, p_robot.base().pose * gripper->tip(p_robot));
-            p_held.hold(*gripper, held_id);
+            p_held.hold(p_robot, *gripper, held_id);
         }
         else if (!gripper->suction() && held_id.valid())
         {
             compages::world::Entity held = world.entity(held_id);
-            p_held.drop(*gripper);
+            p_held.drop(p_robot, *gripper);
             held_id = {};
             Vector3 at = positionOf(held);
             at = settle(world, held, at);

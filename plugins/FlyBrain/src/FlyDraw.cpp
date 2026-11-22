@@ -33,7 +33,7 @@ static void poseJoint(robotik::RobotSession& p_robot,
     robotik::JointId const id = p_robot.joints().find(p_name);
     if (id != robotik::NO_JOINT)
     {
-        p_robot.joints().place(id, p_angle);
+        p_robot.placeJoint(id, p_angle);
     }
 }
 

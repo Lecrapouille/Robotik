@@ -83,9 +83,9 @@ struct Contact
 ///     void step(robotik::RobotSession& p_robot, Seconds) override
 ///     {
 ///         // the joints reach their position targets at once
-///         robotik::JointSet& joints = p_robot.joints();
+///         robotik::JointSet const& joints = p_robot.joints();
 ///         for (robotik::JointId id = 0; id < joints.size(); ++id)
-///             joints.measure(id, joints.target(id), 0.0);
+///             p_robot.measureJoint(id, joints.target(id), 0.0);
 ///     }
 /// };
 /// session.connect(std::make_unique<PerfectJoints>());
@@ -112,7 +112,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// Applies the joint commands for one step, then writes the measured
-    /// joints (@ref JointSet::measure) and base (@ref RobotSession::measureBase).
+    /// joints (@ref RobotSession::measureJoint) and base (@ref RobotSession::measureBase).
     /// @param p_robot Robot to drive.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------

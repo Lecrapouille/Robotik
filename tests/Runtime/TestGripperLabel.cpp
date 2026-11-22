@@ -8,43 +8,57 @@
 #include "main.hpp"
 
 #include "Robotik/Robot/Actuators.hpp"
+#include "Robotik/Robot/OpenRobot.hpp"
 #include "Robotik/Task/Grasp/GraspModel.hpp"
 
 #include "Compages/World/World.hpp"
 
+/// A 6-axis arm without physics, with a vacuum cup on its tool frame.
+static robotik::OpenedRobot armWithCup()
+{
+    robotik::RobotOptions options;
+    options.physics = false;
+    robotik::OpenedRobot robot = robotik::require(robotik::openRobot(
+        repoFile("data/packs/robotik.robots/robot_6axis.urdf").string(),
+        options));
+    robot->actuators().add<robotik::VacuumGripper>("vacuum");
+    return robot;
+}
+
 // ----------------------------------------------------------------------------
 TEST(GripperLabel, TheVacuumIsMeasuredTheEntityStaysInTheCell)
 {
-    compages::world::World world;
-    compages::world::EntityId const cube = world.entity("cube").id();
-    robotik::VacuumGripper cup("vacuum");
+    robotik::OpenedRobot robot = armWithCup();
+    auto& cup = *robot->actuators().find<robotik::VacuumGripper>("vacuum");
+    compages::world::EntityId const cube = robot.world->entity("cube").id();
     robotik::HeldObjects held;
 
-    held.hold(cup, cube);
+    held.hold(*robot, cup, cube);
     EXPECT_TRUE(cup.holding());
     EXPECT_EQ(held.of(cup), cube);
 
-    held.drop(cup);
+    held.drop(*robot, cup);
     EXPECT_FALSE(cup.holding());
     EXPECT_FALSE(held.of(cup).valid());
 
     // An invalid id holds nothing.
-    held.hold(cup, compages::world::EntityId{});
+    held.hold(*robot, cup, compages::world::EntityId{});
     EXPECT_FALSE(cup.holding());
 }
 
 // ----------------------------------------------------------------------------
 TEST(GripperLabel, LosingTheVacuumForgetsTheLabel)
 {
-    robotik::VacuumGripper cup("vacuum");
-    cup.measureHolding(true);
+    robotik::OpenedRobot robot = armWithCup();
+    auto& cup = *robot->actuators().find<robotik::VacuumGripper>("vacuum");
+    robot->measureHolding(cup, true);
     cup.label("red_cube");
     EXPECT_EQ(cup.label(), "red_cube");
 
     // Still held: the label stays.
-    cup.measureHolding(true);
+    robot->measureHolding(cup, true);
     EXPECT_EQ(cup.label(), "red_cube");
 
-    cup.measureHolding(false);
+    robot->measureHolding(cup, false);
     EXPECT_TRUE(cup.label().empty());
 }

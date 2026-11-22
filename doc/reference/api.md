@@ -233,7 +233,13 @@ Headers: `Robotik/Robot/Robot.hpp` (skills), `Robotik/Robot/RobotSession.hpp`
 `RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
 (used by `RoboticCell`). It also gives what only the simulator side may
 touch: `world()`, `root()`, `link("name")` (ECS entities), `backend()`,
-`urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. A skill
+`urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. And
+what a skill must not write because it is measured or decided outside the
+program: `measureJoint(id, q, v)`, `placeJoint(id, q)`,
+`measureHolding(cup, on)`, the writable `resources()` (faults),
+`sensors().add<T>()`, `actuators().add<T>()` and `identify(id)`. The
+`Robot` of a skill gives `SensorList`/`ActuatorList` (find, read,
+command) and a read-only `resources()`. A skill
 receives a `Robot&`, so it has none of them; `make check-layers` compiles
 `Task/Skills` and `Task/Planning` without `RobotSession.hpp`. Sensors
 (`sample(RobotSession const&, now)`), backends and grasp models receive the

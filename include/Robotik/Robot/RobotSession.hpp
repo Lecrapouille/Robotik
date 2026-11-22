@@ -46,7 +46,10 @@ namespace robotik
 ///
 /// This class also gives what only the simulator and the program that runs
 /// the robot may touch: the ECS world and the entities of the links, the
-/// backend, the writable kinematics and the measured base. A skill gets the
+/// backend, the writable kinematics, and everything a skill must not write
+/// because it is measured or decided outside the program: the joint and
+/// vacuum measurements, the measured base, the resources (faults), the
+/// devices (@c add) and the id. A skill gets the
 /// @ref Robot base, which has none of them, so it cannot read the truth of
 /// the simulator nor step it. Why here and not in an adapter: the session
 /// already owns the backend, and one type less is one name less to learn.
@@ -131,6 +134,69 @@ public:
     }
 
     using Robot::kinematics; ///< The read-only one stays visible.
+
+    /// Sets the id of the robot in its world (see @ref id).
+    void identify(std::string p_id)
+    {
+        m_id = std::move(p_id);
+    }
+
+    /// @return The sensors, with @c add.
+    [[nodiscard]] SensorSet& sensors()
+    {
+        return m_sensors;
+    }
+
+    /// @return The actuators, with @c add.
+    [[nodiscard]] ActuatorSet& actuators()
+    {
+        return m_actuators;
+    }
+
+    using Robot::actuators; ///< The read-only ones stay visible.
+    using Robot::sensors;   ///< The read-only ones stay visible.
+
+    /// @return Resources, writable: faults fail and restore them, devices
+    ///   add theirs.
+    [[nodiscard]] ResourceManager& resources()
+    {
+        return *m_resources;
+    }
+
+    using Robot::resources; ///< The read-only one stays visible.
+
+    // -------------------------------------------------------------------------
+    /// Writes a joint measurement (the backend, after each step).
+    /// @param p_id Joint id.
+    /// @param p_position Measured position (rad or m).
+    /// @param p_velocity Measured speed.
+    // -------------------------------------------------------------------------
+    void measureJoint(JointId p_id, double p_position, double p_velocity)
+    {
+        m_joints.measure(p_id, p_position, p_velocity);
+    }
+
+    // -------------------------------------------------------------------------
+    /// Teleports a joint at rest: state, reference and command (a backend
+    /// that draws a posture computed elsewhere, the reset).
+    /// @param p_id Joint id.
+    /// @param p_position New position (rad or m).
+    // -------------------------------------------------------------------------
+    void placeJoint(JointId p_id, double p_position)
+    {
+        m_joints.place(p_id, p_position);
+    }
+
+    // -------------------------------------------------------------------------
+    /// Writes the measured vacuum of a cup of this robot (vacuum sensor, or
+    /// the grasp model in simulation). Losing the vacuum clears its label.
+    /// @param p_gripper Cup of this robot.
+    /// @param p_holding True when an object is held.
+    // -------------------------------------------------------------------------
+    void measureHolding(VacuumGripper& p_gripper, bool p_holding)
+    {
+        p_gripper.measureHolding(p_holding);
+    }
 
     // -------------------------------------------------------------------------
     /// Writes the measured base (backends, or the application for a robot

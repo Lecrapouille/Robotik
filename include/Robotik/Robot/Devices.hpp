@@ -35,59 +35,22 @@ namespace robotik
 class Robot;
 
 // ****************************************************************************
-/// Owns devices and declares each one as a resource of the same name.
+/// The devices of a robot, as a skill sees them: find, read, command.
 ///
-/// So a skill that needs the camera reserves the resource @c wrist_camera,
-/// and a fault on @c wrist_camera stops the camera.
+/// A skill cannot add a device: a real robot does not grow a camera because
+/// a program asks. @ref DeviceSet, given by @ref RobotSession, adds them.
 ///
 /// @code
-/// auto& camera = robot.sensors().add<robotik::Camera>("wrist_camera", config);
 /// auto* gripper = robot.actuators().first<robotik::VacuumGripper>();
-/// bool ok = robot.resources().available("wrist_camera");
+/// auto const* camera = robot.sensors().find<robotik::Camera>("wrist_camera");
 /// @endcode
 ///
 /// @tparam Base @ref Sensor or @ref Actuator.
 // ****************************************************************************
 template <typename Base>
-class DeviceSet
+class DeviceList
 {
 public:
-
-    // -------------------------------------------------------------------------
-    /// @param p_robot Robot carrying the devices (given to their @c bind).
-    /// @param p_resources Manager receiving one resource per device.
-    // -------------------------------------------------------------------------
-    DeviceSet(Robot& p_robot, ResourceManager& p_resources)
-        : m_robot(p_robot), m_resources(p_resources)
-    {
-    }
-
-    // -------------------------------------------------------------------------
-    /// Builds a device in place and registers its resource. A device with a
-    /// @c bind(Robot&) method is bound to the robot.
-    /// @tparam T Concrete device type.
-    /// @param p_args Arguments of the constructor of @p T (name first).
-    /// @return The new device, owned by the set.
-    /// @throws std::invalid_argument on a duplicated name.
-    // -------------------------------------------------------------------------
-    template <std::derived_from<Base> T, typename... Args>
-    T& add(Args&&... p_args)
-    {
-        auto device = std::make_unique<T>(std::forward<Args>(p_args)...);
-        if (find(device->name()) != nullptr)
-        {
-            throw std::invalid_argument("Duplicated device '" + device->name() +
-                                        "'");
-        }
-        if constexpr (requires { device->bind(m_robot); })
-        {
-            device->bind(m_robot);
-        }
-        T& added = *device;
-        m_ids.push_back(m_resources.add(added.name()));
-        m_devices.push_back(std::move(device));
-        return added;
-    }
 
     // -------------------------------------------------------------------------
     /// @return The number of devices.
@@ -197,16 +160,82 @@ public:
         return nullptr;
     }
 
-private:
+protected:
 
-    /// Robot carrying the devices.
-    Robot& m_robot;
+    /// @param p_resources Manager receiving one resource per device.
+    explicit DeviceList(ResourceManager& p_resources) : m_resources(p_resources)
+    {
+    }
+
     /// Manager of the device resources.
     ResourceManager& m_resources;
     /// Devices, in insertion order.
     std::vector<std::unique_ptr<Base>> m_devices;
     /// Resource of each device, aligned with @ref m_devices.
     std::vector<ResourceId> m_ids;
+};
+
+// ****************************************************************************
+/// Owns devices and declares each one as a resource of the same name.
+///
+/// So a skill that needs the camera reserves the resource @c wrist_camera,
+/// and a fault on @c wrist_camera stops the camera. Only the program that
+/// runs the robot adds devices (@ref RobotSession::sensors); a skill gets
+/// the @ref DeviceList.
+///
+/// @code
+/// auto& camera = session.sensors().add<robotik::Camera>("wrist_camera", config);
+/// auto* gripper = session.actuators().first<robotik::VacuumGripper>();
+/// bool ok = session.resources().available("wrist_camera");
+/// @endcode
+///
+/// @tparam Base @ref Sensor or @ref Actuator.
+// ****************************************************************************
+template <typename Base>
+class DeviceSet final: public DeviceList<Base>
+{
+public:
+
+    // -------------------------------------------------------------------------
+    /// @param p_robot Robot carrying the devices (given to their @c bind).
+    /// @param p_resources Manager receiving one resource per device.
+    // -------------------------------------------------------------------------
+    DeviceSet(Robot& p_robot, ResourceManager& p_resources)
+        : DeviceList<Base>(p_resources), m_robot(p_robot)
+    {
+    }
+
+    // -------------------------------------------------------------------------
+    /// Builds a device in place and registers its resource. A device with a
+    /// @c bind(Robot&) method is bound to the robot.
+    /// @tparam T Concrete device type.
+    /// @param p_args Arguments of the constructor of @p T (name first).
+    /// @return The new device, owned by the set.
+    /// @throws std::invalid_argument on a duplicated name.
+    // -------------------------------------------------------------------------
+    template <std::derived_from<Base> T, typename... Args>
+    T& add(Args&&... p_args)
+    {
+        auto device = std::make_unique<T>(std::forward<Args>(p_args)...);
+        if (this->find(device->name()) != nullptr)
+        {
+            throw std::invalid_argument("Duplicated device '" + device->name() +
+                                        "'");
+        }
+        if constexpr (requires { device->bind(m_robot); })
+        {
+            device->bind(m_robot);
+        }
+        T& added = *device;
+        this->m_ids.push_back(this->m_resources.add(added.name()));
+        this->m_devices.push_back(std::move(device));
+        return added;
+    }
+
+private:
+
+    /// Robot carrying the devices.
+    Robot& m_robot;
 };
 
 } // namespace robotik

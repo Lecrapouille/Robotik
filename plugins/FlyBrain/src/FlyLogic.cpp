@@ -39,14 +39,14 @@ static compages::Quatf toFloat(robotik::Quaternion const& p_q)
 }
 
 /// Writes a measured angle on a named joint when it exists.
-static void poseJoint(robotik::JointSet& p_joints,
+static void poseJoint(robotik::RobotSession& p_robot,
                       std::string const& p_name,
                       double p_angle)
 {
-    robotik::JointId const id = p_joints.find(p_name);
+    robotik::JointId const id = p_robot.joints().find(p_name);
     if (id != robotik::NO_JOINT)
     {
-        p_joints.measure(id, p_angle, 0.0);
+        p_robot.measureJoint(id, p_angle, 0.0);
     }
 }
 
@@ -104,33 +104,32 @@ void FlyBackend::pose(robotik::RobotSession& p_robot) const
 {
     FlySnapshot const& snapshot = m_environment.snapshot();
     FlyPosture const& posture = snapshot.posture;
-    robotik::JointSet& joints = p_robot.joints();
 
     // Left and right share the posture: the URDF mirrors the signs.
     for (char const* leg : FLY_LEG_NAMES)
     {
         std::string const name(leg);
-        poseJoint(joints, name + "_coxa_pitch", posture.coxa_pitch);
-        poseJoint(joints, name + "_coxa_roll", 0.0);
-        poseJoint(joints, name + "_coxa_yaw", 0.0);
-        poseJoint(joints, name + "_femur_pitch", posture.femur_pitch);
-        poseJoint(joints, name + "_femur_roll", 0.0);
-        poseJoint(joints, name + "_tibia_pitch", posture.tibia_pitch);
-        poseJoint(joints, name + "_tarsus_pitch", posture.tarsus_pitch);
+        poseJoint(p_robot, name + "_coxa_pitch", posture.coxa_pitch);
+        poseJoint(p_robot, name + "_coxa_roll", 0.0);
+        poseJoint(p_robot, name + "_coxa_yaw", 0.0);
+        poseJoint(p_robot, name + "_femur_pitch", posture.femur_pitch);
+        poseJoint(p_robot, name + "_femur_roll", 0.0);
+        poseJoint(p_robot, name + "_tibia_pitch", posture.tibia_pitch);
+        poseJoint(p_robot, name + "_tarsus_pitch", posture.tarsus_pitch);
     }
     for (char const* side : { "L", "R" })
     {
         std::string const wing = std::string("wing_") + side;
-        poseJoint(joints, wing + "_sweep", posture.wing_sweep);
-        poseJoint(joints, wing + "_deviation", posture.wing_deviation);
-        poseJoint(joints, wing + "_pitch", posture.wing_pitch);
+        poseJoint(p_robot, wing + "_sweep", posture.wing_sweep);
+        poseJoint(p_robot, wing + "_deviation", posture.wing_deviation);
+        poseJoint(p_robot, wing + "_pitch", posture.wing_pitch);
         poseJoint(
-            joints, std::string("haltere_") + side + "_flap", posture.haltere);
+            p_robot, std::string("haltere_") + side + "_flap", posture.haltere);
     }
-    poseJoint(joints, "neck_yaw", posture.neck_yaw);
-    poseJoint(joints, "neck_pitch", posture.neck_pitch);
-    poseJoint(joints, "neck_roll", 0.0);
-    poseJoint(joints, "abdomen_pitch", posture.abdomen_pitch);
+    poseJoint(p_robot, "neck_yaw", posture.neck_yaw);
+    poseJoint(p_robot, "neck_pitch", posture.neck_pitch);
+    poseJoint(p_robot, "neck_roll", 0.0);
+    poseJoint(p_robot, "abdomen_pitch", posture.abdomen_pitch);
 
     robotik::Pose pose;
     pose.position =

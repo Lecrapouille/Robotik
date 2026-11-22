@@ -56,10 +56,14 @@ class World;
 namespace robotik
 {
 
-/// Sensors of a robot.
+/// Sensors of a robot (the session adds them).
 using SensorSet = DeviceSet<Sensor>;
-/// Actuators of a robot.
+/// Actuators of a robot (the session adds them).
 using ActuatorSet = DeviceSet<Actuator>;
+/// Sensors of a robot, as a skill sees them (no add).
+using SensorList = DeviceList<Sensor>;
+/// Actuators of a robot, as a skill sees them (no add).
+using ActuatorList = DeviceList<Actuator>;
 
 /// Joint name to position, in the SI base unit of the joint (rad or m).
 using JointPosture = std::unordered_map<std::string, double>;
@@ -116,12 +120,6 @@ public:
         return m_id;
     }
 
-    /// Sets the id of the robot in its world (see @ref id).
-    void identify(std::string p_id)
-    {
-        m_id = std::move(p_id);
-    }
-
     /// @return Work frame: @c tcp when a tool is mounted, otherwise
     ///   @c tool0, @c end_effector, or the last moving link.
     [[nodiscard]] std::string const& tool() const
@@ -141,38 +139,33 @@ public:
         return m_joints;
     }
 
-    /// @return The sensors.
-    [[nodiscard]] SensorSet& sensors()
+    /// @return The sensors (to add one: @ref RobotSession::sensors).
+    [[nodiscard]] SensorList& sensors()
     {
         return m_sensors;
     }
 
     /// @copydoc sensors()
-    [[nodiscard]] SensorSet const& sensors() const
+    [[nodiscard]] SensorList const& sensors() const
     {
         return m_sensors;
     }
 
-    /// @return The actuators.
-    [[nodiscard]] ActuatorSet& actuators()
+    /// @return The actuators (to add one: @ref RobotSession::actuators).
+    [[nodiscard]] ActuatorList& actuators()
     {
         return m_actuators;
     }
 
     /// @copydoc actuators()
-    [[nodiscard]] ActuatorSet const& actuators() const
+    [[nodiscard]] ActuatorList const& actuators() const
     {
         return m_actuators;
     }
 
-    /// @return Resources of the robot; shared with the other robots of a
-    ///   world (a skill may take an arm of each).
-    [[nodiscard]] ResourceManager& resources()
-    {
-        return *m_resources;
-    }
-
-    /// @copydoc resources()
+    /// @return Resources of the robot, read only; shared with the other
+    ///   robots of a world. The scheduler reserves them; faults and devices
+    ///   change them through @ref RobotSession::resources.
     [[nodiscard]] ResourceManager const& resources() const
     {
         return *m_resources;

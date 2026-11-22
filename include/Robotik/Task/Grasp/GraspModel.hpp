@@ -51,9 +51,9 @@ class VacuumGripper;
 ///
 /// @code
 /// robotik::HeldObjects held;
-/// held.hold(cup, cube.id());     // cup.holding() is now true
+/// held.hold(robot, cup, cube.id()); // cup.holding() is now true
 /// compages::world::EntityId const what = held.of(cup);
-/// held.drop(cup);                // cup.holding() is false again
+/// held.drop(robot, cup);            // cup.holding() is false again
 /// @endcode
 // ****************************************************************************
 class HeldObjects
@@ -71,11 +71,15 @@ public:
 
     // ------------------------------------------------------------------------
     /// @p_gripper holds @p_object (an invalid id is the same as @ref drop).
+    /// @param p_robot Session of the robot carrying the gripper: it writes
+    ///   the measured vacuum.
     // ------------------------------------------------------------------------
-    void hold(VacuumGripper& p_gripper, compages::world::EntityId p_object);
+    void hold(RobotSession& p_robot,
+              VacuumGripper& p_gripper,
+              compages::world::EntityId p_object);
 
-    /// @p_gripper holds nothing.
-    void drop(VacuumGripper& p_gripper);
+    /// @p_gripper of @p_robot holds nothing.
+    void drop(RobotSession& p_robot, VacuumGripper& p_gripper);
 
 private:
 
