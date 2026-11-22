@@ -135,6 +135,13 @@ Values: `time`, `controller.success`, plugin metrics, `(pose_error e)` (m),
 container floor ±1 mm), `(on a b)`, `(touching a b)`, `(collision_count e)`,
 `(tool_is_attached t robot.flange)`, `(joint_limits_respected robot)`,
 `(holding g [obj])`, `(skill_started|succeeded|failed name)`.
+Belief vs truth (catch a wrong belief when it happens, not by its effect):
+`(believed (p a b))` (the planner observer on the beliefs; needs a planner),
+`(belief_error e)` (m; no answer when unseen, too old or carried),
+`(base_error robot)` (estimated vs true base, see `localization:`). Beliefs
+are late: add `for: t` (`phase: always` only, false at most t s in a row)
+and `unknown: skip` (steps without answer not judged; never answered still
+fails). Example: plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml.
 Every condition is compiled at load (Task/Condition.hpp): unknown metric,
 query or entity, wrong arity → exit 1 with "did you mean". A metric must be
 published from the first step (`ScenarioLogic::measure`). A value missing during

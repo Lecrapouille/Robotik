@@ -112,6 +112,9 @@ A layer only uses the layers under it; `make check-layers` checks it.
   the true base, copied (a mock). `plugin`: an algorithm of the plugin
   estimates it. Sensors and truth queries always use the true base. See
   [Localization](scenario-file.md#-localization).
+- **Belief error**: the gap between a belief and the truth, measured by the
+  conditions `believed`, `belief_error` and `base_error`. See
+  [Check what the robot believes](scenario-file.md#-check-what-the-robot-believes).
 - **Scheduler**: decides which requested skills can run now (resources,
   priorities) and runs them.
 - **Skill**: one behaviour of the robot (move to a pose, grasp, dip a brush).

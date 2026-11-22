@@ -178,6 +178,41 @@ assertions:
 | `eventually: true` | Must become true before the end |
 | `sequence: [...]` | The conditions must become true in this order |
 
+Two keys change how a step is judged:
+
+| Key | Effect |
+|-----|--------|
+| `for: t` | With `phase: always`: the condition may stay false up to `t` seconds in a row. A longer run of false steps fails, dated at its start |
+| `unknown: skip` | A step where the condition has no answer is not judged (default `fail`). A condition that never has an answer still fails at the end |
+
+### 🧠 Check what the robot believes
+
+The other assertions judge the world. These ones judge the robot: does it
+know what it does? A robot can be wrong and still look fine for a while. A
+cup that took the blue cube instead of the red one still holds a cube, and
+the robot labels it `red_cube`. The world shows the mistake only at the
+end, when the wrong cube is in the box. Compare the belief with the truth
+to see it when it happens:
+
+```yaml
+- { condition: (= (believed (holding red_cube)) (holding gripper red_cube)),
+    phase: always, for: 0.1, unknown: skip }
+- { condition: (< (belief_error red_cube) 0.01),
+    phase: always, for: 0.5, unknown: skip }
+- { condition: (< (base_error robot) 0.05), phase: always, for: 1.0 }
+```
+
+A belief is often late, and that is not a fault. Choose `for:` from the
+latency of what feeds the belief:
+
+- The label of a cup comes one step after the contact (the grasp skill
+  reads the vacuum at its next tick).
+- A camera updates a belief only at its rate and after its latency.
+- A carried object has no belief: `belief_error` has no answer while it
+  is held.
+- An observer answers "unknown" when its beliefs are too old: use
+  `unknown: skip`, or the assertion fails at that step.
+
 A failed assertion keeps the **measured value**, the **expected bound** and
 the **simulated time**. It does **not** stop the run, unless `stop: true`.
 
@@ -215,6 +250,9 @@ A value is a number, a metric, or a query on the world:
 | `(joint_limits_respected robot)` | 1 if every joint is inside its limits (± 1e-3) |
 | `(holding g)`, `(holding g object)` | The gripper `g` holds something, or this object |
 | `(skill_started s)`, `(skill_succeeded s)`, `(skill_failed s)` | History of the skill scheduler |
+| `(believed (p a b))` | What the robot **believes** of the PDDL literal: 1 or 0 from the observer of `p` on the beliefs; no answer when it cannot tell. Needs a planner (the observers) |
+| `(belief_error e)` | Distance between where the robot believes `e` is and where it is (m). No answer when `e` was never seen, its belief is older than `perception.max_age`, or a gripper carries it |
+| `(base_error robot)` | Distance between the estimated and the true base ([Localization](#-localization)) (m) |
 
 A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`.
 A `;` starts a comment up to the end of the line. Put a name with spaces

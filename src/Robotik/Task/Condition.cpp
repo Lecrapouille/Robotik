@@ -240,9 +240,25 @@ private:
               SExpression const& p_node)
     {
         std::vector<std::string> arguments;
-        for (std::size_t i = 1; i < p_node.items.size(); ++i)
+        std::vector<SExpression> const* words = &p_node.items;
+        std::size_t first = 1U;
+        if (p_query.literal)
         {
-            SExpression const& argument = p_node.items[i];
+            // (believed (in cube box)): the words of the literal.
+            if (p_node.items.size() != 2U ||
+                p_node.items[1].kind != SExpression::Kind::List ||
+                p_node.items[1].items.empty())
+            {
+                fail(p_node,
+                     "(" + p_query.name + " ...) takes one literal, e.g. (" +
+                         p_query.name + " (in cube box))");
+            }
+            words = &p_node.items[1].items;
+            first = 0U;
+        }
+        for (std::size_t i = first; i < words->size(); ++i)
+        {
+            SExpression const& argument = (*words)[i];
             if (argument.kind == SExpression::Kind::List)
             {
                 fail(argument, "the arguments of (" + p_query.name +

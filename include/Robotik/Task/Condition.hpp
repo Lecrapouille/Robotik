@@ -105,6 +105,10 @@ struct ConditionQuery
     /// argument it refuses (unknown entity): the compiler calls it once to
     /// check the arguments, so it must not change the world.
     std::function<std::optional<double>(std::vector<std::string> const&)> answer;
+    /// The query takes one PDDL literal, e.g. @c (believed (in cube box)):
+    /// its words are the arguments (@c in, @c cube, @c box), and the counts
+    /// above apply to them.
+    bool literal = false;
 };
 
 // ****************************************************************************

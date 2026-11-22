@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 /// Vertical gap tolerated between two props said to rest on each other (m).
@@ -675,6 +676,84 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
                         [skill](Arguments const& p_args)
                         { return skill(p_args, 2); } });
 
+    // --- What the robot believes, to compare with the truth ---------------
+    // (believed (in red_cube box)): the observer of the planner on the
+    // beliefs; no answer when it cannot tell.
+    queries.push_back(
+        { "believed",
+          1U,
+          std::numeric_limits<std::size_t>::max(),
+          [this](Arguments const& p_args) -> std::optional<double>
+          {
+              Observer const* observer = m_planning.observer(p_args[0]);
+              if (observer == nullptr)
+              {
+                  throw std::invalid_argument(
+                      "no observer for the predicate '" + p_args[0] +
+                      "' (the scenario logic gives them to the planner)");
+              }
+              Args const args(p_args.begin() + 1, p_args.end());
+              switch ((*observer)(m_contexts.front(), args))
+              {
+                  case Truth::True:
+                      return 1.0;
+                  case Truth::False:
+                      return 0.0;
+                  default:
+                      return std::nullopt;
+              }
+          },
+          true });
+    // Distance between where the robot believes an object is and where it
+    // is. No answer when the object was never seen, its belief is older
+    // than perception.max_age, or a gripper carries it (nobody tracks it).
+    queries.push_back(
+        { "belief_error",
+          1U,
+          1U,
+          [this](Arguments const& p_args) -> std::optional<double>
+          {
+              Record const& record = require(p_args[0]);
+              WorldObject const* belief = m_world_model.find(p_args[0]);
+              if (belief == nullptr || !observed(*belief) ||
+                  m_robot->time() - belief->seen >
+                      m_description.perception.max_age)
+              {
+                  return std::nullopt;
+              }
+              for (std::unique_ptr<RobotSession> const& robot : m_robots)
+              {
+                  ActuatorList const& actuators = robot->actuators();
+                  for (std::size_t i = 0; i < actuators.size(); ++i)
+                  {
+                      auto const* cup =
+                          dynamic_cast<VacuumGripper const*>(&actuators[i]);
+                      if (cup != nullptr && record.entity &&
+                          m_held.of(*cup) == record.entity.id())
+                      {
+                          return std::nullopt;
+                      }
+                  }
+              }
+              return norm(beliefFrame() * belief->position -
+                          framePose(record, {}).position);
+          } });
+    // Distance between the estimated and the true base of a robot (see
+    // LocalizationFidelity).
+    queries.push_back({ "base_error",
+                        1U,
+                        1U,
+                        [this](Arguments const& p_args) -> std::optional<double>
+                        {
+                            RobotSession const* found = robot(p_args[0]);
+                            if (found == nullptr)
+                            {
+                                throw std::invalid_argument("'" + p_args[0] +
+                                                            "' is not a robot");
+                            }
+                            return norm(found->base().pose.position -
+                                        found->trueBase().pose.position);
+                        } });
     return queries;
 }
 

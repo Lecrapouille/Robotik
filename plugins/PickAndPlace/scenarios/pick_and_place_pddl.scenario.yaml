@@ -27,3 +27,10 @@ scenario:
     - { condition: (== (collision_count robot) 0), phase: always }
     - (== planner.replans 0)
     - (< time 30)
+    # What the robot believes agrees with the truth. A belief is late by a
+    # step or two (the label of the cup, the camera): for: forgives that,
+    # unknown: skip ignores the steps where the robot cannot tell.
+    - { condition: (= (believed (holding red_cube)) (holding gripper red_cube)),
+        phase: always, for: 0.1, unknown: skip }
+    - { condition: (< (belief_error red_cube) 0.01),
+        phase: always, for: 0.5, unknown: skip }

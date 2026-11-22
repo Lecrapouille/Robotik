@@ -258,3 +258,47 @@ TEST(PlannerScenario, ScenarioRefusesATreeAndAPlanner)
                     robotik::ConfigNode("scenarios/pick_and_place.bt.yaml")));
     EXPECT_FALSE(robotik::readScenario(source, testAssets()));
 }
+
+TEST(PlannerScenario, BeliefAssertionsSeeAWrongLabelWhenItHappens)
+{
+    PickPlaceLogic logic(true, true);
+    compages::world::World world;
+    robotik::Simulation simulation(
+        world,
+        scenario(
+            "plugins/PickAndPlace/scenarios/pick_and_place_pddl.scenario.yaml"),
+        nullptr,
+        &logic);
+    robotik::RoboticCell& cell = simulation.cell();
+    robotik::Condition const agrees =
+        cell.compile("(= (believed (holding red_cube)) "
+                     "(holding gripper red_cube))")
+            .take();
+    robotik::Condition const error =
+        cell.compile("(belief_error red_cube)").take();
+    EXPECT_FALSE(cell.compile("(believed (no_such_predicate x))"));
+    EXPECT_FALSE(cell.compile("(believed holding red_cube)"));
+
+    // Before the grasp: the robot sees the cube where it is.
+    simulation.reset(robotik::Seed{ 42 });
+    simulation.step(robotik::Seconds(0.01));
+    robotik::Evaluation const seen = robotik::evaluate(error, cell.metrics());
+    ASSERT_TRUE(seen.known) << seen.detail;
+    EXPECT_LT(seen.value, 1e-6);
+
+    // Step until the cup holds the cube and says so.
+    auto* cup = cell.robot().actuators().first<robotik::VacuumGripper>();
+    ASSERT_NE(cup, nullptr);
+    while (cup->label().empty() && simulation.time() < robotik::Seconds(30.0))
+    {
+        simulation.step(robotik::Seconds(0.01));
+    }
+    ASSERT_EQ(cup->label(), "red_cube");
+    EXPECT_TRUE(robotik::evaluate(agrees, cell.metrics()).holds);
+    // Carried: nobody tracks its belief.
+    EXPECT_FALSE(robotik::evaluate(error, cell.metrics()).known);
+
+    // A wrong label: the robot believes it holds something else.
+    cup->label("box");
+    EXPECT_FALSE(robotik::evaluate(agrees, cell.metrics()).holds);
+}

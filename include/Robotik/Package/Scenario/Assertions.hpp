@@ -15,6 +15,8 @@
 ///   - { condition: (< (pose_error easel) 0.002), phase: always }
 ///   - { condition: (inside red_cube box), phase: end }
 ///   - { condition: (< (distance robot.tcp red_cube) 0.05), within: 5.0 }
+///   - { condition: (< (belief_error red_cube) 0.01), phase: always,
+///       for: 0.5, unknown: skip }
 ///   - { condition: (holding gripper), eventually: true }
 ///   - { condition: "time > 1", at: 2.0 }
 ///   - name: attached before painting
@@ -40,6 +42,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -90,6 +93,15 @@ struct AssertionSpec
     std::vector<std::string> sequence;
     /// Instant of @ref AssertionPhase::At, deadline of Within.
     Seconds time{};
+    /// @ref AssertionPhase::Always only: how long the condition may stay
+    /// false in a row before it fails (@c for: in YAML). For the short
+    /// transients of a belief: the label one step late, a perception
+    /// latency.
+    Seconds tolerance{};
+    /// A step where the condition has no answer is not judged (@c unknown:
+    /// @c skip), instead of failing it. A condition never answered still
+    /// fails at the end.
+    bool skip_unknown = false;
     /// A failure ends the run.
     bool stop = false;
 };
@@ -259,6 +271,9 @@ private:
                Seconds p_now,
                ConditionProbe const& p_probe,
                bool p_final);
+    /// Judges an @c always with its tolerance (@ref AssertionSpec::tolerance).
+    void
+    judgeAlways(std::size_t p_index, Seconds p_now, bool p_holds, bool p_final);
     /// Sets a failed verdict with its reason.
     void fail(Check& p_check, Seconds p_now, std::string p_why);
 
@@ -268,6 +283,11 @@ private:
     std::vector<Check> m_checks;
     /// Next condition expected by each sequence.
     std::vector<std::size_t> m_progress;
+    /// Start of the current run of false steps of each @c always (with a
+    /// tolerance), or nothing while it holds.
+    std::vector<std::optional<Seconds>> m_breach;
+    /// The condition had an answer once (for @c unknown: @c skip).
+    std::vector<bool> m_answered;
     /// Every condition, see @ref conditions.
     std::vector<std::string> m_conditions;
     /// Index in @ref m_conditions of the first condition of each assertion.

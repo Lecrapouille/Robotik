@@ -140,6 +140,12 @@ and a skill brings a belief into its own base with
 `context.robot.base().pose.inverse() * belief` (`RoboticCell::beliefFrame()`
 says which frame is used).
 
-**The base is a belief too.** The base a skill reads is a belief as well: `localization: truth` makes it
+**Judge the beliefs too.** The assertions read the truth, so they see a
+mistake of the robot only by its effect, often at the end. To see a wrong
+belief when it happens (a cup labelled with the wrong cube, a lost
+localization), compare the belief with the truth: `(believed ...)`,
+`(belief_error e)`, `(base_error robot)`, with a tolerance for the latency
+of the belief ([Check what the robot believes](../reference/scenario-file.md#-check-what-the-robot-believes)).
+The base a skill reads is a belief as well: `localization: truth` makes it
 the true base, a mock that the report states
 ([Localization](../reference/scenario-file.md#-localization)).

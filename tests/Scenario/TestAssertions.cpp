@@ -155,6 +155,70 @@ TEST(Assertions, AlwaysKeepsTheFirstBreach)
     EXPECT_FALSE(engine.stopRequested());
 }
 
+TEST(Assertions, ToleranceForgivesAShortBreachOnly)
+{
+    Board board{ { { "gap", 0.001 } } };
+    robotik::AssertionEngine engine(
+        { spec("{ condition: (< gap 0.002), phase: always, for: 0.5 }") });
+    auto at = [&](double p_time, double p_gap)
+    {
+        board.values["gap"] = p_gap;
+        engine.update(robotik::Seconds(p_time), board.probe(engine));
+    };
+    at(1.0, 0.004); // a transient of 0.2 s
+    at(1.2, 0.004);
+    at(1.4, 0.001);
+    EXPECT_EQ(engine.checks()[0].verdict, Verdict::Pending);
+    at(2.0, 0.004); // false for 0.6 s: fails, dated at its start
+    at(2.3, 0.004);
+    at(2.6, 0.004);
+    robotik::Check const& check = engine.checks()[0];
+    EXPECT_EQ(check.verdict, Verdict::Failed);
+    EXPECT_DOUBLE_EQ(check.time.value(), 2.0);
+    EXPECT_NE(check.detail.find("false for more than"), std::string::npos);
+
+    // A breach shorter than the tolerance at the end passes.
+    robotik::AssertionEngine late(
+        { spec("{ condition: (< gap 0.002), phase: always, for: 0.5 }") });
+    board.values["gap"] = 0.001;
+    late.update(robotik::Seconds(1.0), board.probe(late));
+    board.values["gap"] = 0.004;
+    late.conclude(robotik::Seconds(1.1), board.probe(late));
+    EXPECT_EQ(late.checks()[0].verdict, Verdict::Passed);
+
+    EXPECT_FALSE(read("{ condition: (< gap 1), for: 0.5 }"));
+    EXPECT_FALSE(read("{ condition: (< gap 1), phase: always, for: -1 }"));
+}
+
+TEST(Assertions, UnknownSkipIgnoresTheStepsWithoutAnswer)
+{
+    Board board;
+    robotik::AssertionEngine engine(
+        { spec("{ condition: (< gap 0.002), phase: always, unknown: skip }") });
+    engine.update(robotik::Seconds(1.0), board.probe(engine)); // no gap yet
+    board.values["gap"] = 0.001;
+    engine.update(robotik::Seconds(2.0), board.probe(engine));
+    board.values.clear();
+    engine.update(robotik::Seconds(3.0), board.probe(engine));
+    EXPECT_EQ(engine.checks()[0].verdict, Verdict::Pending);
+    engine.conclude(robotik::Seconds(4.0), board.probe(engine));
+    EXPECT_EQ(engine.checks()[0].verdict, Verdict::Passed);
+
+    // Never answered: still a failure.
+    robotik::AssertionEngine never(
+        { spec("{ condition: (< gap 0.002), phase: always, unknown: skip }") });
+    never.update(robotik::Seconds(1.0), board.probe(never));
+    never.conclude(robotik::Seconds(2.0), board.probe(never));
+    EXPECT_EQ(never.checks()[0].verdict, Verdict::Failed);
+
+    // Without skip, an unknown step fails as before.
+    robotik::AssertionEngine strict(
+        { spec("{ condition: (< gap 0.002), phase: always }") });
+    strict.update(robotik::Seconds(1.0), board.probe(strict));
+    EXPECT_EQ(strict.checks()[0].verdict, Verdict::Failed);
+    EXPECT_FALSE(read("{ condition: (< gap 1), unknown: maybe }"));
+}
+
 TEST(Assertions, StopOnFailureIsRequested)
 {
     Board board{ { { "ok", 0.0 } } };
