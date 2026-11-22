@@ -23,10 +23,17 @@ ifeq ($(TARGET_OS),Emscripten)
         RobotIK-Simulator.PKG_CONFIG := exa-wayland glfw
         RobotIK-Simulator.LDFLAGS := -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3
     else
-        RobotIK-Simulator.LDFLAGS := -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 \
-            --shell-file $(abspath $(HERE)shell.html) \
-            $(foreach p,$(PLUGINS),--preload-file $(abspath $(HERE)../../plugins/$p)@/plugins/$p) \
-            --preload-file $(abspath $(HERE)../../data/packs)@/data/packs \
+        # imgui.DIR is known later: LDFLAGS is expanded when used.
+        SIMULATOR_DIR := $(HERE)
+        # The fonts of Dear ImGui are in the files of the page: without them,
+        # the page falls back on the pixel font, blurred on a dense screen.
+        RobotIK-Simulator.DEFINES = ROBOTIK_FONTS_DIR="/fonts"
+        RobotIK-Simulator.LDFLAGS = -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 \
+            --shell-file $(abspath $(SIMULATOR_DIR)shell.html) \
+            $(foreach p,$(PLUGINS),--preload-file $(abspath $(SIMULATOR_DIR)../../plugins/$p)@/plugins/$p) \
+            --preload-file $(abspath $(SIMULATOR_DIR)../../data/packs)@/data/packs \
+            --preload-file $(imgui.DIR)misc/fonts/Roboto-Medium.ttf@/fonts/Roboto-Medium.ttf \
+            --preload-file $(imgui.DIR)misc/fonts/Cousine-Regular.ttf@/fonts/Cousine-Regular.ttf \
             --exclude-file '*/external/*' --exclude-file '*.csv' --exclude-file '*.stl' \
             --exclude-file '*.onnx' --exclude-file '*.so' --exclude-file '*.a' --exclude-file '*.o' \
             -sFORCE_FILESYSTEM=1 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 -sGL_ENABLE_GET_PROC_ADDRESS \
