@@ -6,6 +6,8 @@
 # Read by the CMake of Pinocchio before its own file (CMAKE_PROJECT_INCLUDE)
 # in the web build.
 
+include(${CMAKE_CURRENT_LIST_DIR}/static-only.cmake)
+
 # Pinocchio sets Boost_USE_STATIC_LIBS to OFF, but Emscripten has only
 # static libraries: Boost would then refuse them. Turn it back on each time.
 function(robotik_static_boost p_variable p_access p_value)
