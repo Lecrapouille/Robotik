@@ -6,7 +6,7 @@
 
 > ⚠️ **Active project: the API is still evolving.** Scenarios, demos and tests are the best examples of the current API. No physical robot has been driven yet.
 
-> **🌐 Try the online version instantly:** 👉 [Click here to launch the RobotIK Simulator in your browser!](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html)
+> **🌐 Try the online version instantly:** 👉 [Click here to launch the RobotIK Simulator in your browser!](https://lecrapouille.github.io/Robotik/RobotIK-Simulator.html)
 
 New to robotics? Even if you do not want to work on robotic, [the introduction](doc/concepts/01-robotics-in-ten-minutes.md) explains you all robotic terms: joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
 
@@ -330,7 +330,7 @@ make
 ./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
 
-A web version, built with Emscripten by the CI: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The page runs the light plugins with MuJoCo, Pinocchio, Kairos and the 3D view (WebGL 2): HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain (13-neuron circuit only, the FlyWire connectome is too large). LineFollower, MicroDuck and HumanoidWalk need OpenCV or ONNX Runtime and stay on the desktop. The same sources also build for [ExaequOS](https://www.exaequos.com).
+A web version, built with Emscripten by the CI: [RobotIK-Simulator.html](https://lecrapouille.github.io/Robotik/RobotIK-Simulator.html). The page runs the light plugins with MuJoCo, Pinocchio, Kairos and the 3D view (WebGL 2): HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain (13-neuron circuit only, the FlyWire connectome is too large). LineFollower, MicroDuck and HumanoidWalk need OpenCV or ONNX Runtime and stay on the desktop. The same sources also build for [ExaequOS](https://www.exaequos.com).
 
 Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [Your first plugin](doc/tutorials/04-your-first-plugin.md).
 

@@ -41,7 +41,7 @@ After the build, the `build/linux-gcc-debug/` folder contains:
     ┗ 📂 packs/              ⬅️ the asset packs (a link to data/packs)
 ```
 
-The CI also publishes the simulator as a web page: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The page runs the light plugins: HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain. FlyBrain uses its 13-neuron circuit only; the FlyWire connectome is too large for the page. LineFollower (OpenCV), MicroDuck and HumanoidWalk (ONNX Runtime) are not in the page. To build the page yourself, install [Emscripten](https://emscripten.org) and type:
+The CI also publishes the simulator as a web page: [RobotIK-Simulator.html](https://lecrapouille.github.io/Robotik/RobotIK-Simulator.html). The page runs the light plugins: HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain. FlyBrain uses its 13-neuron circuit only; the FlyWire connectome is too large for the page. LineFollower (OpenCV), MicroDuck and HumanoidWalk (ONNX Runtime) are not in the page. To build the page yourself, install [Emscripten](https://emscripten.org) and type:
 
 ```bash
 emmake make RobotIK-Simulator
