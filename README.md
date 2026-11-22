@@ -8,42 +8,51 @@
 
 > **🌐 Try the online version instantly:** 👉 [Click here to launch the RobotIK Simulator in your browser!](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html)
 
+New to robotics? Even if you do not want to work on robotic, [the introduction](doc/concepts/01-robotics-in-ten-minutes.md) explains you all robotic terms: joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
+
 ---
 
-## 🤔 What is it for?
+## 🤔 What is RobotIK for?
 
-You want a robot arm to pick a red cube and drop it in a box. The motion itself is the easy part. The hard part is everything around it:
+Suppose you want to design a robot arm that picks up a red cube and drops it into a box. The motion itself is the easy part. The hard part is everything around it:
 
 - 🎯 **Deciding**: find the cube, approach, grasp, carry, release… and what to do when the camera fails in the middle.
-- 🧪 **Proving it works**: not "it looked fine once", but "the cube ends in the box, nothing collided, it took less than 30 s", checked on every commit.
+- 🧪 **Proving it works**: not "it looked fine once", but "the cube ends in the box, nothing collided, it took less than 30 seconds", checked on every commit.
 - 🔍 **Understanding failures**: when the robot stops, which step failed, what it believed, who held the gripper, why the planner chose this plan?
 - 🔁 **Reusing the work**: the same mission as a demo, a regression test, a benchmark, a learning environment, and one day the real robot.
 
-RobotIK gives you a frame for all of this. You describe the **world** and the **mission** in YAML, you write the robot's **skills** in C++, and RobotIK runs them on simulated physics, judges the result, and shows you everything that happened.
+RobotIK provides a framework for this work. You describe the **world** and the **mission** in YAML, you write the robot's **skills** in C++, and RobotIK runs them on simulated physics, judges the result, and shows you everything that happened.
+
+---
+
+## 🧱 What RobotIK is built on
+
+RobotIK itself has three layers. Each works without the layers above it, so a project can use the lowest layer that meets its needs:
+
+| Layer | You have… | You get |
+|-------|-----------|---------|
+| 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::openRobot`) |
+| 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::RoboticCell`) |
+| 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
+
+A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
 
 ![You write a world file, a scenario file and skills in C++; RobotIK runs them in the 3D simulator, as a headless test in CI, as a reinforcement learning environment, and later on a real robot.](doc/images/mission-four-ways.svg)
 
-New to robotics? [The introduction](doc/concepts/01-robotics-in-ten-minutes.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
+Here what RobotIK tries to solve:
+
+![From an intent to the motors: goal, PDDL planner, behavior tree, skills and scheduler, robot API.](doc/images/decision-layers.svg)
+
+- ✅ **Integration done:** behavior trees, PDDL planning with replanning, skills with resources, faults, assertions, experiments, RL environments;
+- 🔜 **Integration still in progress:** backend for testing on real robots, Prolog to query the world, an LLM front-end that stays at the level of intent and never drives motors directly, Petri for concurrent processes, GRAFCET and production chain finding critical circuits.
+- 🧭 **Help wanted:** hardware targets:
+  - 🦆 [Microduck](https://github.com/pollen-robotics/microduck)
+  - 🦾 [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM100)
+  - 🤖 [Roboparty](https://github.com/Roboparty)
 
 ---
 
-## 📖 The story
-
-RobotIK started as a small project to **learn inverse kinematics** — the **IK** of the name: how to compute the joint angles that bring the hand of an arm to a point. It mixed my own OpenGL code and my own robotics code, which is a fine way to learn and a poor way to build anything serious.
-
-Little by little it turned into something else: a **simulation-oriented library** built on real, proven tools — [MuJoCo](https://github.com/google-deepmind/mujoco) for physics, [Pinocchio](https://github.com/stack-of-tasks/pinocchio) for kinematics, [Kairos](https://github.com/PlanSys2/kairos) for planning. On the way, my 3D library [Compages](https://github.com/Lecrapouille/Compages) was finally finished, and RobotIK uses its three layers: the **World** layer holds the simulated world, headless in tests; the **Renderer** layer draws it in the simulator, down to the live texture of the painter's canvas; the **GPU** layer is what the Renderer stands on. My behavior tree library [BlackThorn](https://github.com/Lecrapouille/BlackThorn) drives the missions, and its editor Oakular shows them running.
-
-Why I build it? Because, professionally, I never found this kind of tool:
-
-- 🐢 **ROS** has Gazebo and RViz, but ROS is heavy: middleware, nodes, launch files, message types — a lot to install and learn before a cube moves.
-- 🚗 When I worked on an **autonomous car simulator**, the automotive world had scenario standards such as [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/): describe a situation, run it, judge it. **Robotics has almost nothing like this.**
-- 🕸️ In a real professional project, **debugging the planner, the behavior tree, the skills and the shared resources together is hard**: each lives in its own tool, its own logs, its own clock.
-
-The closest project I found, afterwards, is [SkiROS2](https://github.com/RobotLabLTH/skiros2): skills, behavior trees, planning and a world model — on ROS 2. I did not know it when RobotIK took shape, and the two answer differently (see below).
-
----
-
-## ✨ Why RobotIK?
+## ✨ Why do you need RobotIK?
 
 | | 🤖 RobotIK | ROS 2 + Gazebo / RViz | SkiROS2 | MuJoCo or PyBullet scripts |
 |---|---|---|---|---|
@@ -71,9 +80,26 @@ What this gives you:
 
 ---
 
-## 👀 What it looks like
+## 🧱 What RobotIK is built on?
 
-Let us follow the **pick-and-place** demo from the files to the result: A robot with a camera on its wrist, picks a red cube and places it inside a box. Everything of a demo lives in one folder, a **plugin**, that RobotIK loads at run time:
+RobotIK brings existing robotics libraries together:
+
+- 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) simulates physics.
+- 📐 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) computes robot kinematics.
+- 🧭 [Kairos](https://github.com/PlanSys2/kairos) finds plans from PDDL goals.
+- 🧠 [SWI-Prolog](https://www.swi-prolog.org/) is planned for logic queries; integration is still in progress.
+
+I also develop libraries that support RobotIK or explore future additions:
+
+- 🧱 [Compages](https://github.com/Lecrapouille/Compages) has three layers. **World** holds the simulated world and works without a window in tests. **Renderer** draws the scene, including live textures such as the painter's canvas. **GPU** provides the graphics API used by Renderer.
+- 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) is my behavior tree library faster than the [mainstream lib](https://www.behaviortree.dev/). It drives missions, and its Oakular editor shows the trees as they run.
+- 🕸️ [TimedPetriNetEditor](https://github.com/Lecrapouille/TimedPetriNetEditor) explores Petri nets for concurrent processes and GRAFCET as an alternative to behavior trees for industrial robotic cells. It also supports production flow analysis, including critical circuits. Integration with RobotIK is still in progress.
+
+---
+
+## 👀 What RobotIK looks like
+
+Let us follow the **pick-and-place** demo from its files to the result. A robot with a camera on its wrist picks up a red cube and places it inside a box. All the files for a demo live in one folder: a **plugin** that RobotIK loads at run time:
 
 ```text
 📦 plugins/PickAndPlace/
@@ -107,7 +133,7 @@ world:
 
 ### 🔧 2. The skills: what the robot knows how to do
 
-A **skill** is one thing the robot knows how to do: detect an object, approach it, grasp it, release it. It is a small C++ class of the plugin (`src/PickPlaceSkills.cpp`). It is called again and again, and answers *running*, *success* or *failure*. Here is the heart of `Grasp`:
+A **skill** is one thing the robot knows how to do: detect an object, approach it, grasp it, release it. It is a small C++ class in the plugin (`src/PickPlaceSkills.cpp`). It is called at each step and returns *running*, *success* or *failure*. Here is the heart of `Grasp`:
 
 ```cpp
 Status GraspSkill::tick(RobotContext& p_context, Seconds p_dt)
@@ -146,7 +172,9 @@ The tree only uses the names of the skills. It says the order, and what to do wh
 - Action: { name: Grasp(red_cube) }
 ```
 
-Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([The PDDL planner](doc/concepts/05-pddl-planner.md)).
+A scenario can specify a **goal**, such as "the cube must be inside the box". The PDDL planner chooses the actions, and the executor turns the plan into a behavior tree. If a step fails, the planner plans again ([The PDDL planner](doc/concepts/05-pddl-planner.md)).
+
+WIP: In future work a LLM layer can understand the human and drive the robot goald using the planner.
 
 ### 🎬 4. The scenario: what happens, and what is checked
 
@@ -171,7 +199,21 @@ scenario:
     - (< time 30)
 ```
 
-Run it without a window, the way CI does:
+### 🖥 5.1. Graphical simulation
+
+Open the scenario in **RobotIK-Simulator** to watch the robot and inspect the mission as it runs. Use the run bar to play, pause or advance one step at a time.
+
+![RobotIK-Simulator showing the 3D scene and panels for inspecting a robot mission.](doc/images/simulator.png)
+
+- 🤖 **Robot** lets you inspect joints, sensors and the tool.
+- 🌳 **Mission** shows the behavior tree or plan, active skills, shared resources and assertions.
+- 👁 **Autonomy** lets you compare the robot's beliefs with the simulated world and camera images.
+
+Select a skill or resource to see its state in the Inspector. The [Getting started tutorial](doc/tutorials/01-getting-started.md) explains the controls and workspaces.
+
+### 💻 5.2. Headless simulation
+
+Run it without a graphical window (headless), the way CI does:
 
 ```text
 $ ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
@@ -195,7 +237,7 @@ pick_and_place_faults: 1/1 runs passed
 
 The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/linux-gcc-debug/bin/RobotIK-Simulator` to watch the arm, the tree and the skills live.
 
-### 🧪 5. The experiment: the same task, several ways
+### 🧪 6. The experiment: the same task, several ways
 
 One success proves little. An **experiment** runs the same scenario in several **cases** (a wider area for the cube, real physics, the camera down at start), each with several **seeds**, and judges them all with the same assertions:
 
@@ -273,50 +315,9 @@ Skills still read only their beliefs, and the planner counts an effect as done o
 
 ---
 
-## 🧱 What RobotIK is built on
-
-RobotIK does not rewrite robotics. It makes proven libraries work together behind one API:
-
-| Library | Role in RobotIK |
-|---------|-----------------|
-| 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
-| 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
-| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([The PDDL planner](doc/concepts/05-pddl-planner.md)) |
-| 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md)) |
-| 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](https://github.com/Lecrapouille/Compages#-documentation)) |
-| OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
-
-RobotIK itself is cut in three layers, like Compages. Each one works without the ones above, so a project takes the smallest that fits:
-
-| Layer | You have… | You get |
-|-------|-----------|---------|
-| 🦾 **Robot** | a URDF | one robot, its joints, sensors and physics, in three lines (`robotik::openRobot`) |
-| 🧩 **Task** | robots, objects, a job | a robot cell written in C++: skills, behavior tree or PDDL plan, beliefs (`robotik::RoboticCell`) |
-| 📦 **Package** | YAML files, a plugin | scenarios, experiments, assertions, reports, the simulator (`robotik::Simulation`) |
-
-Examples of each: [Three programs, one per layer](doc/tutorials/02-three-programs.md). The words: [glossary](doc/reference/glossary.md).
-
-A skill never asks "am I simulated?". It drives the robot through one API (`robot.joints()`, the tool, the sensors); a backend translates it to MuJoCo today, and to a real robot (an SO-101 arm is planned) tomorrow.
-
----
-
-## 🧭 Where it goes
-
-![From an intent to the motors: goal, PDDL planner, behavior tree, skills and scheduler, robot API.](doc/images/decision-layers.svg)
-
-- ✅ behavior trees, PDDL planning with replanning, skills with resources, faults, assertions, experiments, RL environments;
-- 🔜 a real robot backend (SO-ARM101), GOAP, Prolog to query the world, an LLM front-end that stays at the level of intent and never drives the motors.
-
-Expected robots:
-- [Microduck](https://github.com/pollen-robotics/microduck)
-- [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM100)
-- [Roboparty](https://github.com/Roboparty)
-
----
-
 ## 🚀 Quick start
 
-Linux only, plain `make` (no CMake). macOS is not supported: the simulator needs a newer OpenGL than the 4.1 of macOS.
+Linux only, plain `make` (no CMake). macOS is not supported: the simulator needs a newer OpenGL version than the 4.1 available on macOS.
 
 ```bash
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
@@ -337,7 +338,7 @@ Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tuto
 
 ## 📚 Documentation
 
-Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, read [Robotics in ten minutes](doc/concepts/01-robotics-in-ten-minutes.md) first. The map of every page, with quick paths, is in [doc/README.md](doc/README.md).
+Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, read [Robotics in ten minutes](doc/concepts/01-robotics-in-ten-minutes.md) first. The documentation map, with suggested reading paths, is in [doc/README.md](doc/README.md).
 
 | Folder | Kind | Pages |
 |--------|------|-------|
@@ -350,6 +351,20 @@ Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, 
 The libraries RobotIK is built on have their own documentation, written the same way: [Compages](https://github.com/Lecrapouille/Compages#-documentation) and [BlackThorn](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md).
 
 🤖 Coding agents: [AGENTS.md](AGENTS.md) maps each task to a skill of `.claude/skills/`. Compages and BlackThorn have their own `AGENTS.md` and skills.
+
+---
+
+## 📖 The story of RobotIK
+
+RobotIK started as a small project to learn **inverse kinematics** while I was preparing to apply for a job at a robotics company. That is where the **IK** in the name comes from: computing the joint angles that bring a robot arm's tool to a target position.
+
+Over time, it became a library built around simulation. Its design grew from problems I encountered at work: stacking the correct layers that work well together for robot planning, testing robot behavior, and understanding failures.
+
+I wanted a tool that brought these parts together:
+
+- 🐢 With **ROS**, I could use Gazebo and RViz, but I also had to learn and manage middleware, nodes, launch files and message types.
+- 🚗 With **autonomous car simulator**, standards such as [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/) structure scenarios, describing a situation, run it, and judge the result. I wanted something similar for robot missions.
+- 🕸️ In my professional robotics projects, I found it difficult to debug the planner, behavior tree, skills and shared resources together. Each had its own tools, logs and clock.
 
 ---
 
