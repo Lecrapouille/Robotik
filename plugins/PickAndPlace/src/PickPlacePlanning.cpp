@@ -40,16 +40,19 @@ void registerPlanning(robotik::PlanningDomain& p_domain)
                          return robotik::truth(
                              robotik::heldObject(p_context.robot) == p_args[0]);
                      });
-    p_domain.observe(
-        "hand_empty",
-        [](RobotContext const& p_context, Args)
-        {
-            if (robotik::findGripper(p_context.robot, {}) == nullptr)
-            {
-                return Truth::Unknown;
-            }
-            return robotik::truth(robotik::heldObject(p_context.robot).empty());
-        });
+    p_domain.observe("hand_empty",
+                     [](RobotContext const& p_context, Args)
+                     {
+                         robotik::VacuumGripper const* gripper =
+                             robotik::findGripper(p_context.robot, {});
+                         if (gripper == nullptr)
+                         {
+                             return Truth::Unknown;
+                         }
+                         // The vacuum, not the label: a cup holding an
+                         // object nobody named is not empty.
+                         return robotik::truth(!gripper->holding());
+                     });
     // Inside the footprint of the bin, not held. Height is ignored: right
     // after the release the object is still falling. Not observed lately:
     // unknown, not false.

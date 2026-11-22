@@ -23,8 +23,6 @@
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Robot/Joints.hpp"
 
-#include "Compages/World/EntityId.hpp"
-
 #include <span>
 #include <string>
 #include <vector>
@@ -210,14 +208,21 @@ private:
 // ****************************************************************************
 /// Suction cup mounted along +Z of a link.
 ///
-/// The command is the suction; what is held is measured (vacuum sensor on
-/// hardware, contact model in simulation, see @ref GraspModel).
+/// The command is the suction. That something is held is measured (vacuum
+/// sensor on hardware, contact model in simulation, see @ref GraspModel).
+/// What is held is not measured: a vacuum sensor cannot tell a red cube from
+/// a blue one. The skill that took the object writes its name with
+/// @ref label, because the program knows what it went to take. The label is
+/// the same in simulation and on hardware. When the vacuum is lost, the label
+/// is cleared. A wrong label (the cup took another object) is found by the
+/// assertions of the scenario, which read the truth.
 ///
 /// @code
 /// auto* cup = robot.actuators().first<robotik::VacuumGripper>();
 /// cup->suction(true);           // the grasp model attaches what touches it
-/// if (cup->holding()) { ... }
-/// cup->suction(false);          // release
+/// if (cup->holding())
+///     cup->label("red_cube");   // what the program went to take
+/// cup->suction(false);          // release; the label goes with the vacuum
 /// @endcode
 // ****************************************************************************
 class VacuumGripper final: public Actuator
@@ -253,22 +258,38 @@ public:
     /// @return True when an object is held (measured).
     [[nodiscard]] bool holding() const
     {
-        return m_held.valid();
-    }
-
-    /// @return The entity held, or an invalid id.
-    [[nodiscard]] compages::world::EntityId held() const
-    {
-        return m_held;
+        return m_holding;
     }
 
     // -------------------------------------------------------------------------
-    /// Writes the measured grasp (physics or vacuum sensor side).
-    /// @param p_object Entity held, or an invalid id for nothing.
+    /// Writes the measured vacuum (vacuum sensor, or the grasp model in
+    /// simulation). Losing the vacuum clears the @ref label.
+    /// @param p_holding True when an object is held.
     // -------------------------------------------------------------------------
-    void held(compages::world::EntityId p_object)
+    void measureHolding(bool p_holding)
     {
-        m_held = p_object;
+        if (m_holding && !p_holding)
+        {
+            m_label.clear();
+        }
+        m_holding = p_holding;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Names the object held, as the program knows it (see the class
+    /// comment). Call it after @ref holding becomes true.
+    /// @param p_object Name of the object, as in the beliefs.
+    // -------------------------------------------------------------------------
+    void label(std::string p_object)
+    {
+        m_label = std::move(p_object);
+    }
+
+    /// @return Name given by @ref label, or empty when nothing is held or
+    ///   the program did not say what it took.
+    [[nodiscard]] std::string const& label() const
+    {
+        return m_label;
     }
 
     /// @return The flange link; empty for the robot tool frame.
@@ -305,8 +326,10 @@ private:
     Length m_length;
     /// Pump commanded on.
     bool m_suction = false;
-    /// Entity held (measured).
-    compages::world::EntityId m_held{};
+    /// Vacuum measured.
+    bool m_holding = false;
+    /// What the program says it holds.
+    std::string m_label;
 };
 
 } // namespace robotik

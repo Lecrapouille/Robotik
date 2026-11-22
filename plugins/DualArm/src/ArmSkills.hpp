@@ -50,8 +50,8 @@ teammate(robotik::RobotContext const& p_context, std::string_view p_id);
 [[nodiscard]] robotik::VacuumGripper const*
 cupOf(robotik::Robot const& p_robot);
 
-/// Id of the object the cup of @p_robot holds, as its vacuum sensor
-/// reports it, or empty.
+/// Id of the object the cup of @p_robot holds: its label while the vacuum
+/// holds, or empty.
 [[nodiscard]] std::string heldObject(robotik::Robot const& p_robot);
 
 // ****************************************************************************

@@ -113,7 +113,7 @@ Known leaks (October 2026), to fix:
 | Where | Leak | Generic direction |
 |-------|------|-------------------|
 | `Task/Grasp/AbstractGrasp.cpp`, `Task/RoboticCell.cpp` `trackPropPenetration` | the abstract level puts a released box at the centre of the container below (vacuum only) | done for `rigid` (`RigidGrasp`); a gripper interface for fingers (`contact`, doc/reference/scenario-file.md "Physics fidelity") |
-| `Task/RoboticCellTruth.cpp` `(holding g)` | only for `VacuumGripper` | a gripper interface (`holding`, `held`) for any grasping actuator |
+| `Task/RoboticCellTruth.cpp` `(holding g)` | only for `VacuumGripper` | a gripper interface (`holding`, `label`, `RoboticCell::held`) for any grasping actuator |
 | `Robot/Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
 | `Task/RoboticCell.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
 | `simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |

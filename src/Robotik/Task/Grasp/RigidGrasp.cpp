@@ -29,7 +29,7 @@ std::string RigidGrasp::weldName(std::string const& p_gripper,
     return "robotik_grasp_" + p_gripper + "_" + p_object;
 }
 
-void RigidGrasp::update(Robot& p_robot)
+void RigidGrasp::update(Robot& p_robot, HeldObjects& p_held)
 {
     RobotBackend* backend = p_robot.backend();
     if (backend == nullptr || m_objects.empty())
@@ -47,10 +47,10 @@ void RigidGrasp::update(Robot& p_robot)
         }
         // The object held, if it is one of ours.
         Graspable const* held = nullptr;
-        if (gripper->holding() && world.alive(gripper->held()))
+        compages::world::EntityId const held_id = p_held.of(*gripper);
+        if (held_id.valid() && world.alive(held_id))
         {
-            ecs::Shape const* shape =
-                world.entity(gripper->held()).find<ecs::Shape>();
+            ecs::Shape const* shape = world.entity(held_id).find<ecs::Shape>();
             for (Graspable const& object : m_objects)
             {
                 held = shape != nullptr && object.id == shape->name ? &object
@@ -66,9 +66,9 @@ void RigidGrasp::update(Robot& p_robot)
         {
             // Release: the weld goes, the object falls.
             (void)backend->weld(weldName(gripper->name(), held->id), false);
-            gripper->held({});
+            p_held.drop(*gripper);
         }
-        else if (gripper->suction() && !gripper->holding())
+        else if (gripper->suction() && !held_id.valid())
         {
             Vector3 const tip = p_robot.base().pose * gripper->tip(p_robot);
             Graspable const* best = nullptr;
@@ -101,7 +101,7 @@ void RigidGrasp::update(Robot& p_robot)
             if (best != nullptr &&
                 backend->weld(weldName(gripper->name(), best->id), true))
             {
-                gripper->held(best_id);
+                p_held.hold(*gripper, best_id);
             }
         }
     }

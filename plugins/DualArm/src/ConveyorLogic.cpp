@@ -213,9 +213,14 @@ void ConveyorLogic::addPlanning(robotik::RoboticCell& p_cell)
                    {
                        robotik::Robot const* arm =
                            teammate(p_context, p_args[0]);
-                       return arm == nullptr
-                                  ? Truth::Unknown
-                                  : robotik::truth(heldObject(*arm).empty());
+                       if (arm == nullptr)
+                       {
+                           return Truth::Unknown;
+                       }
+                       // The vacuum, not the label: an arm without a cup
+                       // holds nothing.
+                       robotik::VacuumGripper const* cup = cupOf(*arm);
+                       return robotik::truth(cup == nullptr || !cup->holding());
                    });
     domain.observe(
         "holding",

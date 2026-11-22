@@ -85,12 +85,31 @@ void PickPlaceLogic::setup(robotik::RoboticCell& p_cell,
         std::string const& name = prop->id;
         skills.add<robotik::DetectSkill>(
             describe("Detect(" + name + ")", camera), name);
+        // An open box: its walls, from the world file, set how deep the
+        // cup goes.
+        std::optional<robotik::ecs::Shape> container;
+        if (prop->shape->type == robotik::ShapeSpec::Type::Container)
+        {
+            robotik::Vector3 const& size = prop->shape->size;
+            container =
+                robotik::ecs::Shape{ name,
+                                     robotik::ecs::Shape::Type::CONTAINER,
+                                     { robotik::Length(size.x),
+                                       robotik::Length(size.y),
+                                       robotik::Length(size.z) },
+                                     prop->shape->color };
+        }
         skills.add<robotik::ApproachSkill>(
             describe("Approach(" + name + ")", arm),
             name,
-            robotik::Length(APPROACH_CLEARANCE));
-        skills.add<robotik::ApproachSkill>(
-            describe("Reach(" + name + ")", arm), name, robotik::Length{});
+            robotik::Length(APPROACH_CLEARANCE),
+            std::string{},
+            container);
+        skills.add<robotik::ApproachSkill>(describe("Reach(" + name + ")", arm),
+                                           name,
+                                           robotik::Length{},
+                                           std::string{},
+                                           container);
 
         robotik::SkillDescription grasp =
             describe("Grasp(" + name + ")", gripper);
@@ -109,7 +128,9 @@ void PickPlaceLogic::setup(robotik::RoboticCell& p_cell,
             skills.add<robotik::ApproachSkill>(
                 describe("Transit(" + name + ")", arm),
                 name,
-                robotik::Length(TRANSIT_CLEARANCE));
+                robotik::Length(TRANSIT_CLEARANCE),
+                std::string{},
+                container);
         }
     }
 

@@ -29,6 +29,11 @@ target)` + `goal(pose)` (IK once per goal), `MoveJointSkill(joint, target)`,
 Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed,
 Radians); `moveTo`, `spin`, `push`, `reached(j, tol)`, `hold()`.
 Example: `plugins/HelloWorld/src/WaveSkill.cpp`; bigger: `plugins/Painter/src/PainterSkills.cpp`.
+Vacuum cup: `holding()` is measured (the vacuum), not what is held. The
+grasp skill writes what it went to take with `cup->label("red_cube")` once
+`holding()` is true; losing the vacuum clears it. Observers read
+`holding()` for "hand empty" and `label()` for "holding X". The entity really
+held is truth: `RoboticCell::held(cup)`, for metrics and the simulator only.
 
 ## Register (in ScenarioLogic::setup)
 

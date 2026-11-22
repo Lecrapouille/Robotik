@@ -140,7 +140,25 @@ static compages::world::EntityId touched(compages::world::World& p_world,
     return found;
 }
 
-void AbstractGrasp::update(Robot& p_robot)
+void HeldObjects::hold(VacuumGripper& p_gripper,
+                       compages::world::EntityId p_object)
+{
+    if (!p_object.valid())
+    {
+        drop(p_gripper);
+        return;
+    }
+    m_held[&p_gripper] = p_object;
+    p_gripper.measureHolding(true);
+}
+
+void HeldObjects::drop(VacuumGripper& p_gripper)
+{
+    m_held.erase(&p_gripper);
+    p_gripper.measureHolding(false);
+}
+
+void AbstractGrasp::update(Robot& p_robot, HeldObjects& p_held)
 {
     compages::world::World& world = p_robot.world();
     ActuatorSet& actuators = p_robot.actuators();
@@ -152,25 +170,29 @@ void AbstractGrasp::update(Robot& p_robot)
             continue;
         }
 
-        if (gripper->holding() && !world.alive(gripper->held()))
+        compages::world::EntityId held_id = p_held.of(*gripper);
+        if (held_id.valid() && !world.alive(held_id))
         {
-            gripper->held({});
+            p_held.drop(*gripper);
+            held_id = {};
         }
         // An object of the physics backend is the job of another model.
-        if (gripper->holding() && simulated(world.entity(gripper->held())))
+        if (held_id.valid() && simulated(world.entity(held_id)))
         {
             continue;
         }
 
-        if (gripper->suction() && !gripper->holding())
+        if (gripper->suction() && !held_id.valid())
         {
-            gripper->held(
-                touched(world, p_robot.base().pose * gripper->tip(p_robot)));
+            held_id =
+                touched(world, p_robot.base().pose * gripper->tip(p_robot));
+            p_held.hold(*gripper, held_id);
         }
-        else if (!gripper->suction() && gripper->holding())
+        else if (!gripper->suction() && held_id.valid())
         {
-            compages::world::Entity held = world.entity(gripper->held());
-            gripper->held({});
+            compages::world::Entity held = world.entity(held_id);
+            p_held.drop(*gripper);
+            held_id = {};
             Vector3 at = positionOf(held);
             at = settle(world, held, at);
             held.position(static_cast<float>(at.x),
@@ -178,9 +200,9 @@ void AbstractGrasp::update(Robot& p_robot)
                           static_cast<float>(at.z));
         }
 
-        if (gripper->holding())
+        if (held_id.valid())
         {
-            compages::world::Entity held = world.entity(gripper->held());
+            compages::world::Entity held = world.entity(held_id);
             ecs::Shape const* shape = held.find<ecs::Shape>();
             if (shape == nullptr)
             {

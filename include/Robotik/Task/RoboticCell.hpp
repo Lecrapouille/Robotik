@@ -30,6 +30,7 @@
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/Condition.hpp"
 #include "Robotik/Task/Faults.hpp"
+#include "Robotik/Task/Grasp/GraspModel.hpp"
 #include "Robotik/Task/Metrics.hpp"
 #include "Robotik/Task/Perception/Detector.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
@@ -61,7 +62,6 @@ namespace robotik
 
 class PinocchioBackend;
 class MujocoBackend;
-class GraspModel;
 
 namespace ecs
 {
@@ -272,6 +272,19 @@ public:
     [[nodiscard]] std::vector<RobotSession const*> const& robots() const
     {
         return m_robot_views;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Truth: the entity a gripper holds. A skill only knows that the cup
+    /// holds something (@c VacuumGripper::holding) and what it says it took
+    /// (@c VacuumGripper::label).
+    /// @param p_gripper A gripper of a robot of the cell.
+    /// @return The entity held, or an invalid id.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] compages::world::EntityId
+    held(VacuumGripper const& p_gripper) const
+    {
+        return m_held.of(p_gripper);
     }
 
     // -------------------------------------------------------------------------
@@ -749,6 +762,8 @@ private:
     std::unordered_set<std::string> m_prop_penetration;
     /// How the grippers hold objects, one model per level in use.
     std::vector<std::unique_ptr<GraspModel>> m_grasps;
+    /// The entity each gripper holds (truth, written by the grasp models).
+    HeldObjects m_held;
     /// Teach pendant owns the joints; the scenario logic is frozen.
     bool m_suspended = false;
     /// Observers and bindings given by the scenario logic.

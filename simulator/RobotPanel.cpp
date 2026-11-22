@@ -140,12 +140,23 @@ static void header(App& p_app)
         }
         if (gripper->holding())
         {
-            ImGui::TextColored(
-                ORANGE,
-                "vacuum holds %s",
-                compages::world::Entity(robot.world(), gripper->held())
-                    .name()
-                    .c_str());
+            // The truth, and what the program says it took when it differs.
+            std::string const truth =
+                compages::world::Entity(robot.world(),
+                                        p_app.simulation->cell().held(*gripper))
+                    .name();
+            std::string const& label = gripper->label();
+            if (label.empty() || label == truth)
+            {
+                ImGui::TextColored(ORANGE, "vacuum holds %s", truth.c_str());
+            }
+            else
+            {
+                ImGui::TextColored(ORANGE,
+                                   "vacuum holds %s (labelled %s)",
+                                   truth.c_str(),
+                                   label.c_str());
+            }
         }
         else
         {

@@ -635,7 +635,7 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
                   return 1.0;
               }
               compages::world::Entity const held =
-                  m_world.entity(gripper->held());
+                  m_world.entity(m_held.of(*gripper));
               return boolean(held.name() == p_args[1]);
           } });
 

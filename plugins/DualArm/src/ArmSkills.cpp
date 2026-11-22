@@ -7,12 +7,9 @@
 
 #include "ArmSkills.hpp"
 
-#include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-
-#include "Compages/World/World.hpp"
 
 #include <cmath>
 #include <numbers>
@@ -70,16 +67,7 @@ robotik::VacuumGripper const* cupOf(robotik::Robot const& p_robot)
 std::string heldObject(robotik::Robot const& p_robot)
 {
     robotik::VacuumGripper const* cup = cupOf(p_robot);
-    if (cup == nullptr || !cup->holding())
-    {
-        return {};
-    }
-    compages::world::World& world = p_robot.world();
-    auto const* held =
-        world.alive(cup->held())
-            ? world.entity(cup->held()).find<robotik::ecs::Shape>()
-            : nullptr;
-    return held != nullptr ? held->name : std::string{};
+    return cup != nullptr && cup->holding() ? cup->label() : std::string{};
 }
 
 // ----------------------------------------------------------------------------
@@ -145,17 +133,17 @@ Status GraspSkill::tick(robotik::RobotContext& p_context, robotik::Seconds p_dt)
         return Status::FAILURE;
     }
     cup->suction(true);
-    if (heldObject(p_context.robot) == m_object)
+    // The vacuum holds: the cup took what it was sent to take.
+    if (cup->holding())
     {
+        cup->label(m_object);
         return Status::SUCCESS;
     }
     m_waited += p_dt;
     if (m_waited > m_timeout)
     {
         cup->suction(false);
-        std::string const held = heldObject(p_context.robot);
-        m_why = held.empty() ? "suction holds nothing"
-                             : "suction holds " + held + ", not " + m_object;
+        m_why = "suction holds nothing";
         return Status::FAILURE;
     }
     return Status::RUNNING;

@@ -11,21 +11,25 @@
 ///
 /// Skills never see the model: they turn the suction of a
 /// @ref robotik::VacuumGripper on or off and read @c holding(). The model
-///     decides
-/// what that does to the world after each physics step:
+/// decides what that does to the world after each physics step:
 /// - @ref robotik::AbstractGrasp — the object follows the tool, and is put down
 ///   where it belongs on release (no contact, no fall);
 /// - @ref robotik::RigidGrasp — the object is a rigid body of the physics
 ///   engine; a weld holds it, and it falls for real on release.
 /// The models share the grippers: each one only touches its own objects.
+/// Which entity a gripper holds is truth: it stays in @ref robotik::HeldObjects,
+/// owned by the cell, and the gripper only gets the measured vacuum.
 ///
 /// @par Contract
-/// - Promises: skills never see the model; each model only moves its own
-///   objects.
+/// - Promises: skills never see the model nor the entity held; each model
+///   only moves its own objects.
 /// - Expects: one @c update after each physics step.
 #pragma once
 
+#include "Compages/World/EntityId.hpp"
+
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -33,6 +37,51 @@ namespace robotik
 {
 
 class Robot;
+class VacuumGripper;
+
+// ****************************************************************************
+/// Which entity each gripper of the cell holds: the truth behind
+/// @c VacuumGripper::holding().
+///
+/// Why not in the gripper: a skill sees the gripper, and the entity held is
+/// the truth (on hardware, nobody knows it). The cell owns one instance; the
+/// grasp models write it, and the truth queries and the simulator read it.
+/// @ref hold and @ref drop also write the measured vacuum of the gripper, so
+/// both cannot disagree.
+///
+/// @code
+/// robotik::HeldObjects held;
+/// held.hold(cup, cube.id());     // cup.holding() is now true
+/// compages::world::EntityId const what = held.of(cup);
+/// held.drop(cup);                // cup.holding() is false again
+/// @endcode
+// ****************************************************************************
+class HeldObjects
+{
+public:
+
+    /// @return Entity held by @p_gripper, or an invalid id.
+    [[nodiscard]] compages::world::EntityId
+    of(VacuumGripper const& p_gripper) const
+    {
+        auto const found = m_held.find(&p_gripper);
+        return found == m_held.end() ? compages::world::EntityId{}
+                                     : found->second;
+    }
+
+    // ------------------------------------------------------------------------
+    /// @p_gripper holds @p_object (an invalid id is the same as @ref drop).
+    // ------------------------------------------------------------------------
+    void hold(VacuumGripper& p_gripper, compages::world::EntityId p_object);
+
+    /// @p_gripper holds nothing.
+    void drop(VacuumGripper& p_gripper);
+
+private:
+
+    /// Gripper to entity held; a gripper holding nothing is not a key.
+    std::unordered_map<VacuumGripper const*, compages::world::EntityId> m_held;
+};
 
 // ****************************************************************************
 /// Grasps, carries and releases objects for the grippers of a robot.
@@ -43,9 +92,10 @@ class Robot;
 /// @code
 /// std::vector<std::unique_ptr<robotik::GraspModel>> grasps;
 /// grasps.push_back(std::make_unique<robotik::AbstractGrasp>());
+/// robotik::HeldObjects held;
 /// // after each physics step:
 /// for (auto& grasp : grasps)
-///     grasp->update(robot);
+///     grasp->update(robot, held);
 /// @endcode
 // ****************************************************************************
 class GraspModel
@@ -58,8 +108,9 @@ public:
     /// Updates every gripper of a robot after a physics step: attaches,
     /// carries or releases the objects.
     /// @param p_robot Robot whose grippers are updated.
+    /// @param p_held What each gripper holds, shared by the models.
     // ------------------------------------------------------------------------
-    virtual void update(Robot& p_robot) = 0;
+    virtual void update(Robot& p_robot, HeldObjects& p_held) = 0;
 };
 
 // ****************************************************************************
@@ -72,7 +123,7 @@ public:
 ///
 /// @code
 /// robotik::AbstractGrasp grasp;
-/// grasp.update(robot);
+/// grasp.update(robot, held);
 /// @endcode
 // ****************************************************************************
 class AbstractGrasp final: public GraspModel
@@ -80,7 +131,7 @@ class AbstractGrasp final: public GraspModel
 public:
 
     /// Attaches, carries or drops the shapes without physics.
-    void update(Robot& p_robot) override;
+    void update(Robot& p_robot, HeldObjects& p_held) override;
 };
 
 // ****************************************************************************
@@ -96,7 +147,7 @@ public:
 /// physics.addWeld(robotik::RigidGrasp::weldName("vacuum", "box"), tool_link,
 /// "box");
 /// // after each physics step:
-/// grasp.update(robot);
+/// grasp.update(robot, held);
 /// @endcode
 // ****************************************************************************
 class RigidGrasp final: public GraspModel
@@ -134,7 +185,7 @@ public:
                                               std::string const& p_object);
 
     /// Turns the welds on or off from the suction of each gripper.
-    void update(Robot& p_robot) override;
+    void update(Robot& p_robot, HeldObjects& p_held) override;
 
 private:
 

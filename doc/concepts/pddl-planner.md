@@ -44,7 +44,7 @@ In RobotIK, planning is split across **four places**: the domain file, the world
 | Problem objects (which things planner can name) | World YAML: `kind` on an entity | `kind: cube` on `red_cube` |
 | Facts that never change: true for the whole run | Scenario: `planner.facts` | `(before red black)` for the painter robot. |
 | Goal (what must become true) | Scenario: `planner.goal` | `(in red_cube box)` for the pick-and-place robot |
-| Current value of each predicate (from belief) | ScenarioLogic: one **observer** per predicate | `holding` reads the vacuum sensor |
+| Current value of each predicate (from belief) | ScenarioLogic: one **observer** per predicate | `holding` reads the vacuum sensor and the label the grasp skill wrote |
 | Real execution of each PDDL action | ScenarioLogic: one **binding** per action | `pick` → `Approach`, `Reach`, `Grasp`, `Approach` |
 
 RobotIK builds `problem.pddl` from the world, scenario, and observers before

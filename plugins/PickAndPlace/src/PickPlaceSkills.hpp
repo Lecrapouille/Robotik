@@ -12,8 +12,10 @@
 /// never from the simulator.
 #pragma once
 
+#include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 
+#include <optional>
 #include <string>
 
 namespace robotik
@@ -23,16 +25,20 @@ class VacuumGripper;
 
 // ****************************************************************************
 /// Brings the suction cup @p_clearance above the top of an object,
-/// pointing down.
+/// pointing down. Over an open box, the cup goes down to the inner floor
+/// plus the height of what it carries.
 // ****************************************************************************
 class ApproachSkill final: public Skill
 {
 public:
 
     /// @param p_gripper @ref VacuumGripper name; empty for the first one.
+    /// @param p_container Shape of the object when it is an open box, from
+    ///   the world file (known before the run, not measured).
     ApproachSkill(std::string p_object,
                   robotik::Length p_clearance,
-                  std::string p_gripper = {});
+                  std::string p_gripper = {},
+                  std::optional<ecs::Shape> p_container = {});
 
     void reset() override;
     Status tick(RobotContext& p_context, robotik::Seconds p_dt) override;
@@ -43,12 +49,15 @@ private:
     std::string m_object;
     robotik::Length m_clearance;
     std::string m_gripper;
+    std::optional<ecs::Shape> m_container;
     MoveTCPSkill m_move;
     bool m_planned = false;
 };
 
 // ****************************************************************************
-/// Turns the suction on and waits until the object is held.
+/// Turns the suction on and waits until the vacuum holds something, then
+/// labels the cup with the object (@c VacuumGripper::label): the vacuum
+/// cannot say what it holds, the program knows what it went to take.
 // ****************************************************************************
 class GraspSkill final: public Skill
 {
@@ -155,8 +164,8 @@ private:
 [[nodiscard]] VacuumGripper const* findGripper(Robot const& p_robot,
                                                std::string const& p_name);
 
-/// Id of the object the gripper @p_name holds, as the vacuum sensor
-/// reports it, or empty.
+/// Id of the object the gripper @p_name holds: its label while the vacuum
+/// holds, or empty.
 [[nodiscard]] std::string heldObject(Robot const& p_robot,
                                      std::string const& p_name = {});
 

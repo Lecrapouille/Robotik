@@ -114,7 +114,9 @@ static Vector3 boxInertia(double p_mass, Vector3 const& p_size)
 
 /// While the vacuum holds a prop, flag wall penetration (counts as a robot
 /// collision). Sticky until @ref RoboticCell::reset.
-static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
+static void trackPropPenetration(RobotSession& p_robot,
+                                 HeldObjects const& p_held,
+                                 bool& p_flag)
 {
     if (p_flag)
     {
@@ -126,11 +128,12 @@ static void trackPropPenetration(RobotSession& p_robot, bool& p_flag)
         return;
     }
     compages::world::World& world = p_robot.world();
-    if (!world.alive(gripper->held()))
+    compages::world::EntityId const held_id = p_held.of(*gripper);
+    if (!world.alive(held_id))
     {
         return;
     }
-    compages::world::Entity const held = world.entity(gripper->held());
+    compages::world::Entity const held = world.entity(held_id);
     ecs::Shape const* prop = held.find<ecs::Shape>();
     if (prop == nullptr || held.find<ecs::PhysicsBody>() != nullptr)
     {
@@ -952,7 +955,7 @@ void RoboticCell::reset(Seed p_seed)
             if (auto* vacuum = dynamic_cast<VacuumGripper*>(&actuators[i]))
             {
                 vacuum->suction(false);
-                vacuum->held({});
+                m_held.drop(*vacuum);
             }
         }
     }
@@ -1267,10 +1270,10 @@ void RoboticCell::step(Seconds p_dt)
     {
         for (std::unique_ptr<GraspModel> const& grasp : m_grasps)
         {
-            grasp->update(*robot);
+            grasp->update(*robot, m_held);
         }
         bool through = m_prop_penetration.contains(robot->id());
-        trackPropPenetration(*robot, through);
+        trackPropPenetration(*robot, m_held, through);
         if (through)
         {
             m_prop_penetration.insert(robot->id());

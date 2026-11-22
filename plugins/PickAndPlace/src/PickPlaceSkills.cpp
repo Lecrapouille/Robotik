@@ -8,12 +8,10 @@
 #include "PickPlaceSkills.hpp"
 
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Robot/Components/Queries.hpp"
+#include "Robotik/Task/Grasp/ContainerBounds.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
 #include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/Grasp/ContainerBounds.hpp"
 
-#include "Compages/World/World.hpp"
 #include "Robotik/Common/Math.hpp"
 
 #include <algorithm>
@@ -28,22 +26,19 @@ static constexpr robotik::Length DEFAULT_CUBE_HALF_HEIGHT{ 0.02 };
 static constexpr robotik::Length TRANSIT_CLEARANCE_THRESHOLD{ 0.08 };
 static constexpr robotik::Length MAX_FINAL_APPROACH_CLEARANCE{ 0.03 };
 
-/// If the gripper is not holding an object, return the default cube half
-/// height. Otherwise, return the half height of the object.
-static robotik::Length carriedCubeHalfHeight(compages::world::World& p_world,
-                                    VacuumGripper const& p_gripper)
+/// Half height of the object the gripper holds, from the beliefs of its
+/// label; the default cube half height when the size is not known.
+static robotik::Length carriedHalfHeight(WorldModel const& p_beliefs,
+                                         VacuumGripper const& p_gripper)
 {
-    if (!p_gripper.holding() || !p_world.alive(p_gripper.held()))
+    WorldObject const* held = p_gripper.holding() && !p_gripper.label().empty()
+                                  ? p_beliefs.find(p_gripper.label())
+                                  : nullptr;
+    if (held == nullptr || held->size.z <= 0.0)
     {
         return DEFAULT_CUBE_HALF_HEIGHT;
     }
-    ecs::Shape const* shape =
-        p_world.entity(p_gripper.held()).find<ecs::Shape>();
-    if (shape == nullptr)
-    {
-        return DEFAULT_CUBE_HALF_HEIGHT;
-    }
-    return shape->size[2] * 0.5;
+    return robotik::Length(held->size.z * 0.5);
 }
 
 /// If the clearance is greater than the transit clearance threshold,
@@ -60,36 +55,25 @@ static robotik::Length clearanceAboveCavity(robotik::Length p_clearance)
 }
 
 /// TCP height over an open box. @p_at is the believed centre (perception or
-/// the scenario prior). The wall layout comes from the named entity's shape.
+/// the scenario prior). The wall layout comes from the shape in the world
+/// file.
 static std::optional<robotik::Length>
-tcpHeightOverOpenBox(compages::world::World& p_world,
-                     std::string_view p_object_name,
+tcpHeightOverOpenBox(ecs::Shape const& p_box,
+                     WorldModel const& p_beliefs,
                      VacuumGripper const& p_gripper,
                      robotik::Length p_clearance,
                      Vector3 const& p_at)
 {
-    compages::world::Entity const box = findObject(p_world, p_object_name);
-    if (!box)
-    {
-        return std::nullopt;
-    }
-
-    ecs::Shape const* scene = box.find<ecs::Shape>();
-    if (scene == nullptr || scene->type != ecs::Shape::Type::CONTAINER)
-    {
-        return std::nullopt;
-    }
-
     std::optional<scene::ContainerInner> const inner =
-        scene::innerBounds(*scene, p_at);
+        scene::innerBounds(p_box, p_at);
     if (!inner)
     {
         return std::nullopt;
     }
 
-    robotik::Length const cube_half = carriedCubeHalfHeight(p_world, p_gripper);
+    robotik::Length const half = carriedHalfHeight(p_beliefs, p_gripper);
     robotik::Length const above = clearanceAboveCavity(p_clearance);
-    return robotik::Length(inner->floor_z) + cube_half * 2.0 + above +
+    return robotik::Length(inner->floor_z) + half * 2.0 + above +
            p_gripper.length();
 }
 
@@ -108,10 +92,12 @@ VacuumGripper const* findGripper(Robot const& p_robot,
 
 ApproachSkill::ApproachSkill(std::string p_object,
                              robotik::Length p_clearance,
-                             std::string p_gripper)
+                             std::string p_gripper,
+                             std::optional<ecs::Shape> p_container)
     : m_object(std::move(p_object)),
       m_clearance(p_clearance),
-      m_gripper(std::move(p_gripper))
+      m_gripper(std::move(p_gripper)),
+      m_container(std::move(p_container))
 {
 }
 
@@ -140,11 +126,17 @@ Status ApproachSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
 
         // If the object is a box, calculate the TCP height above the inner
         // floor.
-        compages::world::World& world = p_context.robot.world();
-        if (std::optional<robotik::Length> over_box = tcpHeightOverOpenBox(
-                world, m_object, *gripper, m_clearance, at))
+        if (m_container)
         {
-            height = *over_box;
+            if (std::optional<robotik::Length> over_box =
+                    tcpHeightOverOpenBox(*m_container,
+                                         p_context.world_model,
+                                         *gripper,
+                                         m_clearance,
+                                         at))
+            {
+                height = *over_box;
+            }
         }
 
         // Create the target pose.
@@ -189,9 +181,10 @@ Status GraspSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     // Turn on the vacuum.
     gripper->suction(true);
 
-    // Success when the held entity matches the requested object name.
-    if (heldObject(p_context.robot, m_gripper) == m_object)
+    // Success when the vacuum holds: the cup took the object it was sent to.
+    if (gripper->holding())
     {
+        gripper->label(m_object);
         return Status::SUCCESS;
     }
 
@@ -200,10 +193,8 @@ Status GraspSkill::tick(RobotContext& p_context, robotik::Seconds p_dt)
     if (m_waited > m_timeout)
     {
         gripper->suction(false);
-        std::string const held = heldObject(p_context.robot, m_gripper);
-        m_why = held.empty() ? "suction holds nothing after " +
-                                   std::to_string(m_timeout.value()) + " s"
-                             : "suction holds " + held + ", not " + m_object;
+        m_why = "suction holds nothing after " +
+                std::to_string(m_timeout.value()) + " s";
         return Status::FAILURE;
     }
 
@@ -223,15 +214,8 @@ void GraspSkill::cancel(RobotContext& p_context)
 std::string heldObject(Robot const& p_robot, std::string const& p_name)
 {
     VacuumGripper const* gripper = findGripper(p_robot, p_name);
-    if (gripper == nullptr || !gripper->holding())
-    {
-        return {};
-    }
-    compages::world::World& world = p_robot.world();
-    auto const* held = world.alive(gripper->held())
-                           ? world.entity(gripper->held()).find<ecs::Shape>()
-                           : nullptr;
-    return held != nullptr ? held->name : std::string{};
+    return gripper != nullptr && gripper->holding() ? gripper->label()
+                                                    : std::string{};
 }
 
 ReleaseSkill::ReleaseSkill(std::string p_gripper, robotik::Seconds p_timeout)
