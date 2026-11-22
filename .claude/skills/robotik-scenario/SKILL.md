@@ -13,7 +13,7 @@ its name in the `checkKeys` list of the reader (`ConfigNode::checkKeys`).
 Free values of the scenario logic go under `scenario.parameters` (not checked). Quote a
 text with a comma inside a flow map `{ name: "a, b" }`.
 Edit `plugins/...`, then `make <target>` (it overwrites `build/`).
-File names carry their role (doc/concepts/worlds-scenarios-experiments.md): `x.world.yaml`, `x.scenario.yaml`,
+File names carry their role (doc/concepts/02-worlds-scenarios-experiments.md): `x.world.yaml`, `x.scenario.yaml`,
 `x.rl.yaml` (RL scenario), `x.bt.yaml`, `x.domain.pddl`,
 `x.trajectory.yaml`, `x.experiment.yaml`; `.yaml`, never `.yml`. id = name without `.yaml`
 and `.scenario`, other dots → `_` (`pick.rl.yaml` → `pick_rl`,
@@ -90,7 +90,7 @@ scenario:
   world: worlds/cell.world.yaml
   seed: 42
   controller: { behavior_tree: scenarios/main.bt.yaml }   # omit → ScenarioLogic::status ends the run
-  # or instead of a tree (doc/concepts/pddl-planner.md); entities need `kind: <pddl type>`:
+  # or instead of a tree (doc/concepts/05-pddl-planner.md); entities need `kind: <pddl type>`:
   # controller:
   #   planner:
   #     domain: scenarios/x.domain.pddl
@@ -183,6 +183,6 @@ experiment:
 ## Verify
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/experiments/<e>.experiment.yaml --report r.json
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/experiments/<e>.experiment.yaml --report r.json
 ```

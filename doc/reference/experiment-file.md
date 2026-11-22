@@ -32,7 +32,7 @@ experiment:
 ```
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/experiments/hello.experiment.yaml \
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/experiments/hello.experiment.yaml \
     --report hello.json
 ```
 
@@ -56,8 +56,7 @@ hello_experiment: 6/6 runs passed
 | `evaluation.assertions` | Added to the assertions of each scenario |
 | `evaluation.metrics` | Values read at the end of each run (same syntax as conditions) |
 
-**Overrides** use dotted paths, starting with `world.` or `scenario.`. In a
-list, a segment names the element with this `id` (or this index):
+**Overrides** use dotted paths, starting with `world.` or `scenario.`. In a list, a segment names the element with this `id` (or this index):
 
 ```yaml
     - id: wide_layout
@@ -67,24 +66,12 @@ list, a segment names the element with this `id` (or this index):
         scenario.timeout: 90
 ```
 
-A case is a **variant**, not a change of the previous case: each run reads its
-files again and rebuilds its world. Several seeds of one case start from the
-same world, reset.
+A case is a **variant**, not a change of the previous case: each run reads its files again and rebuilds its world. Several seeds of one case start from the same world, reset.
 
-The JSON report has, for each run: case, scenario, seed, outcome, time,
-perception mode, metrics, and every assertion with its verdict, value, bound
-and time.
+The JSON report has, for each run: case, scenario, seed, outcome, time, perception mode, metrics, and every assertion with its verdict, value, bound and time.
 
 ## 🌱 Seeds and reproducibility
 
-```text
-seed 42
-   ├── world      layout of the props (randomize)
-   ├── faults     random faults
-   ├── <sensor>   one stream per sensor, by its name
-   └── <scenario logic>  what the scenario logic derives from it (RL policy...)
-```
+![One seed gives a stream to the world, the faults, each sensor and the scenario logic.](images/seed-streams.svg)
 
-Same scenario, same seed: same run, up to rounding. A noise-free channel draws
-no random number, so turning off the noise of one sensor does not change the
-others.
+Same scenario, same seed: same run, up to rounding. A noise-free channel draws no random number, so turning off the noise of one sensor does not change the others.

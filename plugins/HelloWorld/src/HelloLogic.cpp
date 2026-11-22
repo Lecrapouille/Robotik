@@ -7,7 +7,7 @@
 
 #include "HelloLogic.hpp"
 
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 void HelloLogic::reset(robotik::RoboticCell& /*p_cell*/,
                        robotik::Seed /*p_seed*/)

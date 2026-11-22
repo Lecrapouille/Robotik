@@ -9,11 +9,11 @@
 
 #include "ArmSkills.hpp"
 
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Robot/Sensors/ForceTorqueSensor.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Robot/Actuators.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
+#include "RobotIK/Robot/Sensors/ForceTorqueSensor.hpp"
 
 #include <algorithm>
 #include <cmath>

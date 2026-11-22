@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">A tool mounted on the flange</title>
+<desc id="desc">The robot file ends with the link flange, whose frame is also called tool0. The tool file starts with the link tool_mount and ends with the frame tcp. Mounting puts tool_mount on flange. The distance from tool0 to tcp is the length of the tool.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.robotfile {fill: #e8f0f8; stroke: #397baf; stroke-width: 2; stroke-dasharray: 6 4;}
+.toolfile {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2; stroke-dasharray: 6 4;}
+.line {fill: none; stroke: #52657a; stroke-width: 1.5;}
+.dim {fill: none; stroke: #52657a; stroke-width: 2; marker-start: url(#arrow); marker-end: url(#arrow);}
+</style>
+<rect width="900" height="380" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">Two files, joined at the flange</text>
+
+<rect x="32" y="70" width="430" height="180" rx="12" class="robotfile"/>
+<text x="50" y="98" class="small">robot file: robot_6axis.urdf</text>
+<path d="M60 200L200 140H420" fill="none" stroke="#397baf" stroke-width="22" stroke-linecap="round"/>
+<circle cx="200" cy="140" r="14" fill="#fff" stroke="#20334b" stroke-width="4"/>
+<circle cx="60" cy="200" r="14" fill="#fff" stroke="#20334b" stroke-width="4"/>
+<rect x="430" y="112" width="14" height="56" rx="4" fill="#20334b"/>
+
+<rect x="462" y="70" width="406" height="180" rx="12" class="toolfile"/>
+<text x="480" y="98" class="small">tool file: tool_gripper.urdf</text>
+<rect x="452" y="124" width="160" height="32" rx="4" fill="#d98b2b"/>
+<path d="M612 120V160M612 120H660M612 160H660" fill="none" stroke="#d98b2b" stroke-width="10"/>
+<circle cx="636" cy="140" r="7" fill="#b5345a"/>
+
+<path d="M437 168V285" class="line"/>
+<text x="330" y="305">flange = tool0</text>
+<text x="330" y="327" class="small">end of the robot</text>
+<path d="M452 124V60" class="line"/>
+<text x="470" y="62" class="small">tool_mount: placed on flange</text>
+<path d="M636 147V285" class="line"/>
+<text x="610" y="305">tcp</text>
+<text x="610" y="327" class="small">the working point</text>
+
+<path d="M445 220H630" class="dim"/>
+<text x="470" y="240" class="small">(distance robot.tool0 robot.tcp)</text>
+</svg>

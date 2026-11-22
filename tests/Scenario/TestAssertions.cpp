@@ -9,9 +9,9 @@
 
 #include "PainterLogic.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Assertions.hpp"
-#include "Robotik/Common/Config.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Package/Scenario/Assertions.hpp"
+#include "RobotIK/Common/Config.hpp"
 
 #include <map>
 

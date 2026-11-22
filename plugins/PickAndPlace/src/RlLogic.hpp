@@ -9,8 +9,8 @@
 
 #include "PickPlaceControl.hpp"
 
-#include "Robotik/Common/Random.hpp"
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Common/Random.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 #include <array>
 #include <cstdint>
@@ -21,7 +21,7 @@ inline constexpr std::size_t RL_ACTIONS = PICK_PLACE_ACTIONS;
 // ****************************************************************************
 /// One rendered pick-and-place episode driven by the scripted policy.
 ///
-/// Same observation, action and reward as Robotik-PickAndPlaceRL (see
+/// Same observation, action and reward as RobotIK-PickAndPlaceRL (see
 /// PickPlaceControl.hpp). @c step stays empty: @ref act holds the action for
 /// the control period itself, and a policy step from inside a simulation
 /// step would recurse.

@@ -10,8 +10,8 @@
 /// the part it carries (abstract physics: the part rides at the belt speed).
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/Skills/Skill.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Task/Skills/Skill.hpp"
 
 #include <string>
 #include <vector>

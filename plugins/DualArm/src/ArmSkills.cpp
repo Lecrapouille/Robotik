@@ -7,9 +7,9 @@
 
 #include "ArmSkills.hpp"
 
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/RobotContext.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
 
 #include <cmath>
 #include <numbers>

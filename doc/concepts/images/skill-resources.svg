@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Resources of two skills</title>
+<desc id="desc">Grasp needs the arm and the gripper, exclusive, and the camera, shared. LookAround needs the head camera, shared. Two skills can run together when their exclusive resources differ.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="300" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">What each skill reserves</text>
+<rect x="32" y="70" width="400" height="200" rx="10" class="yours"/>
+<text x="48" y="100">Grasp</text>
+<rect x="60" y="120" width="340" height="40" rx="10" class="box"/>
+<text x="76" y="146">arm</text>
+<text x="260" y="146" class="small">exclusive</text>
+<rect x="60" y="168" width="340" height="40" rx="10" class="box"/>
+<text x="76" y="194">gripper</text>
+<text x="260" y="194" class="small">exclusive</text>
+<rect x="60" y="216" width="340" height="40" rx="10" class="ok"/>
+<text x="76" y="242">camera</text>
+<text x="260" y="242" class="small">shared</text>
+<rect x="468" y="70" width="400" height="120" rx="10" class="yours"/>
+<text x="484" y="100">LookAround</text>
+<rect x="496" y="120" width="340" height="40" rx="10" class="ok"/>
+<text x="512" y="146">head_camera</text>
+<text x="696" y="146" class="small">shared</text>
+<text x="468" y="230" class="note">exclusive: one skill at a time</text>
+<text x="468" y="252" class="note">shared: several skills together</text>
+</svg>

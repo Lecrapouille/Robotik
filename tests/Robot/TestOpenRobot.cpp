@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot/OpenRobot.hpp"
+#include "RobotIK/Robot/OpenRobot.hpp"
 
 // ----------------------------------------------------------------------------
 TEST(OpenRobot, MovesAJointInAFewLines)

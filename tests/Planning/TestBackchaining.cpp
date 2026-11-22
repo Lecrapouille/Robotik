@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Task/Planning/Backchaining.hpp"
+#include "RobotIK/Task/Planning/Backchaining.hpp"
 
 #include <fstream>
 #include <sstream>

@@ -7,7 +7,8 @@
 
 #pragma once
 
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Robot/Joints.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 // ****************************************************************************
 /// Lesson 2: command a joint, read the tool pose.
@@ -29,6 +30,7 @@ public:
 
 private:
 
+    robotik::Revolute m_base;
     double m_swing = 0.0;
     double m_tool_y = 0.0;
 };

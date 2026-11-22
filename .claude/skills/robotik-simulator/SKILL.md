@@ -1,11 +1,11 @@
 ---
 name: robotik-simulator
-description: Change the RobotIK simulator interface (simulator/, Dear ImGui): add or move a panel, a workspace layout, a Files tab, a status color, or work toward editing scenarios from the interface. Use for any change under simulator/*.cpp|hpp.
+description: Change the RobotIK simulator interface (src/Simulator/, Dear ImGui): add or move a panel, a workspace layout, a Files tab, a status color, or work toward editing scenarios from the interface. Use for any change under src/Simulator/*.cpp|hpp.
 ---
 
 # RobotIK simulator (ImGui host)
 
-`simulator/` is a host, not the library: it reads `robotik::Simulation`, it
+`src/Simulator/` is a host, not the library: it reads `robotik::Simulation`, it
 never adds robot logic. Everything must also work headless, so a feature the
 operator needs in a run (faults, metrics, verdicts) belongs in the core or in
 scenario YAML, and the simulator only shows or triggers it.
@@ -28,7 +28,7 @@ scenario YAML, and the simulator only shows or triggers it.
 | GraphView.cpp | Execution graph: plan steps (or tree nodes) with their skills, as a folding list colored by state (priority, resources, why, Request/Cancel; default; replaces the old Skills panel) or as boxes and arrows (priority and resources after each skill) |
 | TimelinePanel.cpp | Timeline (time window, zoom, rows by robot, resource rows); `sampleTimeline` records faults and tree failures every frame |
 | AutonomyPanels.cpp / CameraPanel.cpp | World model (objects + symbolic beliefs), Perception, Cameras, the camera inset of the scene (`cameraInset`) |
-| PluginUi.cpp | Demos menu, plugin menus and panels (`RobotikCanvas`) |
+| PluginUi.cpp | Demos menu, plugin menus and panels (`RobotIKCanvas`) |
 
 ## Rules
 

@@ -53,7 +53,7 @@ Built-in per simulation: `Home` (needs a `joint_group`), `Stop` (all
 actuators, top priority, never ends). Every skill becomes a BT `Action` of
 the same name automatically (`registerSkills`). Custom nodes:
 `p_cell.factory().registerNode("Dip", []{...})` (see Painter `registerNodes`);
-include `Robotik/Task/Skills/SkillNodes.hpp`, the only header that brings
+include `RobotIK/Task/Skills/SkillNodes.hpp`, the only header that brings
 BlackThorn (others name `bt::` types via `TreeTypes.hpp`; `RoboticCell::status()`
 is a `robotik::Status`, `toStatus(bt::Status)` converts).
 
@@ -106,7 +106,7 @@ Scenario `controller.planner` (goal) + `scenarios/<x>.domain.pddl` + world
 action (BT node names; parameters go to the step blackboard). Missing
 observer/binding/kind → scenario refused with the list. Examples:
 `plugins/PickAndPlace/src/PickPlacePlanning.cpp`, Painter `registerPlanning`.
-Metrics `planner.plans|replans|steps|done`. Details: doc/concepts/pddl-planner.md.
+Metrics `planner.plans|replans|steps|done`. Details: doc/concepts/05-pddl-planner.md.
 `method: pabt` (PA-BT): no search, a reactive tree grows from the goal with
 the same observers and bindings (`Task/Planning/Backchaining.hpp`); reads
 only plain preconditions, reaches the goal conditions one after the other.

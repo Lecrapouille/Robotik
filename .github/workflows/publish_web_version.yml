@@ -1,4 +1,4 @@
-name: Publish the online Robotik Simulator on GitHub page
+name: Publish the online RobotIK Simulator on GitHub page
 on:
   push:
     branches:
@@ -25,7 +25,7 @@ jobs:
     name: Build the web version
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout Robotik
+      - name: Checkout RobotIK
         uses: actions/checkout@v6
         with:
           submodules: true
@@ -33,18 +33,18 @@ jobs:
         uses: ./.makefile/.github/actions/setup
         with:
           emscripten: true
-      - name: Compile Robotik-Simulator
+      - name: Compile RobotIK-Simulator
         id: build
         run: |
-          emmake make Robotik-Simulator
+          emmake make RobotIK-Simulator
           emmake make -s ci-info >> "$GITHUB_OUTPUT"
-      # The old address (Robotik-Simulator.html) keeps working; index.html
+      # The old address (RobotIK-Simulator.html) keeps working; index.html
       # opens the simulator at the root of the site too.
       - name: Gather the page
         run: |
           mkdir -p site
-          cp ${{ steps.build.outputs.build }}/bin/Robotik-Simulator.* site/
-          cp site/Robotik-Simulator.html site/index.html
+          cp ${{ steps.build.outputs.build }}/bin/RobotIK-Simulator.* site/
+          cp site/RobotIK-Simulator.html site/index.html
           touch site/.nojekyll
           ls -la site
       - name: Keep the page for GitHub Pages
@@ -72,7 +72,7 @@ jobs:
     name: Compile for ExaequOS
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Robotik
+      - name: Checkout RobotIK
         uses: actions/checkout@v6
         with:
           submodules: true
@@ -95,10 +95,10 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends cmake
           chown "$HOST_UID:$HOST_GID" /opt/emscripten-exa/cache
-          exec python3 -c 'import os; os.environ["HOME"]="/tmp"; os.setgid(int(os.environ["HOST_GID"])); os.setuid(int(os.environ["HOST_UID"])); os.execvp("bash", ["bash", "-c", "make Robotik-Simulator"])'
+          exec python3 -c 'import os; os.environ["HOME"]="/tmp"; os.setgid(int(os.environ["HOST_GID"])); os.setuid(int(os.environ["HOST_UID"])); os.execvp("bash", ["bash", "-c", "make RobotIK-Simulator"])'
           EOF
       - name: Keep the ExaequOS build
         uses: actions/upload-artifact@v4
         with:
-          name: Robotik-Simulator-exaequos
-          path: build/exaequos-debug/bin/Robotik-Simulator.*
+          name: RobotIK-Simulator-exaequos
+          path: build/exaequos-debug/bin/RobotIK-Simulator.*

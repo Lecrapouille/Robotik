@@ -2,14 +2,12 @@
 
 A fly (URDF scaled ×100) flies toward a food source while avoiding obstacles. The brain never sees MuJoCo, Compages, or the URDF: it reads an observation and returns an action (`forward`, `turn`, `lift`).
 
-```text
-sensors → observation → brain → action → controller → body
-```
+![Sensors, observation, brain, action, controller, body.](../../doc/case-studies/images/fly-brain-chain.svg)
 
-At startup, the simulator and `Robotik-Fly` build the 13-neuron circuit
+At startup, the simulator and `RobotIK-Fly` build the 13-neuron circuit
 (`FlyBrain::buildEmbedded`). The synapses (400, −650, 700, …) are written in
 the code. The simulator's "Fly network" panel switches to the FlyWire
-connectome. `Robotik-Fly` does the same with `--edges` and `--binding`.
+connectome. `RobotIK-Fly` does the same with `--edges` and `--binding`.
 
 The neuron is the one from Shiu et al. 2024
 ([Drosophila_brain_model](https://github.com/philshiu/Drosophila_brain_model)):
@@ -131,7 +129,7 @@ The shipped numbers are real synapses from the graph, chosen because the weight 
 A line `silence 50` removes neuron 50. Several such lines are allowed. A role absent from the file is simply not wired: no activation, or an output that stays at zero.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly \
+./build/linux-gcc-debug/bin/RobotIK-Fly \
     --edges plugins/FlyBrain/data/flywire/edges.csv \
     --binding plugins/FlyBrain/data/flywire/binding.txt \
     --headless
@@ -147,7 +145,7 @@ fixes obstacle jitter, sensor noise, and the Poisson draws. Two runs with the
 same seed play the same episode.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
+./build/linux-gcc-debug/bin/RobotIK-Fly --brain reflex
 ```
 
 Same headless episode, but the explicit rule replaces the neural network. Use
@@ -155,7 +153,7 @@ it to check that the sensors → action → body loop reaches the food before
 blaming the model.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly --view
+./build/linux-gcc-debug/bin/RobotIK-Fly --view
 ```
 
 Opens a window. The camera follows the thorax. Obstacles are brown, the food
@@ -164,7 +162,7 @@ The brain stays Shiu, unless `--brain reflex` is added. Bottom left is the
 left eye; bottom right is the right eye.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/RobotIK-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
 Eight worlds in parallel, no window, seed fixed. The program stops when eight
@@ -174,7 +172,7 @@ the set is reproducible. The final line reports how many of those episodes
 reached the food.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly --record fly_run.json
+./build/linux-gcc-debug/bin/RobotIK-Fly --record fly_run.json
 ```
 
 Plays one headless episode and writes `fly_run.json`: the seed, the time
@@ -182,7 +180,7 @@ step, then each observation (9 numbers) and the action that followed
 (`forward`, `turn`, `lift`).
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Fly --replay fly_run.json --view
+./build/linux-gcc-debug/bin/RobotIK-Fly --replay fly_run.json --view
 ```
 
 Replays that file instead of querying the brain: the recorded actions are
@@ -195,7 +193,7 @@ switches to the connectome (`data/flywire/edges.csv` and `binding.txt`) and
 restarts the episode. Both eyes are in the "Robot camera" panel.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
+./build/linux-gcc-debug/bin/RobotIK-Simulator build/linux-gcc-debug/lib/robotik/plugins/FlyBrain/scenarios/fly_obstacle_avoidance.scenario.yaml
 ```
 
 ## 🌈 Colored rays

@@ -28,11 +28,22 @@ $(1).DEPENDS += robotik-core
 $(1).INSTALL := no
 $(1).CLEAN := $$(ROBOTIK_PLUGINS_DIR)/$(2)
 $(1).POST_BUILD := mkdir -p $$(ROBOTIK_PLUGINS_DIR)/$(2) \
-    && cp $(HERE)plugin.yaml $$(ROBOTIK_PLUGINS_DIR)/$(2)/ \
-    && for d in $(notdir $(wildcard $(addprefix $(HERE),worlds scenarios experiments data))); do \
-        rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$$$$$d && cp -R $(HERE)$$$$$$$$d $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$$$$$d; done \
-    && rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/external \
     && cp -L $$(BUILD)/lib/lib$(1).so $$(ROBOTIK_PLUGINS_DIR)/$(2)/
+# plugin.yaml and the folders of the package are copied again when one of
+# their files changes, even when the library is not linked again: a change
+# of a world or a scenario needs no C++ build. The folders are in the list
+# too, so a removed file changes their date.
+$(1)._PACKAGE_DIRS := $(wildcard $(addprefix $(HERE),worlds scenarios experiments data))
+$(1)._PACKAGE_STAMP := $$(ROBOTIK_PLUGINS_DIR)/$(2)/.package
+$$($(1)._PACKAGE_STAMP): $(HERE)plugin.yaml $$($(1)._PACKAGE_DIRS) \
+        $$(foreach d,$$($(1)._PACKAGE_DIRS),$$(call rwildcard,$$d,*))
+	@mkdir -p $$(ROBOTIK_PLUGINS_DIR)/$(2)
+	@cp $(HERE)plugin.yaml $$(ROBOTIK_PLUGINS_DIR)/$(2)/
+	@for d in $$(notdir $$($(1)._PACKAGE_DIRS)); do \
+	    rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$d && cp -R $(HERE)$$$$d $$(ROBOTIK_PLUGINS_DIR)/$(2)/$$$$d; done
+	@rm -rf $$(ROBOTIK_PLUGINS_DIR)/$(2)/external
+	@touch $$@
+$(1): $$($(1)._PACKAGE_STAMP)
 endef
 
 # ONNX Runtime, the inference of the walking policies (MicroDuck,

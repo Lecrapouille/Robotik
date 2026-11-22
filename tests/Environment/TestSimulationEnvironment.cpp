@@ -9,9 +9,9 @@
 
 #include "PickPlaceControl.hpp"
 
-#include "Robotik/Task/Learning/EpisodeLog.hpp"
-#include "Robotik/Task/Learning/SimulationEnvironment.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "RobotIK/Task/Learning/EpisodeLog.hpp"
+#include "RobotIK/Task/Learning/SimulationEnvironment.hpp"
+#include "RobotIK/Package/Simulation.hpp"
 
 #include <sstream>
 #include <stdexcept>

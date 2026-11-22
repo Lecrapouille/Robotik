@@ -7,9 +7,9 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot/OpenRobot.hpp"
-#include "Robotik/Robot/Sensors/Imu.hpp"
-#include "Robotik/Robot/Sensors/RangeScanner.hpp"
+#include "RobotIK/Robot/OpenRobot.hpp"
+#include "RobotIK/Robot/Sensors/Imu.hpp"
+#include "RobotIK/Robot/Sensors/RangeScanner.hpp"
 
 #include <chrono>
 #include <iostream>

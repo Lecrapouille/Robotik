@@ -8,11 +8,11 @@
 # (stb_image_write, as the simulator screenshots).
 
 ifneq ($(filter robotik_line_follower,$(TARGETS)),)
-    TARGETS += Robotik-LineFollower
-    Robotik-LineFollower.DESCRIPTION := Demo: AprilTag localization and line following, headless
-    Robotik-LineFollower.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
-    Robotik-LineFollower.INCLUDES := . ../src
-    Robotik-LineFollower.DEPENDS := robotik-core apriltag stb
-    Robotik-LineFollower.LIBS := $(LINE_FOLLOWER_OPENCV_LIBS)
-    Robotik-LineFollower.CXXFLAGS := $(robotik_line_follower.CXXFLAGS)
+    TARGETS += RobotIK-LineFollower
+    RobotIK-LineFollower.DESCRIPTION := Demo: AprilTag localization and line following, headless
+    RobotIK-LineFollower.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
+    RobotIK-LineFollower.INCLUDES := . ../src
+    RobotIK-LineFollower.DEPENDS := robotik-core apriltag stb
+    RobotIK-LineFollower.LIBS := $(LINE_FOLLOWER_OPENCV_LIBS)
+    RobotIK-LineFollower.CXXFLAGS := $(robotik_line_follower.CXXFLAGS)
 endif

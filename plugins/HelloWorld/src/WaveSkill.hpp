@@ -7,8 +7,9 @@
 
 #pragma once
 
-#include "Robotik/Task/ScenarioLogic.hpp"
-#include "Robotik/Task/Skills/Skill.hpp"
+#include "RobotIK/Robot/Joints.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
+#include "RobotIK/Task/Skills/Skill.hpp"
 
 // ****************************************************************************
 /// Lesson 4: a skill. It swings the base joint left, right, left,
@@ -21,6 +22,12 @@ class WaveSkill final: public robotik::Skill
 {
 public:
 
+    /// @param p_base The joint to swing, found once when the skill is added.
+    explicit WaveSkill(robotik::Revolute p_base)
+        : m_base(p_base)
+    {
+    }
+
     void reset() override;
     robotik::Status tick(robotik::RobotContext& p_context,
                          robotik::Seconds p_dt) override;
@@ -28,6 +35,7 @@ public:
 
 private:
 
+    robotik::Revolute m_base;
     int m_waves = 0;
 };
 

@@ -7,8 +7,8 @@
 
 #include "WalkLogic.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Simulation.hpp"
 
 #include <algorithm>
 #include <cmath>

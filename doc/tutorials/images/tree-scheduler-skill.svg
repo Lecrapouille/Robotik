@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">A behavior tree runs skills through the scheduler</title>
+<desc id="desc">The Sequence of the tree runs Home, Wave and Home, one after the other. Each Action requests the skill of the same name. The scheduler starts the skill when the resource arm is free, then ticks it at each step. The Wave skill moves joint1 and answers RUNNING, then SUCCESS.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="400" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">Who does what in lesson 4</text>
+
+<text x="32" y="80" class="small">skills.bt.yaml: the order</text>
+<rect x="100" y="95" width="130" height="50" rx="10" class="file"/>
+<text x="118" y="126">Sequence</text>
+<path d="M165 145V165M65 165H265M65 165V185M165 165V185M265 165V185" class="line"/>
+<rect x="25" y="190" width="80" height="44" rx="8" class="file"/>
+<text x="38" y="218" class="small">Home</text>
+<rect x="125" y="190" width="80" height="44" rx="8" class="file"/>
+<text x="140" y="218" class="small">Wave</text>
+<rect x="225" y="190" width="80" height="44" rx="8" class="file"/>
+<text x="238" y="218" class="small">Home</text>
+<text x="25" y="340" class="small">Left to right: the next child starts</text>
+<text x="25" y="360" class="small">when the one before succeeds.</text>
+
+<path d="M165 234V300H330V230H360" class="arrow"/>
+<text x="180" y="292" class="small">request Wave</text>
+
+<rect x="365" y="160" width="220" height="110" rx="10" class="box"/>
+<text x="383" y="192">Scheduler</text>
+<text x="383" y="220" class="small">starts Wave when the</text>
+<text x="383" y="240" class="small">resource "arm" is free,</text>
+<text x="383" y="260" class="small">then ticks it each step</text>
+
+<rect x="400" y="300" width="150" height="50" rx="10" class="box"/>
+<text x="418" y="331" class="small">resource: arm</text>
+<path d="M475 270V295" class="line"/>
+
+<path d="M585 212H640" class="arrow"/>
+<text x="592" y="202" class="small">tick</text>
+
+<rect x="645" y="160" width="225" height="110" rx="10" class="yours"/>
+<text x="663" y="192">WaveSkill</text>
+<text x="663" y="220" class="small">moveTo(joint1, ±0.5 rad)</text>
+<text x="663" y="240" class="small">RUNNING, RUNNING, …</text>
+<text x="663" y="260" class="small">SUCCESS after 4 waves</text>
+
+<path d="M757 160V115H230" class="arrow"/>
+<text x="420" y="105" class="small">the result goes back to the tree</text>
+
+<rect x="660" y="24" width="18" height="18" rx="3" class="yours"/>
+<text x="686" y="39" class="small">your C++</text>
+<rect x="770" y="24" width="18" height="18" rx="3" class="file"/>
+<text x="796" y="39" class="small">YAML</text>
+</svg>

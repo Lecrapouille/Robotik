@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 210" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">From the truth to a skill</title>
+<desc id="desc">The truth of the simulation is seen by the camera; perception turns the image into a belief; the skill reads only the belief.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="210" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">A skill never reads the truth</text>
+<rect x="32" y="90" width="120" height="56" rx="10" class="ok"/>
+<text x="92.0" y="124.0" text-anchor="middle">truth</text>
+<path d="M152 118 L175 118" class="arrow"/>
+<rect x="175" y="90" width="120" height="56" rx="10" class="box"/>
+<text x="235.0" y="124.0" text-anchor="middle">simulation</text>
+<path d="M295 118 L318 118" class="arrow"/>
+<rect x="318" y="90" width="120" height="56" rx="10" class="box"/>
+<text x="378.0" y="124.0" text-anchor="middle">camera</text>
+<path d="M438 118 L461 118" class="arrow"/>
+<rect x="461" y="90" width="120" height="56" rx="10" class="box"/>
+<text x="521.0" y="124.0" text-anchor="middle">perception</text>
+<path d="M581 118 L604 118" class="arrow"/>
+<rect x="604" y="90" width="120" height="56" rx="10" class="box"/>
+<text x="664.0" y="124.0" text-anchor="middle">belief</text>
+<path d="M724 118 L747 118" class="arrow"/>
+<rect x="747" y="90" width="120" height="56" rx="10" class="yours"/>
+<text x="807.0" y="124.0" text-anchor="middle">skill</text>
+<text x="32" y="180" class="note">Assertions, metrics and RL rewards read the truth. Skills and observers read the beliefs.</text>
+</svg>

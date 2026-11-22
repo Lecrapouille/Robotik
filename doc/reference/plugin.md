@@ -4,8 +4,7 @@
 
 ## 🔌 The plugin class
 
-`src/Plugin.cpp` is the entry point. Most plugins only say which scenario logic
-runs each scenario. This is all the Painter needs:
+`src/Plugin.cpp` is the entry point. Most plugins only say which scenario logic runs each scenario. This is all the Painter needs:
 
 ```cpp
 class PainterPlugin final: public robotik::ScenarioPlugin
@@ -30,14 +29,9 @@ public:
 ROBOTIK_EXPORT_PLUGIN(PainterPlugin)     // exports the C functions the host looks for
 ```
 
-`robotik::logic<T>(args...)` builds a `T` with these arguments when the
-scenario starts. `ScenarioPlugin` creates the scenario logic, gives it to the
-simulation, and frees it at the end. An id that is not in the table stops the
-setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl,
-painter_pabt)`. One plugin, one library, many scenarios.
+`robotik::logic<T>(args...)` builds a `T` with these arguments when the scenario starts. `ScenarioPlugin` creates the scenario logic, gives it to the simulation, and frees it at the end. An id that is not in the table stops the setup with `unknown scenario 'x' (this plugin runs: painter, painter_pddl, painter_pabt)`. One plugin, one library, many scenarios.
 
-HelloWorld adds a key binding, a menu item and a panel. It calls
-`ScenarioPlugin::setup` first, then uses the host:
+HelloWorld adds a key binding, a menu item and a panel. It calls `ScenarioPlugin::setup` first, then uses the host:
 
 ```cpp
     void setup(robotik::Host& p_host, std::string_view p_scenario) override
@@ -53,41 +47,9 @@ HelloWorld adds a key binding, a menu item and a panel. It calls
 
 ### 🔄 Lifecycle
 
-A plugin binary works only with the RobotIK build that made it. The C table
-of `PluginABI.h` carries two C++ objects (the `Simulation` and the
-`ScenarioLogic`), so both sides must agree on their layout: same RobotIK
-version, compiler and standard library. The host compares the build id of
-the plugin with its own (`PluginBuildId.hpp`) and refuses another one,
-with both texts in the message. Build the plugins with the SDK of the host.
+A plugin binary works only with the RobotIK build that made it. The C table of `PluginABI.h` carries two C++ objects (the `Simulation` and the `ScenarioLogic`), so both sides must agree on their layout: same RobotIK version, compiler and standard library. The host compares the build id of the plugin with its own (`PluginBuildId.hpp`) and refuses another one, with both texts in the message. Build the plugins with the SDK of the host.
 
-```text
-plugin.yaml read          the host checks api_version, packs, dependencies
-      │
-      ▼
-dlopen(.so)               only when a scenario of this plugin is chosen
-      │
-      ▼
-build id                  robotik_plugin_build_id must be the text of the host
-      │
-      ▼
-setup(scenario id)        create the ScenarioLogic (ScenarioPlugin), menus, panels
-      │
-      ▼
-Simulation built          from the world + scenario; ScenarioLogic::setup, ScenarioLogic::reset
-      │
-      ▼
-start
-      │
-      ▼
-loop: RoboticCell::step → ScenarioLogic::act, simulate, observe → Plugin::update(dt)
-      │
-      ▼
-stop                      the simulation still exists
-      │
-      ▼
-shutdown                  the simulation is destroyed: free the scenario logic
-                          (the .so can stay loaded for the next scenario)
-```
+![The life of a plugin: plugin.yaml read, dlopen, build id, setup, Simulation built, start, loop, stop, shutdown.](images/plugin-lifecycle.svg)
 
 | `Plugin` method | When |
 |-----------------|------|
@@ -99,10 +61,7 @@ shutdown                  the simulation is destroyed: free the scenario logic
 | `stop(host)` | End of the run; the simulation still exists |
 | `shutdown(host)` | Free the scenario logic; the simulation is already destroyed (`ScenarioPlugin` does it) |
 
-Override only what you need; each method does nothing by default. When a
-method cannot go on, it throws. The exception stops at the plugin border:
-the user sees its message, and the host gets an error status
-(`ROBOTIK_PLUGIN_ERR_SETUP` from `setup`). It does not crash the host.
+Override only what you need; each method does nothing by default. When a method cannot go on, it throws. The exception stops at the plugin border: the user sees its message, and the host gets an error status (`ROBOTIK_PLUGIN_ERR_SETUP` from `setup`). It does not crash the host.
 
 ### 🏠 Host services
 
@@ -117,16 +76,11 @@ the user sees its message, and the host gets an error status
 | `removeUi(handle)` | Remove a menu entry or a panel |
 | `scenarioPath()` | The path of the scenario file |
 
-Events (`RobotikEvent::kind`): `ROBOTIK_EVENT_KEY_PRESSED` (`code` = key),
-`_SCENARIO_STARTED`, `_SCENARIO_STOPPED`, `_SKILL_COMPLETED`, `_SKILL_FAILED`
-(`name` = skill), `_ASSERTION_CHANGED` (`name` = assertion, `flag` = passes).
+Events (`RobotIKEvent::kind`): `ROBOTIK_EVENT_KEY_PRESSED` (`code` = key), `_SCENARIO_STARTED`, `_SCENARIO_STOPPED`, `_SKILL_COMPLETED`, `_SKILL_FAILED` (`name` = skill), `_ASSERTION_CHANGED` (`name` = assertion, `flag` = passes).
 
 ### 🪟 Menus and panels
 
-The border between the host and the plugin is C, so that compilers and
-versions can differ. `Host` keeps your lambdas alive on the plugin side and
-gives the host C functions: you write `[this] { home(); }`. An exception in a
-lambda is reported to the user, like an exception in a plugin method.
+The border between the host and the plugin is C, so that compilers and versions can differ. `Host` keeps your lambdas alive on the plugin side and gives the host C functions: you write `[this] { home(); }`. An exception in a lambda is reported to the user, like an exception in a plugin method.
 
 ```cpp
     void draw(robotik::Canvas const& p_canvas) const
@@ -142,15 +96,11 @@ lambda is reported to the user, like an exception in a plugin method.
     }
 ```
 
-`scenario()` and `logic<T>()` come from `ScenarioPlugin`: the id of the
-scenario, and the scenario logic as a `T` (null when the scenario runs another
-scenario logic).
+`scenario()` and `logic<T>()` come from `ScenarioPlugin`: the id of the scenario, and the scenario logic as a `T` (null when the scenario runs another scenario logic).
 
-`Canvas` offers `text`, `textColored`, `button`, `checkbox`, `radio`,
-`sliderInt` and `separator`. It is valid **only during the draw call**: never keep it.
+`Canvas` offers `text`, `textColored`, `button`, `checkbox`, `radio`, `sliderInt` and `separator`. It is valid **only during the draw call**: never keep it.
 
-The menu entry **Hello world → Home** (and the key **H**) asks the
-simulation to run the built-in skill `Home`:
+The menu entry **Hello world → Home** (and the key **H**) asks the simulation to run the built-in skill `Home`:
 
 ```cpp
     void home()
@@ -220,12 +170,7 @@ experiments:
 
 ### 📚 Third-party libraries of a plugin
 
-A library that only one plugin uses is declared in the `<Name>.mk` of the
-plugin, as a target of [MyMakefile](https://github.com/Lecrapouille/MyMakefile):
-fetched on the first build, at the commit locked in `external/versions.lock`,
-and built once in the cache of MyMakefile. `dependencies:` of `plugin.yaml`
-lists them with their license, for the credits of the Plugin panel of the
-simulator:
+A library that only one plugin uses is declared in the `<Name>.mk` of the plugin, as a target of [MyMakefile](https://github.com/Lecrapouille/MyMakefile): fetched on the first build, at the commit locked in `external/versions.lock`, and built once in the cache of MyMakefile. `dependencies:` of `plugin.yaml` lists them with their license, for the credits of the Plugin panel of the simulator:
 
 ```yaml
 dependencies:
@@ -243,8 +188,7 @@ dependencies:
 | `license` | SPDX name. Required: without it the library shows "not checked" |
 | `description` | Optional. Put a value with a comma between quotes |
 
-`plugins/LineFollower/LineFollower.mk` builds AprilTag with its CMake, and is
-not built when OpenCV is not installed:
+`plugins/LineFollower/LineFollower.mk` builds AprilTag with its CMake, and is not built when OpenCV is not installed:
 
 ```make
 ifeq ($(call robotik-missing,opencv4),)
@@ -263,9 +207,7 @@ else
 endif
 ```
 
-A release of binaries is a target with a `URL` (ONNX Runtime:
-`$(eval $(ROBOTIK_ONNXRUNTIME))` of `plugins/plugin.mk`); data made by a
-script is a Make rule the plugin target depends on (`MicroDuck.mk`).
+A release of binaries is a target with a `URL` (ONNX Runtime: `$(eval $(ROBOTIK_ONNXRUNTIME))` of `plugins/plugin.mk`); data made by a script is a Make rule the plugin target depends on (`MicroDuck.mk`).
 
 ## 🔎 Where the hosts look for plugins
 
@@ -276,26 +218,15 @@ Nothing depends on the current folder. Both hosts search, in this order:
 3. `plugins/` next to the executable;
 4. `../lib/robotik/plugins` from the executable: `build/linux-gcc-debug/lib/robotik/plugins` in the build tree, `lib/robotik/plugins` of the install prefix.
 
-A scenario given by its path brings its package with it:
-`Robotik-Headless plugins/Painter/scenarios/painter.scenario.yaml` works from the
-sources; the library is searched next to the manifest, then next to the
-executable.
+A scenario given by its path brings its package with it: `RobotIK-Headless plugins/Painter/scenarios/painter.scenario.yaml` works from the sources; the library is searched next to the manifest, then next to the executable.
 
 ## ✅ Good rules for a plugin
 
-- **The plugin does not own the world.** The `Simulation` builds the entities
-  from the world file and destroys them. Find them by id
-  (`cell.entity("canvas")`, `cell.requirePose("canvas")`); never keep a
-  pointer to a world object after `shutdown`.
-- **A reset rebuilds the state** without unloading the plugin: put all
-  episode state back in `ScenarioLogic::reset`.
-- **Skills see beliefs, not truth.** In a skill, use `RobotContext`
-  (`robot`, `world_model`). Ground truth (`RoboticCell::requirePose`) is for metrics
-  and assertions.
+- **The plugin does not own the world.** The `Simulation` builds the entities from the world file and destroys them. Find them by id (`cell.entity("canvas")`, `cell.requirePose("canvas")`); never keep a pointer to a world object after `shutdown`.
+- **A reset rebuilds the state** without unloading the plugin: put all episode state back in `ScenarioLogic::reset`.
+- **Skills see beliefs, not truth.** In a skill, use `RobotContext` (`robot`, `world_model`). Ground truth (`RoboticCell::requirePose`) is for metrics and assertions.
 - **Publish metrics, do not judge.** The scenario file holds the verdict.
-- **Units are SI**: metres, radians, seconds. Use the typed handles
-  (`Revolute`, `Prismatic`, `Seconds`, `Radians`) when you can.
-- **Headless first.** `view` is null and there is no camera image in
-  headless: your scenario logic must still work (see `perception.blind`).
+- **Units are SI**: metres, radians, seconds. Use the typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`) when you can.
+- **Headless first.** `view` is null and there is no camera image in headless: your scenario logic must still work (see `perception.blind`).
 
-Next: [Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
+Next: [Skills, the scheduler and behavior trees](../concepts/04-skills-and-behavior-trees.md).

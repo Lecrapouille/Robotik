@@ -1,6 +1,6 @@
 # One rendered environment. The policy starts converged, or random and
 # converts toward the recipe. The parallel pool stays in
-# Robotik-PickAndPlaceRL. The plugin advances the clock itself.
+# RobotIK-PickAndPlaceRL. The plugin advances the clock itself.
 scenario:
   id: pick_and_place_rl
   description: Reach, grasp and deliver the red cube with a learned policy.

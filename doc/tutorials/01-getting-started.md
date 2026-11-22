@@ -2,116 +2,84 @@
 
 [⏫ Tutorials](README.md)
 
-In this page you build Robotik, watch a robot in the simulator, run the same
-scenario without a window, and break a test on purpose to see what a failure
-looks like. It takes about 20 minutes (most of it is compilation).
+In this page you build RobotIK, watch a robot in the simulator, run the same scenario without a window, and break a test on purpose to see what a failure looks like. It takes about 20 minutes (most of it is compilation).
 
 ## 🔨 Build
 
-Robotik builds on **Linux** with `make` (no CMake). It does not build on
-macOS: the display needs OpenGL 4.3 or more.
+RobotIK builds on Linux, Windows and MacOS with `make` (no CMake).
 
 ```bash
 git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
-
-make forge                       # optional, once: Pinocchio and MuJoCo in external/forge
-make                             # the libraries, Robotik, the two hosts and the plugins
+make
 ```
 
-The first `make` fetches the third parties ([MyMakefile](https://github.com/Lecrapouille/MyMakefile)): Compages, BlackThorn, Dear ImGui, kairos and the libraries of the plugins, at the commits of `external/versions.lock`. `PLUGINS` lists the plugins built; MicroDuck and HumanoidWalk download large models: `make PLUGINS+="MicroDuck HumanoidWalk"`.
+The first `make` fetches the third parties with [MyMakefile](https://github.com/Lecrapouille/MyMakefile): Compages, BlackThorn, Dear ImGui, Kairos and the libraries of the plugins. It takes them at the commits written in `external/versions.lock`.
+
+The `PLUGINS` variable of the root `Makefile` lists the plugins that `make` builds. MicroDuck and HumanoidWalk are not in the list, because they download large models. To build them too, add them to the list:
+
+```bash
+make EXTRA_PLUGINS="MicroDuck HumanoidWalk"
+```
 
 After the build, the `build/linux-gcc-debug/` folder contains:
 
 ```text
-build/linux-gcc-debug/
-├── bin/
-│   ├── Robotik-Simulator      the 3D window
-│   └── Robotik-Headless       the same, without window
-├── lib/
-│   ├── librobotik-core.so     the library
-│   └── robotik/plugins/       one folder per plugin (demo), ready to run
-│       ├── HelloWorld/
-│       ├── PickAndPlace/
-│       └── ...
-└── share/robotik/packs        the asset packs (a link to data/packs)
+📦 build/linux-gcc-debug/
+┣ 📂 bin/
+┃ ┣ 📄 RobotIK-Simulator     ⬅️ the 3D window
+┃ ┗ 📄 RobotIK-Headless      ⬅️ the same, without window
+┣ 📂 lib/
+┃ ┣ 📄 librobotik-core.so    ⬅️ the library
+┃ ┗ 📂 robotik/
+┃   ┗ 📂 plugins/            ⬅️ one folder per plugin (demo), ready to run
+┃     ┣ 📂 HelloWorld/
+┃     ┣ 📂 PickAndPlace/
+┃     ┗ ...
+┗ 📂 share/
+  ┗ 📂 robotik/
+    ┗ 📂 packs/              ⬅️ the asset packs (a link to data/packs)
 ```
 
-The CI also publishes the simulator as a web page: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The versioned files of `plugins/` are in the page. Pinocchio, MuJoCo and the 3D view are not.
+The CI also publishes the simulator as a web page: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The versioned files of `plugins/` are in the page. Pinocchio, MuJoCo and the 3D view are not.
 
 Unit tests, for developers:
 
 ```bash
-make tests -j"$(nproc --all)"
+make tests
 ```
 
 ## 👀 Watch a robot: the simulator
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Simulator
+./build/linux-gcc-debug/bin/RobotIK-Simulator
 ```
 
-Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its
-scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and
-right for six seconds.
+Open the **Demos** menu. Each entry is a plugin; each sub-entry is one of its scenarios. Choose **Hello world → 2. Move a joint**: the arm turns left and right for six seconds.
 
-The Mission layout puts the execution (the steps of the plan or the nodes
-of the behavior tree, with their skills) in the middle, a small scene and
-the resources on the right and a short Timeline below. A scenario with no tree
-and no plan gets the scene in the middle instead:
+The **Mission** workspace is the one to watch a mission. Here is the Pick and place demo at 3 s, while the skill `Grasp(red_cube)` runs:
 
-```text
-┌ File  Demos  Windows  Layout  Help         [Plugin] [Robot] [Mission] [Autonomy] ┐
-│ Play / Step    time and state    Replay / speed / Run options           Emergency stop │
-├──────────────────────────────────────────────────────────┬────────────────────┤
-│                                                     [⤢]  │ 3D scene      [⤢]  │
-│      Execution graph / Planner (steps, skills,               │                    │
-│      state, priority, resources, why)                    ├────────────────────┤
-│                                                          │ Resources          │
-├──────────────────────────────────────────────────────────┤ Assertions Planner │
-│ Timeline  Events                                         │                    │
-├──────────────────────────────────────────────────────────┴────────────────────┤
-│ Scenario / assertions / faults / selection                                    │
-└───────────────────────────────────────────────────────────────────────────────┘
+![The Mission workspace of the simulator: the execution graph with the behavior tree and its skills in the middle, the 3D scene and the resources on the right, the timeline of the skills below.](images/simulator-mission.png)
+
+- In the middle, the **Execution graph** lists the nodes of the behavior tree (or the steps of the plan) with their skills. For each skill, it gives its state, its priority, the resources that it needs, and why it waits.
+- On the right, the **3D scene** shows the robot, and the **Resources** panel tells which skill holds each resource: here `Grasp(red_cube)` holds the `gripper`.
+- Below, the **Timeline** draws one bar per skill run.
+
+A scenario without a tree and without a plan, such as **Hello world**, shows the 3D scene in the middle instead. This picture was made by the simulator itself:
+
+```bash
+./build/linux-gcc-debug/bin/RobotIK-Simulator build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml --workspace mission --screenshot-ui mission.png --at 3
 ```
 
-The **run bar** is the same in every workspace: play, step, the simulated
-time, the state of the run, replay, a compact speed selector, and the
-emergency stop when the scenario has a `Stop` skill. **Run options...**
-contains the seed, **Next seed and replay**, and continuous speed control.
-The **status bar** says
-what to look at: how many assertions pass, how many resources are in fault,
-and the item selected. Each is a link that opens the relevant editor
-in the current layout.
+The **run bar** is the same in every workspace: play, step, the simulated time, the state of the run, replay, a compact speed selector, and the emergency stop when the scenario has a `Stop` skill. **Run options...** contains the seed, **Next seed and replay**, and continuous speed control. The **status bar** says what to look at: how many assertions pass, how many resources are in fault, and the item selected. Each is a link that opens the relevant editor in the current layout.
 
-The interface uses charcoal surfaces and one amber accent, with a 14 px
-font and tight spacing so that tables show many rows. Status colours
-distinguish running, success and failure.
+The interface uses charcoal surfaces and one amber accent, with a 14 px font and tight spacing so that tables show many rows. Status colours distinguish running, success and failure.
 
-**Windows.** Every editor is available from the **Windows** menu, including
-Plugin, Files, Package details, Assets and the loaded plugin's own panels.
-Choose an editor to open it or bring its existing tab to the front. Close
-it with the tab's `x` (the only close button). Each editor has one window across all layout presets.
-Each preset remembers its own editors: what you open or move in Robot is
-still there when you come back from Mission.
+**Windows.** Every editor is available from the **Windows** menu, including Plugin, Files, Package details, Assets and the loaded plugin's own panels. Choose an editor to open it or bring its existing tab to the front. Close it with the tab's `x` (the only close button). Each editor has one window across all layout presets. Each preset remembers its own editors: what you open or move in Robot is still there when you come back from Mission.
 
-**Layout** has two recovery actions. **Place open panels** keeps the open
-editors and returns them to the current preset's positions.
-**Restore recommended layout** restores that preset's default editors.
-The current positions, visibility and preset are saved in
-`~/.config/robotik/simulator.ini`. The first launch after this interface
-update starts with the new default layout.
+**Layout** has two recovery actions. **Place open panels** keeps the open editors and returns them to the current preset's positions. **Restore recommended layout** restores that preset's default editors. The current positions, visibility and preset are saved in `~/.config/robotik/simulator.ini`. The first launch after this interface update starts with the new default layout.
 
-**Selection.** A click on a skill, a resource, a robot or an object (in the
-Timeline, the Execution graph, the Resources or World
-model panel, a click in the 3D view, or a link of the Inspector) selects it
-in every panel, and the Timeline highlights its row. Selecting never
-commands the robot. The shared **Inspector** shows the selection the same
-way for every kind of item: its kind (SKILL, RESOURCE, ROBOT, OBJECT) with
-**Pin** and **Overview** beside it, its name and state, one sentence that
-says what it does now ("Waiting. busy: arm held by Approach(box)", "Free:
-no skill holds it", "Believed 33.9 mm from where it really is"), then a
-table of facts, all visible:
+**Selection.** A click on a skill, a resource, a robot or an object (in the Timeline, the Execution graph, the Resources or World model panel, a click in the 3D view, or a link of the Inspector) selects it in every panel, and the Timeline highlights its row. Selecting never commands the robot. The shared **Inspector** shows the selection the same way for every kind of item: its kind (SKILL, RESOURCE, ROBOT, OBJECT) with **Pin** and **Overview** beside it, its name and state, one sentence that says what it does now ("Waiting. busy: arm held by Approach(box)", "Free: no skill holds it", "Believed 33.9 mm from where it really is"), then a table of facts, all visible:
 
 | Item | Facts |
 |------|-------|
@@ -120,90 +88,25 @@ table of facts, all visible:
 | Robot | who drives it (MISSION or MANUAL), model, tool, skills now, a joint table (value and where it is between its limits) |
 | Object | belief, truth, error, confidence, how often and when it was seen, size |
 
-**Pin** keeps an item while you select others; **Overview** shows the run:
-robots, what runs, waits, failed, is in fault, the objects believed.
+**Pin** keeps an item while you select others; **Overview** shows the run: robots, what runs, waits, failed, is in fault, the objects believed.
 
-No workspace opens the Inspector at first: the first click on a name opens
-it, later clicks leave the focus where it is.
+No workspace opens the Inspector at first: the first click on a name opens it, later clicks leave the focus where it is.
 
-**Robot details.** The robot Inspector shows joint positions and active
-skills. Expand **Include inactive skills** to see the others. Its buttons
-open Joint controls, Teach Pendant or Plots without changing who drives
-the robot. Joints say who drives (**Mission drives** or **Manual**; the
-tooltip of **Manual** explains it), then the tool position and the gripper
-on one line. Joint controls show positions first; **Show details** adds
-limits, velocity, acceleration, effort and jog controls. Plots start with
-one joint and one measurement. Choose joints in the plot itself and choose
-**All measurements** only when you need the four plots together.
+**Robot details.** The robot Inspector shows joint positions and active skills. Expand **Include inactive skills** to see the others. Its buttons open Joint controls, Teach Pendant or Plots without changing who drives the robot. Joints say who drives (**Mission drives** or **Manual**; the tooltip of **Manual** explains it), then the tool position and the gripper on one line. Joint controls show positions first; **Show details** adds limits, velocity, acceleration, effort and jog controls. Plots start with one joint and one measurement. Choose joints in the plot itself and choose **All measurements** only when you need the four plots together.
 
-**Camera in the scene.** When the robot has a camera, its picture (with
-the detections of the perception) sits in the bottom-right corner of a
-large 3D scene: no need for a Cameras panel to see what the robot sees.
-The inset is left out when the Cameras panel is shown (Autonomy) and when
-the scene is small (Mission). `<` and `>` change the camera, the cross
-hides it, **Camera** shows it again; the expand icon (or a double click on
-the picture) shows it large.
+**Camera in the scene.** When the robot has a camera, its picture (with the detections of the perception) sits in the bottom-right corner of a large 3D scene: no need for a Cameras panel to see what the robot sees. The inset is left out when the Cameras panel is shown (Autonomy) and when the scene is small (Mission). `<` and `>` change the camera, the cross hides it, **Camera** shows it again; the expand icon (or a double click on the picture) shows it large.
 
-**Scene and execution graph.** The 3D scene is an editor that you can close,
-move, dock and expand like any other window. The **Execution graph** is the
-middle of Mission; open it from **Windows** in another layout. **List**
-(the default) shows each step of the plan, or each node of the behavior
-tree indented by depth, followed by its skills: their state, priority,
-resources and why they wait. **Graph** draws the same steps as boxes, with
-arrows to the steps that wait for them; independent steps share a column,
-and a tree reads from left to right. Click a skill to inspect it; drag the
-background to move the graph. The graph writes the priority and the
-resources after each skill (`p100  arm`). The list is also where you run a
-skill by hand: **Request** on an idle skill, **Cancel** on a running or
-waiting one. The skills that no step runs (`Home`, `Stop`…) are under
-**Other skills** at the end; without a plan or a tree, the list is all the
-skills.
+**Scene and execution graph.** The 3D scene is an editor that you can close, move, dock and expand like any other window. The **Execution graph** is the middle of Mission; open it from **Windows** in another layout. **List** (the default) shows each step of the plan, or each node of the behavior tree indented by depth, followed by its skills: their state, priority, resources and why they wait. **Graph** draws the same steps as boxes, with arrows to the steps that wait for them; independent steps share a column, and a tree reads from left to right. Click a skill to inspect it; drag the background to move the graph. The graph writes the priority and the resources after each skill (`p100  arm`). The list is also where you run a skill by hand: **Request** on an idle skill, **Cancel** on a running or waiting one. The skills that no step runs (`Home`, `Stop`…) are under **Other skills** at the end; without a plan or a tree, the list is all the skills.
 
-**Resources.** One table: a box to tick, the resource, its state (free,
-shared, exclusive, or in fault with who made it and the time left), the
-skills that hold it and those that need it, and **Restore** on a resource
-in fault. Under it: tick resources, give a duration (ever: until you
-restore them) and press **Inject**; **Restore all** ends every fault. Then
-the faults that the scenario plans.
+**Resources.** One table: a box to tick, the resource, its state (free, shared, exclusive, or in fault with who made it and the time left), the skills that hold it and those that need it, and **Restore** on a resource in fault. Under it: tick resources, give a duration (ever: until you restore them) and press **Inject**; **Restore all** ends every fault. Then the faults that the scenario plans.
 
-**Compact timeline.** The initial view follows the latest five simulated
-seconds. At startup it uses a shorter axis to keep early actions readable.
-**Hide unused** starts enabled: skills never requested do not take a row.
-Untick it to see all skills. **Whole run**, wheel zoom and panning remain
-available. Close **Timeline** with its tab's `x` when the scene needs more room.
+**Compact timeline.** The initial view follows the latest five simulated seconds. At startup it uses a shorter axis to keep early actions readable. **Hide unused** starts enabled: skills never requested do not take a row. Untick it to see all skills. **Whole run**, wheel zoom and panning remain available. Close **Timeline** with its tab's `x` when the scene needs more room.
 
-**Events.** The tab next to the Timeline tells the run as dated lines: the
-skills that wait (and for what), start and end (succeeded after 0.5 s,
-failed and why, cancelled), the resources that fall in fault and come
-back, the plans and their steps, the failures of the tree, the verdicts of
-the assertions. The same line repeated (a skill refused at each step) is
-one line, *x50, until 0.99 s*. Tick the kinds to show, *Problems only* for
-the failures and faults, or type a word to filter. A click on a time shows
-it in the Timeline; a click on a line selects its skill or resource. The
-list follows the new lines; scroll up to read, come back to the bottom to
-follow again.
+**Events.** The tab next to the Timeline tells the run as dated lines: the skills that wait (and for what), start and end (succeeded after 0.5 s, failed and why, cancelled), the resources that fall in fault and come back, the plans and their steps, the failures of the tree, the verdicts of the assertions. The same line repeated (a skill refused at each step) is one line, *x50, until 0.99 s*. Tick the kinds to show, *Problems only* for the failures and faults, or type a word to filter. A click on a time shows it in the Timeline; a click on a line selects its skill or resource. The list follows the new lines; scroll up to read, come back to the bottom to follow again.
 
-**Expand.** Every editor has a small icon in its top-right corner (four
-corners pointing out). Click it, or click the editor and press
-**Ctrl+Space**: the same window fills the work area while the run controls
-stay visible. This works for every editor, including Inspector, Files and
-plugin panels. The icon then points in: click it, or press **Ctrl+Space**
-again or **Esc**, to go back to the original positions and tab order. You can also right-click a window title for
-**Expand**, **Restore** or **Close**. Opening another editor from **Windows**
-restores the layout and focuses that editor. Exiting while expanded saves
-the original layout. A small live 3D view stays in the bottom-right corner
-while another editor is expanded. Its cross hides it; **3D scene** shows
-it again. Its restore icon returns to the layout.
+**Expand.** Every editor has a small icon in its top-right corner (four corners pointing out). Click it, or click the editor and press **Ctrl+Space**: the same window fills the work area while the run controls stay visible. This works for every editor, including Inspector, Files and plugin panels. The icon then points in: click it, or press **Ctrl+Space** again or **Esc**, to go back to the original positions and tab order. You can also right-click a window title for **Expand**, **Restore** or **Close**. Opening another editor from **Windows** restores the layout and focuses that editor. Exiting while expanded saves the original layout. A small live 3D view stays in the bottom-right corner while another editor is expanded. Its cross hides it; **3D scene** shows it again. Its restore icon returns to the layout.
 
-The top buttons select a **layout preset**. **Ctrl+1** to **Ctrl+4** select
-the same presets. The first visit opens the default editors listed below,
-with the tab in **bold** in front. Then you can close or add editors from
-**Windows** and move them: leaving the preset keeps them, coming back shows
-them again where they were. The open editors of each preset are saved in
-`simulator.ini`; their positions are kept for the session. Editor identities
-and content state remain shared, so switching does not create copies.
-Clicking the active preset, or **Layout → Restore recommended layout**,
-reapplies its defaults.
+The top buttons select a **layout preset**. **Ctrl+1** to **Ctrl+4** select the same presets. The first visit opens the default editors listed below, with the tab in **bold** in front. Then you can close or add editors from **Windows** and move them: leaving the preset keeps them, coming back shows them again where they were. The open editors of each preset are saved in `simulator.ini`; their positions are kept for the session. Editor identities and content state remain shared, so switching does not create copies. Clicking the active preset, or **Layout → Restore recommended layout**, reapplies its defaults.
 
 | Preset | Default editors | Use it to |
 |--------|-----------------|-----------|
@@ -212,15 +115,9 @@ reapplies its defaults.
 | **Mission** | Execution graph as a list and Planner when used (tabs in the middle); right: small 3D scene, then **Resources**, Assertions and plugin panels; below: **Timeline**, Events | The execution, and running skills by hand. Without a tree or a plan, the scene takes the middle and the list of skills sits on the right. |
 | **Autonomy** | above: 3D scene and Cameras, the same size; below: World model and Perception side by side | Compare beliefs with the truth and with what the cameras see. |
 
-The loaded plugin's panels open on first use and follow the same close,
-reopen, dock and expand rules as the other editors. They remain accessible
-in every preset, including Plugin. Their default position in ScenarioLogic is
-beside Resources; Robot places them beside Joints, Autonomy beside World
-model, and Plugin beside Files. Autonomy stays focused on sensing and
-beliefs; planning and execution belong to ScenarioLogic.
+The loaded plugin's panels open on first use and follow the same close, reopen, dock and expand rules as the other editors. They remain accessible in every preset, including Plugin. Their default position in ScenarioLogic is beside Resources; Robot places them beside Joints, Autonomy beside World model, and Plugin beside Files. Autonomy stays focused on sensing and beliefs; planning and execution belong to ScenarioLogic.
 
-The **Cameras** editor shows every
-camera of the robot at once, in the grid that gives the largest pictures.
+The **Cameras** editor shows every camera of the robot at once, in the grid that gives the largest pictures.
 
 Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 
@@ -233,9 +130,7 @@ Main shortcuts (all of them in **Help → Keyboard shortcuts**, F1):
 | Ctrl+Space | Expand the focused editor or restore the layout; Esc restores it too |
 | F5 | Reload the scenario file (after you edit it) |
 
-The 3D view moves like the camera of a strategy game: it looks at a point
-of the floor. The mouse acts only over the view; the keys too, and not
-while you type in a text field.
+The 3D view moves like the camera of a strategy game: it looks at a point of the floor. The mouse acts only over the view; the keys too, and not while you type in a text field.
 
 | Mouse or key | Does |
 |--------------|------|
@@ -247,39 +142,30 @@ while you type in a text field.
 | Q / E | Turn |
 | Shift | Faster |
 
-The camera glides to where you send it, at the same speed whatever the
-frame rate.
+The camera glides to where you send it, at the same speed whatever the frame rate.
 
 You can also give a scenario file directly:
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
+./build/linux-gcc-debug/bin/RobotIK-Simulator build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
-`--screenshot view.png` plays the scenario, saves the 3D view into a PNG
-file and quits; `--at 6` takes it after 6 simulated seconds (3 by
-default, or at the end of the run if it ends before):
+`--screenshot view.png` plays the scenario, saves the 3D view into a PNG file and quits; `--at 6` takes it after 6 simulated seconds (3 by default, or at the end of the run if it ends before):
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
+./build/linux-gcc-debug/bin/RobotIK-Simulator build/linux-gcc-debug/lib/robotik/plugins/DualArm/scenarios/conveyor.scenario.yaml --screenshot conveyor.png --at 6
 ```
 
-`--screenshot-ui ui.png` does the same with the whole window, panels
-included (`--at 0`: without playing). `--workspace robot` restores the Robot preset
-and its default editors, and `--select skill:Grasp` (or `resource:gripper`,
-`robot:left`) chooses what the Inspector shows: handy to check the
-interface without a person in front of it. `--view timeline` opens and
-focuses the Timeline editor; `--maximize timeline` expands that editor.
+`--screenshot-ui ui.png` does the same with the whole window, panels included (`--at 0`: without playing). `--workspace robot` restores the Robot preset and its default editors, and `--select skill:Grasp` (or `resource:gripper`, `robot:left`) chooses what the Inspector shows: handy to check the interface without a person in front of it. `--view timeline` opens and focuses the Timeline editor; `--maximize timeline` expands that editor.
 
-Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds
-a red cube with its camera, takes it with a vacuum cup and drops it in a box.
+Now try the reference demo, **Demos → Pick and place**: a 6-axis arm finds a red cube with its camera, takes it with a vacuum cup and drops it in a box.
 
 ## 🤫 Run without a window: headless
 
 The same scenario, in a terminal:
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml
 ```
 
 Output:
@@ -295,10 +181,8 @@ wave: 1/1 runs passed
 Read it like this:
 
 - one line per **assertion**, with the **measured value** in parentheses;
-- one summary line per **run**: the seed, why the run stopped
-  (`controller succeeded at 6.01 s`) and the simulated time;
-- the exit code: `0` all passed, `2` a run failed, `1` a file or a plugin
-  could not load. This is what CI uses.
+- one summary line per **run**: the seed, why the run stopped (`controller succeeded at 6.01 s`) and the simulated time;
+- the exit code: `0` all passed, `2` a run failed, `1` a file or a plugin could not load. This is what CI uses.
 
 Options:
 
@@ -309,7 +193,7 @@ Options:
 | `--trace` | Prints the history of the skills |
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -324,15 +208,12 @@ Options:
 
 The goal: see that a scenario *is* a test.
 
-1. Open `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a
-   copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`).
-   Do not create a new file there yet: a scenario must be listed in
-   `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
+1. Open `build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml` in an editor (this is a copy made by `make`; the source is in `plugins/HelloWorld/scenarios/`). Do not create a new file there yet: a scenario must be listed in `plugin.yaml`, otherwise Headless says `scenario is not in a plugin package`.
 2. Change the assertion `(> wave.swing 0.4)` into `(> wave.swing 0.9)`.
 3. Run it again:
 
    ```bash
-   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml; echo "exit code: $?"
+   ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/wave.scenario.yaml; echo "exit code: $?"
    ```
 
    ```text
@@ -345,21 +226,16 @@ The goal: see that a scenario *is* a test.
    exit code: 2
    ```
 
-   The failure keeps the **measured value**, the **expected bound** and the
-   **time**: you know immediately the joint turned 0.6 rad, not 0.9.
-4. Open the same file in the simulator. The assertion is red in the
-   **Assertions** panel (Plugin workspace) and the status bar says
-   `Assertions 2/3`, but the simulation **does not stop**: a failed
-   assertion is a verdict, not an emergency stop.
+   The failure keeps the **measured value**, the **expected bound** and the **time**: you know immediately the joint turned 0.6 rad, not 0.9.
+4. Open the same file in the simulator. The assertion is red in the **Assertions** panel (Plugin workspace) and the status bar says `Assertions 2/3`, but the simulation **does not stop**: a failed assertion is a verdict, not an emergency stop.
 5. Put back `0.4` (or run `make` again: it copies the sources over `build/`).
 
 ## 🧪 Run an experiment
 
-An **experiment** runs several variants of a scenario, with several seeds,
-and compares them.
+An **experiment** runs several variants of a scenario, with several seeds, and compares them.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless \
+./build/linux-gcc-debug/bin/RobotIK-Headless \
     build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml \
     --report pick.json
 ```
@@ -372,21 +248,17 @@ and compares them.
 pick_and_place_experiment: 12/12 runs passed
 ```
 
-4 variants × 3 seeds = 12 runs. `pick.json` contains every run, every
-assertion, every metric. (`perception truth` means that, without a window,
-no image is rendered, so the true cube position replaced the camera, as the
-scenario asks with `perception: { blind: truth }`. See
-[Truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief).)
+4 variants × 3 seeds = 12 runs. `pick.json` contains every run, every assertion, every metric. (`perception truth` means that, without a window, no image is rendered, so the true cube position replaced the camera, as the scenario asks with `perception: { blind: truth }`. See [Truth, description and belief](../concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief).)
 
 ## 🧰 The other programs
 
 Some demos also have their own program, for uses the two hosts do not cover:
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-LineFollower --seed 4 --laps 1 --save map.png   # draws the path
-./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
-./build/linux-gcc-debug/bin/Robotik-Fly --brain reflex
-./build/linux-gcc-debug/bin/Robotik-Fly --headless --envs 8 --episodes 8 --seed 123456
+./build/linux-gcc-debug/bin/RobotIK-LineFollower --seed 4 --laps 1 --save map.png   # draws the path
+./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
+./build/linux-gcc-debug/bin/RobotIK-Fly --brain reflex
+./build/linux-gcc-debug/bin/RobotIK-Fly --headless --envs 8 --episodes 8 --seed 123456
 ```
 
 All demos are described in [Case studies: the demos](../case-studies/README.md).

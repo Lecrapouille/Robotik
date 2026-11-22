@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the edge list read by Robotik-Fly --edges.
+"""Build the edge list read by RobotIK-Fly --edges.
 
 Called by the Makefile of the plugin once its external/ clone is there.
 Column names are those of model.py: Presynaptic_Index, Postsynaptic_Index,

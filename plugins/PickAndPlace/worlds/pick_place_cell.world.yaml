@@ -37,8 +37,9 @@ world:
     - { id: fingers, type: tool, model: robotik.tools.gripper }
     - { id: welder, type: tool, model: robotik.tools.welding }
 
-    # Props: the robot only knows the nominal positions; randomize shifts the
-    # real ones at each reset (uniform offsets drawn from the seed).
+    # Props: randomize shifts the true positions at each reset (uniform
+    # offsets drawn from the seed). The file keeps the described positions;
+    # the skills see only the beliefs, from the camera.
     - id: red_cube
       type: prop
       kind: cube                # type of the PDDL planner (scenarios/*.domain.pddl)

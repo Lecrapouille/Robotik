@@ -9,9 +9,9 @@
 
 #include <algorithm>
 
-#include "Robotik/Package/Plugin/PluginSession.hpp"
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Scenario.hpp"
+#include "RobotIK/Package/Plugin/PluginSession.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Package/Scenario/Scenario.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -47,7 +47,7 @@ static std::filesystem::path buildRoot()
 }
 
 /// Directory of the built plugins: next to the test program
-/// (<build>/bin/Robotik-tests, <build>/lib/robotik/plugins).
+/// (<build>/bin/RobotIK-tests, <build>/lib/robotik/plugins).
 static std::filesystem::path pluginsRoot()
 {
     std::error_code error;
@@ -66,10 +66,10 @@ static std::string drawPanel(robotik::PluginHost const& p_host)
         return {};
     }
     std::string text;
-    RobotikCanvas canvas{};
+    RobotIKCanvas canvas{};
     canvas.size = static_cast<std::uint32_t>(sizeof(canvas));
     canvas.impl = &text;
-    canvas.text = [](RobotikCanvas const* p_canvas, char const* p_line)
+    canvas.text = [](RobotIKCanvas const* p_canvas, char const* p_line)
     {
         auto* buffer = static_cast<std::string*>(p_canvas->impl);
         if (p_line != nullptr)

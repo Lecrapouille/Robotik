@@ -10,9 +10,9 @@
 #include "PainterScene.hpp"
 #include "PainterSkills.hpp"
 
-#include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Robot/Actuators.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>

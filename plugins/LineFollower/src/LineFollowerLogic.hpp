@@ -12,8 +12,8 @@
 #include "Skills.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Task/ScenarioLogic.hpp"
-#include "Robotik/Task/Scheduler.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
+#include "RobotIK/Task/Scheduler.hpp"
 
 #include <cstdint>
 #include <memory>

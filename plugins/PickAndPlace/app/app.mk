@@ -5,10 +5,10 @@
 #
 # Demo: pick and place as N parallel reinforcement learning environments.
 
-TARGETS += Robotik-PickAndPlaceRL
-Robotik-PickAndPlaceRL.DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
-Robotik-PickAndPlaceRL.SOURCES := *.cpp ../src/ColorDetector.cpp ../src/PickPlaceLogic.cpp \
+TARGETS += RobotIK-PickAndPlaceRL
+RobotIK-PickAndPlaceRL.DESCRIPTION := Demo: pick and place as N parallel reinforcement learning environments
+RobotIK-PickAndPlaceRL.SOURCES := *.cpp ../src/ColorDetector.cpp ../src/PickPlaceLogic.cpp \
     ../src/PickPlaceSkills.cpp ../src/PickPlaceControl.cpp ../src/PickPlacePlanning.cpp
-Robotik-PickAndPlaceRL.INCLUDES := . ../src
-Robotik-PickAndPlaceRL.DEPENDS := robotik-core
-Robotik-PickAndPlaceRL.LIBS := -ldl
+RobotIK-PickAndPlaceRL.INCLUDES := . ../src
+RobotIK-PickAndPlaceRL.DEPENDS := robotik-core
+RobotIK-PickAndPlaceRL.LIBS := -ldl

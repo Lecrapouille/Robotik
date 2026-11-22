@@ -13,10 +13,10 @@
 #include "FlyTrace.hpp"
 #include "FlyView.hpp"
 
-#include "Robotik/Robot/Assets/AssetResolver.hpp"
-#include "Robotik/Task/Learning/Environment.hpp"
-#include "Robotik/Package/Scenario/PackagePath.hpp"
-#include "Robotik/Package/Scenario/Scenario.hpp"
+#include "RobotIK/Robot/Assets/AssetResolver.hpp"
+#include "RobotIK/Task/Learning/Environment.hpp"
+#include "RobotIK/Package/Scenario/PackagePath.hpp"
+#include "RobotIK/Package/Scenario/Scenario.hpp"
 
 #include <stdexcept>
 #include <algorithm>

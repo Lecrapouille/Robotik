@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Who decides what</title>
+<desc id="desc">An intent such as put the red cube in the box becomes a goal. A planner finds which actions are needed. A behavior tree runs them in order and reacts to failures. Skills and the scheduler do each action on this robot. The robot API sends the commands to the physics, and later to a real robot.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="520" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">From an intent to the motors</text>
+<rect x="32" y="64" width="520" height="58" rx="10" class="future"/>
+<text x="52" y="89">Intent</text>
+<text x="52" y="110" class="small">"Put the red cube in the box"</text>
+<text x="575" y="99" class="note">a user, later a language model</text>
+<path d="M292 122 L292 139" class="arrow"/>
+<rect x="32" y="140" width="520" height="58" rx="10" class="file"/>
+<text x="52" y="165">Goal</text>
+<text x="52" y="186" class="small">(inside red_cube box)</text>
+<text x="575" y="175" class="note">a structured goal</text>
+<path d="M292 198 L292 215" class="arrow"/>
+<rect x="32" y="216" width="520" height="58" rx="10" class="box"/>
+<text x="52" y="241">PDDL planner</text>
+<text x="52" y="262" class="small">which actions are needed?</text>
+<text x="575" y="251" class="note">GOAP: planned</text>
+<path d="M292 274 L292 291" class="arrow"/>
+<rect x="32" y="292" width="520" height="58" rx="10" class="box"/>
+<text x="52" y="317">Behavior tree</text>
+<text x="52" y="338" class="small">in which order, with which recovery?</text>
+<path d="M292 350 L292 367" class="arrow"/>
+<rect x="32" y="368" width="520" height="58" rx="10" class="yours"/>
+<text x="52" y="393">Skills + scheduler</text>
+<text x="52" y="414" class="small">how, on this robot; can it run now?</text>
+<path d="M292 426 L292 443" class="arrow"/>
+<rect x="32" y="444" width="520" height="58" rx="10" class="box"/>
+<text x="52" y="469">Robot API</text>
+<text x="52" y="490" class="small">MuJoCo now; a real robot: planned</text>
+</svg>

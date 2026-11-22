@@ -1,0 +1,195 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+/// @file Scenario.hpp
+/// What happens in a world, and how to tell whether it went well.
+///
+/// The scenario names its world (@ref World.hpp), the events applied during
+/// the run (faults), when the run stops and what is checked
+/// (@ref Assertions.hpp). It does not say how the robot solves the task: the
+/// @c controller section only gives the default strategy, which an
+/// experiment may replace.
+///
+/// @code
+/// scenario:
+///   id: pick_and_place
+///   description: Pick the red cube and put it in the box.
+///   world: worlds/manipulation_cell.world.yaml
+///   seed: 42
+///   controller:
+///     behavior_tree: scenarios/pick_and_place.bt.yaml
+///     # or, instead of a tree, a goal for the PDDL planner (PlannerSpec):
+///     # planner:
+///     #   domain: scenarios/pick_and_place.domain.pddl
+///     #   goal:
+///     #     - (in red_cube box)
+///   trajectories:                          # see Trajectory.hpp
+///     drop: scenarios/trajectories/drop.trajectory.yaml
+///   faults:
+///     - { at: 4.0, resource: wrist_camera, action: disable }
+///     - { resource: gripper, rate: 0.01 }
+///   perception:                            # where beliefs come from
+///     fidelity: sensed                     # truth | noisy_truth | sensed
+///     blind: truth                         # when no camera has an image
+///     overrides: { red_cube: truth }       # per object
+///   timeout: 30
+///   stop_when: (inside red_cube box)       # optional
+///   parameters:                            # free, read by the scenario logic
+///     approach_height: 0.10
+///   assertions:
+///     - controller.success
+///     - (inside red_cube box)
+/// @endcode
+///
+/// The perception fidelity says where the beliefs of the robot come from (see
+/// doc/reference/glossary.md): @c sensed runs the detectors on the camera
+/// images; @c truth copies the true pose of the objects, as a mock of the
+/// detectors; @c noisy_truth adds noise, delay and misses to it. @c blind is
+/// used when no camera has an image source (a headless run). The run report
+/// tells which level each run used. The older key @c oracle is still read
+/// (@c always is @c fidelity: @c truth, @c when_blind is @c blind: @c truth).
+///
+/// Files are relative to the package root and stay inside it
+/// (@ref PackagePath.hpp).
+///
+/// @par Contract
+/// - Promises: @c loadScenario returns a @c Result — the message names the file
+///   and the field to fix.
+/// - Expects: paths start at the package root.
+#pragma once
+
+#include "RobotIK/Common/Config.hpp"
+#include "RobotIK/Common/Result.hpp"
+#include "RobotIK/Package/Scenario/Assertions.hpp"
+#include "RobotIK/Package/Scenario/Trajectory.hpp"
+#include "RobotIK/Package/Scenario/World.hpp"
+#include "RobotIK/Robot/Assets/AssetResolver.hpp"
+#include "RobotIK/Task/Faults.hpp"
+#include "RobotIK/Task/Planning/Pddl.hpp"
+#include "RobotIK/Task/RoboticCellDescription.hpp"
+
+#include <algorithm>
+#include <cstdint>
+#include <filesystem>
+#include <map>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace robotik
+{
+// ****************************************************************************
+/// The two files of a scenario, still editable (see @ref ConfigNode).
+///
+/// Change values here, then interpret with @ref readScenario. This is how
+/// an experiment applies its @c overrides.
+///
+/// @code
+/// robotik::ScenarioSource source = robotik::loadScenarioSource(file).take();
+/// (void)robotik::overrideValue(source, "world.entities.easel.friction",
+/// robotik::ConfigNode("0.05")); (void)robotik::overrideValue(source, "scenario.timeout",
+/// robotik::ConfigNode("60")); robotik::Scenario const scenario =
+/// robotik::readScenario(source, assets).take();
+/// @endcode
+// ****************************************************************************
+struct ScenarioSource
+{
+    /// Root of the scenario file (holds @c scenario:).
+    ConfigNode scenario;
+    /// Path of the scenario file.
+    std::filesystem::path scenario_file;
+    /// Package root: the folder of @c plugin.yaml. File names start there.
+    std::filesystem::path package;
+    /// Root of the world file (holds @c world:).
+    ConfigNode world;
+    /// Path of the world file.
+    std::filesystem::path world_file;
+};
+
+// ****************************************************************************
+/// Interpreted scenario: a @ref RoboticCellDescription (what to build) plus how the
+/// run is judged (time limit, stop condition, assertions).
+///
+/// It derives from the description on purpose: what a C++ program builds by
+/// hand and what a file builds are the same data, so a test can load a
+/// scenario, change one field (the controller, a pose) and give it to a
+/// @ref RoboticCell. It is read once and not changed by the run. Free values of a
+/// scenario logic go in @c parameters, which no reader checks; every other key of
+/// the file is checked when it loads.
+///
+/// @code
+/// auto const assets = robotik::AssetResolver::standard();
+/// robotik::Scenario const scenario = robotik::loadScenario(file, assets).take();
+/// std::cout << scenario.id << ": " << scenario.world.entities.size()
+///           << " entities, timeout " << scenario.timeout.value() << " s\n";
+/// double const h = scenario.parameters.number("approach_height", 0.1);
+/// @endcode
+// ****************************************************************************
+struct Scenario: RoboticCellDescription
+{
+    /// Free text for the user.
+    std::string description;
+    /// File the scenario was read from.
+    std::filesystem::path file;
+    /// Simulated time limit; zero means none.
+    Seconds timeout{};
+    /// Condition ending the run as soon as it holds; empty for none.
+    std::string stop_when;
+    /// What is checked during and at the end of the run.
+    std::vector<AssertionSpec> assertions;
+};
+
+// ----------------------------------------------------------------------------
+/// Reads the scenario file and the world file it names.
+/// @param p_scenario A @c x.scenario.yaml file.
+/// @return Both trees, not interpreted yet; fails when a file is missing or
+///   unreadable.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<ScenarioSource> loadScenarioSource(std::filesystem::path const& p_scenario);
+
+// ----------------------------------------------------------------------------
+/// Changes one value before interpretation.
+/// @param p_source Trees to change.
+/// @param p_path Starts with @c scenario. or @c world., e.g.
+///   @c world.entities.easel.friction.
+/// @param p_value New value.
+/// @return Fails for another prefix or a broken path.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<void> overrideValue(ScenarioSource& p_source,
+                                         std::string_view p_path,
+                                         ConfigNode p_value);
+
+// ----------------------------------------------------------------------------
+/// Interprets the two files of a scenario.
+/// @param p_source Scenario and world trees, maybe overridden.
+/// @param p_assets Resolves the model names.
+/// @return The scenario; the error names the file and the field at fault, or
+///   a model missing from @p_assets.
+// ----------------------------------------------------------------------------
+[[nodiscard]] Result<Scenario> readScenario(ScenarioSource const& p_source,
+                                            AssetResolver const& p_assets);
+
+// ----------------------------------------------------------------------------
+/// Reads and interprets a scenario file and its world.
+/// @param p_path A @c x.scenario.yaml file.
+/// @param p_assets Resolves the model names.
+/// @return The scenario, or the error of @ref loadScenarioSource or
+///   @ref readScenario.
+// ----------------------------------------------------------------------------
+[[nodiscard]] inline Result<Scenario> loadScenario(std::filesystem::path const& p_path,
+                                                   AssetResolver const& p_assets)
+{
+    Result<ScenarioSource> source = loadScenarioSource(p_path);
+    if (!source)
+    {
+        return failure(source.error());
+    }
+    return readScenario(source.value(), p_assets);
+}
+
+} // namespace robotik

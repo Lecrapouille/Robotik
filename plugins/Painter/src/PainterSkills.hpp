@@ -11,8 +11,8 @@
 
 #include "PainterScene.hpp"
 
-#include "Robotik/Task/Scheduler.hpp"
-#include "Robotik/Task/Skills/MotionSkills.hpp"
+#include "RobotIK/Task/Scheduler.hpp"
+#include "RobotIK/Task/Skills/MotionSkills.hpp"
 
 #include "BlackThorn/BlackThorn.hpp"
 

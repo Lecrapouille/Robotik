@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Inside a RobotIK environment</title>
+<desc id="desc">The action vector goes through the ActionAdapter, which turns it into commands for the RoboticCell. The cell runs for one control period. The ObservationBuilder turns sensors and beliefs into the observation vector. The RewardEvaluator gives the reward and Success or Failure.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="440" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">Inside a RobotIK environment</text>
+<rect x="60" y="70" width="260" height="50" rx="10" class="box"/>
+<text x="190.0" y="101.0" text-anchor="middle">action (vector)</text>
+<rect x="580" y="70" width="260" height="50" rx="10" class="box"/>
+<text x="710.0" y="101.0" text-anchor="middle">observation (vector)</text>
+<rect x="60" y="160" width="260" height="70" rx="10" class="yours"/>
+<text x="190.0" y="190.0" text-anchor="middle">ActionAdapter</text>
+<text x="190.0" y="214.0" class="small" text-anchor="middle">vector → commands</text>
+<rect x="580" y="160" width="260" height="70" rx="10" class="yours"/>
+<text x="710.0" y="190.0" text-anchor="middle">ObservationBuilder</text>
+<text x="710.0" y="214.0" class="small" text-anchor="middle">sensors, beliefs → vector</text>
+<rect x="320" y="280" width="260" height="64" rx="10" class="box"/>
+<text x="450.0" y="307.0" text-anchor="middle">RoboticCell</text>
+<text x="450.0" y="331.0" class="small" text-anchor="middle">held for control_period</text>
+<rect x="320" y="370" width="260" height="56" rx="10" class="yours"/>
+<text x="450.0" y="393.0" text-anchor="middle">RewardEvaluator</text>
+<text x="450.0" y="417.0" class="small" text-anchor="middle">reward, Success / Failure</text>
+<path d="M190 120 L190 155" class="arrow"/>
+<path d="M190 230 L190 312 L315 312" class="arrow"/>
+<path d="M580 312 L710 312 L710 235" class="arrow"/>
+<path d="M710 160 L710 125" class="arrow"/>
+<path d="M450 344 L450 365" class="arrow"/>
+<rect x="766.2" y="24" width="18" height="18" rx="3" class="yours"/>
+<text x="792.2" y="39" class="small">your code</text>
+</svg>

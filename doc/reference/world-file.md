@@ -4,8 +4,7 @@
 
 ## 🧊 Entities
 
-The world is a list of **entities**. Each has an `id`, a `type`, a 3D model
-or a primitive shape, and a pose.
+The world is a list of **entities**. Each has an `id`, a `type`, a 3D model or a primitive shape, and a pose.
 
 ```yaml
 world:
@@ -49,35 +48,23 @@ world:
 | `body` | A simulated rigid body: a URDF model (`physics: free` or `fixed`) or a box (`free`, with `mass`) | Yes: gravity, contacts, friction |
 | `prop` | A kinematic object: it does not move, unless the robot grasps it. Shape `box` or `container` (open box) | No |
 
-Use a `prop` when you want a simple, exact scene. Use a `body` when physics
-matters: "does the easel slide when the brush pushes it?".
+Use a `prop` when you want a simple, exact scene. Use a `body` when physics matters: "does the easel slide when the brush pushes it?".
 
-Any entity may also have a `kind`: its type for the PDDL planner
-(`kind: cube`). Only entities with a `kind` are objects of the planning
-problem ([The PDDL planner](../concepts/pddl-planner.md#-what-goes-where)).
+Any entity may also have a `kind`: its type for the PDDL planner (`kind: cube`). Only entities with a `kind` are objects of the planning problem ([The PDDL planner](../concepts/05-pddl-planner.md#-what-goes-where)).
 
 ## 🏷 Models are asset ids
 
-`model: robotik.robots.robot_6axis` is not a path. It is `<pack>.<model>`: the
-file is found in an **asset pack** (`data/packs/robotik.robots/pack.yaml`).
-See [Share 3D models in an asset pack](../guides/share-3d-models.md).
+`model: robotik.robots.robot_6axis` is not a path. It is `<pack>.<model>`: the file is found in an **asset pack** (`data/packs/robotik.robots/pack.yaml`). See [Share 3D models in an asset pack](../guides/share-3d-models.md).
 
 ## 📎 Attach an entity to another
 
-`attach.parent` names an entity, or one of its links: `easel.canvas_mount` is
-the link `canvas_mount` of the easel URDF. `transform` places the entity in
-that frame. For a free body, this is only the start pose: physics decides
-after that.
+`attach.parent` names an entity, or one of its links: `easel.canvas_mount` is the link `canvas_mount` of the easel URDF. `transform` places the entity in that frame. For a free body, this is only the start pose: physics decides after that.
 
-The URDF describes a *model*. The world describes an *instance*: where it is,
-and on what it depends.
+The URDF describes a *model*. The world describes an *instance*: where it is, and on what it depends.
 
 ## 🔧 Tools
 
-A tool is always mounted by its link `tool_mount` on the robot flange
-(`robot.flange`). Only one tool is mounted on a robot at a time. Tools declared without
-`attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can
-mount one instead. Details in [Tools and frames](../concepts/tools-and-frames.md).
+A tool is always mounted by its link `tool_mount` on the robot flange (`robot.flange`). Only one tool is mounted on a robot at a time. Tools declared without `attach` are **in storage**: not built, but the simulator **Teach Pendant** panel can mount one instead. Details in [Tools and frames](../concepts/03-tools-and-frames.md).
 
 ```yaml
     - id: vacuum
@@ -89,10 +76,7 @@ mount one instead. Details in [Tools and frames](../concepts/tools-and-frames.md
     - { id: drill, type: tool, model: robotik.tools.drill }    # in storage
 ```
 
-A tool that works **by contact** (a drill on its workpiece, a probe) lists
-what it may touch. Its contacts with these entities are its work, not
-collisions (`collision_count` does not count them); any other contact still
-counts. From the DualArm tray cell:
+A tool that works **by contact** (a drill on its workpiece, a probe) lists what it may touch. Its contacts with these entities are its work, not collisions (`collision_count` does not count them); any other contact still counts. From the DualArm tray cell:
 
 ```yaml
     - id: right_drill
@@ -103,15 +87,11 @@ counts. From the DualArm tray cell:
       touches: [tray]
 ```
 
-Only a tool has `touches`, and each name must be another entity of the
-world; otherwise the world is refused.
+Only a tool has `touches`, and each name must be another entity of the world; otherwise the world is refused.
 
 ## 👥 Several robots
 
-A world may have several entities of type `robot`: two arms of a cell, an
-arm and a mobile base. They share **one** physics (MuJoCo), **one** resource
-manager, **one** skill scheduler and **the beliefs**. From the DualArm tray
-cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
+A world may have several entities of type `robot`: two arms of a cell, an arm and a mobile base. They share **one** physics (MuJoCo), **one** resource manager, **one** skill scheduler and **the beliefs**. From the DualArm tray cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
 
 ```yaml
     - id: left
@@ -139,33 +119,19 @@ cell (`plugins/DualArm/worlds/tray_cell.world.yaml`):
 Rules:
 
 - Each robot has its own tool: `attach: { parent: <robot>.flange, frame: tool_mount }`.
-- The names of the sensors and actuators are **unique in the world**
-  (`left_arm`, `right_arm`): they are the names of the resources, and the
-  robots share the resource manager. A second `gripper` is refused when the
-  world is loaded.
-- Each robot keeps the names of its own URDF: both arms have a `joint1`.
-  In the same way, two `body` entities may use the same model (the two
-  stands of the tray cell).
-- A `joint_group` without `joints` takes every joint of the robot, the
-  joints of its tool too (the spindle of a drill). List the arm joints when
-  the tool has joints of its own.
-- The first robot of the file is `RoboticCell::robot()`. The others are
-  `RoboticCell::robot("right")`; all of them are `RoboticCell::robots()`.
-- The skills of the core are named after the robot: `left.Home`,
-  `right.Stop`. With one robot they stay `Home` and `Stop`.
-- The queries take the robot id: `pose(right.tcp)`, `(collision_count left)`,
-  `(joint_limits_respected right)`. A contact with the other robot is a
-  collision.
-- The shared beliefs are in the **world frame** (with one robot, they stay
-  in its base frame: see [Truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)).
+- The names of the sensors and actuators are **unique in the world** (`left_arm`, `right_arm`): they are the names of the resources, and the robots share the resource manager. A second `gripper` is refused when the world is loaded.
+- Each robot keeps the names of its own URDF: both arms have a `joint1`. In the same way, two `body` entities may use the same model (the two stands of the tray cell).
+- A `joint_group` without `joints` takes every joint of the robot, the joints of its tool too (the spindle of a drill). List the arm joints when the tool has joints of its own.
+- The first robot of the file is `RoboticCell::robot()`. The others are `RoboticCell::robot("right")`; all of them are `RoboticCell::robots()`.
+- The skills of the core are named after the robot: `left.Home`, `right.Stop`. With one robot they stay `Home` and `Stop`.
+- The queries take the robot id: `pose(right.tcp)`, `(collision_count left)`, `(joint_limits_respected right)`. A contact with the other robot is a collision.
+- The shared beliefs are in the **world frame** (with one robot, they stay in its base frame: see [Truth, description and belief](../concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief)).
 
-How a skill drives one robot of the cell:
-[Several robots](../concepts/skills-and-behavior-trees.md#-several-robots).
+How a skill drives one robot of the cell: [Several robots](../concepts/04-skills-and-behavior-trees.md#-several-robots).
 
 ## 📡 Sensors and actuators
 
-Each sensor and each actuator is also a **resource** with the same name:
-skills reserve it, faults make it unavailable.
+Each sensor and each actuator is also a **resource** with the same name: skills reserve it, faults make it unavailable.
 
 ```yaml
       sensors:
@@ -200,8 +166,4 @@ skills reserve it, faults make it unavailable.
 | `motor` | one joint |
 | `vacuum` | a vacuum gripper: grasps what touches it |
 
-**Noise.** A noise channel is a standard deviation (`noise: 0.01`) or a full
-model `{ sigma, bias, resolution, saturation: [min, max] }`, applied in this
-order. `latency` delays the delivery of a measure; the measure keeps its
-capture time. Every reading has a common header: time stamp, frame, sequence
-number, validity (false while the resource is in fault).
+**Noise.** A noise channel is a standard deviation (`noise: 0.01`) or a full model `{ sigma, bias, resolution, saturation: [min, max] }`, applied in this order. `latency` delays the delivery of a measure; the measure keeps its capture time. Every reading has a common header: time stamp, frame, sequence number, validity (false while the resource is in fault).

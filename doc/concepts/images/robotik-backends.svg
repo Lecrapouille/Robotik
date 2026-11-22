@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">RobotIK and its backends</title>
+<desc id="desc">RobotIK has three parts: the robot API, the autonomy (skills, behavior trees, scheduler) and the scenarios. All three reach the world through backends: Pinocchio for kinematics, MuJoCo for physics, Compages for the 3D world, and later a hardware backend.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="420" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">RobotIK: three parts on top of backends</text>
+<rect x="300" y="64" width="300" height="50" rx="10" class="box"/>
+<text x="450.0" y="95.0" text-anchor="middle">RobotIK</text>
+<path d="M450 114V134M150 134H750M150 134V154M450 134V154M750 134V154" class="line"/>
+<rect x="40" y="159" width="220" height="70" rx="10" class="box"/>
+<text x="150.0" y="189.0" text-anchor="middle">Robot API</text>
+<text x="150.0" y="213.0" class="small" text-anchor="middle">joints, sensors</text>
+<rect x="340" y="159" width="220" height="70" rx="10" class="box"/>
+<text x="450.0" y="189.0" text-anchor="middle">Autonomy</text>
+<text x="450.0" y="213.0" class="small" text-anchor="middle">skills · trees · scheduler</text>
+<rect x="640" y="159" width="220" height="70" rx="10" class="box"/>
+<text x="750.0" y="189.0" text-anchor="middle">Scenarios</text>
+<text x="750.0" y="213.0" class="small" text-anchor="middle">files, verdicts</text>
+<path d="M150 229 L150 259" class="arrow"/>
+<path d="M450 229 L450 259" class="arrow"/>
+<path d="M750 229 L750 259" class="arrow"/>
+<rect x="32" y="264" width="836" height="46" rx="10" class="box"/>
+<text x="450.0" y="293.0" text-anchor="middle">Backends</text>
+<path d="M129 310 L129 335" class="arrow"/>
+<rect x="32" y="340" width="194" height="64" rx="10" class="lib"/>
+<text x="129.0" y="367.0" text-anchor="middle">Pinocchio</text>
+<text x="129.0" y="391.0" class="small" text-anchor="middle">kinematics</text>
+<path d="M343 310 L343 335" class="arrow"/>
+<rect x="246" y="340" width="194" height="64" rx="10" class="lib"/>
+<text x="343.0" y="367.0" text-anchor="middle">MuJoCo</text>
+<text x="343.0" y="391.0" class="small" text-anchor="middle">physics</text>
+<path d="M557 310 L557 335" class="arrow"/>
+<rect x="460" y="340" width="194" height="64" rx="10" class="lib"/>
+<text x="557.0" y="367.0" text-anchor="middle">Compages</text>
+<text x="557.0" y="391.0" class="small" text-anchor="middle">3D world</text>
+<path d="M771 310 L771 335" class="arrow"/>
+<rect x="674" y="340" width="194" height="64" rx="10" class="future"/>
+<text x="771.0" y="367.0" text-anchor="middle">Hardware</text>
+<text x="771.0" y="391.0" class="small" text-anchor="middle">SO-101…, planned</text>
+<rect x="590.8" y="24" width="18" height="18" rx="3" class="lib"/>
+<text x="616.8" y="39" class="small">third-party library</text>
+<rect x="782.5999999999999" y="24" width="18" height="18" rx="3" class="future"/>
+<text x="808.5999999999999" y="39" class="small">planned</text>
+</svg>

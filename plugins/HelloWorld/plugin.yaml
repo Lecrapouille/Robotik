@@ -1,4 +1,5 @@
-# Tutorial package. Each scenario is one lesson, see doc/tutorials/04-your-first-plugin.md.
+# Tutorial package. Each scenario is one lesson: doc/tutorials/04-your-first-plugin.md
+# (lesson 1), 05-move-the-arm.md (lessons 2, 3), 06-skills-and-a-behavior-tree.md (4).
 plugin:
   id: robotik.hello_world
   name: Hello world

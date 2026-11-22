@@ -16,8 +16,8 @@
 #include "Floor.hpp"
 #include "LineFollowerLogic.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/Skills/SkillNodes.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Task/Skills/SkillNodes.hpp"
 
 #include "Compages/World/World.hpp"
 

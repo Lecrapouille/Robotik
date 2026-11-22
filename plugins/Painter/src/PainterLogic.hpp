@@ -9,7 +9,7 @@
 
 #include "PainterScene.hpp"
 
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 #include <map>
 #include <string>

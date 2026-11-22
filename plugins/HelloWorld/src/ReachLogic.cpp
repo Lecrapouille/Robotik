@@ -7,7 +7,7 @@
 
 #include "ReachLogic.hpp"
 
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <optional>

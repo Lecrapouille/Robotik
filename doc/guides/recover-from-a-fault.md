@@ -2,17 +2,11 @@
 
 [⏫ Guides](README.md)
 
-A real robot loses a camera, a gripper or an arm during a job. This guide
-breaks a device of the HelloWorld skills scenario on purpose, then makes the
-behavior tree react to it. Faults are listed in
-[the scenario file](../reference/scenario-file.md); the resources and the
-scheduler are explained in
-[Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
+A real robot loses a camera, a gripper or an arm during a job. This guide breaks a device of the HelloWorld skills scenario on purpose, then makes the behavior tree react to it. Faults are listed in [the scenario file](../reference/scenario-file.md); the resources and the scheduler are explained in [Skills, the scheduler and behavior trees](../concepts/04-skills-and-behavior-trees.md).
 
 ## 💥 Inject a fault
 
-In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just
-before `timeout`:
+In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault on the arm, just before `timeout`:
 
 ```yaml
   faults:
@@ -21,7 +15,7 @@ before `timeout`:
 
 ```bash
 make robotik_hello_world
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -30,15 +24,11 @@ make robotik_hello_world
 [FAIL] controller.success  (controller.success = 0)
 ```
 
-The skill `Wave` was running; at 1 s it lost the arm and failed. No code was
-written to handle this fault: the scheduler did it. How the robot *reacts* is
-the job of the behavior tree: see
-[Recover from a fault](#-recover-from-a-fault).
+The skill `Wave` was running; at 1 s it lost the arm and failed. No code was written to handle this fault: the scheduler did it. How the robot *reacts* is the job of the behavior tree: see [Recover from a fault](#-recover-from-a-fault).
 
 ## 🩹 Recover from a fault
 
-Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`,
-add a fault that takes the arm away between 1 s and 2 s:
+Start from HelloWorld lesson 4. In `plugins/HelloWorld/scenarios/skills.scenario.yaml`, add a fault that takes the arm away between 1 s and 2 s:
 
 ```yaml
   faults:
@@ -50,7 +40,7 @@ add a fault that takes the arm away between 1 s and 2 s:
 
 ```bash
 make robotik_hello_world
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
 ```
 
 ```text
@@ -59,8 +49,7 @@ make robotik_hello_world
 [FAIL] controller.success  (controller.success = 0)
 ```
 
-**Step 2: retry.** Change the tree to retry `Wave` until it works. This is
-exactly `scenarios/skills_retry.bt.yaml`:
+**Step 2: retry.** Change the tree to retry `Wave` until it works. This is exactly `scenarios/skills_retry.bt.yaml`:
 
 ```yaml
       - UntilSuccess:
@@ -81,9 +70,6 @@ exactly `scenarios/skills_retry.bt.yaml`:
 [PASS] controller.success  (controller.success = 1)
 ```
 
-Look at what you did **not** write: no `if (arm_broken)` in the skill, no
-special code in the scenario logic. The **fault** is a fact (the scheduler sees
-it); the **reaction** is a decision (the tree makes it). Two separate jobs.
+Look at what you did **not** write: no `if (arm_broken)` in the skill, no special code in the scenario logic. The **fault** is a fact (the scheduler sees it); the **reaction** is a decision (the tree makes it). Two separate jobs.
 
-The HelloWorld experiment compares both trees on the same faulty scenario:
-see [The experiment file](../reference/experiment-file.md).
+The HelloWorld experiment compares both trees on the same faulty scenario: see [The experiment file](../reference/experiment-file.md).

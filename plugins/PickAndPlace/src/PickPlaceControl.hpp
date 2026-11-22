@@ -7,14 +7,14 @@
 
 /// @file PickPlaceControl.hpp
 /// Pick and place as a learning task: observation, action and reward,
-/// shared by the RL plugin (one rendered episode) and Robotik-PickAndPlaceRL
+/// shared by the RL plugin (one rendered episode) and RobotIK-PickAndPlaceRL
 /// (a pool of headless environments), plus the scripted policies.
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Common/Random.hpp"
-#include "Robotik/Robot/RobotSession.hpp"
-#include "Robotik/Task/Learning/SimulationEnvironment.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Common/Random.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Task/Learning/SimulationEnvironment.hpp"
 
 #include <cstdint>
 #include <span>

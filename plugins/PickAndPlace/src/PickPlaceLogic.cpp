@@ -11,8 +11,8 @@
 
 #include "PickPlacePlanning.hpp"
 #include "PickPlaceSkills.hpp"
-#include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Robot/Components/Objects.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 static constexpr double APPROACH_CLEARANCE = 0.10;
 static constexpr double TRANSIT_CLEARANCE = 0.22;

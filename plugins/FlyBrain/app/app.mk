@@ -5,9 +5,9 @@
 #
 # Demo: a fly brain closed loop, headless or in Compages.
 
-TARGETS += Robotik-Fly
-Robotik-Fly.DESCRIPTION := Demo: a fly brain closed loop, headless or in Compages
-Robotik-Fly.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
-Robotik-Fly.INCLUDES := . ../src
-Robotik-Fly.DEPENDS := robotik-core Compages
-Robotik-Fly.PKG_CONFIG := glfw3 glew gl
+TARGETS += RobotIK-Fly
+RobotIK-Fly.DESCRIPTION := Demo: a fly brain closed loop, headless or in Compages
+RobotIK-Fly.SOURCES := main.cpp $(filter-out ../src/Plugin.cpp,$(patsubst $(HERE)%,%,$(wildcard $(HERE)../src/*.cpp)))
+RobotIK-Fly.INCLUDES := . ../src
+RobotIK-Fly.DEPENDS := robotik-core Compages
+RobotIK-Fly.PKG_CONFIG := glfw3 glew gl

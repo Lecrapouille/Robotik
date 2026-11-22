@@ -12,7 +12,7 @@
 #include "ConveyorLogic.hpp"
 #include "TrayLogic.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
 
 /// Loads the scenario logic chosen by the scenario.
 class DualArmPlugin final: public robotik::ScenarioPlugin

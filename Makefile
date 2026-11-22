@@ -5,23 +5,27 @@
 # for users who cannot use the GPL, under a commercial license.
 # See LICENSING.md for details.
 
-PROJECT_NAME := Robotik
+PROJECT_NAME := RobotIK
 PROJECT_VERSION := 0.4.0
 COMPILATION_MODE ?= debug
 CXX_STANDARD := c++20
 
-#? The plugins built. MicroDuck and HumanoidWalk fetch large models: add them
-#? with PLUGINS+="MicroDuck HumanoidWalk". FlyBrain uses the whole connectome
+#? The plugins built. PLUGINS="A B" builds only A and B. MicroDuck and
+#? HumanoidWalk fetch large models: add them to the list with
+#? EXTRA_PLUGINS="MicroDuck HumanoidWalk" (PLUGINS+= on the command line
+#? replaces the list, it does not add). FlyBrain uses the whole connectome
 #? of the fly (about 100 MB) with FLYBRAIN_CONNECTOME=1.
 PLUGINS ?= HelloWorld Painter PickAndPlace DualArm LineFollower FlyBrain
+EXTRA_PLUGINS ?=
+override PLUGINS := $(sort $(PLUGINS) $(EXTRA_PLUGINS))
 
 ###############################################################################
 # The core library, its applications, the plugins and the tests, each
 # declared in the directory of its sources. Compages and BlackThorn are
 # compiled from their sources (external/external.mk).
 #
-SUBMAKEFILES := external/external.mk src/Robotik/robotik.mk simulator/simulator.mk \
-    headless/headless.mk plugins/plugin.mk \
+SUBMAKEFILES := external/external.mk src/RobotIK/robotik.mk src/Simulator/simulator.mk \
+    src/Headless/headless.mk plugins/plugin.mk \
     $(foreach p,$(PLUGINS),plugins/$p/$p.mk $(wildcard plugins/$p/app/app.mk)) \
     tests/tests.mk
 
@@ -50,18 +54,18 @@ check-layers:
 ASAN_SANITIZER := $(if $(wildcard /usr/lib64/libubsan.so* /usr/lib/x86_64-linux-gnu/libubsan.so*),address$(COMMA)undefined,address)
 .PHONY: check-asan
 check-asan:
-	$(Q)$(MAKE) --no-print-directory BUILD_DIR=build-asan SANITIZER=$(ASAN_SANITIZER) all Robotik-tests
+	$(Q)$(MAKE) --no-print-directory BUILD_DIR=build-asan SANITIZER=$(ASAN_SANITIZER) all RobotIK-tests
 	$(Q)ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
-	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/Robotik-tests
+	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/RobotIK-tests
 	$(Q)ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 \
-	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/Robotik-tests --gtest_shuffle
+	    build-asan/linux-gcc-debug-$(subst $(COMMA),-,$(ASAN_SANITIZER))/bin/RobotIK-tests --gtest_shuffle
 
 #? Run the tests of the debug build under valgrind memcheck: it sees the
 #? values read before they are written (ASan does not).
 .PHONY: check-valgrind
-check-valgrind: Robotik-tests
+check-valgrind: RobotIK-tests
 	$(Q)valgrind --error-exitcode=1 --track-origins=yes --leak-check=no \
-	    $(BUILD)/bin/Robotik-tests
+	    $(BUILD)/bin/RobotIK-tests
 
 #? Check that the relative links of the Markdown files resolve.
 .PHONY: check-links

@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Task/Grasp/ContainerBounds.hpp"
+#include "RobotIK/Task/Grasp/ContainerBounds.hpp"
 
 using robotik::Vector3;
 using robotik::ecs::Shape;

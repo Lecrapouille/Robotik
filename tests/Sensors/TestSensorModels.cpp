@@ -9,11 +9,11 @@
 
 #include "PickPlaceLogic.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Common/Config.hpp"
-#include "Robotik/Package/Scenario/World.hpp"
-#include "Robotik/Robot/Sensors/Imu.hpp"
-#include "Robotik/Robot/Sensors/Noise.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Common/Config.hpp"
+#include "RobotIK/Package/Scenario/World.hpp"
+#include "RobotIK/Robot/Sensors/Imu.hpp"
+#include "RobotIK/Robot/Sensors/Noise.hpp"
 
 #include "Compages/World/World.hpp"
 

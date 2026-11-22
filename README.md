@@ -6,8 +6,7 @@
 
 > ⚠️ **Active project: the API is still evolving.** Scenarios, demos and tests are the best examples of the current API. No physical robot has been driven yet.
 
-> **🌐 Try the online version instantly:**
-> 👉 [Click here to launch the Robotik Simulator in your browser!](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html)
+> **🌐 Try the online version instantly:** 👉 [Click here to launch the RobotIK Simulator in your browser!](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html)
 
 ---
 
@@ -22,20 +21,9 @@ You want a robot arm to pick a red cube and drop it in a box. The motion itself 
 
 RobotIK gives you a frame for all of this. You describe the **world** and the **mission** in YAML, you write the robot's **skills** in C++, and RobotIK runs them on simulated physics, judges the result, and shows you everything that happened.
 
-```text
-   world.yaml            scenario.yaml                 skills (C++)
-robot, cube, box     goal, faults, assertions     Detect, Grasp, Release…
-         └──────────────────────┼─────────────────────────┘
-                                ▼
-                             RobotIK
-                                │
-          ┌─────────────────────┼─────────────────────┬──────────────────┐
-          ▼                     ▼                     ▼                  ▼
-     3D simulator          headless test          RL environment      real robot
-    (see and debug)      (PASS / FAIL in CI)      (N in parallel)     (planned)
-```
+![You write a world file, a scenario file and skills in C++; RobotIK runs them in the 3D simulator, as a headless test in CI, as a reinforcement learning environment, and later on a real robot.](doc/images/mission-four-ways.svg)
 
-New to robotics? [The introduction](doc/concepts/robotics-in-ten-minutes.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
+New to robotics? [The introduction](doc/concepts/01-robotics-in-ten-minutes.md) explains joints, frames, kinematics, skills and behavior trees in ten minutes, with no code.
 
 ---
 
@@ -88,12 +76,12 @@ What this gives you:
 Let us follow the **pick-and-place** demo from the files to the result: A robot with a camera on its wrist, picks a red cube and places it inside a box. Everything of a demo lives in one folder, a **plugin**, that RobotIK loads at run time:
 
 ```text
-plugins/PickAndPlace/
-├── plugin.yaml          📦 the name of the plugin and the list of its scenarios
-├── worlds/              🌍 what exists
-├── src/                 🔧 the skills, in C++
-├── scenarios/           🎬 what happens and what is checked (+ the behavior tree)
-└── experiments/         🧪 the variants to compare
+📦 plugins/PickAndPlace/
+┣ 📄 plugin.yaml     ⬅️ the name of the plugin and the list of its scenarios
+┣ 📂 worlds/         ⬅️ what exists
+┣ 📂 src/            ⬅️ the skills, in C++
+┣ 📂 scenarios/      ⬅️ what happens and what is checked (+ the behavior tree)
+┗ 📂 experiments/    ⬅️ the variants to compare
 ```
 
 ### 🌍 1. The world: what exists
@@ -158,7 +146,7 @@ The tree only uses the names of the skills. It says the order, and what to do wh
 - Action: { name: Grasp(red_cube) }
 ```
 
-Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([The PDDL planner](doc/concepts/pddl-planner.md)).
+Instead of a predefined tree, a scenario can give a **goal** ("the cube shall be inside the box"): the PDDL planner then finds the actions itself as beaavior tree, and plans again when one fails ([The PDDL planner](doc/concepts/05-pddl-planner.md)).
 
 ### 🎬 4. The scenario: what happens, and what is checked
 
@@ -186,7 +174,7 @@ scenario:
 Run it without a window, the way CI does:
 
 ```text
-$ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
+$ ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place_faults.scenario.yaml --trace
 
   0.99 s  Detect(red_cube)  FAILED (unavailable: wrist_camera)  (0 s)
   1.01 s  Detect(red_cube)  SUCCEEDED  (0.01 s)
@@ -205,7 +193,7 @@ $ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik
 pick_and_place_faults: 1/1 runs passed
 ```
 
-The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/linux-gcc-debug/bin/Robotik-Simulator` to watch the arm, the tree and the skills live.
+The tree retried `Detect` until the camera came back, then the robot went on from what it had seen when the camera died for good. The exit code is 0: **this is a test**. Open the same file in `./build/linux-gcc-debug/bin/RobotIK-Simulator` to watch the arm, the tree and the skills live.
 
 ### 🧪 5. The experiment: the same task, several ways
 
@@ -232,7 +220,7 @@ experiment:
 ```
 
 ```text
-$ ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
+$ ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/experiments/pick_and_place.experiment.yaml
 [PASS] nominal                  seed=11     controller succeeded at 7.4 s ...  time=7.4  (collision_count robot)=0  (distance red_cube box)=0.0149
 [PASS] wide_layout              seed=12     controller succeeded at 7.54 s ...  time=7.54  (collision_count robot)=0  (distance red_cube box)=0.0149
 [PASS] rigid                    seed=13     controller succeeded at 7.4 s ... (physics rigid)  time=7.4  (collision_count robot)=0  (distance red_cube box)=0.0337539
@@ -281,7 +269,7 @@ scenario:
     overrides: { red_cube: truth }   # a mock of the detector, for this cube only
 ```
 
-Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [Truth, description and belief](doc/concepts/worlds-scenarios-experiments.md#-truth-description-and-belief).
+Skills still read only their beliefs, and the planner counts an effect as done only when the beliefs show it. Details: [Truth, description and belief](doc/concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief).
 
 ---
 
@@ -293,7 +281,7 @@ RobotIK does not rewrite robotics. It makes proven libraries work together behin
 |---------|-----------------|
 | 🦾 [MuJoCo](https://github.com/google-deepmind/mujoco) | physics, contacts, sensors |
 | 🤖 [Pinocchio](https://github.com/stack-of-tasks/pinocchio) | kinematics: forward, inverse, Jacobians |
-| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([The PDDL planner](doc/concepts/pddl-planner.md)) |
+| 🤔 [Kairos](https://github.com/PlanSys2/kairos) | PDDL planner: a goal instead of a tree ([The PDDL planner](doc/concepts/05-pddl-planner.md)) |
 | 🌳 [BlackThorn](https://github.com/Lecrapouille/BlackThorn) | behavior trees in YAML, and the Oakular editor in the simulator ([docs](https://github.com/Lecrapouille/BlackThorn/blob/master/doc/README.md)) |
 | 🧱 [Compages](https://github.com/Lecrapouille/Compages) | the world (World layer, headless), the 3D view and live textures (Renderer layer, on top of the GPU layer) ([docs](https://github.com/Lecrapouille/Compages#-documentation)) |
 | OpenCV, AprilTag, ONNX Runtime | only in the plugins that need them |
@@ -314,17 +302,7 @@ A skill never asks "am I simulated?". It drives the robot through one API (`robo
 
 ## 🧭 Where it goes
 
-```text
-"Put the red cube in the box"         ← intent (user, later an LLM)
-              │
-     PDDL planner ✅ · GOAP 🔜        ← which actions are needed?
-              │
-       behavior tree ✅               ← in which order, with which recovery?
-              │
-          skills ✅                   ← how, on this robot
-              │
-   MuJoCo ✅ · real robot 🔜
-```
+![From an intent to the motors: goal, PDDL planner, behavior tree, skills and scheduler, robot API.](doc/images/decision-layers.svg)
 
 - ✅ behavior trees, PDDL planning with replanning, skills with resources, faults, assertions, experiments, RL environments;
 - 🔜 a real robot backend (SO-ARM101), GOAP, Prolog to query the world, an LLM front-end that stays at the level of intent and never drives the motors.
@@ -345,13 +323,13 @@ git clone https://github.com/Lecrapouille/RobotIK --recurse-submodules
 cd RobotIK
 make
 
-./build/linux-gcc-debug/bin/Robotik-Simulator          # Demos menu: every plugin and its scenarios
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
-./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
+./build/linux-gcc-debug/bin/RobotIK-Simulator          # Demos menu: every plugin and its scenarios
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/PickAndPlace/scenarios/pick_and_place.scenario.yaml
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/Painter/experiments/painter.experiment.yaml --report painting.json
+./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
 
-A web version, built with Emscripten by the CI: [Robotik-Simulator.html](https://lecrapouille.github.io/Robotik/Robotik-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).
+A web version, built with Emscripten by the CI: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).
 
 Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [Your first plugin](doc/tutorials/04-your-first-plugin.md).
 
@@ -359,13 +337,13 @@ Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tuto
 
 ## 📚 Documentation
 
-Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, read [Robotics in ten minutes](doc/concepts/robotics-in-ten-minutes.md) first. The map of every page, with quick paths, is in [doc/README.md](doc/README.md).
+Start with the [tutorials](doc/tutorials/README.md). If robotics is new to you, read [Robotics in ten minutes](doc/concepts/01-robotics-in-ten-minutes.md) first. The map of every page, with quick paths, is in [doc/README.md](doc/README.md).
 
 | Folder | Kind | Pages |
 |--------|------|-------|
-| 🎓 [Tutorials](doc/tutorials/README.md) | learn by doing, in order | getting started, three programs, a cube in a box, your first plugin, your own plugin, a planned pick and place |
+| 🎓 [Tutorials](doc/tutorials/README.md) | learn by doing, in order | getting started, three programs, a cube in a box, your first plugin, move the arm, a skill and a behavior tree, your own plugin, a planned pick and place, see and grasp |
 | 🧭 [Guides](doc/guides/README.md) | the steps of one task | mount a tool, share 3D models, write a skill, write tree nodes, recover from a fault, reinforcement learning, write a good demo |
-| 💡 [Concepts](doc/concepts/README.md) | why it works this way | robotics in ten minutes, worlds and scenarios, skills and behavior trees, the PDDL planner, tools and frames, architecture |
+| 💡 [Concepts](doc/concepts/README.md) | why it works this way | robotics in ten minutes, worlds and scenarios, tools and frames, skills and behavior trees, the PDDL planner, architecture |
 | 📖 [Reference](doc/reference/README.md) | one fact at a time | world, scenario and experiment files, plugins, the planner, the API, the glossary |
 | 🎬 [Case studies](doc/case-studies/README.md) | one demo from end to end | HelloWorld, pick and place, painter, line follower, RL, fly brain, humanoid walk, dual arm, micro duck |
 

@@ -9,7 +9,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/OpenRoboticCell.hpp"
 
 #include <limits>
 #include <stdexcept>

@@ -7,9 +7,9 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Robot/OpenRobot.hpp"
-#include "Robotik/Task/Grasp/GraspModel.hpp"
+#include "RobotIK/Robot/Actuators.hpp"
+#include "RobotIK/Robot/OpenRobot.hpp"
+#include "RobotIK/Task/Grasp/GraspModel.hpp"
 
 #include "Compages/World/World.hpp"
 

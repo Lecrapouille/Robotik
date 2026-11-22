@@ -4,7 +4,7 @@
 # This file is part of RobotIK. See LICENSING.md for details.
 #
 # The plugin HumanoidWalk: a LimX humanoid walking by a learned policy
-# (built only with PLUGINS+=HumanoidWalk). Paths are relative to this
+# (built only with EXTRA_PLUGINS=HumanoidWalk). Paths are relative to this
 # directory.
 
 $(eval $(ROBOTIK_ONNXRUNTIME))

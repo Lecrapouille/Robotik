@@ -2,20 +2,13 @@
 
 [⏫ Reference](README.md)
 
-The classes a plugin author uses, grouped by task. For each one: the header,
-what it is for, and its main methods. The headers have more details in their
-comments; this page tells you where to look.
+The classes a plugin author uses, grouped by task. For each one: the header, what it is for, and its main methods. The headers have more details in their comments; this page tells you where to look.
 
 Conventions in the code:
 
-- namespace `robotik`; units from `Robotik/Common/Math.hpp` (`Seconds`,
-  `Radians`, …), the same types as Compages (`compages::si`);
-- headers are in three layers (see [Architecture](../concepts/architecture.md)
-  and the [glossary](glossary.md)): `Robotik/Robot/` (one robot),
-  `Robotik/Task/` (a job in C++), `Robotik/Package/` (files and plugins),
-  plus `Robotik/Common/`;
-- reading a file returns a `Result` (`if (!r) … r.error()`, then
-  `r.value()` or `r.take()`); a mistake in the code throws;
+- namespace `robotik`; units from `RobotIK/Common/Math.hpp` (`Seconds`, `Radians`, …), the same types as Compages (`compages::si`);
+- headers are in three layers (see [Architecture](../concepts/06-architecture.md) and the [glossary](glossary.md)): `RobotIK/Robot/` (one robot), `RobotIK/Task/` (a job in C++), `RobotIK/Package/` (files and plugins), plus `RobotIK/Common/`;
+- reading a file returns a `Result` (`if (!r) … r.error()`, then `r.value()` or `r.take()`); a mistake in the code throws;
 - parameters start with `p_`, members with `m_`;
 - SI units everywhere: metres, radians, seconds, newtons;
 - z up, like URDF.
@@ -35,12 +28,11 @@ Conventions in the code:
 | Find a 3D model | `AssetResolver` | [Assets](#-assets) |
 | Make an RL environment | `Environment`, `SimulationEnvironment` | [Learning](#-learning) |
 
-One umbrella header includes everything: `#include "Robotik/Robotik.hpp"`.
+One umbrella header includes everything: `#include "RobotIK/RobotIK.hpp"`.
 
 ## 🔌 Plugin API
 
-Header: `Robotik/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border
-`Robotik/Package/Plugin/PluginABI.h`).
+Header: `RobotIK/Package/Plugin/PluginAPI.hpp` (C++ helper over the C border `RobotIK/Package/Plugin/PluginABI.h`).
 
 ### 🔌 `robotik::ScenarioPlugin`
 
@@ -69,8 +61,7 @@ ROBOTIK_EXPORT_PLUGIN(PainterPlugin)
 
 ### 🔌 `robotik::Plugin`
 
-Base class of `ScenarioPlugin`, for a plugin that chooses its scenario logic another
-way. Override only what you need; every method does nothing by default.
+Base class of `ScenarioPlugin`, for a plugin that chooses its scenario logic another way. Override only what you need; every method does nothing by default.
 
 | Method | Called |
 |--------|--------|
@@ -78,16 +69,14 @@ way. Override only what you need; every method does nothing by default.
 | `setup(Host&, std::string_view scenario)` | Before the simulation exists. Create the scenario logic, `bindLogic`, menus, panels |
 | `start(Host&)` | The run starts |
 | `update(Host&, Seconds dt)` | After each step (or instead of it with `host.clock: plugin`) |
-| `onEvent(Host&, RobotikEvent const&)` | A subscribed event |
+| `onEvent(Host&, RobotIKEvent const&)` | A subscribed event |
 | `pause(Host&, bool paused)` | Pause / Play |
 | `stop(Host&)` | End of the run; the simulation still exists |
 | `shutdown(Host&)` | Free the scenario logic; the simulation is destroyed |
 
 Then, once, in one `.cpp` file: `ROBOTIK_EXPORT_PLUGIN(MyPlugin)`.
 
-A method that cannot go on throws. The exception is caught at the C border
-and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
-`setup`, `ROBOTIK_PLUGIN_ERR_RUNTIME` from the others.
+A method that cannot go on throws. The exception is caught at the C border and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from `setup`, `ROBOTIK_PLUGIN_ERR_RUNTIME` from the others.
 
 ### 🏠 `robotik::Host`
 
@@ -96,7 +85,7 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 | `bindLogic(ScenarioLogic&)` | The scenario logic the simulation will use. Call it in `setup` |
 | `Simulation* simulation()` | The running simulation, or null |
 | `log(level, text)`, `error(text)` | Messages. Levels `ROBOTIK_LOG_INFO / _WARNING / _ERROR` |
-| `subscribe(RobotikEventKind)` | Receive this kind of event |
+| `subscribe(RobotIKEventKind)` | Receive this kind of event |
 | `addMenuItem(menu, item, std::function<void()>)` | Simulator menu entry; returns a handle |
 | `addPanel(id, title, std::function<void(Canvas const&)>)` | Simulator panel; returns a handle |
 | `removeUi(handle)` | Remove a menu entry or a panel |
@@ -104,7 +93,7 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 
 `Host` is a small value (a pointer); you may keep a copy in your plugin.
 
-### 📨 `RobotikEvent`
+### 📨 `RobotIKEvent`
 
 | `kind` | Fields |
 |--------|--------|
@@ -117,15 +106,11 @@ and reported to the user; the host gets `ROBOTIK_PLUGIN_ERR_SETUP` from
 
 Valid only during the draw callback.
 
-`text(line)`, `textColored(r, g, b, line)`, `bool button(label)`,
-`bool checkbox(label, bool&)`, `bool radio(label, bool active)`,
-`bool sliderInt(label, int&, min, max)`,
-`separator()`. The `bool` results are true when the user acted.
+`text(line)`, `textColored(r, g, b, line)`, `bool button(label)`, `bool checkbox(label, bool&)`, `bool radio(label, bool active)`, `bool sliderInt(label, int&, min, max)`, `separator()`. The `bool` results are true when the user acted.
 
 ## 🎯 `ScenarioLogic`
 
-Header: `Robotik/Task/ScenarioLogic.hpp`. What your plugin adds to a generic
-simulation. All methods are optional.
+Header: `RobotIK/Task/ScenarioLogic.hpp`. What your plugin adds to a generic simulation. All methods are optional.
 
 | Method | Called | Typical use |
 |--------|--------|-------------|
@@ -139,14 +124,7 @@ simulation. All methods are optional.
 
 ## 🏭 `RoboticCell` and `Simulation`
 
-Header: `Robotik/Task/RoboticCell.hpp`. The robot cell: robots, objects, one
-physics, the controller and the beliefs. The scenario logic receives it. A C++
-program can build one from a `RoboticCellDescription`, without any file
-([Three programs, one per layer](../tutorials/02-three-programs.md)).
-`Robotik/Task/OpenRoboticCell.hpp` builds the cell and its world in one call:
-`robotik::openRoboticCell(description, &logic)` returns a `Result<OpenedRoboticCell>`.
-`Robotik/Package/Simulation.hpp` builds the cell from a scenario file and
-judges the run (marked *Simulation* below).
+Header: `RobotIK/Task/RoboticCell.hpp`. The robot cell: robots, objects, one physics, the controller and the beliefs. The scenario logic receives it. A C++ program can build one from a `RoboticCellDescription`, without any file ([Three programs, one per layer](../tutorials/02-three-programs.md)). `RobotIK/Task/OpenRoboticCell.hpp` builds the cell and its world in one call: `robotik::openRoboticCell(description, &logic)` returns a `Result<OpenedRoboticCell>`. `RobotIK/Package/Simulation.hpp` builds the cell from a scenario file and judges the run (marked *Simulation* below).
 
 **The parts**
 
@@ -162,7 +140,7 @@ judges the run (marked *Simulation* below).
 | `beliefFrame()` | Frame of the beliefs: the robot base when alone, the world with several robots |
 | `physicsOptions()` | Options of the physics the core builds after `ScenarioLogic::setup`: tune them there (floating base, gravity compensation, step, `armature`, `damping`, `exact_inertia`); the world still adds its bodies and floor (MicroDuck) |
 | `worldFrame()` | Entity of the Z-up frame of the world: hang on it what stays in the world, not on a robot root that a floating base moves |
-| `factory()` | `bt::NodeFactory&`: register custom tree nodes (include `Robotik/Task/Skills/SkillNodes.hpp`) |
+| `factory()` | `bt::NodeFactory&`: register custom tree nodes (include `RobotIK/Task/Skills/SkillNodes.hpp`) |
 | `camera()` | `Camera*`: the first camera, or null |
 | `description()` | `RoboticCellDescription const&`: what the cell was built from (world, trajectories, parameters, …) |
 | `logic()` | `ScenarioLogic*` |
@@ -180,7 +158,7 @@ judges the run (marked *Simulation* below).
 | `time()` | Simulated time (`Seconds`) |
 | `seed()` | Seed of the current episode |
 | `reset(Seed)`, `reset()` | New episode (scenario seed by default) |
-| `step(Seconds dt)` | One step (see [One simulation step](../concepts/architecture.md#-one-simulation-step)) |
+| `step(Seconds dt)` | One step (see [One simulation step](../concepts/06-architecture.md#-one-simulation-step)) |
 | `status()`, `stopController()` | State of the controller (tree, plan or scenario logic); stop ticking it |
 | `perceptionOf("id")`, `perceptionSummary()` | Perception fidelity of an object (`truth`, `noisy_truth`, `sensed`) and of the run |
 | *Simulation* `finished()`, `outcome()` | Has the run ended, and why (`ControllerSucceeded`, `Timeout`, `StopCondition`, …) |
@@ -210,8 +188,7 @@ judges the run (marked *Simulation* below).
 
 ## 🤖 Robot and joints
 
-Headers: `Robotik/Robot/Robot.hpp` (skills), `Robotik/Robot/RobotSession.hpp`
-(the program that runs the robot), `Robotik/Robot/Joints.hpp`.
+Headers: `RobotIK/Robot/Robot.hpp` (skills), `RobotIK/Robot/RobotSession.hpp` (the program that runs the robot), `RobotIK/Robot/Joints.hpp`.
 
 ### 🤖 `Robot` (and `RobotSession`)
 
@@ -230,20 +207,7 @@ Headers: `Robotik/Robot/Robot.hpp` (skills), `Robotik/Robot/RobotSession.hpp`
 | `base()` | State of a mobile base |
 | `requireLink("frame")`, `worldPose(link)` | A link found once, then its pose with no search |
 
-`RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
-(used by `RoboticCell`). It also gives what only the simulator side may
-touch: `world()`, `root()`, `link("name")` (ECS entities), `backend()`,
-`urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. And
-what a skill must not write because it is measured or decided outside the
-program: `measureJoint(id, q, v)`, `placeJoint(id, q)`,
-`measureHolding(cup, on)`, the writable `resources()` (faults),
-`sensors().add<T>()`, `actuators().add<T>()` and `identify(id)`. The
-`Robot` of a skill gives `SensorList`/`ActuatorList` (find, read,
-command) and a read-only `resources()`. A skill
-receives a `Robot&`, so it has none of them; `make check-layers` compiles
-`Task/Skills` and `Task/Planning` without `RobotSession.hpp`. Sensors
-(`sample(RobotSession const&, now)`), backends and grasp models receive the
-session.
+`RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()` (used by `RoboticCell`). It also gives what only the simulator side may touch: `world()`, `root()`, `link("name")` (ECS entities), `backend()`, `urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. And what a skill must not write because it is measured or decided outside the program: `measureJoint(id, q, v)`, `placeJoint(id, q)`, `measureHolding(cup, on)`, the writable `resources()` (faults), `sensors().add<T>()`, `actuators().add<T>()` and `identify(id)`. The `Robot` of a skill gives `SensorList`/`ActuatorList` (find, read, command) and a read-only `resources()`. A skill receives a `Robot&`, so it has none of them; `make check-layers` compiles `Task/Skills` and `Task/Planning` without `RobotSession.hpp`. Sensors (`sample(RobotSession const&, now)`), backends and grasp models receive the session.
 
 ### 🧮 `JointSet`
 
@@ -274,8 +238,7 @@ robotik::Prismatic const k = joints.requirePrismatic("rail");  // typed handle, 
 
 ## 🦾 Actuators
 
-Header: `Robotik/Robot/Actuators.hpp`. Declared in the world file; each one is
-also a resource.
+Header: `RobotIK/Robot/Actuators.hpp`. Declared in the world file; each one is also a resource.
 
 ```cpp
 auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
@@ -289,8 +252,7 @@ auto* group = p_simulation.robot().actuators().first<robotik::JointGroup>();
 
 ## 🔧 Skills
 
-Headers: `Robotik/Task/Skills/Skill.hpp`, `Robotik/Task/Skills/MotionSkills.hpp`,
-`Robotik/Task/RobotContext.hpp`.
+Headers: `RobotIK/Task/Skills/Skill.hpp`, `RobotIK/Task/Skills/MotionSkills.hpp`, `RobotIK/Task/RobotContext.hpp`.
 
 ```cpp
 class Skill
@@ -307,17 +269,13 @@ struct RobotContext { Robot& robot; WorldModel& world_model; Seconds time; Secon
 
 `Status`: `IDLE`, `RUNNING`, `SUCCESS`, `FAILURE`.
 
-`SkillDescription`: `name`, `resources`, `priority`, `wait`, `cancellable`,
-`preconditions` (`{ text, std::function<bool(RobotContext const&)> }`),
-`robot` (id of the robot it drives; empty: the first one).
+`SkillDescription`: `name`, `resources`, `priority`, `wait`, `cancellable`, `preconditions` (`{ text, std::function<bool(RobotContext const&)> }`), `robot` (id of the robot it drives; empty: the first one).
 
-Built-in: `HomeSkill(group)`, `MoveJointSkill(joint, target)`,
-`MoveJointsSkill(posture)`, `MoveTCPSkill(frame, target)` + `goal(pose)`,
-`StopSkill`. See [Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
+Built-in: `HomeSkill(group)`, `MoveJointSkill(joint, target)`, `MoveJointsSkill(posture)`, `MoveTCPSkill(frame, target)` + `goal(pose)`, `StopSkill`. See [Skills, the scheduler and behavior trees](../concepts/04-skills-and-behavior-trees.md).
 
 ## 📅 `SkillScheduler`
 
-Header: `Robotik/Task/Scheduler.hpp`.
+Header: `RobotIK/Task/Scheduler.hpp`.
 
 | Method | Does |
 |--------|------|
@@ -333,7 +291,7 @@ Header: `Robotik/Task/Scheduler.hpp`.
 
 ## 🔒 Resources and faults
 
-Headers: `Robotik/Robot/Resources.hpp`, `Robotik/Task/Faults.hpp`.
+Headers: `RobotIK/Robot/Resources.hpp`, `RobotIK/Task/Faults.hpp`.
 
 | `ResourceManager` | Does |
 |-------------------|------|
@@ -342,13 +300,11 @@ Headers: `Robotik/Robot/Resources.hpp`, `Robotik/Task/Faults.hpp`.
 | `available(name or id)` | False while in fault |
 | `fail(name)`, `restore(name)`, `restoreAll()` | Inject / clear a fault by hand |
 
-`FaultInjector` applies the `faults:` of the scenario (`at`, `rate`) at each
-step. You rarely need it directly.
+`FaultInjector` applies the `faults:` of the scenario (`at`, `rate`) at each step. You rarely need it directly.
 
 ## 👁 Perception and beliefs
 
-Headers: `Robotik/Task/Perception/Detector.hpp`, `Detection.hpp`, `WorldModel.hpp`,
-`Robotik/Robot/Sensors/Camera.hpp`.
+Headers: `RobotIK/Task/Perception/Detector.hpp`, `Detection.hpp`, `WorldModel.hpp`, `RobotIK/Robot/Sensors/Camera.hpp`.
 
 **Write a detector:**
 
@@ -372,8 +328,7 @@ public:
 p_simulation.perception().add<RedBlobDetector>();
 ```
 
-`Detection`: `label`, `id` (fiducial id or -1), `confidence`, `box` (pixels),
-`center` (pixels), `position` (optional, optical frame), `pose` (optional).
+`Detection`: `label`, `id` (fiducial id or -1), `confidence`, `box` (pixels), `center` (pixels), `position` (optional, optical frame), `pose` (optional).
 
 **Read beliefs** (in a skill, through `p_context.world_model`):
 
@@ -384,17 +339,13 @@ p_simulation.perception().add<RedBlobDetector>();
 | `observe(name, point, confidence, stamp)` | Update a belief |
 | `add(name, position, size)`, `place(...)` | Declare / move a belief |
 
-`WorldObject`: `name`, `position`, `size`, `confidence`, `seen` (time),
-`observations`, `observed()`, `top()`.
+`WorldObject`: `name`, `position`, `size`, `confidence`, `seen` (time), `observations`, `observed()`, `top()`.
 
-Other sensors (`Robotik/Robot/Sensors/`): `Imu`, `RangeScanner`,
-`ForceTorqueSensor`. All derive from `Sensor` (`name()`, `frequency()`,
-`samples()`, `stamp()`), and their readings derive from `Measurement`
-(time stamp, frame, sequence, validity).
+Other sensors (`RobotIK/Robot/Sensors/`): `Imu`, `RangeScanner`, `ForceTorqueSensor`. All derive from `Sensor` (`name()`, `frequency()`, `samples()`, `stamp()`), and their readings derive from `Measurement` (time stamp, frame, sequence, validity).
 
 ## 📊 Metrics
 
-Header: `Robotik/Task/Metrics.hpp`.
+Header: `RobotIK/Task/Metrics.hpp`.
 
 ```cpp
 void measure(robotik::RoboticCell const&, robotik::Metrics& p_metrics) const override
@@ -404,13 +355,11 @@ void measure(robotik::RoboticCell const&, robotik::Metrics& p_metrics) const ove
 }
 ```
 
-Any published name can be used in an assertion (`(>= laps 1)`) or in
-`evaluation.metrics` of an experiment. Use a prefix per plugin
-(`hello.ticks`, `reach.error`) to avoid clashes.
+Any published name can be used in an assertion (`(>= laps 1)`) or in `evaluation.metrics` of an experiment. Use a prefix per plugin (`hello.ticks`, `reach.error`) to avoid clashes.
 
 ## 📦 Assets
 
-Header: `Robotik/Robot/Assets/AssetResolver.hpp`.
+Header: `RobotIK/Robot/Assets/AssetResolver.hpp`.
 
 ```cpp
 robotik::AssetResolver const assets = robotik::AssetResolver::standard();
@@ -427,7 +376,7 @@ std::filesystem::path const urdf = assets.model("robotik.robots.robot_6axis");
 
 ## 🎲 Learning
 
-Headers in `Robotik/Task/Learning/`. See [Build reinforcement learning environments](../guides/reinforcement-learning.md).
+Headers in `RobotIK/Task/Learning/`. See [Build reinforcement learning environments](../guides/reinforcement-learning.md).
 
 | Class | Role |
 |-------|------|
@@ -436,11 +385,11 @@ Headers in `Robotik/Task/Learning/`. See [Build reinforcement learning environme
 | `SimulationEnvironment` | A cell description (a scenario is one) + `ObservationBuilder` + `ActionAdapter` + `RewardEvaluator` |
 | `EnvironmentPool` | N environments on threads, derived seeds |
 | `EpisodeLog` | JSON log of the episodes |
-| `Agent` (`Robotik/Task/Agents/Agent.hpp`) | `Action update(Observation const&, Seconds)`: any brain |
+| `Agent` (`RobotIK/Task/Agents/Agent.hpp`) | `Action update(Observation const&, Seconds)`: any brain |
 
 ## 🎬 Scenario objects
 
-Headers in `Robotik/Package/Scenario/`. Usually built by the host; useful in tests.
+Headers in `RobotIK/Package/Scenario/`. Usually built by the host; useful in tests.
 
 | Class | Role |
 |-------|------|

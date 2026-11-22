@@ -16,7 +16,7 @@
 #include "FlyTypes.hpp"
 #include "ShiuNetwork.hpp"
 
-#include "Robotik/Task/Agents/Agent.hpp"
+#include "RobotIK/Task/Agents/Agent.hpp"
 
 #include <filesystem>
 #include <memory>

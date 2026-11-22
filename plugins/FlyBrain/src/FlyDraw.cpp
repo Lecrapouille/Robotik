@@ -7,7 +7,7 @@
 
 #include "FlyDraw.hpp"
 
-#include "Robotik/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
 
 #include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"

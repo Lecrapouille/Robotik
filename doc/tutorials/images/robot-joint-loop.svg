@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Robot: your loop moves one joint</title>
+<desc id="desc">A command sets joint2 to 0.3 radians. Your loop advances physics by 0.01 seconds and reads measurements. After 400 steps, the test checks the position.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 16px;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="350" rx="16" fill="#f5f8fc"/>
+
+<text x="32" y="40" class="heading">Robot · Your code controls the loop</text>
+<rect x="32" y="75" width="235" height="90" rx="10" class="box"/>
+<text x="50" y="110">moveTo(joint, 0.3 rad)</text>
+<text x="50" y="140" class="small">Set the motor target</text>
+<path d="M267 120H320" class="arrow"/>
+<rect x="325" y="75" width="240" height="90" rx="10" class="box"/>
+<text x="345" y="110">step(0.01 s)</text>
+<text x="345" y="140" class="small">Physics + measurements</text>
+<path d="M565 120H620" class="arrow"/>
+<rect x="625" y="75" width="243" height="90" rx="10" class="box"/>
+<text x="645" y="110">position(joint)</text>
+<text x="645" y="140" class="small">Read the measured angle</text>
+<path d="M745 165V200H445V170" class="arrow"/>
+<text x="485" y="225" class="small">400 steps = 4 s of simulated time</text>
+<path d="M100 295H240M135 290V260L190 260L235 240" fill="none" stroke="#397baf" stroke-width="13" stroke-linecap="round"/>
+<circle cx="190" cy="260" r="9" fill="#fff" stroke="#20334b" stroke-width="3"/>
+<path d="M205 260A15 15 0 0 0 203 254" class="arrow"/>
+<text x="260" y="275">joint2 → 0.3 rad</text>
+<text x="260" y="305" class="small">Final check: measured position within 0.02 rad of the target</text>
+
+</svg>

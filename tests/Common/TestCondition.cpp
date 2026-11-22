@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Task/Condition.hpp"
+#include "RobotIK/Task/Condition.hpp"
 
 #include <stdexcept>
 

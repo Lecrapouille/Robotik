@@ -39,7 +39,7 @@ scenario:
 | `seed` | Master seed. The layout, the sensor noise and the random faults come from it |
 | `controller` | The default strategy: a `behavior_tree`, or a goal for the PDDL `planner` ([The PDDL planner: reference](pddl-planner.md)). Without it, the plugin scenario logic drives the robot |
 | `trajectories` | Named paths, one file each ([Trajectories](#-trajectories)) |
-| `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)) |
+| `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/02-worlds-scenarios-experiments.md#-truth-description-and-belief)) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
 | `physics` | Physics fidelity: `abstract` (default) or `rigid`, per entity (see below) |
 | `localization` | Where the base pose of the skills comes from: `truth` (default) or `plugin` ([Localization](#-localization)) |
@@ -47,29 +47,24 @@ scenario:
 | `stop_when` | A condition that ends the run as soon as it is true |
 | `assertions` | What is checked ([Assertions](#-assertions)) |
 
-**File names.** Every file named in a world, scenario or experiment file
-(`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is
-relative to the **package root**: the folder of `plugin.yaml`. It is the same
-in every file, whatever the folder of the file:
+**File names.** Every file named in a world, scenario or experiment file (`world`, `behavior_tree`, `trajectories`, `scenario`, a URDF path) is relative to the **package root**: the folder of `plugin.yaml`. It is the same in every file, whatever the folder of the file:
 
 ```text
-plugins/HelloWorld/            <- package root
-├── plugin.yaml
-├── worlds/arm.world.yaml            "worlds/arm.world.yaml"
-├── scenarios/skills.scenario.yaml       "scenarios/skills.scenario.yaml"
-└── experiments/hello.yaml     names "scenarios/skills.scenario.yaml" too
+📦 plugins/HelloWorld/            ⬅️ package root
+┣ 📄 plugin.yaml
+┣ 📂 worlds/
+┃ ┗ 📄 arm.world.yaml             ⬅️ "worlds/arm.world.yaml"
+┣ 📂 scenarios/
+┃ ┗ 📄 skills.scenario.yaml       ⬅️ "scenarios/skills.scenario.yaml"
+┗ 📂 experiments/
+  ┗ 📄 hello.yaml                 ⬅️ names "scenarios/skills.scenario.yaml" too
 ```
 
-A name may not leave the package. `..` and symbolic links are allowed, but
-the real file (its canonical path) must be inside the package folder; an
-absolute path is refused. Otherwise the load fails with the reason. So a
-package is a closed folder: you can copy or install it as a whole. A model of an asset pack is named by its id
-(`robotik.tools.vacuum`), not by a path.
+A name may not leave the package. `..` and symbolic links are allowed, but the real file (its canonical path) must be inside the package folder; an absolute path is refused. Otherwise the load fails with the reason. So a package is a closed folder: you can copy or install it as a whole. A model of an asset pack is named by its id (`robotik.tools.vacuum`), not by a path.
 
 ## 🔬 Physics fidelity
 
-How finely the physics simulates the objects. The same skills, tree,
-planner and assertions work at every level.
+How finely the physics simulates the objects. The same skills, tree, planner and assertions work at every level.
 
 | Level | Grasp | Release | Use |
 |-------|-------|---------|-----|
@@ -85,22 +80,15 @@ scenario:
       red_cube: rigid
 ```
 
-A vacuum cup takes a box by its **top or bottom face**: its tip must be
-within 2 cm of the centre of that face. A cup pointing up holds a tray from
-below (DualArm `tray`).
+A vacuum cup takes a box by its **top or bottom face**: its tip must be within 2 cm of the centre of that face. A cup pointing up holds a tray from below (DualArm `tray`).
 
 Rules:
 
-- A prop at `rigid`, or every box when a gripper is at `rigid`, becomes a
-  free body of MuJoCo. Its `mass:` matters then (the arm carries it): give a
-  real value, for example `0.05` kg for a 4 cm wooden cube.
-- When an object is rigid, the containers are rigid too (static walls),
-  otherwise it would fall through them. A rigid container cannot be
-  randomized.
+- A prop at `rigid`, or every box when a gripper is at `rigid`, becomes a free body of MuJoCo. Its `mass:` matters then (the arm carries it): give a real value, for example `0.05` kg for a 4 cm wooden cube.
+- When an object is rigid, the containers are rigid too (static walls), otherwise it would fall through them. A rigid container cannot be randomized.
 - A world with rigid props gets a floor even without `floor:`.
 - The level does not change during a run.
-- Keep the scenario at `abstract` and add the realistic level in an
-  **experiment** case: the same task is then judged at both levels.
+- Keep the scenario at `abstract` and add the realistic level in an **experiment** case: the same task is then judged at both levels.
 
   ```yaml
   - id: rigid
@@ -109,15 +97,11 @@ Rules:
       scenario.physics.fidelity: rigid
   ```
 
-  The report gives the level of each run (`physics` in `--report`): do not
-  compare metrics of two levels.
+  The report gives the level of each run (`physics` in `--report`): do not compare metrics of two levels.
 
 ## 🧭 Localization
 
-A skill reads the base pose of its robot with `robot.base()`. On a real
-robot nobody knows the true pose of a mobile base: an algorithm estimates
-it (wheel odometry, landmarks). The simulator knows it. So the robot keeps
-two bases:
+A skill reads the base pose of its robot with `robot.base()`. On a real robot nobody knows the true pose of a mobile base: an algorithm estimates it (wheel odometry, landmarks). The simulator knows it. So the robot keeps two bases:
 
 | Base | Read by | Written by |
 |------|---------|------------|
@@ -133,9 +117,7 @@ localization: truth    # truth (default) | plugin
 | `truth` | the true base, copied at each step: a mock, as `perception: truth` | test the task without a localization algorithm |
 | `plugin` | what the plugin writes with `estimateBase`; the start pose until then | test a localization or a calibration algorithm |
 
-A robot bolted to a table has the same base in both levels. The report
-gives the level (`localization` in `--report`; the console says it when it
-is not `truth`).
+A robot bolted to a table has the same base in both levels. The report gives the level (`localization` in `--report`; the console says it when it is not `truth`).
 
 ## 🏁 When does a run end?
 
@@ -146,8 +128,7 @@ A run ends when:
 3. `timeout` is reached;
 4. an assertion declared with `stop: true` fails.
 
-`Simulation::outcome()` gives the reason. After the end, the physics may go
-on (the simulator keeps the image alive), but the verdicts are frozen.
+`Simulation::outcome()` gives the reason. After the end, the physics may go on (the simulator keeps the image alive), but the verdicts are frozen.
 
 ## ✅ Assertions
 
@@ -187,12 +168,7 @@ Two keys change how a step is judged:
 
 ### 🧠 Check what the robot believes
 
-The other assertions judge the world. These ones judge the robot: does it
-know what it does? A robot can be wrong and still look fine for a while. A
-cup that took the blue cube instead of the red one still holds a cube, and
-the robot labels it `red_cube`. The world shows the mistake only at the
-end, when the wrong cube is in the box. Compare the belief with the truth
-to see it when it happens:
+The other assertions judge the world. These ones judge the robot: does it know what it does? A robot can be wrong and still look fine for a while. A cup that took the blue cube instead of the red one still holds a cube, and the robot labels it `red_cube`. The world shows the mistake only at the end, when the wrong cube is in the box. Compare the belief with the truth to see it when it happens:
 
 ```yaml
 - { condition: (= (believed (holding red_cube)) (holding gripper red_cube)),
@@ -202,26 +178,18 @@ to see it when it happens:
 - { condition: (< (base_error robot) 0.05), phase: always, for: 1.0 }
 ```
 
-A belief is often late, and that is not a fault. Choose `for:` from the
-latency of what feeds the belief:
+A belief is often late, and that is not a fault. Choose `for:` from the latency of what feeds the belief:
 
-- The label of a cup comes one step after the contact (the grasp skill
-  reads the vacuum at its next tick).
+- The label of a cup comes one step after the contact (the grasp skill reads the vacuum at its next tick).
 - A camera updates a belief only at its rate and after its latency.
-- A carried object has no belief: `belief_error` has no answer while it
-  is held.
-- An observer answers "unknown" when its beliefs are too old: use
-  `unknown: skip`, or the assertion fails at that step.
+- A carried object has no belief: `belief_error` has no answer while it is held.
+- An observer answers "unknown" when its beliefs are too old: use `unknown: skip`, or the assertion fails at that step.
 
-A failed assertion keeps the **measured value**, the **expected bound** and
-the **simulated time**. It does **not** stop the run, unless `stop: true`.
+A failed assertion keeps the **measured value**, the **expected bound** and the **simulated time**. It does **not** stop the run, unless `stop: true`.
 
 ### ❓ Conditions
 
-A condition uses the notation of PDDL: the operator comes first, inside
-parentheses. You read `(< time 30)` as "time is less than 30". The planner
-goals use the same notation (`(in red_cube box)`, see [the PDDL planner](../concepts/pddl-planner.md)), so you learn
-one way to write a fact.
+A condition uses the notation of PDDL: the operator comes first, inside parentheses. You read `(< time 30)` as "time is less than 30". The planner goals use the same notation (`(in red_cube box)`, see [the PDDL planner](../concepts/05-pddl-planner.md)), so you learn one way to write a fact.
 
 | You write | It is true when |
 |-----------|-----------------|
@@ -254,26 +222,18 @@ A value is a number, a metric, or a query on the world:
 | `(belief_error e)` | Distance between where the robot believes `e` is and where it is (m). No answer when `e` was never seen, its belief is older than `perception.max_age`, or a gripper carries it |
 | `(base_error robot)` | Distance between the estimated and the true base ([Localization](#-localization)) (m) |
 
-A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`.
-A `;` starts a comment up to the end of the line. Put a name with spaces
-between double quotes.
+A plugin can add its own queries with `RoboticCell::addQuery` in `ScenarioLogic::setup`. A `;` starts a comment up to the end of the line. Put a name with spaces between double quotes.
 
-RobotIK reads every condition when the scenario loads. A wrong condition
-stops the load with exit code 1, and the message names the column:
+RobotIK reads every condition when the scenario loads. A wrong condition stops the load with exit code 1, and the message names the column:
 
 ```text
 pick_and_place.scenario.yaml: assertion condition '(< tme 30)': column 4: unknown value 'tme' (did you mean 'time'?)
 pick_and_place.scenario.yaml: assertion condition '(inside red_cub box)': column 1: unknown entity 'red_cub' (did you mean 'red_cube'?)
 ```
 
-The same check refuses a wrong number of arguments and an unknown query.
-A value that has no answer during the run makes the assertion fail with
-the reason. Example: `(distance robot.tcp cube)` without a tool gives
-`Unknown Pinocchio frame: tcp`; use `robot.tool0`.
+The same check refuses a wrong number of arguments and an unknown query. A value that has no answer during the run makes the assertion fail with the reason. Example: `(distance robot.tcp cube)` without a tool gives `Unknown Pinocchio frame: tcp`; use `robot.tool0`.
 
-> **Zero collision does not prove that nothing moved.** The easel can slide
-> under a badly modelled contact. This is why the Painter also checks
-> `(pose_error easel)`. Measure what you care about.
+> **Zero collision does not prove that nothing moved.** The easel can slide under a badly modelled contact. This is why the Painter also checks `(pose_error easel)`. Measure what you care about.
 
 ## 📈 Trajectories
 
@@ -296,9 +256,7 @@ trajectory:
 | `cartesian` | Poses of the tool working point, in `frame` (an entity, or `entity.link`; the world if empty) |
 | `joint` | Joint configurations, for the joints listed in `joints` |
 
-In C++, `RoboticCell::requireWaypoints("red")` returns a cartesian trajectory in the
-robot base frame. Its frame is placed where the **world file** describes it:
-if the easel slides during the run, the robot does not know.
+In C++, `RoboticCell::requireWaypoints("red")` returns a cartesian trajectory in the robot base frame. Its frame is placed where the **world file** describes it: if the easel slides during the run, the robot does not know.
 
 ## 💻 From C++
 
@@ -322,8 +280,6 @@ for (robotik::Check const& check : simulation.checks())
 }
 ```
 
-`robotik::ScenarioSource` keeps the files as an editable tree (`ConfigNode`):
-`source.override("world.entities.easel.friction", ConfigNode("0.3"))`, then
-`Scenario::read(source, assets)`. This is what an experiment does.
+`robotik::ScenarioSource` keeps the files as an editable tree (`ConfigNode`): `source.override("world.entities.easel.friction", ConfigNode("0.3"))`, then `Scenario::read(source, assets)`. This is what an experiment does.
 
 Next: write the C++ part, in [Your first plugin](../tutorials/04-your-first-plugin.md).

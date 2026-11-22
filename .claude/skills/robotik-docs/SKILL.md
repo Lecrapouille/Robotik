@@ -28,14 +28,16 @@ drops the emoji from the anchor and keeps the space as a dash
 | doc/README.md | map | the five folders, reading order, quick paths |
 | doc/tutorials/ | tutorial | teaches by doing, in order (`NN-name.md`), ends with `Next:` |
 | doc/guides/ | guide | one task now: goal → steps → code → result |
-| doc/concepts/ | concept | why: the problem, the idea, the choice and what it costs |
+| doc/concepts/ | concept | why: the problem, the idea, the choice and what it costs; numbered in reading order (`NN-name.md`) |
 | doc/reference/ | reference | tables of facts, no story: files, plugin, planner, API, glossary |
 | doc/case-studies/ | case study | one demo plugin from end to end |
 
 A page does one job. When a new text mixes kinds, split it: the steps go in
 a tutorial or a guide, the why in a concept, the keys in the reference, and
 the pages link to each other. Names are lower case with dashes
-(`write-a-skill.md`); a tutorial keeps its number.
+(`write-a-skill.md`); tutorials and concepts carry their place in the
+reading order (`04-your-first-plugin.md`): when a page is inserted, renumber
+the pages after it and update the links (`make check-links`).
 
 Put a fact in one place and link to it
 (`[assertions](../reference/scenario-file.md#-assertions)`). Root README.md
@@ -43,6 +45,17 @@ has a documentation table: keep it in sync when a page is added or renamed.
 Code comments point to pages by path (`doc/reference/scenario-file.md`):
 update them when a page moves
 (`grep -rn "doc/" include src plugins .claude AGENTS.md README.md`).
+
+## Diagrams
+
+A diagram is an SVG file in `doc/<folder>/images/`, shown with
+`![alt text](images/x.svg)`; the alt text says what the diagram shows.
+Never ASCII art (a file tree stays a text block). Draw it with
+`doc/tools/diagrams.py` (style and colours: `doc/tools/README.md`), run
+`python3 doc/tools/diagrams.py`, and look at a PNG of it
+(`magick x.svg x.png`) before the commit: no text cut, no arrow on a label.
+A screenshot of the simulator comes from `--screenshot-ui` (command in the
+page).
 
 ## Writing rules (from ASD-STE100, kept for French readers)
 
@@ -106,7 +119,7 @@ words) then `@par Contract`.
 ## Checks before a commit
 
 - Every tutorial step and every quoted output is run for real
-  (`./build/linux-gcc-debug/bin/Robotik-Headless ... --trace`) and pasted, not
+  (`./build/linux-gcc-debug/bin/RobotIK-Headless ... --trace`) and pasted, not
   invented. Experiment on the `build/linux-gcc-debug/lib/robotik/plugins/...`
   copy; `make <target>` restores it.
 - Code excerpts come from real files (prefer HelloWorld and

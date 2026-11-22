@@ -11,14 +11,14 @@ Read only what the task needs. Load a skill instead of reading the docs:
 |------|---------------------------|----------|
 | Create / change a plugin (C++ + manifest) | `robotik-plugin` | doc/tutorials/04-your-first-plugin.md |
 | Write world / scenario / experiment YAML, assertions | `robotik-scenario` | doc/reference/scenario-file.md, world-file.md |
-| Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/concepts/skills-and-behavior-trees.md |
-| Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/concepts/pddl-planner.md |
+| Write a skill, a behavior tree, handle faults | `robotik-skill` | doc/concepts/04-skills-and-behavior-trees.md |
+| Plan from a PDDL goal (domain, observers, bindings) | `robotik-skill` | doc/concepts/05-pddl-planner.md |
 | Change the simulator interface (panels, layouts, scenario editor) | `robotik-simulator` | doc/tutorials/01-getting-started.md |
 | Edit the documentation | `robotik-docs` | doc/README.md |
 | Write an app in C++ without YAML (Robot or Task layer) | — | doc/tutorials/02-three-programs.md |
 | Find a class or method | — | doc/reference/api.md |
 | A word you do not know | — | doc/reference/glossary.md |
-| Change the core | — | doc/concepts/architecture.md |
+| Change the core | — | doc/concepts/06-architecture.md |
 
 ## Layout
 
@@ -30,7 +30,7 @@ call the truth nor reach the simulator). Words:
 doc/reference/glossary.md.
 
 ```text
-include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementation
+include/RobotIK/<Layer>/...  public headers; src/RobotIK/<Layer>/... implementation
   Common/   Math (units, Pose, from Compages), Result (+ROBOTIK_TRY), Signal,
             Config (editable YAML tree), Random (Seed), File, Version
   Robot/    one robot: Robot, RobotSession, openRobot, JointSet (SoA), LinkRef,
@@ -46,7 +46,7 @@ include/Robotik/<Layer>/...  public headers; src/Robotik/<Layer>/... implementat
             RunReport, Scenario/ (World, Scenario, Experiment, Assertions,
             Trajectory, PackagePath, FileRole), Plugin/ (PluginABI.h,
             PluginAPI.hpp, catalog, session)
-simulator/   Robotik-Simulator (ImGui host)      headless/  Robotik-Headless (CLI host)
+src/Simulator/  RobotIK-Simulator (ImGui host)  src/Headless/  RobotIK-Headless (CLI host)
 plugins/<Name>/  plugin.yaml, Makefile, src/, worlds/, scenarios/, experiments/, data/
 plugins/plugin.mk  shared plugin build recipe        data/packs/<id>/  asset packs (URDF)
 tests/       GoogleTest; tests/Plugin uses plugins/HelloWorld as fixture
@@ -63,13 +63,13 @@ walking robot pushing a box in a room, ONNX policy).
 ```bash
 make                         # core, hosts, the plugins of PLUGINS
 make <target>                # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
-make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
+make check                   # builds and runs build/linux-gcc-debug/bin/RobotIK-tests
 make check-layers            # compiler: no include upwards, no RoboticCell.hpp nor RobotSession.hpp in skills/planning
 make check-links             # every relative link of the Markdown files resolves
 make check-asan              # tests with ASan (+UBSan if libubsan), then in a random order
 make check-valgrind          # tests under valgrind memcheck (values read before written)
-./build/linux-gcc-debug/bin/Robotik-tests --gtest_filter='Plugin*'
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
+./build/linux-gcc-debug/bin/RobotIK-tests --gtest_filter='Plugin*'
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml [--seed N] [--trace] [--report r.json]
 ```
 
 Headless exit code: 0 pass, 2 a run failed, 1 load error. `make` copies
@@ -83,7 +83,7 @@ built.
 ## Rules that are easy to break
 
 - The core and the hosts stay agnostic of the demos: no demo object, joint,
-  tool or task in `src/`, `include/`, `simulator/`, `headless/`. The demos
+  tool or task in `src/` (core and hosts), `include/`. The demos
   prove RobotIK fits any robot project. Known leaks and the rule:
   `robotik-plugin` skill, "Core stays agnostic". Report a new leak.
 
@@ -103,7 +103,7 @@ built.
   never by a skill.
 - File names carry their role: `x.world.yaml`, `x.scenario.yaml`,
   `x.rl.yaml`, `x.bt.yaml`, `x.domain.pddl`, `x.trajectory.yaml`,
-  `x.experiment.yaml` (doc/concepts/worlds-scenarios-experiments.md).
+  `x.experiment.yaml` (doc/concepts/02-worlds-scenarios-experiments.md).
   id = name without `.yaml` and `.scenario`, other dots → `_`
   (`pick.rl.yaml` → `pick_rl`).
 - Paths in world/scenario/experiment YAML start at the package root (folder
@@ -138,7 +138,7 @@ built.
   and from the resources of its skills. Do not add ordering in C++.
 - Planner: the PDDL domain is the only place of actions and effects (no
   symbolic effects in C++); observers read beliefs, never the truth; only
-  `src/Robotik/Task/Planning/Kairos/` includes Kairos headers. An effect is
+  `src/RobotIK/Task/Planning/Kairos/` includes Kairos headers. An effect is
   done only when the beliefs show it (`verify: observed`: seen after the
   start of the step).
 - Names must match: target `robotik_x` → `librobotik_x.so` =
@@ -170,7 +170,7 @@ built.
   `Simulation::ended`), not polling.
 - Hot loops use handles found once (`JointId`, `LinkRef`, `ResourceId`),
   never a name. Measure before changing a storage
-  (doc/concepts/architecture.md, "Fast data").
+  (doc/concepts/06-architecture.md, "Fast data").
 - Only `Task/Skills/SkillNodes.hpp` includes BlackThorn; other public
   headers name tree types with `TreeTypes.hpp` and answer `robotik::Status`
   (checked by the compiler in `tests/Common/TestHiddenBlackThorn.cpp`).

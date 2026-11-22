@@ -11,8 +11,8 @@
 /// the temporal domain.
 #pragma once
 
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 #include <set>
 #include <string>

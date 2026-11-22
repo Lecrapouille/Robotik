@@ -8,12 +8,12 @@
 #include "WalkLogic.hpp"
 #include "WalkSkills.hpp"
 
-#include "Robotik/Common/Config.hpp"
-#include "Robotik/Robot/Backends/MujocoBackend.hpp"
-#include "Robotik/Robot/Backends/SceneView.hpp"
-#include "Robotik/Robot/Sensors/Image.hpp"
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Common/Config.hpp"
+#include "RobotIK/Robot/Backends/MujocoBackend.hpp"
+#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/Sensors/Image.hpp"
+#include "RobotIK/Task/Metrics.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <limits>

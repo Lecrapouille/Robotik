@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 // ****************************************************************************
 /// Lesson 1: the smallest scenario logic.

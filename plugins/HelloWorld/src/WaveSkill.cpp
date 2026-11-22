@@ -7,9 +7,9 @@
 
 #include "WaveSkill.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 void WaveSkill::reset()
 {
@@ -20,15 +20,9 @@ robotik::Status WaveSkill::tick(robotik::RobotContext& p_context,
                                 robotik::Seconds /*p_dt*/)
 {
     robotik::JointSet& joints = p_context.robot.joints();
-    robotik::JointId const base = joints.find("joint1");
-    if (base == robotik::NO_JOINT)
-    {
-        return robotik::Status::FAILURE;
-    }
-
-    double const target = (m_waves % 2 == 0) ? 0.5 : -0.5;
-    joints.moveTo(base, target);
-    if (joints.reached(base, 0.02))
+    robotik::Radians const target((m_waves % 2 == 0) ? 0.5 : -0.5);
+    joints.moveTo(m_base, target);
+    if (joints.reached(m_base, robotik::Radians(0.02)))
     {
         ++m_waves;
     }
@@ -50,5 +44,6 @@ void SkillsLogic::setup(robotik::RoboticCell& p_cell,
     wave.name = "Wave";
     wave.resources = { p_cell.robot().resources().require("arm") };
     wave.priority = 100;
-    p_cell.skills().add<WaveSkill>(std::move(wave));
+    p_cell.skills().add<WaveSkill>(
+        std::move(wave), p_cell.robot().joints().requireRevolute("joint1"));
 }

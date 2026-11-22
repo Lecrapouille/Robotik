@@ -14,7 +14,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include "Robotik/Robot/Assets/AssetResolver.hpp"
+#include "RobotIK/Robot/Assets/AssetResolver.hpp"
 
 #include <filesystem>
 #include <string_view>

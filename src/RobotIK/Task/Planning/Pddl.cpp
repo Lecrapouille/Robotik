@@ -1,0 +1,723 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+#include "RobotIK/Task/Planning/Pddl.hpp"
+#include "RobotIK/Common/SExpression.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <stdexcept>
+
+namespace robotik
+{
+
+// ****************************************************************************
+/// An S-expression: a lower-case atom or a list.
+// ****************************************************************************
+struct Sexpr
+{
+    std::string atom;
+    std::vector<Sexpr> list;
+    bool is_list = false;
+
+    [[nodiscard]] bool isAtom(std::string_view p_text) const
+    {
+        return !is_list && atom == p_text;
+    }
+
+    /// Head of a list: @c "and" for @c (and ...), empty otherwise.
+    [[nodiscard]] std::string_view head() const
+    {
+        return is_list && !list.empty() && !list[0].is_list
+                   ? std::string_view(list[0].atom)
+                   : std::string_view();
+    }
+};
+
+// ****************************************************************************
+/// Reads PDDL text into S-expressions; comments start with ';'.
+// ****************************************************************************
+class Reader
+{
+public:
+
+    explicit Reader(std::string_view p_text) : m_text(p_text) {}
+
+    Sexpr read()
+    {
+        skip();
+        if (m_at >= m_text.size())
+        {
+            throw std::runtime_error("PDDL: empty text");
+        }
+        Sexpr result = next();
+        skip();
+        if (m_at < m_text.size())
+        {
+            throw std::runtime_error(
+                "PDDL: text after the closing parenthesis, line " +
+                std::to_string(line()));
+        }
+        return result;
+    }
+
+private:
+
+    void skip()
+    {
+        while (m_at < m_text.size())
+        {
+            char const c = m_text[m_at];
+            if (c == ';')
+            {
+                while (m_at < m_text.size() && m_text[m_at] != '\n')
+                {
+                    ++m_at;
+                }
+            }
+            else if (std::isspace(static_cast<unsigned char>(c)) != 0)
+            {
+                ++m_at;
+            }
+            else
+            {
+                return;
+            }
+        }
+    }
+
+    [[nodiscard]] std::size_t line() const
+    {
+        return 1U + static_cast<std::size_t>(
+                        std::count(m_text.begin(),
+                                   m_text.begin() + static_cast<long>(m_at),
+                                   '\n'));
+    }
+
+    Sexpr next()
+    {
+        skip();
+        if (m_at >= m_text.size())
+        {
+            throw std::runtime_error("PDDL: missing ')' at the end");
+        }
+        Sexpr result;
+        if (m_text[m_at] == '(')
+        {
+            result.is_list = true;
+            ++m_at;
+            for (;;)
+            {
+                skip();
+                if (m_at >= m_text.size())
+                {
+                    throw std::runtime_error("PDDL: missing ')' at the end");
+                }
+                if (m_text[m_at] == ')')
+                {
+                    ++m_at;
+                    return result;
+                }
+                result.list.push_back(next());
+            }
+        }
+        if (m_text[m_at] == ')')
+        {
+            throw std::runtime_error("PDDL: unexpected ')' line " +
+                                     std::to_string(line()));
+        }
+        std::size_t const start = m_at;
+        while (m_at < m_text.size() && m_text[m_at] != '(' &&
+               m_text[m_at] != ')' && m_text[m_at] != ';' &&
+               std::isspace(static_cast<unsigned char>(m_text[m_at])) == 0)
+        {
+            ++m_at;
+        }
+        result.atom = lowerCase(m_text.substr(start, m_at - start));
+        return result;
+    }
+
+    std::string_view m_text;
+    std::size_t m_at = 0U;
+};
+
+// ----------------------------------------------------------------------------
+/// Reads a typed list: @c "a b - t c - u d" gives a:t b:t c:u d:object.
+/// @c (either ...) types are read as @c object.
+// ----------------------------------------------------------------------------
+static std::vector<Parameter> typedList(std::vector<Sexpr> const& p_items,
+                                        std::size_t p_from)
+{
+    std::vector<Parameter> result;
+    std::size_t pending = result.size();
+    for (std::size_t i = p_from; i < p_items.size(); ++i)
+    {
+        Sexpr const& item = p_items[i];
+        if (item.isAtom("-") && i + 1U < p_items.size())
+        {
+            Sexpr const& type = p_items[++i];
+            std::string const name =
+                type.is_list ? std::string("object") : type.atom;
+            for (std::size_t k = pending; k < result.size(); ++k)
+            {
+                result[k].type = name;
+            }
+            pending = result.size();
+        }
+        else if (!item.is_list)
+        {
+            std::string name = item.atom;
+            if (!name.empty() && name.front() == '?')
+            {
+                name.erase(0, 1);
+            }
+            result.push_back({ std::move(name), "object" });
+        }
+    }
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+/// @c (p a ?x) as an atom.
+// ----------------------------------------------------------------------------
+static Atom atomOf(Sexpr const& p_node)
+{
+    Atom atom;
+    atom.predicate = std::string(p_node.head());
+    for (std::size_t i = 1U; i < p_node.list.size(); ++i)
+    {
+        atom.args.push_back(p_node.list[i].atom);
+    }
+    return atom;
+}
+
+/// True for @c (at start ...), @c (at end ...) and @c (over all ...) of a
+/// durative action; @c (at ?p ?l) is a predicate named at.
+static bool isTimed(Sexpr const& p_node)
+{
+    std::string_view const head = p_node.head();
+    if (!p_node.is_list || p_node.list.size() != 3U)
+    {
+        return false;
+    }
+    return (head == "at" &&
+            (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end"))) ||
+           (head == "over" && p_node.list[1].isAtom("all"));
+}
+
+// ----------------------------------------------------------------------------
+/// Collects the plain effects of @p_node into @p_action. Conditional,
+/// quantified and numeric effects mark the action as partial. For a durative
+/// action, only @c at @c end effects are kept: they hold once it is done.
+// ----------------------------------------------------------------------------
+static void collectEffects(Sexpr const& p_node, ActionSchema& p_action)
+{
+    std::string_view const head = p_node.head();
+    if (!p_node.is_list || p_node.list.empty())
+    {
+        return;
+    }
+    if (head == "and")
+    {
+        for (std::size_t i = 1U; i < p_node.list.size(); ++i)
+        {
+            collectEffects(p_node.list[i], p_action);
+        }
+    }
+    else if (isTimed(p_node))
+    {
+        if (p_node.list[1].isAtom("end"))
+        {
+            collectEffects(p_node.list[2], p_action);
+        }
+    }
+    else if (head == "not" && p_node.list.size() == 2U &&
+             p_node.list[1].is_list)
+    {
+        p_action.effects.push_back({ atomOf(p_node.list[1]), false });
+    }
+    else if (head == "forall" || head == "when" || head == "increase" ||
+             head == "decrease" || head == "assign" || head == "scale-up" ||
+             head == "scale-down")
+    {
+        p_action.partial = true;
+    }
+    else if (!head.empty())
+    {
+        p_action.effects.push_back({ atomOf(p_node), true });
+    }
+}
+
+// ----------------------------------------------------------------------------
+/// True for the words of a PDDL formula that are not atoms: logic,
+/// time, comparison, arithmetic and assignment.
+// ----------------------------------------------------------------------------
+static bool connective(std::string_view p_head)
+{
+    static constexpr std::string_view WORDS[] = {
+        "and",    "or",       "not",        "imply",      "forall",
+        "exists", "when",     "at",         "over",       "=",
+        "<",      ">",        "<=",         ">=",         "+",
+        "-",      "*",        "/",          "increase",   "decrease",
+        "assign", "scale-up", "scale-down", "preference",
+    };
+    for (std::string_view const word : WORDS)
+    {
+        if (p_head == word)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+/// True for an atom of a formula: a predicate and its arguments, the
+/// predicate @c at included.
+static bool atomic(Sexpr const& p_node)
+{
+    return p_node.is_list && !p_node.list.empty() && !p_node.head().empty() &&
+           (!connective(p_node.head()) ||
+            (p_node.head() == "at" && !isTimed(p_node)));
+}
+
+// ----------------------------------------------------------------------------
+/// Collects the plain preconditions of @p_node into @p_action: a conjunction
+/// of atoms and negated atoms (@c at @c start and @c over @c all for a
+/// durative action). Anything else marks them partial.
+// ----------------------------------------------------------------------------
+static void collectPreconditions(Sexpr const& p_node, ActionSchema& p_action)
+{
+    std::string_view const head = p_node.head();
+    if (!p_node.is_list || p_node.list.empty())
+    {
+        return;
+    }
+    if (head == "and")
+    {
+        for (std::size_t i = 1U; i < p_node.list.size(); ++i)
+        {
+            collectPreconditions(p_node.list[i], p_action);
+        }
+    }
+    else if (isTimed(p_node))
+    {
+        if (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("all"))
+        {
+            collectPreconditions(p_node.list[2], p_action);
+        }
+        else
+        {
+            p_action.partial_preconditions = true;
+        }
+    }
+    else if (head == "not" && p_node.list.size() == 2U &&
+             atomic(p_node.list[1]))
+    {
+        p_action.preconditions.push_back({ atomOf(p_node.list[1]), false });
+    }
+    else if (atomic(p_node))
+    {
+        p_action.preconditions.push_back({ atomOf(p_node), true });
+    }
+    else
+    {
+        p_action.partial_preconditions = true;
+    }
+}
+
+/// When a part of a formula applies.
+enum class When
+{
+    Untimed, ///< Plain action: conditions at start, effects at end.
+    Start,
+    End,
+    Always, ///< over all: conditions at both ends.
+};
+
+// ----------------------------------------------------------------------------
+/// Every atom named in a formula, at any depth: @c (p ?a b) and
+/// @c (f ?a) inside a comparison or an assignment, sorted by the phase it
+/// applies to. The variable lists of @c forall / @c exists are skipped.
+// ----------------------------------------------------------------------------
+static void collectAtoms(Sexpr const& p_node,
+                         ActionSchema& p_action,
+                         bool p_effect,
+                         When p_when)
+{
+    if (!p_node.is_list || p_node.list.empty())
+    {
+        return;
+    }
+    std::string_view const head = p_node.head();
+    // (at ?r ?room) is an atom; (at start φ) and (over all φ) are not.
+    bool const timed =
+        p_node.list.size() == 3U && !p_node.list[1].is_list &&
+        (p_node.list[1].isAtom("start") || p_node.list[1].isAtom("end") ||
+         p_node.list[1].isAtom("all"));
+    bool const word =
+        (head == "at" || head == "over") ? timed : connective(head);
+    if (head.empty())
+    {
+        return;
+    }
+    if (!word)
+    {
+        Atom atom = atomOf(p_node);
+        auto add = [&](ActionSchema::Phase& p_phase)
+        { (p_effect ? p_phase.writes : p_phase.reads).push_back(atom); };
+        switch (p_when)
+        {
+            case When::Untimed:
+                add(p_effect ? p_action.end : p_action.start);
+                break;
+            case When::Start:
+                add(p_action.start);
+                break;
+            case When::End:
+                add(p_action.end);
+                break;
+            case When::Always:
+                add(p_action.start);
+                add(p_action.end);
+                break;
+        }
+        return;
+    }
+    if (timed)
+    {
+        When const when = p_node.list[1].isAtom("start") ? When::Start
+                          : p_node.list[1].isAtom("end") ? When::End
+                                                         : When::Always;
+        collectAtoms(p_node.list[2], p_action, p_effect, when);
+        return;
+    }
+    std::size_t const first = head == "forall" || head == "exists" ? 2U : 1U;
+    for (std::size_t i = first; i < p_node.list.size(); ++i)
+    {
+        collectAtoms(p_node.list[i], p_action, p_effect, p_when);
+    }
+}
+
+// ----------------------------------------------------------------------------
+/// Value following @p_key in a flat list (@c :parameters (...)).
+// ----------------------------------------------------------------------------
+static Sexpr const* keyed(Sexpr const& p_node, std::string_view p_key)
+{
+    for (std::size_t i = 0U; i + 1U < p_node.list.size(); ++i)
+    {
+        if (p_node.list[i].isAtom(p_key))
+        {
+            return &p_node.list[i + 1U];
+        }
+    }
+    return nullptr;
+}
+
+/// Drops leading and trailing whitespace.
+static std::string trim(std::string_view p_text)
+{
+    std::size_t first = 0U;
+    std::size_t last = p_text.size();
+    while (first < last &&
+           std::isspace(static_cast<unsigned char>(p_text[first])) != 0)
+    {
+        ++first;
+    }
+    while (last > first &&
+           std::isspace(static_cast<unsigned char>(p_text[last - 1U])) != 0)
+    {
+        --last;
+    }
+    return std::string(p_text.substr(first, last - first));
+}
+
+/// True when a PDDL name starts with a letter and stays a token.
+static bool validName(std::string_view p_name)
+{
+    if (p_name.empty() ||
+        std::isalpha(static_cast<unsigned char>(p_name.front())) == 0)
+    {
+        return false;
+    }
+    return std::ranges::all_of(
+        p_name,
+        [](char p_c)
+        {
+            return std::isalnum(static_cast<unsigned char>(p_c)) != 0 ||
+                   p_c == '_' || p_c == '-';
+        });
+}
+
+std::string lowerCase(std::string_view p_text)
+{
+    std::string result(p_text);
+    std::ranges::transform(result,
+                           result.begin(),
+                           [](unsigned char p_c)
+                           { return static_cast<char>(std::tolower(p_c)); });
+    return result;
+}
+
+char const* toString(Truth p_truth)
+{
+    switch (p_truth)
+    {
+        case Truth::False:
+            return "false";
+        case Truth::True:
+            return "true";
+        case Truth::Unknown:
+            return "unknown";
+    }
+    return "?";
+}
+
+// ----------------------------------------------------------------------------
+std::string toPddl(Atom const& p_atom)
+{
+    std::string text = "(" + p_atom.predicate;
+    for (std::string const& arg : p_atom.args)
+    {
+        text += " " + arg;
+    }
+    return text + ")";
+}
+
+// ----------------------------------------------------------------------------
+std::string toString(Atom const& p_atom)
+{
+    return p_atom.args.empty() ? p_atom.predicate : toPddl(p_atom);
+}
+
+// ----------------------------------------------------------------------------
+/// Reads the atom of a literal: @c (in red_cube box) or a bare @c hand_empty.
+static Atom atomOf(SExpression const& p_node, std::string_view p_text)
+{
+    auto bad = [&](std::string const& p_why) -> std::runtime_error
+    {
+        return std::runtime_error("'" + std::string(p_text) + "': " + p_why +
+                                  " (write a PDDL literal such as "
+                                  "(in red_cube box))");
+    };
+    Atom atom;
+    if (p_node.kind == SExpression::Kind::Atom)
+    {
+        if (!validName(p_node.text))
+        {
+            throw bad("bad name '" + p_node.text + "'");
+        }
+        atom.predicate = lowerCase(p_node.text);
+        return atom;
+    }
+    if (p_node.kind != SExpression::Kind::List)
+    {
+        throw bad("a literal is not a quoted text");
+    }
+    for (SExpression const& word : p_node.items)
+    {
+        if (word.kind != SExpression::Kind::Atom || !validName(word.text))
+        {
+            throw bad(word.kind == SExpression::Kind::List
+                          ? "nested list"
+                          : "bad name '" + word.text + "'");
+        }
+        if (atom.predicate.empty())
+        {
+            atom.predicate = lowerCase(word.text);
+        }
+        else
+        {
+            atom.args.push_back(lowerCase(word.text));
+        }
+    }
+    return atom;
+}
+
+Result<Literal> parseLiteral(std::string_view p_text)
+{
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
+    {
+        // The older form in(a, b) reads as two words: say how to write it.
+        if (std::string const text = trim(p_text);
+            !text.empty() && text.front() != '(' && text.find('(') != std::string::npos)
+        {
+            throw std::runtime_error("'" + std::string(p_text) +
+                                     "': write a PDDL literal such as "
+                                     "(in red_cube box), not in(red_cube, box)");
+        }
+        Result<SExpression> parsed = parseSExpression(p_text);
+        if (!parsed)
+        {
+            throw std::runtime_error("'" + std::string(p_text) + "': " +
+                                     parsed.error());
+        }
+        SExpression const& node = parsed.value();
+        Literal literal;
+        if (node.kind == SExpression::Kind::List && !node.items.empty() &&
+            node.items.front().kind == SExpression::Kind::Atom &&
+            lowerCase(node.items.front().text) == "not")
+        {
+            if (node.items.size() != 2U)
+            {
+                throw std::runtime_error("'" + std::string(p_text) +
+                                         "': (not ...) takes one atom");
+            }
+            literal.positive = false;
+            literal.atom = atomOf(node.items[1], p_text);
+            return literal;
+        }
+        literal.atom = atomOf(node, p_text);
+        return literal;
+    }
+    catch (std::exception const& error)
+    {
+        return failure(error.what());
+    }
+}
+
+// ----------------------------------------------------------------------------
+std::string toPddl(Literal const& p_literal)
+{
+    return p_literal.positive ? toPddl(p_literal.atom) : "(not " + toPddl(p_literal.atom) + ")";
+}
+
+// ----------------------------------------------------------------------------
+std::string toString(Literal const& p_literal)
+{
+    return p_literal.positive ? toString(p_literal.atom)
+                              : "(not " + toString(p_literal.atom) + ")";
+}
+
+// ----------------------------------------------------------------------------
+std::string toPddl(GroundAction const& p_action)
+{
+    return toPddl(Atom{ p_action.name, p_action.args });
+}
+
+// ----------------------------------------------------------------------------
+bool isA(DomainSchema const& p_schema, std::string_view p_type, std::string_view p_ancestor)
+{
+    std::string current(p_type);
+    // The depth bound stops a cycle in a malformed hierarchy.
+    for (std::size_t depth = 0U; depth <= p_schema.types.size() + 1U; ++depth)
+    {
+        if (current == p_ancestor || p_ancestor == "object")
+        {
+            return true;
+        }
+        auto const parent = p_schema.types.find(current);
+        if (parent == p_schema.types.end() || parent->second == current)
+        {
+            return false;
+        }
+        current = parent->second;
+    }
+    return false;
+}
+
+// ----------------------------------------------------------------------------
+Result<DomainSchema> parseDomain(std::string_view p_text)
+{
+    // The border of this reader: whatever stops it inside becomes a message.
+    try
+    {
+        Sexpr const root = Reader(p_text).read();
+        if (root.head() != "define" || root.list.size() < 2U ||
+            root.list[1].head() != "domain" || root.list[1].list.size() != 2U)
+        {
+            throw std::runtime_error(
+                "PDDL: a domain starts with (define (domain <name>)");
+        }
+        DomainSchema schema;
+        schema.name = root.list[1].list[1].atom;
+        for (std::size_t i = 2U; i < root.list.size(); ++i)
+        {
+            Sexpr const& section = root.list[i];
+            std::string_view const head = section.head();
+            if (head == ":types")
+            {
+                for (Parameter const& type : typedList(section.list, 1U))
+                {
+                    schema.types[type.name] = type.type;
+                }
+            }
+            else if (head == ":constants")
+            {
+                for (Parameter const& constant : typedList(section.list, 1U))
+                {
+                    schema.constants[constant.name] = constant.type;
+                }
+            }
+            else if (head == ":predicates")
+            {
+                for (std::size_t k = 1U; k < section.list.size(); ++k)
+                {
+                    Sexpr const& item = section.list[k];
+                    if (item.head().empty())
+                    {
+                        continue;
+                    }
+                    PredicateSchema predicate;
+                    predicate.name = std::string(item.head());
+                    for (Parameter const& parameter : typedList(item.list, 1U))
+                    {
+                        predicate.types.push_back(parameter.type);
+                    }
+                    schema.predicates[predicate.name] = std::move(predicate);
+                }
+            }
+            else if (head == ":derived" && section.list.size() >= 2U)
+            {
+                Sexpr const& item = section.list[1];
+                PredicateSchema& predicate =
+                    schema.predicates[std::string(item.head())];
+                predicate.name = std::string(item.head());
+                predicate.derived = true;
+                if (predicate.types.empty())
+                {
+                    for (Parameter const& parameter : typedList(item.list, 1U))
+                    {
+                        predicate.types.push_back(parameter.type);
+                    }
+                }
+            }
+            else if ((head == ":action" || head == ":durative-action") &&
+                     section.list.size() >= 2U)
+            {
+                ActionSchema action;
+                action.name = section.list[1].atom;
+                action.durative = head == ":durative-action";
+                if (Sexpr const* parameters = keyed(section, ":parameters"))
+                {
+                    action.parameters = typedList(parameters->list, 0U);
+                }
+                if (Sexpr const* effect = keyed(section, ":effect"))
+                {
+                    collectEffects(*effect, action);
+                    collectAtoms(*effect, action, true, When::Untimed);
+                }
+                for (std::string_view const key : { ":precondition", ":condition" })
+                {
+                    if (Sexpr const* condition = keyed(section, key))
+                    {
+                        collectAtoms(*condition, action, false, When::Untimed);
+                        collectPreconditions(*condition, action);
+                    }
+                }
+                schema.actions[action.name] = std::move(action);
+            }
+        }
+        return schema;
+    }
+    catch (std::exception const& error)
+    {
+        return failure(error.what());
+    }
+}
+
+} // namespace robotik

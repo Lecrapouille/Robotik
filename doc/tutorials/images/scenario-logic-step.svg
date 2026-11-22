@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">One step of a run</title>
+<desc id="desc">At each step RobotIK moves the physics, then calls act with the robot and its beliefs, simulate with the world, observe with a read-only cell. Then it reads the metrics with measure and judges the assertions. status ends the run when the scenario has no controller.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="400" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">One step of a run (0.01 s of simulated time)</text>
+
+<rect x="32" y="80" width="150" height="100" rx="10" class="box"/>
+<text x="50" y="115">Physics</text>
+<text x="50" y="142" class="small">motors, contacts,</text>
+<text x="50" y="162" class="small">sensors</text>
+<path d="M182 130H207" class="arrow"/>
+
+<rect x="212" y="80" width="150" height="100" rx="10" class="yours"/>
+<text x="230" y="115">act</text>
+<text x="230" y="142" class="small">robot + beliefs:</text>
+<text x="230" y="162" class="small">give commands</text>
+<path d="M362 130H387" class="arrow"/>
+
+<rect x="392" y="80" width="150" height="100" rx="10" class="yours"/>
+<text x="410" y="115">simulate</text>
+<text x="410" y="142" class="small">the world acts</text>
+<text x="410" y="162" class="small">by itself</text>
+<path d="M542 130H567" class="arrow"/>
+
+<rect x="572" y="80" width="150" height="100" rx="10" class="yours"/>
+<text x="590" y="115">observe</text>
+<text x="590" y="142" class="small">read the truth,</text>
+<text x="590" y="162" class="small">command nothing</text>
+<path d="M722 130H747" class="arrow"/>
+
+<rect x="752" y="80" width="118" height="100" rx="10" class="yours"/>
+<text x="768" y="115">status</text>
+<text x="768" y="142" class="small">end the</text>
+<text x="768" y="162" class="small">run?</text>
+
+<path d="M811 180V235" class="arrow"/>
+<rect x="640" y="240" width="230" height="100" rx="10" class="box"/>
+<text x="658" y="275">Assertions</text>
+<text x="658" y="302" class="small">judge (> hello.ticks 100),</text>
+<text x="658" y="322" class="small">written in the YAML file</text>
+<path d="M640 290H547" class="arrow"/>
+<text x="555" y="280" class="small">ask</text>
+
+<rect x="212" y="240" width="330" height="100" rx="10" class="yours"/>
+<text x="230" y="275">measure</text>
+<text x="230" y="302" class="small">publish numbers: hello.ticks = 57</text>
+
+<path d="M755 340V375H107V185" fill="none" stroke="#52657a" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+<text x="120" y="366" class="small">next step</text>
+
+<rect x="660" y="24" width="18" height="18" rx="3" class="yours"/>
+<text x="686" y="39" class="small">your C++</text>
+<rect x="775" y="24" width="18" height="18" rx="3" class="box"/>
+<text x="801" y="39" class="small">RobotIK</text>
+</svg>

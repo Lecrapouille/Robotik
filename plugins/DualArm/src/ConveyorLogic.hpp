@@ -12,8 +12,8 @@
 
 #include "Conveyor.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 #include <string>
 #include <vector>

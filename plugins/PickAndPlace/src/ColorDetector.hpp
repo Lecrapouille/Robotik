@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Task/Perception/Detector.hpp"
+#include "RobotIK/Task/Perception/Detector.hpp"
 
 #include <array>
 #include <cstdint>

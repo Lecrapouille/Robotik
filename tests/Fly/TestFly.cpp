@@ -14,8 +14,8 @@
 
 #include "FlyLogic.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Package/Scenario/Scenario.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Package/Scenario/Scenario.hpp"
 
 #include "Compages/World/World.hpp"
 

@@ -9,8 +9,8 @@
 
 #include "DuckPolicy.hpp"
 
-#include "Robotik/Robot/Joints.hpp"
-#include "Robotik/Task/Skills/Skill.hpp"
+#include "RobotIK/Robot/Joints.hpp"
+#include "RobotIK/Task/Skills/Skill.hpp"
 
 #include <array>
 #include <string>

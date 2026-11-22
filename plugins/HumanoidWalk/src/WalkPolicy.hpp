@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
+#include "RobotIK/Common/Math.hpp"
 
 #include <array>
 #include <filesystem>

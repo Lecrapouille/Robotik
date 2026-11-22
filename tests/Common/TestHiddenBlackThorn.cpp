@@ -11,11 +11,11 @@
 
 #include "main.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
-#include "Robotik/Package/RunReport.hpp"
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/Planning/PlanExecutor.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/RunReport.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Task/Planning/PlanExecutor.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 /// True when the type is complete (its definition was included).
 template <typename T>
@@ -23,12 +23,12 @@ concept Complete = requires { sizeof(T); };
 
 static_assert(!Complete<bt::Tree>,
               "a public header includes BlackThorn: name the tree types with "
-              "Robotik/Task/TreeTypes.hpp instead");
+              "RobotIK/Task/TreeTypes.hpp instead");
 static_assert(!Complete<bt::NodeFactory>,
               "a public header includes BlackThorn: name the tree types with "
-              "Robotik/Task/TreeTypes.hpp instead");
+              "RobotIK/Task/TreeTypes.hpp instead");
 
-TEST(HiddenBlackThorn, RoboticCellAnswersWithTheRobotikStatus)
+TEST(HiddenBlackThorn, RoboticCellAnswersWithTheRobotIKStatus)
 {
     static_assert(
         std::is_same_v<

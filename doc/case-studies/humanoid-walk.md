@@ -2,14 +2,13 @@
 
 [⏫ Case studies](README.md)
 
-A LimX HU_D04_01 humanoid (31 joints) walks in a circle with the walking
-policy trained by LimX. No training here: the policy (`walk.onnx`) and the
-robot come from the LimX repositories (Apache-2.0), and ONNX Runtime runs the
-policy. It shows that a **learned controller** is just another skill.
+A LimX HU_D04_01 humanoid (31 joints) walks in a circle with the walking policy trained by LimX. No training here: the policy (`walk.onnx`) and the robot come from the LimX repositories (Apache-2.0), and ONNX Runtime runs the policy. It shows that a **learned controller** is just another skill.
+
+![The humanoid walks on its circle, at 8 s.](images/humanoid-walk.png)
 
 ```bash
-make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runtime, prepares its data once
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
+make EXTRA_PLUGINS=HumanoidWalk        # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HumanoidWalk/scenarios/walk_circle.scenario.yaml --trace
 ```
 
 ```text
@@ -30,13 +29,8 @@ make PLUGINS+=HumanoidWalk             # fetches its repositories and ONNX Runti
 How it works:
 
 - The tree is two skills, `Stand` then `Walk` (`walk_circle.bt.yaml`).
-- `WalkLogic` plugs a **floating-base** MuJoCo backend, without gravity
-  compensation, with the PD gains of the policy on each joint.
-- The plugin owns the clock (`clock: plugin` in `plugin.yaml`): it steps the
-  physics every 1 ms, and `Walk` runs the policy every 10 steps (100 Hz) on
-  the **IMU and the joint encoders only**. Ground truth only feeds the
-  metrics (`humanoid.height_min`, `humanoid.turns`, `humanoid.radius`, …).
-- When the IMU is lost (fault) or the robot lies down, `Walk` fails and puts
-  the joints in damping mode, as the real robot does: it falls.
+- `WalkLogic` plugs a **floating-base** MuJoCo backend, without gravity compensation, with the PD gains of the policy on each joint.
+- The plugin owns the clock (`clock: plugin` in `plugin.yaml`): it steps the physics every 1 ms, and `Walk` runs the policy every 10 steps (100 Hz) on the **IMU and the joint encoders only**. Ground truth only feeds the metrics (`humanoid.height_min`, `humanoid.turns`, `humanoid.radius`, …).
+- When the IMU is lost (fault) or the robot lies down, `Walk` fails and puts the joints in damping mode, as the real robot does: it falls.
 
 More details in [plugins/HumanoidWalk/README.md](../../plugins/HumanoidWalk/README.md).

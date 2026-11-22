@@ -12,8 +12,8 @@
 // @ref FlyObservation and @ref FlyAction.
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/RoboticCellDescription.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Task/RoboticCellDescription.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -191,7 +191,7 @@ struct FlyScenario
     std::filesystem::path robot_model;
 
     // ------------------------------------------------------------------------
-    /// Reads a Robotik scenario: the robot entity is the fly (its pose
+    /// Reads a RobotIK scenario: the robot entity is the fly (its pose
     /// is the start), the props named @c obstacle* are the blocks, the prop
     /// @c food is the target, the timeout is the horizon, and
     /// @c parameters gives brain, sensor_noise, layout_jitter, arena and

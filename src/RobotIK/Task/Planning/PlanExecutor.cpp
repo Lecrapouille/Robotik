@@ -1,0 +1,1502 @@
+// SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial
+// Copyright (c) 2020-2026 Quentin Quadrat
+//
+// This file is part of RobotIK. It is available under the GNU GPL v3 or,
+// for users who cannot use the GPL, under a commercial license.
+// See LICENSING.md for details.
+
+#include "RobotIK/Task/Planning/PlanExecutor.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Task/Planning/PlanGraph.hpp"
+
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
+#include "RobotIK/Task/Scheduler.hpp"
+#include "RobotIK/Task/Skills/SkillNodes.hpp"
+
+#include <algorithm>
+#include <cctype>
+#include <fstream>
+#include <functional>
+#include <set>
+#include <sstream>
+#include <stdexcept>
+
+namespace robotik
+{
+
+/// A PDDL name: a letter, then letters, digits, '_' or '-'.
+static bool pddlName(std::string_view p_name)
+{
+    if (p_name.empty() ||
+        std::isalpha(static_cast<unsigned char>(p_name.front())) == 0)
+    {
+        return false;
+    }
+    return std::ranges::all_of(
+        p_name,
+        [](char p_c)
+        {
+            return std::isalnum(static_cast<unsigned char>(p_c)) != 0 ||
+                   p_c == '_' || p_c == '-';
+        });
+}
+
+/// YAML double-quoted scalar.
+static std::string yamlQuoted(std::string_view p_text)
+{
+    std::string result = "\"";
+    for (char const c : p_text)
+    {
+        if (c == '"' || c == '\\')
+        {
+            result += '\\';
+        }
+        result += c;
+    }
+    return result + "\"";
+}
+
+/// Reads a whole file, or throws when it cannot be opened.
+static std::string readFile(std::filesystem::path const& p_file)
+{
+    std::ifstream in(p_file);
+    if (!in)
+    {
+        throw std::runtime_error("cannot read the PDDL domain " +
+                                 p_file.string());
+    }
+    std::ostringstream text;
+    text << in.rdbuf();
+    return text.str();
+}
+
+/// "(pick red_cube)" for a step.
+static std::string label(GroundAction const& p_step)
+{
+    return toPddl(p_step);
+}
+
+char const* toString(PlanState p_state)
+{
+    switch (p_state)
+    {
+        case PlanState::Planning:
+            return "planning";
+        case PlanState::Waiting:
+            return "waiting";
+        case PlanState::Executing:
+            return "executing";
+        case PlanState::Succeeded:
+            return "succeeded";
+        case PlanState::Failed:
+            return "failed";
+    }
+    return "?";
+}
+
+char const* toString(StepStatus p_status)
+{
+    switch (p_status)
+    {
+        case StepStatus::Pending:
+            return "pending";
+        case StepStatus::Skipped:
+            return "skipped";
+        case StepStatus::Done:
+            return "done";
+        case StepStatus::Failed:
+            return "failed";
+    }
+    return "?";
+}
+
+// ----------------------------------------------------------------------------
+PlanExecutor::PlanExecutor(PlannerSpec p_spec,
+                           WorldDescription const& p_world,
+                           PlanningDomain const& p_domain,
+                           std::string const& p_name,
+                           bt::NodeFactory& p_factory,
+                           SkillScheduler& p_skills,
+                           std::unique_ptr<PlanningEngine> p_engine)
+    : m_spec(std::move(p_spec)),
+      m_domain(p_domain),
+      m_factory(p_factory),
+      m_skills(p_skills),
+      m_engine(std::move(p_engine))
+{
+    for (char const c : lowerCase(p_name))
+    {
+        m_name += std::isalnum(static_cast<unsigned char>(c)) != 0 ? c : '_';
+    }
+    if (m_name.empty() ||
+        std::isalpha(static_cast<unsigned char>(m_name.front())) == 0)
+    {
+        m_name = "p_" + m_name;
+    }
+    load(p_world, p_domain);
+}
+
+PlanExecutor::~PlanExecutor() = default;
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::load(WorldDescription const& p_world,
+                        PlanningDomain const& p_domain)
+{
+    std::string const file = m_spec.domain.string();
+    m_domain_text = readFile(m_spec.domain);
+    Result<DomainSchema> schema = parseDomain(m_domain_text);
+    if (!schema)
+    {
+        throw std::runtime_error(file + ": " + schema.error());
+    }
+    m_schema = schema.take();
+    if (std::string const diagnostics = m_engine->load(m_domain_text, file);
+        !diagnostics.empty())
+    {
+        throw std::runtime_error("PDDL domain rejected by the planner:\n" +
+                                 diagnostics);
+    }
+
+    std::vector<std::string> errors;
+    auto known = [&](std::string_view p_type)
+    { return p_type == "object" || m_schema.types.contains(p_type); };
+
+    // --- Objects: the entities with a kind ----------------------------------
+    std::set<std::string, std::less<>> names;
+    for (auto const& [constant, type] : m_schema.constants)
+    {
+        names.insert(constant);
+    }
+    for (EntitySpec const& entity : p_world.entities)
+    {
+        if (entity.kind.empty())
+        {
+            continue;
+        }
+        PlanningObject object{ entity.id, lowerCase(entity.id), entity.kind };
+        if (!pddlName(object.name))
+        {
+            errors.push_back(
+                "entity '" + entity.id +
+                "': its id is not a PDDL name (letters, digits, '_', '-')");
+        }
+        else if (!names.insert(object.name).second)
+        {
+            errors.push_back("entity '" + entity.id +
+                             "': same PDDL name as another entity or constant "
+                             "(case is ignored)");
+        }
+        if (!known(object.type))
+        {
+            errors.push_back("entity '" + entity.id + "': kind '" +
+                             object.type + "' is not a type of the domain");
+        }
+        m_objects.push_back(std::move(object));
+    }
+    if (m_objects.empty() && m_schema.constants.empty())
+    {
+        errors.push_back(
+            "no world entity has a kind: the problem has no object");
+    }
+
+    // --- ScenarioLogic: observers and bindings ------------------------------------
+    std::set<std::string, std::less<>> fact_predicates;
+    for (Literal const& fact : m_spec.facts)
+    {
+        fact_predicates.insert(fact.atom.predicate);
+    }
+    for (auto const& [name, predicate] : m_schema.predicates)
+    {
+        if (!predicate.derived && p_domain.observer(name) == nullptr &&
+            !fact_predicates.contains(name))
+        {
+            errors.push_back("predicate '" + name +
+                             "' has no observer (PlanningDomain::observe in "
+                             "the scenario logic) "
+                             "and no fact (planner.facts)");
+        }
+    }
+    for (auto const& [name, observer] : p_domain.observers())
+    {
+        if (!m_schema.predicates.contains(name))
+        {
+            errors.push_back("observer '" + name +
+                             "' is not a predicate of the domain");
+        }
+    }
+    for (auto const& [name, binding] : p_domain.bindings())
+    {
+        if (!m_schema.actions.contains(name))
+        {
+            errors.push_back("binding '" + name +
+                             "' is not an action of the domain");
+        }
+    }
+    for (auto const& [name, action] : m_schema.actions)
+    {
+        ActionBinding const* binding = p_domain.binding(name);
+        if (binding == nullptr)
+        {
+            errors.push_back("action '" + name +
+                             "' has no binding (PlanningDomain::bind in the "
+                             "scenario logic)");
+            continue;
+        }
+        std::vector<std::string> const args(action.parameters.size(), "x");
+        try
+        {
+            for (std::string const& node : binding->nodes)
+            {
+                (void)expand(node, args);
+            }
+            for (auto const& [key, value] : binding->parameters)
+            {
+                (void)expand(value, args);
+            }
+        }
+        catch (std::out_of_range const& error)
+        {
+            errors.push_back("binding of '" + name + "': " + error.what());
+        }
+    }
+
+    // --- Scenario: facts and goal -------------------------------------------
+    auto typeOf = [&](std::string const& p_name) -> std::string const*
+    {
+        if (auto const constant = m_schema.constants.find(p_name);
+            constant != m_schema.constants.end())
+        {
+            return &constant->second;
+        }
+        for (PlanningObject const& object : m_objects)
+        {
+            if (object.name == p_name)
+            {
+                return &object.type;
+            }
+        }
+        return nullptr;
+    };
+    auto checkLiteral =
+        [&](Literal const& p_literal, std::string const& p_where)
+    {
+        auto const predicate =
+            m_schema.predicates.find(p_literal.atom.predicate);
+        if (predicate == m_schema.predicates.end())
+        {
+            errors.push_back(p_where + " " + toString(p_literal) +
+                             ": unknown predicate");
+            return;
+        }
+        if (predicate->second.types.size() != p_literal.atom.args.size())
+        {
+            errors.push_back(p_where + " " + toString(p_literal) +
+                             ": expects " +
+                             std::to_string(predicate->second.types.size()) +
+                             " argument(s)");
+            return;
+        }
+        for (std::size_t i = 0U; i < p_literal.atom.args.size(); ++i)
+        {
+            std::string const* type = typeOf(p_literal.atom.args[i]);
+            if (type == nullptr)
+            {
+                errors.push_back(
+                    p_where + " " + toString(p_literal) + ": '" +
+                    p_literal.atom.args[i] +
+                    "' is neither an entity with a kind nor a constant");
+            }
+            else if (!isA(m_schema, *type, predicate->second.types[i]))
+            {
+                errors.push_back(p_where + " " + toString(p_literal) + ": '" +
+                                 p_literal.atom.args[i] + "' is a " + *type +
+                                 ", not a " + predicate->second.types[i]);
+            }
+        }
+    };
+    for (Literal const& fact : m_spec.facts)
+    {
+        checkLiteral(fact, "planner.facts:");
+        if (!fact.positive)
+        {
+            errors.push_back(
+                "planner.facts: " + toString(fact) +
+                ": facts are true atoms (what is not listed is false)");
+        }
+    }
+    for (Literal const& goal : m_spec.goal)
+    {
+        checkLiteral(goal, "planner.goal:");
+    }
+    if (m_spec.method == PlannerMethod::Backchaining && m_spec.goal.empty())
+    {
+        errors.push_back("planner.method pabt grows its tree from a goal "
+                         "list: goal_pddl is for the search only");
+    }
+
+    if (!errors.empty())
+    {
+        std::string text = "the planner setup has " +
+                           std::to_string(errors.size()) + " problem(s):";
+        for (std::string const& error : errors)
+        {
+            text += "\n  - " + error;
+        }
+        throw std::runtime_error(text);
+    }
+    for (auto const& [constant, type] : m_schema.constants)
+    {
+        m_typed[constant] = type;
+    }
+    for (PlanningObject const& object : m_objects)
+    {
+        m_typed[object.name] = object.type;
+    }
+    m_static = staticPredicates(m_schema);
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::reset(Seed p_seed)
+{
+    m_seed = p_seed.value;
+    m_state = PlanState::Planning;
+    m_resume = Seconds{};
+    m_replans = 0U;
+    m_failure.clear();
+    m_history.clear();
+    m_plan.clear();
+    m_done = 0U;
+    m_steps.clear();
+    m_after.clear();
+    m_order.clear();
+    m_started.clear();
+    m_check_failure.clear();
+    m_tree.reset();
+    m_backchain = {};
+    m_failed.clear();
+    m_acting.clear();
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::replan(std::string p_cause)
+{
+    if (m_tree)
+    {
+        m_tree->halt();
+    }
+    m_skills.cancelAll();
+    m_failure = std::move(p_cause);
+    m_state = PlanState::Planning;
+}
+
+// ----------------------------------------------------------------------------
+Status PlanExecutor::tick(RobotContext const& p_context)
+{
+    m_context = &p_context;
+    if (m_state == PlanState::Waiting && p_context.time >= m_resume)
+    {
+        m_state = PlanState::Planning;
+    }
+    if (m_state == PlanState::Planning)
+    {
+        std::string cause =
+            m_history.empty() ? std::string("start") : m_failure;
+        if (m_spec.method == PlannerMethod::Backchaining)
+        {
+            if (m_backchain.conditions.empty())
+            {
+                m_backchain = backchainTree(m_spec.goal);
+            }
+            compileBackchain(p_context, std::move(cause));
+        }
+        else
+        {
+            plan(p_context, std::move(cause));
+        }
+    }
+    if (m_state == PlanState::Executing)
+    {
+        m_check_failure.clear();
+        m_failed.clear();
+        switch (m_tree->tick())
+        {
+            case bt::Status::SUCCESS:
+                if (std::string const missing = goalReached(p_context);
+                    missing.empty())
+                {
+                    m_state = PlanState::Succeeded;
+                }
+                else
+                {
+                    retry(p_context, missing);
+                }
+                break;
+            case bt::Status::FAILURE:
+            {
+                std::string cause = m_check_failure.empty()
+                                        ? stepFailure(p_context)
+                                        : m_check_failure;
+                std::size_t const failed = failingStep();
+                if (failed < m_steps.size())
+                {
+                    m_steps[failed] = StepStatus::Failed;
+                }
+                m_tree->halt();
+                m_skills.cancelAll();
+                if (m_spec.method == PlannerMethod::Backchaining)
+                {
+                    // A condition no action was put under yet: grow the
+                    // tree. Else an action failed: try again later.
+                    if (grow(p_context))
+                    {
+                        compileBackchain(p_context, m_failure);
+                        break;
+                    }
+                    if (failed >= m_steps.size() && !m_failure.empty())
+                    {
+                        cause = m_failure;
+                    }
+                }
+                retry(p_context, std::move(cause));
+                break;
+            }
+            default:
+                break;
+        }
+    }
+    m_context = nullptr;
+    switch (m_state)
+    {
+        case PlanState::Succeeded:
+            return Status::SUCCESS;
+        case PlanState::Failed:
+            return Status::FAILURE;
+        default:
+            return Status::RUNNING;
+    }
+}
+
+bt::Tree const* PlanExecutor::tree() const
+{
+    return m_tree.get();
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
+{
+    PlanningRecord record;
+    record.time = p_context.time;
+    record.cause = std::move(p_cause);
+    record.observed = observe(p_context);
+    record.problem = problemOf(record.observed);
+
+    PlanningOptions options;
+    options.search = m_spec.search;
+    options.seed = m_seed;
+    options.timeout = std::chrono::milliseconds(static_cast<std::int64_t>(
+        std::max(0.001, m_spec.timeout.value()) * 1000.0));
+    record.result = m_engine->solve(record.problem, options);
+
+    m_plan.clear();
+    m_done = 0U;
+    m_tree.reset();
+    if (solved(record.result))
+    {
+        for (GroundAction const& step : record.result.steps)
+        {
+            m_plan.push_back(
+                { step.name, ids(step.args), step.start, step.duration });
+        }
+    }
+    m_steps.assign(m_plan.size(), StepStatus::Pending);
+    m_history.push_back(std::move(record));
+    PlanningResult const& result = m_history.back().result;
+
+    if (!solved(result))
+    {
+        std::string why = std::string("planner: ") + toString(result.status);
+        if (std::size_t const end = result.diagnostics.find('\n');
+            end != 0U && !result.diagnostics.empty())
+        {
+            why += " (" + result.diagnostics.substr(0U, end) + ")";
+        }
+        // A wrong problem will not get better by waiting.
+        if (result.status == PlanningResult::Status::Invalid)
+        {
+            fail(std::move(why));
+        }
+        else
+        {
+            retry(p_context, std::move(why));
+        }
+        return;
+    }
+    if (m_plan.empty())
+    {
+        m_state = PlanState::Succeeded;
+        return;
+    }
+    compile();
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::compile()
+{
+    m_order = partialOrder();
+    m_started.assign(m_plan.size(), false);
+    m_start_times.assign(m_plan.size(), Seconds(0.0));
+    m_after.assign(m_plan.size(), {});
+    for (std::size_t k = 0U; k < m_order.size(); ++k)
+    {
+        for (PlanEvent const& event : m_order[k].start_after)
+        {
+            m_after[k].push_back(event.step);
+        }
+    }
+    bool const chain = sequential(m_order);
+    // "1" for the end of step 1, "start of 1" for its start.
+    auto events = [](std::vector<PlanEvent> const& p_events)
+    {
+        std::string text;
+        for (PlanEvent const& event : p_events)
+        {
+            text += (text.empty() ? "" : ", ") +
+                    std::string(event.end ? "" : "start of ") +
+                    std::to_string(event.step + 1U);
+        }
+        return text;
+    };
+    std::ostringstream yaml;
+    if (chain)
+    {
+        yaml << "BehaviorTree:\n  Sequence:\n    name: \"Plan\"\n    "
+                "children:\n";
+    }
+    else
+    {
+        // Every step at once; each waits for its predecessors, runs once,
+        // and the first failure fails the plan.
+        yaml << "BehaviorTree:\n  Parallel:\n    name: \"Plan\"\n"
+             << "    success_on_all: true\n    fail_on_all: false\n    "
+                "children:\n";
+    }
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
+    {
+        GroundAction const& step = m_plan[k];
+        std::string const title = std::to_string(k + 1U) + ". " + label(step);
+        std::string indent = "      ";
+        if (!chain)
+        {
+            std::string const wait =
+                m_order[k].start_after.empty()
+                    ? "Start " + title
+                    : "After " + events(m_order[k].start_after) + ": " + title;
+            m_factory.registerNode(
+                wait,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]() { return ready(k); });
+                });
+            yaml << indent << "- RunOnce:\n"
+                 << indent << "    child:\n"
+                 << indent << "      - Sequence:\n"
+                 << indent << "          name: " << yamlQuoted(title) << "\n"
+                 << indent << "          children:\n"
+                 << indent << "            - Action:\n"
+                 << indent << "                name: " << yamlQuoted(wait)
+                 << "\n";
+            indent += "            ";
+        }
+        yaml << indent << "- SubTree:\n"
+             << indent << "    name: " << yamlQuoted(title) << "\n"
+             << indent << "    reference: step_" << k << "\n";
+        ActionBinding const* binding = m_domain.binding(step.name);
+        if (binding != nullptr && !binding->parameters.empty())
+        {
+            yaml << indent << "    parameters:\n";
+            for (auto const& [key, value] : binding->parameters)
+            {
+                yaml << indent << "      " << key << ": "
+                     << yamlQuoted(expand(value, step.args)) << "\n";
+            }
+        }
+    }
+    yaml << "SubTrees:\n";
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
+    {
+        GroundAction const& step = m_plan[k];
+        std::string const title = std::to_string(k + 1U) + ". " + label(step);
+        // A step whose effects already hold is skipped: the beliefs may have
+        // changed since the plan (an object seen on the way).
+        std::string const skip = "Done already? " + title;
+        m_factory.registerNode(
+            skip,
+            [this, k]()
+            {
+                return std::make_unique<bt::CallbackLeaf>(
+                    [this, k]()
+                    {
+                        return m_context != nullptr ? this->skip(k, *m_context)
+                                                    : bt::Status::FAILURE;
+                    });
+            });
+        yaml << "  step_" << k
+             << ":\n    Selector:\n      name: " << yamlQuoted(title)
+             << "\n      children:\n        - Action:\n            name: "
+             << yamlQuoted(skip)
+             << "\n        - Sequence:\n            name: \"Do\"\n"
+             << "            children:\n";
+        for (std::string const& node : nodes(step))
+        {
+            yaml << "              - Action:\n                  name: "
+                 << yamlQuoted(node) << "\n";
+        }
+        // A step of a temporal plan may have to last until others end (a
+        // tray held while the other arm works).
+        if (!m_order[k].end_after.empty())
+        {
+            std::string const until =
+                "Until " + events(m_order[k].end_after) + ": " + title;
+            m_factory.registerNode(
+                until,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]() { return mayEnd(k); });
+                });
+            yaml << "              - Action:\n                  name: "
+                 << yamlQuoted(until) << "\n";
+        }
+        // The check node marks the step done: always there, it only reads
+        // the beliefs when verify is on.
+        std::string const check = "Check " + title;
+        m_factory.registerNode(
+            check,
+            [this, k]()
+            {
+                return std::make_unique<bt::CallbackLeaf>(
+                    [this, k]()
+                    {
+                        return m_context != nullptr ? this->check(k, *m_context)
+                                                    : bt::Status::FAILURE;
+                    });
+            });
+        yaml << "              - Action:\n                  name: "
+             << yamlQuoted(check) << "\n";
+    }
+
+    std::string const text = yaml.str();
+    m_history.back().tree = text;
+    m_blackboard = std::make_shared<bt::Blackboard>();
+    auto built = bt::Builder::fromText(m_factory, text, m_blackboard);
+    if (!built)
+    {
+        fail("behavior tree of the plan: " + built.getError() +
+             " (a binding names a node that is not a skill?)");
+        return;
+    }
+    m_tree = std::move(built.getValue());
+    m_tree->clock(m_clock);
+    m_state = PlanState::Executing;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<std::string> PlanExecutor::nodes(GroundAction const& p_step) const
+{
+    std::vector<std::string> result;
+    if (ActionBinding const* binding = m_domain.binding(p_step.name))
+    {
+        for (std::string const& node : binding->nodes)
+        {
+            result.push_back(expand(node, p_step.args));
+        }
+    }
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<Literal> PlanExecutor::effects(std::size_t p_step,
+                                           bool& p_partial) const
+{
+    std::vector<Literal> result;
+    p_partial = true;
+    if (p_step >= m_plan.size())
+    {
+        return result;
+    }
+    GroundAction const& step = m_plan[p_step];
+    auto const action = m_schema.actions.find(step.name);
+    if (action == m_schema.actions.end())
+    {
+        return result;
+    }
+    p_partial = action->second.partial;
+    auto const& parameters = action->second.parameters;
+    for (Literal const& effect : action->second.effects)
+    {
+        Literal ground{ { effect.atom.predicate, {} }, effect.positive };
+        for (std::string const& arg : effect.atom.args)
+        {
+            auto const found =
+                std::ranges::find_if(parameters,
+                                     [&](Parameter const& p_parameter)
+                                     { return "?" + p_parameter.name == arg; });
+            std::size_t const index =
+                static_cast<std::size_t>(found - parameters.begin());
+            ground.atom.args.push_back(
+                index < step.args.size() ? lowerCase(step.args[index]) : arg);
+        }
+        result.push_back(std::move(ground));
+    }
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::check(std::size_t p_step,
+                               RobotContext const& p_context)
+{
+    if (p_step >= m_plan.size())
+    {
+        return bt::Status::FAILURE;
+    }
+    if (m_spec.verify)
+    {
+        bool partial = false;
+        for (Literal const& effect : effects(p_step, partial))
+        {
+            Truth const value = evaluate(effect.atom, p_context);
+            if (m_spec.observed && !seenSince(effect.atom, p_context, m_start_times[p_step]))
+            {
+                m_check_failure =
+                    std::to_string(p_step + 1U) + ". " + label(m_plan[p_step]) +
+                    ": " + toString(effect) +
+                    " expected, not observed since the step started";
+                return bt::Status::FAILURE;
+            }
+            if (value != Truth::Unknown &&
+                (value == Truth::True) != effect.positive)
+            {
+                m_check_failure =
+                    std::to_string(p_step + 1U) + ". " + label(m_plan[p_step]) +
+                    ": " + toString(effect) + " expected, the beliefs say " +
+                    toString(value);
+                return bt::Status::FAILURE;
+            }
+        }
+    }
+    finish(p_step, StepStatus::Done);
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::skip(std::size_t p_step, RobotContext const& p_context)
+{
+    bool partial = true;
+    std::vector<Literal> const expected = effects(p_step, partial);
+    if (partial || expected.empty())
+    {
+        return bt::Status::FAILURE;
+    }
+    // Every effect must be known to hold: unknown is not enough to skip.
+    for (Literal const& effect : expected)
+    {
+        Truth const value = evaluate(effect.atom, p_context);
+        if (value == Truth::Unknown ||
+            (value == Truth::True) != effect.positive)
+        {
+            return bt::Status::FAILURE;
+        }
+    }
+    finish(p_step, StepStatus::Skipped);
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::reached(PlanEvent const& p_event) const
+{
+    StepStatus const status = m_steps[p_event.step];
+    bool const over =
+        status == StepStatus::Done || status == StepStatus::Skipped;
+    return p_event.end ? over : over || m_started[p_event.step];
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::running(std::size_t p_step) const
+{
+    if (m_spec.method == PlannerMethod::Backchaining)
+    {
+        return m_state == PlanState::Executing && acting(p_step);
+    }
+    if (m_state != PlanState::Executing || p_step >= m_steps.size() ||
+        p_step >= m_order.size() || m_steps[p_step] != StepStatus::Pending)
+    {
+        return false;
+    }
+    return std::ranges::all_of(m_order[p_step].start_after,
+                               [this](PlanEvent const& p_event)
+                               { return reached(p_event); });
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::ready(std::size_t p_step)
+{
+    for (PlanEvent const& event : m_order[p_step].start_after)
+    {
+        if (!reached(event))
+        {
+            return bt::Status::RUNNING;
+        }
+    }
+    m_started[p_step] = true;
+    m_start_times[p_step] = m_context != nullptr ? m_context->time : Seconds(0.0);
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::mayEnd(std::size_t p_step) const
+{
+    for (PlanEvent const& event : m_order[p_step].end_after)
+    {
+        if (!reached(event))
+        {
+            return bt::Status::RUNNING;
+        }
+    }
+    return bt::Status::SUCCESS;
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::finish(std::size_t p_step, StepStatus p_status)
+{
+    m_steps[p_step] = p_status;
+    m_done = static_cast<std::size_t>(std::ranges::count_if(
+        m_steps,
+        [](StepStatus p_s)
+        { return p_s == StepStatus::Done || p_s == StepStatus::Skipped; }));
+}
+
+// ----------------------------------------------------------------------------
+std::size_t PlanExecutor::failingStep() const
+{
+    std::size_t first = m_plan.size();
+    for (std::size_t k = 0U; k < m_plan.size(); ++k)
+    {
+        if (m_steps[k] != StepStatus::Pending)
+        {
+            continue;
+        }
+        for (std::string const& node : nodes(m_plan[k]))
+        {
+            SkillId const id = m_skills.find(node);
+            if (id != NO_SKILL && (m_skills.state(id) == SkillState::Failed ||
+                                   m_skills.state(id) == SkillState::Cancelled))
+            {
+                return k;
+            }
+        }
+        bool const going =
+            k < m_order.size() &&
+            std::ranges::all_of(
+                m_order[k].start_after,
+                [this](PlanEvent const& p_event) { return reached(p_event); });
+        // A tree grown from the goal has no order: only a failed skill
+        // tells the step.
+        if (first == m_plan.size() && going &&
+            m_spec.method != PlannerMethod::Backchaining)
+        {
+            first = k;
+        }
+    }
+    return first;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<StepOrder> PlanExecutor::partialOrder() const
+{
+    std::vector<StepOrder> chain(m_plan.size());
+    for (std::size_t k = 1U; k < m_plan.size(); ++k)
+    {
+        chain[k].start_after = { { k - 1U, true } };
+    }
+    if (!m_spec.parallel)
+    {
+        return chain;
+    }
+    std::vector<StepFootprint> prints;
+    for (GroundAction const& step : m_plan)
+    {
+        auto const action = m_schema.actions.find(step.name);
+        if (action == m_schema.actions.end())
+        {
+            return chain; // Unknown to RobotIK: keep the plan as it is.
+        }
+        StepFootprint print = footprint(action->second, step);
+        for (std::string const& node : nodes(step))
+        {
+            if (SkillId const id = m_skills.find(node); id != NO_SKILL)
+            {
+                std::vector<ResourceRequirement> const& needed =
+                    m_skills.description(id).resources;
+                print.resources.insert(
+                    print.resources.end(), needed.begin(), needed.end());
+            }
+        }
+        prints.push_back(std::move(print));
+    }
+    return orderSteps(prints);
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::seenSince(Atom const& p_atom,
+                             RobotContext const& p_context,
+                             Seconds p_since) const
+{
+    if (evaluate(p_atom, p_context) == Truth::Unknown)
+    {
+        return false; // the beliefs cannot tell
+    }
+    // Every object of the atom the robot has beliefs about must have been
+    // observed again since the step started.
+    for (std::string const& id : ids(p_atom.args))
+    {
+        WorldObject const* belief = p_context.world_model.find(id);
+        if (belief != nullptr && belief->seen < p_since)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ----------------------------------------------------------------------------
+Truth PlanExecutor::evaluate(Atom const& p_atom,
+                             RobotContext const& p_context) const
+{
+    if (Observer const* observer = m_domain.observer(p_atom.predicate))
+    {
+        std::vector<std::string> const args = ids(p_atom.args);
+        // A belief too old says nothing any more.
+        for (std::string const& id : args)
+        {
+            WorldObject const* belief = p_context.world_model.find(id);
+            if (belief != nullptr && observed(*belief) &&
+                p_context.time - belief->seen > m_max_age)
+            {
+                return Truth::Unknown;
+            }
+        }
+        return (*observer)(p_context, args);
+    }
+    auto const predicate = m_schema.predicates.find(p_atom.predicate);
+    if (predicate == m_schema.predicates.end() || predicate->second.derived)
+    {
+        return Truth::Unknown;
+    }
+    // A static predicate: true when listed in the facts.
+    bool const listed = std::ranges::any_of(m_spec.facts,
+                                            [&](Literal const& p_fact)
+                                            { return p_fact.atom == p_atom; });
+    return truth(listed);
+}
+
+// ----------------------------------------------------------------------------
+std::string PlanExecutor::goalReached(RobotContext const& p_context) const
+{
+    for (Literal const& goal : m_spec.goal)
+    {
+        Truth const value = evaluate(goal.atom, p_context);
+        if (value != Truth::Unknown && (value == Truth::True) != goal.positive)
+        {
+            return "plan done but goal " + toString(goal) + " not reached";
+        }
+    }
+    return {};
+}
+
+// ----------------------------------------------------------------------------
+std::string PlanExecutor::stepFailure(RobotContext const& p_context) const
+{
+    std::size_t const failed = failingStep();
+    if (failed >= m_plan.size())
+    {
+        return "the plan failed";
+    }
+    GroundAction const& step = m_plan[failed];
+    std::string const title = std::to_string(failed + 1U) + ". " + label(step);
+    for (std::string const& node : nodes(step))
+    {
+        SkillId const id = m_skills.find(node);
+        if (id == NO_SKILL)
+        {
+            continue;
+        }
+        SkillState const state = m_skills.state(id);
+        if (state != SkillState::Failed && state != SkillState::Cancelled)
+        {
+            continue;
+        }
+        SkillReason const reason = m_skills.reason(id);
+        std::string text = title + ": skill " + node + " ";
+        if (reason == SkillReason::Failed)
+        {
+            std::string const why = m_skills.skill(id).why();
+            return text + (why.empty() ? "failed (it gave no reason)"
+                                       : "failed: " + why);
+        }
+        text += toString(state) + std::string(" (") + toString(reason);
+        if (ResourceId const blocker = m_skills.blocker(id);
+            blocker != NO_RESOURCE)
+        {
+            text += ": " + p_context.robot.resources().name(blocker);
+        }
+        return text + ")";
+    }
+    return title + " failed";
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::fail(std::string p_why)
+{
+    m_failure = std::move(p_why);
+    m_state = PlanState::Failed;
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::retry(RobotContext const& p_context, std::string p_cause)
+{
+    if (m_replans >= m_spec.max_replans)
+    {
+        fail(p_cause + " (no replan left)");
+        return;
+    }
+    ++m_replans;
+    m_failure = std::move(p_cause);
+    m_resume = p_context.time + m_spec.replan_delay;
+    m_state = PlanState::Waiting;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<std::string>
+PlanExecutor::ids(std::vector<std::string> const& p_names) const
+{
+    std::vector<std::string> result;
+    result.reserve(p_names.size());
+    for (std::string const& name : p_names)
+    {
+        auto const object =
+            std::ranges::find_if(m_objects,
+                                 [&](PlanningObject const& p_object)
+                                 { return p_object.name == name; });
+        result.push_back(object != m_objects.end() ? object->id : name);
+    }
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+std::vector<ObservedAtom>
+PlanExecutor::observe(RobotContext const& p_context) const
+{
+    std::vector<ObservedAtom> result;
+    for (auto const& [name, observer] : m_domain.observers())
+    {
+        auto const predicate = m_schema.predicates.find(name);
+        if (predicate == m_schema.predicates.end())
+        {
+            continue;
+        }
+        // Candidates of each argument: objects and constants of its type.
+        std::vector<std::vector<std::string>> candidates;
+        for (std::string const& type : predicate->second.types)
+        {
+            std::vector<std::string> names;
+            for (PlanningObject const& object : m_objects)
+            {
+                if (isA(m_schema, object.type, type))
+                {
+                    names.push_back(object.name);
+                }
+            }
+            for (auto const& [constant, constant_type] : m_schema.constants)
+            {
+                if (isA(m_schema, constant_type, type))
+                {
+                    names.push_back(constant);
+                }
+            }
+            candidates.push_back(std::move(names));
+        }
+        std::vector<std::string> tuple(candidates.size());
+        std::function<void(std::size_t)> visit = [&](std::size_t p_index)
+        {
+            if (p_index == candidates.size())
+            {
+                std::vector<std::string> const args = ids(tuple);
+                result.push_back(
+                    { Atom{ name, tuple }, observer(p_context, args) });
+                return;
+            }
+            for (std::string const& candidate : candidates[p_index])
+            {
+                tuple[p_index] = candidate;
+                visit(p_index + 1U);
+            }
+        };
+        visit(0U);
+    }
+    return result;
+}
+
+// ----------------------------------------------------------------------------
+std::string PlanExecutor::problem(RobotContext const& p_context) const
+{
+    return problemOf(observe(p_context));
+}
+
+// ----------------------------------------------------------------------------
+std::string
+PlanExecutor::problemOf(std::vector<ObservedAtom> const& p_observed) const
+{
+    std::ostringstream text;
+    text << "; Generated by RobotIK from the world, the scenario and the "
+            "beliefs.\n"
+         << "(define (problem " << m_name << ")\n  (:domain " << m_schema.name
+         << ")\n";
+    if (!m_objects.empty())
+    {
+        text << "  (:objects\n";
+        for (PlanningObject const& object : m_objects)
+        {
+            text << "    " << object.name << " - " << object.type << "\n";
+        }
+        text << "  )\n";
+    }
+    text << "  (:init\n";
+    std::set<std::string, std::less<>> written;
+    if (!m_spec.facts.empty())
+    {
+        text << "    ; facts of the scenario\n";
+        for (Literal const& fact : m_spec.facts)
+        {
+            if (written.insert(toPddl(fact.atom)).second)
+            {
+                text << "    " << toPddl(fact.atom) << "\n";
+            }
+        }
+    }
+    text << "    ; observed on the beliefs\n";
+    for (auto const& [atom, value] : p_observed)
+    {
+        if (value == Truth::True && written.insert(toPddl(atom)).second)
+        {
+            text << "    " << toPddl(atom) << "\n";
+        }
+    }
+    text << "  )\n";
+    if (!m_spec.goal_pddl.empty())
+    {
+        text << "  (:goal " << m_spec.goal_pddl << ")\n";
+    }
+    else
+    {
+        text << "  (:goal (and\n";
+        for (Literal const& goal : m_spec.goal)
+        {
+            text << "    " << toPddl(goal) << "\n";
+        }
+        text << "  ))\n";
+    }
+    text << ")\n";
+    return text.str();
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::acting(std::size_t p_action) const
+{
+    return p_action < m_acting.size() && m_acting[p_action] != nullptr &&
+           m_acting[p_action]->status() == bt::Status::RUNNING;
+}
+
+// ----------------------------------------------------------------------------
+bt::Status PlanExecutor::condition(std::size_t p_condition,
+                                   RobotContext const& p_context)
+{
+    BackchainCondition const& condition = m_backchain.conditions[p_condition];
+    // Actions are atomic, as in PDDL: the preconditions of a running action
+    // were read when it started, and the condition it makes true waits for
+    // its end (the status of the nodes is the one of the last tick).
+    if (acting(condition.action))
+    {
+        return bt::Status::SUCCESS;
+    }
+    if (std::ranges::any_of(condition.achievers,
+                            [this](std::size_t p_action)
+                            { return acting(p_action); }))
+    {
+        return bt::Status::FAILURE;
+    }
+    // Closed world, as for the planner: unknown is false.
+    Truth const value = evaluate(condition.literal.atom, p_context);
+    bool const holds = condition.literal.positive ? value == Truth::True
+                                                  : value != Truth::True;
+    if (holds)
+    {
+        return bt::Status::SUCCESS;
+    }
+    m_failed.push_back(p_condition);
+    return bt::Status::FAILURE;
+}
+
+// ----------------------------------------------------------------------------
+bool PlanExecutor::grow(RobotContext const& p_context)
+{
+    /// Most actions put under one condition: the ones that need the fewest
+    /// changes first.
+    static constexpr std::size_t MAX_ACHIEVERS = 16U;
+    /// Most actions in the whole tree.
+    static constexpr std::size_t MAX_ACTIONS = 512U;
+
+    auto holds = [&](Literal const& p_literal)
+    {
+        Truth const value = evaluate(p_literal.atom, p_context);
+        return p_literal.positive ? value == Truth::True : value != Truth::True;
+    };
+    for (std::size_t const index : m_failed)
+    {
+        if (m_backchain.conditions[index].expanded)
+        {
+            continue;
+        }
+        m_backchain.conditions[index].expanded = true;
+        Literal const literal = m_backchain.conditions[index].literal;
+        std::vector<Literal> const above = ancestors(m_backchain, index);
+        struct Candidate
+        {
+            GroundAction action;
+            std::vector<Literal> preconditions;
+            std::size_t missing = 0U;
+        };
+        std::vector<Candidate> candidates;
+        for (GroundAction& action : achievers(m_schema, m_typed, literal))
+        {
+            Candidate candidate{ std::move(action), {}, 0U };
+            candidate.preconditions =
+                groundPreconditions(m_schema, candidate.action);
+            bool useful = true;
+            for (Literal const& precondition : candidate.preconditions)
+            {
+                bool const now = holds(precondition);
+                // A static condition that is false stays false; one that is
+                // being made true above would go round in a circle.
+                if ((!now && m_static.contains(precondition.atom.predicate)) ||
+                    std::ranges::find(above, precondition) != above.end())
+                {
+                    useful = false;
+                    break;
+                }
+                candidate.missing += now ? 0U : 1U;
+            }
+            if (useful)
+            {
+                candidates.push_back(std::move(candidate));
+            }
+        }
+        std::ranges::stable_sort(candidates, {}, &Candidate::missing);
+        if (candidates.size() > MAX_ACHIEVERS)
+        {
+            candidates.resize(MAX_ACHIEVERS);
+        }
+        if (candidates.empty())
+        {
+            m_failure = "no action makes " + toString(literal) + " true";
+            continue;
+        }
+        if (m_backchain.actions.size() + candidates.size() > MAX_ACTIONS)
+        {
+            m_failure =
+                "the tree grown from the goal is too large (more than " +
+                std::to_string(MAX_ACTIONS) + " actions)";
+            return false;
+        }
+        for (Candidate& candidate : candidates)
+        {
+            (void)attach(m_backchain,
+                         index,
+                         std::move(candidate.action),
+                         candidate.preconditions);
+        }
+        m_failure = toString(literal) + " is false: put " +
+                    std::to_string(candidates.size()) + " action(s) under it";
+        return true;
+    }
+    return false;
+}
+
+// ----------------------------------------------------------------------------
+void PlanExecutor::compileBackchain(RobotContext const& p_context,
+                                    std::string p_cause)
+{
+    // The steps are the actions of the tree; the ones done stay done.
+    std::size_t const known = m_plan.size();
+    for (std::size_t k = known; k < m_backchain.actions.size(); ++k)
+    {
+        GroundAction const& action = m_backchain.actions[k].action;
+        m_plan.push_back({ action.name, ids(action.args), 0.0, 0.0 });
+    }
+    m_steps.resize(m_plan.size(), StepStatus::Pending);
+    m_order.assign(m_plan.size(), {});
+    m_after.assign(m_plan.size(), {});
+    m_started.assign(m_plan.size(), false);
+    m_start_times.assign(m_plan.size(), Seconds(0.0));
+
+    PlanningRecord record;
+    record.time = p_context.time;
+    record.cause = std::move(p_cause);
+    record.observed = observe(p_context);
+    record.result.status = PlanningResult::Status::Solved;
+    for (GroundAction const& step : m_plan)
+    {
+        record.result.steps.push_back(step);
+    }
+    m_history.push_back(std::move(record));
+
+    auto title = [this](std::size_t p_action)
+    { return std::to_string(p_action + 1U) + ". " + label(m_plan[p_action]); };
+    std::ostringstream yaml;
+    std::ostringstream subtrees;
+    // Writes condition p_index and what grew under it.
+    auto write = [&](auto const& p_self,
+                     std::size_t p_index,
+                     std::string const& p_indent) -> void
+    {
+        BackchainCondition const& condition = m_backchain.conditions[p_index];
+        std::string const text = toString(condition.literal);
+        std::string const leaf = text + "? #" + std::to_string(p_index + 1U);
+        m_factory.registerNode(leaf,
+                               [this, p_index]()
+                               {
+                                   return std::make_unique<bt::CallbackLeaf>(
+                                       [this, p_index]()
+                                       {
+                                           return m_context != nullptr
+                                                      ? this->condition(
+                                                            p_index, *m_context)
+                                                      : bt::Status::FAILURE;
+                                       });
+                               });
+        if (condition.achievers.empty())
+        {
+            yaml << p_indent << "- Action:\n"
+                 << p_indent << "    name: " << yamlQuoted(leaf) << "\n";
+            return;
+        }
+        yaml << p_indent << "- ReactiveSelector:\n"
+             << p_indent << "    name: " << yamlQuoted(text) << "\n"
+             << p_indent << "    children:\n"
+             << p_indent << "      - Action:\n"
+             << p_indent << "          name: " << yamlQuoted(leaf) << "\n";
+        for (std::size_t const k : condition.achievers)
+        {
+            std::string const inner = p_indent + "            ";
+            yaml << p_indent << "      - ReactiveSequence:\n"
+                 << p_indent << "          name: " << yamlQuoted(title(k))
+                 << "\n"
+                 << p_indent << "          children:\n";
+            for (std::size_t const precondition :
+                 m_backchain.actions[k].preconditions)
+            {
+                p_self(p_self, precondition, inner);
+            }
+            // The action: its nodes in order, then it is done.
+            std::string const done = "Done " + title(k);
+            m_factory.registerNode(
+                done,
+                [this, k]()
+                {
+                    return std::make_unique<bt::CallbackLeaf>(
+                        [this, k]()
+                        {
+                            finish(k, StepStatus::Done);
+                            return bt::Status::SUCCESS;
+                        });
+                });
+            std::ostringstream body;
+            body << "    Sequence:\n      name: "
+                 << yamlQuoted("Do " + title(k)) << "\n      children:\n";
+            for (std::string const& node : nodes(m_plan[k]))
+            {
+                body << "        - Action:\n            name: "
+                     << yamlQuoted(node) << "\n";
+            }
+            body << "        - Action:\n            name: " << yamlQuoted(done)
+                 << "\n";
+            ActionBinding const* binding = m_domain.binding(m_plan[k].name);
+            if (binding != nullptr && !binding->parameters.empty())
+            {
+                yaml << inner << "- SubTree:\n"
+                     << inner << "    name: " << yamlQuoted("Do " + title(k))
+                     << "\n"
+                     << inner << "    reference: action_" << k << "\n"
+                     << inner << "    parameters:\n";
+                for (auto const& [key, value] : binding->parameters)
+                {
+                    yaml << inner << "      " << key << ": "
+                         << yamlQuoted(expand(
+                                value, m_backchain.actions[k].action.args))
+                         << "\n";
+                }
+                subtrees << "  action_" << k << ":\n" << body.str();
+            }
+            else
+            {
+                // The same body, as an item of the list of children.
+                std::istringstream lines(body.str());
+                bool first = true;
+                for (std::string line; std::getline(lines, line); first = false)
+                {
+                    yaml << inner
+                         << (first ? "- " + line.substr(4U) : line.substr(2U))
+                         << "\n";
+                }
+            }
+        }
+    };
+    yaml << "BehaviorTree:\n  ReactiveSequence:\n    name: \"Goal\"\n"
+         << "    children:\n";
+    for (std::size_t const goal : m_backchain.goal)
+    {
+        write(write, goal, "      ");
+    }
+    std::string text = yaml.str();
+    if (std::string const more = subtrees.str(); !more.empty())
+    {
+        text += "SubTrees:\n" + more;
+    }
+    m_history.back().tree = text;
+    m_blackboard = std::make_shared<bt::Blackboard>();
+    auto built = bt::Builder::fromText(m_factory, text, m_blackboard);
+    if (!built)
+    {
+        m_tree.reset();
+        fail("behavior tree grown from the goal: " + built.getError() +
+             " (a binding names a node that is not a skill?)");
+        return;
+    }
+    m_tree = std::move(built.getValue());
+    m_tree->clock(m_clock);
+    m_acting.assign(m_plan.size(), nullptr);
+    for (bt::Node const* node : m_tree->nodes())
+    {
+        for (std::size_t k = 0U; k < m_plan.size(); ++k)
+        {
+            if (node != nullptr && node->name == "Do " + title(k))
+            {
+                m_acting[k] = node;
+            }
+        }
+    }
+    m_state = PlanState::Executing;
+}
+
+} // namespace robotik

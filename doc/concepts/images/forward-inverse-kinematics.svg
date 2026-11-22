@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 440" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Forward and inverse kinematics</title>
+<desc id="desc">Forward kinematics maps joint angles to a tool pose. Inverse kinematics maps a target tool pose to possible joint angles. Two arm configurations can reach the same point; some targets are out of reach.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="context-stroke"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 16px;}
+.link {fill: none; stroke: #397baf; stroke-width: 26; stroke-linecap: round;}
+.joint {fill: #fff; stroke: #20334b; stroke-width: 5;}
+.guide {fill: none; stroke: #52657a; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 3; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="440" rx="16" fill="#f5f8fc"/>
+
+<text x="32" y="38" class="heading">Two questions about the same arm</text>
+<rect x="32" y="62" width="250" height="56" rx="10" fill="#dcebf7"/>
+<text x="72" y="97">Joint angles</text>
+<rect x="618" y="62" width="250" height="56" rx="10" fill="#ffebca"/>
+<text x="689" y="97">TCP pose</text>
+<path d="M300 80H600" class="arrow"/><text x="345" y="70" class="small">Forward kinematics (FK)</text>
+<path d="M600 109H300" class="arrow"/><text x="346" y="139" class="small">Inverse kinematics (IK)</text>
+<path d="M155 335H205" class="guide"/>
+<path d="M180 320L237 199L370 220" stroke="#397baf" stroke-width="12" fill="none" stroke-linecap="round"/>
+<path d="M180 320L313 341L370 220" stroke="#397baf" stroke-width="7" fill="none" stroke-dasharray="9 7"/>
+<circle cx="180" cy="320" r="10" class="joint"/><circle cx="237" cy="199" r="10" class="joint"/>
+<circle cx="313" cy="341" r="9" fill="#f5f8fc" stroke="#397baf" stroke-width="3"/>
+<circle cx="370" cy="220" r="8" fill="#b83959"/>
+<text x="383" y="210" class="small">Same TCP position</text>
+<text x="74" y="387" class="small">IK can give several answers.</text>
+<path d="M606 328H840" class="guide"/>
+<path d="M630 317L676 235L764 220" stroke="#397baf" stroke-width="12" fill="none" stroke-linecap="round"/>
+<circle cx="630" cy="317" r="10" class="joint"/><circle cx="676" cy="235" r="10" class="joint"/>
+<path d="M818 177L834 193M834 177L818 193" stroke="#b83959" stroke-width="4"/>
+<path d="M630 317L817 191" class="guide" stroke-dasharray="5 5"/>
+<text x="711" y="169" class="small">Too far</text>
+<text x="594" y="387" class="small">IK can give no answer.</text>
+<text x="32" y="423" class="small">Planar examples with two joints: only the TCP position is constrained here.</text>
+
+</svg>

@@ -9,8 +9,8 @@
 
 #include "FlyDraw.hpp"
 
-#include "Robotik/Robot/Backends/SceneView.hpp"
-#include "Robotik/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
 
 #include "Compages/GPU/GPU.hpp"
 #include "Compages/GPU/RenderPass.hpp"
@@ -108,7 +108,7 @@ bool FlyView::open()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_DEPTH_BITS, 24);
     m_gpu->window =
-        glfwCreateWindow(1600, 900, "Robotik — fly", nullptr, nullptr);
+        glfwCreateWindow(1600, 900, "RobotIK — fly", nullptr, nullptr);
     if (m_gpu->window == nullptr)
     {
         std::cerr << "Cannot open an OpenGL 4.5 window\n";

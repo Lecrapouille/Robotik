@@ -9,12 +9,12 @@
 
 #include "Vision.hpp"
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Robot/Resources.hpp"
-#include "Robotik/Robot/Sensors/Camera.hpp"
-#include "Robotik/Task/Perception/Localization.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Robot/Actuators.hpp"
+#include "RobotIK/Robot/Resources.hpp"
+#include "RobotIK/Robot/Sensors/Camera.hpp"
+#include "RobotIK/Task/Perception/Localization.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <cmath>
 #include <numbers>

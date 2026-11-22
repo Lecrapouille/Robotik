@@ -7,8 +7,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Common/Config.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Common/Config.hpp"
 
 #include "Compages/World/World.hpp"
 

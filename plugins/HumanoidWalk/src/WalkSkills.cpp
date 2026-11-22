@@ -7,9 +7,9 @@
 
 #include "WalkSkills.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
-#include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Robot/Sensors/Imu.hpp"
+#include "RobotIK/Robot/Robot.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
+#include "RobotIK/Robot/Sensors/Imu.hpp"
 
 #include <algorithm>
 

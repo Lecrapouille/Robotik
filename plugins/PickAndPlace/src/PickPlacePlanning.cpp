@@ -9,9 +9,9 @@
 
 #include "PickPlaceSkills.hpp"
 
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/RobotContext.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Task/Planning/PlanningDomain.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
 
 #include <cmath>
 

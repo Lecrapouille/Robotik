@@ -10,7 +10,7 @@
 #include "PainterLogic.hpp"
 #include "PainterScene.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
+#include "RobotIK/Package/Simulation.hpp"
 
 #include <cmath>
 

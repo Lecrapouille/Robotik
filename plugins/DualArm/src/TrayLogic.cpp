@@ -10,11 +10,11 @@
 #include "ArmSkills.hpp"
 #include "TraySkills.hpp"
 
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Task/Planning/PlanningDomain.hpp"
-#include "Robotik/Task/RobotContext.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Task/Metrics.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Task/Planning/PlanningDomain.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>

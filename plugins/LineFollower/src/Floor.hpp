@@ -10,8 +10,8 @@
 #include "DiffDrive.hpp"
 #include "Track.hpp"
 
-#include "Robotik/Task/Perception/Localization.hpp"
-#include "Robotik/Robot/Sensors/Camera.hpp"
+#include "RobotIK/Task/Perception/Localization.hpp"
+#include "RobotIK/Robot/Sensors/Camera.hpp"
 
 #include <array>
 #include <cstdint>

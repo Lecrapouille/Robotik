@@ -7,12 +7,12 @@
 
 #include "PickPlaceSkills.hpp"
 
-#include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Task/Grasp/ContainerBounds.hpp"
-#include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Task/RobotContext.hpp"
+#include "RobotIK/Robot/Components/Objects.hpp"
+#include "RobotIK/Task/Grasp/ContainerBounds.hpp"
+#include "RobotIK/Task/Perception/WorldModel.hpp"
+#include "RobotIK/Task/RobotContext.hpp"
 
-#include "Robotik/Common/Math.hpp"
+#include "RobotIK/Common/Math.hpp"
 
 #include <algorithm>
 #include <cmath>

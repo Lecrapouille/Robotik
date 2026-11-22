@@ -12,8 +12,8 @@
 /// never from the simulator.
 #pragma once
 
-#include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Task/Skills/MotionSkills.hpp"
+#include "RobotIK/Robot/Components/Objects.hpp"
+#include "RobotIK/Task/Skills/MotionSkills.hpp"
 
 #include <optional>
 #include <string>

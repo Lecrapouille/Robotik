@@ -29,7 +29,7 @@
         {
             "label": "Build unit tests",
             "type": "shell",
-            "command": "make Robotik-tests",
+            "command": "make RobotIK-tests",
             "group": "build",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
@@ -45,7 +45,7 @@
             "label": "Build with sanitizers",
             "detail": "AddressSanitizer and UndefinedBehaviorSanitizer, in build/linux-gcc-debug-address-undefined",
             "type": "shell",
-            "command": "make all Robotik-tests SANITIZER=address,undefined",
+            "command": "make all RobotIK-tests SANITIZER=address,undefined",
             "group": "build",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
@@ -83,7 +83,7 @@
         {
             "label": "Unit tests: filter",
             "type": "shell",
-            "command": "make run-Robotik-tests ARGS='--gtest_filter=${input:gtestFilter}'",
+            "command": "make run-RobotIK-tests ARGS='--gtest_filter=${input:gtestFilter}'",
             "group": "test",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
@@ -117,27 +117,27 @@
         {
             "label": "Simulator",
             "type": "shell",
-            "command": "make run-Robotik-Simulator",
+            "command": "make run-RobotIK-Simulator",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
         {
             "label": "Simulator: one scenario",
             "type": "shell",
-            "command": "make run-Robotik-Simulator ARGS='${input:scenario}'",
+            "command": "make run-RobotIK-Simulator ARGS='${input:scenario}'",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
         {
             "label": "Headless: one scenario",
             "detail": "Exit code 0 pass, 2 a run failed, 1 load error",
             "type": "shell",
-            "command": "make run-Robotik-Headless ARGS='${input:scenario}'",
+            "command": "make run-RobotIK-Headless ARGS='${input:scenario}'",
             "group": "test",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
         {
             "label": "Headless: one scenario with its trace",
             "type": "shell",
-            "command": "make run-Robotik-Headless ARGS='${input:scenario} --trace'",
+            "command": "make run-RobotIK-Headless ARGS='${input:scenario} --trace'",
             "problemMatcher": { "base": "$gcc", "fileLocation": ["autoDetect", "${workspaceFolder}"] }
         },
 

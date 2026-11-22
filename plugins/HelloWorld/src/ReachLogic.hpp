@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Task/ScenarioLogic.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Task/ScenarioLogic.hpp"
 
 #include <vector>
 

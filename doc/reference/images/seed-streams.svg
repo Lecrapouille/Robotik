@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">One seed feeds every random draw</title>
+<desc id="desc">The seed of the scenario gives one random stream to the world layout, one to the faults, one to each sensor by its name, and one to the scenario logic.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="300" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">One seed, one stream per user</text>
+<rect x="370" y="64" width="160" height="50" rx="10" class="file"/>
+<text x="450.0" y="95.0" text-anchor="middle">seed 42</text>
+<path d="M450 114V140M125 140H775M125 140V160M341 140V160M558 140V160M775 140V160" class="line"/>
+<rect x="32" y="165" width="186" height="70" rx="10" class="box"/>
+<text x="125.0" y="195.0" text-anchor="middle">world</text>
+<text x="125.0" y="219.0" class="small" text-anchor="middle">layout of the props</text>
+<rect x="248" y="165" width="186" height="70" rx="10" class="box"/>
+<text x="341.0" y="195.0" text-anchor="middle">faults</text>
+<text x="341.0" y="219.0" class="small" text-anchor="middle">random faults</text>
+<rect x="465" y="165" width="186" height="70" rx="10" class="box"/>
+<text x="558.0" y="195.0" text-anchor="middle">&lt;sensor&gt;</text>
+<text x="558.0" y="219.0" class="small" text-anchor="middle">one per sensor name</text>
+<rect x="682" y="165" width="186" height="70" rx="10" class="box"/>
+<text x="775.0" y="195.0" text-anchor="middle">scenario logic</text>
+<text x="775.0" y="219.0" class="small" text-anchor="middle">an RL policy…</text>
+<text x="32" y="270" class="note">Same seed, same run.</text>
+</svg>

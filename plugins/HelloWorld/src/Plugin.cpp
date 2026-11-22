@@ -10,8 +10,8 @@
 #include "WaveLogic.hpp"
 #include "WaveSkill.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
-#include "Robotik/Package/Simulation.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Simulation.hpp"
 
 #include <string>
 
@@ -58,7 +58,7 @@ public:
     }
 
     /// Only the events subscribed in setup arrive here.
-    void onEvent(robotik::Host& /*p_host*/, RobotikEvent const& p_event) override
+    void onEvent(robotik::Host& /*p_host*/, RobotIKEvent const& p_event) override
     {
         if (p_event.kind == ROBOTIK_EVENT_KEY_PRESSED)
         {

@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 580" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">How a plan runs</title>
+<desc id="desc">At the first step, or after a problem, the observers, the facts, the objects and the goal make a PDDL problem; Kairos finds a plan; the plan becomes a behavior tree with one subtree per action. The tree is ticked. A failed skill, an effect seen false, or a goal still false at the end makes the executor wait replan.delay and plan again. The run succeeds when the goal is not false; it fails when replan.max is reached or the problem is not valid.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="580" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">How a plan runs</text>
+<rect x="32" y="64" width="836" height="50" rx="10" class="box"/>
+<text x="52" y="95">observers (beliefs) + facts + objects + goal  →  problem.pddl</text>
+<rect x="32" y="130" width="836" height="50" rx="10" class="lib"/>
+<text x="52" y="161">Kairos  →  plan</text>
+<rect x="32" y="196" width="836" height="70" rx="10" class="box"/>
+<text x="52" y="225">plan  →  behavior tree, one subtree per action:</text>
+<text x="52" y="251" class="small">the nodes of its binding, then "Check &lt;n&gt;. &lt;action&gt;"</text>
+<rect x="32" y="282" width="836" height="50" rx="10" class="box"/>
+<text x="52" y="313">tick the tree</text>
+<path d="M450 114 L450 125" class="arrow"/>
+<path d="M450 180 L450 191" class="arrow"/>
+<path d="M450 266 L450 277" class="arrow"/>
+<rect x="80" y="352" width="788" height="30" rx="10" class="fail"/>
+<text x="96" y="373" class="small">a skill fails</text>
+<text x="470" y="373" class="small">cancel, wait replan.delay, plan again</text>
+<rect x="80" y="390" width="788" height="30" rx="10" class="fail"/>
+<text x="96" y="411" class="small">Check: an effect is false</text>
+<text x="470" y="411" class="small">cancel, wait replan.delay, plan again</text>
+<rect x="80" y="428" width="788" height="30" rx="10" class="fail"/>
+<text x="96" y="449" class="small">tree done, goal false</text>
+<text x="470" y="449" class="small">wait replan.delay, plan again</text>
+<rect x="80" y="466" width="788" height="30" rx="10" class="ok"/>
+<text x="96" y="487" class="small">tree done, goal not false</text>
+<text x="470" y="487" class="small">success</text>
+<rect x="80" y="504" width="788" height="30" rx="10" class="fail"/>
+<text x="96" y="525" class="small">replan.max reached, or no valid problem</text>
+<text x="470" y="525" class="small">failure</text>
+<path d="M56 332V543" class="line"/>
+<path d="M56 367 L76 367" class="arrow"/>
+<path d="M56 405 L76 405" class="arrow"/>
+<path d="M56 443 L76 443" class="arrow"/>
+<path d="M56 481 L76 481" class="arrow"/>
+<path d="M56 519 L76 519" class="arrow"/>
+<path d="M868 367H884V20H450V60" class="darrow"/>
+<text x="700" y="16" class="small"></text>
+<text x="868" y="562" class="note" text-anchor="end">dashed: plan again from the first box</text>
+</svg>

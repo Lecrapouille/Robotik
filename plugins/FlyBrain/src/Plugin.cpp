@@ -7,7 +7,7 @@
 
 #include "FlyLogic.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
 
 #include <chrono>
 #include <exception>

@@ -7,7 +7,7 @@
 
 #include "PainterLogic.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
 
 /// The painter scenario logic; the planned scenarios let the planner choose the
 /// order of the layers.

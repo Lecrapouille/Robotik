@@ -14,7 +14,7 @@
 /// pot and the paint colours. Frames are URDF Z-up, the world frame.
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
+#include "RobotIK/Common/Math.hpp"
 
 #include <cmath>
 #include <set>

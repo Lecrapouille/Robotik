@@ -20,9 +20,7 @@ And it is:
 - **observable**: in the simulator, or with `--trace` and reports;
 - **testable**: explicit success criteria.
 
-When a demo is stable, it runs both ways —
-`Robotik-Simulator x.scenario.yaml` and `Robotik-Headless x.scenario.yaml` — and it
-becomes a regression test.
+When a demo is stable, it runs both ways — `RobotIK-Simulator x.scenario.yaml` and `RobotIK-Headless x.scenario.yaml` — and it becomes a regression test.
 
 ## 💡 Ideas for new demos
 
@@ -30,5 +28,4 @@ becomes a regression test.
 - **RGB-D perception**: camera → depth → Open3D / OpenCV → WorldModel → pick.
 - **Planning**: goal → PDDL / GOAP → behavior tree → skills.
 - **Reasoning**: WorldModel → Prolog facts and rules → decision.
-- **Strategy comparison**: the same scenario solved by a BT, a planner and a
-  policy, compared on time, collisions, failures and robustness to faults.
+- **Strategy comparison**: the same scenario solved by a BT, a planner and a policy, compared on time, collisions, failures and robustness to faults.

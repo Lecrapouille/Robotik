@@ -7,7 +7,7 @@
 
 #include "LineFollowerLogic.hpp"
 
-#include "Robotik/Package/Plugin/PluginAPI.hpp"
+#include "RobotIK/Package/Plugin/PluginAPI.hpp"
 
 #include <sstream>
 

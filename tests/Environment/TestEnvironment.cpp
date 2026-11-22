@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Task/Learning/Environment.hpp"
+#include "RobotIK/Task/Learning/Environment.hpp"
 
 /// Random walk on a line: reach +1 to win, give up after 50 steps.
 class WalkEnvironment final: public robotik::Environment

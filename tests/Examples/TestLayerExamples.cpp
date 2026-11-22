@@ -13,9 +13,9 @@
 
 #include "PickPlaceLogic.hpp"
 
-#include "Robotik/Package/Simulation.hpp"
-#include "Robotik/Task/OpenRoboticCell.hpp"
-#include "Robotik/Task/Skills/MotionSkills.hpp"
+#include "RobotIK/Package/Simulation.hpp"
+#include "RobotIK/Task/OpenRoboticCell.hpp"
+#include "RobotIK/Task/Skills/MotionSkills.hpp"
 
 #include "Compages/World/World.hpp"
 

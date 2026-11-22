@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 350" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Package: files describe and judge a run</title>
+<desc id="desc">The YAML scenario supplies the world, time limit and assertions. HelloLogic supplies behavior and metrics. Simulation steps the cell and evaluates assertions. Outcome explains why the run ended; passed reports whether all assertions hold.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 16px;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="350" rx="16" fill="#f5f8fc"/>
+
+<text x="32" y="40" class="heading">Package · Files describe the mission and its verdict</text>
+<rect x="32" y="75" width="250" height="85" rx="10" class="box"/>
+<text x="50" y="108">hello.scenario.yaml</text>
+<text x="50" y="137" class="small">World, timeout, assertions</text>
+<rect x="32" y="195" width="250" height="85" rx="10" class="box"/>
+<text x="50" y="228">HelloLogic (C++)</text>
+<text x="50" y="257" class="small">Behavior + hello.ticks metric</text>
+<path d="M282 117H315V237H282" fill="none" stroke="#52657a" stroke-width="2"/>
+<path d="M315 177H350" class="arrow"/>
+<rect x="350" y="125" width="225" height="105" rx="10" class="box"/>
+<text x="370" y="160">Simulation</text>
+<text x="370" y="188" class="small">Step the cell</text>
+<text x="370" y="213" class="small">Evaluate assertions</text>
+<path d="M575 177H630" class="arrow"/>
+<rect x="630" y="95" width="238" height="165" rx="10" fill="#e8f3ed" stroke="#33805a" stroke-width="2"/>
+<text x="650" y="130">outcome()</text>
+<text x="650" y="157" class="small">Why did the run end?</text>
+<text x="650" y="205">passed()</text>
+<text x="650" y="232" class="small">Do all assertions hold?</text>
+<text x="32" y="325" class="small">A controller can succeed while an assertion fails.</text>
+
+</svg>

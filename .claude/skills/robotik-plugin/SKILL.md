@@ -30,7 +30,7 @@ perception + BT: `plugins/PickAndPlace/`.
 5. Build + run:
    ```bash
    make <target>
-   ./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
+   ./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/<Name>/scenarios/<s>.scenario.yaml --trace
    ```
    The root `make` builds the plugins listed in `PLUGINS` (root `Makefile`).
 
@@ -96,8 +96,8 @@ canvas (`text`, `textColored`, `button`, `checkbox`,
 ## Core stays agnostic of the demos
 
 The demo plugins exist to prove that RobotIK fits **any** robot project
-(arm, humanoid, fly, mobile robot, hexapod...). So the core (`src/`,
-`include/`) and the hosts (`simulator/`, `headless/`) must not know a demo:
+(arm, humanoid, fly, mobile robot, hexapod...). So the core (`src/RobotIK/`,
+`include/`) and the hosts (`src/Simulator/`, `src/Headless/`) must not know a demo:
 
 - no demo name, object id, joint name, tool kind or task in core code
   (`red_cube`, `drill_spindle_joint`, "painting"...);
@@ -116,7 +116,7 @@ Known leaks (October 2026), to fix:
 | `Task/RoboticCellTruth.cpp` `(holding g)` | only for `VacuumGripper` | a gripper interface (`holding`, `label`, `RoboticCell::held`) for any grasping actuator |
 | `Robot/Backends/SceneView.hpp` `openCanvas`, `ink` | the Painter sheet in the backend interface | a generic dynamic texture on an entity |
 | `Task/RoboticCell.cpp` built-in `Home` | needs an arm joint group; no sense for a humanoid or a fly | `Home` only when the robot declares a `home:` pose |
-| `simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |
+| `src/Simulator/TeachPanel.cpp` `triggerTool` | knows vacuum, gripper, drill and `drill_spindle_joint` | each tool declares its trigger (actuator) in its pack |
 | `ecs::Shape` | box and container only | sphere, cylinder, mesh |
 | `Task/Perception/WorldModel.cpp` monocular estimate | objects on a known top plane (tabletop) | a depth source or a declared support |
 

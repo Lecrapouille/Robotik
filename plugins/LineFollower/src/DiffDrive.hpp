@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include "Robotik/Common/Math.hpp"
-#include "Robotik/Robot/RobotSession.hpp"
+#include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
 
 #include <string>
 

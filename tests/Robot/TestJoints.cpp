@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot/Joints.hpp"
+#include "RobotIK/Robot/Joints.hpp"
 
 #include <limits>
 

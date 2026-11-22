@@ -10,8 +10,8 @@
 
 #include "main.hpp"
 
-#include "Robotik/Robot/Actuators.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Robot/Actuators.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <type_traits>
 #include <utility>

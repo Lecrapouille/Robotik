@@ -8,10 +8,10 @@
 #include "DuckLogic.hpp"
 #include "DuckSkills.hpp"
 
-#include "Robotik/Common/Config.hpp"
-#include "Robotik/Robot/Backends/MujocoBackend.hpp"
-#include "Robotik/Task/Metrics.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Common/Config.hpp"
+#include "RobotIK/Robot/Backends/MujocoBackend.hpp"
+#include "RobotIK/Task/Metrics.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>

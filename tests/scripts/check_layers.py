@@ -88,12 +88,12 @@ def stage(root, build, layer, part):
     hidden = set(HIDDEN.get(part, []))
     folders = []
     for side in ("include", "src"):
-        top = build / "layers" / part.replace("/", "_") / side / "Robotik"
+        top = build / "layers" / part.replace("/", "_") / side / "RobotIK"
         if top.exists():
             subprocess.run(["rm", "-rf", str(top)], check=True)
         top.mkdir(parents=True)
         for name in allowed:
-            source = root / side / "Robotik" / name
+            source = root / side / "RobotIK" / name
             if not source.exists():
                 continue
             if not any(h.startswith(name + "/") for h in hidden):
@@ -119,7 +119,7 @@ def main():
     jobs = []
     staged = {}
     for side in ("include", "src"):
-        base = root / side / "Robotik"
+        base = root / side / "RobotIK"
         for path in sorted(base.rglob("*")):
             if path.suffix not in (".hpp", ".h", ".cpp"):
                 continue

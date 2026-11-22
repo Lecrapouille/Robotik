@@ -7,12 +7,12 @@
 
 #include "FlyLogic.hpp"
 
-#include "Robotik/Robot/Assets/AssetResolver.hpp"
-#include "Robotik/Robot/Backends/SceneView.hpp"
-#include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Robot/RobotSession.hpp"
-#include "Robotik/Robot/Sensors/Image.hpp"
-#include "Robotik/Task/RoboticCell.hpp"
+#include "RobotIK/Robot/Assets/AssetResolver.hpp"
+#include "RobotIK/Robot/Backends/SceneView.hpp"
+#include "RobotIK/Robot/Components/Objects.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/Sensors/Image.hpp"
+#include "RobotIK/Task/RoboticCell.hpp"
 
 #include <algorithm>
 #include <cmath>

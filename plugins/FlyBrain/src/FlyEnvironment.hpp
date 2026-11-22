@@ -16,7 +16,7 @@
 #include "FlyTypes.hpp"
 #include "FlyVision.hpp"
 
-#include "Robotik/Task/Learning/Environment.hpp"
+#include "RobotIK/Task/Learning/Environment.hpp"
 
 #include <vector>
 

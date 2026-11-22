@@ -2,22 +2,15 @@
 
 [⏫ Guides](README.md)
 
-Robotik does **not** train policies. It gives stable, reproducible,
-window-free **environments** that a learning algorithm (in C++, or in another
-process) can drive. The same worlds and scenarios as the demos are used.
+RobotIK does **not** train policies. It gives stable, reproducible, window-free **environments** that a learning algorithm (in C++, or in another process) can drive. The same worlds and scenarios as the demos are used.
 
-If the words *observation*, *action*, *reward*, *episode* are new, read
-[Reinforcement learning (RL)](../concepts/robotics-in-ten-minutes.md#-reinforcement-learning-rl) first.
+If the words *observation*, *action*, *reward*, *episode* are new, read [Reinforcement learning (RL)](../concepts/01-robotics-in-ten-minutes.md#-reinforcement-learning-rl) first.
 
 ## 🔁 The loop
 
-```text
-          ┌──────────── observation ◄──────────┐
-          ▼                                    │
-       policy ──► action ──► simulation ──► reward
-```
+![The policy sends an action, the simulation returns an observation and a reward.](images/rl-loop.svg)
 
-`robotik::Environment` (`include/Robotik/Task/Learning/Environment.hpp`):
+`robotik::Environment` (`include/RobotIK/Task/Learning/Environment.hpp`):
 
 | Operation | Does |
 |-----------|------|
@@ -25,8 +18,7 @@ If the words *observation*, *action*, *reward*, *episode* are new, read
 | `step(action, observation)` | Applies the action for a fixed time, advances the simulation, writes the next observation, returns the reward and the end, if any |
 | `observationSpace()`, `actionSpace()` | Layout of the vectors: name, bounds, unit of each dimension |
 
-Observations and actions are flat `float` vectors, written in place: a step
-allocates nothing.
+Observations and actions are flat `float` vectors, written in place: a step allocates nothing.
 
 ### 📐 Spaces
 
@@ -37,14 +29,11 @@ observation.add3("tip", -1.5f, 1.5f, "m")            // tip.x, tip.y, tip.z
            .add("delivered", 0.0f, 1.0f, "", true);  // privileged
 ```
 
-A **privileged** dimension comes from the simulator ground truth: a real robot
-could not observe it. A policy that uses it is not deployable as is.
-`Space::privileged()` says so, and the log records it.
+A **privileged** dimension comes from the simulator ground truth: a real robot could not observe it. A policy that uses it is not deployable as is. `Space::privileged()` says so, and the log records it.
 
 ### 🏁 How an episode ends
 
-`StepResult::end` has four values, because learning and evaluation treat them
-differently:
+`StepResult::end` has four values, because learning and evaluation treat them differently:
 
 | `EpisodeEnd` | Meaning | Terminal state? |
 |--------------|---------|-----------------|
@@ -57,23 +46,9 @@ differently:
 
 ## 🎬 An environment from a scenario
 
-`robotik::SimulationEnvironment` turns a robot cell into an environment (a
-scenario file, or a `RoboticCellDescription` written in C++), from three swappable
-parts:
+`robotik::SimulationEnvironment` turns a robot cell into an environment (a scenario file, or a `RoboticCellDescription` written in C++), from three swappable parts:
 
-```text
-           action                          observation
-              │                                 ▲
-              ▼                                 │
-       ActionAdapter                    ObservationBuilder
-   (vector → commands)             (sensors, beliefs → vector)
-              │                                 ▲
-              ▼                                 │
-           RoboticCell ── held for control_period ──┘
-              │
-              ▼
-       RewardEvaluator ── reward, Success / Failure
-```
+![Inside an environment: ActionAdapter, RoboticCell, ObservationBuilder, RewardEvaluator.](images/rl-environment.svg)
 
 | Part | Role |
 |------|------|
@@ -81,9 +56,7 @@ parts:
 | `ActionAdapter` | Turns the vector into commands (joint targets, gripper...). Does not advance time |
 | `RewardEvaluator` | Scores the step from the simulation only, never from the display. Says when the task is over |
 
-Each part has `setup` (once) and `reset` (each episode). Changing the
-observation (joints only, or camera) touches neither the action nor the
-reward.
+Each part has `setup` (once) and `reset` (each episode). Changing the observation (joints only, or camera) touches neither the action nor the reward.
 
 ```cpp
 robotik::SimulationEnvironment::Parts parts;
@@ -100,39 +73,26 @@ robotik::SimulationEnvironment environment(
     robotik::Scenario::load(path, assets), std::move(parts), timing);
 ```
 
-The scenario keeps its world, its faults and its perception policy. Its
-controller, `timeout`, `stop_when` and assertions are removed: the agent
-drives, the reward judges. An exception in a part or in the simulation ends
-the episode as `Aborted`; the reason is in `abortReason()`.
+The scenario keeps its world, its faults and its perception policy. Its controller, `timeout`, `stop_when` and assertions are removed: the agent drives, the reward judges. An exception in a part or in the simulation ends the episode as `Aborted`; the reason is in `abortReason()`.
 
-`reset(seed)` rebuilds the full initial state: joints, base, sensors (random
-streams included), resources, faults, object layout.
+`reset(seed)` rebuilds the full initial state: joints, base, sensors (random streams included), resources, faults, object layout.
 
-The three pick-and-place parts live in `plugins/PickAndPlace/src/RlLogic.*`
-and are shared by the command-line pool and the simulator plugin.
+The three pick-and-place parts live in `plugins/PickAndPlace/src/RlLogic.*` and are shared by the command-line pool and the simulator plugin.
 
 ## 👯 Many environments
 
-`robotik::EnvironmentPool` runs N environments on threads, behind contiguous
-buffers ready for a learner. Episode `k` of environment `i` uses the seed
-`master.derive(i).derive(k)`: any episode can be replayed alone, and the
-result does not depend on the number of threads.
+`robotik::EnvironmentPool` runs N environments on threads, behind contiguous buffers ready for a learner. Episode `k` of environment `i` uses the seed `master.derive(i).derive(k)`: any episode can be replayed alone, and the result does not depend on the number of threads.
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
+./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32 \
     --log episodes.json
 ```
 
-The command then replays the same batch on one thread and checks that the
-results are identical, bit for bit. The last column gives the end of each
-episode: `success`, `failure`, `time limit` or `aborted`.
+The command then replays the same batch on one thread and checks that the results are identical, bit for bit. The last column gives the end of each episode: `success`, `failure`, `time limit` or `aborted`.
 
 ### 📋 The log
 
-`robotik::EpisodeLog` writes, in JSON, what is needed to compare and replay:
-Robotik version and commit, scenario, policy, master seed, control period,
-step budget, both spaces (privileged dimensions included), then each episode:
-environment, index, seed, return, number of steps, end.
+`robotik::EpisodeLog` writes, in JSON, what is needed to compare and replay: RobotIK version and commit, scenario, policy, master seed, control period, step budget, both spaces (privileged dimensions included), then each episode: environment, index, seed, return, number of steps, end.
 
 ## 🤝 Environments and agents
 
@@ -143,17 +103,13 @@ Two different ideas:
 | **Many environments** (`env0` … `envN`) | Independent simulations, each with its world and seed | Collect faster, compare conditions, statistics |
 | **Many agents** in one environment | Entities acting in the same world | Coordination, collective behaviour |
 
-An agent is not always learned: an existing neural model (the fly brain), a
-classic controller or a trained policy all share the same surface,
-`robotik::Agent` (`include/Robotik/Task/Agents/Agent.hpp`): it receives an
-observation and returns an action.
+An agent is not always learned: an existing neural model (the fly brain), a classic controller or a trained policy all share the same surface, `robotik::Agent` (`include/RobotIK/Task/Agents/Agent.hpp`): it receives an observation and returns an action.
 
-Today `SimulationEnvironment` drives one robot. Several agents in one shared
-world are still to do.
+Today `SimulationEnvironment` drives one robot. Several agents in one shared world are still to do.
 
 ## ✅ Checklist
 
-| Question | Answer in Robotik |
+| Question | Answer in RobotIK |
 |----------|-------------------|
 | Does a reset put every state back? | Yes: `RoboticCell::reset` (robot, sensors, resources, faults, objects), then `reset` of each part. Checked by a replay test |
 | Explicit observation and action spaces? | `Space`: name, bounds, unit per dimension |

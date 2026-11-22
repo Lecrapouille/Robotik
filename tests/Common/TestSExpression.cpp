@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Common/SExpression.hpp"
+#include "RobotIK/Common/SExpression.hpp"
 
 TEST(SExpression, ReadsAtomsTextsAndLists)
 {

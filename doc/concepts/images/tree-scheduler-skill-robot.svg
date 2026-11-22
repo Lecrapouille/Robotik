@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">Who decides, who allows, who does</title>
+<desc id="desc">The behavior tree requests Grasp(red_cube). The skill scheduler checks that the gripper and the arm are free and that the preconditions hold, then starts the skill or makes it wait. At each step it ticks the skill, which moves the arm a little toward the cube through the robot API.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="470" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">Who decides, who allows, who does</text>
+<rect x="32" y="64" width="836" height="70" rx="10" class="file"/>
+<text x="52" y="94">Behavior tree</text>
+<text x="52" y="118" class="small">"I want Grasp(red_cube) now."</text>
+<path d="M200 134 L200 162" class="arrow"/>
+<text x="212" y="154" class="small">request</text>
+<rect x="32" y="164" width="836" height="70" rx="10" class="box"/>
+<text x="52" y="194">SkillScheduler</text>
+<text x="52" y="218" class="small">"The gripper and the arm are free, the preconditions hold: start." (or: wait, or: failed)</text>
+<path d="M200 234 L200 262" class="arrow"/>
+<text x="212" y="254" class="small">tick</text>
+<rect x="32" y="264" width="836" height="70" rx="10" class="yours"/>
+<text x="52" y="294">Skill</text>
+<text x="52" y="318" class="small">"I move the arm a little toward the cube."</text>
+<path d="M200 334 L200 362" class="arrow"/>
+<text x="212" y="354" class="small">commands</text>
+<rect x="32" y="364" width="836" height="70" rx="10" class="box"/>
+<text x="52" y="394">Robot API</text>
+<text x="52" y="418" class="small">joints, actuators, sensors</text>
+<rect x="656.4" y="24" width="18" height="18" rx="3" class="file"/>
+<text x="682.4" y="39" class="small">your YAML</text>
+<rect x="766.1999999999999" y="24" width="18" height="18" rx="3" class="yours"/>
+<text x="792.1999999999999" y="39" class="small">your code</text>
+</svg>

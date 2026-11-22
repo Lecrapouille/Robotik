@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 390" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">World frame and object frame</title>
+<desc id="desc">The world frame stays fixed with z pointing up. A displaced cube has its own frame, rotated around z. Position locates its origin; orientation turns its axes.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="context-stroke"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 16px;}
+.link {fill: none; stroke: #397baf; stroke-width: 26; stroke-linecap: round;}
+.joint {fill: #fff; stroke: #20334b; stroke-width: 5;}
+.guide {fill: none; stroke: #52657a; stroke-width: 2;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 3; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="390" rx="16" fill="#f5f8fc"/>
+
+<text x="32" y="38" class="heading">A pose = a position + an orientation</text>
+<path d="M90 300L510 300L760 170L340 170Z" fill="#e6edf5" stroke="#c7d2df" stroke-width="2"/>
+<path d="M170 280H320" style="stroke: #b83959" class="arrow"/>
+<path d="M170 280L270 228" style="stroke: #21834d" class="arrow"/>
+<path d="M170 280V120" style="stroke: #2869b2" class="arrow"/>
+<text x="327" y="287">x</text><text x="278" y="226">y</text><text x="180" y="121">z (up)</text>
+<circle cx="170" cy="280" r="5" fill="#20334b"/>
+<text x="65" y="340">World frame (fixed)</text>
+<path d="M500 205L565 172L630 205L565 238Z" fill="#ffe0a8" stroke="#ac6a16" stroke-width="2"/>
+<path d="M500 205V140L565 107L630 140V205M500 140L565 173L630 140M565 173V238" fill="#efb35a" fill-opacity=".6" stroke="#ac6a16" stroke-width="2"/>
+<path d="M170 280L565 238" class="arrow" stroke-dasharray="7 5"/>
+<text x="333" y="275">Position</text>
+<path d="M565 238L659 189" style="stroke: #b83959" class="arrow"/>
+<path d="M565 238L478 194" style="stroke: #21834d" class="arrow"/>
+<path d="M565 238V80" style="stroke: #2869b2" class="arrow"/>
+<text x="669" y="193">x</text><text x="460" y="187">y</text><text x="577" y="87">z</text>
+<text x="645" y="280">Object frame</text><text x="645" y="307" class="small">Orientation turns its axes</text>
+<text x="32" y="375" class="small">Schematic view: axis colours are x = red, y = green, z = blue.</text>
+
+</svg>

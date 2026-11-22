@@ -12,9 +12,9 @@ committed, `plugin.yaml` credits them.
 ## 🔨 Build and run
 
 ```bash
-make PLUGINS+=MicroDuck             # fetches its repositories and ONNX Runtime, prepares its data once
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
-./build/linux-gcc-debug/bin/Robotik-Simulator build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
+make EXTRA_PLUGINS=MicroDuck        # fetches its repositories and ONNX Runtime, prepares its data once
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/tour.scenario.yaml --trace
+./build/linux-gcc-debug/bin/RobotIK-Simulator build/linux-gcc-debug/lib/robotik/plugins/MicroDuck/scenarios/drive.scenario.yaml   # Space: play
 ```
 
 Without ONNX Runtime or the clone, `make` skips the plugin.

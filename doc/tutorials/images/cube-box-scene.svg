@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 430" role="img" aria-labelledby="title desc">
+<!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
+<title id="title">The scene of the tutorial, from above and from the side</title>
+<desc id="desc">Seen from above: the robot base is at the origin, x points forward and y to the left. The red cube is at x = 0.40, y = 0.20 and the box at x = 0.40, y = -0.20, 40 cm apart. Seen from the side: the centre of the cube on the floor is at z = 0.02; in the box, on its 5 mm floor, it is at z = 0.025; the centre of the box is at z = 0.04.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
+<style>
+text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
+.heading {font-size: 23px; font-weight: bold;}
+.small {font-size: 15px;}
+.note {font-size: 15px; fill: #52657a; font-style: italic;}
+.box {fill: #fff; stroke: #397baf; stroke-width: 2;}
+.yours {fill: #fff7e6; stroke: #c98a1b; stroke-width: 2;}
+.file {fill: #eef4ea; stroke: #5f8f4e; stroke-width: 2;}
+.lib {fill: #eceff3; stroke: #7a8796; stroke-width: 2;}
+.future {fill: #f5f8fc; stroke: #7a8796; stroke-width: 2; stroke-dasharray: 6 4;}
+.fail {fill: #fdecee; stroke: #b5345a; stroke-width: 2;}
+.ok {fill: #e9f5ec; stroke: #3d8b57; stroke-width: 2;}
+.line {fill: none; stroke: #52657a; stroke-width: 2;}
+.dashed {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5;}
+.arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
+.darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
+</style>
+<rect width="900" height="430" rx="16" fill="#f5f8fc"/>
+<text x="32" y="40" class="heading">Where the cube and the box are</text>
+<text x="32" y="76" class="note">From above</text>
+<path d="M110 245H410" class="arrow"/>
+<text x="415" y="250" class="small">x</text>
+<path d="M110 245V105" class="arrow"/>
+<text x="120" y="113" class="small">y</text>
+<circle cx="110" cy="245" r="16" fill="#397baf" stroke="#20334b" stroke-width="3"/>
+<text x="70" y="285" class="small">robot base (0, 0)</text>
+<rect x="300.0" y="135.0" width="20" height="20" fill="#d9363e" stroke="#20334b"/>
+<text x="328.0" y="150.0" class="small">red_cube (0.40, 0.20)</text>
+<rect x="270.0" y="305.0" width="80" height="80" fill="none" stroke="#397baf" stroke-width="3"/>
+<text x="358.0" y="350.0" class="small">box (0.40, -0.20)</text>
+<path d="M310.0 159.0V301.0" class="dashed"/>
+<text x="320.0" y="237" class="note">0.40 m apart</text>
+<text x="470" y="76" class="note">From the side (z up)</text>
+<path d="M470 360H770" class="line"/>
+<text x="470" y="382" class="note">floor</text>
+<rect x="490" y="320.0" width="40.0" height="40.0" fill="#d9363e" stroke="#20334b"/>
+<circle cx="510.0" cy="340.0" r="4" fill="#fff" stroke="#20334b" stroke-width="3"/>
+<text x="480" y="308.0" class="small">z = 0.02</text>
+<path d="M580 280.0V360H740.0V280.0" fill="none" stroke="#397baf" stroke-width="4"/>
+<rect x="580" y="355.0" width="160.0" height="5.0" fill="#397baf"/>
+<rect x="640.0" y="315.0" width="40.0" height="40.0" fill="#d9363e" stroke="#20334b"/>
+<circle cx="660.0" cy="335.0" r="4" fill="#fff" stroke="#20334b" stroke-width="3"/>
+<text x="750.0" y="347.0" class="small">z = 0.025 (cube)</text>
+<text x="750.0" y="321.0" class="small">z = 0.04 (box)</text>
+<path d="M746.0 316.0H684.0" class="dashed"/>
+<text x="570" y="382" class="note">5 mm floor</text>
+<text x="32" y="410" class="note">A position is the centre of the object. All distances are in metres.</text>
+</svg>

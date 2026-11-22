@@ -2,92 +2,93 @@
 
 [⏫ Tutorials](README.md)
 
-A **plugin** is your program. It is a folder in `plugins/` with some YAML
-files (world, scenarios) and a little C++ compiled into a shared library
-(`.so`). The simulator and Headless load it when you choose one of its
-scenarios.
+In tutorial 3 you changed a scene and a verdict with YAML only. YAML says what exists and what must be true. It cannot say what the robot does: for that, you write C++. In RobotIK, your C++ code goes in a plugin. In this tutorial, you read the smallest plugin code of RobotIK, you run it, and you change it.
 
-This tutorial follows the **HelloWorld** plugin, lesson by lesson. The next
-tutorial, [Your own plugin](05-your-own-plugin.md), creates a plugin from
-zero. The plugin class, its lifecycle and `plugin.yaml` are listed in the
-[plugin reference](../reference/plugin.md).
+The next tutorials use the same plugin, HelloWorld, and add one idea each:
 
-| Lesson | Scenario | You learn |
-|--------|----------|-----------|
-| 1 | `hello.scenario.yaml` | The smallest scenario logic: count steps, publish a metric, end the run |
-| 2 | `wave.scenario.yaml` | Command a joint, read the tool pose (forward kinematics) |
-| 3 | `reach.scenario.yaml` | Reach a point with inverse kinematics |
-| 4 | `skills.scenario.yaml` | Write a skill, call it from a behavior tree |
-| — | all | The plugin class: menus, panels, keyboard |
+| Tutorial | Scenario | You learn |
+|----------|----------|-----------|
+| 4. Your first plugin (this page) | `hello` | What a plugin is, the scenario logic, metrics |
+| [5. Move the arm](05-move-the-arm.md) | `wave`, `reach` | Command a joint, forward and inverse kinematics |
+| [6. A skill and a behavior tree](06-skills-and-a-behavior-tree.md) | `skills` | Write a skill, run it from a behavior tree |
+| [7. Your own plugin](07-your-own-plugin.md) | `nod` | Write a plugin from zero |
+| [8. A planned pick and place](08-a-planned-pick-and-place.md) | `pick_and_place_pddl` | Give a goal to a planner |
 
-Run them first, to know what you are reading:
+## 🧩 What is a plugin?
+
+A plugin is a folder of `plugins/`. It has YAML files, and C++ code that `make` compiles into a shared library (a `.so` file). Here is HelloWorld:
+
+```text
+📦 plugins/HelloWorld/
+┣ 📄 plugin.yaml       ⬅️ the manifest: the id of the plugin, its library, its scenarios
+┣ 📄 HelloWorld.mk     ⬅️ how make builds librobotik_hello_world.so
+┣ 📂 worlds/
+┃ ┗ 📄 arm.world.yaml  ⬅️ what exists: one 6-axis arm
+┣ 📂 scenarios/        ⬅️ one scenario per lesson: what happens, what must be true
+┣ 📂 experiments/      ⬅️ variants of a scenario to compare
+┗ 📂 src/              ⬅️ the C++ code
+  ┣ 📄 Plugin.cpp      ⬅️ the plugin class: which C++ code runs which scenario
+  ┣ 📄 HelloLogic.*    ⬅️ lesson 1 (this tutorial)
+  ┣ 📄 WaveLogic.*     ⬅️ lesson 2 (tutorial 5)
+  ┣ 📄 ReachLogic.*    ⬅️ lesson 3 (tutorial 5)
+  ┗ 📄 WaveSkill.*     ⬅️ lesson 4 (tutorial 6)
+```
+
+You do not start a plugin yourself. A host loads it. The host is RobotIK-Simulator (with a window) or RobotIK-Headless (without a window). The host reads `plugin.yaml` first, and it loads the library only when you choose a scenario:
+
+![The host reads plugin.yaml, loads the library, asks the Plugin class for the scenario logic, builds the simulation from the YAML files, then calls the scenario logic at each step.](images/plugin-load.svg)
+
+You write two classes:
+
+- The plugin class (`robotik::ScenarioPlugin`) is the entry point. It tells the host which scenario logic runs each scenario. It can also add menus, panels and keys to the simulator.
+- The scenario logic (`robotik::ScenarioLogic`) is the behaviour during a run. It gives commands to the robot and publishes numbers (metrics).
+
+## ▶ 1. Run the scenario
+
+Run the scenario `hello` without a window:
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Simulator          # Demos → Hello world → ...
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
-
-## 📦 What is in a plugin?
 
 ```text
-plugins/HelloWorld/
-├── plugin.yaml          the manifest: name, library, scenarios
-├── Makefile             builds librobotik_hello_world.so
-├── src/                 the C++ code
-│   ├── Plugin.cpp           the plugin class: chooses a scenario logic per scenario
-│   ├── HelloLogic.*       lesson 1
-│   ├── WaveLogic.*        lesson 2
-│   ├── ReachLogic.*       lesson 3
-│   └── WaveSkill.*          lesson 4
-├── worlds/arm.world.yaml      what exists: one 6-axis arm
-├── scenarios/           what happens and what is checked
-└── experiments/         variants to compare
+[PASS] controller.success  (controller.success = 1)
+[PASS] (> hello.ticks 100)  (hello.ticks = 200)
+[PASS] (< time 3)  (time = 2)
+[PASS] default                  seed=1      controller succeeded at 2 s  time=2
+hello: 1/1 runs passed
 ```
 
-**YAML** says *what*: the world, the task, the checks. **C++** says *how*:
-the behaviours the YAML cannot express.
+The robot does not move in this scenario. The scenario logic only counts the steps, and stops the run after two seconds. The next sections explain each line of this output.
 
-Who calls what:
+## 📄 2. Read the scenario file
 
-```text
- Robotik-Simulator / Robotik-Headless   (the "host")
-        │ 1. reads plugin.yaml (no code loaded yet)
-        │ 2. loads librobotik_hello_world.so when you pick a scenario
-        ▼
- HelloWorldPlugin::setup("wave")   ← your Plugin class
-        │ creates a WaveLogic, gives it to the host
-        ▼
- Simulation (built from worlds/arm.world.yaml + scenarios/wave.scenario.yaml)
-        │ at each step:
-        ▼
- WaveLogic::act()                ← your ScenarioLogic class
-```
-
-So there are **two classes** to know:
-
-| Class | Role | Talks to |
-|-------|------|----------|
-| `robotik::Plugin` | The entry point. Chooses the scenario logic, adds menus and panels | The host (window, keyboard) |
-| `robotik::ScenarioLogic` | The behaviour during the simulation: skills, metrics, end | The simulation (robot, world) |
-
-## 🐣 Lesson 1 — the smallest scenario logic
-
-`scenarios/hello.scenario.yaml`:
+`plugins/HelloWorld/scenarios/hello.scenario.yaml`:
 
 ```yaml
 scenario:
   id: hello
   description: Count the simulation steps, then stop after two seconds.
-  world: worlds/arm.world.yaml      # relative to the package root
+  world: worlds/arm.world.yaml
   seed: 1
   timeout: 30
   assertions:
-    - controller.success      # the scenario logic said SUCCESS
-    - (> hello.ticks 100)       # a metric published by the scenario logic
+    - controller.success
+    - (> hello.ticks 100)
     - (< time 3)
 ```
 
-`src/HelloLogic.hpp`:
+The `id` is the name of the scenario in `plugin.yaml` and in `Plugin.cpp`. The path of the world starts at the folder of the plugin. The `timeout` stops the run after 30 seconds of simulated time, if nothing stopped it before.
+
+The three assertions are the verdict:
+
+- `controller.success` is true when the controller ended with a success. Here the controller is the scenario logic.
+- `(> hello.ticks 100)` reads the metric `hello.ticks`. RobotIK does not know this name: the scenario logic publishes it.
+- `(< time 3)` reads the simulated time at the end of the run.
+
+## 🧠 3. Read the scenario logic
+
+`src/HelloLogic.hpp` declares four methods of `ScenarioLogic`:
 
 ```cpp
 class HelloLogic final: public robotik::ScenarioLogic
@@ -107,256 +108,122 @@ private:
 };
 ```
 
-`src/HelloLogic.cpp`:
+`src/HelloLogic.cpp` gives their code:
 
 ```cpp
-void HelloLogic::reset(robotik::RoboticCell& /*p_cell*/, robotik::Seed /*p_seed*/)
+void HelloLogic::reset(robotik::RoboticCell& /*p_cell*/,
+                       robotik::Seed /*p_seed*/)
 {
-    m_ticks = 0.0;                         // a new episode starts
+    m_ticks = 0.0;
 }
 
 void HelloLogic::act(robotik::RobotContext& /*p_context*/,
-                       robotik::Seconds /*p_dt*/)
+                     robotik::Seconds /*p_dt*/)
 {
-    m_ticks += 1.0;                        // called after each simulation step
+    m_ticks += 1.0;
 }
 
 void HelloLogic::measure(robotik::RoboticCell const& /*p_cell*/,
-                           robotik::Metrics& p_metrics) const
+                         robotik::Metrics& p_metrics) const
 {
-    p_metrics.set("hello.ticks", m_ticks); // the scenario can now use "hello.ticks"
+    p_metrics.set("hello.ticks", m_ticks);
 }
 
-robotik::Status
-HelloLogic::status(robotik::RobotContext const& p_context) const
+robotik::Status HelloLogic::status(robotik::RobotContext const& p_context) const
 {
     if (p_context.time >= robotik::Seconds(2.0))
     {
-        return robotik::Status::SUCCESS;   // ends the run: controller.success = 1
+        return robotik::Status::SUCCESS;
     }
     return robotik::Status::RUNNING;
 }
 ```
 
-The methods of a `ScenarioLogic`, all optional:
+RobotIK calls `reset` at the start of each run. A run can start again, for example in an experiment with several seeds, so `reset` clears the counter.
 
-| Method | When | Use it to |
-|--------|------|-----------|
-| `setup(cell, view)` | Once, after the world is built | Add skills, detectors, decorations. `view` is null in headless |
-| `reset(cell, seed)` | At each episode start | Clear your state. Derive random numbers from `seed` |
-| `act(context, dt)` | After each simulation step | Command the robot. You see the robot and its beliefs, as a skill does |
-| `simulate(cell, dt)` | Then, in simulation only | Make the world do something by itself (a conveyor, ink on a canvas) |
-| `observe(cell, dt)` | Then | Read the truth for your metrics. The cell is `const`: no command |
-| `measure(cell, metrics)` | When the assertions need values | Publish named numbers |
-| `status(context)` | After each step, **only if the scenario has no behavior tree** | Return `SUCCESS` or `FAILURE` to end the run |
+Then RobotIK advances the run by steps of 0.01 s of simulated time, and it calls the methods of the scenario logic at each step:
 
-The split keeps the robot honest. `act` gets the same view as a skill, so
-it cannot read where the cube really is, and the same code runs on a real
-robot. `observe` can read the truth, because a metric must be exact, but
-it cannot move anything.
+![At each step: the physics, then act, simulate, observe and status. The assertions ask measure for the metrics.](images/scenario-logic-step.svg)
 
-> **Rule:** the plugin does not judge itself. It publishes metrics; the
-> scenario file decides what is a success. Do not write `assert` or
-> `is_finished()` in C++: write an assertion in YAML.
+In two seconds, `act` runs 200 times: this gives `hello.ticks = 200` in the output. `status` returns `RUNNING` until two seconds, then `SUCCESS`. The `SUCCESS` ends the run and makes `controller.success` true.
 
-## 🦿 Lesson 2 — move a joint (forward kinematics)
+All the methods are optional. A scenario logic overrides only the ones it needs:
 
-The arm turns its base joint left and right. `src/WaveLogic.cpp`:
+| Method | RobotIK calls it | Use it to |
+|--------|------------------|-----------|
+| `setup(cell, view)` | once, after it builds the world | add skills and detectors. `view` is null without a window |
+| `reset(cell, seed)` | at the start of each run | clear your state, and take random numbers from `seed` |
+| `act(context, dt)` | at each step | give commands to the robot, from the robot and its beliefs |
+| `simulate(cell, dt)` | at each step, in simulation only | make the world act by itself (a conveyor, ink on a canvas) |
+| `observe(cell, dt)` | at each step | read the truth for your metrics. The cell is `const`: no command |
+| `measure(cell, metrics)` | when the assertions need values | publish metrics |
+| `status(context)` | at each step, only if the scenario has no behavior tree and no planner | end the run with `SUCCESS` or `FAILURE` |
 
-```cpp
-void WaveLogic::act(robotik::RobotContext& p_context,
-                      robotik::Seconds /*p_dt*/)
-{
-    robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
+`act` receives a `RobotContext`: the robot, its beliefs and the time. It does not receive the true position of the objects. A belief is what the robot thinks it knows, from its sensors: it can be late or wrong. So `act` works with the same information as the program of a real robot. `observe` can read the truth, because a metric must be exact, but it cannot give a command.
 
-    // A typed handle: the angle is in radians, the compiler checks it.
-    robotik::Revolute const base = joints.requireRevolute("joint1");
-    if (!base)
-    {
-        return;
-    }
+> [!IMPORTANT] The C++ code does not decide if the run passes. It publishes metrics, and the assertions of the scenario file give the verdict. Do not test a pass condition in C++: write an assertion.
 
-    // Command: a target angle. The joint controller moves toward it.
-    Radians const home = joints.home(base);
-    Radians const offset(0.6 * std::sin(p_context.time.value()));
-    joints.moveTo(base, home + offset);
+## 🔌 4. Read the plugin class
 
-    // Measure: the angle reached, and where the tool is (forward kinematics,
-    // in the robot base frame).
-    m_swing = std::max(m_swing, std::abs((joints.position(base) - home).value()));
-    m_tool_y = robot.requireFramePose(robot.tool()).position.y;
-}
-```
-
-What you see here:
-
-- `p_context.robot` gives the robot. `robot.joints()` gives all joints.
-- `joints.requireRevolute("joint1")` gives a **typed handle**: its positions are
-  `Radians`. A prismatic joint gives a `Prismatic` handle in metres. Mixing
-  them does not compile.
-- `moveTo` gives a **target**; the joint does not jump there. The physics
-  (MuJoCo) moves it at a realistic speed. This is why we measure the
-  *reached* angle with `joints.position(base)`, not the commanded one.
-- `robot.tool()` is the name of the working frame: `tcp` when a tool is
-  mounted, `tool0` otherwise. `robot.requireFramePose(frame)` is **forward
-  kinematics**: the pose of that frame in the robot base frame.
-
-The scenario checks the result and the safety:
-
-```yaml
-  assertions:
-    - controller.success
-    - (> wave.swing 0.4)
-    - { condition: (joint_limits_respected robot), phase: always }
-```
-
-**Try it:** change `0.6` into `0.2` in the code, rebuild
-(`make robotik_hello_world`), run again. `(> wave.swing 0.4)` now fails, and
-the report tells you the joint swung only 0.2 rad.
-
-## 🎯 Lesson 3 — reach a point (inverse kinematics)
-
-Now we give a **position** and ask which joint angles reach it.
-`src/ReachLogic.cpp`:
+`src/Plugin.cpp` connects each scenario of `plugin.yaml` to its scenario logic. Here is the part that the host needs:
 
 ```cpp
-void ReachLogic::reset(robotik::RoboticCell& p_cell, robotik::Seed /*p_seed*/)
+class HelloWorldPlugin final: public robotik::ScenarioPlugin
 {
-    robotik::Robot& robot = p_cell.robot();
+public:
 
-    // The tool frame is "tcp" when a tool is mounted, "tool0" otherwise.
-    robotik::Pose const start = robot.requireFramePose(robot.tool());
-    m_target = start;
-    m_target.position.x += 0.03;                      // 3 cm forward
-
-    // Inverse kinematics: no answer when the pose is out of reach.
-    std::optional<std::vector<double>> const solution =
-        robot.inverseKinematics(robot.tool(), m_target);
-    m_solution = solution ? *solution : std::vector<double>{};
-    m_error = distance(start, m_target);
-}
-
-void ReachLogic::act(robotik::RobotContext& p_context,
-                       robotik::Seconds /*p_dt*/)
-{
-    robotik::Robot& robot = p_context.robot;
-    robotik::JointSet& joints = robot.joints();
-    for (robotik::JointId id = 0; id < joints.size() && id < m_solution.size(); ++id)
+    /// The id must match plugin.id in plugin.yaml.
+    static robotik::PluginInfo describe()
     {
-        joints.moveTo(id, m_solution[id]);            // one target per joint
-    }
-    m_error = distance(robot.requireFramePose(robot.tool()), m_target);
-}
-```
-
-- `robot.inverseKinematics(frame, pose)` returns one angle per joint, or
-  nothing (`std::nullopt`) if the pose cannot be reached.
-- Joints also have plain ids (`JointId`, `0 … size()-1`) with `double`
-  values. Use them for loops; use typed handles when you name one joint.
-
-The scenario uses a **deadline** assertion:
-
-```yaml
-    - { condition: (< reach.error 0.02), within: 5.0 }
-```
-
-In the simulator, this assertion is red at the start (the error is 3 cm), then
-turns green when the tool arrives. A red assertion does not stop the run.
-
-**Try it:** ask for 3 metres instead of 3 cm (`+= 3.0`). IK has no answer,
-`status()` returns `FAILURE`, and the run ends at once:
-
-```text
-[FAIL] (< reach.error 0.02)  (reach.error = 3, not true within 5.000000 s)
-[FAIL] default                  seed=1      controller failed at 0.01 s  time=0.01
-```
-
-## 🌳 Lesson 4 — a skill and a behavior tree
-
-Lessons 1–3 drive the robot directly from `ScenarioLogic::act`. This is simple,
-but it does not scale: who decides the order? what if the arm is busy? what
-if a sensor fails? Robotik answers with **skills** and **behavior trees**.
-
-A skill is a small class with a `tick` method. `src/WaveSkill.cpp`:
-
-```cpp
-robotik::Status WaveSkill::tick(robotik::RobotContext& p_context, Seconds /*p_dt*/)
-{
-    robotik::JointSet& joints = p_context.robot.joints();
-    robotik::JointId const base = joints.find("joint1");
-    if (base == robotik::NO_JOINT)
-    {
-        return robotik::Status::FAILURE;
+        return { .id = "robotik.hello_world" };
     }
 
-    double const target = (m_waves % 2 == 0) ? 0.5 : -0.5;
-    joints.moveTo(base, target);
-    if (joints.reached(base, 0.02))
+    /// Scenario id (as in plugin.yaml) -> the scenario logic it runs.
+    HelloWorldPlugin()
+        : ScenarioPlugin({ { "hello", robotik::logic<HelloLogic>() },
+                           { "wave", robotik::logic<WaveLogic>() },
+                           { "reach", robotik::logic<ReachLogic>() },
+                           { "skills", robotik::logic<SkillsLogic>() } })
     {
-        ++m_waves;
     }
-    return m_waves >= 4 ? robotik::Status::SUCCESS : robotik::Status::RUNNING;
-}
+    // ...
+};
 
-void WaveSkill::cancel(robotik::RobotContext& p_context)
-{
-    p_context.robot.joints().hold();   // cancelled or preempted: stop where we are
-}
+ROBOTIK_EXPORT_PLUGIN(HelloWorldPlugin)
 ```
 
-The scenario logic registers it, with a **name** and the **resources** it needs:
+When you choose the scenario `hello`, the plugin creates a `HelloLogic`. `ROBOTIK_EXPORT_PLUGIN` writes the C functions that the host calls in the library. The rest of the file adds a menu item, a panel and the key `H` to the simulator. The [plugin reference](../reference/plugin.md) lists these functions.
 
-```cpp
-void SkillsLogic::setup(robotik::RoboticCell& p_cell, robotik::SceneView* /*p_view*/)
-{
-    robotik::SkillDescription wave;
-    wave.name = "Wave";
-    wave.resources = { p_cell.robot().resources().require("arm") };
-    wave.priority = 100;
-    p_cell.skills().add<WaveSkill>(std::move(wave));
-}
-```
+## 🔧 5. Change the code and see the verdict change
 
-Every registered skill becomes a behavior tree **Action** with the same
-name. `scenarios/skills.bt.yaml`:
-
-```yaml
-BehaviorTree:
-  Sequence:
-    name: HelloSkills
-    children:
-      - Action:
-          name: Home        # built-in skill
-      - Action:
-          name: Wave        # our skill
-      - Action:
-          name: Home
-```
-
-And the scenario uses it as its controller:
-
-```yaml
-  controller:
-    behavior_tree: skills.bt.yaml
-  assertions:
-    - controller.success
-    - (skill_succeeded Wave)
-    - name: home before waving
-      sequence: [ (skill_succeeded Home), (skill_started Wave) ]
-```
+Open `plugins/HelloWorld/src/HelloLogic.cpp`. In `status`, change `robotik::Seconds(2.0)` to `robotik::Seconds(4.0)`. Then build the plugin and run the scenario again:
 
 ```bash
-./build/linux-gcc-debug/bin/Robotik-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/skills.scenario.yaml --trace
+make robotik_hello_world
+./build/linux-gcc-debug/bin/RobotIK-Headless build/linux-gcc-debug/lib/robotik/plugins/HelloWorld/scenarios/hello.scenario.yaml
 ```
 
 ```text
-  0 s  Home  SUCCEEDED  (0 s)
-  0.01 s  Wave  SUCCEEDED  (4 s)
-  4.02 s  Home  SUCCEEDED  (0.63 s)
+[PASS] controller.success  (controller.success = 1)
+[PASS] (> hello.ticks 100)  (hello.ticks = 401)
+[FAIL] (< time 3)  (time = 4.01)
+[FAIL] default                  seed=1      controller succeeded at 4.01 s  time=4.01
+         FAIL (< time 3)  (time = 4.01, expected < 3, at 4.01 s)
+hello: 0/1 runs passed
 ```
 
-Skills, resources, priorities, faults and trees are explained in
-[Skills, the scheduler and behavior trees](../concepts/skills-and-behavior-trees.md).
+The scenario logic still ends with a success, but the run fails: the assertion `(< time 3)` is false. A failed assertion gives the value it read (`time = 4.01`) and the bound (`expected < 3`). The exit code of RobotIK-Headless is 2, so a CI job sees the failure.
 
-Next: [Your own plugin](05-your-own-plugin.md).
+Put back `robotik::Seconds(2.0)` and run `make robotik_hello_world` again.
+
+To see the same run in the simulator, start it and choose **Demos → Hello world → 1. Hello**:
+
+```bash
+./build/linux-gcc-debug/bin/RobotIK-Simulator
+```
+
+## 🔗 Next
+
+In this tutorial the robot does not move. In the next tutorial, the scenario logic moves a joint and the tool of the arm.
+
+Next: [Move the arm](05-move-the-arm.md).

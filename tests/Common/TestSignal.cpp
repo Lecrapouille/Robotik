@@ -7,7 +7,7 @@
 
 #include "main.hpp"
 
-#include "Robotik/Common/Signal.hpp"
+#include "RobotIK/Common/Signal.hpp"
 
 #include <string>
 #include <vector>
