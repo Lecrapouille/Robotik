@@ -343,6 +343,7 @@ static Result<void> readScenarioSection(Scenario& p_scenario,
                                  "trajectories",
                                  "faults",
                                  "perception",
+                                 "localization",
                                  "physics",
                                  "timeout",
                                  "stop_when",
@@ -388,6 +389,16 @@ static Result<void> readScenarioSection(Scenario& p_scenario,
     ROBOTIK_TRY(readFaults(scenario, node.at("faults")));
     ROBOTIK_TRY(readPerception(scenario, node.at("perception")));
     ROBOTIK_TRY(readPhysics(scenario, node.at("physics")));
+    if (std::string const localization = node.text("localization");
+        localization == "plugin")
+    {
+        scenario.localization = LocalizationFidelity::Plugin;
+    }
+    else if (!localization.empty() && localization != "truth")
+    {
+        return failure("localization must be truth or plugin, not '" +
+                       localization + "'");
+    }
     double timeout = 0.0;
     ROBOTIK_TRY_ASSIGN(timeout, node.number("timeout", 0.0));
     scenario.timeout = Seconds(timeout);

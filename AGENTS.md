@@ -94,7 +94,10 @@ built.
   `Robot` of a skill; `Task/Skills` and `Task/Planning` are compiled
   without `RobotSession.hpp`. A vacuum cup measures `holding()`; what it
   holds is the `label` the grasp skill wrote (the entity is truth:
-  `RoboticCell::held`). A scenario may choose to feed beliefs from the
+  `RoboticCell::held`). What is measured is written by the session only
+  (`measureJoint`, `measureHolding`, `measureBase`, faults, `add`).
+  `Robot::base()` is the estimated base (`localization: truth` copies the
+  true one, a mock); sensors and truth queries use `trueBase()`. A scenario may choose to feed beliefs from the
   truth (`perception.fidelity: truth | noisy_truth`, per object): it is a
   mock of the detectors, done by the `RoboticCell` and written in the run report,
   never by a skill.

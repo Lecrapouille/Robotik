@@ -1034,7 +1034,7 @@ void MujocoBackend::reset(RobotSession& /*p_robot*/)
     // Every bound robot: resetting one must not move the others.
     for (Member const& member : m_impl->members)
     {
-        Pose const& base = member.robot->base().pose;
+        Pose const& base = member.robot->trueBase().pose;
         double const position[3] = { base.position.x,
                                      base.position.y,
                                      base.position.z };

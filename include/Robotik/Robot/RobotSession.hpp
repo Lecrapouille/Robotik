@@ -199,14 +199,62 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Writes the measured base (backends, or the application for a robot
-    /// bolted somewhere else than the world origin).
+    /// Writes where the base really is (the backend, after its step: the
+    /// truth in simulation). With @ref LocalizationFidelity::Truth, the estimate the
+    /// skills read becomes the same.
     /// @param p_base Pose and velocity in the world.
     // -------------------------------------------------------------------------
     void measureBase(BaseState const& p_base)
     {
+        m_true_base = p_base;
+        if (m_localization == LocalizationFidelity::Truth)
+        {
+            m_base = p_base;
+        }
+    }
+
+    /// @return Where the base really is (sensors, rendering, truth queries).
+    [[nodiscard]] BaseState const& trueBase() const
+    {
+        return m_true_base;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Writes the estimated base, the one a skill reads with @ref base (the
+    /// localization of a plugin). With @ref LocalizationFidelity::Truth, the next
+    /// @ref measureBase overwrites it.
+    /// @param p_base Estimated pose and velocity in the world.
+    // -------------------------------------------------------------------------
+    void estimateBase(BaseState const& p_base)
+    {
         m_base = p_base;
     }
+
+    /// Chooses where the estimated base comes from (see @ref LocalizationFidelity).
+    void localization(LocalizationFidelity p_localization)
+    {
+        m_localization = p_localization;
+    }
+
+    /// @return Where the estimated base comes from.
+    [[nodiscard]] LocalizationFidelity localization() const
+    {
+        return m_localization;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Pose of a link in the world frame, from the true base (sensors,
+    /// truth queries). A skill reads @ref worldPose, from the estimate.
+    /// @param p_link Link found by @ref requireLink on this robot.
+    /// @throws std::logic_error if @p_link comes from another robot.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose trueWorldPose(LinkRef const& p_link) const;
+
+    // -------------------------------------------------------------------------
+    /// @ref trueWorldPose by name; empty for the base itself.
+    /// @throws std::invalid_argument if the frame is unknown.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] Pose requireTrueWorldPose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
     /// Places the joints of a posture, makes the posture the home and servos
@@ -261,6 +309,8 @@ private:
 
     /// Base pose restored by @ref reset.
     Pose m_start;
+    /// Where the estimated base comes from.
+    LocalizationFidelity m_localization = LocalizationFidelity::Truth;
 };
 
 } // namespace robotik

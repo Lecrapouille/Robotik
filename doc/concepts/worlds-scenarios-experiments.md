@@ -139,3 +139,7 @@ camera turns its detections into the world with the base pose of its robot,
 and a skill brings a belief into its own base with
 `context.robot.base().pose.inverse() * belief` (`RoboticCell::beliefFrame()`
 says which frame is used).
+
+**The base is a belief too.** The base a skill reads is a belief as well: `localization: truth` makes it
+the true base, a mock that the report states
+([Localization](../reference/scenario-file.md#-localization)).

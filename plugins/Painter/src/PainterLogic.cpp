@@ -138,7 +138,7 @@ void PainterLogic::simulate(robotik::RoboticCell& p_cell,
     {
         return;
     }
-    robotik::Robot const& robot = p_cell.robot();
+    robotik::RobotSession const& robot = p_cell.robot();
     if (robot.tool().empty())
     {
         return;
@@ -147,7 +147,7 @@ void PainterLogic::simulate(robotik::RoboticCell& p_cell,
     // out.
     robotik::Pose const board = p_cell.requirePose(painter::CANVAS);
     robotik::Vector3 const local =
-        board.inverse() * robot.requireWorldPose(robot.tool()).position;
+        board.inverse() * robot.requireTrueWorldPose(robot.tool()).position;
     constexpr double FACE = 0.01;
     if (local.x < FACE || local.x > FACE + 0.05 || std::abs(local.y) > 0.19 ||
         std::abs(local.z) > 0.24)

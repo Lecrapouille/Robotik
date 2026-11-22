@@ -70,7 +70,7 @@ bool Imu::sample(RobotSession const& p_robot, Seconds p_now)
                                            : p_robot.link(m_config.parent);
         m_resolved = true;
     }
-    Pose const pose = p_robot.worldPose(m_link) * m_config.mount;
+    Pose const pose = p_robot.trueWorldPose(m_link) * m_config.mount;
     Vector3 velocity = Vector3::ZERO;
     Vector3 acceleration = Vector3::ZERO;
     Vector3 angular_velocity = Vector3::ZERO;

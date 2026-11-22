@@ -293,6 +293,11 @@ LinkRef Robot::requireLink(std::string const& p_name) const
 
 Pose Robot::worldPose(LinkRef const& p_link) const
 {
+    return poseFrom(m_base, p_link);
+}
+
+Pose Robot::poseFrom(BaseState const& p_base, LinkRef const& p_link) const
+{
     if (p_link.m_robot != m_serial)
     {
         throw std::logic_error(
@@ -301,8 +306,19 @@ Pose Robot::worldPose(LinkRef const& p_link) const
             "never found): call requireLink on this robot");
     }
     return p_link.m_frame == LinkRef::BASE
-               ? m_base.pose
-               : m_base.pose * m_kinematics->framePose(p_link.m_frame);
+               ? p_base.pose
+               : p_base.pose * m_kinematics->framePose(p_link.m_frame);
+}
+
+Pose RobotSession::trueWorldPose(LinkRef const& p_link) const
+{
+    return poseFrom(m_true_base, p_link);
+}
+
+Pose RobotSession::requireTrueWorldPose(std::string const& p_frame) const
+{
+    return p_frame.empty() ? m_true_base.pose
+                           : m_true_base.pose * requireFramePose(p_frame);
 }
 
 std::optional<std::vector<double>>
@@ -344,9 +360,9 @@ void Robot::propagate()
     m_kinematics->updateKinematics();
 
     m_joints.publish();
-    m_root.position(m_world_from_urdf * toFloat(m_base.pose.position))
-        .rotation(m_world_from_urdf * toFloat(m_base.pose.rotation));
-    m_root.set(m_base);
+    m_root.position(m_world_from_urdf * toFloat(m_true_base.pose.position))
+        .rotation(m_world_from_urdf * toFloat(m_true_base.pose.rotation));
+    m_root.set(m_true_base);
 }
 
 RobotSession::RobotSession(compages::world::World& p_world,
@@ -391,6 +407,7 @@ void RobotSession::startPose(Pose const& p_pose)
 {
     m_start = p_pose;
     m_base = BaseState{ p_pose, {} };
+    m_true_base = m_base;
     if (m_backend)
     {
         m_backend->reset(*this);
@@ -402,6 +419,7 @@ void RobotSession::reset()
 {
     m_time = Seconds{};
     m_base = BaseState{ m_start, {} };
+    m_true_base = m_base;
     for (JointId id = 0; id < m_joints.size(); ++id)
     {
         m_joints.place(id, m_joints.home(id));

@@ -81,6 +81,7 @@ RunRecord captureRun(Simulation const& p_simulation,
     record.passed = p_simulation.passed();
     record.oracle = p_simulation.cell().oracle();
     record.perception = p_simulation.cell().perceptionSummary();
+    record.localization = toString(p_simulation.scenario().localization);
     PhysicsSpec const& physics = p_simulation.scenario().physics;
     record.physics = toString(physics.fidelity);
     for (auto const& [id, level] : physics.overrides)
@@ -147,7 +148,10 @@ void writeText(RunReport const& p_report, std::ostream& p_out)
               << (run.oracle ? " (perception " + run.perception + ")" : "")
               << (run.physics.empty() || run.physics == "abstract"
                       ? ""
-                      : " (physics " + run.physics + ")");
+                      : " (physics " + run.physics + ")")
+              << (run.localization.empty() || run.localization == "truth"
+                      ? ""
+                      : " (localization " + run.localization + ")");
         for (auto const& [name, value] : run.metrics)
         {
             p_out << "  " << name << '=';
@@ -204,7 +208,9 @@ void writeJson(RunReport const& p_report, std::ostream& p_out)
               << "      \"passed\": " << (run.passed ? "true" : "false")
               << ",\n"
               << "      \"perception\": " << quoted(run.perception) << ",\n"
-              << "      \"physics\": " << quoted(run.physics) << ",\n";
+              << "      \"physics\": " << quoted(run.physics) << ",\n"
+              << "      \"localization\": " << quoted(run.localization)
+              << ",\n";
         if (!run.error.empty())
         {
             p_out << "      \"error\": " << quoted(run.error) << ",\n";

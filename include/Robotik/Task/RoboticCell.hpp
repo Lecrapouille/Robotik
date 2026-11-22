@@ -288,9 +288,10 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @return Frame of the beliefs in the world: the base of the robot when
-    ///   it is alone, the world itself when the robots share them (a skill
-    ///   then uses its own base: @c robot.base().pose.inverse() * belief).
+    /// @return Frame of the beliefs in the world, as the robot believes it:
+    ///   the estimated base of the robot when it is alone, the world itself
+    ///   when the robots share them (a skill then uses its own base:
+    ///   @c robot.base().pose.inverse() * belief).
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose beliefFrame() const;
 
@@ -669,6 +670,10 @@ private:
     /// Robot that carries @p_spec: a robot itself, the robot a tool is
     /// mounted on, else the first robot.
     [[nodiscard]] RobotSession const& ownerOf(EntitySpec const& p_spec) const;
+
+    /// @ref beliefFrame from the true base: turns the truth into beliefs
+    /// (perception fidelity @c truth and @c noisy_truth).
+    [[nodiscard]] Pose trueBeliefFrame() const;
     /// MuJoCo prefix of the names of robot @p_id (empty for the first).
     [[nodiscard]] std::string prefixOf(std::string_view p_id) const;
     /// Builds the behavior tree of the scenario, if it has one.

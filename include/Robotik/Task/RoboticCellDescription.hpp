@@ -633,6 +633,8 @@ struct RoboticCellDescription
     std::vector<RandomFault> random_faults;
     /// Where the beliefs about each object come from.
     PerceptionSpec perception;
+    /// Where the base pose the skills read comes from (every robot).
+    LocalizationFidelity localization = LocalizationFidelity::Truth;
     /// Fidelity of the physics, per entity.
     PhysicsSpec physics;
     /// Values the scenario logic reads (gains, model choices...).

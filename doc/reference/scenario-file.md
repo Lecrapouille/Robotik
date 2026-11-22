@@ -42,6 +42,7 @@ scenario:
 | `perception` | Where the beliefs come from: `fidelity`, `blind`, `overrides`, `noise`, `max_age` ([truth, description and belief](../concepts/worlds-scenarios-experiments.md#-truth-description-and-belief)) |
 | `faults` | Planned (`at`) or random (`rate` per second) faults. A fault makes a resource unavailable |
 | `physics` | Physics fidelity: `abstract` (default) or `rigid`, per entity (see below) |
+| `localization` | Where the base pose of the skills comes from: `truth` (default) or `plugin` ([Localization](#-localization)) |
 | `timeout` | Maximum simulated time, in seconds |
 | `stop_when` | A condition that ends the run as soon as it is true |
 | `assertions` | What is checked ([Assertions](#-assertions)) |
@@ -110,6 +111,31 @@ Rules:
 
   The report gives the level of each run (`physics` in `--report`): do not
   compare metrics of two levels.
+
+## 🧭 Localization
+
+A skill reads the base pose of its robot with `robot.base()`. On a real
+robot nobody knows the true pose of a mobile base: an algorithm estimates
+it (wheel odometry, landmarks). The simulator knows it. So the robot keeps
+two bases:
+
+| Base | Read by | Written by |
+|------|---------|------------|
+| Estimated: `Robot::base()`, `worldPose`, `requireWorldPose` | skills, observers, the scenario logic when it decides | the cell (`truth`) or the plugin (`RobotSession::estimateBase`) |
+| True: `RobotSession::trueBase()`, `trueWorldPose`, `requireTrueWorldPose` | sensors, rendering, grasp models, truth queries | the backend (`RobotSession::measureBase`) |
+
+```yaml
+localization: truth    # truth (default) | plugin
+```
+
+| Level | The estimated base is | Use it to |
+|-------|-----------------------|-----------|
+| `truth` | the true base, copied at each step: a mock, as `perception: truth` | test the task without a localization algorithm |
+| `plugin` | what the plugin writes with `estimateBase`; the start pose until then | test a localization or a calibration algorithm |
+
+A robot bolted to a table has the same base in both levels. The report
+gives the level (`localization` in `--report`; the console says it when it
+is not `truth`).
 
 ## 🏁 When does a run end?
 

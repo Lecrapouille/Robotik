@@ -65,6 +65,28 @@ using SensorList = DeviceList<Sensor>;
 /// Actuators of a robot, as a skill sees them (no add).
 using ActuatorList = DeviceList<Actuator>;
 
+// ****************************************************************************
+/// Where the base pose a skill reads comes from (@ref Robot::base).
+///
+/// The true pose of a mobile base is known in simulation only. A real robot
+/// estimates it (odometry, landmarks, a calibration). As for the perception
+/// fidelity, the scenario chooses, and the run report says it.
+// ****************************************************************************
+enum class LocalizationFidelity
+{
+    /// A mock: the estimate is the true base, copied at each step.
+    Truth,
+    /// An algorithm of the plugin writes it (RobotSession::estimateBase).
+    Plugin,
+};
+
+/// @return "truth" or "plugin", the word of the scenario file.
+[[nodiscard]] constexpr char const*
+toString(LocalizationFidelity p_localization)
+{
+    return p_localization == LocalizationFidelity::Truth ? "truth" : "plugin";
+}
+
 /// Joint name to position, in the SI base unit of the joint (rad or m).
 using JointPosture = std::unordered_map<std::string, double>;
 
@@ -178,8 +200,10 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// @return Base pose and velocity in the world (see @ref BaseState —
-    ///   ground truth in simulation, not an estimate).
+    /// @return Estimated base pose and velocity in the world (see
+    ///   @ref LocalizationFidelity): the true base with @c localization: @c truth,
+    ///   what the localization of the plugin wrote otherwise. A robot bolted
+    ///   to a table keeps its start pose.
     // -------------------------------------------------------------------------
     [[nodiscard]] BaseState const& base() const
     {
@@ -195,7 +219,8 @@ public:
     [[nodiscard]] Pose requireFramePose(std::string const& p_frame) const;
 
     // -------------------------------------------------------------------------
-    /// Pose of a link in the world frame (base pose times @ref requireFramePose).
+    /// Pose of a link in the world frame (estimated @ref base times
+    /// @ref requireFramePose).
     /// @param p_frame Link name; empty for the base itself.
     /// @return The pose.
     /// @throws std::invalid_argument if the frame is unknown.
@@ -257,8 +282,13 @@ protected:
           std::shared_ptr<ResourceManager> p_resources = {});
 
     /// Copies the joints and the base to the kinematics, then to the
-    /// rendered entities.
+    /// rendered entities (at the true base).
     void propagate();
+
+    /// Pose of @p_link in the world from @p_base (estimated or true).
+    /// @throws std::logic_error if @p_link comes from another robot.
+    [[nodiscard]] Pose poseFrom(BaseState const& p_base,
+                                LinkRef const& p_link) const;
 
 protected:
 
@@ -284,8 +314,10 @@ protected:
     SensorSet m_sensors;
     /// Actuators.
     ActuatorSet m_actuators;
-    /// Measured base.
+    /// Estimated base: what the skills read.
     BaseState m_base;
+    /// True base, written by the backend (the simulator side reads it).
+    BaseState m_true_base;
     /// Compages is Y-up; URDF / Pinocchio / MuJoCo stay Z-up. The loader
     /// hangs the robot under this rotation; @ref propagate composes it with
     /// the measured base instead of overwriting it.

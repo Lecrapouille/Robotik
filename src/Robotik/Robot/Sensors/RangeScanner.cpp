@@ -98,7 +98,7 @@ bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
                                            : p_robot.link(m_config.parent);
         m_resolved = true;
     }
-    Pose const pose = p_robot.worldPose(m_link) * m_config.mount;
+    Pose const pose = p_robot.trueWorldPose(m_link) * m_config.mount;
     double const max_range = m_config.max_range.value();
     double const fov = m_config.field_of_view.value();
     bool const full_turn = fov >= 2.0 * std::numbers::pi - 1e-9;

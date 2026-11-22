@@ -185,6 +185,7 @@ RoboticCell::RoboticCell(compages::world::World& p_world,
                       tool != nullptr ? tool->model : std::filesystem::path{},
                       m_resources));
                   robots.back()->identify(spec->id);
+                  robots.back()->localization(m_description.localization);
               }
               return robots;
           }()),
@@ -846,6 +847,12 @@ Pose RoboticCell::beliefFrame() const
                                  : Pose{ Vector3::ZERO, Quaternion{} };
 }
 
+Pose RoboticCell::trueBeliefFrame() const
+{
+    return m_robots.size() == 1U ? m_robot->trueBase().pose
+                                 : Pose{ Vector3::ZERO, Quaternion{} };
+}
+
 RobotSession const* RoboticCell::robot(std::string_view p_id) const
 {
     return const_cast<RoboticCell*>(this)->robot(p_id);
@@ -993,7 +1000,7 @@ void RoboticCell::reset(Seed p_seed)
     // Props: the robot only knows the nominal layout (in its base frame); the
     // true positions are randomized.
     Random random(p_seed.derive("world"));
-    Pose const to_base = beliefFrame().inverse();
+    Pose const to_base = trueBeliefFrame().inverse();
     m_world_model.clear();
     for (Record& record : m_records)
     {
@@ -1073,7 +1080,7 @@ void RoboticCell::observe()
     {
         return;
     }
-    Pose const to_base = beliefFrame().inverse();
+    Pose const to_base = trueBeliefFrame().inverse();
     for (Record const& record : m_records)
     {
         if (record.spec->type == EntitySpec::Type::Prop)
@@ -1103,7 +1110,7 @@ void RoboticCell::perceiveTruth()
     {
         return;
     }
-    Pose const to_base = beliefFrame().inverse();
+    Pose const to_base = trueBeliefFrame().inverse();
     TruthNoise const& noise = m_description.perception.noise;
     for (Record const& record : m_records)
     {
@@ -1123,7 +1130,8 @@ void RoboticCell::perceiveTruth()
         bool near = false;
         for (std::unique_ptr<RobotSession> const& robot : m_robots)
         {
-            near = near || norm(truth - robot->base().pose.position) <= noise.range;
+            near = near ||
+                   norm(truth - robot->trueBase().pose.position) <= noise.range;
         }
         if (!near || m_perception_random.chance(noise.dropout))
         {

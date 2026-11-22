@@ -119,11 +119,11 @@ Pose RoboticCell::framePose(Record const& p_record,
     switch (spec.type)
     {
         case EntitySpec::Type::Robot:
-            return ownerOf(spec).requireWorldPose(frame);
+            return ownerOf(spec).requireTrueWorldPose(frame);
         case EntitySpec::Type::Tool:
             // A mounted tool is part of the robot chain; its tool_mount lands
             // on the flange (Pinocchio merges the two).
-            return ownerOf(spec).requireWorldPose(
+            return ownerOf(spec).requireTrueWorldPose(
                 frame.empty() ? p_record.spec->attach->parent_frame : frame);
         case EntitySpec::Type::Prop:
         {
@@ -674,6 +674,7 @@ std::vector<ConditionQuery> RoboticCell::builtinQueries() const
     queries.push_back({ "skill_failed", 1U, 1U,
                         [skill](Arguments const& p_args)
                         { return skill(p_args, 2); } });
+
     return queries;
 }
 

@@ -186,7 +186,7 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         if (gripper->suction() && !held_id.valid())
         {
             held_id =
-                touched(world, p_robot.base().pose * gripper->tip(p_robot));
+                touched(world, p_robot.trueBase().pose * gripper->tip(p_robot));
             p_held.hold(p_robot, *gripper, held_id);
         }
         else if (!gripper->suction() && held_id.valid())
@@ -211,7 +211,7 @@ void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
             }
             Length const half = shape->size[2] * 0.5;
             Vector3 const center =
-                p_robot.base().pose * gripper->tip(p_robot, half);
+                p_robot.trueBase().pose * gripper->tip(p_robot, half);
             held.position(static_cast<float>(center.x),
                           static_cast<float>(center.y),
                           static_cast<float>(center.z));

@@ -79,3 +79,43 @@ TEST(OpenRobot, LinkOfAnotherRobotIsAMistakeInTheCode)
     left.value()->reset();
     EXPECT_NO_THROW((void)left.value()->worldPose(wrist));
 }
+
+// ----------------------------------------------------------------------------
+TEST(OpenRobot, SkillsReadTheEstimatedBaseSensorsTheTrueOne)
+{
+    robotik::RobotOptions options;
+    options.physics = false;
+    auto arm = robotik::openRobot(
+        repoFile("data/packs/robotik.robots/robot_6axis.urdf").string(),
+        options);
+    ASSERT_TRUE(arm) << arm.error();
+    robotik::RobotSession& robot = *arm.value();
+    robotik::LinkRef const wrist = robot.requireLink("link6");
+    robotik::BaseState moved;
+    moved.pose.position = robotik::Vector3(1.0, 0.0, 0.0);
+
+    // The mock: the estimate follows the truth.
+    EXPECT_EQ(robot.localization(), robotik::LocalizationFidelity::Truth);
+    robot.measureBase(moved);
+    EXPECT_DOUBLE_EQ(robot.base().pose.position.x, 1.0);
+
+    // A localization of the plugin: the truth moves, the estimate waits.
+    robot.localization(robotik::LocalizationFidelity::Plugin);
+    moved.pose.position.x = 2.0;
+    robot.measureBase(moved);
+    EXPECT_DOUBLE_EQ(robot.trueBase().pose.position.x, 2.0);
+    EXPECT_DOUBLE_EQ(robot.base().pose.position.x, 1.0);
+
+    robotik::BaseState estimate = moved;
+    estimate.pose.position.x = 1.9;
+    robot.estimateBase(estimate);
+    EXPECT_NEAR(robot.trueWorldPose(wrist).position.x -
+                    robot.worldPose(wrist).position.x,
+                0.1,
+                1e-12);
+
+    // A reset puts both at the start pose.
+    robot.reset();
+    EXPECT_DOUBLE_EQ(robot.base().pose.position.x, 0.0);
+    EXPECT_DOUBLE_EQ(robot.trueBase().pose.position.x, 0.0);
+}

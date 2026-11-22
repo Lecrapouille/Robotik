@@ -70,7 +70,7 @@ void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
         }
         else if (gripper->suction() && !held_id.valid())
         {
-            Vector3 const tip = p_robot.base().pose * gripper->tip(p_robot);
+            Vector3 const tip = p_robot.trueBase().pose * gripper->tip(p_robot);
             Graspable const* best = nullptr;
             double best_gap = CONTACT_DISTANCE_M;
             compages::world::EntityId best_id{};

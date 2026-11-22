@@ -106,6 +106,9 @@ struct RunRecord
     /// Perception level of the props, e.g. "truth, red_cube: sensed" (see
     /// @ref PerceptionFidelity).
     std::string perception;
+    /// Where the base the skills read comes from: "truth" (a mock) or
+    /// "plugin" (see @ref LocalizationFidelity).
+    std::string localization;
     /// Physics fidelity, e.g. "abstract" or "abstract, red_cube: rigid":
     /// never compare metrics of runs at different levels.
     std::string physics;

@@ -108,6 +108,10 @@ A layer only uses the layers under it; `make check-layers` checks it.
   instead of an image). `noisy_truth`: the true pose with noise, delay and
   misses. `sensed`: real detectors on the images. The run report says which
   one was used.
+- **Localization**: where the base pose a skill reads comes from. `truth`:
+  the true base, copied (a mock). `plugin`: an algorithm of the plugin
+  estimates it. Sensors and truth queries always use the true base. See
+  [Localization](scenario-file.md#-localization).
 - **Scheduler**: decides which requested skills can run now (resources,
   priorities) and runs them.
 - **Skill**: one behaviour of the robot (move to a pose, grasp, dip a brush).
