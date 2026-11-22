@@ -45,13 +45,37 @@ TEST(OpenRobot, ResolvedLinkGivesTheSamePoseAsItsName)
     arm.value()->step(robotik::Seconds(0.01));
 
     robotik::LinkRef const wrist = arm.value()->requireLink("link6");
-    EXPECT_TRUE(wrist.entity);
     robotik::Pose const by_name =
         arm.value()->requireWorldPose(std::string("link6"));
     robotik::Pose const by_ref = arm.value()->worldPose(wrist);
     EXPECT_DOUBLE_EQ(by_ref.position.x, by_name.position.x);
     EXPECT_DOUBLE_EQ(by_ref.position.z, by_name.position.z);
-    EXPECT_EQ(arm.value()->requireLink("").frame, robotik::LinkRef::BASE);
+    robotik::Pose const base =
+        arm.value()->worldPose(arm.value()->requireLink(""));
+    EXPECT_DOUBLE_EQ(base.position.z, arm.value()->base().pose.position.z);
     EXPECT_THROW((void)arm.value()->requireLink("no_such_link"),
                  std::invalid_argument);
+}
+
+// ----------------------------------------------------------------------------
+TEST(OpenRobot, LinkOfAnotherRobotIsAMistakeInTheCode)
+{
+    robotik::RobotOptions options;
+    options.physics = false;
+    std::string const urdf =
+        repoFile("data/packs/robotik.robots/robot_6axis.urdf").string();
+    auto left = robotik::openRobot(urdf, options);
+    auto right = robotik::openRobot(urdf, options);
+    ASSERT_TRUE(left) << left.error();
+    ASSERT_TRUE(right) << right.error();
+
+    // Same URDF, same frame index: still refused, it is not its link.
+    robotik::LinkRef const wrist = left.value()->requireLink("link6");
+    EXPECT_THROW((void)right.value()->worldPose(wrist), std::logic_error);
+    EXPECT_THROW((void)left.value()->worldPose(robotik::LinkRef{}),
+                 std::logic_error);
+
+    // The model is built once: the handle stays good after a reset.
+    left.value()->reset();
+    EXPECT_NO_THROW((void)left.value()->worldPose(wrist));
 }

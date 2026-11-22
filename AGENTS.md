@@ -156,7 +156,9 @@ built.
   name says it: a lookup by a name written in C++ starts with `require`
   (`joints.requireRevolute("j")`, `robot.requireFramePose("tool0")`,
   `cell.requirePose("box")`, `cell.requireQuery(...)`); the handle version
-  found once does not throw (`robot.worldPose(link)`). `add` refuses a
+  found once does not throw while it is valid (`robot.worldPose(link)`); a
+  `LinkRef` used on another robot, or never found, throws
+  `std::logic_error` (a mistake in the code, one integer compare). `add` refuses a
   duplicate name (`@throws`). `robotik::require(result)` takes a value
   where throwing is the way (a plugin method, a test).
 - Plain structs are data: what acts on them is a free function

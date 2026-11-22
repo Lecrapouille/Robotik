@@ -134,6 +134,8 @@ private:
     /// Link carrying the sensor, found at the first sample of an episode;
     /// the delivered reading is attached to its entity.
     LinkRef m_link;
+    /// Entity of the link, holding the published reading (empty headless).
+    compages::world::Entity m_holder;
     /// True once @ref m_link is found.
     bool m_resolved = false;
     /// Noise generator.

@@ -15,6 +15,7 @@
 
 #include <pugixml.hpp>
 
+#include <atomic>
 #include <cmath>
 #include <stdexcept>
 
@@ -37,6 +38,13 @@ struct UrdfRobot
 };
 
 /// Reads the robot name and its moving joints from a URDF.
+/// A serial number never given before in this process (0 is "no robot").
+static std::uint64_t nextSerial()
+{
+    static std::atomic<std::uint64_t> s_last{ 0 };
+    return ++s_last;
+}
+
 static UrdfRobot readUrdf(std::filesystem::path const& p_urdf)
 {
     pugi::xml_document document;
@@ -157,7 +165,8 @@ Robot::Robot(compages::world::World& p_world,
       m_resources(p_resources ? std::move(p_resources)
                               : std::make_shared<ResourceManager>()),
       m_sensors(*this, *m_resources),
-      m_actuators(*this, *m_resources)
+      m_actuators(*this, *m_resources),
+      m_serial(nextSerial())
 {
     if (p_view != nullptr)
     {
@@ -273,20 +282,27 @@ LinkRef Robot::requireLink(std::string const& p_name) const
 {
     if (p_name.empty())
     {
-        return LinkRef{ m_root, LinkRef::BASE };
+        return LinkRef{ m_serial, LinkRef::BASE };
     }
     if (!m_kinematics->hasFrame(p_name))
     {
         throw std::invalid_argument("Unknown Pinocchio frame: " + p_name);
     }
-    return LinkRef{ findNamed(m_root, p_name), m_kinematics->frameId(p_name) };
+    return LinkRef{ m_serial, m_kinematics->frameId(p_name) };
 }
 
 Pose Robot::worldPose(LinkRef const& p_link) const
 {
-    return p_link.frame == LinkRef::BASE
+    if (p_link.m_robot != m_serial)
+    {
+        throw std::logic_error(
+            "Robot '" + m_id +
+            "': this LinkRef was not found on this robot (another robot, or "
+            "never found): call requireLink on this robot");
+    }
+    return p_link.m_frame == LinkRef::BASE
                ? m_base.pose
-               : m_base.pose * m_kinematics->framePose(p_link.frame);
+               : m_base.pose * m_kinematics->framePose(p_link.m_frame);
 }
 
 std::optional<std::vector<double>>

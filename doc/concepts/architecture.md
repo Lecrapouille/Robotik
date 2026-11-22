@@ -213,7 +213,9 @@ Rules:
    files. Searching it walks a tree and compares strings. Code that runs at
    every step keeps a handle found once: `JointId` for a joint, `LinkRef`
    (`Robot::requireLink`) for a link, `ResourceId` for a resource. A handle found
-   during an episode is dropped at the reset and found again.
+   during an episode is dropped at the reset and found again. A `LinkRef` is
+   opaque (a frame index and its robot, no ECS entity) and stays good across
+   resets; used on another robot, it throws `std::logic_error`.
 2. **Many small values of one kind: arrays.** `JointSet` keeps one array per
    field, not one object per joint (see above).
 3. **Results of the step: components.** A sensor puts its last reading on the

@@ -220,8 +220,10 @@ public:
 
     // -------------------------------------------------------------------------
     /// Pose of a link in the world frame, with no search by name.
-    /// @param p_link Link found by @ref requireLink.
+    /// @param p_link Link found by @ref requireLink on this robot.
     /// @return The pose.
+    /// @throws std::logic_error if @p_link comes from another robot or was
+    ///   never found (a mistake in the code, see @ref LinkRef).
     // -------------------------------------------------------------------------
     [[nodiscard]] Pose worldPose(LinkRef const& p_link) const;
 
@@ -301,6 +303,8 @@ protected:
     std::vector<int> m_v_indices;
     /// Robot clock.
     Seconds m_time{};
+    /// Serial number, unique in the process: the owner of its @ref LinkRef.
+    std::uint64_t m_serial;
 };
 
 } // namespace robotik
