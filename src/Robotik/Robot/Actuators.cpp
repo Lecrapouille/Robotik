@@ -146,7 +146,7 @@ void VacuumGripper::bind(Robot& p_robot)
     {
         m_link = p_robot.tool();
     }
-    if (!p_robot.link(m_link))
+    if (!p_robot.kinematics().hasFrame(m_link))
     {
         throw std::invalid_argument("Vacuum gripper '" + name() +
                                     "': unknown link '" + m_link + "'");

@@ -17,7 +17,7 @@
 
 namespace robotik
 {
-class Robot;
+class RobotSession;
 }
 
 namespace compages::renderer
@@ -38,7 +38,7 @@ flyToView(robotik::Vector3 const& p_z_up);
 /// Does not step the world. The caller does, so a camera orbit is not
 /// updated once per physics substep.
 // ------------------------------------------------------------------------
-void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot);
+void poseFlyBody(robotik::RobotSession& p_robot, FlySnapshot const& p_snapshot);
 
 // ------------------------------------------------------------------------
 /// Aims one sensor beam from the eye to the sample.
@@ -64,6 +64,6 @@ void aimFlyBeam(compages::world::Entity p_beam,
 // ------------------------------------------------------------------------
 [[nodiscard]] compages::world::Entity
 mountFlyEye(compages::renderer::Scene& p_scene,
-            robotik::Robot& p_robot,
+            robotik::RobotSession& p_robot,
             std::string_view p_link,
             std::string_view p_name);

@@ -27,7 +27,7 @@
 #pragma once
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Task/Condition.hpp"
 #include "Robotik/Task/Faults.hpp"
 #include "Robotik/Task/Grasp/GraspModel.hpp"

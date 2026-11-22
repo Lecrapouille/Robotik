@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Robotik/Common/Math.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include <string>
 
@@ -59,9 +59,9 @@ public:
                      std::string p_right,
                      DriveGeometry p_geometry = {});
 
-    void attach(robotik::Robot& p_robot) override;
-    void reset(robotik::Robot& p_robot) override;
-    void step(robotik::Robot& p_robot, robotik::Seconds p_dt) override;
+    void attach(robotik::RobotSession& p_robot) override;
+    void reset(robotik::RobotSession& p_robot) override;
+    void step(robotik::RobotSession& p_robot, robotik::Seconds p_dt) override;
 
     void start(Pose2 const& p_pose)
     {

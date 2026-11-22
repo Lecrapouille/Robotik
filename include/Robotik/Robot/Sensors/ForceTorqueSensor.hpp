@@ -116,7 +116,7 @@ public:
 protected:
 
     /// Reads the wrench from the backend and adds the noise.
-    bool sample(Robot const& p_robot, Seconds p_now) override;
+    bool sample(RobotSession const& p_robot, Seconds p_now) override;
     /// Clears the readings waiting for their latency.
     void restart() override;
     /// Publishes the readings whose latency has elapsed.

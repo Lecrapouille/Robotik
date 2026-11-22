@@ -212,11 +212,11 @@ void MujocoBackend::detach(std::string const&,
 {
 }
 
-void MujocoBackend::attach(Robot&)
+void MujocoBackend::attach(RobotSession&)
 {
 }
 
-void MujocoBackend::join(Robot&, std::string const&)
+void MujocoBackend::join(RobotSession&, std::string const&)
 {
     missing("MuJoCo");
 }
@@ -227,11 +227,11 @@ MujocoBackend::member(std::shared_ptr<MujocoBackend>, std::string)
     missing("MuJoCo");
 }
 
-void MujocoBackend::reset(Robot&)
+void MujocoBackend::reset(RobotSession&)
 {
 }
 
-void MujocoBackend::step(Robot&, Seconds)
+void MujocoBackend::step(RobotSession&, Seconds)
 {
 }
 

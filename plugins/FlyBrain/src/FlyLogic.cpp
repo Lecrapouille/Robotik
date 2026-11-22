@@ -10,7 +10,7 @@
 #include "Robotik/Robot/Assets/AssetResolver.hpp"
 #include "Robotik/Robot/Backends/SceneView.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Robot/Sensors/Image.hpp"
 #include "Robotik/Task/RoboticCell.hpp"
 
@@ -77,12 +77,12 @@ void FlyBackend::restart()
     m_done = false;
 }
 
-void FlyBackend::reset(robotik::Robot& p_robot)
+void FlyBackend::reset(robotik::RobotSession& p_robot)
 {
     pose(p_robot);
 }
 
-void FlyBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
+void FlyBackend::step(robotik::RobotSession& p_robot, robotik::Seconds p_dt)
 {
     double const dt = m_environment.dt();
     m_lag += p_dt.value();
@@ -100,7 +100,7 @@ void FlyBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
     pose(p_robot);
 }
 
-void FlyBackend::pose(robotik::Robot& p_robot) const
+void FlyBackend::pose(robotik::RobotSession& p_robot) const
 {
     FlySnapshot const& snapshot = m_environment.snapshot();
     FlyPosture const& posture = snapshot.posture;

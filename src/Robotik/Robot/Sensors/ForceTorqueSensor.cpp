@@ -7,7 +7,7 @@
 
 #include "Robotik/Robot/Sensors/ForceTorqueSensor.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 namespace robotik
 {
@@ -38,7 +38,7 @@ void ForceTorqueSensor::deliver(Seconds p_now)
     }
 }
 
-bool ForceTorqueSensor::sample(Robot const& p_robot, Seconds p_now)
+bool ForceTorqueSensor::sample(RobotSession const& p_robot, Seconds p_now)
 {
     RobotBackend const* backend = p_robot.backend();
     if (backend == nullptr)

@@ -36,7 +36,7 @@
 namespace robotik
 {
 
-class Robot;
+class RobotSession;
 class VacuumGripper;
 
 // ****************************************************************************
@@ -110,7 +110,7 @@ public:
     /// @param p_robot Robot whose grippers are updated.
     /// @param p_held What each gripper holds, shared by the models.
     // ------------------------------------------------------------------------
-    virtual void update(Robot& p_robot, HeldObjects& p_held) = 0;
+    virtual void update(RobotSession& p_robot, HeldObjects& p_held) = 0;
 };
 
 // ****************************************************************************
@@ -131,7 +131,7 @@ class AbstractGrasp final: public GraspModel
 public:
 
     /// Attaches, carries or drops the shapes without physics.
-    void update(Robot& p_robot, HeldObjects& p_held) override;
+    void update(RobotSession& p_robot, HeldObjects& p_held) override;
 };
 
 // ****************************************************************************
@@ -185,7 +185,7 @@ public:
                                               std::string const& p_object);
 
     /// Turns the welds on or off from the suction of each gripper.
-    void update(Robot& p_robot, HeldObjects& p_held) override;
+    void update(RobotSession& p_robot, HeldObjects& p_held) override;
 
 private:
 

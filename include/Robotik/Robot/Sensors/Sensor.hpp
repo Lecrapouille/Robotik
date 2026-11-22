@@ -27,7 +27,7 @@
 namespace robotik
 {
 
-class Robot;
+class RobotSession;
 
 // ****************************************************************************
 /// A named data source sampled at its own frequency.
@@ -44,7 +44,9 @@ class Robot;
 /// @li the model: its configuration (mount, rate, a @ref NoiseModel per
 ///     channel, latency);
 /// @li the simulation: @ref sample, which measures the true value on the
-///     robot and its backend, then degrades it;
+///     robot and its backend, then degrades it. It gets the
+///     @ref RobotSession, not the @ref Robot of the skills: a sensor may
+///     read the simulator (the ECS world, the backend), a skill may not;
 /// @li the measurement: the reading, a @ref Measurement header plus typed
 ///     data, published once its latency has elapsed.
 ///
@@ -57,7 +59,7 @@ class Robot;
 ///     Thermometer() : Sensor("thermo", 10.0) {} // 10 Hz
 ///     double celsius = 0.0;
 /// protected:
-///     bool sample(robotik::Robot const&, Seconds) override
+///     bool sample(robotik::RobotSession const&, Seconds) override
 ///     {
 ///         celsius = 21.5; // read the hardware here
 ///         return true;
@@ -109,7 +111,7 @@ public:
     /// @param p_robot Robot carrying the sensor (kinematics for the mount).
     /// @param p_now Robot clock.
     // -------------------------------------------------------------------------
-    void update(Robot const& p_robot, Seconds p_now)
+    void update(RobotSession const& p_robot, Seconds p_now)
     {
         if (p_now >= m_due && sample(p_robot, p_now))
         {
@@ -161,7 +163,7 @@ protected:
     /// @param p_now Robot clock.
     /// @return False if no data was available (e.g. no source connected).
     // -------------------------------------------------------------------------
-    virtual bool sample(Robot const& p_robot, Seconds p_now) = 0;
+    virtual bool sample(RobotSession const& p_robot, Seconds p_now) = 0;
 
     // -------------------------------------------------------------------------
     /// Drops the state carried between samples (see @ref rewind).

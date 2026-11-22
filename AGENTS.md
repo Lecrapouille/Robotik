@@ -25,7 +25,8 @@ Read only what the task needs. Load a skill instead of reading the docs:
 Three layers, each usable without the ones above (`make check-layers`
 compiles every file alone where only the layers below exist, so an include
 upwards is "file not found"; `Task/Skills` and `Task/Planning` are compiled
-without `Task/RoboticCell.hpp`, so they cannot call the truth). Words:
+without `Task/RoboticCell.hpp` and `Robot/RobotSession.hpp`, so they cannot
+call the truth nor reach the simulator). Words:
 doc/reference/glossary.md.
 
 ```text
@@ -63,7 +64,7 @@ walking robot pushing a box in a room, ONNX policy).
 make                         # core, hosts, the plugins of PLUGINS
 make <target>                # one plugin; stages build/linux-gcc-debug/lib/robotik/plugins/<Name>/
 make check                   # builds and runs build/linux-gcc-debug/bin/Robotik-tests
-make check-layers            # compiler: no include upwards, no RoboticCell.hpp in skills/planning
+make check-layers            # compiler: no include upwards, no RoboticCell.hpp nor RobotSession.hpp in skills/planning
 make check-links             # every relative link of the Markdown files resolves
 make check-asan              # tests with ASan (+UBSan if libubsan), then in a random order
 make check-valgrind          # tests under valgrind memcheck (values read before written)
@@ -88,7 +89,12 @@ built.
 
 - Skills see only `RobotContext` (robot API + `WorldModel` beliefs). Never
   give them ground truth (`RoboticCell::requirePose/requireQuery`); that is for metrics,
-  assertions, RL reward. A scenario may choose to feed beliefs from the
+  assertions, RL reward. The ECS world, the entities, the backend and the
+  writable kinematics are on `RobotSession` (own header), not on the
+  `Robot` of a skill; `Task/Skills` and `Task/Planning` are compiled
+  without `RobotSession.hpp`. A vacuum cup measures `holding()`; what it
+  holds is the `label` the grasp skill wrote (the entity is truth:
+  `RoboticCell::held`). A scenario may choose to feed beliefs from the
   truth (`perception.fidelity: truth | noisy_truth`, per object): it is a
   mock of the detectors, done by the `RoboticCell` and written in the run report,
   never by a skill.

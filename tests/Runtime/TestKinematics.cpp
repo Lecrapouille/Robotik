@@ -9,8 +9,8 @@
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Skills/MotionSkills.hpp"
 

@@ -31,7 +31,7 @@
 namespace robotik
 {
 
-class Robot;
+class RobotSession;
 
 // ****************************************************************************
 /// Two bodies touching after a step.
@@ -78,9 +78,9 @@ struct Contact
 /// class PerfectJoints final : public robotik::RobotBackend
 /// {
 /// public:
-///     void attach(robotik::Robot&) override {}
-///     void reset(robotik::Robot&) override {}
-///     void step(robotik::Robot& p_robot, Seconds) override
+///     void attach(robotik::RobotSession&) override {}
+///     void reset(robotik::RobotSession&) override {}
+///     void step(robotik::RobotSession& p_robot, Seconds) override
 ///     {
 ///         // the joints reach their position targets at once
 ///         robotik::JointSet& joints = p_robot.joints();
@@ -102,21 +102,21 @@ public:
     /// Called once by @ref RobotSession::connect.
     /// @param p_robot Robot to drive.
     // -------------------------------------------------------------------------
-    virtual void attach(Robot& p_robot) = 0;
+    virtual void attach(RobotSession& p_robot) = 0;
 
     // -------------------------------------------------------------------------
     /// Puts the backend at rest on the current joint positions and base pose.
     /// @param p_robot Robot to drive.
     // -------------------------------------------------------------------------
-    virtual void reset(Robot& p_robot) = 0;
+    virtual void reset(RobotSession& p_robot) = 0;
 
     // -------------------------------------------------------------------------
     /// Applies the joint commands for one step, then writes the measured
-    /// joints (@ref JointSet::measure) and base (@ref Robot::measureBase).
+    /// joints (@ref JointSet::measure) and base (@ref RobotSession::measureBase).
     /// @param p_robot Robot to drive.
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
-    virtual void step(Robot& p_robot, Seconds p_dt) = 0;
+    virtual void step(RobotSession& p_robot, Seconds p_dt) = 0;
 
     // -------------------------------------------------------------------------
     /// @return The number of contacts after the last step (simulation only).

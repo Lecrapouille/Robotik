@@ -282,7 +282,7 @@ public:
     /// indices: the robot of the first chain (@ref join with no prefix).
     /// @param p_robot Robot of the first chain.
     // -------------------------------------------------------------------------
-    void attach(Robot& p_robot) override;
+    void attach(RobotSession& p_robot) override;
 
     // -------------------------------------------------------------------------
     /// Binds one more robot of the world. Its joint @c j is the MuJoCo
@@ -293,7 +293,7 @@ public:
     ///   (empty: the first chain).
     /// @throws std::runtime_error if no chain was loaded with @p_prefix.
     // -------------------------------------------------------------------------
-    void join(Robot& p_robot, std::string const& p_prefix);
+    void join(RobotSession& p_robot, std::string const& p_prefix);
 
     // -------------------------------------------------------------------------
     /// Makes a backend for one robot of a world of several robots. Connect
@@ -320,7 +320,7 @@ public:
     /// every bound robot, then runs @c mj_forward.
     /// @param p_robot Robot asking for the reset.
     // -------------------------------------------------------------------------
-    void reset(Robot& p_robot) override;
+    void reset(RobotSession& p_robot) override;
 
     // -------------------------------------------------------------------------
     /// Integrates @p_dt in steps of @ref MujocoOptions::timestep. Each
@@ -331,7 +331,7 @@ public:
     /// @param p_robot Robot asking for the step.
     /// @param p_dt Duration to integrate.
     // -------------------------------------------------------------------------
-    void step(Robot& p_robot, Seconds p_dt) override;
+    void step(RobotSession& p_robot, Seconds p_dt) override;
 
     /// @return Active contacts after the last step (@c mjData.ncon), robot
     ///   against the floor excluded.

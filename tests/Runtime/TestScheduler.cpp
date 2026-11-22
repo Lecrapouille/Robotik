@@ -7,8 +7,8 @@
 
 #include "main.hpp"
 
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Task/Perception/WorldModel.hpp"
-#include "Robotik/Robot/Robot.hpp"
 #include "Robotik/Task/RobotContext.hpp"
 #include "Robotik/Task/Scheduler.hpp"
 #include "Robotik/Task/Skills/SkillNodes.hpp"

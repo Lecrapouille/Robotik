@@ -39,6 +39,25 @@ static_assert(
 static_assert(CONST_RESULT<decltype(std::declval<robotik::RobotSession const&>()
                                         .backend())>);
 
+// The Robot of the skills reaches nothing of the simulator: no ECS world,
+// no entity, no backend, no writable kinematics, no base to write. The
+// session (the program that runs the robot) has them. A requires clause is
+// only soft in a template, hence the concept.
+template <typename R>
+concept ReachesSimulator = requires(R& p_robot) { p_robot.world(); } ||
+                           requires(R& p_robot) { p_robot.root(); } ||
+                           requires(R& p_robot) { p_robot.link("tcp"); } ||
+                           requires(R& p_robot) { p_robot.backend(); } ||
+                           requires(R& p_robot) { p_robot.urdfFrame(); } ||
+                           requires(R& p_robot) { p_robot.measureBase({}); };
+
+static_assert(!ReachesSimulator<robotik::Robot>);
+static_assert(ReachesSimulator<robotik::RobotSession>);
+static_assert(
+    CONST_RESULT<decltype(std::declval<robotik::Robot&>().kinematics())>);
+static_assert(!CONST_RESULT<
+              decltype(std::declval<robotik::RobotSession&>().kinematics())>);
+
 TEST(ConstAccess, ConstObjectsGiveConstParts)
 {
     SUCCEED() << "checked by the static_asserts of this file";

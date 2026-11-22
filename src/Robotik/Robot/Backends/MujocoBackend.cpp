@@ -7,7 +7,7 @@
 
 #include "Robotik/Robot/Backends/MujocoBackend.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include <mujoco/mujoco.h>
 
@@ -36,7 +36,7 @@ namespace robotik
 /// One robot bound to the backend: its MuJoCo names start with @c prefix.
 struct MujocoBackend::Member
 {
-    Robot* robot = nullptr;
+    RobotSession* robot = nullptr;
     std::string prefix;
     struct Binding
     {
@@ -941,12 +941,12 @@ void MujocoBackend::compile()
     m_impl->dirty = false;
 }
 
-void MujocoBackend::attach(Robot& p_robot)
+void MujocoBackend::attach(RobotSession& p_robot)
 {
     join(p_robot, "");
 }
 
-void MujocoBackend::join(Robot& p_robot, std::string const& p_prefix)
+void MujocoBackend::join(RobotSession& p_robot, std::string const& p_prefix)
 {
     if (m_impl->model == nullptr || m_impl->dirty)
     {
@@ -1025,7 +1025,7 @@ void MujocoBackend::bind(Member& p_member)
     }
 }
 
-void MujocoBackend::reset(Robot& /*p_robot*/)
+void MujocoBackend::reset(RobotSession& /*p_robot*/)
 {
     mjModel* model = m_impl->model;
     mjData* data = m_impl->data;
@@ -1065,7 +1065,7 @@ void MujocoBackend::reset(Robot& /*p_robot*/)
     m_impl->stale_wrenches = true;
 }
 
-void MujocoBackend::step(Robot& p_robot, Seconds p_dt)
+void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
 {
     std::vector<Member>& members = m_impl->members;
     if (members.empty() || members.front().robot != &p_robot)
@@ -1301,17 +1301,17 @@ public:
     {
     }
 
-    void attach(Robot& p_robot) override
+    void attach(RobotSession& p_robot) override
     {
         m_physics->join(p_robot, m_prefix);
     }
 
-    void reset(Robot& p_robot) override
+    void reset(RobotSession& p_robot) override
     {
         m_physics->reset(p_robot);
     }
 
-    void step(Robot& p_robot, Seconds p_dt) override
+    void step(RobotSession& p_robot, Seconds p_dt) override
     {
         m_physics->step(p_robot, p_dt);
     }

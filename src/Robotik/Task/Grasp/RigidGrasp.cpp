@@ -10,7 +10,7 @@
 #include "Robotik/Robot/Backends/RobotBackend.hpp"
 #include "Robotik/Robot/Components/Objects.hpp"
 #include "Robotik/Robot/Components/Queries.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -29,7 +29,7 @@ std::string RigidGrasp::weldName(std::string const& p_gripper,
     return "robotik_grasp_" + p_gripper + "_" + p_object;
 }
 
-void RigidGrasp::update(Robot& p_robot, HeldObjects& p_held)
+void RigidGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
 {
     RobotBackend* backend = p_robot.backend();
     if (backend == nullptr || m_objects.empty())

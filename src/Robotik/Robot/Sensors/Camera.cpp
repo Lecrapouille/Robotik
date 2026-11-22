@@ -8,7 +8,7 @@
 #include "Robotik/Robot/Sensors/Camera.hpp"
 
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Robot/Sensors/Measurements.hpp"
 
 #include <algorithm>
@@ -59,7 +59,7 @@ Camera::Camera(std::string p_name, CameraConfig p_config)
 {
 }
 
-bool Camera::sample(Robot const& p_robot, Seconds p_now)
+bool Camera::sample(RobotSession const& p_robot, Seconds p_now)
 {
     if (m_source == nullptr)
     {

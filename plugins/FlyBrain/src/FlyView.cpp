@@ -10,7 +10,7 @@
 #include "FlyDraw.hpp"
 
 #include "Robotik/Robot/Backends/SceneView.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Compages/GPU/GPU.hpp"
 #include "Compages/GPU/RenderPass.hpp"

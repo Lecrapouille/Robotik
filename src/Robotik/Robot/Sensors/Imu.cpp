@@ -7,7 +7,7 @@
 
 #include "Robotik/Robot/Sensors/Imu.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -61,7 +61,7 @@ void Imu::deliver(Seconds p_now)
     }
 }
 
-bool Imu::sample(Robot const& p_robot, Seconds p_now)
+bool Imu::sample(RobotSession const& p_robot, Seconds p_now)
 {
     if (!m_resolved)
     {

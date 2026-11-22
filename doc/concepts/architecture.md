@@ -58,9 +58,11 @@ check the layers. It compiles every header and source alone, with an
 include path where only the allowed layers exist: an include towards a
 higher layer is "file not found", however the line is written. A header
 that forgets one of its own includes fails the same way. `Task/Skills` and
-`Task/Planning` are compiled without `Task/RoboticCell.hpp`: they cannot call the
-truth API (`RoboticCell::requirePose`, `RoboticCell::requireQuery`...), because the class is not
-defined there. A future split stays
+`Task/Planning` are compiled without `Task/RoboticCell.hpp` and
+`Robot/RobotSession.hpp`: they cannot call the truth API
+(`RoboticCell::requirePose`, `RoboticCell::requireQuery`...) nor reach the
+simulator (`RobotSession::world`, `RobotSession::backend`), because the
+classes are not defined there. A future split stays
 possible: `Package` could become `Scenario` (files) and `App` (plugins,
 hosts) without touching the layers below.
 
@@ -132,7 +134,10 @@ Three separate notions:
 | **State** | What happens now: positions, velocities, efforts | `JointSet` |
 | **Backend** | How to read and change the state | `RobotBackend` → `MujocoBackend` (→ `HardwareBackend` later) |
 
-`RobotSession` joins them: the robot, its backend and the world.
+`RobotSession` (`Robot/RobotSession.hpp`) joins them: the robot, its
+backend and the world. Only the session reaches the ECS world and the
+backend; a skill gets its `Robot` base, which reads joints and sensors and
+sends commands.
 
 ```cpp
 compages::world::World world;
@@ -294,7 +299,8 @@ Three contracts keep it honest:
 
 1. **One entry.** Skills, PDDL observers and the scenario logic read the
    `WorldModel` only; `make check-layers` compiles `Task/Skills` and
-   `Task/Planning` without `Task/RoboticCell.hpp`, so a truth call cannot build.
+   `Task/Planning` without `Task/RoboticCell.hpp` and
+   `Robot/RobotSession.hpp`, so a truth call cannot build.
 2. **Source and age.** Each belief says where it comes from
    (`BeliefSource`: prior, sensed, noisy truth, truth) and when it was seen.
    With `perception.max_age`, an older belief is unknown to the planner.

@@ -7,7 +7,7 @@
 
 #include "FlyDraw.hpp"
 
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Compages/Renderer/Scene/Scene.hpp"
 #include "Compages/World/Components/Camera.hpp"
@@ -26,8 +26,9 @@ static float lengthOf(compages::Vector3f const& p_vector)
 
 /// Places one joint when the URDF has it. A missing name is skipped,
 /// so a shorter model still draws.
-static void
-poseJoint(robotik::Robot& p_robot, std::string const& p_name, double p_angle)
+static void poseJoint(robotik::RobotSession& p_robot,
+                      std::string const& p_name,
+                      double p_angle)
 {
     robotik::JointId const id = p_robot.joints().find(p_name);
     if (id != robotik::NO_JOINT)
@@ -43,7 +44,7 @@ compages::Vector3f flyToView(robotik::Vector3 const& p_z_up)
              static_cast<float>(-p_z_up.y) };
 }
 
-void poseFlyBody(robotik::Robot& p_robot, FlySnapshot const& p_snapshot)
+void poseFlyBody(robotik::RobotSession& p_robot, FlySnapshot const& p_snapshot)
 {
     FlyPosture const& posture = p_snapshot.posture;
 
@@ -144,7 +145,7 @@ void aimFlyBeam(compages::world::Entity p_beam,
 }
 
 compages::world::Entity mountFlyEye(compages::renderer::Scene& p_scene,
-                                    robotik::Robot& p_robot,
+                                    robotik::RobotSession& p_robot,
                                     std::string_view p_link,
                                     std::string_view p_name)
 {

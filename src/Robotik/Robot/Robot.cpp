@@ -5,7 +5,7 @@
 // for users who cannot use the GPL, under a commercial license.
 // See LICENSING.md for details.
 
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Robotik/Robot/Backends/PinocchioBackend.hpp"
 #include "Robotik/Robot/Components/Robots.hpp"
@@ -242,7 +242,7 @@ Robot::Robot(compages::world::World& p_world,
     if (!p_tool.empty())
     {
         mountTool(p_world, m_root, p_tool, p_view);
-        if (compages::world::Entity const tip = link("tcp"))
+        if (compages::world::Entity const tip = findNamed(m_root, "tcp"))
         {
             m_tool = tip.name();
         }
@@ -253,7 +253,7 @@ Robot::Robot(compages::world::World& p_world,
 
 Robot::~Robot() = default;
 
-compages::world::Entity Robot::link(std::string_view p_name) const
+compages::world::Entity RobotSession::link(std::string_view p_name) const
 {
     return findNamed(m_root, p_name);
 }
@@ -279,7 +279,7 @@ LinkRef Robot::requireLink(std::string const& p_name) const
     {
         throw std::invalid_argument("Unknown Pinocchio frame: " + p_name);
     }
-    return LinkRef{ link(p_name), m_kinematics->frameId(p_name) };
+    return LinkRef{ findNamed(m_root, p_name), m_kinematics->frameId(p_name) };
 }
 
 Pose Robot::worldPose(LinkRef const& p_link) const

@@ -65,13 +65,13 @@ DiffDriveBackend::DiffDriveBackend(std::string p_left,
 {
 }
 
-void DiffDriveBackend::attach(robotik::Robot& p_robot)
+void DiffDriveBackend::attach(robotik::RobotSession& p_robot)
 {
     m_left = p_robot.joints().require(m_left_name);
     m_right = p_robot.joints().require(m_right_name);
 }
 
-void DiffDriveBackend::reset(robotik::Robot& p_robot)
+void DiffDriveBackend::reset(robotik::RobotSession& p_robot)
 {
     m_truth = m_start;
     m_speeds[0] = 0.0;
@@ -82,7 +82,8 @@ void DiffDriveBackend::reset(robotik::Robot& p_robot)
     p_robot.measureBase({ pose(), {} });
 }
 
-void DiffDriveBackend::step(robotik::Robot& p_robot, robotik::Seconds p_dt)
+void DiffDriveBackend::step(robotik::RobotSession& p_robot,
+                            robotik::Seconds p_dt)
 {
     robotik::JointSet& joints = p_robot.joints();
     double const dt = p_dt.value();

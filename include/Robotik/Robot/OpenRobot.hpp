@@ -31,7 +31,7 @@
 #pragma once
 
 #include "Robotik/Common/Result.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Compages/World/World.hpp"
 

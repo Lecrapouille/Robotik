@@ -119,7 +119,7 @@ public:
 protected:
 
     /// Casts every beam and adds the noise.
-    bool sample(Robot const& p_robot, Seconds p_now) override;
+    bool sample(RobotSession const& p_robot, Seconds p_now) override;
     /// Clears the scans waiting for their latency.
     void restart() override;
     /// Publishes the scans whose latency has elapsed.

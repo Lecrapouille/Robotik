@@ -8,7 +8,7 @@
 #include "Robotik/Robot/Sensors/RangeScanner.hpp"
 
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 
 #include "Compages/World/World.hpp"
 
@@ -89,7 +89,7 @@ void RangeScanner::deliver(Seconds p_now)
     }
 }
 
-bool RangeScanner::sample(Robot const& p_robot, Seconds p_now)
+bool RangeScanner::sample(RobotSession const& p_robot, Seconds p_now)
 {
     if (!m_resolved)
     {

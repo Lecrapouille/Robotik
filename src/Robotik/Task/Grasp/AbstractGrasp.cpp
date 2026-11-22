@@ -8,7 +8,7 @@
 #include "Robotik/Task/Grasp/GraspModel.hpp"
 
 #include "Robotik/Robot/Components/Objects.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
 #include "Robotik/Task/Grasp/ContainerBounds.hpp"
 
 #include "Compages/World/World.hpp"
@@ -158,7 +158,7 @@ void HeldObjects::drop(VacuumGripper& p_gripper)
     p_gripper.measureHolding(false);
 }
 
-void AbstractGrasp::update(Robot& p_robot, HeldObjects& p_held)
+void AbstractGrasp::update(RobotSession& p_robot, HeldObjects& p_held)
 {
     compages::world::World& world = p_robot.world();
     ActuatorSet& actuators = p_robot.actuators();

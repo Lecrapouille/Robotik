@@ -278,7 +278,7 @@ public:
 protected:
 
     /// Asks the source for images, adds the noise, calls the callbacks.
-    bool sample(Robot const& p_robot, Seconds p_now) override;
+    bool sample(RobotSession const& p_robot, Seconds p_now) override;
 
 private:
 

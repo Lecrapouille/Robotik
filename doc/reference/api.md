@@ -210,7 +210,8 @@ judges the run (marked *Simulation* below).
 
 ## 🤖 Robot and joints
 
-Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
+Headers: `Robotik/Robot/Robot.hpp` (skills), `Robotik/Robot/RobotSession.hpp`
+(the program that runs the robot), `Robotik/Robot/Joints.hpp`.
 
 ### 🤖 `Robot` (and `RobotSession`)
 
@@ -225,11 +226,18 @@ Headers: `Robotik/Robot/Robot.hpp`, `Robotik/Robot/Joints.hpp`.
 | `framePose("frame")` | **Forward kinematics**: pose of a frame in the robot base frame |
 | `worldPose("frame")` | Same, in the world frame |
 | `inverseKinematics("frame", Pose[, IkGoal])` | **Inverse kinematics**: `std::optional<std::vector<double>>`, one value per joint. `IkGoal::Position` or `Orientation` places only that part, for a link with fewer than six joints above it (the closest reachable one) |
-| `kinematics()` | The `PinocchioBackend` (Jacobians…) |
+| `kinematics()` | The `PinocchioBackend`, read only (Jacobians…) |
 | `base()` | State of a mobile base |
+| `requireLink("frame")`, `worldPose(link)` | A link found once, then its pose with no search |
 
 `RobotSession` adds `connect(backend)`, `hold(posture)`, `step(dt)`, `reset()`
-(used by `RoboticCell`).
+(used by `RoboticCell`). It also gives what only the simulator side may
+touch: `world()`, `root()`, `link("name")` (ECS entities), `backend()`,
+`urdfFrame()`, the writable `kinematics()` and `measureBase(state)`. A skill
+receives a `Robot&`, so it has none of them; `make check-layers` compiles
+`Task/Skills` and `Task/Planning` without `RobotSession.hpp`. Sensors
+(`sample(RobotSession const&, now)`), backends and grasp models receive the
+session.
 
 ### 🧮 `JointSet`
 

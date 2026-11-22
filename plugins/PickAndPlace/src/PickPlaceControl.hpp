@@ -11,10 +11,10 @@
 /// (a pool of headless environments), plus the scripted policies.
 #pragma once
 
-#include "Robotik/Task/Learning/SimulationEnvironment.hpp"
 #include "Robotik/Common/Math.hpp"
 #include "Robotik/Common/Random.hpp"
-#include "Robotik/Robot/Robot.hpp"
+#include "Robotik/Robot/RobotSession.hpp"
+#include "Robotik/Task/Learning/SimulationEnvironment.hpp"
 
 #include <cstdint>
 #include <span>

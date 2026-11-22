@@ -118,7 +118,7 @@ public:
 protected:
 
     /// Measures the motion of the IMU frame and adds the noise.
-    bool sample(Robot const& p_robot, Seconds p_now) override;
+    bool sample(RobotSession const& p_robot, Seconds p_now) override;
     /// Forgets the previous poses (the next sample reads the robot at rest).
     void restart() override;
     /// Publishes the readings whose latency has elapsed.
