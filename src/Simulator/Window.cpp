@@ -179,8 +179,7 @@ bool Window::open()
     }
     glfw_ready = true;
 #if defined(__EMSCRIPTEN__)
-    // WebGL 2 (OpenGL ES 3). Compages still asks for OpenGL 4.5: if the
-    // driver cannot give it, the panels open without the 3D view.
+    // WebGL 2 (OpenGL ES 3), the GLES3 backend of Compages.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 #    if defined(GLFW_SCALE_TO_MONITOR) && !defined(EXAEQUOS)
@@ -205,19 +204,24 @@ bool Window::open()
     glfwSetScrollCallback(handle, &Window::onScroll);
     glfwSwapInterval(1);
 
-#if defined(__EMSCRIPTEN__) && !defined(EXAEQUOS)
-    // The page is WebGL 2. Compages draws with OpenGL 4.5, which this
-    // context does not have: the panels still open, without the 3D view.
-#else
+    // On the web, Compages is built with its GLES3 backend (WebGL 2), which
+    // needs no loader: the function pointer is not read.
     auto ready = compages::gpu::init(
         reinterpret_cast<compages::gpu::LoadProc>(glfwGetProcAddress));
     if (!ready)
     {
         std::cerr << ready.error() << '\n';
+#if defined(__EMSCRIPTEN__)
+        // A browser without WebGL 2: the panels still open, without the
+        // 3D view.
+#else
         return false;
-    }
-    device_ready = true;
 #endif
+    }
+    else
+    {
+        device_ready = true;
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

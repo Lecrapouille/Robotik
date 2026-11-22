@@ -21,14 +21,24 @@ ROBOTIK_PLUGINS_DIR = $(BUILD)/lib/robotik/plugins
 robotik-missing = $(strip $(foreach p,$1,$(if $(shell $(PKG_CONFIG) --exists $p && echo y),,$p)))
 
 # $(1): target, $(2): name of the plugin. Read in the file of the plugin.
+#
+# The web page (Emscripten) cannot open a shared library: there the plugin
+# is object files linked into RobotIK-Simulator, and ROBOTIK_EXPORT_PLUGIN
+# registers it under the name of its library (BuiltinPlugins.hpp).
 define ROBOTIK_PLUGIN
-$(1).TYPE := shared
 $(1).INCLUDES += src
 $(1).DEPENDS += robotik-core
 $(1).INSTALL := no
 $(1).CLEAN := $$(ROBOTIK_PLUGINS_DIR)/$(2)
+ifeq ($$(TARGET_OS),Emscripten)
+$(1).TYPE := objects
+$(1).DEFINES += ROBOTIK_PLUGIN_LIBRARY="lib$(1).so"
+RobotIK-Simulator.DEPENDS += $(1)
+else
+$(1).TYPE := shared
 $(1).POST_BUILD := mkdir -p $$(ROBOTIK_PLUGINS_DIR)/$(2) \
     && cp -L $$(BUILD)/lib/lib$(1).so $$(ROBOTIK_PLUGINS_DIR)/$(2)/
+endif
 # plugin.yaml and the folders of the package are copied again when one of
 # their files changes, even when the library is not linked again: a change
 # of a world or a scenario needs no C++ build. The folders are in the list

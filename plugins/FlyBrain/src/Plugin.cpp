@@ -122,6 +122,17 @@ private:
 
     void startLoading(bool p_connectome)
     {
+#if defined(__EMSCRIPTEN__)
+        // The page holds neither the tables (about 200 MB) nor threads to
+        // read them: the fly keeps its 13-neuron circuit.
+        if (p_connectome)
+        {
+            m_error = "The FlyWire connectome is not in the web version "
+                      "(about 200 MB of tables). Use the desktop simulator, "
+                      "built with make FLYBRAIN_CONNECTOME=1.";
+            return;
+        }
+#endif
         m_error.clear();
         m_target = p_connectome;
         m_started = std::chrono::steady_clock::now();

@@ -5,6 +5,7 @@ media/
 doc/code-coverage/*
 doc/doxygen/*
 external/*/
+!external/web/
 old/*
 compile_commands.json
 .vscode/browse.vc.db*

@@ -31,6 +31,7 @@
 ///   scenario ids of the logic table are listed in it.
 #pragma once
 
+#include "RobotIK/Package/Plugin/BuiltinPlugins.hpp"
 #include "RobotIK/Package/Plugin/PluginABI.h"
 #include "RobotIK/Package/Plugin/PluginBuildId.hpp"
 #include "RobotIK/Task/ScenarioLogic.hpp"
@@ -933,7 +934,56 @@ void destroyPlugin(RobotIKPlugin* p_plugin)
 /// ROBOTIK_EXPORT_PLUGIN(MyPlugin)
 /// @endcode
 // ****************************************************************************
-#define ROBOTIK_EXPORT_PLUGIN(Type)                                      \
+#if defined(ROBOTIK_PLUGIN_LIBRARY)
+// The web build links the plugins into the page (plugins/plugin.mk defines
+// ROBOTIK_PLUGIN_LIBRARY="librobotik_x.so"): the five functions are local
+// to the plugin, and a static object adds them to the table of
+// BuiltinPlugins.hpp under the name of its library.
+#    define ROBOTIK_EXPORT_PLUGIN(Type)                                       \
+        namespace                                                             \
+        {                                                                     \
+        uint32_t robotikPluginAbiVersion()                                    \
+        {                                                                     \
+            return ROBOTIK_PLUGIN_ABI_VERSION;                                \
+        }                                                                     \
+        char const* robotikPluginBuildId()                                    \
+        {                                                                     \
+            return ROBOTIK_PLUGIN_BUILD_ID;                                   \
+        }                                                                     \
+        bool robotikPluginQuery(RobotIKPluginInfo* info,                      \
+                                RobotIKPluginVTable* api)                     \
+        {                                                                     \
+            return robotik::plugin_detail::queryPlugin<Type>(info, api);      \
+        }                                                                     \
+        RobotIKPlugin* robotikPluginCreate(RobotIKHostAPI const* host)        \
+        {                                                                     \
+            return robotik::plugin_detail::createPlugin<Type>(host);          \
+        }                                                                     \
+        void robotikPluginDestroy(RobotIKPlugin* plugin)                      \
+        {                                                                     \
+            robotik::plugin_detail::destroyPlugin<Type>(plugin);              \
+        }                                                                     \
+        template <class F>                                                    \
+        robotik::BuiltinFunction robotikPluginErase(F p_function)             \
+        {                                                                     \
+            return reinterpret_cast<robotik::BuiltinFunction>(p_function);    \
+        }                                                                     \
+        [[maybe_unused]] bool const ROBOTIK_PLUGIN_REGISTERED =               \
+            robotik::registerBuiltinPlugin(                                   \
+                { ROBOTIK_PLUGIN_LIBRARY,                                     \
+                  { { { "robotik_plugin_abi_version",                         \
+                        robotikPluginErase(&robotikPluginAbiVersion) },       \
+                      { "robotik_plugin_build_id",                            \
+                        robotikPluginErase(&robotikPluginBuildId) },          \
+                      { "robotik_plugin_query",                               \
+                        robotikPluginErase(&robotikPluginQuery) },            \
+                      { "robotik_plugin_create",                              \
+                        robotikPluginErase(&robotikPluginCreate) },           \
+                      { "robotik_plugin_destroy",                             \
+                        robotikPluginErase(&robotikPluginDestroy) } } } });   \
+        }
+#else
+#    define ROBOTIK_EXPORT_PLUGIN(Type)                                      \
     extern "C"                                                           \
     {                                                                    \
         uint32_t robotik_plugin_abi_version(void)                        \
@@ -958,3 +1008,4 @@ void destroyPlugin(RobotIKPlugin* p_plugin)
             robotik::plugin_detail::destroyPlugin<Type>(plugin);         \
         }                                                                \
     }
+#endif

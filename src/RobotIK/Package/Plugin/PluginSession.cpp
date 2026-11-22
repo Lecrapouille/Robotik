@@ -6,6 +6,7 @@
 // See LICENSING.md for details.
 
 #include "RobotIK/Package/Plugin/PluginSession.hpp"
+#include "RobotIK/Package/Plugin/BuiltinPlugins.hpp"
 
 #include "RobotIK/Package/Simulation.hpp"
 
@@ -147,8 +148,10 @@ PluginPrepare PluginSession::prepare(std::filesystem::path const& p_scenario)
     }
     if (!m_manager.loaded())
     {
+        // A plugin compiled into the program (web page) has no file.
         std::error_code error;
-        if (!std::filesystem::is_regular_file(copy.library, error))
+        if (findBuiltinPlugin(copy.library.filename().string()) == nullptr &&
+            !std::filesystem::is_regular_file(copy.library, error))
         {
             fallback("plugin library not found: " + copy.library.string());
             return PluginPrepare::Failed;

@@ -6,21 +6,36 @@
 // See LICENSING.md for details.
 
 #include "RobotIK/Package/Plugin/PluginManager.hpp"
+#include "RobotIK/Package/Plugin/BuiltinPlugins.hpp"
 #include "RobotIK/Package/Plugin/PluginBuildId.hpp"
 
 #include <cstdint>
 #include <cstring>
 #include <dlfcn.h>
+#include <filesystem>
 #include <utility>
 
 namespace robotik
 {
 
-/// Loads one function pointer from the plugin library.
+/// Loads one function pointer from the plugin: from the table of the
+/// plugins compiled in the program, else from the opened library.
 template <class Function>
-static Function
-symbol(void* p_library, char const* p_name, std::string& p_error)
+static Function symbol(BuiltinPlugin const* p_builtin,
+                       void* p_library,
+                       char const* p_name,
+                       std::string& p_error)
 {
+    if (p_builtin != nullptr)
+    {
+        BuiltinFunction const function = builtinSymbol(*p_builtin, p_name);
+        if (function == nullptr)
+        {
+            p_error = std::string("missing symbol ") + p_name;
+            return nullptr;
+        }
+        return reinterpret_cast<Function>(function);
+    }
     dlerror();
     void* address = dlsym(p_library, p_name);
     char const* failure = dlerror();
@@ -64,15 +79,28 @@ RobotIKPluginStatus PluginManager::load(std::string const& p_path)
         return fail(ROBOTIK_PLUGIN_ERR_STATE, "plugin is already loaded");
     }
     m_error.clear();
-    // NODELETE: dlclose must not unmap the code. A plugin's dependencies
-    // (OpenCV and its thread pool) keep threads alive after the plugin is
-    // gone; unmapping them crashes the host at the next library switch.
-    m_library = dlopen(p_path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
-    if (m_library == nullptr)
+    std::string const file = std::filesystem::path(p_path).filename().string();
+    m_builtin = findBuiltinPlugin(file);
+    if (m_builtin == nullptr)
     {
-        char const* failure = dlerror();
+#if defined(__EMSCRIPTEN__)
+        // The page cannot open a library: only the compiled-in plugins run.
         return fail(ROBOTIK_PLUGIN_ERR_NOT_FOUND,
-                    failure != nullptr ? failure : "dlopen failed");
+                    "plugin " + file + " is not in the web build");
+#else
+        // NODELETE: dlclose must not unmap the code. A plugin's
+        // dependencies (OpenCV and its thread pool) keep threads alive
+        // after the plugin is gone; unmapping them crashes the host at the
+        // next library switch.
+        m_library =
+            dlopen(p_path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
+        if (m_library == nullptr)
+        {
+            char const* failure = dlerror();
+            return fail(ROBOTIK_PLUGIN_ERR_NOT_FOUND,
+                        failure != nullptr ? failure : "dlopen failed");
+        }
+#endif
     }
 
     using AbiFn = std::uint32_t (*)();
@@ -86,8 +114,8 @@ RobotIKPluginStatus PluginManager::load(std::string const& p_path)
         unload();
         return fail(ROBOTIK_PLUGIN_ERR_NOT_FOUND, std::move(p_message));
     };
-    AbiFn const abi =
-        symbol<AbiFn>(m_library, "robotik_plugin_abi_version", m_error);
+    AbiFn const abi = symbol<AbiFn>(
+        m_builtin, m_library, "robotik_plugin_abi_version", m_error);
     if (abi == nullptr)
     {
         return missing(m_error);
@@ -100,8 +128,8 @@ RobotIKPluginStatus PluginManager::load(std::string const& p_path)
     }
     // The C table carries C++ objects: only a plugin of this build reads them
     // as this host does.
-    BuildIdFn const build =
-        symbol<BuildIdFn>(m_library, "robotik_plugin_build_id", m_error);
+    BuildIdFn const build = symbol<BuildIdFn>(
+        m_builtin, m_library, "robotik_plugin_build_id", m_error);
     if (build == nullptr)
     {
         unload();
@@ -118,17 +146,19 @@ RobotIKPluginStatus PluginManager::load(std::string const& p_path)
                         "', this host is '" ROBOTIK_PLUGIN_BUILD_ID "'");
     }
     QueryFn const query =
-        symbol<QueryFn>(m_library, "robotik_plugin_query", m_error);
+        symbol<QueryFn>(m_builtin, m_library, "robotik_plugin_query", m_error);
     if (query == nullptr)
     {
         return missing(m_error);
     }
-    m_create = symbol<CreateFn>(m_library, "robotik_plugin_create", m_error);
+    m_create = symbol<CreateFn>(
+        m_builtin, m_library, "robotik_plugin_create", m_error);
     if (m_create == nullptr)
     {
         return missing(m_error);
     }
-    m_destroy = symbol<DestroyFn>(m_library, "robotik_plugin_destroy", m_error);
+    m_destroy = symbol<DestroyFn>(
+        m_builtin, m_library, "robotik_plugin_destroy", m_error);
     if (m_destroy == nullptr)
     {
         return missing(m_error);
@@ -325,8 +355,9 @@ RobotIKPluginStatus PluginManager::destroy()
         m_destroy(m_instance);
     }
     m_instance = nullptr;
-    m_state =
-        m_library != nullptr ? PluginState::Loaded : PluginState::Unloaded;
+    m_state = m_library != nullptr || m_builtin != nullptr
+                  ? PluginState::Loaded
+                  : PluginState::Unloaded;
     m_error.clear();
     return ROBOTIK_PLUGIN_OK;
 }
@@ -343,6 +374,7 @@ RobotIKPluginStatus PluginManager::unload()
         dlclose(m_library);
         m_library = nullptr;
     }
+    m_builtin = nullptr;
     m_state = PluginState::Unloaded;
     return ROBOTIK_PLUGIN_OK;
 }

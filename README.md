@@ -330,7 +330,7 @@ make
 ./build/linux-gcc-debug/bin/RobotIK-PickAndPlaceRL --policy converged --envs 16 --threads 8 --episodes 32
 ```
 
-A web version, built with Emscripten by the CI: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The plugins in `plugins/` (worlds, scenarios, manifests) are inside the page. Pinocchio, MuJoCo and the OpenGL 4.5 view are not: the page opens the panels, and running a scenario says which library is missing. The same sources also build for [ExaequOS](https://www.exaequos.com).
+A web version, built with Emscripten by the CI: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The page runs the light plugins with MuJoCo, Pinocchio, Kairos and the 3D view (WebGL 2): HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain (13-neuron circuit only, the FlyWire connectome is too large). LineFollower, MicroDuck and HumanoidWalk need OpenCV or ONNX Runtime and stay on the desktop. The same sources also build for [ExaequOS](https://www.exaequos.com).
 
 Unit tests: `make tests -j"$(nproc --all)"`. Then follow the **HelloWorld** tutorial in [Your first plugin](doc/tutorials/04-your-first-plugin.md).
 

@@ -51,6 +51,7 @@ plugins/<Name>/  plugin.yaml, Makefile, src/, worlds/, scenarios/, experiments/,
 plugins/plugin.mk  shared plugin build recipe        data/packs/<id>/  asset packs (URDF)
 tests/       GoogleTest; tests/Plugin uses plugins/HelloWorld as fixture
 external/    third-party sources (do not edit)      build/  outputs (generated)
+external/web/  CMake superbuild of MuJoCo + Pinocchio (+Boost, urdfdom) for Emscripten
 ```
 
 Plugins: HelloWorld (tutorial + test fixture), PickAndPlace (reference: BT,
@@ -148,6 +149,9 @@ built.
 - Nothing C++ crosses the plugin border except through `PluginAPI.hpp`; the
   C table carries the Simulation and the ScenarioLogic as `void*`, so a
   plugin loads only in the RobotIK build that made it (build id checked).
+  Web page (`emmake make RobotIK-Simulator`): no dlopen; `WEB_PLUGINS` are
+  object files linked into the page, registered by `ROBOTIK_EXPORT_PLUGIN`
+  (`ROBOTIK_PLUGIN_LIBRARY`, `BuiltinPlugins.hpp`); no threads there.
 - The plugin does not own world entities; find them by id each time.
 - SI units, z up; typed handles (`Revolute`, `Prismatic`, `Seconds`, `Radians`).
 - Code must work headless (`SceneView*` null, no camera image; see

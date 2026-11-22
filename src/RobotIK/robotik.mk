@@ -10,26 +10,20 @@
 TARGETS += robotik-core
 robotik-core.TYPE := shared
 robotik-core.DESCRIPTION := Core library for RobotIK
-# The backends of the browser, or of the desktop.
-ifeq ($(TARGET_OS),Emscripten)
-    ROBOTIK_EXCLUDED := %/PinocchioBackend.cpp %/MujocoBackend.cpp %/KairosPlanner.cpp
-else
-    ROBOTIK_EXCLUDED := %/WebBackends.cpp %/WebPlanner.cpp
-endif
-robotik-core.SOURCES := $(patsubst $(HERE)%,%,$(filter-out $(ROBOTIK_EXCLUDED),$(call rwildcard,$(patsubst %/,%,$(HERE)),*.cpp)))
+robotik-core.SOURCES := $(patsubst $(HERE)%,%,$(call rwildcard,$(patsubst %/,%,$(HERE)),*.cpp))
 robotik-core.PUBLIC_INCLUDES := .. ../../include
-robotik-core.DEPENDS := Compages-World blackthorn pugixml $(if $(filter forge,$(TARGETS)),forge)
+robotik-core.DEPENDS := Compages-World blackthorn pugixml kairos $(if $(filter forge,$(TARGETS)),forge)
 robotik-core.CXXFLAGS := -Wno-switch-enum -Wno-old-style-cast -Wno-sign-conversion \
     -Wno-duplicated-branches -Wno-useless-cast -Wno-ctor-dtor-privacy -Wno-float-equal
 ifneq ($(TARGET_OS),Emscripten)
-    robotik-core.DEPENDS += kairos
     robotik-core.LIBS := -ldl
     ifeq ($(filter forge,$(TARGETS)),)
         robotik-core.PKG_CONFIG := eigen3
     endif
 else
     robotik-core.CXXFLAGS += -Wno-unknown-warning-option -Wno-unused-command-line-argument
-    robotik-core.DEPENDS += eigen
+    # MuJoCo and Pinocchio built for the page (external/web).
+    robotik-core.DEPENDS += eigen webphysics
 endif
 robotik-core.PROJECT_INFO := 1
 # The executables of BUILD/bin find the asset packs in ../share/robotik/packs,

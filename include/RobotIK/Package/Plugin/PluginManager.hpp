@@ -10,6 +10,8 @@
 ///
 /// The library stays loaded when the scenario instance is destroyed, so
 /// another scenario of the same plugin can be prepared without @c dlopen.
+/// A plugin compiled into the program (the web page, see
+/// BuiltinPlugins.hpp) is taken from its table instead of a @c .so file.
 ///
 /// @par Contract
 /// - Promises: each call returns a status; @c error() tells why the last one
@@ -25,6 +27,8 @@
 
 namespace robotik
 {
+
+struct BuiltinPlugin;
 
 // ****************************************************************************
 /// Life cycle of a plugin, in the order of the calls of @ref PluginManager.
@@ -106,7 +110,9 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Opens the library, checks the ABI and reads the vtable.
+    /// Opens the library, checks the ABI and reads the vtable. A plugin
+    /// compiled into the program under the file name of @p p_path is used
+    /// without opening a file.
     /// @param p_path Path of the @c .so file.
     /// @return The status; see @ref error on failure.
     // -------------------------------------------------------------------------
@@ -187,6 +193,8 @@ private:
     std::string m_id;
     /// @c dlopen handle, or null.
     void* m_library = nullptr;
+    /// Plugin compiled into the program, used instead of a library, or null.
+    BuiltinPlugin const* m_builtin = nullptr;
     /// Instance created by the plugin, or null.
     RobotIKPlugin* m_instance = nullptr;
     /// Functions of the instance.

@@ -41,7 +41,13 @@ After the build, the `build/linux-gcc-debug/` folder contains:
     ┗ 📂 packs/              ⬅️ the asset packs (a link to data/packs)
 ```
 
-The CI also publishes the simulator as a web page: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The versioned files of `plugins/` are in the page. Pinocchio, MuJoCo and the 3D view are not.
+The CI also publishes the simulator as a web page: [RobotIK-Simulator.html](https://lecrapouille.github.io/RobotIK/RobotIK-Simulator.html). The page runs the light plugins: HelloWorld, Painter, PickAndPlace, DualArm and FlyBrain. FlyBrain uses its 13-neuron circuit only; the FlyWire connectome is too large for the page. LineFollower (OpenCV), MicroDuck and HumanoidWalk (ONNX Runtime) are not in the page. To build the page yourself, install [Emscripten](https://emscripten.org) and type:
+
+```bash
+emmake make RobotIK-Simulator
+```
+
+The first build compiles MuJoCo, Pinocchio, Boost and Kairos for the browser (`external/web/`). It takes some minutes.
 
 Unit tests, for developers:
 

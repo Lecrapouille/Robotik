@@ -25,10 +25,12 @@ ifeq ($(TARGET_OS),Emscripten)
     else
         RobotIK-Simulator.LDFLAGS := -sUSE_GLFW=3 -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2 -sFULL_ES3 \
             --shell-file $(abspath $(HERE)shell.html) \
-            --preload-file $(abspath $(HERE)../../plugins)@/plugins \
+            $(foreach p,$(PLUGINS),--preload-file $(abspath $(HERE)../../plugins/$p)@/plugins/$p) \
+            --preload-file $(abspath $(HERE)../../data/packs)@/data/packs \
             --exclude-file '*/external/*' --exclude-file '*.csv' --exclude-file '*.stl' \
             --exclude-file '*.onnx' --exclude-file '*.so' --exclude-file '*.a' --exclude-file '*.o' \
-            -sFORCE_FILESYSTEM=1 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 -sGL_ENABLE_GET_PROC_ADDRESS
+            -sFORCE_FILESYSTEM=1 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 -sGL_ENABLE_GET_PROC_ADDRESS \
+            -sSTACK_SIZE=1048576
     endif
 else
     RobotIK-Simulator.PKG_CONFIG := glfw3

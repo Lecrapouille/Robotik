@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+# A release build: the debug page is several times larger and slower.
+env:
+  COMPILATION_MODE: release
+
 concurrency:
   group: pages
   cancel-in-progress: false
@@ -19,8 +23,8 @@ concurrency:
 jobs:
   # A page opened alone in a browser needs the plain Emscripten build. The
   # ExaequOS build only runs inside the ExaequOS desktop (see build_exaequos).
-  # Pinocchio, MuJoCo and the OpenGL 4.5 view are not in this page: it opens
-  # the plugins (worlds, scenarios, manifests) and the panels.
+  # The page holds MuJoCo, Pinocchio and Kairos (built by external/web) and
+  # the light plugins, linked into it (WEB_PLUGINS in the Makefile).
   build_html5:
     name: Build the web version
     runs-on: ubuntu-22.04
@@ -86,6 +90,7 @@ jobs:
             --user root \
             -e HOST_UID="$(id -u)" \
             -e HOST_GID="$(id -g)" \
+            -e COMPILATION_MODE \
             -v "$PWD:$PWD" \
             -v "$HOME/.cache/exaequos:/opt/emscripten-exa/cache" \
             -w "$PWD" \
@@ -101,4 +106,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RobotIK-Simulator-exaequos
-          path: build/exaequos-debug/bin/RobotIK-Simulator.*
+          path: build/exaequos-release/bin/RobotIK-Simulator.*

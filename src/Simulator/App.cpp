@@ -139,6 +139,11 @@ static void report(robotik::Simulation const& p_simulation)
     for (robotik::Check const& check : checks)
     {
         passed += check.verdict == robotik::Check::Verdict::Passed ? 1U : 0U;
+        if (check.verdict == robotik::Check::Verdict::Failed)
+        {
+            std::cout << "  failed " << check.text << ' ' << check.detail
+                      << '\n';
+        }
     }
     std::cout << "Run " << robotik::toString(p_simulation.outcome())
               << " seed=" << p_simulation.seed().value
