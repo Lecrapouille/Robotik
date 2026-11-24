@@ -56,6 +56,47 @@ TEST(ResourceManager, SharedLeasesCoexist)
     EXPECT_EQ(resources.users(camera), 1U);
 }
 
+TEST(ResourceManager, InvalidIdIsAConflict)
+{
+    ResourceManager resources;
+    auto const arm = resources.add("arm");
+    for (robotik::ResourceId const id :
+         { robotik::NO_RESOURCE, static_cast<robotik::ResourceId>(arm + 1U) })
+    {
+        std::vector<robotik::ResourceRequirement> const needs{ { id } };
+        robotik::Conflict const conflict = resources.conflict(needs);
+        EXPECT_TRUE(conflict);
+        EXPECT_TRUE(conflict.invalid);
+        EXPECT_FALSE(resources.acquire(needs, 1U));
+    }
+    EXPECT_EQ(resources.owner(arm), robotik::NO_OWNER);
+}
+
+TEST(ResourceManager, DuplicatedRequirementIsMerged)
+{
+    ResourceManager resources;
+    auto const camera = resources.add("camera");
+    auto const arm = resources.add("arm");
+    std::vector<robotik::ResourceRequirement> const needs{
+        { arm }, { camera, Access::Shared }, { camera }, { arm }
+    };
+    std::vector<robotik::ResourceRequirement> const merged =
+        robotik::normalize(needs);
+    ASSERT_EQ(merged.size(), 2U);
+    EXPECT_EQ(merged[0].id, camera);
+    EXPECT_EQ(merged[0].access, Access::Exclusive);
+    EXPECT_EQ(merged[1].id, arm);
+
+    robotik::ResourceLease lease = resources.acquire(needs, 1U);
+    ASSERT_TRUE(lease);
+    EXPECT_EQ(lease.resources().size(), 2U);
+    EXPECT_EQ(resources.owner(camera), 1U);
+    EXPECT_EQ(resources.users(camera), 0U);
+    lease.release();
+    EXPECT_EQ(resources.owner(camera), robotik::NO_OWNER);
+    EXPECT_EQ(resources.owner(arm), robotik::NO_OWNER);
+}
+
 TEST(ResourceManager, FailedResourceIsUnavailable)
 {
     ResourceManager resources;

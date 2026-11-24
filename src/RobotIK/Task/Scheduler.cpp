@@ -75,10 +75,19 @@ SkillId SkillScheduler::add(SkillDescription p_description,
         throw std::invalid_argument("Duplicated skill '" + p_description.name +
                                     "'");
     }
+    p_description.resources = normalize(p_description.resources);
     if (p_description.resources.size() > ResourceLease::CAPACITY)
     {
         throw std::invalid_argument("Skill '" + p_description.name +
                                     "' needs too many resources");
+    }
+    for (ResourceRequirement const& requirement : p_description.resources)
+    {
+        if (requirement.id >= m_resources.size())
+        {
+            throw std::invalid_argument("Skill '" + p_description.name +
+                                        "' needs an unknown resource");
+        }
     }
     m_skills.push_back(std::move(p_skill));
     m_descriptions.push_back(std::move(p_description));

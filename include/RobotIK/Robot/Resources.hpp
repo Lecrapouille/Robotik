@@ -18,7 +18,8 @@
 /// - Promises: a resource is held by one skill at most; a failure is seen by
 ///   every skill that needs the resource, at the next scheduling.
 /// - Expects: names resolved once to a @ref robotik::ResourceId.
-/// - Errors: an unknown name throws @c std::invalid_argument.
+/// - Errors: an unknown name throws @c std::invalid_argument; an unknown id
+///   in a requirement is a conflict (nothing is acquired).
 #pragma once
 
 #include <array>
@@ -89,13 +90,25 @@ struct Conflict
     OwnerId owner = NO_OWNER;
     /// True when the resource failed rather than being busy.
     bool unavailable = false;
+    /// True when the requirement names no known resource (for example
+    /// @ref NO_RESOURCE). Then @ref resource may be @ref NO_RESOURCE too.
+    bool invalid = false;
 
     /// @return True when there is a conflict.
     [[nodiscard]] explicit operator bool() const
     {
-        return resource != NO_RESOURCE;
+        return resource != NO_RESOURCE || invalid;
     }
 };
+
+// ----------------------------------------------------------------------------
+/// Sorts requirements by id and merges the duplicates: a resource asked
+/// twice is kept once, and exclusive access wins over shared access.
+/// @param p_requirements Requirements, maybe with duplicates.
+/// @return One requirement per resource, sorted by id.
+// ----------------------------------------------------------------------------
+[[nodiscard]] std::vector<ResourceRequirement>
+normalize(std::span<ResourceRequirement const> p_requirements);
 
 class ResourceManager;
 
@@ -286,9 +299,10 @@ public:
     conflict(std::span<ResourceRequirement const> p_requirements) const;
 
     // -------------------------------------------------------------------------
-    /// Reserves all the requirements at once, or nothing.
+    /// Reserves all the requirements at once, or nothing. Duplicates are
+    /// merged first (see @ref normalize).
     /// @param p_requirements Resources wanted (at most
-    ///   @ref ResourceLease::CAPACITY).
+    ///   @ref ResourceLease::CAPACITY different ones).
     /// @param p_owner Who holds the lease (a skill id).
     /// @return The lease; an empty lease on conflict.
     // -------------------------------------------------------------------------

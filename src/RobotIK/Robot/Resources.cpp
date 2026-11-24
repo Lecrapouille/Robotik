@@ -53,6 +53,32 @@ void ResourceLease::release()
     }
 }
 
+std::vector<ResourceRequirement>
+normalize(std::span<ResourceRequirement const> p_requirements)
+{
+    std::vector<ResourceRequirement> merged(p_requirements.begin(),
+                                            p_requirements.end());
+    std::ranges::sort(merged,
+                      [](ResourceRequirement const& p_a,
+                         ResourceRequirement const& p_b)
+                      { return p_a.id < p_b.id; });
+    std::size_t kept = 0U;
+    for (std::size_t i = 0U; i < merged.size(); ++i)
+    {
+        if (kept > 0U && merged[kept - 1U].id == merged[i].id)
+        {
+            if (merged[i].access == Access::Exclusive)
+            {
+                merged[kept - 1U].access = Access::Exclusive;
+            }
+            continue;
+        }
+        merged[kept++] = merged[i];
+    }
+    merged.resize(kept);
+    return merged;
+}
+
 ResourceId ResourceManager::add(std::string p_name)
 {
     if (ResourceId const existing = find(p_name); existing != NO_RESOURCE)
@@ -131,6 +157,10 @@ Conflict ResourceManager::conflict(
     for (ResourceRequirement const& requirement : p_requirements)
     {
         ResourceId const id = requirement.id;
+        if (id >= m_names.size())
+        {
+            return { id, NO_OWNER, true, true };
+        }
         if (!available(id))
         {
             return { id, NO_OWNER, true };
@@ -152,12 +182,14 @@ ResourceManager::acquire(std::span<ResourceRequirement const> p_requirements,
                          OwnerId p_owner)
 {
     ResourceLease lease;
-    if (p_requirements.size() > ResourceLease::CAPACITY ||
-        conflict(p_requirements))
+    std::vector<ResourceRequirement> const requirements =
+        normalize(p_requirements);
+    if (requirements.size() > ResourceLease::CAPACITY ||
+        conflict(requirements))
     {
         return lease;
     }
-    for (ResourceRequirement const& requirement : p_requirements)
+    for (ResourceRequirement const& requirement : requirements)
     {
         if (requirement.access == Access::Exclusive)
         {

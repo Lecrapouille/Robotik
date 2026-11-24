@@ -156,7 +156,9 @@ public:
     /// @param p_description Name, resources, priority and preconditions.
     /// @param p_skill The skill, now owned by the scheduler.
     /// @return The id of the skill.
-    /// @throws std::invalid_argument on a duplicated name.
+    /// @throws std::invalid_argument on a duplicated name, an unknown
+    ///   resource, or more than @ref ResourceLease::CAPACITY resources
+    ///   (duplicates are merged first, see @ref normalize).
     // -------------------------------------------------------------------------
     SkillId add(SkillDescription p_description, std::unique_ptr<Skill> p_skill);
 
@@ -166,7 +168,9 @@ public:
     /// @param p_description Name, resources, priority and preconditions.
     /// @param p_args Arguments of the constructor of @p T.
     /// @return The id of the skill.
-    /// @throws std::invalid_argument on a duplicated name.
+    /// @throws std::invalid_argument on a duplicated name, an unknown
+    ///   resource, or more than @ref ResourceLease::CAPACITY resources
+    ///   (duplicates are merged first, see @ref normalize).
     // -------------------------------------------------------------------------
     template <std::derived_from<Skill> T, typename... Args>
     SkillId add(SkillDescription p_description, Args&&... p_args)
