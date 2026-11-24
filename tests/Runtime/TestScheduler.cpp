@@ -7,11 +7,14 @@
 
 #include "main.hpp"
 
+#include <limits>
+
 #include "RobotIK/Robot/Actuators.hpp"
 #include "RobotIK/Robot/RobotSession.hpp"
 #include "RobotIK/Task/Perception/WorldModel.hpp"
 #include "RobotIK/Task/RobotContext.hpp"
 #include "RobotIK/Task/Scheduler.hpp"
+#include "RobotIK/Task/Skills/MotionSkills.hpp"
 #include "RobotIK/Task/Skills/SkillNodes.hpp"
 
 #include "Compages/World/World.hpp"
@@ -616,4 +619,19 @@ TEST_F(GuardedJoints, SafeStateIsWrittenWhoeverHoldsTheJoints)
     // The group fails: the robot puts it in its safe state at the next step.
     robot.resources().fail("body");
     EXPECT_NO_THROW(robot.step(robotik::Seconds(0.01)));
+}
+
+TEST_F(SchedulerTest, MoveJointWaitsForTheJointToSlowDown)
+{
+    std::string const joint = robot.joints().name(0);
+    robotik::MoveJointSkill settle(joint, 0.5);
+    robotik::MoveJointSkill pass(
+        joint, 0.5, 1e-2, std::numeric_limits<double>::infinity());
+    settle.reset();
+    pass.reset();
+    robot.measureJoint(0, 0.5, 1.0); // on the target, still at 1 rad/s
+    EXPECT_EQ(settle.tick(context, context.dt), Status::RUNNING);
+    EXPECT_EQ(pass.tick(context, context.dt), Status::SUCCESS);
+    robot.measureJoint(0, 0.5, 0.01);
+    EXPECT_EQ(settle.tick(context, context.dt), Status::SUCCESS);
 }

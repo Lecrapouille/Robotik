@@ -46,8 +46,12 @@ public:
     // -------------------------------------------------------------------------
     /// @param p_group @ref JointGroup name; empty for every joint.
     /// @param p_tolerance Largest error (rad or m) to call a joint reached.
+    /// @param p_speed Largest joint speed (rad/s or m/s) to call it reached
+    ///   (see @ref JointSet::reached).
     // -------------------------------------------------------------------------
-    explicit HomeSkill(std::string p_group = {}, double p_tolerance = 1e-2);
+    explicit HomeSkill(std::string p_group = {},
+                       double p_tolerance = 1e-2,
+                       double p_speed = SETTLED_SPEED);
 
     /// Forgets the joints, resolved again at the next tick.
     void reset() override;
@@ -62,6 +66,8 @@ private:
     std::string m_group;
     /// Largest error to call a joint reached.
     double m_tolerance;
+    /// Largest joint speed to call a joint reached.
+    double m_speed;
     /// Joints of the group.
     std::vector<JointId> m_joints;
     /// @ref m_joints is resolved.
@@ -86,10 +92,13 @@ public:
     /// @param p_joint Joint name.
     /// @param p_target Target position (rad or m).
     /// @param p_tolerance Largest error to call the target reached.
+    /// @param p_speed Largest joint speed (rad/s or m/s) to call it reached
+    ///   (see @ref JointSet::reached).
     // -------------------------------------------------------------------------
     MoveJointSkill(std::string p_joint,
                    double p_target,
-                   double p_tolerance = 1e-2);
+                   double p_tolerance = 1e-2,
+                   double p_speed = SETTLED_SPEED);
 
     // -------------------------------------------------------------------------
     /// Changes the target, used from the next run.
@@ -115,6 +124,8 @@ private:
     double m_target;
     /// Largest error to call the target reached.
     double m_tolerance;
+    /// Largest joint speed to call the target reached.
+    double m_speed;
     /// Joint resolved at reset.
     JointId m_joint = NO_JOINT;
 };
@@ -135,8 +146,12 @@ public:
     // -------------------------------------------------------------------------
     /// @param p_targets Joint name to target position (rad or m).
     /// @param p_tolerance Largest error to call a joint reached.
+    /// @param p_speed Largest joint speed (rad/s or m/s) to call it reached
+    ///   (see @ref JointSet::reached).
     // -------------------------------------------------------------------------
-    explicit MoveJointsSkill(JointPosture p_targets, double p_tolerance = 1e-2);
+    explicit MoveJointsSkill(JointPosture p_targets,
+                             double p_tolerance = 1e-2,
+                             double p_speed = SETTLED_SPEED);
 
     /// Finds the joints by name.
     void reset() override;
@@ -151,6 +166,8 @@ private:
     JointPosture m_targets;
     /// Largest error to call a joint reached.
     double m_tolerance;
+    /// Largest joint speed to call a joint reached.
+    double m_speed;
     /// Joints resolved at reset.
     std::vector<JointId> m_joints;
     /// Target of each joint of @ref m_joints.
@@ -181,10 +198,13 @@ public:
     /// @param p_frame Link to move; empty for the robot tool frame.
     /// @param p_target Pose of the frame in the robot base frame.
     /// @param p_tolerance Largest joint error to call the pose reached.
+    /// @param p_speed Largest joint speed (rad/s or m/s) to call it reached
+    ///   (see @ref JointSet::reached).
     // -------------------------------------------------------------------------
     explicit MoveTCPSkill(std::string p_frame = {},
                           Pose const& p_target = {},
-                          double p_tolerance = 1e-2);
+                          double p_tolerance = 1e-2,
+                          double p_speed = SETTLED_SPEED);
 
     // -------------------------------------------------------------------------
     /// Sets a new goal, planned at the next tick.
@@ -219,7 +239,7 @@ private:
     /// Largest joint error to call the pose reached.
     double m_tolerance;
     /// Largest joint speed to call the pose reached.
-    double m_speed = SETTLED_SPEED;
+    double m_speed;
     /// IK solution, indexed by @ref JointId.
     std::vector<double> m_solution;
     /// @ref m_solution matches @ref m_target.

@@ -26,7 +26,8 @@ public:
 `p_context.world_model.find("cube")` (`observed()`, `position`, `size`,
 `confidence`). Reuse inside skills: `MoveTCPSkill(frame = robot.tool(),
 target)` + `goal(pose)` (IK once per goal), `MoveJointSkill(joint, target)`,
-`MoveJointsSkill({{"joint1", 0.5}})`, `HomeSkill(group)`.
+`MoveJointsSkill({{"joint1", 0.5}})`, `HomeSkill(group)`; each takes
+`(…, tolerance = 1e-2, speed = SETTLED_SPEED)`: infinity = pass through.
 Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed,
 Radians); `moveTo`, `spin`, `push`, `reached(j, tol[, speed])` (also
 |velocity| <= SETTLED_SPEED), `hold()`. Path through waypoints:

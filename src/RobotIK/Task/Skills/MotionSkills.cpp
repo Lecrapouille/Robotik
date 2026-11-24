@@ -42,8 +42,8 @@ static void holdJoints(JointSet& p_joints, std::span<JointId const> p_ids)
     }
 }
 
-HomeSkill::HomeSkill(std::string p_group, double p_tolerance)
-    : m_group(std::move(p_group)), m_tolerance(p_tolerance)
+HomeSkill::HomeSkill(std::string p_group, double p_tolerance, double p_speed)
+    : m_group(std::move(p_group)), m_tolerance(p_tolerance), m_speed(p_speed)
 {
 }
 
@@ -68,7 +68,7 @@ Status HomeSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     for (JointId const id : m_joints)
     {
         joints.moveTo(id, joints.home(id));
-        reached = reached && joints.reached(id, m_tolerance);
+        reached = reached && joints.reached(id, m_tolerance, m_speed);
     }
     return reached ? Status::SUCCESS : Status::RUNNING;
 }
@@ -80,8 +80,12 @@ void HomeSkill::cancel(RobotContext& p_context)
 
 MoveJointSkill::MoveJointSkill(std::string p_joint,
                                double p_target,
-                               double p_tolerance)
-    : m_name(std::move(p_joint)), m_target(p_target), m_tolerance(p_tolerance)
+                               double p_tolerance,
+                               double p_speed)
+    : m_name(std::move(p_joint)),
+      m_target(p_target),
+      m_tolerance(p_tolerance),
+      m_speed(p_speed)
 {
 }
 
@@ -102,7 +106,7 @@ Status MoveJointSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
         }
     }
     joints.moveTo(m_joint, m_target);
-    return joints.reached(m_joint, m_tolerance) ? Status::SUCCESS
+    return joints.reached(m_joint, m_tolerance, m_speed) ? Status::SUCCESS
                                                 : Status::RUNNING;
 }
 
@@ -114,8 +118,12 @@ void MoveJointSkill::cancel(RobotContext& p_context)
     }
 }
 
-MoveJointsSkill::MoveJointsSkill(JointPosture p_targets, double p_tolerance)
-    : m_targets(std::move(p_targets)), m_tolerance(p_tolerance)
+MoveJointsSkill::MoveJointsSkill(JointPosture p_targets,
+                                 double p_tolerance,
+                                 double p_speed)
+    : m_targets(std::move(p_targets)),
+      m_tolerance(p_tolerance),
+      m_speed(p_speed)
 {
 }
 
@@ -149,7 +157,7 @@ Status MoveJointsSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     for (std::size_t i = 0; i < m_joints.size(); ++i)
     {
         joints.moveTo(m_joints[i], m_goals[i]);
-        reached = reached && joints.reached(m_joints[i], m_tolerance);
+        reached = reached && joints.reached(m_joints[i], m_tolerance, m_speed);
     }
     return reached ? Status::SUCCESS : Status::RUNNING;
 }
@@ -161,8 +169,12 @@ void MoveJointsSkill::cancel(RobotContext& p_context)
 
 MoveTCPSkill::MoveTCPSkill(std::string p_frame,
                            Pose const& p_target,
-                           double p_tolerance)
-    : m_frame(std::move(p_frame)), m_target(p_target), m_tolerance(p_tolerance)
+                           double p_tolerance,
+                           double p_speed)
+    : m_frame(std::move(p_frame)),
+      m_target(p_target),
+      m_tolerance(p_tolerance),
+      m_speed(p_speed)
 {
 }
 
