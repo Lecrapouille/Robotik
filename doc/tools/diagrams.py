@@ -182,27 +182,36 @@ s.text(468, 252, "shared: several skills together", "note")
 s.save(f"{C}/skill-resources.svg")
 
 # Concept 04: states of a requested skill
-s = Svg(900, 470, "The states of a skill",
-        "request() makes the skill Waiting. It stays Waiting while a resource is busy or a precondition is false. When the resources are free and the preconditions true, it is Running and ticked at each step. SUCCESS gives Succeeded, FAILURE gives Failed, a cancel, a preemption or a lost resource gives Cancelled or Failed.",
+s = Svg(900, 560, "The states of a skill",
+        "request() gives a ticket and makes the run Waiting; a second request of the same skill waits in a queue. The run stays Waiting while a resource is busy or a precondition is false. When the resources are free and the preconditions true, it is Running and ticked at each step. SUCCESS gives Succeeded, FAILURE gives Failed. A cancel or a preemption makes it Stopping: it keeps its resources until the skill is safe, then it is Cancelled, or Waiting again when it was preempted and may wait. A lost resource ends it Failed at once.",
         "The states of a requested skill")
 s.box(370, 64, 160, 50, "request()", [], "file", center=True)
+s.text(545, 86, "gives a ticket (RunId); a second request", "note")
+s.text(545, 106, "of the same skill waits in a queue", "note")
 s.arrow([(450, 114), (450, 140)])
 s.box(370, 145, 160, 56, "Waiting", [], "box", center=True)
-s.text(545, 170, "a resource is busy, or a precondition", "note")
-s.text(545, 190, "is false (wait = true)", "note")
+s.text(355, 170, "a resource is busy, or a precondition", "note", anchor="end")
+s.text(355, 190, "is false (wait = true)", "note", anchor="end")
 s.arrow([(450, 201), (450, 240)])
 s.text(462, 226, "resources free and preconditions true", "small")
 s.box(370, 245, 160, 56, "Running", [], "box", center=True)
 s.text(545, 278, "tick() at each step", "note")
 s.path("M450 301V325M170 325H730M170 325V355M450 325V355M730 325V355", "line")
-for x, cond, end, k in [(170, "SUCCESS", "Succeeded", "ok"), (450, "FAILURE", "Failed", "fail"), (730, "cancel or preempted", "Cancelled / Failed", "fail")]:
-    s.text(x + 10, 372, cond, "small") if x < 700 else s.text(x - 10, 372, cond, "small", anchor="end")
-s.text(730, 318, "", "small")
+s.text(180, 372, "SUCCESS", "small")
+s.text(460, 372, "FAILURE", "small")
+s.text(450, 452, "or a lost resource", "note", anchor="middle")
+s.text(720, 372, "cancel or preempted", "small", anchor="end")
 s.arrow([(170, 355), (170, 380)]); s.arrow([(450, 355), (450, 380)]); s.arrow([(730, 355), (730, 380)])
 s.box(85, 385, 170, 50, "Succeeded", [], "ok", center=True)
 s.box(365, 385, 170, 50, "Failed", [], "fail", center=True)
-s.box(630, 385, 200, 50, "Cancelled / Failed", [], "fail", center=True)
-s.text(740, 456, "or resource lost", "note", anchor="middle")
+s.box(645, 385, 170, 50, "Stopping", [], "box", center=True)
+s.text(730, 452, "resources kept until stopping() is safe", "note", anchor="middle")
+s.arrow([(730, 460), (730, 485)])
+s.box(645, 490, 170, 50, "Cancelled", [], "fail", center=True)
+s.path("M815 410H860V173H535", "line")
+s.arrow([(540, 173), (532, 173)])
+s.text(852, 300, "preempted,", "note", anchor="end")
+s.text(852, 318, "wait = true", "note", anchor="end")
 s.save(f"{C}/skill-states.svg")
 
 # Concept 06: RobotIK and its libraries

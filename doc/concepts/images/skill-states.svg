@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-labelledby="title desc">
 <!-- SPDX-License-Identifier: GPL-3.0-or-later OR LicenseRef-RobotIK-Commercial -->
 <title id="title">The states of a skill</title>
-<desc id="desc">request() makes the skill Waiting. It stays Waiting while a resource is busy or a precondition is false. When the resources are free and the preconditions true, it is Running and ticked at each step. SUCCESS gives Succeeded, FAILURE gives Failed, a cancel, a preemption or a lost resource gives Cancelled or Failed.</desc>
+<desc id="desc">request() gives a ticket and makes the run Waiting; a second request of the same skill waits in a queue. The run stays Waiting while a resource is busy or a precondition is false. When the resources are free and the preconditions true, it is Running and ticked at each step. SUCCESS gives Succeeded, FAILURE gives Failed. A cancel or a preemption makes it Stopping: it keeps its resources until the skill is safe, then it is Cancelled, or Waiting again when it was preempted and may wait. A lost resource ends it Failed at once.</desc>
 <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10Z" fill="#52657a"/></marker></defs>
 <style>
 text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
@@ -20,15 +20,17 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 .arrow {fill: none; stroke: #52657a; stroke-width: 2; marker-end: url(#arrow);}
 .darrow {fill: none; stroke: #52657a; stroke-width: 2; stroke-dasharray: 6 5; marker-end: url(#arrow);}
 </style>
-<rect width="900" height="470" rx="16" fill="#f5f8fc"/>
+<rect width="900" height="560" rx="16" fill="#f5f8fc"/>
 <text x="32" y="40" class="heading">The states of a requested skill</text>
 <rect x="370" y="64" width="160" height="50" rx="10" class="file"/>
 <text x="450.0" y="95.0" text-anchor="middle">request()</text>
+<text x="545" y="86" class="note">gives a ticket (RunId); a second request</text>
+<text x="545" y="106" class="note">of the same skill waits in a queue</text>
 <path d="M450 114 L450 140" class="arrow"/>
 <rect x="370" y="145" width="160" height="56" rx="10" class="box"/>
 <text x="450.0" y="179.0" text-anchor="middle">Waiting</text>
-<text x="545" y="170" class="note">a resource is busy, or a precondition</text>
-<text x="545" y="190" class="note">is false (wait = true)</text>
+<text x="355" y="170" class="note" text-anchor="end">a resource is busy, or a precondition</text>
+<text x="355" y="190" class="note" text-anchor="end">is false (wait = true)</text>
 <path d="M450 201 L450 240" class="arrow"/>
 <text x="462" y="226" class="small">resources free and preconditions true</text>
 <rect x="370" y="245" width="160" height="56" rx="10" class="box"/>
@@ -37,8 +39,8 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <path d="M450 301V325M170 325H730M170 325V355M450 325V355M730 325V355" class="line"/>
 <text x="180" y="372" class="small">SUCCESS</text>
 <text x="460" y="372" class="small">FAILURE</text>
+<text x="450" y="452" class="note" text-anchor="middle">or a lost resource</text>
 <text x="720" y="372" class="small" text-anchor="end">cancel or preempted</text>
-<text x="730" y="318" class="small"></text>
 <path d="M170 355 L170 380" class="arrow"/>
 <path d="M450 355 L450 380" class="arrow"/>
 <path d="M730 355 L730 380" class="arrow"/>
@@ -46,7 +48,14 @@ text {font-family: sans-serif; font-size: 18px; fill: #20334b;}
 <text x="170.0" y="416.0" text-anchor="middle">Succeeded</text>
 <rect x="365" y="385" width="170" height="50" rx="10" class="fail"/>
 <text x="450.0" y="416.0" text-anchor="middle">Failed</text>
-<rect x="630" y="385" width="200" height="50" rx="10" class="fail"/>
-<text x="730.0" y="416.0" text-anchor="middle">Cancelled / Failed</text>
-<text x="740" y="456" class="note" text-anchor="middle">or resource lost</text>
+<rect x="645" y="385" width="170" height="50" rx="10" class="box"/>
+<text x="730.0" y="416.0" text-anchor="middle">Stopping</text>
+<text x="730" y="452" class="note" text-anchor="middle">resources kept until stopping() is safe</text>
+<path d="M730 460 L730 485" class="arrow"/>
+<rect x="645" y="490" width="170" height="50" rx="10" class="fail"/>
+<text x="730.0" y="521.0" text-anchor="middle">Cancelled</text>
+<path d="M815 410H860V173H535" class="line"/>
+<path d="M540 173 L532 173" class="arrow"/>
+<text x="852" y="300" class="note" text-anchor="end">preempted,</text>
+<text x="852" y="318" class="note" text-anchor="end">wait = true</text>
 </svg>

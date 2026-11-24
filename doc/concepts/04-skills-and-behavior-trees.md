@@ -124,26 +124,29 @@ In the simulator, the **Timeline** panel (Mission workspace, under the scene, fu
 
 At each update it:
 
-1. stops the runs that lost a resource (fault);
+1. stops the runs that lost a resource (fault), and the cancelled runs;
 2. admits waiting requests by priority, if resources and preconditions allow;
 3. preempts lower-priority skills when needed;
 4. ticks the running skills.
 
-![A requested skill is Waiting, then Running, then Succeeded, Failed or Cancelled.](images/skill-states.svg)
+![A requested skill is Waiting, then Running, then Succeeded, Failed, or Stopping then Cancelled; a preempted skill that may wait goes back to Waiting.](images/skill-states.svg)
 
 | `SkillState` | Meaning |
 |--------------|---------|
 | `Idle` | Never requested since the last reset |
-| `Waiting` | Requested, not started (busy resource or false precondition) |
+| `Waiting` | Requested, not started (busy resource, false precondition, or another run of the same skill) |
 | `Running` | Holds its resources, ticked each update |
-| `Succeeded` / `Failed` / `Cancelled` | End of the last run |
+| `Stopping` | Cancelled or preempted, keeps its resources until `Skill::stopping` says it is safe |
+| `Succeeded` / `Failed` / `Cancelled` | End of the run |
 
-`SkillReason` says why: `Busy`, `Unavailable`, `Precondition`, `ResourceLost`, `Preempted`, `Cancelled`, `Failed`. `--trace` prints them:
+`SkillReason` says why: `Busy`, `Queued`, `Preempting`, `Unavailable`, `Precondition`, `ResourceLost`, `Preempted`, `Cancelled`, `Failed`. `--trace` prints them:
 
 ```text
   0.01 s  Wave  FAILED (resource lost: arm)  (0.99 s)
   1.02 s  Wave  FAILED (unavailable: arm)  (0 s)
 ```
+
+Each `request` returns a ticket (`RunId`): read the state of your run and cancel it with that ticket, so you never cancel the run of another caller. A preempted skill with `wait = true` waits for its resources again and starts again from `reset()`. A skill that commands an actuator held by another skill throws `std::logic_error`. The reasons for these rules, and the stopping phase, are in [Resources and arbitration](06-architecture.md#-resources-and-arbitration).
 
 ### 📅 Use the scheduler without a tree
 
@@ -152,8 +155,8 @@ The tree is only one client of the scheduler. A test, a GUI button or an RL poli
 ```cpp
 robotik::SkillScheduler& skills = simulation.skills();
 robotik::SkillId const home = skills.find("Home");
-skills.request(home);
-while (skills.state(home) != robotik::SkillState::Succeeded)
+robotik::RunId const run = skills.request(home);
+while (skills.state(run) != robotik::SkillState::Succeeded)
 {
     simulation.step(Seconds(0.01));          // the simulation updates the scheduler
 }
@@ -182,13 +185,15 @@ Each tick, the tree is evaluated from the root. Each node returns `RUNNING`, `SU
 
 A tick of this node **requests** the skill `Wave` and returns:
 
-| Skill state | Node returns |
-|-------------|--------------|
-| `Waiting` or `Running` | `RUNNING` |
+| State of its run | Node returns |
+|------------------|--------------|
+| `Waiting`, `Running` or `Stopping` (a preempted run that waits included) | `RUNNING` |
 | `Succeeded` | `SUCCESS` |
-| `Failed`, `Cancelled`, preempted | `FAILURE` |
+| `Failed` or `Cancelled` | `FAILURE` |
 
-When the tree leaves the node while it is running (for example a parent gives up), the run is cancelled.
+Each node has its own ticket: two nodes of the same skill make two runs, one after the other. When the tree leaves the node while it is running (for example a parent gives up), only the run of this node is cancelled.
+
+When the run ends, the node writes `Wave.state` and `Wave.reason` on the blackboard of the tree (`FAILED` and `resource lost`, for example). A condition of the tree can read them to react to a fault and not to a failure. The list of reasons is in [What the tree sees](06-architecture.md#-what-the-tree-sees).
 
 ### 🌿 The main nodes
 

@@ -16,8 +16,15 @@
 ///
 /// @par Contract
 /// - Promises: a resource is held by one running skill at most; a skill whose
-///   resource fails stops with @c ResourceLost. @c changed is emitted at each
-///   change of state (waiting, running, finished).
+///   resource fails stops at once with @c ResourceLost. Each request gets its
+///   own ticket (@ref robotik::RunId); a skill has one run at a time, the
+///   other requests wait in a queue. A preemption stops all the holders it
+///   needs or none. A cancelled or preempted run keeps its resources while
+///   it is @c Stopping (up to @c stop_timeout); @c reset, @c cancelAll() and
+///   an urgent skill do not wait. A preempted run that may wait starts again
+///   later. While a skill is called, it is the writer of the resources
+///   (@ref robotik::WriterScope). @c changed is emitted at each change of
+///   state (waiting, running, stopping, finished).
 /// - Expects: one @c update per step; skill names are unique.
 /// - Errors: a duplicated name throws @c std::invalid_argument; a skill driving
 ///   an unknown robot throws @c std::runtime_error.

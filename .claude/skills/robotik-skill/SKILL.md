@@ -16,6 +16,7 @@ public:
     void reset() override;                                                    // each new run
     robotik::Status tick(robotik::RobotContext& p_context, Seconds p_dt) override; // RUNNING/SUCCESS/FAILURE
     void cancel(robotik::RobotContext& p_context) override;                   // safe stop: joints().hold()
+    robotik::Status stopping(robotik::RobotContext&, Seconds) override;       // optional: RUNNING keeps the resources until safe
     std::string why() const override;   // optional: why the last FAILURE ("cube not seen within 2 s")
 };
 ```
@@ -27,7 +28,15 @@ public:
 target)` + `goal(pose)` (IK once per goal), `MoveJointSkill(joint, target)`,
 `MoveJointsSkill({{"joint1", 0.5}})`, `HomeSkill(group)`.
 Joints: `joints.find("j")` (id, doubles) or `joints.requireRevolute("j")` (typed,
-Radians); `moveTo`, `spin`, `push`, `reached(j, tol)`, `hold()`.
+Radians); `moveTo`, `spin`, `push`, `reached(j, tol[, speed])` (also
+|velocity| <= SETTLED_SPEED), `hold()`. Path through waypoints:
+`MoveTCPSkill::speed(inf)` on the inner points (Painter `follow`).
+Writes are checked: commanding a joint/pump whose resource another skill
+holds throws `std::logic_error` (WriterScope set by the scheduler). A free
+resource is writable; a ScenarioLogic that must keep joints takes a lease
+(`resources.acquire`, owner ANONYMOUS).
+Resumable: a preempted skill (wait = true) starts again from `reset()`:
+reset clears all run state, tick reads joints/beliefs now.
 Example: `plugins/HelloWorld/src/WaveSkill.cpp`; bigger: `plugins/Painter/src/PainterSkills.cpp`.
 Vacuum cup: `holding()` is measured (the vacuum), not what is held. The
 grasp skill writes what it went to take with `cup->label("red_cube")` once
@@ -45,6 +54,8 @@ d.resources = { p_sim.robot().resources().require("arm"),
 d.priority = 100;          // higher admitted first, may preempt (Stop = highest)
 d.wait = true;             // wait when busy/precondition false (else fail at once)
 d.cancellable = true;      // false: cannot be preempted
+d.urgent = false;          // true: victims end at once, no stopping phase (built-in Stop)
+d.stop_timeout = Seconds(1.0); // longest stopping phase, then forced
 d.preconditions = { { "gripper empty", [](robotik::RobotContext const& c) { return ...; } } };
 p_sim.skills().add<WaveSkill>(std::move(d) /*, ctor args */);
 ```
@@ -57,10 +68,15 @@ include `RobotIK/Task/Skills/SkillNodes.hpp`, the only header that brings
 BlackThorn (others name `bt::` types via `TreeTypes.hpp`; `RoboticCell::status()`
 is a `robotik::Status`, `toStatus(bt::Status)` converts).
 
-States: Idle, Waiting, Running, Succeeded, Failed, Cancelled. Reasons: Busy,
-Unavailable (fault before start), Precondition, ResourceLost (fault while
-running), Preempted, Cancelled, Failed. `--trace` prints them.
-Direct use: `skills.request(skills.find("Home"))`, `state(id)`, `cancel(id)`.
+States: Idle, Waiting, Running, Stopping, Succeeded, Failed, Cancelled.
+Reasons: Busy, Queued (another run of the same skill), Preempting (waits for
+victims to stop), Unavailable (fault before start), Precondition,
+ResourceLost (fault while running, ends at once), Preempted (wait = true:
+back to Waiting; else Cancelled), Cancelled, Failed. `--trace` prints them.
+Direct use: `RunId run = skills.request(skills.find("Home"))`, `state(run)`,
+`cancel(run)` (own run only); `cancelAll(id)` every run of a skill;
+`cancelAll()` everything at once. One run per skill, others queued.
+Preemption is all or nothing (every holder of every conflict, or none).
 
 ## Behavior tree (BlackThorn YAML)
 
@@ -84,8 +100,11 @@ Nodes: `Sequence`, `Selector` (not "Fallback"), `Parallel`
 (`success_threshold`, `failure_threshold`), `Inverter`, `ForceSuccess`,
 `ForceFailure`, `UntilSuccess`/`UntilFailure` (`attempts`), `Repeater`
 (`times`), `Action` (`name`). Composites: `children:`; decorators: `child:`
-(one-element list). Action maps Waiting/Running→RUNNING,
-Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels it.
+(one-element list). Action maps Waiting/Running/Stopping→RUNNING,
+Succeeded→SUCCESS, Failed/Cancelled→FAILURE; leaving a running node cancels
+its own ticket only. At the end of a run the node writes `<skill>.state`
+(`FAILED`) and `<skill>.reason` (`resource lost`, `cancelled`...) on the
+blackboard: a condition can tell a fault from a failure.
 
 `Timeout`, `Delay`, `Wait`, `Cooldown` count simulated time: `RoboticCell`
 and `PlanExecutor` give the tree their clock (`bt::Tree::clock`), so they

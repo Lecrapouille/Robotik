@@ -63,7 +63,7 @@ The node of Painter is a BlackThorn leaf. At its first tick, it reads `color` on
 ```cpp
 bt::Status onTick()
 {
-    if (!m_active)
+    if (m_run == robotik::NO_RUN)
     {
         auto const color = blackboard()
                                ? blackboard()->get<std::string>("color")
@@ -73,29 +73,29 @@ bt::Status onTick()
             return bt::Status::FAILURE;
         }
         dynamic_cast<DipSkill&>(m_scheduler.skill(m_id)).use(*color);
-        m_scheduler.request(m_id);
-        m_active = true;
+        m_run = m_scheduler.request(m_id);
         return bt::Status::RUNNING;
     }
-    switch (m_scheduler.state(m_id))
+    switch (m_scheduler.state(m_run))
     {
         case robotik::SkillState::Idle:
         case robotik::SkillState::Waiting:
         case robotik::SkillState::Running:
+        case robotik::SkillState::Stopping:
             return bt::Status::RUNNING;
         case robotik::SkillState::Succeeded:
-            m_active = false;
+            m_run = robotik::NO_RUN;
             return bt::Status::SUCCESS;
         case robotik::SkillState::Failed:
         case robotik::SkillState::Cancelled:
-            m_active = false;
+            m_run = robotik::NO_RUN;
             return bt::Status::FAILURE;
     }
     return bt::Status::FAILURE;
 }
 ```
 
-The node does not move the robot: it requests the skill, and the scheduler runs it with its resources, as for an `Action`. When the tree stops the node (`on_reset`), the node cancels its skill with `m_scheduler.cancel(m_id)`.
+The node does not move the robot: it requests the skill, and the scheduler runs it with its resources, as for an `Action`. The node keeps the ticket (`RunId`) that `request` returns, and reads the state of its own run with it. When the tree stops the node (`on_reset`), the node cancels its own run with `m_scheduler.cancel(m_run)`: another node of the same skill keeps its run.
 
 ## 📝 3. Register the node
 

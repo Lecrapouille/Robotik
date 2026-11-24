@@ -25,14 +25,17 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **IK (inverse kinematics)**: finding the joint angles that put the tool at a given pose.
 - **Joint**: an axis between two links. *Revolute* turns (radians); *prismatic* slides (metres).
 - **Kinematics**: the geometry of the robot: where each link is for given joint angles. RobotIK uses Pinocchio for it.
+- **Capture stamp**: the time a sensor measured, kept by its reading even when the reading arrives later (latency). A belief takes the stamp of the reading it comes from.
 - **Latency**: the delay between the moment a sensor measures and the moment the reading is available.
 - **Link**: a rigid part of the robot (an arm segment, the wrist).
 - **MuJoCo**: the physics engine: gravity, contacts, motor forces.
 - **Noise model**: how a sensor spoils the true value: bias, random noise, rounding, limits.
 - **Pinocchio**: the library that computes kinematics.
 - **Pose**: a position plus a rotation.
+- **Lease**: the right to use a set of resources, given all at once or not at all. It gives them back when it is released. See [Resources and arbitration](../concepts/06-architecture.md#-resources-and-arbitration).
 - **Resource**: something a skill reserves to run (the arm, the gripper, the camera). Two skills cannot hold the same resource. A failure makes a resource unavailable.
 - **Sensor**: a device that measures: camera, IMU (motion), lidar (distance), force-torque.
+- **Robot clock**: the time of a robot, given by its backend after each step: the simulated time, or the stamp of the last reading on hardware.
 - **SI units**: metres, seconds, radians, newtons. The types carry them (`Seconds`, `Radians`...), so a length cannot be given for an angle.
 - **TCP (tool centre point)**: the working point of the tool (the tip of the brush, the centre of the suction cup).
 - **URDF**: an XML file that describes a robot: its links, joints and shapes.
@@ -65,8 +68,13 @@ A layer only uses the layers under it; `make check-layers` checks it.
 - **Perception fidelity**: where beliefs come from. `truth`: the simulator writes the true pose (a mock, as when a car simulator gives the lane marks instead of an image). `noisy_truth`: the true pose with noise, delay and misses. `sensed`: real detectors on the images. The run report says which one was used.
 - **Localization**: where the base pose a skill reads comes from. `truth`: the true base, copied (a mock). `plugin`: an algorithm of the plugin estimates it. Sensors and truth queries always use the true base. See [Localization](scenario-file.md#-localization).
 - **Belief error**: the gap between a belief and the truth, measured by the conditions `believed`, `belief_error` and `base_error`. See [Check what the robot believes](scenario-file.md#-check-what-the-robot-believes).
+- **Preemption**: a request of higher priority takes the resources of a running skill. The scheduler preempts all the holders of a request or none. A preempted skill that may wait starts again later.
+- **Run (of a skill)**: one execution of a skill, from its request to its end. Its ticket is a `RunId`.
+- **RunId (ticket)**: what `request` returns: the skill and the number of the request. A caller reads and cancels its own run with it.
 - **Scheduler**: decides which requested skills can run now (resources, priorities) and runs them.
 - **Skill**: one behaviour of the robot (move to a pose, grasp, dip a brush). A skill reads only its `RobotContext`: the robot and the beliefs.
+- **Stopping**: the state of a cancelled or preempted run that keeps its resources until the skill says the robot is safe.
+- **Writer**: who sends the commands now: the skill that the scheduler ticks, or a command outside the skills. An actuator refuses a command from a writer that does not hold its resource.
 
 ## 🧠 Planning
 
