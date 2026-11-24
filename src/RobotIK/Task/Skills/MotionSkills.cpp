@@ -197,7 +197,7 @@ Status MoveTCPSkill::tick(RobotContext& p_context, Seconds /*p_dt*/)
     for (JointId id = 0; id < joints.size(); ++id)
     {
         joints.moveTo(id, m_solution[id]);
-        reached = reached && joints.reached(id, m_tolerance);
+        reached = reached && joints.reached(id, m_tolerance, m_speed);
     }
     return reached ? Status::SUCCESS : Status::RUNNING;
 }

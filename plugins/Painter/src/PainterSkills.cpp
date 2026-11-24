@@ -12,6 +12,7 @@
 #include "RobotIK/Task/Scheduler.hpp"
 
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <numbers>
 
@@ -29,6 +30,10 @@ static robotik::Status follow(std::vector<robotik::Pose> const& p_path,
     {
         return robotik::Status::SUCCESS;
     }
+    // A brush passes through the points of a stroke; it stops at the last.
+    p_move.speed(p_index + 1U < p_path.size()
+                     ? std::numeric_limits<double>::infinity()
+                     : robotik::SETTLED_SPEED);
     robotik::Status const status = p_move.tick(p_context, p_dt);
     if (status == robotik::Status::RUNNING)
     {

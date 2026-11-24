@@ -192,6 +192,17 @@ public:
     // -------------------------------------------------------------------------
     void goal(Pose const& p_target);
 
+    // -------------------------------------------------------------------------
+    /// Sets the largest joint speed to call the pose reached (see
+    /// @ref JointSet::reached). Infinity passes through a waypoint of a
+    /// path without stopping; the last waypoint keeps @ref SETTLED_SPEED.
+    /// @param p_speed Speed in rad/s or m/s.
+    // -------------------------------------------------------------------------
+    void speed(double p_speed)
+    {
+        m_speed = p_speed;
+    }
+
     /// Asks for a new IK solution.
     void reset() override;
     /// Solves IK once, then drives the joints; fails if IK does not converge.
@@ -207,6 +218,8 @@ private:
     Pose m_target;
     /// Largest joint error to call the pose reached.
     double m_tolerance;
+    /// Largest joint speed to call the pose reached.
+    double m_speed = SETTLED_SPEED;
     /// IK solution, indexed by @ref JointId.
     std::vector<double> m_solution;
     /// @ref m_solution matches @ref m_target.
