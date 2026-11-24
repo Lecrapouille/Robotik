@@ -70,7 +70,9 @@ struct PlanningResult
     {
         Solved,      ///< @ref steps reach the goal (empty: it already holds).
         Unsolvable,  ///< Proved: no plan exists from this state.
-        NoPlanFound, ///< Search ended without a plan (time, memory).
+        NoPlanFound, ///< Search ended without a plan (memory, grounding).
+        TimedOut,    ///< The wall clock timeout ended the search: the answer
+                     ///< depends on the machine (see PlanningOptions::timeout).
         Invalid,     ///< Domain or problem rejected: see @ref diagnostics.
     };
 

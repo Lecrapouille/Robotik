@@ -220,7 +220,9 @@ public:
     // -------------------------------------------------------------------------
     /// Sets the clock of the trees built from the plans (the simulated
     /// time): their timed nodes then follow it.
-    /// @param p_clock Clock function; empty: the wall clock.
+    /// @param p_clock Clock function; empty: the time of the context given
+    ///   to the last @ref tick. The wall clock is never used: a plan run is
+    ///   reproducible.
     // -------------------------------------------------------------------------
     void clock(TreeClock p_clock)
     {
@@ -488,8 +490,12 @@ private:
     std::shared_ptr<bt::Blackboard> m_blackboard;
     /// Tree of the current plan.
     std::unique_ptr<bt::Tree> m_tree;
-    /// Clock given to the trees.
+    /// Clock given to the trees; empty: @ref m_now.
     TreeClock m_clock;
+    /// Time of the context of the last tick.
+    Seconds m_now{};
+    /// @return @ref m_clock, or a clock reading @ref m_now.
+    [[nodiscard]] TreeClock treeClock() const;
     /// PA-BT: the tree grown from the goal.
     BackchainTree m_backchain;
     /// PA-BT: conditions that failed at the last tick, in the order ticked.

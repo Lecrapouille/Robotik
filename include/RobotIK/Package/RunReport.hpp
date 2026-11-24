@@ -44,7 +44,7 @@ struct PlanSummary
     double time = 0.0;
     /// "start", or what went wrong with the previous plan.
     std::string cause;
-    /// Solved, Unsolvable, NoPlanFound or Invalid.
+    /// Solved, Unsolvable, NoPlanFound, TimedOut or Invalid.
     std::string result;
     /// Ground actions, e.g. "(pick red_cube table)".
     std::vector<std::string> steps;

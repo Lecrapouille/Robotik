@@ -95,6 +95,8 @@ public:
                 result.status = PlanningResult::Status::Unsolvable;
                 break;
             case kairos::Status::Timeout:
+                result.status = PlanningResult::Status::TimedOut;
+                break;
             case kairos::Status::Cancelled:
             case kairos::Status::OutOfMemory:
             case kairos::Status::GroundingTooLarge:
@@ -141,6 +143,8 @@ char const* toString(PlanningResult::Status p_status)
             return "unsolvable";
         case PlanningResult::Status::NoPlanFound:
             return "no plan found";
+        case PlanningResult::Status::TimedOut:
+            return "timed out";
         case PlanningResult::Status::Invalid:
             return "invalid";
     }

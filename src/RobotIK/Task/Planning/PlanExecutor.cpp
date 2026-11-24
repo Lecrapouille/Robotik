@@ -391,9 +391,26 @@ void PlanExecutor::replan(std::string p_cause)
 }
 
 // ----------------------------------------------------------------------------
+TreeClock PlanExecutor::treeClock() const
+{
+    if (m_clock)
+    {
+        return m_clock;
+    }
+    return [this]
+    {
+        std::chrono::duration<double> const elapsed(m_now.value());
+        return std::chrono::steady_clock::time_point(
+            std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+                elapsed));
+    };
+}
+
+// ----------------------------------------------------------------------------
 Status PlanExecutor::tick(RobotContext const& p_context)
 {
     m_context = &p_context;
+    m_now = p_context.time;
     if (m_state == PlanState::Waiting && p_context.time >= m_resume)
     {
         m_state = PlanState::Planning;
@@ -520,6 +537,13 @@ void PlanExecutor::plan(RobotContext const& p_context, std::string p_cause)
             end != 0U && !result.diagnostics.empty())
         {
             why += " (" + result.diagnostics.substr(0U, end) + ")";
+        }
+        if (result.status == PlanningResult::Status::TimedOut)
+        {
+            // The only wall clock of a run: say it, a CI must not trust it.
+            why += " after " +
+                   std::to_string(static_cast<long>(result.milliseconds)) +
+                   " ms; the result depends on the machine";
         }
         // A wrong problem will not get better by waiting.
         if (result.status == PlanningResult::Status::Invalid)
@@ -698,7 +722,7 @@ void PlanExecutor::compile()
         return;
     }
     m_tree = std::move(built.getValue());
-    m_tree->clock(m_clock);
+    m_tree->clock(treeClock());
     m_state = PlanState::Executing;
 }
 
@@ -1484,7 +1508,7 @@ void PlanExecutor::compileBackchain(RobotContext const& p_context,
         return;
     }
     m_tree = std::move(built.getValue());
-    m_tree->clock(m_clock);
+    m_tree->clock(treeClock());
     m_acting.assign(m_plan.size(), nullptr);
     for (bt::Node const* node : m_tree->nodes())
     {
