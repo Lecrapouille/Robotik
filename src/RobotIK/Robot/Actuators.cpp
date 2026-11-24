@@ -126,11 +126,12 @@ void JointGroup::hold()
     }
 }
 
-bool JointGroup::reached(double p_tolerance) const
+bool JointGroup::reached(double p_tolerance, double p_speed) const
 {
-    return std::ranges::all_of(m_joints,
-                               [this, p_tolerance](JointId p_id)
-                               { return m_set->reached(p_id, p_tolerance); });
+    return std::ranges::all_of(
+        m_joints,
+        [this, p_tolerance, p_speed](JointId p_id)
+        { return m_set->reached(p_id, p_tolerance, p_speed); });
 }
 
 VacuumGripper::VacuumGripper(std::string p_name,

@@ -193,8 +193,10 @@ public:
     void moveTo(std::span<double const> p_positions);
     /// Servos every joint of the group where it is.
     void hold();
-    /// @return True when every joint is within @p_tolerance of its target.
-    [[nodiscard]] bool reached(double p_tolerance) const;
+    /// @return True when every joint is within @p_tolerance of its target and
+    ///   slower than @p_speed (see @ref JointSet::reached).
+    [[nodiscard]] bool reached(double p_tolerance,
+                               double p_speed = SETTLED_SPEED) const;
 
 private:
 

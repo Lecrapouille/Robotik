@@ -194,10 +194,11 @@ void JointSet::release(JointId p_id)
     m_targets[p_id] = 0.0;
 }
 
-bool JointSet::reached(JointId p_id, double p_tolerance) const
+bool JointSet::reached(JointId p_id, double p_tolerance, double p_speed) const
 {
     return m_modes[p_id] == JointMode::Position &&
-           std::abs(m_positions[p_id] - m_targets[p_id]) <= p_tolerance;
+           std::abs(m_positions[p_id] - m_targets[p_id]) <= p_tolerance &&
+           std::abs(m_velocities[p_id]) <= p_speed;
 }
 
 void JointSet::control(Seconds p_dt)

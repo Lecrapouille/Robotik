@@ -8,6 +8,7 @@
 #include "main.hpp"
 
 #include "RobotIK/Robot/Joints.hpp"
+#include "RobotIK/Robot/RobotSession.hpp"
 
 #include <limits>
 
@@ -40,3 +41,19 @@ TEST(Joints, InfiniteSpeedRatioAimsAtTheTargetAtOnce)
     joints.control(robotik::Seconds(0.001));
     EXPECT_NEAR(joints.effort(0), 100.0, 1e-9);
 }
+
+TEST(Joints, ReachedNeedsTheJointToBeSlow)
+{
+    // A joint passing through its target at speed has not arrived.
+    compages::world::World world;
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
+    robotik::JointSet& joints = robot.joints();
+    joints.moveTo(0, 0.5);
+    robot.measureJoint(0, 0.5, 1.0);
+    EXPECT_FALSE(joints.reached(0, 0.01));
+    EXPECT_TRUE(joints.reached(0, 0.01, 2.0));
+    robot.measureJoint(0, 0.5, 0.01);
+    EXPECT_TRUE(joints.reached(0, 0.01));
+}
+

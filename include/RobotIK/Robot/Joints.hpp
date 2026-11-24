@@ -217,6 +217,10 @@ struct JointGains
     double velocity_kp = 5.0;
 };
 
+/// Largest speed (rad/s or m/s) at which a joint counts as arrived, by default
+/// (see @ref JointSet::reached).
+inline constexpr double SETTLED_SPEED = 0.05;
+
 // ****************************************************************************
 /// All joints of a robot.
 ///
@@ -419,15 +423,21 @@ public:
     }
 
     // -------------------------------------------------------------------------
+    /// A joint that passes through its target at full speed has not arrived:
+    /// it also has to be slow enough to stay there.
     /// @param p_joint Typed handle.
     /// @param p_tolerance Largest accepted error.
-    /// @return True in position mode once |position - target| <= @p_tolerance.
+    /// @param p_speed Largest accepted speed (absolute value).
+    /// @return True in position mode once |position - target| <= @p_tolerance
+    ///   and |velocity| <= @p_speed.
     // -------------------------------------------------------------------------
     template <class Position>
-    [[nodiscard]] bool reached(JointHandle<Position> p_joint,
-                               Position p_tolerance) const
+    [[nodiscard]] bool
+    reached(JointHandle<Position> p_joint,
+            Position p_tolerance,
+            VelocityOf<Position> p_speed = VelocityOf<Position>(SETTLED_SPEED)) const
     {
-        return reached(p_joint.id, p_tolerance.value());
+        return reached(p_joint.id, p_tolerance.value(), p_speed.value());
     }
 
     /// @return The home position of @p_joint (used by the @c Home skill).
@@ -499,8 +509,10 @@ public:
     void spin(JointId p_id, double p_velocity);
     /// Untyped @ref push — @p_effort in N.m or N.
     void push(JointId p_id, double p_effort);
-    /// Untyped @ref reached(JointHandle, Position) const.
-    [[nodiscard]] bool reached(JointId p_id, double p_tolerance) const;
+    /// Untyped @ref reached(JointHandle, Position, VelocityOf<Position>) const.
+    [[nodiscard]] bool reached(JointId p_id,
+                               double p_tolerance,
+                               double p_speed = SETTLED_SPEED) const;
 
     /// Servos joint @p_id where it is.
     void hold(JointId p_id);
