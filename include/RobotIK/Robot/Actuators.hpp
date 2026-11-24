@@ -247,8 +247,14 @@ public:
     void disable(Robot& p_robot) override;
 
     /// Turns the pump on (true) or off (false).
+    /// @throws std::logic_error when another owner holds the gripper (see
+    ///   @ref ResourceManager::checkWrite).
     void suction(bool p_on)
     {
+        if (m_resources != nullptr)
+        {
+            m_resources->checkWrite(m_resource, name());
+        }
         m_suction = p_on;
     }
 
@@ -331,6 +337,10 @@ private:
     Length m_length;
     /// Pump commanded on.
     bool m_suction = false;
+    /// Manager of the resource of the gripper, set by @ref bind.
+    ResourceManager const* m_resources = nullptr;
+    /// Resource of the gripper.
+    ResourceId m_resource = NO_RESOURCE;
     /// Vacuum measured.
     bool m_holding = false;
     /// What the program says it holds.

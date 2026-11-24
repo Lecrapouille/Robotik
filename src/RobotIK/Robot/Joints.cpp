@@ -37,6 +37,7 @@ JointId JointSet::append(std::string p_name,
     m_efforts.push_back(0.0);
     m_targets.push_back(0.0);
     m_references.push_back(0.0);
+    m_guards.push_back(NO_RESOURCE);
     return static_cast<JointId>(m_names.size() - 1U);
 }
 
@@ -155,6 +156,7 @@ void JointSet::place(JointId p_id, double p_position)
 
 void JointSet::moveTo(JointId p_id, double p_position)
 {
+    checkWrite(p_id);
     if (m_modes[p_id] != JointMode::Position)
     {
         m_references[p_id] = m_positions[p_id];
@@ -165,12 +167,14 @@ void JointSet::moveTo(JointId p_id, double p_position)
 
 void JointSet::spin(JointId p_id, double p_velocity)
 {
+    checkWrite(p_id);
     m_modes[p_id] = JointMode::Velocity;
     m_targets[p_id] = p_velocity;
 }
 
 void JointSet::push(JointId p_id, double p_effort)
 {
+    checkWrite(p_id);
     m_modes[p_id] = JointMode::Effort;
     m_targets[p_id] = p_effort;
 }
@@ -190,6 +194,7 @@ void JointSet::hold()
 
 void JointSet::release(JointId p_id)
 {
+    checkWrite(p_id);
     m_modes[p_id] = JointMode::Disabled;
     m_targets[p_id] = 0.0;
 }

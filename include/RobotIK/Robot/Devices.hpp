@@ -222,12 +222,15 @@ public:
             throw std::invalid_argument("Duplicated device '" + device->name() +
                                         "'");
         }
+        // The resource exists before bind: an actuator guards its joints
+        // with it.
+        ResourceId const resource = this->m_resources.add(device->name());
         if constexpr (requires { device->bind(m_robot); })
         {
             device->bind(m_robot);
         }
         T& added = *device;
-        this->m_ids.push_back(this->m_resources.add(added.name()));
+        this->m_ids.push_back(resource);
         this->m_devices.push_back(std::move(device));
         return added;
     }

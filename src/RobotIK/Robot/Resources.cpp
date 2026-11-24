@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 
 namespace robotik
 {
@@ -204,6 +205,20 @@ ResourceManager::acquire(std::span<ResourceRequirement const> p_requirements,
     lease.m_manager = this;
     lease.m_owner = p_owner;
     return lease;
+}
+
+void ResourceManager::refuseWrite(ResourceId p_id, std::string_view p_what) const
+{
+    OwnerId const owner = m_owners[p_id];
+    std::string const holder = owner == ANONYMOUS
+                                   ? std::string("a lease outside the scheduler")
+                                   : "skill #" + std::to_string(owner);
+    std::string const writer = m_writer == ANONYMOUS
+                                   ? std::string("a command outside the skills")
+                                   : "skill #" + std::to_string(m_writer);
+    throw std::logic_error(std::string(p_what) + ": resource '" +
+                           m_names[p_id] + "' is held by " + holder + ", so " +
+                           writer + " may not command it");
 }
 
 void ResourceManager::release(ResourceLease& p_lease)

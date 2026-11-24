@@ -24,6 +24,8 @@ void Motor::bind(Robot& p_robot)
 {
     m_joints = &p_robot.joints();
     m_joint = m_joints->requireRevolute(m_joint_name);
+    m_joints->guard(
+        m_joint.id, p_robot.resources(), p_robot.resources().find(name()));
 }
 
 void Motor::disable(Robot& /*p_robot*/)
@@ -81,11 +83,19 @@ void JointGroup::bind(Robot& p_robot)
         {
             m_joints.push_back(id);
         }
-        return;
     }
-    for (std::string const& name : m_names)
+    else
     {
-        m_joints.push_back(m_set->require(name));
+        for (std::string const& joint : m_names)
+        {
+            m_joints.push_back(m_set->require(joint));
+        }
+    }
+    // A command to one of these joints needs the lease of the group.
+    ResourceId const resource = p_robot.resources().find(name());
+    for (JointId const id : m_joints)
+    {
+        m_set->guard(id, p_robot.resources(), resource);
     }
 }
 
@@ -152,6 +162,8 @@ void VacuumGripper::bind(Robot& p_robot)
         throw std::invalid_argument("Vacuum gripper '" + name() +
                                     "': unknown link '" + m_link + "'");
     }
+    m_resources = &p_robot.resources();
+    m_resource = p_robot.resources().find(name());
 }
 
 void VacuumGripper::disable(Robot& /*p_robot*/)

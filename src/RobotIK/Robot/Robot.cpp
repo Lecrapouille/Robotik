@@ -452,6 +452,8 @@ void RobotSession::step(Seconds p_dt)
 
 void RobotSession::prepare(Seconds /*p_dt*/)
 {
+    // A safe state is written whoever holds the actuator.
+    WriterScope const safety(*m_resources, SAFETY);
     for (std::size_t i = 0; i < m_actuators.size(); ++i)
     {
         if (!m_actuators.available(i))

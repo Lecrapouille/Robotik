@@ -37,6 +37,7 @@
 #include "Compages/World/Entity.hpp"
 #include "Compages/World/Kinematics/Joint.hpp"
 #include "RobotIK/Common/Math.hpp"
+#include "RobotIK/Robot/Resources.hpp"
 
 #include <cstdint>
 #include <limits>
@@ -542,6 +543,37 @@ private:
     // RobotSession::measureJoint, the reset); a skill only commands.
     friend class Robot;
     friend class RobotSession;
+    // The actuators say which resource guards their joints.
+    friend class Motor;
+    friend class JointGroup;
+
+    // -------------------------------------------------------------------------
+    /// Guards a joint by a resource: a command to it is then checked with
+    /// @ref ResourceManager::checkWrite. A joint keeps its first guard (one
+    /// actuator per joint; composite resources are not done yet).
+    /// @param p_id Joint id.
+    /// @param p_resources Manager of the resource.
+    /// @param p_resource Resource of the actuator driving the joint.
+    // -------------------------------------------------------------------------
+    void guard(JointId p_id,
+               ResourceManager const& p_resources,
+               ResourceId p_resource)
+    {
+        m_arbiter = &p_resources;
+        if (m_guards[p_id] == NO_RESOURCE)
+        {
+            m_guards[p_id] = p_resource;
+        }
+    }
+
+    /// Checks that the current writer may command joint @p_id.
+    void checkWrite(JointId p_id) const
+    {
+        if (m_arbiter != nullptr && m_guards[p_id] != NO_RESOURCE)
+        {
+            m_arbiter->checkWrite(m_guards[p_id], m_names[p_id]);
+        }
+    }
 
     // -------------------------------------------------------------------------
     /// Writes a measurement (see @ref RobotSession::measureJoint).
@@ -619,6 +651,10 @@ private:
     std::vector<double> m_targets;
     /// Rate-limited position references moving toward the targets.
     std::vector<double> m_references;
+    /// Resource guarding each joint, or NO_RESOURCE.
+    std::vector<ResourceId> m_guards;
+    /// Manager of the guards, or null when no actuator guards a joint.
+    ResourceManager const* m_arbiter = nullptr;
 };
 
 } // namespace robotik

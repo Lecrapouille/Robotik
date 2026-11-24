@@ -7,6 +7,7 @@
 
 #include "main.hpp"
 
+#include "RobotIK/Robot/Actuators.hpp"
 #include "RobotIK/Robot/RobotSession.hpp"
 #include "RobotIK/Task/Perception/WorldModel.hpp"
 #include "RobotIK/Task/RobotContext.hpp"
@@ -519,4 +520,100 @@ BehaviorTree:
     EXPECT_EQ(status, bt::Status::FAILURE);
     EXPECT_EQ(board->get<std::string>("Grasp.state"), "FAILED");
     EXPECT_EQ(board->get<std::string>("Grasp.reason"), "failed");
+}
+
+/// Moves joint 0 at each tick, to check that writes follow the leases.
+class PushJointSkill final: public robotik::Skill
+{
+public:
+
+    Status tick(robotik::RobotContext& p_context, robotik::Seconds) override
+    {
+        p_context.robot.joints().moveTo(0, 0.3);
+        return Status::RUNNING;
+    }
+};
+
+/// A robot whose joints are guarded by the joint group "body".
+class GuardedJoints: public ::testing::Test
+{
+protected:
+
+    GuardedJoints()
+        : robot(world, assetFile("robotik.robots.simple_revolute_robot")),
+          context{ robot, beliefs, {}, robotik::Seconds(0.01) },
+          skills(robot.resources())
+    {
+        robot.actuators().add<robotik::JointGroup>("body");
+    }
+
+    robotik::ResourceRequirement body() const
+    {
+        return robot.resources().require("body");
+    }
+
+    compages::world::World world;
+    robotik::RobotSession robot;
+    robotik::WorldModel beliefs;
+    robotik::RobotContext context;
+    robotik::SkillScheduler skills;
+};
+
+TEST_F(GuardedJoints, FreeJointIsWritable)
+{
+    EXPECT_NO_THROW(robot.joints().moveTo(0, 0.2));
+}
+
+TEST_F(GuardedJoints, SkillWritesUnderItsLease)
+{
+    robotik::SkillDescription description;
+    description.name = "Push";
+    description.resources = { body() };
+    auto const push = skills.add<PushJointSkill>(std::move(description));
+    skills.request(push);
+    EXPECT_NO_THROW(skills.update(context));
+    EXPECT_EQ(skills.state(push), SkillState::Running);
+    EXPECT_DOUBLE_EQ(robot.joints().target(0), 0.3);
+}
+
+TEST_F(GuardedJoints, WriteToHeldJointThrows)
+{
+    // The scenario logic writes after the scheduler: with a skill holding
+    // the joints, the last writer would win. It is refused.
+    robotik::SkillDescription description;
+    description.name = "Push";
+    description.resources = { body() };
+    auto const push = skills.add<PushJointSkill>(std::move(description));
+    skills.request(push);
+    skills.update(context);
+    EXPECT_THROW(robot.joints().moveTo(0, 0.2), std::logic_error);
+    EXPECT_THROW(robot.joints().hold(), std::logic_error);
+}
+
+TEST_F(GuardedJoints, LogicLeaseBlocksSkill)
+{
+    robotik::ResourceLease logic = robot.resources().acquire({ body() });
+    ASSERT_TRUE(logic);
+    EXPECT_NO_THROW(robot.joints().moveTo(0, 0.2));
+    robotik::SkillDescription description;
+    description.name = "Push";
+    description.resources = { body() };
+    auto const push = skills.add<PushJointSkill>(std::move(description));
+    skills.request(push);
+    skills.update(context);
+    EXPECT_EQ(skills.state(push), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(push), SkillReason::Busy);
+}
+
+TEST_F(GuardedJoints, SafeStateIsWrittenWhoeverHoldsTheJoints)
+{
+    robotik::SkillDescription description;
+    description.name = "Push";
+    description.resources = { body() };
+    auto const push = skills.add<PushJointSkill>(std::move(description));
+    skills.request(push);
+    skills.update(context);
+    // The group fails: the robot puts it in its safe state at the next step.
+    robot.resources().fail("body");
+    EXPECT_NO_THROW(robot.step(robotik::Seconds(0.01)));
 }

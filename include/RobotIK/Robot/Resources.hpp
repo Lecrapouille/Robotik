@@ -42,8 +42,12 @@ inline constexpr ResourceId NO_RESOURCE = 0xFFFFU;
 using OwnerId = std::uint32_t;
 /// No owner.
 inline constexpr OwnerId NO_OWNER = 0xFFFFFFFFU;
-/// Owner of a lease taken outside the scheduler.
+/// Owner of a lease taken outside the scheduler, and the writer of a
+/// command sent outside a skill (scenario logic, teach pendant, test).
 inline constexpr OwnerId ANONYMOUS = 0xFFFFFFFEU;
+/// Writer of the safe states (a failed actuator, a reset): it may write to
+/// any resource.
+inline constexpr OwnerId SAFETY = 0xFFFFFFFDU;
 
 // ****************************************************************************
 /// Access mode of a reservation.
@@ -290,6 +294,33 @@ public:
         return m_users[p_id];
     }
 
+    // --- Writes -------------------------------------------------------------
+
+    /// @return Who sends the commands now: the skill ticked by the
+    ///   scheduler, else @ref ANONYMOUS (see @ref WriterScope).
+    [[nodiscard]] OwnerId writer() const
+    {
+        return m_writer;
+    }
+
+    // -------------------------------------------------------------------------
+    /// Checks that the current @ref writer may command resource @p_id: the
+    /// resource is free, or held exclusively by the writer. An actuator
+    /// calls it before each command. One compare when the resource is free.
+    /// @param p_id Resource of the actuator, or @ref NO_RESOURCE (no check).
+    /// @param p_what What is written, for the message ("joint 'joint1'").
+    /// @throws std::logic_error when another owner holds the resource: a
+    ///   command that bypasses the scheduler is a mistake in the code.
+    // -------------------------------------------------------------------------
+    void checkWrite(ResourceId p_id, std::string_view p_what) const
+    {
+        if (p_id < m_owners.size() && m_owners[p_id] != NO_OWNER &&
+            m_owners[p_id] != m_writer && m_writer != SAFETY)
+        {
+            refuseWrite(p_id, p_what);
+        }
+    }
+
     // -------------------------------------------------------------------------
     /// Tells why requirements cannot be acquired now, without acquiring.
     /// @param p_requirements Resources wanted.
@@ -323,8 +354,11 @@ public:
 private:
 
     friend class ResourceLease;
+    friend class WriterScope;
     /// Gives back the resources of @p_lease (called by the lease).
     void release(ResourceLease& p_lease);
+    /// Throws the error of @ref checkWrite.
+    [[noreturn]] void refuseWrite(ResourceId p_id, std::string_view p_what) const;
 
     /// Resource names.
     std::vector<std::string> m_names;
@@ -334,6 +368,54 @@ private:
     std::vector<OwnerId> m_owners;
     /// Number of shared holders of each resource.
     std::vector<std::uint16_t> m_users;
+    /// Who sends the commands now (see @ref WriterScope).
+    OwnerId m_writer = ANONYMOUS;
+};
+
+// ****************************************************************************
+/// Says who sends the commands during a scope, then restores the previous
+/// writer.
+///
+/// The scheduler opens one around each call of a skill, with the skill id:
+/// the actuators then refuse a command to a resource that another skill
+/// holds (@ref ResourceManager::checkWrite). The robot opens one with
+/// @ref SAFETY when it puts a failed actuator in its safe state. A skill
+/// cannot open one: it gets the resources read only.
+///
+/// @code
+/// {
+///     robotik::WriterScope const scope(resources, skill_id);
+///     skill.tick(context, dt); // its commands are checked against its lease
+/// }
+/// @endcode
+// ****************************************************************************
+class WriterScope
+{
+public:
+
+    /// @param p_resources Manager of the resources written.
+    /// @param p_writer Who writes during the scope.
+    WriterScope(ResourceManager& p_resources, OwnerId p_writer)
+        : m_resources(p_resources), m_previous(p_resources.m_writer)
+    {
+        p_resources.m_writer = p_writer;
+    }
+
+    /// Restores the previous writer.
+    ~WriterScope()
+    {
+        m_resources.m_writer = m_previous;
+    }
+
+    WriterScope(WriterScope const&) = delete;
+    WriterScope& operator=(WriterScope const&) = delete;
+
+private:
+
+    /// Manager whose writer is set.
+    ResourceManager& m_resources;
+    /// Writer before the scope.
+    OwnerId m_previous;
 };
 
 } // namespace robotik

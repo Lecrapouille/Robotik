@@ -398,7 +398,10 @@ void SkillScheduler::stop(SkillId p_id,
         finish(p_id, p_state, p_reason, context.time);
         return;
     }
-    m_skills[p_id]->cancel(context);
+    {
+        WriterScope const writer(m_resources, p_id);
+        m_skills[p_id]->cancel(context);
+    }
     if (p_at_once)
     {
         finish(p_id, p_state, p_reason, context.time);
@@ -417,7 +420,11 @@ void SkillScheduler::stop(SkillId p_id,
 void SkillScheduler::stopping(SkillId p_id)
 {
     RobotContext& context = contextOf(p_id);
-    Status const status = m_skills[p_id]->stopping(context, context.dt);
+    Status status = Status::RUNNING;
+    {
+        WriterScope const writer(m_resources, p_id);
+        status = m_skills[p_id]->stopping(context, context.dt);
+    }
     bool const late = context.time - m_stop_since[p_id] >=
                       m_descriptions[p_id].stop_timeout;
     if (status == Status::RUNNING && !late)
@@ -587,7 +594,10 @@ void SkillScheduler::admit(SkillId p_id)
         m_states[p_id] = SkillState::Running;
         m_reasons[p_id] = SkillReason::None;
         m_blockers[p_id] = NO_RESOURCE;
-        m_skills[p_id]->reset();
+        {
+            WriterScope const writer(m_resources, p_id);
+            m_skills[p_id]->reset();
+        }
         record(p_id, now);
         changed(p_id, SkillState::Running);
         return;
@@ -701,7 +711,12 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
             continue;
         }
         RobotContext& context = contextOf(id);
-        Status const status = m_skills[id]->tick(context, context.dt);
+        Status status = Status::RUNNING;
+        {
+            // The skill commands only what its lease holds.
+            WriterScope const writer(m_resources, id);
+            status = m_skills[id]->tick(context, context.dt);
+        }
         if (status == Status::SUCCESS)
         {
             finish(id, SkillState::Succeeded, SkillReason::None, context.time);
