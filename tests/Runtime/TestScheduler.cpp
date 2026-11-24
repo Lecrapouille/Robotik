@@ -195,6 +195,50 @@ TEST_F(SchedulerTest, NonCancellableIsNotPreempted)
     EXPECT_EQ(skills.state(urgent), SkillState::Waiting);
 }
 
+TEST_F(SchedulerTest, PreemptionIsAllOrNothing)
+{
+    // Wave holds the arm and may be preempted; Hold keeps the gripper and
+    // may not. Grasp needs both: it must wait, and Wave must go on.
+    auto const wave =
+        skills.add<CountdownSkill>(describe("Wave", { arm() }, 0), 100);
+    auto hold_description =
+        describe("Hold", { robot.resources().require("gripper") }, 0);
+    hold_description.cancellable = false;
+    auto const hold =
+        skills.add<CountdownSkill>(std::move(hold_description), 100);
+    auto const grasp = skills.add<CountdownSkill>(
+        describe("Grasp",
+                 { arm(), robot.resources().require("gripper") },
+                 50),
+        1);
+    skills.request(wave);
+    skills.request(hold);
+    update();
+    skills.request(grasp);
+    update();
+    EXPECT_EQ(skills.state(wave), SkillState::Running);
+    EXPECT_EQ(static_cast<CountdownSkill&>(skills.skill(wave)).cancels, 0);
+    EXPECT_EQ(skills.state(hold), SkillState::Running);
+    EXPECT_EQ(skills.state(grasp), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(grasp), SkillReason::Busy);
+    EXPECT_EQ(skills.blocker(grasp), robot.resources().find("gripper"));
+    EXPECT_EQ(skills.blocker(wave), robotik::NO_RESOURCE);
+}
+
+TEST_F(SchedulerTest, LeaseOutsideTheSchedulerIsNotPreempted)
+{
+    // A shared lease taken by the scenario logic is not a skill.
+    robotik::ResourceLease logic = robot.resources().acquire(
+        { robot.resources().require("camera", robotik::Access::Shared) });
+    ASSERT_TRUE(logic);
+    auto const urgent = skills.add<CountdownSkill>(
+        describe("Urgent", { robot.resources().require("camera") }, 1000), 1);
+    skills.request(urgent);
+    update();
+    EXPECT_EQ(skills.state(urgent), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(urgent), SkillReason::Busy);
+}
+
 TEST_F(SchedulerTest, LostResourceAbortsTheRun)
 {
     auto const id =

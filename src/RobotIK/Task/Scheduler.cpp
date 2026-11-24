@@ -249,51 +249,79 @@ void SkillScheduler::stop(SkillId p_id,
     finish(p_id, p_state, p_reason, context.time);
 }
 
-bool SkillScheduler::preempt(SkillId p_by, Conflict const& p_conflict)
+bool SkillScheduler::victims(SkillId p_by, ResourceId& p_blocker)
 {
     Priority const priority = m_descriptions[p_by].priority;
-    auto preemptible = [&](SkillId p_victim)
+    auto preemptible = [&](OwnerId p_victim)
     {
         return p_victim < m_skills.size() && p_victim != p_by &&
                m_states[p_victim] == SkillState::Running &&
                m_descriptions[p_victim].cancellable &&
                m_descriptions[p_victim].priority < priority;
     };
-
-    // Exclusive holder.
-    if (p_conflict.owner != NO_OWNER)
+    auto add = [this](SkillId p_victim, ResourceId p_resource)
     {
-        if (!preemptible(p_conflict.owner))
+        auto const same = [p_victim](Victim const& p_other)
+        { return p_other.skill == p_victim; };
+        if (std::ranges::none_of(m_victims, same))
         {
+            m_victims.push_back({ p_victim, p_resource });
+        }
+    };
+
+    // Phase 1 only: find every holder of every conflict, stop nobody.
+    m_victims.clear();
+    for (ResourceRequirement const& requirement :
+         m_descriptions[p_by].resources)
+    {
+        ResourceId const id = requirement.id;
+        if (!m_resources.available(id))
+        {
+            p_blocker = id;
             return false;
         }
-        m_blockers[p_conflict.owner] = p_conflict.resource;
-        stop(p_conflict.owner, SkillState::Cancelled, SkillReason::Preempted);
-        return true;
-    }
-
-    // Shared holders blocking an exclusive request: all must be preemptible.
-    std::vector<SkillId> victims;
-    for (SkillId id = 0; id < m_skills.size(); ++id)
-    {
-        for (ResourceRequirement const& held : m_leases[id].resources())
+        if (OwnerId const owner = m_resources.owner(id); owner != NO_OWNER)
         {
-            if (held.id == p_conflict.resource)
+            if (!preemptible(owner))
             {
-                if (!preemptible(id))
+                p_blocker = id;
+                return false;
+            }
+            add(static_cast<SkillId>(owner), id);
+            continue;
+        }
+        if (requirement.access == Access::Shared ||
+            m_resources.users(id) == 0U)
+        {
+            continue;
+        }
+        // Shared holders blocking an exclusive request. A shared lease taken
+        // outside the scheduler is not in m_leases: it cannot be preempted.
+        std::uint16_t found = 0U;
+        for (SkillId holder = 0; holder < m_skills.size(); ++holder)
+        {
+            for (ResourceRequirement const& held : m_leases[holder].resources())
+            {
+                if (held.id != id)
                 {
+                    continue;
+                }
+                if (!preemptible(holder))
+                {
+                    p_blocker = id;
                     return false;
                 }
-                victims.push_back(id);
+                add(holder, id);
+                ++found;
             }
         }
+        if (found < m_resources.users(id))
+        {
+            p_blocker = id;
+            return false;
+        }
     }
-    for (SkillId const victim : victims)
-    {
-        m_blockers[victim] = p_conflict.resource;
-        stop(victim, SkillState::Cancelled, SkillReason::Preempted);
-    }
-    return !victims.empty();
+    return true;
 }
 
 void SkillScheduler::admit(SkillId p_id)
@@ -333,30 +361,33 @@ void SkillScheduler::admit(SkillId p_id)
         }
     }
 
-    // Each preemption frees at least one resource: bounded retries.
-    Conflict conflict;
-    for (std::size_t attempt = 0; attempt <= description.resources.size();
-         ++attempt)
+    // Preemption is all or nothing: the victims are stopped only when every
+    // holder of every conflict can be preempted.
+    ResourceId blocker = NO_RESOURCE;
+    if (m_resources.conflict(description.resources))
     {
-        conflict = m_resources.conflict(description.resources);
-        if (!conflict)
+        if (victims(p_id, blocker))
         {
-            m_leases[p_id] = m_resources.acquire(description.resources, p_id);
-            m_states[p_id] = SkillState::Running;
-            m_reasons[p_id] = SkillReason::None;
-            m_blockers[p_id] = NO_RESOURCE;
-            m_skills[p_id]->reset();
-            record(p_id, now);
-            changed(p_id, SkillState::Running);
-            return;
-        }
-        if (!preempt(p_id, conflict))
-        {
-            break;
+            for (Victim const& victim : m_victims)
+            {
+                m_blockers[victim.skill] = victim.resource;
+                stop(victim.skill, SkillState::Cancelled, SkillReason::Preempted);
+            }
         }
     }
+    if (blocker == NO_RESOURCE && !m_resources.conflict(description.resources))
+    {
+        m_leases[p_id] = m_resources.acquire(description.resources, p_id);
+        m_states[p_id] = SkillState::Running;
+        m_reasons[p_id] = SkillReason::None;
+        m_blockers[p_id] = NO_RESOURCE;
+        m_skills[p_id]->reset();
+        record(p_id, now);
+        changed(p_id, SkillState::Running);
+        return;
+    }
 
-    m_blockers[p_id] = conflict.resource;
+    m_blockers[p_id] = blocker;
     if (description.wait)
     {
         m_reasons[p_id] = SkillReason::Busy;

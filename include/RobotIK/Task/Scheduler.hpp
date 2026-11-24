@@ -321,9 +321,11 @@ private:
     [[nodiscard]] RobotContext& contextOf(SkillId p_id) const;
     /// Starts a waiting skill whose resources and preconditions are met.
     void admit(SkillId p_id);
-    /// Cancels the lower priority holders of @p_conflict for @p_by; false
-    /// when one of them cannot be preempted.
-    bool preempt(SkillId p_by, Conflict const& p_conflict);
+    /// Finds in @ref m_victims every holder that blocks @p_by, without
+    /// stopping any. False, with @p_blocker set, when one of them cannot be
+    /// preempted (higher priority, not cancellable, or outside the
+    /// scheduler).
+    bool victims(SkillId p_by, ResourceId& p_blocker);
     /// Ends a run, releases its resources and records the phase.
     void finish(SkillId p_id,
                 SkillState p_state,
@@ -366,6 +368,14 @@ private:
     std::vector<SkillRun> m_trace;
     /// Skills to admit, sorted by priority then order.
     std::vector<SkillId> m_queue;
+    /// A skill to preempt, and the resource it is preempted for.
+    struct Victim
+    {
+        SkillId skill;       ///< Running skill to stop.
+        ResourceId resource; ///< Resource wanted by the new skill.
+    };
+    /// Skills to preempt for the admission in progress.
+    std::vector<Victim> m_victims;
     /// Next request order.
     std::uint64_t m_order = 0;
 };
