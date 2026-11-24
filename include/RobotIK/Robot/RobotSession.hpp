@@ -280,7 +280,7 @@ public:
 
     // -------------------------------------------------------------------------
     /// The three parts of @ref step. This one puts the failed actuators in
-    /// their safe state and advances the clock. Robots sharing a backend do
+    /// their safe state. Robots sharing a backend do
     /// each part in turn, so a failed actuator is safe before the physics
     /// step and every robot senses after it.
     ///
@@ -293,7 +293,9 @@ public:
     /// @param p_dt Duration of the step.
     // -------------------------------------------------------------------------
     void prepare(Seconds p_dt);
-    /// Backend step only (see @ref prepare).
+    /// Backend step, then the clock: the time of the backend when it has one
+    /// (@ref RobotBackend::time), else the clock plus @p p_dt (see
+    /// @ref prepare).
     void advance(Seconds p_dt);
     /// Kinematics and rendered links, then the sensors: those whose
     /// resource failed are invalidated (see @ref prepare).

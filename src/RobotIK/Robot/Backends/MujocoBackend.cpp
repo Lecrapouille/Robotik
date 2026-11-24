@@ -1065,6 +1065,15 @@ void MujocoBackend::reset(RobotSession& /*p_robot*/)
     m_impl->stale_wrenches = true;
 }
 
+std::optional<Seconds> MujocoBackend::time() const
+{
+    if (m_impl->data == nullptr)
+    {
+        return std::nullopt;
+    }
+    return Seconds(m_impl->data->time);
+}
+
 void MujocoBackend::step(RobotSession& p_robot, Seconds p_dt)
 {
     std::vector<Member>& members = m_impl->members;
@@ -1313,6 +1322,11 @@ public:
     void step(RobotSession& p_robot, Seconds p_dt) override
     {
         m_physics->step(p_robot, p_dt);
+    }
+
+    [[nodiscard]] std::optional<Seconds> time() const override
+    {
+        return m_physics->time();
     }
 
     [[nodiscard]] int contacts() const override

@@ -9,6 +9,7 @@
 
 #include "RobotIK/Robot/Joints.hpp"
 #include "RobotIK/Robot/RobotSession.hpp"
+#include "RobotIK/Robot/Backends/RobotBackend.hpp"
 
 #include <limits>
 
@@ -57,3 +58,50 @@ TEST(Joints, ReachedNeedsTheJointToBeSlow)
     EXPECT_TRUE(joints.reached(0, 0.01));
 }
 
+/// A hardware-like backend: its clock moves by its own steps, not by the dt
+/// asked (here two times faster, or not at all).
+class OwnClock final: public robotik::RobotBackend
+{
+public:
+
+    explicit OwnClock(double p_rate) : m_rate(p_rate) {}
+    void attach(robotik::RobotSession& /*p_robot*/) override {}
+    void reset(robotik::RobotSession& /*p_robot*/) override
+    {
+        m_time = 0.0;
+    }
+    void step(robotik::RobotSession& /*p_robot*/, robotik::Seconds p_dt) override
+    {
+        m_time += m_rate * p_dt.value();
+    }
+    [[nodiscard]] std::optional<robotik::Seconds> time() const override
+    {
+        return robotik::Seconds(m_time);
+    }
+
+private:
+
+    double m_rate;
+    double m_time = 0.0;
+};
+
+TEST(Clock, ComesFromTheBackend)
+{
+    compages::world::World world;
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
+    robot.connect(std::make_unique<OwnClock>(2.0));
+    robot.step(robotik::Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
+    EXPECT_NEAR(robot.time().value(), 0.04, 1e-12);
+}
+
+TEST(Clock, CountsTheStepsWithoutABackendClock)
+{
+    compages::world::World world;
+    robotik::RobotSession robot(
+        world, assetFile("robotik.robots.simple_revolute_robot"));
+    robot.step(robotik::Seconds(0.01));
+    robot.step(robotik::Seconds(0.01));
+    EXPECT_NEAR(robot.time().value(), 0.02, 1e-12);
+}

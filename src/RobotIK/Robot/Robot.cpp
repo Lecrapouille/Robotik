@@ -450,7 +450,7 @@ void RobotSession::step(Seconds p_dt)
     sense();
 }
 
-void RobotSession::prepare(Seconds p_dt)
+void RobotSession::prepare(Seconds /*p_dt*/)
 {
     for (std::size_t i = 0; i < m_actuators.size(); ++i)
     {
@@ -459,15 +459,19 @@ void RobotSession::prepare(Seconds p_dt)
             m_actuators[i].disable(*this);
         }
     }
-    m_time = m_time + p_dt;
 }
 
 void RobotSession::advance(Seconds p_dt)
 {
+    std::optional<Seconds> clock;
     if (m_backend)
     {
         m_backend->step(*this, p_dt);
+        clock = m_backend->time();
     }
+    // The backend gives the clock when it has one (simulated time, hardware
+    // stamp); without one, the robot counts the steps.
+    m_time = clock ? *clock : m_time + p_dt;
 }
 
 void RobotSession::sense()

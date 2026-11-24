@@ -119,6 +119,20 @@ public:
     virtual void step(RobotSession& p_robot, Seconds p_dt) = 0;
 
     // -------------------------------------------------------------------------
+    /// The clock of the robot after the last @ref step. A simulator gives the
+    /// time it computed (RobotIK asked for @c dt, the world waited). A
+    /// hardware backend gives the stamp of its last reading: the robot clock
+    /// when the robot has one, else the monotonic clock of the host
+    /// (@c std::chrono::steady_clock) when the reading arrived.
+    /// @return The time, or nothing: the robot then adds the @c dt of each
+    ///   step to its clock.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] virtual std::optional<Seconds> time() const
+    {
+        return std::nullopt;
+    }
+
+    // -------------------------------------------------------------------------
     /// @return The number of contacts after the last step (simulation only).
     // -------------------------------------------------------------------------
     [[nodiscard]] virtual int contacts() const

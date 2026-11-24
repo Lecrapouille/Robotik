@@ -153,7 +153,12 @@ public:
 
     // -------------------------------------------------------------------------
     /// Advances the run by one step (see the class comment for the order).
-    /// @param p_dt Duration of the step.
+    /// The clock is the one of the robot: the decision side gets as
+    /// @c RobotContext::dt the time measured since its last tick (@p p_dt
+    /// for the first one), and is not ticked when the clock did not move
+    /// (see @ref stalledSteps).
+    /// @param p_dt Duration asked for the step (the physics step in a
+    ///   simulation).
     // -------------------------------------------------------------------------
     void step(Seconds p_dt);
 
@@ -465,6 +470,14 @@ public:
         return m_controller_stopped;
     }
 
+    /// @return Steps since the last reset where the robot clock did not move
+    ///   (the decision side was not ticked). Zero in a simulation; on
+    ///   hardware, a robot that sent no new reading.
+    [[nodiscard]] std::uint64_t stalledSteps() const
+    {
+        return m_stalled_steps;
+    }
+
     /// @return Peak count of simultaneous contacts (floor excluded) since
     ///   the last reset, whatever the bodies.
     [[nodiscard]] int maxContacts() const
@@ -754,6 +767,12 @@ private:
     Status m_status = Status::IDLE;
     /// The controller is no longer ticked.
     bool m_controller_stopped = false;
+    /// The decision side was ticked since the last reset.
+    bool m_ticked = false;
+    /// Robot clock at the last tick of the decision side.
+    Seconds m_last_tick{};
+    /// See @ref stalledSteps.
+    std::uint64_t m_stalled_steps = 0U;
 
     /// World queries of the conditions: built-in, then added ones.
     std::vector<ConditionQuery> m_queries;

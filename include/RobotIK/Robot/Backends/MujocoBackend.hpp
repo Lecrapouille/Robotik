@@ -332,6 +332,8 @@ public:
     /// @param p_dt Duration to integrate.
     // -------------------------------------------------------------------------
     void step(RobotSession& p_robot, Seconds p_dt) override;
+    /// @return The time of the MuJoCo data (sum of the physics timesteps).
+    [[nodiscard]] std::optional<Seconds> time() const override;
 
     /// @return Active contacts after the last step (@c mjData.ncon), robot
     ///   against the floor excluded.

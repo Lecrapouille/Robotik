@@ -949,6 +949,9 @@ void RoboticCell::reset(Seed p_seed)
     m_max_contacts = 0;
     m_prop_penetration.clear();
     m_controller_stopped = false;
+    m_ticked = false;
+    m_last_tick = Seconds{};
+    m_stalled_steps = 0U;
 
     m_resources->restoreAll();
     m_scheduler->reset();
@@ -1239,13 +1242,28 @@ void RoboticCell::step(Seconds p_dt)
         throw std::invalid_argument("RoboticCell::step: dt must be positive "
                                     "and finite");
     }
-    if (!m_suspended)
+    // The clock comes from the robot (its backend). The decision side gets
+    // the time measured since its last tick: the asked dt in a simulation,
+    // the true one on hardware. A clock that did not move skips the tick.
+    Seconds const before = m_robot->time();
+    Seconds const elapsed = m_ticked ? before - m_last_tick : p_dt;
+    bool const stalled = !(elapsed.value() > 0.0);
+    if (stalled)
     {
-        m_faults.update(*m_resources, m_robot->time(), p_dt);
+        ++m_stalled_steps;
+    }
+    else
+    {
+        m_ticked = true;
+        m_last_tick = before;
+    }
+    if (!m_suspended && !stalled)
+    {
+        m_faults.update(*m_resources, before, elapsed);
         for (RobotContext& context : m_contexts)
         {
             context.time = context.robot.time();
-            context.dt = p_dt;
+            context.dt = elapsed;
         }
         if (m_executor && !m_controller_stopped)
         {
@@ -1300,11 +1318,12 @@ void RoboticCell::step(Seconds p_dt)
     }
     if (m_logic != nullptr)
     {
-        // The robot side sees the time after the physics step, like status.
+        // The robot side sees the time after the physics step, like status,
+        // and the duration of that step as the clock measured it.
         for (RobotContext& context : m_contexts)
         {
             context.time = context.robot.time();
-            context.dt = p_dt;
+            context.dt = m_robot->time() - before;
         }
         m_logic->act(m_contexts.front(), p_dt);
         m_logic->simulate(*this, p_dt);
