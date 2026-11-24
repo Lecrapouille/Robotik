@@ -205,10 +205,41 @@ TEST_F(SchedulerTest, HigherPriorityPreempts)
     update();
     skills.request(stop);
     update();
-    EXPECT_EQ(skills.state(low), SkillState::Cancelled);
+    // A preempted run is not over: it waits for the arm again.
+    EXPECT_EQ(skills.state(low), SkillState::Waiting);
     EXPECT_EQ(skills.reason(low), SkillReason::Preempted);
     EXPECT_EQ(static_cast<CountdownSkill&>(skills.skill(low)).cancels, 1);
     EXPECT_EQ(skills.state(stop), SkillState::Running);
+}
+
+TEST_F(SchedulerTest, PreemptedSkillResumes)
+{
+    auto const low =
+        skills.add<CountdownSkill>(describe("Low", { arm() }, 10), 100);
+    auto const stop =
+        skills.add<CountdownSkill>(describe("Stop", { arm() }, 1000), 2);
+    robotik::RunId const run = skills.request(low);
+    update();
+    skills.request(stop);
+    update(3); // preempted; Stop runs two ticks and gives the arm back
+    EXPECT_EQ(skills.state(stop), SkillState::Succeeded);
+    EXPECT_EQ(skills.state(run), SkillState::Running);
+    EXPECT_EQ(static_cast<CountdownSkill&>(skills.skill(low)).resets, 2);
+}
+
+TEST_F(SchedulerTest, PreemptedSkillThatMustNotWaitIsCancelled)
+{
+    auto description = describe("Low", { arm() }, 10);
+    description.wait = false;
+    auto const low = skills.add<CountdownSkill>(std::move(description), 100);
+    auto const stop =
+        skills.add<CountdownSkill>(describe("Stop", { arm() }, 1000), 2);
+    skills.request(low);
+    update();
+    skills.request(stop);
+    update();
+    EXPECT_EQ(skills.state(low), SkillState::Cancelled);
+    EXPECT_EQ(skills.reason(low), SkillReason::Preempted);
 }
 
 TEST_F(SchedulerTest, NonCancellableIsNotPreempted)
@@ -341,8 +372,9 @@ TEST_F(SchedulerTest, ResourcesHeldWhileStopping)
     EXPECT_EQ(skills.state(next), SkillState::Waiting);
     EXPECT_EQ(skills.reason(next), SkillReason::Preempting);
     update(2); // stopping 2/3, then 3/3: safe, the arm goes to Next
-    EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
-    EXPECT_EQ(skills.reason(slow), SkillReason::Preempted);
+    // Slow waits again for the arm, now held by Next.
+    EXPECT_EQ(skills.state(slow), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(slow), SkillReason::Busy);
     EXPECT_EQ(skills.state(next), SkillState::Running);
     EXPECT_EQ(robot.resources().owner(arm().id), next);
 }
@@ -375,7 +407,8 @@ TEST_F(SchedulerTest, UrgentSkillDoesNotWaitForStopping)
     update();
     skills.request(stop);
     update();
-    EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
+    EXPECT_EQ(skills.state(slow), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(slow), SkillReason::Preempted);
     EXPECT_EQ(static_cast<SlowStopSkill&>(skills.skill(slow)).stops, 0);
     EXPECT_EQ(skills.state(stop), SkillState::Running);
 }
@@ -460,4 +493,30 @@ BehaviorTree:
     EXPECT_EQ(status, bt::Status::FAILURE);
     EXPECT_EQ(skills.state(skills.find("First")), SkillState::Succeeded);
     EXPECT_EQ(skills.state(skills.find("Second")), SkillState::Failed);
+}
+
+TEST_F(SchedulerTest, TreeNodeWritesWhyItsRunEnded)
+{
+    skills.add<CountdownSkill>(
+        describe("Grasp", { arm() }), 2, Status::FAILURE);
+    bt::NodeFactory factory;
+    robotik::registerSkills(factory, skills);
+    auto board = std::make_shared<bt::Blackboard>();
+    auto built = bt::Builder::fromText(factory, R"(
+BehaviorTree:
+  Action:
+    name: Grasp
+)",
+                                       board);
+    ASSERT_TRUE(built) << built.getError();
+    bt::Tree::Ptr tree = std::move(built.getValue());
+    bt::Status status = bt::Status::RUNNING;
+    for (int i = 0; i < 20 && status == bt::Status::RUNNING; ++i)
+    {
+        status = tree->tick();
+        update();
+    }
+    EXPECT_EQ(status, bt::Status::FAILURE);
+    EXPECT_EQ(board->get<std::string>("Grasp.state"), "FAILED");
+    EXPECT_EQ(board->get<std::string>("Grasp.reason"), "failed");
 }

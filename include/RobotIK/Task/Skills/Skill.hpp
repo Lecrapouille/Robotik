@@ -85,7 +85,9 @@ struct SkillDescription
     /// Higher runs first and may preempt lower.
     Priority priority = 0;
     /// Waits while a resource is busy or a precondition is false, instead of
-    /// failing at once.
+    /// failing at once. A preempted run also waits for its resources again
+    /// and starts again from @ref Skill::reset; false: it ends
+    /// @c Cancelled (reason @c Preempted).
     bool wait = true;
     /// False forbids preemption by a higher priority skill.
     bool cancellable = true;
@@ -116,10 +118,16 @@ struct SkillDescription
 ///
 /// The life of a run: @ref reset, then @ref tick at every step until it
 /// returns @c SUCCESS or @c FAILURE, or @ref cancel if the scheduler stops it
-/// (preemption, lost resource, a tree that moves on). @ref cancel must leave
-/// the hardware safe: hold the joints, open the gripper. A tick commands a
-/// little and returns; it never loops until the goal, because the other
-/// skills and the physics run between two ticks.
+/// (preemption, lost resource, a tree that moves on), then @ref stopping
+/// until the hardware is safe. @ref cancel must leave the hardware safe:
+/// hold the joints, open the gripper. A tick commands a little and returns;
+/// it never loops until the goal, because the other skills and the physics
+/// run between two ticks.
+///
+/// A preempted run starts again from @ref reset when its resources come
+/// back (@ref SkillDescription::wait). So @ref reset must clear everything a
+/// run keeps, and @ref tick must read where the robot and the objects are
+/// now (joints, beliefs), not where they were when the run started.
 ///
 /// @code
 /// class WaveSkill final : public robotik::Skill {

@@ -261,9 +261,18 @@ TEST(Simulation, EmergencyStopPreemptsTheArm)
     robotik::SkillId const approach = skills.find("Approach(red_cube)");
     ASSERT_EQ(skills.state(approach), robotik::SkillState::Running);
 
-    skills.request(stop);
+    robotik::RunId const emergency = skills.request(stop);
     simulation.step(robotik::Seconds(0.01));
     EXPECT_EQ(skills.state(stop), robotik::SkillState::Running);
-    EXPECT_EQ(skills.state(approach), robotik::SkillState::Cancelled);
+    // Preempted, not failed: the approach waits for the arm again.
+    EXPECT_EQ(skills.state(approach), robotik::SkillState::Waiting);
     EXPECT_EQ(skills.reason(approach), robotik::SkillReason::Preempted);
+    EXPECT_EQ(skills.trace()[skills.trace().size() - 2U].reason,
+              robotik::SkillReason::Preempted);
+
+    // The emergency ends: the approach starts again.
+    skills.cancel(emergency);
+    simulation.step(robotik::Seconds(0.01));
+    simulation.step(robotik::Seconds(0.01));
+    EXPECT_EQ(skills.state(approach), robotik::SkillState::Running);
 }

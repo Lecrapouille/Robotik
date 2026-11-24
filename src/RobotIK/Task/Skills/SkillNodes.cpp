@@ -14,56 +14,97 @@
 namespace robotik
 {
 
-/// Ticks one tree node: asks for its own run once, then follows that run
-/// only. Another caller of the same skill has its own ticket.
-static bt::Status
-tickSkill(SkillScheduler& p_scheduler, SkillId p_id, RunId& p_run)
+// ****************************************************************************
+/// Tree node of a skill. It asks for its own run once, then follows that run
+/// only: another caller of the same skill has its own ticket. When the run
+/// ends, it writes "<skill>.state" and "<skill>.reason" on the blackboard, so
+/// the tree can tell a failure from a cancel or a lost resource.
+// ****************************************************************************
+class SkillLeaf final: public bt::CallbackLeaf
 {
-    if (p_run == NO_RUN)
+public:
+
+    SkillLeaf(SkillScheduler& p_scheduler, SkillId p_id)
+        : CallbackLeaf([]() noexcept { return bt::Status::FAILURE; }),
+          m_scheduler(p_scheduler),
+          m_id(p_id)
     {
-        p_run = p_scheduler.request(p_id);
-        return bt::Status::RUNNING;
     }
-    switch (p_scheduler.state(p_run))
+
+    void fillConfig(bt::NodeConfig& p_config) const override
     {
-        case SkillState::Idle:
-        case SkillState::Waiting:
-        case SkillState::Running:
-        case SkillState::Stopping:
+        SkillLeaf* self = const_cast<SkillLeaf*>(this);
+        p_config.callback = [self]() { return self->onTick(); };
+        p_config.on_reset = [self]() { self->onHalt(); };
+    }
+
+private:
+
+    /// Asks for the run, then answers its state.
+    bt::Status onTick()
+    {
+        if (m_run == NO_RUN)
+        {
+            m_run = m_scheduler.request(m_id);
             return bt::Status::RUNNING;
-        case SkillState::Succeeded:
-            p_run = NO_RUN;
-            return bt::Status::SUCCESS;
-        case SkillState::Failed:
-        case SkillState::Cancelled:
-            p_run = NO_RUN;
-            return bt::Status::FAILURE;
+        }
+        SkillState const state = m_scheduler.state(m_run);
+        switch (state)
+        {
+            case SkillState::Idle:
+            case SkillState::Waiting:
+            case SkillState::Running:
+            case SkillState::Stopping:
+                return bt::Status::RUNNING;
+            case SkillState::Succeeded:
+            case SkillState::Failed:
+            case SkillState::Cancelled:
+                break;
+        }
+        tell(state, m_scheduler.reason(m_run));
+        m_run = NO_RUN;
+        return state == SkillState::Succeeded ? bt::Status::SUCCESS
+                                              : bt::Status::FAILURE;
     }
-    return bt::Status::FAILURE;
-}
+
+    /// The tree moves on: cancels this node's run only.
+    void onHalt()
+    {
+        if (m_run != NO_RUN)
+        {
+            m_scheduler.cancel(m_run);
+            m_run = NO_RUN;
+        }
+    }
+
+    /// Writes how the run ended on the blackboard of the tree.
+    void tell(SkillState p_state, SkillReason p_reason) const
+    {
+        if (bt::Blackboard::Ptr const board = blackboard())
+        {
+            std::string const& name = m_scheduler.name(m_id);
+            board->set(name + ".state", std::string(robotik::toString(p_state)));
+            board->set(name + ".reason", std::string(robotik::toString(p_reason)));
+        }
+    }
+
+    SkillScheduler& m_scheduler;
+    SkillId m_id;
+    /// Ticket of the run this node asked for, or NO_RUN.
+    RunId m_run{};
+};
 
 void registerSkills(bt::NodeFactory& p_factory, SkillScheduler& p_scheduler)
 {
     for (SkillId id = 0; id < p_scheduler.size(); ++id)
     {
-        p_factory.registerNode(
-            p_scheduler.name(id),
-            [&p_scheduler, id]()
-            {
-                // One ticket per tree node: the same skill may appear twice.
-                auto run = std::make_shared<RunId>();
-                return std::make_unique<bt::CallbackLeaf>(
-                    [&p_scheduler, id, run]()
-                    { return tickSkill(p_scheduler, id, *run); },
-                    [&p_scheduler, run]()
-                    {
-                        if (*run != NO_RUN)
-                        {
-                            p_scheduler.cancel(*run);
-                            *run = NO_RUN;
-                        }
-                    });
-            });
+        // One ticket per tree node: the same skill may appear twice.
+        p_factory.registerNode(p_scheduler.name(id),
+                               [&p_scheduler, id]()
+                               {
+                                   return std::make_unique<SkillLeaf>(
+                                       p_scheduler, id);
+                               });
     }
 }
 

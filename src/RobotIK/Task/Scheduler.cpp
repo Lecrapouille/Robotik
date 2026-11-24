@@ -337,6 +337,20 @@ void SkillScheduler::finish(SkillId p_id,
                             Seconds p_now)
 {
     m_leases[p_id].release();
+    if (p_reason == SkillReason::Preempted && m_descriptions[p_id].wait)
+    {
+        // The run is not over: it waits for its resources again, at its
+        // place in the order, and starts again from Skill::reset.
+        m_states[p_id] = SkillState::Cancelled;
+        m_reasons[p_id] = SkillReason::Preempted;
+        m_cancels[p_id] = 0U;
+        record(p_id, p_now);
+        m_states[p_id] = SkillState::Waiting;
+        m_runs[p_id] = -1;
+        record(p_id, p_now);
+        changed(p_id, SkillState::Waiting);
+        return;
+    }
     m_states[p_id] = p_state;
     m_reasons[p_id] = p_reason;
     m_cancels[p_id] = 0U;
