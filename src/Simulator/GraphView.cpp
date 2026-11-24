@@ -606,7 +606,7 @@ static void skillCells(App& p_app, robotik::SkillId p_id)
     {
         if (ImGui::SmallButton("Cancel"))
         {
-            skills.cancel(p_id);
+            skills.cancelAll(p_id);
         }
         ImGui::SetItemTooltip("Stop this skill.");
     }

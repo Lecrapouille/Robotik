@@ -14,27 +14,28 @@
 namespace robotik
 {
 
+/// Ticks one tree node: asks for its own run once, then follows that run
+/// only. Another caller of the same skill has its own ticket.
 static bt::Status
-tickSkill(SkillScheduler& p_scheduler, SkillId p_id, bool& p_active)
+tickSkill(SkillScheduler& p_scheduler, SkillId p_id, RunId& p_run)
 {
-    if (!p_active)
+    if (p_run == NO_RUN)
     {
-        p_scheduler.request(p_id);
-        p_active = true;
+        p_run = p_scheduler.request(p_id);
         return bt::Status::RUNNING;
     }
-    switch (p_scheduler.state(p_id))
+    switch (p_scheduler.state(p_run))
     {
         case SkillState::Idle:
         case SkillState::Waiting:
         case SkillState::Running:
             return bt::Status::RUNNING;
         case SkillState::Succeeded:
-            p_active = false;
+            p_run = NO_RUN;
             return bt::Status::SUCCESS;
         case SkillState::Failed:
         case SkillState::Cancelled:
-            p_active = false;
+            p_run = NO_RUN;
             return bt::Status::FAILURE;
     }
     return bt::Status::FAILURE;
@@ -48,17 +49,17 @@ void registerSkills(bt::NodeFactory& p_factory, SkillScheduler& p_scheduler)
             p_scheduler.name(id),
             [&p_scheduler, id]()
             {
-                // One flag per tree node: the same skill may appear twice.
-                auto active = std::make_shared<bool>(false);
+                // One ticket per tree node: the same skill may appear twice.
+                auto run = std::make_shared<RunId>();
                 return std::make_unique<bt::CallbackLeaf>(
-                    [&p_scheduler, id, active]()
-                    { return tickSkill(p_scheduler, id, *active); },
-                    [&p_scheduler, id, active]()
+                    [&p_scheduler, id, run]()
+                    { return tickSkill(p_scheduler, id, *run); },
+                    [&p_scheduler, run]()
                     {
-                        if (*active)
+                        if (*run != NO_RUN)
                         {
-                            p_scheduler.cancel(id);
-                            *active = false;
+                            p_scheduler.cancel(*run);
+                            *run = NO_RUN;
                         }
                     });
             });

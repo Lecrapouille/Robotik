@@ -207,7 +207,7 @@ void toggleEmergency(App& p_app)
     }
     if (emergencyEngaged(p_app))
     {
-        skills.cancel(stop);
+        skills.cancelAll(stop);
     }
     else
     {

@@ -76,10 +76,10 @@ public:
         p_config.callback = [self]() { return self->onTick(); };
         p_config.on_reset = [self]()
         {
-            if (self->m_active)
+            if (self->m_run != robotik::NO_RUN)
             {
-                self->m_scheduler.cancel(self->m_id);
-                self->m_active = false;
+                self->m_scheduler.cancel(self->m_run);
+                self->m_run = robotik::NO_RUN;
             }
         };
     }
@@ -88,7 +88,7 @@ private:
 
     bt::Status onTick()
     {
-        if (!m_active)
+        if (m_run == robotik::NO_RUN)
         {
             if (m_gesture != Gesture::Rinse)
             {
@@ -110,22 +110,21 @@ private:
                         .use(*color);
                 }
             }
-            m_scheduler.request(m_id);
-            m_active = true;
+            m_run = m_scheduler.request(m_id);
             return bt::Status::RUNNING;
         }
-        switch (m_scheduler.state(m_id))
+        switch (m_scheduler.state(m_run))
         {
             case robotik::SkillState::Idle:
             case robotik::SkillState::Waiting:
             case robotik::SkillState::Running:
                 return bt::Status::RUNNING;
             case robotik::SkillState::Succeeded:
-                m_active = false;
+                m_run = robotik::NO_RUN;
                 return bt::Status::SUCCESS;
             case robotik::SkillState::Failed:
             case robotik::SkillState::Cancelled:
-                m_active = false;
+                m_run = robotik::NO_RUN;
                 return bt::Status::FAILURE;
         }
         return bt::Status::FAILURE;
@@ -134,7 +133,8 @@ private:
     robotik::SkillScheduler& m_scheduler;
     robotik::SkillId m_id = robotik::NO_SKILL;
     Gesture m_gesture = Gesture::Dip;
-    bool m_active = false;
+    /// Ticket of the run this node asked for, or NO_RUN.
+    robotik::RunId m_run{};
 };
 
 DipSkill::DipSkill(Stroke& p_stroke) : m_stroke(&p_stroke) {}

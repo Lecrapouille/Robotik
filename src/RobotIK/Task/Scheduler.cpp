@@ -56,6 +56,8 @@ char const* toString(SkillReason p_reason)
             return "cancelled";
         case SkillReason::Failed:
             return "failed";
+        case SkillReason::Queued:
+            return "queued";
     }
     return "?";
 }
@@ -99,6 +101,10 @@ SkillId SkillScheduler::add(SkillDescription p_description,
     m_orders.push_back(0U);
     m_runs.push_back(-1);
     m_leases.emplace_back();
+    m_generations.push_back(0U);
+    m_requested.push_back(0U);
+    m_queued.emplace_back();
+    m_ended.emplace_back();
     return static_cast<SkillId>(m_skills.size() - 1U);
 }
 
@@ -123,13 +129,37 @@ Precondition const* SkillScheduler::precondition(SkillId p_id) const
     return &m_descriptions[p_id].preconditions[m_preconditions[p_id]];
 }
 
-void SkillScheduler::request(SkillId p_id)
+RunId SkillScheduler::request(SkillId p_id)
 {
+    std::uint32_t const generation = ++m_requested[p_id];
     if (m_states[p_id] == SkillState::Waiting ||
         m_states[p_id] == SkillState::Running)
     {
+        // One run at a time: this one waits for the end of the current one.
+        m_queued[p_id].push_back(generation);
+        return { p_id, generation };
+    }
+    m_generations[p_id] = generation;
+    m_states[p_id] = SkillState::Waiting;
+    m_reasons[p_id] = SkillReason::None;
+    m_blockers[p_id] = NO_RESOURCE;
+    m_cancels[p_id] = 0U;
+    m_orders[p_id] = m_order++;
+    m_runs[p_id] = -1;
+    changed(p_id, SkillState::Waiting);
+    return { p_id, generation };
+}
+
+void SkillScheduler::dequeue(SkillId p_id)
+{
+    std::vector<std::uint32_t>& queued = m_queued[p_id];
+    if (queued.empty())
+    {
         return;
     }
+    std::uint32_t const generation = queued.front();
+    queued.erase(queued.begin());
+    m_generations[p_id] = generation;
     m_states[p_id] = SkillState::Waiting;
     m_reasons[p_id] = SkillReason::None;
     m_blockers[p_id] = NO_RESOURCE;
@@ -139,8 +169,87 @@ void SkillScheduler::request(SkillId p_id)
     changed(p_id, SkillState::Waiting);
 }
 
-void SkillScheduler::cancel(SkillId p_id)
+RunEnd const* SkillScheduler::ended(RunId p_run) const
 {
+    for (RunEnd const& end : m_ended[p_run.skill])
+    {
+        if (end.generation == p_run.generation)
+        {
+            return &end;
+        }
+    }
+    return nullptr;
+}
+
+SkillState SkillScheduler::state(RunId p_run) const
+{
+    if (p_run.skill >= m_skills.size() || p_run.generation == 0U)
+    {
+        return SkillState::Idle;
+    }
+    if (p_run.generation == m_generations[p_run.skill])
+    {
+        return m_states[p_run.skill];
+    }
+    if (std::ranges::find(m_queued[p_run.skill], p_run.generation) !=
+        m_queued[p_run.skill].end())
+    {
+        return SkillState::Waiting;
+    }
+    RunEnd const* end = ended(p_run);
+    return end != nullptr ? end->state : SkillState::Idle;
+}
+
+SkillReason SkillScheduler::reason(RunId p_run) const
+{
+    if (p_run.skill >= m_skills.size() || p_run.generation == 0U)
+    {
+        return SkillReason::None;
+    }
+    if (p_run.generation == m_generations[p_run.skill])
+    {
+        return m_reasons[p_run.skill];
+    }
+    if (std::ranges::find(m_queued[p_run.skill], p_run.generation) !=
+        m_queued[p_run.skill].end())
+    {
+        return SkillReason::Queued;
+    }
+    RunEnd const* end = ended(p_run);
+    return end != nullptr ? end->reason : SkillReason::None;
+}
+
+void SkillScheduler::cancel(RunId p_run)
+{
+    if (p_run.skill >= m_skills.size())
+    {
+        return;
+    }
+    std::vector<std::uint32_t>& queued = m_queued[p_run.skill];
+    if (auto const it = std::ranges::find(queued, p_run.generation);
+        it != queued.end())
+    {
+        queued.erase(it);
+        m_ended[p_run.skill].push_back(
+            { p_run.generation, SkillState::Cancelled, SkillReason::Cancelled });
+        return;
+    }
+    SkillState const state = m_states[p_run.skill];
+    if (p_run.generation == m_generations[p_run.skill] &&
+        (state == SkillState::Waiting || state == SkillState::Running))
+    {
+        m_cancels[p_run.skill] = 1U;
+    }
+}
+
+void SkillScheduler::cancelAll(SkillId p_id)
+{
+    for (std::uint32_t const generation : m_queued[p_id])
+    {
+        m_ended[p_id].push_back(
+            { generation, SkillState::Cancelled, SkillReason::Cancelled });
+    }
+    m_queued[p_id].clear();
     if (m_states[p_id] == SkillState::Waiting ||
         m_states[p_id] == SkillState::Running)
     {
@@ -152,7 +261,7 @@ void SkillScheduler::cancelAll()
 {
     for (SkillId id = 0; id < m_skills.size(); ++id)
     {
-        cancel(id);
+        cancelAll(id);
     }
 }
 
@@ -166,6 +275,10 @@ void SkillScheduler::reset()
         m_blockers[id] = NO_RESOURCE;
         m_cancels[id] = 0U;
         m_runs[id] = -1;
+        // The request counter goes on: an old ticket never names a new run.
+        m_generations[id] = 0U;
+        m_queued[id].clear();
+        m_ended[id].clear();
     }
     m_trace.clear();
     m_order = 0;
@@ -214,8 +327,10 @@ void SkillScheduler::finish(SkillId p_id,
     m_states[p_id] = p_state;
     m_reasons[p_id] = p_reason;
     m_cancels[p_id] = 0U;
+    m_ended[p_id].push_back({ m_generations[p_id], p_state, p_reason });
     record(p_id, p_now);
     changed(p_id, p_state);
+    dequeue(p_id);
 }
 
 RobotContext& SkillScheduler::contextOf(SkillId p_id) const

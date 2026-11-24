@@ -42,6 +42,35 @@ using SkillId = std::uint32_t;
 inline constexpr SkillId NO_SKILL = 0xFFFFFFFFU;
 
 // ****************************************************************************
+/// Ticket of one request: which skill, and which of its runs.
+///
+/// Two callers that ask for the same skill get two tickets. Each one reads
+/// the state of its own run and cancels only its own run, so a behavior
+/// tree, a plan and a button of the interface do not cancel each other.
+/// The generation goes on counting after a reset: an old ticket never names
+/// a new run.
+///
+/// @code
+/// robotik::RunId const run = skills.request(home);
+/// skills.update(context);
+/// if (skills.state(run) == robotik::SkillState::Succeeded) { ... }
+/// @endcode
+// ****************************************************************************
+struct RunId
+{
+    /// Skill asked for, or @ref NO_SKILL.
+    SkillId skill = NO_SKILL;
+    /// Number of the request for this skill (1 for the first one).
+    std::uint32_t generation = 0U;
+
+    /// Two tickets are equal when they name the same run.
+    friend bool operator==(RunId const&, RunId const&) = default;
+};
+
+/// No run (a ticket not yet asked for).
+inline constexpr RunId NO_RUN{};
+
+// ****************************************************************************
 /// Life cycle of one skill run.
 // ****************************************************************************
 enum class SkillState : std::uint8_t
@@ -67,6 +96,7 @@ enum class SkillReason : std::uint8_t
     Preempted,    ///< A higher priority skill took a resource.
     Cancelled,    ///< Explicit @ref SkillScheduler::cancel.
     Failed,       ///< The skill itself returned @ref Status::FAILURE.
+    Queued,       ///< Another run of the same skill is in progress.
 };
 
 // ----------------------------------------------------------------------------
@@ -111,6 +141,19 @@ struct SkillRun
     Seconds start{};
     /// Time of the last update of this run.
     Seconds end{};
+};
+
+// ****************************************************************************
+/// How a run ended, kept to answer @ref SkillScheduler::state(RunId) const.
+// ****************************************************************************
+struct RunEnd
+{
+    /// Run of the skill.
+    std::uint32_t generation = 0U;
+    /// End state.
+    SkillState state = SkillState::Idle;
+    /// Why it ended so.
+    SkillReason reason = SkillReason::None;
 };
 
 // ****************************************************************************
@@ -195,18 +238,31 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    /// Asks for a new run. No effect while waiting or running.
+    /// Asks for a new run. A skill has one run at a time: while one waits or
+    /// runs, the new one is queued (state @c Waiting, reason @c Queued) and
+    /// becomes the run of the skill when the previous one ends, in the
+    /// order of the requests.
     /// @param p_id Skill to run.
+    /// @return The ticket of this run.
     // -------------------------------------------------------------------------
-    void request(SkillId p_id);
+    RunId request(SkillId p_id);
 
     // -------------------------------------------------------------------------
-    /// Cancels the run at the next @ref update.
+    /// Cancels one run: a queued run is removed at once (it ends
+    /// @c Cancelled), the current run is cancelled at the next @ref update.
+    /// No effect on a run that ended, nor on the other runs of the skill.
+    /// @param p_run Ticket given by @ref request.
+    // -------------------------------------------------------------------------
+    void cancel(RunId p_run);
+
+    // -------------------------------------------------------------------------
+    /// Cancels every run of a skill, whoever asked for it (emergency button
+    /// of the interface).
     /// @param p_id Skill to cancel.
     // -------------------------------------------------------------------------
-    void cancel(SkillId p_id);
+    void cancelAll(SkillId p_id);
 
-    /// Cancels every run at the next @ref update.
+    /// Cancels every run of every skill at the next @ref update.
     void cancelAll();
 
     // -------------------------------------------------------------------------
@@ -248,12 +304,21 @@ public:
 
     // -------------------------------------------------------------------------
     /// @param p_id Skill id.
-    /// @return Where the last run of the skill is.
+    /// @return Where the current or last run of the skill is (for the
+    ///   interface; a caller reads its own run with @ref state(RunId) const).
     // -------------------------------------------------------------------------
     [[nodiscard]] SkillState state(SkillId p_id) const
     {
         return m_states[p_id];
     }
+
+    // -------------------------------------------------------------------------
+    /// @param p_run Ticket given by @ref request.
+    /// @return Where this run is: @c Waiting while queued, its end state
+    ///   once ended, @c Idle for a ticket this scheduler does not know
+    ///   (given before the last @ref reset).
+    // -------------------------------------------------------------------------
+    [[nodiscard]] SkillState state(RunId p_run) const;
 
     // -------------------------------------------------------------------------
     /// @param p_id Skill id.
@@ -263,6 +328,13 @@ public:
     {
         return m_reasons[p_id];
     }
+
+    // -------------------------------------------------------------------------
+    /// @param p_run Ticket given by @ref request.
+    /// @return Why this run waits (@c Queued while queued), failed or was
+    ///   cancelled.
+    // -------------------------------------------------------------------------
+    [[nodiscard]] SkillReason reason(RunId p_run) const;
 
     // -------------------------------------------------------------------------
     /// @param p_id Skill id.
@@ -335,6 +407,10 @@ private:
     void stop(SkillId p_id, SkillState p_state, SkillReason p_reason);
     /// Adds or updates the phase of @p_id in @ref m_trace.
     void record(SkillId p_id, Seconds p_now);
+    /// Makes the first queued run of @p_id its current run (state Waiting).
+    void dequeue(SkillId p_id);
+    /// @return The end of run @p_run, or null when it did not end.
+    [[nodiscard]] RunEnd const* ended(RunId p_run) const;
 
 private:
 
@@ -361,6 +437,14 @@ private:
     std::vector<std::int32_t> m_runs;
     /// Resources held by each running skill.
     std::vector<ResourceLease> m_leases;
+    /// Generation of the current or last run of each skill.
+    std::vector<std::uint32_t> m_generations;
+    /// Generation of the last request of each skill (not reset).
+    std::vector<std::uint32_t> m_requested;
+    /// Queued runs of each skill, oldest first.
+    std::vector<std::vector<std::uint32_t>> m_queued;
+    /// Ended runs of each skill since the last reset.
+    std::vector<std::vector<RunEnd>> m_ended;
 
     /// Contexts of the @ref update in progress.
     std::span<RobotContext> m_contexts;

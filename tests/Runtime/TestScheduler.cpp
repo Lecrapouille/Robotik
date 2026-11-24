@@ -285,14 +285,67 @@ TEST_F(SchedulerTest, CancelIsCooperative)
 {
     auto const id =
         skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
-    skills.request(id);
+    robotik::RunId const run = skills.request(id);
     update();
-    skills.cancel(id);
+    skills.cancel(run);
     EXPECT_EQ(skills.state(id), SkillState::Running);
     update();
     EXPECT_EQ(skills.state(id), SkillState::Cancelled);
     EXPECT_EQ(skills.reason(id), SkillReason::Cancelled);
     EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+}
+
+TEST_F(SchedulerTest, TwoRequestsAreTwoRuns)
+{
+    auto const id =
+        skills.add<CountdownSkill>(describe("Move", { arm() }), 2);
+    robotik::RunId const first = skills.request(id);
+    robotik::RunId const second = skills.request(id);
+    EXPECT_NE(first, second);
+    EXPECT_EQ(skills.state(second), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(second), SkillReason::Queued);
+    update(2); // admitted and ticked twice: the first one succeeds
+    EXPECT_EQ(skills.state(first), SkillState::Succeeded);
+    EXPECT_EQ(skills.state(second), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(second), SkillReason::None);
+    update(2);
+    EXPECT_EQ(skills.state(second), SkillState::Succeeded);
+    EXPECT_EQ(skills.state(first), SkillState::Succeeded);
+}
+
+TEST_F(SchedulerTest, CancellingOneTicketKeepsTheOther)
+{
+    auto const id =
+        skills.add<CountdownSkill>(describe("Move", { arm() }), 100);
+    robotik::RunId const first = skills.request(id);
+    robotik::RunId const second = skills.request(id);
+    update();
+    // The second caller gives up: the run of the first one goes on.
+    skills.cancel(second);
+    EXPECT_EQ(skills.state(second), SkillState::Cancelled);
+    update();
+    EXPECT_EQ(skills.state(first), SkillState::Running);
+    // The first caller gives up: only its run ends.
+    robotik::RunId const third = skills.request(id);
+    skills.cancel(first);
+    EXPECT_EQ(skills.state(third), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(third), SkillReason::Queued);
+    update(); // the cancel frees the arm: the third run starts at once
+    EXPECT_EQ(skills.state(first), SkillState::Cancelled);
+    EXPECT_EQ(skills.state(third), SkillState::Running);
+}
+
+TEST_F(SchedulerTest, OldTicketIsUnknownAfterReset)
+{
+    auto const id =
+        skills.add<CountdownSkill>(describe("Move", { arm() }), 1);
+    robotik::RunId const old = skills.request(id);
+    update(2);
+    skills.reset();
+    EXPECT_EQ(skills.state(old), SkillState::Idle);
+    robotik::RunId const fresh = skills.request(id);
+    EXPECT_NE(old, fresh);
+    EXPECT_EQ(skills.state(old), SkillState::Idle);
 }
 
 TEST_F(SchedulerTest, BehaviorTreeRequestsSkills)
