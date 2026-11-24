@@ -58,6 +58,37 @@ private:
     int m_left = 0;
 };
 
+/// Runs until cancelled, then needs @p p_ticks updates to be safe.
+class SlowStopSkill final: public robotik::Skill
+{
+public:
+
+    explicit SlowStopSkill(int p_ticks) : m_ticks(p_ticks) {}
+
+    Status tick(robotik::RobotContext&, robotik::Seconds) override
+    {
+        return Status::RUNNING;
+    }
+
+    void cancel(robotik::RobotContext&) override
+    {
+        m_left = m_ticks;
+    }
+
+    Status stopping(robotik::RobotContext&, robotik::Seconds) override
+    {
+        ++stops;
+        return --m_left > 0 ? Status::RUNNING : Status::SUCCESS;
+    }
+
+    int stops = 0;
+
+private:
+
+    int m_ticks;
+    int m_left = 0;
+};
+
 /// Fixture that drives a scheduler with countdown skills.
 class SchedulerTest: public ::testing::Test
 {
@@ -293,6 +324,60 @@ TEST_F(SchedulerTest, CancelIsCooperative)
     EXPECT_EQ(skills.state(id), SkillState::Cancelled);
     EXPECT_EQ(skills.reason(id), SkillReason::Cancelled);
     EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+}
+
+TEST_F(SchedulerTest, ResourcesHeldWhileStopping)
+{
+    auto const slow =
+        skills.add<SlowStopSkill>(describe("Slow", { arm() }, 0), 3);
+    auto const next =
+        skills.add<CountdownSkill>(describe("Next", { arm() }, 50), 100);
+    skills.request(slow);
+    update();
+    skills.request(next);
+    update(); // preempted: stopping 1/3, the arm stays held
+    EXPECT_EQ(skills.state(slow), SkillState::Stopping);
+    EXPECT_EQ(robot.resources().owner(arm().id), slow);
+    EXPECT_EQ(skills.state(next), SkillState::Waiting);
+    EXPECT_EQ(skills.reason(next), SkillReason::Preempting);
+    update(2); // stopping 2/3, then 3/3: safe, the arm goes to Next
+    EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
+    EXPECT_EQ(skills.reason(slow), SkillReason::Preempted);
+    EXPECT_EQ(skills.state(next), SkillState::Running);
+    EXPECT_EQ(robot.resources().owner(arm().id), next);
+}
+
+TEST_F(SchedulerTest, StopTimeoutForcesTheEnd)
+{
+    auto description = describe("Slow", { arm() }, 0);
+    description.stop_timeout = robotik::Seconds(0.025);
+    auto const slow = skills.add<SlowStopSkill>(std::move(description), 1000);
+    robotik::RunId const run = skills.request(slow);
+    update();
+    skills.cancel(run);
+    update(3); // 0, 0.01 and 0.02 s of stopping
+    EXPECT_EQ(skills.state(slow), SkillState::Stopping);
+    update(); // 0.03 s > 0.025 s
+    EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
+    EXPECT_TRUE(skills.trace().back().forced);
+    EXPECT_EQ(robot.resources().owner(arm().id), robotik::NO_OWNER);
+}
+
+TEST_F(SchedulerTest, UrgentSkillDoesNotWaitForStopping)
+{
+    auto const slow =
+        skills.add<SlowStopSkill>(describe("Slow", { arm() }, 0), 100);
+    auto stop_description = describe("Stop", { arm() }, 1000);
+    stop_description.urgent = true;
+    auto const stop =
+        skills.add<CountdownSkill>(std::move(stop_description), 100);
+    skills.request(slow);
+    update();
+    skills.request(stop);
+    update();
+    EXPECT_EQ(skills.state(slow), SkillState::Cancelled);
+    EXPECT_EQ(static_cast<SlowStopSkill&>(skills.skill(slow)).stops, 0);
+    EXPECT_EQ(skills.state(stop), SkillState::Running);
 }
 
 TEST_F(SchedulerTest, TwoRequestsAreTwoRuns)

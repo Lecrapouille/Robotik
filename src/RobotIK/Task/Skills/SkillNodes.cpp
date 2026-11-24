@@ -29,6 +29,7 @@ tickSkill(SkillScheduler& p_scheduler, SkillId p_id, RunId& p_run)
         case SkillState::Idle:
         case SkillState::Waiting:
         case SkillState::Running:
+        case SkillState::Stopping:
             return bt::Status::RUNNING;
         case SkillState::Succeeded:
             p_run = NO_RUN;

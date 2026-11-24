@@ -78,6 +78,8 @@ enum class SkillState : std::uint8_t
     Idle,      ///< Never requested since the last reset.
     Waiting,   ///< Requested, not started (busy resource or precondition).
     Running,   ///< Holding its resources, ticked every update.
+    Stopping,  ///< Cancelled or preempted, still holding its resources until
+               ///< @ref Skill::stopping says the hardware is safe.
     Succeeded, ///< Last run reached its goal.
     Failed,    ///< Last run failed (see @ref SkillReason).
     Cancelled, ///< Last run was cancelled or preempted.
@@ -97,6 +99,7 @@ enum class SkillReason : std::uint8_t
     Cancelled,    ///< Explicit @ref SkillScheduler::cancel.
     Failed,       ///< The skill itself returned @ref Status::FAILURE.
     Queued,       ///< Another run of the same skill is in progress.
+    Preempting,   ///< Waits for the skills it preempted to stop.
 };
 
 // ----------------------------------------------------------------------------
@@ -141,6 +144,9 @@ struct SkillRun
     Seconds start{};
     /// Time of the last update of this run.
     Seconds end{};
+    /// True when the stop of the run reached @ref SkillDescription::stop_timeout
+    /// and was forced.
+    bool forced = false;
 };
 
 // ****************************************************************************
@@ -262,7 +268,9 @@ public:
     // -------------------------------------------------------------------------
     void cancelAll(SkillId p_id);
 
-    /// Cancels every run of every skill at the next @ref update.
+    /// Cancels every run of every skill at the next @ref update, at once:
+    /// the running skills get @ref Skill::cancel but no @c Stopping phase
+    /// (a new plan, an emergency).
     void cancelAll();
 
     // -------------------------------------------------------------------------
@@ -403,8 +411,16 @@ private:
                 SkillState p_state,
                 SkillReason p_reason,
                 Seconds p_now);
-    /// Cancels a running skill (calls @ref Skill::cancel) and finishes it.
-    void stop(SkillId p_id, SkillState p_state, SkillReason p_reason);
+    /// Cancels a running skill (calls @ref Skill::cancel). With
+    /// @p p_at_once, or when @ref Skill::stopping succeeds at once, the run
+    /// ends now; else it is @c Stopping and keeps its resources.
+    void stop(SkillId p_id,
+              SkillState p_state,
+              SkillReason p_reason,
+              bool p_at_once);
+    /// Asks a stopping skill if it is safe; ends the run when it is, or when
+    /// its stop timeout is over.
+    void stopping(SkillId p_id);
     /// Adds or updates the phase of @p_id in @ref m_trace.
     void record(SkillId p_id, Seconds p_now);
     /// Makes the first queued run of @p_id its current run (state Waiting).
@@ -429,8 +445,15 @@ private:
     std::vector<ResourceId> m_blockers;
     /// Index of the false precondition of each waiting skill.
     std::vector<std::uint8_t> m_preconditions;
-    /// Cancel asked for each skill (1) or not (0).
+    /// Cancel asked for each skill: 0 none, 1 with a Stopping phase, 2 at
+    /// once.
     std::vector<std::uint8_t> m_cancels;
+    /// End state of each stopping run.
+    std::vector<SkillState> m_stop_states;
+    /// End reason of each stopping run.
+    std::vector<SkillReason> m_stop_reasons;
+    /// Time each stopping run started to stop.
+    std::vector<Seconds> m_stop_since;
     /// Request order of each skill, to admit equal priorities fairly.
     std::vector<std::uint64_t> m_orders;
     /// Index of the current phase of each skill in @ref m_trace, or -1.

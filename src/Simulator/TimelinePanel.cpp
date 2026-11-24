@@ -181,6 +181,8 @@ static std::string phaseText(robotik::SkillScheduler const& p_skills,
             return "failed";
         case robotik::SkillState::Cancelled:
             return robotik::toString(p_run.reason);
+        case robotik::SkillState::Stopping:
+            return "stopping";
         case robotik::SkillState::Idle:
         case robotik::SkillState::Running:
         case robotik::SkillState::Succeeded:

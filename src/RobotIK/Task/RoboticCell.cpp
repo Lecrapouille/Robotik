@@ -835,6 +835,7 @@ void RoboticCell::addSkills()
         {
             SkillDescription stop = describe(scope + "Stop", everything);
             stop.priority = STOP_PRIORITY;
+            stop.urgent = true;
             stop.robot = robot->id();
             skills.add<StopSkill>(std::move(stop));
         }

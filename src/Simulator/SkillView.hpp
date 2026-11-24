@@ -26,6 +26,7 @@ inline ImVec4 colorOf(robotik::SkillState p_state)
         case robotik::SkillState::Waiting:
             return BLUE;
         case robotik::SkillState::Running:
+        case robotik::SkillState::Stopping:
             return ORANGE;
         case robotik::SkillState::Succeeded:
             return GREEN;

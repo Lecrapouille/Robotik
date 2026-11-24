@@ -26,6 +26,8 @@ char const* toString(SkillState p_state)
             return "WAITING";
         case SkillState::Running:
             return "RUNNING";
+        case SkillState::Stopping:
+            return "STOPPING";
         case SkillState::Succeeded:
             return "SUCCEEDED";
         case SkillState::Failed:
@@ -58,6 +60,8 @@ char const* toString(SkillReason p_reason)
             return "failed";
         case SkillReason::Queued:
             return "queued";
+        case SkillReason::Preempting:
+            return "preempting";
     }
     return "?";
 }
@@ -98,6 +102,9 @@ SkillId SkillScheduler::add(SkillDescription p_description,
     m_blockers.push_back(NO_RESOURCE);
     m_preconditions.push_back(0U);
     m_cancels.push_back(0U);
+    m_stop_states.push_back(SkillState::Cancelled);
+    m_stop_reasons.push_back(SkillReason::Cancelled);
+    m_stop_since.push_back(Seconds{});
     m_orders.push_back(0U);
     m_runs.push_back(-1);
     m_leases.emplace_back();
@@ -133,7 +140,8 @@ RunId SkillScheduler::request(SkillId p_id)
 {
     std::uint32_t const generation = ++m_requested[p_id];
     if (m_states[p_id] == SkillState::Waiting ||
-        m_states[p_id] == SkillState::Running)
+        m_states[p_id] == SkillState::Running ||
+        m_states[p_id] == SkillState::Stopping)
     {
         // One run at a time: this one waits for the end of the current one.
         m_queued[p_id].push_back(generation);
@@ -251,9 +259,10 @@ void SkillScheduler::cancelAll(SkillId p_id)
     }
     m_queued[p_id].clear();
     if (m_states[p_id] == SkillState::Waiting ||
-        m_states[p_id] == SkillState::Running)
+        m_states[p_id] == SkillState::Running ||
+        m_states[p_id] == SkillState::Stopping)
     {
-        m_cancels[p_id] = 1U;
+        m_cancels[p_id] = std::max<std::uint8_t>(m_cancels[p_id], 1U);
     }
 }
 
@@ -262,6 +271,10 @@ void SkillScheduler::cancelAll()
     for (SkillId id = 0; id < m_skills.size(); ++id)
     {
         cancelAll(id);
+        if (m_cancels[id] != 0U)
+        {
+            m_cancels[id] = 2U; // at once
+        }
     }
 }
 
@@ -354,14 +367,55 @@ RobotContext& SkillScheduler::contextOf(SkillId p_id) const
 
 void SkillScheduler::stop(SkillId p_id,
                           SkillState p_state,
-                          SkillReason p_reason)
+                          SkillReason p_reason,
+                          bool p_at_once)
 {
     RobotContext& context = contextOf(p_id);
-    if (m_states[p_id] == SkillState::Running)
+    if (m_states[p_id] == SkillState::Stopping)
     {
-        m_skills[p_id]->cancel(context);
+        if (p_at_once)
+        {
+            finish(p_id, m_stop_states[p_id], m_stop_reasons[p_id], context.time);
+        }
+        return;
     }
-    finish(p_id, p_state, p_reason, context.time);
+    if (m_states[p_id] != SkillState::Running)
+    {
+        finish(p_id, p_state, p_reason, context.time);
+        return;
+    }
+    m_skills[p_id]->cancel(context);
+    if (p_at_once)
+    {
+        finish(p_id, p_state, p_reason, context.time);
+        return;
+    }
+    // The resources stay held until the skill says the hardware is safe.
+    m_states[p_id] = SkillState::Stopping;
+    m_stop_states[p_id] = p_state;
+    m_stop_reasons[p_id] = p_reason;
+    m_stop_since[p_id] = context.time;
+    record(p_id, context.time);
+    changed(p_id, SkillState::Stopping);
+    stopping(p_id);
+}
+
+void SkillScheduler::stopping(SkillId p_id)
+{
+    RobotContext& context = contextOf(p_id);
+    Status const status = m_skills[p_id]->stopping(context, context.dt);
+    bool const late = context.time - m_stop_since[p_id] >=
+                      m_descriptions[p_id].stop_timeout;
+    if (status == Status::RUNNING && !late)
+    {
+        record(p_id, context.time);
+        return;
+    }
+    if (status == Status::RUNNING && m_runs[p_id] >= 0)
+    {
+        m_trace[static_cast<std::size_t>(m_runs[p_id])].forced = true;
+    }
+    finish(p_id, m_stop_states[p_id], m_stop_reasons[p_id], context.time);
 }
 
 bool SkillScheduler::victims(SkillId p_by, ResourceId& p_blocker)
@@ -369,8 +423,16 @@ bool SkillScheduler::victims(SkillId p_by, ResourceId& p_blocker)
     Priority const priority = m_descriptions[p_by].priority;
     auto preemptible = [&](OwnerId p_victim)
     {
-        return p_victim < m_skills.size() && p_victim != p_by &&
-               m_states[p_victim] == SkillState::Running &&
+        if (p_victim >= m_skills.size() || p_victim == p_by)
+        {
+            return false;
+        }
+        // A stopping skill gives its resources back soon, whoever waits.
+        if (m_states[p_victim] == SkillState::Stopping)
+        {
+            return true;
+        }
+        return m_states[p_victim] == SkillState::Running &&
                m_descriptions[p_victim].cancellable &&
                m_descriptions[p_victim].priority < priority;
     };
@@ -478,6 +540,7 @@ void SkillScheduler::admit(SkillId p_id)
 
     // Preemption is all or nothing: the victims are stopped only when every
     // holder of every conflict can be preempted.
+    // An urgent skill (Stop) stops them at once; the others let them stop.
     ResourceId blocker = NO_RESOURCE;
     if (m_resources.conflict(description.resources))
     {
@@ -485,8 +548,22 @@ void SkillScheduler::admit(SkillId p_id)
         {
             for (Victim const& victim : m_victims)
             {
-                m_blockers[victim.skill] = victim.resource;
-                stop(victim.skill, SkillState::Cancelled, SkillReason::Preempted);
+                if (m_states[victim.skill] == SkillState::Running)
+                {
+                    m_blockers[victim.skill] = victim.resource;
+                }
+                stop(victim.skill,
+                     SkillState::Cancelled,
+                     SkillReason::Preempted,
+                     description.urgent);
+            }
+            if (m_resources.conflict(description.resources))
+            {
+                // Some victims are still stopping: wait for them.
+                m_blockers[p_id] = m_victims.front().resource;
+                m_reasons[p_id] = SkillReason::Preempting;
+                record(p_id, now);
+                return;
             }
         }
     }
@@ -532,14 +609,27 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
     {
         if (m_cancels[id] != 0U)
         {
-            stop(id, SkillState::Cancelled, SkillReason::Cancelled);
+            bool const at_once = m_cancels[id] == 2U;
+            m_cancels[id] = 0U;
+            stop(id, SkillState::Cancelled, SkillReason::Cancelled, at_once);
         }
     }
 
-    // Runs whose resources failed.
+    // Stopping runs that were not stopped above: are they safe now?
     for (SkillId id = 0; id < m_skills.size(); ++id)
     {
-        if (m_states[id] != SkillState::Running)
+        if (m_states[id] == SkillState::Stopping &&
+            m_stop_since[id] < contextOf(id).time)
+        {
+            stopping(id);
+        }
+    }
+
+    // Runs whose resources failed, stopping or not.
+    for (SkillId id = 0; id < m_skills.size(); ++id)
+    {
+        if (m_states[id] != SkillState::Running &&
+            m_states[id] != SkillState::Stopping)
         {
             continue;
         }
@@ -548,8 +638,9 @@ void SkillScheduler::update(std::span<RobotContext> p_contexts)
         {
             if (!m_resources.available(requirement.id))
             {
+                // The resource is gone: no stopping phase can use it.
                 m_blockers[id] = requirement.id;
-                stop(id, SkillState::Failed, SkillReason::ResourceLost);
+                stop(id, SkillState::Failed, SkillReason::ResourceLost, true);
                 break;
             }
         }

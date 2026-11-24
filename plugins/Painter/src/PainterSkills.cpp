@@ -118,6 +118,7 @@ private:
             case robotik::SkillState::Idle:
             case robotik::SkillState::Waiting:
             case robotik::SkillState::Running:
+            case robotik::SkillState::Stopping:
                 return bt::Status::RUNNING;
             case robotik::SkillState::Succeeded:
                 m_run = robotik::NO_RUN;

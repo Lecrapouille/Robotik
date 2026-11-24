@@ -96,6 +96,7 @@ static void skillEvents(robotik::Simulation const& p_simulation,
             case robotik::SkillState::Idle:
                 continue;
             case robotik::SkillState::Running:
+            case robotik::SkillState::Stopping:
             case robotik::SkillState::Succeeded:
             case robotik::SkillState::Failed:
             case robotik::SkillState::Cancelled:
@@ -110,8 +111,9 @@ static void skillEvents(robotik::Simulation const& p_simulation,
         {
             add(start, false, ORANGE, name + " starts");
         }
-        // Still running: no end yet.
-        if (run.state == robotik::SkillState::Running)
+        // Still running or stopping: no end yet.
+        if (run.state == robotik::SkillState::Running ||
+            run.state == robotik::SkillState::Stopping)
         {
             continue;
         }
@@ -144,6 +146,7 @@ static void skillEvents(robotik::Simulation const& p_simulation,
             case robotik::SkillState::Idle:
             case robotik::SkillState::Waiting:
             case robotik::SkillState::Running:
+            case robotik::SkillState::Stopping:
                 break;
         }
     }

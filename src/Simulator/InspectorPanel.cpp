@@ -264,6 +264,9 @@ static void skillView(App& p_app, robotik::SkillId p_id)
         case robotik::SkillState::Waiting:
             sentence(ORANGE, "Waiting. " + why);
             break;
+        case robotik::SkillState::Stopping:
+            sentence(ORANGE, "Stopping: it keeps its resources until it is safe.");
+            break;
         case robotik::SkillState::Failed:
             sentence(RED, "Failed. " + why);
             break;
@@ -807,6 +810,7 @@ static void overview(App& p_app)
         switch (skills.state(id))
         {
             case robotik::SkillState::Running:
+            case robotik::SkillState::Stopping:
                 running.push_back(id);
                 break;
             case robotik::SkillState::Waiting:

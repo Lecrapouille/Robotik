@@ -89,6 +89,12 @@ struct SkillDescription
     bool wait = true;
     /// False forbids preemption by a higher priority skill.
     bool cancellable = true;
+    /// True for an emergency skill (Stop): the skills it preempts end at
+    /// once, without their @ref Skill::stopping phase, so it never waits.
+    bool urgent = false;
+    /// Longest @ref Skill::stopping phase; after it the run ends anyway and
+    /// the trace says the stop was forced.
+    Seconds stop_timeout{ 1.0 };
     /// Conditions checked before the start.
     std::vector<Precondition> preconditions{};
     /// Id of the robot the skill drives (world entity); empty: the first
@@ -161,6 +167,22 @@ public:
     virtual void cancel(RobotContext& /*p_context*/)
     {
         /* no-op */
+    }
+
+    // -------------------------------------------------------------------------
+    /// Called after @ref cancel, at once then at every update, while the
+    /// run is @c Stopping: the skill keeps its resources until the hardware
+    /// is safe (an arm slowing down, a gripper that opens). Not called after
+    /// a lost resource, a reset or an urgent preemption: the run ends at
+    /// once there.
+    /// @param p_context Robot API and beliefs of this tick.
+    /// @param p_dt Duration of the tick.
+    /// @return @ref Status::RUNNING while stopping; anything else ends the
+    ///   run. The default stops at once.
+    // -------------------------------------------------------------------------
+    virtual Status stopping(RobotContext& /*p_context*/, Seconds /*p_dt*/)
+    {
+        return Status::SUCCESS;
     }
 
     // -------------------------------------------------------------------------
